@@ -1,0 +1,709 @@
+const express = require("express");
+const router = express.Router();
+
+/* =====================================================
+   MIDDLEWARE
+===================================================== */
+
+const {
+  authenticateOwner,
+  authenticateCustomer,
+  authenticateAdmin
+} = require("../middleware/authMiddleware");
+
+const {
+  validatePaginationParams,
+  validateObjectId,
+  rateLimiter,
+  asyncHandler
+} = require("../middleware/validationMiddleware");
+
+const multer = require("multer");
+const multerUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
+/* =====================================================
+   SAFE CONTROLLER LOADER
+===================================================== */
+
+const safeRequire = (path) => {
+  try {
+    return require(path);
+  } catch (error) {
+    console.error(`❌ Failed to load controller: ${path}`);
+    console.error(error);
+    return {};
+  }
+};
+
+/* =====================================================
+   CONTROLLERS
+===================================================== */
+
+const ownerAuthController = safeRequire("../controllers/auth/ownerAuthController");
+const customerAuthController = safeRequire("../controllers/auth/customerAuthController");
+
+const salonController = safeRequire("../controllers/owner/salonController");
+const serviceController = safeRequire("../controllers/owner/serviceController");
+
+const bookingController = safeRequire("../controllers/customer/bookingController");
+
+const barberController = safeRequire("../controllers/owner/barberReviewProfileAnalytics");
+
+const salonApprovalController = safeRequire("../controllers/admin/salonApprovalController");
+const adminAuthController = safeRequire("../controllers/admin/adminAuthController");
+const adminManagementController = safeRequire("../controllers/admin/adminManagementController");
+
+/* =====================================================
+   MODELS (for inline public handlers)
+===================================================== */
+const Salon    = require("../models/Salon");
+const Service  = require("../models/Service");
+const Review   = require("../models/Review");
+const Customer = require("../models/Customer");
+
+/* =====================================================
+   EXTRA ROUTES (MERGED OWNER ROUTES)
+===================================================== */
+
+/* =====================================================
+   PUBLIC SALON ROUTES (no auth required)
+===================================================== */
+
+// GET /public/salons?sort=booked|rated&city=&q=&page=&limit=
+// Escape special regex characters to prevent ReDoS attacks
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+router.get("/public/salons", asyncHandler(async (req, res) => {
+  const { q, city, page = 1, limit = 20, sort } = req.query;
+  const query = { isApproved: true, isActive: true };
+  if (city) query.city = { $regex: escapeRegex(String(city).slice(0, 100)), $options: "i" };
+  if (q) {
+    const safeQ = escapeRegex(String(q).slice(0, 100));
+    query.$or = [
+      { name:    { $regex: safeQ, $options: "i" } },
+      { city:    { $regex: safeQ, $options: "i" } },
+      { address: { $regex: safeQ, $options: "i" } },
+    ];
+  }
+  const sortOrder = sort === "rated"
+    ? { averageRating: -1, totalReviews: -1 }
+    : { totalBookings: -1, averageRating: -1 }; // default: booked
+  const skip = (Number(page) - 1) * Number(limit);
+  const salons = await Salon.find(query)
+    .select("name address city phone photos logo coverPhoto averageRating totalReviews totalBookings workingHours category isApproved location")
+    .sort(sortOrder)
+    .skip(skip)
+    .limit(Number(limit))
+    .lean();
+  const total = await Salon.countDocuments(query);
+  res.json({ success: true, data: { salons, total } });
+}));
+
+// GET /public/salons/nearby?latitude=&longitude=&sort=booked|rated|nearby
+// Always within 5 km radius only
+router.get("/public/salons/nearby", asyncHandler(async (req, res) => {
+  const { latitude, longitude, sort } = req.query;
+  if (!latitude || !longitude) {
+    return res.status(400).json({ success: false, message: "latitude and longitude are required" });
+  }
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+
+  const sortMap = {
+    rated:  { averageRating: -1, totalReviews: -1, distance: 1 },
+    nearby: { distance: 1 },
+    booked: { totalBookings: -1, averageRating: -1, distance: 1 },
+  };
+  const sortOrder = sortMap[sort] || sortMap.booked;
+
+  const salons = await Salon.aggregate([
+    {
+      $geoNear: {
+        near: { type: "Point", coordinates: [lng, lat] },
+        distanceField: "distance",
+        maxDistance: 5000, // strict 5 km
+        spherical: true,
+        query: { isApproved: true, isActive: true },
+      },
+    },
+    { $sort: sortOrder },
+    { $limit: 30 },
+    {
+      $project: {
+        name: 1, address: 1, city: 1, phone: 1, photos: 1, logo: 1, coverPhoto: 1,
+        averageRating: 1, totalReviews: 1, totalBookings: 1,
+        workingHours: 1, category: 1, location: 1, isApproved: 1, distance: 1,
+      },
+    },
+  ]);
+
+  res.json({ success: true, data: { salons, count: salons.length } });
+}));
+
+// GET /public/salons/:salonId
+router.get("/public/salons/:salonId", validateObjectId("salonId"), asyncHandler(async (req, res) => {
+  const salon = await Salon.findById(req.params.salonId).lean();
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+  if (!salon.isApproved) return res.status(403).json({ success: false, message: "Salon not approved" });
+  res.json({ success: true, data: salon });
+}));
+
+// GET /public/salons/:salonId/services
+router.get("/public/salons/:salonId/services", validateObjectId("salonId"), asyncHandler(async (req, res) => {
+  const services = await Service.find({ salonId: req.params.salonId, isActive: true })
+    .select("name description category basePrice duration applicableFor photos averageRating")
+    .sort({ basePrice: 1 })
+    .lean();
+  res.json({ success: true, data: { services } });
+}));
+
+// GET /public/salons/:salonId/reviews
+router.get("/public/salons/:salonId/reviews", validateObjectId("salonId"), asyncHandler(async (req, res) => {
+  const reviews = await Review.find({ salonId: req.params.salonId, isPublished: true, isHidden: false })
+    .sort({ createdAt: -1 })
+    .limit(50)
+    .lean();
+  res.json({ success: true, data: { reviews } });
+}));
+
+// GET /public/salons/:salonId/booked-slots?date=YYYY-MM-DD&duration=N
+router.get("/public/salons/:salonId/booked-slots", validateObjectId("salonId"), asyncHandler(async (req, res) => {
+  const { date, duration } = req.query;
+  if (!date) return res.status(400).json({ success: false, message: "date is required" });
+
+  const serviceDuration = Math.max(5, parseInt(duration) || 30);
+
+  const Booking = require("../models/Booking");
+
+  const timeToMinutes = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+  const minutesToTime = (m) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+
+  // Get salon working hours for the selected day
+  const salon = await Salon.findById(req.params.salonId).select("workingHours").lean();
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+
+  const DAY_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  // Parse date at local noon to avoid UTC midnight flipping the day
+  const dayName  = DAY_NAMES[new Date(date + "T12:00:00").getDay()];
+  const dayHours = salon.workingHours?.[dayName];
+
+  // Salon is closed on this day
+  if (!dayHours || dayHours.isClosed) {
+    return res.json({ success: true, data: { slots: [], blockedSlots: [], closedDay: true } });
+  }
+
+  const parseMinutes = (t, fallback) => {
+    if (!t || typeof t !== "string") return fallback;
+    const [hStr, mStr] = t.split(":");
+    const h = parseInt(hStr, 10);
+    const m = parseInt(mStr, 10);
+    if (isNaN(h) || isNaN(m)) return fallback;
+    return h * 60 + m;
+  };
+
+  const openMin  = parseMinutes(dayHours.open,  9 * 60);
+  const closeMin = parseMinutes(dayHours.close, 18 * 60);
+
+  // Misconfigured hours — treat as closed
+  if (openMin >= closeMin) {
+    return res.json({ success: true, data: { slots: [], blockedSlots: [], closedDay: true } });
+  }
+
+  // Generate every slot of `serviceDuration` minutes that fits before closing time
+  const slots = [];
+  for (let t = openMin; t + serviceDuration <= closeMin; t += serviceDuration) {
+    slots.push(minutesToTime(t));
+  }
+
+  // Fetch existing bookings for this day
+  // Use $or to handle: Date objects (range), noon-UTC stored dates, and legacy string dates
+  const dayStart = new Date(date + "T00:00:00.000Z");
+  const dayEnd   = new Date(date + "T23:59:59.999Z");
+
+  const bookings = await Booking.find({
+    salonId: req.params.salonId,
+    appointmentDate: { $gte: dayStart, $lte: dayEnd },
+    status: { $in: ["pending", "confirmed", "in_progress"] },
+  }).select("appointmentTime estimatedDuration").lean();
+
+  // A generated slot is blocked if it overlaps with any existing booking
+  const blockedSlots = new Set();
+  for (const slot of slots) {
+    const slotStart = timeToMinutes(slot);
+    const slotEnd   = slotStart + serviceDuration;
+    for (const b of bookings) {
+      const bookStart = timeToMinutes(b.appointmentTime);
+      const bookEnd   = bookStart + (b.estimatedDuration || 30);
+      if (slotStart < bookEnd && bookStart < slotEnd) {
+        blockedSlots.add(slot);
+        break;
+      }
+    }
+  }
+
+  res.json({ success: true, data: { slots, blockedSlots: Array.from(blockedSlots), closedDay: false } });
+}));
+
+/* =====================================================
+   CUSTOMER AUTH ROUTES
+===================================================== */
+
+router.post("/customer/auth/send-otp",
+  rateLimiter(5, 900000),
+  asyncHandler(customerAuthController.sendOTPToPhone)
+);
+
+router.post("/customer/auth/verify-otp",
+  rateLimiter(10, 900000),
+  asyncHandler(customerAuthController.verifyOTPOnly)
+);
+
+router.post("/customer/auth/register",
+  rateLimiter(5, 900000),
+  asyncHandler(customerAuthController.verifyOTPAndRegister)
+);
+
+router.post("/customer/auth/login",
+  rateLimiter(10, 900000),
+  asyncHandler(customerAuthController.loginWithPhone)
+);
+
+router.get("/customer/auth/me",
+  authenticateCustomer,
+  asyncHandler(customerAuthController.getCurrentCustomer)
+);
+
+router.put("/customer/auth/me",
+  authenticateCustomer,
+  asyncHandler(customerAuthController.updateProfile)
+);
+
+router.post("/customer/auth/change-password",
+  authenticateCustomer,
+  asyncHandler(customerAuthController.changePassword)
+);
+
+router.post("/customer/auth/refresh-token",
+  asyncHandler(customerAuthController.refreshToken)
+);
+
+router.post("/customer/auth/logout",
+  authenticateCustomer,
+  asyncHandler(customerAuthController.logout)
+);
+
+/* =====================================================
+   CUSTOMER BOOKING ROUTES
+===================================================== */
+
+router.post("/customer/bookings",
+  authenticateCustomer,
+  asyncHandler(bookingController.createBooking)
+);
+
+router.get("/customer/bookings",
+  authenticateCustomer,
+  validatePaginationParams,
+  asyncHandler(bookingController.getMyBookings)
+);
+
+router.get("/customer/bookings/:bookingId",
+  authenticateCustomer,
+  validateObjectId("bookingId"),
+  asyncHandler(bookingController.getBookingDetails)
+);
+
+router.post("/customer/bookings/:bookingId/cancel",
+  authenticateCustomer,
+  validateObjectId("bookingId"),
+  asyncHandler(bookingController.cancelBooking)
+);
+
+/* =====================================================
+   CUSTOMER FAVOURITES ROUTES
+===================================================== */
+
+// POST /customer/favorites/:salonId — toggle like (add if not saved, remove if already saved)
+router.post("/customer/favorites/:salonId",
+  authenticateCustomer,
+  validateObjectId("salonId"),
+  asyncHandler(async (req, res) => {
+    const customer = await Customer.findById(req.customer._id);
+    if (!customer) return res.status(404).json({ success: false, message: "Customer not found" });
+    const salonId  = req.params.salonId;
+    const already  = customer.preferredSalons.some(id => id.toString() === salonId);
+
+    if (already) {
+      await customer.removeFavoriteSalon(salonId);
+      return res.json({ success: true, liked: false, message: "Removed from favourites" });
+    }
+
+    await customer.saveFavoriteSalon(salonId);
+    res.json({ success: true, liked: true, message: "Added to favourites" });
+  })
+);
+
+// GET /customer/favorites — return all liked salons
+router.get("/customer/favorites",
+  authenticateCustomer,
+  asyncHandler(async (req, res) => {
+    const customer = await Customer.findById(req.customer._id).populate(
+      "preferredSalons",
+      "name address city photos logo averageRating totalReviews category isApproved"
+    );
+    res.json({ success: true, data: { salons: customer.preferredSalons } });
+  })
+);
+
+/* =====================================================
+   OWNER AUTH ROUTES
+===================================================== */
+
+router.post(
+  "/owner/auth/send-otp",
+  rateLimiter(5, 900000),
+  asyncHandler(ownerAuthController.sendOTP)
+);
+
+router.post(
+  "/owner/auth/verify-otp",
+  rateLimiter(10, 900000),
+  asyncHandler(ownerAuthController.verifyOTP)
+);
+
+router.post(
+  "/owner/auth/register",
+  rateLimiter(5, 900000),
+  asyncHandler(ownerAuthController.verifyOTPAndRegister)
+);
+
+router.post(
+  "/owner/auth/login",
+  rateLimiter(5, 900000),
+  asyncHandler(ownerAuthController.login)
+);
+
+router.post(
+  "/owner/auth/refresh-token",
+  rateLimiter(10, 900000),
+  asyncHandler(ownerAuthController.refreshToken)
+);
+
+router.post(
+  "/owner/auth/logout",
+  authenticateOwner,
+  asyncHandler(ownerAuthController.logout)
+);
+
+router.get(
+  "/owner/auth/me",
+  authenticateOwner,
+  asyncHandler(ownerAuthController.getCurrentOwner)
+);
+
+router.put(
+  "/owner/auth/me",
+  authenticateOwner,
+  asyncHandler(ownerAuthController.updateProfile)
+);
+
+router.post(
+  "/owner/auth/change-password",
+  authenticateOwner,
+  asyncHandler(ownerAuthController.changePassword)
+);
+
+router.post(
+  "/owner/auth/delete-account",
+  asyncHandler(ownerAuthController.deleteAccount)
+);
+
+/* =====================================================
+   OWNER SALON ROUTES (CONTROLLER)
+===================================================== */
+
+router.post(
+  "/owner/salon",
+  authenticateOwner,
+  asyncHandler(salonController.createSalon)
+);
+
+router.get(
+  "/owner/salon",
+  authenticateOwner,
+  asyncHandler(salonController.getMySalon)
+);
+
+router.put(
+  "/owner/salon",
+  authenticateOwner,
+  asyncHandler(salonController.updateSalon)
+);
+
+router.post(
+  "/owner/salon/upload-photos",
+  authenticateOwner,
+  multerUpload.array("photos", 10),
+  asyncHandler(salonController.uploadSalonPhotos)
+);
+
+router.put(
+  "/owner/salon/photos",
+  authenticateOwner,
+  asyncHandler(salonController.updateSalonPhotos)
+);
+
+router.get(
+  "/owner/salon/approval-status",
+  authenticateOwner,
+  asyncHandler(salonController.getApprovalStatus)
+);
+
+/* =====================================================
+   OWNER SERVICE ROUTES
+===================================================== */
+
+router.post(
+  "/owner/services",
+  authenticateOwner,
+  asyncHandler(serviceController.createService)
+);
+
+router.get(
+  "/owner/services",
+  authenticateOwner,
+  asyncHandler(serviceController.getSalonServices)
+);
+
+router.put(
+  "/owner/services/:serviceId",
+  authenticateOwner,
+  validateObjectId("serviceId"),
+  asyncHandler(serviceController.updateService)
+);
+
+router.delete(
+  "/owner/services/:serviceId",
+  authenticateOwner,
+  validateObjectId("serviceId"),
+  asyncHandler(serviceController.deleteService)
+);
+
+/* =====================================================
+   OWNER BOOKING ROUTES
+===================================================== */
+
+router.get("/owner/bookings", authenticateOwner, validatePaginationParams, asyncHandler(async (req, res) => {
+  const Booking = require("../models/Booking");
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+
+  const { status, date, page = 1, limit = 20 } = req.query;
+  const query = { salonId: salon._id };
+  if (status && status !== "all") query.status = status;
+  if (date) {
+    query.appointmentDate = {
+      $gte: new Date(date + "T00:00:00.000Z"),
+      $lte: new Date(date + "T23:59:59.999Z"),
+    };
+  }
+
+  const p = Math.max(1, parseInt(page));
+  const l = Math.min(50, Math.max(1, parseInt(limit)));
+  const bookings = await Booking.find(query).sort({ createdAt: -1 }).skip((p - 1) * l).limit(l).lean();
+  const total = await Booking.countDocuments(query);
+
+  res.json({ success: true, data: { bookings, total, page: p, limit: l } });
+}));
+
+router.post("/owner/bookings", authenticateOwner, asyncHandler(async (req, res) => {
+  const Booking = require("../models/Booking");
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+
+  const { customerName, customerPhone, serviceId, appointmentDate, appointmentTime } = req.body;
+  if (!customerName?.trim())   return res.status(400).json({ success: false, message: "Customer name is required" });
+  if (!customerPhone?.trim())  return res.status(400).json({ success: false, message: "Customer phone is required" });
+  if (!serviceId)              return res.status(400).json({ success: false, message: "Service is required" });
+  if (!appointmentDate)        return res.status(400).json({ success: false, message: "Appointment date is required" });
+  if (!appointmentTime)        return res.status(400).json({ success: false, message: "Appointment time is required" });
+
+  const service = await Service.findOne({ _id: serviceId, salonId: salon._id, isActive: true });
+  if (!service) return res.status(404).json({ success: false, message: "Service not found" });
+
+  const timeToMinutes = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+  const dayStart = new Date(appointmentDate + "T00:00:00.000Z");
+  const dayEnd   = new Date(appointmentDate + "T23:59:59.999Z");
+
+  const existingBookings = await Booking.find({
+    salonId: salon._id,
+    appointmentDate: { $gte: dayStart, $lte: dayEnd },
+    status: { $in: ["pending", "confirmed", "in_progress"] },
+  }).select("appointmentTime estimatedDuration").lean();
+
+  const newStart = timeToMinutes(appointmentTime);
+  const newEnd   = newStart + service.duration;
+
+  for (const b of existingBookings) {
+    const bStart = timeToMinutes(b.appointmentTime);
+    const bEnd   = bStart + (b.estimatedDuration || 30);
+    if (newStart < bEnd && bStart < newEnd) {
+      return res.status(409).json({ success: false, message: "This time slot is already booked" });
+    }
+  }
+
+  const booking = await Booking.create({
+    isWalkIn:         true,
+    salonId:          salon._id,
+    salonName:        salon.name,
+    serviceId:        service._id,
+    serviceName:      service.name,
+    customerName:     customerName.trim(),
+    customerPhone:    customerPhone.trim(),
+    appointmentDate:  new Date(appointmentDate + "T12:00:00.000Z"),
+    appointmentTime,
+    estimatedDuration: service.duration,
+    servicePrice:     service.basePrice,
+    totalAmount:      service.basePrice,
+    status:           "confirmed",
+    paymentMethod:    "cash",
+    paymentStatus:    "completed",
+    confirmedAt:      new Date(),
+  });
+
+  res.status(201).json({ success: true, data: booking });
+}));
+
+router.put("/owner/bookings/:bookingId", authenticateOwner, validateObjectId("bookingId"), asyncHandler(async (req, res) => {
+  const Booking = require("../models/Booking");
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+
+  const booking = await Booking.findOne({ _id: req.params.bookingId, salonId: salon._id });
+  if (!booking) return res.status(404).json({ success: false, message: "Booking not found" });
+
+  const { status } = req.body;
+  if (!["confirmed", "completed", "cancelled", "in_progress"].includes(status)) {
+    return res.status(400).json({ success: false, message: "Invalid status" });
+  }
+
+  booking.status = status;
+  if (status === "confirmed")   booking.confirmedAt  = new Date();
+  if (status === "completed")   booking.completedAt  = new Date();
+  if (status === "cancelled")   booking.cancelledAt  = new Date();
+  if (status === "in_progress") booking.startedAt    = new Date();
+  await booking.save();
+
+  res.json({ success: true, data: booking });
+}));
+
+/* =====================================================
+   OWNER ANALYTICS
+===================================================== */
+
+router.get(
+  "/owner/analytics/dashboard",
+  authenticateOwner,
+  asyncHandler(barberController.getDashboardAnalytics)
+);
+
+router.get(
+  "/owner/analytics/booking-stats",
+  authenticateOwner,
+  asyncHandler(barberController.getBookingStats)
+);
+
+/* =====================================================
+   CUSTOMER AUTH - ADDITIONAL LOGIN METHODS
+===================================================== */
+
+router.post(
+  "/customer/auth/login-phone",
+  rateLimiter(5, 900000),
+  asyncHandler(customerAuthController.loginWithPhone)
+);
+
+router.post(
+  "/customer/auth/login-email",
+  rateLimiter(5, 900000),
+  asyncHandler(customerAuthController.loginWithEmail)
+);
+
+/* =====================================================
+   ADMIN AUTH
+===================================================== */
+
+router.post("/admin/auth/setup", asyncHandler(adminAuthController.setupAdmin));
+router.post("/admin/auth/login", asyncHandler(adminAuthController.loginAdmin));
+router.get("/admin/auth/me", authenticateAdmin, asyncHandler(adminAuthController.getMe));
+
+/* =====================================================
+   ADMIN MANAGEMENT
+===================================================== */
+
+router.get("/admin/dashboard", authenticateAdmin, asyncHandler(adminManagementController.getDashboardStats));
+router.get("/admin/owners", authenticateAdmin, asyncHandler(adminManagementController.getAllOwners));
+router.get("/admin/salons/all", authenticateAdmin, asyncHandler(adminManagementController.getAllSalons));
+router.get("/admin/salons/filter-options", authenticateAdmin, asyncHandler(adminManagementController.getFilterOptions));
+router.get("/admin/salons/:salonId/detail", authenticateAdmin, asyncHandler(adminManagementController.getSalonDetail));
+router.put("/admin/salons/:salonId/toggle", authenticateAdmin, asyncHandler(adminManagementController.toggleSalonActive));
+
+/* =====================================================
+   ADMIN SALON APPROVAL
+===================================================== */
+
+router.get(
+  "/admin/salons/pending",
+  authenticateAdmin,
+  validatePaginationParams,
+  asyncHandler(salonApprovalController.getPendingSalons)
+);
+
+router.post(
+  "/admin/salons/:salonId/approve",
+  authenticateAdmin,
+  validateObjectId("salonId"),
+  asyncHandler(salonApprovalController.approveSalon)
+);
+
+router.post(
+  "/admin/salons/:salonId/reject",
+  authenticateAdmin,
+  validateObjectId("salonId"),
+  asyncHandler(salonApprovalController.rejectSalon)
+);
+
+/* =====================================================
+   MERGED OWNER ROUTES
+===================================================== */
+
+
+/* =====================================================
+   HEALTH CHECK
+===================================================== */
+
+router.get("/health", (req, res) => {
+
+  res.json({
+    status: "OK",
+    message: "Server running",
+    timestamp: new Date().toISOString()
+  });
+
+});
+
+/* =====================================================
+   ROUTE NOT FOUND
+===================================================== */
+
+router.use((req, res) => {
+
+  res.status(404).json({
+    success: false,
+    message: "API endpoint not found",
+    path: req.originalUrl
+  });
+
+});
+
+module.exports = router;
