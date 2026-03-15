@@ -5,8 +5,8 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Alert from '../../components/common/Alert';
-import ServiceCard from '../../components/services/ServiceCard';
-import ServiceModal from '../../components/services/ServiceModal';
+import ServiceCard from '../../components/Services/ServiceCard';
+import ServiceModal from '../../components/Services/ServiceModal';
 import { useSalon } from '../../hooks/useSalon';
 
 /**
