@@ -157,7 +157,7 @@ if (process.env.NODE_ENV !== "test") {
    GLOBAL RATE LIMIT
 ============================================================ */
 
-app.use("/api/", rateLimiter(100, 900000));
+app.use("/api/", rateLimiter(500, 900000));
 
 /* ============================================================
    HEALTH CHECK
