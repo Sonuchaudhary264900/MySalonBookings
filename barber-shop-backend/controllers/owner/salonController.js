@@ -321,6 +321,20 @@ exports.updateSalonPhotos = async (req, res) => {
     }
 
     if (photos && Array.isArray(photos)) {
+      // Find photos that were removed and delete them from Cloudinary
+      const removedPhotos = (salon.photos || []).filter(url => !photos.includes(url));
+      if (removedPhotos.length > 0) {
+        await Promise.allSettled(
+          removedPhotos.map(url => {
+            // Extract public_id from Cloudinary URL
+            const parts = url.split('/');
+            const fileWithExt = parts[parts.length - 1];
+            const folder = parts[parts.length - 2];
+            const publicId = `${folder}/${fileWithExt.split('.')[0]}`;
+            return cloudinary.uploader.destroy(publicId);
+          })
+        );
+      }
       salon.photos = photos.slice(0, 10);
     }
 
