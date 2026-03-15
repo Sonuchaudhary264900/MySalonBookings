@@ -1,17 +1,6 @@
-import React from 'react';
-import { FileText } from 'lucide-react';
-import FileUpload from './FileUpload';
-import FilePreview from './FilePreview';
+import React, { useRef } from 'react';
+import { FileText, X, Upload } from 'lucide-react';
 
-/**
- * DocumentUpload Component
- * 
- * Features:
- * - Single/multiple document upload
- * - PDF, JPG, PNG support
- * - File preview
- * - Remove option
- */
 const DocumentUpload = ({
   documents = [],
   onDocumentsChange,
@@ -20,19 +9,23 @@ const DocumentUpload = ({
   multiple = false,
   disabled = false,
 }) => {
-  const handleDocumentsSelect = (newDocs) => {
+  const inputRef = useRef(null);
+
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
     if (multiple) {
-      const combined = [...documents, ...newDocs];
-      onDocumentsChange(combined);
+      onDocumentsChange([...documents, ...files]);
     } else {
-      onDocumentsChange(newDocs);
+      onDocumentsChange(files);
     }
+    e.target.value = '';
   };
 
-  const handleRemoveDocument = (index) => {
+  const handleRemove = (index) => {
     if (multiple) {
-      const updated = documents.filter((_, i) => i !== index);
-      onDocumentsChange(updated);
+      onDocumentsChange(documents.filter((_, i) => i !== index));
     } else {
       onDocumentsChange([]);
     }
@@ -40,33 +33,62 @@ const DocumentUpload = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-2">
         <FileText className="w-5 h-5 text-green-600" />
         <h3 className="font-semibold text-gray-900">{label}</h3>
       </div>
 
-      {/* Upload Component */}
-      <FileUpload
-        onFileSelect={handleDocumentsSelect}
-        acceptedTypes="application/pdf,image/jpeg,image/png"
-        maxSize={20 * 1024 * 1024} // 20MB
-        multiple={multiple}
-        label={label}
-        disabled={disabled}
-        description={description || 'PDF, JPG, PNG • Up to 20MB'}
-      />
+      {/* Drop zone */}
+      <div
+        onClick={() => !disabled && inputRef.current?.click()}
+        className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+          disabled
+            ? 'border-gray-200 bg-gray-50 cursor-not-allowed'
+            : 'border-gray-300 hover:border-green-400 hover:bg-green-50'
+        }`}
+      >
+        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+        <p className="text-sm text-gray-600">{label}</p>
+        <p className="text-xs text-gray-400 mt-1">
+          {description || 'PDF, JPG, PNG • Up to 20MB'}
+        </p>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="application/pdf,image/jpeg,image/png"
+          multiple={multiple}
+          disabled={disabled}
+          onChange={handleFileChange}
+          className="hidden"
+        />
+      </div>
 
-      {/* Preview */}
+      {/* Preview list */}
       {documents.length > 0 && (
-        <div>
-          <p className="text-sm font-medium text-gray-700 mb-3">
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-gray-700">
             {documents.length} document{documents.length !== 1 ? 's' : ''} selected
           </p>
-          <FilePreview
-            files={documents}
-            onRemove={handleRemoveDocument}
-            type="document"
-          />
+          {documents.map((file, i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-3 py-2"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <FileText className="w-4 h-4 text-gray-500 shrink-0" />
+                <span className="text-sm text-gray-700 truncate">
+                  {file.name || `Document ${i + 1}`}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleRemove(i)}
+                className="ml-2 text-gray-400 hover:text-red-500 shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
         </div>
       )}
     </div>
