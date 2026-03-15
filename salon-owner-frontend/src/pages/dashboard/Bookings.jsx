@@ -9,11 +9,11 @@ import { formatDate, formatTime } from '../../utils/exportHelpers';
 const STATUS_FILTERS = ['all', 'pending', 'confirmed', 'in_progress', 'completed', 'cancelled'];
 
 const STATUS_STYLES = {
-  confirmed:   'bg-green-100 text-green-800',
-  pending:     'bg-yellow-100 text-yellow-800',
-  completed:   'bg-blue-100 text-blue-800',
-  cancelled:   'bg-red-100 text-red-800',
-  in_progress: 'bg-purple-100 text-purple-800',
+  confirmed:   'bg-green-600 text-white',
+  pending:     'bg-yellow-500 text-white',
+  completed:   'bg-blue-600 text-white',
+  cancelled:   'bg-red-600 text-white',
+  in_progress: 'bg-purple-600 text-white',
 };
 
 const localDate = (offset = 0) => { const d = new Date(); d.setDate(d.getDate() + offset); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };

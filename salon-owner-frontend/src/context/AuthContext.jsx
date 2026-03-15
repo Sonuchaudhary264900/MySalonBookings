@@ -3,18 +3,6 @@ import API from '../services/api';
 
 export const AuthContext = createContext();
 
-// Normalize phone to +91XXXXXXXXXX and validate Indian mobile format
-const normalizeAndValidatePhone = (phone) => {
-  let digits = String(phone).replace(/\D/g, '');
-  if (digits.length === 10) digits = '91' + digits;
-  if (digits.length === 12 && digits.startsWith('91')) digits = '+' + digits;
-  else if (!String(phone).startsWith('+')) digits = '+' + digits;
-  const normalized = digits.startsWith('+') ? digits : '+' + digits;
-  if (!/^\+91[6-9]\d{9}$/.test(normalized)) {
-    throw new Error('Please enter a valid 10-digit Indian mobile number');
-  }
-  return normalized;
-};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -49,65 +37,15 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
-  // ========== SEND OTP ==========
+  // ========== REGISTER (Firebase Phone Auth) ==========
+  // firebaseToken: ID token obtained from Firebase after phone OTP verification
 
-  const sendOtp = useCallback(async (phoneNumber) => {
+  const register = useCallback(async (firebaseToken, name, email, password) => {
     try {
       setError(null);
 
-      const phone = normalizeAndValidatePhone(phoneNumber);
-      const response = await API.post('/owner/auth/send-otp', {
-        phone,
-      });
-
-      if (!response.data.success) {
-        throw new Error(response.data.message || 'Failed to send OTP');
-      }
-
-      return response.data;
-    } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to send OTP';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    }
-  }, []);
-
-  // ========== VERIFY OTP ==========
-
-  const verifyOtp = useCallback(async (phoneNumber, otp) => {
-    try {
-      setError(null);
-
-      const phone = normalizeAndValidatePhone(phoneNumber);
-      const response = await API.post('/owner/auth/verify-otp', {
-        phone,
-        otp,
-      });
-
-      if (!response.data.success) {
-        throw new Error(response.data.message || 'OTP verification failed');
-      }
-
-      // verify-otp only confirms the OTP, does NOT return token/user
-      // token is issued after the full register step
-      return response.data;
-    } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'OTP verification failed';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    }
-  }, []);
-
-  // ========== REGISTER ==========
-
-  const register = useCallback(async (phoneNumber, otp, name, email, password) => {
-    try {
-      setError(null);
-
-      const phone = normalizeAndValidatePhone(phoneNumber);
-      const response = await API.post('/owner/auth/register', {
-        phone,
-        otp,
+      const response = await API.post('/owner/auth/firebase-register', {
+        firebaseToken,
         name,
         email,
         password,
@@ -243,8 +181,6 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!user,
 
     // Methods
-    sendOtp,
-    verifyOtp,
     register,
     login,
     updateProfile,

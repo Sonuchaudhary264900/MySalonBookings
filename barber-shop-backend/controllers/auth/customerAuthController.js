@@ -19,8 +19,7 @@ const { formatSuccessResponse, formatErrorResponse } = require('../../utils/form
 const { validateCustomerRegistration, validatePhone, validateEmail } = require('../../utils/validators');
 const { generateOTP, generateReferralCode } = require('../../utils/helpers');
 const messages = require('../../utils/messages');
-const { sendOTP: sendOTPViaTwilio } = require('../../config/twilio');
-const { sendOTPEmail } = require('../../config/emailConfig');
+
 
 // ===================================================
 // SEND OTP TO PHONE
@@ -59,14 +58,6 @@ exports.sendOTPToPhone = async (req, res) => {
       expiresAt: new Date(Date.now() + 10 * 60 * 1000),
     });
 
-    // Send OTP via SMS
-    try {
-      await sendOTPViaTwilio(phone, otp);
-    } catch (error) {
-      console.error('Error sending SMS:', error);
-    }
-
-    console.log(`✅ OTP sent to ${phone}: ${otp}`);
 
     res.json(
       formatSuccessResponse(
@@ -131,7 +122,6 @@ exports.verifyOTPAndRegister = async (req, res) => {
   try {
     const { phone, otp, name, email, gender, password } = req.body;
 
-    console.log('📥 Register body:', { phone, name, email, gender, otp, passwordLen: password?.length });
 
     // Validate input
     const validation = validateCustomerRegistration({
@@ -143,7 +133,6 @@ exports.verifyOTPAndRegister = async (req, res) => {
     });
 
     if (!validation.valid) {
-      console.log('❌ Validation errors:', validation.errors);
       return res.status(400).json(
         formatErrorResponse(messages.GENERIC.VALIDATION_ERROR, 400, validation.errors)
       );
@@ -250,6 +239,90 @@ exports.verifyOTPAndRegister = async (req, res) => {
     console.error('Error verifying OTP:', error);
     res.status(500).json(
       formatErrorResponse(messages.GENERIC.ERROR, 500)
+    );
+  }
+};
+
+// ===================================================
+// FIREBASE PHONE AUTH REGISTER (CUSTOMER)
+// ===================================================
+exports.firebaseRegister = async (req, res) => {
+  try {
+    const { firebaseToken, name, email, password, gender } = req.body;
+
+    if (!firebaseToken) {
+      return res.status(400).json(
+        formatErrorResponse('Firebase token is required', 400)
+      );
+    }
+
+    // Validate fields
+    const errors = [];
+    if (!name || name.trim().length < 2) errors.push('Valid name is required');
+    if (!gender || !['male', 'female', 'other'].includes(gender)) errors.push('Valid gender is required');
+    if (!password || password.length < 6) errors.push('Password must be at least 6 characters');
+    if (email && !/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email)) errors.push('Valid email format required');
+    if (errors.length > 0) {
+      return res.status(400).json(
+        formatErrorResponse(messages.GENERIC.VALIDATION_ERROR, 400, errors)
+      );
+    }
+
+    // Verify Firebase token and extract phone
+    const { verifyFirebaseToken } = require('../../config/firebaseAdmin');
+    const firebaseUser = await verifyFirebaseToken(firebaseToken);
+    const phone = firebaseUser.phone;
+
+    // Check if customer already exists
+    const orConditions = [{ phone }];
+    if (email) orConditions.push({ email: email.toLowerCase().trim() });
+    const existingCustomer = await Customer.findOne({ $or: orConditions });
+    if (existingCustomer) {
+      return res.status(409).json(
+        formatErrorResponse('Phone or email already registered', 409)
+      );
+    }
+
+    // Create customer
+    const customer = await Customer.create({
+      phone,
+      phoneVerified: true,
+      name: name.trim(),
+      email: email ? email.toLowerCase().trim() : null,
+      gender,
+      password,
+      role: 'customer',
+    });
+
+    customer.referralCode = generateReferralCode(customer._id);
+    await customer.save();
+
+    // Generate tokens
+    const token = jwt.sign(
+      { _id: customer._id, phone: customer.phone, role: customer.role, gender: customer.gender },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRE || '24h' }
+    );
+    const refreshToken = jwt.sign(
+      { _id: customer._id },
+      process.env.JWT_REFRESH_SECRET,
+      { expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d' }
+    );
+
+    customer.refreshTokens.push({ token: refreshToken });
+    await customer.save();
+
+    res.status(201).json(
+      formatSuccessResponse(
+        { customer: customer.getPublicProfile(), token, refreshToken },
+        messages.AUTH.REGISTRATION_SUCCESS,
+        201
+      )
+    );
+  } catch (error) {
+    console.error('Error in customer firebase register:', error);
+    res.status(500).json(
+      formatErrorResponse(error.message || messages.GENERIC.ERROR, 500)
     );
   }
 };

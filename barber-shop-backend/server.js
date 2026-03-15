@@ -5,6 +5,9 @@
  * ============================================================
  */
 
+const dns = require("dns");
+dns.setServers(["8.8.8.8", "8.8.4.4"]); // Fix: ISP DNS blocks MongoDB Atlas SRV lookups
+
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
@@ -36,9 +39,9 @@ const routes = require("./routes");
 ============================================================ */
 
 const { testCloudinaryConnection } = require("./config/cloudinary");
-const { testTwilioConnection } = require("./config/twilio");
 const { testRazorpayConnection } = require("./config/razorpay");
 const { testGoogleMapsConnection } = require("./config/googleMaps");
+const { testFirebaseConnection } = require("./config/firebaseAdmin");
 
 /* ============================================================
    MIDDLEWARE
@@ -224,13 +227,6 @@ const testExternalServices = async () => {
   }
 
   try {
-    await testTwilioConnection();
-    console.log("✅ Twilio Connected");
-  } catch {
-    console.warn("⚠️ Twilio test failed");
-  }
-
-  try {
     await testRazorpayConnection();
     console.log("✅ Razorpay Connected");
   } catch {
@@ -247,6 +243,13 @@ const testExternalServices = async () => {
     }
   } catch {
     console.warn("⚠️ Google Maps test failed");
+  }
+
+  try {
+    await testFirebaseConnection();
+    console.log("✅ Firebase Connected (Phone OTP ready)");
+  } catch (err) {
+    console.warn("⚠️ Firebase test failed:", err.message);
   }
 };
 

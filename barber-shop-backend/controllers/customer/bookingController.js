@@ -10,7 +10,7 @@ const { validateBookingData, validatePagination } = require('../../utils/validat
 const { calculateRefundAmount, generateBookingId } = require('../../utils/helpers');
 const messages = require('../../utils/messages');
 
-const { sendBookingConfirmation, sendCancellationNotification } = require('../../config/twilio');
+
 const { createOrder } = require('../../config/razorpay');
 
 
@@ -150,16 +150,7 @@ const createBooking = async (req, res) => {
 
     await addToQueue(salonId, booking);
 
-    try {
-      await sendBookingConfirmation(customer.phone, {
-        salonName: salon.name,
-        serviceName: service.name,
-        appointmentDate,
-        appointmentTime
-      });
-    } catch (err) {
-      console.log("SMS error:", err.message);
-    }
+
 
     res.status(201).json(
       formatSuccessResponse(booking, messages.BOOKING.BOOKING_CREATED)

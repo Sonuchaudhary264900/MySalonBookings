@@ -20,7 +20,7 @@ import ROUTES from '../../routes';
  */
 const Login = () => {
   const navigate = useNavigate();
-  const { login, sendOtp, verifyOtp, user } = useAuth();
+  const { login, user } = useAuth();
 
   // Check if user is already logged in
   useEffect(() => {
@@ -189,12 +189,12 @@ const Login = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-indigo-800 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo & Title */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">💈 Smart Salon</h1>
-          <p className="text-gray-600">Owner Login</p>
+          <h1 className="text-4xl font-bold text-white mb-2">💈 Smart Salon</h1>
+          <p className="text-blue-100">Owner Login</p>
         </div>
 
         {/* Card */}
@@ -309,18 +309,10 @@ const Login = () => {
             </a>
           </div>
 
-          {/* Test Credentials */}
-          <div className="mt-6 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-xs text-yellow-800 mb-2">
-              <strong>Test Credentials:</strong>
-            </p>
-            <p className="text-xs text-yellow-700">Phone: +919876543210</p>
-            <p className="text-xs text-yellow-700">Password: Password@123</p>
-          </div>
         </div>
 
         {/* Footer */}
-        <div className="text-center mt-6 text-sm text-gray-600">
+        <div className="text-center mt-6 text-sm text-blue-100">
           <p>By logging in, you agree to our Terms of Service</p>
         </div>
       </div>

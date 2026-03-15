@@ -18,7 +18,6 @@ const { formatSuccessResponse, formatErrorResponse } = require('../../utils/form
 const { validateOwnerRegistration, validatePhone, validatePassword } = require('../../utils/validators');
 const { generateOTP, generateUniqueId } = require('../../utils/helpers');
 const messages = require('../../utils/messages');
-const { sendOTP: sendOTPViaTwilio } = require('../../config/twilio');
 const { sendOTPEmail } = require('../../config/emailConfig');
 
 // ===================================================
@@ -57,14 +56,6 @@ exports.sendOTP = async (req, res) => {
       userType: 'owner',
       expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
     });
-
-    // Send OTP via SMS and Email
-    try {
-      await sendOTPViaTwilio(phone, otp);
-    } catch (error) {
-      console.error('Error sending SMS:', error);
-      // Continue even if SMS fails
-    }
 
     // OTP intentionally not logged for security
 
@@ -575,6 +566,99 @@ exports.deleteAccount = async (req, res) => {
     console.error('Error deleting account:', error);
     res.status(500).json(
       formatErrorResponse(messages.GENERIC.ERROR, 500)
+    );
+  }
+};
+
+// ===================================================
+// FIREBASE PHONE AUTH REGISTER
+// ===================================================
+exports.firebaseRegister = async (req, res) => {
+  try {
+    const { firebaseToken, name, email, password } = req.body;
+
+    if (!firebaseToken) {
+      return res.status(400).json(
+        formatErrorResponse('Firebase token is required', 400)
+      );
+    }
+
+    // Validate name, email, password (phone comes from Firebase)
+    const errors = [];
+    if (!name || name.trim().length < 2) errors.push('Valid name is required');
+    if (!email || !/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email)) errors.push('Valid email is required');
+    if (!password || !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/.test(password)) {
+      errors.push('Password must be at least 8 characters with uppercase, lowercase, number, and special character');
+    }
+    if (errors.length > 0) {
+      return res.status(400).json(
+        formatErrorResponse(messages.GENERIC.VALIDATION_ERROR, 400, errors)
+      );
+    }
+
+    // Verify Firebase token and extract phone number
+    const { verifyFirebaseToken } = require('../../config/firebaseAdmin');
+    const firebaseUser = await verifyFirebaseToken(firebaseToken);
+    const phone = firebaseUser.phone;
+
+    // Check if owner already exists
+    const existingOwner = await Owner.findOne({
+      $or: [{ phone }, { email: email.toLowerCase().trim() }],
+    });
+    if (existingOwner) {
+      return res.status(409).json(
+        formatErrorResponse('Email or phone already registered', 409)
+      );
+    }
+
+    // Create owner
+    const owner = await Owner.create({
+      phone,
+      phoneVerified: true,
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      password,
+      status: 'mobile_verified',
+      role: 'owner',
+    });
+
+    // Generate JWT token
+    const token = jwt.sign(
+      {
+        _id: owner._id,
+        phone: owner.phone,
+        role: owner.role,
+        salonId: owner.salonId,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRE || '24h' }
+    );
+
+    // Generate refresh token
+    const refreshToken = jwt.sign(
+      { _id: owner._id },
+      process.env.JWT_REFRESH_SECRET,
+      { expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d' }
+    );
+
+    owner.refreshTokens.push({ token: refreshToken });
+    await owner.save();
+
+    res.status(201).json(
+      formatSuccessResponse(
+        {
+          owner: owner.getPublicProfile(),
+          token,
+          refreshToken,
+        },
+        messages.AUTH.REGISTRATION_SUCCESS,
+        201
+      )
+    );
+  } catch (error) {
+    console.error('Error in firebase register:', error);
+    res.status(500).json(
+      formatErrorResponse(error.message || messages.GENERIC.ERROR, 500)
     );
   }
 };

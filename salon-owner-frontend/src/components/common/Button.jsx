@@ -36,7 +36,7 @@ const Button = ({
   };
 
   const width = fullWidth ? 'w-full' : '';
-  const opacity = disabled || loading ? 'opacity-75' : '';
+  const opacity = loading ? 'opacity-80' : '';
 
   return (
     <button

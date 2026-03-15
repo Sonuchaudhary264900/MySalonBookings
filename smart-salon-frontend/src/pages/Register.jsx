@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
+import { auth } from "../config/firebase";
 import API from "../services/api";
 
 const STEPS = [
@@ -10,6 +12,7 @@ const STEPS = [
 
 function Register() {
   const navigate = useNavigate();
+
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -19,63 +22,96 @@ function Register() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [otpTimer, setOtpTimer] = useState(0);
+
+  const recaptchaRef = useRef(null);
+  const confirmationRef = useRef(null);
+  const firebaseTokenRef = useRef("");
+
+  // OTP countdown
+  useEffect(() => {
+    if (otpTimer <= 0) return;
+    const id = setInterval(() => setOtpTimer((t) => t - 1), 1000);
+    return () => clearInterval(id);
+  }, [otpTimer]);
 
   const normalizePhone = (p) => {
-    let c = p.replace(/\D/g, "");
-    if (c.length === 10) c = "91" + c;
+    const c = p.replace(/\D/g, "");
+    if (c.length === 10) return "+91" + c;
+    if (c.length === 12 && c.startsWith("91")) return "+" + c;
     return "+" + c;
   };
 
-  const validatePhone = (p) => {
-    const normalized = normalizePhone(p);
-    return /^\+91[6-9]\d{9}$/.test(normalized);
+  const validatePhone = (p) => /^\+91[6-9]\d{9}$/.test(normalizePhone(p));
+
+  const getRecaptchaVerifier = () => {
+    if (recaptchaRef.current) {
+      recaptchaRef.current.clear();
+      recaptchaRef.current = null;
+    }
+    recaptchaRef.current = new RecaptchaVerifier(auth, "recaptcha-container", {
+      size: "invisible",
+    });
+    return recaptchaRef.current;
   };
 
+  // Step 1 → send OTP via Firebase
   const handleSendOtp = async (e) => {
     e.preventDefault();
     if (!name.trim() || !phone.trim()) { setError("Please fill all fields."); return; }
-    if (!validatePhone(phone)) { setError("Please enter a valid 10-digit Indian mobile number (starting with 6, 7, 8, or 9)."); return; }
+    if (!validatePhone(phone)) { setError("Enter a valid 10-digit Indian mobile number (6–9 start)."); return; }
     setError("");
     setLoading(true);
     try {
-      await API.post("/owner/auth/send-otp", { phone: normalizePhone(phone) });
+      const verifier = getRecaptchaVerifier();
+      const confirmation = await signInWithPhoneNumber(auth, normalizePhone(phone), verifier);
+      confirmationRef.current = confirmation;
       setStep(2);
+      setOtpTimer(60);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to send OTP.");
+      setError(err.message || "Failed to send OTP.");
+      if (recaptchaRef.current) { recaptchaRef.current.clear(); recaptchaRef.current = null; }
     } finally {
       setLoading(false);
     }
   };
 
+  // Step 2 → verify OTP via Firebase
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
-    if (!otp.trim()) { setError("Enter the OTP."); return; }
+    if (!otp.trim() || otp.length < 6) { setError("Enter the 6-digit OTP."); return; }
     setError("");
     setLoading(true);
     try {
-      await API.post("/owner/auth/verify-otp", { phone: normalizePhone(phone), otp });
+      const result = await confirmationRef.current.confirm(otp);
+      firebaseTokenRef.current = await result.user.getIdToken();
       setStep(3);
     } catch (err) {
-      setError(err.response?.data?.message || "Invalid OTP.");
+      setError(err.message || "Invalid OTP. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
+  // Step 3 → register with backend using Firebase token
   const handleRegister = async (e) => {
     e.preventDefault();
     if (password.length < 6) { setError("Password must be at least 6 characters."); return; }
     setError("");
     setLoading(true);
     try {
-      const res = await API.post("/owner/auth/register", {
-        name, email, phone: normalizePhone(phone), otp, password,
+      const res = await API.post("/customer/auth/firebase-register", {
+        firebaseToken: firebaseTokenRef.current,
+        name,
+        email,
+        password,
+        gender: "other", // default — no gender step in this frontend
       });
       const token = res.data.data?.token || res.data.token;
       if (token) localStorage.setItem("token", token);
       navigate("/dashboard");
     } catch (err) {
-      setError(err.response?.data?.message || "Registration failed.");
+      setError(err.response?.data?.message || err.message || "Registration failed.");
     } finally {
       setLoading(false);
     }
@@ -83,6 +119,9 @@ function Register() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
+      {/* Invisible reCAPTCHA container */}
+      <div id="recaptcha-container" />
+
       {/* Left panel */}
       <div className="hidden lg:flex lg:w-1/2 gradient-primary items-center justify-center p-12">
         <div className="text-white text-center max-w-md">
@@ -210,10 +249,26 @@ function Register() {
               <button type="submit" disabled={loading || otp.length < 6} className="btn-primary w-full py-3 disabled:opacity-60">
                 {loading ? "Verifying..." : "Verify OTP →"}
               </button>
+
+              <div className="mt-3 text-center text-sm">
+                {otpTimer > 0 ? (
+                  <span className="text-slate-500">Resend in <strong>{otpTimer}s</strong></span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleSendOtp}
+                    disabled={loading}
+                    className="text-indigo-600 hover:underline font-medium"
+                  >
+                    Resend OTP
+                  </button>
+                )}
+              </div>
+
               <button
                 type="button"
                 onClick={() => { setStep(1); setOtp(""); setError(""); }}
-                className="mt-3 w-full text-sm text-slate-500 hover:text-slate-700 underline"
+                className="mt-2 w-full text-sm text-slate-500 hover:text-slate-700 underline"
               >
                 Change phone number
               </button>

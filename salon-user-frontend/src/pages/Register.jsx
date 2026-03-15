@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
+import { auth } from "../config/firebase";
 import API from "../services/api";
 
 const STEPS = [
@@ -10,6 +12,7 @@ const STEPS = [
 
 function Register() {
   const navigate = useNavigate();
+
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -20,35 +23,80 @@ function Register() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [otpTimer, setOtpTimer] = useState(0);
+
+  const recaptchaRef = useRef(null);
+  const confirmationRef = useRef(null);
+  const firebaseTokenRef = useRef("");
+
+  // OTP countdown
+  useEffect(() => {
+    if (otpTimer <= 0) return;
+    const id = setInterval(() => setOtpTimer((t) => t - 1), 1000);
+    return () => clearInterval(id);
+  }, [otpTimer]);
 
   const normalizePhone = (p) => {
-    let c = p.replace(/\D/g, "");
-    if (c.length === 10) c = "91" + c;
+    const c = p.replace(/\D/g, "");
+    if (c.length === 10) return "+91" + c;
+    if (c.length === 12 && c.startsWith("91")) return "+" + c;
     return "+" + c;
   };
 
+  const validatePhone = (p) => /^\+91[6-9]\d{9}$/.test(normalizePhone(p));
+
+  const getRecaptchaVerifier = () => {
+    try { recaptchaRef.current?.clear(); } catch {}
+    recaptchaRef.current = null;
+
+    // Remove old container entirely — reCAPTCHA tracks elements internally
+    document.getElementById("recaptcha-container")?.remove();
+    const container = document.createElement("div");
+    container.id = "recaptcha-container";
+    document.body.appendChild(container);
+
+    recaptchaRef.current = new RecaptchaVerifier(auth, "recaptcha-container", {
+      size: "invisible",
+    });
+    return recaptchaRef.current;
+  };
+
+  // Step 1 → send OTP via Firebase
   const handleSendOtp = async (e) => {
     e.preventDefault();
-    if (!name.trim() || !phone.trim() || !gender) { setError("Please fill all required fields."); return; }
+    if (!name.trim() || !phone.trim() || !gender) {
+      setError("Please fill all required fields.");
+      return;
+    }
+    if (!validatePhone(phone)) {
+      setError("Enter a valid 10-digit Indian mobile number.");
+      return;
+    }
     setError("");
     setLoading(true);
     try {
-      await API.post("/customer/auth/send-otp", { phone: normalizePhone(phone) });
+      const verifier = getRecaptchaVerifier();
+      const confirmation = await signInWithPhoneNumber(auth, normalizePhone(phone), verifier);
+      confirmationRef.current = confirmation;
       setStep(2);
+      setOtpTimer(60);
     } catch (err) {
-      setError(err.message || err.response?.data?.message || "Failed to send OTP.");
+      setError(err.message || "Failed to send OTP.");
+      if (recaptchaRef.current) { recaptchaRef.current.clear(); recaptchaRef.current = null; }
     } finally {
       setLoading(false);
     }
   };
 
+  // Step 2 → verify OTP via Firebase
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     if (!otp.trim() || otp.length < 6) { setError("Enter the 6-digit OTP."); return; }
     setError("");
     setLoading(true);
     try {
-      await API.post("/customer/auth/verify-otp", { phone: normalizePhone(phone), otp });
+      const result = await confirmationRef.current.confirm(otp);
+      firebaseTokenRef.current = await result.user.getIdToken();
       setStep(3);
     } catch (err) {
       setError(err.message || "Invalid OTP. Please try again.");
@@ -57,20 +105,28 @@ function Register() {
     }
   };
 
+  // Step 3 → register with backend using Firebase token
   const handleRegister = async (e) => {
     e.preventDefault();
-    if (!/^(?=.*[a-zA-Z])(?=.*\d).{6,}$/.test(password)) { setError("Password must be at least 6 characters with letters and numbers (e.g. john123)."); return; }
+    if (!/^(?=.*[a-zA-Z])(?=.*\d).{6,}$/.test(password)) {
+      setError("Password must be at least 6 characters with letters and numbers.");
+      return;
+    }
     setError("");
     setLoading(true);
     try {
-      const res = await API.post("/customer/auth/register", {
-        name, email, phone: normalizePhone(phone), otp, password, gender,
+      const res = await API.post("/customer/auth/firebase-register", {
+        firebaseToken: firebaseTokenRef.current,
+        name,
+        email,
+        password,
+        gender,
       });
       const token = res.data.data?.token || res.data.token;
       if (token) localStorage.setItem("customerToken", token);
       navigate("/dashboard");
     } catch (err) {
-      setError(err.message || err.data?.message || "Registration failed.");
+      setError(err.response?.data?.message || err.message || "Registration failed.");
     } finally {
       setLoading(false);
     }
@@ -78,6 +134,7 @@ function Register() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
+
       {/* Left panel */}
       <div className="hidden lg:flex lg:w-1/2 gradient-primary items-center justify-center p-12">
         <div className="text-white text-center max-w-md">
@@ -140,7 +197,7 @@ function Register() {
             </div>
           )}
 
-          {/* Step 1 */}
+          {/* Step 1: Info + send OTP */}
           {step === 1 && (
             <form onSubmit={handleSendOtp} className="space-y-4 fade-in">
               <div>
@@ -200,7 +257,7 @@ function Register() {
             </form>
           )}
 
-          {/* Step 2 */}
+          {/* Step 2: OTP verify */}
           {step === 2 && (
             <form onSubmit={handleVerifyOtp} className="fade-in">
               <div className="text-center mb-6">
@@ -224,17 +281,33 @@ function Register() {
               <button type="submit" disabled={loading || otp.length < 6} className="btn-primary w-full py-3 disabled:opacity-60">
                 {loading ? "Checking OTP..." : "Verify OTP →"}
               </button>
+
+              <div className="mt-3 text-center text-sm">
+                {otpTimer > 0 ? (
+                  <span className="text-slate-500">Resend in <strong>{otpTimer}s</strong></span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleSendOtp}
+                    disabled={loading}
+                    className="text-indigo-600 hover:underline font-medium"
+                  >
+                    Resend OTP
+                  </button>
+                )}
+              </div>
+
               <button
                 type="button"
                 onClick={() => { setStep(1); setOtp(""); setError(""); }}
-                className="mt-3 w-full text-sm text-slate-500 hover:text-slate-700 underline"
+                className="mt-2 w-full text-sm text-slate-500 hover:text-slate-700 underline"
               >
                 Change phone number
               </button>
             </form>
           )}
 
-          {/* Step 3 */}
+          {/* Step 3: Password */}
           {step === 3 && (
             <form onSubmit={handleRegister} className="fade-in">
               <div className="mb-5">

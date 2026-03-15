@@ -72,7 +72,7 @@ const ApprovalWaiting = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-indigo-800 flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-md">
         {/* Main Card */}
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
@@ -213,7 +213,7 @@ const ApprovalWaiting = () => {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-gray-600 text-xs mt-6">
+        <p className="text-center text-blue-100 text-xs mt-6">
           © 2026 Smart Salon. All rights reserved.
         </p>
       </div>

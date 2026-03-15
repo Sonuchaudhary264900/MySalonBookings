@@ -18,7 +18,7 @@ const { formatSuccessResponse, formatErrorResponse } = require('../../utils/form
 const { generateTransactionId } = require('../../utils/helpers');
 const messages = require('../../utils/messages');
 const { verifyPaymentSignature, initiateRefund } = require('../../config/razorpay');
-const { sendBookingConfirmation } = require('../../config/twilio');
+
 
 // ===================================================
 // CREATE PAYMENT ORDER
@@ -174,20 +174,7 @@ exports.verifyPayment = async (req, res) => {
     salon.totalBookings += 1;
     await salon.save();
 
-    // Send confirmation SMS
-    try {
-      await sendBookingConfirmation(customer.phone, {
-        salonName: salon.name,
-        serviceName: booking.serviceName,
-        appointmentDate: new Date(booking.appointmentDate).toLocaleDateString(),
-        appointmentTime: booking.appointmentTime,
-        amount: booking.totalAmount,
-        bookingId: booking.bookingId,
-        salonPhone: salon.phone,
-      });
-    } catch (error) {
-      console.error('Error sending confirmation SMS:', error);
-    }
+
 
     res.json(
       formatSuccessResponse(

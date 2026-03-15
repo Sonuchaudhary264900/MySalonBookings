@@ -13,11 +13,11 @@ const localDate = (offset = 0) => {
 };
 
 const STATUS_COLORS = {
-  completed:  'bg-green-100 text-green-700',
-  confirmed:  'bg-blue-100 text-blue-700',
-  pending:    'bg-yellow-100 text-yellow-700',
-  cancelled:  'bg-red-100 text-red-700',
-  in_progress:'bg-purple-100 text-purple-700',
+  completed:  'bg-green-600 text-white',
+  confirmed:  'bg-blue-600 text-white',
+  pending:    'bg-yellow-500 text-white',
+  cancelled:  'bg-red-600 text-white',
+  in_progress:'bg-purple-600 text-white',
 };
 
 const Reports = () => {

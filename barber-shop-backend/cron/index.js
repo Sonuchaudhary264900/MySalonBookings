@@ -27,7 +27,7 @@ const Service = require('../models/Service');
 const Owner = require('../models/Owner');
 const Customer = require('../models/Customer');
 
-const { sendReminder } = require('../config/twilio');
+
 
 console.log('🕐 Cron Jobs System Initialized');
 
@@ -136,14 +136,6 @@ const send24HourReminders = cron.schedule('0 9 * * *', async () => {
 
       try{
 
-        await sendReminder(booking.customerPhone,{
-          salonName: booking.salonName,
-          serviceName: booking.serviceName,
-          appointmentDate: booking.appointmentDate,
-          appointmentTime: booking.appointmentTime,
-          salonPhone: booking.salonPhone
-        });
-
         booking.reminderSentAt = new Date();
         await booking.save();
 
@@ -204,13 +196,6 @@ const send1HourReminders = cron.schedule('0 * * * *', async () => {
         appointment.setHours(h,m,0);
 
         if(appointment>now && appointment<=oneHour){
-
-          await sendReminder(booking.customerPhone,{
-            salonName: booking.salonName,
-            serviceName: booking.serviceName,
-            appointmentTime: booking.appointmentTime,
-            message:"Your appointment is in 1 hour"
-          });
 
           booking.oneHourReminderSent = true;
 
