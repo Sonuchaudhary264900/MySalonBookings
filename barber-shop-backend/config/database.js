@@ -14,7 +14,7 @@ const connectDB = async () => {
       maxPoolSize: 10,          // max concurrent connections
       minPoolSize: 2,           // keep at least 2 connections warm
       socketTimeoutMS: 45000,   // close idle sockets after 45s
-      serverSelectionTimeoutMS: 5000, // fail fast if MongoDB is unreachable
+      serverSelectionTimeoutMS: 30000, // allow more time on cloud deployments
       heartbeatFrequencyMS: 10000,
     });
 
