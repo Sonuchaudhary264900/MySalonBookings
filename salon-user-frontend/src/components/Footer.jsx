@@ -52,7 +52,7 @@ function Footer() {
             <ul className="space-y-2.5 text-slate-400 text-sm">
               <li className="flex items-center gap-2">
                 <span>✉</span>
-                <span>support@smartsalon.com</span>
+                <span>support@mysalonbookings.com</span>
               </li>
               <li className="flex items-center gap-2">
                 <img src="https://img.freepik.com/free-vector/location_53876-25530.jpg" alt="location" className="w-4 h-4 object-contain" />
@@ -60,7 +60,7 @@ function Footer() {
               </li>
               <li className="flex items-center gap-2">
                 <span>📞</span>
-                <span>+91 98765 43210</span>
+                <span>+91 87264 90024</span>
               </li>
             </ul>
           </div>
