@@ -9,19 +9,9 @@ export default defineConfig({
   ],
 
   build: {
-    minify: 'esbuild',           // faster than terser, same quality
+    minify: 'esbuild',
     target: 'es2020',
     chunkSizeWarningLimit: 500,
-
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          'react-core':   ['react', 'react-dom'],
-          'react-router': ['react-router-dom'],
-          'http':         ['axios'],
-        },
-      },
-    },
   },
 
   optimizeDeps: {
