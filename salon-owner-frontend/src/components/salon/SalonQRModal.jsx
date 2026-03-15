@@ -3,7 +3,7 @@ import QRCode from 'react-qr-code';
 import { X, Download, Copy, QrCode } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const CUSTOMER_URL = import.meta.env.VITE_CUSTOMER_APP_URL || 'http://localhost:5174';
+const CUSTOMER_URL = (import.meta.env.VITE_CUSTOMER_APP_URL || 'http://localhost:5174').replace(/\/$/, '');
 
 const SalonQRModal = ({ salon, onClose }) => {
   const qrRef = useRef(null);
