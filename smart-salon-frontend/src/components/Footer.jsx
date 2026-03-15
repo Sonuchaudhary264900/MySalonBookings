@@ -56,7 +56,7 @@ function Footer() {
               </li>
               <li className="flex items-center gap-2">
                 <span>📍</span>
-                <span>Chandigarh, India</span>
+                <span>Across India</span>
               </li>
               <li className="flex items-center gap-2">
                 <span>📞</span>

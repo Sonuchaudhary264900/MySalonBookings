@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://mysalonbookings.vercel.app/sitemap.xml
