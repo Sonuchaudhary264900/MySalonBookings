@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
+import Footer from './Footer';
 
 /**
  * DashboardLayout Component
@@ -45,6 +46,7 @@ const DashboardLayout = ({ children }) => {
           </div>
         </main>
       </div>
+      <Footer />
     </div>
   );
 };
