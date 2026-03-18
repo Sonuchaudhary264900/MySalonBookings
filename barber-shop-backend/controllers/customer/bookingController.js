@@ -47,6 +47,20 @@ const createBooking = async (req, res) => {
       );
     }
 
+    // Enforce max 2 active bookings per customer per day
+    const dayStart = new Date(appointmentDate + 'T00:00:00.000Z');
+    const dayEnd   = new Date(appointmentDate + 'T23:59:59.999Z');
+    const bookingsToday = await Booking.countDocuments({
+      customerId: req.customer._id,
+      appointmentDate: { $gte: dayStart, $lte: dayEnd },
+      status: { $in: ['pending', 'confirmed', 'in_progress'] },
+    });
+    if (bookingsToday >= 2) {
+      return res.status(400).json(
+        formatErrorResponse('You can only have 2 active bookings per day. Complete your existing bookings first.', 400)
+      );
+    }
+
     // Enforce salon's advance booking window
     const advanceDays = salon.advanceBookingDays ?? 1;
     const todayLocal = new Date();
