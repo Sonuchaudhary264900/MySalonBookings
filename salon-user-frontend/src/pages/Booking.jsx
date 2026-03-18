@@ -24,6 +24,7 @@ function Booking() {
   const [slots, setSlots]         = useState([]);
   const [blockedSlots, setBlockedSlots] = useState([]);
   const [closedDay, setClosedDay] = useState(false);
+  const [bookingMode, setBookingMode] = useState("flexible");
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [loading, setLoading]     = useState(false);
   const [success, setSuccess]     = useState(false);
@@ -89,9 +90,15 @@ function Booking() {
           `/public/salons/${salonId}/booked-slots?date=${date}&duration=${totalDuration}`
         );
         const data = res.data.data || {};
+        const mode = data.bookingMode || "flexible";
+        setBookingMode(mode);
         setSlots(data.slots || []);
         setBlockedSlots(data.blockedSlots || []);
         setClosedDay(data.closedDay || false);
+        // Sequential: auto-select the single returned slot
+        if (mode === "sequential" && data.slots?.length === 1) {
+          setSlot(data.slots[0]);
+        }
       } catch {
         setSlots([]);
         setBlockedSlots([]);
@@ -230,7 +237,7 @@ function Booking() {
             {/* Time slots */}
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Select Time Slot
+                {bookingMode === "sequential" ? "Your Time Slot" : "Select Time Slot"}
                 {totalDuration > 0 && (
                   <span className="ml-2 text-xs font-normal text-slate-400">
                     ({totalDuration} min total)
@@ -252,6 +259,25 @@ function Booking() {
               ) : slots.length === 0 ? (
                 <div className="p-4 bg-slate-50 rounded-xl text-slate-500 text-sm text-center">
                   No available slots for this date.
+                </div>
+              ) : bookingMode === "sequential" ? (
+                /* Sequential mode — show the auto-assigned slot */
+                <div className="space-y-2">
+                  <div className="p-3 bg-indigo-50 rounded-xl text-indigo-700 text-xs">
+                    ⏩ This salon assigns slots in order. Your slot is auto-assigned below.
+                  </div>
+                  {(() => {
+                    const s = slots[0];
+                    const [h, m] = s.split(":").map(Number);
+                    const endMin = h * 60 + m + totalDuration;
+                    const endTime = `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
+                    return (
+                      <div className="flex items-center justify-between px-4 py-3 bg-indigo-600 text-white rounded-xl font-semibold text-sm">
+                        <span>{s} – {endTime}</span>
+                        <span className="text-indigo-200 text-xs">{totalDuration} min</span>
+                      </div>
+                    );
+                  })()}
                 </div>
               ) : (
                 <>

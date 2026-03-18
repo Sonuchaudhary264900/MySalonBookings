@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Globe, Bell, Settings, Lock, User, Calendar,
   Save, Edit2, X, ChevronDown, ChevronUp,
-  CheckCircle2, BellOff, Camera, Trash2, ImagePlus,
+  CheckCircle2, BellOff, Camera, Trash2, ImagePlus, GitBranch,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -617,6 +617,77 @@ const BookingWindowContent = ({ salon, updateSalon }) => {
   );
 };
 
+// ─── Booking Mode content ─────────────────────────────────────
+const BookingModeContent = ({ salon, updateSalon }) => {
+  const [mode, setMode] = useState(salon?.bookingMode || 'flexible');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setMode(salon?.bookingMode || 'flexible');
+  }, [salon]);
+
+  const OPTIONS = [
+    {
+      value: 'flexible',
+      label: 'Flexible (Customer Picks)',
+      desc: 'Customer chooses any available time slot from all open slots.',
+      icon: '🗓️',
+    },
+    {
+      value: 'sequential',
+      label: 'Sequential (Next in Line)',
+      desc: 'Bookings are assigned one after another. Customer gets the next open slot automatically — no gap between appointments.',
+      icon: '⏩',
+    },
+  ];
+
+  const handleSave = async () => {
+    setLoading(true);
+    try {
+      await updateSalon({ bookingMode: mode });
+      toast.success('Booking mode updated!');
+    } catch (err) {
+      toast.error(err.message || 'Failed to update');
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-gray-500">
+        Choose how appointment slots are assigned to customers.
+      </p>
+      <div className="space-y-2">
+        {OPTIONS.map(opt => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => setMode(opt.value)}
+            className={`w-full flex items-start gap-3 px-4 py-3 rounded-xl border-2 text-left transition-all ${
+              mode === opt.value
+                ? 'border-blue-500 bg-blue-50'
+                : 'border-gray-200 hover:border-gray-300 bg-white'
+            }`}
+          >
+            <span className="text-2xl shrink-0 mt-0.5">{opt.icon}</span>
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm font-semibold ${mode === opt.value ? 'text-blue-700' : 'text-gray-800'}`}>
+                {opt.label}
+              </p>
+              <p className="text-xs text-gray-500 mt-0.5">{opt.desc}</p>
+            </div>
+            {mode === opt.value && (
+              <CheckCircle2 className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+            )}
+          </button>
+        ))}
+      </div>
+      <Button variant="primary" onClick={handleSave} loading={loading} disabled={loading} fullWidth>
+        <Save className="w-4 h-4" /> Save Booking Mode
+      </Button>
+    </div>
+  );
+};
+
 // ─── Salon Photos content ─────────────────────────────────────
 const SalonPhotosContent = ({ salon, fetchSalon }) => {
   const [photos, setPhotos] = useState(salon?.photos || []);
@@ -869,6 +940,14 @@ const SettingsPage = () => {
       title: 'Booking Window',
       subtitle: 'How far in advance customers can book',
       content: <BookingWindowContent salon={salon} updateSalon={updateSalon} />,
+    },
+    {
+      id: 'booking-mode',
+      icon: GitBranch,
+      iconBg: 'bg-teal-100 text-teal-600',
+      title: 'Booking Mode',
+      subtitle: 'Sequential (next-in-line) or Flexible (customer picks slot)',
+      content: <BookingModeContent salon={salon} updateSalon={updateSalon} />,
     },
     {
       id: 'photos',

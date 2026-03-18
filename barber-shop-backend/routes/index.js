@@ -179,7 +179,7 @@ router.get("/public/salons/:salonId/booked-slots", validateObjectId("salonId"), 
   const minutesToTime = (m) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 
   // Get salon working hours for the selected day
-  const salon = await Salon.findById(req.params.salonId).select("workingHours").lean();
+  const salon = await Salon.findById(req.params.salonId).select("workingHours bookingMode").lean();
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
 
   const DAY_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
@@ -209,14 +209,7 @@ router.get("/public/salons/:salonId/booked-slots", validateObjectId("salonId"), 
     return res.json({ success: true, data: { slots: [], blockedSlots: [], closedDay: true } });
   }
 
-  // Generate every slot of `serviceDuration` minutes that fits before closing time
-  const slots = [];
-  for (let t = openMin; t + serviceDuration <= closeMin; t += serviceDuration) {
-    slots.push(minutesToTime(t));
-  }
-
   // Fetch existing bookings for this day
-  // Use $or to handle: Date objects (range), noon-UTC stored dates, and legacy string dates
   const dayStart = new Date(date + "T00:00:00.000Z");
   const dayEnd   = new Date(date + "T23:59:59.999Z");
 
@@ -225,6 +218,29 @@ router.get("/public/salons/:salonId/booked-slots", validateObjectId("salonId"), 
     appointmentDate: { $gte: dayStart, $lte: dayEnd },
     status: { $in: ["pending", "confirmed", "in_progress"] },
   }).select("appointmentTime estimatedDuration").lean();
+
+  const bookingMode = salon.bookingMode || "flexible";
+
+  // ── SEQUENTIAL mode: return only the next available slot ──
+  if (bookingMode === "sequential") {
+    // Find the minute at which the last booking ends
+    let nextSlotMin = openMin;
+    for (const b of bookings) {
+      const bookEnd = timeToMinutes(b.appointmentTime) + (b.estimatedDuration || 30);
+      if (bookEnd > nextSlotMin) nextSlotMin = bookEnd;
+    }
+    // Check if next slot fits before closing
+    if (nextSlotMin + serviceDuration > closeMin) {
+      return res.json({ success: true, data: { slots: [], blockedSlots: [], closedDay: false, bookingMode: "sequential" } });
+    }
+    return res.json({ success: true, data: { slots: [minutesToTime(nextSlotMin)], blockedSlots: [], closedDay: false, bookingMode: "sequential" } });
+  }
+
+  // ── FLEXIBLE mode (default): generate all slots, mark blocked ──
+  const slots = [];
+  for (let t = openMin; t + serviceDuration <= closeMin; t += serviceDuration) {
+    slots.push(minutesToTime(t));
+  }
 
   // A generated slot is blocked if it overlaps with any existing booking
   const blockedSlots = new Set();
@@ -241,7 +257,7 @@ router.get("/public/salons/:salonId/booked-slots", validateObjectId("salonId"), 
     }
   }
 
-  res.json({ success: true, data: { slots, blockedSlots: Array.from(blockedSlots), closedDay: false } });
+  res.json({ success: true, data: { slots, blockedSlots: Array.from(blockedSlots), closedDay: false, bookingMode: "flexible" } });
 }));
 
 /* =====================================================
