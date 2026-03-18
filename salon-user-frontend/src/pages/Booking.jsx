@@ -28,6 +28,7 @@ function Booking() {
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [loading, setLoading]     = useState(false);
   const [success, setSuccess]     = useState(false);
+  const [bookingStatus, setBookingStatus] = useState("confirmed");
   const [error, setError]         = useState("");
   const [slotPopup, setSlotPopup] = useState(null);
 
@@ -123,19 +124,22 @@ function Booking() {
     setError("");
     setLoading(true);
     try {
-      await API.post("/customer/bookings", {
+      const res = await API.post("/customer/bookings", {
         salonId,
         serviceIds: serviceIdList,
         appointmentDate: date,
         appointmentTime: slot,
         paymentMethod: "cash",
       });
-      addToast("success", "Booking confirmed!");
-      addNotification({
-        type: "booking",
-        title: "Booking Confirmed",
-        message: `${services.map(s => s.name).join(" + ")} at ${salon?.name} on ${date} at ${slot}`,
-      });
+      const status = res.data.data?.booking?.status || res.data.data?.status || "confirmed";
+      setBookingStatus(status);
+      if (status === "confirmed") {
+        addToast("success", "Booking confirmed!");
+        addNotification({ type: "booking", title: "Booking Confirmed", message: `${services.map(s => s.name).join(" + ")} at ${salon?.name} on ${date} at ${slot}` });
+      } else {
+        addToast("info", "Booking received! Awaiting salon confirmation.");
+        addNotification({ type: "booking", title: "Booking Pending", message: `Your booking at ${salon?.name} is awaiting confirmation.` });
+      }
       setSuccess(true);
     } catch (err) {
       addToast("error", err.message || "Booking failed. Please try again.");
@@ -147,11 +151,21 @@ function Booking() {
 
   // ── Success screen ─────────────────────────────────────────
   if (success) {
+    const isPending = bookingStatus === "pending";
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 max-w-sm w-full text-center fade-in">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">✓</div>
-          <h2 className="text-xl font-bold text-slate-900 mb-2">Booking Confirmed!</h2>
+          <div className={`w-16 h-16 ${isPending ? "bg-amber-100" : "bg-green-100"} rounded-full flex items-center justify-center text-3xl mx-auto mb-4`}>
+            {isPending ? "⏳" : "✓"}
+          </div>
+          <h2 className="text-xl font-bold text-slate-900 mb-2">
+            {isPending ? "Booking Received!" : "Booking Confirmed!"}
+          </h2>
+          {isPending && (
+            <div className="mb-3 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-sm">
+              Your booking is <strong>pending confirmation</strong> from the salon. You'll be notified once confirmed.
+            </div>
+          )}
           <p className="text-slate-500 text-sm mb-1">
             <strong>{services.map(s => s.name).join(" + ")}</strong> at <strong>{salon?.name}</strong>
           </p>

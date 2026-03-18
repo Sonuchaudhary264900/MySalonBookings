@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 import { formatDate, formatTime } from "../utils/formatters";
+
+const CACHE_KEY = "smartsalon_booking_statuses";
 
 const STATUS_CONFIG = {
   pending:     { label: "Pending",     color: "bg-amber-50 text-amber-600 border border-amber-200" },
@@ -116,6 +118,13 @@ function BookingCard({ booking, userCoords }) {
         )}
       </div>
 
+      {/* Pending info banner */}
+      {status === "pending" && (
+        <div className="mt-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
+          ⏳ Awaiting confirmation from the salon. You'll be notified here once confirmed.
+        </div>
+      )}
+
       {/* Footer */}
       <div className="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between flex-wrap gap-2">
         <p className="text-xs text-slate-400">
@@ -152,25 +161,50 @@ function Dashboard() {
   const [filter, setFilter] = useState("Upcoming");
   const [loading, setLoading] = useState(true);
   const [userCoords, setUserCoords] = useState(null);
+  const [confirmedToasts, setConfirmedToasts] = useState([]); // newly confirmed bookings
   const token = localStorage.getItem("customerToken");
+  const pollRef = useRef(null);
 
   useEffect(() => {
     if (!token) { navigate("/login"); return; }
     loadBookings();
-    // Silently get location for distance calculation
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
         () => {}
       );
     }
+    // Poll every 30 seconds for status changes
+    pollRef.current = setInterval(() => loadBookings(true), 30000);
+    return () => clearInterval(pollRef.current);
   }, []);
 
-  const loadBookings = async () => {
-    setLoading(true);
+  // Dismiss a toast
+  const dismissToast = (id) => setConfirmedToasts(prev => prev.filter(t => t !== id));
+
+  const loadBookings = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await API.get("/customer/bookings");
-      setBookings(res.data.data?.bookings || res.data.data || []);
+      const fresh = res.data.data?.bookings || res.data.data || [];
+
+      // Compare with cached statuses — detect pending → confirmed
+      try {
+        const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || "{}");
+        const newlyConfirmed = fresh.filter(
+          b => cached[b._id] === "pending" && b.status === "confirmed"
+        );
+        if (newlyConfirmed.length > 0) {
+          setConfirmedToasts(prev => [...prev, ...newlyConfirmed.map(b => b._id)]);
+          setFilter("Upcoming"); // switch to upcoming so they see it
+        }
+        // Update cache
+        const updated = {};
+        fresh.forEach(b => { updated[b._id] = b.status; });
+        localStorage.setItem(CACHE_KEY, JSON.stringify(updated));
+      } catch { /* ignore cache errors */ }
+
+      setBookings(fresh);
     } catch {
       setBookings([]);
     } finally {
@@ -214,6 +248,25 @@ function Dashboard() {
             </div>
           ))}
         </div>
+
+        {/* Confirmation toasts */}
+        {confirmedToasts.length > 0 && bookings
+          .filter(b => confirmedToasts.includes(b._id))
+          .map(b => (
+            <div key={b._id} className="flex items-start justify-between gap-3 mb-3 px-4 py-3 bg-green-50 border border-green-200 rounded-xl fade-in">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">✅</span>
+                <div>
+                  <p className="text-sm font-semibold text-green-800">Booking Confirmed!</p>
+                  <p className="text-xs text-green-600">
+                    <strong>{b.serviceName}</strong> at <strong>{b.salonName}</strong> — {b.appointmentTime}
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => dismissToast(b._id)} className="text-green-400 hover:text-green-600 text-lg leading-none shrink-0">×</button>
+            </div>
+          ))
+        }
 
         {/* Filter tabs */}
         <div className="flex gap-1 bg-white rounded-xl p-1 border border-slate-100 mb-5 overflow-x-auto scrollbar-hide">
