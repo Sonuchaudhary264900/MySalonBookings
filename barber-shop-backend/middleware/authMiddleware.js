@@ -125,79 +125,6 @@ const authenticateCustomer = authenticate("customer");
 const authenticateAdmin = authenticate("admin");
 
 /* ======================================================
-   OPTIONAL AUTH
-====================================================== */
-
-const authenticateOptional = (req, res, next) => {
-  try {
-    const token = extractToken(req);
-
-    if (!token) return next();
-
-    const decoded = verifyToken(token);
-
-    req.user = {
-      _id: decoded.id || decoded._id,
-      role: decoded.role
-    };
-
-    if (decoded.role === "owner") req.owner = req.user;
-    if (decoded.role === "customer") req.customer = req.user;
-    if (decoded.role === "admin") req.admin = req.user;
-
-    next();
-  } catch (error) {
-    next();
-  }
-};
-
-/* ======================================================
-   VERIFY RESOURCE OWNERSHIP
-====================================================== */
-
-const verifyOwnership = (ownerId) => {
-  return (req, res, next) => {
-
-    if (!req.user) {
-      return res.status(401).json(
-        formatErrorResponse("Authentication required.", 401)
-      );
-    }
-
-    if (req.user._id.toString() !== ownerId.toString()) {
-      return res.status(403).json(
-        formatErrorResponse("You do not have permission.", 403)
-      );
-    }
-
-    next();
-  };
-};
-
-/* ======================================================
-   VERIFY CUSTOMER OWNERSHIP
-====================================================== */
-
-const verifyCustomerOwnership = (customerId) => {
-  return (req, res, next) => {
-
-    if (!req.customer) {
-      return res.status(401).json(
-        formatErrorResponse("Customer authentication required.", 401)
-      );
-    }
-
-    if (req.customer._id.toString() !== customerId.toString()) {
-      return res.status(403).json(
-        formatErrorResponse("You do not have permission.", 403)
-      );
-    }
-
-    next();
-  };
-};
-
-/* ======================================================
    EXPORTS
 ====================================================== */
 
@@ -206,7 +133,4 @@ module.exports = {
   authenticateOwner,
   authenticateCustomer,
   authenticateAdmin,
-  authenticateOptional,
-  verifyOwnership,
-  verifyCustomerOwnership
 };

@@ -7,7 +7,7 @@ const Customer = require('../../models/Customer');
 
 const { formatSuccessResponse, formatErrorResponse } = require('../../utils/formatters');
 const { validateBookingData, validatePagination } = require('../../utils/validators');
-const { calculateRefundAmount, generateBookingId } = require('../../utils/helpers');
+const { generateBookingId } = require('../../utils/helpers');
 const messages = require('../../utils/messages');
 
 
@@ -359,43 +359,6 @@ const cancelBooking = async (req, res) => {
 
 
 // ===================================================
-// TRACK BOOKING
-// ===================================================
-const trackBooking = async (req, res) => {
-  try {
-
-    const { bookingId } = req.params;
-
-    const booking = await Booking.findById(bookingId);
-
-    if (!booking) {
-      return res.status(404).json(
-        formatErrorResponse(messages.BOOKING.BOOKING_NOT_FOUND)
-      );
-    }
-
-    const queue = await Queue.findOne({ salonId: booking.salonId });
-
-    res.json(
-      formatSuccessResponse({
-        booking,
-        queue
-      })
-    );
-
-  } catch (error) {
-
-    console.error(error);
-
-    res.status(500).json(
-      formatErrorResponse(messages.GENERIC.ERROR)
-    );
-  }
-};
-
-
-
-// ===================================================
 // ADD TO QUEUE
 // ===================================================
 const addToQueue = async (salonId, booking) => {
@@ -435,7 +398,6 @@ module.exports = {
   createBooking,
   getMyBookings,
   getBookingDetails,
-  trackBooking,
   cancelBooking,
   addToQueue
 };

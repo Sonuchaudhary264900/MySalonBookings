@@ -301,33 +301,6 @@ module.exports = (socket, io) => {
   });
 
   // ===================================================
-  // TYPING INDICATOR (for future chat feature)
-  // ===================================================
-  socket.on('user-typing', (data) => {
-    try {
-      const { salonId, userId, isTyping } = data;
-
-      io.to(`salon-${salonId}`).emit('user-is-typing', {
-        userId,
-        isTyping,
-      });
-    } catch (error) {
-      console.error('Error broadcasting typing:', error);
-    }
-  });
-
-  // ===================================================
-  // CUSTOM MESSAGE (for testing)
-  // ===================================================
-  socket.on('message', (msg) => {
-    console.log(`💬 Message: ${msg}`);
-    socket.broadcast.emit('message', {
-      message: msg,
-      timestamp: new Date().toISOString(),
-    });
-  });
-
-  // ===================================================
   // LEAVE ROOM
   // ===================================================
   socket.on('leave-queue', (data) => {
