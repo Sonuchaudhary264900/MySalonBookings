@@ -97,7 +97,8 @@ function ReviewPrompt({ bookingId, salonId, onReviewed }) {
 }
 
 function RescheduleModal({ booking, onClose, onRescheduled }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const _now = new Date();
+  const today = `${_now.getFullYear()}-${String(_now.getMonth()+1).padStart(2,'0')}-${String(_now.getDate()).padStart(2,'0')}`;
   const [newDate, setNewDate] = useState(today);
   const [newTime, setNewTime] = useState("");
   const [slots, setSlots] = useState([]);
