@@ -97,15 +97,40 @@ function ReviewPrompt({ bookingId, salonId, onReviewed }) {
 }
 
 function RescheduleModal({ booking, onClose, onRescheduled }) {
-  const dateOnly = booking.appointmentDate ? String(booking.appointmentDate).slice(0, 10) : "";
-  const [newDate, setNewDate] = useState(dateOnly);
-  const [newTime, setNewTime] = useState(booking.appointmentTime || "");
+  const today = new Date().toISOString().slice(0, 10);
+  const [newDate, setNewDate] = useState(today);
+  const [newTime, setNewTime] = useState("");
+  const [slots, setSlots] = useState([]);
+  const [blockedSlots, setBlockedSlots] = useState([]);
+  const [closedDay, setClosedDay] = useState(false);
+  const [slotsLoading, setSlotsLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const today = new Date().toISOString().slice(0, 10);
+
+  const salonId = booking.salonId?._id || booking.salonId;
+  const duration = booking.estimatedDuration || 30;
+
+  // Fetch available slots whenever date changes
+  useEffect(() => {
+    if (!newDate || !salonId) return;
+    setNewTime("");
+    setSlots([]);
+    setBlockedSlots([]);
+    setClosedDay(false);
+    setSlotsLoading(true);
+    API.get(`/public/salons/${salonId}/booked-slots?date=${newDate}&duration=${duration}`)
+      .then(res => {
+        const data = res.data.data || {};
+        setClosedDay(data.closedDay || false);
+        setSlots(data.slots || []);
+        setBlockedSlots(data.blockedSlots || []);
+      })
+      .catch(() => setSlots([]))
+      .finally(() => setSlotsLoading(false));
+  }, [newDate, salonId, duration]);
 
   const handleSave = async () => {
-    if (!newDate || !newTime) { setError("Please select both date and time."); return; }
+    if (!newDate || !newTime) { setError("Please select a date and an available time slot."); return; }
     setSaving(true);
     setError("");
     try {
@@ -121,23 +146,64 @@ function RescheduleModal({ booking, onClose, onRescheduled }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full">
+      <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full max-h-[90vh] overflow-y-auto">
         <h3 className="text-lg font-bold text-slate-900 mb-4">Reschedule Booking</h3>
-        <div className="space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">New Date</label>
-            <input type="date" min={today} value={newDate} onChange={e => setNewDate(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">New Time</label>
-            <input type="time" value={newTime} onChange={e => setNewTime(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-          </div>
-          {error && <p className="text-xs text-red-500">{error}</p>}
+
+        {/* Date picker */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-slate-700 mb-1">Select Date</label>
+          <input type="date" min={today} value={newDate} onChange={e => setNewDate(e.target.value)}
+            className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
         </div>
-        <div className="flex gap-2 mt-5">
-          <button onClick={handleSave} disabled={saving}
+
+        {/* Available slots */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-slate-700 mb-2">Select Time Slot</label>
+          {slotsLoading ? (
+            <div className="flex items-center gap-2 py-3 text-slate-400 text-sm">
+              <div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+              Loading slots…
+            </div>
+          ) : closedDay ? (
+            <p className="text-sm text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">🔒 Salon is closed on this day. Choose another date.</p>
+          ) : slots.length === 0 ? (
+            <p className="text-sm text-slate-400 bg-slate-50 px-3 py-2 rounded-lg">No available slots on this date.</p>
+          ) : (
+            <>
+              <div className="flex items-center gap-3 mb-2 text-xs text-slate-400 flex-wrap">
+                <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-red-300" /> Booked</span>
+                <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-indigo-600" /> Selected</span>
+                <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded border border-slate-200" /> Available</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {slots.map(s => {
+                  const blocked = blockedSlots.includes(s);
+                  const selected = newTime === s;
+                  return (
+                    <button key={s} type="button"
+                      onClick={() => { if (!blocked) setNewTime(s); }}
+                      disabled={blocked}
+                      className={`py-2 px-1 text-xs rounded-lg border font-medium transition-all text-center ${
+                        blocked
+                          ? "bg-red-50 text-red-400 border-red-200 cursor-not-allowed"
+                          : selected
+                          ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                          : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+
+        {error && <p className="text-xs text-red-500 mb-3">{error}</p>}
+
+        <div className="flex gap-2">
+          <button onClick={handleSave} disabled={saving || !newTime}
             className="flex-1 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition">
             {saving ? "Saving…" : "Confirm Reschedule"}
           </button>
