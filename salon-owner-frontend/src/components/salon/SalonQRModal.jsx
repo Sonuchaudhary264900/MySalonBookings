@@ -19,6 +19,9 @@ const SalonQRModal = ({ salon, onClose }) => {
     if (!svg) return;
 
     const svgData = new XMLSerializer().serializeToString(svg);
+    const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+
     const canvas = document.createElement('canvas');
     const size = 400;
     canvas.width = size;
@@ -34,8 +37,10 @@ const SalonQRModal = ({ salon, onClose }) => {
       link.download = `${salon.name || 'salon'}-qr.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
+      URL.revokeObjectURL(url);
     };
-    img.src = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgData)))}`;
+    img.onerror = () => URL.revokeObjectURL(url);
+    img.src = url;
   };
 
   return (
