@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Globe, Bell, Settings, Lock, User, Calendar,
-  Save, Edit2, X, ChevronDown, ChevronUp,
+  Globe, Bell, Settings, Lock, User, Calendar, CalendarX,
+  Save, Edit2, X, ChevronDown, ChevronUp, Plus,
   CheckCircle2, BellOff, Camera, Trash2, ImagePlus, GitBranch,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -833,6 +833,106 @@ const SalonPhotosContent = ({ salon, fetchSalon }) => {
   );
 };
 
+// ─── Closed Dates / Holidays content ─────────────────────────
+const ClosedDatesContent = ({ salon }) => {
+  const [holidays, setHolidays] = useState([]);
+  const [newDate, setNewDate]   = useState('');
+  const [newReason, setNewReason] = useState('');
+  const [adding, setAdding]     = useState(false);
+  const [deleting, setDeleting] = useState(null);
+
+  // Compute today's local date string
+  const todayStr = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  })();
+
+  useEffect(() => {
+    setHolidays(salon?.workingHours?.holidays || []);
+  }, [salon]);
+
+  const handleAdd = async () => {
+    if (!newDate) { toast.error('Please select a date'); return; }
+    setAdding(true);
+    try {
+      const res = await api.post('/owner/salon/holidays', { date: newDate, reason: newReason.trim() });
+      setHolidays(res.data.data.holidays);
+      setNewDate('');
+      setNewReason('');
+      toast.success('Closed date added!');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to add closed date');
+    } finally { setAdding(false); }
+  };
+
+  const handleDelete = async (holidayId) => {
+    setDeleting(holidayId);
+    try {
+      const res = await api.delete(`/owner/salon/holidays/${holidayId}`);
+      setHolidays(res.data.data.holidays);
+      toast.success('Closed date removed');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to remove date');
+    } finally { setDeleting(null); }
+  };
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-gray-500">
+        Mark specific dates as closed (e.g. holidays, events). Customers won't be able to book on these dates.
+      </p>
+
+      {/* Add new date */}
+      <div className="border border-gray-200 rounded-xl p-4 space-y-3">
+        <p className="text-sm font-semibold text-gray-800">Add Closed Date</p>
+        <input
+          type="date"
+          min={todayStr}
+          value={newDate}
+          onChange={e => setNewDate(e.target.value)}
+          className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+        <input
+          type="text"
+          value={newReason}
+          onChange={e => setNewReason(e.target.value)}
+          placeholder="Reason (e.g. Diwali, Owner holiday)"
+          className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+        <Button variant="primary" onClick={handleAdd} loading={adding} disabled={adding} fullWidth>
+          <Plus className="w-4 h-4" /> Add Closed Date
+        </Button>
+      </div>
+
+      {/* Existing holidays list */}
+      {holidays.length === 0 ? (
+        <p className="text-sm text-gray-400 text-center py-3">No closed dates set.</p>
+      ) : (
+        <div className="space-y-2">
+          {[...holidays].sort((a, b) => new Date(a.date) - new Date(b.date)).map((h) => {
+            const dateStr = new Date(h.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+            return (
+              <div key={h._id} className="flex items-center justify-between gap-3 p-3 bg-red-50 border border-red-100 rounded-xl">
+                <div>
+                  <p className="text-sm font-semibold text-red-800">{dateStr}</p>
+                  {h.reason && <p className="text-xs text-red-500 mt-0.5">{h.reason}</p>}
+                </div>
+                <button
+                  onClick={() => handleDelete(h._id)}
+                  disabled={deleting === h._id}
+                  className="shrink-0 p-1.5 rounded-lg hover:bg-red-100 text-red-500 transition disabled:opacity-50"
+                >
+                  {deleting === h._id ? '…' : <Trash2 className="w-4 h-4" />}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── Privacy & Security content ───────────────────────────────
 const PrivacyContent = () => {
   const { user, logout } = useAuth();
@@ -1018,6 +1118,14 @@ const SettingsPage = () => {
       title: 'Salon Photos',
       subtitle: 'Upload photos customers will see on your salon page',
       content: <SalonPhotosContent salon={salon} fetchSalon={fetchSalon} />,
+    },
+    {
+      id: 'closed-dates',
+      icon: CalendarX,
+      iconBg: 'bg-red-100 text-red-600',
+      title: 'Closed Dates / Holidays',
+      subtitle: 'Mark specific dates when your salon is closed',
+      content: <ClosedDatesContent salon={salon} />,
     },
     {
       id: 'privacy',

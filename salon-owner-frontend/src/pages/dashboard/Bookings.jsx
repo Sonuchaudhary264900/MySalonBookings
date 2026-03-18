@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, Clock, Phone, User, IndianRupee, Scissors, X, Plus } from 'lucide-react';
+import { Calendar, Clock, Phone, User, IndianRupee, Scissors, X, Plus, ShieldOff, ShieldCheck } from 'lucide-react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { useSalon } from '../../hooks/useSalon';
 import Loader from '../../components/common/Loader';
 import * as salonService from '../../services/salonService';
 import { formatDate, formatTime } from '../../utils/exportHelpers';
+import api from '../../services/api';
 
 const STATUS_FILTERS = ['all', 'pending', 'confirmed', 'in_progress', 'completed', 'cancelled'];
 
@@ -252,11 +253,25 @@ const Bookings = () => {
   const [updating, setUpdating]       = useState(null);
   const [showModal, setShowModal]     = useState(false);
   const [selectedDate, setSelectedDate] = useState(today);
+  const [blockedIds, setBlockedIds]   = useState(new Set());
+  const [blocking, setBlocking]       = useState(null);
 
   useEffect(() => {
     fetchBookings({ date: selectedDate });
     fetchServices();
   }, [selectedDate]);
+
+  // Load blocked customer IDs once
+  useEffect(() => {
+    api.get('/owner/blocked-customers')
+      .then(res => {
+        const ids = new Set((res.data.data?.blockedCustomers || []).map(bc =>
+          bc.customerId?._id || bc.customerId
+        ).filter(Boolean).map(String));
+        setBlockedIds(ids);
+      })
+      .catch(() => {});
+  }, []);
 
   const filteredBookings = bookings.filter((b) =>
     filter === 'all' ? true : b.status === filter
@@ -268,6 +283,23 @@ const Bookings = () => {
       await updateBookingStatus(bookingId, newStatus);
     } finally {
       setUpdating(null);
+    }
+  };
+
+  const handleToggleBlock = async (customerId, currentlyBlocked) => {
+    setBlocking(customerId);
+    try {
+      if (currentlyBlocked) {
+        await api.delete(`/owner/customers/${customerId}/block`);
+        setBlockedIds(prev => { const n = new Set(prev); n.delete(String(customerId)); return n; });
+      } else {
+        await api.post(`/owner/customers/${customerId}/block`, { reason: 'Fake booking' });
+        setBlockedIds(prev => new Set([...prev, String(customerId)]));
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update block status');
+    } finally {
+      setBlocking(null);
     }
   };
 
@@ -332,6 +364,9 @@ const Bookings = () => {
                 booking={booking}
                 updating={updating === booking._id}
                 onStatusChange={handleStatusChange}
+                isBlocked={booking.customerId ? blockedIds.has(String(booking.customerId)) : false}
+                blockLoading={blocking === String(booking.customerId)}
+                onToggleBlock={handleToggleBlock}
               />
             ))}
           </div>
@@ -352,7 +387,7 @@ const Bookings = () => {
 };
 
 // ── Booking Card ─────────────────────────────────────────────────
-const BookingCard = ({ booking, updating, onStatusChange }) => {
+const BookingCard = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock }) => {
   const date = booking.appointmentDate ? formatDate(booking.appointmentDate) : '—';
 
   return (
@@ -424,6 +459,24 @@ const BookingCard = ({ booking, updating, onStatusChange }) => {
         )}
         {booking.status === 'in_progress' && (
           <ActionButton label="Mark Complete" color="blue" loading={updating} onClick={() => onStatusChange(booking._id, 'completed')} />
+        )}
+        {/* Block/Unblock — only for real (non walk-in) bookings with a customerId */}
+        {!booking.isWalkIn && booking.customerId && (
+          <button
+            onClick={() => onToggleBlock(booking.customerId, isBlocked)}
+            disabled={blockLoading}
+            title={isBlocked ? 'Unblock this customer' : 'Block this customer from booking'}
+            className={`ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition border disabled:opacity-50 ${
+              isBlocked
+                ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+                : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
+            }`}
+          >
+            {blockLoading ? '…' : isBlocked
+              ? <><ShieldCheck className="w-3.5 h-3.5" /> Unblock</>
+              : <><ShieldOff className="w-3.5 h-3.5" /> Block</>
+            }
+          </button>
         )}
       </div>
     </div>

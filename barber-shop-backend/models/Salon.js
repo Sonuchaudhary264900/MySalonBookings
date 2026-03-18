@@ -384,6 +384,17 @@ location: {
       type: Boolean,
       default: false,
     },
+
+    // ==========================================
+    // BLOCKED CUSTOMERS
+    // ==========================================
+    blockedCustomers: [
+      {
+        customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer' },
+        reason:     { type: String, default: '' },
+        blockedAt:  { type: Date,   default: Date.now },
+      },
+    ],
   },
   {
     timestamps: true,

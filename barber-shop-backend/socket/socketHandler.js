@@ -13,6 +13,16 @@ const Booking = require('../models/Booking');
 
 module.exports = (socket, io) => {
   // ===================================================
+  // CUSTOMER JOINS PERSONAL ROOM (for direct notifications)
+  // ===================================================
+  socket.on('join-customer-room', (customerId) => {
+    if (customerId) {
+      socket.join(`customer-${customerId}`);
+      console.log(`👤 Customer ${customerId} joined personal room`);
+    }
+  });
+
+  // ===================================================
   // CUSTOMER JOINS QUEUE ROOM
   // ===================================================
   socket.on('join-queue', async (data) => {

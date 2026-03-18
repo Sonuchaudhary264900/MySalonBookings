@@ -47,6 +47,7 @@ function Home() {
   const [locDenied, setLocDenied]     = useState(false);
   const [searchActive, setSearchActive] = useState(false);
   const [userCoords, setUserCoords]   = useState(null);
+  const [serviceMatchLabel, setServiceMatchLabel] = useState(""); // set when showing service-search results
   // raw fetched list before category filter
   const [fetchedSalons, setFetchedSalons] = useState([]);
 
@@ -106,23 +107,44 @@ function Home() {
   );
 
   // ── search ───────────────────────────────────────────────────
-  const handleSearch = (query) => {
+  const handleSearch = async (query) => {
     if (!query.trim()) {
       setSalons(fetchedSalons);
       setSearchActive(false);
+      setServiceMatchLabel("");
       return;
     }
     setSearchActive(true);
     setCategory("all");
+    setServiceMatchLabel("");
     const q = query.toLowerCase();
-    setSalons(
-      fetchedSalons.filter(
-        (s) =>
-          s.name?.toLowerCase().includes(q) ||
-          s.city?.toLowerCase().includes(q) ||
-          s.address?.toLowerCase().includes(q)
-      )
+
+    // First: filter locally by salon name/city/address
+    const localMatches = fetchedSalons.filter(
+      (s) =>
+        s.name?.toLowerCase().includes(q) ||
+        s.city?.toLowerCase().includes(q) ||
+        s.address?.toLowerCase().includes(q)
     );
+
+    if (localMatches.length > 0) {
+      setSalons(localMatches);
+      return;
+    }
+
+    // No local matches → search by service name across all approved salons
+    try {
+      const res = await API.get(`/public/services/search?q=${encodeURIComponent(query.trim())}`);
+      const data = res.data.data;
+      if (data?.salons?.length > 0) {
+        setSalons(data.salons);
+        setServiceMatchLabel(`Salons offering "${data.matchedService}"`);
+      } else {
+        setSalons([]);
+      }
+    } catch {
+      setSalons([]);
+    }
   };
 
   // ── "Near Me" / "Enable Location" button ────────────────────
@@ -144,10 +166,13 @@ function Home() {
 
   const resetFilters = () => {
     setSort("nearby");
+    setServiceMatchLabel("");
     fetchBySort("nearby", userCoords);
   };
 
-  const sectionTitle = searchActive
+  const sectionTitle = serviceMatchLabel
+    ? serviceMatchLabel
+    : searchActive
     ? "Search Results"
     : sort === "nearby" ? "Salons Near You"
     : sort === "rated"  ? "Highest Rated Salons"
@@ -282,8 +307,12 @@ function Home() {
             {!loading && salons.length === 0 && (
               <div className="text-center py-20">
                 <div className="flex justify-center mb-4"><SearchX className="w-12 h-12 text-slate-300" /></div>
-                <h3 className="text-lg font-semibold text-slate-700 mb-2">No salons found nearby</h3>
-                <p className="text-slate-400 text-sm mb-6">No salons found within 5 km of your location.</p>
+                <h3 className="text-lg font-semibold text-slate-700 mb-2">No salons found</h3>
+                <p className="text-slate-400 text-sm mb-6">
+                  {searchActive
+                    ? "No salons or services matching your search were found."
+                    : "No salons found within 5 km of your location."}
+                </p>
                 <button onClick={resetFilters} className="btn-primary">Reset Filters</button>
               </div>
             )}
@@ -291,7 +320,18 @@ function Home() {
             {!loading && salons.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                 {salons.map((salon) => (
-                  <SalonCard key={salon._id} salon={salon} userCoords={userCoords} />
+                  <div key={salon._id} className="relative">
+                    <SalonCard salon={salon} userCoords={userCoords} />
+                    {salon.matchedServices?.length > 0 && (
+                      <div className="flex flex-wrap gap-1 px-3 pb-3 -mt-1">
+                        {salon.matchedServices.slice(0, 3).map((svcName) => (
+                          <span key={svcName} className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium">
+                            {svcName}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             )}

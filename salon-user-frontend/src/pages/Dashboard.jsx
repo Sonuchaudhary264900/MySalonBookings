@@ -1,7 +1,18 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { io } from "socket.io-client";
 import API from "../services/api";
 import { formatDate, formatTime } from "../utils/formatters";
+
+const SOCKET_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1")
+  .replace(/\/api\/v1\/?$/, "");
+
+// Decode JWT payload to extract customer ID without extra API call
+const getCustomerIdFromToken = (token) => {
+  try {
+    return JSON.parse(atob(token.split(".")[1]))?.id || null;
+  } catch { return null; }
+};
 
 const CACHE_KEY = "smartsalon_booking_statuses";
 
@@ -405,6 +416,7 @@ function Dashboard() {
   const [confirmedToasts, setConfirmedToasts] = useState([]); // newly confirmed bookings
   const token = localStorage.getItem("customerToken");
   const pollRef = useRef(null);
+  const socketRef = useRef(null);
 
   useEffect(() => {
     if (!token) { navigate("/login"); return; }
@@ -415,9 +427,31 @@ function Dashboard() {
         () => {}
       );
     }
-    // Poll every 30 seconds for status changes
+
+    // ── Socket.IO real-time updates ──────────────────────────
+    const customerId = getCustomerIdFromToken(token);
+    if (customerId) {
+      const socket = io(SOCKET_URL, { transports: ["websocket", "polling"], reconnectionAttempts: 5 });
+      socketRef.current = socket;
+      socket.emit("join-customer-room", customerId);
+      socket.on("booking-status-changed", ({ bookingId, status }) => {
+        setBookings(prev =>
+          prev.map(b => b._id === bookingId ? { ...b, status } : b)
+        );
+        // Detect newly confirmed via socket too
+        if (status === "confirmed") {
+          setConfirmedToasts(prev => [...prev, bookingId]);
+          setFilter("Upcoming");
+        }
+      });
+    }
+
+    // Poll every 30 seconds as fallback
     pollRef.current = setInterval(() => loadBookings(true), 30000);
-    return () => clearInterval(pollRef.current);
+    return () => {
+      clearInterval(pollRef.current);
+      socketRef.current?.disconnect();
+    };
   }, []);
 
   // Dismiss a toast

@@ -47,6 +47,16 @@ const createBooking = async (req, res) => {
       );
     }
 
+    // Check if customer is blocked by this salon
+    const isBlocked = salon.blockedCustomers?.some(
+      bc => bc.customerId?.toString() === req.customer._id.toString()
+    );
+    if (isBlocked) {
+      return res.status(403).json(
+        formatErrorResponse('You are not allowed to book at this salon.', 403)
+      );
+    }
+
     // Enforce max 2 active bookings per customer per day
     const dayStart = new Date(appointmentDate + 'T00:00:00.000Z');
     const dayEnd   = new Date(appointmentDate + 'T23:59:59.999Z');

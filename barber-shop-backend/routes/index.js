@@ -197,6 +197,15 @@ router.get("/public/salons/:salonId/booked-slots", validateObjectId("salonId"), 
   const dayName  = DAY_NAMES[new Date(date + "T12:00:00").getDay()];
   const dayHours = salon.workingHours?.[dayName];
 
+  // Check if this date is a holiday / closed date
+  const isHoliday = (salon.workingHours?.holidays || []).some(h => {
+    const hDate = new Date(h.date);
+    return hDate.toISOString().slice(0, 10) === date;
+  });
+  if (isHoliday) {
+    return res.json({ success: true, data: { slots: [], blockedSlots: [], closedDay: true, reason: "holiday" } });
+  }
+
   // Salon is closed on this day
   if (!dayHours || dayHours.isClosed) {
     return res.json({ success: true, data: { slots: [], blockedSlots: [], closedDay: true } });
@@ -765,6 +774,15 @@ router.put("/owner/bookings/:bookingId", authenticateOwner, validateObjectId("bo
   if (status === "in_progress") booking.startedAt    = new Date();
   await booking.save();
 
+  // Emit real-time update to the customer's socket room
+  const io = req.app.get("io");
+  if (io && booking.customerId) {
+    io.to(`customer-${booking.customerId}`).emit("booking-status-changed", {
+      bookingId: booking._id,
+      status,
+    });
+  }
+
   res.json({ success: true, data: booking });
 }));
 
@@ -875,6 +893,139 @@ router.post(
    MERGED OWNER ROUTES
 ===================================================== */
 
+/* =====================================================
+   OWNER BLOCK / UNBLOCK CUSTOMER ROUTES
+===================================================== */
+
+// POST /owner/customers/:customerId/block — block a customer from booking at this salon
+router.post("/owner/customers/:customerId/block", authenticateOwner, validateObjectId("customerId"), asyncHandler(async (req, res) => {
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+
+  const { reason = "" } = req.body;
+  const customerId = req.params.customerId;
+
+  const alreadyBlocked = salon.blockedCustomers.some(bc => bc.customerId?.toString() === customerId);
+  if (alreadyBlocked) return res.status(409).json({ success: false, message: "Customer is already blocked" });
+
+  salon.blockedCustomers.push({ customerId, reason: reason.trim(), blockedAt: new Date() });
+  await salon.save();
+  res.json({ success: true, message: "Customer blocked successfully" });
+}));
+
+// DELETE /owner/customers/:customerId/block — unblock a customer
+router.delete("/owner/customers/:customerId/block", authenticateOwner, validateObjectId("customerId"), asyncHandler(async (req, res) => {
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+
+  const customerId = req.params.customerId;
+  const before = salon.blockedCustomers.length;
+  salon.blockedCustomers = salon.blockedCustomers.filter(bc => bc.customerId?.toString() !== customerId);
+  if (salon.blockedCustomers.length === before) {
+    return res.status(404).json({ success: false, message: "Customer was not blocked" });
+  }
+  await salon.save();
+  res.json({ success: true, message: "Customer unblocked successfully" });
+}));
+
+// GET /owner/blocked-customers — list all blocked customers
+router.get("/owner/blocked-customers", authenticateOwner, asyncHandler(async (req, res) => {
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] })
+    .populate("blockedCustomers.customerId", "name phone profilePhoto")
+    .lean();
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+  res.json({ success: true, data: { blockedCustomers: salon.blockedCustomers || [] } });
+}));
+
+/* =====================================================
+   OWNER HOLIDAY / CLOSED DATES ROUTES
+===================================================== */
+
+// POST /owner/salon/holidays — add a closed date
+router.post("/owner/salon/holidays", authenticateOwner, asyncHandler(async (req, res) => {
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+
+  const { date, reason = "" } = req.body;
+  if (!date) return res.status(400).json({ success: false, message: "date is required (YYYY-MM-DD)" });
+
+  const dateObj = new Date(date + "T12:00:00.000Z");
+  if (isNaN(dateObj.getTime())) return res.status(400).json({ success: false, message: "Invalid date format" });
+
+  const already = salon.workingHours.holidays.some(h => {
+    const d = new Date(h.date);
+    return d.toISOString().slice(0, 10) === date;
+  });
+  if (already) return res.status(409).json({ success: false, message: "This date is already marked as closed" });
+
+  salon.workingHours.holidays.push({ date: dateObj, reason: reason.trim() });
+  await salon.save();
+  res.status(201).json({ success: true, data: { holidays: salon.workingHours.holidays } });
+}));
+
+// DELETE /owner/salon/holidays/:holidayId — remove a closed date
+router.delete("/owner/salon/holidays/:holidayId", authenticateOwner, validateObjectId("holidayId"), asyncHandler(async (req, res) => {
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+
+  const before = salon.workingHours.holidays.length;
+  salon.workingHours.holidays = salon.workingHours.holidays.filter(h => h._id?.toString() !== req.params.holidayId);
+  if (salon.workingHours.holidays.length === before) {
+    return res.status(404).json({ success: false, message: "Holiday not found" });
+  }
+  await salon.save();
+  res.json({ success: true, data: { holidays: salon.workingHours.holidays } });
+}));
+
+/* =====================================================
+   PUBLIC SERVICE SEARCH ROUTE
+===================================================== */
+
+// GET /public/services/search?q=QUERY — search salons by service name
+router.get("/public/services/search", asyncHandler(async (req, res) => {
+  const { q } = req.query;
+  if (!q || String(q).trim().length < 2) {
+    return res.status(400).json({ success: false, message: "Search query must be at least 2 characters" });
+  }
+  const safeQ = escapeRegex(String(q).slice(0, 100));
+
+  // Find active services matching the query
+  const matchedServices = await Service.find({
+    name: { $regex: safeQ, $options: "i" },
+    isActive: true,
+  }).select("salonId name").lean();
+
+  if (matchedServices.length === 0) {
+    return res.json({ success: true, data: { salons: [], matchedService: q } });
+  }
+
+  // Get unique salonIds from matched services
+  const salonIdMap = {};
+  for (const svc of matchedServices) {
+    const key = svc.salonId?.toString();
+    if (key) {
+      if (!salonIdMap[key]) salonIdMap[key] = [];
+      salonIdMap[key].push(svc.name);
+    }
+  }
+
+  const salonIds = Object.keys(salonIdMap);
+  const salons = await Salon.find({
+    _id: { $in: salonIds },
+    isApproved: true,
+    isActive: true,
+  })
+    .select("name address city phone photos logo coverPhoto averageRating totalReviews totalBookings workingHours category location")
+    .lean();
+
+  // Attach matched service names to each salon
+  const salonsWithMatch = salons.map(s => ({
+    ...s,
+    matchedServices: salonIdMap[s._id.toString()] || [],
+  }));
+
+  res.json({ success: true, data: { salons: salonsWithMatch, matchedService: q } });
+}));
 
 /* =====================================================
    HEALTH CHECK

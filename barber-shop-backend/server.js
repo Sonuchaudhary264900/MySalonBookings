@@ -103,6 +103,9 @@ const io = socketIO(server, {
   }
 });
 
+// Make io accessible in route handlers via req.app.get('io')
+app.set('io', io);
+
 /* ============================================================
    SECURITY MIDDLEWARE
 ============================================================ */
