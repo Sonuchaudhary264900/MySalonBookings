@@ -143,7 +143,7 @@ const validateReviewText = (text) => {
 // GENDER VALIDATION
 // ===================================================
 const validateGender = (gender) => {
-  return ['male', 'female', 'other'].includes(gender);
+  return ['male', 'female'].includes(gender);
 };
 
 // ===================================================
@@ -178,7 +178,8 @@ const validateBookingData = (data) => {
   const errors = [];
 
   if (!data.salonId) errors.push('Salon is required');
-  if (!data.serviceId) errors.push('Service is required');
+  const hasService = data.serviceId || (Array.isArray(data.serviceIds) && data.serviceIds.length > 0);
+  if (!hasService) errors.push('At least one service is required');
   if (!data.appointmentTime) errors.push('Appointment time is required');
   if (!data.paymentMethod || !['online', 'cash', 'wallet'].includes(data.paymentMethod)) {
     errors.push('Valid payment method is required');
@@ -296,10 +297,6 @@ const validateCustomerRegistration = (data) => {
 
   if (!data.name || !validateName(data.name)) {
     errors.push('Valid name is required');
-  }
-
-  if (data.email && !validateEmail(data.email)) {
-    errors.push('Valid email is required');
   }
 
   if (!data.gender || !validateGender(data.gender)) {

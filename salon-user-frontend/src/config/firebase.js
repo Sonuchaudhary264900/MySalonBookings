@@ -14,9 +14,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
-// Disable reCAPTCHA in development — use test phone numbers in Firebase Console
+// Only in local dev: bypass reCAPTCHA — use test phone numbers in Firebase Console
 if (import.meta.env.DEV) {
   auth.settings.appVerificationDisabledForTesting = true;
 }
+
 
 export default app;

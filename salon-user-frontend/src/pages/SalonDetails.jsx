@@ -1,10 +1,11 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Scissors, Phone, Star, Check, MessageSquare, Frown, Building2, Mail } from "lucide-react";
+import { Scissors, Phone, Star, Check, MessageSquare, Frown, Building2, Mail, ShoppingBag } from "lucide-react";
 import API from "../services/api";
 import ServiceCard from "../components/ServiceCard";
 import ReviewCard from "../components/ReviewCard";
 import AddReview from "../components/AddReview";
+import { isCustomer, clearCustomerAuth } from "../utils/auth";
 
 const TABS = ["Services", "Reviews", "Info"];
 
@@ -16,7 +17,30 @@ function SalonDetails() {
   const [reviews, setReviews] = useState([]);
   const [tab, setTab] = useState("Services");
   const [loading, setLoading] = useState(true);
+  const [selectedServices, setSelectedServices] = useState([]);
   const token = localStorage.getItem("customerToken");
+
+  const toggleService = (service) => {
+    setSelectedServices(prev =>
+      prev.find(s => s._id === service._id)
+        ? prev.filter(s => s._id !== service._id)
+        : [...prev, service]
+    );
+  };
+
+  const totalPrice    = selectedServices.reduce((sum, s) => sum + (s.basePrice || s.price || 0), 0);
+  const totalDuration = selectedServices.reduce((sum, s) => sum + (s.duration || 0), 0);
+
+  const handleBookNow = () => {
+    if (!isCustomer()) {
+      clearCustomerAuth();
+      navigate("/login");
+      return;
+    }
+    navigate(`/booking/${id}`, {
+      state: { serviceIds: selectedServices.map(s => s._id) }
+    });
+  };
 
   useEffect(() => {
     Promise.all([loadSalon(), loadServices(), loadReviews()]).finally(() =>
@@ -182,9 +206,14 @@ function SalonDetails() {
                 <p className="text-slate-500">No services listed yet.</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-3 pb-32">
                 {services.map((service) => (
-                  <ServiceCard key={service._id} service={service} salonId={id} />
+                  <ServiceCard
+                    key={service._id}
+                    service={service}
+                    isSelected={selectedServices.some(s => s._id === service._id)}
+                    onToggle={() => toggleService(service)}
+                  />
                 ))}
               </div>
             )}
@@ -286,6 +315,41 @@ function SalonDetails() {
           </div>
         )}
       </div>
+
+      {/* ── STICKY BOOKING BAR ─────────────────── */}
+      {selectedServices.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 shadow-xl px-4 py-3 fade-in">
+          <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
+                <ShoppingBag className="w-4 h-4 text-indigo-600" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-semibold text-slate-800 text-sm">
+                  {selectedServices.length} service{selectedServices.length > 1 ? "s" : ""} selected
+                </p>
+                <p className="text-xs text-indigo-600 font-medium truncate">
+                  ₹{totalPrice} · {totalDuration} min total
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => setSelectedServices([])}
+                className="text-sm text-slate-400 hover:text-slate-600 px-3 py-2 transition"
+              >
+                Clear
+              </button>
+              <button
+                onClick={handleBookNow}
+                className="btn-primary px-5 py-2.5 text-sm"
+              >
+                Book Now →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

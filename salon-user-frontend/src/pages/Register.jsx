@@ -15,7 +15,6 @@ function Register() {
 
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [gender, setGender] = useState("");
   const [otp, setOtp] = useState("");
@@ -118,7 +117,6 @@ function Register() {
       const res = await API.post("/customer/auth/firebase-register", {
         firebaseToken: firebaseTokenRef.current,
         name,
-        email,
         password,
         gender,
       });
@@ -212,16 +210,6 @@ function Register() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email (optional)</label>
-                <input
-                  type="email"
-                  placeholder="john@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="input-field"
-                />
-              </div>
-              <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Phone Number</label>
                 <input
                   type="tel"
@@ -235,7 +223,7 @@ function Register() {
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Gender</label>
                 <div className="flex gap-2">
-                  {["male", "female", "other"].map((g) => (
+                  {["male", "female"].map((g) => (
                     <button
                       key={g}
                       type="button"
@@ -246,7 +234,7 @@ function Register() {
                           : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300"
                       }`}
                     >
-                      {g === "male" ? "👨 Male" : g === "female" ? "👩 Female" : "🧑 Other"}
+                      {g === "male" ? "👨 Male" : "👩 Female"}
                     </button>
                   ))}
                 </div>

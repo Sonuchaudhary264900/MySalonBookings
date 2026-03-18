@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { isCustomer, clearCustomerAuth } from "../utils/auth";
-import { Scissors, Zap, User, Sparkles, Hand, Leaf, Palette, Clock, Star } from "lucide-react";
+import { Scissors, Zap, User, Sparkles, Hand, Leaf, Palette, Clock, Star, Plus, Check } from "lucide-react";
 
 const serviceIconMap = {
   haircut:  <Scissors className="w-5 h-5 text-indigo-500" />,
@@ -23,22 +23,28 @@ function getIcon(name = "") {
   return serviceIconMap.default;
 }
 
-function ServiceCard({ service, salonId }) {
+function ServiceCard({ service, isSelected, onToggle }) {
   const navigate = useNavigate();
 
-  const handleBooking = () => {
+  const handleToggle = () => {
     if (!isCustomer()) {
       clearCustomerAuth();
       navigate("/login");
       return;
     }
-    navigate(`/booking/${salonId}/${service._id}`);
+    onToggle();
   };
 
+  const unavailable = service.available === false;
+
   return (
-    <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-slate-100 hover:border-indigo-200 hover:shadow-sm transition-all duration-200 group">
+    <div className={`flex items-center justify-between p-4 bg-white rounded-xl border transition-all duration-200 group ${
+      isSelected
+        ? "border-indigo-400 shadow-sm bg-indigo-50/30"
+        : "border-slate-100 hover:border-indigo-200 hover:shadow-sm"
+    }`}>
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isSelected ? "bg-indigo-100" : "bg-indigo-50"}`}>
           {getIcon(service.name)}
         </div>
         <div>
@@ -52,7 +58,7 @@ function ServiceCard({ service, salonId }) {
             <span className="text-xs text-slate-500 flex items-center gap-1">
               <Clock className="w-3.5 h-3.5" /> {service.duration} min
             </span>
-            {service.available !== false ? (
+            {!unavailable ? (
               <span className="text-xs text-green-600 font-medium">Available</span>
             ) : (
               <span className="text-xs text-red-400">Unavailable</span>
@@ -66,11 +72,19 @@ function ServiceCard({ service, salonId }) {
           <p className="font-bold text-slate-900">₹{service.basePrice ?? service.price}</p>
         </div>
         <button
-          onClick={handleBooking}
-          disabled={service.available === false}
-          className="btn-primary text-sm py-2 px-4 disabled:opacity-40 disabled:cursor-not-allowed"
+          onClick={handleToggle}
+          disabled={unavailable}
+          className={`text-sm py-2 px-4 rounded-xl font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 ${
+            isSelected
+              ? "bg-indigo-600 text-white hover:bg-indigo-700"
+              : "border border-indigo-600 text-indigo-600 hover:bg-indigo-50"
+          }`}
         >
-          Book
+          {isSelected ? (
+            <><Check className="w-3.5 h-3.5" /> Added</>
+          ) : (
+            <><Plus className="w-3.5 h-3.5" /> Add</>
+          )}
         </button>
       </div>
     </div>

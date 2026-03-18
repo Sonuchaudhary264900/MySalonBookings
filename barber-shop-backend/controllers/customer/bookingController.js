@@ -20,11 +20,15 @@ const { createOrder } = require('../../config/razorpay');
 const createBooking = async (req, res) => {
   try {
 
-    const { salonId, serviceId, barberId, appointmentDate, appointmentTime, paymentMethod } = req.body;
+    const { salonId, serviceId, serviceIds, barberId, appointmentDate, appointmentTime, paymentMethod } = req.body;
+
+    // Support both single serviceId and multiple serviceIds array
+    const serviceIdList = serviceIds?.length ? serviceIds : (serviceId ? [serviceId] : []);
 
     const validation = validateBookingData({
       salonId,
-      serviceId,
+      serviceId: serviceIdList[0],
+      serviceIds: serviceIdList,
       appointmentDate,
       appointmentTime,
       paymentMethod,
@@ -58,12 +62,18 @@ const createBooking = async (req, res) => {
       );
     }
 
-    const service = await Service.findById(serviceId);
-    if (!service || !service.isActive) {
+    // Fetch and validate all selected services
+    const fetchedServices = await Service.find({ _id: { $in: serviceIdList }, isActive: true });
+    if (fetchedServices.length !== serviceIdList.length) {
       return res.status(404).json(
         formatErrorResponse(messages.SERVICE.SERVICE_NOT_FOUND, 404)
       );
     }
+
+    const totalDuration = fetchedServices.reduce((sum, s) => sum + (s.duration || 30), 0);
+    const totalPrice    = fetchedServices.reduce((sum, s) => sum + (s.basePrice || 0), 0);
+    const primaryService = fetchedServices[0];
+    const combinedName  = fetchedServices.map(s => s.name).join(' + ');
 
     let barber = null;
     if (barberId) {
@@ -87,7 +97,7 @@ const createBooking = async (req, res) => {
     }).select('appointmentTime estimatedDuration').lean();
 
     const newStart = timeToMinutes(appointmentTime);
-    const newEnd   = newStart + (service.duration || 30);
+    const newEnd   = newStart + totalDuration;
 
     const hasConflict = existingBookings.some((b) => {
       const existStart = timeToMinutes(b.appointmentTime);
@@ -110,15 +120,21 @@ const createBooking = async (req, res) => {
       customerPhone: customer.phone,
       salonId,
       salonName: salon.name,
-      serviceId,
-      serviceName: service.name,
+      serviceId: primaryService._id,
+      serviceName: combinedName,
+      services: fetchedServices.map(s => ({
+        serviceId:    s._id,
+        serviceName:  s.name,
+        servicePrice: s.basePrice,
+        duration:     s.duration,
+      })),
       barberId: barberId || null,
       barberName: barber?.name || "Any",
       appointmentDate: new Date(appointmentDate + 'T12:00:00.000Z'),
       appointmentTime,
-      estimatedDuration: service.duration,
-      servicePrice: service.basePrice,
-      totalAmount: service.basePrice,
+      estimatedDuration: totalDuration,
+      servicePrice: totalPrice,
+      totalAmount: totalPrice,
       paymentMethod,
       paymentStatus: "pending",
       status: "pending"

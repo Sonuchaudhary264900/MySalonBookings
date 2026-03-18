@@ -27,18 +27,6 @@ const customerSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    email: {
-      type: String,
-      lowercase: true,
-      trim: true,
-      unique: true,
-      sparse: true,
-      match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email'],
-    },
-    emailVerified: {
-      type: Boolean,
-      default: false,
-    },
     password: {
       type: String,
       minlength: [6, 'Password must be at least 6 characters'],
@@ -56,7 +44,7 @@ const customerSchema = new mongoose.Schema(
     },
     gender: {
       type: String,
-      enum: ['male', 'female', 'other'],
+      enum: ['male', 'female'],
       required: [true, 'Gender is required'],
     },
     profilePhoto: {
@@ -303,7 +291,6 @@ const customerSchema = new mongoose.Schema(
 // INDEXES FOR PERFORMANCE
 // ===================================================
 customerSchema.index({ phone: 1, sparse: true });
-customerSchema.index({ email: 1 });
 customerSchema.index({ referralCode: 1, sparse: true });
 customerSchema.index({ createdAt: -1 });
 customerSchema.index({ totalBookings: -1 });

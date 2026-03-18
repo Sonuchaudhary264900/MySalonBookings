@@ -76,6 +76,7 @@ function App() {
             <Route path="/register"                    element={<Register />} />
             <Route path="/salon/:id"                   element={<SalonDetails />} />
             <Route path="/booking/:salonId/:serviceId" element={<Booking />} />
+            <Route path="/booking/:salonId"            element={<Booking />} />
             <Route path="/dashboard"                   element={<Dashboard />} />
             <Route path="/favorites"                   element={<Favorites />} />
             <Route path="/create-salon"                element={<CreateSalon />} />

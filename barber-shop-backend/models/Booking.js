@@ -13,8 +13,16 @@ const bookingSchema = new mongoose.Schema(
     salonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Salon', required: true },
     salonName: String,
     salonPhone: String,
-    serviceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Service', required: true },
+    serviceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Service' },
     serviceName: String,
+    services: [
+      {
+        serviceId:    { type: mongoose.Schema.Types.ObjectId, ref: 'Service' },
+        serviceName:  String,
+        servicePrice: Number,
+        duration:     Number,
+      }
+    ],
     barberId: { type: mongoose.Schema.Types.ObjectId, ref: 'Barber' },
     barberName: String,
     appointmentDate: Date,

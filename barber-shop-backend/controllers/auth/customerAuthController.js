@@ -120,14 +120,13 @@ exports.verifyOTPOnly = async (req, res) => {
 // ===================================================
 exports.verifyOTPAndRegister = async (req, res) => {
   try {
-    const { phone, otp, name, email, gender, password } = req.body;
+    const { phone, otp, name, gender, password } = req.body;
 
 
     // Validate input
     const validation = validateCustomerRegistration({
       phone,
       name,
-      email,
       gender,
       password,
     });
@@ -174,13 +173,11 @@ exports.verifyOTPAndRegister = async (req, res) => {
       );
     }
 
-    // Check if customer already exists (always check phone, add email if provided)
-    const orConditions = [{ phone }];
-    if (email) orConditions.push({ email });
-    const existingCustomer = await Customer.findOne({ $or: orConditions });
+    // Check if customer already exists
+    const existingCustomer = await Customer.findOne({ phone });
     if (existingCustomer) {
       return res.status(409).json(
-        formatErrorResponse('Email or phone already registered', 409)
+        formatErrorResponse('Phone already registered', 409)
       );
     }
 
@@ -189,7 +186,6 @@ exports.verifyOTPAndRegister = async (req, res) => {
       phone,
       phoneVerified: true,
       name,
-      email: email || null,
       gender,
       password: password || null,
       role: 'customer',
@@ -248,7 +244,7 @@ exports.verifyOTPAndRegister = async (req, res) => {
 // ===================================================
 exports.firebaseRegister = async (req, res) => {
   try {
-    const { firebaseToken, name, email, password, gender } = req.body;
+    const { firebaseToken, name, password, gender } = req.body;
 
     if (!firebaseToken) {
       return res.status(400).json(
@@ -261,7 +257,6 @@ exports.firebaseRegister = async (req, res) => {
     if (!name || name.trim().length < 2) errors.push('Valid name is required');
     if (!gender || !['male', 'female', 'other'].includes(gender)) errors.push('Valid gender is required');
     if (!password || password.length < 6) errors.push('Password must be at least 6 characters');
-    if (email && !/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email)) errors.push('Valid email format required');
     if (errors.length > 0) {
       return res.status(400).json(
         formatErrorResponse(messages.GENERIC.VALIDATION_ERROR, 400, errors)
@@ -274,12 +269,10 @@ exports.firebaseRegister = async (req, res) => {
     const phone = firebaseUser.phone;
 
     // Check if customer already exists
-    const orConditions = [{ phone }];
-    if (email) orConditions.push({ email: email.toLowerCase().trim() });
-    const existingCustomer = await Customer.findOne({ $or: orConditions });
+    const existingCustomer = await Customer.findOne({ phone });
     if (existingCustomer) {
       return res.status(409).json(
-        formatErrorResponse('Phone or email already registered', 409)
+        formatErrorResponse('Phone already registered', 409)
       );
     }
 
@@ -288,7 +281,6 @@ exports.firebaseRegister = async (req, res) => {
       phone,
       phoneVerified: true,
       name: name.trim(),
-      email: email ? email.toLowerCase().trim() : null,
       gender,
       password,
       role: 'customer',

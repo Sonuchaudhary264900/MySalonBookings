@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import API from "../services/api";
 import { isCustomer, clearCustomerAuth } from "../utils/auth";
@@ -7,41 +7,52 @@ import { useNotifications } from "../context/NotificationContext";
 
 function Booking() {
   const { salonId, serviceId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const { addToast, addNotification } = useNotifications();
 
+  // Support multi-service: serviceIds from state, fallback to single serviceId in URL
+  const serviceIdsFromState = location.state?.serviceIds;
+  const serviceIdList = serviceIdsFromState?.length
+    ? serviceIdsFromState
+    : serviceId ? [serviceId] : [];
+
   const [salon, setSalon]         = useState(null);
-  const [service, setService]     = useState(null);
+  const [services, setServices]   = useState([]);   // all selected services
   const [date, setDate]           = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; });
   const [slot, setSlot]           = useState("");
-  const [slots, setSlots]         = useState([]);        // all generated slots
-  const [blockedSlots, setBlockedSlots] = useState([]); // slots occupied by bookings
+  const [slots, setSlots]         = useState([]);
+  const [blockedSlots, setBlockedSlots] = useState([]);
   const [closedDay, setClosedDay] = useState(false);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [loading, setLoading]     = useState(false);
   const [success, setSuccess]     = useState(false);
   const [error, setError]         = useState("");
-  const [slotPopup, setSlotPopup] = useState(null); // null | "booked" | "past"
+  const [slotPopup, setSlotPopup] = useState(null);
 
   const localDate = (offset = 0) => { const d = new Date(); d.setDate(d.getDate() + offset); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
   const today      = localDate(0);
   const advanceDays = salon?.advanceBookingDays ?? 1;
   const maxDateStr  = localDate(advanceDays);
 
+  // Combined totals across all selected services
+  const totalDuration = services.reduce((sum, s) => sum + (s.duration || 0), 0);
+  const totalPrice    = services.reduce((sum, s) => sum + (s.basePrice || s.price || 0), 0);
+
   const timeToMinutes = (t) => {
     const [h, m] = t.split(":").map(Number);
     return h * 60 + m;
   };
 
-  // Past slot: today's date + slot time already passed
   const isPastSlot = (s) => {
     if (date !== today) return false;
     const now = new Date();
     return timeToMinutes(s) <= now.getHours() * 60 + now.getMinutes();
   };
 
-  // ── Load salon + service once ──────────────────────────────
+  // ── Load salon + all selected services ────────────────────
   useEffect(() => {
+    if (!serviceIdList.length) return;
     const loadData = async () => {
       try {
         const [salonRes, servicesRes] = await Promise.all([
@@ -50,11 +61,11 @@ function Booking() {
         ]);
         const salonData = salonRes.data.data || salonRes.data.salon;
         setSalon(salonData);
-        const svc = (servicesRes.data.data?.services || servicesRes.data.data || [])
-          .find((s) => s._id === serviceId);
-        setService(svc || null);
 
-        // Clamp selected date to salon's booking window
+        const allServices = servicesRes.data.data?.services || servicesRes.data.data || [];
+        const selected = allServices.filter(s => serviceIdList.includes(s._id));
+        setServices(selected);
+
         const days = salonData?.advanceBookingDays ?? 1;
         const max  = localDate(days);
         setDate(prev => (prev > max ? today : prev));
@@ -63,10 +74,10 @@ function Booking() {
     loadData();
   }, [salonId, serviceId]);
 
-  // ── Re-fetch slots whenever date or service changes ────────
+  // ── Re-fetch slots whenever date or services change ────────
   useEffect(() => {
-    if (!date || !salonId || !service) return;
-    setSlot("");       // clear previous selection
+    if (!date || !salonId || !totalDuration) return;
+    setSlot("");
     setSlots([]);
     setBlockedSlots([]);
     setClosedDay(false);
@@ -75,7 +86,7 @@ function Booking() {
       setSlotsLoading(true);
       try {
         const res = await API.get(
-          `/public/salons/${salonId}/booked-slots?date=${date}&duration=${service.duration}`
+          `/public/salons/${salonId}/booked-slots?date=${date}&duration=${totalDuration}`
         );
         const data = res.data.data || {};
         setSlots(data.slots || []);
@@ -89,7 +100,7 @@ function Booking() {
       }
     };
     fetchSlots();
-  }, [date, salonId, service?._id]);
+  }, [date, salonId, totalDuration]);
 
   const handleBooking = async (e) => {
     e.preventDefault();
@@ -107,7 +118,7 @@ function Booking() {
     try {
       await API.post("/customer/bookings", {
         salonId,
-        serviceId,
+        serviceIds: serviceIdList,
         appointmentDate: date,
         appointmentTime: slot,
         paymentMethod: "cash",
@@ -116,7 +127,7 @@ function Booking() {
       addNotification({
         type: "booking",
         title: "Booking Confirmed",
-        message: `${service?.name} at ${salon?.name} on ${date} at ${slot}`,
+        message: `${services.map(s => s.name).join(" + ")} at ${salon?.name} on ${date} at ${slot}`,
       });
       setSuccess(true);
     } catch (err) {
@@ -135,7 +146,7 @@ function Booking() {
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">✓</div>
           <h2 className="text-xl font-bold text-slate-900 mb-2">Booking Confirmed!</h2>
           <p className="text-slate-500 text-sm mb-1">
-            <strong>{service?.name}</strong> at <strong>{salon?.name}</strong>
+            <strong>{services.map(s => s.name).join(" + ")}</strong> at <strong>{salon?.name}</strong>
           </p>
           <p className="text-slate-500 text-sm mb-6">{date} at {slot}</p>
           <div className="flex flex-col gap-2">
@@ -166,18 +177,28 @@ function Booking() {
         <p className="text-muted mb-6">Fill in the details to confirm your booking.</p>
 
         {/* Summary card */}
-        {(salon || service) && (
-          <div className="bg-white rounded-xl border border-slate-100 p-4 mb-5 flex items-center gap-4">
-            <div className="w-12 h-12 gradient-primary rounded-xl flex items-center justify-center text-xl shrink-0">✂</div>
-            <div className="flex-1 min-w-0">
+        {(salon || services.length > 0) && (
+          <div className="bg-white rounded-xl border border-slate-100 p-4 mb-5">
+            <div className="flex items-center gap-4 mb-3">
+              <div className="w-12 h-12 gradient-primary rounded-xl flex items-center justify-center text-xl shrink-0">✂</div>
               <p className="font-semibold text-slate-800 truncate">{salon?.name || "Salon"}</p>
-              {service && (
-                <p className="text-sm text-slate-500">
-                  {service.name} · {service.duration} min ·{" "}
-                  <span className="text-indigo-600 font-medium">₹{service.basePrice || service.price}</span>
-                </p>
-              )}
             </div>
+            {services.length > 0 && (
+              <div className="space-y-1.5">
+                {services.map(s => (
+                  <div key={s._id} className="flex justify-between text-sm text-slate-600">
+                    <span>{s.name} <span className="text-slate-400">· {s.duration} min</span></span>
+                    <span className="font-medium text-indigo-600">₹{s.basePrice || s.price}</span>
+                  </div>
+                ))}
+                {services.length > 1 && (
+                  <div className="flex justify-between text-sm font-semibold text-slate-800 border-t border-slate-100 pt-1.5 mt-1.5">
+                    <span>Total · {totalDuration} min</span>
+                    <span className="text-indigo-700">₹{totalPrice}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -210,14 +231,14 @@ function Booking() {
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">
                 Select Time Slot
-                {service && (
+                {totalDuration > 0 && (
                   <span className="ml-2 text-xs font-normal text-slate-400">
-                    ({service.duration} min per slot)
+                    ({totalDuration} min total)
                   </span>
                 )}
               </label>
 
-              {!service ? (
+              {!services.length ? (
                 <p className="text-sm text-slate-400 italic">Loading service info…</p>
               ) : slotsLoading ? (
                 <div className="flex items-center gap-2 py-4 text-slate-400 text-sm">
@@ -234,7 +255,6 @@ function Booking() {
                 </div>
               ) : (
                 <>
-                  {/* Legend */}
                   <div className="flex items-center gap-4 mb-3 text-xs text-slate-500 flex-wrap">
                     <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-slate-300" /> Past</span>
                     <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-red-400" /> Booked</span>
@@ -248,9 +268,8 @@ function Booking() {
                       const blocked = !past && blockedSlots.includes(s);
                       const selected = slot === s;
 
-                      // Compute end time: start + service duration
                       const [h, m] = s.split(":").map(Number);
-                      const endMin = h * 60 + m + (service?.duration || 30);
+                      const endMin = h * 60 + m + totalDuration;
                       const endTime = `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
 
                       return (
@@ -309,36 +328,34 @@ function Booking() {
             {/* Booking summary */}
             {date && slot && (
               <div className="bg-indigo-50 rounded-xl p-4 text-sm fade-in">
-                <p className="font-semibold text-indigo-800 mb-1">Booking Summary</p>
+                <p className="font-semibold text-indigo-800 mb-2">Booking Summary</p>
                 <div className="space-y-1 text-indigo-700">
-                  <div className="flex justify-between">
-                    <span>Service</span>
-                    <span className="font-medium">{service?.name || "—"}</span>
-                  </div>
+                  {services.map(s => (
+                    <div key={s._id} className="flex justify-between">
+                      <span>{s.name}</span>
+                      <span className="font-medium">₹{s.basePrice || s.price}</span>
+                    </div>
+                  ))}
                   <div className="flex justify-between">
                     <span>Duration</span>
-                    <span className="font-medium">{service?.duration} min</span>
+                    <span className="font-medium">{totalDuration} min</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Date</span>
-                    <span className="font-medium">
-                      {formatDate(date + "T12:00:00")}
-                    </span>
+                    <span className="font-medium">{formatDate(date + "T12:00:00")}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Time</span>
                     <span className="font-medium">{slot} – {(() => {
                       const [h, m] = slot.split(":").map(Number);
-                      const end = h * 60 + m + (service?.duration || 0);
+                      const end = h * 60 + m + totalDuration;
                       return `${String(Math.floor(end / 60)).padStart(2, "0")}:${String(end % 60).padStart(2, "0")}`;
                     })()}</span>
                   </div>
-                  {(service?.basePrice || service?.price) && (
-                    <div className="flex justify-between border-t border-indigo-200 pt-2 mt-2">
-                      <span className="font-semibold">Total</span>
-                      <span className="font-bold text-indigo-900">₹{service.basePrice || service.price}</span>
-                    </div>
-                  )}
+                  <div className="flex justify-between border-t border-indigo-200 pt-2 mt-2">
+                    <span className="font-semibold">Total</span>
+                    <span className="font-bold text-indigo-900">₹{totalPrice}</span>
+                  </div>
                 </div>
               </div>
             )}
