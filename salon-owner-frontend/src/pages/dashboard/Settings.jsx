@@ -641,12 +641,9 @@ const AutoConfirmContent = ({ salon, updateSalon }) => {
       <p className="text-sm text-gray-500">
         When enabled, cash bookings are confirmed instantly. When disabled, each booking stays <strong>pending</strong> until you manually confirm it from the Bookings page.
       </p>
-      <div
-        className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${
-          enabled ? 'border-green-400 bg-green-50' : 'border-gray-200 bg-white'
-        }`}
-        onClick={() => setEnabled(v => !v)}
-      >
+      <div className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
+        enabled ? 'border-green-400 bg-green-50' : 'border-gray-200 bg-white'
+      }`}>
         <div>
           <p className={`text-sm font-semibold ${enabled ? 'text-green-700' : 'text-gray-800'}`}>
             {enabled ? '✅ Auto-Confirm is ON' : '⏸️ Auto-Confirm is OFF'}
