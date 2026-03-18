@@ -343,6 +343,14 @@ location: {
     },
 
     // ==========================================
+    // AUTO CONFIRM BOOKINGS
+    // ==========================================
+    autoConfirmBookings: {
+      type: Boolean,
+      default: true, // true = confirm instantly, false = owner must confirm manually
+    },
+
+    // ==========================================
     // BOOKING MODE
     // ==========================================
     bookingMode: {

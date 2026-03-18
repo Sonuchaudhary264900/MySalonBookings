@@ -259,6 +259,10 @@ exports.updateSalon = async (req, res) => {
       }
     }
 
+    if (req.body.autoConfirmBookings !== undefined) {
+      salon.autoConfirmBookings = Boolean(req.body.autoConfirmBookings);
+    }
+
     await salon.save();
 
     res.json(

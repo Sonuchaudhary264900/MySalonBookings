@@ -86,8 +86,9 @@ export const updateSalon = async (salonData) => {
   if (salonData.description)  body.description  = salonData.description.trim();
   if (salonData.location)     body.location     = salonData.location;
   if (salonData.workingHours) body.workingHours = salonData.workingHours;
-  if (salonData.advanceBookingDays !== undefined) body.advanceBookingDays = salonData.advanceBookingDays;
-  if (salonData.bookingMode !== undefined)        body.bookingMode        = salonData.bookingMode;
+  if (salonData.advanceBookingDays !== undefined)   body.advanceBookingDays   = salonData.advanceBookingDays;
+  if (salonData.bookingMode !== undefined)          body.bookingMode          = salonData.bookingMode;
+  if (salonData.autoConfirmBookings !== undefined)  body.autoConfirmBookings  = salonData.autoConfirmBookings;
 
   const response = await api.put('/owner/salon', body);
   return { success: true, message: 'Salon updated successfully', data: response.data.data };

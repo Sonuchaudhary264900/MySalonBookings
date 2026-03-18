@@ -617,6 +617,55 @@ const BookingWindowContent = ({ salon, updateSalon }) => {
   );
 };
 
+// ─── Auto Confirm content ─────────────────────────────────────
+const AutoConfirmContent = ({ salon, updateSalon }) => {
+  const [enabled, setEnabled] = useState(salon?.autoConfirmBookings !== false);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setEnabled(salon?.autoConfirmBookings !== false);
+  }, [salon]);
+
+  const handleSave = async () => {
+    setLoading(true);
+    try {
+      await updateSalon({ autoConfirmBookings: enabled });
+      toast.success('Auto-confirm setting saved!');
+    } catch (err) {
+      toast.error(err.message || 'Failed to update');
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-gray-500">
+        When enabled, cash bookings are confirmed instantly. When disabled, each booking stays <strong>pending</strong> until you manually confirm it from the Bookings page.
+      </p>
+      <div
+        className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${
+          enabled ? 'border-green-400 bg-green-50' : 'border-gray-200 bg-white'
+        }`}
+        onClick={() => setEnabled(v => !v)}
+      >
+        <div>
+          <p className={`text-sm font-semibold ${enabled ? 'text-green-700' : 'text-gray-800'}`}>
+            {enabled ? '✅ Auto-Confirm is ON' : '⏸️ Auto-Confirm is OFF'}
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {enabled
+              ? 'New bookings are confirmed automatically.'
+              : 'You must manually confirm each new booking.'}
+          </p>
+        </div>
+        <Toggle name="autoConfirm" checked={enabled} onChange={e => setEnabled(e.target.checked)} />
+      </div>
+      <Button variant="primary" onClick={handleSave} loading={loading} disabled={loading} fullWidth>
+        <Save className="w-4 h-4" /> Save Setting
+      </Button>
+    </div>
+  );
+};
+
 // ─── Booking Mode content ─────────────────────────────────────
 const BookingModeContent = ({ salon, updateSalon }) => {
   const [mode, setMode] = useState(salon?.bookingMode || 'flexible');
@@ -948,6 +997,14 @@ const SettingsPage = () => {
       title: 'Booking Mode',
       subtitle: 'Sequential (next-in-line) or Flexible (customer picks slot)',
       content: <BookingModeContent salon={salon} updateSalon={updateSalon} />,
+    },
+    {
+      id: 'auto-confirm',
+      icon: CheckCircle2,
+      iconBg: 'bg-green-100 text-green-600',
+      title: 'Auto-Confirm Bookings',
+      subtitle: 'Confirm bookings instantly or review them manually',
+      content: <AutoConfirmContent salon={salon} updateSalon={updateSalon} />,
     },
     {
       id: 'photos',

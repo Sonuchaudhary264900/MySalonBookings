@@ -160,7 +160,8 @@ const createBooking = async (req, res) => {
       );
     }
 
-    booking.status = "confirmed";
+    const autoConfirm = salon.autoConfirmBookings !== false; // default true
+    booking.status = autoConfirm ? "confirmed" : "pending";
     booking.paymentStatus = "completed";
     await booking.save();
 
