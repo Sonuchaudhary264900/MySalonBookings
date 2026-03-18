@@ -253,6 +253,12 @@ exports.updateSalon = async (req, res) => {
       }
     }
 
+    if (req.body.bookingMode !== undefined) {
+      if (['sequential', 'flexible'].includes(req.body.bookingMode)) {
+        salon.bookingMode = req.body.bookingMode;
+      }
+    }
+
     await salon.save();
 
     res.json(
