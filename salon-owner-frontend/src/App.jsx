@@ -20,6 +20,7 @@ const Dashboard        = lazy(() => import('./pages/dashboard/Dashboard'));
 const Services         = lazy(() => import('./pages/dashboard/Services'));
 const Bookings         = lazy(() => import('./pages/dashboard/Bookings'));
 const Reports          = lazy(() => import('./pages/dashboard/Reports'));
+const Reviews          = lazy(() => import('./pages/dashboard/Reviews'));
 const Profile          = lazy(() => import('./pages/dashboard/Profile'));
 const Settings         = lazy(() => import('./pages/dashboard/Settings'));
 const Notifications    = lazy(() => import('./pages/dashboard/Notifications'));
@@ -203,6 +204,7 @@ function App() {
                     <Route path={ROUTES.SERVICES}      element={<Services />} />
                     <Route path={ROUTES.BOOKINGS}      element={<Bookings />} />
                     <Route path={ROUTES.ANALYTICS}     element={<Reports />} />
+                    <Route path={ROUTES.REVIEWS}       element={<Reviews />} />
                     <Route path={ROUTES.PROFILE}       element={<Profile />} />
                     <Route path={ROUTES.SETTINGS}      element={<Settings />} />
                     <Route path={ROUTES.NOTIFICATIONS} element={<Notifications />} />

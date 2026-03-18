@@ -19,6 +19,7 @@ const ROUTES = {
   SERVICES: '/dashboard/services',
   BOOKINGS: '/dashboard/bookings',
   ANALYTICS: '/dashboard/analytics',
+  REVIEWS: '/dashboard/reviews',
   PROFILE: '/dashboard/profile',
   SETTINGS: '/dashboard/settings',
   NOTIFICATIONS: '/dashboard/notifications',

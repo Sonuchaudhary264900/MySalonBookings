@@ -10,15 +10,12 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 
 // ── Lazily loaded (split into separate chunks) ─────────────────
-const Register       = lazy(() => import("./pages/Register"));
-const SalonDetails   = lazy(() => import("./pages/SalonDetails"));
-const Booking        = lazy(() => import("./pages/Booking"));
-const Dashboard      = lazy(() => import("./pages/Dashboard"));
-const Favorites      = lazy(() => import("./pages/Favorites"));
-const CreateSalon    = lazy(() => import("./pages/CreateSalon"));
-const OwnerDashboard = lazy(() => import("./pages/OwnerDashboard"));
-const OwnerServices  = lazy(() => import("./pages/OwnerServices"));
-const Profile        = lazy(() => import("./pages/Profile"));
+const Register     = lazy(() => import("./pages/Register"));
+const SalonDetails = lazy(() => import("./pages/SalonDetails"));
+const Booking      = lazy(() => import("./pages/Booking"));
+const Dashboard    = lazy(() => import("./pages/Dashboard"));
+const Favorites    = lazy(() => import("./pages/Favorites"));
+const Profile      = lazy(() => import("./pages/Profile"));
 
 // ── Page loading fallback ──────────────────────────────────────
 function PageLoader() {
@@ -79,9 +76,6 @@ function App() {
             <Route path="/booking/:salonId"            element={<Booking />} />
             <Route path="/dashboard"                   element={<Dashboard />} />
             <Route path="/favorites"                   element={<Favorites />} />
-            <Route path="/create-salon"                element={<CreateSalon />} />
-            <Route path="/owner/dashboard"             element={<OwnerDashboard />} />
-            <Route path="/owner/services"              element={<OwnerServices />} />
             <Route path="/profile"                     element={<Profile />} />
 
             {/* 404 */}

@@ -7,7 +7,6 @@
   - Rate and review salons
   - Track bookings
   - Save favorite salons/barbers
-  - Manage wallet and loyalty points
 */
 
 const mongoose = require('mongoose');
@@ -153,33 +152,6 @@ const customerSchema = new mongoose.Schema(
     ],
 
     // ==========================================
-    // WALLET & LOYALTY
-    // ==========================================
-    walletBalance: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    loyaltyPoints: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    membershipTier: {
-      type: String,
-      enum: ['bronze', 'silver', 'gold'],
-      default: 'bronze',
-    },
-    membershipStartDate: {
-      type: Date,
-      default: null,
-    },
-    membershipExpiryDate: {
-      type: Date,
-      default: null,
-    },
-
-    // ==========================================
     // NOTIFICATION PREFERENCES
     // ==========================================
     notificationPreferences: {
@@ -233,28 +205,6 @@ const customerSchema = new mongoose.Schema(
     },
 
     // ==========================================
-    // REFERRAL PROGRAM
-    // ==========================================
-    referralCode: {
-      type: String,
-      unique: true,
-      sparse: true,
-    },
-    referredBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Customer',
-      default: null,
-    },
-    referralCount: {
-      type: Number,
-      default: 0,
-    },
-    referralBonusUsed: {
-      type: Boolean,
-      default: false,
-    },
-
-    // ==========================================
     // AUTHENTICATION TOKENS
     // ==========================================
     refreshTokens: [
@@ -291,7 +241,6 @@ const customerSchema = new mongoose.Schema(
 // INDEXES FOR PERFORMANCE
 // ===================================================
 customerSchema.index({ phone: 1, sparse: true });
-customerSchema.index({ referralCode: 1, sparse: true });
 customerSchema.index({ createdAt: -1 });
 customerSchema.index({ totalBookings: -1 });
 customerSchema.index({ 'savedLocations.coordinates': '2dsphere' });
@@ -310,17 +259,6 @@ customerSchema.pre('save', async function (next) {
   } catch (error) {
     next(error);
   }
-});
-
-// ===================================================
-// MIDDLEWARE - GENERATE REFERRAL CODE
-// ===================================================
-customerSchema.pre('save', async function (next) {
-  if (!this.referralCode) {
-    // Generate unique referral code
-    this.referralCode = `REF_${this._id.toString().slice(-8).toUpperCase()}_${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
-  }
-  next();
 });
 
 // ===================================================
@@ -344,59 +282,6 @@ customerSchema.methods.getPublicProfile = function () {
   delete customer.banReason;
   delete customer.bannedAt;
   return customer;
-};
-
-// ===================================================
-// METHOD - ADD WALLET BALANCE
-// ===================================================
-customerSchema.methods.addWalletBalance = async function (amount) {
-  try {
-    if (amount <= 0) throw new Error('Amount must be positive');
-    this.walletBalance += amount;
-    await this.save();
-    return this.walletBalance;
-  } catch (error) {
-    throw error;
-  }
-};
-
-// ===================================================
-// METHOD - DEDUCT WALLET BALANCE
-// ===================================================
-customerSchema.methods.deductWalletBalance = async function (amount) {
-  try {
-    if (amount <= 0) throw new Error('Amount must be positive');
-    if (this.walletBalance < amount) throw new Error('Insufficient wallet balance');
-    this.walletBalance -= amount;
-    await this.save();
-    return this.walletBalance;
-  } catch (error) {
-    throw error;
-  }
-};
-
-// ===================================================
-// METHOD - ADD LOYALTY POINTS
-// ===================================================
-customerSchema.methods.addLoyaltyPoints = async function (points) {
-  try {
-    if (points <= 0) throw new Error('Points must be positive');
-    this.loyaltyPoints += points;
-    
-    // Update membership tier based on points
-    if (this.loyaltyPoints >= 5000) {
-      this.membershipTier = 'gold';
-    } else if (this.loyaltyPoints >= 2000) {
-      this.membershipTier = 'silver';
-    } else {
-      this.membershipTier = 'bronze';
-    }
-    
-    await this.save();
-    return this.loyaltyPoints;
-  } catch (error) {
-    throw error;
-  }
 };
 
 // ===================================================
@@ -428,12 +313,5 @@ customerSchema.methods.removeFavoriteSalon = async function (salonId) {
     throw error;
   }
 };
-
-// ===================================================
-// VIRTUAL - IS PREMIUM MEMBER
-// ===================================================
-customerSchema.virtual('isPremiumMember').get(function () {
-  return this.membershipTier === 'gold' || this.membershipTier === 'silver';
-});
 
 module.exports = mongoose.model('Customer', customerSchema);

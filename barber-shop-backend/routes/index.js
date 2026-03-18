@@ -157,6 +157,16 @@ router.get("/public/salons/:salonId/services", validateObjectId("salonId"), asyn
   res.json({ success: true, data: { services } });
 }));
 
+// GET /public/salons/:salonId/barbers
+router.get("/public/salons/:salonId/barbers", validateObjectId("salonId"), asyncHandler(async (req, res) => {
+  const Barber = require("../models/Barber");
+  const barbers = await Barber.find({ salonId: req.params.salonId, isActive: true })
+    .select("name profilePhoto gender specializations experience averageRating")
+    .sort({ name: 1 })
+    .lean();
+  res.json({ success: true, data: { barbers } });
+}));
+
 // GET /public/salons/:salonId/reviews
 router.get("/public/salons/:salonId/reviews", validateObjectId("salonId"), asyncHandler(async (req, res) => {
   const reviews = await Review.find({ salonId: req.params.salonId, isPublished: true, isHidden: false })
@@ -261,6 +271,38 @@ router.get("/public/salons/:salonId/booked-slots", validateObjectId("salonId"), 
 }));
 
 /* =====================================================
+   COUPON VALIDATION ROUTE
+===================================================== */
+
+// POST /customer/coupons/validate
+router.post("/customer/coupons/validate", authenticateCustomer, asyncHandler(async (req, res) => {
+  const Coupon = require("../models/Coupon");
+  const { code, salonId, totalAmount } = req.body;
+  if (!code) return res.status(400).json({ success: false, message: "Coupon code is required" });
+
+  const coupon = await Coupon.findOne({ code: code.toUpperCase().trim(), isActive: true });
+  if (!coupon) return res.status(404).json({ success: false, message: "Invalid coupon code" });
+
+  const now = new Date();
+  if (coupon.validFrom && now < coupon.validFrom) return res.status(400).json({ success: false, message: "Coupon is not yet valid" });
+  if (coupon.validUntil && now > coupon.validUntil) return res.status(400).json({ success: false, message: "Coupon has expired" });
+  if (coupon.salonId && salonId && coupon.salonId.toString() !== salonId) return res.status(400).json({ success: false, message: "Coupon not valid for this salon" });
+  if (coupon.maxUsageCount && coupon.usageCount >= coupon.maxUsageCount) return res.status(400).json({ success: false, message: "Coupon usage limit reached" });
+  if (coupon.minAmount && totalAmount < coupon.minAmount) return res.status(400).json({ success: false, message: `Minimum order amount ₹${coupon.minAmount} required` });
+
+  const alreadyUsed = coupon.usedBy.some(id => id.toString() === req.customer._id.toString());
+  if (coupon.maxUsagePerCustomer && alreadyUsed) return res.status(400).json({ success: false, message: "You have already used this coupon" });
+
+  let discount = coupon.discountType === "percentage"
+    ? Math.round((totalAmount * coupon.discountValue) / 100)
+    : coupon.discountValue;
+  if (coupon.maxDiscount) discount = Math.min(discount, coupon.maxDiscount);
+  discount = Math.min(discount, totalAmount);
+
+  res.json({ success: true, data: { coupon: { _id: coupon._id, code: coupon.code, description: coupon.description, discountType: coupon.discountType, discountValue: coupon.discountValue }, discount } });
+}));
+
+/* =====================================================
    CUSTOMER AUTH ROUTES
 ===================================================== */
 
@@ -304,6 +346,29 @@ router.post("/customer/auth/change-password",
   asyncHandler(customerAuthController.changePassword)
 );
 
+router.post("/customer/auth/upload-photo",
+  authenticateCustomer,
+  multerUpload.single("photo"),
+  asyncHandler(async (req, res) => {
+    if (!req.file) return res.status(400).json({ success: false, message: "No photo uploaded" });
+    const { cloudinary: cloudinaryClient } = require("../config/cloudinary");
+    const Customer = require("../models/Customer");
+    const url = await new Promise((resolve, reject) => {
+      const stream = cloudinaryClient.uploader.upload_stream(
+        { folder: "smart-salon/customer-photos", resource_type: "image" },
+        (error, result) => { if (error) reject(error); else resolve(result.secure_url); }
+      );
+      stream.end(req.file.buffer);
+    });
+    const customer = await Customer.findByIdAndUpdate(
+      req.customer._id,
+      { profilePhoto: url },
+      { new: true }
+    );
+    res.json({ success: true, data: { profilePhoto: customer.profilePhoto } });
+  })
+);
+
 router.post("/customer/auth/refresh-token",
   asyncHandler(customerAuthController.refreshToken)
 );
@@ -339,6 +404,85 @@ router.post("/customer/bookings/:bookingId/cancel",
   validateObjectId("bookingId"),
   asyncHandler(bookingController.cancelBooking)
 );
+
+// PUT /customer/bookings/:bookingId/reschedule
+router.put("/customer/bookings/:bookingId/reschedule",
+  authenticateCustomer,
+  validateObjectId("bookingId"),
+  asyncHandler(async (req, res) => {
+    const Booking = require("../models/Booking");
+    const { appointmentDate, appointmentTime } = req.body;
+    if (!appointmentDate || !appointmentTime) {
+      return res.status(400).json({ success: false, message: "New date and time are required" });
+    }
+    const booking = await Booking.findOne({ _id: req.params.bookingId, customerId: req.customer._id });
+    if (!booking) return res.status(404).json({ success: false, message: "Booking not found" });
+    if (!["pending", "confirmed"].includes(booking.status)) {
+      return res.status(400).json({ success: false, message: "Only pending or confirmed bookings can be rescheduled" });
+    }
+    // Check for conflicts at the new slot
+    const timeToMinutes = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+    const dayStart = new Date(appointmentDate + "T00:00:00.000Z");
+    const dayEnd   = new Date(appointmentDate + "T23:59:59.999Z");
+    const existing = await Booking.find({
+      salonId: booking.salonId,
+      _id: { $ne: booking._id },
+      appointmentDate: { $gte: dayStart, $lte: dayEnd },
+      status: { $in: ["pending", "confirmed", "in_progress"] },
+    }).select("appointmentTime estimatedDuration").lean();
+    const newStart = timeToMinutes(appointmentTime);
+    const newEnd   = newStart + (booking.estimatedDuration || 30);
+    const conflict = existing.some(b => {
+      const s = timeToMinutes(b.appointmentTime);
+      const e = s + (b.estimatedDuration || 30);
+      return newStart < e && s < newEnd;
+    });
+    if (conflict) return res.status(409).json({ success: false, message: "This time slot is already booked. Please choose another." });
+    booking.appointmentDate = new Date(appointmentDate + "T12:00:00.000Z");
+    booking.appointmentTime = appointmentTime;
+    booking.status = "pending"; // reset to pending after reschedule
+    await booking.save();
+    res.json({ success: true, data: booking, message: "Booking rescheduled successfully" });
+  })
+);
+
+/* =====================================================
+   CUSTOMER REVIEW ROUTES
+===================================================== */
+
+// POST /customer/reviews — submit a review after a completed booking
+router.post("/customer/reviews", authenticateCustomer, asyncHandler(async (req, res) => {
+  const Booking = require("../models/Booking");
+  const { bookingId, salonRating, reviewText, title } = req.body;
+  if (!bookingId || !salonRating) return res.status(400).json({ success: false, message: "bookingId and salonRating are required" });
+  if (salonRating < 1 || salonRating > 5) return res.status(400).json({ success: false, message: "Rating must be between 1 and 5" });
+
+  const booking = await Booking.findOne({ _id: bookingId, customerId: req.customer._id, status: "completed" });
+  if (!booking) return res.status(404).json({ success: false, message: "Completed booking not found" });
+
+  const existing = await Review.findOne({ bookingId, customerId: req.customer._id });
+  if (existing) return res.status(409).json({ success: false, message: "You have already reviewed this booking" });
+
+  const Customer = require("../models/Customer");
+  const customer = await Customer.findById(req.customer._id).select("name");
+
+  const review = await Review.create({
+    bookingId,
+    customerId: req.customer._id,
+    salonId: booking.salonId,
+    salonRating: Number(salonRating),
+    reviewText: reviewText?.trim() || undefined,
+    title: title?.trim() || undefined,
+    customerName: customer?.name,
+  });
+
+  // Update salon's average rating
+  const allReviews = await Review.find({ salonId: booking.salonId, isPublished: true });
+  const avg = allReviews.reduce((s, r) => s + r.salonRating, 0) / allReviews.length;
+  await Salon.findByIdAndUpdate(booking.salonId, { averageRating: Math.round(avg * 10) / 10, totalReviews: allReviews.length });
+
+  res.status(201).json({ success: true, data: review });
+}));
 
 /* =====================================================
    CUSTOMER FAVOURITES ROUTES
@@ -622,6 +766,33 @@ router.put("/owner/bookings/:bookingId", authenticateOwner, validateObjectId("bo
   await booking.save();
 
   res.json({ success: true, data: booking });
+}));
+
+/* =====================================================
+   OWNER REVIEWS
+===================================================== */
+
+// GET /owner/reviews — get all published reviews for this owner's salon
+router.get("/owner/reviews", authenticateOwner, asyncHandler(async (req, res) => {
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+  const reviews = await Review.find({ salonId: salon._id, isPublished: true, isHidden: false })
+    .sort({ createdAt: -1 }).limit(100).lean();
+  res.json({ success: true, data: { reviews } });
+}));
+
+// PUT /owner/reviews/:reviewId/reply — add/update owner reply on a review
+router.put("/owner/reviews/:reviewId/reply", authenticateOwner, validateObjectId("reviewId"), asyncHandler(async (req, res) => {
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+  const { reply } = req.body;
+  if (!reply?.trim()) return res.status(400).json({ success: false, message: "Reply text is required" });
+  const review = await Review.findOne({ _id: req.params.reviewId, salonId: salon._id });
+  if (!review) return res.status(404).json({ success: false, message: "Review not found" });
+  review.ownerResponse = reply.trim();
+  review.ownerRespondedAt = new Date();
+  await review.save();
+  res.json({ success: true, data: review });
 }));
 
 /* =====================================================

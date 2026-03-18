@@ -153,23 +153,6 @@ const ownerSchema = new mongoose.Schema(
     },
 
     // ==========================================
-    // SUBSCRIPTION & PLAN
-    // ==========================================
-    subscriptionPlan: {
-      type: String,
-      enum: ['free', 'basic', 'premium'],
-      default: 'free',
-    },
-    subscriptionStartDate: {
-      type: Date,
-      default: null,
-    },
-    subscriptionEndDate: {
-      type: Date,
-      default: null,
-    },
-
-    // ==========================================
     // BUSINESS STATS
     // ==========================================
     totalServices: {

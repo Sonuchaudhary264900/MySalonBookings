@@ -20,7 +20,7 @@ const { createOrder } = require('../../config/razorpay');
 const createBooking = async (req, res) => {
   try {
 
-    const { salonId, serviceId, serviceIds, barberId, appointmentDate, appointmentTime, paymentMethod } = req.body;
+    const { salonId, serviceId, serviceIds, barberId, appointmentDate, appointmentTime, paymentMethod, couponCode } = req.body;
 
     // Support both single serviceId and multiple serviceIds array
     const serviceIdList = serviceIds?.length ? serviceIds : (serviceId ? [serviceId] : []);
@@ -101,8 +101,6 @@ const createBooking = async (req, res) => {
 
     // Check for overlapping bookings
     const timeToMinutes = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
-    const dayStart = new Date(appointmentDate + 'T00:00:00.000Z');
-    const dayEnd   = new Date(appointmentDate + 'T23:59:59.999Z');
 
     const existingBookings = await Booking.find({
       salonId,
@@ -127,6 +125,27 @@ const createBooking = async (req, res) => {
 
     const customer = await Customer.findById(req.customer._id);
 
+    // Apply coupon if provided
+    let discountAmount = 0;
+    let appliedCouponCode = null;
+    if (couponCode) {
+      const Coupon = require('../../models/Coupon');
+      const coupon = await Coupon.findOne({ code: couponCode.toUpperCase().trim(), isActive: true });
+      if (coupon) {
+        let discount = coupon.discountType === 'percentage'
+          ? Math.round((totalPrice * coupon.discountValue) / 100)
+          : coupon.discountValue;
+        if (coupon.maxDiscount) discount = Math.min(discount, coupon.maxDiscount);
+        discount = Math.min(discount, totalPrice);
+        discountAmount = discount;
+        appliedCouponCode = coupon.code;
+        coupon.usageCount += 1;
+        coupon.usedBy.push(req.customer._id);
+        await coupon.save();
+      }
+    }
+    const finalAmount = totalPrice - discountAmount;
+
     const booking = await Booking.create({
       bookingId: generateBookingId(),
       customerId: req.customer._id,
@@ -148,7 +167,9 @@ const createBooking = async (req, res) => {
       appointmentTime,
       estimatedDuration: totalDuration,
       servicePrice: totalPrice,
-      totalAmount: totalPrice,
+      discount: discountAmount,
+      couponApplied: appliedCouponCode,
+      totalAmount: finalAmount,
       paymentMethod,
       paymentStatus: "pending",
       status: "pending"

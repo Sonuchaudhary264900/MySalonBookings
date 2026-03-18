@@ -19,6 +19,8 @@ function Booking() {
 
   const [salon, setSalon]         = useState(null);
   const [services, setServices]   = useState([]);   // all selected services
+  const [barbers, setBarbers]     = useState([]);
+  const [barberId, setBarberId]   = useState("");
   const [date, setDate]           = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; });
   const [slot, setSlot]           = useState("");
   const [slots, setSlots]         = useState([]);
@@ -31,6 +33,11 @@ function Booking() {
   const [bookingStatus, setBookingStatus] = useState("confirmed");
   const [error, setError]         = useState("");
   const [slotPopup, setSlotPopup] = useState(null);
+  const [couponInput, setCouponInput]     = useState("");
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponError, setCouponError]     = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
 
   const localDate = (offset = 0) => { const d = new Date(); d.setDate(d.getDate() + offset); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
   const today      = localDate(0);
@@ -40,6 +47,7 @@ function Booking() {
   // Combined totals across all selected services
   const totalDuration = services.reduce((sum, s) => sum + (s.duration || 0), 0);
   const totalPrice    = services.reduce((sum, s) => sum + (s.basePrice || s.price || 0), 0);
+  const finalPrice    = Math.max(0, totalPrice - couponDiscount);
 
   const timeToMinutes = (t) => {
     const [h, m] = t.split(":").map(Number);
@@ -52,14 +60,15 @@ function Booking() {
     return timeToMinutes(s) <= now.getHours() * 60 + now.getMinutes();
   };
 
-  // ── Load salon + all selected services ────────────────────
+  // ── Load salon + all selected services + barbers ───────────
   useEffect(() => {
     if (!serviceIdList.length) return;
     const loadData = async () => {
       try {
-        const [salonRes, servicesRes] = await Promise.all([
+        const [salonRes, servicesRes, barbersRes] = await Promise.all([
           API.get(`/public/salons/${salonId}`),
           API.get(`/public/salons/${salonId}/services`),
+          API.get(`/public/salons/${salonId}/barbers`),
         ]);
         const salonData = salonRes.data.data || salonRes.data.salon;
         setSalon(salonData);
@@ -68,6 +77,8 @@ function Booking() {
         const selected = allServices.filter(s => serviceIdList.includes(s._id));
         setServices(selected);
 
+        setBarbers(barbersRes.data.data?.barbers || []);
+
         const days = salonData?.advanceBookingDays ?? 1;
         const max  = localDate(days);
         setDate(prev => (prev > max ? today : prev));
@@ -75,6 +86,35 @@ function Booking() {
     };
     loadData();
   }, [salonId, serviceId]);
+
+  const applyCoupon = async () => {
+    if (!couponInput.trim()) return;
+    setCouponError("");
+    setCouponLoading(true);
+    try {
+      const res = await API.post("/customer/coupons/validate", {
+        code: couponInput.trim(),
+        salonId,
+        totalAmount: totalPrice,
+      });
+      const { coupon, discount } = res.data.data;
+      setAppliedCoupon(coupon);
+      setCouponDiscount(discount);
+    } catch (err) {
+      setCouponError(err.response?.data?.message || "Invalid coupon");
+      setAppliedCoupon(null);
+      setCouponDiscount(0);
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponDiscount(0);
+    setCouponInput("");
+    setCouponError("");
+  };
 
   // ── Re-fetch slots whenever date or services change ────────
   useEffect(() => {
@@ -127,9 +167,11 @@ function Booking() {
       const res = await API.post("/customer/bookings", {
         salonId,
         serviceIds: serviceIdList,
+        barberId: barberId || undefined,
         appointmentDate: date,
         appointmentTime: slot,
         paymentMethod: "cash",
+        couponCode: appliedCoupon?.code || undefined,
       });
       const status = res.data.data?.booking?.status || res.data.data?.status || "confirmed";
       setBookingStatus(status);
@@ -248,6 +290,34 @@ function Booking() {
               )}
             </div>
 
+            {/* Barber selection (optional) */}
+            {barbers.length > 0 && (
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Select Barber <span className="text-slate-400 font-normal">(optional)</span></label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setBarberId("")}
+                    className={`px-3 py-2.5 rounded-xl border text-sm font-medium transition-all text-left ${barberId === "" ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300"}`}
+                  >
+                    <span className="block text-xs opacity-75 mb-0.5">Any</span>
+                    <span>No preference</span>
+                  </button>
+                  {barbers.map(b => (
+                    <button
+                      key={b._id}
+                      type="button"
+                      onClick={() => setBarberId(b._id)}
+                      className={`px-3 py-2.5 rounded-xl border text-sm font-medium transition-all text-left ${barberId === b._id ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300"}`}
+                    >
+                      <span className="block font-semibold">{b.name}</span>
+                      {b.experience > 0 && <span className={`text-xs ${barberId === b._id ? "text-indigo-200" : "text-slate-400"}`}>{b.experience} yr exp</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Time slots */}
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">
@@ -365,6 +435,38 @@ function Booking() {
               </div>
             )}
 
+            {/* Coupon code */}
+            {date && slot && (
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Have a coupon?</label>
+                {appliedCoupon ? (
+                  <div className="flex items-center justify-between px-3 py-2.5 bg-green-50 border border-green-200 rounded-xl text-sm">
+                    <span className="text-green-700 font-medium">✓ {appliedCoupon.code} — ₹{couponDiscount} off</span>
+                    <button type="button" onClick={removeCoupon} className="text-xs text-red-500 hover:underline ml-2">Remove</button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={couponInput}
+                      onChange={e => { setCouponInput(e.target.value.toUpperCase()); setCouponError(""); }}
+                      placeholder="Enter coupon code"
+                      className="input-field flex-1"
+                    />
+                    <button
+                      type="button"
+                      onClick={applyCoupon}
+                      disabled={couponLoading || !couponInput.trim()}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 transition"
+                    >
+                      {couponLoading ? "…" : "Apply"}
+                    </button>
+                  </div>
+                )}
+                {couponError && <p className="text-xs text-red-500 mt-1">{couponError}</p>}
+              </div>
+            )}
+
             {/* Booking summary */}
             {date && slot && (
               <div className="bg-indigo-50 rounded-xl p-4 text-sm fade-in">
@@ -392,9 +494,15 @@ function Booking() {
                       return `${String(Math.floor(end / 60)).padStart(2, "0")}:${String(end % 60).padStart(2, "0")}`;
                     })()}</span>
                   </div>
+                  {couponDiscount > 0 && (
+                    <div className="flex justify-between text-green-700">
+                      <span>Discount ({appliedCoupon?.code})</span>
+                      <span className="font-medium">-₹{couponDiscount}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between border-t border-indigo-200 pt-2 mt-2">
                     <span className="font-semibold">Total</span>
-                    <span className="font-bold text-indigo-900">₹{totalPrice}</span>
+                    <span className="font-bold text-indigo-900">₹{finalPrice}</span>
                   </div>
                 </div>
               </div>

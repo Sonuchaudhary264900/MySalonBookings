@@ -32,12 +32,152 @@ function formatDistance(km) {
   return `${km.toFixed(1)} km away`;
 }
 
-function BookingCard({ booking, userCoords }) {
-  const status = booking.status || "pending";
+function ReviewPrompt({ bookingId, salonId, onReviewed }) {
+  const [open, setOpen] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [hover, setHover] = useState(0);
+  const [text, setText] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+
+  if (done) return (
+    <div className="mt-3 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-xs text-green-700">
+      ✅ Thank you for your review!
+    </div>
+  );
+
+  if (!open) return (
+    <div className="mt-3 px-3 py-2 bg-indigo-50 border border-indigo-100 rounded-lg text-xs text-indigo-700 flex items-center justify-between">
+      <span>⭐ How was your experience?</span>
+      <button onClick={() => setOpen(true)} className="font-semibold hover:underline ml-2">Leave a Review</button>
+    </div>
+  );
+
+  const handleSubmit = async () => {
+    if (!rating) return;
+    setSubmitting(true);
+    try {
+      await API.post("/customer/reviews", { bookingId, salonRating: rating, reviewText: text.trim() || undefined });
+      setDone(true);
+      onReviewed?.(bookingId);
+    } catch {
+      // silent — already reviewed
+      setDone(true);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="mt-3 px-3 py-3 bg-indigo-50 border border-indigo-100 rounded-lg space-y-2">
+      <p className="text-xs font-semibold text-indigo-700">Rate your experience</p>
+      <div className="flex gap-1">
+        {[1,2,3,4,5].map(n => (
+          <button key={n} type="button"
+            onClick={() => setRating(n)}
+            onMouseEnter={() => setHover(n)}
+            onMouseLeave={() => setHover(0)}
+            className={`text-xl transition-colors ${n <= (hover || rating) ? "text-amber-400" : "text-slate-300"}`}
+          >★</button>
+        ))}
+      </div>
+      <textarea value={text} onChange={e => setText(e.target.value)} rows={2}
+        placeholder="Share your experience (optional)"
+        className="w-full px-2 py-1.5 border border-indigo-200 rounded-lg text-xs bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400 resize-none"
+      />
+      <div className="flex gap-2">
+        <button onClick={handleSubmit} disabled={!rating || submitting}
+          className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition">
+          {submitting ? "Submitting…" : "Submit"}
+        </button>
+        <button onClick={() => setOpen(false)} className="text-xs text-slate-500 hover:underline">Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+function RescheduleModal({ booking, onClose, onRescheduled }) {
+  const dateOnly = booking.appointmentDate ? String(booking.appointmentDate).slice(0, 10) : "";
+  const [newDate, setNewDate] = useState(dateOnly);
+  const [newTime, setNewTime] = useState(booking.appointmentTime || "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const today = new Date().toISOString().slice(0, 10);
+
+  const handleSave = async () => {
+    if (!newDate || !newTime) { setError("Please select both date and time."); return; }
+    setSaving(true);
+    setError("");
+    try {
+      await API.put(`/customer/bookings/${booking._id}/reschedule`, { appointmentDate: newDate, appointmentTime: newTime });
+      onRescheduled(booking._id, newDate, newTime);
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to reschedule. Please try another slot.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+      <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full">
+        <h3 className="text-lg font-bold text-slate-900 mb-4">Reschedule Booking</h3>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">New Date</label>
+            <input type="date" min={today} value={newDate} onChange={e => setNewDate(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">New Time</label>
+            <input type="time" value={newTime} onChange={e => setNewTime(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+          {error && <p className="text-xs text-red-500">{error}</p>}
+        </div>
+        <div className="flex gap-2 mt-5">
+          <button onClick={handleSave} disabled={saving}
+            className="flex-1 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition">
+            {saving ? "Saving…" : "Confirm Reschedule"}
+          </button>
+          <button onClick={onClose}
+            className="flex-1 py-2.5 bg-slate-100 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-200 transition">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BookingCard({ booking, userCoords, onCancelled }) {
+  const [cancelling, setCancelling] = useState(false);
+  const [reviewed, setReviewed] = useState(false);
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const [bookingData, setBookingData] = useState(booking);
+  const status = bookingData.status || "pending";
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
 
+  const handleCancel = async () => {
+    if (!window.confirm("Cancel this booking?")) return;
+    setCancelling(true);
+    try {
+      await API.post(`/customer/bookings/${booking._id}/cancel`);
+      onCancelled(booking._id);
+    } catch {
+      alert("Failed to cancel. Please try again.");
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const handleRescheduled = (id, date, time) => {
+    setBookingData(prev => ({ ...prev, appointmentDate: date, appointmentTime: time, status: "pending" }));
+  };
+
   // appointmentDate may come as full ISO ("2026-03-14T12:00:00.000Z") or "YYYY-MM-DD"
-  const dateOnly = booking.appointmentDate ? String(booking.appointmentDate).slice(0, 10) : null;
+  const dateOnly = bookingData.appointmentDate ? String(bookingData.appointmentDate).slice(0, 10) : null;
   const dateStr = dateOnly ? formatDate(dateOnly + "T12:00:00") : "—";
 
   // Duration label
@@ -94,7 +234,7 @@ function BookingCard({ booking, userCoords }) {
         </div>
         <div className="bg-slate-50 rounded-lg p-2.5">
           <p className="text-slate-400 text-xs mb-0.5">Time</p>
-          <p className="text-slate-700 font-medium">{formatTime(booking.appointmentTime)}</p>
+          <p className="text-slate-700 font-medium">{formatTime(bookingData.appointmentTime)}</p>
         </div>
         <div className="bg-slate-50 rounded-lg p-2.5">
           <p className="text-slate-400 text-xs mb-0.5">Amount</p>
@@ -125,6 +265,11 @@ function BookingCard({ booking, userCoords }) {
         </div>
       )}
 
+      {/* Review prompt for completed bookings */}
+      {status === "completed" && !reviewed && (
+        <ReviewPrompt bookingId={booking._id} salonId={booking.salonId?._id || booking.salonId} onReviewed={() => setReviewed(true)} />
+      )}
+
       {/* Footer */}
       <div className="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between flex-wrap gap-2">
         <p className="text-xs text-slate-400">
@@ -149,8 +294,33 @@ function BookingCard({ booking, userCoords }) {
               <img src="https://img.freepik.com/free-vector/location_53876-25530.jpg" alt="location" className="w-4 h-4 object-contain" /> Get Directions
             </a>
           )}
+          {["pending", "confirmed"].includes(status) && (
+            <button
+              onClick={() => setRescheduleOpen(true)}
+              className="text-xs text-indigo-500 font-medium hover:underline"
+            >
+              Reschedule
+            </button>
+          )}
+          {["pending", "confirmed"].includes(status) && (
+            <button
+              onClick={handleCancel}
+              disabled={cancelling}
+              className="text-xs text-red-500 font-medium hover:underline disabled:opacity-50"
+            >
+              {cancelling ? "Cancelling…" : "Cancel"}
+            </button>
+          )}
         </div>
       </div>
+
+      {rescheduleOpen && (
+        <RescheduleModal
+          booking={bookingData}
+          onClose={() => setRescheduleOpen(false)}
+          onRescheduled={handleRescheduled}
+        />
+      )}
     </div>
   );
 }
@@ -159,6 +329,10 @@ function Dashboard() {
   const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [filter, setFilter] = useState("Upcoming");
+
+  const handleCancelled = (bookingId) => {
+    setBookings(prev => prev.map(b => b._id === bookingId ? { ...b, status: "cancelled" } : b));
+  };
   const [loading, setLoading] = useState(true);
   const [userCoords, setUserCoords] = useState(null);
   const [confirmedToasts, setConfirmedToasts] = useState([]); // newly confirmed bookings
@@ -319,7 +493,7 @@ function Dashboard() {
         ) : (
           <div className="space-y-3">
             {filtered.map((b) => (
-              <BookingCard key={b._id} booking={b} userCoords={userCoords} />
+              <BookingCard key={b._id} booking={b} userCoords={userCoords} onCancelled={handleCancelled} />
             ))}
           </div>
         )}
