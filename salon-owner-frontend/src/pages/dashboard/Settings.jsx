@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Globe, Bell, Settings, Lock, User, Calendar,
@@ -621,9 +621,13 @@ const BookingWindowContent = ({ salon, updateSalon }) => {
 const AutoConfirmContent = ({ salon, updateSalon }) => {
   const [enabled, setEnabled] = useState(salon?.autoConfirmBookings !== false);
   const [loading, setLoading] = useState(false);
+  const initialized = useRef(false);
 
   useEffect(() => {
-    setEnabled(salon?.autoConfirmBookings !== false);
+    if (!initialized.current && salon) {
+      setEnabled(salon.autoConfirmBookings !== false);
+      initialized.current = true;
+    }
   }, [salon]);
 
   const handleSave = async () => {
@@ -667,9 +671,13 @@ const AutoConfirmContent = ({ salon, updateSalon }) => {
 const BookingModeContent = ({ salon, updateSalon }) => {
   const [mode, setMode] = useState(salon?.bookingMode || 'flexible');
   const [loading, setLoading] = useState(false);
+  const initialized = useRef(false);
 
   useEffect(() => {
-    setMode(salon?.bookingMode || 'flexible');
+    if (!initialized.current && salon) {
+      setMode(salon.bookingMode || 'flexible');
+      initialized.current = true;
+    }
   }, [salon]);
 
   const OPTIONS = [
