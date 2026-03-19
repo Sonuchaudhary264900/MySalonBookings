@@ -21,18 +21,28 @@ export default function RegisterScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [tempToken, setTempToken] = useState('');
 
+  const formatPhone = (raw) => {
+    const digits = raw.replace(/\D/g, '');
+    if (digits.length === 10) return `+91${digits}`;
+    if (digits.length === 12 && digits.startsWith('91')) return `+${digits}`;
+    if (raw.startsWith('+')) return raw.trim();
+    return `+91${digits}`;
+  };
+
   const handleSendOtp = async () => {
     if (!name.trim()) { Alert.alert('Error', 'Name is required'); return; }
     const cleaned = phone.replace(/\D/g, '');
-    if (cleaned.length < 10) { Alert.alert('Error', 'Enter a valid phone number'); return; }
+    if (cleaned.length < 10) { Alert.alert('Error', 'Enter a valid 10-digit phone number'); return; }
     if (!password || password.length < 6) { Alert.alert('Error', 'Password must be at least 6 characters'); return; }
     if (password !== confirmPassword) { Alert.alert('Error', 'Passwords do not match'); return; }
 
+    const formattedPhone = formatPhone(phone);
     setLoading(true);
     try {
-      await api.post('/owner/auth/send-otp', { phone: phone.trim() });
+      await api.post('/owner/auth/send-otp', { phone: formattedPhone, email: email.trim() || undefined });
       setStep(2);
-      Alert.alert('OTP Sent', 'Please check your phone for the OTP.');
+      const dest = email.trim() ? `your email (${email.trim()})` : 'the server console (add an email to receive it)';
+      Alert.alert('OTP Sent', `Please check ${dest} for the 6-digit OTP.`);
     } catch (err) {
       Alert.alert('Error', err.message || 'Failed to send OTP');
     } finally {
@@ -45,7 +55,7 @@ export default function RegisterScreen({ navigation }) {
     setLoading(true);
     try {
       // Verify OTP then register
-      const otpRes = await api.post('/owner/auth/verify-otp', { phone: phone.trim(), otp });
+      const otpRes = await api.post('/owner/auth/verify-otp', { phone: formatPhone(phone), otp });
       const firebaseToken = otpRes.data.data?.firebaseToken || otpRes.data.data?.token;
       const regRes = await api.post('/owner/auth/firebase-register', {
         firebaseToken,

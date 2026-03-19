@@ -25,7 +25,7 @@ const { sendOTPEmail } = require('../../config/emailConfig');
 // ===================================================
 exports.sendOTP = async (req, res) => {
   try {
-    const { phone } = req.body;
+    const { phone, email } = req.body;
 
     // Validate phone
     if (!phone || !validatePhone(phone)) {
@@ -57,11 +57,25 @@ exports.sendOTP = async (req, res) => {
       expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
     });
 
-    // OTP intentionally not logged for security
+    // Send OTP via email if provided
+    const otpSentVia = [];
+    if (email) {
+      try {
+        await sendOTPEmail(email, otp, 'owner');
+        otpSentVia.push('email');
+      } catch (emailErr) {
+        console.error('Failed to send OTP email:', emailErr.message);
+      }
+    }
+
+    // In development, also log OTP to console for testing
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`🔑 OTP for ${phone}: ${otp}`);
+    }
 
     res.json(
       formatSuccessResponse(
-        { phone, otpSentVia: 'SMS and Email' },
+        { phone, otpSentVia: otpSentVia.length ? otpSentVia.join(' and ') : 'generated' },
         messages.AUTH.OTP_SENT,
         200
       )

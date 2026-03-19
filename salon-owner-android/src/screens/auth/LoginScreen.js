@@ -24,11 +24,20 @@ export default function LoginScreen({ navigation }) {
     return valid;
   };
 
+  const formatPhone = (raw) => {
+    const digits = raw.replace(/\D/g, '');
+    if (digits.length === 10) return `+91${digits}`;
+    if (digits.length === 12 && digits.startsWith('91')) return `+${digits}`;
+    if (raw.startsWith('+')) return raw.trim();
+    return raw.trim(); // could be email
+  };
+
   const handleLogin = async () => {
     if (!validate()) return;
     setLoading(true);
+    const identifier = phone.includes('@') ? phone.trim() : formatPhone(phone);
     try {
-      await login(phone.trim(), password);
+      await login(identifier, password);
     } catch (err) {
       Alert.alert('Login Failed', err.message || 'Invalid credentials. Please try again.');
     } finally {
