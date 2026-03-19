@@ -19,6 +19,7 @@
 
 const cron = require('node-cron');
 
+const https = require('https');
 const Queue = require('../models/Queue');
 const OTP = require('../models/OTP');
 const Booking = require('../models/Booking');
@@ -30,6 +31,20 @@ const Customer = require('../models/Customer');
 
 
 console.log('🕐 Cron Jobs System Initialized');
+
+/*
+====================================================
+KEEP-ALIVE PING
+Pings the server every 10 minutes to prevent
+Render free tier from sleeping
+====================================================
+*/
+cron.schedule('*/10 * * * *', () => {
+  const url = process.env.RENDER_EXTERNAL_URL || 'https://mysalonbookings.onrender.com';
+  https.get(`${url}/ping`, (res) => {
+    console.log(`🏓 Keep-alive ping: ${res.statusCode}`);
+  }).on('error', () => {});
+});
 
 
 /*
@@ -389,9 +404,15 @@ const autoCompleteBookings = cron.schedule('*/5 * * * *', async () => {
     const todayIST = `${nowIST.getUTCFullYear()}-${String(nowIST.getUTCMonth() + 1).padStart(2, '0')}-${String(nowIST.getUTCDate()).padStart(2, '0')}`;
     const nowMinutes = nowIST.getUTCHours() * 60 + nowIST.getUTCMinutes();
 
-    // Fetch all non-terminal bookings
+    // Fetch only active bookings up to end of today (IST)
+    // appointmentDate is stored as noon UTC, so tomorrow noon UTC covers all of today IST
+    const tomorrowNoonUTC = new Date();
+    tomorrowNoonUTC.setDate(tomorrowNoonUTC.getDate() + 1);
+    tomorrowNoonUTC.setUTCHours(12, 0, 0, 0);
+
     const bookings = await Booking.find({
-      status: { $in: ['pending', 'confirmed', 'in_progress'] }
+      status: { $in: ['pending', 'confirmed', 'in_progress'] },
+      appointmentDate: { $lte: tomorrowNoonUTC },
     }).lean();
 
     let completed = 0;
