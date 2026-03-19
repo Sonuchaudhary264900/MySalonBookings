@@ -143,6 +143,14 @@ function SalonCard({ salon, userCoords }) {
             </span>
           </div>
 
+          {/* Online indicator */}
+          {salon.isOnline && (
+            <div className="absolute top-3 right-12 flex items-center gap-1 bg-green-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse inline-block"></span>
+              Online
+            </div>
+          )}
+
           {/* Favorite button */}
           <button
             onClick={handleFavorite}

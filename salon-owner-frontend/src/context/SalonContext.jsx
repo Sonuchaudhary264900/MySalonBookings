@@ -1,5 +1,8 @@
-import React, { createContext, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { io } from 'socket.io-client';
 import * as salonService from '../services/salonService';
+
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_BASE_URL?.replace('/api/v1', '') || 'http://localhost:5000';
 
 // Create context
 export const SalonContext = createContext();
@@ -26,6 +29,34 @@ export const SalonProvider = ({ children }) => {
   const [salonInitialized, setSalonInitialized] = useState(false);
   const [salonFetchFailed, setSalonFetchFailed] = useState(false);
   const [error, setError] = useState(null);
+  const socketRef = useRef(null);
+
+  // ── Socket: mark salon online/offline based on connection ─────
+  useEffect(() => {
+    if (!salon?._id) return;
+    const isApproved = salon.isApproved || salon.approvalStatus === 'approved';
+    if (!isApproved) return;
+
+    // Connect socket and mark salon online
+    const socket = io(SOCKET_URL, { transports: ['websocket'] });
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      socket.emit('join-salon', { salonId: salon._id, ownerId: salon.ownerId });
+    });
+
+    // Mark offline on tab/window close
+    const handleBeforeUnload = () => {
+      socket.disconnect();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [salon?._id, salon?.isApproved, salon?.approvalStatus, salon?.ownerId]);
 
   // ✅ CREATE SALON
   const createSalon = useCallback(async (salonData) => {

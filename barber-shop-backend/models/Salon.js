@@ -215,6 +215,18 @@ location: {
     },
 
     // ==========================================
+    // ONLINE STATUS
+    // ==========================================
+    isOnline: {
+      type: Boolean,
+      default: false,
+    },
+    lastOnlineAt: {
+      type: Date,
+      default: null,
+    },
+
+    // ==========================================
     // STATUS & APPROVAL
     // ==========================================
     isApproved: {

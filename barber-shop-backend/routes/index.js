@@ -90,7 +90,7 @@ router.get("/public/salons", asyncHandler(async (req, res) => {
     : { totalBookings: -1, averageRating: -1 }; // default: booked
   const skip = (Number(page) - 1) * Number(limit);
   const salons = await Salon.find(query)
-    .select("name address city phone photos logo coverPhoto averageRating totalReviews totalBookings workingHours category isApproved location")
+    .select("name address city phone photos logo coverPhoto averageRating totalReviews totalBookings workingHours category isApproved isOnline lastOnlineAt location")
     .sort(sortOrder)
     .skip(skip)
     .limit(Number(limit))
@@ -132,7 +132,7 @@ router.get("/public/salons/nearby", asyncHandler(async (req, res) => {
       $project: {
         name: 1, address: 1, city: 1, phone: 1, photos: 1, logo: 1, coverPhoto: 1,
         averageRating: 1, totalReviews: 1, totalBookings: 1,
-        workingHours: 1, category: 1, location: 1, isApproved: 1, distance: 1,
+        workingHours: 1, category: 1, location: 1, isApproved: 1, isOnline: 1, lastOnlineAt: 1, distance: 1,
       },
     },
   ]);
@@ -242,12 +242,25 @@ router.get("/public/salons/:salonId/booked-slots", validateObjectId("salonId"), 
 
   // ── SEQUENTIAL mode: return only the next available slot ──
   if (bookingMode === "sequential") {
-    // Find the minute at which the last booking ends
+    // Current IST time in minutes (to skip past bookings that haven't auto-completed yet)
+    const nowIST = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+    const todayIST = nowIST.toISOString().slice(0, 10);
+    const nowMinutes = nowIST.getUTCHours() * 60 + nowIST.getUTCMinutes();
+    const isToday = date === todayIST;
+
+    // Find the minute at which the last ACTIVE (not yet finished) booking ends
     let nextSlotMin = openMin;
     for (const b of bookings) {
+      if (!b.appointmentTime) continue;
       const bookEnd = timeToMinutes(b.appointmentTime) + (b.estimatedDuration || 30);
+      // Skip bookings whose slot has already passed today — they should have been
+      // auto-completed but haven't yet; don't let them block the sequential chain
+      if (isToday && bookEnd <= nowMinutes) continue;
       if (bookEnd > nextSlotMin) nextSlotMin = bookEnd;
     }
+    // For today, the next slot can't be in the past
+    if (isToday) nextSlotMin = Math.max(nextSlotMin, nowMinutes);
+
     // Check if next slot fits before closing
     if (nextSlotMin + serviceDuration > closeMin) {
       return res.json({ success: true, data: { slots: [], blockedSlots: [], closedDay: false, bookingMode: "sequential" } });

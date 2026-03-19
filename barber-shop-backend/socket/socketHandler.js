@@ -10,6 +10,7 @@
 
 const Queue = require('../models/Queue');
 const Booking = require('../models/Booking');
+const Salon = require('../models/Salon');
 
 module.exports = (socket, io) => {
   // ===================================================
@@ -72,7 +73,19 @@ module.exports = (socket, io) => {
       const salonRoom = `salon-${salonId}`;
       socket.join(salonRoom);
 
-      console.log(`👨‍💼 Owner ${ownerId} joined salon room: ${salonRoom}`);
+      // Track salonId on this socket for disconnect cleanup
+      socket.salonId = salonId;
+
+      // Mark salon as online in DB
+      await Salon.findByIdAndUpdate(salonId, {
+        isOnline: true,
+        lastOnlineAt: new Date(),
+      });
+
+      // Broadcast to user frontend that this salon is now online
+      io.emit('salon-online', { salonId });
+
+      console.log(`👨‍💼 Owner ${ownerId} joined salon room: ${salonRoom} — salon marked ONLINE`);
 
       socket.emit('salon-connected', {
         message: 'Connected to salon room',
@@ -81,6 +94,22 @@ module.exports = (socket, io) => {
     } catch (error) {
       console.error('Error joining salon:', error);
       socket.emit('error', { message: 'Failed to join salon' });
+    }
+  });
+
+  // ===================================================
+  // OWNER DISCONNECT — mark salon offline
+  // ===================================================
+  socket.on('disconnect', async () => {
+    try {
+      if (socket.salonId) {
+        await Salon.findByIdAndUpdate(socket.salonId, { isOnline: false });
+        // Broadcast to user frontend that this salon is now offline
+        io.emit('salon-offline', { salonId: socket.salonId });
+        console.log(`📴 Salon ${socket.salonId} marked OFFLINE (owner disconnected)`);
+      }
+    } catch (error) {
+      console.error('Error marking salon offline:', error);
     }
   });
 

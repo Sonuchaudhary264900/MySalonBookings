@@ -1,0 +1,519 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  ActivityIndicator, RefreshControl, Modal, TextInput,
+  Alert, FlatList,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import api from '../../services/api';
+import { useSalon } from '../../context/SalonContext';
+import { localDate, formatDate, formatTime, STATUS_COLORS } from '../../utils/helpers';
+
+const today = localDate(0);
+const maxDate = localDate(30);
+const STATUS_FILTERS = ['all', 'pending', 'confirmed', 'in_progress', 'completed', 'cancelled'];
+
+// ── WalkIn Modal ─────────────────────────────────────────────────
+function WalkInModal({ visible, onClose, salonId, services, onSuccess }) {
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [serviceId, setServiceId] = useState('');
+  const [date, setDate] = useState(today);
+  const [slot, setSlot] = useState('');
+  const [slots, setSlots] = useState([]);
+  const [blockedSlots, setBlockedSlots] = useState([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [closedDay, setClosedDay] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [showServices, setShowServices] = useState(false);
+
+  const selectedService = services.find((s) => s._id === serviceId);
+
+  const timeToMinutes = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+  const isPastSlot = (s) => {
+    if (date !== today) return false;
+    const now = new Date();
+    return timeToMinutes(s) <= now.getHours() * 60 + now.getMinutes();
+  };
+
+  useEffect(() => {
+    if (!selectedService || !date || !salonId) return;
+    setSlot(''); setSlots([]); setBlockedSlots([]); setClosedDay(false);
+    setSlotsLoading(true);
+    api.get(`/public/salons/${salonId}/booked-slots?date=${date}&duration=${selectedService.duration}`)
+      .then((res) => {
+        const d = res.data.data;
+        setSlots(d?.slots || []);
+        setBlockedSlots(d?.blockedSlots || []);
+        setClosedDay(d?.closedDay || false);
+      })
+      .catch(() => { setSlots([]); setBlockedSlots([]); })
+      .finally(() => setSlotsLoading(false));
+  }, [serviceId, date, salonId]);
+
+  const reset = () => {
+    setName(''); setPhone(''); setServiceId(''); setDate(today);
+    setSlot(''); setSlots([]); setError('');
+  };
+
+  const handleSubmit = async () => {
+    if (!name.trim()) { setError('Customer name is required'); return; }
+    if (!phone.trim()) { setError('Customer phone is required'); return; }
+    if (!serviceId) { setError('Please select a service'); return; }
+    if (!slot) { setError('Please select a time slot'); return; }
+    setError(''); setSubmitting(true);
+    try {
+      await onSuccess({ customerName: name.trim(), customerPhone: phone.trim(), serviceId, appointmentDate: date, appointmentTime: slot });
+      reset(); onClose();
+    } catch (err) {
+      setError(err.message || 'Failed to create booking');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => { reset(); onClose(); }}>
+      <View style={mStyles.container}>
+        <View style={mStyles.header}>
+          <Text style={mStyles.title}>Add Walk-in Customer</Text>
+          <TouchableOpacity onPress={() => { reset(); onClose(); }}>
+            <Ionicons name="close" size={24} color="#6b7280" />
+          </TouchableOpacity>
+        </View>
+        <ScrollView style={mStyles.body} keyboardShouldPersistTaps="handled">
+          {!!error && <View style={mStyles.errorBox}><Text style={mStyles.errorText}>{error}</Text></View>}
+
+          {[
+            { label: 'Customer Name', value: name, setter: setName, placeholder: 'Enter name', keyboard: 'default' },
+            { label: 'Mobile Number', value: phone, setter: setPhone, placeholder: '9876543210', keyboard: 'phone-pad' },
+          ].map((f) => (
+            <View style={mStyles.field} key={f.label}>
+              <Text style={mStyles.label}>{f.label}</Text>
+              <TextInput style={mStyles.input} placeholder={f.placeholder} placeholderTextColor="#9ca3af" keyboardType={f.keyboard} value={f.value} onChangeText={f.setter} />
+            </View>
+          ))}
+
+          <View style={mStyles.field}>
+            <Text style={mStyles.label}>Service</Text>
+            <TouchableOpacity style={mStyles.select} onPress={() => setShowServices(!showServices)}>
+              <Text style={[mStyles.selectText, !serviceId && { color: '#9ca3af' }]}>
+                {selectedService ? `${selectedService.name} — ${selectedService.duration}min — ₹${selectedService.basePrice}` : 'Select a service…'}
+              </Text>
+              <Ionicons name={showServices ? 'chevron-up' : 'chevron-down'} size={16} color="#6b7280" />
+            </TouchableOpacity>
+            {showServices && (
+              <View style={mStyles.dropdown}>
+                {services.map((s) => (
+                  <TouchableOpacity key={s._id} style={mStyles.dropdownItem} onPress={() => { setServiceId(s._id); setShowServices(false); }}>
+                    <Text style={mStyles.dropdownText}>{s.name} — {s.duration}min — ₹{s.basePrice}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+
+          <View style={mStyles.field}>
+            <Text style={mStyles.label}>Date</Text>
+            <View style={mStyles.dateNav}>
+              {[-1, 0, 1, 2, 3, 4, 5, 6].map((d) => {
+                const dt = localDate(d);
+                if (dt < today || dt > maxDate) return null;
+                const dayLabel = d === 0 ? 'Today' : d === 1 ? 'Tmrw' : new Date(dt + 'T12:00:00').toLocaleDateString('en-IN', { weekday: 'short' });
+                return (
+                  <TouchableOpacity key={d} style={[mStyles.dateChip, date === dt && mStyles.dateChipActive]} onPress={() => setDate(dt)}>
+                    <Text style={[mStyles.dateChipText, date === dt && mStyles.dateChipActiveText]}>{dayLabel}</Text>
+                    <Text style={[mStyles.dateChipNum, date === dt && mStyles.dateChipActiveText]}>{new Date(dt + 'T12:00:00').getDate()}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          {serviceId && (
+            <View style={mStyles.field}>
+              <Text style={mStyles.label}>Time Slot {selectedService && <Text style={{ color: '#9ca3af', fontWeight: '400' }}>({selectedService.duration} min)</Text>}</Text>
+              {slotsLoading ? (
+                <ActivityIndicator size="small" color="#4f46e5" style={{ marginVertical: 8 }} />
+              ) : closedDay ? (
+                <Text style={{ color: '#d97706', fontSize: 13 }}>Salon is closed on this day.</Text>
+              ) : slots.length === 0 ? (
+                <Text style={{ color: '#9ca3af', fontSize: 13 }}>No slots available for this date.</Text>
+              ) : (
+                <View style={mStyles.slotsGrid}>
+                  {slots.map((s) => {
+                    const past = isPastSlot(s);
+                    const blocked = !past && blockedSlots.includes(s);
+                    const selected = slot === s;
+                    const [h, m] = s.split(':').map(Number);
+                    const endMin = h * 60 + m + (selectedService?.duration || 30);
+                    const endTime = `${String(Math.floor(endMin / 60)).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`;
+                    return (
+                      <TouchableOpacity
+                        key={s}
+                        style={[mStyles.slot, past ? mStyles.slotPast : blocked ? mStyles.slotBlocked : selected ? mStyles.slotSelected : mStyles.slotFree]}
+                        onPress={() => { if (!past && !blocked) setSlot(s); }}
+                        disabled={past || blocked}
+                      >
+                        <Text style={[mStyles.slotText, selected && { color: '#fff' }, (past || blocked) && { color: '#9ca3af' }]}>{s}</Text>
+                        <Text style={[mStyles.slotEnd, selected && { color: '#c7d2fe' }, (past || blocked) && { color: '#c4c9d2' }]}>–{endTime}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+          )}
+
+          {slot && selectedService && (
+            <View style={mStyles.summary}>
+              <Text style={mStyles.summaryTitle}>Booking Summary</Text>
+              <View style={mStyles.summaryRow}><Text style={mStyles.summaryKey}>Customer</Text><Text style={mStyles.summaryVal}>{name || '—'}</Text></View>
+              <View style={mStyles.summaryRow}><Text style={mStyles.summaryKey}>Service</Text><Text style={mStyles.summaryVal}>{selectedService.name}</Text></View>
+              <View style={mStyles.summaryRow}><Text style={mStyles.summaryKey}>Slot</Text><Text style={mStyles.summaryVal}>{slot}</Text></View>
+              <View style={[mStyles.summaryRow, { borderTopWidth: 1, borderTopColor: '#c7d2fe', paddingTop: 8, marginTop: 4 }]}>
+                <Text style={[mStyles.summaryKey, { fontWeight: '700' }]}>Total</Text>
+                <Text style={[mStyles.summaryVal, { fontWeight: '800', color: '#3730a3' }]}>₹{selectedService.basePrice}</Text>
+              </View>
+            </View>
+          )}
+
+          <TouchableOpacity style={[mStyles.submitBtn, (submitting || !slot) && { opacity: 0.5 }]} onPress={handleSubmit} disabled={submitting || !slot}>
+            {submitting ? <ActivityIndicator color="#fff" /> : <Text style={mStyles.submitText}>Confirm Walk-in Booking</Text>}
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
+// ── Main Bookings Screen ─────────────────────────────────────────
+export default function BookingsScreen() {
+  const { salon } = useSalon();
+  const [bookings, setBookings] = useState([]);
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [filter, setFilter] = useState('all');
+  const [selectedDate, setSelectedDate] = useState(today);
+  const [updating, setUpdating] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [blockedIds, setBlockedIds] = useState(new Set());
+  const [blocking, setBlocking] = useState(null);
+
+  const fetchBookings = useCallback(async (date) => {
+    try {
+      const res = await api.get(`/owner/bookings?date=${date}`);
+      setBookings(res.data.data || []);
+    } catch { setBookings([]); } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchServices = useCallback(async () => {
+    try {
+      const res = await api.get('/owner/services');
+      setServices(res.data.data || []);
+    } catch { /* silent */ }
+  }, []);
+
+  const fetchBlockedIds = useCallback(async () => {
+    try {
+      const res = await api.get('/owner/blocked-customers');
+      const ids = new Set((res.data.data?.blockedCustomers || [])
+        .map((bc) => String(bc.customerId?._id || bc.customerId))
+        .filter(Boolean));
+      setBlockedIds(ids);
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => {
+    Promise.all([fetchBookings(selectedDate), fetchServices(), fetchBlockedIds()]);
+  }, []);
+
+  useEffect(() => { fetchBookings(selectedDate); }, [selectedDate]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([fetchBookings(selectedDate), fetchServices(), fetchBlockedIds()]);
+    setRefreshing(false);
+  };
+
+  const handleStatusChange = async (bookingId, newStatus) => {
+    setUpdating(bookingId);
+    try {
+      await api.put(`/owner/bookings/${bookingId}`, { status: newStatus });
+      setBookings((prev) => prev.map((b) => b._id === bookingId ? { ...b, status: newStatus } : b));
+    } catch (err) {
+      Alert.alert('Error', err.message || 'Failed to update status');
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  const handleToggleBlock = async (customerId, isBlocked) => {
+    setBlocking(customerId);
+    try {
+      if (isBlocked) {
+        await api.delete(`/owner/customers/${customerId}/block`);
+        setBlockedIds((prev) => { const n = new Set(prev); n.delete(String(customerId)); return n; });
+      } else {
+        await api.post(`/owner/customers/${customerId}/block`, { reason: 'Fake booking' });
+        setBlockedIds((prev) => new Set([...prev, String(customerId)]));
+      }
+    } catch (err) {
+      Alert.alert('Error', err.message || 'Failed to update block status');
+    } finally {
+      setBlocking(null);
+    }
+  };
+
+  const createWalkIn = async (data) => {
+    await api.post('/owner/bookings/walk-in', data);
+    await fetchBookings(selectedDate);
+  };
+
+  const shiftDate = (days) => {
+    const d = new Date(selectedDate + 'T12:00:00');
+    d.setDate(d.getDate() + days);
+    const shifted = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    if (shifted >= today && shifted <= maxDate) setSelectedDate(shifted);
+  };
+
+  const filtered = bookings.filter((b) => filter === 'all' ? true : b.status === filter);
+  const isToday = selectedDate === today;
+  const displayLabel = isToday ? 'Today' : formatDate(selectedDate + 'T12:00:00');
+
+  const getNextStatuses = (status) => {
+    const transitions = {
+      pending: ['confirmed', 'cancelled'],
+      confirmed: ['in_progress', 'cancelled'],
+      in_progress: ['completed', 'cancelled'],
+      completed: [],
+      cancelled: [],
+    };
+    return transitions[status] || [];
+  };
+
+  const renderBooking = ({ item: b }) => {
+    const colors = STATUS_COLORS[b.status] || { bg: '#f3f4f6', text: '#374151' };
+    const isBlocked = b.customerId && blockedIds.has(String(b.customerId));
+    const isUpdating = updating === b._id;
+    const nextStatuses = getNextStatuses(b.status);
+
+    return (
+      <View style={bStyles.card}>
+        {/* Top row */}
+        <View style={bStyles.cardTop}>
+          <View style={{ flex: 1 }}>
+            <Text style={bStyles.customerName}>{b.customerName || '—'}</Text>
+            {b.customerPhone && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                <Ionicons name="call-outline" size={12} color="#9ca3af" />
+                <Text style={bStyles.meta}>{b.customerPhone}</Text>
+              </View>
+            )}
+          </View>
+          <View style={[bStyles.statusBadge, { backgroundColor: colors.bg }]}>
+            <Text style={[bStyles.statusText, { color: colors.text }]}>{b.status?.replace('_', ' ')}</Text>
+          </View>
+        </View>
+
+        {/* Details */}
+        <View style={bStyles.details}>
+          {[
+            { icon: 'cut-outline', text: b.serviceName },
+            { icon: 'time-outline', text: formatTime(b.appointmentTime) },
+            { icon: 'calendar-outline', text: formatDate(b.appointmentDate) },
+            b.totalAmount ? { icon: 'cash-outline', text: `₹${b.totalAmount}` } : null,
+            b.isWalkIn ? { icon: 'walk-outline', text: 'Walk-in' } : null,
+          ].filter(Boolean).map((d, i) => (
+            <View key={i} style={bStyles.detailRow}>
+              <Ionicons name={d.icon} size={13} color="#6b7280" />
+              <Text style={bStyles.detailText}>{d.text}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Actions */}
+        {(nextStatuses.length > 0 || b.customerId) && (
+          <View style={bStyles.actions}>
+            {isUpdating ? (
+              <ActivityIndicator size="small" color="#4f46e5" />
+            ) : (
+              <>
+                {nextStatuses.map((s) => (
+                  <TouchableOpacity
+                    key={s}
+                    style={[bStyles.actionBtn, s === 'cancelled' ? bStyles.actionBtnDanger : bStyles.actionBtnPrimary]}
+                    onPress={() => handleStatusChange(b._id, s)}
+                  >
+                    <Text style={[bStyles.actionBtnText, s === 'cancelled' && { color: '#dc2626' }]}>
+                      {s === 'confirmed' ? 'Confirm' : s === 'in_progress' ? 'Start' : s === 'completed' ? 'Complete' : 'Cancel'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+                {b.customerId && !b.isWalkIn && (
+                  <TouchableOpacity
+                    style={[bStyles.actionBtn, isBlocked ? bStyles.actionBtnWarning : bStyles.actionBtnGray]}
+                    onPress={() => handleToggleBlock(String(b.customerId), isBlocked)}
+                    disabled={blocking === String(b.customerId)}
+                  >
+                    {blocking === String(b.customerId) ? (
+                      <ActivityIndicator size="small" color="#6b7280" />
+                    ) : (
+                      <>
+                        <Ionicons name={isBlocked ? 'shield-checkmark-outline' : 'shield-off-outline'} size={13} color={isBlocked ? '#d97706' : '#6b7280'} />
+                        <Text style={[bStyles.actionBtnText, isBlocked && { color: '#d97706' }]}>{isBlocked ? 'Unblock' : 'Block'}</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  return (
+    <View style={{ flex: 1, backgroundColor: '#f9fafb' }}>
+      {/* Header */}
+      <View style={bStyles.header}>
+        <View style={bStyles.headerTop}>
+          <Text style={bStyles.headerTitle}>Bookings</Text>
+          <TouchableOpacity style={bStyles.walkInBtn} onPress={() => setShowModal(true)}>
+            <Ionicons name="add" size={18} color="#fff" />
+            <Text style={bStyles.walkInBtnText}>Walk-in</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Date nav */}
+        <View style={bStyles.dateRow}>
+          <TouchableOpacity style={bStyles.navBtn} onPress={() => shiftDate(-1)}>
+            <Ionicons name="chevron-back" size={16} color="#6b7280" />
+          </TouchableOpacity>
+          <Text style={bStyles.dateLabel}>{displayLabel}</Text>
+          <TouchableOpacity style={[bStyles.navBtn, isToday && { opacity: 0.4 }]} onPress={() => shiftDate(1)} disabled={isToday}>
+            <Ionicons name="chevron-forward" size={16} color="#6b7280" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Status filter */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={bStyles.filterRow}>
+          {STATUS_FILTERS.map((f) => (
+            <TouchableOpacity
+              key={f}
+              style={[bStyles.filterChip, filter === f && bStyles.filterChipActive]}
+              onPress={() => setFilter(f)}
+            >
+              <Text style={[bStyles.filterChipText, filter === f && bStyles.filterChipTextActive]}>
+                {f === 'all' ? 'All' : f.replace('_', ' ')}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+      {loading ? (
+        <ActivityIndicator size="large" color="#4f46e5" style={{ marginTop: 40 }} />
+      ) : (
+        <FlatList
+          data={filtered}
+          keyExtractor={(item) => item._id}
+          renderItem={renderBooking}
+          contentContainerStyle={{ padding: 12, paddingBottom: 32 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          ListEmptyComponent={
+            <View style={{ alignItems: 'center', paddingVertical: 48 }}>
+              <Ionicons name="calendar-outline" size={48} color="#d1d5db" />
+              <Text style={{ color: '#9ca3af', marginTop: 8, fontSize: 14 }}>
+                No {filter !== 'all' ? filter.replace('_', ' ') : ''} bookings on {displayLabel}
+              </Text>
+            </View>
+          }
+        />
+      )}
+
+      <WalkInModal
+        visible={showModal}
+        onClose={() => setShowModal(false)}
+        salonId={salon?._id}
+        services={services.filter((s) => s.isActive !== false)}
+        onSuccess={createWalkIn}
+      />
+    </View>
+  );
+}
+
+const bStyles = StyleSheet.create({
+  header: { backgroundColor: '#4f46e5', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 },
+  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
+  walkInBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, gap: 4 },
+  walkInBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  dateRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 12 },
+  navBtn: { width: 28, height: 28, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  dateLabel: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  filterRow: { flexDirection: 'row' },
+  filterChip: { paddingHorizontal: 14, paddingVertical: 6, marginRight: 8, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },
+  filterChipActive: { backgroundColor: '#fff' },
+  filterChipText: { color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: '500', textTransform: 'capitalize' },
+  filterChipTextActive: { color: '#4f46e5', fontWeight: '700' },
+  card: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
+  cardTop: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10 },
+  customerName: { fontSize: 15, fontWeight: '700', color: '#111827' },
+  meta: { fontSize: 12, color: '#9ca3af' },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
+  statusText: { fontSize: 11, fontWeight: '600', textTransform: 'capitalize' },
+  details: { gap: 4, marginBottom: 10 },
+  detailRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  detailText: { fontSize: 13, color: '#6b7280' },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, borderTopWidth: 1, borderTopColor: '#f3f4f6', paddingTop: 10 },
+  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1 },
+  actionBtnPrimary: { backgroundColor: '#ede9fe', borderColor: '#c4b5fd' },
+  actionBtnDanger: { backgroundColor: '#fee2e2', borderColor: '#fca5a5' },
+  actionBtnWarning: { backgroundColor: '#fef3c7', borderColor: '#fcd34d' },
+  actionBtnGray: { backgroundColor: '#f3f4f6', borderColor: '#e5e7eb' },
+  actionBtnText: { fontSize: 12, fontWeight: '600', color: '#4f46e5', textTransform: 'capitalize' },
+});
+
+const mStyles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#fff' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  title: { fontSize: 18, fontWeight: '700', color: '#111827' },
+  body: { flex: 1, padding: 16 },
+  errorBox: { backgroundColor: '#fee2e2', borderRadius: 8, padding: 12, marginBottom: 12 },
+  errorText: { color: '#dc2626', fontSize: 13 },
+  field: { marginBottom: 16 },
+  label: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 6 },
+  input: { borderWidth: 1.5, borderColor: '#d1d5db', borderRadius: 10, paddingHorizontal: 12, height: 44, fontSize: 14, color: '#111827' },
+  select: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1.5, borderColor: '#d1d5db', borderRadius: 10, paddingHorizontal: 12, height: 44 },
+  selectText: { fontSize: 14, color: '#111827', flex: 1, marginRight: 8 },
+  dropdown: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, marginTop: 4, overflow: 'hidden' },
+  dropdownItem: { padding: 12, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  dropdownText: { fontSize: 14, color: '#374151' },
+  dateNav: { flexDirection: 'row', gap: 8 },
+  dateChip: { alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', backgroundColor: '#f9fafb' },
+  dateChipActive: { backgroundColor: '#4f46e5', borderColor: '#4f46e5' },
+  dateChipText: { fontSize: 10, color: '#6b7280', fontWeight: '500' },
+  dateChipNum: { fontSize: 14, color: '#374151', fontWeight: '700', marginTop: 2 },
+  dateChipActiveText: { color: '#fff' },
+  slotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  slot: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, borderWidth: 1, minWidth: 70, alignItems: 'center' },
+  slotFree: { borderColor: '#e5e7eb', backgroundColor: '#f9fafb' },
+  slotSelected: { borderColor: '#4f46e5', backgroundColor: '#4f46e5' },
+  slotBlocked: { borderColor: '#fca5a5', backgroundColor: '#fee2e2' },
+  slotPast: { borderColor: '#e5e7eb', backgroundColor: '#f3f4f6' },
+  slotText: { fontSize: 12, fontWeight: '600', color: '#374151' },
+  slotEnd: { fontSize: 10, color: '#9ca3af', marginTop: 2 },
+  summary: { backgroundColor: '#ede9fe', borderRadius: 12, padding: 14, marginBottom: 16 },
+  summaryTitle: { fontSize: 14, fontWeight: '700', color: '#3730a3', marginBottom: 8 },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  summaryKey: { fontSize: 13, color: '#4f46e5' },
+  summaryVal: { fontSize: 13, color: '#3730a3', fontWeight: '600' },
+  submitBtn: { backgroundColor: '#4f46e5', borderRadius: 12, height: 50, alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
+  submitText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+});
