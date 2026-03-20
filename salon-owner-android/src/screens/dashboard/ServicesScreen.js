@@ -114,7 +114,8 @@ export default function ServicesScreen() {
   const fetchServices = useCallback(async () => {
     try {
       const res = await api.get('/owner/services');
-      setServices(res.data.data || []);
+      const d = res.data.data;
+      setServices(Array.isArray(d) ? d : (d?.services || []));
     } catch { /* silent */ } finally {
       setLoading(false);
     }

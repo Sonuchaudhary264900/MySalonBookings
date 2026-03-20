@@ -149,7 +149,8 @@ export default function ReviewsScreen() {
   const fetchReviews = useCallback(async () => {
     try {
       const res = await api.get('/owner/reviews');
-      setReviews(res.data.data || []);
+      const d = res.data.data;
+      setReviews(Array.isArray(d) ? d : (d?.reviews || []));
     } catch { setReviews([]); } finally {
       setLoading(false);
     }

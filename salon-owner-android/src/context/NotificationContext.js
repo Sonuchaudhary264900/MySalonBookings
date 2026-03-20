@@ -46,7 +46,8 @@ export const NotificationProvider = ({ children }) => {
     const poll = async () => {
       try {
         const res = await api.get('/owner/bookings?limit=5');
-        const bookings = res.data.data || [];
+        const d = res.data.data;
+        const bookings = Array.isArray(d) ? d : (d?.bookings || []);
         if (!bookings.length) return;
 
         const latestId = bookings[0]._id;
