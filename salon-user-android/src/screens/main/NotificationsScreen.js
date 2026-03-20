@@ -5,6 +5,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNotifications } from '../../context/NotificationContext';
+import { useTheme } from '../../context/ThemeContext';
 
 const TYPE_CONFIG = {
   booking: { icon: 'calendar-outline',            bg: '#dbeafe', color: '#2563eb' },
@@ -26,6 +27,8 @@ function timeAgo(isoStr) {
 
 export default function NotificationsScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const { notifications, unreadCount, markRead, markAllRead, remove, clearAll } = useNotifications();
 
   const handleClearAll = () => {
@@ -116,8 +119,8 @@ export default function NotificationsScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
+const getStyles = (t) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   header: { backgroundColor: '#2563eb', paddingHorizontal: 16, paddingBottom: 16, paddingTop: 12, overflow: 'hidden' },
   decorCircle1: { position: 'absolute', width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.07)', top: -60, right: -30 },
   decorCircle2: { position: 'absolute', width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.05)', bottom: -20, left: 20 },
@@ -129,17 +132,17 @@ const styles = StyleSheet.create({
   headerBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
   headerBtnText: { fontSize: 12, fontWeight: '600', color: '#fff' },
   headerBtnDanger: { backgroundColor: 'rgba(239,68,68,0.25)' },
-  card: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 8, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1, position: 'relative' },
+  card: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: t.card, borderRadius: 12, padding: 14, marginBottom: 8, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1, position: 'relative' },
   cardUnread: { borderLeftWidth: 3, borderLeftColor: '#2563eb' },
   unreadDot: { position: 'absolute', top: 12, right: 38, width: 8, height: 8, borderRadius: 4, backgroundColor: '#2563eb' },
   iconCircle: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   content: { flex: 1, marginRight: 8 },
-  title: { fontSize: 14, fontWeight: '600', color: '#111827', marginBottom: 3 },
-  message: { fontSize: 13, color: '#6b7280', lineHeight: 18 },
-  time: { fontSize: 11, color: '#9ca3af', marginTop: 4 },
+  title: { fontSize: 14, fontWeight: '600', color: t.text, marginBottom: 3 },
+  message: { fontSize: 13, color: t.subText, lineHeight: 18 },
+  time: { fontSize: 11, color: t.subText, marginTop: 4 },
   deleteBtn: { padding: 2 },
   empty: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 32 },
   emptyIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#dbeafe', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#111827', marginBottom: 8 },
-  emptyText: { fontSize: 14, color: '#6b7280', textAlign: 'center', lineHeight: 20 },
+  emptyTitle: { fontSize: 18, fontWeight: '700', color: t.text, marginBottom: 8 },
+  emptyText: { fontSize: 14, color: t.subText, textAlign: 'center', lineHeight: 20 },
 });

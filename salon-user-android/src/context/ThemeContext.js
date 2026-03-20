@@ -30,10 +30,10 @@ const DARK = {
 const ThemeContext = createContext(null);
 
 export function ThemeProvider({ children }) {
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(true);
 
   useEffect(() => {
-    AsyncStorage.getItem(THEME_KEY).then(v => { if (v === 'dark') setIsDark(true); });
+    AsyncStorage.getItem(THEME_KEY).then(v => { if (v === 'light') setIsDark(false); });
   }, []);
 
   const toggleTheme = async () => {

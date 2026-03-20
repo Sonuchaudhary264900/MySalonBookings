@@ -9,8 +9,11 @@ import * as ImagePicker from 'expo-image-picker';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { showSuccess, showError } from '../../utils/toast';
+import { useTheme } from '../../context/ThemeContext';
 
 function Section({ title, children }) {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -20,6 +23,8 @@ function Section({ title, children }) {
 }
 
 function InfoRow({ icon, label, value }) {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   return (
     <View style={styles.infoRow}>
       <Ionicons name={icon} size={18} color="#6b7280" style={{ width: 26 }} />
@@ -33,6 +38,8 @@ function InfoRow({ icon, label, value }) {
 
 export default function ProfileScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const { user, isAuthenticated, logout, updateProfile, refreshUser } = useAuth();
 
   const [editing, setEditing]             = useState(false);
@@ -282,8 +289,8 @@ export default function ProfileScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
+const getStyles = (t) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   header: { backgroundColor: '#2563eb', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 28, paddingTop: 16, overflow: 'hidden' },
   decorCircle1: { position: 'absolute', width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(255,255,255,0.07)', top: -80, right: -50 },
   decorCircle2: { position: 'absolute', width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255,255,255,0.05)', top: 10, left: -50 },
@@ -296,29 +303,29 @@ const styles = StyleSheet.create({
   userPhone: { fontSize: 13, color: '#bfdbfe' },
   userEmail: { fontSize: 12, color: '#93c5fd', marginTop: 1 },
   section: { gap: 4 },
-  sectionTitle: { fontSize: 12, fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, paddingLeft: 2 },
-  sectionBody: { backgroundColor: '#fff', borderRadius: 14, padding: 14, gap: 12, borderWidth: 1, borderColor: '#f3f4f6', shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
+  sectionTitle: { fontSize: 12, fontWeight: '700', color: t.subText, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, paddingLeft: 2 },
+  sectionBody: { backgroundColor: t.card, borderRadius: 14, padding: 14, gap: 12, borderWidth: 1, borderColor: t.border, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
   infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  infoLabel: { fontSize: 11, color: '#9ca3af', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3 },
-  infoValue: { fontSize: 14, color: '#111827', marginTop: 1 },
-  editBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#f3f4f6', marginTop: 4 },
+  infoLabel: { fontSize: 11, color: t.subText, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3 },
+  infoValue: { fontSize: 14, color: t.text, marginTop: 1 },
+  editBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, borderTopWidth: 1, borderTopColor: t.border, marginTop: 4 },
   editBtnText: { fontSize: 14, fontWeight: '700', color: '#2563eb' },
   field: { gap: 6 },
-  fieldLabel: { fontSize: 13, fontWeight: '600', color: '#374151' },
-  inputRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: '#d1d5db', borderRadius: 10, paddingHorizontal: 12, height: 46 },
-  input: { flex: 1, fontSize: 14, color: '#111827' },
-  cancelBtn: { flex: 1, height: 44, borderRadius: 10, borderWidth: 1.5, borderColor: '#d1d5db', alignItems: 'center', justifyContent: 'center' },
-  cancelBtnText: { fontSize: 14, fontWeight: '600', color: '#6b7280' },
+  fieldLabel: { fontSize: 13, fontWeight: '600', color: t.text },
+  inputRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: t.inputBorder, borderRadius: 10, paddingHorizontal: 12, height: 46 },
+  input: { flex: 1, fontSize: 14, color: t.text },
+  cancelBtn: { flex: 1, height: 44, borderRadius: 10, borderWidth: 1.5, borderColor: t.inputBorder, alignItems: 'center', justifyContent: 'center' },
+  cancelBtnText: { fontSize: 14, fontWeight: '600', color: t.subText },
   saveBtn: { flex: 2, height: 44, borderRadius: 10, backgroundColor: '#2563eb', alignItems: 'center', justifyContent: 'center' },
   saveBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
   secRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
-  secRowText: { fontSize: 14, color: '#374151', flex: 1 },
-  secRowValue: { fontSize: 12, color: '#9ca3af' },
+  secRowText: { fontSize: 14, color: t.text, flex: 1 },
+  secRowValue: { fontSize: 12, color: t.subText },
   showPwBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: -4 },
-  showPwText: { fontSize: 12, color: '#6b7280' },
-  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#fff', borderRadius: 14, height: 52, borderWidth: 1.5, borderColor: '#fca5a5', shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
+  showPwText: { fontSize: 12, color: t.subText },
+  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: t.card, borderRadius: 14, height: 52, borderWidth: 1.5, borderColor: '#fca5a5', shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
   logoutBtnText: { fontSize: 15, fontWeight: '700', color: '#ef4444' },
-  guestTitle: { fontSize: 18, fontWeight: '700', color: '#374151', marginTop: 16, marginBottom: 4 },
+  guestTitle: { fontSize: 18, fontWeight: '700', color: t.text, marginTop: 16, marginBottom: 4 },
   signInBtn: { backgroundColor: '#2563eb', borderRadius: 12, paddingHorizontal: 32, paddingVertical: 12, marginTop: 16 },
   signInBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
   signUpLink: { marginTop: 12 },

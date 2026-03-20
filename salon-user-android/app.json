@@ -41,7 +41,9 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Allow My Salon Bookings to use your location to find nearby salons."
         }
-      ]
+      ],
+      "expo-asset",
+      "expo-font"
     ],
     "extra": {
       "eas": {

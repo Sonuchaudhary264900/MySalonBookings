@@ -9,6 +9,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { showError } from '../../utils/toast';
+import { useTheme } from '../../context/ThemeContext';
 
 function StarRating({ rating }) {
   return (
@@ -22,6 +23,8 @@ function StarRating({ rating }) {
 
 export default function FavoritesScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const { isAuthenticated } = useAuth();
   const [salons, setSalons]       = useState([]);
   const [loading, setLoading]     = useState(true);
@@ -194,8 +197,8 @@ export default function FavoritesScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
+const getStyles = (t) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   header: { backgroundColor: '#2563eb', paddingHorizontal: 16, paddingBottom: 20, paddingTop: 12, overflow: 'hidden' },
   decorCircle1: { position: 'absolute', width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.07)', top: -60, right: -30 },
   decorCircle2: { position: 'absolute', width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.05)', bottom: -20, left: 20 },
@@ -204,26 +207,26 @@ const styles = StyleSheet.create({
   headerSub: { fontSize: 13, color: '#bfdbfe', marginTop: 2 },
   menuBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, gap: 10 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#374151' },
-  emptyText: { fontSize: 14, color: '#9ca3af', textAlign: 'center', lineHeight: 20 },
+  emptyTitle: { fontSize: 18, fontWeight: '700', color: t.text },
+  emptyText: { fontSize: 14, color: t.subText, textAlign: 'center', lineHeight: 20 },
   exploreBtn: { marginTop: 8, backgroundColor: '#2563eb', borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12 },
   exploreBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  guestTitle: { fontSize: 18, fontWeight: '700', color: '#374151', marginTop: 16 },
-  guestText: { fontSize: 14, color: '#9ca3af', textAlign: 'center', lineHeight: 20, marginBottom: 8 },
+  guestTitle: { fontSize: 18, fontWeight: '700', color: t.text, marginTop: 16 },
+  guestText: { fontSize: 14, color: t.subText, textAlign: 'center', lineHeight: 20, marginBottom: 8 },
   signInBtn: { backgroundColor: '#2563eb', borderRadius: 12, paddingHorizontal: 32, paddingVertical: 12, marginTop: 8 },
   signInBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  card: { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2, borderWidth: 1, borderColor: '#f3f4f6' },
+  card: { backgroundColor: t.card, borderRadius: 16, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2, borderWidth: 1, borderColor: t.border },
   imgWrapper: { position: 'relative' },
   img: { width: '100%', height: 150 },
   imgPlaceholder: { backgroundColor: '#dbeafe', alignItems: 'center', justifyContent: 'center' },
   heartBtn: { position: 'absolute', top: 10, right: 10, width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
   cardBody: { padding: 12, gap: 5 },
-  cardName: { fontSize: 16, fontWeight: '700', color: '#111827' },
-  cardCategory: { fontSize: 12, color: '#6b7280', textTransform: 'capitalize' },
+  cardName: { fontSize: 16, fontWeight: '700', color: t.text },
+  cardCategory: { fontSize: 12, color: t.subText, textTransform: 'capitalize' },
   cardRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  cardRating: { fontSize: 12, fontWeight: '700', color: '#111827' },
-  cardReviews: { fontSize: 12, color: '#9ca3af' },
-  cardAddress: { fontSize: 12, color: '#6b7280', flex: 1 },
-  bookBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4, paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#f3f4f6' },
+  cardRating: { fontSize: 12, fontWeight: '700', color: t.text },
+  cardReviews: { fontSize: 12, color: t.subText },
+  cardAddress: { fontSize: 12, color: t.subText, flex: 1 },
+  bookBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4, paddingVertical: 8, borderTopWidth: 1, borderTopColor: t.border },
   bookBtnText: { fontSize: 13, fontWeight: '700', color: '#2563eb' },
 });

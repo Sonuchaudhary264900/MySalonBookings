@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import api from '../../services/api';
 import { useNotifications } from '../../context/NotificationContext';
+import { useTheme } from '../../context/ThemeContext';
 
 const CATEGORIES = [
   { key: 'all',        label: 'All',        icon: 'storefront-outline' },
@@ -36,6 +37,8 @@ function StarRating({ rating }) {
 }
 
 function SalonCard({ salon, onPress, distance }) {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const photo = salon.photos?.[0] || salon.coverPhoto;
   const rating = salon.rating || salon.averageRating || 0;
   const reviewCount = salon.reviewCount || salon.totalReviews || 0;
@@ -88,13 +91,15 @@ function SalonCard({ salon, onPress, distance }) {
 }
 
 function SkeletonCard() {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   return (
     <View style={[styles.card, { overflow: 'hidden' }]}>
-      <View style={[styles.cardImg, { backgroundColor: '#e5e7eb' }]} />
+      <View style={[styles.cardImg, { backgroundColor: theme.border }]} />
       <View style={{ padding: 12, gap: 8 }}>
-        <View style={{ height: 14, backgroundColor: '#e5e7eb', borderRadius: 6, width: '70%' }} />
-        <View style={{ height: 11, backgroundColor: '#e5e7eb', borderRadius: 6, width: '50%' }} />
-        <View style={{ height: 11, backgroundColor: '#e5e7eb', borderRadius: 6, width: '60%' }} />
+        <View style={{ height: 14, backgroundColor: theme.border, borderRadius: 6, width: '70%' }} />
+        <View style={{ height: 11, backgroundColor: theme.border, borderRadius: 6, width: '50%' }} />
+        <View style={{ height: 11, backgroundColor: theme.border, borderRadius: 6, width: '60%' }} />
       </View>
     </View>
   );
@@ -110,6 +115,8 @@ function haversineKm(lat1, lng1, lat2, lng2) {
 
 export default function HomeScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const { unreadCount } = useNotifications();
   const [salons, setSalons]           = useState([]);
   const [allSalons, setAllSalons]     = useState([]);
@@ -353,7 +360,7 @@ export default function HomeScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (t) => StyleSheet.create({
   container: { flex: 1, backgroundColor: '#2563eb' },
   header: { paddingHorizontal: 16, paddingBottom: 16, overflow: 'hidden' },
   decorCircle1: { position: 'absolute', width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(255,255,255,0.06)', top: -80, right: -30 },
@@ -364,37 +371,36 @@ const styles = StyleSheet.create({
   menuBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
   notifBadge: { position: 'absolute', top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: '#2563eb' },
   notifBadgeText: { color: '#fff', fontSize: 9, fontWeight: '800' },
-  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 12, height: 46, gap: 8, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, elevation: 3 },
-  searchInput: { flex: 1, fontSize: 14, color: '#111827' },
-  body: { flex: 1, backgroundColor: '#f9fafb', borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: t.card, borderRadius: 12, paddingHorizontal: 12, height: 46, gap: 8, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, elevation: 3 },
+  searchInput: { flex: 1, fontSize: 14, color: t.text },
+  body: { flex: 1, backgroundColor: t.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
   chips: { paddingVertical: 12 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, backgroundColor: '#f3f4f6', borderWidth: 1.5, borderColor: '#e5e7eb' },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, backgroundColor: t.border, borderWidth: 1.5, borderColor: t.border },
   chipActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
-  chipText: { fontSize: 12, fontWeight: '600', color: '#4b5563' },
+  chipText: { fontSize: 12, fontWeight: '600', color: t.subText },
   chipTextActive: { color: '#fff' },
   sortRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 8, marginBottom: 4 },
-  sortBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 7, borderRadius: 8, backgroundColor: '#f3f4f6', borderWidth: 1, borderColor: '#e5e7eb' },
+  sortBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 7, borderRadius: 8, backgroundColor: t.border, borderWidth: 1, borderColor: t.border },
   sortBtnActive: { backgroundColor: '#dbeafe', borderColor: '#93c5fd' },
-  sortText: { fontSize: 11, fontWeight: '600', color: '#6b7280' },
+  sortText: { fontSize: 11, fontWeight: '600', color: t.subText },
   sortTextActive: { color: '#2563eb' },
   noLocBox: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16, marginBottom: 8, backgroundColor: '#fef3c7', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#fde68a' },
   noLocText: { fontSize: 13, color: '#92400e', flex: 1 },
-  resultsCount: { fontSize: 12, color: '#6b7280', paddingHorizontal: 16, marginBottom: 4 },
+  resultsCount: { fontSize: 12, color: t.subText, paddingHorizontal: 16, marginBottom: 4 },
   emptyBox: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, gap: 8 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#374151' },
-  emptyText: { fontSize: 14, color: '#9ca3af', textAlign: 'center', lineHeight: 20 },
-  // Salon card
-  card: { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2, borderWidth: 1, borderColor: '#f3f4f6' },
+  emptyTitle: { fontSize: 18, fontWeight: '700', color: t.text },
+  emptyText: { fontSize: 14, color: t.subText, textAlign: 'center', lineHeight: 20 },
+  card: { backgroundColor: t.card, borderRadius: 16, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2, borderWidth: 1, borderColor: t.border },
   cardImgWrapper: { position: 'relative' },
   cardImg: { width: '100%', height: 160 },
   cardImgPlaceholder: { backgroundColor: '#dbeafe', alignItems: 'center', justifyContent: 'center' },
   categoryBadge: { position: 'absolute', top: 10, left: 10, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
   categoryBadgeText: { fontSize: 11, fontWeight: '700', color: '#fff', textTransform: 'capitalize' },
   cardBody: { padding: 12, gap: 5 },
-  cardName: { fontSize: 16, fontWeight: '700', color: '#111827' },
+  cardName: { fontSize: 16, fontWeight: '700', color: t.text },
   cardRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  cardRating: { fontSize: 12, fontWeight: '700', color: '#111827' },
-  cardReviews: { fontSize: 12, color: '#9ca3af' },
-  cardAddress: { fontSize: 12, color: '#6b7280', flex: 1 },
+  cardRating: { fontSize: 12, fontWeight: '700', color: t.text },
+  cardReviews: { fontSize: 12, color: t.subText },
+  cardAddress: { fontSize: 12, color: t.subText, flex: 1 },
   cardDistance: { fontSize: 12, color: '#2563eb', fontWeight: '600' },
 });

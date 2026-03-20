@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../services/api';
 import { showError } from '../../utils/toast';
+import { useTheme } from '../../context/ThemeContext';
 
 const localDate = (offset = 0) => {
   const d = new Date();
@@ -41,6 +42,8 @@ const formatDay = (dateStr) => {
 export default function BookingScreen({ route, navigation }) {
   const { salonId, serviceIds = [] } = route.params || {};
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
 
   const [salon, setSalon]           = useState(null);
   const [services, setServices]     = useState([]);
@@ -237,7 +240,7 @@ export default function BookingScreen({ route, navigation }) {
             </View>
           ))}
           {services.length > 1 && (
-            <View style={[styles.summaryRow, { borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 8, marginTop: 4 }]}>
+            <View style={[styles.summaryRow, { borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 8, marginTop: 4 }]}>
               <Text style={styles.summaryTotal}>Total · {totalDuration} min</Text>
               <Text style={[styles.summaryPrice, { fontSize: 16 }]}>₹{totalPrice}</Text>
             </View>
@@ -459,8 +462,8 @@ export default function BookingScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
+const getStyles = (t) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   header: { backgroundColor: '#2563eb', paddingHorizontal: 16, paddingVertical: 14, overflow: 'hidden' },
   decorCircle1: { position: 'absolute', width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.07)', top: -60, right: -30 },
   decorCircle2: { position: 'absolute', width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.05)', bottom: -20, left: 20 },
@@ -469,42 +472,42 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 17, fontWeight: '700', color: '#fff' },
   body: { flex: 1 },
   section: { gap: 10 },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: '#111827' },
-  summaryCard: { backgroundColor: '#fff', borderRadius: 14, padding: 14, gap: 8, borderWidth: 1, borderColor: '#e5e7eb' },
-  summaryTitle: { fontSize: 15, fontWeight: '700', color: '#111827', marginBottom: 4 },
+  sectionTitle: { fontSize: 14, fontWeight: '700', color: t.text },
+  summaryCard: { backgroundColor: t.card, borderRadius: 14, padding: 14, gap: 8, borderWidth: 1, borderColor: t.border },
+  summaryTitle: { fontSize: 15, fontWeight: '700', color: t.text, marginBottom: 4 },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  summaryService: { fontSize: 13, color: '#6b7280' },
+  summaryService: { fontSize: 13, color: t.subText },
   summaryPrice: { fontSize: 14, fontWeight: '700', color: '#2563eb' },
-  summaryTotal: { fontSize: 14, fontWeight: '700', color: '#111827' },
-  dateChip: { width: 52, height: 62, borderRadius: 12, backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#e5e7eb', alignItems: 'center', justifyContent: 'center', gap: 2 },
+  summaryTotal: { fontSize: 14, fontWeight: '700', color: t.text },
+  dateChip: { width: 52, height: 62, borderRadius: 12, backgroundColor: t.card, borderWidth: 1.5, borderColor: t.border, alignItems: 'center', justifyContent: 'center', gap: 2 },
   dateChipActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
-  dateChipDay: { fontSize: 11, color: '#6b7280', fontWeight: '600' },
-  dateChipNum: { fontSize: 18, color: '#111827', fontWeight: '800' },
+  dateChipDay: { fontSize: 11, color: t.subText, fontWeight: '600' },
+  dateChipNum: { fontSize: 18, color: t.text, fontWeight: '800' },
   dateChipTextActive: { color: '#fff' },
-  barberChip: { alignItems: 'center', gap: 6, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1.5, borderColor: '#e5e7eb', padding: 12, minWidth: 72 },
+  barberChip: { alignItems: 'center', gap: 6, backgroundColor: t.card, borderRadius: 12, borderWidth: 1.5, borderColor: t.border, padding: 12, minWidth: 72 },
   barberChipActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
   barberAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#dbeafe', alignItems: 'center', justifyContent: 'center' },
-  barberName: { fontSize: 12, fontWeight: '600', color: '#374151' },
+  barberName: { fontSize: 12, fontWeight: '600', color: t.text },
   barberNameActive: { color: '#fff' },
-  barberExp: { fontSize: 10, color: '#9ca3af' },
+  barberExp: { fontSize: 10, color: t.subText },
   slotsLoading: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12 },
   closedDay: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#fef3c7', borderRadius: 10, padding: 12 },
   closedDayText: { fontSize: 13, color: '#92400e', flex: 1 },
-  noSlots: { backgroundColor: '#f9fafb', borderRadius: 10, padding: 14, alignItems: 'center' },
-  noSlotsText: { fontSize: 13, color: '#9ca3af' },
+  noSlots: { backgroundColor: t.border, borderRadius: 10, padding: 14, alignItems: 'center' },
+  noSlotsText: { fontSize: 13, color: t.subText },
   seqSlot: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#f5f3ff', borderRadius: 10, padding: 12 },
   seqText: { fontSize: 13, color: '#6d28d9', flex: 1 },
   slotLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 4 },
   slotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   slotBtn: { width: '30%', borderRadius: 10, paddingVertical: 9, alignItems: 'center', borderWidth: 1.5 },
-  slotAvailable: { backgroundColor: '#fff', borderColor: '#d1d5db' },
+  slotAvailable: { backgroundColor: t.card, borderColor: t.inputBorder },
   slotSelected: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
-  slotPast: { backgroundColor: '#f3f4f6', borderColor: '#e5e7eb' },
+  slotPast: { backgroundColor: t.border, borderColor: t.border },
   slotBooked: { backgroundColor: '#fee2e2', borderColor: '#fca5a5' },
-  slotTime: { fontSize: 13, fontWeight: '700', color: '#111827' },
-  slotEnd: { fontSize: 10, color: '#9ca3af', marginTop: 1 },
+  slotTime: { fontSize: 13, fontWeight: '700', color: t.text },
+  slotEnd: { fontSize: 10, color: t.subText, marginTop: 1 },
   couponRow: { flexDirection: 'row', gap: 8 },
-  couponInput: { flex: 1, borderWidth: 1.5, borderColor: '#d1d5db', borderRadius: 10, paddingHorizontal: 12, height: 46, fontSize: 14, color: '#111827', letterSpacing: 1 },
+  couponInput: { flex: 1, borderWidth: 1.5, borderColor: t.inputBorder, borderRadius: 10, paddingHorizontal: 12, height: 46, fontSize: 14, color: t.text, letterSpacing: 1 },
   couponBtn: { backgroundColor: '#2563eb', borderRadius: 10, paddingHorizontal: 16, height: 46, alignItems: 'center', justifyContent: 'center' },
   couponBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   couponApplied: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#f0fdf4', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#bbf7d0' },
@@ -512,33 +515,33 @@ const styles = StyleSheet.create({
   priceSummary: { backgroundColor: '#eff6ff', borderRadius: 14, padding: 14, gap: 8, borderWidth: 1, borderColor: '#bfdbfe' },
   priceSummaryTitle: { fontSize: 13, fontWeight: '700', color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
   priceRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  priceLabel: { fontSize: 13, color: '#374151' },
-  priceVal: { fontSize: 13, fontWeight: '600', color: '#111827' },
+  priceLabel: { fontSize: 13, color: t.text },
+  priceVal: { fontSize: 13, fontWeight: '600', color: t.text },
   priceTotalLabel: { fontSize: 14, fontWeight: '700', color: '#1d4ed8' },
   priceTotalVal: { fontSize: 16, fontWeight: '800', color: '#1d4ed8' },
-  footer: { backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingHorizontal: 16, paddingTop: 12 },
+  footer: { backgroundColor: t.card, borderTopWidth: 1, borderTopColor: t.border, paddingHorizontal: 16, paddingTop: 12 },
   confirmBtn: { backgroundColor: '#2563eb', borderRadius: 14, height: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   confirmBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  successBox: { flex: 1, backgroundColor: '#f9fafb', alignItems: 'center', justifyContent: 'center', padding: 20 },
-  successCard: { backgroundColor: '#fff', borderRadius: 20, padding: 28, width: '100%', maxWidth: 360, alignItems: 'center', gap: 12, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 12, elevation: 4 },
+  successBox: { flex: 1, backgroundColor: t.bg, alignItems: 'center', justifyContent: 'center', padding: 20 },
+  successCard: { backgroundColor: t.card, borderRadius: 20, padding: 28, width: '100%', maxWidth: 360, alignItems: 'center', gap: 12, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 12, elevation: 4 },
   successIcon: { width: 90, height: 90, borderRadius: 45, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
-  successTitle: { fontSize: 22, fontWeight: '800', color: '#111827' },
+  successTitle: { fontSize: 22, fontWeight: '800', color: t.text },
   pendingNote: { backgroundColor: '#fef3c7', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: '#fde68a' },
   pendingNoteText: { fontSize: 13, color: '#92400e', textAlign: 'center', lineHeight: 18 },
-  successDetails: { backgroundColor: '#f9fafb', borderRadius: 12, padding: 14, width: '100%', gap: 6 },
-  successSalon: { fontSize: 15, fontWeight: '700', color: '#111827', textAlign: 'center' },
-  successService: { fontSize: 13, color: '#6b7280', textAlign: 'center' },
+  successDetails: { backgroundColor: t.bg, borderRadius: 12, padding: 14, width: '100%', gap: 6 },
+  successSalon: { fontSize: 15, fontWeight: '700', color: t.text, textAlign: 'center' },
+  successService: { fontSize: 13, color: t.subText, textAlign: 'center' },
   successRow: { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center' },
-  successMeta: { fontSize: 13, color: '#374151' },
+  successMeta: { fontSize: 13, color: t.text },
   successBtn: { backgroundColor: '#2563eb', borderRadius: 12, height: 48, width: '100%', alignItems: 'center', justifyContent: 'center' },
   successBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  successBtnOutline: { borderWidth: 1.5, borderColor: '#d1d5db', borderRadius: 12, height: 48, width: '100%', alignItems: 'center', justifyContent: 'center' },
-  successBtnOutlineText: { color: '#374151', fontWeight: '600', fontSize: 15 },
+  successBtnOutline: { borderWidth: 1.5, borderColor: t.border, borderRadius: 12, height: 48, width: '100%', alignItems: 'center', justifyContent: 'center' },
+  successBtnOutlineText: { color: t.text, fontWeight: '600', fontSize: 15 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', padding: 20 },
-  modalCard: { backgroundColor: '#fff', borderRadius: 20, padding: 24, width: '100%', maxWidth: 320, alignItems: 'center', gap: 12 },
+  modalCard: { backgroundColor: t.card, borderRadius: 20, padding: 24, width: '100%', maxWidth: 320, alignItems: 'center', gap: 12 },
   modalIcon: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center' },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
-  modalText: { fontSize: 13, color: '#6b7280', textAlign: 'center', lineHeight: 20 },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: t.text },
+  modalText: { fontSize: 13, color: t.subText, textAlign: 'center', lineHeight: 20 },
   modalBtn: { backgroundColor: '#2563eb', borderRadius: 12, height: 46, width: '100%', alignItems: 'center', justifyContent: 'center', marginTop: 4 },
   modalBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 });

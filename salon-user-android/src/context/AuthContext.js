@@ -56,7 +56,10 @@ export function AuthProvider({ children }) {
     try {
       const res = await api.get('/customer/auth/me');
       const u = res.data.data?.customer || res.data.data || res.data.customer;
-      if (u) setUser(u);
+      if (u) {
+        setUser(u);
+        setIsAuthenticated(true);
+      }
     } catch {}
   };
 

@@ -26,10 +26,14 @@ const TIME_FORMATS = ['12-hour', '24-hour'];
 const DATE_FORMATS = ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'];
 
 function SectionHeader({ title }) {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   return <Text style={styles.sectionHeader}>{title}</Text>;
 }
 
 function SettingRow({ icon, iconColor = '#6b7280', label, sublabel, rightEl, onPress, chevron = false }) {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const Inner = (
     <View style={styles.settingRow}>
       <View style={[styles.iconBox, { backgroundColor: iconColor + '18' }]}>
@@ -40,7 +44,7 @@ function SettingRow({ icon, iconColor = '#6b7280', label, sublabel, rightEl, onP
         {sublabel ? <Text style={styles.rowSublabel}>{sublabel}</Text> : null}
       </View>
       {rightEl}
-      {chevron && <Ionicons name="chevron-forward" size={16} color="#9ca3af" style={{ marginLeft: 4 }} />}
+      {chevron && <Ionicons name="chevron-forward" size={16} color={theme.subText} style={{ marginLeft: 4 }} />}
     </View>
   );
 
@@ -51,17 +55,22 @@ function SettingRow({ icon, iconColor = '#6b7280', label, sublabel, rightEl, onP
 }
 
 function Card({ children }) {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   return <View style={styles.card}>{children}</View>;
 }
 
 function Divider() {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   return <View style={styles.divider} />;
 }
 
 export default function SettingsScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { isDark, theme, toggleTheme } = useTheme();
-  const { logout } = useAuth();
+  const styles = getStyles(theme);
+  const { user, logout } = useAuth();
 
   const [notif, setNotif] = useState(DEFAULT_NOTIF);
   const [notifLoaded, setNotifLoaded] = useState(false);
@@ -338,8 +347,8 @@ export default function SettingsScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
+const getStyles = (t) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   header: { backgroundColor: '#2563eb', paddingHorizontal: 16, paddingBottom: 20, paddingTop: 12, overflow: 'hidden' },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   menuBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
@@ -347,22 +356,22 @@ const styles = StyleSheet.create({
   decorCircle2: { position: 'absolute', width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.05)', bottom: -20, left: 20 },
   headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
   headerSub: { fontSize: 13, color: '#bfdbfe', marginTop: 2 },
-  profileCard: { backgroundColor: '#fff', borderRadius: 16, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: '#f3f4f6', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
+  profileCard: { backgroundColor: t.card, borderRadius: 16, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: t.border, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
   profileAvatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center' },
   profileAvatarImg: { width: 52, height: 52, borderRadius: 26 },
   profileAvatarInitial: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  profileName: { fontSize: 16, fontWeight: '700', color: '#111827' },
-  profileSub: { fontSize: 13, color: '#6b7280', marginTop: 1 },
+  profileName: { fontSize: 16, fontWeight: '700', color: t.text },
+  profileSub: { fontSize: 13, color: t.subText, marginTop: 1 },
   profileChevronBox: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center' },
   scroll: { padding: 16, gap: 6 },
-  sectionHeader: { fontSize: 11, fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.6, marginTop: 10, marginBottom: 4, paddingLeft: 2 },
-  card: { backgroundColor: '#fff', borderRadius: 14, borderWidth: 1, borderColor: '#f3f4f6', shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1, overflow: 'hidden' },
+  sectionHeader: { fontSize: 11, fontWeight: '700', color: t.subText, textTransform: 'uppercase', letterSpacing: 0.6, marginTop: 10, marginBottom: 4, paddingLeft: 2 },
+  card: { backgroundColor: t.card, borderRadius: 14, borderWidth: 1, borderColor: t.border, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1, overflow: 'hidden' },
   settingRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
   iconBox: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  rowLabel: { fontSize: 14, fontWeight: '600', color: '#111827' },
-  rowSublabel: { fontSize: 12, color: '#9ca3af', marginTop: 1 },
-  divider: { height: 1, backgroundColor: '#f3f4f6', marginLeft: 62 },
-  valueText: { fontSize: 13, color: '#6b7280', fontWeight: '500', marginRight: 2 },
+  rowLabel: { fontSize: 14, fontWeight: '600', color: t.text },
+  rowSublabel: { fontSize: 12, color: t.subText, marginTop: 1 },
+  divider: { height: 1, backgroundColor: t.border, marginLeft: 62 },
+  valueText: { fontSize: 13, color: t.subText, fontWeight: '500', marginRight: 2 },
   privacyInfo: { flexDirection: 'row', gap: 12, paddingHorizontal: 14, paddingVertical: 12, alignItems: 'flex-start' },
-  privacyText: { flex: 1, fontSize: 13, color: '#6b7280', lineHeight: 19 },
+  privacyText: { flex: 1, fontSize: 13, color: t.subText, lineHeight: 19 },
 });

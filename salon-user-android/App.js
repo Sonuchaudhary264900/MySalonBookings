@@ -260,11 +260,8 @@ function RootNavigator() {
   if (loading) {
     return (
       <View style={styles.splash}>
-        <View style={styles.splashLogoBox}>
-          <Image source={require('./assets/icon1.png')} style={styles.splashLogoImg} resizeMode="contain" />
-        </View>
-        <Text style={styles.splashName}>My Salon Bookings</Text>
-        <ActivityIndicator size="large" color="#fff" style={{ marginTop: 24 }} />
+        <Image source={require('./assets/icon1.png')} style={styles.splashLogoImg} resizeMode="contain" />
+        <ActivityIndicator size="large" color="#2563eb" style={styles.splashSpinner} />
       </View>
     );
   }
@@ -299,10 +296,9 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  splash: { flex: 1, backgroundColor: '#2563eb', alignItems: 'center', justifyContent: 'center' },
-  splashLogoBox: { width: 110, height: 110, borderRadius: 28, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', shadowColor: '#1e3a8a', shadowOpacity: 0.3, shadowRadius: 12, elevation: 8 },
-  splashLogoImg: { width: 88, height: 88 },
-  splashName: { fontSize: 22, fontWeight: '800', color: '#fff', marginTop: 18, letterSpacing: 0.3 },
+  splash: { flex: 1, backgroundColor: '#fff' },
+  splashLogoImg: { flex: 1, width: '100%' },
+  splashSpinner: { position: 'absolute', bottom: 60, alignSelf: 'center' },
 });
 
 // ── Drawer styles — dark theme matching owner app ─────────────────
