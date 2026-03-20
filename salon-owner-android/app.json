@@ -5,11 +5,11 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/Icon-1024.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/Icon-1024.png",
       "resizeMode": "contain",
-      "backgroundColor": "#2563eb"
+      "backgroundColor": "#ffffff"
     },
     "ios": {
       "supportsTablet": true,
@@ -28,6 +28,17 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow My Salon Bookings to access your photos to update your profile picture.",
+          "cameraPermission": "Allow My Salon Bookings to use your camera to take a profile picture."
+        }
+      ],
+      "expo-asset",
+      "expo-font"
+    ],
     "extra": {
       "eas": {
         "projectId": "5e4c49cf-c136-42ec-bc53-389502b5a417"

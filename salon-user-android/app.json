@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/Icon-1024.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/Icon-1024.png",
       "resizeMode": "contain",
@@ -40,6 +40,13 @@
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "Allow My Salon Bookings to use your location to find nearby salons."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow My Salon Bookings to access your photos to update your profile picture.",
+          "cameraPermission": "Allow My Salon Bookings to use your camera to take a profile picture."
         }
       ],
       "expo-asset",
