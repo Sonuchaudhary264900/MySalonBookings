@@ -323,6 +323,17 @@ export default function SettingsScreen({ navigation }) {
           />
         </Card>
 
+        {/* APP INFO */}
+        <SectionHeader title="About" />
+        <Card>
+          <SettingRow
+            icon="information-circle-outline"
+            iconColor="#2563eb"
+            label="App Version"
+            rightEl={<Text style={styles.valueText}>v1.0.0</Text>}
+          />
+        </Card>
+
         <View style={{ height: 32 }} />
       </ScrollView>
     </View>
