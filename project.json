@@ -1,0 +1,188 @@
+{
+  "name": "My Salon Bookings",
+  "version": "1.0.0",
+  "description": "Full-stack SaaS platform for salon and barber shop bookings",
+  "repository": "https://github.com/Sonuchaudhary264900/MySalonBookings",
+  "license": "ISC",
+
+  "modules": [
+    {
+      "name": "barber-shop-backend",
+      "type": "backend",
+      "description": "Node.js + Express REST API",
+      "language": "JavaScript",
+      "runtime": "Node.js >= 18",
+      "framework": "Express.js 4",
+      "database": "MongoDB (Mongoose 7)",
+      "port": 5000,
+      "entry": "server.js",
+      "scripts": {
+        "dev": "nodemon server.js",
+        "start": "node server.js",
+        "seed": "node scripts/seed.js"
+      },
+      "key_dependencies": [
+        "express",
+        "mongoose",
+        "jsonwebtoken",
+        "bcryptjs",
+        "cloudinary",
+        "razorpay",
+        "socket.io",
+        "nodemailer",
+        "multer",
+        "helmet",
+        "express-rate-limit",
+        "winston",
+        "node-cron"
+      ]
+    },
+    {
+      "name": "salon-owner-frontend",
+      "type": "web",
+      "description": "Owner web dashboard",
+      "language": "JavaScript",
+      "framework": "React 18 + Vite",
+      "styling": "Tailwind CSS",
+      "scripts": {
+        "dev": "vite",
+        "build": "vite build"
+      }
+    },
+    {
+      "name": "salon-user-frontend",
+      "type": "web",
+      "description": "Customer web app",
+      "language": "JavaScript",
+      "framework": "React 18 + Vite",
+      "styling": "Tailwind CSS",
+      "scripts": {
+        "dev": "vite",
+        "build": "vite build"
+      }
+    },
+    {
+      "name": "admin-frontend",
+      "type": "web",
+      "description": "Admin panel",
+      "language": "JavaScript",
+      "framework": "React 18 + Vite",
+      "styling": "Tailwind CSS",
+      "scripts": {
+        "dev": "vite",
+        "build": "vite build"
+      }
+    },
+    {
+      "name": "salon-owner-android",
+      "type": "mobile",
+      "description": "Owner Android app",
+      "language": "JavaScript",
+      "framework": "React Native 0.76.9",
+      "expo_sdk": "52",
+      "platform": "Android",
+      "bundle_id": "com.mysalonbookings.owner",
+      "version_code": 1,
+      "version_name": "1.0.0",
+      "navigation": "React Navigation v7 (Stack + Drawer)",
+      "scripts": {
+        "start": "npx expo start",
+        "android": "npx expo run:android"
+      },
+      "key_dependencies": [
+        "@react-navigation/native",
+        "@react-navigation/native-stack",
+        "@react-navigation/drawer",
+        "@expo/vector-icons",
+        "@react-native-async-storage/async-storage",
+        "axios",
+        "react-native-toast-message",
+        "socket.io-client"
+      ],
+      "features": [
+        "Salon registration & approval flow",
+        "Bookings management",
+        "Services management",
+        "Reviews",
+        "Reports",
+        "Profile management",
+        "Real-time notifications",
+        "Dark sidebar drawer"
+      ]
+    },
+    {
+      "name": "salon-user-android",
+      "type": "mobile",
+      "description": "Customer Android app",
+      "language": "JavaScript",
+      "framework": "React Native 0.76.9",
+      "expo_sdk": "52",
+      "platform": "Android",
+      "bundle_id": "com.mysalonbookings.user",
+      "version_code": 1,
+      "version_name": "1.0.0",
+      "navigation": "React Navigation v7 (Stack + Bottom Tabs + Drawer)",
+      "scripts": {
+        "start": "npx expo start",
+        "android": "npx expo run:android"
+      },
+      "key_dependencies": [
+        "@react-navigation/native",
+        "@react-navigation/native-stack",
+        "@react-navigation/bottom-tabs",
+        "@react-navigation/drawer",
+        "@expo/vector-icons",
+        "@react-native-async-storage/async-storage",
+        "expo-location",
+        "expo-image-picker",
+        "axios",
+        "date-fns",
+        "react-native-toast-message",
+        "socket.io-client"
+      ],
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "CAMERA"
+      ],
+      "features": [
+        "Browse and search salons",
+        "Salon details and reviews",
+        "Book appointments",
+        "Booking history",
+        "Favourites",
+        "In-app notifications",
+        "Dark mode (default)",
+        "Profile management",
+        "Delete account"
+      ]
+    }
+  ],
+
+  "infrastructure": {
+    "auth": "JWT access + refresh tokens",
+    "otp": "Twilio",
+    "image_storage": "Cloudinary",
+    "payments": "Razorpay",
+    "maps": "Google Maps API + Expo Location",
+    "email": "Nodemailer + Gmail SMTP",
+    "realtime": "Socket.IO",
+    "logging": "Winston"
+  },
+
+  "api_base_url": "http://localhost:5000/api/v1",
+
+  "api_routes": {
+    "customer_auth": "/api/v1/customer/auth",
+    "customer_salons": "/api/v1/customer/salons",
+    "customer_bookings": "/api/v1/customer/bookings",
+    "customer_favorites": "/api/v1/customer/favorites",
+    "owner_auth": "/api/v1/owner/auth",
+    "owner_salon": "/api/v1/owner/salon",
+    "owner_bookings": "/api/v1/owner/bookings",
+    "owner_services": "/api/v1/owner/services",
+    "admin": "/api/v1/admin"
+  }
+}
