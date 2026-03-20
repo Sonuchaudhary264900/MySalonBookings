@@ -3,8 +3,12 @@ import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, RefreshControl, TextInput, Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
+import DrawerMenuButton from '../../components/DrawerMenuButton';
+import { useTheme } from '../../context/ThemeContext';
+import { showSuccess, showError } from '../../utils/toast';
 
 const FILTERS = ['all', 'needs_reply', 'replied'];
 
@@ -24,19 +28,20 @@ function Stars({ rating }) {
 }
 
 function ReviewCard({ review, onReplySubmit }) {
+  const { theme } = useTheme();
   const [replying, setReplying] = useState(false);
   const [replyText, setReplyText] = useState(review.ownerResponse || '');
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
-    if (!replyText.trim()) { Alert.alert('Error', 'Reply cannot be empty'); return; }
+    if (!replyText.trim()) { showError('Error', 'Reply cannot be empty'); return; }
     setSaving(true);
     try {
       await api.put(`/owner/reviews/${review._id}/reply`, { reply: replyText.trim() });
       onReplySubmit(review._id, replyText.trim());
       setReplying(false);
     } catch (err) {
-      Alert.alert('Error', err.message || 'Failed to save reply');
+      showError('Error', err.message || 'Something went wrong');
     } finally {
       setSaving(false);
     }
@@ -53,14 +58,14 @@ function ReviewCard({ review, onReplySubmit }) {
   };
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: theme.card }]}>
       {/* Top row */}
       <View style={styles.cardTop}>
         <View style={styles.avatarCircle}>
           <Text style={styles.avatarInitial}>{review.customerName?.charAt(0)?.toUpperCase() || '?'}</Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.customerName}>{review.customerName || 'Anonymous'}</Text>
+          <Text style={[styles.customerName, { color: theme.text }]}>{review.customerName || 'Anonymous'}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 3 }}>
             <Stars rating={review.salonRating || review.rating || 0} />
             <Text style={styles.dateText}>{timeAgo(review.createdAt)}</Text>
@@ -81,12 +86,12 @@ function ReviewCard({ review, onReplySubmit }) {
       {review.ownerResponse && !replying && (
         <View style={styles.replyBox}>
           <View style={styles.replyHeader}>
-            <Ionicons name="chatbubble-outline" size={13} color="#4f46e5" />
+            <Ionicons name="chatbubble-outline" size={13} color="#2563eb" />
             <Text style={styles.replyLabel}>Your Reply</Text>
           </View>
           <Text style={styles.replyText}>{review.ownerResponse}</Text>
           <TouchableOpacity onPress={() => { setReplyText(review.ownerResponse); setReplying(true); }} style={styles.editReplyBtn}>
-            <Ionicons name="create-outline" size={13} color="#4f46e5" />
+            <Ionicons name="create-outline" size={13} color="#2563eb" />
             <Text style={styles.editReplyText}>Edit Reply</Text>
           </TouchableOpacity>
         </View>
@@ -126,7 +131,7 @@ function ReviewCard({ review, onReplySubmit }) {
         </View>
       ) : !review.ownerResponse ? (
         <TouchableOpacity style={styles.replyNowBtn} onPress={() => setReplying(true)}>
-          <Ionicons name="chatbubble-outline" size={14} color="#4f46e5" />
+          <Ionicons name="chatbubble-outline" size={14} color="#2563eb" />
           <Text style={styles.replyNowText}>Reply to Review</Text>
         </TouchableOpacity>
       ) : null}
@@ -141,6 +146,8 @@ function ratingColor(rating) {
 }
 
 export default function ReviewsScreen() {
+  const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -177,10 +184,10 @@ export default function ReviewsScreen() {
   const repliedCount = reviews.filter((r) => r.ownerResponse).length;
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#f9fafb' }}>
+    <View style={{ flex: 1, backgroundColor: theme.bg }}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Reviews</Text>
+      <View style={[styles.header, { paddingTop: 12 + insets.top }]}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}><Text style={styles.headerTitle}>Reviews</Text><DrawerMenuButton /></View>
         {/* Stats row */}
         <View style={styles.statsRow}>
           {[
@@ -211,7 +218,7 @@ export default function ReviewsScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#4f46e5" style={{ marginTop: 60 }} />
+        <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 60 }} />
       ) : (
         <FlatList
           data={filtered}
@@ -234,40 +241,40 @@ export default function ReviewsScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { backgroundColor: '#4f46e5', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 14 },
+  header: { backgroundColor: '#2563eb', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 14 },
   headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 12 },
   statsRow: { flexDirection: 'row', gap: 0, marginBottom: 12 },
   stat: { flex: 1, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 10, paddingVertical: 10, marginHorizontal: 4 },
   statValue: { fontSize: 18, fontWeight: '800', color: '#fff' },
-  statLabel: { fontSize: 11, color: '#c7d2fe', marginTop: 2 },
+  statLabel: { fontSize: 11, color: '#bfdbfe', marginTop: 2 },
   filterRow: { flexDirection: 'row', gap: 8 },
   filterTab: { flex: 1, paddingVertical: 7, borderRadius: 999, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.15)' },
   filterTabActive: { backgroundColor: '#fff' },
   filterTabText: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.85)' },
-  filterTabTextActive: { color: '#4f46e5' },
+  filterTabTextActive: { color: '#2563eb' },
   card: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
   cardTop: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10 },
-  avatarCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#ede9fe', alignItems: 'center', justifyContent: 'center', marginRight: 10 },
-  avatarInitial: { fontSize: 16, fontWeight: '700', color: '#4f46e5' },
+  avatarCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#dbeafe', alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+  avatarInitial: { fontSize: 16, fontWeight: '700', color: '#2563eb' },
   customerName: { fontSize: 14, fontWeight: '700', color: '#111827' },
   dateText: { fontSize: 11, color: '#9ca3af' },
   ratingBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   ratingBadgeText: { fontSize: 12, fontWeight: '700' },
   reviewTitle: { fontSize: 14, fontWeight: '600', color: '#1f2937', marginBottom: 4 },
   reviewText: { fontSize: 13, color: '#6b7280', lineHeight: 19, marginBottom: 10 },
-  replyBox: { backgroundColor: '#ede9fe', borderRadius: 10, padding: 12, marginBottom: 8 },
+  replyBox: { backgroundColor: '#dbeafe', borderRadius: 10, padding: 12, marginBottom: 8 },
   replyHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
-  replyLabel: { fontSize: 12, fontWeight: '700', color: '#4f46e5' },
-  replyText: { fontSize: 13, color: '#3730a3', lineHeight: 18 },
+  replyLabel: { fontSize: 12, fontWeight: '700', color: '#2563eb' },
+  replyText: { fontSize: 13, color: '#1e40af', lineHeight: 18 },
   editReplyBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 },
-  editReplyText: { fontSize: 12, color: '#4f46e5', fontWeight: '600' },
-  replyNowBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginTop: 4, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: '#c4b5fd', backgroundColor: '#f5f3ff' },
-  replyNowText: { fontSize: 13, color: '#4f46e5', fontWeight: '600' },
+  editReplyText: { fontSize: 12, color: '#2563eb', fontWeight: '600' },
+  replyNowBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginTop: 4, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: '#93c5fd', backgroundColor: '#eff6ff' },
+  replyNowText: { fontSize: 13, color: '#2563eb', fontWeight: '600' },
   replyInputBox: { marginTop: 8 },
-  replyInput: { borderWidth: 1.5, borderColor: '#c4b5fd', borderRadius: 10, padding: 12, fontSize: 13, color: '#111827', minHeight: 80, backgroundColor: '#fafafa' },
+  replyInput: { borderWidth: 1.5, borderColor: '#93c5fd', borderRadius: 10, padding: 12, fontSize: 13, color: '#111827', minHeight: 80, backgroundColor: '#fafafa' },
   replyActions: { flexDirection: 'row', gap: 8, marginTop: 8 },
   replyBtn: { flex: 1, height: 40, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  replyBtnPrimary: { backgroundColor: '#4f46e5' },
+  replyBtnPrimary: { backgroundColor: '#2563eb' },
   replyBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   replyBtnOutline: { borderWidth: 1.5, borderColor: '#d1d5db' },
   replyBtnOutlineText: { color: '#374151', fontWeight: '600', fontSize: 13 },

@@ -440,7 +440,7 @@ exports.getCurrentOwner = async (req, res) => {
 // ===================================================
 exports.updateProfile = async (req, res) => {
   try {
-    const { name, email } = req.body;
+    const { name, email, profilePhoto } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json(
@@ -466,6 +466,7 @@ exports.updateProfile = async (req, res) => {
     }
 
     owner.name = name.trim();
+    if (profilePhoto !== undefined) owner.profilePhoto = profilePhoto;
     await owner.save();
 
     res.json(

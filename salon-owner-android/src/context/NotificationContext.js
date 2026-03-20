@@ -4,10 +4,17 @@ import { useAuth } from './AuthContext';
 
 export const NotificationContext = createContext();
 
+const localDate = (offset = 0) => {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
 export const NotificationProvider = ({ children }) => {
   const { isAuthenticated } = useAuth();
   const [notifications, setNotifications] = useState([]);
-  const lastBookingIdRef = useRef(null);
+  // Track all seen booking IDs so we never re-notify the same booking
+  const seenIdsRef = useRef(null); // null = not initialised yet
   const idCounter = useRef(0);
 
   const addNotification = useCallback((notif) => {
@@ -39,36 +46,54 @@ export const NotificationProvider = ({ children }) => {
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  // Poll bookings every 30 seconds — detect new ones and surface as notifications
+  // Poll today's + tomorrow's bookings every 30s — detect genuinely new bookings
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    const poll = async () => {
+    const fetchBookingsForDate = async (date) => {
       try {
-        const res = await api.get('/owner/bookings?limit=5');
+        const res = await api.get(`/owner/bookings?date=${date}`);
         const d = res.data.data;
-        const bookings = Array.isArray(d) ? d : (d?.bookings || []);
-        if (!bookings.length) return;
-
-        const latestId = bookings[0]._id;
-        if (lastBookingIdRef.current === null) {
-          lastBookingIdRef.current = latestId;
-          return;
-        }
-        if (latestId !== lastBookingIdRef.current) {
-          const prevId = lastBookingIdRef.current;
-          const newOnes = bookings.filter((b) => b._id !== prevId);
-          newOnes.forEach((b) => {
-            addNotification({
-              type: 'booking',
-              title: 'New Booking!',
-              message: `${b.customerName || 'A customer'} booked ${b.serviceName || 'a service'} at ${b.appointmentTime || ''}`,
-            });
-          });
-          lastBookingIdRef.current = latestId;
-        }
-      } catch { /* silent */ }
+        return Array.isArray(d) ? d : (d?.bookings || []);
+      } catch {
+        return [];
+      }
     };
+
+    const poll = async () => {
+      const today = localDate(0);
+      const tomorrow = localDate(1);
+
+      const [todayBookings, tomorrowBookings] = await Promise.all([
+        fetchBookingsForDate(today),
+        fetchBookingsForDate(tomorrow),
+      ]);
+
+      const allBookings = [...todayBookings, ...tomorrowBookings];
+
+      if (seenIdsRef.current === null) {
+        // First run — mark everything as already seen, no notifications
+        seenIdsRef.current = new Set(allBookings.map((b) => b._id).filter(Boolean));
+        return;
+      }
+
+      // Find bookings we haven't seen before
+      const newBookings = allBookings.filter(
+        (b) => b._id && !seenIdsRef.current.has(b._id)
+      );
+
+      newBookings.forEach((b) => {
+        seenIdsRef.current.add(b._id);
+        addNotification({
+          type: 'booking',
+          title: 'New Booking!',
+          message: `${b.customerName || 'A customer'} booked ${b.serviceName || 'a service'} at ${b.appointmentTime || ''}`,
+        });
+      });
+    };
+
+    // Reset seen IDs when auth changes so fresh login starts clean
+    seenIdsRef.current = null;
 
     poll();
     const interval = setInterval(poll, 30000);

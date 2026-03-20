@@ -2,10 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, RefreshControl, Modal, TextInput,
-  Alert, FlatList,
+  Alert, FlatList, Pressable,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
+import DrawerMenuButton from '../../components/DrawerMenuButton';
+import { useTheme } from '../../context/ThemeContext';
+import { showSuccess, showError } from '../../utils/toast';
 import { useSalon } from '../../context/SalonContext';
 import { localDate, formatDate, formatTime, STATUS_COLORS } from '../../utils/helpers';
 
@@ -135,7 +139,7 @@ function WalkInModal({ visible, onClose, salonId, services, onSuccess }) {
             <View style={mStyles.field}>
               <Text style={mStyles.label}>Time Slot {selectedService && <Text style={{ color: '#9ca3af', fontWeight: '400' }}>({selectedService.duration} min)</Text>}</Text>
               {slotsLoading ? (
-                <ActivityIndicator size="small" color="#4f46e5" style={{ marginVertical: 8 }} />
+                <ActivityIndicator size="small" color="#2563eb" style={{ marginVertical: 8 }} />
               ) : closedDay ? (
                 <Text style={{ color: '#d97706', fontSize: 13 }}>Salon is closed on this day.</Text>
               ) : slots.length === 0 ? (
@@ -157,7 +161,7 @@ function WalkInModal({ visible, onClose, salonId, services, onSuccess }) {
                         disabled={past || blocked}
                       >
                         <Text style={[mStyles.slotText, selected && { color: '#fff' }, (past || blocked) && { color: '#9ca3af' }]}>{s}</Text>
-                        <Text style={[mStyles.slotEnd, selected && { color: '#c7d2fe' }, (past || blocked) && { color: '#c4c9d2' }]}>–{endTime}</Text>
+                        <Text style={[mStyles.slotEnd, selected && { color: '#bfdbfe' }, (past || blocked) && { color: '#c4c9d2' }]}>–{endTime}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -172,9 +176,9 @@ function WalkInModal({ visible, onClose, salonId, services, onSuccess }) {
               <View style={mStyles.summaryRow}><Text style={mStyles.summaryKey}>Customer</Text><Text style={mStyles.summaryVal}>{name || '—'}</Text></View>
               <View style={mStyles.summaryRow}><Text style={mStyles.summaryKey}>Service</Text><Text style={mStyles.summaryVal}>{selectedService.name}</Text></View>
               <View style={mStyles.summaryRow}><Text style={mStyles.summaryKey}>Slot</Text><Text style={mStyles.summaryVal}>{slot}</Text></View>
-              <View style={[mStyles.summaryRow, { borderTopWidth: 1, borderTopColor: '#c7d2fe', paddingTop: 8, marginTop: 4 }]}>
+              <View style={[mStyles.summaryRow, { borderTopWidth: 1, borderTopColor: '#bfdbfe', paddingTop: 8, marginTop: 4 }]}>
                 <Text style={[mStyles.summaryKey, { fontWeight: '700' }]}>Total</Text>
-                <Text style={[mStyles.summaryVal, { fontWeight: '800', color: '#3730a3' }]}>₹{selectedService.basePrice}</Text>
+                <Text style={[mStyles.summaryVal, { fontWeight: '800', color: '#1e40af' }]}>₹{selectedService.basePrice}</Text>
               </View>
             </View>
           )}
@@ -190,6 +194,8 @@ function WalkInModal({ visible, onClose, salonId, services, onSuccess }) {
 
 // ── Main Bookings Screen ─────────────────────────────────────────
 export default function BookingsScreen() {
+  const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
   const { salon } = useSalon();
   const [bookings, setBookings] = useState([]);
   const [services, setServices] = useState([]);
@@ -201,6 +207,8 @@ export default function BookingsScreen() {
   const [showModal, setShowModal] = useState(false);
   const [blockedIds, setBlockedIds] = useState(new Set());
   const [blocking, setBlocking] = useState(null);
+  const [actionSheet, setActionSheet] = useState(null);
+  const [confirm, setConfirm] = useState(null);
 
   const fetchBookings = useCallback(async (date) => {
     try {
@@ -248,27 +256,58 @@ export default function BookingsScreen() {
       await api.put(`/owner/bookings/${bookingId}`, { status: newStatus });
       setBookings((prev) => prev.map((b) => b._id === bookingId ? { ...b, status: newStatus } : b));
     } catch (err) {
-      Alert.alert('Error', err.message || 'Failed to update status');
+      showError('Error', err.message || 'Something went wrong');
     } finally {
       setUpdating(null);
     }
   };
 
-  const handleToggleBlock = async (customerId, isBlocked) => {
+  const doToggleBlock = async (customerId, isBlocked) => {
     setBlocking(customerId);
     try {
       if (isBlocked) {
         await api.delete(`/owner/customers/${customerId}/block`);
         setBlockedIds((prev) => { const n = new Set(prev); n.delete(String(customerId)); return n; });
       } else {
-        await api.post(`/owner/customers/${customerId}/block`, { reason: 'Fake booking' });
+        await api.post(`/owner/customers/${customerId}/block`, { reason: 'Blocked by owner' });
         setBlockedIds((prev) => new Set([...prev, String(customerId)]));
       }
     } catch (err) {
-      Alert.alert('Error', err.message || 'Failed to update block status');
+      showError('Error', err.message || 'Something went wrong');
     } finally {
       setBlocking(null);
     }
+  };
+
+  const handleToggleBlock = (customerId, customerName, isBlocked) => {
+    setActionSheet(null);
+    setConfirm({
+      title: isBlocked ? `Unblock ${customerName}?` : `Block ${customerName}?`,
+      message: isBlocked
+        ? `${customerName} will be able to book appointments again.`
+        : `${customerName} will no longer be able to book appointments at your salon.`,
+      danger: !isBlocked,
+      confirmLabel: isBlocked ? 'Yes, Unblock' : 'Yes, Block',
+      onConfirm: () => { setConfirm(null); doToggleBlock(customerId, isBlocked); },
+    });
+  };
+
+  const confirmStatusChange = (booking, newStatus) => {
+    setActionSheet(null);
+    const labels = { confirmed: 'Confirm', in_progress: 'Start', completed: 'Complete', cancelled: 'Cancel' };
+    const messages = {
+      confirmed: `Confirm booking for ${booking.customerName || 'this customer'}?`,
+      in_progress: `Start the service for ${booking.customerName || 'this customer'} now?`,
+      completed: `Mark ${booking.customerName || 'this customer'}'s booking as completed?`,
+      cancelled: `Cancel ${booking.customerName || 'this customer'}'s booking? This cannot be undone.`,
+    };
+    setConfirm({
+      title: `${labels[newStatus] || newStatus} Booking`,
+      message: messages[newStatus] || `Change status to ${newStatus}?`,
+      danger: newStatus === 'cancelled',
+      confirmLabel: labels[newStatus] || 'Confirm',
+      onConfirm: () => { setConfirm(null); handleStatusChange(booking._id, newStatus); },
+    });
   };
 
   const createWalkIn = async (data) => {
@@ -305,11 +344,11 @@ export default function BookingsScreen() {
     const nextStatuses = getNextStatuses(b.status);
 
     return (
-      <View style={bStyles.card}>
+      <View style={[bStyles.card, { backgroundColor: theme.card }]}>
         {/* Top row */}
         <View style={bStyles.cardTop}>
           <View style={{ flex: 1 }}>
-            <Text style={bStyles.customerName}>{b.customerName || '—'}</Text>
+            <Text style={[bStyles.customerName, { color: theme.text }]}>{b.customerName || '—'}</Text>
             {b.customerPhone && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
                 <Ionicons name="call-outline" size={12} color="#9ca3af" />
@@ -320,6 +359,13 @@ export default function BookingsScreen() {
           <View style={[bStyles.statusBadge, { backgroundColor: colors.bg }]}>
             <Text style={[bStyles.statusText, { color: colors.text }]}>{b.status?.replace('_', ' ')}</Text>
           </View>
+          <TouchableOpacity
+            style={bStyles.gearBtn}
+            onPress={() => setActionSheet(b)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="ellipsis-vertical" size={20} color={theme.subText} />
+          </TouchableOpacity>
         </View>
 
         {/* Details */}
@@ -332,47 +378,29 @@ export default function BookingsScreen() {
             b.isWalkIn ? { icon: 'walk-outline', text: 'Walk-in' } : null,
           ].filter(Boolean).map((d, i) => (
             <View key={i} style={bStyles.detailRow}>
-              <Ionicons name={d.icon} size={13} color="#6b7280" />
-              <Text style={bStyles.detailText}>{d.text}</Text>
+              <Ionicons name={d.icon} size={13} color={theme.subText} />
+              <Text style={[bStyles.detailText, { color: theme.subText }]}>{d.text}</Text>
             </View>
           ))}
         </View>
 
         {/* Actions */}
-        {(nextStatuses.length > 0 || b.customerId) && (
+        {nextStatuses.length > 0 && (
           <View style={bStyles.actions}>
-            {isUpdating ? (
-              <ActivityIndicator size="small" color="#4f46e5" />
+            {isUpdating || blocking === String(b.customerId) ? (
+              <ActivityIndicator size="small" color="#2563eb" />
             ) : (
-              <>
-                {nextStatuses.map((s) => (
-                  <TouchableOpacity
-                    key={s}
-                    style={[bStyles.actionBtn, s === 'cancelled' ? bStyles.actionBtnDanger : bStyles.actionBtnPrimary]}
-                    onPress={() => handleStatusChange(b._id, s)}
-                  >
-                    <Text style={[bStyles.actionBtnText, s === 'cancelled' && { color: '#dc2626' }]}>
-                      {s === 'confirmed' ? 'Confirm' : s === 'in_progress' ? 'Start' : s === 'completed' ? 'Complete' : 'Cancel'}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-                {b.customerId && !b.isWalkIn && (
-                  <TouchableOpacity
-                    style={[bStyles.actionBtn, isBlocked ? bStyles.actionBtnWarning : bStyles.actionBtnGray]}
-                    onPress={() => handleToggleBlock(String(b.customerId), isBlocked)}
-                    disabled={blocking === String(b.customerId)}
-                  >
-                    {blocking === String(b.customerId) ? (
-                      <ActivityIndicator size="small" color="#6b7280" />
-                    ) : (
-                      <>
-                        <Ionicons name={isBlocked ? 'shield-checkmark-outline' : 'shield-off-outline'} size={13} color={isBlocked ? '#d97706' : '#6b7280'} />
-                        <Text style={[bStyles.actionBtnText, isBlocked && { color: '#d97706' }]}>{isBlocked ? 'Unblock' : 'Block'}</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                )}
-              </>
+              nextStatuses.map((s) => (
+                <TouchableOpacity
+                  key={s}
+                  style={[bStyles.actionBtn, s === 'cancelled' ? bStyles.actionBtnDanger : bStyles.actionBtnPrimary]}
+                  onPress={() => confirmStatusChange(b, s)}
+                >
+                  <Text style={[bStyles.actionBtnText, s === 'cancelled' && { color: '#dc2626' }]}>
+                    {s === 'confirmed' ? 'Confirm' : s === 'in_progress' ? 'Start' : s === 'completed' ? 'Complete' : 'Cancel'}
+                  </Text>
+                </TouchableOpacity>
+              ))
             )}
           </View>
         )}
@@ -381,10 +409,11 @@ export default function BookingsScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#f9fafb' }}>
+    <View style={{ flex: 1, backgroundColor: theme.bg }}>
       {/* Header */}
-      <View style={bStyles.header}>
+      <View style={[bStyles.header, { paddingTop: 12 + insets.top }]}>
         <View style={bStyles.headerTop}>
+          <DrawerMenuButton style={{ marginRight: 4 }} />
           <Text style={bStyles.headerTitle}>Bookings</Text>
           <TouchableOpacity style={bStyles.walkInBtn} onPress={() => setShowModal(true)}>
             <Ionicons name="add" size={18} color="#fff" />
@@ -420,7 +449,7 @@ export default function BookingsScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#4f46e5" style={{ marginTop: 40 }} />
+        <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 40 }} />
       ) : (
         <FlatList
           data={filtered}
@@ -446,12 +475,81 @@ export default function BookingsScreen() {
         services={services.filter((s) => s.isActive !== false)}
         onSuccess={createWalkIn}
       />
+
+      {/* ── Action Sheet ── */}
+      <Modal visible={!!actionSheet} transparent animationType="slide" onRequestClose={() => setActionSheet(null)}>
+        <Pressable style={bStyles.modalOverlay} onPress={() => setActionSheet(null)}>
+          <Pressable style={[bStyles.sheetBox, { backgroundColor: theme.card }]} onPress={() => {}}>
+            <View style={bStyles.sheetHandle} />
+            <View style={bStyles.sheetHeader}>
+              <View style={bStyles.sheetAvatar}>
+                <Text style={bStyles.sheetAvatarText}>{actionSheet?.customerName?.charAt(0)?.toUpperCase() || '?'}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[bStyles.sheetName, { color: theme.text }]}>{actionSheet?.customerName || '—'}</Text>
+                <Text style={[bStyles.sheetMeta, { color: theme.subText }]}>{actionSheet?.serviceName}  ·  {formatTime(actionSheet?.appointmentTime)}</Text>
+                {actionSheet?.customerPhone ? <Text style={[bStyles.sheetMeta, { color: theme.subText }]}>{actionSheet.customerPhone}</Text> : null}
+              </View>
+            </View>
+            <View style={bStyles.sheetDivider} />
+            {actionSheet?.customerId && !actionSheet?.isWalkIn && (
+              <TouchableOpacity
+                style={bStyles.sheetOption}
+                onPress={() => handleToggleBlock(
+                  String(actionSheet.customerId),
+                  actionSheet.customerName,
+                  blockedIds.has(String(actionSheet.customerId))
+                )}
+              >
+                <View style={[bStyles.sheetOptionIcon, { backgroundColor: blockedIds.has(String(actionSheet?.customerId)) ? '#fef3c7' : '#fee2e2' }]}>
+                  <Ionicons
+                    name={blockedIds.has(String(actionSheet?.customerId)) ? 'shield-checkmark-outline' : 'shield-off-outline'}
+                    size={20}
+                    color={blockedIds.has(String(actionSheet?.customerId)) ? '#d97706' : '#dc2626'}
+                  />
+                </View>
+                <Text style={[bStyles.sheetOptionText, { color: blockedIds.has(String(actionSheet?.customerId)) ? '#d97706' : '#dc2626' }]}>
+                  {blockedIds.has(String(actionSheet?.customerId)) ? 'Unblock Customer' : 'Block Customer'}
+                </Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={bStyles.sheetOption} onPress={() => setActionSheet(null)}>
+              <View style={[bStyles.sheetOptionIcon, { backgroundColor: '#374151' }]}>
+                <Ionicons name="close-outline" size={20} color="#9ca3af" />
+              </View>
+              <Text style={[bStyles.sheetOptionText, { color: '#9ca3af' }]}>Dismiss</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ── Confirm Modal ── */}
+      <Modal visible={!!confirm} transparent animationType="fade" onRequestClose={() => setConfirm(null)}>
+        <View style={bStyles.confirmOverlay}>
+          <View style={bStyles.confirmBox}>
+            <View style={[bStyles.confirmIcon, { backgroundColor: confirm?.danger ? '#fee2e2' : '#dbeafe' }]}>
+              <Ionicons name={confirm?.danger ? 'warning-outline' : 'help-circle-outline'} size={28} color={confirm?.danger ? '#dc2626' : '#2563eb'} />
+            </View>
+            <Text style={bStyles.confirmTitle}>{confirm?.title}</Text>
+            <Text style={bStyles.confirmMsg}>{confirm?.message}</Text>
+            <View style={bStyles.confirmBtns}>
+              <TouchableOpacity style={[bStyles.confirmBtn, { backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#334155' }]} onPress={() => setConfirm(null)}>
+                <Text style={[bStyles.confirmBtnText, { color: '#f1f5f9' }]}>No, Go Back</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[bStyles.confirmBtn, { backgroundColor: confirm?.danger ? '#dc2626' : '#2563eb' }]} onPress={confirm?.onConfirm}>
+                <Text style={[bStyles.confirmBtnText, { color: '#fff' }]}>{confirm?.confirmLabel || 'Yes'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 }
 
 const bStyles = StyleSheet.create({
-  header: { backgroundColor: '#4f46e5', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 },
+  header: { backgroundColor: '#2563eb', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
   walkInBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, gap: 4 },
@@ -463,9 +561,10 @@ const bStyles = StyleSheet.create({
   filterChip: { paddingHorizontal: 14, paddingVertical: 6, marginRight: 8, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },
   filterChipActive: { backgroundColor: '#fff' },
   filterChipText: { color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: '500', textTransform: 'capitalize' },
-  filterChipTextActive: { color: '#4f46e5', fontWeight: '700' },
+  filterChipTextActive: { color: '#2563eb', fontWeight: '700' },
   card: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
-  cardTop: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10 },
+  cardTop: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10, gap: 8 },
+  gearBtn: { padding: 4, marginLeft: 4 },
   customerName: { fontSize: 15, fontWeight: '700', color: '#111827' },
   meta: { fontSize: 12, color: '#9ca3af' },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
@@ -475,11 +574,32 @@ const bStyles = StyleSheet.create({
   detailText: { fontSize: 13, color: '#6b7280' },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, borderTopWidth: 1, borderTopColor: '#f3f4f6', paddingTop: 10 },
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1 },
-  actionBtnPrimary: { backgroundColor: '#ede9fe', borderColor: '#c4b5fd' },
+  actionBtnPrimary: { backgroundColor: '#dbeafe', borderColor: '#93c5fd' },
   actionBtnDanger: { backgroundColor: '#fee2e2', borderColor: '#fca5a5' },
   actionBtnWarning: { backgroundColor: '#fef3c7', borderColor: '#fcd34d' },
   actionBtnGray: { backgroundColor: '#f3f4f6', borderColor: '#e5e7eb' },
-  actionBtnText: { fontSize: 12, fontWeight: '600', color: '#4f46e5', textTransform: 'capitalize' },
+  actionBtnText: { fontSize: 12, fontWeight: '600', color: '#2563eb', textTransform: 'capitalize' },
+  // Modals
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
+  sheetBox: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 36 },
+  sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#475569', alignSelf: 'center', marginBottom: 16 },
+  sheetHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
+  sheetAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#dbeafe', alignItems: 'center', justifyContent: 'center' },
+  sheetAvatarText: { fontSize: 20, fontWeight: '800', color: '#2563eb' },
+  sheetName: { fontSize: 16, fontWeight: '700', color: '#f1f5f9' },
+  sheetMeta: { fontSize: 12, color: '#94a3b8', marginTop: 2 },
+  sheetDivider: { height: 1, backgroundColor: '#334155', marginBottom: 12 },
+  sheetOption: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12 },
+  sheetOptionIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  sheetOptionText: { fontSize: 15, fontWeight: '600' },
+  confirmOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center' },
+  confirmBox: { marginHorizontal: 32, borderRadius: 20, padding: 24, alignItems: 'center', backgroundColor: '#1e293b', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 12, elevation: 8 },
+  confirmIcon: { width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+  confirmTitle: { fontSize: 18, fontWeight: '800', color: '#f1f5f9', textAlign: 'center', marginBottom: 8 },
+  confirmMsg: { fontSize: 14, color: '#94a3b8', textAlign: 'center', lineHeight: 20, marginBottom: 20 },
+  confirmBtns: { flexDirection: 'row', gap: 10, width: '100%' },
+  confirmBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
+  confirmBtnText: { fontSize: 14, fontWeight: '700' },
 });
 
 const mStyles = StyleSheet.create({
@@ -499,23 +619,23 @@ const mStyles = StyleSheet.create({
   dropdownText: { fontSize: 14, color: '#374151' },
   dateNav: { flexDirection: 'row', gap: 8 },
   dateChip: { alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', backgroundColor: '#f9fafb' },
-  dateChipActive: { backgroundColor: '#4f46e5', borderColor: '#4f46e5' },
+  dateChipActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
   dateChipText: { fontSize: 10, color: '#6b7280', fontWeight: '500' },
   dateChipNum: { fontSize: 14, color: '#374151', fontWeight: '700', marginTop: 2 },
   dateChipActiveText: { color: '#fff' },
   slotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   slot: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, borderWidth: 1, minWidth: 70, alignItems: 'center' },
   slotFree: { borderColor: '#e5e7eb', backgroundColor: '#f9fafb' },
-  slotSelected: { borderColor: '#4f46e5', backgroundColor: '#4f46e5' },
+  slotSelected: { borderColor: '#2563eb', backgroundColor: '#2563eb' },
   slotBlocked: { borderColor: '#fca5a5', backgroundColor: '#fee2e2' },
   slotPast: { borderColor: '#e5e7eb', backgroundColor: '#f3f4f6' },
   slotText: { fontSize: 12, fontWeight: '600', color: '#374151' },
   slotEnd: { fontSize: 10, color: '#9ca3af', marginTop: 2 },
-  summary: { backgroundColor: '#ede9fe', borderRadius: 12, padding: 14, marginBottom: 16 },
-  summaryTitle: { fontSize: 14, fontWeight: '700', color: '#3730a3', marginBottom: 8 },
+  summary: { backgroundColor: '#dbeafe', borderRadius: 12, padding: 14, marginBottom: 16 },
+  summaryTitle: { fontSize: 14, fontWeight: '700', color: '#1e40af', marginBottom: 8 },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  summaryKey: { fontSize: 13, color: '#4f46e5' },
-  summaryVal: { fontSize: 13, color: '#3730a3', fontWeight: '600' },
-  submitBtn: { backgroundColor: '#4f46e5', borderRadius: 12, height: 50, alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
+  summaryKey: { fontSize: 13, color: '#2563eb' },
+  summaryVal: { fontSize: 13, color: '#1e40af', fontWeight: '600' },
+  submitBtn: { backgroundColor: '#2563eb', borderRadius: 12, height: 50, alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
   submitText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 });

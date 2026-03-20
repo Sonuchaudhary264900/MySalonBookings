@@ -55,7 +55,7 @@ function Navbar() {
           <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center shadow-sm">
             <span className="text-white text-base">✂</span>
           </div>
-          <span className="text-xl font-bold text-gradient">SmartSalon</span>
+          <span className="text-xl font-bold text-gradient">My Salon</span>
         </Link>
 
         {/* Desktop nav */}

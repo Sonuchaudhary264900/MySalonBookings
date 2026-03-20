@@ -4,10 +4,14 @@ import {
   ActivityIndicator, RefreshControl, Modal, TextInput,
   Alert, Switch, ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
+import DrawerMenuButton from '../../components/DrawerMenuButton';
+import { useTheme } from '../../context/ThemeContext';
+import { showSuccess, showError } from '../../utils/toast';
 
-const CATEGORIES = ['haircut', 'shave', 'color', 'facial', 'massage', 'other'];
+const CATEGORIES = ['haircut', 'beard_trim', 'coloring', 'treatment', 'styling', 'shaving', 'nail', 'other'];
 
 function ServiceModal({ visible, service, onClose, onSaved }) {
   const editing = !!service?._id;
@@ -92,7 +96,7 @@ function ServiceModal({ visible, service, onClose, onSaved }) {
 
           <View style={styles.toggleRow}>
             <Text style={styles.label}>Active</Text>
-            <Switch value={isActive} onValueChange={setIsActive} trackColor={{ false: '#d1d5db', true: '#818cf8' }} thumbColor={isActive ? '#4f46e5' : '#9ca3af'} />
+            <Switch value={isActive} onValueChange={setIsActive} trackColor={{ false: '#d1d5db', true: '#60a5fa' }} thumbColor={isActive ? '#2563eb' : '#9ca3af'} />
           </View>
 
           <TouchableOpacity style={[styles.saveBtn, loading && { opacity: 0.7 }]} onPress={handleSave} disabled={loading}>
@@ -105,11 +109,14 @@ function ServiceModal({ visible, service, onClose, onSaved }) {
 }
 
 export default function ServicesScreen() {
+  const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingService, setEditingService] = useState(null);
+  const [search, setSearch] = useState('');
 
   const fetchServices = useCallback(async () => {
     try {
@@ -134,7 +141,7 @@ export default function ServicesScreen() {
             await api.delete(`/owner/services/${service._id}`);
             setServices((prev) => prev.filter((s) => s._id !== service._id));
           } catch (err) {
-            Alert.alert('Error', err.message || 'Failed to delete service');
+            showError('Error', err.message || 'Something went wrong');
           }
         },
       },
@@ -146,48 +153,55 @@ export default function ServicesScreen() {
       await api.put(`/owner/services/${service._id}`, { isActive: !service.isActive });
       setServices((prev) => prev.map((s) => s._id === service._id ? { ...s, isActive: !s.isActive } : s));
     } catch (err) {
-      Alert.alert('Error', err.message || 'Failed to update service');
+      showError('Error', err.message || 'Something went wrong');
     }
   };
 
+  const displayed = search.trim()
+    ? services.filter((s) =>
+        s.name?.toLowerCase().includes(search.toLowerCase()) ||
+        s.description?.toLowerCase().includes(search.toLowerCase())
+      )
+    : services;
+
   const renderService = ({ item: s }) => (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: theme.card }]}>
       <View style={styles.cardTop}>
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text style={styles.serviceName}>{s.name}</Text>
+            <Text style={[styles.serviceName, { color: theme.text }]}>{s.name}</Text>
             <View style={[styles.badge, { backgroundColor: s.isActive ? '#dcfce7' : '#f3f4f6' }]}>
               <Text style={[styles.badgeText, { color: s.isActive ? '#16a34a' : '#9ca3af' }]}>
                 {s.isActive ? 'Active' : 'Inactive'}
               </Text>
             </View>
           </View>
-          {s.description ? <Text style={styles.serviceDesc} numberOfLines={2}>{s.description}</Text> : null}
+          {s.description ? <Text style={[styles.serviceDesc, { color: theme.subText }]} numberOfLines={2}>{s.description}</Text> : null}
           <View style={styles.metaRow}>
             <View style={styles.metaItem}>
-              <Ionicons name="cash-outline" size={13} color="#6b7280" />
-              <Text style={styles.metaText}>₹{s.basePrice}</Text>
+              <Ionicons name="cash-outline" size={13} color={theme.subText} />
+              <Text style={[styles.metaText, { color: theme.subText }]}>₹{s.basePrice}</Text>
             </View>
             <View style={styles.metaItem}>
-              <Ionicons name="time-outline" size={13} color="#6b7280" />
-              <Text style={styles.metaText}>{s.duration} min</Text>
+              <Ionicons name="time-outline" size={13} color={theme.subText} />
+              <Text style={[styles.metaText, { color: theme.subText }]}>{s.duration} min</Text>
             </View>
             <View style={styles.metaItem}>
-              <Ionicons name="pricetag-outline" size={13} color="#6b7280" />
-              <Text style={styles.metaText}>{s.category}</Text>
+              <Ionicons name="pricetag-outline" size={13} color={theme.subText} />
+              <Text style={[styles.metaText, { color: theme.subText }]}>{s.category}</Text>
             </View>
           </View>
         </View>
       </View>
-      <View style={styles.cardActions}>
+      <View style={[styles.cardActions, { borderTopColor: theme.rowBorder }]}>
         <Switch
           value={s.isActive !== false}
           onValueChange={() => handleToggleActive(s)}
-          trackColor={{ false: '#d1d5db', true: '#818cf8' }}
-          thumbColor={s.isActive !== false ? '#4f46e5' : '#9ca3af'}
+          trackColor={{ false: '#d1d5db', true: '#60a5fa' }}
+          thumbColor={s.isActive !== false ? '#2563eb' : '#9ca3af'}
         />
         <TouchableOpacity style={styles.editBtn} onPress={() => { setEditingService(s); setModalVisible(true); }}>
-          <Ionicons name="create-outline" size={16} color="#4f46e5" />
+          <Ionicons name="create-outline" size={16} color="#2563eb" />
           <Text style={styles.editBtnText}>Edit</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(s)}>
@@ -199,20 +213,37 @@ export default function ServicesScreen() {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#f9fafb' }}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Services</Text>
-        <TouchableOpacity style={styles.addBtn} onPress={() => { setEditingService(null); setModalVisible(true); }}>
-          <Ionicons name="add" size={18} color="#fff" />
-          <Text style={styles.addBtnText}>Add Service</Text>
-        </TouchableOpacity>
+    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+      <View style={[styles.header, { paddingTop: 14 + insets.top }]}>
+        <View style={styles.headerTop}>
+          <Text style={styles.headerTitle}>Services</Text>
+          <TouchableOpacity style={styles.addBtn} onPress={() => { setEditingService(null); setModalVisible(true); }}>
+            <Ionicons name="add" size={18} color="#fff" />
+            <Text style={styles.addBtnText}>Add Service</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.searchRow}>
+          <Ionicons name="search-outline" size={16} color="#93c5fd" style={{ marginRight: 8 }} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search services…"
+            placeholderTextColor="#93c5fd"
+            value={search}
+            onChangeText={setSearch}
+          />
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => setSearch('')}>
+              <Ionicons name="close-circle" size={16} color="#93c5fd" />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#4f46e5" style={{ marginTop: 40 }} />
+        <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 40 }} />
       ) : (
         <FlatList
-          data={services}
+          data={displayed}
           keyExtractor={(item) => item._id}
           renderItem={renderService}
           contentContainerStyle={{ padding: 12, paddingBottom: 32 }}
@@ -220,7 +251,9 @@ export default function ServicesScreen() {
           ListEmptyComponent={
             <View style={{ alignItems: 'center', paddingVertical: 48 }}>
               <Ionicons name="cut-outline" size={48} color="#d1d5db" />
-              <Text style={{ color: '#9ca3af', marginTop: 8, fontSize: 14 }}>No services yet. Add your first service!</Text>
+              <Text style={{ color: '#9ca3af', marginTop: 8, fontSize: 14 }}>
+              {search.trim() ? 'No services match your search.' : 'No services yet. Add your first service!'}
+            </Text>
             </View>
           }
         />
@@ -237,8 +270,11 @@ export default function ServicesScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { backgroundColor: '#4f46e5', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14 },
+  header: { backgroundColor: '#2563eb', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12 },
+  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
+  searchRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 10, paddingHorizontal: 12, height: 40 },
+  searchInput: { flex: 1, fontSize: 14, color: '#fff' },
   addBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, gap: 4 },
   addBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
   card: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
@@ -251,8 +287,8 @@ const styles = StyleSheet.create({
   badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999 },
   badgeText: { fontSize: 11, fontWeight: '600' },
   cardActions: { flexDirection: 'row', alignItems: 'center', gap: 10, borderTopWidth: 1, borderTopColor: '#f3f4f6', paddingTop: 10 },
-  editBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: '#ede9fe', borderWidth: 1, borderColor: '#c4b5fd' },
-  editBtnText: { fontSize: 12, fontWeight: '600', color: '#4f46e5' },
+  editBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: '#dbeafe', borderWidth: 1, borderColor: '#93c5fd' },
+  editBtnText: { fontSize: 12, fontWeight: '600', color: '#2563eb' },
   deleteBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: '#fee2e2', borderWidth: 1, borderColor: '#fca5a5' },
   deleteBtnText: { fontSize: 12, fontWeight: '600', color: '#dc2626' },
   // Modal
@@ -267,10 +303,10 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1.5, borderColor: '#d1d5db', borderRadius: 10, paddingHorizontal: 12, height: 44, fontSize: 14, color: '#111827' },
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: '#e5e7eb', backgroundColor: '#f9fafb' },
-  chipActive: { backgroundColor: '#4f46e5', borderColor: '#4f46e5' },
+  chipActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
   chipText: { fontSize: 13, color: '#374151', textTransform: 'capitalize' },
   chipTextActive: { color: '#fff', fontWeight: '600' },
   toggleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  saveBtn: { backgroundColor: '#4f46e5', borderRadius: 12, height: 50, alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
+  saveBtn: { backgroundColor: '#2563eb', borderRadius: 12, height: 50, alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
   saveBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 });
