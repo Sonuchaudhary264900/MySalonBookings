@@ -13,7 +13,7 @@ const STEPS = ['Basic Info', 'Working Hours', 'Review & Submit'];
 
 export default function SalonRegistrationScreen() {
   const { createSalon } = useSalon();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -105,6 +105,12 @@ export default function SalonRegistrationScreen() {
       <View style={styles.header}>
         <Text style={styles.logo}>💈 Smart Salon</Text>
         <Text style={styles.headerSub}>Register Your Salon</Text>
+        <TouchableOpacity onPress={() => Alert.alert('Switch Account', 'Logout and go back to login?', [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Logout', style: 'destructive', onPress: logout },
+        ])} style={styles.logoutLink}>
+          <Text style={styles.logoutLinkText}>Wrong account? Logout</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Step indicator */}
@@ -293,7 +299,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#4f46e5' },
   header: { alignItems: 'center', paddingTop: 20, paddingBottom: 16 },
   logo: { fontSize: 28, fontWeight: '800', color: '#fff', marginBottom: 4 },
-  headerSub: { fontSize: 14, color: '#c7d2fe' },
+  headerSub: { fontSize: 14, color: '#c7d2fe', marginBottom: 6 },
+  logoutLink: { marginTop: 4 },
+  logoutLinkText: { fontSize: 12, color: '#c7d2fe', textDecorationLine: 'underline' },
   stepRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 16 },
   stepItem: { alignItems: 'center', flex: 1 },
   stepCircle: { width: 30, height: 30, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
