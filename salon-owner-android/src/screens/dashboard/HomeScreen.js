@@ -32,7 +32,8 @@ export default function HomeScreen() {
     setBookingsLoading(true);
     try {
       const res = await api.get(`/owner/bookings?date=${date}`);
-      setBookings(res.data.data || []);
+      const data = res.data.data;
+      setBookings(Array.isArray(data) ? data : (data?.bookings || []));
     } catch { setBookings([]); } finally {
       setBookingsLoading(false);
     }
