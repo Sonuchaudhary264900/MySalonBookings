@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function IntroScreen({ navigation }) {
@@ -26,9 +26,10 @@ export default function IntroScreen({ navigation }) {
   );
 }
 
+const { height: SCREEN_H } = Dimensions.get('window');
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  logo: { flex: 1, width: '100%' },
+  container: { flex: 1, backgroundColor: '#fff', justifyContent: 'center' },
+  logo: { width: '100%', height: SCREEN_H * 0.40, alignSelf: 'center' },
   bottom: { paddingHorizontal: 28, gap: 12 },
   title: { fontSize: 26, fontWeight: '800', color: '#111827', textAlign: 'center' },
   subtitle: { fontSize: 14, color: '#6b7280', textAlign: 'center', lineHeight: 22, marginBottom: 8 },

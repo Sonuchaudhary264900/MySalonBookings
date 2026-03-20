@@ -1,7 +1,7 @@
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import React from 'react';
-import { ActivityIndicator, View, Text, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
+import { ActivityIndicator, View, Text, TouchableOpacity, StyleSheet, Alert, Image, Dimensions } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -249,10 +249,11 @@ export default function App() {
   );
 }
 
+const { height: SCREEN_H } = Dimensions.get('window');
 const rootStyles = StyleSheet.create({
-  splash: { flex: 1, backgroundColor: '#fff' },
-  splashLogoImg: { flex: 1, width: '100%' },
-  splashBottom: { paddingHorizontal: 28, paddingBottom: 40, gap: 8 },
+  splash: { flex: 1, backgroundColor: '#fff', justifyContent: 'center' },
+  splashLogoImg: { width: '100%', height: SCREEN_H * 0.40, alignSelf: 'center' },
+  splashBottom: { paddingHorizontal: 28, paddingBottom: 40, gap: 8, marginTop: 16 },
   splashTitle: { fontSize: 26, fontWeight: '800', color: '#111827', textAlign: 'center' },
   splashSubtitle: { fontSize: 14, color: '#6b7280', textAlign: 'center', lineHeight: 22 },
 });
