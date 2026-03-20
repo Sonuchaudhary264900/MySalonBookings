@@ -42,10 +42,19 @@ export default function SalonRegistrationScreen() {
     );
   };
 
+  const formatPhone = (raw) => {
+    const digits = raw.replace(/\D/g, '');
+    if (digits.length === 10) return `+91${digits}`;
+    if (digits.length === 12 && digits.startsWith('91')) return `+${digits}`;
+    if (raw.startsWith('+')) return raw.trim();
+    return `+91${digits}`;
+  };
+
   const validateStep1 = () => {
-    if (!name.trim()) { Alert.alert('Error', 'Salon name is required'); return false; }
+    if (!name.trim() || name.trim().length < 3) { Alert.alert('Error', 'Salon name must be at least 3 characters'); return false; }
     if (!phone.trim()) { Alert.alert('Error', 'Phone number is required'); return false; }
-    if (!address.trim()) { Alert.alert('Error', 'Address is required'); return false; }
+    if (!address.trim() || address.trim().length < 5) { Alert.alert('Error', 'Full address is required (min 5 characters)'); return false; }
+    if (!city.trim() || city.trim().length < 2) { Alert.alert('Error', 'City is required'); return false; }
     return true;
   };
 
@@ -69,7 +78,7 @@ export default function SalonRegistrationScreen() {
         name: name.trim(),
         description: description.trim(),
         category,
-        phone: phone.trim(),
+        phone: formatPhone(phone),
         email: email.trim() || undefined,
         address: address.trim(),
         city: city.trim() || undefined,
@@ -149,7 +158,7 @@ export default function SalonRegistrationScreen() {
             <Field label="Phone Number *" value={phone} setter={setPhone} placeholder="+91 9876543210" keyboard="phone-pad" />
             <Field label="Email" value={email} setter={setEmail} placeholder="salon@example.com" keyboard="email-address" />
             <Field label="Address *" value={address} setter={setAddress} placeholder="Street address" />
-            <Field label="City" value={city} setter={setCity} placeholder="Mumbai" />
+            <Field label="City *" value={city} setter={setCity} placeholder="Mumbai" />
             <Field label="State" value={state} setter={setState} placeholder="Maharashtra" />
             <Field label="Pincode" value={pincode} setter={setPincode} placeholder="400001" keyboard="numeric" />
           </View>
