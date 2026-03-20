@@ -15,6 +15,7 @@ import { SalonProvider, useSalon } from './src/context/SalonContext';
 import { NotificationProvider, useNotifications } from './src/context/NotificationContext';
 import { ThemeProvider } from './src/context/ThemeContext';
 
+import IntroScreen             from './src/screens/auth/IntroScreen';
 import LoginScreen             from './src/screens/auth/LoginScreen';
 import RegisterScreen          from './src/screens/auth/RegisterScreen';
 import SalonRegistrationScreen from './src/screens/salon/SalonRegistrationScreen';
@@ -185,6 +186,7 @@ function MainDrawer() {
 function AuthNavigator() {
   return (
     <AuthStack.Navigator screenOptions={{ headerShown: false }}>
+      <AuthStack.Screen name="Intro"    component={IntroScreen} />
       <AuthStack.Screen name="Login"    component={LoginScreen} />
       <AuthStack.Screen name="Register" component={RegisterScreen} />
     </AuthStack.Navigator>
@@ -200,11 +202,12 @@ function RootNavigator() {
   if (isLoading) {
     return (
       <View style={rootStyles.splash}>
-        <View style={rootStyles.splashLogoBox}>
-          <Image source={require('./assets/icon1.png')} style={rootStyles.splashLogoImg} resizeMode="contain" />
+        <Image source={require('./assets/Icon-1024.png')} style={rootStyles.splashLogoImg} resizeMode="contain" />
+        <View style={rootStyles.splashBottom}>
+          <Text style={rootStyles.splashTitle}>My Salon Bookings</Text>
+          <Text style={rootStyles.splashSubtitle}>Manage your salon, bookings{'\n'}and grow your business</Text>
+          <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 8 }} />
         </View>
-        <Text style={rootStyles.splashName}>My Salon Bookings</Text>
-        <ActivityIndicator size="large" color="#fff" style={{ marginTop: 24 }} />
       </View>
     );
   }
@@ -247,10 +250,11 @@ export default function App() {
 }
 
 const rootStyles = StyleSheet.create({
-  splash: { flex: 1, backgroundColor: '#2563eb', alignItems: 'center', justifyContent: 'center' },
-  splashLogoBox: { width: 110, height: 110, borderRadius: 28, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', shadowColor: '#1e3a8a', shadowOpacity: 0.3, shadowRadius: 12, elevation: 8 },
-  splashLogoImg: { width: 88, height: 88 },
-  splashName: { fontSize: 22, fontWeight: '800', color: '#fff', marginTop: 18, letterSpacing: 0.3 },
+  splash: { flex: 1, backgroundColor: '#fff' },
+  splashLogoImg: { flex: 1, width: '100%' },
+  splashBottom: { paddingHorizontal: 28, paddingBottom: 40, gap: 8 },
+  splashTitle: { fontSize: 26, fontWeight: '800', color: '#111827', textAlign: 'center' },
+  splashSubtitle: { fontSize: 14, color: '#6b7280', textAlign: 'center', lineHeight: 22 },
 });
 
 // ── Drawer styles — dark theme matching website sidebar ───────────
