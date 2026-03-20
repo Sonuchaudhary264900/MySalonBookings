@@ -8,7 +8,7 @@ export default function IntroScreen({ navigation }) {
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom + 24 }]}>
       <Image
-        source={require('../../../assets/icon1.png')}
+        source={require('../../../assets/Icon-1024.png')}
         style={styles.logo}
         resizeMode="contain"
       />

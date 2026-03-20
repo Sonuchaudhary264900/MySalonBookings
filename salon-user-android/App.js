@@ -262,7 +262,7 @@ function RootNavigator() {
   if (loading) {
     return (
       <View style={styles.splash}>
-        <Image source={require('./assets/icon1.png')} style={styles.splashLogoImg} resizeMode="contain" />
+        <Image source={require('./assets/Icon-1024.png')} style={styles.splashLogoImg} resizeMode="contain" />
         <View style={styles.splashBottom}>
           <Text style={styles.splashTitle}>My Salon Bookings</Text>
           <Text style={styles.splashSubtitle}>Discover salons, book appointments{'\n'}and manage your beauty routine</Text>
