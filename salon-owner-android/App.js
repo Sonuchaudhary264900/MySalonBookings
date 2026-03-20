@@ -178,14 +178,6 @@ function RootNavigator() {
 
   const isLoading = authLoading || (isAuthenticated && !salonFetchDone);
 
-  const getInitialRoute = () => {
-    if (!isAuthenticated) return 'Auth';
-    if (!salon) return 'SalonRegistration';
-    const approved = salon.isApproved || salon.status === 'approved' || salon.approvalStatus === 'approved';
-    if (!approved) return 'ApprovalWaiting';
-    return 'Main';
-  };
-
   if (isLoading) {
     return (
       <View style={rootStyles.splash}>
@@ -195,13 +187,20 @@ function RootNavigator() {
     );
   }
 
+  const isApproved = salon && (salon.isApproved || salon.status === 'approved' || salon.approvalStatus === 'approved');
+
   return (
     <NavigationContainer>
-      <RootStack.Navigator screenOptions={{ headerShown: false }} initialRouteName={getInitialRoute()}>
-        <RootStack.Screen name="Auth"               component={AuthNavigator} />
-        <RootStack.Screen name="SalonRegistration"  component={SalonRegistrationScreen} />
-        <RootStack.Screen name="ApprovalWaiting"    component={ApprovalWaitingScreen} />
-        <RootStack.Screen name="Main"               component={MainTabs} />
+      <RootStack.Navigator screenOptions={{ headerShown: false }}>
+        {!isAuthenticated ? (
+          <RootStack.Screen name="Auth" component={AuthNavigator} />
+        ) : !salon ? (
+          <RootStack.Screen name="SalonRegistration" component={SalonRegistrationScreen} />
+        ) : !isApproved ? (
+          <RootStack.Screen name="ApprovalWaiting" component={ApprovalWaitingScreen} />
+        ) : (
+          <RootStack.Screen name="Main" component={MainTabs} />
+        )}
       </RootStack.Navigator>
     </NavigationContainer>
   );
