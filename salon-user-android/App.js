@@ -263,7 +263,11 @@ function RootNavigator() {
     return (
       <View style={styles.splash}>
         <Image source={require('./assets/icon1.png')} style={styles.splashLogoImg} resizeMode="contain" />
-        <ActivityIndicator size="large" color="#2563eb" style={styles.splashSpinner} />
+        <View style={styles.splashBottom}>
+          <Text style={styles.splashTitle}>My Salon Bookings</Text>
+          <Text style={styles.splashSubtitle}>Discover salons, book appointments{'\n'}and manage your beauty routine</Text>
+          <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 8 }} />
+        </View>
       </View>
     );
   }
@@ -300,7 +304,9 @@ export default function App() {
 const styles = StyleSheet.create({
   splash: { flex: 1, backgroundColor: '#fff' },
   splashLogoImg: { flex: 1, width: '100%' },
-  splashSpinner: { position: 'absolute', bottom: 60, alignSelf: 'center' },
+  splashBottom: { paddingHorizontal: 28, paddingBottom: 40, gap: 8 },
+  splashTitle: { fontSize: 26, fontWeight: '800', color: '#111827', textAlign: 'center' },
+  splashSubtitle: { fontSize: 14, color: '#6b7280', textAlign: 'center', lineHeight: 22 },
 });
 
 // ── Drawer styles — dark theme matching owner app ─────────────────
