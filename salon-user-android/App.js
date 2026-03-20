@@ -15,6 +15,7 @@ import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { ThemeProvider } from './src/context/ThemeContext';
 import { NotificationProvider, useNotifications } from './src/context/NotificationContext';
 
+import IntroScreen        from './src/screens/auth/IntroScreen';
 import LoginScreen        from './src/screens/auth/LoginScreen';
 import RegisterScreen     from './src/screens/auth/RegisterScreen';
 import HomeScreen         from './src/screens/main/HomeScreen';
@@ -247,6 +248,7 @@ function MainDrawer() {
 function AuthNavigator() {
   return (
     <AuthStack.Navigator screenOptions={{ headerShown: false }}>
+      <AuthStack.Screen name="Intro"    component={IntroScreen} />
       <AuthStack.Screen name="Login"    component={LoginScreen} />
       <AuthStack.Screen name="Register" component={RegisterScreen} />
     </AuthStack.Navigator>
