@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { useNotifications } from '../../context/NotificationContext';
 import { showSuccess, showError } from '../../utils/toast';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -88,6 +89,7 @@ export default function BookingsScreen({ navigation }) {
   const { theme } = useTheme();
   const styles = getStyles(theme);
   const { isAuthenticated } = useAuth();
+  const { unreadCount } = useNotifications();
   const [filter, setFilter]         = useState('All');
   const [bookings, setBookings]     = useState([]);
   const [loading, setLoading]       = useState(true);
@@ -247,6 +249,18 @@ export default function BookingsScreen({ navigation }) {
           </View>
           <TouchableOpacity
             style={styles.menuBtn}
+            onPress={() => navigation.getParent()?.navigate('HomeTab', { screen: 'Notifications' })}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="notifications-outline" size={24} color="#fff" />
+            {unreadCount > 0 && (
+              <View style={styles.notifBadge}>
+                <Text style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.menuBtn}
             onPress={() => navigation.getParent('DrawerNav')?.openDrawer()}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
@@ -320,6 +334,8 @@ const getStyles = (t) => StyleSheet.create({
   headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
   headerSub: { fontSize: 13, color: '#bfdbfe', marginTop: 2 },
   menuBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+  notifBadge: { position: 'absolute', top: 4, right: 4, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
+  notifBadgeText: { color: '#fff', fontSize: 9, fontWeight: '700' },
   filterRow: { backgroundColor: t.card, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: t.border },
   filterChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, backgroundColor: t.border, borderWidth: 1.5, borderColor: t.border },
   filterChipActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },

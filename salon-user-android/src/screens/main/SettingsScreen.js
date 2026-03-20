@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { useNotifications } from '../../context/NotificationContext';
 import api from '../../services/api';
 import { showSuccess, showError } from '../../utils/toast';
 
@@ -71,6 +72,7 @@ export default function SettingsScreen({ navigation }) {
   const { isDark, theme, toggleTheme } = useTheme();
   const styles = getStyles(theme);
   const { user, logout } = useAuth();
+  const { unreadCount } = useNotifications();
 
   const [notif, setNotif] = useState(DEFAULT_NOTIF);
   const [notifLoaded, setNotifLoaded] = useState(false);
@@ -164,6 +166,18 @@ export default function SettingsScreen({ navigation }) {
             <Text style={styles.headerTitle}>Settings</Text>
             <Text style={styles.headerSub}>Manage your preferences</Text>
           </View>
+          <TouchableOpacity
+            style={styles.menuBtn}
+            onPress={() => navigation.getParent()?.navigate('HomeTab', { screen: 'Notifications' })}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="notifications-outline" size={24} color="#fff" />
+            {unreadCount > 0 && (
+              <View style={styles.notifBadge}>
+                <Text style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
           <TouchableOpacity
             style={styles.menuBtn}
             onPress={() => navigation.getParent('DrawerNav')?.openDrawer()}
@@ -345,6 +359,8 @@ const getStyles = (t) => StyleSheet.create({
   header: { backgroundColor: '#2563eb', paddingHorizontal: 16, paddingBottom: 20, paddingTop: 12, overflow: 'hidden' },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   menuBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+  notifBadge: { position: 'absolute', top: 4, right: 4, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
+  notifBadgeText: { color: '#fff', fontSize: 9, fontWeight: '700' },
   decorCircle1: { position: 'absolute', width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.07)', top: -60, right: -30 },
   decorCircle2: { position: 'absolute', width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.05)', bottom: -20, left: 20 },
   headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },

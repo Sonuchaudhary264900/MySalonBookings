@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { useNotifications } from '../../context/NotificationContext';
 import { showError } from '../../utils/toast';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -26,6 +27,7 @@ export default function FavoritesScreen({ navigation }) {
   const { theme } = useTheme();
   const styles = getStyles(theme);
   const { isAuthenticated } = useAuth();
+  const { unreadCount } = useNotifications();
   const [salons, setSalons]       = useState([]);
   const [loading, setLoading]     = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -162,6 +164,18 @@ export default function FavoritesScreen({ navigation }) {
           </View>
           <TouchableOpacity
             style={styles.menuBtn}
+            onPress={() => navigation.getParent()?.navigate('HomeTab', { screen: 'Notifications' })}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="notifications-outline" size={24} color="#fff" />
+            {unreadCount > 0 && (
+              <View style={styles.notifBadge}>
+                <Text style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.menuBtn}
             onPress={() => navigation.getParent('DrawerNav')?.openDrawer()}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
@@ -206,6 +220,8 @@ const getStyles = (t) => StyleSheet.create({
   headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
   headerSub: { fontSize: 13, color: '#bfdbfe', marginTop: 2 },
   menuBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+  notifBadge: { position: 'absolute', top: 4, right: 4, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
+  notifBadgeText: { color: '#fff', fontSize: 9, fontWeight: '700' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, gap: 10 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: t.text },
   emptyText: { fontSize: 14, color: t.subText, textAlign: 'center', lineHeight: 20 },
