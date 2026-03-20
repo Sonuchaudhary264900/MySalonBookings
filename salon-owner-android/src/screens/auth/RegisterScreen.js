@@ -54,17 +54,15 @@ export default function RegisterScreen({ navigation }) {
     if (otp.length !== 6) { Alert.alert('Error', 'Enter the 6-digit OTP'); return; }
     setLoading(true);
     try {
-      // Verify OTP then register
-      const otpRes = await api.post('/owner/auth/verify-otp', { phone: formatPhone(phone), otp });
-      const firebaseToken = otpRes.data.data?.firebaseToken || otpRes.data.data?.token;
-      const regRes = await api.post('/owner/auth/firebase-register', {
-        firebaseToken,
+      const res = await api.post('/owner/auth/register', {
+        phone: formatPhone(phone),
+        otp,
         name: name.trim(),
         email: email.trim() || undefined,
         password,
       });
-      if (!regRes.data.success) throw new Error(regRes.data.message || 'Registration failed');
-      const { token, refreshToken } = regRes.data.data;
+      if (!res.data.success) throw new Error(res.data.message || 'Registration failed');
+      const { token, refreshToken } = res.data.data;
       await AsyncStorage.setItem('token', token);
       if (refreshToken) await AsyncStorage.setItem('refreshToken', refreshToken);
       await refreshUser();
