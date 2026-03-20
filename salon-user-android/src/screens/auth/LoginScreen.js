@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image,
+  ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image, Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
@@ -42,11 +42,7 @@ export default function LoginScreen({ navigation }) {
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.decorCircle1} />
-          <View style={styles.decorCircle2} />
-          <View style={styles.logoBox}>
-            <Image source={require('../../../assets/icon1.png')} style={styles.logoImg} resizeMode="contain" />
-          </View>
+          <Image source={require('../../../assets/Icon-1024.png')} style={styles.logoImg} resizeMode="contain" />
           <Text style={styles.appName}>My Salon Bookings</Text>
           <Text style={styles.subtitle}>Book your perfect look</Text>
         </View>
@@ -136,16 +132,14 @@ export default function LoginScreen({ navigation }) {
   );
 }
 
+const { height: SCREEN_H } = Dimensions.get('window');
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#2563eb' },
+  container: { flex: 1, backgroundColor: '#fff' },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: 20 },
-  header: { alignItems: 'center', marginBottom: 28, overflow: 'hidden', paddingVertical: 8 },
-  decorCircle1: { position: 'absolute', width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(255,255,255,0.07)', top: -80, right: -50 },
-  decorCircle2: { position: 'absolute', width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255,255,255,0.05)', top: 10, left: -50 },
-  logoBox: { width: 90, height: 90, borderRadius: 22, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', marginBottom: 14, shadowColor: '#1e3a8a', shadowOpacity: 0.3, shadowRadius: 10, elevation: 6 },
-  logoImg: { width: 74, height: 74 },
-  appName: { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 4, letterSpacing: 0.3 },
-  subtitle: { fontSize: 14, color: '#bfdbfe' },
+  header: { alignItems: 'center', marginBottom: 20 },
+  logoImg: { width: '100%', height: SCREEN_H * 0.40 },
+  appName: { fontSize: 22, fontWeight: '800', color: '#111827', marginBottom: 4, letterSpacing: 0.3 },
+  subtitle: { fontSize: 14, color: '#6b7280' },
   card: { backgroundColor: '#fff', borderRadius: 20, padding: 24, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 12, elevation: 8 },
   cardTitle: { fontSize: 22, fontWeight: '700', color: '#111827', marginBottom: 4 },
   cardSubtitle: { fontSize: 14, color: '#6b7280', marginBottom: 20 },
