@@ -58,7 +58,7 @@ export const SalonProvider = ({ children }) => {
     } else {
       setSalon(null);
       setLoading(false);
-      setSalonFetchDone(true);
+      setSalonFetchDone(false);
     }
   }, [isAuthenticated]);
 
