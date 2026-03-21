@@ -1,6 +1,8 @@
 function ReviewCard({ review }) {
-  const rating = parseInt(review.rating) || 5;
-  const initials = (review.user?.name || "U").charAt(0).toUpperCase();
+  const rating = review.salonRating || parseInt(review.rating) || 5;
+  const name = review.customerName || review.user?.name || "Anonymous";
+  const initials = name.charAt(0).toUpperCase();
+  const text = review.reviewText || review.comment || "";
 
   const colors = ["bg-indigo-100 text-indigo-600", "bg-violet-100 text-violet-600", "bg-emerald-100 text-emerald-600", "bg-amber-100 text-amber-600", "bg-rose-100 text-rose-600"];
   const color = colors[initials.charCodeAt(0) % colors.length];
@@ -17,7 +19,7 @@ function ReviewCard({ review }) {
             {initials}
           </div>
           <div>
-            <p className="font-semibold text-slate-800 text-sm">{review.user?.name || "Anonymous"}</p>
+            <p className="font-semibold text-slate-800 text-sm">{name}</p>
             {date && <p className="text-xs text-slate-400">{date}</p>}
           </div>
         </div>
@@ -27,8 +29,14 @@ function ReviewCard({ review }) {
           ))}
         </div>
       </div>
-      {review.comment && (
-        <p className="mt-3 text-slate-600 text-sm leading-relaxed">{review.comment}</p>
+      {text && (
+        <p className="mt-3 text-slate-600 text-sm leading-relaxed">{text}</p>
+      )}
+      {review.ownerResponse && (
+        <div className="mt-3 px-3 py-2.5 bg-indigo-50 border-l-4 border-indigo-400 rounded-r-lg">
+          <p className="text-xs font-bold text-indigo-500 mb-1">Owner's Reply</p>
+          <p className="text-sm text-indigo-800 leading-relaxed">{review.ownerResponse}</p>
+        </div>
       )}
     </div>
   );

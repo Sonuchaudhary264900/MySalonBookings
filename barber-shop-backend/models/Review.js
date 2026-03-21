@@ -10,6 +10,7 @@ const reviewSchema = new mongoose.Schema(
     salonRating: { type: Number, min: 1, max: 5, required: true },
     barberRating: { type: Number, min: 1, max: 5 },
     serviceRating: { type: Number, min: 1, max: 5 },
+    customerName: { type: String, default: '' },
     title: String,
     reviewText: String,
     photos: [String],

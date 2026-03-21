@@ -300,6 +300,15 @@ export default function SalonDetailsScreen({ route, navigation }) {
                     )}
                   </View>
                   {r.reviewText && <Text style={styles.reviewText}>{r.reviewText}</Text>}
+                  {r.ownerResponse && (
+                    <View style={styles.ownerReplyBox}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+                        <Ionicons name="chatbubble-outline" size={12} color="#2563eb" />
+                        <Text style={styles.ownerReplyLabel}>Owner's Reply</Text>
+                      </View>
+                      <Text style={styles.ownerReplyText}>{r.ownerResponse}</Text>
+                    </View>
+                  )}
                 </View>
               ))}
             </View>
@@ -434,6 +443,9 @@ const getStyles = (t) => StyleSheet.create({
   reviewName: { fontSize: 13, fontWeight: '700', color: t.text },
   reviewDate: { fontSize: 11, color: t.subText },
   reviewText: { fontSize: 13, color: t.text, lineHeight: 19 },
+  ownerReplyBox: { backgroundColor: '#eff6ff', borderRadius: 8, padding: 10, borderLeftWidth: 3, borderLeftColor: '#2563eb' },
+  ownerReplyLabel: { fontSize: 11, fontWeight: '700', color: '#2563eb' },
+  ownerReplyText: { fontSize: 12, color: '#1e40af', lineHeight: 17 },
   infoSection: { backgroundColor: t.card, borderRadius: 12, padding: 14, gap: 10, borderWidth: 1, borderColor: t.border },
   infoSectionTitle: { fontSize: 13, fontWeight: '700', color: t.subText, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
   infoRow2: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
