@@ -195,6 +195,7 @@ function SettingsStackNav() {
 // ── Tab Navigator with swipe support ─────────────────────────────
 function MainTabs() {
   const { t } = useLanguage();
+  const { theme } = useTheme();
   return (
     <Tab.Navigator
       tabBarPosition="bottom"
@@ -204,14 +205,14 @@ function MainTabs() {
         tabBarActiveTintColor: '#2563eb',
         tabBarInactiveTintColor: '#9ca3af',
         tabBarStyle: {
-          backgroundColor: '#fff',
+          backgroundColor: theme.card,
           borderTopWidth: 1,
-          borderTopColor: '#e5e7eb',
+          borderTopColor: theme.border,
           height: 62,
           elevation: 8,
           shadowOpacity: 0.08,
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: 2 },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: 2, color: theme.subText },
         tabBarIndicatorStyle: { height: 0 }, // hide top indicator line
         tabBarIcon: ({ focused, color }) => {
           const icons = {
