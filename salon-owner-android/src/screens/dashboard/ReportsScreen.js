@@ -316,13 +316,6 @@ export default function ReportsScreen() {
                 </TouchableOpacity>
               </>
             )}
-            <TouchableOpacity
-              style={[styles.exportBtn, { backgroundColor: theme.bg, borderWidth: 1, borderColor: theme.border }]}
-              onPress={fetchAnalytics}
-              disabled={loading}
-            >
-              <Ionicons name="refresh-outline" size={14} color={theme.text} />
-            </TouchableOpacity>
           </View>
         </View>
 
