@@ -89,12 +89,14 @@ router.get("/public/salons", asyncHandler(async (req, res) => {
     ? { averageRating: -1, totalReviews: -1 }
     : { totalBookings: -1, averageRating: -1 }; // default: booked
   const skip = (Number(page) - 1) * Number(limit);
-  const salons = await Salon.find(query)
-    .select("name address city phone photos logo coverPhoto averageRating totalReviews totalBookings workingHours category isApproved isOnline lastOnlineAt location")
+  const rawSalons = await Salon.find(query)
+    .select("name address city phone photos logo coverPhoto averageRating totalReviews totalBookings workingHours category isApproved isOnline lastOnlineAt location ownerId")
     .sort(sortOrder)
     .skip(skip)
     .limit(Number(limit))
+    .populate("ownerId", "profilePhoto")
     .lean();
+  const salons = rawSalons.map(s => ({ ...s, ownerPhoto: s.ownerId?.profilePhoto || null, ownerId: undefined }));
   const total = await Salon.countDocuments(query);
   res.json({ success: true, data: { salons, total } });
 }));
@@ -129,10 +131,20 @@ router.get("/public/salons/nearby", asyncHandler(async (req, res) => {
     { $sort: sortOrder },
     { $limit: 30 },
     {
+      $lookup: {
+        from: "owners",
+        localField: "ownerId",
+        foreignField: "_id",
+        as: "_owner",
+        pipeline: [{ $project: { profilePhoto: 1 } }],
+      },
+    },
+    {
       $project: {
         name: 1, address: 1, city: 1, phone: 1, photos: 1, logo: 1, coverPhoto: 1,
         averageRating: 1, totalReviews: 1, totalBookings: 1,
         workingHours: 1, category: 1, location: 1, isApproved: 1, isOnline: 1, lastOnlineAt: 1, distance: 1,
+        ownerPhoto: { $ifNull: [{ $arrayElemAt: ["$_owner.profilePhoto", 0] }, null] },
       },
     },
   ]);

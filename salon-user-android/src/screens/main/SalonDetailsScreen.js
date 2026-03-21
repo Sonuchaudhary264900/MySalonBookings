@@ -118,7 +118,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
   const totalPrice    = selectedServices.reduce((s, x) => s + (x.basePrice || x.price || 0), 0);
   const totalDuration = selectedServices.reduce((s, x) => s + (x.duration || 0), 0);
 
-  const photo = salon?.photos?.[0] || salon?.coverPhoto;
+  const photo = salon?.photos?.[0] || salon?.coverPhoto || salon?.ownerPhoto;
   const rating = salon?.rating || salon?.averageRating || 0;
 
   if (loading) {

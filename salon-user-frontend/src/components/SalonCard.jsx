@@ -112,9 +112,9 @@ function SalonCard({ salon, userCoords }) {
       <div className="card group-hover:shadow-lg group-hover:-translate-y-0.5 transition-all duration-200">
         {/* Image */}
         <div className="relative h-44 bg-gradient-to-br from-indigo-100 to-violet-100 overflow-hidden">
-          {salon.coverPhoto || salon.image || salon.photos?.[0] ? (
+          {salon.coverPhoto || salon.image || salon.photos?.[0] || salon.ownerPhoto ? (
             <img
-              src={salon.coverPhoto || salon.image || salon.photos[0]}
+              src={salon.coverPhoto || salon.image || salon.photos?.[0] || salon.ownerPhoto}
               alt={salon.name}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />

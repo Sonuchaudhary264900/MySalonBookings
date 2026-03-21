@@ -104,9 +104,9 @@ function SalonDetails() {
     <div className="min-h-screen bg-slate-50">
       {/* ── HERO IMAGE ─────────────────────── */}
       <div className="relative h-56 sm:h-72 bg-gradient-to-br from-indigo-400 to-violet-500 overflow-hidden">
-        {(salon.coverPhoto || salon.image || salon.photos?.[0]) ? (
+        {(salon.coverPhoto || salon.image || salon.photos?.[0] || salon.ownerPhoto) ? (
           <img
-            src={salon.coverPhoto || salon.image || salon.photos[0]}
+            src={salon.coverPhoto || salon.image || salon.photos?.[0] || salon.ownerPhoto}
             alt={salon.name}
             className="w-full h-full object-cover"
           />

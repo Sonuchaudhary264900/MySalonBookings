@@ -87,7 +87,7 @@ export default function FavoritesScreen({ navigation }) {
   }
 
   const renderItem = ({ item }) => {
-    const photo    = item.photos?.[0] || item.coverPhoto;
+    const photo    = item.photos?.[0] || item.coverPhoto || item.ownerPhoto;
     const rating   = item.rating || item.averageRating || 0;
     const reviews  = item.reviewCount || item.totalReviews || 0;
     const isRemoving = removing === item._id;

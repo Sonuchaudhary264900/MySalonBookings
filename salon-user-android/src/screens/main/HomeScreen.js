@@ -40,7 +40,7 @@ function StarRating({ rating }) {
 function SalonCard({ salon, onPress, distance }) {
   const { theme } = useTheme();
   const styles = getStyles(theme);
-  const photo = salon.photos?.[0] || salon.coverPhoto;
+  const photo = salon.photos?.[0] || salon.coverPhoto || salon.ownerPhoto;
   const rating = salon.rating || salon.averageRating || 0;
   const reviewCount = salon.reviewCount || salon.totalReviews || 0;
   const category = (salon.category || 'salon').replace('_', ' ');
