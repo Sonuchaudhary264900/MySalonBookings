@@ -7,8 +7,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
 import { WebView } from 'react-native-webview';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import api from '../../services/api';
@@ -55,6 +53,7 @@ export default function HomeScreen() {
   const [showWalkIn, setShowWalkIn] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [capturing, setCapturing] = useState(false);
+  const [capturingA4, setCapturingA4] = useState(false);
   const [services, setServices] = useState([]);
   const queueRef = useRef([]);
   queueRef.current = queue;
@@ -110,92 +109,64 @@ img.src=${qrApiUrl};
     } catch { showError('Error', 'Could not save QR card'); }
   }, [salon]);
 
-  const savePDFToDownloads = async (tempUri, fileName) => {
-    // Try 1: copy directly to /storage/emulated/0/Download/ (works on Android ≤ 10)
+  // A4-portrait canvas (400×566 logical @ 3x = 1200×1698px)
+  const getA4Html = () => {
+    const safeData = JSON.stringify({ salonName: salon?.name || 'My Salon', bookingUrl: qrValue });
+    const qrApiUrl = JSON.stringify(`https://api.qrserver.com/v1/create-qr-code/?size=900x900&data=${encodeURIComponent(qrValue)}`);
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:0"><canvas id="c" width="1200" height="1698"></canvas><script>(function(){
+var d=${safeData},salonName=d.salonName,bookingUrl=d.bookingUrl;
+var c=document.getElementById('c'),ctx=c.getContext('2d'),W=400,H=566,S=3;
+ctx.scale(S,S);
+ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
+ctx.fillStyle='#4f46e5';ctx.fillRect(0,0,W,110);
+ctx.fillStyle='#ffffff';ctx.font='bold 28px Arial';ctx.textAlign='center';
+ctx.fillText('\u2702  Salon Booking',W/2,52);
+ctx.fillStyle='rgba(255,255,255,0.8)';ctx.font='13px Arial';
+ctx.fillText('Scan the QR code to book your appointment',W/2,76);
+ctx.fillStyle='rgba(255,255,255,0.55)';ctx.font='11px Arial';
+ctx.fillText(salonName,W/2,96);
+var img=new Image();img.crossOrigin='anonymous';
+img.onload=function(){
+  var QS=230,QX=(W-QS)/2,QY=130;
+  ctx.fillStyle='#f3f4f6';ctx.fillRect(QX-14,QY-14,QS+28,QS+28);
+  ctx.fillStyle='#ffffff';ctx.fillRect(QX-10,QY-10,QS+20,QS+20);
+  ctx.drawImage(img,QX,QY,QS,QS);
+  ctx.fillStyle='#111827';ctx.font='bold 26px Arial';ctx.textAlign='center';
+  ctx.fillText(salonName,W/2,QY+QS+42);
+  ctx.fillStyle='#6b7280';ctx.font='14px Arial';
+  ctx.fillText('Scan to book your appointment',W/2,QY+QS+64);
+  ctx.strokeStyle='#e5e7eb';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(60,QY+QS+82);ctx.lineTo(W-60,QY+QS+82);ctx.stroke();
+  ctx.fillStyle='#9ca3af';ctx.font='9px Arial';
+  var maxW=W-60,line='',lines=[],chars=bookingUrl.split('');
+  chars.forEach(function(ch){var t=line+ch;if(ctx.measureText(t).width>maxW&&line){lines.push(line);line=ch;}else{line=t;}});
+  if(line)lines.push(line);
+  lines.forEach(function(l,i){ctx.fillText(l,W/2,QY+QS+98+i*13);});
+  ctx.fillStyle='#f9fafb';ctx.fillRect(0,H-40,W,40);
+  ctx.strokeStyle='#e5e7eb';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,H-40);ctx.lineTo(W,H-40);ctx.stroke();
+  ctx.fillStyle='#9ca3af';ctx.font='11px Arial';
+  ctx.fillText('Powered by My Salon Bookings',W/2,H-16);
+  window.ReactNativeWebView.postMessage(c.toDataURL('image/png').split(',')[1]);
+};
+img.onerror=function(){window.ReactNativeWebView.postMessage('ERROR');};
+img.src=${qrApiUrl};
+})();<\/script></body></html>`;
+  };
+
+  const onA4Captured = useCallback(async (e) => {
+    setCapturingA4(false);
+    const base64 = e.nativeEvent.data;
+    if (!base64 || base64 === 'ERROR') { showError('Error', 'Could not generate image'); return; }
     try {
       const { status } = await MediaLibrary.requestPermissionsAsync();
-      if (status === 'granted') {
-        await FileSystem.copyAsync({ from: tempUri, to: `file:///storage/emulated/0/Download/${fileName}` });
-        showSuccess('PDF Saved!', 'Saved to Downloads');
-        return;
-      }
-    } catch { /* fall through */ }
-
-    // Try 2: MediaStore via expo-media-library (works on Android 11+ without any picker)
-    try {
-      await MediaLibrary.createAssetAsync(tempUri);
-      showSuccess('PDF Saved!', 'Saved to device storage');
-      return;
-    } catch { /* fall through */ }
-
-    // Fallback: open share sheet so user can save manually
-    if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(tempUri, { mimeType: 'application/pdf', dialogTitle: 'Save PDF' });
-    }
-  };
-
-  const downloadQRPDF = async () => {
-    setShowQR(false);
-    const salonName = salon?.name || 'My Salon';
-    const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=${encodeURIComponent(qrValue)}`;
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/>
-    <style>
-      @page { size: A4; margin: 0; }
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      body {
-        font-family: Arial, sans-serif;
-        width: 210mm; height: 297mm;
-        display: flex; flex-direction: column;
-        align-items: center; justify-content: center;
-        background: #fff;
-      }
-      .top-bar {
-        width: 100%; background: linear-gradient(135deg, #4f46e5, #7c3aed);
-        padding: 28px 0; text-align: center;
-        position: absolute; top: 0;
-      }
-      .top-icon { font-size: 36px; color: #fff; }
-      .top-title { color: #fff; font-size: 26px; font-weight: 800; letter-spacing: 1px; margin-top: 6px; }
-      .top-sub { color: rgba(255,255,255,0.75); font-size: 13px; margin-top: 4px; }
-      .center { display: flex; flex-direction: column; align-items: center; gap: 22px; }
-      .qr-wrap {
-        border: 3px solid #e5e7eb; border-radius: 16px; padding: 16px;
-        background: #fff; box-shadow: 0 4px 32px rgba(79,70,229,0.1);
-      }
-      .qr-wrap img { display: block; width: 340px; height: 340px; }
-      .salon-name { font-size: 32px; font-weight: 800; color: #111827; text-align: center; }
-      .subtitle { font-size: 16px; color: #6b7280; text-align: center; }
-      .divider { width: 260px; height: 1.5px; background: #e5e7eb; }
-      .url { font-size: 11px; color: #9ca3af; text-align: center; word-break: break-all; max-width: 320px; }
-      .bottom-bar {
-        width: 100%; background: #f9fafb; border-top: 1.5px solid #e5e7eb;
-        padding: 16px; text-align: center;
-        position: absolute; bottom: 0;
-        font-size: 13px; color: #9ca3af;
-      }
-    </style></head><body>
-      <div class="top-bar">
-        <div class="top-icon">&#9986;</div>
-        <div class="top-title">Salon Booking</div>
-        <div class="top-sub">Scan the QR code to book your appointment</div>
-      </div>
-      <div class="center">
-        <div class="qr-wrap"><img src="${qrImgUrl}" /></div>
-        <div class="salon-name">${salonName}</div>
-        <div class="subtitle">Scan to book your appointment</div>
-        <div class="divider"></div>
-        <div class="url">${qrValue}</div>
-      </div>
-      <div class="bottom-bar">Powered by My Salon Bookings &nbsp;&bull;&nbsp; mysalonbookings.com</div>
-    </body></html>`;
-    try {
-      const { uri: tempUri } = await Print.printToFileAsync({ html, base64: false, width: 595, height: 842 });
-      const fileName = `${salonName.replace(/\s+/g, '-')}-QR.pdf`;
-      await savePDFToDownloads(tempUri, fileName);
-    } catch (err) {
-      showError('Error', err.message || 'Could not generate PDF');
-    }
-  };
+      if (status !== 'granted') { showError('Permission denied', 'Allow storage access to save'); return; }
+      const path = `${FileSystem.cacheDirectory}${salon?.name || 'salon'}-qr-a4.png`;
+      await FileSystem.writeAsStringAsync(path, base64, { encoding: FileSystem.EncodingType.Base64 });
+      await MediaLibrary.saveToLibraryAsync(path);
+      showSuccess('Saved!', 'QR printout saved to your gallery');
+    } catch { showError('Error', 'Could not save image'); }
+  }, [salon]);
 
   const fetchStats = async () => {
     try {
@@ -701,10 +672,10 @@ img.src=${qrApiUrl};
             </TouchableOpacity>
             <TouchableOpacity
               style={[qrStyles.actionBtn, { backgroundColor: '#4f46e5', flex: 1 }]}
-              onPress={downloadQRPDF}
+              onPress={() => { setShowQR(false); setCapturingA4(true); }}
             >
               <Ionicons name="document-outline" size={15} color="#fff" />
-              <Text style={qrStyles.actionBtnTextSm}>Download PDF</Text>
+              <Text style={qrStyles.actionBtnTextSm}>Save A4</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[qrStyles.actionBtn, { backgroundColor: '#059669', flex: 1 }]}
@@ -718,12 +689,22 @@ img.src=${qrApiUrl};
       </Pressable>
     </Modal>
 
-    {/* Hidden WebView for QR card generation */}
+    {/* Hidden WebView for QR card (Save Image) */}
     {capturing && (
       <WebView
         style={{ position: 'absolute', width: 1, height: 1, opacity: 0, top: -1000 }}
         source={{ html: getCardHtml() }}
         onMessage={onCardCaptured}
+        javaScriptEnabled
+      />
+    )}
+
+    {/* Hidden WebView for A4 printout (Save A4) */}
+    {capturingA4 && (
+      <WebView
+        style={{ position: 'absolute', width: 1, height: 1, opacity: 0, top: -1000 }}
+        source={{ html: getA4Html() }}
+        onMessage={onA4Captured}
         javaScriptEnabled
       />
     )}
