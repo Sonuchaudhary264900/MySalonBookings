@@ -1,28 +1,20 @@
-import { useEffect, useState, useCallback } from "react";
-import { Store, Scissors, Sparkles, Leaf, Heart, Smile, CalendarDays, Search, ClipboardList, CheckCircle, SearchX, TrendingUp, Star, MapPin, LocateFixed } from "lucide-react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { Store, Scissors, Sparkles, Leaf, Heart, TrendingUp, Star, MapPin, LocateFixed, SearchX, X } from "lucide-react";
 import API from "../services/api";
 import SalonCard from "../components/SalonCard";
-import SearchBar from "../components/SearchBar";
 
 const CATEGORIES = [
-  { key: "all",       label: "All",        icon: <Store className="w-4 h-4" /> },
-  { key: "barber",    label: "Barber",     icon: <Scissors className="w-4 h-4" /> },
-  { key: "hair_salon",label: "Hair Salon", icon: <Sparkles className="w-4 h-4" /> },
-  { key: "spa",       label: "Spa",        icon: <Leaf className="w-4 h-4" /> },
-  { key: "massage",   label: "Massage",    icon: <Heart className="w-4 h-4" /> },
-];
-
-const STATS = [
-  { label: "Salons Listed",    value: "200+", icon: <Store className="w-7 h-7 text-indigo-500" /> },
-  { label: "Happy Customers",  value: "10K+", icon: <Smile className="w-7 h-7 text-amber-500" /> },
-  { label: "Cities Covered",   value: "25+",  iconImg: "https://img.freepik.com/free-vector/location_53876-25530.jpg" },
-  { label: "Bookings Made",    value: "50K+", icon: <CalendarDays className="w-7 h-7 text-green-500" /> },
+  { key: "all",        label: "All",        icon: <Store className="w-4 h-4" /> },
+  { key: "barber",     label: "Barber",     icon: <Scissors className="w-4 h-4" /> },
+  { key: "hair_salon", label: "Hair Salon", icon: <Sparkles className="w-4 h-4" /> },
+  { key: "spa",        label: "Spa",        icon: <Leaf className="w-4 h-4" /> },
+  { key: "massage",    label: "Massage",    icon: <Heart className="w-4 h-4" /> },
 ];
 
 const SORT_OPTIONS = [
-  { key: "booked", label: "Most Booked",   icon: <TrendingUp className="w-4 h-4" /> },
-  { key: "rated",  label: "Highest Rated", icon: <Star className="w-4 h-4" /> },
-  { key: "nearby", label: "Nearest",       icon: <MapPin className="w-4 h-4" /> },
+  { key: "nearby", label: "Nearest",       icon: <MapPin className="w-3.5 h-3.5" /> },
+  { key: "booked", label: "Most Booked",   icon: <TrendingUp className="w-3.5 h-3.5" /> },
+  { key: "rated",  label: "Top Rated",     icon: <Star className="w-3.5 h-3.5" /> },
 ];
 
 function SkeletonCard() {
@@ -39,189 +31,200 @@ function SkeletonCard() {
 }
 
 function Home() {
-  const [salons, setSalons]           = useState([]);
-  const [category, setCategory]       = useState("all");
-  const [sort, setSort]               = useState("nearby");
-  const [loading, setLoading]         = useState(true);
-  const [locLoading, setLocLoading]   = useState(false);
-  const [locDenied, setLocDenied]     = useState(false);
-  const [searchActive, setSearchActive] = useState(false);
-  const [userCoords, setUserCoords]   = useState(null);
-  const [serviceMatchLabel, setServiceMatchLabel] = useState(""); // set when showing service-search results
-  // raw fetched list before category filter
-  const [fetchedSalons, setFetchedSalons] = useState([]);
+  const [salons, setSalons]             = useState([]);
+  const [allSalons, setAllSalons]       = useState([]);
+  const [category, setCategory]         = useState("all");
+  const [sort, setSort]                 = useState("nearby");
+  const [loading, setLoading]           = useState(true);
+  const [locLoading, setLocLoading]     = useState(false);
+  const [locDenied, setLocDenied]       = useState(false);
+  const [searchText, setSearchText]     = useState("");
+  const [searching, setSearching]       = useState(false);
+  const [userCoords, setUserCoords]     = useState(null);
+  const [serviceMatchLabel, setServiceMatchLabel] = useState("");
+  const searchTimer                     = useRef(null);
 
-  // ── initial load: detect location and fetch ─────────────────
+  // ── initial location detect ──────────────────────────────────
   useEffect(() => {
-    if (!navigator.geolocation) { setLocDenied(true); return; }
+    if (!navigator.geolocation) { setLocDenied(true); setLoading(false); return; }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const { latitude: lat, longitude: lng } = pos.coords;
-        setUserCoords({ lat, lng });
-        fetchBySort("nearby", { lat, lng });
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserCoords(coords);
+        fetchBySort("nearby", coords);
       },
       () => { setLocDenied(true); setLoading(false); },
       { maximumAge: 60000, timeout: 6000 }
     );
   }, []);
 
-  // ── fetch salons by sort + optional coords ───────────────────
-  // Always uses nearby endpoint (5km radius) when coords available
-  const fetchBySort = async (sortKey, coords) => {
-    if (!coords) return; // no location → show prompt
+  // ── fetch salons from API ─────────────────────────────────────
+  const fetchBySort = async (sortKey, coords, cat) => {
+    if (!coords) return;
     setLoading(true);
-    setSearchActive(false);
-    setCategory("all");
+    setSearchText("");
+    setServiceMatchLabel("");
     try {
       const res = await API.get(
         `/public/salons/nearby?latitude=${coords.lat}&longitude=${coords.lng}&sort=${sortKey}`
       );
       const data = res.data.data?.salons || res.data.data || [];
-      setFetchedSalons(data);
-      setSalons(data);
+      setAllSalons(data);
+      const activeCat = cat ?? category;
+      setSalons(activeCat === "all" ? data : data.filter((s) => s.category === activeCat));
     } catch {
-      setFetchedSalons([]);
+      setAllSalons([]);
       setSalons([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // ── sort tab click ───────────────────────────────────────────
+  // ── sort tab ──────────────────────────────────────────────────
   const handleSort = (key) => {
     setSort(key);
-    fetchBySort(key, userCoords);
+    setCategory("all");
+    fetchBySort(key, userCoords, "all");
   };
 
-  // ── category filter (client-side from fetched list) ──────────
-  const applyCategory = useCallback(
-    (cat) => {
-      setCategory(cat);
-      if (cat === "all") {
-        setSalons(fetchedSalons);
-      } else {
-        setSalons(fetchedSalons.filter((s) => s.category === cat));
-      }
-    },
-    [fetchedSalons]
-  );
-
-  // ── search ───────────────────────────────────────────────────
-  const handleSearch = async (query) => {
-    if (!query.trim()) {
-      setSalons(fetchedSalons);
-      setSearchActive(false);
-      setServiceMatchLabel("");
-      return;
+  // ── category filter (client-side) ────────────────────────────
+  const handleCategory = (cat) => {
+    setCategory(cat);
+    if (searchText.trim()) {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+      searchTimer.current = setTimeout(() => runSearch(searchText, cat), 0);
+    } else {
+      setSalons(cat === "all" ? allSalons : allSalons.filter((s) => s.category === cat));
     }
-    setSearchActive(true);
-    setCategory("all");
-    setServiceMatchLabel("");
-    const q = query.toLowerCase();
+  };
 
-    // First: filter locally by salon name/city/address
-    const localMatches = fetchedSalons.filter(
+  // ── search (debounced 400 ms) ─────────────────────────────────
+  const runSearch = useCallback(async (text, cat) => {
+    if (!text.trim()) return;
+    setSearching(true);
+    setServiceMatchLabel("");
+    const q = text.toLowerCase();
+    const activeCat = cat ?? category;
+
+    // local match first
+    const local = allSalons.filter(
       (s) =>
         s.name?.toLowerCase().includes(q) ||
         s.city?.toLowerCase().includes(q) ||
         s.address?.toLowerCase().includes(q)
     );
+    const localFiltered = activeCat === "all" ? local : local.filter((s) => s.category === activeCat);
 
-    if (localMatches.length > 0) {
-      setSalons(localMatches);
+    if (localFiltered.length > 0) {
+      setSalons(localFiltered);
+      setSearching(false);
       return;
     }
 
-    // No local matches → search by service name across all approved salons
+    // service search
     try {
-      const res = await API.get(`/public/services/search?q=${encodeURIComponent(query.trim())}`);
+      const res = await API.get(`/public/services/search?q=${encodeURIComponent(text.trim())}`);
       const data = res.data.data;
       if (data?.salons?.length > 0) {
-        setSalons(data.salons);
+        const filtered = activeCat === "all" ? data.salons : data.salons.filter((s) => s.category === activeCat);
+        setSalons(filtered);
         setServiceMatchLabel(`Salons offering "${data.matchedService}"`);
       } else {
         setSalons([]);
       }
     } catch {
       setSalons([]);
+    } finally {
+      setSearching(false);
     }
+  }, [allSalons, category]);
+
+  const handleSearch = (text) => {
+    setSearchText(text);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    if (!text.trim()) {
+      setServiceMatchLabel("");
+      setSalons(category === "all" ? allSalons : allSalons.filter((s) => s.category === category));
+      return;
+    }
+    searchTimer.current = setTimeout(() => runSearch(text, category), 400);
   };
 
-  // ── "Near Me" / "Enable Location" button ────────────────────
+  const clearSearch = () => handleSearch("");
+
+  // ── "Enable Location" button ──────────────────────────────────
   const handleLocation = () => {
     if (!navigator.geolocation) return alert("Geolocation not supported.");
     setLocLoading(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const { latitude: lat, longitude: lng } = pos.coords;
-        const coords = { lat, lng };
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setUserCoords(coords);
         setLocDenied(false);
         setSort("nearby");
-        fetchBySort("nearby", coords).finally(() => setLocLoading(false));
+        fetchBySort("nearby", coords, "all").finally(() => setLocLoading(false));
       },
-      () => { setLocLoading(false); alert("Could not get your location. Please allow location access in your browser settings."); }
+      () => {
+        setLocLoading(false);
+        alert("Could not get your location. Please allow location access in your browser settings.");
+      }
     );
   };
 
-  const resetFilters = () => {
-    setSort("nearby");
-    setServiceMatchLabel("");
-    fetchBySort("nearby", userCoords);
-  };
+  const isSearchActive = searchText.trim().length > 0;
 
   const sectionTitle = serviceMatchLabel
     ? serviceMatchLabel
-    : searchActive
+    : isSearchActive
     ? "Search Results"
     : sort === "nearby" ? "Salons Near You"
-    : sort === "rated"  ? "Highest Rated Salons"
+    : sort === "rated"  ? "Top Rated Salons"
     : "Most Booked Salons";
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* ── HERO ─────────────────────────────── */}
-      <section className="gradient-primary py-16 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-white/15 text-white text-xs font-semibold px-3 py-1 rounded-full mb-5">
-            <Sparkles className="w-4 h-4" /> Trusted by 10,000+ customers
-          </div>
-          <h1 className="text-3xl sm:text-5xl font-extrabold text-white leading-tight mb-4">
-            Book Your Perfect Look <br className="hidden sm:block" />
-            <span className="text-amber-300">Instantly</span>
-          </h1>
-          <p className="text-indigo-100 text-base sm:text-lg mb-8 max-w-xl mx-auto">
-            Discover top-rated salons near you. Browse services, read reviews, and book appointments in seconds.
+
+      {/* ── SEARCH HEADER ─────────────────────────────────────── */}
+      <div className="bg-white border-b border-slate-100 px-4 sm:px-6 py-4">
+        <div className="max-w-3xl mx-auto">
+          <p className="text-xs font-semibold text-indigo-500 uppercase tracking-wide mb-1">
+            {locDenied ? "Search to find salons" : "Salons within 5 km"}
           </p>
-          <div className="max-w-2xl mx-auto">
-            <SearchBar onSearch={handleSearch} onUseLocation={handleLocation} loading={locLoading} />
+          <h1 className="text-xl font-bold text-slate-900 mb-3">Find Your Perfect Salon</h1>
+
+          {/* Search input */}
+          <div className="flex items-center gap-2 bg-slate-100 rounded-xl px-4 h-12 border border-slate-200 focus-within:border-indigo-400 focus-within:bg-white transition">
+            <svg className="w-5 h-5 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search salons, services, or city..."
+              value={searchText}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 outline-none"
+            />
+            {isSearchActive && !searching && (
+              <button onClick={clearSearch} className="text-slate-400 hover:text-slate-600 transition">
+                <X className="w-4 h-4" />
+              </button>
+            )}
+            {searching && (
+              <span className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin shrink-0" />
+            )}
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* ── STATS ─────────────────────────────── */}
-      <section className="bg-white border-b border-slate-100">
-        <div className="max-w-5xl mx-auto px-4 py-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-          {STATS.map(({ label, value, icon, iconImg }) => (
-            <div key={label} className="text-center">
-              <div className="mb-1 flex justify-center">
-                {iconImg ? <img src={iconImg} alt={label} className="w-7 h-7 object-contain" /> : icon}
-              </div>
-              <div className="text-xl font-extrabold text-slate-900">{value}</div>
-              <div className="text-xs text-slate-500">{label}</div>
-            </div>
-          ))}
-        </div>
-      </section>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4">
 
-      {/* ── CATEGORY FILTER ───────────────────── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-8">
+        {/* ── CATEGORY CHIPS ──────────────────────────────────── */}
         <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
           {CATEGORIES.map(({ key, label, icon }) => (
             <button
               key={key}
-              onClick={() => applyCategory(key)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+              onClick={() => handleCategory(key)}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all shrink-0 ${
                 category === key
                   ? "bg-indigo-600 text-white shadow-sm"
                   : "bg-white text-slate-600 border border-slate-200 hover:border-indigo-300"
@@ -231,34 +234,28 @@ function Home() {
             </button>
           ))}
         </div>
-      </section>
 
-      {/* ── SORT TABS ─────────────────────────── */}
-      {!locDenied && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-3">
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+        {/* ── SORT TABS ───────────────────────────────────────── */}
+        {!locDenied && !isSearchActive && (
+          <div className="flex gap-2 mt-2 mb-1 pb-1">
             {SORT_OPTIONS.map(({ key, label, icon }) => (
               <button
                 key={key}
                 onClick={() => handleSort(key)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all ${
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all border ${
                   sort === key
-                    ? "bg-amber-400 text-white shadow-sm"
-                    : "bg-white text-slate-600 border border-slate-200 hover:border-amber-300"
+                    ? "border-indigo-500 text-indigo-600 bg-indigo-50"
+                    : "bg-white text-slate-500 border-slate-200 hover:border-indigo-300"
                 }`}
               >
                 {icon} {label}
               </button>
             ))}
           </div>
-        </section>
-      )}
+        )}
 
-      {/* ── SALONS GRID ───────────────────────── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-
-        {/* Location denied — prompt to enable */}
-        {locDenied && !searchActive && (
+        {/* ── LOCATION DENIED ─────────────────────────────────── */}
+        {locDenied && !isSearchActive && (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <div className="w-20 h-20 rounded-full bg-indigo-50 flex items-center justify-center mb-5">
               <LocateFixed className="w-9 h-9 text-indigo-400" />
@@ -280,45 +277,52 @@ function Home() {
           </div>
         )}
 
-        {!locDenied && (
-          <>
-            <div className="flex items-center justify-between mb-5">
+        {/* ── SALONS GRID ─────────────────────────────────────── */}
+        {(!locDenied || isSearchActive) && (
+          <div className="py-4">
+            {/* Results header */}
+            <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="section-title">{sectionTitle}</h2>
+                <h2 className="text-base font-bold text-slate-800">{sectionTitle}</h2>
                 {!loading && (
-                  <p className="text-muted mt-0.5">
-                    {salons.length} salon{salons.length !== 1 ? "s" : ""} within 5 km
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {salons.length} salon{salons.length !== 1 ? "s" : ""} {isSearchActive ? "found" : "nearby"}
                   </p>
                 )}
               </div>
-              {searchActive && (
-                <button onClick={resetFilters} className="text-sm text-indigo-600 hover:underline font-medium">
+              {isSearchActive && (
+                <button onClick={clearSearch} className="text-sm text-indigo-600 hover:underline font-medium">
                   ← Show All
                 </button>
               )}
             </div>
 
+            {/* Skeleton */}
             {loading && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {Array(8).fill(0).map((_, i) => <SkeletonCard key={i} />)}
               </div>
             )}
 
+            {/* Empty state */}
             {!loading && salons.length === 0 && (
               <div className="text-center py-20">
-                <div className="flex justify-center mb-4"><SearchX className="w-12 h-12 text-slate-300" /></div>
+                <div className="flex justify-center mb-4">
+                  <SearchX className="w-12 h-12 text-slate-300" />
+                </div>
                 <h3 className="text-lg font-semibold text-slate-700 mb-2">No salons found</h3>
                 <p className="text-slate-400 text-sm mb-6">
-                  {searchActive
+                  {isSearchActive
                     ? "No salons or services matching your search were found."
                     : "No salons found within 5 km of your location."}
                 </p>
-                <button onClick={resetFilters} className="btn-primary">Reset Filters</button>
+                <button onClick={clearSearch} className="btn-primary">Reset Filters</button>
               </div>
             )}
 
+            {/* Cards */}
             {!loading && salons.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {salons.map((salon) => (
                   <div key={salon._id} className="relative">
                     <SalonCard salon={salon} userCoords={userCoords} />
@@ -335,33 +339,10 @@ function Home() {
                 ))}
               </div>
             )}
-          </>
-        )}
-      </section>
-
-      {/* ── HOW IT WORKS ──────────────────────── */}
-      <section className="bg-white border-t border-slate-100 mt-12 py-14 px-4">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="section-title text-center mb-2">How It Works</h2>
-          <p className="text-muted text-center mb-10">Book your appointment in 3 easy steps</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { step: "01", icon: <Search className="w-7 h-7 text-white" />,        title: "Find a Salon",     desc: "Search by name, city, or use your location to find the nearest salons." },
-              { step: "02", icon: <ClipboardList className="w-7 h-7 text-white" />, title: "Choose a Service", desc: "Browse services, check prices and durations, then pick what suits you." },
-              { step: "03", icon: <CheckCircle className="w-7 h-7 text-white" />,   title: "Book Instantly",   desc: "Pick your date and time slot and confirm your booking in seconds." },
-            ].map(({ step, icon, title, desc }) => (
-              <div key={step} className="text-center">
-                <div className="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-md">
-                  {icon}
-                </div>
-                <div className="text-xs font-bold text-indigo-400 mb-1">STEP {step}</div>
-                <h3 className="font-bold text-slate-800 mb-2">{title}</h3>
-                <p className="text-sm text-slate-500 leading-relaxed">{desc}</p>
-              </div>
-            ))}
           </div>
-        </div>
-      </section>
+        )}
+
+      </div>
     </div>
   );
 }

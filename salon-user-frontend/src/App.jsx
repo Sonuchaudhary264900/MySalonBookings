@@ -108,7 +108,7 @@ function App() {
           </Suspense>
           </div>
           <Footer />
-          <BottomNav onNotifClick={() => setNotifOpen(true)} />
+          <BottomNav />
         </ErrorBoundary>
       </NotificationProvider>
       </ThemeProvider>
