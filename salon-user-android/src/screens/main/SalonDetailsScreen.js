@@ -156,7 +156,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
       {/* Back + Favorite buttons overlay */}
       <View style={[styles.topBar, { top: insets.top + 8 }]}>
         <TouchableOpacity style={styles.circleBtn} onPress={() => navigation.goBack()}>

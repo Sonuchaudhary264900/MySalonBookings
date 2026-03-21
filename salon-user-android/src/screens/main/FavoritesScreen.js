@@ -152,9 +152,9 @@ export default function FavoritesScreen({ navigation }) {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.decorCircle1} />
         <View style={styles.decorCircle2} />
         <View style={styles.headerRow}>

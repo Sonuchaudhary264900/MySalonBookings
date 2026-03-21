@@ -161,7 +161,7 @@ export default function BookingsScreen({ navigation }) {
 
   if (!isAuthenticated) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top, alignItems: 'center', justifyContent: 'center' }]}>
+      <View style={[styles.container, { paddingTop: insets.top + 60, alignItems: 'center', justifyContent: 'center' }]}>
         <Ionicons name="calendar-outline" size={56} color="#d1d5db" />
         <Text style={styles.guestTitle}>Sign in to view bookings</Text>
         <Text style={styles.guestText}>Track all your salon appointments in one place</Text>
@@ -237,9 +237,9 @@ export default function BookingsScreen({ navigation }) {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.decorCircle1} />
         <View style={styles.decorCircle2} />
         <View style={styles.headerRow}>
