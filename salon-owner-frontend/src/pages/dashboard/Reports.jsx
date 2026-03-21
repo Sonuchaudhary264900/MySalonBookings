@@ -150,35 +150,89 @@ const Reports = () => {
               </div>
             </div>
 
-            {/* Daily Revenue Table */}
-            <div className="bg-white rounded-lg border-2 border-gray-200 overflow-hidden">
-              <div className="p-6 border-b border-gray-200">
-                <h3 className="font-bold text-gray-900">Daily Revenue Breakdown</h3>
+            {/* Charts row */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+              {/* CSS Bar Chart – Daily Revenue */}
+              <div className="lg:col-span-2 bg-white rounded-lg border-2 border-gray-200 p-6">
+                <h3 className="font-bold text-gray-900 mb-4">Daily Revenue</h3>
+                {dailyRevenue.length === 0 ? (
+                  <div className="py-8 text-center text-gray-400 text-sm">No data for this period.</div>
+                ) : (() => {
+                  const maxRev = Math.max(...dailyRevenue.map(r => r.revenue), 1);
+                  const show = dailyRevenue.slice(-14); // last 14 days max
+                  return (
+                    <div className="flex flex-col h-48">
+                      <div className="flex items-end gap-1 flex-1 overflow-x-auto">
+                        {show.map((row) => {
+                          const pct = Math.max(4, Math.round((row.revenue / maxRev) * 100));
+                          const label = row.date ? row.date.slice(5) : '';
+                          return (
+                            <div key={row.date} className="flex flex-col items-center gap-1 flex-1 min-w-[28px] group relative">
+                              {/* Tooltip */}
+                              <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-10 transition">
+                                ₹{row.revenue.toLocaleString()}<br />{row.bookings} booking{row.bookings !== 1 ? 's' : ''}
+                              </div>
+                              <div className="w-full bg-indigo-500 hover:bg-indigo-600 rounded-t transition-all"
+                                style={{ height: `${pct}%` }} />
+                              <span className="text-[9px] text-gray-400 rotate-45 origin-left translate-y-2 whitespace-nowrap">{label}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="flex justify-between text-xs text-gray-400 mt-6 border-t border-gray-100 pt-1">
+                        <span>₹0</span>
+                        <span>₹{maxRev.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
-              {dailyRevenue.length === 0 ? (
-                <div className="p-8 text-center text-gray-400">No booking data for the selected period.</div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50 border-b border-gray-200">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-gray-700 font-medium">Date</th>
-                        <th className="px-6 py-3 text-left text-gray-700 font-medium">Bookings</th>
-                        <th className="px-6 py-3 text-left text-gray-700 font-medium">Revenue</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {dailyRevenue.map(row => (
-                        <tr key={row.date} className="hover:bg-gray-50">
-                          <td className="px-6 py-3 text-gray-900">{formatDate(row.date)}</td>
-                          <td className="px-6 py-3 text-gray-900">{row.bookings}</td>
-                          <td className="px-6 py-3 text-gray-900">₹{row.revenue.toLocaleString()}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+
+              {/* CSS Pie Chart – Booking Status */}
+              <div className="bg-white rounded-lg border-2 border-gray-200 p-6">
+                <h3 className="font-bold text-gray-900 mb-4">Booking Status</h3>
+                {totalBookings === 0 ? (
+                  <div className="py-8 text-center text-gray-400 text-sm">No bookings yet.</div>
+                ) : (() => {
+                  const slices = [
+                    { label: 'Completed', value: completed, color: '#16a34a' },
+                    { label: 'Pending',   value: pending,   color: '#ca8a04' },
+                    { label: 'Cancelled', value: cancelled, color: '#dc2626' },
+                  ].filter(s => s.value > 0);
+                  const total = slices.reduce((a, s) => a + s.value, 0) || 1;
+                  let cumulativePct = 0;
+                  const segments = slices.map(s => {
+                    const pct = (s.value / total) * 100;
+                    const seg = { ...s, pct, start: cumulativePct };
+                    cumulativePct += pct;
+                    return seg;
+                  });
+                  // Build conic-gradient string
+                  const gradStops = segments.map(s => `${s.color} ${s.start.toFixed(1)}% ${(s.start + s.pct).toFixed(1)}%`).join(', ');
+                  return (
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="relative w-36 h-36 rounded-full"
+                        style={{ background: `conic-gradient(${gradStops})` }}>
+                        <div className="absolute inset-6 bg-white rounded-full flex items-center justify-center">
+                          <span className="text-lg font-bold text-gray-900">{total}</span>
+                        </div>
+                      </div>
+                      <ul className="w-full space-y-2">
+                        {segments.map(s => (
+                          <li key={s.label} className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-2">
+                              <span className="w-3 h-3 rounded-full shrink-0" style={{ background: s.color }} />
+                              <span className="text-gray-700">{s.label}</span>
+                            </div>
+                            <span className="font-semibold text-gray-900">{s.value} <span className="text-gray-400 font-normal">({s.pct.toFixed(0)}%)</span></span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
 
             {/* Top Services + Recent Bookings */}

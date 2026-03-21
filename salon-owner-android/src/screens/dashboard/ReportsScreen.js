@@ -62,18 +62,30 @@ function RevenueBarChart({ data, theme }) {
   );
 }
 
-const PRESETS = [
-  { label: 'Today', days: 0 },
-  { label: '7 Days', days: 7 },
-  { label: '30 Days', days: 30 },
-  { label: '90 Days', days: 90 },
-];
-
-function getRange(days) {
-  const end = localDate(0);
-  const start = days === 0 ? end : localDate(-days);
+function getThisMonthRange() {
+  const now = new Date();
+  const start = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  const end   = localDate(0);
   return { start, end };
 }
+
+function getThisYearRange() {
+  const year  = new Date().getFullYear();
+  const start = `${year}-01-01`;
+  const end   = localDate(0);
+  return { start, end };
+}
+
+// Each preset: label + getRange() → { start, end }
+const PRESETS = [
+  { label: 'Today',      getRange: () => { const d = localDate(0); return { start: d, end: d }; } },
+  { label: '7 Days',     getRange: () => ({ start: localDate(-7),  end: localDate(0) }) },
+  { label: '30 Days',    getRange: () => ({ start: localDate(-30), end: localDate(0) }) },
+  { label: '90 Days',    getRange: () => ({ start: localDate(-90), end: localDate(0) }) },
+  { label: 'This Month', getRange: getThisMonthRange },
+  { label: '3 Months',   getRange: () => ({ start: localDate(-90), end: localDate(0) }) },
+  { label: 'This Year',  getRange: getThisYearRange },
+];
 
 export default function ReportsScreen() {
   const insets = useSafeAreaInsets();
@@ -87,7 +99,7 @@ export default function ReportsScreen() {
   const fetchAnalytics = useCallback(async (presetIndex, isRefresh = false) => {
     if (!isRefresh) setLoading(true);
     setError(null);
-    const { start, end } = getRange(PRESETS[presetIndex].days);
+    const { start, end } = PRESETS[presetIndex].getRange();
     try {
       const res = await api.get(`/owner/analytics/dashboard?startDate=${start}&endDate=${end}`);
       setAnalytics(res.data.data || null);

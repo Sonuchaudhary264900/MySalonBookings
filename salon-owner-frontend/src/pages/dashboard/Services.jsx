@@ -87,6 +87,19 @@ const Services = () => {
     }
   };
 
+  const handleToggle = async (serviceId, isActive) => {
+    setLoading(true);
+    try {
+      await updateService(serviceId, { isActive });
+      toast.success(isActive ? 'Service activated' : 'Service deactivated');
+      await fetchServices();
+    } catch (err) {
+      setError(err.message || 'Failed to update service');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDelete = async (serviceId) => {
     setLoading(true);
     setError('');
@@ -175,6 +188,7 @@ const Services = () => {
                 service={service}
                 onEdit={handleOpenModal}
                 onDelete={handleDelete}
+                onToggle={handleToggle}
                 loading={loading}
               />
             ))}
