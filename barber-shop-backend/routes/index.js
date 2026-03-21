@@ -1041,6 +1041,221 @@ router.get("/public/services/search", asyncHandler(async (req, res) => {
 }));
 
 /* =====================================================
+   OWNER GALLERY ROUTES
+===================================================== */
+
+// GET /owner/gallery — return salon photos as array of objects
+router.get("/owner/gallery", authenticateOwner, asyncHandler(async (req, res) => {
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+  const photos = (salon.photos || []).map((url, i) => ({ _id: i.toString(), url }));
+  res.json({ success: true, data: photos });
+}));
+
+// POST /owner/gallery — upload a photo to Cloudinary and add to salon.photos
+router.post("/owner/gallery", authenticateOwner, multerUpload.single("image"), asyncHandler(async (req, res) => {
+  if (!req.file) return res.status(400).json({ success: false, message: "No image uploaded" });
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+  const { cloudinary: cloudinaryClient } = require("../config/cloudinary");
+  const url = await new Promise((resolve, reject) => {
+    const stream = cloudinaryClient.uploader.upload_stream(
+      { folder: "smart-salon/gallery", resource_type: "image" },
+      (error, result) => { if (error) reject(error); else resolve(result.secure_url); }
+    );
+    stream.end(req.file.buffer);
+  });
+  salon.photos.push(url);
+  await salon.save();
+  const newIndex = salon.photos.length - 1;
+  res.status(201).json({ success: true, data: { _id: newIndex.toString(), url } });
+}));
+
+// DELETE /owner/gallery/:photoId — remove photo by index
+router.delete("/owner/gallery/:photoId", authenticateOwner, asyncHandler(async (req, res) => {
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+  const idx = parseInt(req.params.photoId, 10);
+  if (isNaN(idx) || idx < 0 || idx >= (salon.photos || []).length) {
+    return res.status(404).json({ success: false, message: "Photo not found" });
+  }
+  salon.photos.splice(idx, 1);
+  await salon.save();
+  res.json({ success: true, message: "Photo deleted" });
+}));
+
+/* =====================================================
+   OWNER COUPONS ROUTES
+===================================================== */
+
+// GET /owner/coupons
+router.get("/owner/coupons", authenticateOwner, asyncHandler(async (req, res) => {
+  const Coupon = require("../models/Coupon");
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+  const coupons = await Coupon.find({ salonId: salon._id }).sort({ createdAt: -1 }).lean();
+  const mapped = coupons.map(c => ({
+    ...c,
+    minOrderAmount: c.minAmount || 0,
+    maxUses: c.maxUsageCount || null,
+    expiryDate: c.validUntil ? c.validUntil.toISOString() : null,
+    usedCount: c.usageCount || 0,
+  }));
+  res.json({ success: true, data: mapped });
+}));
+
+// POST /owner/coupons
+router.post("/owner/coupons", authenticateOwner, asyncHandler(async (req, res) => {
+  const Coupon = require("../models/Coupon");
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+  const { code, discountType, discountValue, minOrderAmount, maxUses, expiryDate } = req.body;
+  if (!code?.trim()) return res.status(400).json({ success: false, message: "Coupon code is required" });
+  if (!discountValue || isNaN(Number(discountValue))) return res.status(400).json({ success: false, message: "Valid discount value is required" });
+  const existing = await Coupon.findOne({ code: code.trim().toUpperCase(), salonId: salon._id });
+  if (existing) return res.status(409).json({ success: false, message: "Coupon code already exists" });
+  const coupon = await Coupon.create({
+    code: code.trim().toUpperCase(),
+    salonId: salon._id,
+    discountType: discountType || "percentage",
+    discountValue: Number(discountValue),
+    minAmount: minOrderAmount ? Number(minOrderAmount) : 0,
+    maxUsageCount: maxUses ? Number(maxUses) : null,
+    validUntil: expiryDate ? new Date(expiryDate) : null,
+    isActive: true,
+  });
+  res.status(201).json({ success: true, data: {
+    ...coupon.toObject(),
+    minOrderAmount: coupon.minAmount || 0,
+    maxUses: coupon.maxUsageCount || null,
+    expiryDate: coupon.validUntil ? coupon.validUntil.toISOString() : null,
+    usedCount: 0,
+  }});
+}));
+
+// PUT /owner/coupons/:id
+router.put("/owner/coupons/:id", authenticateOwner, validateObjectId("id"), asyncHandler(async (req, res) => {
+  const Coupon = require("../models/Coupon");
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+  const coupon = await Coupon.findOne({ _id: req.params.id, salonId: salon._id });
+  if (!coupon) return res.status(404).json({ success: false, message: "Coupon not found" });
+  const { isActive, discountValue, minOrderAmount, maxUses, expiryDate } = req.body;
+  if (isActive !== undefined) coupon.isActive = Boolean(isActive);
+  if (discountValue !== undefined) coupon.discountValue = Number(discountValue);
+  if (minOrderAmount !== undefined) coupon.minAmount = Number(minOrderAmount);
+  if (maxUses !== undefined) coupon.maxUsageCount = maxUses ? Number(maxUses) : null;
+  if (expiryDate !== undefined) coupon.validUntil = expiryDate ? new Date(expiryDate) : null;
+  await coupon.save();
+  res.json({ success: true, data: {
+    ...coupon.toObject(),
+    minOrderAmount: coupon.minAmount || 0,
+    maxUses: coupon.maxUsageCount || null,
+    expiryDate: coupon.validUntil ? coupon.validUntil.toISOString() : null,
+    usedCount: coupon.usageCount || 0,
+  }});
+}));
+
+// DELETE /owner/coupons/:id
+router.delete("/owner/coupons/:id", authenticateOwner, validateObjectId("id"), asyncHandler(async (req, res) => {
+  const Coupon = require("../models/Coupon");
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+  const coupon = await Coupon.findOneAndDelete({ _id: req.params.id, salonId: salon._id });
+  if (!coupon) return res.status(404).json({ success: false, message: "Coupon not found" });
+  res.json({ success: true, message: "Coupon deleted" });
+}));
+
+/* =====================================================
+   OWNER WORKING HOURS ROUTES
+===================================================== */
+
+// GET /owner/working-hours
+router.get("/owner/working-hours", authenticateOwner, asyncHandler(async (req, res) => {
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] })
+    .select("workingHours").lean();
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+  res.json({ success: true, data: { workingHours: salon.workingHours } });
+}));
+
+// PUT /owner/working-hours
+router.put("/owner/working-hours", authenticateOwner, asyncHandler(async (req, res) => {
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+  const { workingHours } = req.body;
+  if (!workingHours) return res.status(400).json({ success: false, message: "workingHours is required" });
+  const days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+  for (const day of days) {
+    if (workingHours[day]) {
+      salon.workingHours[day] = {
+        open:     workingHours[day].open     || salon.workingHours[day]?.open  || "09:00",
+        close:    workingHours[day].close    || salon.workingHours[day]?.close || "18:00",
+        isClosed: Boolean(workingHours[day].isClosed),
+      };
+    }
+  }
+  await salon.save();
+  res.json({ success: true, data: { workingHours: salon.workingHours } });
+}));
+
+/* =====================================================
+   OWNER CUSTOMERS ROUTES
+===================================================== */
+
+// GET /owner/customers — list customers who booked at this salon
+router.get("/owner/customers", authenticateOwner, asyncHandler(async (req, res) => {
+  const Booking = require("../models/Booking");
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+  const { q } = req.query;
+  let customers = await Booking.aggregate([
+    { $match: { salonId: salon._id, customerId: { $exists: true, $ne: null } } },
+    {
+      $group: {
+        _id: "$customerId",
+        totalBookings:     { $sum: 1 },
+        totalSpent:        { $sum: "$totalAmount" },
+        lastVisit:         { $max: "$appointmentDate" },
+        completedBookings: { $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] } },
+      }
+    },
+    { $lookup: { from: "customers", localField: "_id", foreignField: "_id", as: "customer" } },
+    { $unwind: "$customer" },
+    {
+      $project: {
+        _id: "$customer._id",
+        name: "$customer.name",
+        phone: "$customer.phone",
+        email: "$customer.email",
+        profilePhoto: "$customer.profilePhoto",
+        totalBookings: 1,
+        totalSpent: 1,
+        lastVisit: 1,
+        completedBookings: 1,
+      }
+    },
+    { $sort: { totalBookings: -1 } },
+  ]);
+  if (q) {
+    const safeQ = escapeRegex(String(q).slice(0, 100)).toLowerCase();
+    customers = customers.filter(c =>
+      c.name?.toLowerCase().includes(safeQ) || c.phone?.includes(safeQ)
+    );
+  }
+  res.json({ success: true, data: { customers } });
+}));
+
+// GET /owner/customers/:customerId/bookings — booking history for a customer
+router.get("/owner/customers/:customerId/bookings", authenticateOwner, validateObjectId("customerId"), asyncHandler(async (req, res) => {
+  const Booking = require("../models/Booking");
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+  const bookings = await Booking.find({ salonId: salon._id, customerId: req.params.customerId })
+    .sort({ appointmentDate: -1 }).limit(50).lean();
+  res.json({ success: true, data: { bookings } });
+}));
+
+/* =====================================================
    HEALTH CHECK
 ===================================================== */
 

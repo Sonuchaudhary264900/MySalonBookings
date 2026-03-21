@@ -15,7 +15,10 @@ import { localDate, formatDate, formatTime, STATUS_COLORS } from '../../utils/he
 
 const today = localDate(0);
 const maxDate = localDate(30);
-const STATUS_FILTERS = ['all', 'pending', 'confirmed', 'in_progress', 'completed', 'cancelled'];
+const PAGE_SIZE = 10;
+const UPCOMING_STATUSES = ['pending', 'confirmed', 'in_progress'];
+const UPCOMING_FILTERS  = ['all', 'pending', 'confirmed', 'in_progress'];
+const ALL_STATUS_FILTERS = ['all', 'pending', 'confirmed', 'in_progress', 'completed', 'cancelled'];
 
 // ── WalkIn Modal ─────────────────────────────────────────────────
 function WalkInModal({ visible, onClose, salonId, services, onSuccess }) {
@@ -197,12 +200,24 @@ export default function BookingsScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const { salon } = useSalon();
+
+  // View mode: 'upcoming' (default) or 'all'
+  const [viewMode, setViewMode] = useState('upcoming');
+
+  // Upcoming mode state (date-based)
   const [bookings, setBookings] = useState([]);
+  const [selectedDate, setSelectedDate] = useState(today);
+
+  // All mode state (paginated)
+  const [allBookings, setAllBookings] = useState([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState('all');
-  const [selectedDate, setSelectedDate] = useState(today);
   const [updating, setUpdating] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [blockedIds, setBlockedIds] = useState(new Set());
@@ -210,6 +225,7 @@ export default function BookingsScreen() {
   const [actionSheet, setActionSheet] = useState(null);
   const [confirm, setConfirm] = useState(null);
 
+  // Fetch upcoming bookings by date
   const fetchBookings = useCallback(async (date) => {
     try {
       const res = await api.get(`/owner/bookings?date=${date}`);
@@ -217,6 +233,26 @@ export default function BookingsScreen() {
       setBookings(Array.isArray(data) ? data : (data?.bookings || []));
     } catch { setBookings([]); } finally {
       setLoading(false);
+    }
+  }, []);
+
+  // Fetch all bookings with pagination
+  const fetchAllBookings = useCallback(async (p = 1, statusFilter = 'all', isRefresh = false) => {
+    if (p === 1) setLoading(true); else setLoadingMore(true);
+    try {
+      const statusParam = statusFilter !== 'all' ? `&status=${statusFilter}` : '';
+      const res = await api.get(`/owner/bookings?page=${p}&limit=${PAGE_SIZE}${statusParam}`);
+      const data = res.data.data;
+      const list = Array.isArray(data) ? data : (data?.bookings || []);
+      if (p === 1 || isRefresh) setAllBookings(list);
+      else setAllBookings(prev => [...prev, ...list]);
+      setHasMore(list.length === PAGE_SIZE);
+      setPage(p);
+    } catch {
+      if (p === 1) setAllBookings([]);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
     }
   }, []);
 
@@ -242,12 +278,40 @@ export default function BookingsScreen() {
     Promise.all([fetchBookings(selectedDate), fetchServices(), fetchBlockedIds()]);
   }, []);
 
-  useEffect(() => { fetchBookings(selectedDate); }, [selectedDate]);
+  useEffect(() => {
+    if (viewMode === 'upcoming') {
+      setLoading(true);
+      fetchBookings(selectedDate);
+    } else {
+      setPage(1);
+      setHasMore(true);
+      fetchAllBookings(1, filter);
+    }
+  }, [viewMode]);
+
+  useEffect(() => {
+    if (viewMode === 'upcoming') fetchBookings(selectedDate);
+  }, [selectedDate]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([fetchBookings(selectedDate), fetchServices(), fetchBlockedIds()]);
+    if (viewMode === 'upcoming') {
+      await Promise.all([fetchBookings(selectedDate), fetchServices(), fetchBlockedIds()]);
+    } else {
+      await fetchAllBookings(1, filter, true);
+    }
     setRefreshing(false);
+  };
+
+  const loadMore = () => {
+    if (!loadingMore && hasMore && viewMode === 'all') {
+      fetchAllBookings(page + 1, filter);
+    }
+  };
+
+  const switchViewMode = (mode) => {
+    setViewMode(mode);
+    setFilter('all');
   };
 
   const handleStatusChange = async (bookingId, newStatus) => {
@@ -322,9 +386,17 @@ export default function BookingsScreen() {
     if (shifted >= today && shifted <= maxDate) setSelectedDate(shifted);
   };
 
-  const filtered = bookings.filter((b) => filter === 'all' ? true : b.status === filter);
   const isToday = selectedDate === today;
   const displayLabel = isToday ? 'Today' : formatDate(selectedDate + 'T12:00:00');
+
+  const filtered = viewMode === 'upcoming'
+    ? bookings.filter((b) => {
+        const matchStatus = filter === 'all'
+          ? UPCOMING_STATUSES.includes(b.status)
+          : b.status === filter;
+        return matchStatus;
+      })
+    : allBookings.filter((b) => filter === 'all' ? true : b.status === filter);
 
   const getNextStatuses = (status) => {
     const transitions = {
@@ -421,24 +493,44 @@ export default function BookingsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Date nav */}
-        <View style={bStyles.dateRow}>
-          <TouchableOpacity style={bStyles.navBtn} onPress={() => shiftDate(-1)}>
-            <Ionicons name="chevron-back" size={16} color="#6b7280" />
-          </TouchableOpacity>
-          <Text style={bStyles.dateLabel}>{displayLabel}</Text>
-          <TouchableOpacity style={[bStyles.navBtn, isToday && { opacity: 0.4 }]} onPress={() => shiftDate(1)} disabled={isToday}>
-            <Ionicons name="chevron-forward" size={16} color="#6b7280" />
-          </TouchableOpacity>
+        {/* View mode toggle */}
+        <View style={bStyles.modeRow}>
+          {['upcoming', 'all'].map((mode) => (
+            <TouchableOpacity
+              key={mode}
+              style={[bStyles.modeBtn, viewMode === mode && bStyles.modeBtnActive]}
+              onPress={() => switchViewMode(mode)}
+            >
+              <Text style={[bStyles.modeBtnText, viewMode === mode && bStyles.modeBtnTextActive]}>
+                {mode === 'upcoming' ? 'Upcoming' : 'All Bookings'}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
+
+        {/* Date nav — only in upcoming mode */}
+        {viewMode === 'upcoming' && (
+          <View style={bStyles.dateRow}>
+            <TouchableOpacity style={bStyles.navBtn} onPress={() => shiftDate(-1)}>
+              <Ionicons name="chevron-back" size={16} color="#6b7280" />
+            </TouchableOpacity>
+            <Text style={bStyles.dateLabel}>{displayLabel}</Text>
+            <TouchableOpacity style={[bStyles.navBtn, isToday && { opacity: 0.4 }]} onPress={() => shiftDate(1)} disabled={isToday}>
+              <Ionicons name="chevron-forward" size={16} color="#6b7280" />
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Status filter */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={bStyles.filterRow}>
-          {STATUS_FILTERS.map((f) => (
+          {(viewMode === 'upcoming' ? UPCOMING_FILTERS : ALL_STATUS_FILTERS).map((f) => (
             <TouchableOpacity
               key={f}
               style={[bStyles.filterChip, filter === f && bStyles.filterChipActive]}
-              onPress={() => setFilter(f)}
+              onPress={() => {
+                setFilter(f);
+                if (viewMode === 'all') fetchAllBookings(1, f, true);
+              }}
             >
               <Text style={[bStyles.filterChipText, filter === f && bStyles.filterChipTextActive]}>
                 {f === 'all' ? 'All' : f.replace('_', ' ')}
@@ -461,9 +553,33 @@ export default function BookingsScreen() {
             <View style={{ alignItems: 'center', paddingVertical: 48 }}>
               <Ionicons name="calendar-outline" size={48} color="#d1d5db" />
               <Text style={{ color: '#9ca3af', marginTop: 8, fontSize: 14 }}>
-                No {filter !== 'all' ? filter.replace('_', ' ') : ''} bookings on {displayLabel}
+                {viewMode === 'upcoming'
+                  ? `No upcoming bookings for ${displayLabel}`
+                  : 'No bookings found'}
               </Text>
             </View>
+          }
+          ListFooterComponent={
+            viewMode === 'all' ? (
+              hasMore ? (
+                <TouchableOpacity
+                  style={[bStyles.loadMoreBtn, { borderColor: theme.border || '#e5e7eb' }]}
+                  onPress={loadMore}
+                  disabled={loadingMore}
+                >
+                  {loadingMore
+                    ? <ActivityIndicator size="small" color="#2563eb" />
+                    : (
+                      <>
+                        <Ionicons name="chevron-down" size={16} color="#2563eb" />
+                        <Text style={bStyles.loadMoreText}>Load More</Text>
+                      </>
+                    )}
+                </TouchableOpacity>
+              ) : filtered.length > 0 ? (
+                <Text style={[bStyles.endText, { color: theme.subText }]}>All bookings loaded</Text>
+              ) : null
+            ) : null
           }
         />
       )}
@@ -550,7 +666,15 @@ export default function BookingsScreen() {
 
 const bStyles = StyleSheet.create({
   header: { backgroundColor: '#2563eb', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  modeRow: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 10, padding: 3, marginBottom: 10 },
+  modeBtn: { flex: 1, paddingVertical: 7, alignItems: 'center', borderRadius: 8 },
+  modeBtnActive: { backgroundColor: '#fff' },
+  modeBtnText: { fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.8)' },
+  modeBtnTextActive: { color: '#2563eb' },
+  loadMoreBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 8, marginBottom: 24, paddingVertical: 12, borderWidth: 1, borderRadius: 12 },
+  loadMoreText: { color: '#2563eb', fontWeight: '700', fontSize: 14 },
+  endText: { textAlign: 'center', fontSize: 12, paddingVertical: 16 },
   headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
   walkInBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, gap: 4 },
   walkInBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },

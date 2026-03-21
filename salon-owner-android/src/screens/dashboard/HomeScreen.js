@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import api from '../../services/api';
 import { useSalon } from '../../context/SalonContext';
+import { useNotifications } from '../../context/NotificationContext';
 import DrawerMenuButton from '../../components/DrawerMenuButton';
 import { useTheme } from '../../context/ThemeContext';
 import { showSuccess, showError } from '../../utils/toast';
@@ -33,6 +34,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const { salon } = useSalon();
+  const { unreadCount } = useNotifications();
   const navigation = useNavigation();
   const [stats, setStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(true);
@@ -218,18 +220,12 @@ export default function HomeScreen() {
   const isToday = queueDate === today;
   const dateLabel = isToday ? 'Today' : formatDate(queueDate + 'T12:00:00');
 
-  const NAV_ITEMS = [
-    { label: 'Dashboard', icon: 'grid',      iconOff: 'grid-outline',      screen: 'Home' },
-    { label: 'Bookings',  icon: 'calendar',  iconOff: 'calendar-outline',  screen: 'Bookings' },
-    { label: 'Services',  icon: 'cut',       iconOff: 'cut-outline',       screen: 'Services' },
-    { label: 'Settings',  icon: 'settings',  iconOff: 'settings-outline',  screen: 'Settings' },
-  ];
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.bg }]}>
     <ScrollView
       style={{ flex: 1 }}
-      contentContainerStyle={{ paddingBottom: 80 }}
+      contentContainerStyle={{ paddingBottom: 20 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
       {/* Welcome */}
@@ -246,7 +242,21 @@ export default function HomeScreen() {
               <Text style={styles.welcomeSubtitle}>Owner Dashboard</Text>
             </View>
           </View>
-          <DrawerMenuButton />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Notifications')}
+              style={{ padding: 4 }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="notifications-outline" size={24} color="#fff" />
+              {unreadCount > 0 && (
+                <View style={styles.notifBadge}>
+                  <Text style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <DrawerMenuButton />
+          </View>
         </View>
       </View>
 
@@ -410,29 +420,6 @@ export default function HomeScreen() {
 
     </ScrollView>
 
-    {/* Instagram-style bottom nav */}
-    <View style={[styles.bottomBar, { backgroundColor: theme.card, borderTopColor: theme.rowBorder }]}>
-      {NAV_ITEMS.map((item) => {
-        const active = item.screen === 'Home';
-        return (
-          <TouchableOpacity
-            key={item.screen}
-            style={styles.navItem}
-            onPress={() => navigation.navigate(item.screen)}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name={active ? item.icon : item.iconOff}
-              size={26}
-              color={active ? '#2563eb' : theme.subText}
-            />
-            <Text style={[styles.navLabel, { color: active ? '#2563eb' : theme.subText }]}>
-              {item.label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
 
     {/* ── Action Sheet Modal ── */}
     <Modal visible={!!actionSheet} transparent animationType="slide" onRequestClose={() => setActionSheet(null)}>
@@ -542,6 +529,8 @@ const styles = StyleSheet.create({
   welcomeBox: { backgroundColor: '#2563eb', padding: 20, paddingTop: 16, paddingBottom: 24, overflow: 'hidden' },
   decorCircle1: { position: 'absolute', width: 220, height: 220, borderRadius: 110, backgroundColor: 'rgba(255,255,255,0.06)', top: -80, right: -60 },
   decorCircle2: { position: 'absolute', width: 150, height: 150, borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.04)', bottom: -60, left: -30 },
+  notifBadge: { position: 'absolute', top: 0, right: 0, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
+  notifBadgeText: { color: '#fff', fontSize: 9, fontWeight: '700' },
   headerLogoBox: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', shadowColor: '#1e3a8a', shadowOpacity: 0.2, shadowRadius: 6, elevation: 4 },
   headerLogo: { width: 40, height: 40 },
   welcomeTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
@@ -583,9 +572,6 @@ const styles = StyleSheet.create({
   actionBtnText: { fontSize: 13, fontWeight: '600', color: '#fff' },
   // Bottom nav
   screen: { flex: 1 },
-  bottomBar: { flexDirection: 'row', borderTopWidth: 1, paddingVertical: 8, paddingBottom: 12 },
-  navItem: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3 },
-  navLabel: { fontSize: 10, fontWeight: '600' },
   // Action sheet
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   confirmOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center' },

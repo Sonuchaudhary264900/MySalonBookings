@@ -53,6 +53,7 @@ export const SalonProvider = ({ children }) => {
 
   useEffect(() => {
     if (isAuthenticated) {
+      setSalonFetchDone(false);
       fetchSalon();
     } else {
       setSalon(null);

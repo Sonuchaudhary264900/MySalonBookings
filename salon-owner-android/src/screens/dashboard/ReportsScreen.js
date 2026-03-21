@@ -1,14 +1,66 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, RefreshControl,
+  ActivityIndicator, RefreshControl, Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import Svg, { Rect, Text as SvgText, Line, G } from 'react-native-svg';
 import api from '../../services/api';
 import DrawerMenuButton from '../../components/DrawerMenuButton';
 import { useTheme } from '../../context/ThemeContext';
 import { localDate, formatDate, formatTime, STATUS_COLORS } from '../../utils/helpers';
+
+const SCREEN_W = Dimensions.get('window').width;
+
+function RevenueBarChart({ data, theme }) {
+  if (!data || data.length === 0) return null;
+  const chartW = SCREEN_W - 56;
+  const chartH = 160;
+  const padL = 44;
+  const padB = 28;
+  const padT = 10;
+  const innerW = chartW - padL - 8;
+  const innerH = chartH - padB - padT;
+  const maxVal = Math.max(...data.map(d => d.revenue || 0), 1);
+  const barW = Math.max(8, Math.floor(innerW / data.length) - 4);
+  const step = Math.ceil(maxVal / 4 / 100) * 100 || 1;
+  const yLabels = [0, step, step * 2, step * 3, step * 4].filter(v => v <= maxVal * 1.1);
+
+  return (
+    <Svg width={chartW} height={chartH}>
+      {/* Y grid lines + labels */}
+      {yLabels.map((v, i) => {
+        const y = padT + innerH - (v / maxVal) * innerH;
+        return (
+          <G key={i}>
+            <Line x1={padL} y1={y} x2={chartW - 8} y2={y} stroke={theme.border || '#e5e7eb'} strokeWidth={1} strokeDasharray="3,3" />
+            <SvgText x={padL - 4} y={y + 4} fontSize={9} fill={theme.subText || '#9ca3af'} textAnchor="end">
+              {v >= 1000 ? `${(v/1000).toFixed(v%1000===0?0:1)}k` : v}
+            </SvgText>
+          </G>
+        );
+      })}
+      {/* Bars */}
+      {data.map((d, i) => {
+        const barH = Math.max(2, ((d.revenue || 0) / maxVal) * innerH);
+        const x = padL + i * (innerW / data.length) + (innerW / data.length - barW) / 2;
+        const y = padT + innerH - barH;
+        const label = d.date ? d.date.slice(5) : '';
+        return (
+          <G key={i}>
+            <Rect x={x} y={y} width={barW} height={barH} rx={3} fill="#2563eb" opacity={0.85} />
+            {data.length <= 10 && (
+              <SvgText x={x + barW / 2} y={chartH - 6} fontSize={8} fill={theme.subText || '#9ca3af'} textAnchor="middle">
+                {label}
+              </SvgText>
+            )}
+          </G>
+        );
+      })}
+    </Svg>
+  );
+}
 
 const PRESETS = [
   { label: 'Today', days: 0 },
@@ -109,6 +161,14 @@ export default function ReportsScreen() {
               </View>
             ))}
           </View>
+
+          {/* Revenue Bar Chart */}
+          {d?.dailyRevenue?.length > 0 && (
+            <View style={[styles.section, { backgroundColor: theme.card }]}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Revenue Chart</Text>
+              <RevenueBarChart data={d.dailyRevenue} theme={theme} />
+            </View>
+          )}
 
           {/* Booking breakdown */}
           <View style={[styles.section, { backgroundColor: theme.card }]}>

@@ -3,9 +3,11 @@ import 'react-native-reanimated';
 import React from 'react';
 import { ActivityIndicator, View, Text, TouchableOpacity, StyleSheet, Alert, Image, Dimensions } from 'react-native';
 import Toast from 'react-native-toast-message';
-import { NavigationContainer, useNavigation } from '@react-navigation/native';
+import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createDrawerNavigator, DrawerContentScrollView } from '@react-navigation/drawer';
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
+import { useNavigationState } from '@react-navigation/native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
@@ -28,31 +30,50 @@ import ReviewsScreen           from './src/screens/dashboard/ReviewsScreen';
 import NotificationsScreen     from './src/screens/dashboard/NotificationsScreen';
 import ProfileScreen           from './src/screens/dashboard/ProfileScreen';
 import SettingsScreen          from './src/screens/dashboard/SettingsScreen';
+import WorkingHoursScreen      from './src/screens/dashboard/WorkingHoursScreen';
+import CalendarScreen          from './src/screens/dashboard/CalendarScreen';
+import WalkInBookingScreen     from './src/screens/dashboard/WalkInBookingScreen';
+import CustomersScreen         from './src/screens/dashboard/CustomersScreen';
+import CouponsScreen           from './src/screens/dashboard/CouponsScreen';
+import GalleryScreen           from './src/screens/dashboard/GalleryScreen';
 
 const RootStack  = createNativeStackNavigator();
 const AuthStack  = createNativeStackNavigator();
 const Drawer     = createDrawerNavigator();
+const Tab        = createMaterialTopTabNavigator();
 
 // ── Nav items matching the website sidebar ────────────────────────
 const NAV_ITEMS = [
-  { name: 'Home',          label: 'Dashboard',     icon: 'home-outline',          iconFocused: 'home' },
-  { name: 'Services',      label: 'Services',      icon: 'cut-outline',           iconFocused: 'cut' },
-  { name: 'Bookings',      label: 'Bookings',      icon: 'calendar-outline',      iconFocused: 'calendar' },
-  { name: 'Reports',       label: 'Analytics',     icon: 'bar-chart-outline',     iconFocused: 'bar-chart' },
-  { name: 'Reviews',       label: 'Reviews',       icon: 'star-outline',          iconFocused: 'star' },
-  { name: 'Profile',       label: 'My Profile',    icon: 'person-outline',        iconFocused: 'person' },
-  { name: 'Notifications', label: 'Notifications', icon: 'notifications-outline', iconFocused: 'notifications' },
-  { name: 'Settings',      label: 'Settings',      icon: 'settings-outline',      iconFocused: 'settings' },
+  { name: 'Home',          label: 'Dashboard',     icon: 'home-outline',           iconFocused: 'home' },
+  { name: 'Reports',       label: 'Analytics',     icon: 'bar-chart-outline',      iconFocused: 'bar-chart' },
+  { name: 'Reviews',       label: 'Reviews',       icon: 'star-outline',           iconFocused: 'star' },
+  { name: 'Profile',       label: 'My Profile',    icon: 'person-outline',         iconFocused: 'person' },
+  { name: 'Notifications', label: 'Notifications', icon: 'notifications-outline',  iconFocused: 'notifications' },
+  { name: 'Calendar',      label: 'Calendar',      icon: 'calendar-clear-outline', iconFocused: 'calendar-clear' },
+  { name: 'WorkingHours',  label: 'Working Hours', icon: 'time-outline',           iconFocused: 'time' },
+  { name: 'WalkIn',        label: 'Walk-in',       icon: 'walk-outline',           iconFocused: 'walk' },
+  { name: 'Customers',     label: 'Customers',     icon: 'people-outline',         iconFocused: 'people' },
+  { name: 'Coupons',       label: 'Coupons',       icon: 'pricetag-outline',       iconFocused: 'pricetag' },
+  { name: 'Gallery',       label: 'Gallery',       icon: 'images-outline',         iconFocused: 'images' },
 ];
 
 // ── Custom Drawer Content — dark sidebar like website ─────────────
 function CustomDrawer(props) {
-  const { state } = props;
   const { user, logout } = useAuth();
   const { salon } = useSalon();
   const { unreadCount } = useNotifications();
   const insets = useSafeAreaInsets();
-  const activeIndex = state.index;
+
+  // Get current active screen name (tab or direct drawer screen)
+  const activeTab = useNavigationState(state => {
+    const activeRoute = state.routes[state.index];
+    if (activeRoute.name === 'MainTabs') {
+      const tabState = activeRoute.state;
+      if (!tabState) return 'Home';
+      return tabState.routeNames?.[tabState.index] || 'Home';
+    }
+    return activeRoute.name;
+  });
 
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
@@ -62,7 +83,11 @@ function CustomDrawer(props) {
   };
 
   return (
-    <View style={[dStyles.container, { paddingTop: insets.top }]}>
+    <DrawerContentScrollView
+      {...props}
+      contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top, paddingBottom: insets.bottom + 8 }}
+      style={dStyles.container}
+    >
       {/* Brand header */}
       <View style={dStyles.brand}>
         <View style={dStyles.brandIcon}>
@@ -92,40 +117,45 @@ function CustomDrawer(props) {
       <View style={dStyles.divider} />
 
       {/* Nav items */}
-      <DrawerContentScrollView {...props} scrollEnabled={false} contentContainerStyle={{ flexGrow: 1 }}>
-        <View style={dStyles.nav}>
-          {NAV_ITEMS.map((item, index) => {
-            const focused = activeIndex === index;
-            const badge = item.name === 'Notifications' ? unreadCount : 0;
-            return (
-              <TouchableOpacity
-                key={item.name}
-                style={[dStyles.navItem, focused && dStyles.navItemActive]}
-                onPress={() => props.navigation.navigate(item.name)}
-                activeOpacity={0.8}
-              >
-                <Ionicons
-                  name={focused ? item.iconFocused : item.icon}
-                  size={20}
-                  color={focused ? '#fff' : '#9ca3af'}
-                />
-                <Text style={[dStyles.navLabel, focused && dStyles.navLabelActive]}>
-                  {item.label}
-                </Text>
-                {badge > 0 && (
-                  <View style={dStyles.badge}>
-                    <Text style={dStyles.badgeText}>{badge > 9 ? '9+' : badge}</Text>
-                  </View>
-                )}
-                {focused && <Ionicons name="chevron-forward" size={14} color="#fff" style={{ marginLeft: 'auto' }} />}
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </DrawerContentScrollView>
+      <View style={dStyles.nav}>
+        {NAV_ITEMS.map((item) => {
+          const focused = activeTab === item.name;
+          const badge = item.name === 'Notifications' ? unreadCount : 0;
+          return (
+            <TouchableOpacity
+              key={item.name}
+              style={[dStyles.navItem, focused && dStyles.navItemActive]}
+              onPress={() => {
+                if (TAB_SCREENS.includes(item.name)) {
+                  props.navigation.navigate('MainTabs', { screen: item.name });
+                } else {
+                  props.navigation.navigate(item.name);
+                }
+                props.navigation.closeDrawer();
+              }}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name={focused ? item.iconFocused : item.icon}
+                size={20}
+                color={focused ? '#fff' : '#9ca3af'}
+              />
+              <Text style={[dStyles.navLabel, focused && dStyles.navLabelActive]}>
+                {item.label}
+              </Text>
+              {badge > 0 && (
+                <View style={dStyles.badge}>
+                  <Text style={dStyles.badgeText}>{badge > 9 ? '9+' : badge}</Text>
+                </View>
+              )}
+              {focused && <Ionicons name="chevron-forward" size={14} color="#fff" style={{ marginLeft: 'auto' }} />}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
 
       {/* Logout at bottom */}
-      <View style={[dStyles.footer, { paddingBottom: insets.bottom + 8 }]}>
+      <View style={[dStyles.footer, { marginTop: 'auto' }]}>
         <View style={dStyles.divider} />
         <TouchableOpacity style={dStyles.logoutBtn} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={18} color="#f87171" />
@@ -133,21 +163,49 @@ function CustomDrawer(props) {
         </TouchableOpacity>
         <Text style={dStyles.version}>My Salon Bookings · Owner App v1.0</Text>
       </View>
-    </View>
+    </DrawerContentScrollView>
   );
 }
 
-// ── Header with hamburger menu button ─────────────────────────────
-function MenuButton() {
-  const navigation = useNavigation();
+
+const TAB_SCREENS = ['Home', 'Bookings', 'Services', 'Settings'];
+
+// ── 4-tab swipeable navigator with bottom indicator ────────────────
+function MainTabs() {
   return (
-    <TouchableOpacity
-      onPress={() => navigation.openDrawer()}
-      style={{ marginRight: 14, padding: 4, marginTop: 4 }}
-      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+    <Tab.Navigator
+      tabBarPosition="bottom"
+      screenOptions={({ route }) => ({
+        swipeEnabled: true,
+        animationEnabled: true,
+        tabBarStyle: {
+          backgroundColor: '#111827',
+          borderTopColor: '#1f2937',
+          height: 62,
+          elevation: 8,
+          shadowColor: '#000',
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+        },
+        tabBarActiveTintColor: '#fff',
+        tabBarInactiveTintColor: '#6b7280',
+        tabBarIndicatorStyle: { display: 'none' },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '700', marginBottom: 4 },
+        tabBarIconStyle: { marginTop: 4 },
+        tabBarShowIcon: true,
+        tabBarIcon: ({ color }) => {
+          const icons = { Home: 'home-outline', Bookings: 'calendar-outline', Services: 'cut-outline', Settings: 'settings-outline' };
+          const iconsFocused = { Home: 'home', Bookings: 'calendar', Services: 'cut', Settings: 'settings' };
+          const isFocused = color === '#fff';
+          return <Ionicons name={isFocused ? iconsFocused[route.name] : icons[route.name]} size={22} color={color} />;
+        },
+      })}
     >
-      <Ionicons name="menu" size={24} color="#fff" />
-    </TouchableOpacity>
+      <Tab.Screen name="Home"     component={HomeScreen}     options={{ tabBarLabel: 'Dashboard' }} />
+      <Tab.Screen name="Bookings" component={BookingsScreen} options={{ tabBarLabel: 'Bookings' }} />
+      <Tab.Screen name="Services" component={ServicesScreen} options={{ tabBarLabel: 'Services' }} />
+      <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarLabel: 'Settings' }} />
+    </Tab.Navigator>
   );
 }
 
@@ -157,27 +215,25 @@ function MainDrawer() {
     <Drawer.Navigator
       drawerContent={(props) => <CustomDrawer {...props} />}
       screenOptions={{
-        headerStyle: { backgroundColor: '#2563eb' },
-        headerTintColor: '#fff',
-        headerTitleStyle: { fontWeight: '700', fontSize: 18 },
-        headerRight: () => <MenuButton />,
-        headerLeft: () => null,
+        headerShown: false,
         drawerPosition: 'right',
         drawerType: 'front',
         drawerStyle: { width: 260, backgroundColor: '#111827' },
         overlayColor: 'rgba(0,0,0,0.5)',
-        swipeEnabled: true,
-        swipeEdgeWidth: 40,
+        swipeEnabled: false,
       }}
     >
-      <Drawer.Screen name="Home"          component={HomeScreen}          options={{ headerShown: false }} />
-      <Drawer.Screen name="Services"      component={ServicesScreen}      options={{ headerShown: false }} />
-      <Drawer.Screen name="Bookings"      component={BookingsScreen}      options={{ headerShown: false }} />
-      <Drawer.Screen name="Reports"       component={ReportsScreen}       options={{ headerShown: false }} />
-      <Drawer.Screen name="Reviews"       component={ReviewsScreen}       options={{ headerShown: false }} />
-      <Drawer.Screen name="Profile"       component={ProfileScreen}       options={{ headerShown: false }} />
-      <Drawer.Screen name="Notifications" component={NotificationsScreen} options={{ headerShown: false }} />
-      <Drawer.Screen name="Settings"      component={SettingsScreen}      options={{ headerShown: false }} />
+      <Drawer.Screen name="MainTabs"      component={MainTabs} />
+      <Drawer.Screen name="Reports"       component={ReportsScreen} />
+      <Drawer.Screen name="Reviews"       component={ReviewsScreen} />
+      <Drawer.Screen name="Notifications" component={NotificationsScreen} />
+      <Drawer.Screen name="Profile"       component={ProfileScreen} />
+      <Drawer.Screen name="Calendar"      component={CalendarScreen} />
+      <Drawer.Screen name="WorkingHours"  component={WorkingHoursScreen} />
+      <Drawer.Screen name="WalkIn"        component={WalkInBookingScreen} />
+      <Drawer.Screen name="Customers"     component={CustomersScreen} />
+      <Drawer.Screen name="Coupons"       component={CouponsScreen} />
+      <Drawer.Screen name="Gallery"       component={GalleryScreen} />
     </Drawer.Navigator>
   );
 }
