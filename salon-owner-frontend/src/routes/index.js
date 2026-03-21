@@ -27,6 +27,10 @@ const ROUTES = {
   CALENDAR:      '/dashboard/calendar',
   CUSTOMERS:     '/dashboard/customers',
   COUPONS:       '/dashboard/coupons',
+
+  // Legal (public)
+  PRIVACY:       '/privacy-policy',
+  TERMS:         '/terms',
 };
 
 export default ROUTES;

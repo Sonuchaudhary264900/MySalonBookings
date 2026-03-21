@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 
+
 function Footer() {
   return (
     <footer className="bg-slate-900 text-white mt-16">
@@ -69,8 +70,8 @@ function Footer() {
         <div className="border-t border-slate-800 pt-6 flex flex-col md:flex-row justify-between items-center gap-2 text-sm text-slate-500">
           <p>© {new Date().getFullYear()} SmartSalon. All rights reserved.</p>
           <div className="flex gap-4">
-            <a href="#" className="hover:text-white transition-colors">Privacy</a>
-            <a href="#" className="hover:text-white transition-colors">Terms</a>
+            <Link to="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link>
+            <Link to="/terms" className="hover:text-white transition-colors">Terms &amp; Conditions</Link>
           </div>
         </div>
       </div>

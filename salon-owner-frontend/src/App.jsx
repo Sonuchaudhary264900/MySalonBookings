@@ -30,6 +30,8 @@ const Gallery          = lazy(() => import('./pages/dashboard/Gallery'));
 const CalendarPage     = lazy(() => import('./pages/dashboard/CalendarPage'));
 const Customers        = lazy(() => import('./pages/dashboard/Customers'));
 const Coupons          = lazy(() => import('./pages/dashboard/Coupons'));
+const PrivacyPolicy        = lazy(() => import('./pages/PrivacyPolicy'));
+const TermsAndConditions   = lazy(() => import('./pages/TermsAndConditions'));
 
 // ── Page loading fallback ──────────────────────────────────────
 function PageLoader() {
@@ -243,7 +245,11 @@ const LandingPage = () => (
           <span className="font-semibold text-slate-600">SmartSalon</span>
           <span>· Owner Panel</span>
         </div>
-        <span>© 2026 SmartSalon · All rights reserved</span>
+        <div className="flex items-center gap-4">
+          <span>© 2026 SmartSalon · All rights reserved</span>
+          <a href={ROUTES.PRIVACY} className="hover:text-slate-700 transition-colors">Privacy Policy</a>
+          <a href={ROUTES.TERMS}   className="hover:text-slate-700 transition-colors">Terms &amp; Conditions</a>
+        </div>
       </div>
     </footer>
   </div>
@@ -269,6 +275,10 @@ function App() {
                     <Route path={ROUTES.LOGIN}    element={<Login />} />
                     <Route path={ROUTES.REGISTER} element={<Register />} />
                   </Route>
+
+                  {/* Legal pages — fully public */}
+                  <Route path={ROUTES.PRIVACY} element={<PrivacyPolicy />} />
+                  <Route path={ROUTES.TERMS}   element={<TermsAndConditions />} />
 
                   {/* Semi-protected */}
                   <Route path={ROUTES.SALON_REGISTER}  element={<SalonRegistration />} />
