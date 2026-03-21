@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import Svg, { Rect, Text as SvgText, Line, G } from 'react-native-svg';
+import Svg, { Rect, Text as SvgText, Line, G, Path, Circle } from 'react-native-svg';
 import api from '../../services/api';
 import DrawerMenuButton from '../../components/DrawerMenuButton';
 import { useTheme } from '../../context/ThemeContext';
@@ -59,6 +59,90 @@ function RevenueBarChart({ data, theme }) {
         );
       })}
     </Svg>
+  );
+}
+
+// ── Booking Pie Chart ────────────────────────────────────────────
+function polarToCartesian(cx, cy, r, angleDeg) {
+  const rad = ((angleDeg - 90) * Math.PI) / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+
+function arcPath(cx, cy, outerR, innerR, startAngle, endAngle) {
+  const oS = polarToCartesian(cx, cy, outerR, startAngle);
+  const oE = polarToCartesian(cx, cy, outerR, endAngle);
+  const iS = polarToCartesian(cx, cy, innerR, startAngle);
+  const iE = polarToCartesian(cx, cy, innerR, endAngle);
+  const large = endAngle - startAngle > 180 ? 1 : 0;
+  return [
+    `M ${oS.x.toFixed(2)} ${oS.y.toFixed(2)}`,
+    `A ${outerR} ${outerR} 0 ${large} 1 ${oE.x.toFixed(2)} ${oE.y.toFixed(2)}`,
+    `L ${iE.x.toFixed(2)} ${iE.y.toFixed(2)}`,
+    `A ${innerR} ${innerR} 0 ${large} 0 ${iS.x.toFixed(2)} ${iS.y.toFixed(2)}`,
+    'Z',
+  ].join(' ');
+}
+
+function BookingPieChart({ completed, pending, cancelled, total, theme }) {
+  const size = 140;
+  const cx = size / 2;
+  const cy = size / 2;
+  const outerR = 58;
+  const innerR = 34;
+
+  const slices = [
+    { label: 'Completed', value: completed, color: '#10b981', bg: '#dcfce7' },
+    { label: 'Pending',   value: pending,   color: '#ca8a04', bg: '#fef9c3' },
+    { label: 'Cancelled', value: cancelled, color: '#dc2626', bg: '#fee2e2' },
+  ].filter(s => s.value > 0);
+
+  if (total === 0 || slices.length === 0) {
+    return (
+      <View style={{ alignItems: 'center', paddingVertical: 16 }}>
+        <Circle cx={cx} cy={cy} r={outerR} fill={theme.border || '#e5e7eb'} />
+        <Text style={{ color: theme.subText, fontSize: 12, marginTop: 8 }}>No data</Text>
+      </View>
+    );
+  }
+
+  // If only one slice, draw a full ring (0.01 gap to avoid degenerate arc)
+  let paths;
+  if (slices.length === 1) {
+    paths = [{ ...slices[0], d: arcPath(cx, cy, outerR, innerR, 0, 359.99) }];
+  } else {
+    let angle = 0;
+    paths = slices.map(s => {
+      const sweep = (s.value / total) * 360;
+      const d = arcPath(cx, cy, outerR, innerR, angle, angle + sweep - 1);
+      angle += sweep;
+      return { ...s, d };
+    });
+  }
+
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+      <Svg width={size} height={size}>
+        {paths.map(p => <Path key={p.label} d={p.d} fill={p.color} />)}
+        {/* Centre label */}
+        <SvgText x={cx} y={cy - 6} fontSize={18} fontWeight="700" fill={theme.text || '#111827'} textAnchor="middle">{total}</SvgText>
+        <SvgText x={cx} y={cy + 12} fontSize={9} fill={theme.subText || '#6b7280'} textAnchor="middle">bookings</SvgText>
+      </Svg>
+
+      {/* Legend */}
+      <View style={{ flex: 1, gap: 8 }}>
+        {slices.map(s => (
+          <View key={s.label} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: s.color }} />
+            <Text style={{ flex: 1, fontSize: 13, color: theme.text || '#111827' }}>{s.label}</Text>
+            <View style={[styles.breakdownBadge, { backgroundColor: s.bg }]}>
+              <Text style={[styles.breakdownBadgeText, { color: s.color }]}>
+                {s.value} ({Math.round((s.value / total) * 100)}%)
+              </Text>
+            </View>
+          </View>
+        ))}
+      </View>
+    </View>
   );
 }
 
@@ -182,27 +266,16 @@ export default function ReportsScreen() {
             </View>
           )}
 
-          {/* Booking breakdown */}
+          {/* Booking breakdown – pie chart */}
           <View style={[styles.section, { backgroundColor: theme.card }]}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Booking Breakdown</Text>
-            {[
-              { label: 'Completed', value: completed, color: '#10b981', bg: '#dcfce7' },
-              { label: 'Pending',   value: pending,   color: '#ca8a04', bg: '#fef9c3' },
-              { label: 'Cancelled', value: cancelled, color: '#dc2626', bg: '#fee2e2' },
-            ].map((b) => (
-              <View key={b.label} style={styles.breakdownRow}>
-                <View style={[styles.breakdownDot, { backgroundColor: b.color }]} />
-                <Text style={[styles.breakdownLabel, { color: theme.text }]}>{b.label}</Text>
-                <View style={{ flex: 1, marginHorizontal: 10 }}>
-                  <View style={styles.barTrack}>
-                    <View style={[styles.barFill, { backgroundColor: b.color, width: total ? `${Math.round((b.value / total) * 100)}%` : '0%' }]} />
-                  </View>
-                </View>
-                <View style={[styles.breakdownBadge, { backgroundColor: b.bg }]}>
-                  <Text style={[styles.breakdownBadgeText, { color: b.color }]}>{b.value}</Text>
-                </View>
-              </View>
-            ))}
+            <BookingPieChart
+              completed={completed}
+              pending={pending}
+              cancelled={cancelled}
+              total={total}
+              theme={theme}
+            />
           </View>
 
           {/* Top services */}
