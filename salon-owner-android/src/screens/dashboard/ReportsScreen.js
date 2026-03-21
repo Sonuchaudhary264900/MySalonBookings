@@ -8,7 +8,6 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import api from '../../services/api';
-import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { localDate, formatDate, formatTime, STATUS_COLORS } from '../../utils/helpers';
 
@@ -108,7 +107,6 @@ const thirtyDaysAgo = localDate(-30);
 export default function ReportsScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const navigation = useNavigation();
 
   const [startDate, setStartDate] = useState(thirtyDaysAgo);
   const [endDate,   setEndDate]   = useState(today);
@@ -300,13 +298,6 @@ export default function ReportsScreen() {
       <View style={[styles.header, { paddingTop: 14 + insets.top, backgroundColor: theme.card, borderBottomColor: theme.border }]}>
         <View style={styles.headerTop}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={{ padding: 4, marginTop: 4 }}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Ionicons name="arrow-back" size={24} color={theme.text} />
-            </TouchableOpacity>
             <View>
               <Text style={[styles.headerTitle, { color: theme.text }]}>Analytics</Text>
               <Text style={[styles.headerSub, { color: theme.subText }]}>Real-time overview of your salon's performance</Text>
