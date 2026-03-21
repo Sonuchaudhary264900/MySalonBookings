@@ -49,6 +49,7 @@ const Tab        = createMaterialTopTabNavigator();
 const NAV_ITEMS = [
   { name: 'Home',          label: 'Dashboard',     icon: 'home-outline',           iconFocused: 'home' },
   { name: 'Bookings',      label: 'Bookings',      icon: 'calendar-outline',       iconFocused: 'calendar' },
+  { name: 'Services',      label: 'Services',      icon: 'cut-outline',            iconFocused: 'cut' },
   { name: 'Reports',       label: 'Analytics',     icon: 'bar-chart-outline',      iconFocused: 'bar-chart' },
   { name: 'Reviews',       label: 'Reviews',       icon: 'star-outline',           iconFocused: 'star' },
   { name: 'Profile',       label: 'My Profile',    icon: 'person-outline',         iconFocused: 'person' },
@@ -172,7 +173,7 @@ function CustomDrawer(props) {
 }
 
 
-const TAB_SCREENS = ['Home', 'Profile', 'Services', 'Settings'];
+const TAB_SCREENS = ['Home', 'Profile', 'Reports', 'Settings'];
 
 // ── 4-tab swipeable navigator with bottom indicator ────────────────
 function MainTabs() {
@@ -198,8 +199,8 @@ function MainTabs() {
         tabBarIconStyle: { marginTop: 4 },
         tabBarShowIcon: true,
         tabBarIcon: ({ color }) => {
-          const icons        = { Home: 'home-outline',    Profile: 'person-outline',  Services: 'cut-outline',  Settings: 'settings-outline' };
-          const iconsFocused = { Home: 'home',            Profile: 'person',          Services: 'cut',          Settings: 'settings' };
+          const icons        = { Home: 'home-outline',  Profile: 'person-outline',     Reports: 'bar-chart-outline',  Settings: 'settings-outline' };
+          const iconsFocused = { Home: 'home',          Profile: 'person',             Reports: 'bar-chart',          Settings: 'settings' };
           const isFocused = color === '#fff';
           return <Ionicons name={isFocused ? iconsFocused[route.name] : icons[route.name]} size={22} color={color} />;
         },
@@ -207,7 +208,7 @@ function MainTabs() {
     >
       <Tab.Screen name="Home"     component={HomeScreen}     options={{ tabBarLabel: 'Dashboard' }} />
       <Tab.Screen name="Profile"  component={ProfileScreen}  options={{ tabBarLabel: 'Profile' }} />
-      <Tab.Screen name="Services" component={ServicesScreen} options={{ tabBarLabel: 'Services' }} />
+      <Tab.Screen name="Reports"  component={ReportsScreen}  options={{ tabBarLabel: 'Analytics' }} />
       <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarLabel: 'Settings' }} />
     </Tab.Navigator>
   );
@@ -229,6 +230,7 @@ function MainDrawer() {
     >
       <Drawer.Screen name="MainTabs"      component={MainTabs} />
       <Drawer.Screen name="Bookings"      component={BookingsScreen} />
+      <Drawer.Screen name="Services"      component={ServicesScreen} />
       <Drawer.Screen name="Reports"       component={ReportsScreen} />
       <Drawer.Screen name="Reviews"       component={ReviewsScreen} />
       <Drawer.Screen name="Notifications" component={NotificationsScreen} />
