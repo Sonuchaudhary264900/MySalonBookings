@@ -1,18 +1,21 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, RefreshControl, Alert, Modal, TextInput,
+  Linking, ScrollView, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import * as Location from 'expo-location';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { showSuccess, showError } from '../../utils/toast';
 import { useTheme } from '../../context/ThemeContext';
 
-const FILTERS = ['All', 'Upcoming', 'Completed', 'Cancelled'];
+// Filter order: Upcoming first, All last
+const FILTERS = ['Upcoming', 'Completed', 'Cancelled', 'All'];
 
 const STATUS_CONFIG = {
   pending:     { label: 'Pending',     color: '#d97706', bg: '#fef3c7', border: '#fde68a' },
@@ -22,67 +25,502 @@ const STATUS_CONFIG = {
   cancelled:   { label: 'Cancelled',   color: '#dc2626', bg: '#fee2e2', border: '#fca5a5' },
 };
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function formatDateLabel(dateStr) {
+  if (!dateStr) return '—';
+  const d = new Date(String(dateStr).slice(0, 10) + 'T12:00:00');
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function formatTimeLabel(t) {
+  if (!t) return '—';
+  const [h, m] = t.split(':');
+  const hour = parseInt(h, 10);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const displayH = hour % 12 || 12;
+  return `${displayH}:${m || '00'} ${ampm}`;
+}
+
+function todayString() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// ── StatusBadge ───────────────────────────────────────────────────────────────
+
 function StatusBadge({ status }) {
-  const { theme } = useTheme();
-  const styles = getStyles(theme);
   const cfg = STATUS_CONFIG[status] || { label: status, color: '#6b7280', bg: '#f3f4f6', border: '#e5e7eb' };
   return (
-    <View style={[styles.badge, { backgroundColor: cfg.bg, borderColor: cfg.border }]}>
-      <Text style={[styles.badgeText, { color: cfg.color }]}>{cfg.label}</Text>
+    <View style={[badgeStyle.wrap, { backgroundColor: cfg.bg, borderColor: cfg.border }]}>
+      <Text style={[badgeStyle.text, { color: cfg.color }]}>{cfg.label}</Text>
     </View>
   );
 }
 
-function ReviewModal({ visible, onClose, onSubmit }) {
-  const { theme } = useTheme();
-  const styles = getStyles(theme);
+const badgeStyle = StyleSheet.create({
+  wrap: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, borderWidth: 1 },
+  text: { fontSize: 11, fontWeight: '700' },
+});
+
+// ── ReviewPrompt ──────────────────────────────────────────────────────────────
+
+function ReviewPrompt({ bookingId, onReviewed, theme }) {
+  const [open, setOpen] = useState(false);
   const [rating, setRating] = useState(0);
   const [text, setText] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+
+  if (done) return (
+    <View style={{ marginTop: 10, padding: 10, backgroundColor: '#dcfce7', borderRadius: 8, borderWidth: 1, borderColor: '#86efac' }}>
+      <Text style={{ fontSize: 12, color: '#16a34a' }}>Thank you for your review!</Text>
+    </View>
+  );
+
+  if (!open) return (
+    <TouchableOpacity
+      style={{ marginTop: 10, padding: 10, backgroundColor: '#eef2ff', borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+      onPress={() => setOpen(true)}
+      activeOpacity={0.8}
+    >
+      <Text style={{ fontSize: 12, color: '#4338ca' }}>How was your experience?</Text>
+      <Text style={{ fontSize: 12, color: '#4338ca', fontWeight: '700' }}>Leave a Review</Text>
+    </TouchableOpacity>
+  );
 
   const handleSubmit = async () => {
-    if (!rating) { showError('Rate', 'Please select a star rating.'); return; }
-    setLoading(true);
-    await onSubmit(rating, text.trim());
-    setLoading(false);
-    setRating(0);
-    setText('');
+    if (!rating) return;
+    setSubmitting(true);
+    try {
+      await api.post('/customer/reviews', { bookingId, salonRating: rating, reviewText: text.trim() || undefined });
+      setDone(true);
+      onReviewed?.();
+    } catch {
+      setDone(true);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
-    <Modal transparent visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <View style={styles.reviewModal}>
-          <Text style={styles.reviewModalTitle}>Rate Your Experience</Text>
-          <View style={styles.starsRow}>
-            {[1,2,3,4,5].map(i => (
-              <TouchableOpacity key={i} onPress={() => setRating(i)}>
-                <Ionicons name={i <= rating ? 'star' : 'star-outline'} size={36} color="#f59e0b" />
+    <View style={{ marginTop: 10, padding: 12, backgroundColor: '#eef2ff', borderRadius: 8, gap: 10 }}>
+      <Text style={{ fontSize: 12, fontWeight: '700', color: '#4338ca' }}>Rate your experience</Text>
+      <View style={{ flexDirection: 'row', gap: 6 }}>
+        {[1, 2, 3, 4, 5].map(n => (
+          <TouchableOpacity key={n} onPress={() => setRating(n)}>
+            <Text style={{ fontSize: 26, color: n <= rating ? '#f59e0b' : '#d1d5db' }}>★</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      <TextInput
+        value={text}
+        onChangeText={setText}
+        placeholder="Share your experience (optional)"
+        placeholderTextColor="#9ca3af"
+        multiline
+        numberOfLines={2}
+        style={{
+          borderWidth: 1, borderColor: '#c7d2fe', borderRadius: 8, padding: 8,
+          fontSize: 12, color: theme?.text || '#1e293b', textAlignVertical: 'top',
+          backgroundColor: '#fff', minHeight: 52,
+        }}
+      />
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <TouchableOpacity
+          onPress={handleSubmit}
+          disabled={!rating || submitting}
+          style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: '#4f46e5', borderRadius: 8, opacity: !rating || submitting ? 0.5 : 1 }}
+        >
+          {submitting
+            ? <ActivityIndicator color="#fff" size="small" />
+            : <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>Submit</Text>}
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => setOpen(false)} style={{ paddingHorizontal: 14, paddingVertical: 8 }}>
+          <Text style={{ fontSize: 12, color: '#6b7280' }}>Cancel</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+// ── RescheduleModal ───────────────────────────────────────────────────────────
+
+function RescheduleModal({ booking, onClose, onRescheduled, theme }) {
+  const rs = getRescheduleStyles(theme);
+  const [newDate, setNewDate] = useState(todayString());
+  const [newTime, setNewTime] = useState('');
+  const [slots, setSlots] = useState([]);
+  const [blockedSlots, setBlockedSlots] = useState([]);
+  const [closedDay, setClosedDay] = useState(false);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const salonId = booking.salonId?._id || booking.salonId;
+  const duration = booking.estimatedDuration || 30;
+
+  useEffect(() => {
+    if (!newDate || !salonId) return;
+    setNewTime('');
+    setSlots([]);
+    setBlockedSlots([]);
+    setClosedDay(false);
+    setSlotsLoading(true);
+    api.get(`/public/salons/${salonId}/booked-slots?date=${newDate}&duration=${duration}`)
+      .then(res => {
+        const data = res.data.data || {};
+        setClosedDay(data.closedDay || false);
+        setSlots(data.slots || []);
+        setBlockedSlots(data.blockedSlots || []);
+      })
+      .catch(() => setSlots([]))
+      .finally(() => setSlotsLoading(false));
+  }, [newDate, salonId, duration]);
+
+  const handleSave = async () => {
+    if (!newDate || !newTime) { setError('Please select a date and a time slot.'); return; }
+    setSaving(true);
+    setError('');
+    try {
+      await api.put(`/customer/bookings/${booking._id}/reschedule`, { appointmentDate: newDate, appointmentTime: newTime });
+      onRescheduled(booking._id, newDate, newTime);
+      onClose();
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to reschedule. Try another slot.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Next 7 days as quick-select chips
+  const quickDates = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric' });
+    return { key, label };
+  });
+
+  return (
+    <Modal transparent visible animationType="slide" onRequestClose={onClose}>
+      <View style={rs.overlay}>
+        <View style={rs.sheet}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <Text style={rs.title}>Reschedule Booking</Text>
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="close" size={22} color={theme?.subText || '#6b7280'} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {/* Quick date selector */}
+            <Text style={rs.label}>Select Date</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+              <View style={{ flexDirection: 'row', gap: 8, paddingVertical: 4 }}>
+                {quickDates.map(({ key, label }) => (
+                  <TouchableOpacity
+                    key={key}
+                    onPress={() => setNewDate(key)}
+                    style={[rs.dateChip, newDate === key && rs.dateChipActive]}
+                  >
+                    <Text style={[rs.dateChipText, newDate === key && rs.dateChipTextActive]}>{label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+
+            {/* Slot grid */}
+            <Text style={rs.label}>Select Time Slot</Text>
+            {slotsLoading ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 12 }}>
+                <ActivityIndicator color="#4f46e5" size="small" />
+                <Text style={{ fontSize: 13, color: '#6b7280' }}>Loading slots…</Text>
+              </View>
+            ) : closedDay ? (
+              <View style={{ padding: 12, backgroundColor: '#fef3c7', borderRadius: 8, marginBottom: 12 }}>
+                <Text style={{ fontSize: 13, color: '#d97706' }}>Salon is closed on this day. Choose another date.</Text>
+              </View>
+            ) : slots.length === 0 ? (
+              <View style={{ padding: 12, backgroundColor: '#f1f5f9', borderRadius: 8, marginBottom: 12 }}>
+                <Text style={{ fontSize: 13, color: '#94a3b8' }}>No available slots on this date.</Text>
+              </View>
+            ) : (
+              <>
+                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 10 }}>
+                  {[['#fca5a5', 'Booked'], ['#6366f1', 'Selected'], ['#e2e8f0', 'Available']].map(([c, l]) => (
+                    <View key={l} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: c }} />
+                      <Text style={{ fontSize: 11, color: '#6b7280' }}>{l}</Text>
+                    </View>
+                  ))}
+                </View>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+                  {slots.map(s => {
+                    const blocked = blockedSlots.includes(s);
+                    const selected = newTime === s;
+                    return (
+                      <TouchableOpacity
+                        key={s}
+                        onPress={() => { if (!blocked) setNewTime(s); }}
+                        disabled={blocked}
+                        style={[rs.slotChip, blocked && rs.slotBlocked, selected && rs.slotSelected]}
+                      >
+                        <Text style={[rs.slotText, blocked && rs.slotBlockedText, selected && rs.slotSelectedText]}>
+                          {formatTimeLabel(s)}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </>
+            )}
+
+            {!!error && <Text style={{ fontSize: 12, color: '#dc2626', marginBottom: 10 }}>{error}</Text>}
+
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity
+                onPress={handleSave}
+                disabled={saving || !newTime}
+                style={[rs.saveBtn, (!newTime || saving) && { opacity: 0.5 }]}
+              >
+                {saving
+                  ? <ActivityIndicator color="#fff" size="small" />
+                  : <Text style={rs.saveBtnText}>Confirm Reschedule</Text>}
               </TouchableOpacity>
-            ))}
-          </View>
-          <TextInput
-            style={styles.reviewInput}
-            placeholder="Share your experience (optional)"
-            placeholderTextColor="#9ca3af"
-            multiline
-            maxLength={300}
-            value={text}
-            onChangeText={setText}
-          />
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <TouchableOpacity style={styles.reviewCancelBtn} onPress={onClose}>
-              <Text style={styles.reviewCancelText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.reviewSubmitBtn, !rating && { opacity: 0.5 }]} onPress={handleSubmit} disabled={!rating || loading}>
-              {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.reviewSubmitText}>Submit Review</Text>}
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity onPress={onClose} style={rs.cancelBtn}>
+                <Text style={rs.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
         </View>
       </View>
     </Modal>
   );
 }
+
+const getRescheduleStyles = (t) => StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  sheet: { backgroundColor: t?.card || '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '90%' },
+  title: { fontSize: 17, fontWeight: '700', color: t?.text || '#1e293b' },
+  label: { fontSize: 13, fontWeight: '600', color: t?.subText || '#6b7280', marginBottom: 8 },
+  dateChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: t?.border || '#f1f5f9', borderWidth: 1, borderColor: t?.border || '#e2e8f0' },
+  dateChipActive: { backgroundColor: '#4f46e5', borderColor: '#4f46e5' },
+  dateChipText: { fontSize: 13, color: t?.subText || '#6b7280', fontWeight: '600' },
+  dateChipTextActive: { color: '#fff' },
+  slotChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#fff' },
+  slotBlocked: { backgroundColor: '#fff1f2', borderColor: '#fca5a5' },
+  slotSelected: { backgroundColor: '#4f46e5', borderColor: '#4f46e5' },
+  slotText: { fontSize: 12, color: '#475569', fontWeight: '600' },
+  slotBlockedText: { color: '#ef4444' },
+  slotSelectedText: { color: '#fff' },
+  saveBtn: { flex: 2, height: 48, borderRadius: 12, backgroundColor: '#4f46e5', alignItems: 'center', justifyContent: 'center' },
+  saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  cancelBtn: { flex: 1, height: 48, borderRadius: 12, borderWidth: 1.5, borderColor: t?.border || '#e2e8f0', alignItems: 'center', justifyContent: 'center' },
+  cancelBtnText: { fontSize: 14, fontWeight: '600', color: t?.subText || '#6b7280' },
+});
+
+// ── BookingCard ───────────────────────────────────────────────────────────────
+
+function BookingCard({ booking: initialBooking, userCoords, onCancelled, theme }) {
+  const cs = getCardStyles(theme);
+  const [booking, setBooking] = useState(initialBooking);
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const [reviewed, setReviewed] = useState(false);
+  const status = booking.status || 'pending';
+
+  const handleCancel = () => {
+    Alert.alert('Cancel Booking', 'Are you sure you want to cancel this booking?', [
+      { text: 'No', style: 'cancel' },
+      {
+        text: 'Yes, Cancel', style: 'destructive', onPress: async () => {
+          try {
+            await api.post(`/customer/bookings/${booking._id}/cancel`);
+            showSuccess('Cancelled', 'Your booking has been cancelled.');
+            onCancelled(booking._id);
+          } catch (err) {
+            showError('Error', err?.message || 'Could not cancel. Try again.');
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleRescheduled = (id, date, time) => {
+    setBooking(prev => ({ ...prev, appointmentDate: date, appointmentTime: time, status: 'pending' }));
+  };
+
+  const salonDoc    = booking.salonId;
+  const salonName   = booking.salonName || salonDoc?.name || 'Salon';
+  const salonCity   = salonDoc?.city || salonDoc?.address || '';
+  const salonPhone  = salonDoc?.phone || null;
+  const serviceName = booking.serviceName ||
+    (Array.isArray(booking.serviceIds) ? booking.serviceIds.map(s => s?.name || s).filter(Boolean).join(' + ') : '') ||
+    'Service';
+
+  const dur = booking.estimatedDuration;
+  const durLabel = dur
+    ? (dur >= 60 ? `${Math.floor(dur / 60)}h${dur % 60 ? ` ${dur % 60}m` : ''}` : `${dur} min`)
+    : null;
+
+  // Distance
+  let distanceLabel = null;
+  if (userCoords && salonDoc?.location?.coordinates?.length === 2) {
+    const [salonLng, salonLat] = salonDoc.location.coordinates;
+    const km = haversineKm(userCoords.lat, userCoords.lng, salonLat, salonLng);
+    distanceLabel = km < 1 ? `${Math.round(km * 1000)} m away` : `${km.toFixed(1)} km away`;
+  }
+
+  // Maps URL
+  let mapsUrl = null;
+  if (salonDoc?.location?.coordinates?.length === 2) {
+    const [lng, lat] = salonDoc.location.coordinates;
+    mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+  } else {
+    const query = [salonDoc?.address || booking.salonName, salonDoc?.city].filter(Boolean).join(', ');
+    if (query) mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+  }
+
+  const canCancel     = ['pending', 'confirmed'].includes(status);
+  const canReschedule = ['pending', 'confirmed'].includes(status);
+  const canReview     = status === 'completed' && !reviewed && !initialBooking.reviewed;
+
+  const detailTiles = [
+    { label: 'Date',    value: formatDateLabel(booking.appointmentDate) },
+    { label: 'Time',    value: formatTimeLabel(booking.appointmentTime) },
+    { label: 'Amount',  value: booking.totalAmount != null ? `\u20B9${booking.totalAmount}` : '\u2014', amountStyle: true },
+    ...(durLabel ? [{ label: 'Duration', value: durLabel }] : []),
+    { label: 'Payment', value: booking.paymentMethod ? booking.paymentMethod.charAt(0).toUpperCase() + booking.paymentMethod.slice(1) : '\u2014' },
+    ...(distanceLabel ? [{ label: 'Distance', value: distanceLabel, accent: true }] : []),
+  ];
+
+  return (
+    <View style={cs.card}>
+      {/* Header */}
+      <View style={cs.headerRow}>
+        <View style={cs.iconWrap}>
+          <Text style={{ fontSize: 20, color: '#fff' }}>✂</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={cs.serviceName} numberOfLines={1}>{serviceName}</Text>
+          <Text style={cs.salonName} numberOfLines={1}>{salonName}</Text>
+          {!!salonCity && <Text style={cs.salonCity} numberOfLines={1}>{salonCity}</Text>}
+        </View>
+        <StatusBadge status={status} />
+      </View>
+
+      {/* Detail grid */}
+      <View style={cs.grid}>
+        {detailTiles.map(tile => (
+          <View key={tile.label} style={[cs.tile, tile.accent && cs.tileAccent]}>
+            <Text style={[cs.tileLabel, tile.accent && cs.tileLabelAccent]}>{tile.label}</Text>
+            <Text style={[cs.tileValue, tile.amountStyle && cs.tileAmountValue, tile.accent && cs.tileValueAccent]}>
+              {tile.value}
+            </Text>
+          </View>
+        ))}
+      </View>
+
+      {/* Pending banner */}
+      {status === 'pending' && (
+        <View style={cs.pendingBanner}>
+          <Text style={cs.pendingText}>
+            Awaiting confirmation from the salon. You'll be notified once confirmed.
+          </Text>
+        </View>
+      )}
+
+      {/* Inline review prompt */}
+      {canReview && (
+        <ReviewPrompt bookingId={booking._id} onReviewed={() => setReviewed(true)} theme={theme} />
+      )}
+      {reviewed && (
+        <View style={{ marginTop: 10, padding: 10, backgroundColor: '#dcfce7', borderRadius: 8, borderWidth: 1, borderColor: '#86efac' }}>
+          <Text style={{ fontSize: 12, color: '#16a34a' }}>Thank you for your review!</Text>
+        </View>
+      )}
+
+      {/* Footer */}
+      <View style={cs.footer}>
+        <Text style={cs.bookingId}>
+          {'Booking ID: '}
+          <Text style={{ fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
+            {booking.bookingId || (booking._id?.slice(-8) || '\u2014')}
+          </Text>
+        </Text>
+        <View style={cs.footerActions}>
+          {!!salonPhone && (
+            <TouchableOpacity onPress={() => Linking.openURL(`tel:${salonPhone}`)} style={cs.footerLink}>
+              <Ionicons name="call-outline" size={12} color="#4f46e5" />
+              <Text style={[cs.footerLinkText, { color: '#4f46e5' }]}>{salonPhone}</Text>
+            </TouchableOpacity>
+          )}
+          {!!mapsUrl && (
+            <TouchableOpacity onPress={() => Linking.openURL(mapsUrl)} style={cs.footerLink}>
+              <Ionicons name="navigate-outline" size={12} color="#16a34a" />
+              <Text style={[cs.footerLinkText, { color: '#16a34a' }]}>Directions</Text>
+            </TouchableOpacity>
+          )}
+          {canReschedule && (
+            <TouchableOpacity onPress={() => setRescheduleOpen(true)}>
+              <Text style={[cs.footerLinkText, { color: '#4f46e5' }]}>Reschedule</Text>
+            </TouchableOpacity>
+          )}
+          {canCancel && (
+            <TouchableOpacity onPress={handleCancel}>
+              <Text style={[cs.footerLinkText, { color: '#dc2626' }]}>Cancel</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
+      {rescheduleOpen && (
+        <RescheduleModal
+          booking={booking}
+          onClose={() => setRescheduleOpen(false)}
+          onRescheduled={handleRescheduled}
+          theme={theme}
+        />
+      )}
+    </View>
+  );
+}
+
+const getCardStyles = (t) => StyleSheet.create({
+  card: { backgroundColor: t?.card || '#fff', borderRadius: 14, padding: 16, gap: 12, borderWidth: 1, borderColor: t?.border || '#f1f5f9', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
+  headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  iconWrap: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#4f46e5', alignItems: 'center', justifyContent: 'center' },
+  serviceName: { fontSize: 15, fontWeight: '700', color: t?.text || '#1e293b' },
+  salonName: { fontSize: 13, color: t?.subText || '#64748b', marginTop: 1 },
+  salonCity: { fontSize: 12, color: t?.subText || '#94a3b8', marginTop: 1 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  tile: { flex: 1, minWidth: '30%', backgroundColor: t?.bg || '#f8fafc', borderRadius: 8, padding: 10 },
+  tileAccent: { backgroundColor: '#eef2ff' },
+  tileLabel: { fontSize: 11, color: t?.subText || '#94a3b8', marginBottom: 2 },
+  tileLabelAccent: { color: '#818cf8' },
+  tileValue: { fontSize: 13, fontWeight: '600', color: t?.text || '#334155' },
+  tileAmountValue: { color: '#4f46e5', fontWeight: '700' },
+  tileValueAccent: { color: '#4338ca' },
+  pendingBanner: { padding: 10, backgroundColor: '#fef3c7', borderWidth: 1, borderColor: '#fde68a', borderRadius: 8 },
+  pendingText: { fontSize: 12, color: '#d97706' },
+  footer: { paddingTop: 10, borderTopWidth: 1, borderTopColor: t?.border || '#f1f5f9', gap: 6 },
+  bookingId: { fontSize: 11, color: t?.subText || '#94a3b8' },
+  footerActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
+  footerLink: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  footerLinkText: { fontSize: 12, fontWeight: '600' },
+});
+
+// ── Main Screen ───────────────────────────────────────────────────────────────
 
 export default function BookingsScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -90,28 +528,51 @@ export default function BookingsScreen({ navigation }) {
   const styles = getStyles(theme);
   const { isAuthenticated } = useAuth();
   const { unreadCount } = useNotifications();
+
   const PAGE_SIZE = 5;
-  const [filter, setFilter]         = useState('All');
+  const [filter, setFilter]         = useState('Upcoming'); // default: Upcoming
   const [bookings, setBookings]     = useState([]);
   const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [reviewBooking, setReviewBooking] = useState(null);
-  const [reviewed, setReviewed]     = useState(new Set());
+  const [userCoords, setUserCoords] = useState(null);
+  const [confirmedToasts, setConfirmedToasts] = useState([]);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const prevStatusRef = useRef({});
+
+  // Request location once for distance tiles
+  useEffect(() => {
+    Location.requestForegroundPermissionsAsync().then(({ status }) => {
+      if (status === 'granted') {
+        Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low })
+          .then(pos => setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }))
+          .catch(() => {});
+      }
+    });
+  }, []);
 
   useFocusEffect(useCallback(() => {
     if (isAuthenticated) loadBookings();
-    return () => {
-      setVisibleCount(PAGE_SIZE);
-    };
+    return () => { setVisibleCount(PAGE_SIZE); };
   }, [isAuthenticated]));
 
-  const loadBookings = async () => {
-    setLoading(true);
+  const loadBookings = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await api.get('/customer/bookings');
-      const data = res.data.data?.bookings || res.data.data || [];
-      setBookings(Array.isArray(data) ? data : []);
+      const fresh = res.data.data?.bookings || res.data.data || [];
+      const arr = Array.isArray(fresh) ? fresh : [];
+
+      // Detect pending → confirmed transitions
+      const newlyConfirmed = arr.filter(
+        b => b._id && prevStatusRef.current[b._id] === 'pending' && b.status === 'confirmed'
+      );
+      if (newlyConfirmed.length > 0) {
+        setConfirmedToasts(prev => [...prev, ...newlyConfirmed.map(b => b._id)]);
+        setFilter('Upcoming');
+      }
+      arr.forEach(b => { if (b._id) prevStatusRef.current[b._id] = b.status; });
+
+      setBookings(arr);
     } catch {
       setBookings([]);
     } finally {
@@ -121,50 +582,30 @@ export default function BookingsScreen({ navigation }) {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadBookings().catch(() => {});
+    await loadBookings(true);
     setRefreshing(false);
   };
 
-  const handleCancel = (bookingId) => {
-    Alert.alert('Cancel Booking', 'Are you sure you want to cancel this booking?', [
-      { text: 'No', style: 'cancel' },
-      { text: 'Yes, Cancel', style: 'destructive', onPress: async () => {
-        try {
-          await api.post(`/customer/bookings/${bookingId}/cancel`);
-          showSuccess('Cancelled', 'Your booking has been cancelled.');
-          loadBookings();
-        } catch (err) {
-          showError('Error', err?.message || 'Could not cancel booking. Try again.');
-        }
-      }},
-    ]);
-  };
-
-  const handleReviewSubmit = async (rating, text) => {
-    if (!reviewBooking) return;
-    try {
-      await api.post('/customer/reviews', {
-        bookingId: reviewBooking._id,
-        salonRating: rating,
-        reviewText: text || undefined,
-      });
-      setReviewed(prev => new Set([...prev, reviewBooking._id]));
-      setReviewBooking(null);
-      showSuccess('Thank You!', 'Your review has been submitted.');
-    } catch (err) {
-      showError('Error', err?.message || 'Failed to submit review.');
-    }
+  const handleCancelled = (id) => {
+    setBookings(prev => prev.map(b => b._id === id ? { ...b, status: 'cancelled' } : b));
   };
 
   const filtered = bookings.filter(b => {
-    if (filter === 'All') return true;
-    if (filter === 'Upcoming')  return ['pending','confirmed','in_progress'].includes(b.status);
+    if (filter === 'All')       return true;
+    if (filter === 'Upcoming')  return ['pending', 'confirmed', 'in_progress'].includes(b.status);
     if (filter === 'Completed') return b.status === 'completed';
     if (filter === 'Cancelled') return b.status === 'cancelled';
     return true;
   });
+
   const visible = filtered.slice(0, visibleCount);
   const hasMore = visibleCount < filtered.length;
+
+  const stats = {
+    total:     bookings.length,
+    upcoming:  bookings.filter(b => ['pending', 'confirmed', 'in_progress'].includes(b.status)).length,
+    completed: bookings.filter(b => b.status === 'completed').length,
+  };
 
   if (!isAuthenticated) {
     return (
@@ -179,69 +620,63 @@ export default function BookingsScreen({ navigation }) {
     );
   }
 
-  const renderBooking = ({ item }) => {
-    const salonName    = item.salonId?.name || item.salonName || 'Salon';
-    const serviceName  = Array.isArray(item.serviceIds)
-      ? item.serviceIds.map(s => s?.name || s).filter(Boolean).join(' + ')
-      : item.serviceName || 'Service';
-    const date         = item.appointmentDate?.split('T')[0] || item.appointmentDate || '';
-    const time         = item.appointmentTime || '';
-    const canCancel    = ['pending','confirmed'].includes(item.status);
-    const canReview    = item.status === 'completed' && !reviewed.has(item._id) && !item.reviewed;
-
-    return (
-      <View style={styles.bookingCard}>
-        {/* Top row */}
-        <View style={styles.bookingHeader}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.bookingSalon} numberOfLines={1}>{salonName}</Text>
-            <Text style={styles.bookingService} numberOfLines={1}>{serviceName}</Text>
-          </View>
-          <StatusBadge status={item.status} />
-        </View>
-
-        {/* Date & Time */}
-        <View style={styles.bookingMeta}>
-          <View style={styles.bookingMetaItem}>
-            <Ionicons name="calendar-outline" size={14} color="#6b7280" />
-            <Text style={styles.bookingMetaText}>{date}</Text>
-          </View>
-          <View style={styles.bookingMetaItem}>
-            <Ionicons name="time-outline" size={14} color="#6b7280" />
-            <Text style={styles.bookingMetaText}>{time}</Text>
-          </View>
-          {item.totalAmount > 0 && (
-            <View style={styles.bookingMetaItem}>
-              <Ionicons name="cash-outline" size={14} color="#6b7280" />
-              <Text style={styles.bookingMetaText}>₹{item.totalAmount}</Text>
+  const ListHeader = (
+    <>
+      {/* Stats row */}
+      {!loading && (
+        <View style={styles.statsRow}>
+          {[
+            { label: 'Total',     value: stats.total,     color: theme.text },
+            { label: 'Upcoming',  value: stats.upcoming,  color: '#2563eb' },
+            { label: 'Completed', value: stats.completed, color: '#16a34a' },
+          ].map(({ label, value, color }) => (
+            <View key={label} style={styles.statCard}>
+              <Text style={[styles.statValue, { color }]}>{value}</Text>
+              <Text style={styles.statLabel}>{label}</Text>
             </View>
-          )}
+          ))}
         </View>
+      )}
 
-        {/* Actions */}
-        <View style={styles.bookingActions}>
-          {canCancel && (
-            <TouchableOpacity style={styles.cancelBtn} onPress={() => handleCancel(item._id)}>
-              <Ionicons name="close-outline" size={14} color="#dc2626" />
-              <Text style={styles.cancelBtnText}>Cancel</Text>
-            </TouchableOpacity>
-          )}
-          {canReview && (
-            <TouchableOpacity style={styles.reviewBtn} onPress={() => setReviewBooking(item)}>
-              <Ionicons name="star-outline" size={14} color="#f59e0b" />
-              <Text style={styles.reviewBtnText}>Leave Review</Text>
-            </TouchableOpacity>
-          )}
-          {reviewed.has(item._id) && (
-            <View style={styles.reviewedBadge}>
-              <Ionicons name="checkmark-circle" size={14} color="#16a34a" />
-              <Text style={styles.reviewedText}>Reviewed</Text>
+      {/* Confirmed toasts */}
+      {confirmedToasts.map(id => {
+        const b = bookings.find(x => x._id === id);
+        if (!b) return null;
+        return (
+          <View key={id} style={styles.toast}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+              <Text style={{ fontSize: 18 }}>✅</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.toastTitle}>Booking Confirmed!</Text>
+                <Text style={styles.toastBody} numberOfLines={1}>
+                  {b.serviceName} at {b.salonName || b.salonId?.name} — {b.appointmentTime}
+                </Text>
+              </View>
             </View>
-          )}
-        </View>
+            <TouchableOpacity
+              onPress={() => setConfirmedToasts(prev => prev.filter(t => t !== id))}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="close" size={18} color="#16a34a" />
+            </TouchableOpacity>
+          </View>
+        );
+      })}
+
+      {/* Filter tabs — full width, left to right */}
+      <View style={styles.filterRow}>
+        {FILTERS.map(f => (
+          <TouchableOpacity
+            key={f}
+            style={[styles.filterChip, filter === f && styles.filterChipActive]}
+            onPress={() => { setFilter(f); setVisibleCount(PAGE_SIZE); }}
+          >
+            <Text style={[styles.filterChipText, filter === f && styles.filterChipTextActive]}>{f}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
-    );
-  };
+    </>
+  );
 
   return (
     <View style={styles.container}>
@@ -276,79 +711,63 @@ export default function BookingsScreen({ navigation }) {
         </View>
       </View>
 
-      {/* Filter tabs */}
-      <View style={styles.filterRow}>
-        <FlatList
-          initialNumToRender={8}
-          maxToRenderPerBatch={10}
-          windowSize={5}
-          removeClippedSubviews={true}
-          horizontal
-          data={FILTERS}
-          keyExtractor={i => i}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
-          renderItem={({ item }) => (
+      <FlatList
+        initialNumToRender={5}
+        maxToRenderPerBatch={5}
+        windowSize={5}
+        removeClippedSubviews={true}
+        data={loading ? [] : visible}
+        keyExtractor={item => item._id}
+        renderItem={({ item }) => (
+          <BookingCard
+            booking={item}
+            userCoords={userCoords}
+            onCancelled={handleCancelled}
+            theme={theme}
+          />
+        )}
+        contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#2563eb']} />}
+        ListHeaderComponent={ListHeader}
+        ListEmptyComponent={
+          loading ? (
+            <View style={{ paddingTop: 40, alignItems: 'center' }}>
+              <ActivityIndicator size="large" color="#2563eb" />
+            </View>
+          ) : (
+            <View style={styles.empty}>
+              <Text style={{ fontSize: 48, marginBottom: 8 }}>📅</Text>
+              <Text style={styles.emptyTitle}>
+                No {filter === 'All' ? '' : filter.toLowerCase()} bookings
+              </Text>
+              <Text style={styles.emptyText}>
+                {filter === 'All'
+                  ? 'Book your first salon appointment now!'
+                  : `You have no ${filter.toLowerCase()} bookings.`}
+              </Text>
+              {filter === 'All' && (
+                <TouchableOpacity style={styles.exploreBtn} onPress={() => navigation.navigate('HomeTab')}>
+                  <Text style={styles.exploreBtnText}>Explore Salons</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )
+        }
+        ListFooterComponent={
+          hasMore ? (
             <TouchableOpacity
-              style={[styles.filterChip, filter === item && styles.filterChipActive]}
-              onPress={() => { setFilter(item); setVisibleCount(PAGE_SIZE); }}
+              style={styles.loadMoreBtn}
+              onPress={() => setVisibleCount(c => c + PAGE_SIZE)}
+              activeOpacity={0.8}
             >
-              <Text style={[styles.filterChipText, filter === item && styles.filterChipTextActive]}>{item}</Text>
+              <Text style={styles.loadMoreText}>Load More</Text>
+              <Ionicons name="chevron-down" size={16} color={theme.accent} />
             </TouchableOpacity>
-          )}
-        />
-      </View>
-
-      {loading ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator size="large" color="#2563eb" />
-        </View>
-      ) : filtered.length === 0 ? (
-        <View style={styles.empty}>
-          <Ionicons name="calendar-outline" size={52} color="#d1d5db" />
-          <Text style={styles.emptyTitle}>No {filter === 'All' ? '' : filter.toLowerCase()} bookings</Text>
-          <Text style={styles.emptyText}>
-            {filter === 'All' ? 'Book your first salon appointment now!' : `You have no ${filter.toLowerCase()} bookings.`}
-          </Text>
-          {filter === 'All' && (
-            <TouchableOpacity style={styles.exploreBtn} onPress={() => navigation.navigate('HomeTab')}>
-              <Text style={styles.exploreBtnText}>Explore Salons</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      ) : (
-        <FlatList
-          initialNumToRender={8}
-          maxToRenderPerBatch={10}
-          windowSize={5}
-          removeClippedSubviews={true}
-          data={visible}
-          keyExtractor={item => item._id}
-          renderItem={renderBooking}
-          contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32 }}
-          showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#2563eb']} />}
-          ListFooterComponent={
-            hasMore ? (
-              <TouchableOpacity
-                style={styles.loadMoreBtn}
-                onPress={() => setVisibleCount(c => c + PAGE_SIZE)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.loadMoreText}>Load More</Text>
-                <Ionicons name="chevron-down" size={16} color={theme.accent} />
-              </TouchableOpacity>
-            ) : filtered.length > PAGE_SIZE ? (
-              <Text style={styles.allLoadedText}>All {filtered.length} bookings shown</Text>
-            ) : null
-          }
-        />
-      )}
-
-      <ReviewModal
-        visible={!!reviewBooking}
-        onClose={() => setReviewBooking(null)}
-        onSubmit={handleReviewSubmit}
+          ) : filtered.length > PAGE_SIZE ? (
+            <Text style={styles.allLoadedText}>All {filtered.length} bookings shown</Text>
+          ) : null
+        }
       />
     </View>
   );
@@ -363,28 +782,20 @@ const getStyles = (t) => StyleSheet.create({
   menuBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: t.bg, alignItems: 'center', justifyContent: 'center' },
   notifBadge: { position: 'absolute', top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: t.card },
   notifBadgeText: { color: '#fff', fontSize: 9, fontWeight: '700' },
-  filterRow: { backgroundColor: t.card, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: t.border },
-  filterChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, backgroundColor: t.border, borderWidth: 1.5, borderColor: t.border },
-  filterChipActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
-  filterChipText: { fontSize: 13, fontWeight: '600', color: t.subText },
+  statsRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
+  statCard: { flex: 1, backgroundColor: t.card, borderRadius: 12, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: t.border },
+  statValue: { fontSize: 22, fontWeight: '800' },
+  statLabel: { fontSize: 11, color: t.subText, marginTop: 2 },
+  toast: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, backgroundColor: '#f0fdf4', borderWidth: 1, borderColor: '#bbf7d0', borderRadius: 12, marginBottom: 10, gap: 8 },
+  toastTitle: { fontSize: 13, fontWeight: '700', color: '#15803d' },
+  toastBody: { fontSize: 11, color: '#16a34a', marginTop: 1 },
+  // Filter tabs: full-width row, each chip gets flex: 1
+  filterRow: { flexDirection: 'row', backgroundColor: t.card, borderRadius: 12, padding: 4, borderWidth: 1, borderColor: t.border, marginBottom: 14 },
+  filterChip: { flex: 1, paddingVertical: 9, alignItems: 'center', justifyContent: 'center', borderRadius: 9 },
+  filterChipActive: { backgroundColor: '#4f46e5' },
+  filterChipText: { fontSize: 12, fontWeight: '600', color: t.subText },
   filterChipTextActive: { color: '#fff' },
-  bookingCard: { backgroundColor: t.card, borderRadius: 14, padding: 14, gap: 10, borderWidth: 1, borderColor: t.border, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
-  bookingHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  bookingSalon: { fontSize: 15, fontWeight: '700', color: t.text },
-  bookingService: { fontSize: 13, color: t.subText, marginTop: 2 },
-  badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, borderWidth: 1 },
-  badgeText: { fontSize: 11, fontWeight: '700' },
-  bookingMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  bookingMetaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  bookingMetaText: { fontSize: 12, color: t.subText },
-  bookingActions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  cancelBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: '#fca5a5', backgroundColor: '#fff1f2' },
-  cancelBtnText: { fontSize: 12, fontWeight: '600', color: '#dc2626' },
-  reviewBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: '#fde68a', backgroundColor: '#fefce8' },
-  reviewBtnText: { fontSize: 12, fontWeight: '600', color: '#d97706' },
-  reviewedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5 },
-  reviewedText: { fontSize: 12, color: '#16a34a', fontWeight: '600' },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, gap: 10 },
+  empty: { alignItems: 'center', padding: 40, gap: 10, paddingTop: 20 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: t.text },
   emptyText: { fontSize: 14, color: t.subText, textAlign: 'center', lineHeight: 20 },
   exploreBtn: { marginTop: 8, backgroundColor: '#2563eb', borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12 },
@@ -393,15 +804,6 @@ const getStyles = (t) => StyleSheet.create({
   guestText: { fontSize: 14, color: t.subText, textAlign: 'center', lineHeight: 20, marginBottom: 8 },
   signInBtn: { backgroundColor: '#2563eb', borderRadius: 12, paddingHorizontal: 32, paddingVertical: 12, marginTop: 8 },
   signInBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
-  reviewModal: { backgroundColor: t.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, gap: 16 },
-  reviewModalTitle: { fontSize: 18, fontWeight: '700', color: t.text, textAlign: 'center' },
-  starsRow: { flexDirection: 'row', justifyContent: 'center', gap: 8 },
-  reviewInput: { borderWidth: 1.5, borderColor: t.inputBorder, borderRadius: 12, padding: 12, fontSize: 14, color: t.text, minHeight: 80, textAlignVertical: 'top' },
-  reviewCancelBtn: { flex: 1, height: 48, borderRadius: 12, borderWidth: 1.5, borderColor: t.inputBorder, alignItems: 'center', justifyContent: 'center' },
-  reviewCancelText: { fontSize: 14, fontWeight: '600', color: t.subText },
-  reviewSubmitBtn: { flex: 2, height: 48, borderRadius: 12, backgroundColor: '#2563eb', alignItems: 'center', justifyContent: 'center' },
-  reviewSubmitText: { fontSize: 14, fontWeight: '700', color: '#fff' },
   loadMoreBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 8, paddingVertical: 14, borderRadius: 12, backgroundColor: t.card, borderWidth: 1, borderColor: t.border },
   loadMoreText: { fontSize: 14, fontWeight: '700', color: t.accent },
   allLoadedText: { textAlign: 'center', fontSize: 12, color: t.subText, marginTop: 12, paddingBottom: 8 },
