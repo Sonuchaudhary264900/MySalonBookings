@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, Users, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BarChart3, TrendingUp, Users, RefreshCw, ChevronLeft, ChevronRight, Download, FileText } from 'lucide-react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import DateRangeFilter from '../../components/reports/DateRangeFilter';
 import { formatDate, formatTime } from '../../utils/exportHelpers';
 import api from '../../services/api';
 import * as salonService from '../../services/salonService';
+import { useSalon } from '../../hooks/useSalon';
+import toast from 'react-hot-toast';
 
 const localDate = (offset = 0) => {
   const d = new Date();
@@ -21,6 +23,7 @@ const STATUS_COLORS = {
 };
 
 const Reports = () => {
+  const { salon } = useSalon();
   const today         = localDate(0);
   const thirtyDaysAgo = localDate(-30);
 
@@ -80,6 +83,135 @@ const Reports = () => {
   const topServices    = data?.topServices          ?? [];
   const avgDaily       = dailyRevenue.length ? Math.round(totalRevenue / dailyRevenue.length) : 0;
 
+  const exportCSV = () => {
+    const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const rows = [
+      ['ANALYTICS REPORT'],
+      [`Period: ${formatDate(startDate)} to ${formatDate(endDate)}`],
+      [`Generated: ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}`],
+      [],
+      ['SUMMARY'],
+      ['Metric', 'Value'],
+      ['Total Revenue', `Rs ${totalRevenue.toLocaleString()}`],
+      ['Total Bookings', totalBookings],
+      ['Completed Bookings', completed],
+      ['Pending Bookings', pending],
+      ['Cancelled Bookings', cancelled],
+      ['Avg Daily Revenue', `Rs ${avgDaily.toLocaleString()}`],
+      [],
+      ['DAILY REVENUE'],
+      ['Date', 'Revenue (Rs)', 'Bookings'],
+      ...dailyRevenue.map(d => [d.date, d.revenue, d.bookings]),
+      [],
+      ['TOP SERVICES'],
+      ['Rank', 'Service Name', 'Bookings', 'Revenue (Rs)'],
+      ...topServices.map((s, i) => [i + 1, s.name, s.bookings, s.revenue]),
+      [],
+      ['RECENT BOOKINGS'],
+      ['Customer', 'Service', 'Date', 'Time', 'Status', 'Amount (Rs)'],
+      ...recentBookings.map(b => [
+        b.customerName || '—',
+        b.serviceName  || '—',
+        b.appointmentDate ? new Date(b.appointmentDate).toLocaleDateString('en-IN') : '—',
+        b.appointmentTime || '—',
+        (b.status || '').replace('_', ' '),
+        b.totalAmount || 0,
+      ]),
+    ];
+    const csv = rows.map(r => r.map(esc).join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${salon?.name || 'salon'}-report-${startDate}-to-${endDate}.csv`;
+    link.click();
+    toast.success('CSV downloaded!');
+  };
+
+  const exportPDF = () => {
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>${salon?.name || 'Salon'} — Analytics Report</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:Arial,sans-serif;color:#1f2937;padding:32px;font-size:13px}
+  h1{font-size:22px;color:#4f46e5;margin-bottom:2px}
+  .sub{font-size:12px;color:#6b7280;margin-bottom:24px}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+  .stat{padding:14px;border-radius:8px;border:1px solid #e5e7eb}
+  .stat-label{font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+  .stat-value{font-size:20px;font-weight:700}
+  .stat-sub{font-size:11px;color:#6b7280;margin-top:3px}
+  .blue{background:#eff6ff}.blue .stat-value{color:#1d4ed8}
+  .green{background:#f0fdf4}.green .stat-value{color:#15803d}
+  .purple{background:#f5f3ff}.purple .stat-value{color:#7c3aed}
+  h2{font-size:14px;font-weight:700;margin:20px 0 10px;border-bottom:2px solid #e5e7eb;padding-bottom:6px;color:#111827}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{background:#f9fafb;text-align:left;padding:8px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#6b7280;border-bottom:1px solid #e5e7eb}
+  td{padding:8px 10px;border-bottom:1px solid #f3f4f6}
+  tr:last-child td{border-bottom:none}
+  .badge{display:inline-block;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:600}
+  .completed{background:#dcfce7;color:#15803d}
+  .pending{background:#fef9c3;color:#a16207}
+  .cancelled{background:#fee2e2;color:#b91c1c}
+  .confirmed{background:#dbeafe;color:#1d4ed8}
+  .in_progress{background:#f3e8ff;color:#7c3aed}
+  .empty{text-align:center;color:#9ca3af;padding:16px}
+  .footer{margin-top:28px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center}
+  @media print{body{padding:0}@page{margin:10mm}}
+</style></head><body>
+<h1>✂ ${salon?.name || 'My Salon'}</h1>
+<p class="sub">Analytics Report &nbsp;·&nbsp; ${formatDate(startDate)} – ${formatDate(endDate)} &nbsp;·&nbsp; Generated ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+<div class="stats">
+  <div class="stat blue">
+    <div class="stat-label">Total Revenue</div>
+    <div class="stat-value">₹${totalRevenue.toLocaleString()}</div>
+  </div>
+  <div class="stat green">
+    <div class="stat-label">Total Bookings</div>
+    <div class="stat-value">${totalBookings}</div>
+    <div class="stat-sub">${completed} completed · ${pending} pending · ${cancelled} cancelled</div>
+  </div>
+  <div class="stat purple">
+    <div class="stat-label">Avg Daily Revenue</div>
+    <div class="stat-value">₹${avgDaily.toLocaleString()}</div>
+    <div class="stat-sub">Across ${dailyRevenue.length} day${dailyRevenue.length !== 1 ? 's' : ''}</div>
+  </div>
+</div>
+<h2>Daily Revenue</h2>
+<table>
+  <tr><th>Date</th><th>Revenue (₹)</th><th>Bookings</th></tr>
+  ${dailyRevenue.length ? dailyRevenue.map(d => `<tr><td>${d.date}</td><td>₹${d.revenue.toLocaleString()}</td><td>${d.bookings}</td></tr>`).join('') : '<tr><td colspan="3" class="empty">No data for this period</td></tr>'}
+</table>
+<h2>Top Services</h2>
+<table>
+  <tr><th>#</th><th>Service</th><th>Bookings</th><th>Revenue (₹)</th></tr>
+  ${topServices.length ? topServices.map((s, i) => `<tr><td>${i + 1}</td><td>${s.name}</td><td>${s.bookings}</td><td>₹${s.revenue.toLocaleString()}</td></tr>`).join('') : '<tr><td colspan="4" class="empty">No service data</td></tr>'}
+</table>
+${recentBookings.length ? `<h2>Recent Bookings</h2>
+<table>
+  <tr><th>Customer</th><th>Service</th><th>Date</th><th>Time</th><th>Status</th><th>Amount</th></tr>
+  ${recentBookings.map(b => `<tr>
+    <td>${b.customerName || '—'}</td><td>${b.serviceName || '—'}</td>
+    <td>${b.appointmentDate ? new Date(b.appointmentDate).toLocaleDateString('en-IN') : '—'}</td>
+    <td>${b.appointmentTime || '—'}</td>
+    <td><span class="badge ${b.status || ''}">${(b.status || '').replace('_', ' ')}</span></td>
+    <td>${b.totalAmount ? '₹' + b.totalAmount.toLocaleString() : '—'}</td>
+  </tr>`).join('')}
+</table>` : ''}
+<div class="footer">Powered by My Salon Bookings · mysalonbookings.com</div>
+</body></html>`;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:0';
+    iframe.srcdoc = html;
+    document.body.appendChild(iframe);
+    iframe.onload = () => {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+      setTimeout(() => document.body.removeChild(iframe), 3000);
+    };
+    toast.success('Print dialog opened — save as PDF!');
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -90,14 +222,34 @@ const Reports = () => {
             <h1 className="text-3xl font-bold text-gray-900">Analytics</h1>
             <p className="text-gray-600 mt-1">Real-time overview of your salon's performance</p>
           </div>
-          <button
-            onClick={fetchAnalytics}
-            disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            {!loading && data && (
+              <>
+                <button
+                  onClick={exportCSV}
+                  className="flex items-center gap-2 px-4 py-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg transition"
+                >
+                  <Download className="w-4 h-4" />
+                  Export CSV
+                </button>
+                <button
+                  onClick={exportPDF}
+                  className="flex items-center gap-2 px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition"
+                >
+                  <FileText className="w-4 h-4" />
+                  Export PDF
+                </button>
+              </>
+            )}
+            <button
+              onClick={fetchAnalytics}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
         </div>
 
         {/* Date Range Filter */}
