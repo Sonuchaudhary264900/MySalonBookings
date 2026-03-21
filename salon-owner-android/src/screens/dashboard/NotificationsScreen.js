@@ -5,7 +5,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNotifications } from '../../context/NotificationContext';
-import DrawerMenuButton from '../../components/DrawerMenuButton';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 
 const TYPE_CONFIG = {
@@ -29,6 +29,7 @@ function timeAgo(isoStr) {
 export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const navigation = useNavigation();
   const { notifications, unreadCount, markRead, markAllRead, remove, clearAll } = useNotifications();
 
   const handleClearAll = () => {
@@ -72,7 +73,16 @@ export default function NotificationsScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: 14 + insets.top }]}>
         <View>
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}><Text style={styles.headerTitle}>Notifications</Text><DrawerMenuButton /></View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={{ padding: 4, marginTop: 4 }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="arrow-back" size={24} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Notifications</Text>
+          </View>
           {unreadCount > 0 && (
             <Text style={styles.headerSub}>{unreadCount} unread</Text>
           )}

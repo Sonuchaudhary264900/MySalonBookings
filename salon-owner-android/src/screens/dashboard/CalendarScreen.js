@@ -6,7 +6,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
-import DrawerMenuButton from '../../components/DrawerMenuButton';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { formatTime, STATUS_COLORS } from '../../utils/helpers';
 
@@ -20,6 +20,7 @@ function toDateStr(date) {
 export default function CalendarScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const navigation = useNavigation();
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
@@ -88,8 +89,14 @@ export default function CalendarScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: 12 + insets.top }]}>
         <View style={styles.headerRow}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={{ padding: 4, marginTop: 4 }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>Calendar</Text>
-          <DrawerMenuButton />
         </View>
         <Text style={styles.headerSub}>View and manage bookings by date</Text>
       </View>

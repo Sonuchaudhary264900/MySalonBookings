@@ -6,7 +6,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
-import DrawerMenuButton from '../../components/DrawerMenuButton';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { formatDate } from '../../utils/helpers';
 
@@ -92,6 +92,7 @@ function CustomerDetailModal({ customer, visible, onClose, theme }) {
 export default function CustomersScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const navigation = useNavigation();
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -147,8 +148,14 @@ export default function CustomersScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: 12 + insets.top }]}>
         <View style={styles.headerRow}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={{ padding: 4, marginTop: 4 }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>Customers</Text>
-          <DrawerMenuButton />
         </View>
         <View style={styles.searchBar}>
           <Ionicons name="search-outline" size={16} color="#93c5fd" />

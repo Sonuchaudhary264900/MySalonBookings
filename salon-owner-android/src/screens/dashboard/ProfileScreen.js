@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
@@ -11,7 +11,6 @@ import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
 import { WebView } from 'react-native-webview';
 import { useAuth } from '../../context/AuthContext';
-import DrawerMenuButton from '../../components/DrawerMenuButton';
 import { useTheme } from '../../context/ThemeContext';
 import { useSalon } from '../../context/SalonContext';
 import { showSuccess, showError } from '../../utils/toast';
@@ -57,6 +56,7 @@ function Section({ id, activeSection, setActiveSection, icon, iconBg, iconColor,
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const navigation = useNavigation();
   const { user, logout, updateProfile, changePassword, refreshUser } = useAuth();
   const { salon } = useSalon();
 
@@ -283,7 +283,13 @@ img.src=${qrApiUrl};
 
       {/* Page header — matches web */}
       <View style={[styles.pageHeader, { paddingTop: insets.top + 12, backgroundColor: theme.card, borderBottomColor: theme.border }]}>
-        <DrawerMenuButton color={theme.text} />
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={{ padding: 4, marginTop: 4 }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="arrow-back" size={24} color={theme.text} />
+        </TouchableOpacity>
         <Text style={[styles.pageTitle, { color: theme.text }]}>My Profile</Text>
         <Text style={[styles.pageSubtitle, { color: theme.subText }]}>Tap a section to view or edit your details</Text>
       </View>

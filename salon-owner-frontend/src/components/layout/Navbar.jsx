@@ -134,15 +134,17 @@ const Navbar = ({ onMenuToggle }) => {
       <div className="px-4 md:px-6 py-4 flex items-center justify-between">
         {/* Left Side */}
         <div className="flex items-center gap-4">
-          {/* Menu Toggle */}
-          <button
-            onClick={onMenuToggle}
-            className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition"
-            type="button"
-            title="Toggle menu"
-          >
-            <Menu className="w-5 h-5 text-gray-600" />
-          </button>
+          {/* Menu Toggle — only on dashboard & settings */}
+          {onMenuToggle && (
+            <button
+              onClick={onMenuToggle}
+              className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition"
+              type="button"
+              title="Toggle menu"
+            >
+              <Menu className="w-5 h-5 text-gray-600" />
+            </button>
+          )}
 
           {/* Logo */}
           <div className="hidden sm:flex items-center gap-2">

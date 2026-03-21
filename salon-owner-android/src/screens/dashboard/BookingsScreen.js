@@ -7,7 +7,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
-import DrawerMenuButton from '../../components/DrawerMenuButton';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { showSuccess, showError } from '../../utils/toast';
 import { useSalon } from '../../context/SalonContext';
@@ -199,6 +199,7 @@ function WalkInModal({ visible, onClose, salonId, services, onSuccess }) {
 export default function BookingsScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const navigation = useNavigation();
   const { salon } = useSalon();
 
   // View mode: 'upcoming' (default) or 'all'
@@ -485,7 +486,13 @@ export default function BookingsScreen() {
       {/* Header */}
       <View style={[bStyles.header, { paddingTop: 12 + insets.top }]}>
         <View style={bStyles.headerTop}>
-          <DrawerMenuButton style={{ marginRight: 4 }} />
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={{ padding: 4, marginTop: 4, marginRight: 4 }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
           <Text style={bStyles.headerTitle}>Bookings</Text>
           <TouchableOpacity style={bStyles.walkInBtn} onPress={() => setShowModal(true)}>
             <Ionicons name="add" size={18} color="#fff" />

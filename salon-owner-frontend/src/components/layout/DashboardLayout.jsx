@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
 import BottomNav from './BottomNav';
 import useSwipeNav from '../../hooks/useSwipeNav';
+import ROUTES from '../../routes';
 
 /**
  * DashboardLayout Component
@@ -22,6 +24,8 @@ import useSwipeNav from '../../hooks/useSwipeNav';
  */
 const DashboardLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { pathname } = useLocation();
+  const showMenuToggle = pathname === ROUTES.DASHBOARD || pathname === ROUTES.SETTINGS;
   useSwipeNav();
 
   // Left-edge swipe to open drawer (< 30px from left edge → swipe right)
@@ -56,7 +60,7 @@ const DashboardLayout = ({ children }) => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Navbar */}
-      <Navbar onMenuToggle={handleMenuToggle} />
+      <Navbar onMenuToggle={showMenuToggle ? handleMenuToggle : undefined} />
 
       {/* Main Container */}
       <div className="flex flex-1 overflow-hidden">

@@ -1,37 +1,46 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Share, Platform, Alert, TextInput,
+  ActivityIndicator, RefreshControl, Share, Alert, TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import api from '../../services/api';
-import DrawerMenuButton from '../../components/DrawerMenuButton';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { localDate, formatDate, formatTime, STATUS_COLORS } from '../../utils/helpers';
 
+// ── Revenue Bar Chart ──────────────────────────────────────────────────────
 function RevenueBarChart({ data, theme }) {
-  if (!data || data.length === 0) return null;
+  if (!data || data.length === 0) return (
+    <View style={{ paddingVertical: 32, alignItems: 'center' }}>
+      <Text style={{ color: theme.subText, fontSize: 13 }}>No data for this period.</Text>
+    </View>
+  );
   const show = data.slice(-14);
   const maxVal = Math.max(...show.map(d => d.revenue || 0), 1);
   return (
     <View>
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: 120 }}>
         {show.map((d, i) => {
-          const pct = Math.max(0.03, (d.revenue || 0) / maxVal);
+          const pct = Math.max(0.04, (d.revenue || 0) / maxVal);
           return (
             <View key={i} style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end', height: '100%', marginHorizontal: 1 }}>
-              <View style={{ width: '100%', height: `${Math.round(pct * 100)}%`, backgroundColor: '#2563eb', borderRadius: 3, opacity: 0.85 }} />
+              <View style={{ width: '100%', height: `${Math.round(pct * 100)}%`, backgroundColor: '#6366f1', borderRadius: 3 }} />
             </View>
           );
         })}
       </View>
-      {show.length <= 10 && (
-        <View style={{ flexDirection: 'row', marginTop: 4 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6, borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 4 }}>
+        <Text style={{ fontSize: 10, color: theme.subText }}>₹0</Text>
+        <Text style={{ fontSize: 10, color: theme.subText }}>₹{maxVal.toLocaleString()}</Text>
+      </View>
+      {show.length <= 14 && (
+        <View style={{ flexDirection: 'row', marginTop: 2 }}>
           {show.map((d, i) => (
-            <Text key={i} style={{ flex: 1, fontSize: 7, color: theme.subText || '#9ca3af', textAlign: 'center' }}>
+            <Text key={i} style={{ flex: 1, fontSize: 7, color: theme.subText, textAlign: 'center' }}>
               {d.date ? d.date.slice(5) : ''}
             </Text>
           ))}
@@ -41,126 +50,88 @@ function RevenueBarChart({ data, theme }) {
   );
 }
 
-// ── Booking Donut Chart (pure View, no SVG) ────────────────────────────────
-function BookingPieChart({ completed, pending, cancelled, total, theme }) {
-  const RING_SIZE = 100;
+// ── Booking Status Donut ────────────────────────────────────────────────────
+function BookingDonut({ completed, pending, cancelled, total, theme }) {
   const slices = [
-    { label: 'Completed', value: completed, color: '#10b981', bg: '#dcfce7' },
-    { label: 'Pending',   value: pending,   color: '#f59e0b', bg: '#fef9c3' },
-    { label: 'Cancelled', value: cancelled, color: '#dc2626', bg: '#fee2e2' },
+    { label: 'Completed', value: completed, color: '#16a34a' },
+    { label: 'Pending',   value: pending,   color: '#ca8a04' },
+    { label: 'Cancelled', value: cancelled, color: '#dc2626' },
   ].filter(s => s.value > 0);
 
-  // Build stacked ring using border segments
-  const segments = slices.map(s => ({ ...s, pct: total > 0 ? (s.value / total) * 100 : 0 }));
+  if (total === 0) return (
+    <View style={{ paddingVertical: 24, alignItems: 'center' }}>
+      <Text style={{ color: theme.subText, fontSize: 13 }}>No bookings yet.</Text>
+    </View>
+  );
 
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-      {/* Ring */}
-      <View style={{ width: RING_SIZE, height: RING_SIZE, justifyContent: 'center', alignItems: 'center' }}>
-        {total === 0 ? (
-          <View style={{ width: RING_SIZE, height: RING_SIZE, borderRadius: RING_SIZE / 2, borderWidth: 16, borderColor: theme.border || '#e5e7eb' }} />
-        ) : (
-          <View style={{ width: RING_SIZE, height: RING_SIZE, borderRadius: RING_SIZE / 2, overflow: 'hidden', backgroundColor: theme.border || '#e5e7eb' }}>
-            {segments.map((s, i) => (
-              <View key={s.label} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
-                <View style={{ flex: 1, backgroundColor: i === 0 ? s.color : 'transparent' }} />
-              </View>
-            ))}
-            {/* Simple stacked bars as donut approximation */}
-            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', height: RING_SIZE }}>
-              {segments.map(s => (
-                <View key={s.label} style={{ flex: s.pct, backgroundColor: s.color }} />
-              ))}
-            </View>
-            {/* Inner hole */}
-            <View style={{ position: 'absolute', top: RING_SIZE * 0.22, left: RING_SIZE * 0.22, width: RING_SIZE * 0.56, height: RING_SIZE * 0.56, borderRadius: RING_SIZE * 0.28, backgroundColor: theme.card || '#fff', justifyContent: 'center', alignItems: 'center' }}>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: theme.text || '#111827' }}>{total}</Text>
-              <Text style={{ fontSize: 8, color: theme.subText || '#6b7280' }}>bookings</Text>
-            </View>
-          </View>
-        )}
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+      {/* Simple stacked bar as donut approximation */}
+      <View style={{ width: 90, height: 90, borderRadius: 45, overflow: 'hidden', position: 'relative' }}>
+        <View style={{ flexDirection: 'row', height: 90 }}>
+          {slices.map(s => (
+            <View key={s.label} style={{ flex: s.value, backgroundColor: s.color }} />
+          ))}
+        </View>
+        {/* Inner hole */}
+        <View style={{
+          position: 'absolute',
+          top: 18, left: 18, width: 54, height: 54,
+          borderRadius: 27, backgroundColor: theme.card,
+          alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Text style={{ fontSize: 16, fontWeight: '700', color: theme.text }}>{total}</Text>
+        </View>
       </View>
-
       {/* Legend */}
-      <View style={{ flex: 1, marginLeft: 12 }}>
-        {total === 0 ? (
-          <Text style={{ color: theme.subText, fontSize: 12 }}>No booking data</Text>
-        ) : (
-          slices.map((s, i) => (
-            <View key={s.label} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: i < slices.length - 1 ? 10 : 0 }}>
-              <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: s.color, marginRight: 8 }} />
-              <Text style={{ flex: 1, fontSize: 13, color: theme.text || '#111827' }}>{s.label}</Text>
-              <View style={[styles.breakdownBadge, { backgroundColor: s.bg }]}>
-                <Text style={[styles.breakdownBadgeText, { color: s.color }]}>
-                  {s.value} ({Math.round((s.value / total) * 100)}%)
-                </Text>
-              </View>
+      <View style={{ flex: 1, gap: 8 }}>
+        {slices.map(s => (
+          <View key={s.label} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: s.color }} />
+              <Text style={{ fontSize: 13, color: theme.text }}>{s.label}</Text>
             </View>
-          ))
-        )}
+            <Text style={{ fontSize: 13, fontWeight: '600', color: theme.text }}>
+              {s.value}{' '}
+              <Text style={{ fontWeight: '400', color: theme.subText }}>({Math.round((s.value / total) * 100)}%)</Text>
+            </Text>
+          </View>
+        ))}
       </View>
     </View>
   );
 }
 
-function getThisMonthRange() {
-  const now = new Date();
-  const start = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-  const end   = localDate(0);
-  return { start, end };
-}
-
-function getThisYearRange() {
-  const year  = new Date().getFullYear();
-  const start = `${year}-01-01`;
-  const end   = localDate(0);
-  return { start, end };
-}
-
-// Each preset: label + getRange() → { start, end }
-const PRESETS = [
-  { label: 'Today',      getRange: () => { const d = localDate(0); return { start: d, end: d }; } },
-  { label: '7 Days',     getRange: () => ({ start: localDate(-7),  end: localDate(0) }) },
-  { label: '30 Days',    getRange: () => ({ start: localDate(-30), end: localDate(0) }) },
-  { label: '90 Days',    getRange: () => ({ start: localDate(-90), end: localDate(0) }) },
-  { label: 'This Month', getRange: getThisMonthRange },
-  { label: '3 Months',   getRange: () => ({ start: localDate(-90), end: localDate(0) }) },
-  { label: 'This Year',  getRange: getThisYearRange },
-];
-
 const today = localDate(0);
+const thirtyDaysAgo = localDate(-30);
 
 export default function ReportsScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const [preset, setPreset] = useState(1); // default: 7 days
-  const [isCustom, setIsCustom] = useState(false);
-  const [customStart, setCustomStart] = useState(localDate(-30));
-  const [customEnd, setCustomEnd] = useState(localDate(0));
-  const [analytics, setAnalytics] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const navigation = useNavigation();
+
+  const [startDate, setStartDate] = useState(thirtyDaysAgo);
+  const [endDate,   setEndDate]   = useState(today);
+  const [data,      setData]      = useState(null);
+  const [loading,   setLoading]   = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState(null);
 
   // Recent Bookings date navigator
-  const [bookingsDate, setBookingsDate] = useState(today);
-  const [bookingsList, setBookingsList] = useState([]);
+  const [bookingsDate,    setBookingsDate]    = useState(today);
+  const [bookingsList,    setBookingsList]    = useState([]);
   const [bookingsLoading, setBookingsLoading] = useState(false);
 
-  const fetchAnalytics = useCallback(async (presetIndex, start, end, isRefresh = false) => {
-    if (!isRefresh) setLoading(true);
-    setError(null);
-    const range = start && end ? { start, end } : PRESETS[presetIndex].getRange();
+  const fetchAnalytics = useCallback(async () => {
+    setLoading(true);
     try {
-      const res = await api.get(`/owner/analytics/dashboard?startDate=${range.start}&endDate=${range.end}`);
-      setAnalytics(res.data.data || null);
-    } catch (err) {
-      setAnalytics(null);
-      setError(err.message || 'Failed to load analytics');
+      const res = await api.get(`/owner/analytics/dashboard?startDate=${startDate}&endDate=${endDate}`);
+      setData(res.data.data || null);
+    } catch {
+      setData(null);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [startDate, endDate]);
 
   const fetchBookingsByDate = useCallback(async (date) => {
     setBookingsLoading(true);
@@ -180,364 +151,332 @@ export default function ReportsScreen() {
     if (next <= today) setBookingsDate(next);
   };
 
-  useEffect(() => {
-    if (!isCustom) fetchAnalytics(preset, null, null);
-  }, [preset, isCustom]);
-
+  useEffect(() => { fetchAnalytics(); }, [startDate, endDate]);
   useEffect(() => { fetchBookingsByDate(bookingsDate); }, [bookingsDate]);
-
-  const applyCustomRange = () => {
-    if (!customStart || !customEnd) return;
-    fetchAnalytics(preset, customStart, customEnd);
-  };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    const range = isCustom ? { start: customStart, end: customEnd } : null;
-    await fetchAnalytics(preset, range?.start, range?.end, true);
+    await fetchAnalytics();
     await fetchBookingsByDate(bookingsDate);
     setRefreshing(false);
   };
 
+  // ── Derived values ─────────────────────────────────────────────────────
+  const totalRevenue    = data?.totalRevenue     ?? 0;
+  const totalBookings   = data?.totalBookings    ?? 0;
+  const activeCustomers = data?.activeCustomers  ?? 0;
+  const growthRate      = data?.growthRate       ?? 0;
+  const completed       = data?.completedBookings ?? 0;
+  const pending         = data?.pendingBookings   ?? 0;
+  const cancelled       = data?.cancelledBookings ?? 0;
+  const dailyRevenue    = data?.dailyRevenue      ?? [];
+  const topServices     = data?.topServices       ?? [];
+  const avgDaily        = dailyRevenue.length ? Math.round(totalRevenue / dailyRevenue.length) : 0;
+
+  // ── Export CSV ─────────────────────────────────────────────────────────
   const exportCSV = async () => {
-    if (!analytics) { Alert.alert('No Data', 'Load analytics data first.'); return; }
-    const d = analytics;
-    const label = PRESETS[preset].label;
+    if (!data) { Alert.alert('No Data', 'Load analytics data first.'); return; }
+    const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const rows = [
-      ['Analytics Report', label],
+      ['ANALYTICS REPORT'],
+      [`Period: ${formatDate(startDate)} to ${formatDate(endDate)}`],
+      [`Generated: ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}`],
       [],
-      ['Summary'],
-      ['Total Revenue', `₹${d.totalRevenue ?? 0}`],
-      ['Total Bookings', d.totalBookings ?? 0],
-      ['Completed', d.completedBookings ?? 0],
-      ['Pending', d.pendingBookings ?? 0],
-      ['Cancelled', d.cancelledBookings ?? 0],
-      ['Active Customers', d.activeCustomers ?? 0],
+      ['SUMMARY'],
+      ['Metric', 'Value'],
+      ['Total Revenue', `Rs ${totalRevenue.toLocaleString()}`],
+      ['Total Bookings', totalBookings],
+      ['Completed Bookings', completed],
+      ['Pending Bookings', pending],
+      ['Cancelled Bookings', cancelled],
+      ['Avg Daily Revenue', `Rs ${avgDaily.toLocaleString()}`],
       [],
-      ['Daily Revenue'],
-      ['Date', 'Bookings', 'Revenue'],
-      ...(d.dailyRevenue || []).map(r => [r.date, r.bookings ?? r.count ?? 0, r.revenue ?? 0]),
+      ['DAILY REVENUE'],
+      ['Date', 'Revenue (Rs)', 'Bookings'],
+      ...dailyRevenue.map(r => [r.date, r.revenue, r.bookings]),
       [],
-      ['Top Services'],
-      ['Rank', 'Service', 'Bookings', 'Revenue'],
-      ...(d.topServices || []).map((s, i) => [i + 1, s.name || s.serviceName, s.bookings ?? s.count ?? 0, s.revenue ?? 0]),
+      ['TOP SERVICES'],
+      ['Rank', 'Service Name', 'Bookings', 'Revenue (Rs)'],
+      ...topServices.map((s, i) => [i + 1, s.name || s.serviceName, s.bookings ?? s.count ?? 0, s.revenue ?? 0]),
     ];
-    const csv = '\uFEFF' + rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csv = '\uFEFF' + rows.map(r => r.map(esc).join(',')).join('\n');
     try {
-      if (Platform.OS === 'ios') {
-        const path = FileSystem.documentDirectory + 'analytics-report.csv';
-        await FileSystem.writeAsStringAsync(path, csv, { encoding: FileSystem.EncodingType.UTF8 });
-        await Share.share({ url: path, title: 'Analytics Report' });
-      } else {
-        await Share.share({ message: csv, title: 'Analytics Report' });
-      }
-    } catch { /* user dismissed */ }
+      await Share.share({ message: csv, title: 'Analytics Report' });
+    } catch { /* dismissed */ }
   };
 
+  // ── Export PDF ─────────────────────────────────────────────────────────
   const downloadPDF = async () => {
-    if (!analytics) { Alert.alert('No Data', 'Load analytics data first.'); return; }
-    const d = analytics;
-    const label = PRESETS[preset].label;
-
-    const kpiCards = [
-      { label: 'Total Revenue', value: `&#8377;${d.totalRevenue ?? 0}`, color: '#10b981' },
-      { label: 'Total Bookings', value: d.totalBookings ?? 0, color: '#3b82f6' },
-      { label: 'Completed', value: d.completedBookings ?? 0, color: '#10b981' },
-      { label: 'Pending', value: d.pendingBookings ?? 0, color: '#f59e0b' },
-      { label: 'Cancelled', value: d.cancelledBookings ?? 0, color: '#ef4444' },
-      { label: 'Active Customers', value: d.activeCustomers ?? 0, color: '#8b5cf6' },
-    ];
-
-    const topServicesRows = (d.topServices || []).map((s, i) => `
-      <tr style="background:${i % 2 === 0 ? '#f9fafb' : '#fff'}">
-        <td style="padding:8px 12px;color:#2563eb;font-weight:700">#${i + 1}</td>
-        <td style="padding:8px 12px">${s.name || s.serviceName || '—'}</td>
-        <td style="padding:8px 12px;text-align:center">${s.bookings ?? s.count ?? 0}</td>
-        <td style="padding:8px 12px;text-align:right;color:#10b981;font-weight:700">&#8377;${s.revenue ?? 0}</td>
-      </tr>`).join('');
-
-    const dailyRows = (d.dailyRevenue || []).map((r, i) => `
-      <tr style="background:${i % 2 === 0 ? '#f9fafb' : '#fff'}">
-        <td style="padding:7px 12px">${r.date || '—'}</td>
-        <td style="padding:7px 12px;text-align:center">${r.bookings ?? r.count ?? 0}</td>
-        <td style="padding:7px 12px;text-align:right;color:#10b981;font-weight:700">&#8377;${r.revenue ?? 0}</td>
-      </tr>`).join('');
-
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/>
-    <style>
-      body{font-family:Arial,sans-serif;margin:0;padding:24px;color:#111827;background:#fff}
-      h1{margin:0;font-size:22px;color:#fff}
-      .header{background:linear-gradient(135deg,#2563eb,#4f46e5);padding:20px 24px;border-radius:12px;margin-bottom:20px}
-      .sub{color:#bfdbfe;font-size:13px;margin-top:4px}
-      .kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
-      .kpi{background:#f9fafb;border-radius:10px;padding:14px;border-left:4px solid}
-      .kpi-val{font-size:20px;font-weight:800;margin-bottom:4px}
-      .kpi-lbl{font-size:11px;color:#6b7280}
-      table{width:100%;border-collapse:collapse;margin-bottom:20px}
-      th{background:#2563eb;color:#fff;padding:9px 12px;text-align:left;font-size:12px}
-      td{font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6}
-      .section-title{font-size:14px;font-weight:700;color:#111827;margin:0 0 10px}
-      .footer{text-align:center;color:#9ca3af;font-size:11px;margin-top:24px;padding-top:12px;border-top:1px solid #e5e7eb}
-    </style></head><body>
-    <div class="header">
-      <h1>&#9986; Analytics Report</h1>
-      <div class="sub">Period: ${label} &nbsp;|&nbsp; Generated by SmartSalon</div>
-    </div>
-    <div class="kpi-grid">
-      ${kpiCards.map(k => `<div class="kpi" style="border-color:${k.color}">
-        <div class="kpi-val" style="color:${k.color}">${k.value}</div>
-        <div class="kpi-lbl">${k.label}</div>
-      </div>`).join('')}
-    </div>
-    ${topServicesRows ? `
-    <p class="section-title">Top Services</p>
-    <table><thead><tr><th>Rank</th><th>Service</th><th style="text-align:center">Bookings</th><th style="text-align:right">Revenue</th></tr></thead>
-    <tbody>${topServicesRows}</tbody></table>` : ''}
-    ${dailyRows ? `
-    <p class="section-title">Daily Revenue</p>
-    <table><thead><tr><th>Date</th><th style="text-align:center">Bookings</th><th style="text-align:right">Revenue</th></tr></thead>
-    <tbody>${dailyRows}</tbody></table>` : ''}
-    <div class="footer">SmartSalon Owner Dashboard &nbsp;&bull;&nbsp; ${new Date().toLocaleDateString('en-IN')}</div>
-    </body></html>`;
+    if (!data) { Alert.alert('No Data', 'Load analytics data first.'); return; }
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>Analytics Report</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:Arial,sans-serif;color:#1f2937;padding:32px;font-size:13px}
+  h1{font-size:22px;color:#4f46e5;margin-bottom:2px}
+  .sub{font-size:12px;color:#6b7280;margin-bottom:24px}
+  .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:24px}
+  .stat{padding:14px;border-radius:8px;border:2px solid #e5e7eb}
+  .stat-label{font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+  .stat-value{font-size:20px;font-weight:700}
+  .stat-sub{font-size:11px;color:#6b7280;margin-top:3px}
+  .blue{background:#eff6ff;border-color:#bfdbfe}.blue .stat-value{color:#1d4ed8}
+  .green{background:#f0fdf4;border-color:#bbf7d0}.green .stat-value{color:#15803d}
+  .purple{background:#f5f3ff;border-color:#ddd6fe}.purple .stat-value{color:#7c3aed}
+  .amber{background:#fffbeb;border-color:#fde68a}.amber .stat-value{color:#b45309}
+  h2{font-size:14px;font-weight:700;margin:20px 0 10px;border-bottom:2px solid #e5e7eb;padding-bottom:6px;color:#111827}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{background:#f9fafb;text-align:left;padding:8px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#6b7280;border-bottom:1px solid #e5e7eb}
+  td{padding:8px 10px;border-bottom:1px solid #f3f4f6}
+  .badge{display:inline-block;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:600}
+  .completed{background:#dcfce7;color:#15803d}.pending{background:#fef9c3;color:#a16207}
+  .cancelled{background:#fee2e2;color:#b91c1c}.confirmed{background:#dbeafe;color:#1d4ed8}
+  .in_progress{background:#f3e8ff;color:#7c3aed}
+  .empty{text-align:center;color:#9ca3af;padding:16px}
+  .footer{margin-top:28px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center}
+  @media print{body{padding:0}@page{margin:10mm}}
+</style></head><body>
+<h1>Analytics Report</h1>
+<p class="sub">${formatDate(startDate)} – ${formatDate(endDate)} &nbsp;·&nbsp; Generated ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+<div class="stats">
+  <div class="stat blue">
+    <div class="stat-label">Total Revenue</div>
+    <div class="stat-value">₹${totalRevenue.toLocaleString()}</div>
+    <div class="stat-sub">${formatDate(startDate)} – ${formatDate(endDate)}</div>
+  </div>
+  <div class="stat green">
+    <div class="stat-label">Total Bookings</div>
+    <div class="stat-value">${totalBookings}</div>
+    <div class="stat-sub">${completed} completed · ${pending} pending · ${cancelled} cancelled</div>
+  </div>
+  <div class="stat purple">
+    <div class="stat-label">Active Customers</div>
+    <div class="stat-value">${activeCustomers}</div>
+    <div class="stat-sub">Unique customers in period</div>
+  </div>
+  <div class="stat amber">
+    <div class="stat-label">Growth Rate</div>
+    <div class="stat-value">${growthRate}%</div>
+    <div class="stat-sub">Compared to previous period</div>
+  </div>
+</div>
+<h2>Top Services</h2>
+<table>
+  <tr><th>#</th><th>Service</th><th>Bookings</th><th>Revenue (₹)</th></tr>
+  ${topServices.length ? topServices.map((s, i) => `<tr><td>${i + 1}</td><td>${s.name || s.serviceName}</td><td>${s.bookings ?? s.count ?? 0}</td><td>₹${(s.revenue ?? 0).toLocaleString()}</td></tr>`).join('') : '<tr><td colspan="4" class="empty">No service data</td></tr>'}
+</table>
+<h2>Daily Revenue</h2>
+<table>
+  <tr><th>Date</th><th>Revenue (₹)</th><th>Bookings</th></tr>
+  ${dailyRevenue.length ? dailyRevenue.map(r => `<tr><td>${r.date}</td><td>₹${(r.revenue ?? 0).toLocaleString()}</td><td>${r.bookings ?? 0}</td></tr>`).join('') : '<tr><td colspan="3" class="empty">No data for this period</td></tr>'}
+</table>
+<div class="footer">Powered by My Salon Bookings</div>
+</body></html>`;
 
     try {
-      const { uri: tempUri } = await Print.printToFileAsync({ html, base64: false });
-      const fileName = `Analytics-Report-${label.replace(/\s+/g, '-')}.pdf`;
-
-      // Try react-native-blob-util (saves directly to Downloads, requires native rebuild)
+      const { uri } = await Print.printToFileAsync({ html });
+      const fileName = `analytics-${startDate}-to-${endDate}.pdf`;
       try {
         const RNBlobUtil = require('react-native-blob-util').default;
         const destPath = `${RNBlobUtil.fs.dirs.DownloadDir}/${fileName}`;
-        const base64 = await RNBlobUtil.fs.readFile(tempUri, 'base64');
+        const base64 = await RNBlobUtil.fs.readFile(uri, 'base64');
         await RNBlobUtil.fs.writeFile(destPath, base64, 'base64');
         Alert.alert('PDF Saved!', `"${fileName}" saved to Downloads folder`);
         return;
-      } catch { /* native module not linked yet — fall through to share sheet */ }
-
-      // Fallback: share sheet (user can tap Save to Files → Downloads)
+      } catch { /* fallback */ }
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(tempUri, { mimeType: 'application/pdf', dialogTitle: 'Save PDF' });
+        await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Save PDF' });
       }
-    } catch (err) {
-      Alert.alert('Error', err.message || 'Failed to generate PDF');
+    } catch (e) {
+      Alert.alert('Error', 'Could not generate PDF');
     }
   };
 
-  const d = analytics;
-  const completed  = d?.completedBookings  ?? 0;
-  const pending    = d?.pendingBookings    ?? 0;
-  const cancelled  = d?.cancelledBookings  ?? 0;
-  const total      = d?.totalBookings      ?? 0;
-  const revenue    = d?.totalRevenue       ?? 0;
-  const avgRevenue = d?.dailyRevenue?.length
-    ? Math.round(revenue / d.dailyRevenue.length)
-    : 0;
-
+  // ── Render ─────────────────────────────────────────────────────────────
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: 12 + insets.top }]}>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}><Text style={styles.headerTitle}>Analytics</Text><DrawerMenuButton /></View>
-        <Text style={styles.headerSub}>Track your salon's performance</Text>
-        {/* Preset pills */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12 }}>
-          {PRESETS.map((p, i) => (
-            <TouchableOpacity
-              key={i}
-              style={[styles.presetChip, !isCustom && preset === i && styles.presetChipActive]}
-              onPress={() => { setIsCustom(false); setPreset(i); setLoading(true); }}
-            >
-              <Text style={[styles.presetChipText, !isCustom && preset === i && styles.presetChipTextActive]}>{p.label}</Text>
-            </TouchableOpacity>
-          ))}
-          <TouchableOpacity
-            style={[styles.presetChip, isCustom && styles.presetChipActive]}
-            onPress={() => setIsCustom(true)}
-          >
-            <Text style={[styles.presetChipText, isCustom && styles.presetChipTextActive]}>Custom</Text>
-          </TouchableOpacity>
-        </ScrollView>
 
-        {/* Custom date range inputs */}
-        {isCustom && (
-          <View style={styles.customRangeRow}>
-            <View style={styles.customDateBox}>
-              <Text style={styles.customDateLabel}>From</Text>
-              <TextInput
-                style={[styles.customDateInput, { color: theme.text, borderColor: 'rgba(255,255,255,0.4)' }]}
-                value={customStart}
-                onChangeText={setCustomStart}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor="rgba(255,255,255,0.5)"
-                keyboardType="numeric"
-              />
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: 14 + insets.top, backgroundColor: theme.card, borderBottomColor: theme.border }]}>
+        <View style={styles.headerTop}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={{ padding: 4, marginTop: 4 }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="arrow-back" size={24} color={theme.text} />
+            </TouchableOpacity>
+            <View>
+              <Text style={[styles.headerTitle, { color: theme.text }]}>Analytics</Text>
+              <Text style={[styles.headerSub, { color: theme.subText }]}>Real-time overview of your salon's performance</Text>
             </View>
-            <View style={styles.customDateBox}>
-              <Text style={styles.customDateLabel}>To</Text>
-              <TextInput
-                style={[styles.customDateInput, { color: theme.text, borderColor: 'rgba(255,255,255,0.4)' }]}
-                value={customEnd}
-                onChangeText={setCustomEnd}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor="rgba(255,255,255,0.5)"
-                keyboardType="numeric"
-              />
-            </View>
-            <TouchableOpacity style={styles.applyBtn} onPress={applyCustomRange}>
-              <Text style={styles.applyBtnText}>Apply</Text>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 6 }}>
+            {data && (
+              <>
+                <TouchableOpacity style={[styles.exportBtn, { backgroundColor: '#16a34a' }]} onPress={exportCSV}>
+                  <Ionicons name="document-text-outline" size={14} color="#fff" />
+                  <Text style={styles.exportBtnText}>CSV</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.exportBtn, { backgroundColor: '#4f46e5' }]} onPress={downloadPDF}>
+                  <Ionicons name="document-outline" size={14} color="#fff" />
+                  <Text style={styles.exportBtnText}>PDF</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            <TouchableOpacity
+              style={[styles.exportBtn, { backgroundColor: theme.bg, borderWidth: 1, borderColor: theme.border }]}
+              onPress={fetchAnalytics}
+              disabled={loading}
+            >
+              <Ionicons name="refresh-outline" size={14} color={theme.text} />
             </TouchableOpacity>
           </View>
-        )}
-        {analytics && (
-          <View style={styles.exportRow}>
-            <TouchableOpacity style={styles.exportBtn} onPress={exportCSV}>
-              <Ionicons name="document-text-outline" size={14} color="#fff" />
-              <Text style={styles.exportBtnText}>Export CSV</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.exportBtn, { backgroundColor: 'rgba(255,255,255,0.25)' }]} onPress={downloadPDF}>
-              <Ionicons name="document-outline" size={14} color="#fff" />
-              <Text style={styles.exportBtnText}>Download PDF</Text>
-            </TouchableOpacity>
+        </View>
+
+        {/* Date Range Filter */}
+        <View style={styles.dateFilterRow}>
+          <View style={styles.dateInputBox}>
+            <Text style={[styles.dateInputLabel, { color: theme.subText }]}>From</Text>
+            <TextInput
+              style={[styles.dateInput, { backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }]}
+              value={startDate}
+              onChangeText={setStartDate}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor={theme.subText}
+              keyboardType="numeric"
+            />
           </View>
-        )}
+          <View style={styles.dateInputBox}>
+            <Text style={[styles.dateInputLabel, { color: theme.subText }]}>To</Text>
+            <TextInput
+              style={[styles.dateInput, { backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }]}
+              value={endDate}
+              onChangeText={setEndDate}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor={theme.subText}
+              keyboardType="numeric"
+            />
+          </View>
+          <TouchableOpacity
+            style={[styles.resetBtn, { backgroundColor: theme.bg, borderColor: theme.border }]}
+            onPress={() => { setStartDate(thirtyDaysAgo); setEndDate(today); }}
+          >
+            <Text style={[styles.resetBtnText, { color: theme.text }]}>Reset</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 60 }} />
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator size="large" color="#4f46e5" />
+        </View>
       ) : (
         <ScrollView
           contentContainerStyle={{ padding: 12, paddingBottom: 40 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         >
-          {/* KPI cards */}
+          {/* ── KPI Cards ── */}
           <View style={styles.kpiGrid}>
-            {[
-              { title: 'Total Revenue', value: `₹${revenue}`, icon: 'cash-outline', color: '#10b981' },
-              { title: 'Total Bookings', value: total, icon: 'calendar-outline', color: '#3b82f6' },
-              { title: 'Avg Daily Revenue', value: `₹${avgRevenue}`, icon: 'trending-up-outline', color: '#f59e0b' },
-              { title: 'Active Customers', value: d?.activeCustomers ?? 0, icon: 'people-outline', color: '#8b5cf6' },
-            ].map((k, i) => (
-              <View key={i} style={[styles.kpiCard, { backgroundColor: theme.card }]}>
-                <View style={[styles.kpiIcon, { backgroundColor: k.color + '20' }]}>
-                  <Ionicons name={k.icon} size={20} color={k.color} />
-                </View>
-                <Text style={[styles.kpiValue, { color: theme.text }]}>{k.value}</Text>
-                <Text style={[styles.kpiTitle, { color: theme.subText }]}>{k.title}</Text>
+            {/* Total Revenue */}
+            <View style={[styles.kpiCard, { backgroundColor: '#eff6ff', borderColor: '#bfdbfe' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <Ionicons name="trending-up-outline" size={18} color="#2563eb" />
+                <Text style={[styles.kpiLabel, { color: '#2563eb' }]}>Total Revenue</Text>
               </View>
-            ))}
+              <Text style={[styles.kpiValue, { color: '#1d4ed8' }]}>₹{totalRevenue.toLocaleString()}</Text>
+              <Text style={[styles.kpiSub, { color: '#3b82f6' }]}>{formatDate(startDate)} – {formatDate(endDate)}</Text>
+            </View>
+
+            {/* Total Bookings */}
+            <View style={[styles.kpiCard, { backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <Ionicons name="bar-chart-outline" size={18} color="#16a34a" />
+                <Text style={[styles.kpiLabel, { color: '#16a34a' }]}>Total Bookings</Text>
+              </View>
+              <Text style={[styles.kpiValue, { color: '#15803d' }]}>{totalBookings}</Text>
+              <Text style={[styles.kpiSub, { color: '#16a34a' }]}>{completed} done · {pending} pending · {cancelled} cancelled</Text>
+            </View>
+
+            {/* Active Customers */}
+            <View style={[styles.kpiCard, { backgroundColor: '#f5f3ff', borderColor: '#ddd6fe' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <Ionicons name="people-outline" size={18} color="#7c3aed" />
+                <Text style={[styles.kpiLabel, { color: '#7c3aed' }]}>Active Customers</Text>
+              </View>
+              <Text style={[styles.kpiValue, { color: '#7c3aed' }]}>{activeCustomers}</Text>
+              <Text style={[styles.kpiSub, { color: '#7c3aed' }]}>Unique customers in period</Text>
+            </View>
+
+            {/* Growth Rate */}
+            <View style={[styles.kpiCard, { backgroundColor: '#fffbeb', borderColor: '#fde68a' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <Ionicons name="trending-up-outline" size={18} color="#d97706" />
+                <Text style={[styles.kpiLabel, { color: '#d97706' }]}>Growth Rate</Text>
+              </View>
+              <Text style={[styles.kpiValue, { color: '#b45309' }]}>{growthRate}%</Text>
+              <Text style={[styles.kpiSub, { color: '#d97706' }]}>Compared to previous period</Text>
+            </View>
           </View>
 
-          {/* Revenue Bar Chart */}
-          {d?.dailyRevenue?.length > 0 && (
-            <View style={[styles.section, { backgroundColor: theme.card }]}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Revenue Chart</Text>
-              <RevenueBarChart data={d.dailyRevenue} theme={theme} />
-            </View>
-          )}
+          {/* ── Daily Revenue Chart ── */}
+          <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Daily Revenue</Text>
+            <RevenueBarChart data={dailyRevenue} theme={theme} />
+          </View>
 
-          {/* Booking breakdown – pie chart */}
-          <View style={[styles.section, { backgroundColor: theme.card }]}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Booking Breakdown</Text>
-            <BookingPieChart
+          {/* ── Booking Status ── */}
+          <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Booking Status</Text>
+            <BookingDonut
               completed={completed}
               pending={pending}
               cancelled={cancelled}
-              total={total}
+              total={totalBookings}
               theme={theme}
             />
           </View>
 
-          {/* Top services */}
-          {d?.topServices?.length > 0 && (
-            <View style={[styles.section, { backgroundColor: theme.card }]}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Top Services</Text>
-              {d.topServices.map((s, i) => (
-                <View key={i} style={[styles.topServiceRow, { borderTopColor: theme.rowBorder }]}>
-                  <View style={styles.rankBadge}>
-                    <Text style={styles.rankText}>#{i + 1}</Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.topServiceName, { color: theme.text }]}>{s.name || s.serviceName}</Text>
-                    <Text style={[styles.topServiceSub, { color: theme.subText }]}>{s.bookings ?? s.count ?? 0} bookings</Text>
-                  </View>
-                  <Text style={styles.topServiceRevenue}>₹{s.revenue ?? 0}</Text>
+          {/* ── Top Services ── */}
+          <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Top Services</Text>
+            {topServices.length === 0 ? (
+              <Text style={{ color: theme.subText, fontSize: 13, textAlign: 'center', paddingVertical: 20 }}>No service data yet.</Text>
+            ) : topServices.map((s, i) => (
+              <View key={i} style={[styles.serviceRow, { borderTopColor: theme.border }]}>
+                <View style={styles.rankBadge}>
+                  <Text style={styles.rankText}>{i + 1}</Text>
                 </View>
-              ))}
-            </View>
-          )}
-
-          {/* Daily revenue table */}
-          {d?.dailyRevenue?.length > 0 && (
-            <View style={[styles.section, { backgroundColor: theme.card }]}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Daily Revenue</Text>
-              <View style={styles.tableHeader}>
-                <Text style={[styles.tableCell, { flex: 2 }]}>Date</Text>
-                <Text style={[styles.tableCell, { textAlign: 'center' }]}>Bookings</Text>
-                <Text style={[styles.tableCell, { textAlign: 'right', flex: 1.2 }]}>Revenue</Text>
+                <Text style={[styles.serviceName, { color: theme.text }]} numberOfLines={1}>{s.name || s.serviceName}</Text>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={[styles.serviceBookings, { color: theme.text }]}>{s.bookings ?? s.count ?? 0} bookings</Text>
+                  <Text style={styles.serviceRevenue}>₹{(s.revenue ?? 0).toLocaleString()} earned</Text>
+                </View>
               </View>
-              {d.dailyRevenue.map((row, i) => (
-                <View key={i} style={[styles.tableRow, i % 2 === 0 && { backgroundColor: theme.cardAlt }]}>
-                  <Text style={[styles.tableCell, { flex: 2, color: theme.text }]}>
-                    {formatDate(row.date + 'T12:00:00')}
-                  </Text>
-                  <Text style={[styles.tableCell, { textAlign: 'center', color: theme.text }]}>
-                    {row.bookings ?? row.count ?? 0}
-                  </Text>
-                  <Text style={[styles.tableCell, { textAlign: 'right', flex: 1.2, color: '#10b981', fontWeight: '700' }]}>
-                    ₹{row.revenue ?? 0}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          )}
+            ))}
+          </View>
 
-          {/* Recent bookings */}
-          {d?.recentBookings?.length > 0 && (
-            <View style={[styles.section, { backgroundColor: theme.card }]}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Recent Bookings</Text>
-              {d.recentBookings.map((b) => {
-                const colors = STATUS_COLORS[b.status] || { bg: '#f3f4f6', text: '#374151' };
-                return (
-                  <View key={b._id} style={[styles.bookingRow, { borderTopColor: theme.rowBorder }]}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.bookingName, { color: theme.text }]}>{b.customerName || '—'}</Text>
-                      <Text style={[styles.bookingMeta, { color: theme.subText }]}>{b.serviceName} · {formatTime(b.appointmentTime)}</Text>
-                    </View>
-                    <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                      <View style={[styles.statusBadge, { backgroundColor: colors.bg }]}>
-                        <Text style={[styles.statusText, { color: colors.text }]}>{b.status?.replace('_', ' ')}</Text>
-                      </View>
-                      {b.totalAmount ? <Text style={[styles.bookingAmount, { color: theme.subText }]}>₹{b.totalAmount}</Text> : null}
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
-          )}
-
-          {/* Recent Bookings — date navigator (matches web) */}
-          <View style={[styles.section, { backgroundColor: theme.card }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          {/* ── Recent Bookings (date navigator) ── */}
+          <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
               <View>
-                <Text style={[styles.sectionTitle, { color: theme.text, marginBottom: 0 }]}>Recent Bookings</Text>
-                <Text style={[styles.topServiceSub, { color: theme.subText, marginTop: 2 }]}>
+                <Text style={[styles.sectionTitle, { color: theme.text, marginBottom: 2 }]}>Recent Bookings</Text>
+                <Text style={[styles.sectionSub, { color: theme.subText }]}>
                   {bookingsDate === today ? 'Today' : formatDate(bookingsDate + 'T12:00:00')} · {bookingsList.length} booking{bookingsList.length !== 1 ? 's' : ''}
                 </Text>
               </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <TouchableOpacity
-                  style={[styles.dateNavBtn, { backgroundColor: theme.bg }]}
-                  onPress={() => shiftBookingsDate(-1)}
-                >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <TouchableOpacity style={[styles.navBtn, { backgroundColor: theme.bg, borderColor: theme.border }]} onPress={() => shiftBookingsDate(-1)}>
                   <Ionicons name="chevron-back" size={16} color={theme.text} />
                 </TouchableOpacity>
-                <View style={[styles.presetChip, { backgroundColor: theme.bg, marginRight: 0 }]}>
-                  <Text style={[styles.presetChipText, { color: theme.subText }]}>
+                <View style={[styles.datePill, { backgroundColor: theme.bg, borderColor: theme.border }]}>
+                  <Text style={[styles.datePillText, { color: theme.subText }]}>
                     {bookingsDate === today ? 'Today' : bookingsDate.slice(5)}
                   </Text>
                 </View>
                 <TouchableOpacity
-                  style={[styles.dateNavBtn, { backgroundColor: theme.bg, opacity: bookingsDate === today ? 0.4 : 1 }]}
+                  style={[styles.navBtn, { backgroundColor: theme.bg, borderColor: theme.border, opacity: bookingsDate === today ? 0.4 : 1 }]}
                   onPress={() => shiftBookingsDate(1)}
                   disabled={bookingsDate === today}
                 >
@@ -547,17 +486,17 @@ export default function ReportsScreen() {
             </View>
 
             {bookingsLoading ? (
-              <ActivityIndicator size="small" color="#2563eb" style={{ marginVertical: 16 }} />
+              <ActivityIndicator size="small" color="#4f46e5" style={{ marginVertical: 20 }} />
             ) : bookingsList.length === 0 ? (
               <View style={{ alignItems: 'center', paddingVertical: 24 }}>
                 <Ionicons name="calendar-outline" size={36} color="#d1d5db" />
-                <Text style={[styles.topServiceSub, { color: theme.subText, marginTop: 8 }]}>No bookings on this date</Text>
+                <Text style={[styles.sectionSub, { color: theme.subText, marginTop: 8 }]}>No bookings on this date.</Text>
               </View>
             ) : (
               bookingsList.map((b) => {
                 const colors = STATUS_COLORS[b.status] || { bg: '#f3f4f6', text: '#374151' };
                 return (
-                  <View key={b._id} style={[styles.bookingRow, { borderTopColor: theme.rowBorder }]}>
+                  <View key={b._id} style={[styles.bookingRow, { borderTopColor: theme.border }]}>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.bookingName, { color: theme.text }]}>{b.customerName || '—'}</Text>
                       <Text style={[styles.bookingMeta, { color: theme.subText }]}>{b.serviceName} · {formatTime(b.appointmentTime)}</Text>
@@ -574,18 +513,7 @@ export default function ReportsScreen() {
             )}
           </View>
 
-          {error && (
-            <View style={[styles.errorBox, { backgroundColor: theme.card }]}>
-              <Ionicons name="warning-outline" size={36} color="#ef4444" />
-              <Text style={[styles.errorTitle, { color: theme.text }]}>Failed to Load</Text>
-              <Text style={[styles.errorMsg, { color: theme.subText }]}>{error}</Text>
-              <TouchableOpacity style={styles.retryBtn} onPress={() => fetchAnalytics(preset)}>
-                <Text style={styles.retryBtnText}>Retry</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {!d && !error && (
+          {!data && (
             <View style={{ alignItems: 'center', paddingVertical: 48 }}>
               <Ionicons name="bar-chart-outline" size={48} color="#d1d5db" />
               <Text style={{ color: theme.subText, marginTop: 8 }}>No analytics data available</Text>
@@ -598,55 +526,50 @@ export default function ReportsScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { backgroundColor: '#2563eb', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 14 },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  headerSub: { fontSize: 13, color: '#bfdbfe', marginTop: 2 },
-  presetChip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)', marginRight: 8 },
-  presetChipActive: { backgroundColor: '#fff' },
-  presetChipText: { color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: '500' },
-  presetChipTextActive: { color: '#2563eb', fontWeight: '700' },
-  customRangeRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginTop: 10, paddingHorizontal: 2 },
-  customDateBox: { flex: 1 },
-  customDateLabel: { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.7)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
-  customDateInput: { height: 36, borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, fontSize: 13, color: '#fff', backgroundColor: 'rgba(255,255,255,0.12)' },
-  applyBtn: { height: 36, paddingHorizontal: 14, backgroundColor: '#fff', borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  applyBtnText: { fontSize: 13, fontWeight: '700', color: '#2563eb' },
-  dateNavBtn: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  exportRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
-  exportBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
+  // Header
+  header: { paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1 },
+  headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+  headerTitle: { fontSize: 20, fontWeight: '800' },
+  headerSub: { fontSize: 12, marginTop: 1 },
+  exportBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8 },
   exportBtnText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+
+  // Date filter
+  dateFilterRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
+  dateInputBox: { flex: 1 },
+  dateInputLabel: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
+  dateInput: { height: 36, borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, fontSize: 13 },
+  resetBtn: { height: 36, paddingHorizontal: 14, borderWidth: 1, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  resetBtnText: { fontSize: 13, fontWeight: '600' },
+
+  // KPI cards
   kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 10 },
-  kpiCard: { flex: 1, minWidth: '44%', backgroundColor: '#fff', borderRadius: 12, padding: 14, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
-  kpiIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  kpiValue: { fontSize: 20, fontWeight: '800', color: '#111827' },
-  kpiTitle: { fontSize: 11, color: '#6b7280', marginTop: 3 },
-  section: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#111827', marginBottom: 12 },
-  breakdownRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  breakdownDot: { width: 10, height: 10, borderRadius: 5, marginRight: 8 },
-  breakdownLabel: { fontSize: 13, color: '#374151', width: 72 },
-  barTrack: { height: 8, backgroundColor: '#f3f4f6', borderRadius: 4, overflow: 'hidden' },
-  barFill: { height: '100%', borderRadius: 4 },
-  breakdownBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999 },
-  breakdownBadgeText: { fontSize: 12, fontWeight: '700' },
-  topServiceRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#f3f4f6' },
-  rankBadge: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#dbeafe', alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+  kpiCard: { flex: 1, minWidth: '45%', borderRadius: 12, borderWidth: 2, padding: 14 },
+  kpiLabel: { fontSize: 12, fontWeight: '500' },
+  kpiValue: { fontSize: 22, fontWeight: '800', marginBottom: 4 },
+  kpiSub: { fontSize: 11 },
+
+  // Section card
+  section: { borderRadius: 12, borderWidth: 2, padding: 14, marginBottom: 10 },
+  sectionTitle: { fontSize: 15, fontWeight: '700', marginBottom: 12 },
+  sectionSub: { fontSize: 12 },
+
+  // Top services
+  serviceRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderTopWidth: 1, gap: 10 },
+  rankBadge: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#dbeafe', alignItems: 'center', justifyContent: 'center' },
   rankText: { fontSize: 12, fontWeight: '700', color: '#2563eb' },
-  topServiceName: { fontSize: 13, fontWeight: '600', color: '#111827' },
-  topServiceSub: { fontSize: 11, color: '#6b7280', marginTop: 2 },
-  topServiceRevenue: { fontSize: 14, fontWeight: '700', color: '#10b981' },
-  tableHeader: { flexDirection: 'row', paddingVertical: 8, borderBottomWidth: 1.5, borderBottomColor: '#e5e7eb', marginBottom: 2 },
-  tableRow: { flexDirection: 'row', paddingVertical: 8, borderRadius: 6 },
-  tableCell: { fontSize: 12, color: '#6b7280', fontWeight: '600', flex: 1 },
-  bookingRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#f3f4f6' },
-  bookingName: { fontSize: 13, fontWeight: '600', color: '#111827' },
-  bookingMeta: { fontSize: 11, color: '#6b7280', marginTop: 2 },
+  serviceName: { flex: 1, fontSize: 13, fontWeight: '600' },
+  serviceBookings: { fontSize: 13, fontWeight: '600' },
+  serviceRevenue: { fontSize: 12, color: '#6b7280', marginTop: 1 },
+
+  // Bookings
+  navBtn: { width: 28, height: 28, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  datePill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1 },
+  datePillText: { fontSize: 12, fontWeight: '500' },
+  bookingRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderTopWidth: 1 },
+  bookingName: { fontSize: 13, fontWeight: '600' },
+  bookingMeta: { fontSize: 11, marginTop: 2 },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   statusText: { fontSize: 10, fontWeight: '600', textTransform: 'capitalize' },
-  bookingAmount: { fontSize: 12, color: '#6b7280' },
-  errorBox: { borderRadius: 12, padding: 24, alignItems: 'center', gap: 8, marginBottom: 10 },
-  errorTitle: { fontSize: 16, fontWeight: '700', marginTop: 4 },
-  errorMsg: { fontSize: 13, textAlign: 'center' },
-  retryBtn: { marginTop: 8, backgroundColor: '#2563eb', paddingHorizontal: 24, paddingVertical: 10, borderRadius: 8 },
-  retryBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  bookingAmount: { fontSize: 12 },
 });
