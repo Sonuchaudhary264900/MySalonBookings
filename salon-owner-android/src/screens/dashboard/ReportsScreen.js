@@ -99,8 +99,11 @@ function BookingPieChart({ completed, pending, cancelled, total, theme }) {
   if (total === 0 || slices.length === 0) {
     return (
       <View style={{ alignItems: 'center', paddingVertical: 16 }}>
-        <Circle cx={cx} cy={cy} r={outerR} fill={theme.border || '#e5e7eb'} />
-        <Text style={{ color: theme.subText, fontSize: 12, marginTop: 8 }}>No data</Text>
+        <Svg width={size} height={size}>
+          <Circle cx={cx} cy={cy} r={outerR} fill={theme.border || '#e5e7eb'} />
+          <Circle cx={cx} cy={cy} r={innerR} fill={theme.card || '#fff'} />
+        </Svg>
+        <Text style={{ color: theme.subText, fontSize: 12, marginTop: 8 }}>No booking data</Text>
       </View>
     );
   }
@@ -120,7 +123,7 @@ function BookingPieChart({ completed, pending, cancelled, total, theme }) {
   }
 
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
       <Svg width={size} height={size}>
         {paths.map(p => <Path key={p.label} d={p.d} fill={p.color} />)}
         {/* Centre label */}
@@ -129,10 +132,10 @@ function BookingPieChart({ completed, pending, cancelled, total, theme }) {
       </Svg>
 
       {/* Legend */}
-      <View style={{ flex: 1, gap: 8 }}>
-        {slices.map(s => (
-          <View key={s.label} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: s.color }} />
+      <View style={{ flex: 1, marginLeft: 12 }}>
+        {slices.map((s, i) => (
+          <View key={s.label} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: i < slices.length - 1 ? 10 : 0 }}>
+            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: s.color, marginRight: 8 }} />
             <Text style={{ flex: 1, fontSize: 13, color: theme.text || '#111827' }}>{s.label}</Text>
             <View style={[styles.breakdownBadge, { backgroundColor: s.bg }]}>
               <Text style={[styles.breakdownBadgeText, { color: s.color }]}>
