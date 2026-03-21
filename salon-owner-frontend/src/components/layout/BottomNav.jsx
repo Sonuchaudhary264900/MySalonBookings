@@ -1,12 +1,12 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Calendar, Scissors, Settings } from 'lucide-react';
+import { LayoutDashboard, User, Scissors, Settings } from 'lucide-react';
 import ROUTES from '../../routes';
 import { useNotifications } from '../../context/NotificationContext';
 
 const TABS = [
   { name: 'dashboard', label: 'Dashboard', path: ROUTES.DASHBOARD, icon: LayoutDashboard },
-  { name: 'bookings',  label: 'Bookings',  path: ROUTES.BOOKINGS,  icon: Calendar        },
+  { name: 'profile',   label: 'Profile',   path: ROUTES.PROFILE,   icon: User            },
   { name: 'services',  label: 'Services',  path: ROUTES.SERVICES,  icon: Scissors        },
   { name: 'settings',  label: 'Settings',  path: ROUTES.SETTINGS,  icon: Settings        },
 ];
