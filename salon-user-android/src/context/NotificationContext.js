@@ -1,6 +1,7 @@
 import React, { createContext, useState, useCallback, useEffect, useContext, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import api from '../services/api';
 import { useAuth } from './AuthContext';
@@ -54,12 +55,17 @@ async function registerPushToken() {
   const { status: existing } = await Notifications.getPermissionsAsync();
   let finalStatus = existing;
   if (existing !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
+    const { status } = await Notifications.requestPermissionsAsync({
+      ios: { allowAlert: true, allowBadge: true, allowSound: true },
+    });
     finalStatus = status;
   }
   if (finalStatus !== 'granted') return null;
   await setupNotificationChannels();
-  const tokenData = await Notifications.getExpoPushTokenAsync();
+  const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+  const tokenData = await Notifications.getExpoPushTokenAsync(
+    projectId ? { projectId } : {}
+  );
   return tokenData.data;
 }
 
