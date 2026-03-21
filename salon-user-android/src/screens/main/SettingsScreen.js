@@ -301,6 +301,76 @@ export default function SettingsScreen({ navigation }) {
           </View>
         </TouchableOpacity>
 
+        {/* ACCOUNT INFO */}
+        <View style={styles.accordionCard}>
+          <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('account')} activeOpacity={0.7}>
+            <View style={styles.accordionHeaderLeft}>
+              <View style={[styles.iconBox, { backgroundColor: '#7c3aed18' }]}>
+                <Ionicons name="card-outline" size={18} color="#7c3aed" />
+              </View>
+              <View>
+                <Text style={styles.accordionHeaderTitle}>Account Info</Text>
+                <Text style={[styles.rowSublabel, { marginTop: 1 }]}>ID, membership and account type</Text>
+              </View>
+            </View>
+            <Ionicons name={expandedSection === 'account' ? 'chevron-up' : 'chevron-down'} size={18} color={theme.subText} />
+          </TouchableOpacity>
+          {expandedSection === 'account' && (
+            <View style={styles.accordionBody}>
+              {[
+                {
+                  icon: 'finger-print-outline',
+                  color: '#7c3aed',
+                  label: 'Account ID',
+                  value: user?._id ? String(user._id).slice(-8).toUpperCase() : '—',
+                  mono: true,
+                },
+                {
+                  icon: 'calendar-outline',
+                  color: '#2563eb',
+                  label: 'Member Since',
+                  value: user?.createdAt
+                    ? new Date(user.createdAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })
+                    : '—',
+                },
+                {
+                  icon: 'person-circle-outline',
+                  color: '#10b981',
+                  label: 'Account Type',
+                  value: 'Customer',
+                },
+                {
+                  icon: 'call-outline',
+                  color: '#f59e0b',
+                  label: 'Phone',
+                  value: user?.phone || '—',
+                },
+                {
+                  icon: 'mail-outline',
+                  color: '#6366f1',
+                  label: 'Email',
+                  value: user?.email || '—',
+                },
+              ].map((row, i, arr) => (
+                <View key={row.label}>
+                  <View style={styles.settingRow}>
+                    <View style={[styles.iconBox, { backgroundColor: row.color + '18' }]}>
+                      <Ionicons name={row.icon} size={18} color={row.color} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.rowSublabel}>{row.label}</Text>
+                      <Text style={[styles.rowLabel, row.mono && { fontFamily: 'monospace', letterSpacing: 1 }]}>
+                        {row.value}
+                      </Text>
+                    </View>
+                  </View>
+                  {i < arr.length - 1 && <Divider />}
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+
         {/* NOTIFICATION SETTINGS */}
         <View style={styles.accordionCard}>
           <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('notifications')} activeOpacity={0.7}>
