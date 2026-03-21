@@ -227,13 +227,6 @@ export default function FavoritesScreen({ navigation }) {
                 </View>
               )}
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.menuBtn}
-              onPress={() => navigation.getParent('DrawerNav')?.openDrawer()}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Ionicons name="menu" size={22} color={theme.subText} />
-            </TouchableOpacity>
           </View>
         </View>
       </View>

@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert, Image,
+  TextInput, ActivityIndicator, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as ImagePicker from 'expo-image-picker';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { showSuccess, showError } from '../../utils/toast';
@@ -59,7 +58,6 @@ export default function ProfileScreen({ navigation }) {
   const [name, setName]                   = useState(user?.name || '');
   const [email, setEmail]                 = useState(user?.email || '');
   const [saving, setSaving]               = useState(false);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   // Change password (OTP-based)
   const [cpStep, setCpStep]     = useState(0); // 0=locked, 1=send otp, 2=enter otp+new pw
@@ -87,39 +85,6 @@ export default function ProfileScreen({ navigation }) {
       showError('Error', err?.message || 'Failed to save profile. Try again.');
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handlePickPhoto = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') { showError('Permission Required', 'Please allow access to your photos.'); return; }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-    if (result.canceled) return;
-    const uri = result.assets[0].uri;
-    setUploadingPhoto(true);
-    try {
-      const filename = uri.split('/').pop();
-      const ext = (filename.split('.').pop() || 'jpg').toLowerCase();
-      const formData = new FormData();
-      formData.append('photo', { uri, name: filename, type: `image/${ext === 'jpg' ? 'jpeg' : ext}` });
-      const res = await api.post('/customer/auth/upload-photo', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: 60000,
-      });
-      const photoUrl = res.data.data?.profilePhoto;
-      if (photoUrl) {
-        await updateProfile({ profilePhoto: photoUrl });
-        await refreshUser();
-      }
-    } catch (err) {
-      showError('Upload Failed', err?.message || 'Could not upload photo. Try again.');
-    } finally {
-      setUploadingPhoto(false);
     }
   };
 
@@ -187,22 +152,11 @@ export default function ProfileScreen({ navigation }) {
           <Text style={styles.headerTitle}>My Profile</Text>
         </View>
 
-        {/* Compact avatar card */}
+        {/* Profile card */}
         <View style={styles.profileCard}>
-          <TouchableOpacity onPress={handlePickPhoto} disabled={uploadingPhoto} style={styles.avatarWrap}>
-            {uploadingPhoto ? (
-              <View style={styles.avatar}><ActivityIndicator color={theme.accent} /></View>
-            ) : user?.profilePhoto ? (
-              <Image source={{ uri: user.profilePhoto }} style={styles.avatarImg} />
-            ) : (
-              <View style={styles.avatar}>
-                <Text style={styles.avatarInitial}>{user?.name?.charAt(0)?.toUpperCase() || '?'}</Text>
-              </View>
-            )}
-            <View style={styles.cameraBtn}>
-              <Ionicons name="camera" size={12} color="#fff" />
-            </View>
-          </TouchableOpacity>
+          <View style={styles.avatarWrap}>
+            <Ionicons name="person-circle" size={62} color={theme.accent} />
+          </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.userName}>{user?.name || 'User'}</Text>
             <Text style={styles.userPhone}>{user?.phone || ''}</Text>

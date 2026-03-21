@@ -222,7 +222,6 @@ function Profile() {
 
   const [form, setForm] = useState({ name: "", email: "" });
   const [pw, setPw]     = useState({ otp: "", next: "", confirm: "" });
-  const [photoUploading, setPhotoUploading] = useState(false);
 
   useEffect(() => {
     if (pwTimer <= 0) return;
@@ -298,25 +297,6 @@ function Profile() {
     } finally { setPwSaving(false); }
   };
 
-  const handlePhotoUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setPhotoUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append("photo", file);
-      const res = await API.post("/customer/auth/upload-photo", fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      setUser(prev => ({ ...prev, profilePhoto: res.data.data.profilePhoto }));
-      flash("Profile photo updated!");
-    } catch {
-      flash("Failed to upload photo.", true);
-    } finally {
-      setPhotoUploading(false);
-    }
-  };
-
   const handleLogout = () => {
     clearCustomerAuth();
     navigate("/");
@@ -353,18 +333,10 @@ function Profile() {
               <button type="button" onClick={() => setProfileOpen((o) => !o)}
                 className="w-full flex items-center justify-between px-6 py-4 hover:bg-slate-50 transition text-left">
                 <div className="flex items-center gap-3">
-                  <div className="relative shrink-0">
-                    {user?.profilePhoto ? (
-                      <img src={user.profilePhoto} alt="Profile" className="w-10 h-10 rounded-full object-cover shadow-sm" />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center text-white text-base font-bold shadow-sm">
-                        {user?.name ? user.name[0].toUpperCase() : "U"}
-                      </div>
-                    )}
-                    <label className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-indigo-700 transition">
-                      <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={photoUploading} />
-                      <span className="text-white text-xs leading-none">{photoUploading ? "…" : "+"}</span>
-                    </label>
+                  <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center text-white shadow-sm shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
                   </div>
                   <div>
                     <p className="font-bold text-slate-900 text-sm">{user?.name || "My Profile"}</p>

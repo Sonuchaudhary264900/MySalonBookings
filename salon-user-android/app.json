@@ -50,12 +50,6 @@
           "locationAlwaysAndWhenInUsePermission": "Allow My Salon Bookings to use your location to find nearby salons."
         }
       ],
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "Allow My Salon Bookings to access your photos to update your profile picture."
-        }
-      ],
       "expo-asset",
       "expo-font"
     ],

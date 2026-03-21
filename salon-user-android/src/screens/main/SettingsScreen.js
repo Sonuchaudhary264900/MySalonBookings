@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Switch, Alert, ActivityIndicator, Image, TextInput, Share, Clipboard,
+  Switch, Alert, ActivityIndicator, TextInput, Share, Clipboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -270,13 +270,6 @@ export default function SettingsScreen({ navigation }) {
                 </View>
               )}
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.menuBtn}
-              onPress={() => navigation.getParent('DrawerNav')?.openDrawer()}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Ionicons name="menu" size={22} color={theme.subText} />
-            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -286,11 +279,7 @@ export default function SettingsScreen({ navigation }) {
         {/* Profile Card */}
         <TouchableOpacity style={styles.profileCard} onPress={() => navigation.navigate('Profile')} activeOpacity={0.85}>
           <View style={styles.profileAvatar}>
-            {user?.profilePhoto ? (
-              <Image source={{ uri: user.profilePhoto }} style={styles.profileAvatarImg} />
-            ) : (
-              <Text style={styles.profileAvatarInitial}>{user?.name?.charAt(0)?.toUpperCase() || '?'}</Text>
-            )}
+            <Ionicons name="person-circle-outline" size={38} color="#fff" />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.profileName}>{user?.name || 'Guest User'}</Text>
@@ -599,6 +588,34 @@ export default function SettingsScreen({ navigation }) {
           )}
         </View>
 
+        {/* SIGN OUT */}
+        <View style={styles.accordionCard}>
+          <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('signout')} activeOpacity={0.7}>
+            <View style={styles.accordionHeaderLeft}>
+              <View style={[styles.iconBox, { backgroundColor: '#ef444418' }]}>
+                <Ionicons name="log-out-outline" size={18} color="#ef4444" />
+              </View>
+              <Text style={[styles.accordionHeaderTitle, { color: '#ef4444' }]}>Sign Out</Text>
+            </View>
+            <Ionicons name={expandedSection === 'signout' ? 'chevron-up' : 'chevron-down'} size={18} color="#ef4444" />
+          </TouchableOpacity>
+          {expandedSection === 'signout' && (
+            <View style={[styles.accordionBody, { padding: 14 }]}>
+              <Text style={[styles.rowSublabel, { marginBottom: 12 }]}>
+                You will be logged out of your account on this device.
+              </Text>
+              <TouchableOpacity
+                style={styles.logoutConfirmBtn}
+                onPress={handleLogout}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="log-out-outline" size={18} color="#fff" />
+                <Text style={styles.logoutConfirmText}>Confirm Sign Out</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
         <View style={{ height: 32 }} />
       </ScrollView>
     </View>
@@ -659,4 +676,6 @@ const getStyles = (t) => StyleSheet.create({
   referShareBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: t.accent, borderRadius: 12, height: 46 },
   referShareBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
   referTermsLink: { fontSize: 12, color: t.subText, textAlign: 'center', textDecorationLine: 'underline' },
+  logoutConfirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#ef4444', borderRadius: 12, height: 48 },
+  logoutConfirmText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 });
