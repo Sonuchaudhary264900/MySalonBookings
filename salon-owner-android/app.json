@@ -49,6 +49,20 @@
           "cameraPermission": "Allow My Salon Bookings to use your camera to take a profile picture."
         }
       ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow My Salon Bookings to use your location."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow My Salon Bookings to access your photos.",
+          "savePhotosPermission": "Allow My Salon Bookings to save photos.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ],
       "expo-asset",
       "expo-font"
     ],
