@@ -90,7 +90,7 @@ export const NotificationProvider = ({ children }) => {
   useEffect(() => {
     if (!isAuthenticated) return;
     registerPushToken().then((token) => {
-      if (token) api.post('/customer/push-token', { token }).catch(() => {});
+      if (token) api.post('/customer/push-token', { pushToken: token }).catch(() => {});
     });
   }, [isAuthenticated]);
 

@@ -479,6 +479,19 @@ router.put("/customer/bookings/:bookingId/reschedule",
 );
 
 /* =====================================================
+   CUSTOMER PUSH TOKEN
+===================================================== */
+
+// POST /customer/push-token — save expo push token
+router.post("/customer/push-token", authenticateCustomer, asyncHandler(async (req, res) => {
+  const { pushToken } = req.body;
+  if (!pushToken) return res.status(400).json({ success: false, message: "pushToken is required" });
+  const Customer = require("../models/Customer");
+  await Customer.findByIdAndUpdate(req.customer._id, { pushToken });
+  res.json({ success: true });
+}));
+
+/* =====================================================
    CUSTOMER REVIEW ROUTES
 ===================================================== */
 
@@ -832,6 +845,27 @@ router.put("/owner/bookings/:bookingId", authenticateOwner, validateObjectId("bo
       bookingId: booking._id,
       status,
     });
+  }
+
+  // Send push notification to customer when booking is completed
+  if (status === "completed" && booking.customerId) {
+    try {
+      const Customer = require("../models/Customer");
+      const customer = await Customer.findById(booking.customerId).select("pushToken");
+      if (customer?.pushToken) {
+        const { Expo } = require("expo-server-sdk");
+        const expo = new Expo();
+        if (Expo.isExpoPushToken(customer.pushToken)) {
+          await expo.sendPushNotificationsAsync([{
+            to: customer.pushToken,
+            sound: "default",
+            title: "How was your experience? ⭐",
+            body: `Your service at ${salon.name} is complete. Tap to leave a review!`,
+            data: { bookingId: booking._id.toString(), type: "review_prompt" },
+          }]);
+        }
+      }
+    } catch (e) { /* non-critical, ignore push errors */ }
   }
 
   res.json({ success: true, data: booking });

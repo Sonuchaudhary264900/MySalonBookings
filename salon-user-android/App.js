@@ -1,8 +1,11 @@
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, Text, ActivityIndicator, Image, StyleSheet, TouchableOpacity, Alert, Dimensions } from 'react-native';
-import { NavigationContainer, useNavigation } from '@react-navigation/native';
+import { NavigationContainer, useNavigation, createNavigationContainerRef } from '@react-navigation/native';
+import * as Notifications from 'expo-notifications';
+
+const navigationRef = createNavigationContainerRef();
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createDrawerNavigator, DrawerContentScrollView } from '@react-navigation/drawer';
@@ -275,8 +278,19 @@ function RootNavigator() {
     );
   }
 
+  // Navigate to Bookings tab when user taps a review_prompt push notification
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data;
+      if (data?.type === 'review_prompt' && navigationRef.isReady()) {
+        navigationRef.navigate('Main', { screen: 'Tabs', params: { screen: 'BookingsTab' } });
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <RootStack.Navigator screenOptions={{ headerShown: false }}>
         {!isAuthenticated ? (
           <RootStack.Screen name="Auth" component={AuthNavigator} />

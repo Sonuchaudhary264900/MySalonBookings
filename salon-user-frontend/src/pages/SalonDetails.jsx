@@ -4,7 +4,6 @@ import { Scissors, Phone, Star, Check, MessageSquare, Frown, Building2, Mail, Sh
 import API from "../services/api";
 import ServiceCard from "../components/ServiceCard";
 import ReviewCard from "../components/ReviewCard";
-import AddReview from "../components/AddReview";
 import { isCustomer, clearCustomerAuth } from "../utils/auth";
 
 const TABS = ["Services", "Reviews", "Info"];
@@ -223,13 +222,10 @@ function SalonDetails() {
         {/* ── REVIEWS TAB ───────────────────── */}
         {tab === "Reviews" && (
           <div className="fade-in">
-            {token && <AddReview salonId={id} onReviewAdded={loadReviews} />}
-            {!token && (
-              <div className="mb-5 p-4 bg-indigo-50 border border-indigo-100 rounded-xl text-sm text-indigo-700 flex items-center justify-between gap-3">
-                <span>Sign in to leave a review</span>
-                <button onClick={() => navigate("/login")} className="btn-primary text-sm py-1.5 px-3">Sign In</button>
-              </div>
-            )}
+            <div className="mb-5 p-4 bg-indigo-50 border border-indigo-100 rounded-xl text-sm text-indigo-700 flex items-center gap-3">
+              <span>⭐</span>
+              <span>Reviews can be submitted after completing a booking. You'll receive a notification once your service is done.</span>
+            </div>
             {reviews.length === 0 ? (
               <div className="text-center py-12">
                 <div className="flex justify-center mb-3"><MessageSquare className="w-10 h-10 text-slate-200" /></div>
