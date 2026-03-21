@@ -149,7 +149,7 @@ const Navbar = ({ onMenuToggle }) => {
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-md shrink-0">
               <span className="text-white text-sm">✂</span>
             </div>
-            <span className="text-base font-bold text-slate-900">SmartSalon</span>
+            <span className="text-base font-bold text-slate-900">My Salon Bookings</span>
           </div>
         </div>
 

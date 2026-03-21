@@ -11,6 +11,7 @@ import { WebView } from 'react-native-webview';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import api from '../../services/api';
 import { useSalon } from '../../context/SalonContext';
+import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import DrawerMenuButton from '../../components/DrawerMenuButton';
 import { useTheme } from '../../context/ThemeContext';
@@ -35,7 +36,8 @@ const queueLabel = (i) => {
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, isDark, toggleTheme } = useTheme();
+  const { user } = useAuth();
   const { salon } = useSalon();
   const { unreadCount } = useNotifications();
   const navigation = useNavigation();
@@ -55,6 +57,10 @@ export default function HomeScreen() {
   const [capturing, setCapturing] = useState(false);
   const [capturingA4, setCapturingA4] = useState(false);
   const [services, setServices] = useState([]);
+  // Bookings date navigator
+  const [selectedDate, setSelectedDate] = useState(today);
+  const [bookings, setBookings] = useState([]);
+  const [bookingsLoading, setBookingsLoading] = useState(false);
   const queueRef = useRef([]);
   queueRef.current = queue;
 
@@ -187,7 +193,7 @@ img.src=${qrApiUrl};
       let all = Array.isArray(data) ? data : (data?.bookings || []);
 
       const upcoming = all
-        .filter((b) => b.status === 'pending' || b.status === 'confirmed')
+        .filter((b) => b.status === 'pending' || b.status === 'confirmed' || b.status === 'in_progress')
         .sort((a, b) => (a.appointmentTime || '').localeCompare(b.appointmentTime || ''));
 
       if (upcoming.length > 0) {
@@ -198,7 +204,7 @@ img.src=${qrApiUrl};
         data = res.data.data;
         all = Array.isArray(data) ? data : (data?.bookings || []);
         const tomorrowUpcoming = all
-          .filter((b) => b.status === 'pending' || b.status === 'confirmed')
+          .filter((b) => b.status === 'pending' || b.status === 'confirmed' || b.status === 'in_progress')
           .sort((a, b) => (a.appointmentTime || '').localeCompare(b.appointmentTime || ''));
         setQueueDate(tomorrowStr);
         setQueue(tomorrowUpcoming);
@@ -226,6 +232,25 @@ img.src=${qrApiUrl};
       );
       setBlockedIds(ids);
     } catch { /* silent */ }
+  };
+
+  const fetchBookings = useCallback(async (date) => {
+    setBookingsLoading(true);
+    try {
+      const res = await api.get(`/owner/bookings?date=${date}`);
+      const d = res.data.data;
+      const all = Array.isArray(d) ? d : (d?.bookings || []);
+      setBookings(all.sort((a, b) => (a.appointmentTime || '').localeCompare(b.appointmentTime || '')));
+    } catch { setBookings([]); } finally {
+      setBookingsLoading(false);
+    }
+  }, []);
+
+  const shiftBookingsDate = (days) => {
+    const d = new Date(selectedDate + 'T12:00:00');
+    d.setDate(d.getDate() + days);
+    const next = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    setSelectedDate(next);
   };
 
   const handleToggleBlock = async (customerId, customerName, isBlocked) => {
@@ -281,10 +306,11 @@ img.src=${qrApiUrl};
     try {
       await api.put(`/owner/bookings/${bookingId}`, { status: newStatus });
       setQueue((prev) =>
-        newStatus === 'in_progress'
-          ? prev.filter((b) => b._id !== bookingId)          // remove from queue when started
+        newStatus === 'cancelled' || newStatus === 'completed'
+          ? prev.filter((b) => b._id !== bookingId)
           : prev.map((b) => b._id === bookingId ? { ...b, status: newStatus } : b)
       );
+      fetchBookings(selectedDate);
     } catch (err) {
       showError('Error', err.message || 'Something went wrong');
     } finally {
@@ -313,7 +339,7 @@ img.src=${qrApiUrl};
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([fetchStats(), fetchQueue()]);
+    await Promise.all([fetchStats(), fetchQueue(), fetchBookings(selectedDate)]);
     setRefreshing(false);
   };
 
@@ -323,8 +349,9 @@ img.src=${qrApiUrl};
     await fetchQueue();
   };
 
-  useEffect(() => { fetchStats(); fetchBlockedIds(); fetchServices(); }, []);
-  useFocusEffect(useCallback(() => { fetchQueue(); }, []));
+  useEffect(() => { fetchStats(); fetchBlockedIds(); fetchServices(); fetchBookings(today); }, []);
+  useEffect(() => { fetchBookings(selectedDate); }, [selectedDate]);
+  useFocusEffect(useCallback(() => { fetchQueue(); fetchBookings(selectedDate); }, [selectedDate]));
 
   const statCards = [
     { title: 'Total Revenue', value: `₹${stats?.totalRevenue || 0}`, icon: 'cash-outline', color: '#10b981' },
@@ -344,43 +371,63 @@ img.src=${qrApiUrl};
       contentContainerStyle={{ paddingBottom: 20 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
-      {/* Welcome */}
-      <View style={[styles.welcomeBox, { paddingTop: 16 + insets.top }]}>
-        <View style={styles.decorCircle1} />
-        <View style={styles.decorCircle2} />
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View style={styles.headerLogoBox}>
-              <Image source={require('../../../assets/icon1.png')} style={styles.headerLogo} resizeMode="contain" />
-            </View>
-            <View>
-              <Text style={styles.welcomeTitle}>{salon?.name || 'My Salon'}</Text>
-              <Text style={styles.welcomeSubtitle}>Owner Dashboard</Text>
-            </View>
+      {/* Dashboard Header — matches web layout */}
+      <View style={[styles.dashHeader, { paddingTop: insets.top + 12, backgroundColor: theme.card, borderBottomColor: theme.border }]}>
+        {/* Top strip: drawer + logo on left, QR + bell on right */}
+        <View style={styles.dashHeaderTop}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <DrawerMenuButton color={theme.text} />
+            <Text style={[styles.dashBrand, { color: theme.text }]}>My Salon Bookings</Text>
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            {/* QR Code button */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <TouchableOpacity
-              onPress={() => setShowQR(true)}
-              style={{ padding: 4 }}
+              onPress={toggleTheme}
+              style={[styles.dashIconBtn, { backgroundColor: theme.bg }]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Ionicons name="qr-code-outline" size={24} color="#fff" />
+              <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={20} color={theme.subText} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setShowQR(true)}
+              style={[styles.dashIconBtn, { backgroundColor: theme.bg }]}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="qr-code-outline" size={20} color={theme.subText} />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => navigation.navigate('Notifications')}
-              style={{ padding: 4 }}
+              style={[styles.dashIconBtn, { backgroundColor: theme.bg }]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Ionicons name="notifications-outline" size={24} color="#fff" />
+              <Ionicons name="notifications-outline" size={20} color={theme.subText} />
               {unreadCount > 0 && (
                 <View style={styles.notifBadge}>
                   <Text style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
                 </View>
               )}
             </TouchableOpacity>
-            <DrawerMenuButton />
+            {/* Profile avatar — matches web navbar top-right */}
+            <TouchableOpacity onPress={() => navigation.navigate('Profile')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              {user?.profilePhoto ? (
+                <Image source={{ uri: user.profilePhoto }} style={styles.navAvatar} />
+              ) : (
+                <View style={[styles.navAvatarFallback, { backgroundColor: '#dbeafe' }]}>
+                  <Ionicons name="person" size={16} color="#2563eb" />
+                </View>
+              )}
+            </TouchableOpacity>
           </View>
+        </View>
+        {/* Title row: "Dashboard" + "Add Walk-in" button — same as web */}
+        <View style={styles.dashHeaderTitle}>
+          <View>
+            <Text style={[styles.dashTitle, { color: theme.text }]}>Dashboard</Text>
+            <Text style={[styles.dashSubtitle, { color: theme.subText }]}>Welcome back! Here's your salon's performance</Text>
+          </View>
+          <TouchableOpacity style={styles.walkInBtnHeader} onPress={() => setShowWalkIn(true)}>
+            <Ionicons name="add" size={16} color="#fff" />
+            <Text style={styles.walkInBtnHeaderText}>Add Walk-in</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -416,17 +463,9 @@ img.src=${qrApiUrl};
               </Text>
             </View>
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            {/* Date pill */}
-            <View style={[styles.datePill, { backgroundColor: isToday ? '#dbeafe' : '#fef3c7' }]}>
-              <Ionicons name="calendar-outline" size={12} color={isToday ? '#2563eb' : '#d97706'} />
-              <Text style={[styles.datePillText, { color: isToday ? '#2563eb' : '#d97706' }]}>{dateLabel}</Text>
-            </View>
-            {/* Walk-in button */}
-            <TouchableOpacity style={styles.walkInBtn} onPress={() => setShowWalkIn(true)}>
-              <Ionicons name="add" size={14} color="#fff" />
-              <Text style={styles.walkInBtnText}>Walk-in</Text>
-            </TouchableOpacity>
+          <View style={[styles.datePill, { backgroundColor: isToday ? '#dbeafe' : '#fef3c7' }]}>
+            <Ionicons name="calendar-outline" size={12} color={isToday ? '#2563eb' : '#d97706'} />
+            <Text style={[styles.datePillText, { color: isToday ? '#2563eb' : '#d97706' }]}>{dateLabel}</Text>
           </View>
         </View>
 
@@ -539,6 +578,86 @@ img.src=${qrApiUrl};
               </View>
             );
           })
+        )}
+      </View>
+
+      {/* ── Bookings Date Navigator ── */}
+      <View style={{ paddingHorizontal: 12, paddingBottom: 32 }}>
+        {/* Section header */}
+        <View style={styles.queueHeader}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={[styles.queueIconBox, { backgroundColor: '#ede9fe' }]}>
+              <Ionicons name="calendar-outline" size={18} color="#7c3aed" />
+            </View>
+            <View>
+              <Text style={[styles.queueTitle, { color: theme.text }]}>Bookings</Text>
+              <Text style={[styles.queueSub, { color: theme.subText }]}>
+                {bookings.length} booking{bookings.length !== 1 ? 's' : ''} · {selectedDate === today ? 'Today' : formatDate(selectedDate + 'T12:00:00')}
+              </Text>
+            </View>
+          </View>
+          {/* Date navigator */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <TouchableOpacity
+              style={[styles.dateNavBtn, { backgroundColor: theme.card }]}
+              onPress={() => shiftBookingsDate(-1)}
+            >
+              <Ionicons name="chevron-back" size={16} color={theme.text} />
+            </TouchableOpacity>
+            <View style={[styles.datePill, { backgroundColor: selectedDate === today ? '#dbeafe' : '#ede9fe' }]}>
+              <Ionicons name="calendar-outline" size={12} color={selectedDate === today ? '#2563eb' : '#7c3aed'} />
+              <Text style={[styles.datePillText, { color: selectedDate === today ? '#2563eb' : '#7c3aed' }]}>
+                {selectedDate === today ? 'Today' : formatDate(selectedDate + 'T12:00:00')}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.dateNavBtn, { backgroundColor: theme.card }]}
+              onPress={() => shiftBookingsDate(1)}
+            >
+              <Ionicons name="chevron-forward" size={16} color={theme.text} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {bookingsLoading ? (
+          <ActivityIndicator size="small" color="#7c3aed" style={{ marginTop: 24 }} />
+        ) : bookings.length === 0 ? (
+          <View style={[styles.emptyCard, { backgroundColor: theme.card }]}>
+            <Ionicons name="calendar-outline" size={44} color="#d1d5db" />
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>No bookings</Text>
+            <Text style={[styles.emptyText, { color: theme.subText }]}>
+              No bookings on {selectedDate === today ? 'today' : formatDate(selectedDate + 'T12:00:00')}
+            </Text>
+          </View>
+        ) : (
+          <View style={[styles.bookingsList, { backgroundColor: theme.card }]}>
+            {bookings.map((b, i) => {
+              const colors = STATUS_COLORS[b.status] || { bg: '#f3f4f6', text: '#374151' };
+              return (
+                <View key={b._id ? String(b._id) : String(i)}>
+                  {i > 0 && <View style={[styles.bookingDivider, { backgroundColor: theme.rowBorder }]} />}
+                  <View style={styles.bookingRow}>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={[styles.customerName, { color: theme.text, fontSize: 14 }]} numberOfLines={1}>
+                        {b.customerName || '—'}
+                      </Text>
+                      <Text style={[styles.detailText, { color: theme.subText, marginTop: 2 }]} numberOfLines={1}>
+                        {b.serviceName} · {formatTime(b.appointmentTime)}
+                      </Text>
+                    </View>
+                    <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                      <View style={[styles.statusBadge, { backgroundColor: colors.bg }]}>
+                        <Text style={[styles.statusText, { color: colors.text }]}>{b.status?.replace('_', ' ')}</Text>
+                      </View>
+                      {b.totalAmount ? (
+                        <Text style={[styles.detailText, { color: theme.subText }]}>₹{b.totalAmount}</Text>
+                      ) : null}
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
         )}
       </View>
 
@@ -728,15 +847,23 @@ const qrStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   container: { flex: 1 }, // kept for ref
-  welcomeBox: { backgroundColor: '#2563eb', padding: 20, paddingTop: 16, paddingBottom: 24, overflow: 'hidden' },
-  decorCircle1: { position: 'absolute', width: 220, height: 220, borderRadius: 110, backgroundColor: 'rgba(255,255,255,0.06)', top: -80, right: -60 },
-  decorCircle2: { position: 'absolute', width: 150, height: 150, borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.04)', bottom: -60, left: -30 },
+  // Dashboard header (matches web layout)
+  dashHeader: { paddingHorizontal: 16, paddingBottom: 16, borderBottomWidth: 1 },
+  dashHeaderTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+  dashHeaderTitle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  dashBrand: { fontSize: 15, fontWeight: '700' },
+  dashTitle: { fontSize: 24, fontWeight: '800' },
+  dashSubtitle: { fontSize: 13, marginTop: 2 },
+  dashIconBtn: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  navAvatar: { width: 34, height: 34, borderRadius: 17, borderWidth: 1.5, borderColor: '#e5e7eb' },
+  navAvatarFallback: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  walkInBtnHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 12, backgroundColor: '#4f46e5' },
+  walkInBtnHeaderText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  // legacy (keep for walk-in btn in queue header)
   notifBadge: { position: 'absolute', top: 0, right: 0, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
   notifBadgeText: { color: '#fff', fontSize: 9, fontWeight: '700' },
-  headerLogoBox: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', shadowColor: '#1e3a8a', shadowOpacity: 0.2, shadowRadius: 6, elevation: 4 },
-  headerLogo: { width: 40, height: 40 },
-  welcomeTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
-  welcomeSubtitle: { fontSize: 12, color: '#bfdbfe', marginTop: 2 },
+  headerLogoBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center' },
+  headerLogo: { width: 28, height: 28 },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', padding: 12, gap: 12 },
   statCard: { flex: 1, minWidth: '44%', borderRadius: 12, padding: 16, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
   statIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
@@ -772,6 +899,11 @@ const styles = StyleSheet.create({
   actionsRow: { flexDirection: 'row', gap: 8, marginTop: 10, paddingTop: 10, borderTopWidth: 1 },
   actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 8, borderRadius: 8 },
   actionBtnText: { fontSize: 13, fontWeight: '600', color: '#fff' },
+  // Bookings list
+  bookingsList: { borderRadius: 14, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
+  bookingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingVertical: 12, paddingHorizontal: 14 },
+  bookingDivider: { height: 1, marginHorizontal: 14 },
+  dateNavBtn: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
   // Bottom nav
   screen: { flex: 1 },
   // Action sheet

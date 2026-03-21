@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Share, Platform, Alert,
+  ActivityIndicator, RefreshControl, Share, Platform, Alert, TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as FileSystem from 'expo-file-system';
-import * as MediaLibrary from 'expo-media-library';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import api from '../../services/api';
@@ -130,21 +128,31 @@ const PRESETS = [
   { label: 'This Year',  getRange: getThisYearRange },
 ];
 
+const today = localDate(0);
+
 export default function ReportsScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const [preset, setPreset] = useState(1); // default: 7 days
+  const [isCustom, setIsCustom] = useState(false);
+  const [customStart, setCustomStart] = useState(localDate(-30));
+  const [customEnd, setCustomEnd] = useState(localDate(0));
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchAnalytics = useCallback(async (presetIndex, isRefresh = false) => {
+  // Recent Bookings date navigator
+  const [bookingsDate, setBookingsDate] = useState(today);
+  const [bookingsList, setBookingsList] = useState([]);
+  const [bookingsLoading, setBookingsLoading] = useState(false);
+
+  const fetchAnalytics = useCallback(async (presetIndex, start, end, isRefresh = false) => {
     if (!isRefresh) setLoading(true);
     setError(null);
-    const { start, end } = PRESETS[presetIndex].getRange();
+    const range = start && end ? { start, end } : PRESETS[presetIndex].getRange();
     try {
-      const res = await api.get(`/owner/analytics/dashboard?startDate=${start}&endDate=${end}`);
+      const res = await api.get(`/owner/analytics/dashboard?startDate=${range.start}&endDate=${range.end}`);
       setAnalytics(res.data.data || null);
     } catch (err) {
       setAnalytics(null);
@@ -154,11 +162,40 @@ export default function ReportsScreen() {
     }
   }, []);
 
-  useEffect(() => { fetchAnalytics(preset); }, [preset]);
+  const fetchBookingsByDate = useCallback(async (date) => {
+    setBookingsLoading(true);
+    try {
+      const res = await api.get(`/owner/bookings?date=${date}`);
+      const d = res.data.data;
+      setBookingsList(Array.isArray(d) ? d : (d?.bookings || []));
+    } catch { setBookingsList([]); } finally {
+      setBookingsLoading(false);
+    }
+  }, []);
+
+  const shiftBookingsDate = (days) => {
+    const d = new Date(bookingsDate + 'T12:00:00');
+    d.setDate(d.getDate() + days);
+    const next = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    if (next <= today) setBookingsDate(next);
+  };
+
+  useEffect(() => {
+    if (!isCustom) fetchAnalytics(preset, null, null);
+  }, [preset, isCustom]);
+
+  useEffect(() => { fetchBookingsByDate(bookingsDate); }, [bookingsDate]);
+
+  const applyCustomRange = () => {
+    if (!customStart || !customEnd) return;
+    fetchAnalytics(preset, customStart, customEnd);
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchAnalytics(preset, true);
+    const range = isCustom ? { start: customStart, end: customEnd } : null;
+    await fetchAnalytics(preset, range?.start, range?.end, true);
+    await fetchBookingsByDate(bookingsDate);
     setRefreshing(false);
   };
 
@@ -263,34 +300,24 @@ export default function ReportsScreen() {
     <div class="footer">SmartSalon Owner Dashboard &nbsp;&bull;&nbsp; ${new Date().toLocaleDateString('en-IN')}</div>
     </body></html>`;
 
-    const savePDFToDownloads = async (tempUri, fileName) => {
-      // Try 1: copy directly to /storage/emulated/0/Download/ (works on Android ≤ 10)
-      try {
-        const { status } = await MediaLibrary.requestPermissionsAsync();
-        if (status === 'granted') {
-          await FileSystem.copyAsync({ from: tempUri, to: `file:///storage/emulated/0/Download/${fileName}` });
-          Alert.alert('PDF Saved!', `"${fileName}" saved to Downloads`);
-          return;
-        }
-      } catch { /* fall through */ }
-
-      // Try 2: MediaStore via expo-media-library (works on Android 11+ without any picker)
-      try {
-        await MediaLibrary.createAssetAsync(tempUri);
-        Alert.alert('PDF Saved!', `"${fileName}" saved to device storage`);
-        return;
-      } catch { /* fall through */ }
-
-      // Fallback: open share sheet so user can save manually
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(tempUri, { mimeType: 'application/pdf', dialogTitle: 'Save PDF' });
-      }
-    };
-
     try {
       const { uri: tempUri } = await Print.printToFileAsync({ html, base64: false });
       const fileName = `Analytics-Report-${label.replace(/\s+/g, '-')}.pdf`;
-      await savePDFToDownloads(tempUri, fileName);
+
+      // Try react-native-blob-util (saves directly to Downloads, requires native rebuild)
+      try {
+        const RNBlobUtil = require('react-native-blob-util').default;
+        const destPath = `${RNBlobUtil.fs.dirs.DownloadDir}/${fileName}`;
+        const base64 = await RNBlobUtil.fs.readFile(tempUri, 'base64');
+        await RNBlobUtil.fs.writeFile(destPath, base64, 'base64');
+        Alert.alert('PDF Saved!', `"${fileName}" saved to Downloads folder`);
+        return;
+      } catch { /* native module not linked yet — fall through to share sheet */ }
+
+      // Fallback: share sheet (user can tap Save to Files → Downloads)
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(tempUri, { mimeType: 'application/pdf', dialogTitle: 'Save PDF' });
+      }
     } catch (err) {
       Alert.alert('Error', err.message || 'Failed to generate PDF');
     }
@@ -317,13 +344,50 @@ export default function ReportsScreen() {
           {PRESETS.map((p, i) => (
             <TouchableOpacity
               key={i}
-              style={[styles.presetChip, preset === i && styles.presetChipActive]}
-              onPress={() => { setPreset(i); setLoading(true); }}
+              style={[styles.presetChip, !isCustom && preset === i && styles.presetChipActive]}
+              onPress={() => { setIsCustom(false); setPreset(i); setLoading(true); }}
             >
-              <Text style={[styles.presetChipText, preset === i && styles.presetChipTextActive]}>{p.label}</Text>
+              <Text style={[styles.presetChipText, !isCustom && preset === i && styles.presetChipTextActive]}>{p.label}</Text>
             </TouchableOpacity>
           ))}
+          <TouchableOpacity
+            style={[styles.presetChip, isCustom && styles.presetChipActive]}
+            onPress={() => setIsCustom(true)}
+          >
+            <Text style={[styles.presetChipText, isCustom && styles.presetChipTextActive]}>Custom</Text>
+          </TouchableOpacity>
         </ScrollView>
+
+        {/* Custom date range inputs */}
+        {isCustom && (
+          <View style={styles.customRangeRow}>
+            <View style={styles.customDateBox}>
+              <Text style={styles.customDateLabel}>From</Text>
+              <TextInput
+                style={[styles.customDateInput, { color: theme.text, borderColor: 'rgba(255,255,255,0.4)' }]}
+                value={customStart}
+                onChangeText={setCustomStart}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor="rgba(255,255,255,0.5)"
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={styles.customDateBox}>
+              <Text style={styles.customDateLabel}>To</Text>
+              <TextInput
+                style={[styles.customDateInput, { color: theme.text, borderColor: 'rgba(255,255,255,0.4)' }]}
+                value={customEnd}
+                onChangeText={setCustomEnd}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor="rgba(255,255,255,0.5)"
+                keyboardType="numeric"
+              />
+            </View>
+            <TouchableOpacity style={styles.applyBtn} onPress={applyCustomRange}>
+              <Text style={styles.applyBtnText}>Apply</Text>
+            </TouchableOpacity>
+          </View>
+        )}
         {analytics && (
           <View style={styles.exportRow}>
             <TouchableOpacity style={styles.exportBtn} onPress={exportCSV}>
@@ -451,6 +515,65 @@ export default function ReportsScreen() {
             </View>
           )}
 
+          {/* Recent Bookings — date navigator (matches web) */}
+          <View style={[styles.section, { backgroundColor: theme.card }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <View>
+                <Text style={[styles.sectionTitle, { color: theme.text, marginBottom: 0 }]}>Recent Bookings</Text>
+                <Text style={[styles.topServiceSub, { color: theme.subText, marginTop: 2 }]}>
+                  {bookingsDate === today ? 'Today' : formatDate(bookingsDate + 'T12:00:00')} · {bookingsList.length} booking{bookingsList.length !== 1 ? 's' : ''}
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <TouchableOpacity
+                  style={[styles.dateNavBtn, { backgroundColor: theme.bg }]}
+                  onPress={() => shiftBookingsDate(-1)}
+                >
+                  <Ionicons name="chevron-back" size={16} color={theme.text} />
+                </TouchableOpacity>
+                <View style={[styles.presetChip, { backgroundColor: theme.bg, marginRight: 0 }]}>
+                  <Text style={[styles.presetChipText, { color: theme.subText }]}>
+                    {bookingsDate === today ? 'Today' : bookingsDate.slice(5)}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.dateNavBtn, { backgroundColor: theme.bg, opacity: bookingsDate === today ? 0.4 : 1 }]}
+                  onPress={() => shiftBookingsDate(1)}
+                  disabled={bookingsDate === today}
+                >
+                  <Ionicons name="chevron-forward" size={16} color={theme.text} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {bookingsLoading ? (
+              <ActivityIndicator size="small" color="#2563eb" style={{ marginVertical: 16 }} />
+            ) : bookingsList.length === 0 ? (
+              <View style={{ alignItems: 'center', paddingVertical: 24 }}>
+                <Ionicons name="calendar-outline" size={36} color="#d1d5db" />
+                <Text style={[styles.topServiceSub, { color: theme.subText, marginTop: 8 }]}>No bookings on this date</Text>
+              </View>
+            ) : (
+              bookingsList.map((b) => {
+                const colors = STATUS_COLORS[b.status] || { bg: '#f3f4f6', text: '#374151' };
+                return (
+                  <View key={b._id} style={[styles.bookingRow, { borderTopColor: theme.rowBorder }]}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.bookingName, { color: theme.text }]}>{b.customerName || '—'}</Text>
+                      <Text style={[styles.bookingMeta, { color: theme.subText }]}>{b.serviceName} · {formatTime(b.appointmentTime)}</Text>
+                    </View>
+                    <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                      <View style={[styles.statusBadge, { backgroundColor: colors.bg }]}>
+                        <Text style={[styles.statusText, { color: colors.text }]}>{b.status?.replace('_', ' ')}</Text>
+                      </View>
+                      {b.totalAmount ? <Text style={[styles.bookingAmount, { color: theme.subText }]}>₹{b.totalAmount}</Text> : null}
+                    </View>
+                  </View>
+                );
+              })
+            )}
+          </View>
+
           {error && (
             <View style={[styles.errorBox, { backgroundColor: theme.card }]}>
               <Ionicons name="warning-outline" size={36} color="#ef4444" />
@@ -482,6 +605,13 @@ const styles = StyleSheet.create({
   presetChipActive: { backgroundColor: '#fff' },
   presetChipText: { color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: '500' },
   presetChipTextActive: { color: '#2563eb', fontWeight: '700' },
+  customRangeRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginTop: 10, paddingHorizontal: 2 },
+  customDateBox: { flex: 1 },
+  customDateLabel: { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.7)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
+  customDateInput: { height: 36, borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, fontSize: 13, color: '#fff', backgroundColor: 'rgba(255,255,255,0.12)' },
+  applyBtn: { height: 36, paddingHorizontal: 14, backgroundColor: '#fff', borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  applyBtnText: { fontSize: 13, fontWeight: '700', color: '#2563eb' },
+  dateNavBtn: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   exportRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
   exportBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
   exportBtnText: { color: '#fff', fontSize: 12, fontWeight: '600' },

@@ -714,7 +714,7 @@ function PrivacySection() {
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { salon, fetchSalon } = useSalon();
-  const { theme, isDark, toggleTheme } = useTheme();
+  const { theme } = useTheme();
   const [resetKey, setResetKey] = useState(0);
 
   useFocusEffect(useCallback(() => {
@@ -728,24 +728,6 @@ export default function SettingsScreen() {
         <Text style={styles.headerSub}>Manage your salon configuration</Text>
       </View>
       <ScrollView contentContainerStyle={{ padding: 12, paddingBottom: 40 }}>
-
-        {/* Appearance toggle */}
-        <View style={[styles.appearanceCard, { backgroundColor: theme.card }]}>
-          <View style={[styles.appearanceIcon, { backgroundColor: isDark ? '#1e3a5f' : '#dbeafe' }]}>
-            <Ionicons name={isDark ? 'moon' : 'sunny'} size={20} color={isDark ? '#93c5fd' : '#2563eb'} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.appearanceTitle, { color: theme.text }]}>{isDark ? 'Dark Mode' : 'Light Mode'}</Text>
-            <Text style={[styles.appearanceSub, { color: theme.subText }]}>Switch between dark and light theme</Text>
-          </View>
-          <Switch
-            value={isDark}
-            onValueChange={toggleTheme}
-            trackColor={{ false: '#d1d5db', true: '#3b82f6' }}
-            thumbColor={isDark ? '#f1f5f9' : '#fff'}
-          />
-        </View>
-
 
         <Section resetKey={resetKey} title="Salon Information" subtitle="Name, category, contact & address" icon="globe-outline" iconBg="#dcfce7" iconColor="#16a34a">
           <SalonInfoSection salon={salon} onSaved={fetchSalon} />

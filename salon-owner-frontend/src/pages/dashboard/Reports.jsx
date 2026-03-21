@@ -73,9 +73,11 @@ const Reports = () => {
   useEffect(() => { fetchAnalytics(); }, [startDate, endDate]);
   useEffect(() => { fetchBookingsByDate(bookingsDate); }, [bookingsDate]);
 
-  const totalRevenue   = data?.totalRevenue        ?? 0;
-  const totalBookings  = data?.totalBookings        ?? 0;
-  const completed      = data?.completedBookings    ?? 0;
+  const totalRevenue    = data?.totalRevenue        ?? 0;
+  const totalBookings   = data?.totalBookings        ?? 0;
+  const activeCustomers = data?.activeCustomers      ?? 0;
+  const growthRate      = data?.growthRate           ?? 0;
+  const completed       = data?.completedBookings    ?? 0;
   const pending        = data?.pendingBookings      ?? 0;
   const cancelled      = data?.cancelledBookings    ?? 0;
   const dailyRevenue   = data?.dailyRevenue         ?? [];
@@ -271,7 +273,7 @@ ${recentBookings.length ? `<h2>Recent Bookings</h2>
         ) : (
           <>
             {/* Summary Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-blue-50 rounded-lg border-2 border-blue-200 p-6">
                 <div className="flex items-center gap-3 mb-2">
                   <TrendingUp className="w-5 h-5 text-blue-600" />
@@ -295,10 +297,19 @@ ${recentBookings.length ? `<h2>Recent Bookings</h2>
               <div className="bg-purple-50 rounded-lg border-2 border-purple-200 p-6">
                 <div className="flex items-center gap-3 mb-2">
                   <Users className="w-5 h-5 text-purple-600" />
-                  <p className="text-sm text-purple-600">Avg Daily Revenue</p>
+                  <p className="text-sm text-purple-600">Active Customers</p>
                 </div>
-                <p className="text-2xl font-bold text-purple-900">₹{avgDaily.toLocaleString()}</p>
-                <p className="text-xs text-purple-600 mt-2">Across {dailyRevenue.length} active day{dailyRevenue.length !== 1 ? 's' : ''}</p>
+                <p className="text-2xl font-bold text-purple-900">{activeCustomers}</p>
+                <p className="text-xs text-purple-600 mt-2">Unique customers in period</p>
+              </div>
+
+              <div className="bg-amber-50 rounded-lg border-2 border-amber-200 p-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <TrendingUp className="w-5 h-5 text-amber-600" />
+                  <p className="text-sm text-amber-600">Growth Rate</p>
+                </div>
+                <p className="text-2xl font-bold text-amber-900">{growthRate}%</p>
+                <p className="text-xs text-amber-600 mt-2">Compared to previous period</p>
               </div>
             </div>
 

@@ -1,10 +1,9 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import Loader from "../../components/common/Loader";
 import api from "../../services/api";
 import * as salonService from "../../services/salonService";
 import { useSalon } from "../../hooks/useSalon";
-import { TrendingUp, Users, Calendar, IndianRupee, ChevronLeft, ChevronRight, Plus, X, MoreVertical, ShieldOff, ShieldCheck } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, X, MoreVertical, ShieldOff, ShieldCheck } from "lucide-react";
 import { formatDate, formatTime } from "../../utils/exportHelpers";
 
 const localDate = (offset = 0) => {
@@ -287,10 +286,6 @@ const QueueCard = ({ booking, index, onStatusChange, onBlock, onUnblock }) => {
 const Dashboard = () => {
   const { salon, services, createWalkInBooking, fetchServices } = useSalon();
 
-  // Stats
-  const [stats, setStats]     = useState(null);
-  const [loading, setLoading] = useState(true);
-
   // Queue (today's pending + confirmed, sorted by time)
   const [queue, setQueue]           = useState([]);
   const [queueLoading, setQueueLoading] = useState(false);
@@ -302,17 +297,6 @@ const Dashboard = () => {
 
   // Walk-in modal
   const [walkInOpen, setWalkInOpen] = useState(false);
-
-  const fetchDashboardStats = async () => {
-    try {
-      const res = await api.get("/owner/analytics/dashboard");
-      setStats(res.data.data);
-    } catch (err) {
-      console.error("Dashboard stats failed:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchQueue = useCallback(async () => {
     setQueueLoading(true);
@@ -341,7 +325,7 @@ const Dashboard = () => {
     }
   }, []);
 
-  useEffect(() => { fetchDashboardStats(); fetchServices(); fetchQueue(); }, []);
+  useEffect(() => { fetchServices(); fetchQueue(); }, []);
   useEffect(() => { fetchBookings(selectedDate); }, [selectedDate]);
 
   const shiftDate = (days) => {
@@ -373,21 +357,6 @@ const Dashboard = () => {
     if (selectedDate === today) fetchBookings(today);
   };
 
-  if (loading) {
-    return (
-      <DashboardLayout>
-        <Loader fullscreen />
-      </DashboardLayout>
-    );
-  }
-
-  const dashboardStats = [
-    { title: "Total Revenue",    value: `₹${stats?.totalRevenue || 0}`,   icon: IndianRupee },
-    { title: "Total Bookings",   value: stats?.totalBookings || 0,         icon: Calendar },
-    { title: "Active Customers", value: stats?.activeCustomers || 0,       icon: Users },
-    { title: "Growth Rate",      value: `${stats?.growthRate || 0}%`,      icon: TrendingUp },
-  ];
-
   const isToday = selectedDate === today;
   const displayLabel = isToday ? "Today" : formatDate(selectedDate + "T12:00:00");
 
@@ -406,22 +375,6 @@ const Dashboard = () => {
             <Plus className="w-4 h-4" />
             Add Walk-in
           </button>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {dashboardStats.map((stat, idx) => {
-            const Icon = stat.icon;
-            return (
-              <div key={idx} className="bg-white rounded-lg border border-gray-200 p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <Icon className="w-8 h-8 text-blue-600" />
-                </div>
-                <h3 className="text-gray-600 text-sm mb-1">{stat.title}</h3>
-                <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-              </div>
-            );
-          })}
         </div>
 
         {/* Live Queue */}
