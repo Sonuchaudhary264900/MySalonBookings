@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { showError, showInfo } from '../../utils/toast';
+import { useTheme } from '../../context/ThemeContext';
 
 const BASE_TABS = ['Services', 'Reviews', 'Info'];
 const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -22,16 +23,16 @@ function StarRating({ rating, size = 14 }) {
   );
 }
 
-function WorkingHoursRow({ day, hours }) {
+function WorkingHoursRow({ day, hours, styles }) {
   const today = DAY_NAMES[new Date().getDay()];
   const isToday = day.toLowerCase() === today.toLowerCase();
   return (
     <View style={[styles.hoursRow, isToday && styles.hoursRowToday]}>
-      <Text style={[styles.hoursDay, isToday && { color: '#2563eb', fontWeight: '700' }]}>{day}</Text>
+      <Text style={[styles.hoursDay, isToday && { color: '#60a5fa', fontWeight: '700' }]}>{day}</Text>
       {hours?.isClosed ? (
         <Text style={styles.hoursClosed}>Closed</Text>
       ) : (
-        <Text style={[styles.hoursTime, isToday && { color: '#2563eb' }]}>
+        <Text style={[styles.hoursTime, isToday && { color: '#60a5fa' }]}>
           {hours?.open || '09:00'} – {hours?.close || '21:00'}
         </Text>
       )}
@@ -42,6 +43,7 @@ function WorkingHoursRow({ day, hours }) {
 export default function SalonDetailsScreen({ route, navigation }) {
   const { salonId } = route.params;
   const { isAuthenticated } = useAuth();
+  const { theme } = useTheme();
   const insets = useSafeAreaInsets();
 
   const [salon, setSalon]                 = useState(null);
@@ -125,6 +127,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
   const TABS = reviews.length > 0 ? BASE_TABS : BASE_TABS.filter(t => t !== 'Reviews');
   // If active tab no longer exists (e.g. no reviews), fall back to Services
   const activeTab = TABS.includes(tab) ? tab : 'Services';
+  const styles = getStyles(theme);
 
   if (loading) {
     return (
@@ -351,6 +354,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                       key={day}
                       day={day}
                       hours={salon.workingHours[day.toLowerCase()]}
+                      styles={styles}
                     />
                   ))}
                 </View>
@@ -378,67 +382,67 @@ export default function SalonDetailsScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
-  loadingBox: { flex: 1, backgroundColor: '#f9fafb' },
-  loadingHeader: { height: 240, backgroundColor: '#e5e7eb' },
+const getStyles = (t) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
+  loadingBox: { flex: 1, backgroundColor: t.bg },
+  loadingHeader: { height: 240, backgroundColor: t.border },
   topBar: { position: 'absolute', left: 0, right: 0, zIndex: 10, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16 },
-  circleBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
+  circleBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: t.card, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
   backBtn2: { marginTop: 16, padding: 12 },
   heroWrapper: { position: 'relative' },
   heroImg: { width: '100%', height: 240 },
-  heroPlaceholder: { backgroundColor: '#dbeafe', alignItems: 'center', justifyContent: 'center' },
+  heroPlaceholder: { backgroundColor: '#1e3a8a', alignItems: 'center', justifyContent: 'center' },
   heroOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 80, backgroundColor: 'transparent' },
-  infoCard: { backgroundColor: '#fff', marginHorizontal: 16, marginTop: -20, borderRadius: 16, padding: 16, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8, elevation: 4, gap: 8, marginBottom: 12 },
+  infoCard: { backgroundColor: t.card, marginHorizontal: 16, marginTop: -20, borderRadius: 16, padding: 16, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8, elevation: 4, gap: 8, marginBottom: 12, borderWidth: 1, borderColor: t.border },
   infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  salonName: { fontSize: 20, fontWeight: '800', color: '#111827' },
-  salonCategory: { fontSize: 13, color: '#6b7280', textTransform: 'capitalize', marginTop: 2 },
+  salonName: { fontSize: 20, fontWeight: '800', color: t.text },
+  salonCategory: { fontSize: 13, color: t.subText, textTransform: 'capitalize', marginTop: 2 },
   ratingBox: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#fef3c7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   ratingNum: { fontSize: 14, fontWeight: '700', color: '#92400e' },
   ratingCount: { fontSize: 11, color: '#92400e' },
   metaRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
-  metaText: { fontSize: 13, color: '#6b7280', flex: 1, lineHeight: 18 },
-  description: { fontSize: 13, color: '#6b7280', lineHeight: 19, marginTop: 4 },
-  tabBar: { flexDirection: 'row', backgroundColor: '#fff', marginHorizontal: 16, borderRadius: 12, padding: 4, marginBottom: 12, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
+  metaText: { fontSize: 13, color: t.subText, flex: 1, lineHeight: 18 },
+  description: { fontSize: 13, color: t.subText, lineHeight: 19, marginTop: 4 },
+  tabBar: { flexDirection: 'row', backgroundColor: t.card, marginHorizontal: 16, borderRadius: 12, padding: 4, marginBottom: 12, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1, borderWidth: 1, borderColor: t.border },
   tabBtn: { flex: 1, paddingVertical: 9, alignItems: 'center', borderRadius: 9 },
   tabBtnActive: { backgroundColor: '#2563eb' },
-  tabText: { fontSize: 13, fontWeight: '600', color: '#6b7280' },
+  tabText: { fontSize: 13, fontWeight: '600', color: t.subText },
   tabTextActive: { color: '#fff' },
-  tabBadge: { backgroundColor: '#e5e7eb', borderRadius: 8, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
+  tabBadge: { backgroundColor: t.border, borderRadius: 8, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
   tabBadgeActive: { backgroundColor: 'rgba(255,255,255,0.25)' },
-  tabBadgeText: { fontSize: 10, fontWeight: '700', color: '#6b7280' },
+  tabBadgeText: { fontSize: 10, fontWeight: '700', color: t.subText },
   galleryImg: { width: 120, height: 88, borderRadius: 10 },
   emptyTab: { alignItems: 'center', paddingVertical: 40, gap: 10 },
-  emptyTabText: { fontSize: 14, color: '#9ca3af' },
-  serviceCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1.5, borderColor: '#e5e7eb', shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
-  serviceCardSelected: { borderColor: '#2563eb', backgroundColor: '#eff6ff' },
+  emptyTabText: { fontSize: 14, color: t.subText },
+  serviceCard: { backgroundColor: t.card, borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1.5, borderColor: t.border, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
+  serviceCardSelected: { borderColor: '#2563eb', backgroundColor: '#1e3a8a' },
   serviceTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  serviceName: { fontSize: 14, fontWeight: '700', color: '#111827', flex: 1 },
+  serviceName: { fontSize: 14, fontWeight: '700', color: t.text, flex: 1 },
   servicePrice: { fontSize: 15, fontWeight: '800', color: '#2563eb' },
   serviceMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  serviceMetaText: { fontSize: 12, color: '#9ca3af' },
-  serviceDesc: { fontSize: 12, color: '#9ca3af', flex: 1 },
-  checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: '#d1d5db', alignItems: 'center', justifyContent: 'center' },
+  serviceMetaText: { fontSize: 12, color: t.subText },
+  serviceDesc: { fontSize: 12, color: t.subText, flex: 1 },
+  checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: t.inputBorder, alignItems: 'center', justifyContent: 'center' },
   checkboxChecked: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
-  reviewCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, gap: 8, borderWidth: 1, borderColor: '#f3f4f6' },
+  reviewCard: { backgroundColor: t.card, borderRadius: 12, padding: 14, gap: 8, borderWidth: 1, borderColor: t.border },
   reviewHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  reviewAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#dbeafe', alignItems: 'center', justifyContent: 'center' },
-  reviewAvatarText: { fontSize: 14, fontWeight: '700', color: '#2563eb' },
-  reviewName: { fontSize: 13, fontWeight: '700', color: '#111827' },
-  reviewDate: { fontSize: 11, color: '#9ca3af' },
-  reviewText: { fontSize: 13, color: '#374151', lineHeight: 19 },
-  infoSection: { backgroundColor: '#fff', borderRadius: 12, padding: 14, gap: 10, borderWidth: 1, borderColor: '#f3f4f6' },
-  infoSectionTitle: { fontSize: 13, fontWeight: '700', color: '#374151', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
+  reviewAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#1e3a8a', alignItems: 'center', justifyContent: 'center' },
+  reviewAvatarText: { fontSize: 14, fontWeight: '700', color: '#93c5fd' },
+  reviewName: { fontSize: 13, fontWeight: '700', color: t.text },
+  reviewDate: { fontSize: 11, color: t.subText },
+  reviewText: { fontSize: 13, color: t.text, lineHeight: 19 },
+  infoSection: { backgroundColor: t.card, borderRadius: 12, padding: 14, gap: 10, borderWidth: 1, borderColor: t.border },
+  infoSectionTitle: { fontSize: 13, fontWeight: '700', color: t.subText, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
   infoRow2: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  infoValue: { fontSize: 13, color: '#374151', flex: 1, lineHeight: 19 },
-  hoursRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5, borderTopWidth: 1, borderTopColor: '#f3f4f6' },
-  hoursRowToday: { backgroundColor: '#eff6ff', marginHorizontal: -14, paddingHorizontal: 14, borderRadius: 6 },
-  hoursDay: { fontSize: 13, color: '#374151' },
-  hoursTime: { fontSize: 13, color: '#374151', fontWeight: '600' },
+  infoValue: { fontSize: 13, color: t.text, flex: 1, lineHeight: 19 },
+  hoursRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5, borderTopWidth: 1, borderTopColor: t.border },
+  hoursRowToday: { backgroundColor: '#1e3a8a', marginHorizontal: -14, paddingHorizontal: 14, borderRadius: 6 },
+  hoursDay: { fontSize: 13, color: t.text },
+  hoursTime: { fontSize: 13, color: t.text, fontWeight: '600' },
   hoursClosed: { fontSize: 13, color: '#ef4444' },
-  bookBar: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#e5e7eb', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 14, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 8, elevation: 8 },
-  bookBarCount: { fontSize: 12, color: '#6b7280' },
-  bookBarPrice: { fontSize: 20, fontWeight: '800', color: '#111827' },
+  bookBar: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: t.card, borderTopWidth: 1, borderTopColor: t.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 14, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 8, elevation: 8 },
+  bookBarCount: { fontSize: 12, color: t.subText },
+  bookBarPrice: { fontSize: 20, fontWeight: '800', color: t.text },
   bookBtn: { backgroundColor: '#2563eb', borderRadius: 14, paddingHorizontal: 24, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 8 },
   bookBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
 });
