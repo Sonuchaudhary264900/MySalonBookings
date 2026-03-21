@@ -180,6 +180,13 @@ export default function SettingsScreen({ navigation }) {
     );
   };
 
+  const handleLogout = () => {
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Logout', style: 'destructive', onPress: logout },
+    ]);
+  };
+
   const handleDeleteAccount = () => {
     Alert.alert(
       'Delete Account',
@@ -447,6 +454,12 @@ export default function SettingsScreen({ navigation }) {
           />
         </Card>
 
+        {/* Logout */}
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={20} color="#ef4444" />
+          <Text style={styles.logoutBtnText}>Logout</Text>
+        </TouchableOpacity>
+
         <View style={{ height: 32 }} />
       </ScrollView>
     </View>
@@ -480,6 +493,8 @@ const getStyles = (t) => StyleSheet.create({
   rowSublabel: { fontSize: 12, color: t.subText, marginTop: 1 },
   divider: { height: 1, backgroundColor: t.border, marginLeft: 62 },
   valueText: { fontSize: 13, color: t.subText, fontWeight: '500', marginRight: 2 },
+  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginHorizontal: 16, marginTop: 8, backgroundColor: t.card, borderRadius: 14, height: 52, borderWidth: 1.5, borderColor: '#fca5a5' },
+  logoutBtnText: { fontSize: 15, fontWeight: '700', color: '#ef4444' },
   privacyInfo: { flexDirection: 'row', gap: 12, paddingHorizontal: 14, paddingVertical: 12, alignItems: 'flex-start' },
   privacyText: { flex: 1, fontSize: 13, color: t.subText, lineHeight: 19 },
   cpBtn: { backgroundColor: '#2563eb', borderRadius: 10, height: 44, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
