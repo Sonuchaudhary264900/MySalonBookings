@@ -113,41 +113,59 @@ img.src=${qrApiUrl};
   const downloadQRPDF = async () => {
     setShowQR(false);
     const salonName = salon?.name || 'My Salon';
-    const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qrValue)}`;
+    const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=${encodeURIComponent(qrValue)}`;
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/>
     <style>
-      *{margin:0;padding:0;box-sizing:border-box}
-      body{font-family:Arial,sans-serif;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;background:#f3f4f6;padding:30px}
-      .card{background:#fff;border-radius:16px;overflow:hidden;width:360px;box-shadow:0 4px 24px rgba(0,0,0,0.1)}
-      .header{background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:20px;text-align:center}
-      .header-icon{font-size:28px;color:#fff;margin-bottom:6px}
-      .header-title{color:#fff;font-size:18px;font-weight:700;letter-spacing:0.5px}
-      .body{padding:24px;display:flex;flex-direction:column;align-items:center;gap:16px}
-      .qr-wrap{background:#fff;border:2px solid #e5e7eb;border-radius:12px;padding:12px}
-      .qr-wrap img{display:block;width:200px;height:200px}
-      .salon-name{font-size:20px;font-weight:800;color:#111827;text-align:center}
-      .subtitle{font-size:13px;color:#6b7280;text-align:center}
-      .divider{width:80%;height:1px;background:#e5e7eb}
-      .url{font-size:9px;color:#9ca3af;text-align:center;word-break:break-all;padding:0 10px}
-      .footer{background:#f9fafb;border-top:1px solid #e5e7eb;padding:12px;text-align:center;font-size:11px;color:#9ca3af}
+      @page { size: A4; margin: 0; }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: Arial, sans-serif;
+        width: 210mm; height: 297mm;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        background: #fff;
+      }
+      .top-bar {
+        width: 100%; background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        padding: 28px 0; text-align: center;
+        position: absolute; top: 0;
+      }
+      .top-icon { font-size: 36px; color: #fff; }
+      .top-title { color: #fff; font-size: 26px; font-weight: 800; letter-spacing: 1px; margin-top: 6px; }
+      .top-sub { color: rgba(255,255,255,0.75); font-size: 13px; margin-top: 4px; }
+      .center { display: flex; flex-direction: column; align-items: center; gap: 22px; }
+      .qr-wrap {
+        border: 3px solid #e5e7eb; border-radius: 16px; padding: 16px;
+        background: #fff; box-shadow: 0 4px 32px rgba(79,70,229,0.1);
+      }
+      .qr-wrap img { display: block; width: 340px; height: 340px; }
+      .salon-name { font-size: 32px; font-weight: 800; color: #111827; text-align: center; }
+      .subtitle { font-size: 16px; color: #6b7280; text-align: center; }
+      .divider { width: 260px; height: 1.5px; background: #e5e7eb; }
+      .url { font-size: 11px; color: #9ca3af; text-align: center; word-break: break-all; max-width: 320px; }
+      .bottom-bar {
+        width: 100%; background: #f9fafb; border-top: 1.5px solid #e5e7eb;
+        padding: 16px; text-align: center;
+        position: absolute; bottom: 0;
+        font-size: 13px; color: #9ca3af;
+      }
     </style></head><body>
-    <div class="card">
-      <div class="header">
-        <div class="header-icon">&#9986;</div>
-        <div class="header-title">Salon Booking</div>
+      <div class="top-bar">
+        <div class="top-icon">&#9986;</div>
+        <div class="top-title">Salon Booking</div>
+        <div class="top-sub">Scan the QR code to book your appointment</div>
       </div>
-      <div class="body">
+      <div class="center">
         <div class="qr-wrap"><img src="${qrImgUrl}" /></div>
         <div class="salon-name">${salonName}</div>
         <div class="subtitle">Scan to book your appointment</div>
         <div class="divider"></div>
         <div class="url">${qrValue}</div>
       </div>
-      <div class="footer">Powered by My Salon Bookings</div>
-    </div>
+      <div class="bottom-bar">Powered by My Salon Bookings &nbsp;&bull;&nbsp; mysalonbookings.com</div>
     </body></html>`;
     try {
-      const { uri } = await Print.printToFileAsync({ html, base64: false });
+      const { uri } = await Print.printToFileAsync({ html, base64: false, width: 595, height: 842 });
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Save QR Card as PDF' });
       } else {
