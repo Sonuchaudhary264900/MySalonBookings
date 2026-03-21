@@ -4,8 +4,8 @@ import ROUTES from '../routes';
 
 const TAB_ORDER = [
   ROUTES.DASHBOARD,
-  ROUTES.PROFILE,
   ROUTES.ANALYTICS,
+  ROUTES.PROFILE,
   ROUTES.SETTINGS,
 ];
 

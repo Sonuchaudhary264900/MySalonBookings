@@ -173,7 +173,7 @@ function CustomDrawer(props) {
 }
 
 
-const TAB_SCREENS = ['Home', 'Profile', 'Reports', 'Settings'];
+const TAB_SCREENS = ['Home', 'Reports', 'Profile', 'Settings'];
 
 // ── 4-tab swipeable navigator with bottom indicator ────────────────
 function MainTabs() {
@@ -207,8 +207,8 @@ function MainTabs() {
       })}
     >
       <Tab.Screen name="Home"     component={HomeScreen}     options={{ tabBarLabel: 'Dashboard' }} />
-      <Tab.Screen name="Profile"  component={ProfileScreen}  options={{ tabBarLabel: 'Profile' }} />
       <Tab.Screen name="Reports"  component={ReportsScreen}  options={{ tabBarLabel: 'Analytics' }} />
+      <Tab.Screen name="Profile"  component={ProfileScreen}  options={{ tabBarLabel: 'Profile' }} />
       <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarLabel: 'Settings' }} />
     </Tab.Navigator>
   );

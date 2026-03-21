@@ -6,8 +6,8 @@ import { useNotifications } from '../../context/NotificationContext';
 
 const TABS = [
   { name: 'dashboard', label: 'Dashboard', path: ROUTES.DASHBOARD, icon: LayoutDashboard },
-  { name: 'profile',   label: 'Profile',   path: ROUTES.PROFILE,   icon: User            },
   { name: 'analytics', label: 'Analytics', path: ROUTES.ANALYTICS, icon: BarChart3       },
+  { name: 'profile',   label: 'Profile',   path: ROUTES.PROFILE,   icon: User            },
   { name: 'settings',  label: 'Settings',  path: ROUTES.SETTINGS,  icon: Settings        },
 ];
 
