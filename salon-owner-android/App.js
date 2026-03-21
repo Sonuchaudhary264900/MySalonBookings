@@ -47,19 +47,16 @@ const Tab        = createMaterialTopTabNavigator();
 
 // ── Nav items matching the website sidebar ────────────────────────
 const NAV_ITEMS = [
-  { name: 'Home',          label: 'Dashboard',     icon: 'home-outline',           iconFocused: 'home' },
   { name: 'Bookings',      label: 'Bookings',      icon: 'calendar-outline',       iconFocused: 'calendar' },
   { name: 'Services',      label: 'Services',      icon: 'cut-outline',            iconFocused: 'cut' },
-  { name: 'Reports',       label: 'Analytics',     icon: 'bar-chart-outline',      iconFocused: 'bar-chart' },
-  { name: 'Reviews',       label: 'Reviews',       icon: 'star-outline',           iconFocused: 'star' },
-  { name: 'Profile',       label: 'My Profile',    icon: 'person-outline',         iconFocused: 'person' },
-  { name: 'Notifications', label: 'Notifications', icon: 'notifications-outline',  iconFocused: 'notifications' },
+  { name: 'Customers',     label: 'Customers',     icon: 'people-outline',         iconFocused: 'people' },
   { name: 'Calendar',      label: 'Calendar',      icon: 'calendar-clear-outline', iconFocused: 'calendar-clear' },
   { name: 'WorkingHours',  label: 'Working Hours', icon: 'time-outline',           iconFocused: 'time' },
   { name: 'WalkIn',        label: 'Walk-in',       icon: 'walk-outline',           iconFocused: 'walk' },
-  { name: 'Customers',     label: 'Customers',     icon: 'people-outline',         iconFocused: 'people' },
-  { name: 'Coupons',       label: 'Coupons',       icon: 'pricetag-outline',       iconFocused: 'pricetag' },
   { name: 'Gallery',       label: 'Gallery',       icon: 'images-outline',         iconFocused: 'images' },
+  { name: 'Coupons',       label: 'Coupons',       icon: 'pricetag-outline',       iconFocused: 'pricetag' },
+  { name: 'Reviews',       label: 'Reviews',       icon: 'star-outline',           iconFocused: 'star' },
+  { name: 'Notifications', label: 'Notifications', icon: 'notifications-outline',  iconFocused: 'notifications' },
 ];
 
 // ── Custom Drawer Content — dark sidebar like website ─────────────

@@ -4,9 +4,7 @@ import {
   LayoutDashboard,
   Scissors,
   Calendar,
-  BarChart3,
   Star,
-  User,
   Settings,
   Bell,
   ChevronRight,
@@ -39,15 +37,13 @@ const Sidebar = ({ isOpen, onClose }) => {
   const menuItems = [
     { id: 'dashboard',     label: t('nav_dashboard'),     path: ROUTES.DASHBOARD,     icon: LayoutDashboard },
     { id: 'bookings',      label: t('nav_bookings'),      path: ROUTES.BOOKINGS,      icon: Calendar },
-    { id: 'calendar',      label: 'Calendar',             path: ROUTES.CALENDAR,      icon: CalendarDays },
     { id: 'services',      label: t('nav_services'),      path: ROUTES.SERVICES,      icon: Scissors },
     { id: 'customers',     label: 'Customers',            path: ROUTES.CUSTOMERS,     icon: Users },
+    { id: 'calendar',      label: 'Calendar',             path: ROUTES.CALENDAR,      icon: CalendarDays },
     { id: 'gallery',       label: 'Gallery',              path: ROUTES.GALLERY,       icon: Images },
     { id: 'coupons',       label: 'Coupons',              path: ROUTES.COUPONS,       icon: Tag },
-    { id: 'analytics',     label: t('nav_analytics'),     path: ROUTES.ANALYTICS,     icon: BarChart3 },
     { id: 'reviews',       label: 'Reviews',              path: ROUTES.REVIEWS,       icon: Star },
     { id: 'notifications', label: t('nav_notifications'), path: ROUTES.NOTIFICATIONS, icon: Bell },
-    { id: 'profile',       label: t('nav_profile'),       path: ROUTES.PROFILE,       icon: User },
     { id: 'settings',      label: t('nav_settings'),      path: ROUTES.SETTINGS,      icon: Settings },
   ];
 
