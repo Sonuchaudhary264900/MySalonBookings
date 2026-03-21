@@ -2,9 +2,10 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Modal, Pressable, TextInput, Image,
+  ActivityIndicator, RefreshControl, Modal, Pressable, TextInput, Image, Share,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import QRCode from 'react-native-qrcode-svg';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import api from '../../services/api';
 import { useSalon } from '../../context/SalonContext';
@@ -48,6 +49,7 @@ export default function HomeScreen() {
   const [actionSheet, setActionSheet] = useState(null); // booking obj or null
   const [confirm, setConfirm] = useState(null);         // { title, message, onConfirm }
   const [showWalkIn, setShowWalkIn] = useState(false);
+  const [showQR, setShowQR] = useState(false);
   const [services, setServices] = useState([]);
   const queueRef = useRef([]);
   queueRef.current = queue;
@@ -243,6 +245,14 @@ export default function HomeScreen() {
             </View>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            {/* QR Code button */}
+            <TouchableOpacity
+              onPress={() => setShowQR(true)}
+              style={{ padding: 4 }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="qr-code-outline" size={24} color="#fff" />
+            </TouchableOpacity>
             <TouchableOpacity
               onPress={() => navigation.navigate('Notifications')}
               style={{ padding: 4 }}
@@ -520,9 +530,52 @@ export default function HomeScreen() {
       onSuccess={createWalkIn}
     />
 
+    {/* QR Code Modal */}
+    <Modal visible={showQR} transparent animationType="fade" onRequestClose={() => setShowQR(false)}>
+      <Pressable style={qrStyles.overlay} onPress={() => setShowQR(false)}>
+        <Pressable style={qrStyles.sheet} onPress={e => e.stopPropagation()}>
+          <View style={qrStyles.header}>
+            <Text style={qrStyles.title}>Salon Booking QR</Text>
+            <TouchableOpacity onPress={() => setShowQR(false)}>
+              <Ionicons name="close" size={22} color="#6b7280" />
+            </TouchableOpacity>
+          </View>
+          <View style={qrStyles.qrBox}>
+            <QRCode
+              value={salon?._id ? `https://mysalonbookings.com/salon/${salon._id}` : 'https://mysalonbookings.com'}
+              size={180}
+              color="#111827"
+              backgroundColor="#ffffff"
+            />
+          </View>
+          <Text style={qrStyles.salonName}>{salon?.name || 'My Salon'}</Text>
+          <Text style={qrStyles.hint}>Share this QR so customers can book directly</Text>
+          <TouchableOpacity
+            style={qrStyles.shareBtn}
+            onPress={() => Share.share({ message: `Book at ${salon?.name || 'My Salon'}: https://mysalonbookings.com/salon/${salon?._id}` })}
+          >
+            <Ionicons name="share-outline" size={18} color="#fff" />
+            <Text style={qrStyles.shareBtnText}>Share Link</Text>
+          </TouchableOpacity>
+        </Pressable>
+      </Pressable>
+    </Modal>
+
     </View>
   );
 }
+
+const qrStyles = StyleSheet.create({
+  overlay:    { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  sheet:      { backgroundColor: '#fff', borderRadius: 20, padding: 24, width: '100%', maxWidth: 320, alignItems: 'center' },
+  header:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 20 },
+  title:      { fontSize: 16, fontWeight: '700', color: '#111827' },
+  qrBox:      { padding: 12, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#e5e7eb' },
+  salonName:  { fontSize: 14, fontWeight: '700', color: '#111827', marginTop: 14 },
+  hint:       { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 4, marginBottom: 16 },
+  shareBtn:   { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#2563eb', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
+  shareBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+});
 
 const styles = StyleSheet.create({
   container: { flex: 1 }, // kept for ref

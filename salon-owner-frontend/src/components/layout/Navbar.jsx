@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, LogOut, User, Settings, Bell } from 'lucide-react';
+import { Menu, LogOut, User, Settings, Bell, QrCode, X } from 'lucide-react';
+import QRCodeSVG from 'react-qr-code';
 import { useAuth } from '../../hooks/useAuth';
 import { useSalon } from '../../hooks/useSalon';
 import ROUTES from '../../routes';
+
+const CUSTOMER_APP_URL = import.meta.env.VITE_CUSTOMER_APP_URL || 'https://mysalonbookings.com';
 
 /**
  * Navbar Component
@@ -20,6 +23,11 @@ const Navbar = ({ onMenuToggle }) => {
   const { user, logout } = useAuth();
   const { salon } = useSalon();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showQR, setShowQR] = useState(false);
+
+  const qrValue = salon?._id
+    ? `${CUSTOMER_APP_URL}/salon/${salon._id}`
+    : CUSTOMER_APP_URL;
 
   const handleLogout = () => {
     logout();
@@ -61,6 +69,16 @@ const Navbar = ({ onMenuToggle }) => {
               {user?.salonName || 'Salon'}
             </p>
           </div>
+
+          {/* QR Code */}
+          <button
+            onClick={() => setShowQR(true)}
+            className="p-2 hover:bg-gray-100 rounded-lg transition"
+            type="button"
+            title="Salon QR Code"
+          >
+            <QrCode className="w-5 h-5 text-gray-600" />
+          </button>
 
           {/* Notifications */}
           <button
@@ -135,6 +153,27 @@ const Navbar = ({ onMenuToggle }) => {
           </div>
         </div>
       </div>
+      {/* QR Modal */}
+      {showQR && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4" onClick={() => setShowQR(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-xs flex flex-col items-center gap-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between w-full">
+              <h3 className="font-bold text-gray-900 text-base">Salon Booking QR</h3>
+              <button onClick={() => setShowQR(false)} className="p-1 hover:bg-gray-100 rounded-lg transition">
+                <X className="w-4 h-4 text-gray-500" />
+              </button>
+            </div>
+            <div className="p-3 bg-white border border-gray-200 rounded-xl">
+              <QRCodeSVG value={qrValue} size={180} />
+            </div>
+            <div className="text-center">
+              <p className="text-xs font-semibold text-gray-700">{salon?.name || 'My Salon'}</p>
+              <p className="text-xs text-gray-400 mt-0.5 break-all">{qrValue}</p>
+            </div>
+            <p className="text-xs text-gray-500 text-center">Share this QR so customers can book directly</p>
+          </div>
+        </div>
+      )}
     </nav>
   );
 };
