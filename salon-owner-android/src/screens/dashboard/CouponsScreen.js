@@ -233,6 +233,10 @@ export default function CouponsScreen() {
         <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 60 }} />
       ) : (
         <FlatList
+          initialNumToRender={8}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={true}
           data={coupons}
           keyExtractor={item => item._id}
           renderItem={renderItem}

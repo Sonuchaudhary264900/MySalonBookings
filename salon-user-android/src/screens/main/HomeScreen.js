@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, memo, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   TextInput, ActivityIndicator, Image, RefreshControl,
@@ -59,7 +59,7 @@ function StarRating({ rating }) {
   );
 }
 
-function SalonCard({ salon, onPress, distance }) {
+const SalonCard = memo(function SalonCard({ salon, onPress, distance }) {
   const { theme } = useTheme();
   const styles = getStyles(theme);
   const photo = salon.photos?.[0] || salon.coverPhoto || salon.ownerPhoto;
@@ -151,7 +151,7 @@ function SalonCard({ salon, onPress, distance }) {
       </View>
     </TouchableOpacity>
   );
-}
+});
 
 function SkeletonCard() {
   const { theme } = useTheme();
@@ -312,19 +312,19 @@ export default function HomeScreen({ navigation }) {
     setRefreshing(false);
   };
 
-  const getDistance = (salon) => {
+  const getDistance = useCallback((salon) => {
     if (!userCoords || !salon.location?.coordinates) return null;
     const [lng, lat] = salon.location.coordinates;
     return haversineKm(userCoords.lat, userCoords.lng, lat, lng);
-  };
+  }, [userCoords]);
 
-  const renderItem = ({ item }) => (
+  const renderItem = useCallback(({ item }) => (
     <SalonCard
       salon={item}
       distance={getDistance(item)}
       onPress={() => navigation.navigate('SalonDetails', { salonId: item._id })}
     />
-  );
+  ), [getDistance, navigation]);
 
   return (
     <View style={styles.container}>
@@ -398,6 +398,11 @@ export default function HomeScreen({ navigation }) {
           renderItem={loading ? () => <SkeletonCard /> : renderItem}
           contentContainerStyle={{ padding: 16, gap: 12, paddingTop: 0 }}
           showsVerticalScrollIndicator={false}
+          initialNumToRender={5}
+          maxToRenderPerBatch={8}
+          updateCellsBatchingPeriod={50}
+          windowSize={5}
+          removeClippedSubviews={true}
           refreshControl={!loading ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#2563eb']} /> : undefined}
           ListHeaderComponent={
             <View>

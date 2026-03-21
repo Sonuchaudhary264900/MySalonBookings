@@ -69,6 +69,14 @@ const Customer = require("../models/Customer");
    PUBLIC SALON ROUTES (no auth required)
 ===================================================== */
 
+// Cache public GET responses in the browser for 60 s, CDN for 120 s
+router.use("/public", (req, res, next) => {
+  if (req.method === "GET") {
+    res.set("Cache-Control", "public, max-age=60, s-maxage=120");
+  }
+  next();
+});
+
 // GET /public/salons?sort=booked|rated&city=&q=&page=&limit=
 // Escape special regex characters to prevent ReDoS attacks
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

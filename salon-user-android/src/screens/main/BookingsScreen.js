@@ -279,6 +279,10 @@ export default function BookingsScreen({ navigation }) {
       {/* Filter tabs */}
       <View style={styles.filterRow}>
         <FlatList
+          initialNumToRender={8}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={true}
           horizontal
           data={FILTERS}
           keyExtractor={i => i}
@@ -314,6 +318,10 @@ export default function BookingsScreen({ navigation }) {
         </View>
       ) : (
         <FlatList
+          initialNumToRender={8}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={true}
           data={visible}
           keyExtractor={item => item._id}
           renderItem={renderBooking}

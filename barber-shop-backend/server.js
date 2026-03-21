@@ -9,6 +9,7 @@ const dns = require("dns");
 dns.setServers(["8.8.8.8", "8.8.4.4"]); // Fix: ISP DNS blocks MongoDB Atlas SRV lookups
 
 const express = require("express");
+const compression = require("compression");
 const cors = require("cors");
 const helmet = require("helmet");
 const dotenv = require("dotenv");
@@ -109,6 +110,9 @@ app.set('io', io);
 /* ============================================================
    SECURITY MIDDLEWARE
 ============================================================ */
+
+// Gzip all responses — reduces payload size by 60–80%
+app.use(compression({ level: 6, threshold: 1024 }));
 
 app.use(helmet({
   contentSecurityPolicy: {
@@ -314,6 +318,17 @@ const startServer = async () => {
 
     server.listen(PORT, "0.0.0.0", () => {
       console.log(`✅ Server running on port ${PORT}`);
+
+      // Keep-alive: ping self every 10 min to prevent Render free-tier cold starts
+      const selfUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+      if (process.env.NODE_ENV === "production") {
+        setInterval(() => {
+          http.get(`${selfUrl}/ping`, (res) => {
+            res.resume(); // discard response body
+          }).on("error", () => {}); // silent — don't crash on network hiccup
+        }, 10 * 60 * 1000); // every 10 minutes
+        console.log("✅ Keep-alive ping enabled (every 10 min)");
+      }
     });
   } catch (error) {
     console.error("❌ Failed to start server:", error.message);

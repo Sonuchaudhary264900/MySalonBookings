@@ -96,6 +96,10 @@ export default function NotificationsScreen({ navigation }) {
       </View>
 
       <FlatList
+          initialNumToRender={8}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={true}
         data={notifications}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}

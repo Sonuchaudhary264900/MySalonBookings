@@ -551,6 +551,10 @@ export default function BookingsScreen() {
         <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 40 }} />
       ) : (
         <FlatList
+          initialNumToRender={8}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={true}
           data={filtered}
           keyExtractor={(item) => item._id}
           renderItem={renderBooking}

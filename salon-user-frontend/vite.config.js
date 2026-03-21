@@ -11,7 +11,20 @@ export default defineConfig({
   build: {
     minify: 'oxc',
     target: 'es2020',
+    cssCodeSplit: true,
+    reportCompressedSize: false,
     chunkSizeWarningLimit: 500,
+
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-core':   ['react', 'react-dom'],
+          'react-router': ['react-router-dom'],
+          'firebase':     ['firebase/app', 'firebase/auth'],
+          'socket':       ['socket.io-client'],
+        },
+      },
+    },
   },
 
   optimizeDeps: {

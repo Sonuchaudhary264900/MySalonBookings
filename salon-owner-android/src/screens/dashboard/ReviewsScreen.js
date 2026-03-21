@@ -231,6 +231,10 @@ export default function ReviewsScreen() {
         <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 60 }} />
       ) : (
         <FlatList
+          initialNumToRender={8}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={true}
           data={filtered}
           keyExtractor={(item) => item._id}
           renderItem={({ item }) => <ReviewCard review={item} onReplySubmit={handleReplySubmit} />}

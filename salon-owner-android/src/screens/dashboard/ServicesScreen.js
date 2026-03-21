@@ -251,6 +251,10 @@ export default function ServicesScreen() {
         <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 40 }} />
       ) : (
         <FlatList
+          initialNumToRender={8}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={true}
           data={displayed}
           keyExtractor={(item) => item._id}
           renderItem={renderService}

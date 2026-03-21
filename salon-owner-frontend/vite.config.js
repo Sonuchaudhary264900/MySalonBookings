@@ -20,19 +20,21 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
-    minify: 'esbuild',          // esbuild is 20–40x faster than terser, same output quality
+    minify: 'esbuild',
     target: 'es2020',
-    chunkSizeWarningLimit: 500, // warn if any chunk exceeds 500 kB
+    cssCodeSplit: true,
+    reportCompressedSize: false,
+    chunkSizeWarningLimit: 500,
 
     rollupOptions: {
       output: {
-        // Split vendor code into separate cacheable chunks
-        // Users only re-download what actually changed
         manualChunks: {
           'react-core':   ['react', 'react-dom'],
           'react-router': ['react-router-dom'],
           'ui-libs':      ['lucide-react', 'react-hot-toast'],
           'http-utils':   ['axios', 'date-fns'],
+          'firebase':     ['firebase/app', 'firebase/auth', 'firebase/firestore'],
+          'socket':       ['socket.io-client'],
         },
       },
     },

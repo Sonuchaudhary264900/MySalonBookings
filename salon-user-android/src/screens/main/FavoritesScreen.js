@@ -253,6 +253,10 @@ export default function FavoritesScreen({ navigation }) {
         </View>
       ) : (
         <FlatList
+          initialNumToRender={8}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={true}
           data={salons}
           keyExtractor={item => item._id}
           renderItem={renderItem}
