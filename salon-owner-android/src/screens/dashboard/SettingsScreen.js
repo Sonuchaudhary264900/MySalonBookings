@@ -15,6 +15,7 @@ import { localDate } from '../../utils/helpers';
 import { showSuccess, showError } from '../../utils/toast';
 import DrawerMenuButton from '../../components/DrawerMenuButton';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 const CATEGORIES = ['barber', 'hair_salon', 'spa', 'massage', 'other'];
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -245,9 +246,9 @@ const APP_PREFS_KEY = '@appPrefs';
 
 function AppPreferencesSection() {
   const { theme } = useTheme();
+  const { language, setLanguage, t } = useLanguage();
   const [timeFormat, setTimeFormat] = useState('12h');
   const [dateFormat, setDateFormat] = useState('dd/mm/yyyy');
-  const [language, setLanguage] = useState('en');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -256,7 +257,6 @@ function AppPreferencesSection() {
         const p = JSON.parse(val);
         if (p.timeFormat) setTimeFormat(p.timeFormat);
         if (p.dateFormat) setDateFormat(p.dateFormat);
-        if (p.language) setLanguage(p.language);
       }
     });
   }, []);
@@ -264,7 +264,9 @@ function AppPreferencesSection() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await AsyncStorage.setItem(APP_PREFS_KEY, JSON.stringify({ timeFormat, dateFormat, language }));
+      const existing = await AsyncStorage.getItem(APP_PREFS_KEY);
+      const prefs = existing ? JSON.parse(existing) : {};
+      await AsyncStorage.setItem(APP_PREFS_KEY, JSON.stringify({ ...prefs, timeFormat, dateFormat, language }));
       showSuccess('Saved', 'App preferences updated!');
     } catch {
       showError('Error', 'Failed to save preferences');
@@ -287,10 +289,10 @@ function AppPreferencesSection() {
 
   return (
     <>
-      <OptionPicker label="Language" options={[{ label: 'English', value: 'en' }, { label: 'Hindi', value: 'hi' }]} value={language} onSelect={setLanguage} />
-      <OptionPicker label="Time Format" options={[{ label: '12 Hour (AM/PM)', value: '12h' }, { label: '24 Hour', value: '24h' }]} value={timeFormat} onSelect={setTimeFormat} />
-      <OptionPicker label="Date Format" options={[{ label: 'DD/MM/YYYY', value: 'dd/mm/yyyy' }, { label: 'MM/DD/YYYY', value: 'mm/dd/yyyy' }, { label: 'YYYY-MM-DD', value: 'yyyy-mm-dd' }]} value={dateFormat} onSelect={setDateFormat} />
-      <SaveButton onPress={handleSave} loading={saving} label="Save Preferences" />
+      <OptionPicker label={t('language')} options={[{ label: 'English', value: 'en' }, { label: 'हिंदी', value: 'hi' }]} value={language} onSelect={setLanguage} />
+      <OptionPicker label={t('timeFormat')} options={[{ label: '12 Hour (AM/PM)', value: '12h' }, { label: '24 Hour', value: '24h' }]} value={timeFormat} onSelect={setTimeFormat} />
+      <OptionPicker label={t('dateFormat')} options={[{ label: 'DD/MM/YYYY', value: 'dd/mm/yyyy' }, { label: 'MM/DD/YYYY', value: 'mm/dd/yyyy' }, { label: 'YYYY-MM-DD', value: 'yyyy-mm-dd' }]} value={dateFormat} onSelect={setDateFormat} />
+      <SaveButton onPress={handleSave} loading={saving} label={t('savePreferences')} />
     </>
   );
 }
@@ -710,6 +712,54 @@ function PrivacySection() {
   );
 }
 
+// ── Settings Sections (uses useLanguage hook) ─────────────────────
+function SettingsSections({ salon, fetchSalon, resetKey }) {
+  const { t } = useLanguage();
+  return (
+    <>
+      <Section resetKey={resetKey} title={t('salonInformation')} subtitle={t('salonInfoSub')} icon="globe-outline" iconBg="#dcfce7" iconColor="#16a34a">
+        <SalonInfoSection salon={salon} onSaved={fetchSalon} />
+      </Section>
+
+      <Section resetKey={resetKey} title={t('workingHours')} subtitle={t('workingHoursSub')} icon="time-outline" iconBg="#dbeafe" iconColor="#2563eb">
+        <WorkingHoursSection salon={salon} onSaved={fetchSalon} />
+      </Section>
+
+      <Section resetKey={resetKey} title={t('notifications')} subtitle={t('notificationsSub')} icon="notifications-outline" iconBg="#fef3c7" iconColor="#d97706">
+        <NotificationsSection />
+      </Section>
+
+      <Section resetKey={resetKey} title={t('appPreferences')} subtitle={t('appPrefSub')} icon="settings-outline" iconBg="#ede9fe" iconColor="#7c3aed">
+        <AppPreferencesSection />
+      </Section>
+
+      <Section resetKey={resetKey} title={t('bookingWindow')} subtitle={t('bookingWindowSub')} icon="calendar-outline" iconBg="#f3e8ff" iconColor="#9333ea">
+        <BookingWindowSection salon={salon} onSaved={fetchSalon} />
+      </Section>
+
+      <Section resetKey={resetKey} title={t('bookingMode')} subtitle={t('bookingModeSub')} icon="git-branch-outline" iconBg="#ccfbf1" iconColor="#0d9488">
+        <BookingModeSection salon={salon} onSaved={fetchSalon} />
+      </Section>
+
+      <Section resetKey={resetKey} title={t('autoConfirm')} subtitle={t('autoConfirmSub')} icon="checkmark-circle-outline" iconBg="#dcfce7" iconColor="#16a34a">
+        <AutoConfirmSection salon={salon} onSaved={fetchSalon} />
+      </Section>
+
+      <Section resetKey={resetKey} title={t('salonPhotos')} subtitle={t('salonPhotosSub')} icon="camera-outline" iconBg="#fce7f3" iconColor="#db2777">
+        <SalonPhotosSection salon={salon} onSaved={fetchSalon} />
+      </Section>
+
+      <Section resetKey={resetKey} title={t('closedDates')} subtitle={t('closedDatesSub')} icon="calendar-clear-outline" iconBg="#fee2e2" iconColor="#dc2626">
+        <HolidaysSection />
+      </Section>
+
+      <Section resetKey={resetKey} title={t('privacySecurity')} subtitle={t('privacySecuritySub')} icon="lock-closed-outline" iconBg="#fee2e2" iconColor="#dc2626">
+        <PrivacySection />
+      </Section>
+    </>
+  );
+}
+
 // ── Main ──────────────────────────────────────────────────────────
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -728,47 +778,7 @@ export default function SettingsScreen() {
         <Text style={styles.headerSub}>Manage your salon configuration</Text>
       </View>
       <ScrollView contentContainerStyle={{ padding: 12, paddingBottom: 40 }}>
-
-        <Section resetKey={resetKey} title="Salon Information" subtitle="Name, category, contact & address" icon="globe-outline" iconBg="#dcfce7" iconColor="#16a34a">
-          <SalonInfoSection salon={salon} onSaved={fetchSalon} />
-        </Section>
-
-        <Section resetKey={resetKey} title="Working Hours" subtitle="Open/close times and working days" icon="time-outline" iconBg="#dbeafe" iconColor="#2563eb">
-          <WorkingHoursSection salon={salon} onSaved={fetchSalon} />
-        </Section>
-
-        <Section resetKey={resetKey} title="Notifications" subtitle="Email, SMS and alert preferences" icon="notifications-outline" iconBg="#fef3c7" iconColor="#d97706">
-          <NotificationsSection />
-        </Section>
-
-        <Section resetKey={resetKey} title="App Preferences" subtitle="Language, time and date formats" icon="settings-outline" iconBg="#ede9fe" iconColor="#7c3aed">
-          <AppPreferencesSection />
-        </Section>
-
-        <Section resetKey={resetKey} title="Booking Window" subtitle="How far ahead customers can book" icon="calendar-outline" iconBg="#f3e8ff" iconColor="#9333ea">
-          <BookingWindowSection salon={salon} onSaved={fetchSalon} />
-        </Section>
-
-        <Section resetKey={resetKey} title="Booking Mode" subtitle="Flexible or sequential slot assignment" icon="git-branch-outline" iconBg="#ccfbf1" iconColor="#0d9488">
-          <BookingModeSection salon={salon} onSaved={fetchSalon} />
-        </Section>
-
-        <Section resetKey={resetKey} title="Auto-Confirm Bookings" subtitle="Automatically confirm new bookings" icon="checkmark-circle-outline" iconBg="#dcfce7" iconColor="#16a34a">
-          <AutoConfirmSection salon={salon} onSaved={fetchSalon} />
-        </Section>
-
-        <Section resetKey={resetKey} title="Salon Photos" subtitle="Upload photos to showcase your salon" icon="camera-outline" iconBg="#fce7f3" iconColor="#db2777">
-          <SalonPhotosSection salon={salon} onSaved={fetchSalon} />
-        </Section>
-
-        <Section resetKey={resetKey} title="Closed Dates" subtitle="Block specific dates from bookings" icon="calendar-clear-outline" iconBg="#fee2e2" iconColor="#dc2626">
-          <HolidaysSection />
-        </Section>
-
-        <Section resetKey={resetKey} title="Privacy & Security" subtitle="Data protection and account deletion" icon="lock-closed-outline" iconBg="#fee2e2" iconColor="#dc2626">
-          <PrivacySection />
-        </Section>
-
+        <SettingsSections salon={salon} fetchSalon={fetchSalon} resetKey={resetKey} />
       </ScrollView>
     </View>
   );

@@ -15,6 +15,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import DrawerMenuButton from '../../components/DrawerMenuButton';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { showSuccess, showError } from '../../utils/toast';
 import { localDate, formatDate, formatTime, STATUS_COLORS } from '../../utils/helpers';
 
@@ -37,12 +38,12 @@ const queueLabel = (i) => {
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { theme, isDark, toggleTheme } = useTheme();
+  const { t } = useLanguage();
   const { user } = useAuth();
   const { salon } = useSalon();
   const { unreadCount } = useNotifications();
   const navigation = useNavigation();
-  const [stats, setStats] = useState(null);
-  const [statsLoading, setStatsLoading] = useState(true);
+
   const [queue, setQueue] = useState([]);
   const [queueDate, setQueueDate] = useState(today);
   const [queueLoading, setQueueLoading] = useState(false);
@@ -173,15 +174,6 @@ img.src=${qrApiUrl};
       showSuccess('Saved!', 'QR printout saved to your gallery');
     } catch { showError('Error', 'Could not save image'); }
   }, [salon]);
-
-  const fetchStats = async () => {
-    try {
-      const res = await api.get('/owner/analytics/dashboard');
-      setStats(res.data.data);
-    } catch { /* silent */ } finally {
-      setStatsLoading(false);
-    }
-  };
 
   const fetchQueue = async () => {
     setQueueLoading(true);
@@ -339,7 +331,7 @@ img.src=${qrApiUrl};
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([fetchStats(), fetchQueue(), fetchBookings(selectedDate)]);
+    await Promise.all([fetchQueue(), fetchBookings(selectedDate)]);
     setRefreshing(false);
   };
 
@@ -349,19 +341,12 @@ img.src=${qrApiUrl};
     await fetchQueue();
   };
 
-  useEffect(() => { fetchStats(); fetchBlockedIds(); fetchServices(); fetchBookings(today); }, []);
+  useEffect(() => { fetchBlockedIds(); fetchServices(); fetchBookings(today); }, []);
   useEffect(() => { fetchBookings(selectedDate); }, [selectedDate]);
   useFocusEffect(useCallback(() => { fetchQueue(); fetchBookings(selectedDate); }, [selectedDate]));
 
-  const statCards = [
-    { title: 'Total Revenue', value: `₹${stats?.totalRevenue || 0}`, icon: 'cash-outline', color: '#10b981' },
-    { title: 'Total Bookings', value: stats?.totalBookings || 0, icon: 'calendar-outline', color: '#3b82f6' },
-    { title: 'Customers', value: stats?.activeCustomers || 0, icon: 'people-outline', color: '#8b5cf6' },
-    { title: 'Growth Rate', value: `${stats?.growthRate || 0}%`, icon: 'trending-up-outline', color: '#f59e0b' },
-  ];
-
   const isToday = queueDate === today;
-  const dateLabel = isToday ? 'Today' : formatDate(queueDate + 'T12:00:00');
+  const dateLabel = isToday ? t('today') : formatDate(queueDate + 'T12:00:00');
 
 
   return (
@@ -421,32 +406,15 @@ img.src=${qrApiUrl};
         {/* Title row: "Dashboard" + "Add Walk-in" button — same as web */}
         <View style={styles.dashHeaderTitle}>
           <View>
-            <Text style={[styles.dashTitle, { color: theme.text }]}>Dashboard</Text>
-            <Text style={[styles.dashSubtitle, { color: theme.subText }]}>Welcome back! Here's your salon's performance</Text>
+            <Text style={[styles.dashTitle, { color: theme.text }]}>{t('dashboard')}</Text>
+            <Text style={[styles.dashSubtitle, { color: theme.subText }]}>{t('dashSubtitle')}</Text>
           </View>
           <TouchableOpacity style={styles.walkInBtnHeader} onPress={() => setShowWalkIn(true)}>
             <Ionicons name="add" size={16} color="#fff" />
-            <Text style={styles.walkInBtnHeaderText}>Add Walk-in</Text>
+            <Text style={styles.walkInBtnHeaderText}>{t('addWalkIn')}</Text>
           </TouchableOpacity>
         </View>
       </View>
-
-      {/* Stats */}
-      {statsLoading ? (
-        <ActivityIndicator size="large" color="#2563eb" style={{ marginVertical: 24 }} />
-      ) : (
-        <View style={styles.statsGrid}>
-          {statCards.map((s, i) => (
-            <View key={i} style={[styles.statCard, { backgroundColor: theme.card }]}>
-              <View style={[styles.statIcon, { backgroundColor: s.color + '20' }]}>
-                <Ionicons name={s.icon} size={22} color={s.color} />
-              </View>
-              <Text style={[styles.statValue, { color: theme.text }]}>{s.value}</Text>
-              <Text style={[styles.statTitle, { color: theme.subText }]}>{s.title}</Text>
-            </View>
-          ))}
-        </View>
-      )}
 
       {/* Upcoming Queue */}
       <View style={{ paddingHorizontal: 12, paddingBottom: 32 }}>
@@ -457,7 +425,7 @@ img.src=${qrApiUrl};
               <Ionicons name="list-outline" size={18} color="#2563eb" />
             </View>
             <View>
-              <Text style={[styles.queueTitle, { color: theme.text }]}>Upcoming Bookings</Text>
+              <Text style={[styles.queueTitle, { color: theme.text }]}>{t('upcomingBookings')}</Text>
               <Text style={[styles.queueSub, { color: theme.subText }]}>
                 {dateLabel} · {queue.length} booking{queue.length !== 1 ? 's' : ''}
               </Text>
@@ -474,8 +442,8 @@ img.src=${qrApiUrl};
         ) : queue.length === 0 ? (
           <View style={[styles.emptyCard, { backgroundColor: theme.card }]}>
             <Ionicons name="checkmark-circle-outline" size={44} color="#10b981" />
-            <Text style={[styles.emptyTitle, { color: theme.text }]}>All clear!</Text>
-            <Text style={[styles.emptyText, { color: theme.subText }]}>No upcoming bookings for today or tomorrow</Text>
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>{t('allClear')}</Text>
+            <Text style={[styles.emptyText, { color: theme.subText }]}>{t('noUpcomingBookings')}</Text>
           </View>
         ) : (
           queue.map((b, i) => {
@@ -590,9 +558,9 @@ img.src=${qrApiUrl};
               <Ionicons name="calendar-outline" size={18} color="#7c3aed" />
             </View>
             <View>
-              <Text style={[styles.queueTitle, { color: theme.text }]}>Bookings</Text>
+              <Text style={[styles.queueTitle, { color: theme.text }]}>{t('bookings')}</Text>
               <Text style={[styles.queueSub, { color: theme.subText }]}>
-                {bookings.length} booking{bookings.length !== 1 ? 's' : ''} · {selectedDate === today ? 'Today' : formatDate(selectedDate + 'T12:00:00')}
+                {bookings.length} booking{bookings.length !== 1 ? 's' : ''} · {selectedDate === today ? t('today') : formatDate(selectedDate + 'T12:00:00')}
               </Text>
             </View>
           </View>
@@ -607,7 +575,7 @@ img.src=${qrApiUrl};
             <View style={[styles.datePill, { backgroundColor: selectedDate === today ? '#dbeafe' : '#ede9fe' }]}>
               <Ionicons name="calendar-outline" size={12} color={selectedDate === today ? '#2563eb' : '#7c3aed'} />
               <Text style={[styles.datePillText, { color: selectedDate === today ? '#2563eb' : '#7c3aed' }]}>
-                {selectedDate === today ? 'Today' : formatDate(selectedDate + 'T12:00:00')}
+                {selectedDate === today ? t('today') : formatDate(selectedDate + 'T12:00:00')}
               </Text>
             </View>
             <TouchableOpacity
@@ -624,9 +592,9 @@ img.src=${qrApiUrl};
         ) : bookings.length === 0 ? (
           <View style={[styles.emptyCard, { backgroundColor: theme.card }]}>
             <Ionicons name="calendar-outline" size={44} color="#d1d5db" />
-            <Text style={[styles.emptyTitle, { color: theme.text }]}>No bookings</Text>
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>{t('noBookingsDate')}</Text>
             <Text style={[styles.emptyText, { color: theme.subText }]}>
-              No bookings on {selectedDate === today ? 'today' : formatDate(selectedDate + 'T12:00:00')}
+              {selectedDate === today ? t('today') : formatDate(selectedDate + 'T12:00:00')}
             </Text>
           </View>
         ) : (

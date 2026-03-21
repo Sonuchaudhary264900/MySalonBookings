@@ -216,39 +216,39 @@ ${recentBookings.length ? `<h2>Recent Bookings</h2>
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-4">
 
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Analytics</h1>
-            <p className="text-gray-600 mt-1">Real-time overview of your salon's performance</p>
+            <h1 className="text-xl font-bold text-gray-900">Analytics</h1>
+            <p className="text-gray-500 text-xs mt-0.5">Real-time overview of your salon's performance</p>
           </div>
           <div className="flex items-center gap-2">
             {!loading && data && (
               <>
                 <button
                   onClick={exportCSV}
-                  className="flex items-center gap-2 px-4 py-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg transition"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-green-600 hover:bg-green-700 text-white rounded-lg transition"
                 >
-                  <Download className="w-4 h-4" />
-                  Export CSV
+                  <Download className="w-3.5 h-3.5" />
+                  CSV
                 </button>
                 <button
                   onClick={exportPDF}
-                  className="flex items-center gap-2 px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition"
                 >
-                  <FileText className="w-4 h-4" />
-                  Export PDF
+                  <FileText className="w-3.5 h-3.5" />
+                  PDF
                 </button>
               </>
             )}
             <button
               onClick={fetchAnalytics}
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </button>
           </div>
@@ -265,85 +265,85 @@ ${recentBookings.length ? `<h2>Recent Bookings</h2>
         />
 
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[1,2,3].map(i => (
-              <div key={i} className="h-28 bg-gray-100 rounded-lg animate-pulse" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[1,2,3,4].map(i => (
+              <div key={i} className="h-20 bg-gray-100 rounded-lg animate-pulse" />
             ))}
           </div>
         ) : (
           <>
             {/* Summary Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-blue-50 rounded-lg border-2 border-blue-200 p-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <TrendingUp className="w-5 h-5 text-blue-600" />
-                  <p className="text-sm text-blue-600">Total Revenue</p>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="bg-blue-50 rounded-lg border-2 border-blue-200 p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <TrendingUp className="w-4 h-4 text-blue-600" />
+                  <p className="text-xs text-blue-600">Total Revenue</p>
                 </div>
-                <p className="text-2xl font-bold text-blue-900">₹{totalRevenue.toLocaleString()}</p>
-                <p className="text-xs text-blue-600 mt-2">{formatDate(startDate)} – {formatDate(endDate)}</p>
+                <p className="text-lg font-bold text-blue-900">₹{totalRevenue.toLocaleString()}</p>
+                <p className="text-xs text-blue-600 mt-1">{formatDate(startDate)} – {formatDate(endDate)}</p>
               </div>
 
-              <div className="bg-green-50 rounded-lg border-2 border-green-200 p-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <BarChart3 className="w-5 h-5 text-green-600" />
-                  <p className="text-sm text-green-600">Total Bookings</p>
+              <div className="bg-green-50 rounded-lg border-2 border-green-200 p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <BarChart3 className="w-4 h-4 text-green-600" />
+                  <p className="text-xs text-green-600">Total Bookings</p>
                 </div>
-                <p className="text-2xl font-bold text-green-900">{totalBookings}</p>
-                <p className="text-xs text-green-600 mt-2">
-                  {completed} completed · {pending} pending · {cancelled} cancelled
+                <p className="text-lg font-bold text-green-900">{totalBookings}</p>
+                <p className="text-xs text-green-600 mt-1">
+                  {completed} done · {pending} pending · {cancelled} cancelled
                 </p>
               </div>
 
-              <div className="bg-purple-50 rounded-lg border-2 border-purple-200 p-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <Users className="w-5 h-5 text-purple-600" />
-                  <p className="text-sm text-purple-600">Active Customers</p>
+              <div className="bg-purple-50 rounded-lg border-2 border-purple-200 p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <Users className="w-4 h-4 text-purple-600" />
+                  <p className="text-xs text-purple-600">Active Customers</p>
                 </div>
-                <p className="text-2xl font-bold text-purple-900">{activeCustomers}</p>
-                <p className="text-xs text-purple-600 mt-2">Unique customers in period</p>
+                <p className="text-lg font-bold text-purple-900">{activeCustomers}</p>
+                <p className="text-xs text-purple-600 mt-1">Unique customers in period</p>
               </div>
 
-              <div className="bg-amber-50 rounded-lg border-2 border-amber-200 p-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <TrendingUp className="w-5 h-5 text-amber-600" />
-                  <p className="text-sm text-amber-600">Growth Rate</p>
+              <div className="bg-amber-50 rounded-lg border-2 border-amber-200 p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <TrendingUp className="w-4 h-4 text-amber-600" />
+                  <p className="text-xs text-amber-600">Growth Rate</p>
                 </div>
-                <p className="text-2xl font-bold text-amber-900">{growthRate}%</p>
-                <p className="text-xs text-amber-600 mt-2">Compared to previous period</p>
+                <p className="text-lg font-bold text-amber-900">{growthRate}%</p>
+                <p className="text-xs text-amber-600 mt-1">vs previous period</p>
               </div>
             </div>
 
             {/* Charts row */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
               {/* CSS Bar Chart – Daily Revenue */}
-              <div className="lg:col-span-2 bg-white rounded-lg border-2 border-gray-200 p-6">
-                <h3 className="font-bold text-gray-900 mb-4">Daily Revenue</h3>
+              <div className="lg:col-span-2 bg-white rounded-lg border-2 border-gray-200 p-4">
+                <h3 className="font-bold text-gray-900 text-sm mb-3">Daily Revenue</h3>
                 {dailyRevenue.length === 0 ? (
-                  <div className="py-8 text-center text-gray-400 text-sm">No data for this period.</div>
+                  <div className="py-6 text-center text-gray-400 text-sm">No data for this period.</div>
                 ) : (() => {
                   const maxRev = Math.max(...dailyRevenue.map(r => r.revenue), 1);
                   const show = dailyRevenue.slice(-14); // last 14 days max
                   return (
-                    <div className="flex flex-col h-48">
+                    <div className="flex flex-col h-36">
                       <div className="flex items-end gap-1 flex-1 overflow-x-auto">
                         {show.map((row) => {
                           const pct = Math.max(4, Math.round((row.revenue / maxRev) * 100));
                           const label = row.date ? row.date.slice(5) : '';
                           return (
-                            <div key={row.date} className="flex flex-col items-center gap-1 flex-1 min-w-[28px] group relative">
+                            <div key={row.date} className="flex flex-col items-center gap-1 flex-1 min-w-[24px] group relative">
                               {/* Tooltip */}
                               <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-10 transition">
                                 ₹{row.revenue.toLocaleString()}<br />{row.bookings} booking{row.bookings !== 1 ? 's' : ''}
                               </div>
                               <div className="w-full bg-indigo-500 hover:bg-indigo-600 rounded-t transition-all"
                                 style={{ height: `${pct}%` }} />
-                              <span className="text-[9px] text-gray-400 rotate-45 origin-left translate-y-2 whitespace-nowrap">{label}</span>
+                              <span className="text-[8px] text-gray-400 rotate-45 origin-left translate-y-2 whitespace-nowrap">{label}</span>
                             </div>
                           );
                         })}
                       </div>
-                      <div className="flex justify-between text-xs text-gray-400 mt-6 border-t border-gray-100 pt-1">
+                      <div className="flex justify-between text-xs text-gray-400 mt-5 border-t border-gray-100 pt-1">
                         <span>₹0</span>
                         <span>₹{maxRev.toLocaleString()}</span>
                       </div>
@@ -353,10 +353,10 @@ ${recentBookings.length ? `<h2>Recent Bookings</h2>
               </div>
 
               {/* CSS Pie Chart – Booking Status */}
-              <div className="bg-white rounded-lg border-2 border-gray-200 p-6">
-                <h3 className="font-bold text-gray-900 mb-4">Booking Status</h3>
+              <div className="bg-white rounded-lg border-2 border-gray-200 p-4">
+                <h3 className="font-bold text-gray-900 text-sm mb-3">Booking Status</h3>
                 {totalBookings === 0 ? (
-                  <div className="py-8 text-center text-gray-400 text-sm">No bookings yet.</div>
+                  <div className="py-6 text-center text-gray-400 text-sm">No bookings yet.</div>
                 ) : (() => {
                   const slices = [
                     { label: 'Completed', value: completed, color: '#16a34a' },
@@ -371,21 +371,20 @@ ${recentBookings.length ? `<h2>Recent Bookings</h2>
                     cumulativePct += pct;
                     return seg;
                   });
-                  // Build conic-gradient string
                   const gradStops = segments.map(s => `${s.color} ${s.start.toFixed(1)}% ${(s.start + s.pct).toFixed(1)}%`).join(', ');
                   return (
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="relative w-36 h-36 rounded-full"
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="relative w-28 h-28 rounded-full"
                         style={{ background: `conic-gradient(${gradStops})` }}>
-                        <div className="absolute inset-6 bg-white rounded-full flex items-center justify-center">
-                          <span className="text-lg font-bold text-gray-900">{total}</span>
+                        <div className="absolute inset-5 bg-white rounded-full flex items-center justify-center">
+                          <span className="text-base font-bold text-gray-900">{total}</span>
                         </div>
                       </div>
-                      <ul className="w-full space-y-2">
+                      <ul className="w-full space-y-1.5">
                         {segments.map(s => (
-                          <li key={s.label} className="flex items-center justify-between text-sm">
+                          <li key={s.label} className="flex items-center justify-between text-xs">
                             <div className="flex items-center gap-2">
-                              <span className="w-3 h-3 rounded-full shrink-0" style={{ background: s.color }} />
+                              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: s.color }} />
                               <span className="text-gray-700">{s.label}</span>
                             </div>
                             <span className="font-semibold text-gray-900">{s.value} <span className="text-gray-400 font-normal">({s.pct.toFixed(0)}%)</span></span>
@@ -399,28 +398,28 @@ ${recentBookings.length ? `<h2>Recent Bookings</h2>
             </div>
 
             {/* Top Services + Recent Bookings */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
               {/* Top Services */}
               <div className="bg-white rounded-lg border-2 border-gray-200 overflow-hidden">
-                <div className="p-6 border-b border-gray-200">
-                  <h3 className="font-bold text-gray-900">Top Services</h3>
+                <div className="px-4 py-3 border-b border-gray-200">
+                  <h3 className="font-bold text-gray-900 text-sm">Top Services</h3>
                 </div>
                 {topServices.length === 0 ? (
-                  <div className="p-8 text-center text-gray-400">No service data yet.</div>
+                  <div className="p-6 text-center text-gray-400 text-sm">No service data yet.</div>
                 ) : (
                   <ul className="divide-y divide-gray-100">
                     {topServices.map((svc, i) => (
-                      <li key={svc.name} className="flex items-center justify-between px-6 py-3">
-                        <div className="flex items-center gap-3">
-                          <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center">
+                      <li key={svc.name} className="flex items-center justify-between px-4 py-2">
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center">
                             {i + 1}
                           </span>
                           <span className="text-sm font-medium text-gray-800">{svc.name}</span>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-semibold text-gray-900">{svc.bookings} bookings</p>
-                          <p className="text-xs text-gray-500">₹{svc.revenue.toLocaleString()} earned</p>
+                          <p className="text-xs font-semibold text-gray-900">{svc.bookings} bookings</p>
+                          <p className="text-xs text-gray-500">₹{svc.revenue.toLocaleString()}</p>
                         </div>
                       </li>
                     ))}
@@ -430,9 +429,9 @@ ${recentBookings.length ? `<h2>Recent Bookings</h2>
 
               {/* Recent Bookings */}
               <div className="bg-white rounded-lg border-2 border-gray-200 overflow-hidden">
-                <div className="p-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="px-4 py-3 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div>
-                    <h3 className="font-bold text-gray-900">Recent Bookings</h3>
+                    <h3 className="font-bold text-gray-900 text-sm">Recent Bookings</h3>
                     <p className="text-xs text-gray-500 mt-0.5">
                       {bookingsDate === today ? 'Today' : formatDate(bookingsDate + 'T12:00:00')}
                       {' · '}{bookingsList.length} booking{bookingsList.length !== 1 ? 's' : ''}
@@ -440,8 +439,8 @@ ${recentBookings.length ? `<h2>Recent Bookings</h2>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <button onClick={() => shiftBookingsDate(-1)}
-                      className="w-7 h-7 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition">
-                      <ChevronLeft className="w-4 h-4 text-gray-500" />
+                      className="w-6 h-6 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition">
+                      <ChevronLeft className="w-3.5 h-3.5 text-gray-500" />
                     </button>
                     <input
                       type="date"
@@ -452,22 +451,22 @@ ${recentBookings.length ? `<h2>Recent Bookings</h2>
                     />
                     <button onClick={() => shiftBookingsDate(1)}
                       disabled={bookingsDate === today}
-                      className="w-7 h-7 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition disabled:opacity-40 disabled:cursor-not-allowed">
-                      <ChevronRight className="w-4 h-4 text-gray-500" />
+                      className="w-6 h-6 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition disabled:opacity-40 disabled:cursor-not-allowed">
+                      <ChevronRight className="w-3.5 h-3.5 text-gray-500" />
                     </button>
                   </div>
                 </div>
                 {bookingsLoading ? (
-                  <div className="flex items-center gap-2 p-8 justify-center text-gray-400 text-sm">
+                  <div className="flex items-center gap-2 p-6 justify-center text-gray-400 text-sm">
                     <div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
                     Loading…
                   </div>
                 ) : bookingsList.length === 0 ? (
-                  <div className="p-8 text-center text-gray-400 text-sm">No bookings on this date.</div>
+                  <div className="p-6 text-center text-gray-400 text-sm">No bookings on this date.</div>
                 ) : (
                   <ul className="divide-y divide-gray-100">
                     {bookingsList.map(b => (
-                      <li key={b._id} className="px-6 py-3">
+                      <li key={b._id} className="px-4 py-2">
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-sm font-medium text-gray-800">{b.customerName || '—'}</p>

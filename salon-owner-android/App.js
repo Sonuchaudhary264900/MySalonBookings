@@ -17,6 +17,7 @@ import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { SalonProvider, useSalon } from './src/context/SalonContext';
 import { NotificationProvider, useNotifications } from './src/context/NotificationContext';
 import { ThemeProvider } from './src/context/ThemeContext';
+import { LanguageProvider, useLanguage } from './src/context/LanguageContext';
 import api from './src/services/api';
 import { showSuccess, showError } from './src/utils/toast';
 
@@ -47,16 +48,16 @@ const Tab        = createMaterialTopTabNavigator();
 
 // ── Nav items matching the website sidebar ────────────────────────
 const NAV_ITEMS = [
-  { name: 'Bookings',      label: 'Bookings',      icon: 'calendar-outline',       iconFocused: 'calendar' },
-  { name: 'Services',      label: 'Services',      icon: 'cut-outline',            iconFocused: 'cut' },
-  { name: 'Customers',     label: 'Customers',     icon: 'people-outline',         iconFocused: 'people' },
-  { name: 'Calendar',      label: 'Calendar',      icon: 'calendar-clear-outline', iconFocused: 'calendar-clear' },
-  { name: 'WorkingHours',  label: 'Working Hours', icon: 'time-outline',           iconFocused: 'time' },
-  { name: 'WalkIn',        label: 'Walk-in',       icon: 'walk-outline',           iconFocused: 'walk' },
-  { name: 'Gallery',       label: 'Gallery',       icon: 'images-outline',         iconFocused: 'images' },
-  { name: 'Coupons',       label: 'Coupons',       icon: 'pricetag-outline',       iconFocused: 'pricetag' },
-  { name: 'Reviews',       label: 'Reviews',       icon: 'star-outline',           iconFocused: 'star' },
-  { name: 'Notifications', label: 'Notifications', icon: 'notifications-outline',  iconFocused: 'notifications' },
+  { name: 'Bookings',      labelKey: 'navBookings',      icon: 'calendar-outline',       iconFocused: 'calendar' },
+  { name: 'Services',      labelKey: 'navServices',      icon: 'cut-outline',            iconFocused: 'cut' },
+  { name: 'Customers',     labelKey: 'navCustomers',     icon: 'people-outline',         iconFocused: 'people' },
+  { name: 'Calendar',      labelKey: 'navCalendar',      icon: 'calendar-clear-outline', iconFocused: 'calendar-clear' },
+  { name: 'WorkingHours',  labelKey: 'navWorkingHours',  icon: 'time-outline',           iconFocused: 'time' },
+  { name: 'WalkIn',        labelKey: 'navWalkIn',        icon: 'walk-outline',           iconFocused: 'walk' },
+  { name: 'Gallery',       labelKey: 'navGallery',       icon: 'images-outline',         iconFocused: 'images' },
+  { name: 'Coupons',       labelKey: 'navCoupons',       icon: 'pricetag-outline',       iconFocused: 'pricetag' },
+  { name: 'Reviews',       labelKey: 'navReviews',       icon: 'star-outline',           iconFocused: 'star' },
+  { name: 'Notifications', labelKey: 'navNotifications', icon: 'notifications-outline',  iconFocused: 'notifications' },
 ];
 
 // ── Custom Drawer Content — dark sidebar like website ─────────────
@@ -64,6 +65,7 @@ function CustomDrawer(props) {
   const { user, logout } = useAuth();
   const { salon } = useSalon();
   const { unreadCount } = useNotifications();
+  const { t } = useLanguage();
   const insets = useSafeAreaInsets();
 
   // Get current active screen name (tab or direct drawer screen)
@@ -143,7 +145,7 @@ function CustomDrawer(props) {
                 color={focused ? '#fff' : '#9ca3af'}
               />
               <Text style={[dStyles.navLabel, focused && dStyles.navLabelActive]}>
-                {item.label}
+                {t(item.labelKey)}
               </Text>
               {badge > 0 && (
                 <View style={dStyles.badge}>
@@ -161,7 +163,7 @@ function CustomDrawer(props) {
         <View style={dStyles.divider} />
         <TouchableOpacity style={dStyles.logoutBtn} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={18} color="#f87171" />
-          <Text style={dStyles.logoutText}>Logout</Text>
+          <Text style={dStyles.logoutText}>{t('logout')}</Text>
         </TouchableOpacity>
         <Text style={dStyles.version}>My Salon Bookings · Owner App v1.0</Text>
       </View>
@@ -174,6 +176,7 @@ const TAB_SCREENS = ['Home', 'Reports', 'Profile', 'Settings'];
 
 // ── 4-tab swipeable navigator with bottom indicator ────────────────
 function MainTabs() {
+  const { t } = useLanguage();
   return (
     <Tab.Navigator
       tabBarPosition="bottom"
@@ -203,10 +206,10 @@ function MainTabs() {
         },
       })}
     >
-      <Tab.Screen name="Home"     component={HomeScreen}     options={{ tabBarLabel: 'Dashboard' }} />
-      <Tab.Screen name="Reports"  component={ReportsScreen}  options={{ tabBarLabel: 'Analytics' }} />
-      <Tab.Screen name="Profile"  component={ProfileScreen}  options={{ tabBarLabel: 'Profile' }} />
-      <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarLabel: 'Settings' }} />
+      <Tab.Screen name="Home"     component={HomeScreen}     options={{ tabBarLabel: t('tabDashboard') }} />
+      <Tab.Screen name="Reports"  component={ReportsScreen}  options={{ tabBarLabel: t('tabAnalytics') }} />
+      <Tab.Screen name="Profile"  component={ProfileScreen}  options={{ tabBarLabel: t('tabProfile') }} />
+      <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarLabel: t('tabSettings') }} />
     </Tab.Navigator>
   );
 }
@@ -414,17 +417,19 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <AuthProvider>
-          <SalonProvider>
-            <NotificationProvider>
-              <StatusBar style="light" />
-              <RootNavigator />
-              <BookingAlertModal />
-              <NotificationTapHandler />
-              <Toast />
-            </NotificationProvider>
-          </SalonProvider>
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <SalonProvider>
+              <NotificationProvider>
+                <StatusBar style="light" />
+                <RootNavigator />
+                <BookingAlertModal />
+                <NotificationTapHandler />
+                <Toast />
+              </NotificationProvider>
+            </SalonProvider>
+          </AuthProvider>
+        </LanguageProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );
