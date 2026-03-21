@@ -5,6 +5,9 @@ import Footer from "./components/Footer";
 import BottomNav from "./components/BottomNav";
 import { NotificationProvider } from "./context/NotificationContext";
 import ToastContainer from "./components/ToastContainer";
+import useSwipeNav from "./hooks/useSwipeNav";
+
+function SwipeHandler() { useSwipeNav(); return null; }
 
 // ── Eagerly loaded (critical path) ────────────────────────────
 import Home from "./pages/Home";
@@ -67,6 +70,7 @@ function App() {
     <BrowserRouter>
       <NotificationProvider>
         <ErrorBoundary>
+          <SwipeHandler />
           <Navbar notifOpen={notifOpen} setNotifOpen={setNotifOpen} />
           <ToastContainer />
           <div className="pb-16 md:pb-0">

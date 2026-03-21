@@ -3,6 +3,7 @@ import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
 import BottomNav from './BottomNav';
+import useSwipeNav from '../../hooks/useSwipeNav';
 
 /**
  * DashboardLayout Component
@@ -21,6 +22,7 @@ import BottomNav from './BottomNav';
  */
 const DashboardLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  useSwipeNav();
 
   const handleMenuToggle = () => {
     setSidebarOpen(!sidebarOpen);
