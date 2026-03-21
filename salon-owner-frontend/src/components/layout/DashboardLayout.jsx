@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
@@ -23,6 +23,27 @@ import useSwipeNav from '../../hooks/useSwipeNav';
 const DashboardLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   useSwipeNav();
+
+  // Left-edge swipe to open drawer (< 30px from left edge → swipe right)
+  const edgeTouchX = useRef(null);
+  useEffect(() => {
+    const onStart = (e) => {
+      if (e.touches[0].clientX < 30) edgeTouchX.current = e.touches[0].clientX;
+      else edgeTouchX.current = null;
+    };
+    const onEnd = (e) => {
+      if (edgeTouchX.current === null) return;
+      const diff = e.changedTouches[0].clientX - edgeTouchX.current;
+      edgeTouchX.current = null;
+      if (diff > 50) setSidebarOpen(true);   // swipe right → open
+    };
+    document.addEventListener('touchstart', onStart, { passive: true });
+    document.addEventListener('touchend',   onEnd,   { passive: true });
+    return () => {
+      document.removeEventListener('touchstart', onStart);
+      document.removeEventListener('touchend',   onEnd);
+    };
+  }, []);
 
   const handleMenuToggle = () => {
     setSidebarOpen(!sidebarOpen);

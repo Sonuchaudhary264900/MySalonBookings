@@ -24,10 +24,13 @@ export default function useSwipeNav() {
 
     const onTouchEnd = (e) => {
       if (touchX.current === null) return;
-      const diff = touchX.current - e.changedTouches[0].clientX;
+      const startX = touchX.current;
+      const diff   = startX - e.changedTouches[0].clientX;
       touchX.current = null;
 
       if (Math.abs(diff) < 50) return; // too short — ignore
+      // Left-edge swipe (< 30px from left) is reserved for drawer — skip tab nav
+      if (startX < 30) return;
 
       if (diff > 0 && currentIndex < TAB_ORDER.length - 1) {
         // swipe left → next tab
