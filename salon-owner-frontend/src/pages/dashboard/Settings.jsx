@@ -1074,6 +1074,30 @@ const PrivacyContent = () => {
   );
 };
 
+// ─── About Content ────────────────────────────────────────────
+const AboutContent = () => (
+  <div className="space-y-4">
+    <div className="space-y-1 text-sm">
+      {[
+        { label: 'App Name',    value: 'SmartSalon' },
+        { label: 'Version',     value: '1.0.0' },
+        { label: 'Platform',    value: 'Web (Owner Panel)' },
+        { label: 'Support',     value: 'support@smartsalon.in' },
+      ].map(({ label, value }) => (
+        <div key={label} className="flex justify-between py-2.5 border-b border-gray-50 last:border-0">
+          <span className="text-gray-500">{label}</span>
+          <span className="font-medium text-gray-800">{value}</span>
+        </div>
+      ))}
+    </div>
+    <div className="flex gap-4 text-xs text-blue-600 font-medium pt-1">
+      <button type="button" className="hover:underline">Privacy Policy</button>
+      <button type="button" className="hover:underline">Terms of Service</button>
+      <button type="button" className="hover:underline">Help Center</button>
+    </div>
+  </div>
+);
+
 // ─── Main Settings Page ───────────────────────────────────────
 const SettingsPage = () => {
   const { salon, updateSalon, fetchSalon } = useSalon();
@@ -1161,6 +1185,14 @@ const SettingsPage = () => {
       title: 'Privacy & Security',
       subtitle: 'Data protection and security information',
       content: <PrivacyContent />,
+    },
+    {
+      id: 'about',
+      icon: Settings,
+      iconBg: 'bg-slate-100 text-slate-600',
+      title: 'About',
+      subtitle: 'App info, support and legal',
+      content: <AboutContent />,
     },
   ];
 

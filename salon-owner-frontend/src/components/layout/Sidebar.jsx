@@ -65,13 +65,13 @@ const Sidebar = ({ isOpen, onClose }) => {
       {/* Sidebar */}
       <aside
         className={`
-          fixed md:static inset-y-0 left-0 w-64 bg-gray-900 text-white
+          fixed md:static inset-y-0 left-0 w-64 bg-gray-900 text-white flex flex-col
           transform transition-transform duration-300 md:transform-none
           ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} z-40
         `}
       >
         {/* Header */}
-        <div className="p-5 border-b border-gray-800">
+        <div className="p-5 border-b border-gray-800 shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shrink-0">
@@ -93,7 +93,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         </div>
 
         {/* Navigation Menu */}
-        <nav className="p-4 space-y-2">
+        <nav className="p-4 space-y-2 overflow-y-auto flex-1">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
