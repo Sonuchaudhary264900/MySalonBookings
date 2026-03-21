@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Alert, Image,
@@ -48,13 +48,20 @@ export default function ProfileScreen({ navigation }) {
   const [saving, setSaving]               = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
-  // Change password
-  const [changingPw, setChangingPw]       = useState(false);
-  const [oldPassword, setOldPassword]     = useState('');
-  const [newPassword, setNewPassword]     = useState('');
-  const [confirmPw, setConfirmPw]         = useState('');
-  const [pwLoading, setPwLoading]         = useState(false);
-  const [showPw, setShowPw]               = useState(false);
+  // Change password (OTP-based)
+  const [cpStep, setCpStep]     = useState(0); // 0=locked, 1=send otp, 2=enter otp+new pw
+  const [cpOtp, setCpOtp]       = useState('');
+  const [cpNewPw, setCpNewPw]   = useState('');
+  const [cpConfirm, setCpConfirm] = useState('');
+  const [cpShowPw, setCpShowPw] = useState(false);
+  const [cpLoading, setCpLoading] = useState(false);
+  const [cpTimer, setCpTimer]   = useState(0);
+
+  useEffect(() => {
+    if (cpTimer <= 0) return;
+    const t = setTimeout(() => setCpTimer(v => v - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cpTimer]);
 
   const handleSaveProfile = async () => {
     if (!name.trim() || name.trim().length < 2) { showError('Error', 'Name must be at least 2 characters'); return; }
@@ -103,28 +110,34 @@ export default function ProfileScreen({ navigation }) {
     }
   };
 
-  const validatePassword = (pw) =>
-    pw.length >= 8 &&
-    /[A-Z]/.test(pw) && /[a-z]/.test(pw) &&
-    /[0-9]/.test(pw) && /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pw);
-
-  const handleChangePassword = async () => {
-    if (!oldPassword || !newPassword || !confirmPw) { showError('Error', 'Please fill in all password fields.'); return; }
-    if (!validatePassword(newPassword)) {
-      showError('Weak Password', 'Min 8 chars with uppercase, lowercase, number & special character.');
-      return;
-    }
-    if (newPassword !== confirmPw) { showError('Error', 'New passwords do not match.'); return; }
-    setPwLoading(true);
+  const handleCpSendOtp = async () => {
+    if (!user?.phone) { showError('Error', 'No phone number on file.'); return; }
+    setCpLoading(true);
     try {
-      await api.post('/customer/auth/change-password', { oldPassword, newPassword });
-      setChangingPw(false);
-      setOldPassword(''); setNewPassword(''); setConfirmPw('');
+      await api.post('/customer/auth/forgot-password/send-otp', { phone: user.phone });
+      setCpStep(2);
+      setCpTimer(60);
+      showSuccess('OTP Sent', 'Check your phone for the OTP.');
+    } catch (err) {
+      showError('Error', err?.message || 'Failed to send OTP. Try again.');
+    } finally {
+      setCpLoading(false);
+    }
+  };
+
+  const handleCpReset = async () => {
+    if (!cpOtp || !cpNewPw || !cpConfirm) { showError('Error', 'Please fill in all fields.'); return; }
+    if (cpNewPw !== cpConfirm) { showError('Error', 'Passwords do not match.'); return; }
+    if (cpNewPw.length < 8) { showError('Weak Password', 'Password must be at least 8 characters.'); return; }
+    setCpLoading(true);
+    try {
+      await api.post('/customer/auth/forgot-password/reset', { phone: user.phone, otp: cpOtp, newPassword: cpNewPw });
+      setCpStep(0); setCpOtp(''); setCpNewPw(''); setCpConfirm('');
       showSuccess('Success', 'Password changed successfully.');
     } catch (err) {
-      showError('Error', err?.message || 'Failed to change password. Check your current password.');
+      showError('Error', err?.message || 'Invalid OTP or request expired.');
     } finally {
-      setPwLoading(false);
+      setCpLoading(false);
     }
   };
 
@@ -225,39 +238,72 @@ export default function ProfileScreen({ navigation }) {
             )}
           </Section>
 
-          {/* Change Password */}
+          {/* Change Password — OTP flow */}
           <Section title="Security">
-            {!changingPw ? (
-              <TouchableOpacity style={styles.secRow} onPress={() => setChangingPw(true)}>
+            {cpStep === 0 && (
+              <TouchableOpacity style={styles.secRow} onPress={() => setCpStep(1)}>
                 <Ionicons name="lock-closed-outline" size={18} color="#6b7280" />
                 <Text style={styles.secRowText}>Change Password</Text>
                 <Ionicons name="chevron-forward" size={16} color="#9ca3af" style={{ marginLeft: 'auto' }} />
               </TouchableOpacity>
-            ) : (
+            )}
+
+            {cpStep === 1 && (
               <>
-                {[
-                  { label: 'Current Password',  val: oldPassword, setter: setOldPassword, placeholder: 'Enter current password' },
-                  { label: 'New Password',       val: newPassword, setter: setNewPassword, placeholder: 'Min 8 chars, uppercase, number, symbol' },
-                  { label: 'Confirm New Password', val: confirmPw, setter: setConfirmPw, placeholder: 'Re-enter new password' },
-                ].map(f => (
-                  <View style={styles.field} key={f.label}>
-                    <Text style={styles.fieldLabel}>{f.label}</Text>
-                    <View style={styles.inputRow}>
-                      <Ionicons name="lock-closed-outline" size={16} color="#6b7280" style={{ marginRight: 8 }} />
-                      <TextInput style={[styles.input, { flex: 1 }]} value={f.val} onChangeText={f.setter} placeholder={f.placeholder} placeholderTextColor="#9ca3af" secureTextEntry={!showPw} editable={!pwLoading} />
-                    </View>
-                  </View>
-                ))}
-                <TouchableOpacity style={styles.showPwBtn} onPress={() => setShowPw(v => !v)}>
-                  <Ionicons name={showPw ? 'eye-off-outline' : 'eye-outline'} size={14} color="#6b7280" />
-                  <Text style={styles.showPwText}>{showPw ? 'Hide' : 'Show'} passwords</Text>
-                </TouchableOpacity>
-                <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
-                  <TouchableOpacity style={styles.cancelBtn} onPress={() => { setChangingPw(false); setOldPassword(''); setNewPassword(''); setConfirmPw(''); }}>
+                <Text style={[styles.fieldLabel, { color: '#6b7280', marginBottom: 4 }]}>
+                  An OTP will be sent to {user?.phone} to verify your identity.
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <TouchableOpacity style={styles.cancelBtn} onPress={() => setCpStep(0)} disabled={cpLoading}>
                     <Text style={styles.cancelBtnText}>Cancel</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={[styles.saveBtn, pwLoading && { opacity: 0.5 }]} onPress={handleChangePassword} disabled={pwLoading}>
-                    {pwLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveBtnText}>Update Password</Text>}
+                  <TouchableOpacity style={[styles.saveBtn, cpLoading && { opacity: 0.5 }]} onPress={handleCpSendOtp} disabled={cpLoading}>
+                    {cpLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveBtnText}>Send OTP</Text>}
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+
+            {cpStep === 2 && (
+              <>
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>OTP Code</Text>
+                  <View style={styles.inputRow}>
+                    <Ionicons name="key-outline" size={16} color="#6b7280" style={{ marginRight: 8 }} />
+                    <TextInput style={[styles.input, { flex: 1 }]} value={cpOtp} onChangeText={setCpOtp} placeholder="Enter OTP" placeholderTextColor="#9ca3af" keyboardType="number-pad" editable={!cpLoading} />
+                    {cpTimer > 0 ? (
+                      <Text style={{ fontSize: 12, color: '#6b7280' }}>{cpTimer}s</Text>
+                    ) : (
+                      <TouchableOpacity onPress={handleCpSendOtp} disabled={cpLoading}>
+                        <Text style={{ fontSize: 12, color: '#2563eb', fontWeight: '600' }}>Resend</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>New Password</Text>
+                  <View style={styles.inputRow}>
+                    <Ionicons name="lock-closed-outline" size={16} color="#6b7280" style={{ marginRight: 8 }} />
+                    <TextInput style={[styles.input, { flex: 1 }]} value={cpNewPw} onChangeText={setCpNewPw} placeholder="Min 8 characters" placeholderTextColor="#9ca3af" secureTextEntry={!cpShowPw} editable={!cpLoading} />
+                  </View>
+                </View>
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>Confirm New Password</Text>
+                  <View style={styles.inputRow}>
+                    <Ionicons name="lock-closed-outline" size={16} color="#6b7280" style={{ marginRight: 8 }} />
+                    <TextInput style={[styles.input, { flex: 1 }]} value={cpConfirm} onChangeText={setCpConfirm} placeholder="Re-enter new password" placeholderTextColor="#9ca3af" secureTextEntry={!cpShowPw} editable={!cpLoading} />
+                  </View>
+                </View>
+                <TouchableOpacity style={styles.showPwBtn} onPress={() => setCpShowPw(v => !v)}>
+                  <Ionicons name={cpShowPw ? 'eye-off-outline' : 'eye-outline'} size={14} color="#6b7280" />
+                  <Text style={styles.showPwText}>{cpShowPw ? 'Hide' : 'Show'} passwords</Text>
+                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+                  <TouchableOpacity style={styles.cancelBtn} onPress={() => { setCpStep(0); setCpOtp(''); setCpNewPw(''); setCpConfirm(''); }} disabled={cpLoading}>
+                    <Text style={styles.cancelBtnText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.saveBtn, cpLoading && { opacity: 0.5 }]} onPress={handleCpReset} disabled={cpLoading}>
+                    {cpLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveBtnText}>Update Password</Text>}
                   </TouchableOpacity>
                 </View>
               </>
@@ -268,7 +314,7 @@ export default function ProfileScreen({ navigation }) {
           <Section title="About">
             {[
               { icon: 'information-circle-outline', label: 'App Version', value: 'v1.0.0' },
-              { icon: 'globe-outline', label: 'Backend', value: 'mysalonbookings.onrender.com' },
+              { icon: 'globe-outline', label: 'Website', value: 'mysalonbookings.com' },
             ].map(item => (
               <View key={item.label} style={styles.secRow}>
                 <Ionicons name={item.icon} size={18} color="#6b7280" />
