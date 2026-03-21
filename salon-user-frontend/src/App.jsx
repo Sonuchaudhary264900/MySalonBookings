@@ -1,7 +1,8 @@
-import React, { lazy, Suspense } from "react";
+import React, { lazy, Suspense, useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import BottomNav from "./components/BottomNav";
 import { NotificationProvider } from "./context/NotificationContext";
 import ToastContainer from "./components/ToastContainer";
 
@@ -60,12 +61,15 @@ class ErrorBoundary extends React.Component {
 
 // ── App ────────────────────────────────────────────────────────
 function App() {
+  const [notifOpen, setNotifOpen] = useState(false);
+
   return (
     <BrowserRouter>
       <NotificationProvider>
         <ErrorBoundary>
-          <Navbar />
+          <Navbar notifOpen={notifOpen} setNotifOpen={setNotifOpen} />
           <ToastContainer />
+          <div className="pb-16 md:pb-0">
           <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/"                            element={<Home />} />
@@ -92,7 +96,9 @@ function App() {
             } />
           </Routes>
           </Suspense>
+          </div>
           <Footer />
+          <BottomNav onNotifClick={() => setNotifOpen(true)} />
         </ErrorBoundary>
       </NotificationProvider>
     </BrowserRouter>

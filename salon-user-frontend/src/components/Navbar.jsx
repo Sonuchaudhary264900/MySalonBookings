@@ -102,14 +102,18 @@ function NotificationPanel({ onClose }) {
 }
 
 // ── Navbar ─────────────────────────────────────────────────
-function Navbar() {
+function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOpen }) {
   const navigate   = useNavigate();
   const location   = useLocation();
   const panelRef   = useRef(null);
   const token      = localStorage.getItem("customerToken");
   const [scrolled,   setScrolled]   = useState(false);
   const [menuOpen,   setMenuOpen]   = useState(false);
-  const [panelOpen,  setPanelOpen]  = useState(false);
+  const [_panelOpen, _setPanelOpen] = useState(false);
+
+  // Allow external control (from BottomNav bell tap) or internal control
+  const panelOpen    = externalNotifOpen ?? _panelOpen;
+  const setPanelOpen = setExternalNotifOpen ?? _setPanelOpen;
 
   const { unreadCount } = useNotifications();
 

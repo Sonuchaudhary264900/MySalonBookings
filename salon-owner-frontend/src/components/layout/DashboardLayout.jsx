@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
+import BottomNav from './BottomNav';
 
 /**
  * DashboardLayout Component
@@ -41,12 +42,13 @@ const DashboardLayout = ({ children }) => {
 
         {/* Main Content */}
         <main className="flex-1 overflow-auto">
-          <div className="p-4 md:p-6 lg:p-8">
+          <div className="p-4 md:p-6 lg:p-8 pb-20 md:pb-6 lg:pb-8">
             {children}
           </div>
         </main>
       </div>
       <Footer />
+      <BottomNav />
     </div>
   );
 };
