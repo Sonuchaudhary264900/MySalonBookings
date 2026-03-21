@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, LogOut, User, Settings, Bell, QrCode, X } from 'lucide-react';
+import { Menu, LogOut, User, Settings, Bell, QrCode, X, Download } from 'lucide-react';
 import QRCodeSVG from 'react-qr-code';
 import { useAuth } from '../../hooks/useAuth';
 import { useSalon } from '../../hooks/useSalon';
@@ -24,10 +24,36 @@ const Navbar = ({ onMenuToggle }) => {
   const { salon } = useSalon();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showQR, setShowQR] = useState(false);
+  const qrWrapperRef = useRef(null);
 
   const qrValue = salon?._id
     ? `${CUSTOMER_APP_URL}/salon/${salon._id}`
     : CUSTOMER_APP_URL;
+
+  const downloadQR = () => {
+    const svg = qrWrapperRef.current?.querySelector('svg');
+    if (!svg) return;
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new window.Image();
+    const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    img.onload = () => {
+      const pad = 24;
+      canvas.width  = img.width  + pad * 2;
+      canvas.height = img.height + pad * 2;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, pad, pad);
+      URL.revokeObjectURL(url);
+      const link = document.createElement('a');
+      link.download = `${salon?.name || 'salon'}-qr.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    };
+    img.src = url;
+  };
 
   const handleLogout = () => {
     logout();
@@ -163,7 +189,7 @@ const Navbar = ({ onMenuToggle }) => {
                 <X className="w-4 h-4 text-gray-500" />
               </button>
             </div>
-            <div className="p-3 bg-white border border-gray-200 rounded-xl">
+            <div ref={qrWrapperRef} className="p-3 bg-white border border-gray-200 rounded-xl">
               <QRCodeSVG value={qrValue} size={180} />
             </div>
             <div className="text-center">
@@ -171,6 +197,13 @@ const Navbar = ({ onMenuToggle }) => {
               <p className="text-xs text-gray-400 mt-0.5 break-all">{qrValue}</p>
             </div>
             <p className="text-xs text-gray-500 text-center">Share this QR so customers can book directly</p>
+            <button
+              onClick={downloadQR}
+              className="w-full flex items-center justify-center gap-2 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition"
+            >
+              <Download className="w-4 h-4" />
+              Download QR
+            </button>
           </div>
         </div>
       )}

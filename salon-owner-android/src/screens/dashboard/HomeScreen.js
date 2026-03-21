@@ -6,6 +6,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
+import * as MediaLibrary from 'expo-media-library';
+import * as FileSystem from 'expo-file-system';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import api from '../../services/api';
 import { useSalon } from '../../context/SalonContext';
@@ -50,6 +52,7 @@ export default function HomeScreen() {
   const [confirm, setConfirm] = useState(null);         // { title, message, onConfirm }
   const [showWalkIn, setShowWalkIn] = useState(false);
   const [showQR, setShowQR] = useState(false);
+  const qrRef = useRef(null);
   const [services, setServices] = useState([]);
   const queueRef = useRef([]);
   queueRef.current = queue;
@@ -546,17 +549,38 @@ export default function HomeScreen() {
               size={180}
               color="#111827"
               backgroundColor="#ffffff"
+              getRef={ref => { qrRef.current = ref; }}
             />
           </View>
           <Text style={qrStyles.salonName}>{salon?.name || 'My Salon'}</Text>
           <Text style={qrStyles.hint}>Share this QR so customers can book directly</Text>
-          <TouchableOpacity
-            style={qrStyles.shareBtn}
-            onPress={() => Share.share({ message: `Book at ${salon?.name || 'My Salon'}: https://mysalonbookings.com/salon/${salon?._id}` })}
-          >
-            <Ionicons name="share-outline" size={18} color="#fff" />
-            <Text style={qrStyles.shareBtnText}>Share Link</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
+            <TouchableOpacity
+              style={[qrStyles.actionBtn, { backgroundColor: '#2563eb', flex: 1 }]}
+              onPress={async () => {
+                try {
+                  qrRef.current?.toDataURL(async (data) => {
+                    const { status } = await MediaLibrary.requestPermissionsAsync();
+                    if (status !== 'granted') { showError('Permission denied', 'Allow storage access to save QR'); return; }
+                    const path = `${FileSystem.cacheDirectory}${salon?.name || 'salon'}-qr.png`;
+                    await FileSystem.writeAsStringAsync(path, data, { encoding: FileSystem.EncodingType.Base64 });
+                    await MediaLibrary.saveToLibraryAsync(path);
+                    showSuccess('Saved!', 'QR code saved to your gallery');
+                  });
+                } catch { showError('Error', 'Could not save QR code'); }
+              }}
+            >
+              <Ionicons name="download-outline" size={18} color="#fff" />
+              <Text style={qrStyles.actionBtnText}>Download</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[qrStyles.actionBtn, { backgroundColor: '#059669', flex: 1 }]}
+              onPress={() => Share.share({ message: `Book at ${salon?.name || 'My Salon'}: https://mysalonbookings.com/salon/${salon?._id}` })}
+            >
+              <Ionicons name="share-outline" size={18} color="#fff" />
+              <Text style={qrStyles.actionBtnText}>Share</Text>
+            </TouchableOpacity>
+          </View>
         </Pressable>
       </Pressable>
     </Modal>
@@ -573,8 +597,8 @@ const qrStyles = StyleSheet.create({
   qrBox:      { padding: 12, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#e5e7eb' },
   salonName:  { fontSize: 14, fontWeight: '700', color: '#111827', marginTop: 14 },
   hint:       { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 4, marginBottom: 16 },
-  shareBtn:   { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#2563eb', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
-  shareBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  actionBtn:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 12 },
+  actionBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 });
 
 const styles = StyleSheet.create({
