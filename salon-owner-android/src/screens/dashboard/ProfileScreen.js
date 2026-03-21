@@ -9,6 +9,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import { WebView } from 'react-native-webview';
 import { useAuth } from '../../context/AuthContext';
 import DrawerMenuButton from '../../components/DrawerMenuButton';
@@ -206,6 +208,54 @@ img.src=${qrApiUrl};
       showSuccess('Saved!', 'QR card saved to your gallery');
     } catch { showError('Error', 'Could not save QR card'); }
   }, [salon]);
+
+  const downloadQRPDF = async () => {
+    setShowQR(false);
+    const salonName = salon?.name || 'My Salon';
+    const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qrValue)}`;
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/>
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box}
+      body{font-family:Arial,sans-serif;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;background:#f3f4f6;padding:30px}
+      .card{background:#fff;border-radius:16px;overflow:hidden;width:360px;box-shadow:0 4px 24px rgba(0,0,0,0.1)}
+      .header{background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:20px;text-align:center}
+      .header-icon{font-size:28px;color:#fff;margin-bottom:6px}
+      .header-title{color:#fff;font-size:18px;font-weight:700;letter-spacing:0.5px}
+      .body{padding:24px;display:flex;flex-direction:column;align-items:center;gap:16px}
+      .qr-wrap{background:#fff;border:2px solid #e5e7eb;border-radius:12px;padding:12px}
+      .qr-wrap img{display:block;width:200px;height:200px}
+      .salon-name{font-size:20px;font-weight:800;color:#111827;text-align:center}
+      .subtitle{font-size:13px;color:#6b7280;text-align:center}
+      .divider{width:80%;height:1px;background:#e5e7eb}
+      .url{font-size:9px;color:#9ca3af;text-align:center;word-break:break-all;padding:0 10px}
+      .footer{background:#f9fafb;border-top:1px solid #e5e7eb;padding:12px;text-align:center;font-size:11px;color:#9ca3af}
+    </style></head><body>
+    <div class="card">
+      <div class="header">
+        <div class="header-icon">&#9986;</div>
+        <div class="header-title">Salon Booking</div>
+      </div>
+      <div class="body">
+        <div class="qr-wrap"><img src="${qrImgUrl}" /></div>
+        <div class="salon-name">${salonName}</div>
+        <div class="subtitle">Scan to book your appointment</div>
+        <div class="divider"></div>
+        <div class="url">${qrValue}</div>
+      </div>
+      <div class="footer">Powered by My Salon Bookings</div>
+    </div>
+    </body></html>`;
+    try {
+      const { uri } = await Print.printToFileAsync({ html, base64: false });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Save QR Card as PDF' });
+      } else {
+        showSuccess('Saved', 'PDF saved to device');
+      }
+    } catch (err) {
+      showError('Error', err.message || 'Could not generate PDF');
+    }
+  };
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.bg }]} contentContainerStyle={{ paddingBottom: 40 }}>
@@ -435,13 +485,22 @@ img.src=${qrApiUrl};
               <Text style={styles.qrSalonName}>{salon?.name}</Text>
             </View>
             <Text style={styles.qrHint}>Print or display this QR code at your salon</Text>
-            <TouchableOpacity
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, paddingVertical: 12, paddingHorizontal: 28, backgroundColor: '#4f46e5', borderRadius: 12 }}
-              onPress={() => { setShowQR(false); setCapturing(true); }}
-            >
-              <Ionicons name="download-outline" size={18} color="#fff" />
-              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Download Card</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 14, width: '100%' }}>
+              <TouchableOpacity
+                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, backgroundColor: '#2563eb', borderRadius: 12 }}
+                onPress={() => { setShowQR(false); setCapturing(true); }}
+              >
+                <Ionicons name="image-outline" size={18} color="#fff" />
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Save Image</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, backgroundColor: '#4f46e5', borderRadius: 12 }}
+                onPress={downloadQRPDF}
+              >
+                <Ionicons name="document-outline" size={18} color="#fff" />
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Download PDF</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
