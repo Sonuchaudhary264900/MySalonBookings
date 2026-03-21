@@ -1,149 +1,101 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Dimensions,
+  ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import Svg, { Rect, Text as SvgText, Line, G, Path, Circle } from 'react-native-svg';
 import api from '../../services/api';
 import DrawerMenuButton from '../../components/DrawerMenuButton';
 import { useTheme } from '../../context/ThemeContext';
 import { localDate, formatDate, formatTime, STATUS_COLORS } from '../../utils/helpers';
 
-const SCREEN_W = Dimensions.get('window').width;
-
 function RevenueBarChart({ data, theme }) {
   if (!data || data.length === 0) return null;
-  const chartW = SCREEN_W - 56;
-  const chartH = 160;
-  const padL = 44;
-  const padB = 28;
-  const padT = 10;
-  const innerW = chartW - padL - 8;
-  const innerH = chartH - padB - padT;
-  const maxVal = Math.max(...data.map(d => d.revenue || 0), 1);
-  const barW = Math.max(8, Math.floor(innerW / data.length) - 4);
-  const step = Math.ceil(maxVal / 4 / 100) * 100 || 1;
-  const yLabels = [0, step, step * 2, step * 3, step * 4].filter(v => v <= maxVal * 1.1);
-
+  const show = data.slice(-14);
+  const maxVal = Math.max(...show.map(d => d.revenue || 0), 1);
   return (
-    <Svg width={chartW} height={chartH}>
-      {/* Y grid lines + labels */}
-      {yLabels.map((v, i) => {
-        const y = padT + innerH - (v / maxVal) * innerH;
-        return (
-          <G key={i}>
-            <Line x1={padL} y1={y} x2={chartW - 8} y2={y} stroke={theme.border || '#e5e7eb'} strokeWidth={1} strokeDasharray="3,3" />
-            <SvgText x={padL - 4} y={y + 4} fontSize={9} fill={theme.subText || '#9ca3af'} textAnchor="end">
-              {v >= 1000 ? `${(v/1000).toFixed(v%1000===0?0:1)}k` : v}
-            </SvgText>
-          </G>
-        );
-      })}
-      {/* Bars */}
-      {data.map((d, i) => {
-        const barH = Math.max(2, ((d.revenue || 0) / maxVal) * innerH);
-        const x = padL + i * (innerW / data.length) + (innerW / data.length - barW) / 2;
-        const y = padT + innerH - barH;
-        const label = d.date ? d.date.slice(5) : '';
-        return (
-          <G key={i}>
-            <Rect x={x} y={y} width={barW} height={barH} rx={3} fill="#2563eb" opacity={0.85} />
-            {data.length <= 10 && (
-              <SvgText x={x + barW / 2} y={chartH - 6} fontSize={8} fill={theme.subText || '#9ca3af'} textAnchor="middle">
-                {label}
-              </SvgText>
-            )}
-          </G>
-        );
-      })}
-    </Svg>
+    <View>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: 120 }}>
+        {show.map((d, i) => {
+          const pct = Math.max(0.03, (d.revenue || 0) / maxVal);
+          return (
+            <View key={i} style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end', height: '100%', marginHorizontal: 1 }}>
+              <View style={{ width: '100%', height: `${Math.round(pct * 100)}%`, backgroundColor: '#2563eb', borderRadius: 3, opacity: 0.85 }} />
+            </View>
+          );
+        })}
+      </View>
+      {show.length <= 10 && (
+        <View style={{ flexDirection: 'row', marginTop: 4 }}>
+          {show.map((d, i) => (
+            <Text key={i} style={{ flex: 1, fontSize: 7, color: theme.subText || '#9ca3af', textAlign: 'center' }}>
+              {d.date ? d.date.slice(5) : ''}
+            </Text>
+          ))}
+        </View>
+      )}
+    </View>
   );
 }
 
-// ── Booking Pie Chart ────────────────────────────────────────────
-function polarToCartesian(cx, cy, r, angleDeg) {
-  const rad = ((angleDeg - 90) * Math.PI) / 180;
-  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
-}
-
-function arcPath(cx, cy, outerR, innerR, startAngle, endAngle) {
-  const oS = polarToCartesian(cx, cy, outerR, startAngle);
-  const oE = polarToCartesian(cx, cy, outerR, endAngle);
-  const iS = polarToCartesian(cx, cy, innerR, startAngle);
-  const iE = polarToCartesian(cx, cy, innerR, endAngle);
-  const large = endAngle - startAngle > 180 ? 1 : 0;
-  return [
-    `M ${oS.x.toFixed(2)} ${oS.y.toFixed(2)}`,
-    `A ${outerR} ${outerR} 0 ${large} 1 ${oE.x.toFixed(2)} ${oE.y.toFixed(2)}`,
-    `L ${iE.x.toFixed(2)} ${iE.y.toFixed(2)}`,
-    `A ${innerR} ${innerR} 0 ${large} 0 ${iS.x.toFixed(2)} ${iS.y.toFixed(2)}`,
-    'Z',
-  ].join(' ');
-}
-
+// ── Booking Donut Chart (pure View, no SVG) ────────────────────────────────
 function BookingPieChart({ completed, pending, cancelled, total, theme }) {
-  const size = 140;
-  const cx = size / 2;
-  const cy = size / 2;
-  const outerR = 58;
-  const innerR = 34;
-
+  const RING_SIZE = 100;
   const slices = [
     { label: 'Completed', value: completed, color: '#10b981', bg: '#dcfce7' },
-    { label: 'Pending',   value: pending,   color: '#ca8a04', bg: '#fef9c3' },
+    { label: 'Pending',   value: pending,   color: '#f59e0b', bg: '#fef9c3' },
     { label: 'Cancelled', value: cancelled, color: '#dc2626', bg: '#fee2e2' },
   ].filter(s => s.value > 0);
 
-  if (total === 0 || slices.length === 0) {
-    return (
-      <View style={{ alignItems: 'center', paddingVertical: 16 }}>
-        <Svg width={size} height={size}>
-          <Circle cx={cx} cy={cy} r={outerR} fill={theme.border || '#e5e7eb'} />
-          <Circle cx={cx} cy={cy} r={innerR} fill={theme.card || '#fff'} />
-        </Svg>
-        <Text style={{ color: theme.subText, fontSize: 12, marginTop: 8 }}>No booking data</Text>
-      </View>
-    );
-  }
-
-  // If only one slice, draw a full ring (0.01 gap to avoid degenerate arc)
-  let paths;
-  if (slices.length === 1) {
-    paths = [{ ...slices[0], d: arcPath(cx, cy, outerR, innerR, 0, 359.99) }];
-  } else {
-    let angle = 0;
-    paths = slices.map(s => {
-      const sweep = (s.value / total) * 360;
-      const d = arcPath(cx, cy, outerR, innerR, angle, angle + sweep - 1);
-      angle += sweep;
-      return { ...s, d };
-    });
-  }
+  // Build stacked ring using border segments
+  const segments = slices.map(s => ({ ...s, pct: total > 0 ? (s.value / total) * 100 : 0 }));
 
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-      <Svg width={size} height={size}>
-        {paths.map(p => <Path key={p.label} d={p.d} fill={p.color} />)}
-        {/* Centre label */}
-        <SvgText x={cx} y={cy - 6} fontSize={18} fontWeight="700" fill={theme.text || '#111827'} textAnchor="middle">{total}</SvgText>
-        <SvgText x={cx} y={cy + 12} fontSize={9} fill={theme.subText || '#6b7280'} textAnchor="middle">bookings</SvgText>
-      </Svg>
+      {/* Ring */}
+      <View style={{ width: RING_SIZE, height: RING_SIZE, justifyContent: 'center', alignItems: 'center' }}>
+        {total === 0 ? (
+          <View style={{ width: RING_SIZE, height: RING_SIZE, borderRadius: RING_SIZE / 2, borderWidth: 16, borderColor: theme.border || '#e5e7eb' }} />
+        ) : (
+          <View style={{ width: RING_SIZE, height: RING_SIZE, borderRadius: RING_SIZE / 2, overflow: 'hidden', backgroundColor: theme.border || '#e5e7eb' }}>
+            {segments.map((s, i) => (
+              <View key={s.label} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+                <View style={{ flex: 1, backgroundColor: i === 0 ? s.color : 'transparent' }} />
+              </View>
+            ))}
+            {/* Simple stacked bars as donut approximation */}
+            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', height: RING_SIZE }}>
+              {segments.map(s => (
+                <View key={s.label} style={{ flex: s.pct, backgroundColor: s.color }} />
+              ))}
+            </View>
+            {/* Inner hole */}
+            <View style={{ position: 'absolute', top: RING_SIZE * 0.22, left: RING_SIZE * 0.22, width: RING_SIZE * 0.56, height: RING_SIZE * 0.56, borderRadius: RING_SIZE * 0.28, backgroundColor: theme.card || '#fff', justifyContent: 'center', alignItems: 'center' }}>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: theme.text || '#111827' }}>{total}</Text>
+              <Text style={{ fontSize: 8, color: theme.subText || '#6b7280' }}>bookings</Text>
+            </View>
+          </View>
+        )}
+      </View>
 
       {/* Legend */}
       <View style={{ flex: 1, marginLeft: 12 }}>
-        {slices.map((s, i) => (
-          <View key={s.label} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: i < slices.length - 1 ? 10 : 0 }}>
-            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: s.color, marginRight: 8 }} />
-            <Text style={{ flex: 1, fontSize: 13, color: theme.text || '#111827' }}>{s.label}</Text>
-            <View style={[styles.breakdownBadge, { backgroundColor: s.bg }]}>
-              <Text style={[styles.breakdownBadgeText, { color: s.color }]}>
-                {s.value} ({Math.round((s.value / total) * 100)}%)
-              </Text>
+        {total === 0 ? (
+          <Text style={{ color: theme.subText, fontSize: 12 }}>No booking data</Text>
+        ) : (
+          slices.map((s, i) => (
+            <View key={s.label} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: i < slices.length - 1 ? 10 : 0 }}>
+              <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: s.color, marginRight: 8 }} />
+              <Text style={{ flex: 1, fontSize: 13, color: theme.text || '#111827' }}>{s.label}</Text>
+              <View style={[styles.breakdownBadge, { backgroundColor: s.bg }]}>
+                <Text style={[styles.breakdownBadgeText, { color: s.color }]}>
+                  {s.value} ({Math.round((s.value / total) * 100)}%)
+                </Text>
+              </View>
             </View>
-          </View>
-        ))}
+          ))
+        )}
       </View>
     </View>
   );

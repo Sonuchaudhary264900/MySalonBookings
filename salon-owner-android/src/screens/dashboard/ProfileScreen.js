@@ -7,7 +7,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import QRCode from 'react-native-qrcode-svg';
+import * as MediaLibrary from 'expo-media-library';
+import * as FileSystem from 'expo-file-system';
+import { WebView } from 'react-native-webview';
 import { useAuth } from '../../context/AuthContext';
 import DrawerMenuButton from '../../components/DrawerMenuButton';
 import { useTheme } from '../../context/ThemeContext';
@@ -58,6 +60,7 @@ export default function ProfileScreen() {
   const [showPw, setShowPw] = useState({ current: false, next: false, confirm: false });
 
   const [showQR, setShowQR] = useState(false);
+  const [capturing, setCapturing] = useState(false);
 
   useFocusEffect(useCallback(() => {
     return () => {
@@ -154,6 +157,55 @@ export default function ProfileScreen() {
   const qrValue = salon?._id
     ? `https://mysalonbookings.com/salon/${salon._id}`
     : `mysalonbookings:owner:${user?._id}`;
+
+  const getCardHtml = () => {
+    const safeData = JSON.stringify({ salonName: salon?.name || 'My Salon', bookingUrl: qrValue });
+    const qrApiUrl = JSON.stringify(`https://api.qrserver.com/v1/create-qr-code/?size=900x900&data=${encodeURIComponent(qrValue)}`);
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:0"><canvas id="c" width="1200" height="1680"></canvas><script>(function(){
+var d=${safeData},salonName=d.salonName,bookingUrl=d.bookingUrl;
+var c=document.getElementById('c'),ctx=c.getContext('2d'),W=400,H=560,S=3;
+ctx.scale(S,S);
+ctx.fillStyle='#f3f4f6';ctx.fillRect(0,0,W,H);
+ctx.fillStyle='#ffffff';ctx.fillRect(20,20,360,520);
+ctx.fillStyle='#4f46e5';ctx.fillRect(20,20,360,74);
+ctx.fillStyle='#ffffff';ctx.font='bold 17px Arial';ctx.textAlign='center';
+ctx.fillText('\u2702  Salon Booking',200,64);
+var img=new Image();img.crossOrigin='anonymous';
+img.onload=function(){
+  ctx.drawImage(img,110,110,180,180);
+  ctx.fillStyle='#111827';ctx.font='bold 20px Arial';
+  ctx.fillText(salonName,200,322);
+  ctx.fillStyle='#6b7280';ctx.font='13px Arial';
+  ctx.fillText('Scan to book your appointment',200,348);
+  ctx.strokeStyle='#e5e7eb';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(60,368);ctx.lineTo(340,368);ctx.stroke();
+  ctx.fillStyle='#9ca3af';ctx.font='9px Arial';
+  var maxW=320,line='',lines=[],chars=bookingUrl.split('');
+  chars.forEach(function(ch){var t=line+ch;if(ctx.measureText(t).width>maxW&&line){lines.push(line);line=ch;}else{line=t;}});
+  if(line)lines.push(line);
+  lines.forEach(function(l,i){ctx.fillText(l,200,386+i*13);});
+  ctx.fillStyle='#6b7280';ctx.font='11px Arial';
+  ctx.fillText('Powered by My Salon Bookings',200,500);
+  window.ReactNativeWebView.postMessage(c.toDataURL('image/png').split(',')[1]);
+};
+img.onerror=function(){window.ReactNativeWebView.postMessage('ERROR');};
+img.src=${qrApiUrl};
+})();<\/script></body></html>`;
+  };
+
+  const onCardCaptured = useCallback(async (e) => {
+    setCapturing(false);
+    const base64 = e.nativeEvent.data;
+    if (!base64 || base64 === 'ERROR') { showError('Error', 'Could not generate QR card'); return; }
+    try {
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') { showError('Permission denied', 'Allow storage access to save QR'); return; }
+      const path = `${FileSystem.cacheDirectory}${salon?.name || 'salon'}-booking-qr.png`;
+      await FileSystem.writeAsStringAsync(path, base64, { encoding: FileSystem.EncodingType.Base64 });
+      await MediaLibrary.saveToLibraryAsync(path);
+      showSuccess('Saved!', 'QR card saved to your gallery');
+    } catch { showError('Error', 'Could not save QR card'); }
+  }, [salon]);
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.bg }]} contentContainerStyle={{ paddingBottom: 40 }}>
@@ -372,15 +424,9 @@ export default function ProfileScreen() {
             <Text style={styles.qrSub}>Customers scan this to book your salon</Text>
 
             <View style={styles.qrCodeWrap}>
-              <QRCode
-                value={qrValue}
-                size={220}
-                color="#111827"
-                backgroundColor="#fff"
-                logo={require('../../../assets/icon1.png')}
-                logoSize={44}
-                logoBackgroundColor="#fff"
-                logoBorderRadius={10}
+              <Image
+                source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrValue)}` }}
+                style={{ width: 220, height: 220 }}
               />
             </View>
 
@@ -389,9 +435,25 @@ export default function ProfileScreen() {
               <Text style={styles.qrSalonName}>{salon?.name}</Text>
             </View>
             <Text style={styles.qrHint}>Print or display this QR code at your salon</Text>
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, paddingVertical: 12, paddingHorizontal: 28, backgroundColor: '#4f46e5', borderRadius: 12 }}
+              onPress={() => { setShowQR(false); setCapturing(true); }}
+            >
+              <Ionicons name="download-outline" size={18} color="#fff" />
+              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Download Card</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
+
+      {capturing && (
+        <WebView
+          style={{ position: 'absolute', width: 1, height: 1, opacity: 0, top: -1000 }}
+          source={{ html: getCardHtml() }}
+          onMessage={onCardCaptured}
+          javaScriptEnabled
+        />
+      )}
 
     </ScrollView>
   );
