@@ -46,8 +46,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow My Salon Bookings to access your photos to update your profile picture.",
-          "cameraPermission": "Allow My Salon Bookings to use your camera to take a profile picture."
+          "photosPermission": "Allow My Salon Bookings to access your photos to update your salon and profile pictures."
         }
       ],
       [
