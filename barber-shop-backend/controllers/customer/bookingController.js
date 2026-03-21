@@ -222,18 +222,20 @@ const createBooking = async (req, res) => {
         if (customer.pushToken) {
           sendExpoPush(
             customer.pushToken,
-            'Booking Confirmed!',
+            'Booking Confirmed! ✅',
             `Your ${combinedName} at ${salon.name} is booked for ${appointmentDate} at ${appointmentTime}`,
-            { bookingId: booking._id.toString(), type: 'booking_confirmed' }
+            { bookingId: booking._id.toString(), type: 'booking_confirmed' },
+            { channelId: 'booking_confirmed' }
           ).catch(() => {});
         }
 
         if (owner?.pushToken) {
           sendExpoPush(
             owner.pushToken,
-            'New Booking!',
+            '🔔 New Booking!',
             `${customer.name} booked ${combinedName} on ${appointmentDate} at ${appointmentTime}`,
-            { bookingId: booking._id.toString(), type: 'new_booking' }
+            { bookingId: booking._id.toString(), type: 'new_booking', autoConfirm: String(autoConfirm) },
+            { channelId: 'new_booking' }
           ).catch(() => {});
         }
       } catch {}

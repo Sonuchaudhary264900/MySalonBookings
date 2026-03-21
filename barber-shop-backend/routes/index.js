@@ -770,9 +770,12 @@ router.post("/owner/bookings", authenticateOwner, asyncHandler(async (req, res) 
     const Owner = require("../models/Owner");
     const owner = await Owner.findById(salon.ownerId).select("pushToken").lean();
     if (owner?.pushToken) {
-      sendExpoPush(owner.pushToken, "Walk-in Booking Added",
+      sendExpoPush(
+        owner.pushToken,
+        "🚶 Walk-in Booking Added",
         `${customerName} — ${service.name} at ${appointmentTime}`,
-        { type: "walk_in_booking" }
+        { bookingId: booking._id.toString(), type: "walk_in_booking" },
+        { channelId: "new_booking" }
       ).catch(() => {});
     }
   } catch {}

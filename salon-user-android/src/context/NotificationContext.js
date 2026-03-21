@@ -14,6 +14,41 @@ Notifications.setNotificationHandler({
   }),
 });
 
+async function setupNotificationChannels() {
+  if (Platform.OS !== 'android') return;
+
+  // Heads-up for booking confirmation
+  await Notifications.setNotificationChannelAsync('booking_confirmed', {
+    name: 'Booking Confirmations',
+    importance: Notifications.AndroidImportance.MAX,
+    vibrationPattern: [0, 400, 200, 400],
+    lightColor: '#10b981',
+    enableVibrate: true,
+    showBadge: true,
+    sound: 'default',
+  });
+
+  // Light vibration for 10-minute reminder — gentle, not alarming
+  await Notifications.setNotificationChannelAsync('ten_min_reminder', {
+    name: '10-Minute Reminders',
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: [0, 150, 100, 150],   // soft 2-pulse
+    lightColor: '#f59e0b',
+    enableVibrate: true,
+    showBadge: false,
+    sound: 'default',
+  });
+
+  // Default channel
+  await Notifications.setNotificationChannelAsync('default', {
+    name: 'General',
+    importance: Notifications.AndroidImportance.DEFAULT,
+    vibrationPattern: [0, 250, 250, 250],
+    enableVibrate: true,
+    sound: 'default',
+  });
+}
+
 async function registerPushToken() {
   if (!Device.isDevice) return null;
   const { status: existing } = await Notifications.getPermissionsAsync();
@@ -23,13 +58,7 @@ async function registerPushToken() {
     finalStatus = status;
   }
   if (finalStatus !== 'granted') return null;
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-    });
-  }
+  await setupNotificationChannels();
   const tokenData = await Notifications.getExpoPushTokenAsync();
   return tokenData.data;
 }

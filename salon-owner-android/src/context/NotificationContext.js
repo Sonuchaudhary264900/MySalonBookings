@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
 import api from '../services/api';
 import { useAuth } from './AuthContext';
 
-// Show notifications when app is in foreground
+// Show banners + play sound when app is in the foreground
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -14,14 +14,34 @@ Notifications.setNotificationHandler({
   }),
 });
 
-export const NotificationContext = createContext();
+// ── Android notification channels ────────────────────────────────────────────
+async function setupNotificationChannels() {
+  if (Platform.OS !== 'android') return;
 
-const localDate = (offset = 0) => {
-  const d = new Date();
-  d.setDate(d.getDate() + offset);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
+  // Heavy vibration + high-priority for new bookings
+  await Notifications.setNotificationChannelAsync('new_booking', {
+    name: 'New Bookings',
+    importance: Notifications.AndroidImportance.MAX,   // heads-up banner
+    vibrationPattern: [0, 500, 200, 500, 200, 500],   // heavy 3-pulse
+    lightColor: '#2563eb',
+    enableVibrate: true,
+    showBadge: true,
+    sound: 'default',
+    // ↓ swap 'default' with 'new_booking' once you add assets/sounds/new_booking.wav
+  });
 
+  // Standard channel for other owner notifications
+  await Notifications.setNotificationChannelAsync('default', {
+    name: 'General',
+    importance: Notifications.AndroidImportance.DEFAULT,
+    vibrationPattern: [0, 250, 250, 250],
+    lightColor: '#2563eb',
+    enableVibrate: true,
+    sound: 'default',
+  });
+}
+
+// ── Register device push token ────────────────────────────────────────────────
 async function registerPushToken() {
   if (!Device.isDevice) return null;
   const { status: existing } = await Notifications.getPermissionsAsync();
@@ -31,54 +51,45 @@ async function registerPushToken() {
     finalStatus = status;
   }
   if (finalStatus !== 'granted') return null;
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-    });
-  }
+  await setupNotificationChannels();
   const tokenData = await Notifications.getExpoPushTokenAsync();
   return tokenData.data;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const NotificationContext = createContext();
+
+const localDate = (offset = 0) => {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
 export const NotificationProvider = ({ children }) => {
   const { isAuthenticated } = useAuth();
   const [notifications, setNotifications] = useState([]);
-  // Track all seen booking IDs so we never re-notify the same booking
-  const seenIdsRef = useRef(null); // null = not initialised yet
+  const [pendingBooking, setPendingBooking] = useState(null); // booking object waiting for accept/reject
+  const seenIdsRef = useRef(null);
   const idCounter = useRef(0);
 
   const addNotification = useCallback((notif) => {
     idCounter.current += 1;
     setNotifications((prev) => [
-      {
-        ...notif,
-        id: String(idCounter.current),
-        read: false,
-        createdAt: new Date().toISOString(),
-      },
+      { ...notif, id: String(idCounter.current), read: false, createdAt: new Date().toISOString() },
       ...prev,
     ]);
   }, []);
 
-  const markRead = useCallback((id) => {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-  }, []);
-
-  const markAllRead = useCallback(() => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  }, []);
-
-  const remove = useCallback((id) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-  }, []);
-
-  const clearAll = useCallback(() => setNotifications([]), []);
+  const markRead    = useCallback((id) => setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n))), []);
+  const markAllRead = useCallback(() => setNotifications((prev) => prev.map((n) => ({ ...n, read: true }))), []);
+  const remove      = useCallback((id) => setNotifications((prev) => prev.filter((n) => n.id !== id)), []);
+  const clearAll    = useCallback(() => setNotifications([]), []);
+  const clearPendingBooking = useCallback(() => setPendingBooking(null), []);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  // Register push token once when authenticated
+  // ── Register push token when logged in ─────────────────────────────────────
   useEffect(() => {
     if (!isAuthenticated) return;
     registerPushToken().then((token) => {
@@ -86,7 +97,37 @@ export const NotificationProvider = ({ children }) => {
     });
   }, [isAuthenticated]);
 
-  // Poll today's + tomorrow's bookings every 30s — detect genuinely new bookings
+  // ── Foreground notification listener ───────────────────────────────────────
+  // When a new_booking arrives while the app is OPEN → show mandatory modal
+  useEffect(() => {
+    const sub = Notifications.addNotificationReceivedListener(async (notification) => {
+      const data = notification.request.content.data || {};
+      if (data.type === 'new_booking' && data.bookingId) {
+        // Only force modal when auto-confirm is OFF (booking stays 'pending')
+        const autoConfirm = data.autoConfirm !== 'false';
+        if (!autoConfirm) {
+          try {
+            const res = await api.get(`/owner/bookings`);
+            const all = res.data?.data?.bookings || [];
+            const booking = all.find((b) => b._id === data.bookingId);
+            if (booking && booking.status === 'pending') {
+              setPendingBooking(booking);
+            }
+          } catch {}
+        }
+      }
+      // Also add to in-app notification list
+      addNotification({
+        type: 'booking',
+        title: notification.request.content.title || 'Notification',
+        message: notification.request.content.body || '',
+        data,
+      });
+    });
+    return () => sub.remove();
+  }, [addNotification]);
+
+  // ── Poll bookings every 30s for new booking detection ─────────────────────
   useEffect(() => {
     if (!isAuthenticated) return;
 
@@ -101,27 +142,20 @@ export const NotificationProvider = ({ children }) => {
     };
 
     const poll = async () => {
-      const today = localDate(0);
+      const today    = localDate(0);
       const tomorrow = localDate(1);
-
-      const [todayBookings, tomorrowBookings] = await Promise.all([
+      const [todayB, tomorrowB] = await Promise.all([
         fetchBookingsForDate(today),
         fetchBookingsForDate(tomorrow),
       ]);
-
-      const allBookings = [...todayBookings, ...tomorrowBookings];
+      const allBookings = [...todayB, ...tomorrowB];
 
       if (seenIdsRef.current === null) {
-        // First run — mark everything as already seen, no notifications
         seenIdsRef.current = new Set(allBookings.map((b) => b._id).filter(Boolean));
         return;
       }
 
-      // Find bookings we haven't seen before
-      const newBookings = allBookings.filter(
-        (b) => b._id && !seenIdsRef.current.has(b._id)
-      );
-
+      const newBookings = allBookings.filter((b) => b._id && !seenIdsRef.current.has(b._id));
       newBookings.forEach((b) => {
         seenIdsRef.current.add(b._id);
         addNotification({
@@ -132,9 +166,7 @@ export const NotificationProvider = ({ children }) => {
       });
     };
 
-    // Reset seen IDs when auth changes so fresh login starts clean
     seenIdsRef.current = null;
-
     poll();
     const interval = setInterval(poll, 30000);
     return () => clearInterval(interval);
@@ -142,7 +174,11 @@ export const NotificationProvider = ({ children }) => {
 
   return (
     <NotificationContext.Provider
-      value={{ notifications, unreadCount, addNotification, markRead, markAllRead, remove, clearAll }}
+      value={{
+        notifications, unreadCount,
+        pendingBooking, clearPendingBooking,
+        addNotification, markRead, markAllRead, remove, clearAll,
+      }}
     >
       {children}
     </NotificationContext.Provider>

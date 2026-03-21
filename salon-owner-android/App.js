@@ -1,7 +1,8 @@
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
-import React from 'react';
-import { ActivityIndicator, View, Text, TouchableOpacity, StyleSheet, Alert, Image, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { ActivityIndicator, View, Text, TouchableOpacity, StyleSheet, Alert, Image, Dimensions, Modal, ScrollView } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import Toast from 'react-native-toast-message';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -16,6 +17,8 @@ import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { SalonProvider, useSalon } from './src/context/SalonContext';
 import { NotificationProvider, useNotifications } from './src/context/NotificationContext';
 import { ThemeProvider } from './src/context/ThemeContext';
+import api from './src/services/api';
+import { showSuccess, showError } from './src/utils/toast';
 
 import IntroScreen             from './src/screens/auth/IntroScreen';
 import LoginScreen             from './src/screens/auth/LoginScreen';
@@ -287,6 +290,125 @@ function RootNavigator() {
   );
 }
 
+// ── Mandatory booking accept/reject modal ─────────────────────────────────────
+// Shows on top of everything when owner receives a new booking and
+// auto-confirm is disabled. Owner MUST accept or reject before continuing.
+function BookingAlertModal() {
+  const { pendingBooking, clearPendingBooking } = useNotifications();
+  const [saving, setSaving] = useState(false);
+
+  if (!pendingBooking) return null;
+
+  const b = pendingBooking;
+
+  const act = async (status) => {
+    setSaving(true);
+    try {
+      await api.put(`/owner/bookings/${b._id}`, { status });
+      showSuccess(
+        status === 'confirmed' ? 'Booking Accepted' : 'Booking Rejected',
+        status === 'confirmed'
+          ? `${b.customerName}'s booking confirmed.`
+          : `${b.customerName}'s booking has been rejected.`
+      );
+      clearPendingBooking();
+    } catch {
+      showError('Error', 'Could not update booking. Try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal visible animationType="slide" transparent statusBarTranslucent>
+      <View style={alertStyles.overlay}>
+        <View style={alertStyles.sheet}>
+          {/* Red top bar — grabs attention */}
+          <View style={alertStyles.topBar}>
+            <Ionicons name="notifications" size={22} color="#fff" />
+            <Text style={alertStyles.topBarText}>New Booking Request</Text>
+          </View>
+
+          <ScrollView contentContainerStyle={alertStyles.body}>
+            <View style={alertStyles.row}>
+              <Ionicons name="person-circle-outline" size={40} color="#2563eb" />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={alertStyles.customerName}>{b.customerName || 'Customer'}</Text>
+                {b.customerPhone ? (
+                  <Text style={alertStyles.phone}>{b.customerPhone}</Text>
+                ) : null}
+              </View>
+            </View>
+
+            <View style={alertStyles.infoGrid}>
+              <InfoRow icon="cut-outline"      label="Service"  value={b.serviceName || '—'} />
+              <InfoRow icon="calendar-outline" label="Date"     value={b.appointmentDate ? new Date(b.appointmentDate).toDateString() : '—'} />
+              <InfoRow icon="time-outline"     label="Time"     value={b.appointmentTime || '—'} />
+              <InfoRow icon="cash-outline"     label="Amount"   value={b.totalAmount != null ? `₹${b.totalAmount}` : '—'} />
+            </View>
+
+            <Text style={alertStyles.warningText}>
+              ⚠️  You must accept or reject this booking before continuing.
+            </Text>
+          </ScrollView>
+
+          <View style={alertStyles.actions}>
+            <TouchableOpacity
+              style={[alertStyles.btn, alertStyles.rejectBtn, saving && alertStyles.btnDisabled]}
+              onPress={() => act('cancelled')}
+              disabled={saving}
+            >
+              {saving ? <ActivityIndicator color="#fff" size="small" /> : (
+                <>
+                  <Ionicons name="close-circle" size={20} color="#fff" />
+                  <Text style={alertStyles.btnText}>Reject</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[alertStyles.btn, alertStyles.acceptBtn, saving && alertStyles.btnDisabled]}
+              onPress={() => act('confirmed')}
+              disabled={saving}
+            >
+              {saving ? <ActivityIndicator color="#fff" size="small" /> : (
+                <>
+                  <Ionicons name="checkmark-circle" size={20} color="#fff" />
+                  <Text style={alertStyles.btnText}>Accept</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function InfoRow({ icon, label, value }) {
+  return (
+    <View style={alertStyles.infoRow}>
+      <Ionicons name={icon} size={16} color="#6b7280" style={{ marginRight: 8 }} />
+      <Text style={alertStyles.infoLabel}>{label}</Text>
+      <Text style={alertStyles.infoValue}>{value}</Text>
+    </View>
+  );
+}
+
+// ── Notification tap handler (background / killed state) ──────────────────────
+function NotificationTapHandler() {
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      // User tapped a notification — data is available for future navigation
+      // e.g. navigate to bookings screen
+      const data = response.notification.request.content.data || {};
+      console.log('Notification tapped:', data.type, data.bookingId);
+    });
+    return () => sub.remove();
+  }, []);
+  return null;
+}
+
 export default function App() {
   return (
     <SafeAreaProvider>
@@ -296,6 +418,8 @@ export default function App() {
             <NotificationProvider>
               <StatusBar style="light" />
               <RootNavigator />
+              <BookingAlertModal />
+              <NotificationTapHandler />
               <Toast />
             </NotificationProvider>
           </SalonProvider>
@@ -304,6 +428,29 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
+
+// ── Booking alert modal styles ─────────────────────────────────────────────────
+const alertStyles = StyleSheet.create({
+  overlay:      { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  sheet:        { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden', maxHeight: '80%' },
+  topBar:       { backgroundColor: '#dc2626', flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 20, paddingVertical: 14 },
+  topBarText:   { color: '#fff', fontSize: 16, fontWeight: '800', flex: 1 },
+  body:         { padding: 20 },
+  row:          { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  customerName: { fontSize: 18, fontWeight: '800', color: '#111827' },
+  phone:        { fontSize: 13, color: '#6b7280', marginTop: 2 },
+  infoGrid:     { backgroundColor: '#f9fafb', borderRadius: 12, padding: 14, marginBottom: 16, gap: 10 },
+  infoRow:      { flexDirection: 'row', alignItems: 'center' },
+  infoLabel:    { fontSize: 13, color: '#6b7280', width: 60 },
+  infoValue:    { fontSize: 13, fontWeight: '700', color: '#111827', flex: 1 },
+  warningText:  { fontSize: 13, color: '#b45309', backgroundColor: '#fef3c7', borderRadius: 8, padding: 12, textAlign: 'center' },
+  actions:      { flexDirection: 'row', gap: 12, padding: 16, borderTopWidth: 1, borderTopColor: '#f3f4f6' },
+  btn:          { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 14 },
+  btnDisabled:  { opacity: 0.6 },
+  btnText:      { color: '#fff', fontSize: 15, fontWeight: '800' },
+  rejectBtn:    { backgroundColor: '#dc2626' },
+  acceptBtn:    { backgroundColor: '#16a34a' },
+});
 
 const { height: SCREEN_H } = Dimensions.get('window');
 const rootStyles = StyleSheet.create({

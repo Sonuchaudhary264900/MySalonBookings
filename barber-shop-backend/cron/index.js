@@ -570,9 +570,10 @@ const send10MinReminders = cron.schedule('* * * * *', async () => {
         if (booking.customerId?.pushToken) {
           await sendExpoPush(
             booking.customerId.pushToken,
-            'Appointment in 10 minutes!',
+            '⏰ Appointment in 10 minutes!',
             `Your ${booking.serviceName} at ${booking.salonName} starts at ${booking.appointmentTime}. Please be on time.`,
-            { bookingId: booking._id.toString(), type: 'ten_min_reminder' }
+            { bookingId: booking._id.toString(), type: 'ten_min_reminder' },
+            { channelId: 'ten_min_reminder' }
           );
         }
 

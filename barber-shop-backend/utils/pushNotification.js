@@ -2,21 +2,29 @@ const https = require('https');
 
 /**
  * Send Expo push notification(s)
- * Silently ignores invalid or missing tokens.
+ * @param {string|string[]} tokens  - Expo push token(s)
+ * @param {string}          title
+ * @param {string}          body
+ * @param {object}          data       - custom data payload
+ * @param {object}          options    - { channelId, badge, sound }
  */
-async function sendExpoPush(tokens, title, body, data = {}) {
+async function sendExpoPush(tokens, title, body, data = {}, options = {}) {
   const tokenList = (Array.isArray(tokens) ? tokens : [tokens]).filter(
     (t) => t && typeof t === 'string' && t.startsWith('ExponentPushToken')
   );
   if (tokenList.length === 0) return;
+
+  const { channelId = 'default', badge, sound = 'default' } = options;
 
   const messages = tokenList.map((to) => ({
     to,
     title,
     body,
     data,
-    sound: 'default',
+    sound,
     priority: 'high',
+    channelId,           // Android notification channel
+    ...(badge != null ? { badge } : {}),
   }));
 
   const payload = JSON.stringify(messages);
