@@ -123,3 +123,39 @@ html.dark .card {
   background-color: #1e293b;
   border-color: #334155;
 }
+
+/* Skeleton dark mode */
+html.dark .skeleton {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+/* Section headings / muted text */
+html.dark .section-title { color: #f1f5f9; }
+html.dark .text-muted     { color: #64748b; }
+
+/* Button outline dark */
+html.dark .btn-outline {
+  border-color: #6366f1;
+  color: #818cf8;
+}
+html.dark .btn-outline:hover { background-color: #1e293b; }
+
+/* Indigo tinted backgrounds */
+html.dark .bg-indigo-50  { background-color: #1e1b4b; }
+html.dark .bg-indigo-100 { background-color: #1e1b4b; }
+
+/* Status badge backgrounds */
+html.dark .bg-amber-50   { background-color: #451a03; }
+html.dark .bg-green-50   { background-color: #052e16; }
+html.dark .bg-red-50     { background-color: #450a0a; }
+html.dark .bg-blue-50    { background-color: #172554; }
+html.dark .bg-violet-50  { background-color: #2e1065; }
+
+/* Navbar mobile menu dark */
+html.dark .md\:hidden.border-t { background-color: #0f172a; border-color: #1e293b; }
+
+/* Scrollbar dark */
+html.dark ::-webkit-scrollbar-track { background: #1e293b; }
+html.dark ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }

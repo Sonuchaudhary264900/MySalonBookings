@@ -10,20 +10,21 @@ import * as Location from 'expo-location';
 import api from '../../services/api';
 import { useNotifications } from '../../context/NotificationContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 
-const CATEGORIES = [
-  { key: 'all',        label: 'All',        icon: 'storefront-outline' },
-  { key: 'barber',     label: 'Barber',     icon: 'cut-outline' },
-  { key: 'hair_salon', label: 'Hair Salon', icon: 'color-wand-outline' },
-  { key: 'spa',        label: 'Spa',        icon: 'leaf-outline' },
-  { key: 'massage',    label: 'Massage',    icon: 'body-outline' },
-  { key: 'other',      label: 'Other',      icon: 'ellipsis-horizontal-outline' },
+const CATEGORY_KEYS = [
+  { key: 'all',        labelKey: 'catAll',       icon: 'storefront-outline' },
+  { key: 'barber',     labelKey: 'catBarber',    icon: 'cut-outline' },
+  { key: 'hair_salon', labelKey: 'catHairSalon', icon: 'color-wand-outline' },
+  { key: 'spa',        labelKey: 'catSpa',       icon: 'leaf-outline' },
+  { key: 'massage',    labelKey: 'catMassage',   icon: 'body-outline' },
+  { key: 'other',      labelKey: 'catOther',     icon: 'ellipsis-horizontal-outline' },
 ];
 
-const SORTS = [
-  { key: 'nearby',  label: 'Nearest',      icon: 'location-outline' },
-  { key: 'booked',  label: 'Most Booked',  icon: 'trending-up-outline' },
-  { key: 'rated',   label: 'Top Rated',    icon: 'star-outline' },
+const SORT_KEYS = [
+  { key: 'nearby',  labelKey: 'sortNearest',    icon: 'location-outline' },
+  { key: 'booked',  labelKey: 'sortMostBooked', icon: 'trending-up-outline' },
+  { key: 'rated',   labelKey: 'sortTopRated',   icon: 'star-outline' },
 ];
 
 function StarRating({ rating }) {
@@ -115,7 +116,8 @@ function haversineKm(lat1, lng1, lat2, lng2) {
 
 export default function HomeScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, isDark, toggleTheme } = useTheme();
+  const { t } = useLanguage();
   const styles = getStyles(theme);
   const { unreadCount } = useNotifications();
   const [salons, setSalons]           = useState([]);
@@ -231,12 +233,20 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.decorCircle1} />
         <View style={styles.decorCircle2} />
         <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.headerTitle}>My Salon Bookings</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.headerTitle}>{t('homeTitle')}</Text>
             <Text style={styles.headerSub}>
-              {locDenied ? 'Enable location for nearby salons' : 'Find salons near you'}
+              {locDenied ? t('homeSubLocDenied') : t('homeSubNearby')}
             </Text>
           </View>
+          {/* Theme toggle */}
+          <TouchableOpacity
+            style={styles.menuBtn}
+            onPress={toggleTheme}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={22} color="#fff" />
+          </TouchableOpacity>
           {/* Notification bell */}
           <TouchableOpacity
             style={styles.menuBtn}
@@ -266,7 +276,7 @@ export default function HomeScreen({ navigation }) {
           <Ionicons name="search-outline" size={18} color="#6b7280" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search salons, services..."
+            placeholder={t('searchPlaceholder')}
             placeholderTextColor="#9ca3af"
             value={searchText}
             onChangeText={handleSearch}
@@ -285,14 +295,14 @@ export default function HomeScreen({ navigation }) {
       <View style={styles.body}>
         {/* Category chips */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chips} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
-          {CATEGORIES.map((c) => (
+          {CATEGORY_KEYS.map((c) => (
             <TouchableOpacity
               key={c.key}
               style={[styles.chip, category === c.key && styles.chipActive]}
               onPress={() => handleCategory(c.key)}
             >
               <Ionicons name={c.icon} size={14} color={category === c.key ? '#fff' : '#4b5563'} />
-              <Text style={[styles.chipText, category === c.key && styles.chipTextActive]}>{c.label}</Text>
+              <Text style={[styles.chipText, category === c.key && styles.chipTextActive]}>{t(c.labelKey)}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -300,7 +310,7 @@ export default function HomeScreen({ navigation }) {
         {/* Sort bar */}
         {!searchText && (
           <View style={styles.sortRow}>
-            {SORTS.map((s) => (
+            {SORT_KEYS.map((s) => (
               <TouchableOpacity
                 key={s.key}
                 style={[styles.sortBtn, sort === s.key && styles.sortBtnActive]}
@@ -308,7 +318,7 @@ export default function HomeScreen({ navigation }) {
                 disabled={!userCoords}
               >
                 <Ionicons name={s.icon} size={13} color={sort === s.key ? '#2563eb' : '#6b7280'} />
-                <Text style={[styles.sortText, sort === s.key && styles.sortTextActive]}>{s.label}</Text>
+                <Text style={[styles.sortText, sort === s.key && styles.sortTextActive]}>{t(s.labelKey)}</Text>
               </TouchableOpacity>
             ))}
           </View>

@@ -4,6 +4,7 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import BottomNav from "./components/BottomNav";
 import { NotificationProvider } from "./context/NotificationContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import ToastContainer from "./components/ToastContainer";
 import useSwipeNav from "./hooks/useSwipeNav";
 
@@ -68,6 +69,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <ThemeProvider>
       <NotificationProvider>
         <ErrorBoundary>
           <SwipeHandler />
@@ -105,6 +107,7 @@ function App() {
           <BottomNav onNotifClick={() => setNotifOpen(true)} />
         </ErrorBoundary>
       </NotificationProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

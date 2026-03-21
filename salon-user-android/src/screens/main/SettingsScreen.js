@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
+import { useLanguage, LANGUAGE_OPTIONS } from '../../context/LanguageContext';
 import api from '../../services/api';
 import { showSuccess, showError } from '../../utils/toast';
 
@@ -22,7 +23,7 @@ const DEFAULT_NOTIF = {
   promotionalOffers: false,
 };
 
-const LANGUAGES = ['English', 'Hindi', 'Tamil', 'Telugu', 'Kannada', 'Bengali'];
+const LANGUAGES = LANGUAGE_OPTIONS.map(o => o.name);
 const TIME_FORMATS = ['12-hour', '24-hour'];
 const DATE_FORMATS = ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'];
 
@@ -70,13 +71,13 @@ function Divider() {
 export default function SettingsScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { isDark, theme, toggleTheme } = useTheme();
+  const { languageName, setLanguageByName, t } = useLanguage();
   const styles = getStyles(theme);
   const { user, logout } = useAuth();
   const { unreadCount } = useNotifications();
 
   const [notif, setNotif] = useState(DEFAULT_NOTIF);
   const [notifLoaded, setNotifLoaded] = useState(false);
-  const [language, setLanguage]     = useState('English');
   const [timeFormat, setTimeFormat] = useState('12-hour');
   const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
   const [deletingAccount, setDeletingAccount] = useState(false);
@@ -93,7 +94,6 @@ export default function SettingsScreen({ navigation }) {
       if (a) {
         try {
           const parsed = JSON.parse(a);
-          if (parsed.language)   setLanguage(parsed.language);
           if (parsed.timeFormat) setTimeFormat(parsed.timeFormat);
           if (parsed.dateFormat) setDateFormat(parsed.dateFormat);
         } catch {}
@@ -209,19 +209,19 @@ export default function SettingsScreen({ navigation }) {
         </TouchableOpacity>
 
         {/* APPEARANCE */}
-        <SectionHeader title="Appearance" />
+        <SectionHeader title={t('appearance')} />
         <Card>
           <SettingRow
             icon="moon-outline"
             iconColor="#6366f1"
-            label="Dark Mode"
-            sublabel={isDark ? 'Dark theme enabled' : 'Light theme enabled'}
+            label={t('darkMode')}
+            sublabel={isDark ? t('darkEnabled') : t('lightEnabled')}
             rightEl={<Switch value={isDark} onValueChange={toggleTheme} trackColor={{ false: '#d1d5db', true: '#818cf8' }} thumbColor={isDark ? '#6366f1' : '#fff'} />}
           />
         </Card>
 
         {/* NOTIFICATIONS */}
-        <SectionHeader title="Notifications" />
+        <SectionHeader title={t('notifications')} />
         <Card>
           {notifLoaded ? (
             <>
@@ -265,16 +265,15 @@ export default function SettingsScreen({ navigation }) {
         </Card>
 
         {/* APP PREFERENCES */}
-        <SectionHeader title="App Preferences" />
+        <SectionHeader title={t('appPreferences')} />
         <Card>
           <SettingRow
             icon="language-outline"
             iconColor="#2563eb"
-            label="Language"
-            rightEl={<Text style={styles.valueText}>{language}</Text>}
-            onPress={() => showPicker('Select Language', LANGUAGES, language, async val => {
-              setLanguage(val);
-              await saveAppPref('language', val);
+            label={t('language')}
+            rightEl={<Text style={styles.valueText}>{languageName}</Text>}
+            onPress={() => showPicker('Select Language', LANGUAGES, languageName, async val => {
+              await setLanguageByName(val);
             })}
             chevron
           />
@@ -282,7 +281,7 @@ export default function SettingsScreen({ navigation }) {
           <SettingRow
             icon="time-outline"
             iconColor="#0891b2"
-            label="Time Format"
+            label={t('timeFormat')}
             rightEl={<Text style={styles.valueText}>{timeFormat}</Text>}
             onPress={() => showPicker('Select Time Format', TIME_FORMATS, timeFormat, async val => {
               setTimeFormat(val);
@@ -294,7 +293,7 @@ export default function SettingsScreen({ navigation }) {
           <SettingRow
             icon="calendar-outline"
             iconColor="#059669"
-            label="Date Format"
+            label={t('dateFormat')}
             rightEl={<Text style={styles.valueText}>{dateFormat}</Text>}
             onPress={() => showPicker('Select Date Format', DATE_FORMATS, dateFormat, async val => {
               setDateFormat(val);
@@ -305,7 +304,7 @@ export default function SettingsScreen({ navigation }) {
         </Card>
 
         {/* PRIVACY & SECURITY */}
-        <SectionHeader title="Privacy & Security" />
+        <SectionHeader title={t('privacySecurity')} />
         <Card>
           <View style={styles.privacyInfo}>
             <Ionicons name="shield-checkmark-outline" size={22} color="#10b981" />

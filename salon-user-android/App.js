@@ -14,6 +14,7 @@ import Toast from 'react-native-toast-message';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { ThemeProvider } from './src/context/ThemeContext';
 import { NotificationProvider, useNotifications } from './src/context/NotificationContext';
+import { LanguageProvider, useLanguage } from './src/context/LanguageContext';
 
 import IntroScreen        from './src/screens/auth/IntroScreen';
 import LoginScreen        from './src/screens/auth/LoginScreen';
@@ -38,17 +39,18 @@ const Drawer    = createDrawerNavigator();
 
 // ── Nav items for drawer ─────────────────────────────────────────
 const NAV_ITEMS = [
-  { tab: 'HomeTab',          label: 'Home',           icon: 'home-outline',              iconFocused: 'home' },
-  { tab: 'BookingsTab',      label: 'Bookings',       icon: 'calendar-outline',          iconFocused: 'calendar' },
-  { tab: 'FavoritesTab',     label: 'Favorites',      icon: 'heart-outline',             iconFocused: 'heart' },
-  { tab: 'NotificationsNav', label: 'Notifications',  icon: 'notifications-outline',     iconFocused: 'notifications', isNotif: true },
-  { tab: 'SettingsTab',      label: 'Settings',       icon: 'settings-outline',          iconFocused: 'settings' },
+  { tab: 'HomeTab',          labelKey: 'navHome',          icon: 'home-outline',              iconFocused: 'home' },
+  { tab: 'BookingsTab',      labelKey: 'navBookings',      icon: 'calendar-outline',          iconFocused: 'calendar' },
+  { tab: 'FavoritesTab',     labelKey: 'navFavorites',     icon: 'heart-outline',             iconFocused: 'heart' },
+  { tab: 'NotificationsNav', labelKey: 'navNotifications', icon: 'notifications-outline',     iconFocused: 'notifications', isNotif: true },
+  { tab: 'SettingsTab',      labelKey: 'navSettings',      icon: 'settings-outline',          iconFocused: 'settings' },
 ];
 
 // ── Custom Drawer — dark sidebar matching owner app ──────────────
 function CustomDrawer({ navigation: drawerNav }) {
   const { user, logout } = useAuth();
   const { unreadCount } = useNotifications();
+  const { t } = useLanguage();
   const insets = useSafeAreaInsets();
 
   // Find which bottom-tab is currently active
@@ -121,7 +123,7 @@ function CustomDrawer({ navigation: drawerNav }) {
                   color={focused ? '#fff' : '#9ca3af'}
                 />
                 <Text style={[dStyles.navLabel, focused && dStyles.navLabelActive]}>
-                  {item.label}
+                  {t(item.labelKey)}
                 </Text>
                 {badge > 0 && (
                   <View style={dStyles.badge}>
@@ -140,7 +142,7 @@ function CustomDrawer({ navigation: drawerNav }) {
         <View style={dStyles.divider} />
         <TouchableOpacity style={dStyles.logoutBtn} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={18} color="#f87171" />
-          <Text style={dStyles.logoutText}>Logout</Text>
+          <Text style={dStyles.logoutText}>{t('logout')}</Text>
         </TouchableOpacity>
         <Text style={dStyles.version}>My Salon Bookings · User App v1.0</Text>
       </View>
@@ -189,6 +191,7 @@ function SettingsStackNav() {
 
 // ── Bottom Tab Navigator ─────────────────────────────────────────
 function MainTabs() {
+  const { t } = useLanguage();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -215,10 +218,10 @@ function MainTabs() {
         },
       })}
     >
-      <Tab.Screen name="HomeTab"      component={HomeStackNav}      options={{ tabBarLabel: 'Home' }} />
-      <Tab.Screen name="BookingsTab"  component={BookingsStackNav}  options={{ tabBarLabel: 'Bookings' }} />
-      <Tab.Screen name="FavoritesTab" component={FavoritesStackNav} options={{ tabBarLabel: 'Favorites' }} />
-      <Tab.Screen name="SettingsTab"  component={SettingsStackNav}  options={{ tabBarLabel: 'Settings' }} />
+      <Tab.Screen name="HomeTab"      component={HomeStackNav}      options={{ tabBarLabel: t('tabHome') }} />
+      <Tab.Screen name="BookingsTab"  component={BookingsStackNav}  options={{ tabBarLabel: t('tabBookings') }} />
+      <Tab.Screen name="FavoritesTab" component={FavoritesStackNav} options={{ tabBarLabel: t('tabFavorites') }} />
+      <Tab.Screen name="SettingsTab"  component={SettingsStackNav}  options={{ tabBarLabel: t('tabSettings') }} />
     </Tab.Navigator>
   );
 }
@@ -289,13 +292,15 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <AuthProvider>
-          <NotificationProvider>
-            <StatusBar style="light" />
-            <RootNavigator />
-            <Toast />
-          </NotificationProvider>
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <NotificationProvider>
+              <StatusBar style="light" />
+              <RootNavigator />
+              <Toast />
+            </NotificationProvider>
+          </AuthProvider>
+        </LanguageProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

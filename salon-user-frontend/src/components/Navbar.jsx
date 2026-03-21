@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useNotifications } from "../context/NotificationContext";
+import { useTheme } from "../context/ThemeContext";
 
 // ── Helpers ────────────────────────────────────────────────
 function relativeTime(iso) {
@@ -110,6 +111,7 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
   const [scrolled,   setScrolled]   = useState(false);
   const [menuOpen,   setMenuOpen]   = useState(false);
   const [_panelOpen, _setPanelOpen] = useState(false);
+  const { isDark, toggleTheme } = useTheme();
 
   // Allow external control (from BottomNav bell tap) or internal control
   const panelOpen    = externalNotifOpen ?? _panelOpen;
@@ -176,7 +178,7 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
           <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center shadow-sm">
             <span className="text-white text-base">✂</span>
           </div>
-          <span className="text-xl font-bold text-gradient">SmartSalon</span>
+          <span className="text-xl font-bold text-gradient">My Salon Bookings</span>
         </Link>
 
         {/* Desktop nav */}
@@ -189,6 +191,22 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
 
         {/* Desktop actions */}
         <div className="hidden md:flex items-center gap-3">
+          {/* Theme toggle */}
+          <button
+            onClick={toggleTheme}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 hover:text-indigo-600 transition"
+            title={isDark ? "Switch to Light" : "Switch to Dark"}
+          >
+            {isDark ? (
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" />
+              </svg>
+            )}
+          </button>
           {!token ? (
             <>
               <Link to="/login" className="btn-outline text-sm py-2 px-4">Sign In</Link>
@@ -249,6 +267,12 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
       {/* Mobile menu */}
       {menuOpen && (
         <div className="md:hidden border-t border-slate-100 bg-white px-4 py-4 flex flex-col gap-4 fade-in">
+          <button
+            onClick={toggleTheme}
+            className="flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-indigo-600"
+          >
+            {isDark ? "☀️ Light Mode" : "🌙 Dark Mode"}
+          </button>
           <Link to="/" className="text-sm font-medium text-slate-700 hover:text-indigo-600">Home</Link>
           {token && <Link to="/dashboard" className="text-sm font-medium text-slate-700 hover:text-indigo-600">My Bookings</Link>}
           {token && <Link to="/favorites" className="text-sm font-medium text-slate-700 hover:text-indigo-600">Favorites</Link>}
