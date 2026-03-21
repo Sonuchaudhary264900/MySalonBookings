@@ -26,8 +26,7 @@ async function setupNotificationChannels() {
     lightColor: '#2563eb',
     enableVibrate: true,
     showBadge: true,
-    sound: 'default',
-    // ↓ swap 'default' with 'new_booking' once you add assets/sounds/new_booking.wav
+    sound: 'new_booking.wav',
   });
 
   // Standard channel for other owner notifications

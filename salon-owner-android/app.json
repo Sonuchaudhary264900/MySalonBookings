@@ -34,7 +34,7 @@
         {
           "icon": "./assets/Icon-1024.png",
           "color": "#2563eb",
-          "sounds": []
+          "sounds": ["./assets/sounds/new_booking.wav"]
         }
       ],
       [

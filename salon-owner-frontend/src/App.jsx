@@ -1,13 +1,14 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { SalonProvider } from './context/SalonContext';
-import { NotificationProvider } from './context/NotificationContext';
+import { NotificationProvider, useNotifications } from './context/NotificationContext';
 import { LanguageProvider } from './context/LanguageContext';
 import ROUTES from './routes';
 import ProtectedRoute from './routes/ProtectedRoute';
 import PublicRoute from './routes/PublicRoute';
+import api from './services/api';
 
 // ── Eagerly loaded (critical path — shown immediately) ─────────
 import Login from './pages/auth/Login';
@@ -24,6 +25,10 @@ const Reviews          = lazy(() => import('./pages/dashboard/Reviews'));
 const Profile          = lazy(() => import('./pages/dashboard/Profile'));
 const Settings         = lazy(() => import('./pages/dashboard/Settings'));
 const Notifications    = lazy(() => import('./pages/dashboard/Notifications'));
+const Gallery          = lazy(() => import('./pages/dashboard/Gallery'));
+const CalendarPage     = lazy(() => import('./pages/dashboard/CalendarPage'));
+const Customers        = lazy(() => import('./pages/dashboard/Customers'));
+const Coupons          = lazy(() => import('./pages/dashboard/Coupons'));
 
 // ── Page loading fallback ──────────────────────────────────────
 function PageLoader() {
@@ -64,6 +69,74 @@ class ErrorBoundary extends React.Component {
     }
     return this.props.children;
   }
+}
+
+// ── Pending booking alert modal (mandatory accept/reject) ──────
+function BookingAlertModal() {
+  const { pendingBooking, clearPendingBooking } = useNotifications();
+  const [saving, setSaving] = useState(false);
+
+  if (!pendingBooking) return null;
+  const b = pendingBooking;
+
+  const act = async (status) => {
+    setSaving(true);
+    try {
+      await api.put(`/owner/bookings/${b._id}`, { status });
+    } catch { /* silent */ } finally {
+      setSaving(false);
+      clearPendingBooking();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-black/60">
+      <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+        {/* Red top bar */}
+        <div className="bg-red-600 px-5 py-4">
+          <p className="text-white font-bold text-base">New Booking Request</p>
+          <p className="text-red-200 text-xs mt-0.5">Action required — accept or reject</p>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {/* Info grid */}
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { label: 'Customer', value: b.customerName || '—' },
+              { label: 'Service',  value: b.serviceName  || '—' },
+              { label: 'Date',     value: b.appointmentDate ? new Date(b.appointmentDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—' },
+              { label: 'Time',     value: b.appointmentTime || '—' },
+              { label: 'Amount',   value: b.totalAmount ? `₹${b.totalAmount}` : '—' },
+              { label: 'Phone',    value: b.customerPhone || '—' },
+            ].map(item => (
+              <div key={item.label} className="bg-gray-50 rounded-xl p-3">
+                <p className="text-xs text-gray-500 mb-0.5">{item.label}</p>
+                <p className="text-sm font-semibold text-gray-900 truncate">{item.value}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-1">
+            <button
+              onClick={() => act('cancelled')}
+              disabled={saving}
+              className="flex-1 py-3 rounded-xl border-2 border-red-200 text-red-600 font-bold text-sm hover:bg-red-50 transition disabled:opacity-50"
+            >
+              Reject
+            </button>
+            <button
+              onClick={() => act('confirmed')}
+              disabled={saving}
+              className="flex-1 py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold text-sm transition disabled:opacity-50"
+            >
+              {saving ? 'Saving…' : 'Accept'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ── Landing page ───────────────────────────────────────────────
@@ -185,6 +258,7 @@ function App() {
           <SalonProvider>
             <NotificationProvider>
               <Toaster position="top-right" />
+              <BookingAlertModal />
               <Suspense fallback={<PageLoader />}>
                 <Routes>
                   {/* Public routes */}
@@ -208,6 +282,10 @@ function App() {
                     <Route path={ROUTES.PROFILE}       element={<Profile />} />
                     <Route path={ROUTES.SETTINGS}      element={<Settings />} />
                     <Route path={ROUTES.NOTIFICATIONS} element={<Notifications />} />
+                    <Route path={ROUTES.GALLERY}       element={<Gallery />} />
+                    <Route path={ROUTES.CALENDAR}      element={<CalendarPage />} />
+                    <Route path={ROUTES.CUSTOMERS}     element={<Customers />} />
+                    <Route path={ROUTES.COUPONS}       element={<Coupons />} />
                   </Route>
 
                   {/* 404 */}

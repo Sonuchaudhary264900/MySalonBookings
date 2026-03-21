@@ -23,6 +23,10 @@ const ROUTES = {
   PROFILE: '/dashboard/profile',
   SETTINGS: '/dashboard/settings',
   NOTIFICATIONS: '/dashboard/notifications',
+  GALLERY:       '/dashboard/gallery',
+  CALENDAR:      '/dashboard/calendar',
+  CUSTOMERS:     '/dashboard/customers',
+  COUPONS:       '/dashboard/coupons',
 };
 
 export default ROUTES;

@@ -1,9 +1,11 @@
-import { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
+import API from "../services/api";
 
 const NotificationContext = createContext(null);
 
 const STORAGE_KEY = "salon_notifications";
 const MAX_STORED  = 50;
+const POLL_INTERVAL = 30000;
 
 function loadStored() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); }
@@ -13,6 +15,7 @@ function loadStored() {
 export function NotificationProvider({ children }) {
   const [toasts,        setToasts]        = useState([]);
   const [notifications, setNotifications] = useState(loadStored);
+  const seenStatusRef = useRef(null); // map of bookingId → last seen status
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
@@ -54,6 +57,66 @@ export function NotificationProvider({ children }) {
   const clearAll = useCallback(() => setNotifications([]), []);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
+
+  // ── Poll customer bookings every 30s — detect status changes ──
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const poll = async () => {
+      try {
+        const res = await API.get('/customer/bookings');
+        const data = res.data.data;
+        const bookings = Array.isArray(data) ? data : (data?.bookings || []);
+
+        if (seenStatusRef.current === null) {
+          // First run — snapshot, no notifications
+          seenStatusRef.current = {};
+          bookings.forEach((b) => { if (b._id) seenStatusRef.current[b._id] = b.status; });
+          return;
+        }
+
+        bookings.forEach((b) => {
+          if (!b._id) return;
+          const prevStatus = seenStatusRef.current[b._id];
+          const currStatus = b.status;
+          const salonName  = b.salonId?.name || b.salonName || 'the salon';
+          const service    = Array.isArray(b.serviceIds)
+            ? (b.serviceIds[0]?.name || 'your service')
+            : (b.serviceName || 'your service');
+
+          if (prevStatus !== currStatus) {
+            seenStatusRef.current[b._id] = currStatus;
+
+            if (currStatus === 'confirmed' && prevStatus === 'pending') {
+              addNotification({ type: 'success', title: 'Booking Confirmed!', message: `${service} at ${salonName} is confirmed.` });
+            } else if (currStatus === 'cancelled') {
+              addNotification({ type: 'warning', title: 'Booking Cancelled', message: `Your booking at ${salonName} was cancelled.` });
+            } else if (currStatus === 'completed') {
+              addNotification({ type: 'info', title: 'Visit Completed', message: `Rate your experience at ${salonName}!` });
+            } else if (currStatus === 'in_progress') {
+              addNotification({ type: 'booking', title: 'Appointment Started', message: `${service} at ${salonName} is in progress.` });
+            }
+          }
+
+          // New booking not yet tracked
+          if (prevStatus === undefined) {
+            seenStatusRef.current[b._id] = currStatus;
+            if (currStatus === 'confirmed') {
+              addNotification({ type: 'success', title: 'New Booking Confirmed!', message: `${service} at ${salonName}.` });
+            } else if (currStatus === 'pending') {
+              addNotification({ type: 'booking', title: 'Booking Request Sent', message: `Waiting for confirmation from ${salonName}.` });
+            }
+          }
+        });
+      } catch { /* silent */ }
+    };
+
+    seenStatusRef.current = null;
+    poll();
+    const interval = setInterval(poll, POLL_INTERVAL);
+    return () => clearInterval(interval);
+  }, [addNotification]);
 
   return (
     <NotificationContext.Provider value={{
