@@ -115,6 +115,7 @@ function Profile() {
   const [success, setSuccess]     = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [aboutOpen, setAboutOpen]     = useState(false);
 
   const [form, setForm] = useState({ name: "", email: "" });
   const [pw, setPw]     = useState({ otp: "", next: "", confirm: "" });
@@ -426,6 +427,37 @@ function Profile() {
                       { label: "Account ID",   value: user?._id ? String(user._id).slice(-8).toUpperCase() : "—" },
                       { label: "Member Since", value: memberSince },
                       { label: "Account Type", value: "Customer" },
+                    ].map(({ label, value }) => (
+                      <div key={label} className="flex justify-between py-2.5 border-b border-slate-50 last:border-0">
+                        <span className="text-slate-500">{label}</span>
+                        <span className="font-medium text-slate-700">{value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ── About ── */}
+            <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+              <button type="button" onClick={() => setAboutOpen((o) => !o)}
+                className="w-full flex items-center justify-between px-6 py-4 hover:bg-slate-50 transition text-left">
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">ℹ️</span>
+                  <div>
+                    <p className="font-bold text-slate-900 text-sm">About</p>
+                    <p className="text-xs text-slate-400 mt-0.5">App info and support</p>
+                  </div>
+                </div>
+                <span className={`text-slate-400 text-lg transition-transform duration-200 ${aboutOpen ? 'rotate-180' : ''}`}>›</span>
+              </button>
+              {aboutOpen && (
+                <div className="px-6 pb-5 pt-2 border-t border-slate-100 fade-in">
+                  <div className="space-y-1 text-sm mt-2">
+                    {[
+                      { label: "App Name", value: "Salon Bookings" },
+                      { label: "Version",  value: "1.0.0" },
+                      { label: "Website",  value: "mysalonbookings.com" },
                     ].map(({ label, value }) => (
                       <div key={label} className="flex justify-between py-2.5 border-b border-slate-50 last:border-0">
                         <span className="text-slate-500">{label}</span>

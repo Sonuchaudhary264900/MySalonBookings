@@ -439,6 +439,12 @@ export default function SettingsScreen({ navigation }) {
             label="App Version"
             rightEl={<Text style={styles.valueText}>v1.0.0</Text>}
           />
+          <SettingRow
+            icon="globe-outline"
+            iconColor="#2563eb"
+            label="Website"
+            rightEl={<Text style={styles.valueText}>mysalonbookings.com</Text>}
+          />
         </Card>
 
         <View style={{ height: 32 }} />
