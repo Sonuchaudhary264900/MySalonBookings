@@ -15,7 +15,7 @@ import Toast from 'react-native-toast-message';
 const navigationRef = createNavigationContainerRef();
 
 import { AuthProvider, useAuth } from './src/context/AuthContext';
-import { ThemeProvider } from './src/context/ThemeContext';
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { NotificationProvider, useNotifications } from './src/context/NotificationContext';
 import { LanguageProvider, useLanguage } from './src/context/LanguageContext';
 
