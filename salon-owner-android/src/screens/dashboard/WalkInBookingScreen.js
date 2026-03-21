@@ -52,6 +52,17 @@ export default function WalkInBookingScreen() {
 
   useEffect(() => { fetchServices(); }, [fetchServices]);
 
+  const changeDate = (days) => {
+    const d = new Date(selectedDate + 'T12:00:00');
+    d.setDate(d.getDate() + days);
+    setSelectedDate(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+  };
+
+  const formatDisplayDate = (dateStr) => {
+    const d = new Date(dateStr + 'T12:00:00');
+    return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
+  };
+
   const handleBook = async () => {
     if (!customerName.trim()) { showError('Required', 'Please enter customer name'); return; }
     if (!selectedService) { showError('Required', 'Please select a service'); return; }
@@ -59,7 +70,7 @@ export default function WalkInBookingScreen() {
 
     setSaving(true);
     try {
-      await api.post('/owner/bookings/walk-in', {
+      await api.post('/owner/bookings', {
         customerName: customerName.trim(),
         customerPhone: customerPhone.trim(),
         serviceId: selectedService._id,
@@ -160,13 +171,15 @@ export default function WalkInBookingScreen() {
           {/* Date */}
           <View style={[styles.section, { backgroundColor: theme.card }]}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Date</Text>
-            <TextInput
-              style={[styles.input, { borderColor: theme.border || '#e5e7eb', color: theme.text, backgroundColor: theme.bg }]}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={theme.subText}
-              value={selectedDate}
-              onChangeText={setSelectedDate}
-            />
+            <View style={styles.datePicker}>
+              <TouchableOpacity style={styles.dateArrow} onPress={() => changeDate(-1)}>
+                <Ionicons name="chevron-back" size={22} color="#2563eb" />
+              </TouchableOpacity>
+              <Text style={[styles.dateText, { color: theme.text }]}>{formatDisplayDate(selectedDate)}</Text>
+              <TouchableOpacity style={styles.dateArrow} onPress={() => changeDate(1)}>
+                <Ionicons name="chevron-forward" size={22} color="#2563eb" />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Time Slot */}
@@ -226,6 +239,9 @@ const styles = StyleSheet.create({
   section: { borderRadius: 12, padding: 14, marginBottom: 10, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4 },
   sectionTitle: { fontSize: 14, fontWeight: '700', marginBottom: 10 },
   input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 11, fontSize: 14 },
+  datePicker: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, paddingVertical: 6, paddingHorizontal: 4 },
+  dateArrow: { padding: 8 },
+  dateText: { flex: 1, textAlign: 'center', fontSize: 14, fontWeight: '600' },
   notesInput: { minHeight: 80 },
   serviceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   serviceChip: { borderWidth: 1, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12, alignItems: 'center' },
