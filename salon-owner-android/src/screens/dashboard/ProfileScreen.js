@@ -3,7 +3,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert, Image, Modal,
+  TextInput, ActivityIndicator, Alert, Image, Modal, Share,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -510,20 +510,27 @@ img.src=${qrApiUrl};
               <Text style={styles.qrSalonName}>{salon?.name}</Text>
             </View>
             <Text style={styles.qrHint}>Print or display this QR code at your salon</Text>
-            <View style={{ flexDirection: 'row', gap: 10, marginTop: 14, width: '100%' }}>
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 14, width: '100%' }}>
               <TouchableOpacity
-                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, backgroundColor: '#2563eb', borderRadius: 12 }}
+                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 11, backgroundColor: '#2563eb', borderRadius: 12 }}
                 onPress={() => { setShowQR(false); setCapturing(true); }}
               >
-                <Ionicons name="image-outline" size={18} color="#fff" />
-                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Save Image</Text>
+                <Ionicons name="image-outline" size={15} color="#fff" />
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 11 }}>Save Image</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, backgroundColor: '#4f46e5', borderRadius: 12 }}
+                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 11, backgroundColor: '#4f46e5', borderRadius: 12 }}
                 onPress={downloadQRPDF}
               >
-                <Ionicons name="document-outline" size={18} color="#fff" />
-                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Download PDF</Text>
+                <Ionicons name="document-outline" size={15} color="#fff" />
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 11 }}>Download PDF</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 11, backgroundColor: '#059669', borderRadius: 12 }}
+                onPress={() => Share.share({ message: `Book at ${salon?.name || 'My Salon'}: ${qrValue}` })}
+              >
+                <Ionicons name="share-outline" size={15} color="#fff" />
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 11 }}>Share Link</Text>
               </TouchableOpacity>
             </View>
           </View>

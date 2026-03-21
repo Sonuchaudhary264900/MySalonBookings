@@ -678,29 +678,29 @@ img.src=${qrApiUrl};
           </View>
           <Text style={qrStyles.salonName}>{salon?.name || 'My Salon'}</Text>
           <Text style={qrStyles.hint}>Share this QR so customers can book directly</Text>
-          <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
+          <View style={{ flexDirection: 'row', gap: 8, width: '100%' }}>
             <TouchableOpacity
               style={[qrStyles.actionBtn, { backgroundColor: '#2563eb', flex: 1 }]}
               onPress={() => { setShowQR(false); setCapturing(true); }}
             >
-              <Ionicons name="image-outline" size={18} color="#fff" />
-              <Text style={qrStyles.actionBtnText}>Save Image</Text>
+              <Ionicons name="image-outline" size={15} color="#fff" />
+              <Text style={qrStyles.actionBtnTextSm}>Save Image</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[qrStyles.actionBtn, { backgroundColor: '#4f46e5', flex: 1 }]}
               onPress={downloadQRPDF}
             >
-              <Ionicons name="document-outline" size={18} color="#fff" />
-              <Text style={qrStyles.actionBtnText}>Download PDF</Text>
+              <Ionicons name="document-outline" size={15} color="#fff" />
+              <Text style={qrStyles.actionBtnTextSm}>Download PDF</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[qrStyles.actionBtn, { backgroundColor: '#059669', flex: 1 }]}
+              onPress={() => Share.share({ message: `Book at ${salon?.name || 'My Salon'}: https://mysalonbookings.com/salon/${salon?._id}` })}
+            >
+              <Ionicons name="share-outline" size={15} color="#fff" />
+              <Text style={qrStyles.actionBtnTextSm}>Share Link</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            style={[qrStyles.actionBtn, { backgroundColor: '#059669', width: '100%' }]}
-            onPress={() => Share.share({ message: `Book at ${salon?.name || 'My Salon'}: https://mysalonbookings.com/salon/${salon?._id}` })}
-          >
-            <Ionicons name="share-outline" size={18} color="#fff" />
-            <Text style={qrStyles.actionBtnText}>Share Link</Text>
-          </TouchableOpacity>
         </Pressable>
       </Pressable>
     </Modal>
@@ -729,6 +729,7 @@ const qrStyles = StyleSheet.create({
   hint:       { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 4, marginBottom: 16 },
   actionBtn:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 12 },
   actionBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  actionBtnTextSm: { color: '#fff', fontWeight: '700', fontSize: 11 },
 });
 
 const styles = StyleSheet.create({
