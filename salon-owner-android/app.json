@@ -23,7 +23,10 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png",
         "backgroundColor": "#4f46e5"
-      }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -34,7 +37,9 @@
         {
           "icon": "./assets/Icon-1024.png",
           "color": "#2563eb",
-          "sounds": ["./assets/sounds/new_booking.wav"]
+          "sounds": [
+            "./assets/sounds/new_booking.wav"
+          ]
         }
       ],
       [
@@ -52,6 +57,7 @@
         "projectId": "5e4c49cf-c136-42ec-bc53-389502b5a417"
       }
     },
-    "newArchEnabled": false
+    "newArchEnabled": false,
+    "owner": "sonuchaudhary264900"
   }
 }
