@@ -1,6 +1,18 @@
 import React, { createContext, useState, useCallback, useEffect, useContext, useRef } from 'react';
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
+import { Platform } from 'react-native';
 import api from '../services/api';
 import { useAuth } from './AuthContext';
+
+// Show notifications when app is in foreground
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
 export const NotificationContext = createContext();
 
@@ -9,6 +21,26 @@ const localDate = (offset = 0) => {
   d.setDate(d.getDate() + offset);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
+
+async function registerPushToken() {
+  if (!Device.isDevice) return null;
+  const { status: existing } = await Notifications.getPermissionsAsync();
+  let finalStatus = existing;
+  if (existing !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+  if (finalStatus !== 'granted') return null;
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'default',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+    });
+  }
+  const tokenData = await Notifications.getExpoPushTokenAsync();
+  return tokenData.data;
+}
 
 export const NotificationProvider = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -45,6 +77,14 @@ export const NotificationProvider = ({ children }) => {
   const clearAll = useCallback(() => setNotifications([]), []);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
+
+  // Register push token once when authenticated
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    registerPushToken().then((token) => {
+      if (token) api.post('/owner/push-token', { token }).catch(() => {});
+    });
+  }, [isAuthenticated]);
 
   // Poll today's + tomorrow's bookings every 30s — detect genuinely new bookings
   useEffect(() => {

@@ -246,6 +246,10 @@ const ownerSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    pushToken: {
+      type: String,
+      default: null,
+    },
     refreshTokens: [
       {
         token: String,

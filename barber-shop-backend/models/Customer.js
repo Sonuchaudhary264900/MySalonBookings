@@ -204,6 +204,11 @@ const customerSchema = new mongoose.Schema(
       default: null,
     },
 
+    pushToken: {
+      type: String,
+      default: null,
+    },
+
     // ==========================================
     // AUTHENTICATION TOKENS
     // ==========================================

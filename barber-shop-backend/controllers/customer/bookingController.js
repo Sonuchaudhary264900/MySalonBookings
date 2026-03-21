@@ -212,6 +212,33 @@ const createBooking = async (req, res) => {
 
     await addToQueue(salonId, booking);
 
+    // Fire-and-forget push notifications — never block the response
+    (async () => {
+      try {
+        const { sendExpoPush } = require('../../utils/pushNotification');
+        const Owner = require('../../models/Owner');
+        const owner = await Owner.findById(salon.ownerId).select('pushToken').lean();
+
+        if (customer.pushToken) {
+          sendExpoPush(
+            customer.pushToken,
+            'Booking Confirmed!',
+            `Your ${combinedName} at ${salon.name} is booked for ${appointmentDate} at ${appointmentTime}`,
+            { bookingId: booking._id.toString(), type: 'booking_confirmed' }
+          ).catch(() => {});
+        }
+
+        if (owner?.pushToken) {
+          sendExpoPush(
+            owner.pushToken,
+            'New Booking!',
+            `${customer.name} booked ${combinedName} on ${appointmentDate} at ${appointmentTime}`,
+            { bookingId: booking._id.toString(), type: 'new_booking' }
+          ).catch(() => {});
+        }
+      } catch {}
+    })();
+
 
 
     res.status(201).json(

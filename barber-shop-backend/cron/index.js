@@ -538,6 +538,57 @@ const generateWeeklyReport = cron.schedule('0 6 * * 1', async () => {
 
 /*
 ====================================================
+10-MINUTE APPOINTMENT REMINDER
+Runs every minute — sends push to customer 10 min before slot
+====================================================
+*/
+
+const send10MinReminders = cron.schedule('* * * * *', async () => {
+  try {
+    const { sendExpoPush } = require('../utils/pushNotification');
+
+    // Current IST time
+    const nowIST = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+    const todayIST = nowIST.toISOString().slice(0, 10);
+    const nowMins = nowIST.getUTCHours() * 60 + nowIST.getUTCMinutes();
+    const targetMins = nowMins + 10;
+
+    const bookings = await Booking.find({
+      status: { $in: ['pending', 'confirmed'] },
+      tenMinReminderSent: { $ne: true },
+    }).populate('customerId', 'pushToken name').lean();
+
+    for (const booking of bookings) {
+      try {
+        const bookingDate = booking.appointmentDate?.toISOString().slice(0, 10);
+        if (bookingDate !== todayIST || !booking.appointmentTime) continue;
+
+        const [h, m] = booking.appointmentTime.split(':');
+        const slotMins = parseInt(h, 10) * 60 + parseInt(m, 10);
+        if (slotMins !== targetMins) continue;
+
+        if (booking.customerId?.pushToken) {
+          await sendExpoPush(
+            booking.customerId.pushToken,
+            'Appointment in 10 minutes!',
+            `Your ${booking.serviceName} at ${booking.salonName} starts at ${booking.appointmentTime}. Please be on time.`,
+            { bookingId: booking._id.toString(), type: 'ten_min_reminder' }
+          );
+        }
+
+        await Booking.updateOne({ _id: booking._id }, { $set: { tenMinReminderSent: true } });
+      } catch (err) {
+        console.error('10-min reminder single error:', err.message);
+      }
+    }
+  } catch (error) {
+    console.error('10-min reminder system error:', error);
+  }
+});
+
+
+/*
+====================================================
 EXPORT
 ====================================================
 */
@@ -548,6 +599,7 @@ module.exports = {
   cleanupExpiredOTPs,
   send24HourReminders,
   send1HourReminders,
+  send10MinReminders,
   autoApproveSalons,
   cancelNoShowBookings,
   autoCompleteBookings,
@@ -559,6 +611,7 @@ module.exports = {
     cleanupExpiredOTPs.stop();
     send24HourReminders.stop();
     send1HourReminders.stop();
+    send10MinReminders.stop();
     autoApproveSalons.stop();
     cancelNoShowBookings.stop();
     autoCompleteBookings.stop();

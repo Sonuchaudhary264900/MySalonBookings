@@ -764,6 +764,19 @@ router.post("/owner/bookings", authenticateOwner, asyncHandler(async (req, res) 
     confirmedAt:      new Date(),
   });
 
+  // Fire-and-forget push to owner
+  try {
+    const { sendExpoPush } = require("../utils/pushNotification");
+    const Owner = require("../models/Owner");
+    const owner = await Owner.findById(salon.ownerId).select("pushToken").lean();
+    if (owner?.pushToken) {
+      sendExpoPush(owner.pushToken, "Walk-in Booking Added",
+        `${customerName} — ${service.name} at ${appointmentTime}`,
+        { type: "walk_in_booking" }
+      ).catch(() => {});
+    }
+  } catch {}
+
   res.status(201).json({ success: true, data: booking });
 }));
 
@@ -1038,6 +1051,27 @@ router.get("/public/services/search", asyncHandler(async (req, res) => {
   }));
 
   res.json({ success: true, data: { salons: salonsWithMatch, matchedService: q } });
+}));
+
+/* =====================================================
+   PUSH TOKEN ROUTES
+===================================================== */
+
+// POST /owner/push-token — save/update owner's Expo push token
+router.post("/owner/push-token", authenticateOwner, asyncHandler(async (req, res) => {
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ success: false, message: "token is required" });
+  const Owner = require("../models/Owner");
+  await Owner.findByIdAndUpdate(req.owner._id, { pushToken: token });
+  res.json({ success: true });
+}));
+
+// POST /customer/push-token — save/update customer's Expo push token
+router.post("/customer/push-token", authenticateCustomer, asyncHandler(async (req, res) => {
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ success: false, message: "token is required" });
+  await Customer.findByIdAndUpdate(req.customer._id, { pushToken: token });
+  res.json({ success: true });
 }));
 
 /* =====================================================

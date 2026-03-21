@@ -30,6 +30,14 @@
     },
     "plugins": [
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/Icon-1024.png",
+          "color": "#2563eb",
+          "sounds": []
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "Allow My Salon Bookings to access your photos to update your profile picture.",
