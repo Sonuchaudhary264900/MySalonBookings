@@ -6,9 +6,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
+import * as MediaLibrary from 'expo-media-library';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../services/api';
 import DrawerMenuButton from '../../components/DrawerMenuButton';
 import { useTheme } from '../../context/ThemeContext';
@@ -264,28 +264,26 @@ export default function ReportsScreen() {
     </body></html>`;
 
     const savePDFToDownloads = async (tempUri, fileName) => {
-      const DOWNLOADS_INITIAL = 'content://com.android.externalstorage.documents/tree/primary%3ADownload';
-      const DIR_KEY = '@pdf_download_dir';
-      let dirUri = await AsyncStorage.getItem(DIR_KEY);
-      if (!dirUri) {
-        const perms = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync(DOWNLOADS_INITIAL);
-        if (!perms.granted) {
-          if (await Sharing.isAvailableAsync()) {
-            await Sharing.shareAsync(tempUri, { mimeType: 'application/pdf', dialogTitle: 'Save PDF' });
-          }
+      // Try 1: copy directly to /storage/emulated/0/Download/ (works on Android ≤ 10)
+      try {
+        const { status } = await MediaLibrary.requestPermissionsAsync();
+        if (status === 'granted') {
+          await FileSystem.copyAsync({ from: tempUri, to: `file:///storage/emulated/0/Download/${fileName}` });
+          Alert.alert('PDF Saved!', `"${fileName}" saved to Downloads`);
           return;
         }
-        dirUri = perms.directoryUri;
-        await AsyncStorage.setItem(DIR_KEY, dirUri);
-      }
+      } catch { /* fall through */ }
+
+      // Try 2: MediaStore via expo-media-library (works on Android 11+ without any picker)
       try {
-        const base64 = await FileSystem.readAsStringAsync(tempUri, { encoding: FileSystem.EncodingType.Base64 });
-        const destUri = await FileSystem.StorageAccessFramework.createFileAsync(dirUri, fileName, 'application/pdf');
-        await FileSystem.writeAsStringAsync(destUri, base64, { encoding: FileSystem.EncodingType.Base64 });
-        Alert.alert('PDF Saved!', `"${fileName}" saved to Downloads`);
-      } catch {
-        await AsyncStorage.removeItem(DIR_KEY);
-        Alert.alert('Try Again', 'Tap Download PDF again to re-select Downloads folder');
+        await MediaLibrary.createAssetAsync(tempUri);
+        Alert.alert('PDF Saved!', `"${fileName}" saved to device storage`);
+        return;
+      } catch { /* fall through */ }
+
+      // Fallback: open share sheet so user can save manually
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(tempUri, { mimeType: 'application/pdf', dialogTitle: 'Save PDF' });
       }
     };
 
