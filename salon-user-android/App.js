@@ -7,7 +7,7 @@ import * as Notifications from 'expo-notifications';
 
 const navigationRef = createNavigationContainerRef();
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { createDrawerNavigator, DrawerContentScrollView } from '@react-navigation/drawer';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -33,7 +33,7 @@ import NotificationsScreen  from './src/screens/main/NotificationsScreen';
 
 const RootStack = createNativeStackNavigator();
 const AuthStack = createNativeStackNavigator();
-const Tab       = createBottomTabNavigator();
+const Tab       = createMaterialTopTabNavigator();
 const HomeStack = createNativeStackNavigator();
 const BookStack = createNativeStackNavigator();
 const FavStack  = createNativeStackNavigator();
@@ -192,13 +192,15 @@ function SettingsStackNav() {
   );
 }
 
-// ── Bottom Tab Navigator ─────────────────────────────────────────
+// ── Tab Navigator with swipe support ─────────────────────────────
 function MainTabs() {
   const { t } = useLanguage();
   return (
     <Tab.Navigator
+      tabBarPosition="bottom"
       screenOptions={({ route }) => ({
         headerShown: false,
+        swipeEnabled: true,
         tabBarActiveTintColor: '#2563eb',
         tabBarInactiveTintColor: '#9ca3af',
         tabBarStyle: {
@@ -206,10 +208,11 @@ function MainTabs() {
           borderTopWidth: 1,
           borderTopColor: '#e5e7eb',
           height: 62,
-          paddingBottom: 8,
-          paddingTop: 6,
+          elevation: 8,
+          shadowOpacity: 0.08,
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: 2 },
+        tabBarIndicatorStyle: { height: 0 }, // hide top indicator line
         tabBarIcon: ({ focused, color }) => {
           const icons = {
             HomeTab:      focused ? 'home'      : 'home-outline',
@@ -219,6 +222,8 @@ function MainTabs() {
           };
           return <Ionicons name={icons[route.name]} size={22} color={color} />;
         },
+        tabBarShowIcon: true,
+        tabBarItemStyle: { paddingTop: 6, paddingBottom: 6 },
       })}
     >
       <Tab.Screen name="HomeTab"      component={HomeStackNav}      options={{ tabBarLabel: t('tabHome') }} />

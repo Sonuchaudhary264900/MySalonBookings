@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, TextInput, Modal,
+  ActivityIndicator, TextInput, Modal, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -57,6 +57,7 @@ export default function BookingScreen({ route, navigation }) {
   const [bookingMode, setBookingMode] = useState('flexible');
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [loading, setLoading]       = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
   const [couponInput, setCouponInput] = useState('');
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [couponError, setCouponError] = useState('');
@@ -76,8 +77,8 @@ export default function BookingScreen({ route, navigation }) {
   const dateDays = Array.from({ length: Math.max(advanceDays + 1, 8) }, (_, i) => localDate(i));
 
   useEffect(() => {
-    if (!serviceIds.length) return;
     const load = async () => {
+      setDataLoading(true);
       try {
         const [salonRes, svcRes, barberRes] = await Promise.all([
           api.get(`/public/salons/${salonId}`),
@@ -86,11 +87,13 @@ export default function BookingScreen({ route, navigation }) {
         ]);
         setSalon(salonRes.data.data || salonRes.data.salon);
         const all = svcRes.data.data?.services || svcRes.data.data || [];
-        setServices(all.filter(s => serviceIds.includes(s._id)));
+        setServices(serviceIds.length ? all.filter(s => serviceIds.includes(s._id)) : all);
         setBarbers(barberRes.data.data?.barbers || []);
-      } catch {}
+      } catch {} finally {
+        setDataLoading(false);
+      }
     };
-    load();
+    if (salonId) load();
   }, [salonId]);
 
   useEffect(() => {
@@ -173,6 +176,15 @@ export default function BookingScreen({ route, navigation }) {
       setLoading(false);
     }
   };
+
+  if (dataLoading) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top, alignItems: 'center', justifyContent: 'center' }]}>
+        <ActivityIndicator size="large" color="#2563eb" />
+        <Text style={{ color: theme.subText, marginTop: 12, fontSize: 14 }}>Loading...</Text>
+      </View>
+    );
+  }
 
   if (success) {
     const isPending = bookingStatus === 'pending';
