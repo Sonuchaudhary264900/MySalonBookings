@@ -154,10 +154,17 @@ router.get("/public/salons/nearby", asyncHandler(async (req, res) => {
 
 // GET /public/salons/:salonId
 router.get("/public/salons/:salonId", validateObjectId("salonId"), asyncHandler(async (req, res) => {
+  const Coupon = require("../models/Coupon");
+  const Barber = require("../models/Barber");
   const salon = await Salon.findById(req.params.salonId).lean();
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
   if (!salon.isApproved) return res.status(403).json({ success: false, message: "Salon not approved" });
-  res.json({ success: true, data: salon });
+  const now = new Date();
+  const [couponCount, barberCount] = await Promise.all([
+    Coupon.countDocuments({ salonId: salon._id, isActive: true, $or: [{ validUntil: null }, { validUntil: { $gte: now } }] }),
+    Barber.countDocuments({ salonId: salon._id, isActive: true }),
+  ]);
+  res.json({ success: true, data: { ...salon, hasCoupons: couponCount > 0, hasBarbers: barberCount > 0 } });
 }));
 
 // GET /public/salons/:salonId/services

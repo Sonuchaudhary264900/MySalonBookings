@@ -435,8 +435,8 @@ function Booking() {
               </div>
             )}
 
-            {/* Coupon code */}
-            {date && slot && (
+            {/* Coupon code — only shown if salon has active coupons */}
+            {date && slot && salon?.hasCoupons && (
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Have a coupon?</label>
                 {appliedCoupon ? (

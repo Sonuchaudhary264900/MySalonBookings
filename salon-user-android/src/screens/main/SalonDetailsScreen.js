@@ -9,7 +9,7 @@ import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { showError, showInfo } from '../../utils/toast';
 
-const TABS = ['Services', 'Reviews', 'Info'];
+const BASE_TABS = ['Services', 'Reviews', 'Info'];
 const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
 function StarRating({ rating, size = 14 }) {
@@ -120,6 +120,11 @@ export default function SalonDetailsScreen({ route, navigation }) {
 
   const photo = salon?.photos?.[0] || salon?.coverPhoto || salon?.ownerPhoto;
   const rating = salon?.rating || salon?.averageRating || 0;
+  const salonPhotos = salon?.photos?.length ? salon.photos : [];
+  // Only show Reviews tab if there are reviews
+  const TABS = reviews.length > 0 ? BASE_TABS : BASE_TABS.filter(t => t !== 'Reviews');
+  // If active tab no longer exists (e.g. no reviews), fall back to Services
+  const activeTab = TABS.includes(tab) ? tab : 'Services';
 
   if (loading) {
     return (
@@ -212,8 +217,15 @@ export default function SalonDetailsScreen({ route, navigation }) {
         {/* Tabs */}
         <View style={styles.tabBar}>
           {TABS.map(t => (
-            <TouchableOpacity key={t} style={[styles.tabBtn, tab === t && styles.tabBtnActive]} onPress={() => setTab(t)}>
-              <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>{t}</Text>
+            <TouchableOpacity key={t} style={[styles.tabBtn, activeTab === t && styles.tabBtnActive]} onPress={() => setTab(t)}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Text style={[styles.tabText, activeTab === t && styles.tabTextActive]}>{t}</Text>
+                {t === 'Reviews' && reviews.length > 0 && (
+                  <View style={[styles.tabBadge, activeTab === t && styles.tabBadgeActive]}>
+                    <Text style={[styles.tabBadgeText, tab === t && { color: '#bfdbfe' }]}>{reviews.length}</Text>
+                  </View>
+                )}
+              </View>
             </TouchableOpacity>
           ))}
         </View>
@@ -221,7 +233,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
         <View style={{ paddingHorizontal: 16, paddingBottom: selectedServices.length > 0 ? 100 : 32 }}>
 
           {/* Services Tab */}
-          {tab === 'Services' && (
+          {activeTab === 'Services' && (
             <View style={{ gap: 10 }}>
               {services.length === 0 ? (
                 <View style={styles.emptyTab}>
@@ -258,7 +270,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
           )}
 
           {/* Reviews Tab */}
-          {tab === 'Reviews' && (
+          {activeTab === 'Reviews' && (
             <View style={{ gap: 10 }}>
               {reviews.length === 0 ? (
                 <View style={styles.emptyTab}>
@@ -288,7 +300,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
           )}
 
           {/* Info Tab */}
-          {tab === 'Info' && (
+          {activeTab === 'Info' && (
             <View style={{ gap: 12 }}>
               {/* Contact */}
               <View style={styles.infoSection}>
@@ -317,6 +329,18 @@ export default function SalonDetailsScreen({ route, navigation }) {
                   </Text>
                 </View>
               </View>
+
+              {/* Gallery */}
+              {salonPhotos.length > 1 && (
+                <View style={styles.infoSection}>
+                  <Text style={styles.infoSectionTitle}>Gallery ({salonPhotos.length})</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingTop: 4 }}>
+                    {salonPhotos.map((url, i) => (
+                      <Image key={i} source={{ uri: url }} style={styles.galleryImg} />
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
 
               {/* Working Hours */}
               {salon.workingHours && (
@@ -380,6 +404,10 @@ const styles = StyleSheet.create({
   tabBtnActive: { backgroundColor: '#2563eb' },
   tabText: { fontSize: 13, fontWeight: '600', color: '#6b7280' },
   tabTextActive: { color: '#fff' },
+  tabBadge: { backgroundColor: '#e5e7eb', borderRadius: 8, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
+  tabBadgeActive: { backgroundColor: 'rgba(255,255,255,0.25)' },
+  tabBadgeText: { fontSize: 10, fontWeight: '700', color: '#6b7280' },
+  galleryImg: { width: 120, height: 88, borderRadius: 10 },
   emptyTab: { alignItems: 'center', paddingVertical: 40, gap: 10 },
   emptyTabText: { fontSize: 14, color: '#9ca3af' },
   serviceCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1.5, borderColor: '#e5e7eb', shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },

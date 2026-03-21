@@ -377,8 +377,8 @@ export default function BookingScreen({ route, navigation }) {
           )}
         </View>
 
-        {/* Coupon */}
-        {slot && (
+        {/* Coupon — only shown if salon has active coupons */}
+        {slot && salon?.hasCoupons && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Coupon Code</Text>
             {appliedCoupon ? (

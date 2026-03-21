@@ -6,7 +6,7 @@ import ServiceCard from "../components/ServiceCard";
 import ReviewCard from "../components/ReviewCard";
 import { isCustomer, clearCustomerAuth } from "../utils/auth";
 
-const TABS = ["Services", "Reviews", "Info"];
+const BASE_TABS = ["Services", "Reviews", "Info"];
 
 function SalonDetails() {
   const { id } = useParams();
@@ -16,6 +16,9 @@ function SalonDetails() {
   const [reviews, setReviews] = useState([]);
   const [tab, setTab] = useState("Services");
   const [loading, setLoading] = useState(true);
+  // Dynamic tabs: hide Reviews if no reviews
+  const TABS = reviews.length > 0 ? BASE_TABS : BASE_TABS.filter(t => t !== "Reviews");
+  const activeTab = TABS.includes(tab) ? tab : "Services";
   const [selectedServices, setSelectedServices] = useState([]);
   const token = localStorage.getItem("customerToken");
 
@@ -176,19 +179,19 @@ function SalonDetails() {
               key={t}
               onClick={() => setTab(t)}
               className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${
-                tab === t
+                activeTab === t
                   ? "bg-indigo-600 text-white shadow-sm"
                   : "text-slate-500 hover:text-slate-700"
               }`}
             >
               {t}
               {t === "Services" && services.length > 0 && (
-                <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${tab === t ? "bg-white/25" : "bg-slate-100"}`}>
+                <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${activeTab === t ? "bg-white/25" : "bg-slate-100"}`}>
                   {services.length}
                 </span>
               )}
               {t === "Reviews" && reviews.length > 0 && (
-                <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${tab === t ? "bg-white/25" : "bg-slate-100"}`}>
+                <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${activeTab === t ? "bg-white/25" : "bg-slate-100"}`}>
                   {reviews.length}
                 </span>
               )}
@@ -197,7 +200,7 @@ function SalonDetails() {
         </div>
 
         {/* ── SERVICES TAB ──────────────────── */}
-        {tab === "Services" && (
+        {activeTab === "Services" && (
           <div className="fade-in">
             {services.length === 0 ? (
               <div className="text-center py-16">
@@ -220,7 +223,7 @@ function SalonDetails() {
         )}
 
         {/* ── REVIEWS TAB ───────────────────── */}
-        {tab === "Reviews" && (
+        {activeTab === "Reviews" && (
           <div className="fade-in">
             <div className="mb-5 p-4 bg-indigo-50 border border-indigo-100 rounded-xl text-sm text-indigo-700 flex items-center gap-3">
               <span>⭐</span>
@@ -242,7 +245,7 @@ function SalonDetails() {
         )}
 
         {/* ── INFO TAB ──────────────────────── */}
-        {tab === "Info" && (
+        {activeTab === "Info" && (
           <div className="fade-in space-y-4">
             {/* Photo Gallery */}
             {salon.photos?.length > 0 && (
