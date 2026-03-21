@@ -10,6 +10,15 @@ import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { formatDate } from '../../utils/helpers';
 
+function maskPhone(phone) {
+  if (!phone) return '';
+  const digits = phone.replace(/\D/g, '');
+  const prefix = phone.startsWith('+') ? phone.slice(0, 3) + ' ' : '';
+  const local = phone.startsWith('+') ? digits.slice(2) : digits;
+  if (local.length <= 4) return prefix + '****';
+  return prefix + local.slice(0, 2) + '****' + local.slice(-2);
+}
+
 function CustomerDetailModal({ customer, visible, onClose, theme }) {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -46,7 +55,7 @@ function CustomerDetailModal({ customer, visible, onClose, theme }) {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.customerName, { color: theme.text }]}>{customer.name}</Text>
-                {customer.phone && <Text style={[styles.customerMeta, { color: theme.subText }]}>{customer.phone}</Text>}
+                {customer.phone && <Text style={[styles.customerMeta, { color: theme.subText }]}>{maskPhone(customer.phone)}</Text>}
                 {customer.email && <Text style={[styles.customerMeta, { color: theme.subText }]}>{customer.email}</Text>}
               </View>
             </View>
@@ -131,7 +140,7 @@ export default function CustomersScreen() {
         <View style={{ flex: 1 }}>
           <Text style={[styles.name, { color: theme.text }]}>{item.name}</Text>
           <Text style={[styles.meta, { color: theme.subText }]}>
-            {item.phone || item.email || 'No contact'}
+            {item.phone ? maskPhone(item.phone) : (item.email || 'No contact')}
           </Text>
         </View>
         <View style={{ alignItems: 'flex-end', gap: 4 }}>

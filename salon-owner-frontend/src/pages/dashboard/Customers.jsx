@@ -4,6 +4,15 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import api from '../../services/api';
 import { formatDate } from '../../utils/exportHelpers';
 
+function maskPhone(phone) {
+  if (!phone) return '';
+  const digits = phone.replace(/\D/g, '');
+  const prefix = phone.startsWith('+') ? phone.slice(0, 3) + ' ' : '';
+  const local = phone.startsWith('+') ? digits.slice(2) : digits;
+  if (local.length <= 4) return prefix + '****';
+  return prefix + local.slice(0, 2) + '****' + local.slice(-2);
+}
+
 const STATUS_COLORS = {
   confirmed:   'text-green-700 bg-green-100',
   pending:     'text-yellow-700 bg-yellow-100',
@@ -50,7 +59,7 @@ function CustomerDetailModal({ customer, onClose }) {
             </div>
             <div>
               <p className="font-bold text-gray-900 text-base">{customer.name}</p>
-              {customer.phone && <p className="text-sm text-gray-500 mt-0.5">{customer.phone}</p>}
+              {customer.phone && <p className="text-sm text-gray-500 mt-0.5">{maskPhone(customer.phone)}</p>}
               {customer.email && <p className="text-sm text-gray-500">{customer.email}</p>}
             </div>
           </div>
@@ -179,7 +188,7 @@ export default function Customers() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-gray-900 truncate">{customer.name}</p>
-                    <p className="text-sm text-gray-500 truncate">{customer.phone || customer.email || 'No contact'}</p>
+                    <p className="text-sm text-gray-500 truncate">{customer.phone ? maskPhone(customer.phone) : (customer.email || 'No contact')}</p>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-sm font-bold text-indigo-600">{customer.totalBookings ?? 0} visits</p>
