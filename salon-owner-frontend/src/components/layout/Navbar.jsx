@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Menu, LogOut, User, Settings, Bell, QrCode, X, Download, Sun, Moon } from 'lucide-react';
 import QRCodeSVG from 'react-qr-code';
@@ -28,6 +28,18 @@ const Navbar = ({ onMenuToggle }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const qrWrapperRef = useRef(null);
+  const userMenuRef = useRef(null);
+
+  useEffect(() => {
+    if (!showUserMenu) return;
+    const handler = (e) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setShowUserMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showUserMenu]);
 
   const qrValue = salon?._id
     ? `${CUSTOMER_APP_URL}/salon/${salon._id}`
@@ -202,7 +214,7 @@ const Navbar = ({ onMenuToggle }) => {
           </button>
 
           {/* User Menu */}
-          <div className="relative">
+          <div className="relative" ref={userMenuRef}>
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="p-1 hover:bg-gray-100 rounded-lg transition"
