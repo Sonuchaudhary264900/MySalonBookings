@@ -4,8 +4,6 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, ActivityIndicator, Image, StyleSheet, TouchableOpacity, Alert, Dimensions } from 'react-native';
 import { NavigationContainer, useNavigation, createNavigationContainerRef } from '@react-navigation/native';
 import * as Notifications from 'expo-notifications';
-
-const navigationRef = createNavigationContainerRef();
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { createDrawerNavigator, DrawerContentScrollView } from '@react-navigation/drawer';
@@ -13,6 +11,8 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import Toast from 'react-native-toast-message';
+
+const navigationRef = createNavigationContainerRef();
 
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { ThemeProvider } from './src/context/ThemeContext';
