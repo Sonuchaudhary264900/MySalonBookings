@@ -165,12 +165,20 @@ img.src=${qrApiUrl};
       <div class="bottom-bar">Powered by My Salon Bookings &nbsp;&bull;&nbsp; mysalonbookings.com</div>
     </body></html>`;
     try {
-      const { uri } = await Print.printToFileAsync({ html, base64: false, width: 595, height: 842 });
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Save QR Card as PDF' });
-      } else {
-        showSuccess('Saved', 'PDF saved to device');
+      const { uri: tempUri } = await Print.printToFileAsync({ html, base64: false, width: 595, height: 842 });
+      const fileName = `${(salonName).replace(/\s+/g, '-')}-QR.pdf`;
+      const perms = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+      if (!perms.granted) {
+        // Fallback: share via share sheet
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(tempUri, { mimeType: 'application/pdf', dialogTitle: 'Save QR Card as PDF' });
+        }
+        return;
       }
+      const base64 = await FileSystem.readAsStringAsync(tempUri, { encoding: FileSystem.EncodingType.Base64 });
+      const destUri = await FileSystem.StorageAccessFramework.createFileAsync(perms.directoryUri, fileName, 'application/pdf');
+      await FileSystem.writeAsStringAsync(destUri, base64, { encoding: FileSystem.EncodingType.Base64 });
+      showSuccess('PDF Saved!', `"${fileName}" saved to your selected folder`);
     } catch (err) {
       showError('Error', err.message || 'Could not generate PDF');
     }

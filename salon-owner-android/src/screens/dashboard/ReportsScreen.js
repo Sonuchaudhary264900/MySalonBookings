@@ -263,12 +263,19 @@ export default function ReportsScreen() {
     </body></html>`;
 
     try {
-      const { uri } = await Print.printToFileAsync({ html, base64: false });
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Save Analytics Report' });
-      } else {
-        Alert.alert('Saved', `PDF saved to:\n${uri}`);
+      const { uri: tempUri } = await Print.printToFileAsync({ html, base64: false });
+      const fileName = `Analytics-Report-${label.replace(/\s+/g, '-')}.pdf`;
+      const perms = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+      if (!perms.granted) {
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(tempUri, { mimeType: 'application/pdf', dialogTitle: 'Save Analytics Report' });
+        }
+        return;
       }
+      const base64 = await FileSystem.readAsStringAsync(tempUri, { encoding: FileSystem.EncodingType.Base64 });
+      const destUri = await FileSystem.StorageAccessFramework.createFileAsync(perms.directoryUri, fileName, 'application/pdf');
+      await FileSystem.writeAsStringAsync(destUri, base64, { encoding: FileSystem.EncodingType.Base64 });
+      Alert.alert('PDF Saved!', `"${fileName}" has been saved to your selected folder.`);
     } catch (err) {
       Alert.alert('Error', err.message || 'Failed to generate PDF');
     }
