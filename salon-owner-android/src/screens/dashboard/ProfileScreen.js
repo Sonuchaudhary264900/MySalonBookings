@@ -11,6 +11,7 @@ import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { WebView } from 'react-native-webview';
 import { useAuth } from '../../context/AuthContext';
 import DrawerMenuButton from '../../components/DrawerMenuButton';
@@ -209,6 +210,32 @@ img.src=${qrApiUrl};
     } catch { showError('Error', 'Could not save QR card'); }
   }, [salon]);
 
+  const savePDFToDownloads = async (tempUri, fileName) => {
+    const DOWNLOADS_INITIAL = 'content://com.android.externalstorage.documents/tree/primary%3ADownload';
+    const DIR_KEY = '@pdf_download_dir';
+    let dirUri = await AsyncStorage.getItem(DIR_KEY);
+    if (!dirUri) {
+      const perms = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync(DOWNLOADS_INITIAL);
+      if (!perms.granted) {
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(tempUri, { mimeType: 'application/pdf', dialogTitle: 'Save PDF' });
+        }
+        return;
+      }
+      dirUri = perms.directoryUri;
+      await AsyncStorage.setItem(DIR_KEY, dirUri);
+    }
+    try {
+      const base64 = await FileSystem.readAsStringAsync(tempUri, { encoding: FileSystem.EncodingType.Base64 });
+      const destUri = await FileSystem.StorageAccessFramework.createFileAsync(dirUri, fileName, 'application/pdf');
+      await FileSystem.writeAsStringAsync(destUri, base64, { encoding: FileSystem.EncodingType.Base64 });
+      showSuccess('PDF Saved!', 'Saved to Downloads');
+    } catch {
+      await AsyncStorage.removeItem(DIR_KEY);
+      showError('Try Again', 'Tap Download PDF again to re-select Downloads folder');
+    }
+  };
+
   const downloadQRPDF = async () => {
     setShowQR(false);
     const salonName = salon?.name || 'My Salon';
@@ -265,18 +292,8 @@ img.src=${qrApiUrl};
     </body></html>`;
     try {
       const { uri: tempUri } = await Print.printToFileAsync({ html, base64: false, width: 595, height: 842 });
-      const fileName = `${(salonName).replace(/\s+/g, '-')}-QR.pdf`;
-      const perms = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
-      if (!perms.granted) {
-        if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(tempUri, { mimeType: 'application/pdf', dialogTitle: 'Save QR Card as PDF' });
-        }
-        return;
-      }
-      const base64 = await FileSystem.readAsStringAsync(tempUri, { encoding: FileSystem.EncodingType.Base64 });
-      const destUri = await FileSystem.StorageAccessFramework.createFileAsync(perms.directoryUri, fileName, 'application/pdf');
-      await FileSystem.writeAsStringAsync(destUri, base64, { encoding: FileSystem.EncodingType.Base64 });
-      showSuccess('PDF Saved!', `"${fileName}" saved to your selected folder`);
+      const fileName = `${salonName.replace(/\s+/g, '-')}-QR.pdf`;
+      await savePDFToDownloads(tempUri, fileName);
     } catch (err) {
       showError('Error', err.message || 'Could not generate PDF');
     }

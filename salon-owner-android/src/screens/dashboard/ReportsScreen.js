@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../services/api';
 import DrawerMenuButton from '../../components/DrawerMenuButton';
 import { useTheme } from '../../context/ThemeContext';
@@ -262,20 +263,36 @@ export default function ReportsScreen() {
     <div class="footer">SmartSalon Owner Dashboard &nbsp;&bull;&nbsp; ${new Date().toLocaleDateString('en-IN')}</div>
     </body></html>`;
 
+    const savePDFToDownloads = async (tempUri, fileName) => {
+      const DOWNLOADS_INITIAL = 'content://com.android.externalstorage.documents/tree/primary%3ADownload';
+      const DIR_KEY = '@pdf_download_dir';
+      let dirUri = await AsyncStorage.getItem(DIR_KEY);
+      if (!dirUri) {
+        const perms = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync(DOWNLOADS_INITIAL);
+        if (!perms.granted) {
+          if (await Sharing.isAvailableAsync()) {
+            await Sharing.shareAsync(tempUri, { mimeType: 'application/pdf', dialogTitle: 'Save PDF' });
+          }
+          return;
+        }
+        dirUri = perms.directoryUri;
+        await AsyncStorage.setItem(DIR_KEY, dirUri);
+      }
+      try {
+        const base64 = await FileSystem.readAsStringAsync(tempUri, { encoding: FileSystem.EncodingType.Base64 });
+        const destUri = await FileSystem.StorageAccessFramework.createFileAsync(dirUri, fileName, 'application/pdf');
+        await FileSystem.writeAsStringAsync(destUri, base64, { encoding: FileSystem.EncodingType.Base64 });
+        Alert.alert('PDF Saved!', `"${fileName}" saved to Downloads`);
+      } catch {
+        await AsyncStorage.removeItem(DIR_KEY);
+        Alert.alert('Try Again', 'Tap Download PDF again to re-select Downloads folder');
+      }
+    };
+
     try {
       const { uri: tempUri } = await Print.printToFileAsync({ html, base64: false });
       const fileName = `Analytics-Report-${label.replace(/\s+/g, '-')}.pdf`;
-      const perms = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
-      if (!perms.granted) {
-        if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(tempUri, { mimeType: 'application/pdf', dialogTitle: 'Save Analytics Report' });
-        }
-        return;
-      }
-      const base64 = await FileSystem.readAsStringAsync(tempUri, { encoding: FileSystem.EncodingType.Base64 });
-      const destUri = await FileSystem.StorageAccessFramework.createFileAsync(perms.directoryUri, fileName, 'application/pdf');
-      await FileSystem.writeAsStringAsync(destUri, base64, { encoding: FileSystem.EncodingType.Base64 });
-      Alert.alert('PDF Saved!', `"${fileName}" has been saved to your selected folder.`);
+      await savePDFToDownloads(tempUri, fileName);
     } catch (err) {
       Alert.alert('Error', err.message || 'Failed to generate PDF');
     }
