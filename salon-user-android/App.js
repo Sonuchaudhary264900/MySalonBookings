@@ -30,6 +30,7 @@ import FavoritesScreen    from './src/screens/main/FavoritesScreen';
 import ProfileScreen        from './src/screens/main/ProfileScreen';
 import SettingsScreen       from './src/screens/main/SettingsScreen';
 import NotificationsScreen  from './src/screens/main/NotificationsScreen';
+import ReferAndEarnScreen   from './src/screens/main/ReferAndEarnScreen';
 
 const RootStack = createNativeStackNavigator();
 const AuthStack = createNativeStackNavigator();
@@ -140,6 +141,22 @@ function CustomDrawer({ navigation: drawerNav }) {
         </View>
       </DrawerContentScrollView>
 
+      {/* Refer & Earn */}
+      <View style={{ paddingHorizontal: 12, paddingBottom: 8 }}>
+        <TouchableOpacity
+          style={dStyles.referBtn}
+          onPress={() => {
+            drawerNav.closeDrawer();
+            drawerNav.navigate('Tabs', { screen: 'SettingsTab', params: { screen: 'ReferAndEarn' } });
+          }}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="gift-outline" size={18} color="#fbbf24" />
+          <Text style={dStyles.referText}>Refer &amp; Earn</Text>
+          <View style={dStyles.referBadge}><Text style={dStyles.referBadgeText}>₹50</Text></View>
+        </TouchableOpacity>
+      </View>
+
       {/* Footer — logout */}
       <View style={[dStyles.footer, { paddingBottom: insets.bottom + 8 }]}>
         <View style={dStyles.divider} />
@@ -186,8 +203,9 @@ function FavoritesStackNav() {
 function SettingsStackNav() {
   return (
     <SetgStack.Navigator screenOptions={{ headerShown: false }}>
-      <SetgStack.Screen name="SettingsMain" component={SettingsScreen} />
-      <SetgStack.Screen name="Profile"      component={ProfileScreen} />
+      <SetgStack.Screen name="SettingsMain"  component={SettingsScreen} />
+      <SetgStack.Screen name="Profile"       component={ProfileScreen} />
+      <SetgStack.Screen name="ReferAndEarn"  component={ReferAndEarnScreen} />
     </SetgStack.Navigator>
   );
 }
@@ -366,6 +384,10 @@ const dStyles = StyleSheet.create({
   navLabelActive: { color: '#fff', fontWeight: '600' },
   badge: { backgroundColor: '#ef4444', borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5, marginLeft: 'auto' },
   badgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  referBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 13, borderRadius: 8, backgroundColor: '#1f2937', borderWidth: 1, borderColor: '#374151' },
+  referText: { flex: 1, fontSize: 14, fontWeight: '600', color: '#fbbf24' },
+  referBadge: { backgroundColor: '#d97706', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
+  referBadgeText: { fontSize: 11, fontWeight: '800', color: '#fff' },
   footer: { paddingHorizontal: 16 },
   logoutBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 14 },
   logoutText: { fontSize: 14, fontWeight: '600', color: '#f87171' },
