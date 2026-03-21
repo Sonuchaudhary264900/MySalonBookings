@@ -273,17 +273,10 @@ export default function ReportsScreen() {
 
     try {
       const { uri } = await Print.printToFileAsync({ html });
-      const fileName = `analytics-${startDate}-to-${endDate}.pdf`;
-      try {
-        const RNBlobUtil = require('react-native-blob-util').default;
-        const destPath = `${RNBlobUtil.fs.dirs.DownloadDir}/${fileName}`;
-        const base64 = await RNBlobUtil.fs.readFile(uri, 'base64');
-        await RNBlobUtil.fs.writeFile(destPath, base64, 'base64');
-        Alert.alert('PDF Saved!', `"${fileName}" saved to Downloads folder`);
-        return;
-      } catch { /* fallback */ }
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Save PDF' });
+      } else {
+        Alert.alert('Error', 'Sharing is not available on this device');
       }
     } catch (e) {
       Alert.alert('Error', 'Could not generate PDF');
