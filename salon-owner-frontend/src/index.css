@@ -69,7 +69,7 @@ html.dark body {
   color: #e2e8f0;
 }
 
-/* Backgrounds */
+/* ── Backgrounds ── */
 html.dark .bg-white      { background-color: #1e293b; }
 html.dark .bg-gray-50    { background-color: #0f172a; }
 html.dark .bg-gray-100   { background-color: #1e293b; }
@@ -78,7 +78,24 @@ html.dark .bg-slate-50   { background-color: #0f172a; }
 html.dark .bg-slate-100  { background-color: #1e293b; }
 html.dark .bg-slate-200  { background-color: #334155; }
 
-/* Text */
+/* light tinted backgrounds used in badges/pills */
+html.dark .bg-blue-50    { background-color: rgba(37,99,235,0.15); }
+html.dark .bg-green-50   { background-color: rgba(22,163,74,0.15); }
+html.dark .bg-red-50     { background-color: rgba(220,38,38,0.15); }
+html.dark .bg-yellow-50  { background-color: rgba(202,138,4,0.15); }
+html.dark .bg-purple-50  { background-color: rgba(147,51,234,0.15); }
+html.dark .bg-indigo-50  { background-color: rgba(79,70,229,0.15); }
+html.dark .bg-orange-50  { background-color: rgba(234,88,12,0.15); }
+html.dark .bg-pink-50    { background-color: rgba(219,39,119,0.15); }
+
+html.dark .bg-blue-100   { background-color: rgba(37,99,235,0.2); }
+html.dark .bg-green-100  { background-color: rgba(22,163,74,0.2); }
+html.dark .bg-red-100    { background-color: rgba(220,38,38,0.2); }
+html.dark .bg-yellow-100 { background-color: rgba(202,138,4,0.2); }
+html.dark .bg-purple-100 { background-color: rgba(147,51,234,0.2); }
+html.dark .bg-indigo-100 { background-color: rgba(79,70,229,0.2); }
+
+/* ── Text ── */
 html.dark .text-gray-900, html.dark .text-slate-900 { color: #f1f5f9; }
 html.dark .text-gray-800, html.dark .text-slate-800 { color: #e2e8f0; }
 html.dark .text-gray-700, html.dark .text-slate-700 { color: #cbd5e1; }
@@ -86,18 +103,39 @@ html.dark .text-gray-600, html.dark .text-slate-600 { color: #94a3b8; }
 html.dark .text-gray-500, html.dark .text-slate-500 { color: #64748b; }
 html.dark .text-gray-400, html.dark .text-slate-400 { color: #475569; }
 
-/* Borders */
+/* coloured text stays vibrant in dark mode */
+html.dark .text-blue-600   { color: #60a5fa; }
+html.dark .text-blue-700   { color: #93c5fd; }
+html.dark .text-green-600  { color: #4ade80; }
+html.dark .text-green-700  { color: #86efac; }
+html.dark .text-red-600    { color: #f87171; }
+html.dark .text-red-700    { color: #fca5a5; }
+html.dark .text-yellow-600 { color: #facc15; }
+html.dark .text-purple-600 { color: #c084fc; }
+html.dark .text-indigo-600 { color: #818cf8; }
+html.dark .text-orange-600 { color: #fb923c; }
+
+/* ── Borders ── */
 html.dark .border-gray-100, html.dark .border-slate-100 { border-color: #334155; }
 html.dark .border-gray-200, html.dark .border-slate-200 { border-color: #334155; }
 html.dark .border-gray-300  { border-color: #475569; }
+html.dark .border-blue-200  { border-color: rgba(37,99,235,0.3); }
+html.dark .border-green-200 { border-color: rgba(22,163,74,0.3); }
+html.dark .border-red-200   { border-color: rgba(220,38,38,0.3); }
 
-/* Divide lines */
+/* ── Divide lines ── */
 html.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
 html.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
   border-color: #334155;
 }
 
-/* Form elements */
+/* ── Shadows — softer in dark mode ── */
+html.dark .shadow-sm  { box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+html.dark .shadow     { box-shadow: 0 2px 6px rgba(0,0,0,0.5); }
+html.dark .shadow-md  { box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+html.dark .shadow-lg  { box-shadow: 0 8px 24px rgba(0,0,0,0.6); }
+
+/* ── Form elements ── */
 html.dark input,
 html.dark select,
 html.dark textarea {
@@ -108,12 +146,21 @@ html.dark textarea {
 html.dark input::placeholder,
 html.dark textarea::placeholder { color: #475569; }
 
-/* Hover overrides */
-html.dark .hover\:bg-gray-50:hover  { background-color: #334155; }
-html.dark .hover\:bg-gray-100:hover { background-color: #334155; }
-html.dark .hover\:bg-slate-50:hover { background-color: #334155; }
+/* ── Hover overrides ── */
+html.dark .hover\:bg-gray-50:hover   { background-color: #334155; }
+html.dark .hover\:bg-gray-100:hover  { background-color: #334155; }
+html.dark .hover\:bg-slate-50:hover  { background-color: #334155; }
+html.dark .hover\:bg-slate-100:hover { background-color: #334155; }
+html.dark .hover\:bg-red-50:hover    { background-color: rgba(220,38,38,0.15); }
+html.dark .hover\:bg-blue-50:hover   { background-color: rgba(37,99,235,0.15); }
 
-/* Scrollbar in dark mode */
+/* ── Scrollbar in dark mode ── */
 html.dark ::-webkit-scrollbar-track { background: #0f172a; }
 html.dark ::-webkit-scrollbar-thumb { background: #475569; }
 html.dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+/* ── Navbar specific ── */
+html.dark nav.bg-white {
+  background-color: #1e293b;
+  border-color: #334155;
+}

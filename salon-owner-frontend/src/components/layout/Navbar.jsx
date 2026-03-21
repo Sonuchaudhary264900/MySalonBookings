@@ -1,10 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, LogOut, User, Settings, Bell, QrCode, X, Download } from 'lucide-react';
+import { Menu, LogOut, User, Settings, Bell, QrCode, X, Download, Sun, Moon } from 'lucide-react';
 import QRCodeSVG from 'react-qr-code';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../hooks/useAuth';
 import { useSalon } from '../../hooks/useSalon';
+import { useTheme } from '../../context/ThemeContext';
 import ROUTES from '../../routes';
 
 const CUSTOMER_APP_URL = import.meta.env.VITE_CUSTOMER_APP_URL || 'https://mysalonbookings.com';
@@ -23,6 +24,7 @@ const Navbar = ({ onMenuToggle }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { salon } = useSalon();
+  const { isDark, toggleTheme } = useTheme();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const qrWrapperRef = useRef(null);
@@ -162,6 +164,19 @@ const Navbar = ({ onMenuToggle }) => {
               {user?.salonName || 'Salon'}
             </p>
           </div>
+
+          {/* Dark / Light toggle */}
+          <button
+            onClick={toggleTheme}
+            className="p-2 hover:bg-gray-100 rounded-lg transition"
+            type="button"
+            title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          >
+            {isDark
+              ? <Sun className="w-5 h-5 text-amber-400" />
+              : <Moon className="w-5 h-5 text-gray-600" />
+            }
+          </button>
 
           {/* QR Code */}
           <button
