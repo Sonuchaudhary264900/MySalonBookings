@@ -270,6 +270,17 @@ function AuthNavigator() {
 function RootNavigator() {
   const { isAuthenticated, loading } = useAuth();
 
+  // Navigate to Bookings tab when user taps a review_prompt push notification
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data;
+      if (data?.type === 'review_prompt' && navigationRef.isReady()) {
+        navigationRef.navigate('Main', { screen: 'Tabs', params: { screen: 'BookingsTab' } });
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
   if (loading) {
     return (
       <View style={styles.splash}>
@@ -282,17 +293,6 @@ function RootNavigator() {
       </View>
     );
   }
-
-  // Navigate to Bookings tab when user taps a review_prompt push notification
-  useEffect(() => {
-    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data;
-      if (data?.type === 'review_prompt' && navigationRef.isReady()) {
-        navigationRef.navigate('Main', { screen: 'Tabs', params: { screen: 'BookingsTab' } });
-      }
-    });
-    return () => sub.remove();
-  }, []);
 
   return (
     <NavigationContainer ref={navigationRef}>
