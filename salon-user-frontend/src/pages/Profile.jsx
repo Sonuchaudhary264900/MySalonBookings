@@ -16,6 +16,109 @@ const applyTheme = (theme) => {
   }
 };
 
+// ── Refer & Earn Card ─────────────────────────────────────────────
+function ReferAndEarn({ user }) {
+  const [open, setOpen]       = useState(false);
+  const [copied, setCopied]   = useState(false);
+
+  const referralCode = user?.phone
+    ? `MSB${user.phone.replace(/\D/g, '').slice(-6).toUpperCase()}`
+    : user?._id?.slice(-6).toUpperCase()
+    ? `MSB${user._id.slice(-6).toUpperCase()}`
+    : null;
+
+  const handleCopy = () => {
+    if (!referralCode) return;
+    navigator.clipboard.writeText(referralCode).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const shareText = `Salon owners 👇\n\nDon't miss this 🚀\nJoin MySalonBookings and start getting customers online instantly! 💼\n\nGrow your salon, manage bookings easily, and go digital today.\n\n❤️ Use my referral code and support me too\n\n💸 Referral Code: ${referralCode}\n🔗 https://owner.mysalonbookings.com`;
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({ title: 'Join MySalonBookings', text: shareText });
+    } else {
+      navigator.clipboard.writeText(shareText).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      });
+    }
+  };
+
+  if (!referralCode) return null;
+
+  return (
+    <div className="rounded-2xl border border-slate-100 overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-slate-50 transition text-left"
+      >
+        <span className="text-xl">🎁</span>
+        <div className="flex-1">
+          <p className="font-bold text-slate-900 text-sm">Refer & Earn</p>
+          <p className="text-xs text-slate-400 mt-0.5">Earn ₹50 for every salon you refer</p>
+        </div>
+        <svg className={`w-4 h-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+      </button>
+
+      {open && (
+        <div className="border-t border-slate-100 px-4 py-4 flex flex-col gap-4">
+          {/* Banner */}
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-3 items-start">
+            <span className="text-2xl">🎁</span>
+            <div>
+              <p className="font-bold text-amber-800 text-sm">Earn ₹50 for every salon you refer!</p>
+              <p className="text-xs text-amber-700 mt-1">Invite salon owners to join MySalonBookings and earn rewards when they get started.</p>
+            </div>
+          </div>
+
+          {/* Steps */}
+          <div className="flex flex-col gap-2">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">How it works</p>
+            {[
+              { icon: '📤', text: 'Share your referral code with a salon owner' },
+              { icon: '🏪', text: 'They sign up on the MySalonBookings owner app' },
+              { icon: '💰', text: 'You earn ₹50 once they qualify!' },
+            ].map((s, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <span className="w-6 h-6 rounded-full bg-indigo-50 flex items-center justify-center text-xs font-bold text-indigo-600">{i+1}</span>
+                <span className="text-sm text-slate-600">{s.text}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Code */}
+          <div className="flex items-center gap-3 border-2 border-dashed border-indigo-300 rounded-xl px-4 py-3 bg-indigo-50">
+            <div className="flex-1">
+              <p className="text-xs text-indigo-400 font-semibold uppercase tracking-wide">Your Referral Code</p>
+              <p className="text-2xl font-black text-indigo-600 tracking-widest mt-0.5">{referralCode}</p>
+            </div>
+            <button onClick={handleCopy} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-100 hover:bg-indigo-200 transition text-indigo-600 text-xs font-bold">
+              {copied ? '✓ Copied!' : '📋 Copy'}
+            </button>
+          </div>
+
+          {/* Share button */}
+          <button onClick={handleShare} className="btn-primary text-sm py-2.5 flex items-center justify-center gap-2">
+            📤 Share & Invite Salon Owners
+          </button>
+
+          {/* Terms */}
+          <button
+            onClick={() => alert('Terms & Conditions:\n\n• The referred salon owner must register using your referral code.\n\n• The salon owner must actively use the app for a minimum of 30 consecutive days.\n\n• ₹50 will be credited once the qualifying period is complete.\n\n• Each referral code can be used once per salon.\n\n• MySalonBookings reserves the right to modify this program at any time.')}
+            className="text-xs text-slate-400 underline text-center"
+          >
+            View Terms & Conditions
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── App Preferences Card ─────────────────────────────────────────
 function AppPreferences() {
   const [open, setOpen]   = useState(false);
@@ -468,6 +571,9 @@ function Profile() {
                 </div>
               )}
             </div>
+
+            {/* ── Refer & Earn ── */}
+            <ReferAndEarn user={user} />
 
             {/* ── App Preferences ── */}
             <AppPreferences />

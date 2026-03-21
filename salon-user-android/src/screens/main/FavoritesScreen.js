@@ -12,6 +12,28 @@ import { useNotifications } from '../../context/NotificationContext';
 import { showError } from '../../utils/toast';
 import { useTheme } from '../../context/ThemeContext';
 
+const DAYS = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+
+function isOpenNow(workingHours) {
+  if (!workingHours) return null;
+  const todayKey = DAYS[new Date().getDay()];
+  const h = workingHours[todayKey];
+  if (!h || h.isClosed || !h.open || !h.close) return false;
+  const now = new Date();
+  const nowM = now.getHours() * 60 + now.getMinutes();
+  const [oh, om] = h.open.split(':').map(Number);
+  const [ch, cm] = h.close.split(':').map(Number);
+  return nowM >= oh * 60 + om && nowM < ch * 60 + cm;
+}
+
+function getTodayHours(workingHours) {
+  if (!workingHours) return null;
+  const todayKey = DAYS[new Date().getDay()];
+  const h = workingHours[todayKey];
+  if (!h || h.isClosed || !h.open || !h.close) return null;
+  return `${h.open} – ${h.close}`;
+}
+
 function StarRating({ rating }) {
   return (
     <View style={{ flexDirection: 'row', gap: 2 }}>
@@ -91,6 +113,8 @@ export default function FavoritesScreen({ navigation }) {
     const rating   = item.rating || item.averageRating || 0;
     const reviews  = item.reviewCount || item.totalReviews || 0;
     const isRemoving = removing === item._id;
+    const openStatus = isOpenNow(item.workingHours);
+    const todayHours = getTodayHours(item.workingHours);
 
     return (
       <TouchableOpacity
@@ -117,6 +141,11 @@ export default function FavoritesScreen({ navigation }) {
               ? <ActivityIndicator size="small" color="#ef4444" />
               : <Ionicons name="heart" size={18} color="#ef4444" />}
           </TouchableOpacity>
+          {item.ownerPhoto && (
+            <View style={styles.ownerAvatarBadge}>
+              <Image source={{ uri: item.ownerPhoto }} style={styles.ownerAvatarImg} />
+            </View>
+          )}
         </View>
 
         {/* Info */}
@@ -124,28 +153,53 @@ export default function FavoritesScreen({ navigation }) {
           <Text style={styles.cardName} numberOfLines={1}>{item.name}</Text>
           <Text style={styles.cardCategory}>{(item.category || '').replace('_', ' ')}</Text>
 
+          {/* Stars left — Open/Closed right */}
           {rating > 0 && (
-            <View style={styles.cardRow}>
-              <StarRating rating={rating} />
-              <Text style={styles.cardRating}>{rating.toFixed(1)}</Text>
-              {reviews > 0 && <Text style={styles.cardReviews}>({reviews})</Text>}
+            <View style={styles.cardRowSpread}>
+              <View style={styles.cardRow}>
+                <StarRating rating={rating} />
+                <Text style={styles.cardRating}>{rating.toFixed(1)}</Text>
+                {reviews > 0 && <Text style={styles.cardReviews}>({reviews})</Text>}
+              </View>
+              {openStatus !== null && (
+                <View style={[styles.openPill, { backgroundColor: openStatus ? '#dcfce7' : '#fee2e2' }]}>
+                  <View style={[styles.openDot, { backgroundColor: openStatus ? '#16a34a' : '#dc2626' }]} />
+                  <Text style={[styles.openPillText, { color: openStatus ? '#16a34a' : '#dc2626' }]}>
+                    {openStatus ? 'Open' : 'Closed'}
+                  </Text>
+                </View>
+              )}
             </View>
           )}
 
-          <View style={styles.cardRow}>
-            <Ionicons name="location-outline" size={13} color="#6b7280" />
-            <Text style={styles.cardAddress} numberOfLines={1}>
-              {item.address || [item.city, item.state].filter(Boolean).join(', ') || 'Address not listed'}
-            </Text>
+          {/* Address left — Hours right */}
+          <View style={styles.cardRowSpread}>
+            <View style={[styles.cardRow, { flex: 1, marginRight: 8 }]}>
+              <Ionicons name="location-outline" size={13} color={theme.subText} />
+              <Text style={styles.cardAddress} numberOfLines={1}>
+                {item.address || [item.city, item.state].filter(Boolean).join(', ') || 'Address not listed'}
+              </Text>
+            </View>
+            {todayHours && (
+              <View style={styles.cardRow}>
+                <Ionicons name="time-outline" size={12} color={theme.subText} />
+                <Text style={styles.cardHours}>{todayHours}</Text>
+              </View>
+            )}
           </View>
 
-          <TouchableOpacity
-            style={styles.bookBtn}
-            onPress={() => navigation.navigate('SalonDetails', { salonId: item._id })}
-          >
-            <Text style={styles.bookBtnText}>View & Book</Text>
-            <Ionicons name="arrow-forward" size={14} color="#2563eb" />
-          </TouchableOpacity>
+          <View style={styles.cardFooter}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Text style={styles.viewDetails}>Book Now</Text>
+              <Ionicons name="arrow-forward" size={13} color={theme.accent} />
+            </View>
+            {item.isApproved && (
+              <View style={styles.verifiedBadge}>
+                <Ionicons name="checkmark-circle" size={12} color="#16a34a" />
+                <Text style={styles.verifiedText}>Verified</Text>
+              </View>
+            )}
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -155,32 +209,32 @@ export default function FavoritesScreen({ navigation }) {
     <View style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <View style={styles.decorCircle1} />
-        <View style={styles.decorCircle2} />
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.headerTitle}>Saved Salons</Text>
             <Text style={styles.headerSub}>{salons.length} salon{salons.length !== 1 ? 's' : ''} saved</Text>
           </View>
-          <TouchableOpacity
-            style={styles.menuBtn}
-            onPress={() => navigation.getParent()?.navigate('HomeTab', { screen: 'Notifications' })}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Ionicons name="notifications-outline" size={24} color="#fff" />
-            {unreadCount > 0 && (
-              <View style={styles.notifBadge}>
-                <Text style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.menuBtn}
-            onPress={() => navigation.getParent('DrawerNav')?.openDrawer()}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Ionicons name="menu" size={26} color="#fff" />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 4 }}>
+            <TouchableOpacity
+              style={styles.menuBtn}
+              onPress={() => navigation.getParent()?.navigate('HomeTab', { screen: 'Notifications' })}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="notifications-outline" size={20} color={theme.subText} />
+              {unreadCount > 0 && (
+                <View style={styles.notifBadge}>
+                  <Text style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuBtn}
+              onPress={() => navigation.getParent('DrawerNav')?.openDrawer()}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="menu" size={22} color={theme.subText} />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -213,14 +267,12 @@ export default function FavoritesScreen({ navigation }) {
 
 const getStyles = (t) => StyleSheet.create({
   container: { flex: 1, backgroundColor: t.bg },
-  header: { backgroundColor: '#2563eb', paddingHorizontal: 16, paddingBottom: 20, paddingTop: 12, overflow: 'hidden' },
-  decorCircle1: { position: 'absolute', width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.07)', top: -60, right: -30 },
-  decorCircle2: { position: 'absolute', width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.05)', bottom: -20, left: 20 },
+  header: { backgroundColor: t.card, paddingHorizontal: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: t.border },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  headerSub: { fontSize: 13, color: '#bfdbfe', marginTop: 2 },
-  menuBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
-  notifBadge: { position: 'absolute', top: 4, right: 4, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: t.text },
+  headerSub: { fontSize: 13, color: t.subText, marginTop: 2 },
+  menuBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: t.bg, alignItems: 'center', justifyContent: 'center' },
+  notifBadge: { position: 'absolute', top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: t.card },
   notifBadgeText: { color: '#fff', fontSize: 9, fontWeight: '700' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, gap: 10 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: t.text },
@@ -233,16 +285,25 @@ const getStyles = (t) => StyleSheet.create({
   signInBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
   card: { backgroundColor: t.card, borderRadius: 16, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2, borderWidth: 1, borderColor: t.border },
   imgWrapper: { position: 'relative' },
+  ownerAvatarBadge: { position: 'absolute', bottom: -16, left: 12, width: 34, height: 34, borderRadius: 17, borderWidth: 2, borderColor: t.card, overflow: 'hidden', elevation: 3 },
+  ownerAvatarImg: { width: '100%', height: '100%' },
   img: { width: '100%', height: 150 },
   imgPlaceholder: { backgroundColor: '#dbeafe', alignItems: 'center', justifyContent: 'center' },
+  cardRowSpread: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  openPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999 },
+  openDot: { width: 6, height: 6, borderRadius: 3 },
+  openPillText: { fontSize: 11, fontWeight: '700' },
   heartBtn: { position: 'absolute', top: 10, right: 10, width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
-  cardBody: { padding: 12, gap: 5 },
+  cardBody: { padding: 12, paddingTop: 22, gap: 5 },
   cardName: { fontSize: 16, fontWeight: '700', color: t.text },
   cardCategory: { fontSize: 12, color: t.subText, textTransform: 'capitalize' },
   cardRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   cardRating: { fontSize: 12, fontWeight: '700', color: t.text },
   cardReviews: { fontSize: 12, color: t.subText },
   cardAddress: { fontSize: 12, color: t.subText, flex: 1 },
-  bookBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4, paddingVertical: 8, borderTopWidth: 1, borderTopColor: t.border },
-  bookBtnText: { fontSize: 13, fontWeight: '700', color: '#2563eb' },
+  cardHours: { fontSize: 11, color: t.subText },
+  cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6, paddingTop: 8, borderTopWidth: 1, borderTopColor: t.border },
+  viewDetails: { fontSize: 12, fontWeight: '700', color: t.accent },
+  verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#dcfce7', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999 },
+  verifiedText: { fontSize: 11, fontWeight: '600', color: '#16a34a' },
 });

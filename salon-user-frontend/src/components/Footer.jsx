@@ -11,7 +11,7 @@ function Footer() {
               <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
                 <span className="text-white text-base">✂</span>
               </div>
-              <span className="text-xl font-bold text-white">SmartSalon</span>
+              <span className="text-xl font-bold text-white">MySalonBookings</span>
             </div>
             <p className="text-slate-400 text-sm leading-relaxed max-w-xs">
               Discover top-rated salons near you and book appointments in seconds. Your perfect look is just a tap away.

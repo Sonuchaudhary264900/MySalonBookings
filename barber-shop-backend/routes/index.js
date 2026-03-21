@@ -156,7 +156,7 @@ router.get("/public/salons/nearby", asyncHandler(async (req, res) => {
 router.get("/public/salons/:salonId", validateObjectId("salonId"), asyncHandler(async (req, res) => {
   const Coupon = require("../models/Coupon");
   const Barber = require("../models/Barber");
-  const salon = await Salon.findById(req.params.salonId).lean();
+  const salon = await Salon.findById(req.params.salonId).populate("ownerId", "profilePhoto").lean();
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
   if (!salon.isApproved) return res.status(403).json({ success: false, message: "Salon not approved" });
   const now = new Date();
@@ -164,7 +164,8 @@ router.get("/public/salons/:salonId", validateObjectId("salonId"), asyncHandler(
     Coupon.countDocuments({ salonId: salon._id, isActive: true, $or: [{ validUntil: null }, { validUntil: { $gte: now } }] }),
     Barber.countDocuments({ salonId: salon._id, isActive: true }),
   ]);
-  res.json({ success: true, data: { ...salon, hasCoupons: couponCount > 0, hasBarbers: barberCount > 0 } });
+  const ownerPhoto = salon.ownerId?.profilePhoto || null;
+  res.json({ success: true, data: { ...salon, ownerPhoto, ownerId: undefined, hasCoupons: couponCount > 0, hasBarbers: barberCount > 0 } });
 }));
 
 // GET /public/salons/:salonId/services
@@ -1114,17 +1115,20 @@ router.get("/public/services/search", asyncHandler(async (req, res) => {
   }
 
   const salonIds = Object.keys(salonIdMap);
-  const salons = await Salon.find({
+  const rawSalons = await Salon.find({
     _id: { $in: salonIds },
     isApproved: true,
     isActive: true,
   })
-    .select("name address city phone photos logo coverPhoto averageRating totalReviews totalBookings workingHours category location")
+    .select("name address city phone photos logo coverPhoto averageRating totalReviews totalBookings workingHours category location ownerId")
+    .populate("ownerId", "profilePhoto")
     .lean();
 
-  // Attach matched service names to each salon
-  const salonsWithMatch = salons.map(s => ({
+  // Attach matched service names and ownerPhoto to each salon
+  const salonsWithMatch = rawSalons.map(s => ({
     ...s,
+    ownerPhoto: s.ownerId?.profilePhoto || null,
+    ownerId: undefined,
     matchedServices: salonIdMap[s._id.toString()] || [],
   }));
 
@@ -1134,6 +1138,70 @@ router.get("/public/services/search", asyncHandler(async (req, res) => {
 /* =====================================================
    PUSH TOKEN ROUTES
 ===================================================== */
+
+// POST /owner/referral/apply — apply a user referral code
+router.post("/owner/referral/apply", authenticateOwner, asyncHandler(async (req, res) => {
+  const Owner    = require("../models/Owner");
+  const Customer = require("../models/Customer");
+
+  const { code } = req.body;
+  if (!code || typeof code !== "string") {
+    return res.status(400).json({ success: false, message: "Referral code is required" });
+  }
+
+  const trimmed = code.trim().toUpperCase();
+  if (!/^MSB[0-9A-Z]{6}$/.test(trimmed)) {
+    return res.status(400).json({ success: false, message: "Invalid referral code format" });
+  }
+
+  // Check if owner already applied a code
+  const owner = await Owner.findById(req.owner._id).select("referredBy referralCode phone").lean();
+  if (owner.referredBy) {
+    return res.status(400).json({ success: false, message: "You have already applied a referral code" });
+  }
+
+  // Extract 6-char suffix and find matching customer by phone
+  const suffix = trimmed.slice(3); // last 6 digits of phone
+  const customers = await Customer.find({ phone: { $exists: true, $ne: null } })
+    .select("phone _id name").lean();
+
+  const matched = customers.find(c => {
+    const digits = (c.phone || "").replace(/\D/g, "");
+    return digits.slice(-6).toUpperCase() === suffix;
+  });
+
+  if (!matched) {
+    return res.status(404).json({ success: false, message: "Referral code not found. Please check and try again." });
+  }
+
+  // Prevent self-referral (owner phone matches customer phone)
+  const ownerDigits = (owner.phone || "").replace(/\D/g, "").slice(-6);
+  if (ownerDigits === suffix) {
+    return res.status(400).json({ success: false, message: "You cannot use your own referral code" });
+  }
+
+  await Owner.findByIdAndUpdate(req.owner._id, {
+    referredBy: matched._id,
+    referralCode: trimmed,
+    referralAppliedAt: new Date(),
+  });
+
+  res.json({ success: true, message: `Referral code applied successfully! Referred by ${matched.name || "a user"}.` });
+}));
+
+// GET /owner/referral/status — check if a referral code is already applied
+router.get("/owner/referral/status", authenticateOwner, asyncHandler(async (req, res) => {
+  const Owner = require("../models/Owner");
+  const owner = await Owner.findById(req.owner._id).select("referredBy referralCode referralAppliedAt").lean();
+  res.json({
+    success: true,
+    data: {
+      applied: !!owner.referredBy,
+      code: owner.referralCode || null,
+      appliedAt: owner.referralAppliedAt || null,
+    },
+  });
+}));
 
 // POST /owner/push-token — save/update owner's Expo push token
 router.post("/owner/push-token", authenticateOwner, asyncHandler(async (req, res) => {

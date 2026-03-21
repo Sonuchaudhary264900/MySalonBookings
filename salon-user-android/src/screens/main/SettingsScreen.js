@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Switch, Alert, ActivityIndicator, Image, TextInput,
+  Switch, Alert, ActivityIndicator, Image, TextInput, Share, Clipboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -70,12 +70,23 @@ function Divider() {
 
 export default function SettingsScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { isDark, theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
   const { languageName, setLanguageByName, t } = useLanguage();
   const styles = getStyles(theme);
   const { user, logout } = useAuth();
   const { unreadCount } = useNotifications();
 
+  const [expandedSection, setExpandedSection] = useState(null);
+  const toggleSection = (name) => setExpandedSection(prev => prev === name ? null : name);
+
+  // Collapse everything when leaving the screen
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('blur', () => {
+      setExpandedSection(null);
+      setCpStep(1); setCpOtp(''); setCpNewPw(''); setCpConfirm('');
+    });
+    return unsubscribe;
+  }, [navigation]);
   const [notif, setNotif] = useState(DEFAULT_NOTIF);
   const [notifLoaded, setNotifLoaded] = useState(false);
   const [timeFormat, setTimeFormat] = useState('12-hour');
@@ -180,6 +191,31 @@ export default function SettingsScreen({ navigation }) {
     );
   };
 
+  const referralCode = user?.phone
+    ? `MSB${user.phone.replace(/\D/g, '').slice(-6).toUpperCase()}`
+    : user?._id?.slice(-6).toUpperCase() || 'MSB000';
+
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message:
+          `Salon owners 👇\n\n` +
+          `Don't miss this 🚀\n` +
+          `Join MySalonBookings and start getting customers online instantly! 💼\n\n` +
+          `Grow your salon, manage bookings easily, and go digital today.\n\n` +
+          `❤️ Use my referral code and support me too\n\n` +
+          `💸 Referral Code: ${referralCode}\n` +
+          `🔗 https://owner.mysalonbookings.com`,
+        title: 'Join MySalonBookings',
+      });
+    } catch {}
+  };
+
+  const handleCopyCode = () => {
+    Clipboard.setString(referralCode);
+    showSuccess('Copied!', 'Referral code copied to clipboard.');
+  };
+
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
       { text: 'Cancel', style: 'cancel' },
@@ -216,32 +252,32 @@ export default function SettingsScreen({ navigation }) {
     <View style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <View style={styles.decorCircle1} />
-        <View style={styles.decorCircle2} />
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.headerTitle}>Settings</Text>
             <Text style={styles.headerSub}>Manage your preferences</Text>
           </View>
-          <TouchableOpacity
-            style={styles.menuBtn}
-            onPress={() => navigation.getParent()?.navigate('HomeTab', { screen: 'Notifications' })}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Ionicons name="notifications-outline" size={24} color="#fff" />
-            {unreadCount > 0 && (
-              <View style={styles.notifBadge}>
-                <Text style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.menuBtn}
-            onPress={() => navigation.getParent('DrawerNav')?.openDrawer()}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Ionicons name="menu" size={26} color="#fff" />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 4 }}>
+            <TouchableOpacity
+              style={styles.menuBtn}
+              onPress={() => navigation.getParent()?.navigate('HomeTab', { screen: 'Notifications' })}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="notifications-outline" size={20} color={theme.subText} />
+              {unreadCount > 0 && (
+                <View style={styles.notifBadge}>
+                  <Text style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuBtn}
+              onPress={() => navigation.getParent('DrawerNav')?.openDrawer()}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="menu" size={22} color={theme.subText} />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -265,200 +301,233 @@ export default function SettingsScreen({ navigation }) {
           </View>
         </TouchableOpacity>
 
-        {/* APPEARANCE */}
-        <SectionHeader title={t('appearance')} />
-        <Card>
-          <SettingRow
-            icon="moon-outline"
-            iconColor="#6366f1"
-            label={t('darkMode')}
-            sublabel={isDark ? t('darkEnabled') : t('lightEnabled')}
-            rightEl={<Switch value={isDark} onValueChange={toggleTheme} trackColor={{ false: '#d1d5db', true: '#818cf8' }} thumbColor={isDark ? '#6366f1' : '#fff'} />}
-          />
-        </Card>
-
-        {/* NOTIFICATIONS */}
-        <SectionHeader title={t('notifications')} />
-        <Card>
-          {notifLoaded ? (
-            <>
-              <SettingRow
-                icon="alarm-outline"
-                iconColor="#f59e0b"
-                label="Booking Reminders"
-                sublabel="Get reminded before your appointment"
-                rightEl={<Switch value={notif.bookingReminders} onValueChange={v => saveNotif('bookingReminders', v)} trackColor={{ false: '#d1d5db', true: '#fcd34d' }} thumbColor={notif.bookingReminders ? '#f59e0b' : '#fff'} />}
-              />
-              <Divider />
-              <SettingRow
-                icon="checkmark-circle-outline"
-                iconColor="#10b981"
-                label="Booking Confirmations"
-                sublabel="Alerts when a booking is confirmed"
-                rightEl={<Switch value={notif.confirmationAlerts} onValueChange={v => saveNotif('confirmationAlerts', v)} trackColor={{ false: '#d1d5db', true: '#6ee7b7' }} thumbColor={notif.confirmationAlerts ? '#10b981' : '#fff'} />}
-              />
-              <Divider />
-              <SettingRow
-                icon="close-circle-outline"
-                iconColor="#ef4444"
-                label="Cancellation Alerts"
-                sublabel="Alerts when a booking is cancelled"
-                rightEl={<Switch value={notif.cancellationAlerts} onValueChange={v => saveNotif('cancellationAlerts', v)} trackColor={{ false: '#d1d5db', true: '#fca5a5' }} thumbColor={notif.cancellationAlerts ? '#ef4444' : '#fff'} />}
-              />
-              <Divider />
-              <SettingRow
-                icon="pricetag-outline"
-                iconColor="#8b5cf6"
-                label="Offers & Promotions"
-                sublabel="Deals, discounts, and special offers"
-                rightEl={<Switch value={notif.promotionalOffers} onValueChange={v => saveNotif('promotionalOffers', v)} trackColor={{ false: '#d1d5db', true: '#c4b5fd' }} thumbColor={notif.promotionalOffers ? '#8b5cf6' : '#fff'} />}
-              />
-            </>
-          ) : (
-            <View style={{ padding: 16, alignItems: 'center' }}>
-              <ActivityIndicator color="#2563eb" />
+        {/* NOTIFICATION SETTINGS */}
+        <View style={styles.accordionCard}>
+          <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('notifications')} activeOpacity={0.7}>
+            <View style={styles.accordionHeaderLeft}>
+              <View style={[styles.iconBox, { backgroundColor: '#f59e0b18' }]}>
+                <Ionicons name="notifications-outline" size={18} color="#f59e0b" />
+              </View>
+              <Text style={styles.accordionHeaderTitle}>Notification Settings</Text>
+            </View>
+            <Ionicons name={expandedSection === 'notifications' ? 'chevron-up' : 'chevron-down'} size={18} color={theme.subText} />
+          </TouchableOpacity>
+          {expandedSection === 'notifications' && (
+            <View style={styles.accordionBody}>
+              {notifLoaded ? (
+                <>
+                  <SettingRow icon="alarm-outline" iconColor="#f59e0b" label="Booking Reminders" sublabel="Get reminded before your appointment" rightEl={<Switch value={notif.bookingReminders} onValueChange={v => saveNotif('bookingReminders', v)} trackColor={{ false: '#d1d5db', true: '#fcd34d' }} thumbColor={notif.bookingReminders ? '#f59e0b' : '#fff'} />} />
+                  <Divider />
+                  <SettingRow icon="checkmark-circle-outline" iconColor="#10b981" label="Booking Confirmations" sublabel="Alerts when a booking is confirmed" rightEl={<Switch value={notif.confirmationAlerts} onValueChange={v => saveNotif('confirmationAlerts', v)} trackColor={{ false: '#d1d5db', true: '#6ee7b7' }} thumbColor={notif.confirmationAlerts ? '#10b981' : '#fff'} />} />
+                  <Divider />
+                  <SettingRow icon="close-circle-outline" iconColor="#ef4444" label="Cancellation Alerts" sublabel="Alerts when a booking is cancelled" rightEl={<Switch value={notif.cancellationAlerts} onValueChange={v => saveNotif('cancellationAlerts', v)} trackColor={{ false: '#d1d5db', true: '#fca5a5' }} thumbColor={notif.cancellationAlerts ? '#ef4444' : '#fff'} />} />
+                  <Divider />
+                  <SettingRow icon="pricetag-outline" iconColor="#8b5cf6" label="Offers & Promotions" sublabel="Deals, discounts, and special offers" rightEl={<Switch value={notif.promotionalOffers} onValueChange={v => saveNotif('promotionalOffers', v)} trackColor={{ false: '#d1d5db', true: '#c4b5fd' }} thumbColor={notif.promotionalOffers ? '#8b5cf6' : '#fff'} />} />
+                </>
+              ) : (
+                <View style={{ padding: 16, alignItems: 'center' }}><ActivityIndicator color={theme.accent} /></View>
+              )}
             </View>
           )}
-        </Card>
+        </View>
 
         {/* APP PREFERENCES */}
-        <SectionHeader title={t('appPreferences')} />
-        <Card>
-          <SettingRow
-            icon="language-outline"
-            iconColor="#2563eb"
-            label={t('language')}
-            rightEl={<Text style={styles.valueText}>{languageName}</Text>}
-            onPress={() => showPicker('Select Language', LANGUAGES, languageName, async val => {
-              await setLanguageByName(val);
-            })}
-            chevron
-          />
-          <Divider />
-          <SettingRow
-            icon="time-outline"
-            iconColor="#0891b2"
-            label={t('timeFormat')}
-            rightEl={<Text style={styles.valueText}>{timeFormat}</Text>}
-            onPress={() => showPicker('Select Time Format', TIME_FORMATS, timeFormat, async val => {
-              setTimeFormat(val);
-              await saveAppPref('timeFormat', val);
-            })}
-            chevron
-          />
-          <Divider />
-          <SettingRow
-            icon="calendar-outline"
-            iconColor="#059669"
-            label={t('dateFormat')}
-            rightEl={<Text style={styles.valueText}>{dateFormat}</Text>}
-            onPress={() => showPicker('Select Date Format', DATE_FORMATS, dateFormat, async val => {
-              setDateFormat(val);
-              await saveAppPref('dateFormat', val);
-            })}
-            chevron
-          />
-        </Card>
-
-        {/* PRIVACY & SECURITY */}
-        {/* CHANGE PASSWORD */}
-        <SectionHeader title="Change Password" />
-        <Card>
-          {cpStep === 1 ? (
-            <View style={{ padding: 4, gap: 10 }}>
-              <Text style={[styles.rowSublabel, { marginBottom: 4 }]}>
-                An OTP will be sent to your registered phone number
-              </Text>
-              <TouchableOpacity
-                style={[styles.cpBtn, cpLoading && { opacity: 0.7 }]}
-                onPress={handleCpSendOtp}
-                disabled={cpLoading}
-              >
-                {cpLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.cpBtnText}>Send OTP to Phone</Text>}
-              </TouchableOpacity>
+        <View style={styles.accordionCard}>
+          <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('preferences')} activeOpacity={0.7}>
+            <View style={styles.accordionHeaderLeft}>
+              <View style={[styles.iconBox, { backgroundColor: '#2563eb18' }]}>
+                <Ionicons name="settings-outline" size={18} color="#2563eb" />
+              </View>
+              <Text style={styles.accordionHeaderTitle}>{t('appPreferences')}</Text>
             </View>
-          ) : (
-            <View style={{ padding: 4, gap: 10 }}>
-              <Text style={[styles.rowSublabel, { marginBottom: 2 }]}>OTP sent to {user?.phone}</Text>
-              <View style={styles.cpInputRow}>
-                <Ionicons name="key-outline" size={16} color="#6b7280" style={{ marginRight: 8 }} />
-                <TextInput style={styles.cpInput} placeholder="Enter OTP" placeholderTextColor="#9ca3af" keyboardType="number-pad" maxLength={6} value={cpOtp} onChangeText={setCpOtp} editable={!cpLoading} />
-              </View>
-              <View style={styles.cpInputRow}>
-                <Ionicons name="lock-closed-outline" size={16} color="#6b7280" style={{ marginRight: 8 }} />
-                <TextInput style={[styles.cpInput, { flex: 1 }]} placeholder="New password" placeholderTextColor="#9ca3af" secureTextEntry={!cpShowPw} value={cpNewPw} onChangeText={setCpNewPw} editable={!cpLoading} />
-                <TouchableOpacity onPress={() => setCpShowPw(!cpShowPw)}>
-                  <Ionicons name={cpShowPw ? 'eye-off-outline' : 'eye-outline'} size={18} color="#9ca3af" />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.cpInputRow}>
-                <Ionicons name="lock-closed-outline" size={16} color="#6b7280" style={{ marginRight: 8 }} />
-                <TextInput style={styles.cpInput} placeholder="Confirm password" placeholderTextColor="#9ca3af" secureTextEntry value={cpConfirm} onChangeText={setCpConfirm} editable={!cpLoading} />
-              </View>
-              <TouchableOpacity style={[styles.cpBtn, cpLoading && { opacity: 0.7 }]} onPress={handleCpReset} disabled={cpLoading}>
-                {cpLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.cpBtnText}>Reset Password</Text>}
-              </TouchableOpacity>
-              <TouchableOpacity style={{ alignItems: 'center', opacity: cpTimer > 0 ? 0.5 : 1 }} onPress={cpTimer === 0 ? handleCpSendOtp : undefined} disabled={cpTimer > 0}>
-                <Text style={{ fontSize: 13, color: '#2563eb' }}>{cpTimer > 0 ? `Resend OTP in ${cpTimer}s` : 'Resend OTP'}</Text>
-              </TouchableOpacity>
+            <Ionicons name={expandedSection === 'preferences' ? 'chevron-up' : 'chevron-down'} size={18} color={theme.subText} />
+          </TouchableOpacity>
+          {expandedSection === 'preferences' && (
+            <View style={styles.accordionBody}>
+              <SettingRow icon="language-outline" iconColor="#2563eb" label={t('language')} rightEl={<Text style={styles.valueText}>{languageName}</Text>} onPress={() => showPicker('Select Language', LANGUAGES, languageName, async val => { await setLanguageByName(val); })} chevron />
+              <Divider />
+              <SettingRow icon="time-outline" iconColor="#0891b2" label={t('timeFormat')} rightEl={<Text style={styles.valueText}>{timeFormat}</Text>} onPress={() => showPicker('Select Time Format', TIME_FORMATS, timeFormat, async val => { setTimeFormat(val); await saveAppPref('timeFormat', val); })} chevron />
+              <Divider />
+              <SettingRow icon="calendar-outline" iconColor="#059669" label={t('dateFormat')} rightEl={<Text style={styles.valueText}>{dateFormat}</Text>} onPress={() => showPicker('Select Date Format', DATE_FORMATS, dateFormat, async val => { setDateFormat(val); await saveAppPref('dateFormat', val); })} chevron />
             </View>
           )}
-        </Card>
+        </View>
 
-        <SectionHeader title={t('privacySecurity')} />
-        <Card>
-          <View style={styles.privacyInfo}>
-            <Ionicons name="shield-checkmark-outline" size={22} color="#10b981" />
-            <Text style={styles.privacyText}>Your data is stored securely and never shared with third parties without your consent.</Text>
-          </View>
-          <Divider />
-          <View style={styles.privacyInfo}>
-            <Ionicons name="lock-closed-outline" size={22} color="#6366f1" />
-            <Text style={styles.privacyText}>All communication with our servers is encrypted using HTTPS.</Text>
-          </View>
-          <Divider />
-          <SettingRow
-            icon="document-text-outline"
-            iconColor="#6b7280"
-            label="Privacy Policy"
-            sublabel="View our data usage policy"
-            onPress={() => Alert.alert('Privacy Policy', 'We collect your name, phone, email, and booking data to provide our services. We do not sell your data to third parties.')}
-            chevron
-          />
-          <Divider />
-          <SettingRow
-            icon="trash-outline"
-            iconColor="#ef4444"
-            label="Delete Account"
-            sublabel="Permanently remove your account and data"
-            onPress={handleDeleteAccount}
-            rightEl={deletingAccount ? <ActivityIndicator size="small" color="#ef4444" /> : null}
-            chevron={!deletingAccount}
-          />
-        </Card>
+        {/* CHANGE PASSWORD */}
+        <View style={styles.accordionCard}>
+          <TouchableOpacity style={styles.accordionHeader} onPress={() => { toggleSection('password'); setCpStep(1); setCpOtp(''); setCpNewPw(''); setCpConfirm(''); }} activeOpacity={0.7}>
+            <View style={styles.accordionHeaderLeft}>
+              <View style={[styles.iconBox, { backgroundColor: '#6366f118' }]}>
+                <Ionicons name="lock-closed-outline" size={18} color="#6366f1" />
+              </View>
+              <Text style={styles.accordionHeaderTitle}>Change Password</Text>
+            </View>
+            <Ionicons name={expandedSection === 'password' ? 'chevron-up' : 'chevron-down'} size={18} color={theme.subText} />
+          </TouchableOpacity>
+          {expandedSection === 'password' && (
+            <View style={[styles.accordionBody, { padding: 14, gap: 10 }]}>
+              {cpStep === 1 ? (
+                <>
+                  <Text style={styles.rowSublabel}>An OTP will be sent to your registered phone number</Text>
+                  <TouchableOpacity style={[styles.cpBtn, cpLoading && { opacity: 0.7 }]} onPress={handleCpSendOtp} disabled={cpLoading}>
+                    {cpLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.cpBtnText}>Send OTP to Phone</Text>}
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.rowSublabel}>OTP sent to {user?.phone}</Text>
+                  <View style={styles.cpInputRow}>
+                    <Ionicons name="key-outline" size={16} color={theme.subText} style={{ marginRight: 8 }} />
+                    <TextInput style={styles.cpInput} placeholder="Enter OTP" placeholderTextColor={theme.placeholder} keyboardType="number-pad" maxLength={6} value={cpOtp} onChangeText={setCpOtp} editable={!cpLoading} />
+                  </View>
+                  <View style={styles.cpInputRow}>
+                    <Ionicons name="lock-closed-outline" size={16} color={theme.subText} style={{ marginRight: 8 }} />
+                    <TextInput style={[styles.cpInput, { flex: 1 }]} placeholder="New password" placeholderTextColor={theme.placeholder} secureTextEntry={!cpShowPw} value={cpNewPw} onChangeText={setCpNewPw} editable={!cpLoading} />
+                    <TouchableOpacity onPress={() => setCpShowPw(!cpShowPw)}>
+                      <Ionicons name={cpShowPw ? 'eye-off-outline' : 'eye-outline'} size={18} color={theme.subText} />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.cpInputRow}>
+                    <Ionicons name="lock-closed-outline" size={16} color={theme.subText} style={{ marginRight: 8 }} />
+                    <TextInput style={styles.cpInput} placeholder="Confirm password" placeholderTextColor={theme.placeholder} secureTextEntry value={cpConfirm} onChangeText={setCpConfirm} editable={!cpLoading} />
+                  </View>
+                  <TouchableOpacity style={[styles.cpBtn, cpLoading && { opacity: 0.7 }]} onPress={handleCpReset} disabled={cpLoading}>
+                    {cpLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.cpBtnText}>Reset Password</Text>}
+                  </TouchableOpacity>
+                  <TouchableOpacity style={{ alignItems: 'center', opacity: cpTimer > 0 ? 0.5 : 1 }} onPress={cpTimer === 0 ? handleCpSendOtp : undefined} disabled={cpTimer > 0}>
+                    <Text style={{ fontSize: 13, color: theme.accent }}>{cpTimer > 0 ? `Resend OTP in ${cpTimer}s` : 'Resend OTP'}</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          )}
+        </View>
 
-        {/* APP INFO */}
-        <SectionHeader title="About" />
-        <Card>
-          <SettingRow
-            icon="information-circle-outline"
-            iconColor="#2563eb"
-            label="App Version"
-            rightEl={<Text style={styles.valueText}>v1.0.0</Text>}
-          />
-          <SettingRow
-            icon="globe-outline"
-            iconColor="#2563eb"
-            label="Website"
-            rightEl={<Text style={styles.valueText}>mysalonbookings.com</Text>}
-          />
-        </Card>
+        {/* PRIVACY & SECURITY */}
+        <View style={styles.accordionCard}>
+          <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('privacy')} activeOpacity={0.7}>
+            <View style={styles.accordionHeaderLeft}>
+              <View style={[styles.iconBox, { backgroundColor: '#10b98118' }]}>
+                <Ionicons name="shield-checkmark-outline" size={18} color="#10b981" />
+              </View>
+              <Text style={styles.accordionHeaderTitle}>{t('privacySecurity')}</Text>
+            </View>
+            <Ionicons name={expandedSection === 'privacy' ? 'chevron-up' : 'chevron-down'} size={18} color={theme.subText} />
+          </TouchableOpacity>
+          {expandedSection === 'privacy' && (
+            <View style={styles.accordionBody}>
+              <View style={styles.privacyInfo}>
+                <Ionicons name="shield-checkmark-outline" size={22} color="#10b981" />
+                <Text style={styles.privacyText}>Your data is stored securely and never shared with third parties without your consent.</Text>
+              </View>
+              <Divider />
+              <View style={styles.privacyInfo}>
+                <Ionicons name="lock-closed-outline" size={22} color="#6366f1" />
+                <Text style={styles.privacyText}>All communication with our servers is encrypted using HTTPS.</Text>
+              </View>
+              <Divider />
+              <SettingRow icon="document-text-outline" iconColor="#6b7280" label="Privacy Policy" sublabel="View our data usage policy" onPress={() => Alert.alert('Privacy Policy', 'We collect your name, phone, email, and booking data to provide our services. We do not sell your data to third parties.')} chevron />
+              <Divider />
+              <SettingRow icon="trash-outline" iconColor="#ef4444" label="Delete Account" sublabel="Permanently remove your account and data" onPress={handleDeleteAccount} rightEl={deletingAccount ? <ActivityIndicator size="small" color="#ef4444" /> : null} chevron={!deletingAccount} />
+            </View>
+          )}
+        </View>
 
-        {/* Logout */}
-        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={20} color="#ef4444" />
-          <Text style={styles.logoutBtnText}>Logout</Text>
-        </TouchableOpacity>
+        {/* ABOUT */}
+        <View style={styles.accordionCard}>
+          <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('about')} activeOpacity={0.7}>
+            <View style={styles.accordionHeaderLeft}>
+              <View style={[styles.iconBox, { backgroundColor: '#2563eb18' }]}>
+                <Ionicons name="information-circle-outline" size={18} color="#2563eb" />
+              </View>
+              <Text style={styles.accordionHeaderTitle}>About</Text>
+            </View>
+            <Ionicons name={expandedSection === 'about' ? 'chevron-up' : 'chevron-down'} size={18} color={theme.subText} />
+          </TouchableOpacity>
+          {expandedSection === 'about' && (
+            <View style={styles.accordionBody}>
+              <SettingRow icon="code-slash-outline" iconColor="#2563eb" label="App Version" rightEl={<Text style={styles.valueText}>v1.0.0</Text>} />
+              <SettingRow icon="globe-outline" iconColor="#2563eb" label="Website" rightEl={<Text style={styles.valueText}>mysalonbookings.com</Text>} />
+            </View>
+          )}
+        </View>
+
+        {/* REFER & EARN */}
+        <View style={styles.accordionCard}>
+          <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('refer')} activeOpacity={0.7}>
+            <View style={styles.accordionHeaderLeft}>
+              <View style={[styles.iconBox, { backgroundColor: '#f59e0b18' }]}>
+                <Ionicons name="gift-outline" size={18} color="#f59e0b" />
+              </View>
+              <View>
+                <Text style={styles.accordionHeaderTitle}>Refer & Earn</Text>
+                <Text style={[styles.rowSublabel, { marginTop: 1 }]}>Earn ₹50 per referral</Text>
+              </View>
+            </View>
+            <Ionicons name={expandedSection === 'refer' ? 'chevron-up' : 'chevron-down'} size={18} color={theme.subText} />
+          </TouchableOpacity>
+
+          {expandedSection === 'refer' && (
+            <View style={[styles.accordionBody, { padding: 16, gap: 14 }]}>
+
+              {/* Reward banner */}
+              <View style={styles.referBanner}>
+                <Text style={styles.referBannerEmoji}>🎁</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.referBannerTitle}>Earn ₹50 for every salon you refer!</Text>
+                  <Text style={styles.referBannerSub}>
+                    Invite salon owners to join MySalonBookings and earn rewards when they get started.
+                  </Text>
+                </View>
+              </View>
+
+              {/* How it works */}
+              <View style={{ gap: 8 }}>
+                <Text style={[styles.rowLabel, { fontSize: 13 }]}>How it works</Text>
+                {[
+                  { icon: 'share-social-outline', color: '#2563eb', step: '1', text: 'Share your referral code with a salon owner' },
+                  { icon: 'storefront-outline',   color: '#10b981', step: '2', text: 'They sign up on the MySalonBookings owner app' },
+                  { icon: 'cash-outline',         color: '#8b5cf6', step: '3', text: 'You earn ₹50 once they qualify!' },
+                ].map(item => (
+                  <View key={item.step} style={styles.referStep}>
+                    <View style={[styles.referStepNum, { backgroundColor: item.color + '18' }]}>
+                      <Text style={[styles.referStepNumText, { color: item.color }]}>{item.step}</Text>
+                    </View>
+                    <Ionicons name={item.icon} size={16} color={item.color} />
+                    <Text style={styles.referStepText}>{item.text}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* Terms */}
+              <TouchableOpacity onPress={() => Alert.alert(
+                'Terms & Conditions',
+                '• The referred salon owner must register using your referral code.\n\n• The salon owner must actively use the MySalonBookings owner app for a minimum of 30 consecutive days.\n\n• ₹50 will be credited to your account once the 30-day qualifying period is complete.\n\n• Each referral code can be used once per salon.\n\n• MySalonBookings reserves the right to modify or cancel the referral program at any time.',
+              )}>
+                <Text style={styles.referTermsLink}>View Terms & Conditions</Text>
+              </TouchableOpacity>
+
+              {/* Referral code */}
+              <View style={styles.referCodeBox}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.referCodeLabel}>Your Referral Code</Text>
+                  <Text style={styles.referCode}>{referralCode}</Text>
+                </View>
+                <TouchableOpacity style={styles.referCopyBtn} onPress={handleCopyCode}>
+                  <Ionicons name="copy-outline" size={16} color={theme.accent} />
+                  <Text style={styles.referCopyText}>Copy</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Share button */}
+              <TouchableOpacity style={styles.referShareBtn} onPress={handleShare}>
+                <Ionicons name="share-social-outline" size={18} color="#fff" />
+                <Text style={styles.referShareBtnText}>Share & Invite Salon Owners</Text>
+              </TouchableOpacity>
+
+            </View>
+          )}
+        </View>
 
         <View style={{ height: 32 }} />
       </ScrollView>
@@ -468,15 +537,13 @@ export default function SettingsScreen({ navigation }) {
 
 const getStyles = (t) => StyleSheet.create({
   container: { flex: 1, backgroundColor: t.bg },
-  header: { backgroundColor: '#2563eb', paddingHorizontal: 16, paddingBottom: 20, paddingTop: 12, overflow: 'hidden' },
+  header: { backgroundColor: t.card, paddingHorizontal: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: t.border },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  menuBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
-  notifBadge: { position: 'absolute', top: 4, right: 4, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
+  menuBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: t.bg, alignItems: 'center', justifyContent: 'center' },
+  notifBadge: { position: 'absolute', top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: t.card },
   notifBadgeText: { color: '#fff', fontSize: 9, fontWeight: '700' },
-  decorCircle1: { position: 'absolute', width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.07)', top: -60, right: -30 },
-  decorCircle2: { position: 'absolute', width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.05)', bottom: -20, left: 20 },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  headerSub: { fontSize: 13, color: '#bfdbfe', marginTop: 2 },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: t.text },
+  headerSub: { fontSize: 13, color: t.subText, marginTop: 2 },
   profileCard: { backgroundColor: t.card, borderRadius: 16, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: t.border, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
   profileAvatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center' },
   profileAvatarImg: { width: 52, height: 52, borderRadius: 26 },
@@ -487,6 +554,11 @@ const getStyles = (t) => StyleSheet.create({
   scroll: { padding: 16, gap: 6 },
   sectionHeader: { fontSize: 11, fontWeight: '700', color: t.subText, textTransform: 'uppercase', letterSpacing: 0.6, marginTop: 10, marginBottom: 4, paddingLeft: 2 },
   card: { backgroundColor: t.card, borderRadius: 14, borderWidth: 1, borderColor: t.border, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1, overflow: 'hidden' },
+  accordionCard: { backgroundColor: t.card, borderRadius: 14, borderWidth: 1, borderColor: t.border, elevation: 1, overflow: 'hidden' },
+  accordionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 14 },
+  accordionHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  accordionHeaderTitle: { fontSize: 14, fontWeight: '600', color: t.text },
+  accordionBody: { borderTopWidth: 1, borderTopColor: t.border },
   settingRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
   iconBox: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   rowLabel: { fontSize: 14, fontWeight: '600', color: t.text },
@@ -501,4 +573,20 @@ const getStyles = (t) => StyleSheet.create({
   cpBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   cpInputRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: t.border, borderRadius: 10, paddingHorizontal: 12, height: 44, backgroundColor: t.card },
   cpInput: { flex: 1, fontSize: 14, color: t.text },
+  referBanner: { flexDirection: 'row', gap: 12, backgroundColor: '#fef3c7', borderRadius: 12, padding: 12, alignItems: 'flex-start', borderWidth: 1, borderColor: '#fde68a' },
+  referBannerEmoji: { fontSize: 28 },
+  referBannerTitle: { fontSize: 13, fontWeight: '700', color: '#92400e' },
+  referBannerSub: { fontSize: 12, color: '#78350f', marginTop: 3, lineHeight: 17 },
+  referStep: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  referStepNum: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  referStepNumText: { fontSize: 11, fontWeight: '800' },
+  referStepText: { fontSize: 13, color: t.text, flex: 1 },
+  referCodeBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: t.bg, borderRadius: 12, padding: 14, borderWidth: 1.5, borderColor: t.accent, borderStyle: 'dashed' },
+  referCodeLabel: { fontSize: 11, color: t.subText, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  referCode: { fontSize: 22, fontWeight: '800', color: t.accent, letterSpacing: 2, marginTop: 2 },
+  referCopyBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: t.accent + '18' },
+  referCopyText: { fontSize: 13, fontWeight: '700', color: t.accent },
+  referShareBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: t.accent, borderRadius: 12, height: 46 },
+  referShareBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  referTermsLink: { fontSize: 12, color: t.subText, textAlign: 'center', textDecorationLine: 'underline' },
 });

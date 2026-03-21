@@ -11,28 +11,27 @@ import { useAuth } from '../../context/AuthContext';
 import { showSuccess, showError } from '../../utils/toast';
 import { useTheme } from '../../context/ThemeContext';
 
-function Section({ title, children }) {
-  const { theme } = useTheme();
-  const styles = getStyles(theme);
+function InfoRow({ icon, label, value, theme, styles }) {
   return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={styles.sectionBody}>{children}</View>
+    <View style={styles.infoRow}>
+      <Ionicons name={icon} size={16} color={theme.subText} style={{ width: 22 }} />
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoValue} numberOfLines={1}>{value || '—'}</Text>
     </View>
   );
 }
 
-function InfoRow({ icon, label, value }) {
-  const { theme } = useTheme();
-  const styles = getStyles(theme);
+function SectionHeader({ icon, title, expanded, onPress, theme, styles }) {
   return (
-    <View style={styles.infoRow}>
-      <Ionicons name={icon} size={18} color="#6b7280" style={{ width: 26 }} />
-      <View style={{ flex: 1 }}>
-        <Text style={styles.infoLabel}>{label}</Text>
-        <Text style={styles.infoValue}>{value || '—'}</Text>
+    <TouchableOpacity style={styles.sectionHeader} onPress={onPress} activeOpacity={0.7}>
+      <View style={styles.sectionHeaderLeft}>
+        <View style={styles.sectionIconWrap}>
+          <Ionicons name={icon} size={18} color={theme.accent} />
+        </View>
+        <Text style={styles.sectionHeaderTitle}>{title}</Text>
       </View>
-    </View>
+      <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={theme.subText} />
+    </TouchableOpacity>
   );
 }
 
@@ -41,6 +40,20 @@ export default function ProfileScreen({ navigation }) {
   const { theme } = useTheme();
   const styles = getStyles(theme);
   const { user, isAuthenticated, logout, updateProfile, refreshUser } = useAuth();
+
+  const [expandedSection, setExpandedSection] = useState(null); // 'profile' | 'security' | 'about'
+  const toggleSection = (name) => setExpandedSection(prev => prev === name ? null : name);
+
+  // Collapse everything when leaving the screen
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('blur', () => {
+      setExpandedSection(null);
+      setEditing(false);
+      setCpStep(0);
+      setCpOtp(''); setCpNewPw(''); setCpConfirm('');
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const [editing, setEditing]             = useState(false);
   const [name, setName]                   = useState(user?.name || '');
@@ -167,162 +180,198 @@ export default function ProfileScreen({ navigation }) {
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-          <View style={styles.decorCircle1} />
-          <View style={styles.decorCircle2} />
-
-          {/* Avatar */}
-          <View style={styles.avatarContainer}>
-            <TouchableOpacity onPress={handlePickPhoto} disabled={uploadingPhoto}>
-              {uploadingPhoto ? (
-                <View style={[styles.avatar, { backgroundColor: '#dbeafe' }]}>
-                  <ActivityIndicator color="#2563eb" />
-                </View>
-              ) : user?.profilePhoto ? (
-                <Image source={{ uri: user.profilePhoto }} style={styles.avatarImg} />
-              ) : (
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarInitial}>{user?.name?.charAt(0)?.toUpperCase() || '?'}</Text>
-                </View>
-              )}
-              <View style={styles.cameraBtn}>
-                <Ionicons name="camera" size={14} color="#fff" />
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.userName}>{user?.name || 'User'}</Text>
-          <Text style={styles.userPhone}>{user?.phone || ''}</Text>
-          {user?.email && <Text style={styles.userEmail}>{user.email}</Text>}
+        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="arrow-back" size={20} color={theme.subText} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>My Profile</Text>
         </View>
 
-        <View style={{ padding: 16, gap: 14 }}>
-
-          {/* Profile Info / Edit */}
-          <Section title="Profile Information">
-            {!editing ? (
-              <>
-                <InfoRow icon="person-outline"   label="Full Name" value={user?.name} />
-                <InfoRow icon="call-outline"      label="Phone"     value={user?.phone} />
-                <InfoRow icon="mail-outline"      label="Email"     value={user?.email} />
-                <TouchableOpacity style={styles.editBtn} onPress={() => { setName(user?.name || ''); setEmail(user?.email || ''); setEditing(true); }}>
-                  <Ionicons name="create-outline" size={16} color="#2563eb" />
-                  <Text style={styles.editBtnText}>Edit Profile</Text>
-                </TouchableOpacity>
-              </>
+        {/* Compact avatar card */}
+        <View style={styles.profileCard}>
+          <TouchableOpacity onPress={handlePickPhoto} disabled={uploadingPhoto} style={styles.avatarWrap}>
+            {uploadingPhoto ? (
+              <View style={styles.avatar}><ActivityIndicator color={theme.accent} /></View>
+            ) : user?.profilePhoto ? (
+              <Image source={{ uri: user.profilePhoto }} style={styles.avatarImg} />
             ) : (
-              <>
-                <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>Full Name</Text>
-                  <View style={styles.inputRow}>
-                    <Ionicons name="person-outline" size={16} color="#6b7280" style={{ marginRight: 8 }} />
-                    <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Your name" placeholderTextColor="#9ca3af" editable={!saving} />
-                  </View>
-                </View>
-                <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>Email Address</Text>
-                  <View style={styles.inputRow}>
-                    <Ionicons name="mail-outline" size={16} color="#6b7280" style={{ marginRight: 8 }} />
-                    <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="your@email.com" placeholderTextColor="#9ca3af" keyboardType="email-address" autoCapitalize="none" editable={!saving} />
-                  </View>
-                </View>
-                <View style={{ flexDirection: 'row', gap: 10 }}>
-                  <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditing(false)} disabled={saving}>
-                    <Text style={styles.cancelBtnText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.saveBtn, saving && { opacity: 0.5 }]} onPress={handleSaveProfile} disabled={saving}>
-                    {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveBtnText}>Save Changes</Text>}
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
-          </Section>
-
-          {/* Change Password — OTP flow */}
-          <Section title="Security">
-            {cpStep === 0 && (
-              <TouchableOpacity style={styles.secRow} onPress={() => setCpStep(1)}>
-                <Ionicons name="lock-closed-outline" size={18} color="#6b7280" />
-                <Text style={styles.secRowText}>Change Password</Text>
-                <Ionicons name="chevron-forward" size={16} color="#9ca3af" style={{ marginLeft: 'auto' }} />
-              </TouchableOpacity>
-            )}
-
-            {cpStep === 1 && (
-              <>
-                <Text style={[styles.fieldLabel, { color: '#6b7280', marginBottom: 4 }]}>
-                  An OTP will be sent to {user?.phone} to verify your identity.
-                </Text>
-                <View style={{ flexDirection: 'row', gap: 10 }}>
-                  <TouchableOpacity style={styles.cancelBtn} onPress={() => setCpStep(0)} disabled={cpLoading}>
-                    <Text style={styles.cancelBtnText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.saveBtn, cpLoading && { opacity: 0.5 }]} onPress={handleCpSendOtp} disabled={cpLoading}>
-                    {cpLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveBtnText}>Send OTP</Text>}
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
-
-            {cpStep === 2 && (
-              <>
-                <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>OTP Code</Text>
-                  <View style={styles.inputRow}>
-                    <Ionicons name="key-outline" size={16} color="#6b7280" style={{ marginRight: 8 }} />
-                    <TextInput style={[styles.input, { flex: 1 }]} value={cpOtp} onChangeText={setCpOtp} placeholder="Enter OTP" placeholderTextColor="#9ca3af" keyboardType="number-pad" editable={!cpLoading} />
-                    {cpTimer > 0 ? (
-                      <Text style={{ fontSize: 12, color: '#6b7280' }}>{cpTimer}s</Text>
-                    ) : (
-                      <TouchableOpacity onPress={handleCpSendOtp} disabled={cpLoading}>
-                        <Text style={{ fontSize: 12, color: '#2563eb', fontWeight: '600' }}>Resend</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                </View>
-                <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>New Password</Text>
-                  <View style={styles.inputRow}>
-                    <Ionicons name="lock-closed-outline" size={16} color="#6b7280" style={{ marginRight: 8 }} />
-                    <TextInput style={[styles.input, { flex: 1 }]} value={cpNewPw} onChangeText={setCpNewPw} placeholder="Min 8 characters" placeholderTextColor="#9ca3af" secureTextEntry={!cpShowPw} editable={!cpLoading} />
-                  </View>
-                </View>
-                <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>Confirm New Password</Text>
-                  <View style={styles.inputRow}>
-                    <Ionicons name="lock-closed-outline" size={16} color="#6b7280" style={{ marginRight: 8 }} />
-                    <TextInput style={[styles.input, { flex: 1 }]} value={cpConfirm} onChangeText={setCpConfirm} placeholder="Re-enter new password" placeholderTextColor="#9ca3af" secureTextEntry={!cpShowPw} editable={!cpLoading} />
-                  </View>
-                </View>
-                <TouchableOpacity style={styles.showPwBtn} onPress={() => setCpShowPw(v => !v)}>
-                  <Ionicons name={cpShowPw ? 'eye-off-outline' : 'eye-outline'} size={14} color="#6b7280" />
-                  <Text style={styles.showPwText}>{cpShowPw ? 'Hide' : 'Show'} passwords</Text>
-                </TouchableOpacity>
-                <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
-                  <TouchableOpacity style={styles.cancelBtn} onPress={() => { setCpStep(0); setCpOtp(''); setCpNewPw(''); setCpConfirm(''); }} disabled={cpLoading}>
-                    <Text style={styles.cancelBtnText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.saveBtn, cpLoading && { opacity: 0.5 }]} onPress={handleCpReset} disabled={cpLoading}>
-                    {cpLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveBtnText}>Update Password</Text>}
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
-          </Section>
-
-          {/* App Info */}
-          <Section title="About">
-            {[
-              { icon: 'information-circle-outline', label: 'App Version', value: 'v1.0.0' },
-              { icon: 'globe-outline', label: 'Website', value: 'mysalonbookings.com' },
-            ].map(item => (
-              <View key={item.label} style={styles.secRow}>
-                <Ionicons name={item.icon} size={18} color="#6b7280" />
-                <Text style={styles.secRowText}>{item.label}</Text>
-                <Text style={styles.secRowValue}>{item.value}</Text>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarInitial}>{user?.name?.charAt(0)?.toUpperCase() || '?'}</Text>
               </View>
-            ))}
-          </Section>
+            )}
+            <View style={styles.cameraBtn}>
+              <Ionicons name="camera" size={12} color="#fff" />
+            </View>
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.userName}>{user?.name || 'User'}</Text>
+            <Text style={styles.userPhone}>{user?.phone || ''}</Text>
+            {user?.email ? <Text style={styles.userEmail} numberOfLines={1}>{user.email}</Text> : null}
+          </View>
+        </View>
+
+        <View style={{ padding: 12, gap: 10 }}>
+
+          {/* ── Profile Information (accordion) ── */}
+          <View style={styles.accordionCard}>
+            <SectionHeader
+              icon="person-circle-outline"
+              title="Profile Information"
+              expanded={expandedSection === 'profile'}
+              onPress={() => { toggleSection('profile'); setEditing(false); }}
+              theme={theme}
+              styles={styles}
+            />
+            {expandedSection === 'profile' && (
+              <View style={styles.accordionBody}>
+                {!editing ? (
+                  <>
+                    <InfoRow icon="person-outline" label="Full Name" value={user?.name} theme={theme} styles={styles} />
+                    <InfoRow icon="call-outline"   label="Phone"     value={user?.phone} theme={theme} styles={styles} />
+                    <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
+                      <Ionicons name="mail-outline" size={16} color={theme.subText} style={{ width: 22 }} />
+                      <Text style={styles.infoLabel}>Email</Text>
+                      <Text style={styles.infoValue} numberOfLines={1}>{user?.email || '—'}</Text>
+                    </View>
+                    <TouchableOpacity style={styles.editBtn} onPress={() => { setName(user?.name || ''); setEmail(user?.email || ''); setEditing(true); }}>
+                      <Ionicons name="create-outline" size={15} color={theme.accent} />
+                      <Text style={styles.editBtnText}>Edit Profile</Text>
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <View style={{ padding: 12, gap: 10 }}>
+                    <View style={styles.field}>
+                      <Text style={styles.fieldLabel}>Full Name</Text>
+                      <View style={styles.inputRow}>
+                        <Ionicons name="person-outline" size={15} color={theme.subText} style={{ marginRight: 8 }} />
+                        <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Your name" placeholderTextColor={theme.placeholder} editable={!saving} />
+                      </View>
+                    </View>
+                    <View style={styles.field}>
+                      <Text style={styles.fieldLabel}>Email Address</Text>
+                      <View style={styles.inputRow}>
+                        <Ionicons name="mail-outline" size={15} color={theme.subText} style={{ marginRight: 8 }} />
+                        <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="your@email.com" placeholderTextColor={theme.placeholder} keyboardType="email-address" autoCapitalize="none" editable={!saving} />
+                      </View>
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                      <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditing(false)} disabled={saving}>
+                        <Text style={styles.cancelBtnText}>Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={[styles.saveBtn, saving && { opacity: 0.5 }]} onPress={handleSaveProfile} disabled={saving}>
+                        {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveBtnText}>Save</Text>}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+
+          {/* ── Security (accordion) ── */}
+          <View style={styles.accordionCard}>
+            <SectionHeader
+              icon="shield-checkmark-outline"
+              title="Security"
+              expanded={expandedSection === 'security'}
+              onPress={() => { toggleSection('security'); setCpStep(0); setCpOtp(''); setCpNewPw(''); setCpConfirm(''); }}
+              theme={theme}
+              styles={styles}
+            />
+            {expandedSection === 'security' && (
+              <View style={styles.accordionBody}>
+                {cpStep === 0 && (
+                  <TouchableOpacity style={[styles.secRow, { borderBottomWidth: 0 }]} onPress={() => setCpStep(1)}>
+                    <Ionicons name="lock-closed-outline" size={16} color={theme.subText} />
+                    <Text style={styles.secRowText}>Change Password</Text>
+                    <Ionicons name="chevron-forward" size={15} color={theme.subText} style={{ marginLeft: 'auto' }} />
+                  </TouchableOpacity>
+                )}
+                {cpStep === 1 && (
+                  <View style={{ padding: 12, gap: 10 }}>
+                    <Text style={[styles.fieldLabel, { color: theme.subText }]}>
+                      An OTP will be sent to {user?.phone}.
+                    </Text>
+                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                      <TouchableOpacity style={styles.cancelBtn} onPress={() => setCpStep(0)} disabled={cpLoading}>
+                        <Text style={styles.cancelBtnText}>Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={[styles.saveBtn, cpLoading && { opacity: 0.5 }]} onPress={handleCpSendOtp} disabled={cpLoading}>
+                        {cpLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveBtnText}>Send OTP</Text>}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+                {cpStep === 2 && (
+                  <View style={{ padding: 12, gap: 10 }}>
+                    <View style={styles.field}>
+                      <Text style={styles.fieldLabel}>OTP Code</Text>
+                      <View style={styles.inputRow}>
+                        <Ionicons name="key-outline" size={15} color={theme.subText} style={{ marginRight: 8 }} />
+                        <TextInput style={[styles.input, { flex: 1 }]} value={cpOtp} onChangeText={setCpOtp} placeholder="Enter OTP" placeholderTextColor={theme.placeholder} keyboardType="number-pad" editable={!cpLoading} />
+                        {cpTimer > 0
+                          ? <Text style={{ fontSize: 12, color: theme.subText }}>{cpTimer}s</Text>
+                          : <TouchableOpacity onPress={handleCpSendOtp} disabled={cpLoading}><Text style={{ fontSize: 12, color: theme.accent, fontWeight: '600' }}>Resend</Text></TouchableOpacity>
+                        }
+                      </View>
+                    </View>
+                    <View style={styles.field}>
+                      <Text style={styles.fieldLabel}>New Password</Text>
+                      <View style={styles.inputRow}>
+                        <Ionicons name="lock-closed-outline" size={15} color={theme.subText} style={{ marginRight: 8 }} />
+                        <TextInput style={[styles.input, { flex: 1 }]} value={cpNewPw} onChangeText={setCpNewPw} placeholder="Min 8 characters" placeholderTextColor={theme.placeholder} secureTextEntry={!cpShowPw} editable={!cpLoading} />
+                      </View>
+                    </View>
+                    <View style={styles.field}>
+                      <Text style={styles.fieldLabel}>Confirm Password</Text>
+                      <View style={styles.inputRow}>
+                        <Ionicons name="lock-closed-outline" size={15} color={theme.subText} style={{ marginRight: 8 }} />
+                        <TextInput style={[styles.input, { flex: 1 }]} value={cpConfirm} onChangeText={setCpConfirm} placeholder="Re-enter password" placeholderTextColor={theme.placeholder} secureTextEntry={!cpShowPw} editable={!cpLoading} />
+                      </View>
+                    </View>
+                    <TouchableOpacity style={styles.showPwBtn} onPress={() => setCpShowPw(v => !v)}>
+                      <Ionicons name={cpShowPw ? 'eye-off-outline' : 'eye-outline'} size={13} color={theme.subText} />
+                      <Text style={styles.showPwText}>{cpShowPw ? 'Hide' : 'Show'} passwords</Text>
+                    </TouchableOpacity>
+                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                      <TouchableOpacity style={styles.cancelBtn} onPress={() => { setCpStep(0); setCpOtp(''); setCpNewPw(''); setCpConfirm(''); }} disabled={cpLoading}>
+                        <Text style={styles.cancelBtnText}>Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={[styles.saveBtn, cpLoading && { opacity: 0.5 }]} onPress={handleCpReset} disabled={cpLoading}>
+                        {cpLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveBtnText}>Update</Text>}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+
+          {/* ── About (accordion) ── */}
+          <View style={styles.accordionCard}>
+            <SectionHeader
+              icon="information-circle-outline"
+              title="About"
+              expanded={expandedSection === 'about'}
+              onPress={() => toggleSection('about')}
+              theme={theme}
+              styles={styles}
+            />
+            {expandedSection === 'about' && (
+              <View style={styles.accordionBody}>
+                {[
+                  { icon: 'code-slash-outline',  label: 'App Version', value: 'v1.0.0' },
+                  { icon: 'globe-outline',        label: 'Website',     value: 'mysalonbookings.com' },
+                ].map((item, i, arr) => (
+                  <View key={item.label} style={[styles.secRow, i === arr.length - 1 && { borderBottomWidth: 0 }]}>
+                    <Ionicons name={item.icon} size={16} color={theme.subText} />
+                    <Text style={styles.secRowText}>{item.label}</Text>
+                    <Text style={styles.secRowValue}>{item.value}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
 
           {/* Logout */}
           <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
@@ -337,43 +386,51 @@ export default function ProfileScreen({ navigation }) {
 
 const getStyles = (t) => StyleSheet.create({
   container: { flex: 1, backgroundColor: t.bg },
-  header: { backgroundColor: '#2563eb', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 28, paddingTop: 16, overflow: 'hidden' },
-  decorCircle1: { position: 'absolute', width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(255,255,255,0.07)', top: -80, right: -50 },
-  decorCircle2: { position: 'absolute', width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255,255,255,0.05)', top: 10, left: -50 },
-  avatarContainer: { marginBottom: 12 },
-  avatar: { width: 88, height: 88, borderRadius: 44, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center' },
-  avatarImg: { width: 88, height: 88, borderRadius: 44, borderWidth: 3, borderColor: 'rgba(255,255,255,0.5)' },
-  avatarInitial: { fontSize: 34, fontWeight: '800', color: '#fff' },
-  cameraBtn: { position: 'absolute', bottom: 2, right: 2, width: 26, height: 26, borderRadius: 13, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' },
-  userName: { fontSize: 20, fontWeight: '800', color: '#fff', marginBottom: 2 },
-  userPhone: { fontSize: 13, color: '#bfdbfe' },
-  userEmail: { fontSize: 12, color: '#93c5fd', marginTop: 1 },
-  section: { gap: 4 },
-  sectionTitle: { fontSize: 12, fontWeight: '700', color: t.subText, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, paddingLeft: 2 },
-  sectionBody: { backgroundColor: t.card, borderRadius: 14, padding: 14, gap: 12, borderWidth: 1, borderColor: t.border, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
-  infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  infoLabel: { fontSize: 11, color: t.subText, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3 },
-  infoValue: { fontSize: 14, color: t.text, marginTop: 1 },
-  editBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, borderTopWidth: 1, borderTopColor: t.border, marginTop: 4 },
-  editBtnText: { fontSize: 14, fontWeight: '700', color: '#2563eb' },
-  field: { gap: 6 },
-  fieldLabel: { fontSize: 13, fontWeight: '600', color: t.text },
-  inputRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: t.inputBorder, borderRadius: 10, paddingHorizontal: 12, height: 46 },
-  input: { flex: 1, fontSize: 14, color: t.text },
-  cancelBtn: { flex: 1, height: 44, borderRadius: 10, borderWidth: 1.5, borderColor: t.inputBorder, alignItems: 'center', justifyContent: 'center' },
-  cancelBtnText: { fontSize: 14, fontWeight: '600', color: t.subText },
-  saveBtn: { flex: 2, height: 44, borderRadius: 10, backgroundColor: '#2563eb', alignItems: 'center', justifyContent: 'center' },
-  saveBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
-  secRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
-  secRowText: { fontSize: 14, color: t.text, flex: 1 },
+  // Compact themed header
+  header: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: t.card, paddingHorizontal: 14, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: t.border },
+  backBtn: { width: 34, height: 34, borderRadius: 10, backgroundColor: t.bg, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontSize: 17, fontWeight: '700', color: t.text },
+  // Compact avatar card
+  profileCard: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: t.card, marginHorizontal: 12, marginTop: 12, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: t.border, elevation: 1 },
+  avatarWrap: { position: 'relative' },
+  avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center' },
+  avatarImg: { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: t.border },
+  avatarInitial: { fontSize: 26, fontWeight: '800', color: '#fff' },
+  cameraBtn: { position: 'absolute', bottom: 0, right: 0, width: 22, height: 22, borderRadius: 11, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: t.card },
+  userName: { fontSize: 16, fontWeight: '700', color: t.text },
+  userPhone: { fontSize: 13, color: t.subText, marginTop: 2 },
+  userEmail: { fontSize: 12, color: t.subText, marginTop: 1 },
+  // Accordion card
+  accordionCard: { backgroundColor: t.card, borderRadius: 14, borderWidth: 1, borderColor: t.border, overflow: 'hidden', elevation: 1 },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 14 },
+  sectionHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  sectionIconWrap: { width: 34, height: 34, borderRadius: 10, backgroundColor: t.bg, alignItems: 'center', justifyContent: 'center' },
+  sectionHeaderTitle: { fontSize: 14, fontWeight: '600', color: t.text },
+  accordionBody: { borderTopWidth: 1, borderTopColor: t.border },
+  // Compact single-line info row
+  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: t.border },
+  infoLabel: { fontSize: 13, color: t.subText, flex: 1 },
+  infoValue: { fontSize: 13, fontWeight: '600', color: t.text, maxWidth: '55%', textAlign: 'right' },
+  editBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10 },
+  editBtnText: { fontSize: 13, fontWeight: '700', color: t.accent },
+  field: { gap: 4 },
+  fieldLabel: { fontSize: 12, fontWeight: '600', color: t.subText },
+  inputRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: t.inputBorder, borderRadius: 10, paddingHorizontal: 10, height: 42 },
+  input: { flex: 1, fontSize: 13, color: t.text },
+  cancelBtn: { flex: 1, height: 40, borderRadius: 10, borderWidth: 1, borderColor: t.inputBorder, alignItems: 'center', justifyContent: 'center' },
+  cancelBtnText: { fontSize: 13, fontWeight: '600', color: t.subText },
+  saveBtn: { flex: 2, height: 40, borderRadius: 10, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center' },
+  saveBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  secRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: t.border },
+  secRowText: { fontSize: 13, color: t.text, flex: 1 },
   secRowValue: { fontSize: 12, color: t.subText },
-  showPwBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: -4 },
+  showPwBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   showPwText: { fontSize: 12, color: t.subText },
-  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: t.card, borderRadius: 14, height: 52, borderWidth: 1.5, borderColor: '#fca5a5', shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
-  logoutBtnText: { fontSize: 15, fontWeight: '700', color: '#ef4444' },
-  guestTitle: { fontSize: 18, fontWeight: '700', color: t.text, marginTop: 16, marginBottom: 4 },
-  signInBtn: { backgroundColor: '#2563eb', borderRadius: 12, paddingHorizontal: 32, paddingVertical: 12, marginTop: 16 },
-  signInBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  signUpLink: { marginTop: 12 },
-  signUpLinkText: { color: '#2563eb', fontWeight: '600', fontSize: 14 },
+  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: t.card, borderRadius: 12, height: 46, borderWidth: 1, borderColor: '#fca5a5', elevation: 1 },
+  logoutBtnText: { fontSize: 14, fontWeight: '700', color: '#ef4444' },
+  guestTitle: { fontSize: 17, fontWeight: '700', color: t.text, marginTop: 14, marginBottom: 4 },
+  signInBtn: { backgroundColor: t.accent, borderRadius: 12, paddingHorizontal: 32, paddingVertical: 12, marginTop: 14 },
+  signInBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  signUpLink: { marginTop: 10 },
+  signUpLinkText: { color: t.accent, fontWeight: '600', fontSize: 13 },
 });

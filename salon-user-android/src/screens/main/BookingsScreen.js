@@ -90,15 +90,20 @@ export default function BookingsScreen({ navigation }) {
   const styles = getStyles(theme);
   const { isAuthenticated } = useAuth();
   const { unreadCount } = useNotifications();
+  const PAGE_SIZE = 5;
   const [filter, setFilter]         = useState('All');
   const [bookings, setBookings]     = useState([]);
   const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [reviewBooking, setReviewBooking] = useState(null);
   const [reviewed, setReviewed]     = useState(new Set());
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   useFocusEffect(useCallback(() => {
     if (isAuthenticated) loadBookings();
+    return () => {
+      setVisibleCount(PAGE_SIZE);
+    };
   }, [isAuthenticated]));
 
   const loadBookings = async () => {
@@ -158,6 +163,8 @@ export default function BookingsScreen({ navigation }) {
     if (filter === 'Cancelled') return b.status === 'cancelled';
     return true;
   });
+  const visible = filtered.slice(0, visibleCount);
+  const hasMore = visibleCount < filtered.length;
 
   if (!isAuthenticated) {
     return (
@@ -240,32 +247,32 @@ export default function BookingsScreen({ navigation }) {
     <View style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <View style={styles.decorCircle1} />
-        <View style={styles.decorCircle2} />
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.headerTitle}>My Bookings</Text>
             <Text style={styles.headerSub}>{bookings.length} booking{bookings.length !== 1 ? 's' : ''} total</Text>
           </View>
-          <TouchableOpacity
-            style={styles.menuBtn}
-            onPress={() => navigation.getParent()?.navigate('HomeTab', { screen: 'Notifications' })}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Ionicons name="notifications-outline" size={24} color="#fff" />
-            {unreadCount > 0 && (
-              <View style={styles.notifBadge}>
-                <Text style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.menuBtn}
-            onPress={() => navigation.getParent('DrawerNav')?.openDrawer()}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Ionicons name="menu" size={26} color="#fff" />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 4 }}>
+            <TouchableOpacity
+              style={styles.menuBtn}
+              onPress={() => navigation.getParent()?.navigate('HomeTab', { screen: 'Notifications' })}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="notifications-outline" size={20} color={theme.subText} />
+              {unreadCount > 0 && (
+                <View style={styles.notifBadge}>
+                  <Text style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuBtn}
+              onPress={() => navigation.getParent('DrawerNav')?.openDrawer()}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="menu" size={22} color={theme.subText} />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -280,7 +287,7 @@ export default function BookingsScreen({ navigation }) {
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[styles.filterChip, filter === item && styles.filterChipActive]}
-              onPress={() => setFilter(item)}
+              onPress={() => { setFilter(item); setVisibleCount(PAGE_SIZE); }}
             >
               <Text style={[styles.filterChipText, filter === item && styles.filterChipTextActive]}>{item}</Text>
             </TouchableOpacity>
@@ -307,12 +314,26 @@ export default function BookingsScreen({ navigation }) {
         </View>
       ) : (
         <FlatList
-          data={filtered}
+          data={visible}
           keyExtractor={item => item._id}
           renderItem={renderBooking}
-          contentContainerStyle={{ padding: 16, gap: 12 }}
+          contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32 }}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#2563eb']} />}
+          ListFooterComponent={
+            hasMore ? (
+              <TouchableOpacity
+                style={styles.loadMoreBtn}
+                onPress={() => setVisibleCount(c => c + PAGE_SIZE)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.loadMoreText}>Load More</Text>
+                <Ionicons name="chevron-down" size={16} color={theme.accent} />
+              </TouchableOpacity>
+            ) : filtered.length > PAGE_SIZE ? (
+              <Text style={styles.allLoadedText}>All {filtered.length} bookings shown</Text>
+            ) : null
+          }
         />
       )}
 
@@ -327,14 +348,12 @@ export default function BookingsScreen({ navigation }) {
 
 const getStyles = (t) => StyleSheet.create({
   container: { flex: 1, backgroundColor: t.bg },
-  header: { backgroundColor: '#2563eb', paddingHorizontal: 16, paddingBottom: 20, paddingTop: 12, overflow: 'hidden' },
-  decorCircle1: { position: 'absolute', width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.07)', top: -60, right: -30 },
-  decorCircle2: { position: 'absolute', width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.05)', bottom: -20, left: 20 },
+  header: { backgroundColor: t.card, paddingHorizontal: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: t.border },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  headerSub: { fontSize: 13, color: '#bfdbfe', marginTop: 2 },
-  menuBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
-  notifBadge: { position: 'absolute', top: 4, right: 4, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: t.text },
+  headerSub: { fontSize: 13, color: t.subText, marginTop: 2 },
+  menuBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: t.bg, alignItems: 'center', justifyContent: 'center' },
+  notifBadge: { position: 'absolute', top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: t.card },
   notifBadgeText: { color: '#fff', fontSize: 9, fontWeight: '700' },
   filterRow: { backgroundColor: t.card, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: t.border },
   filterChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, backgroundColor: t.border, borderWidth: 1.5, borderColor: t.border },
@@ -375,4 +394,7 @@ const getStyles = (t) => StyleSheet.create({
   reviewCancelText: { fontSize: 14, fontWeight: '600', color: t.subText },
   reviewSubmitBtn: { flex: 2, height: 48, borderRadius: 12, backgroundColor: '#2563eb', alignItems: 'center', justifyContent: 'center' },
   reviewSubmitText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  loadMoreBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 8, paddingVertical: 14, borderRadius: 12, backgroundColor: t.card, borderWidth: 1, borderColor: t.border },
+  loadMoreText: { fontSize: 14, fontWeight: '700', color: t.accent },
+  allLoadedText: { textAlign: 'center', fontSize: 12, color: t.subText, marginTop: 12, paddingBottom: 8 },
 });

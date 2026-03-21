@@ -122,7 +122,10 @@ export default function SalonDetailsScreen({ route, navigation }) {
 
   const photo = salon?.photos?.[0] || salon?.coverPhoto || salon?.ownerPhoto;
   const rating = salon?.rating || salon?.averageRating || 0;
-  const salonPhotos = salon?.photos?.length ? salon.photos : [];
+  const basePhotos = salon?.photos?.length ? salon.photos : [];
+  const salonPhotos = salon?.ownerPhoto && !basePhotos.includes(salon.ownerPhoto)
+    ? [...basePhotos, salon.ownerPhoto]
+    : basePhotos;
   // Only show Reviews tab if there are reviews
   const TABS = reviews.length > 0 ? BASE_TABS : BASE_TABS.filter(t => t !== 'Reviews');
   // If active tab no longer exists (e.g. no reviews), fall back to Services
@@ -334,7 +337,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
               </View>
 
               {/* Gallery */}
-              {salonPhotos.length > 1 && (
+              {salonPhotos.length > 0 && (
                 <View style={styles.infoSection}>
                   <Text style={styles.infoSectionTitle}>Gallery ({salonPhotos.length})</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingTop: 4 }}>

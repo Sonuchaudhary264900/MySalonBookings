@@ -49,6 +49,7 @@ const Register = () => {
   const [regLoading, setRegLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [referralCode, setReferralCode] = useState('');
 
   // Firebase refs
   const recaptchaVerifierRef = useRef(null);
@@ -178,7 +179,17 @@ const Register = () => {
 
     setRegLoading(true);
     try {
-      await register(firebaseTokenRef.current, name.trim(), email.trim().toLowerCase(), password);
+      const { token } = await register(firebaseTokenRef.current, name.trim(), email.trim().toLowerCase(), password);
+      // Apply referral code silently if provided
+      if (referralCode.trim() && token) {
+        try {
+          await fetch(`${import.meta.env.VITE_API_URL || 'https://mysalonbookings.onrender.com/api/v1'}/owner/referral/apply`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ code: referralCode.trim() }),
+          });
+        } catch {}
+      }
       toast.success('Registration successful!');
       navigate(ROUTES.SALON_REGISTER);
     } catch (err) {
@@ -408,6 +419,25 @@ const Register = () => {
                   </button>
                 </div>
                 {confirmPasswordError && <p className="text-sm text-red-600">{confirmPasswordError}</p>}
+              </div>
+
+              {/* Optional Referral Code */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Referral Code <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🎁</span>
+                  <input
+                    type="text"
+                    value={referralCode}
+                    onChange={e => setReferralCode(e.target.value.toUpperCase())}
+                    placeholder="e.g. MSB123456"
+                    maxLength={9}
+                    className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm font-mono font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <p className="text-xs text-gray-400">Got a referral code from a MySalonBookings user? Enter it here.</p>
               </div>
 
               <Button

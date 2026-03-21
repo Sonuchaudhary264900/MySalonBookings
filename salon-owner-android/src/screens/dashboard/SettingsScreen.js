@@ -768,6 +768,90 @@ function ChangePasswordSection() {
   );
 }
 
+function ReferralSection() {
+  const { theme } = useTheme();
+  const [code, setCode]         = useState('');
+  const [loading, setLoading]   = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [applied, setApplied]   = useState(null); // { code, appliedAt }
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await api.get('/owner/referral/status');
+        if (res.data.data?.applied) setApplied(res.data.data);
+      } catch {}
+      finally { setChecking(false); }
+    })();
+  }, []);
+
+  const handleApply = async () => {
+    if (!code.trim()) { showError('Error', 'Please enter a referral code'); return; }
+    setLoading(true);
+    try {
+      const res = await api.post('/owner/referral/apply', { code: code.trim() });
+      showSuccess('Applied!', res.data.message);
+      setApplied({ code: code.trim().toUpperCase(), appliedAt: new Date().toISOString() });
+      setCode('');
+    } catch (err) {
+      showError('Invalid Code', err.response?.data?.message || 'Could not apply referral code.');
+    } finally { setLoading(false); }
+  };
+
+  if (checking) return <ActivityIndicator color={theme.accent} style={{ padding: 16 }} />;
+
+  if (applied) {
+    return (
+      <View style={[styles.referAppliedBox, { backgroundColor: '#dcfce7', borderColor: '#86efac' }]}>
+        <Ionicons name="checkmark-circle" size={26} color="#16a34a" />
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.referAppliedTitle, { color: '#15803d' }]}>Referral code applied!</Text>
+          <Text style={[styles.referAppliedCode, { color: '#166534' }]}>Code: {applied.code}</Text>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ gap: 12 }}>
+      <View style={[styles.referInfoBox, { backgroundColor: '#fef3c7', borderColor: '#fde68a' }]}>
+        <Text style={styles.referInfoEmoji}>🎁</Text>
+        <Text style={[styles.referInfoText, { color: '#92400e' }]}>
+          Got a referral code from a MySalonBookings user? Enter it below to help them earn rewards!
+        </Text>
+      </View>
+      <View style={[styles.referInputRow, { borderColor: theme.inputBorder, backgroundColor: theme.input }]}>
+        <Ionicons name="gift-outline" size={18} color={theme.subText} style={{ marginRight: 8 }} />
+        <TextInput
+          style={[styles.referInput, { color: theme.text, flex: 1 }]}
+          value={code}
+          onChangeText={t => setCode(t.toUpperCase())}
+          placeholder="e.g. MSB123456"
+          placeholderTextColor={theme.placeholder}
+          autoCapitalize="characters"
+          maxLength={9}
+          editable={!loading}
+        />
+      </View>
+      <TouchableOpacity
+        style={[styles.referApplyBtn, { backgroundColor: theme.accent }, loading && { opacity: 0.6 }]}
+        onPress={handleApply}
+        disabled={loading}
+      >
+        {loading
+          ? <ActivityIndicator color="#fff" size="small" />
+          : <Text style={styles.referApplyBtnText}>Apply Code</Text>}
+      </TouchableOpacity>
+      <TouchableOpacity onPress={() => Alert.alert(
+        'Terms & Conditions',
+        '• Enter the referral code shared by a MySalonBookings user.\n\n• You can only apply one referral code.\n\n• The referring user earns ₹50 after your salon actively uses the app for 30 consecutive days.\n\n• Codes cannot be transferred or reused.',
+      )}>
+        <Text style={[styles.referTermsLink, { color: theme.subText }]}>View Terms & Conditions</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 function PrivacySection() {
   const { theme } = useTheme();
   const { user, logout } = useAuth();
@@ -899,6 +983,10 @@ function SettingsSections({ salon, fetchSalon, resetKey }) {
         <ChangePasswordSection />
       </Section>
 
+      <Section resetKey={resetKey} title="Referral Code" subtitle="Apply a code from a friend" icon="gift-outline" iconBg="#fef3c7" iconColor="#d97706">
+        <ReferralSection />
+      </Section>
+
       <Section resetKey={resetKey} title={t('privacySecurity')} subtitle={t('privacySecuritySub')} icon="lock-closed-outline" iconBg="#fee2e2" iconColor="#dc2626">
         <PrivacySection />
       </Section>
@@ -990,6 +1078,17 @@ const styles = StyleSheet.create({
   addHolidayText: { fontSize: 13, color: '#2563eb', fontWeight: '600' },
   cancelBtn: { flex: 1, height: 46, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#d1d5db', marginTop: 8 },
   cancelBtnText: { fontSize: 14, fontWeight: '600', color: '#374151' },
+  referInfoBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, borderRadius: 10, padding: 12, borderWidth: 1 },
+  referInfoEmoji: { fontSize: 20 },
+  referInfoText: { flex: 1, fontSize: 13, lineHeight: 18 },
+  referInputRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, height: 46 },
+  referInput: { fontSize: 15, fontWeight: '700', letterSpacing: 2 },
+  referApplyBtn: { borderRadius: 10, height: 46, alignItems: 'center', justifyContent: 'center' },
+  referApplyBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  referTermsLink: { fontSize: 12, textAlign: 'center', textDecorationLine: 'underline' },
+  referAppliedBox: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 12, padding: 14, borderWidth: 1 },
+  referAppliedTitle: { fontSize: 14, fontWeight: '700' },
+  referAppliedCode: { fontSize: 13, fontWeight: '600', marginTop: 2, letterSpacing: 1 },
   privacyCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
   privacyCardIcon: { fontSize: 20 },
   privacyCardTitle: { fontSize: 13, fontWeight: '700', color: '#111827' },

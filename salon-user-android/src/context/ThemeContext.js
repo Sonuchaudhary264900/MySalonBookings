@@ -5,26 +5,32 @@ const THEME_KEY = '@userTheme';
 
 const LIGHT = {
   bg: '#f9fafb',
-  card: '#fff',
-  header: '#2563eb',
+  card: '#ffffff',
+  cardAlt: '#f3f4f6',
   text: '#111827',
   subText: '#6b7280',
-  border: '#f3f4f6',
-  input: '#f9fafb',
+  border: '#e5e7eb',
+  rowBorder: '#f3f4f6',
+  input: '#ffffff',
   inputBorder: '#d1d5db',
   placeholder: '#9ca3af',
+  accent: '#2563eb',
+  header: '#2563eb',
 };
 
 const DARK = {
-  bg: '#111827',
-  card: '#1f2937',
+  bg: '#0f172a',
+  card: '#1e293b',
+  cardAlt: '#162032',
+  text: '#f1f5f9',
+  subText: '#94a3b8',
+  border: '#334155',
+  rowBorder: '#1e293b',
+  input: '#1e293b',
+  inputBorder: '#475569',
+  placeholder: '#64748b',
+  accent: '#3b82f6',
   header: '#1e3a8a',
-  text: '#f9fafb',
-  subText: '#9ca3af',
-  border: '#374151',
-  input: '#374151',
-  inputBorder: '#4b5563',
-  placeholder: '#6b7280',
 };
 
 const ThemeContext = createContext(null);

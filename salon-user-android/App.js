@@ -202,8 +202,8 @@ function MainTabs() {
       screenOptions={({ route }) => ({
         headerShown: false,
         swipeEnabled: true,
-        tabBarActiveTintColor: '#2563eb',
-        tabBarInactiveTintColor: '#9ca3af',
+        tabBarActiveTintColor: theme.accent,
+        tabBarInactiveTintColor: theme.subText,
         tabBarStyle: {
           backgroundColor: theme.card,
           borderTopWidth: 1,
@@ -212,7 +212,7 @@ function MainTabs() {
           elevation: 8,
           shadowOpacity: 0.08,
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: 2, color: theme.subText },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: 2 },
         tabBarIndicatorStyle: { height: 0 }, // hide top indicator line
         tabBarIcon: ({ focused, color }) => {
           const icons = {
@@ -308,6 +308,17 @@ function RootNavigator() {
   );
 }
 
+function ThemedApp() {
+  const { isDark } = useTheme();
+  return (
+    <>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <RootNavigator />
+      <Toast />
+    </>
+  );
+}
+
 export default function App() {
   return (
     <SafeAreaProvider>
@@ -315,9 +326,7 @@ export default function App() {
         <LanguageProvider>
           <AuthProvider>
             <NotificationProvider>
-              <StatusBar style="light" />
-              <RootNavigator />
-              <Toast />
+              <ThemedApp />
             </NotificationProvider>
           </AuthProvider>
         </LanguageProvider>

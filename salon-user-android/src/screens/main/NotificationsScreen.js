@@ -67,15 +67,13 @@ export default function NotificationsScreen({ navigation }) {
     <View style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <View style={styles.decorCircle1} />
-        <View style={styles.decorCircle2} />
         <View style={styles.headerRow}>
           <TouchableOpacity
             style={styles.backBtn}
             onPress={() => navigation.goBack()}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Ionicons name="arrow-back" size={22} color="#fff" />
+            <Ionicons name="arrow-back" size={20} color={theme.subText} />
           </TouchableOpacity>
           <View style={{ flex: 1, marginLeft: 10 }}>
             <Text style={styles.headerTitle}>Notifications</Text>
@@ -84,13 +82,13 @@ export default function NotificationsScreen({ navigation }) {
           <View style={styles.headerActions}>
             {unreadCount > 0 && (
               <TouchableOpacity style={styles.headerBtn} onPress={markAllRead}>
-                <Ionicons name="checkmark-done-outline" size={16} color="#fff" />
+                <Ionicons name="checkmark-done-outline" size={16} color={theme.subText} />
                 <Text style={styles.headerBtnText}>Mark all read</Text>
               </TouchableOpacity>
             )}
             {notifications.length > 0 && (
               <TouchableOpacity style={[styles.headerBtn, styles.headerBtnDanger]} onPress={handleClearAll}>
-                <Ionicons name="trash-outline" size={16} color="#fca5a5" />
+                <Ionicons name="trash-outline" size={16} color="#ef4444" />
               </TouchableOpacity>
             )}
           </View>
@@ -121,17 +119,15 @@ export default function NotificationsScreen({ navigation }) {
 
 const getStyles = (t) => StyleSheet.create({
   container: { flex: 1, backgroundColor: t.bg },
-  header: { backgroundColor: '#2563eb', paddingHorizontal: 16, paddingBottom: 16, paddingTop: 12, overflow: 'hidden' },
-  decorCircle1: { position: 'absolute', width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.07)', top: -60, right: -30 },
-  decorCircle2: { position: 'absolute', width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.05)', bottom: -20, left: 20 },
+  header: { backgroundColor: t.card, paddingHorizontal: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: t.border },
   headerRow: { flexDirection: 'row', alignItems: 'center' },
-  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
-  headerSub: { fontSize: 12, color: '#bfdbfe', marginTop: 1 },
+  backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: t.bg, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: t.text },
+  headerSub: { fontSize: 12, color: t.subText, marginTop: 1 },
   headerActions: { flexDirection: 'row', gap: 8 },
-  headerBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
-  headerBtnText: { fontSize: 12, fontWeight: '600', color: '#fff' },
-  headerBtnDanger: { backgroundColor: 'rgba(239,68,68,0.25)' },
+  headerBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: t.bg, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: t.border },
+  headerBtnText: { fontSize: 12, fontWeight: '600', color: t.subText },
+  headerBtnDanger: { backgroundColor: t.bg, borderColor: '#fca5a5' },
   card: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: t.card, borderRadius: 12, padding: 14, marginBottom: 8, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1, position: 'relative' },
   cardUnread: { borderLeftWidth: 3, borderLeftColor: '#2563eb' },
   unreadDot: { position: 'absolute', top: 12, right: 38, width: 8, height: 8, borderRadius: 4, backgroundColor: '#2563eb' },

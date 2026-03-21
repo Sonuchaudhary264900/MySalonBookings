@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   TextInput, ActivityIndicator, Image, RefreshControl,
-  ScrollView, StatusBar,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,6 +27,28 @@ const SORT_KEYS = [
   { key: 'rated',   labelKey: 'sortTopRated',   icon: 'star-outline' },
 ];
 
+const DAYS = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+
+function isOpenNow(workingHours) {
+  if (!workingHours) return null;
+  const todayKey = DAYS[new Date().getDay()];
+  const h = workingHours[todayKey];
+  if (!h || h.isClosed || !h.open || !h.close) return false;
+  const now = new Date();
+  const nowM = now.getHours() * 60 + now.getMinutes();
+  const [oh, om] = h.open.split(':').map(Number);
+  const [ch, cm] = h.close.split(':').map(Number);
+  return nowM >= oh * 60 + om && nowM < ch * 60 + cm;
+}
+
+function getTodayHours(workingHours) {
+  if (!workingHours) return null;
+  const todayKey = DAYS[new Date().getDay()];
+  const h = workingHours[todayKey];
+  if (!h || h.isClosed || !h.open || !h.close) return null;
+  return `${h.open} – ${h.close}`;
+}
+
 function StarRating({ rating }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
@@ -44,6 +66,8 @@ function SalonCard({ salon, onPress, distance }) {
   const rating = salon.rating || salon.averageRating || 0;
   const reviewCount = salon.reviewCount || salon.totalReviews || 0;
   const category = (salon.category || 'salon').replace('_', ' ');
+  const openStatus = isOpenNow(salon.workingHours);
+  const todayHours = getTodayHours(salon.workingHours);
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.92}>
@@ -59,33 +83,71 @@ function SalonCard({ salon, onPress, distance }) {
         <View style={styles.categoryBadge}>
           <Text style={styles.categoryBadgeText}>{category}</Text>
         </View>
+        {salon.ownerPhoto && (
+          <View style={styles.ownerAvatarBadge}>
+            <Image source={{ uri: salon.ownerPhoto }} style={styles.ownerAvatarImg} />
+          </View>
+        )}
       </View>
 
       {/* Info */}
       <View style={styles.cardBody}>
         <Text style={styles.cardName} numberOfLines={1}>{salon.name}</Text>
 
-        <View style={styles.cardRow}>
-          <StarRating rating={rating} />
-          <Text style={styles.cardRating}>{rating > 0 ? rating.toFixed(1) : '—'}</Text>
-          {reviewCount > 0 && <Text style={styles.cardReviews}>({reviewCount})</Text>}
+        {/* Stars left — Open/Closed right */}
+        <View style={styles.cardRowSpread}>
+          <View style={styles.cardRow}>
+            <StarRating rating={rating} />
+            <Text style={styles.cardRating}>{rating > 0 ? rating.toFixed(1) : '—'}</Text>
+            {reviewCount > 0 && <Text style={styles.cardReviews}>({reviewCount})</Text>}
+          </View>
+          {openStatus !== null && (
+            <View style={[styles.openPill, { backgroundColor: openStatus ? '#dcfce7' : '#fee2e2' }]}>
+              <View style={[styles.openDot, { backgroundColor: openStatus ? '#16a34a' : '#dc2626' }]} />
+              <Text style={[styles.openPillText, { color: openStatus ? '#16a34a' : '#dc2626' }]}>
+                {openStatus ? 'Open' : 'Closed'}
+              </Text>
+            </View>
+          )}
         </View>
 
-        <View style={styles.cardRow}>
-          <Ionicons name="location-outline" size={13} color="#6b7280" />
-          <Text style={styles.cardAddress} numberOfLines={1}>
-            {salon.address || [salon.city, salon.state].filter(Boolean).join(', ') || 'Address not available'}
-          </Text>
+        {/* Address left — Hours right */}
+        <View style={styles.cardRowSpread}>
+          <View style={[styles.cardRow, { flex: 1, marginRight: 8 }]}>
+            <Ionicons name="location-outline" size={13} color={theme.subText} />
+            <Text style={styles.cardAddress} numberOfLines={1}>
+              {salon.address || [salon.city, salon.state].filter(Boolean).join(', ') || 'Address not available'}
+            </Text>
+          </View>
+          {todayHours && (
+            <View style={styles.cardRow}>
+              <Ionicons name="time-outline" size={12} color={theme.subText} />
+              <Text style={styles.cardHours}>{todayHours}</Text>
+            </View>
+          )}
         </View>
 
         {distance != null && (
           <View style={styles.cardRow}>
-            <Ionicons name="navigate-outline" size={13} color="#2563eb" />
+            <Ionicons name="navigate-outline" size={13} color={theme.accent} />
             <Text style={styles.cardDistance}>
               {distance < 1 ? `${Math.round(distance * 1000)} m away` : `${distance.toFixed(1)} km away`}
             </Text>
           </View>
         )}
+
+        <View style={styles.cardFooter}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Text style={styles.viewDetails}>Book Now</Text>
+              <Ionicons name="arrow-forward" size={13} color={theme.accent} />
+            </View>
+          {salon.isApproved && (
+            <View style={styles.verifiedBadge}>
+              <Ionicons name="checkmark-circle" size={12} color="#16a34a" />
+              <Text style={styles.verifiedText}>Verified</Text>
+            </View>
+          )}
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -172,9 +234,66 @@ export default function HomeScreen({ navigation }) {
     fetchSalons(key, userCoords);
   };
 
+  const sortByNearest = useCallback((list, coords) => {
+    if (!coords) return list;
+    return [...list].sort((a, b) => {
+      const da = a.location?.coordinates
+        ? haversineKm(coords.lat, coords.lng, a.location.coordinates[1], a.location.coordinates[0])
+        : 9999;
+      const db = b.location?.coordinates
+        ? haversineKm(coords.lat, coords.lng, b.location.coordinates[1], b.location.coordinates[0])
+        : 9999;
+      return da - db;
+    });
+  }, []);
+
+  const runSearch = useCallback(async (text, cat, coords) => {
+    if (!text.trim()) return;
+    setSearching(true);
+    try {
+      const params = new URLSearchParams({ q: text.trim(), limit: '50' });
+      if (coords) { params.append('latitude', coords.lat); params.append('longitude', coords.lng); }
+
+      const [salonRes, serviceRes] = await Promise.allSettled([
+        api.get(`/public/salons?${params.toString()}`),
+        api.get(`/public/services/search?q=${encodeURIComponent(text.trim())}`),
+      ]);
+
+      const salonData   = salonRes.status   === 'fulfilled' ? (salonRes.value.data.data?.salons   || []) : [];
+      const serviceData = serviceRes.status === 'fulfilled' ? (serviceRes.value.data.data?.salons || []) : [];
+
+      // merge & deduplicate (salon name match takes priority)
+      const seen = new Set();
+      const merged = [];
+      for (const s of [...salonData, ...serviceData]) {
+        const id = s._id?.toString();
+        if (id && !seen.has(id)) { seen.add(id); merged.push(s); }
+      }
+
+      const filtered = cat === 'all' ? merged : merged.filter(s => s.category === cat);
+      setSalons(sortByNearest(filtered, coords));
+    } catch {
+      const q = text.toLowerCase();
+      const localResults = allSalons.filter(s =>
+        s.name?.toLowerCase().includes(q) ||
+        s.address?.toLowerCase().includes(q) ||
+        s.city?.toLowerCase().includes(q)
+      );
+      const filtered = cat === 'all' ? localResults : localResults.filter(s => s.category === cat);
+      setSalons(sortByNearest(filtered, coords));
+    } finally {
+      setSearching(false);
+    }
+  }, [allSalons, sortByNearest]);
+
   const handleCategory = (cat) => {
     setCategory(cat);
-    setSalons(cat === 'all' ? allSalons : allSalons.filter(s => s.category === cat));
+    if (searchText.trim()) {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+      searchTimer.current = setTimeout(() => runSearch(searchText, cat, userCoords), 0);
+    } else {
+      setSalons(cat === 'all' ? allSalons : allSalons.filter(s => s.category === cat));
+    }
   };
 
   const handleSearch = useCallback((text) => {
@@ -184,25 +303,8 @@ export default function HomeScreen({ navigation }) {
       setSalons(category === 'all' ? allSalons : allSalons.filter(s => s.category === category));
       return;
     }
-    searchTimer.current = setTimeout(async () => {
-      setSearching(true);
-      try {
-        const res = await api.get(`/public/salons/search?q=${encodeURIComponent(text.trim())}`);
-        const data = res.data.data?.salons || res.data.data || [];
-        setSalons(data);
-      } catch {
-        // fallback to local filter
-        const q = text.toLowerCase();
-        setSalons(allSalons.filter(s =>
-          s.name?.toLowerCase().includes(q) ||
-          s.address?.toLowerCase().includes(q) ||
-          s.city?.toLowerCase().includes(q)
-        ));
-      } finally {
-        setSearching(false);
-      }
-    }, 400);
-  }, [allSalons, category]);
+    searchTimer.current = setTimeout(() => runSearch(text, category, userCoords), 400);
+  }, [allSalons, category, userCoords, runSearch]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -225,13 +327,10 @@ export default function HomeScreen({ navigation }) {
   );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#2563eb" />
+    <View style={styles.container}>
 
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.decorCircle1} />
-        <View style={styles.decorCircle2} />
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerTop}>
           <View style={{ flex: 1 }}>
             <Text style={styles.headerTitle}>{t('homeTitle')}</Text>
@@ -245,7 +344,7 @@ export default function HomeScreen({ navigation }) {
             onPress={toggleTheme}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={22} color="#fff" />
+            <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={20} color={theme.subText} />
           </TouchableOpacity>
           {/* Notification bell */}
           <TouchableOpacity
@@ -253,7 +352,7 @@ export default function HomeScreen({ navigation }) {
             onPress={() => navigation.navigate('Notifications')}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Ionicons name="notifications-outline" size={24} color="#fff" />
+            <Ionicons name="notifications-outline" size={20} color={theme.subText} />
             {unreadCount > 0 && (
               <View style={styles.notifBadge}>
                 <Text style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
@@ -267,7 +366,7 @@ export default function HomeScreen({ navigation }) {
             onPress={() => navigation.getParent('DrawerNav')?.openDrawer()}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Ionicons name="menu" size={26} color="#fff" />
+            <Ionicons name="menu" size={22} color={theme.subText} />
           </TouchableOpacity>
         </View>
 
@@ -293,107 +392,110 @@ export default function HomeScreen({ navigation }) {
       </View>
 
       <View style={styles.body}>
-        {/* Category chips */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chips} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
-          {CATEGORY_KEYS.map((c) => (
-            <TouchableOpacity
-              key={c.key}
-              style={[styles.chip, category === c.key && styles.chipActive]}
-              onPress={() => handleCategory(c.key)}
-            >
-              <Ionicons name={c.icon} size={14} color={category === c.key ? '#fff' : '#4b5563'} />
-              <Text style={[styles.chipText, category === c.key && styles.chipTextActive]}>{t(c.labelKey)}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Sort bar */}
-        {!searchText && (
-          <View style={styles.sortRow}>
-            {SORT_KEYS.map((s) => (
-              <TouchableOpacity
-                key={s.key}
-                style={[styles.sortBtn, sort === s.key && styles.sortBtnActive]}
-                onPress={() => handleSort(s.key)}
-                disabled={!userCoords}
+        <FlatList
+          data={loading ? [1,2,3,4] : salons}
+          keyExtractor={(item) => loading ? String(item) : item._id}
+          renderItem={loading ? () => <SkeletonCard /> : renderItem}
+          contentContainerStyle={{ padding: 16, gap: 12, paddingTop: 0 }}
+          showsVerticalScrollIndicator={false}
+          refreshControl={!loading ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#2563eb']} /> : undefined}
+          ListHeaderComponent={
+            <View>
+              {/* Category chips */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.chips}
+                contentContainerStyle={styles.chipsContent}
+                nestedScrollEnabled={true}
               >
-                <Ionicons name={s.icon} size={13} color={sort === s.key ? '#2563eb' : '#6b7280'} />
-                <Text style={[styles.sortText, sort === s.key && styles.sortTextActive]}>{t(s.labelKey)}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
+                {CATEGORY_KEYS.map((c) => {
+                  const active = category === c.key;
+                  return (
+                    <TouchableOpacity
+                      key={c.key}
+                      style={[styles.chip, active && styles.chipActive]}
+                      onPress={() => handleCategory(c.key)}
+                      activeOpacity={0.75}
+                    >
+                      <Ionicons name={c.icon} size={14} color={active ? '#fff' : theme.subText} />
+                      <Text style={[styles.chipText, active && styles.chipTextActive]}>{t(c.labelKey)}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
 
-        {/* Location denied notice */}
-        {locDenied && !searchText && (
-          <View style={styles.noLocBox}>
-            <Ionicons name="location-outline" size={20} color="#d97706" />
-            <Text style={styles.noLocText}>Location access denied. Use search to find salons.</Text>
-          </View>
-        )}
+              {/* Sort bar */}
+              {!searchText && (
+                <View style={styles.sortRow}>
+                  {SORT_KEYS.map((s) => (
+                    <TouchableOpacity
+                      key={s.key}
+                      style={[styles.sortBtn, sort === s.key && styles.sortBtnActive]}
+                      onPress={() => handleSort(s.key)}
+                      disabled={!userCoords}
+                    >
+                      <Ionicons name={s.icon} size={13} color={sort === s.key ? theme.accent : theme.subText} />
+                      <Text style={[styles.sortText, sort === s.key && styles.sortTextActive]}>{t(s.labelKey)}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
 
-        {/* Results count */}
-        {!loading && salons.length > 0 && (
-          <Text style={styles.resultsCount}>
-            {salons.length} salon{salons.length !== 1 ? 's' : ''} {searchText ? 'found' : 'nearby'}
-          </Text>
-        )}
+              {/* Location denied notice */}
+              {locDenied && !searchText && (
+                <View style={styles.noLocBox}>
+                  <Ionicons name="location-outline" size={20} color="#d97706" />
+                  <Text style={styles.noLocText}>Location access denied. Use search to find salons.</Text>
+                </View>
+              )}
 
-        {/* Salon list */}
-        {loading ? (
-          <FlatList
-            data={[1,2,3,4]}
-            keyExtractor={(i) => String(i)}
-            renderItem={() => <SkeletonCard />}
-            contentContainerStyle={{ padding: 16, gap: 12 }}
-          />
-        ) : salons.length === 0 ? (
-          <View style={styles.emptyBox}>
-            <Ionicons name="search-outline" size={48} color="#d1d5db" />
-            <Text style={styles.emptyTitle}>No salons found</Text>
-            <Text style={styles.emptyText}>
-              {searchText ? 'Try a different search term' : 'No salons available in your area yet'}
-            </Text>
-          </View>
-        ) : (
-          <FlatList
-            data={salons}
-            keyExtractor={(item) => item._id}
-            renderItem={renderItem}
-            contentContainerStyle={{ padding: 16, gap: 12 }}
-            showsVerticalScrollIndicator={false}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#2563eb']} />}
-          />
-        )}
+              {/* Results count */}
+              {!loading && salons.length > 0 && (
+                <Text style={styles.resultsCount}>
+                  {salons.length} salon{salons.length !== 1 ? 's' : ''} {searchText ? 'found' : 'nearby'}
+                </Text>
+              )}
+            </View>
+          }
+          ListEmptyComponent={!loading ? (
+            <View style={styles.emptyBox}>
+              <Ionicons name="search-outline" size={48} color="#d1d5db" />
+              <Text style={styles.emptyTitle}>No salons found</Text>
+              <Text style={styles.emptyText}>
+                {searchText ? 'Try a different search term' : 'No salons available in your area yet'}
+              </Text>
+            </View>
+          ) : null}
+        />
       </View>
     </View>
   );
 }
 
 const getStyles = (t) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#2563eb' },
-  header: { paddingHorizontal: 16, paddingBottom: 16, overflow: 'hidden' },
-  decorCircle1: { position: 'absolute', width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(255,255,255,0.06)', top: -80, right: -30 },
-  decorCircle2: { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.04)', bottom: -20, left: -20 },
+  container: { flex: 1, backgroundColor: t.bg },
+  header: { backgroundColor: t.card, paddingHorizontal: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: t.border },
   headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
-  headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
-  headerSub: { fontSize: 12, color: '#bfdbfe', marginTop: 2 },
-  menuBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
-  notifBadge: { position: 'absolute', top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: '#2563eb' },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: t.text },
+  headerSub: { fontSize: 12, color: t.subText, marginTop: 2 },
+  menuBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: t.bg, alignItems: 'center', justifyContent: 'center' },
+  notifBadge: { position: 'absolute', top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: t.card },
   notifBadgeText: { color: '#fff', fontSize: 9, fontWeight: '800' },
-  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: t.card, borderRadius: 12, paddingHorizontal: 12, height: 46, gap: 8, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, elevation: 3 },
+  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: t.bg, borderRadius: 12, paddingHorizontal: 12, height: 46, gap: 8, borderWidth: 1, borderColor: t.border },
   searchInput: { flex: 1, fontSize: 14, color: t.text },
-  body: { flex: 1, backgroundColor: t.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
-  chips: { paddingVertical: 12 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, backgroundColor: t.border, borderWidth: 1.5, borderColor: t.border },
-  chipActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
+  body: { flex: 1, backgroundColor: t.bg },
+  chips: { flexGrow: 0, flexShrink: 0, paddingVertical: 10 },
+  chipsContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingRight: 24 },
+  chip: { height: 36, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, borderRadius: 18, backgroundColor: t.card, borderWidth: 1, borderColor: t.border, marginRight: 8, flexShrink: 0 },
+  chipActive: { backgroundColor: t.accent, borderColor: t.accent },
   chipText: { fontSize: 12, fontWeight: '600', color: t.subText },
   chipTextActive: { color: '#fff' },
   sortRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 8, marginBottom: 4 },
-  sortBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 7, borderRadius: 8, backgroundColor: t.border, borderWidth: 1, borderColor: t.border },
-  sortBtnActive: { backgroundColor: '#dbeafe', borderColor: '#93c5fd' },
+  sortBtn: { flex: 1, height: 38, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, borderRadius: 8, backgroundColor: t.card, borderWidth: 1, borderColor: t.border },
+  sortBtnActive: { backgroundColor: t.card, borderColor: t.accent },
   sortText: { fontSize: 11, fontWeight: '600', color: t.subText },
-  sortTextActive: { color: '#2563eb' },
+  sortTextActive: { color: t.accent, fontWeight: '700' },
   noLocBox: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16, marginBottom: 8, backgroundColor: '#fef3c7', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#fde68a' },
   noLocText: { fontSize: 13, color: '#92400e', flex: 1 },
   resultsCount: { fontSize: 12, color: t.subText, paddingHorizontal: 16, marginBottom: 4 },
@@ -402,15 +504,26 @@ const getStyles = (t) => StyleSheet.create({
   emptyText: { fontSize: 14, color: t.subText, textAlign: 'center', lineHeight: 20 },
   card: { backgroundColor: t.card, borderRadius: 16, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2, borderWidth: 1, borderColor: t.border },
   cardImgWrapper: { position: 'relative' },
+  ownerAvatarBadge: { position: 'absolute', bottom: -16, left: 12, width: 34, height: 34, borderRadius: 17, borderWidth: 2, borderColor: t.card, overflow: 'hidden', elevation: 3 },
+  ownerAvatarImg: { width: '100%', height: '100%' },
   cardImg: { width: '100%', height: 160 },
   cardImgPlaceholder: { backgroundColor: '#dbeafe', alignItems: 'center', justifyContent: 'center' },
   categoryBadge: { position: 'absolute', top: 10, left: 10, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
   categoryBadgeText: { fontSize: 11, fontWeight: '700', color: '#fff', textTransform: 'capitalize' },
-  cardBody: { padding: 12, gap: 5 },
+  cardBody: { padding: 12, paddingTop: 22, gap: 5 },
   cardName: { fontSize: 16, fontWeight: '700', color: t.text },
   cardRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   cardRating: { fontSize: 12, fontWeight: '700', color: t.text },
   cardReviews: { fontSize: 12, color: t.subText },
   cardAddress: { fontSize: 12, color: t.subText, flex: 1 },
-  cardDistance: { fontSize: 12, color: '#2563eb', fontWeight: '600' },
+  cardDistance: { fontSize: 12, color: t.accent, fontWeight: '600' },
+  cardHours: { fontSize: 11, color: t.subText },
+  cardRowSpread: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  openPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999 },
+  openDot: { width: 6, height: 6, borderRadius: 3 },
+  openPillText: { fontSize: 11, fontWeight: '700' },
+  cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6, paddingTop: 8, borderTopWidth: 1, borderTopColor: t.border },
+  viewDetails: { fontSize: 12, fontWeight: '700', color: t.accent },
+  verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#dcfce7', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999 },
+  verifiedText: { fontSize: 11, fontWeight: '600', color: '#16a34a' },
 });

@@ -18,6 +18,7 @@ export default function RegisterScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [otp, setOtp] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -104,6 +105,14 @@ export default function RegisterScreen({ navigation }) {
       const { token, refreshToken } = res.data.data;
       await AsyncStorage.setItem('token', token);
       if (refreshToken) await AsyncStorage.setItem('refreshToken', refreshToken);
+
+      // Apply referral code if provided (silently — don't block registration)
+      if (referralCode.trim()) {
+        try {
+          await api.post('/owner/referral/apply', { code: referralCode.trim() });
+        } catch {}
+      }
+
       await refreshUser();
     } catch (err) {
       console.error('Register error:', err);
@@ -192,6 +201,24 @@ export default function RegisterScreen({ navigation }) {
                 <Text style={styles.hintText}>
                   Password must be 8+ chars with uppercase, lowercase, number & special character
                 </Text>
+              </View>
+
+              {/* Optional referral code */}
+              <View style={styles.field}>
+                <Text style={styles.label}>Referral Code <Text style={{ color: '#9ca3af', fontWeight: '400' }}>(optional)</Text></Text>
+                <View style={styles.inputRow}>
+                  <Ionicons name="gift-outline" size={18} color="#6b7280" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g. MSB123456"
+                    placeholderTextColor="#9ca3af"
+                    value={referralCode}
+                    onChangeText={t => setReferralCode(t.toUpperCase())}
+                    maxLength={9}
+                    autoCapitalize="characters"
+                    editable={!loading}
+                  />
+                </View>
               </View>
 
               <TouchableOpacity
