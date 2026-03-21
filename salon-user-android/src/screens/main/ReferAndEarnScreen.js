@@ -19,9 +19,9 @@ function generateCode(user) {
 }
 
 const HOW_IT_WORKS = [
-  { icon: 'share-social-outline', color: '#2563eb', title: 'Share your code', desc: 'Send your referral code to friends via WhatsApp, SMS, or any app.' },
-  { icon: 'person-add-outline',   color: '#7c3aed', title: 'Friend signs up',  desc: 'Your friend downloads the app and registers using your code.' },
-  { icon: 'gift-outline',         color: '#d97706', title: 'Both earn rewards', desc: 'You get ₹50 off your next booking and your friend gets ₹50 too!' },
+  { icon: 'share-social-outline', color: '#2563eb', title: 'Share your code',       desc: 'Send your referral code to a salon owner via WhatsApp, SMS, or any app.' },
+  { icon: 'storefront-outline',   color: '#7c3aed', title: 'Salon owner signs up',  desc: 'The salon owner registers on the MySalonBookings owner app using your code.' },
+  { icon: 'cash-outline',         color: '#d97706', title: 'You earn ₹50',          desc: 'Once the salon owner qualifies, ₹50 is credited to your account!' },
 ];
 
 export default function ReferAndEarnScreen({ navigation }) {
@@ -32,7 +32,14 @@ export default function ReferAndEarnScreen({ navigation }) {
   const [copied, setCopied] = useState(false);
 
   const referralCode = generateCode(user);
-  const shareMessage = `Hey! Book your next salon appointment with My Salon Bookings. Use my referral code ${referralCode} to get ₹50 off your first booking!\n\nDownload the app now.`;
+  const shareMessage =
+    `Salon owners 👇\n\n` +
+    `Don't miss this 🚀\n` +
+    `Join MySalonBookings and start getting customers online instantly! 💼\n\n` +
+    `Grow your salon, manage bookings easily, and go digital today.\n\n` +
+    `❤️ Use my referral code and support me too\n\n` +
+    `💸 Referral Code: ${referralCode}\n` +
+    `🔗 https://owner.mysalonbookings.com`;
 
   const handleCopy = () => {
     Clipboard.setString(referralCode);
@@ -68,9 +75,9 @@ export default function ReferAndEarnScreen({ navigation }) {
           <View style={styles.heroIconWrap}>
             <Ionicons name="gift" size={44} color="#fff" />
           </View>
-          <Text style={styles.heroTitle}>Invite friends, earn ₹50!</Text>
+          <Text style={styles.heroTitle}>Refer a salon, earn ₹50!</Text>
           <Text style={styles.heroSub}>
-            Share your referral code. When a friend books their first appointment, you both get ₹50 off!
+            Invite salon owners to join MySalonBookings. When they qualify, you earn ₹50!
           </Text>
         </View>
 
@@ -92,7 +99,7 @@ export default function ReferAndEarnScreen({ navigation }) {
           </View>
           <TouchableOpacity style={styles.shareBtn} onPress={handleShare} activeOpacity={0.85}>
             <Ionicons name="share-social-outline" size={18} color="#fff" />
-            <Text style={styles.shareBtnText}>Share with Friends</Text>
+            <Text style={styles.shareBtnText}>Share &amp; Invite Salon Owners</Text>
           </TouchableOpacity>
         </View>
 
@@ -116,7 +123,7 @@ export default function ReferAndEarnScreen({ navigation }) {
         <View style={styles.terms}>
           <Ionicons name="information-circle-outline" size={14} color={theme.subText} />
           <Text style={styles.termsText}>
-            Rewards are credited after your referred friend completes their first booking. Valid for new users only. Terms apply.
+            The referred salon owner must register using your code and actively use the app for 30 days. ₹50 is credited once they qualify. Each code is valid once per salon. Terms may change.
           </Text>
         </View>
       </ScrollView>
