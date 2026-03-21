@@ -4,6 +4,7 @@ import {
   Globe, Bell, Settings, Lock, User, Calendar, CalendarX,
   Save, Edit2, X, ChevronDown, ChevronUp, Plus,
   CheckCircle2, BellOff, Camera, Trash2, ImagePlus, GitBranch,
+  Eye, EyeOff,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -63,15 +64,24 @@ const Accordion = ({ id, activeId, onToggle, icon: Icon, iconBg, title, subtitle
 
 // ─── My Profile content ───────────────────────────────────────
 const ProfileContent = () => {
-  const { user, updateProfile, changePassword } = useAuth();
+  const { user, updateProfile } = useAuth();
   const { salon } = useSalon();
   const [editing, setEditing]     = useState(false);
   const [loading, setLoading]     = useState(false);
-  const [pwMode, setPwMode]       = useState(false);
+  const [pwStep, setPwStep]       = useState(1); // 1=send otp, 2=verify+reset
   const [pwLoading, setPwLoading] = useState(false);
+  const [pwTimer, setPwTimer]     = useState(0);
   const [form, setForm]   = useState({ name: '', email: '' });
-  const [pw, setPw]       = useState({ current: '', next: '', confirm: '' });
+  const [pw, setPw]       = useState({ otp: '', next: '', confirm: '' });
+  const [pwError, setPwError]     = useState('');
+  const [pwShowPw, setPwShowPw]   = useState(false);
   const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    if (pwTimer <= 0) return;
+    const id = setInterval(() => setPwTimer(t => t - 1), 1000);
+    return () => clearInterval(id);
+  }, [pwTimer]);
 
   useEffect(() => {
     if (user) setForm({ name: user.name || '', email: user.email || '' });
@@ -99,22 +109,33 @@ const ProfileContent = () => {
     } finally { setLoading(false); }
   };
 
-  const handleChangePassword = async (e) => {
+  const handlePwSendOtp = async (e) => {
     e.preventDefault();
-    const errs = {};
-    if (!pw.current)             errs.current = 'Current password required';
-    if (!pw.next)                errs.next    = 'New password required';
-    else if (pw.next.length < 8) errs.next    = 'Min 8 characters';
-    if (pw.next !== pw.confirm)  errs.confirm = 'Passwords do not match';
-    if (Object.keys(errs).length) { setErrors(errs); return; }
+    setPwError('');
+    if (!user?.phone) { setPwError('No phone number linked to your account'); return; }
     setPwLoading(true);
     try {
-      await changePassword(pw.current, pw.next);
-      toast.success('Password changed!');
-      setPwMode(false);
-      setPw({ current: '', next: '', confirm: '' });
+      await api.post('/owner/auth/forgot-password/send-otp', { phone: user.phone });
+      setPwStep(2); setPwTimer(60);
+      toast.success('OTP sent to your registered phone!');
     } catch (err) {
-      toast.error(err.message || 'Failed to change password');
+      setPwError(err.response?.data?.message || 'Failed to send OTP');
+    } finally { setPwLoading(false); }
+  };
+
+  const handlePwReset = async (e) => {
+    e.preventDefault();
+    setPwError('');
+    if (!pw.otp.trim()) { setPwError('OTP is required'); return; }
+    if (!pw.next || pw.next.length < 8) { setPwError('Password must be at least 8 characters'); return; }
+    if (pw.next !== pw.confirm) { setPwError('Passwords do not match'); return; }
+    setPwLoading(true);
+    try {
+      await api.post('/owner/auth/forgot-password/reset', { phone: user.phone, otp: pw.otp, newPassword: pw.next });
+      toast.success('Password changed successfully!');
+      setPwStep(1); setPw({ otp: '', next: '', confirm: '' });
+    } catch (err) {
+      setPwError(err.response?.data?.message || 'Failed to change password');
     } finally { setPwLoading(false); }
   };
 
@@ -177,37 +198,43 @@ const ProfileContent = () => {
         </div>
       )}
 
-      {/* Change password */}
+      {/* Change password via OTP */}
       <div className="border-t border-gray-100 pt-4">
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-sm font-semibold text-gray-800">Password</p>
-          {!pwMode && (
-            <button onClick={() => setPwMode(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
-              <Edit2 className="w-3.5 h-3.5" /> Change
-            </button>
-          )}
-        </div>
-        {pwMode && (
-          <form onSubmit={handleChangePassword} className="space-y-3">
-            <Input label="Current Password" name="current" type="password" value={pw.current}
-              onChange={e => { setPw(p => ({ ...p, current: e.target.value })); setErrors(p => ({ ...p, current: '' })); }}
-              error={!!errors.current} errorMessage={errors.current} disabled={pwLoading} required />
-            <Input label="New Password" name="next" type="password" value={pw.next}
-              onChange={e => { setPw(p => ({ ...p, next: e.target.value })); setErrors(p => ({ ...p, next: '' })); }}
-              error={!!errors.next} errorMessage={errors.next} disabled={pwLoading} required />
-            <Input label="Confirm New Password" name="confirm" type="password" value={pw.confirm}
-              onChange={e => { setPw(p => ({ ...p, confirm: e.target.value })); setErrors(p => ({ ...p, confirm: '' })); }}
-              error={!!errors.confirm} errorMessage={errors.confirm} disabled={pwLoading} required />
+        <p className="text-sm font-semibold text-gray-800 mb-3">Change Password</p>
+        {pwError && <p className="text-sm text-red-600 mb-3 bg-red-50 px-3 py-2 rounded-lg">{pwError}</p>}
+        {pwStep === 1 ? (
+          <form onSubmit={handlePwSendOtp} className="space-y-3">
+            <p className="text-sm text-gray-500">An OTP will be sent to your registered phone: <strong>{user?.phone || '—'}</strong></p>
+            <Button type="submit" variant="primary" loading={pwLoading} disabled={pwLoading} fullWidth>
+              Send OTP
+            </Button>
+          </form>
+        ) : (
+          <form onSubmit={handlePwReset} className="space-y-3">
+            <p className="text-sm text-gray-500">OTP sent to {user?.phone}</p>
+            <Input label="OTP" name="otp" type="text" value={pw.otp}
+              onChange={e => setPw(p => ({ ...p, otp: e.target.value }))}
+              placeholder="Enter 6-digit OTP" disabled={pwLoading} maxLength={6} required />
+            <div className="relative">
+              <Input label="New Password" name="next" type={pwShowPw ? 'text' : 'password'} value={pw.next}
+                onChange={e => setPw(p => ({ ...p, next: e.target.value }))}
+                placeholder="Min 8 characters" disabled={pwLoading} required />
+              <button type="button" onClick={() => setPwShowPw(!pwShowPw)} className="absolute right-3 top-9 text-gray-400">
+                {pwShowPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            <Input label="Confirm Password" name="confirm" type="password" value={pw.confirm}
+              onChange={e => setPw(p => ({ ...p, confirm: e.target.value }))}
+              placeholder="Repeat new password" disabled={pwLoading} required />
             <div className="flex gap-2">
               <Button type="submit" variant="primary" loading={pwLoading} disabled={pwLoading} fullWidth>
-                <Save className="w-4 h-4" /> Update Password
-              </Button>
-              <Button type="button" variant="outline" disabled={pwLoading} fullWidth
-                onClick={() => { setPwMode(false); setPw({ current: '', next: '', confirm: '' }); setErrors({}); }}>
-                <X className="w-4 h-4" /> Cancel
+                <Save className="w-4 h-4" /> Reset Password
               </Button>
             </div>
+            <button type="button" onClick={pwTimer === 0 ? handlePwSendOtp : undefined} disabled={pwTimer > 0 || pwLoading}
+              className="w-full text-center text-sm text-blue-600 disabled:opacity-50">
+              {pwTimer > 0 ? `Resend OTP in ${pwTimer}s` : 'Resend OTP'}
+            </button>
           </form>
         )}
       </div>

@@ -353,6 +353,16 @@ router.post("/customer/auth/login",
   asyncHandler(customerAuthController.loginWithPhone)
 );
 
+router.post("/customer/auth/forgot-password/send-otp",
+  rateLimiter(5, 900000),
+  asyncHandler(customerAuthController.forgotPasswordSendOTP)
+);
+
+router.post("/customer/auth/forgot-password/reset",
+  rateLimiter(5, 900000),
+  asyncHandler(customerAuthController.forgotPasswordReset)
+);
+
 router.get("/customer/auth/me",
   authenticateCustomer,
   asyncHandler(customerAuthController.getCurrentCustomer)
@@ -574,6 +584,18 @@ router.post(
   "/owner/auth/login",
   rateLimiter(5, 900000),
   asyncHandler(ownerAuthController.login)
+);
+
+router.post(
+  "/owner/auth/forgot-password/send-otp",
+  rateLimiter(5, 900000),
+  asyncHandler(ownerAuthController.forgotPasswordSendOTP)
+);
+
+router.post(
+  "/owner/auth/forgot-password/reset",
+  rateLimiter(5, 900000),
+  asyncHandler(ownerAuthController.forgotPasswordReset)
 );
 
 router.post(

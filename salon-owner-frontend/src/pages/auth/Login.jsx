@@ -56,6 +56,61 @@ const Login = () => {
   // Error handling
   const [error, setError] = useState('');
 
+  // Forgot password
+  const [fpOpen, setFpOpen]     = useState(false);
+  const [fpStep, setFpStep]     = useState(1);
+  const [fpPhone, setFpPhone]   = useState('');
+  const [fpOtp, setFpOtp]       = useState('');
+  const [fpNewPw, setFpNewPw]   = useState('');
+  const [fpConfirm, setFpConfirm] = useState('');
+  const [fpShowPw, setFpShowPw] = useState(false);
+  const [fpLoading, setFpLoading] = useState(false);
+  const [fpError, setFpError]   = useState('');
+  const [fpTimer, setFpTimer]   = useState(0);
+
+  useEffect(() => {
+    if (fpTimer <= 0) return;
+    const id = setInterval(() => setFpTimer((t) => t - 1), 1000);
+    return () => clearInterval(id);
+  }, [fpTimer]);
+
+  const fpNormalizePhone = (p) => {
+    const d = p.replace(/\D/g, '');
+    if (d.length === 10) return `+91${d}`;
+    if (d.length === 12 && d.startsWith('91')) return `+${d}`;
+    return p.trim();
+  };
+
+  const handleFpSendOtp = async (e) => {
+    e.preventDefault();
+    setFpError('');
+    if (!fpPhone.trim()) { setFpError('Phone number is required'); return; }
+    setFpLoading(true);
+    try {
+      const res = await import('../../services/api').then(m => m.default.post('/owner/auth/forgot-password/send-otp', { phone: fpNormalizePhone(fpPhone) }));
+      setFpStep(2); setFpTimer(60);
+      toast.success('OTP sent!');
+    } catch (err) {
+      setFpError(err.response?.data?.message || 'Failed to send OTP');
+    } finally { setFpLoading(false); }
+  };
+
+  const handleFpReset = async (e) => {
+    e.preventDefault();
+    setFpError('');
+    if (!fpOtp.trim()) { setFpError('OTP is required'); return; }
+    if (!fpNewPw || fpNewPw.length < 8) { setFpError('Password must be at least 8 characters'); return; }
+    if (fpNewPw !== fpConfirm) { setFpError('Passwords do not match'); return; }
+    setFpLoading(true);
+    try {
+      await import('../../services/api').then(m => m.default.post('/owner/auth/forgot-password/reset', { phone: fpNormalizePhone(fpPhone), otp: fpOtp, newPassword: fpNewPw }));
+      toast.success('Password reset successfully!');
+      setFpOpen(false); setFpStep(1); setFpPhone(''); setFpOtp(''); setFpNewPw(''); setFpConfirm('');
+    } catch (err) {
+      setFpError(err.response?.data?.message || 'Failed to reset password');
+    } finally { setFpLoading(false); }
+  };
+
   // ========== OTP TIMER EFFECT ==========
 
   useEffect(() => {
@@ -288,6 +343,14 @@ const Login = () => {
               >
                 Login
               </Button>
+
+              <button
+                type="button"
+                onClick={() => { setFpOpen(true); setFpPhone(phoneNumber); }}
+                className="w-full text-center text-sm text-blue-600 hover:text-blue-800 mt-2 font-medium"
+              >
+                Forgot Password?
+              </button>
             </form>
           )}
 
@@ -316,6 +379,53 @@ const Login = () => {
           <p>By logging in, you agree to our Terms of Service</p>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      {fpOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900">{fpStep === 1 ? 'Forgot Password' : 'Reset Password'}</h3>
+              <button type="button" onClick={() => { setFpOpen(false); setFpStep(1); }} className="p-1 hover:bg-gray-100 rounded-lg">
+                <span className="text-xl text-gray-500">✕</span>
+              </button>
+            </div>
+            {fpError && <p className="text-sm text-red-600 mb-3 bg-red-50 px-3 py-2 rounded-lg">{fpError}</p>}
+            {fpStep === 1 ? (
+              <form onSubmit={handleFpSendOtp} className="space-y-4">
+                <p className="text-sm text-gray-500">Enter your registered phone number to receive an OTP</p>
+                <input
+                  type="tel" value={fpPhone} onChange={e => setFpPhone(e.target.value)}
+                  placeholder="+91 98765 43210"
+                  className="w-full px-4 py-2.5 rounded-lg border-2 border-gray-300 focus:border-blue-500 focus:outline-none text-sm"
+                  disabled={fpLoading}
+                />
+                <button type="submit" disabled={fpLoading} className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm transition disabled:opacity-60">
+                  {fpLoading ? 'Sending…' : 'Send OTP'}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleFpReset} className="space-y-3">
+                <p className="text-sm text-gray-500">OTP sent to {fpPhone}</p>
+                <input type="text" value={fpOtp} onChange={e => setFpOtp(e.target.value)} placeholder="Enter 6-digit OTP" maxLength={6} className="w-full px-4 py-2.5 rounded-lg border-2 border-gray-300 focus:border-blue-500 focus:outline-none text-sm" disabled={fpLoading} />
+                <div className="relative">
+                  <input type={fpShowPw ? 'text' : 'password'} value={fpNewPw} onChange={e => setFpNewPw(e.target.value)} placeholder="New password (min 8 chars)" className="w-full px-4 py-2.5 pr-10 rounded-lg border-2 border-gray-300 focus:border-blue-500 focus:outline-none text-sm" disabled={fpLoading} />
+                  <button type="button" onClick={() => setFpShowPw(!fpShowPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    {fpShowPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <input type="password" value={fpConfirm} onChange={e => setFpConfirm(e.target.value)} placeholder="Confirm new password" className="w-full px-4 py-2.5 rounded-lg border-2 border-gray-300 focus:border-blue-500 focus:outline-none text-sm" disabled={fpLoading} />
+                <button type="submit" disabled={fpLoading} className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm transition disabled:opacity-60">
+                  {fpLoading ? 'Resetting…' : 'Reset Password'}
+                </button>
+                <button type="button" onClick={fpTimer === 0 ? handleFpSendOtp : undefined} disabled={fpTimer > 0 || fpLoading} className="w-full text-center text-sm text-blue-600 disabled:opacity-50">
+                  {fpTimer > 0 ? `Resend OTP in ${fpTimer}s` : 'Resend OTP'}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

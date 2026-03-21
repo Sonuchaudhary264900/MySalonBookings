@@ -746,6 +746,73 @@ exports.refreshToken = async (req, res) => {
 };
 
 // ===================================================
+// FORGOT PASSWORD — SEND OTP
+// ===================================================
+exports.forgotPasswordSendOTP = async (req, res) => {
+  try {
+    const { phone } = req.body;
+    if (!phone || !validatePhone(phone)) {
+      return res.status(400).json(formatErrorResponse('Please provide a valid phone number with country code', 400));
+    }
+    const owner = await Owner.findOne({ phone });
+    if (!owner) {
+      return res.status(404).json(formatErrorResponse('No account found with this phone number', 404));
+    }
+    const otp = generateOTP();
+    await OTP.deleteMany({ phone, purpose: 'password_reset', userType: 'owner' });
+    await OTP.create({
+      phone,
+      otp: await bcrypt.hash(otp, 10),
+      purpose: 'password_reset',
+      userType: 'owner',
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+    });
+    if (owner.email) {
+      try { await sendOTPEmail(owner.email, otp, 'owner'); } catch (e) { /* silent */ }
+    }
+    if (process.env.NODE_ENV !== 'production') console.log(`🔑 Password reset OTP for ${phone}: ${otp}`);
+    res.json(formatSuccessResponse({ phone }, 'OTP sent successfully'));
+  } catch (error) {
+    console.error('Error sending forgot-password OTP:', error);
+    res.status(500).json(formatErrorResponse(messages.GENERIC.ERROR, 500));
+  }
+};
+
+// ===================================================
+// FORGOT PASSWORD — RESET
+// ===================================================
+exports.forgotPasswordReset = async (req, res) => {
+  try {
+    const { phone, otp, newPassword } = req.body;
+    if (!phone || !otp || !newPassword) {
+      return res.status(400).json(formatErrorResponse('Phone, OTP, and new password are required', 400));
+    }
+    if (newPassword.length < 8) {
+      return res.status(400).json(formatErrorResponse('Password must be at least 8 characters', 400));
+    }
+    const record = await OTP.findOne({ phone, purpose: 'password_reset', userType: 'owner' });
+    if (!record || record.expiresAt < new Date()) {
+      return res.status(400).json(formatErrorResponse('OTP expired or not found. Please request a new one.', 400));
+    }
+    const valid = await bcrypt.compare(otp, record.otp);
+    if (!valid) {
+      return res.status(400).json(formatErrorResponse('Invalid OTP', 400));
+    }
+    const owner = await Owner.findOne({ phone });
+    if (!owner) {
+      return res.status(404).json(formatErrorResponse('Account not found', 404));
+    }
+    owner.password = newPassword;
+    await owner.save();
+    await OTP.deleteMany({ phone, purpose: 'password_reset', userType: 'owner' });
+    res.json(formatSuccessResponse(null, 'Password reset successfully'));
+  } catch (error) {
+    console.error('Error resetting password:', error);
+    res.status(500).json(formatErrorResponse(messages.GENERIC.ERROR, 500));
+  }
+};
+
+// ===================================================
 // LOGOUT
 // ===================================================
 exports.logout = async (req, res) => {

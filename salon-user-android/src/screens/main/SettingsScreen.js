@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Switch, Alert, ActivityIndicator, Image,
+  Switch, Alert, ActivityIndicator, Image, TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -81,6 +81,56 @@ export default function SettingsScreen({ navigation }) {
   const [timeFormat, setTimeFormat] = useState('12-hour');
   const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
   const [deletingAccount, setDeletingAccount] = useState(false);
+
+  // Change password via OTP
+  const [cpStep, setCpStep]     = useState(1);
+  const [cpOtp, setCpOtp]       = useState('');
+  const [cpNewPw, setCpNewPw]   = useState('');
+  const [cpConfirm, setCpConfirm] = useState('');
+  const [cpShowPw, setCpShowPw] = useState(false);
+  const [cpLoading, setCpLoading] = useState(false);
+  const [cpTimer, setCpTimer]   = useState(0);
+
+  useEffect(() => {
+    if (cpTimer <= 0) return;
+    const id = setInterval(() => setCpTimer((t) => t - 1), 1000);
+    return () => clearInterval(id);
+  }, [cpTimer]);
+
+  const normalizePhone = (p) => {
+    const d = (p || '').replace(/\D/g, '');
+    if (d.length === 10) return `+91${d}`;
+    if (d.length === 12 && d.startsWith('91')) return `+${d}`;
+    return p || '';
+  };
+
+  const handleCpSendOtp = async () => {
+    const phone = normalizePhone(user?.phone || '');
+    if (!phone) { showError('Error', 'No phone number linked to your account'); return; }
+    setCpLoading(true);
+    try {
+      await api.post('/customer/auth/forgot-password/send-otp', { phone });
+      setCpStep(2); setCpTimer(60);
+      showSuccess('OTP Sent', 'Enter the OTP to change your password');
+    } catch (err) {
+      showError('Error', err.response?.data?.message || 'Failed to send OTP');
+    } finally { setCpLoading(false); }
+  };
+
+  const handleCpReset = async () => {
+    if (!cpOtp.trim()) { showError('Error', 'Please enter the OTP'); return; }
+    if (!cpNewPw || cpNewPw.length < 6) { showError('Error', 'Password must be at least 6 characters'); return; }
+    if (cpNewPw !== cpConfirm) { showError('Error', 'Passwords do not match'); return; }
+    const phone = normalizePhone(user?.phone || '');
+    setCpLoading(true);
+    try {
+      await api.post('/customer/auth/forgot-password/reset', { phone, otp: cpOtp, newPassword: cpNewPw });
+      showSuccess('Success', 'Password changed successfully');
+      setCpStep(1); setCpOtp(''); setCpNewPw(''); setCpConfirm('');
+    } catch (err) {
+      showError('Error', err.response?.data?.message || 'Failed to change password');
+    } finally { setCpLoading(false); }
+  };
 
   // Load persisted prefs on mount
   React.useEffect(() => {
@@ -304,6 +354,50 @@ export default function SettingsScreen({ navigation }) {
         </Card>
 
         {/* PRIVACY & SECURITY */}
+        {/* CHANGE PASSWORD */}
+        <SectionHeader title="Change Password" />
+        <Card>
+          {cpStep === 1 ? (
+            <View style={{ padding: 4, gap: 10 }}>
+              <Text style={[styles.rowSublabel, { marginBottom: 4 }]}>
+                An OTP will be sent to your registered phone number
+              </Text>
+              <TouchableOpacity
+                style={[styles.cpBtn, cpLoading && { opacity: 0.7 }]}
+                onPress={handleCpSendOtp}
+                disabled={cpLoading}
+              >
+                {cpLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.cpBtnText}>Send OTP to Phone</Text>}
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={{ padding: 4, gap: 10 }}>
+              <Text style={[styles.rowSublabel, { marginBottom: 2 }]}>OTP sent to {user?.phone}</Text>
+              <View style={styles.cpInputRow}>
+                <Ionicons name="key-outline" size={16} color="#6b7280" style={{ marginRight: 8 }} />
+                <TextInput style={styles.cpInput} placeholder="Enter OTP" placeholderTextColor="#9ca3af" keyboardType="number-pad" maxLength={6} value={cpOtp} onChangeText={setCpOtp} editable={!cpLoading} />
+              </View>
+              <View style={styles.cpInputRow}>
+                <Ionicons name="lock-closed-outline" size={16} color="#6b7280" style={{ marginRight: 8 }} />
+                <TextInput style={[styles.cpInput, { flex: 1 }]} placeholder="New password" placeholderTextColor="#9ca3af" secureTextEntry={!cpShowPw} value={cpNewPw} onChangeText={setCpNewPw} editable={!cpLoading} />
+                <TouchableOpacity onPress={() => setCpShowPw(!cpShowPw)}>
+                  <Ionicons name={cpShowPw ? 'eye-off-outline' : 'eye-outline'} size={18} color="#9ca3af" />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.cpInputRow}>
+                <Ionicons name="lock-closed-outline" size={16} color="#6b7280" style={{ marginRight: 8 }} />
+                <TextInput style={styles.cpInput} placeholder="Confirm password" placeholderTextColor="#9ca3af" secureTextEntry value={cpConfirm} onChangeText={setCpConfirm} editable={!cpLoading} />
+              </View>
+              <TouchableOpacity style={[styles.cpBtn, cpLoading && { opacity: 0.7 }]} onPress={handleCpReset} disabled={cpLoading}>
+                {cpLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.cpBtnText}>Reset Password</Text>}
+              </TouchableOpacity>
+              <TouchableOpacity style={{ alignItems: 'center', opacity: cpTimer > 0 ? 0.5 : 1 }} onPress={cpTimer === 0 ? handleCpSendOtp : undefined} disabled={cpTimer > 0}>
+                <Text style={{ fontSize: 13, color: '#2563eb' }}>{cpTimer > 0 ? `Resend OTP in ${cpTimer}s` : 'Resend OTP'}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </Card>
+
         <SectionHeader title={t('privacySecurity')} />
         <Card>
           <View style={styles.privacyInfo}>
@@ -382,4 +476,8 @@ const getStyles = (t) => StyleSheet.create({
   valueText: { fontSize: 13, color: t.subText, fontWeight: '500', marginRight: 2 },
   privacyInfo: { flexDirection: 'row', gap: 12, paddingHorizontal: 14, paddingVertical: 12, alignItems: 'flex-start' },
   privacyText: { flex: 1, fontSize: 13, color: t.subText, lineHeight: 19 },
+  cpBtn: { backgroundColor: '#2563eb', borderRadius: 10, height: 44, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  cpBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  cpInputRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: t.border, borderRadius: 10, paddingHorizontal: 12, height: 44, backgroundColor: t.card },
+  cpInput: { flex: 1, fontSize: 14, color: t.text },
 });

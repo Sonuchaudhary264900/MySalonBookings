@@ -626,6 +626,148 @@ const PRIVACY_CARDS = [
   { icon: '🔑', title: 'Token Security', sub: 'Auth tokens expire automatically and refresh securely.' },
 ];
 
+// ── Change Password via OTP ────────────────────────────────────────
+function ChangePasswordSection() {
+  const { theme } = useTheme();
+  const { user } = useAuth();
+  const [step, setStep] = useState(1); // 1=send otp, 2=verify+reset
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [timer, setTimer] = useState(0);
+
+  useEffect(() => {
+    if (user?.phone) setPhone(user.phone);
+  }, [user]);
+
+  useEffect(() => {
+    if (timer <= 0) return;
+    const id = setInterval(() => setTimer((t) => t - 1), 1000);
+    return () => clearInterval(id);
+  }, [timer]);
+
+  const handleSendOtp = async () => {
+    if (!phone.trim()) { showError('Error', 'Phone number is required'); return; }
+    setLoading(true);
+    try {
+      await api.post('/owner/auth/forgot-password/send-otp', { phone });
+      setStep(2);
+      setTimer(60);
+      showSuccess('OTP Sent', 'Enter the OTP to continue');
+    } catch (err) {
+      showError('Error', err.response?.data?.message || 'Failed to send OTP');
+    } finally { setLoading(false); }
+  };
+
+  const handleReset = async () => {
+    if (!otp.trim()) { showError('Error', 'Please enter the OTP'); return; }
+    if (!newPw || newPw.length < 8) { showError('Error', 'Password must be at least 8 characters'); return; }
+    if (newPw !== confirmPw) { showError('Error', 'Passwords do not match'); return; }
+    setLoading(true);
+    try {
+      await api.post('/owner/auth/forgot-password/reset', { phone, otp, newPassword: newPw });
+      showSuccess('Success', 'Password changed successfully');
+      setStep(1); setOtp(''); setNewPw(''); setConfirmPw('');
+    } catch (err) {
+      showError('Error', err.response?.data?.message || 'Failed to reset password');
+    } finally { setLoading(false); }
+  };
+
+  const inputStyle = [styles.input, { borderColor: theme.border, backgroundColor: theme.card, color: theme.text }];
+
+  return (
+    <View style={{ gap: 10 }}>
+      {step === 1 ? (
+        <>
+          <Text style={[styles.label, { color: theme.subText }]}>Your registered phone number</Text>
+          <View style={[styles.pwRow, { borderColor: theme.border, backgroundColor: theme.card }]}>
+            <Ionicons name="call-outline" size={16} color="#9ca3af" style={{ marginRight: 6 }} />
+            <TextInput
+              style={[{ flex: 1, fontSize: 14, color: theme.text }]}
+              value={phone}
+              onChangeText={setPhone}
+              placeholder="+91 98765 43210"
+              placeholderTextColor="#9ca3af"
+              keyboardType="phone-pad"
+              editable={!loading}
+            />
+          </View>
+          <TouchableOpacity
+            style={[styles.saveBtn, loading && { opacity: 0.7 }]}
+            onPress={handleSendOtp}
+            disabled={loading}
+          >
+            {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveBtnText}>Send OTP</Text>}
+          </TouchableOpacity>
+        </>
+      ) : (
+        <>
+          <Text style={[styles.label, { color: theme.subText }]}>OTP sent to {phone}</Text>
+          <View style={[styles.pwRow, { borderColor: theme.border, backgroundColor: theme.card }]}>
+            <Ionicons name="key-outline" size={16} color="#9ca3af" style={{ marginRight: 6 }} />
+            <TextInput
+              style={[{ flex: 1, fontSize: 14, color: theme.text }]}
+              value={otp}
+              onChangeText={setOtp}
+              placeholder="Enter 6-digit OTP"
+              placeholderTextColor="#9ca3af"
+              keyboardType="number-pad"
+              maxLength={6}
+              editable={!loading}
+            />
+          </View>
+          <View style={[styles.pwRow, { borderColor: theme.border, backgroundColor: theme.card }]}>
+            <Ionicons name="lock-closed-outline" size={16} color="#9ca3af" style={{ marginRight: 6 }} />
+            <TextInput
+              style={[{ flex: 1, fontSize: 14, color: theme.text }]}
+              value={newPw}
+              onChangeText={setNewPw}
+              placeholder="New password (min 8 chars)"
+              placeholderTextColor="#9ca3af"
+              secureTextEntry={!showPw}
+              editable={!loading}
+            />
+            <TouchableOpacity onPress={() => setShowPw((p) => !p)}>
+              <Ionicons name={showPw ? 'eye-off-outline' : 'eye-outline'} size={18} color="#9ca3af" />
+            </TouchableOpacity>
+          </View>
+          <View style={[styles.pwRow, { borderColor: theme.border, backgroundColor: theme.card }]}>
+            <Ionicons name="lock-closed-outline" size={16} color="#9ca3af" style={{ marginRight: 6 }} />
+            <TextInput
+              style={[{ flex: 1, fontSize: 14, color: theme.text }]}
+              value={confirmPw}
+              onChangeText={setConfirmPw}
+              placeholder="Confirm new password"
+              placeholderTextColor="#9ca3af"
+              secureTextEntry
+              editable={!loading}
+            />
+          </View>
+          <TouchableOpacity
+            style={[styles.saveBtn, loading && { opacity: 0.7 }]}
+            onPress={handleReset}
+            disabled={loading}
+          >
+            {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveBtnText}>Reset Password</Text>}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{ alignItems: 'center', opacity: timer > 0 ? 0.5 : 1 }}
+            onPress={timer === 0 ? handleSendOtp : undefined}
+            disabled={timer > 0}
+          >
+            <Text style={{ fontSize: 13, color: '#2563eb' }}>
+              {timer > 0 ? `Resend OTP in ${timer}s` : 'Resend OTP'}
+            </Text>
+          </TouchableOpacity>
+        </>
+      )}
+    </View>
+  );
+}
+
 function PrivacySection() {
   const { theme } = useTheme();
   const { user, logout } = useAuth();
@@ -753,6 +895,10 @@ function SettingsSections({ salon, fetchSalon, resetKey }) {
         <HolidaysSection />
       </Section>
 
+      <Section resetKey={resetKey} title="Change Password" subtitle="Reset your password via OTP" icon="key-outline" iconBg="#dbeafe" iconColor="#2563eb">
+        <ChangePasswordSection />
+      </Section>
+
       <Section resetKey={resetKey} title={t('privacySecurity')} subtitle={t('privacySecuritySub')} icon="lock-closed-outline" iconBg="#fee2e2" iconColor="#dc2626">
         <PrivacySection />
       </Section>
@@ -856,7 +1002,7 @@ const styles = StyleSheet.create({
   deleteWarningText: { fontSize: 13, color: '#374151', marginBottom: 6 },
   deleteWarningItem: { fontSize: 13, color: '#6b7280', marginBottom: 2 },
   dangerText: { fontSize: 13, color: '#6b7280', lineHeight: 18, marginBottom: 10 },
-  pwRow: { flexDirection: 'row', alignItems: 'center' },
+  pwRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, height: 46, marginBottom: 2 },
   deleteConfirmBtn: { height: 44, borderRadius: 10, backgroundColor: '#dc2626', alignItems: 'center', justifyContent: 'center', marginTop: 4 },
   deleteConfirmText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   deleteForeverBtn: { height: 44, borderRadius: 10, backgroundColor: '#dc2626', alignItems: 'center', justifyContent: 'center', marginTop: 4 },

@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image, Dimensions,
+  ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image, Dimensions, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { showError } from '../../utils/toast';
+import api from '../../services/api';
 
 export default function LoginScreen({ navigation }) {
   const { login } = useAuth();
@@ -13,6 +14,53 @@ export default function LoginScreen({ navigation }) {
   const [password, setPassword]       = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading]         = useState(false);
+
+  // Forgot password state
+  const [fpMode, setFpMode]     = useState(false);
+  const [fpStep, setFpStep]     = useState(1);
+  const [fpPhone, setFpPhone]   = useState('');
+  const [fpOtp, setFpOtp]       = useState('');
+  const [fpNewPw, setFpNewPw]   = useState('');
+  const [fpConfirm, setFpConfirm] = useState('');
+  const [fpShowPw, setFpShowPw] = useState(false);
+  const [fpLoading, setFpLoading] = useState(false);
+  const [fpTimer, setFpTimer]   = useState(0);
+
+  useEffect(() => {
+    if (fpTimer <= 0) return;
+    const id = setInterval(() => setFpTimer((t) => t - 1), 1000);
+    return () => clearInterval(id);
+  }, [fpTimer]);
+
+  const handleFpSendOtp = async () => {
+    if (!fpPhone.trim()) { Alert.alert('Error', 'Please enter your phone number'); return; }
+    const digits = fpPhone.replace(/\D/g, '');
+    const normalized = digits.length === 10 ? `+91${digits}` : digits.startsWith('91') && digits.length === 12 ? `+${digits}` : fpPhone.trim();
+    setFpLoading(true);
+    try {
+      await api.post('/customer/auth/forgot-password/send-otp', { phone: normalized });
+      setFpStep(2); setFpTimer(60);
+      Alert.alert('OTP Sent', 'Enter the OTP to reset your password');
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.message || 'Failed to send OTP');
+    } finally { setFpLoading(false); }
+  };
+
+  const handleFpReset = async () => {
+    if (!fpOtp.trim()) { Alert.alert('Error', 'Please enter the OTP'); return; }
+    if (!fpNewPw || fpNewPw.length < 6) { Alert.alert('Error', 'Password must be at least 6 characters'); return; }
+    if (fpNewPw !== fpConfirm) { Alert.alert('Error', 'Passwords do not match'); return; }
+    const digits = fpPhone.replace(/\D/g, '');
+    const normalized = digits.length === 10 ? `+91${digits}` : digits.startsWith('91') && digits.length === 12 ? `+${digits}` : fpPhone.trim();
+    setFpLoading(true);
+    try {
+      await api.post('/customer/auth/forgot-password/reset', { phone: normalized, otp: fpOtp, newPassword: fpNewPw });
+      Alert.alert('Success', 'Password reset successfully! Please log in.');
+      setFpMode(false); setFpStep(1); setFpPhone(''); setFpOtp(''); setFpNewPw(''); setFpConfirm('');
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.message || 'Failed to reset password');
+    } finally { setFpLoading(false); }
+  };
 
   const normalizePhone = (p) => {
     const digits = p.replace(/\D/g, '');
@@ -105,6 +153,10 @@ export default function LoginScreen({ navigation }) {
             )}
           </TouchableOpacity>
 
+          <TouchableOpacity style={styles.forgotBtn} onPress={() => { setFpMode(true); setFpPhone(phone); }}>
+            <Text style={styles.forgotText}>Forgot Password?</Text>
+          </TouchableOpacity>
+
           {/* Features row */}
           <View style={styles.featuresRow}>
             {['Book Salons', 'Track History', 'Save Favorites'].map((f) => (
@@ -128,6 +180,57 @@ export default function LoginScreen({ navigation }) {
           </View>
         </View>
       </ScrollView>
+
+      {/* Forgot Password Overlay */}
+      {fpMode && (
+        <View style={styles.fpOverlay}>
+          <View style={styles.fpCard}>
+            <View style={styles.fpHeader}>
+              <Text style={styles.fpTitle}>{fpStep === 1 ? 'Forgot Password' : 'Reset Password'}</Text>
+              <TouchableOpacity onPress={() => { setFpMode(false); setFpStep(1); }}>
+                <Ionicons name="close" size={22} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+            {fpStep === 1 ? (
+              <>
+                <Text style={styles.fpSub}>Enter your registered phone number</Text>
+                <View style={[styles.inputRow, { marginBottom: 12 }]}>
+                  <Ionicons name="call-outline" size={18} color="#6b7280" style={styles.inputIcon} />
+                  <TextInput style={styles.input} placeholder="+91 98765 43210" placeholderTextColor="#9ca3af" keyboardType="phone-pad" value={fpPhone} onChangeText={setFpPhone} editable={!fpLoading} />
+                </View>
+                <TouchableOpacity style={[styles.btn, fpLoading && styles.btnDisabled, { marginBottom: 0 }]} onPress={handleFpSendOtp} disabled={fpLoading}>
+                  {fpLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Send OTP</Text>}
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={styles.fpSub}>OTP sent to {fpPhone}</Text>
+                <View style={[styles.inputRow, { marginBottom: 10 }]}>
+                  <Ionicons name="key-outline" size={18} color="#6b7280" style={styles.inputIcon} />
+                  <TextInput style={styles.input} placeholder="6-digit OTP" placeholderTextColor="#9ca3af" keyboardType="number-pad" maxLength={6} value={fpOtp} onChangeText={setFpOtp} editable={!fpLoading} />
+                </View>
+                <View style={[styles.inputRow, { marginBottom: 10 }]}>
+                  <Ionicons name="lock-closed-outline" size={18} color="#6b7280" style={styles.inputIcon} />
+                  <TextInput style={[styles.input, { flex: 1 }]} placeholder="New password" placeholderTextColor="#9ca3af" secureTextEntry={!fpShowPw} value={fpNewPw} onChangeText={setFpNewPw} editable={!fpLoading} />
+                  <TouchableOpacity onPress={() => setFpShowPw(!fpShowPw)}>
+                    <Ionicons name={fpShowPw ? 'eye-off-outline' : 'eye-outline'} size={18} color="#6b7280" />
+                  </TouchableOpacity>
+                </View>
+                <View style={[styles.inputRow, { marginBottom: 12 }]}>
+                  <Ionicons name="lock-closed-outline" size={18} color="#6b7280" style={styles.inputIcon} />
+                  <TextInput style={styles.input} placeholder="Confirm new password" placeholderTextColor="#9ca3af" secureTextEntry value={fpConfirm} onChangeText={setFpConfirm} editable={!fpLoading} />
+                </View>
+                <TouchableOpacity style={[styles.btn, fpLoading && styles.btnDisabled, { marginBottom: 0 }]} onPress={handleFpReset} disabled={fpLoading}>
+                  {fpLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Reset Password</Text>}
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.forgotBtn, { opacity: fpTimer > 0 ? 0.5 : 1, marginTop: 10 }]} onPress={fpTimer === 0 ? handleFpSendOtp : undefined} disabled={fpTimer > 0}>
+                  <Text style={styles.forgotText}>{fpTimer > 0 ? `Resend OTP in ${fpTimer}s` : 'Resend OTP'}</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -160,4 +263,11 @@ const styles = StyleSheet.create({
   registerRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   registerText: { fontSize: 14, color: '#6b7280' },
   registerLink: { fontSize: 14, color: '#2563eb', fontWeight: '700' },
+  forgotBtn: { alignItems: 'center', marginBottom: 14 },
+  forgotText: { fontSize: 14, color: '#2563eb', fontWeight: '600' },
+  fpOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  fpCard: { backgroundColor: '#fff', borderRadius: 20, padding: 24, width: '100%', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 16, elevation: 12 },
+  fpHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  fpTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
+  fpSub: { fontSize: 13, color: '#6b7280', marginBottom: 14 },
 });

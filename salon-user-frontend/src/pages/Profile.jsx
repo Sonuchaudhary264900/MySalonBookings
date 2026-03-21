@@ -107,16 +107,24 @@ function Profile() {
   const [loading, setLoading]     = useState(true);
   const [editing, setEditing]     = useState(false);
   const [saving, setSaving]       = useState(false);
-  const [pwMode, setPwMode]       = useState(false);
+  const [pwStep, setPwStep]       = useState(1); // 1=send otp, 2=verify+reset
   const [pwSaving, setPwSaving]   = useState(false);
+  const [pwTimer, setPwTimer]     = useState(0);
+  const [pwShowPw, setPwShowPw]   = useState(false);
   const [error, setError]         = useState("");
   const [success, setSuccess]     = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
 
   const [form, setForm] = useState({ name: "", email: "" });
-  const [pw, setPw]     = useState({ current: "", next: "", confirm: "" });
+  const [pw, setPw]     = useState({ otp: "", next: "", confirm: "" });
   const [photoUploading, setPhotoUploading] = useState(false);
+
+  useEffect(() => {
+    if (pwTimer <= 0) return;
+    const id = setInterval(() => setPwTimer((t) => t - 1), 1000);
+    return () => clearInterval(id);
+  }, [pwTimer]);
 
   // ── load profile ─────────────────────────────────────────────
   useEffect(() => {
@@ -155,26 +163,35 @@ function Profile() {
     }
   };
 
-  // ── change password ───────────────────────────────────────────
-  const handleChangePassword = async (e) => {
+  // ── change password via OTP ───────────────────────────────────
+  const norm = (p) => { let c = (p||"").replace(/\D/g,""); if(c.length===10) c="91"+c; if(!c.startsWith("+")) c="+"+c; return c; };
+
+  const handlePwSendOtp = async (e) => {
+    e?.preventDefault();
+    if (!user?.phone) { flash("No phone number linked to your account", true); return; }
+    setPwSaving(true);
+    try {
+      await API.post("/customer/auth/forgot-password/send-otp", { phone: norm(user.phone) });
+      setPwStep(2); setPwTimer(60);
+      flash("OTP sent to your registered phone!");
+    } catch (err) {
+      flash(err.response?.data?.message || "Failed to send OTP", true);
+    } finally { setPwSaving(false); }
+  };
+
+  const handlePwReset = async (e) => {
     e.preventDefault();
-    if (!pw.current)            { flash("Current password is required", true); return; }
+    if (!pw.otp.trim())         { flash("OTP is required", true); return; }
     if (pw.next.length < 6)     { flash("New password must be at least 6 characters", true); return; }
     if (pw.next !== pw.confirm) { flash("Passwords do not match", true); return; }
     setPwSaving(true);
     try {
-      await API.post("/customer/auth/change-password", {
-        currentPassword: pw.current,
-        newPassword:     pw.next,
-      });
-      setPwMode(false);
-      setPw({ current: "", next: "", confirm: "" });
+      await API.post("/customer/auth/forgot-password/reset", { phone: norm(user.phone), otp: pw.otp, newPassword: pw.next });
+      setPwStep(1); setPw({ otp: "", next: "", confirm: "" });
       flash("Password changed successfully!");
     } catch (err) {
-      flash(err.message || "Failed to change password.", true);
-    } finally {
-      setPwSaving(false);
-    }
+      flash(err.response?.data?.message || "Failed to change password.", true);
+    } finally { setPwSaving(false); }
   };
 
   const handlePhotoUpload = async (e) => {
@@ -315,41 +332,75 @@ function Profile() {
                   <h3 className="font-bold text-slate-900">Password</h3>
                   <p className="text-xs text-slate-400 mt-0.5">Keep your account secure</p>
                 </div>
-                {!pwMode && (
-                  <button onClick={() => setPwMode(true)}
+                {pwStep === 1 && (
+                  <button onClick={() => setPwStep(0)}
                     className="text-sm font-semibold text-indigo-600 hover:text-indigo-700 transition">
                     Change
                   </button>
                 )}
               </div>
 
-              {!pwMode && <p className="text-sm text-slate-300 mt-3">••••••••</p>}
+              {pwStep === 1 && <p className="text-sm text-slate-300 mt-3">••••••••</p>}
 
-              {pwMode && (
-                <form onSubmit={handleChangePassword} className="space-y-4 mt-4">
-                  {[
-                    { label: "Current Password", key: "current", ph: "Enter current password" },
-                    { label: "New Password",      key: "next",    ph: "At least 6 characters"  },
-                    { label: "Confirm Password",  key: "confirm", ph: "Repeat new password"     },
-                  ].map(({ label, key, ph }) => (
-                    <div key={key}>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
-                      <input type="password" value={pw[key]} placeholder={ph}
-                        onChange={(e) => setPw((p) => ({ ...p, [key]: e.target.value }))}
-                        className="input-field" required disabled={pwSaving} />
+              {pwStep === 0 && (
+                <div className="mt-4 space-y-3">
+                  <p className="text-sm text-slate-500">We'll send an OTP to your registered phone number.</p>
+                  <div className="flex gap-3">
+                    <button onClick={handlePwSendOtp} disabled={pwSaving}
+                      className="flex-1 btn-primary py-2.5 text-sm disabled:opacity-60">
+                      {pwSaving ? "Sending…" : "Send OTP"}
+                    </button>
+                    <button type="button" onClick={() => setPwStep(1)}
+                      className="flex-1 py-2.5 text-sm border border-slate-200 rounded-xl font-medium text-slate-600 hover:bg-slate-50 transition">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {pwStep === 2 && (
+                <form onSubmit={handlePwReset} className="space-y-3 mt-4">
+                  <p className="text-sm text-slate-500">OTP sent to {user?.phone}</p>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">OTP</label>
+                    <input type="text" value={pw.otp} placeholder="Enter 6-digit OTP" maxLength={6}
+                      onChange={(e) => setPw((p) => ({ ...p, otp: e.target.value }))}
+                      className="input-field" required disabled={pwSaving} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">New Password</label>
+                    <div className="relative">
+                      <input type={pwShowPw ? "text" : "password"} value={pw.next} placeholder="At least 6 characters"
+                        onChange={(e) => setPw((p) => ({ ...p, next: e.target.value }))}
+                        className="input-field pr-11" required disabled={pwSaving} />
+                      <button type="button" onClick={() => setPwShowPw(!pwShowPw)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
+                        {pwShowPw ? "🙈" : "👁"}
+                      </button>
                     </div>
-                  ))}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Confirm Password</label>
+                    <input type="password" value={pw.confirm} placeholder="Repeat new password"
+                      onChange={(e) => setPw((p) => ({ ...p, confirm: e.target.value }))}
+                      className="input-field" required disabled={pwSaving} />
+                  </div>
                   <div className="flex gap-3 pt-1">
                     <button type="submit" disabled={pwSaving}
                       className="flex-1 btn-primary py-2.5 text-sm disabled:opacity-60">
                       {pwSaving ? "Updating…" : "Update Password"}
                     </button>
                     <button type="button"
-                      onClick={() => { setPwMode(false); setPw({ current: "", next: "", confirm: "" }); }}
+                      onClick={() => { setPwStep(1); setPw({ otp: "", next: "", confirm: "" }); }}
                       className="flex-1 py-2.5 text-sm border border-slate-200 rounded-xl font-medium text-slate-600 hover:bg-slate-50 transition">
                       Cancel
                     </button>
                   </div>
+                  <button type="button" onClick={pwTimer === 0 ? handlePwSendOtp : undefined}
+                    disabled={pwTimer > 0 || pwSaving}
+                    className="w-full text-center text-sm text-indigo-600 disabled:opacity-50">
+                    {pwTimer > 0 ? `Resend OTP in ${pwTimer}s` : "Resend OTP"}
+                  </button>
                 </form>
               )}
             </div>
