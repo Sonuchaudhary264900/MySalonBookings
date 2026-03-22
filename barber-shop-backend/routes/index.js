@@ -438,6 +438,11 @@ router.post("/customer/auth/logout",
   asyncHandler(customerAuthController.logout)
 );
 
+router.delete("/customer/auth/delete-account",
+  authenticateCustomer,
+  asyncHandler(customerAuthController.deleteAccount)
+);
+
 /* =====================================================
    CUSTOMER BOOKING ROUTES
 ===================================================== */

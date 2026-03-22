@@ -748,3 +748,21 @@ exports.logout = async (req, res) => {
     );
   }
 };
+
+exports.deleteAccount = async (req, res) => {
+  try {
+    const customerId = req.customer._id;
+
+    const Booking = require('../../models/Booking');
+    const Review  = require('../../models/Review');
+
+    await Booking.deleteMany({ customerId });
+    await Review.deleteMany({ customerId });
+    await Customer.findByIdAndDelete(customerId);
+
+    res.json(formatSuccessResponse(null, 'Account deleted successfully'));
+  } catch (error) {
+    console.error('Error deleting customer account:', error);
+    res.status(500).json(formatErrorResponse(messages.GENERIC.ERROR, 500));
+  }
+};
