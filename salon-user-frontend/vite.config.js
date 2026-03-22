@@ -17,11 +17,11 @@ export default defineConfig({
 
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-core':   ['react', 'react-dom'],
-          'react-router': ['react-router-dom'],
-          'firebase':     ['firebase/app', 'firebase/auth'],
-          'socket':       ['socket.io-client'],
+        manualChunks: (id) => {
+          if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/')) return 'react-core';
+          if (id.includes('node_modules/react-router')) return 'react-router';
+          if (id.includes('node_modules/firebase')) return 'firebase';
+          if (id.includes('node_modules/socket.io-client')) return 'socket';
         },
       },
     },
