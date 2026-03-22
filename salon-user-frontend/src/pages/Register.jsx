@@ -338,7 +338,14 @@ function Register() {
             </form>
           )}
 
-          <p className="mt-6 text-center text-sm text-slate-500">
+          <p className="mt-4 text-center text-xs text-slate-400 leading-relaxed">
+            By creating an account, you agree to our{" "}
+            <Link to="/privacy-policy" className="text-indigo-500 hover:underline">Privacy Policy</Link>
+            {" "}and{" "}
+            <Link to="/terms" className="text-indigo-500 hover:underline">Terms &amp; Conditions</Link>.
+          </p>
+
+          <p className="mt-4 text-center text-sm text-slate-500">
             Already have an account?{" "}
             <Link to="/login" className="text-indigo-600 font-semibold hover:underline">Sign in</Link>
           </p>

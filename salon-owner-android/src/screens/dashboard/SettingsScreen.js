@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert, Switch, Image,
+  TextInput, ActivityIndicator, Alert, Switch, Image, Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -885,6 +885,15 @@ function PrivacySection() {
           </View>
         </View>
       ))}
+      <TouchableOpacity
+        style={[styles.privacyLinkBtn, { borderColor: theme.border }]}
+        onPress={() => Linking.openURL('https://mysalonbookings.com/privacy-policy')}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="document-text-outline" size={16} color="#6366f1" />
+        <Text style={[styles.privacyLinkText, { color: '#6366f1' }]}>View Privacy Policy</Text>
+        <Ionicons name="open-outline" size={14} color="#6366f1" />
+      </TouchableOpacity>
       <View style={[styles.divider, { backgroundColor: theme.border }]} />
       {!confirming ? (
         <TouchableOpacity style={styles.deleteAccountBtn} onPress={() => setConfirming(true)}>
@@ -1094,6 +1103,8 @@ const styles = StyleSheet.create({
   privacyCardTitle: { fontSize: 13, fontWeight: '700', color: '#111827' },
   privacyCardSub: { fontSize: 12, color: '#6b7280', marginTop: 2 },
   divider: { height: 1, backgroundColor: '#f3f4f6', marginVertical: 12 },
+  privacyLinkBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 8, borderWidth: 1, marginVertical: 8 },
+  privacyLinkText: { fontSize: 13, fontWeight: '600', flex: 1 },
   deleteAccountBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, borderWidth: 1.5, borderColor: '#fca5a5', backgroundColor: '#fee2e2' },
   deleteAccountBtnText: { fontSize: 13, fontWeight: '700', color: '#dc2626' },
   deleteBox: { backgroundColor: '#fff5f5', borderRadius: 10, padding: 14, borderWidth: 1, borderColor: '#fca5a5' },

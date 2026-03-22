@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Switch, Alert, ActivityIndicator, TextInput, Share, Clipboard,
+  Switch, Alert, ActivityIndicator, TextInput, Share, Clipboard, Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -485,7 +485,7 @@ export default function SettingsScreen({ navigation }) {
                 <Text style={styles.privacyText}>All communication with our servers is encrypted using HTTPS.</Text>
               </View>
               <Divider />
-              <SettingRow icon="document-text-outline" iconColor="#6b7280" label="Privacy Policy" sublabel="View our data usage policy" onPress={() => Alert.alert('Privacy Policy', 'We collect your name, phone, email, and booking data to provide our services. We do not sell your data to third parties.')} chevron />
+              <SettingRow icon="document-text-outline" iconColor="#6b7280" label="Privacy Policy" sublabel="View our data usage policy" onPress={() => Linking.openURL('https://mysalonbookings.com/privacy-policy')} chevron />
               <Divider />
               <SettingRow icon="trash-outline" iconColor="#ef4444" label="Delete Account" sublabel="Permanently remove your account and data" onPress={handleDeleteAccount} rightEl={deletingAccount ? <ActivityIndicator size="small" color="#ef4444" /> : null} chevron={!deletingAccount} />
             </View>

@@ -471,8 +471,13 @@ const Register = () => {
           </div>
         </div>
 
-        <div className="text-center mt-6 text-sm text-blue-100">
-          <p>By registering, you agree to our Terms of Service</p>
+        <div className="text-center mt-6 text-xs text-blue-100 leading-relaxed">
+          <p>
+            By registering, you agree to our{' '}
+            <a href="https://mysalonbookings.com/privacy-policy" target="_blank" rel="noopener noreferrer" className="underline hover:text-white">Privacy Policy</a>
+            {' '}and{' '}
+            <a href="https://mysalonbookings.com/terms" target="_blank" rel="noopener noreferrer" className="underline hover:text-white">Terms &amp; Conditions</a>.
+          </p>
         </div>
       </div>
     </div>
