@@ -5,77 +5,123 @@ const SECTIONS = [
   {
     title: '1. Information We Collect',
     body: [
-      'When you create an account or book an appointment, we collect: your name, phone number, email address, and profile photo (optional).',
-      'We collect your approximate location to show nearby salons. This is used only within the app and is not stored permanently.',
-      'We collect booking history, service preferences, and reviews you submit.',
-      'We automatically receive standard device and usage data (device type, OS version, app version, crash logs) to improve app performance.',
+      'Account information: When you register, we collect your full name and phone number. Phone numbers are verified using Firebase Phone Authentication (Google LLC) via a one-time password (OTP).',
+      'Profile photo: You may optionally upload a profile photo. Photos are stored securely on Cloudinary (Cloudinary Ltd.) servers.',
+      'Location data: We collect your device GPS location to show nearby salons. Location is used in real-time and is not stored permanently on our servers.',
+      'Booking data: We store your booking history, selected services, appointment dates and times, and any special notes you provide.',
+      'Reviews and ratings: Any reviews or star ratings you submit for salons are stored and displayed publicly within the app.',
+      'Payment information: Payments are processed by Razorpay (Razorpay Software Pvt. Ltd.). We do not store your card details, UPI IDs, or payment credentials. We only retain the transaction ID and payment status for order records.',
+      'Push notification token: We collect your device push token via Expo Notifications to send you booking alerts. This token is stored securely on our servers.',
+      'Device and usage data: We automatically collect device type, OS version, app version, and crash/error logs to maintain app stability.',
     ],
   },
   {
     title: '2. How We Use Your Information',
     body: [
-      'To create and manage your account and bookings.',
-      'To show you relevant salons and services near your location.',
-      'To send booking confirmations, reminders, and status updates via push notifications and email.',
-      'To improve our platform, fix bugs, and develop new features.',
-      'To resolve disputes and enforce our Terms & Conditions.',
+      'To register and manage your account.',
+      'To verify your identity via phone number OTP during registration and password reset.',
+      'To display nearby salons and services based on your current location.',
+      'To process and manage your salon bookings.',
+      'To send you booking confirmation, status updates (confirmed, in-progress, completed, cancelled), and reminders via push notifications.',
+      'To enable salon owners to fulfil your appointment — your name, phone number, and booking details are shared with the relevant salon owner.',
+      'To process payments securely through Razorpay.',
+      'To respond to your support queries and resolve disputes.',
+      'To improve app performance, fix bugs, and develop new features using anonymised usage analytics.',
     ],
   },
   {
-    title: '3. Sharing Your Information',
+    title: '3. Third-Party Services We Use',
     body: [
-      'We share your name and booking details with the salon owner only when you make a booking — this is necessary to fulfil the service.',
-      'We do not sell, rent, or trade your personal information to any third party for marketing purposes.',
-      'We may share aggregated, anonymised usage data (no personal identifiers) with analytics providers to improve our service.',
-      'We may disclose your information if required by law, court order, or government authority.',
+      'Firebase Authentication (Google LLC) — Used for phone number OTP verification. Google may collect device identifiers during this process. Privacy policy: https://policies.google.com/privacy',
+      'Cloudinary (Cloudinary Ltd.) — Used to store and serve profile photos and salon images. Privacy policy: https://cloudinary.com/privacy',
+      'Google Maps Platform (Google LLC) — Used to display salon locations on a map and calculate distances. Privacy policy: https://policies.google.com/privacy',
+      'Razorpay (Razorpay Software Pvt. Ltd.) — Used to process payments. Your payment details are handled entirely by Razorpay and are not stored by us. Privacy policy: https://razorpay.com/privacy',
+      'Expo Notifications (Expo Inc.) — Used to send push notifications to your device. Your push token is stored on our servers. Privacy policy: https://expo.dev/privacy',
+      'MongoDB Atlas (MongoDB Inc.) — Our primary database provider, hosted on secure cloud infrastructure. Privacy policy: https://www.mongodb.com/legal/privacy-policy',
+      'Render (Render Services Inc.) — Our backend server hosting provider. Privacy policy: https://render.com/privacy',
     ],
   },
   {
-    title: '4. Data Storage & Security',
+    title: '4. Sharing Your Information',
     body: [
-      'Your data is stored on secure servers located in India. We use encryption in transit (HTTPS/TLS) and at rest.',
-      'Passwords are hashed using industry-standard algorithms and are never stored in plain text.',
-      'We retain your account data for as long as your account is active. You may request deletion at any time.',
-      'While we take reasonable precautions, no system is 100% secure. Please use a strong, unique password for your account.',
+      'Salon owners: We share your name, phone number, and booking details with the salon owner you book with. This is required to fulfil your appointment.',
+      'Payment processor: Transaction data (amount, status, transaction ID) is shared with Razorpay to process your payment.',
+      'Third-party services: We share only the minimum necessary data with the service providers listed in Section 3 above, solely to operate our platform.',
+      'We do not sell, rent, or trade your personal information to any third party for advertising or marketing purposes.',
+      'We may disclose your information if required by applicable law, court order, or government authority in India.',
     ],
   },
   {
-    title: '5. Your Rights',
+    title: '5. Data Storage & Retention',
     body: [
-      'You may view, update, or delete your personal information at any time from your Profile settings.',
-      'You may request a copy of all data we hold about you by contacting us at support@mysalonbookings.com.',
-      'You may opt out of marketing emails using the unsubscribe link in any such email.',
-      'You may disable location access in your device settings; this will limit nearby-salon discovery.',
+      'Your account data is stored on secure servers (MongoDB Atlas) with encryption in transit (HTTPS/TLS) and at rest.',
+      'Passwords are hashed using bcrypt and are never stored in plain text.',
+      'We retain your account data for as long as your account is active.',
+      'Booking records are retained for a minimum of 2 years for dispute resolution and legal compliance.',
+      'If you delete your account, your personal data is removed within 30 days, except where retention is required by law.',
+      'Push notification tokens are deleted immediately when you log out or uninstall the app.',
     ],
   },
   {
-    title: '6. Cookies & Tracking',
+    title: '6. Your Rights',
     body: [
-      'Our web platform uses cookies and similar technologies for session management, preferences, and analytics.',
-      'You can control cookies through your browser settings; disabling them may affect some functionality.',
+      'Access: You may view all your personal information from your Profile page within the app.',
+      'Update: You may update your name and profile photo at any time from Profile settings.',
+      'Delete account: You may request deletion of your account and all associated data by contacting us at sonuchaudhary264900@gmail.com. We will process your request within 30 days.',
+      'Withdraw location permission: You may disable location access in your device settings at any time. This will limit nearby-salon discovery but will not affect existing bookings.',
+      'Disable notifications: You may turn off push notifications from your device settings or within the app.',
+      'Data portability: You may request a copy of the data we hold about you by contacting us.',
     ],
   },
   {
-    title: '7. Children\'s Privacy',
+    title: '7. Permissions We Request',
     body: [
-      'MySalonBookings is not directed at children under 13. We do not knowingly collect personal information from children.',
-      'If you believe a child has provided us with personal data, please contact us and we will delete it promptly.',
+      'Location (Fine & Coarse): Used to find salons near you. Only accessed when the app is in use.',
+      'Camera & Photo Library: Used only when you choose to upload or update your profile photo.',
+      'Push Notifications: Used to send you booking status updates and reminders.',
+      'Internet: Required for the app to function — connecting to our servers, maps, and payment gateway.',
     ],
   },
   {
-    title: '8. Changes to This Policy',
+    title: '8. Cookies & Tracking (Web Only)',
     body: [
-      'We may update this Privacy Policy from time to time. We will notify you of significant changes via email or in-app notification.',
-      'Continued use of the platform after changes are posted constitutes your acceptance of the updated policy.',
+      'Our website uses cookies and local storage for session management, authentication tokens, and user preferences.',
+      'We do not use third-party advertising or tracking cookies.',
+      'You can clear cookies via your browser settings. Clearing them will log you out of the website.',
     ],
   },
   {
-    title: '9. Contact Us',
+    title: '9. Children\'s Privacy',
     body: [
-      'For any privacy-related questions or requests, please reach out to us:',
-      'Email: support@mysalonbookings.com',
+      'MySalonBookings is intended for users aged 13 and above. We do not knowingly collect personal information from children under 13.',
+      'If you are a parent or guardian and believe your child has provided us with personal information, please contact us immediately at sonuchaudhary264900@gmail.com and we will delete it promptly.',
+    ],
+  },
+  {
+    title: '10. Data Security',
+    body: [
+      'We implement industry-standard security measures including HTTPS/TLS encryption, hashed passwords, JWT-based authentication, and rate limiting.',
+      'Access to user data is restricted to authorised personnel only.',
+      'While we take every reasonable precaution to protect your data, no system can guarantee 100% security. We will notify affected users promptly in the event of a data breach.',
+    ],
+  },
+  {
+    title: '11. Changes to This Policy',
+    body: [
+      'We may update this Privacy Policy from time to time to reflect changes in our practices or legal requirements.',
+      'We will notify you of significant changes via push notification or email at least 7 days before the change takes effect.',
+      'The "Last updated" date at the top of this page will always reflect the most recent revision.',
+      'Continued use of the app after the effective date constitutes your acceptance of the updated policy.',
+    ],
+  },
+  {
+    title: '12. Contact Us',
+    body: [
+      'For any privacy-related questions, data requests, or complaints, please contact us:',
+      'Email: sonuchaudhary264900@gmail.com',
       'Phone: +91 87264 90024',
       'Address: MySalonBookings, India',
+      'We will respond to all privacy-related requests within 30 days.',
     ],
   },
 ];
@@ -91,7 +137,7 @@ export default function PrivacyPolicy() {
       <div className="bg-gradient-to-br from-indigo-600 to-violet-700 py-14 px-4">
         <div className="max-w-3xl mx-auto text-center">
           <h1 className="text-3xl sm:text-4xl font-extrabold text-white mb-3">Privacy Policy</h1>
-          <p className="text-indigo-100 text-sm">Last updated: March 2026</p>
+          <p className="text-indigo-100 text-sm">Last updated: 22 March 2026</p>
         </div>
       </div>
 
