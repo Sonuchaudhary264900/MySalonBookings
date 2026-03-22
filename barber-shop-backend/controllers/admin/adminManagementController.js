@@ -4,6 +4,9 @@ const Booking = require('../../models/Booking');
 const Customer = require('../../models/Customer');
 const { formatSuccessResponse, formatErrorResponse } = require('../../utils/formatters');
 
+// Escape special regex characters to prevent ReDoS attacks
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 // GET /admin/dashboard
 const getDashboardStats = async (req, res) => {
   try {
@@ -29,9 +32,9 @@ const getAllOwners = async (req, res) => {
     const { page = 1, limit = 10, search = '' } = req.query;
     const query = search
       ? { $or: [
-          { name: { $regex: search, $options: 'i' } },
-          { email: { $regex: search, $options: 'i' } },
-          { phone: { $regex: search, $options: 'i' } },
+          { name: { $regex: escapeRegex(search), $options: 'i' } },
+          { email: { $regex: escapeRegex(search), $options: 'i' } },
+          { phone: { $regex: escapeRegex(search), $options: 'i' } },
         ] }
       : {};
     const [owners, total] = await Promise.all([
@@ -59,13 +62,13 @@ const getAllSalons = async (req, res) => {
     const { page = 1, limit = 10, search = '', status = '', state = '', city = '' } = req.query;
     const query = {};
     if (status) query.approvalStatus = status;
-    if (state) query.state = { $regex: `^${state}$`, $options: 'i' };
-    if (city) query.city = { $regex: `^${city}$`, $options: 'i' };
+    if (state) query.state = { $regex: `^${escapeRegex(state)}$`, $options: 'i' };
+    if (city) query.city = { $regex: `^${escapeRegex(city)}$`, $options: 'i' };
     if (search) {
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { city: { $regex: search, $options: 'i' } },
-        { address: { $regex: search, $options: 'i' } },
+        { name: { $regex: escapeRegex(search), $options: 'i' } },
+        { city: { $regex: escapeRegex(search), $options: 'i' } },
+        { address: { $regex: escapeRegex(search), $options: 'i' } },
       ];
     }
     const [salons, total] = await Promise.all([
@@ -143,10 +146,10 @@ const getAllBookings = async (req, res) => {
     }
     if (search) {
       query.$or = [
-        { customerName: { $regex: search, $options: 'i' } },
-        { customerPhone: { $regex: search, $options: 'i' } },
-        { salonName: { $regex: search, $options: 'i' } },
-        { bookingId: { $regex: search, $options: 'i' } },
+        { customerName: { $regex: escapeRegex(search), $options: 'i' } },
+        { customerPhone: { $regex: escapeRegex(search), $options: 'i' } },
+        { salonName: { $regex: escapeRegex(search), $options: 'i' } },
+        { bookingId: { $regex: escapeRegex(search), $options: 'i' } },
       ];
     }
     const [bookings, total] = await Promise.all([
@@ -173,9 +176,9 @@ const getAllCustomers = async (req, res) => {
     const { page = 1, limit = 15, search = '' } = req.query;
     const query = search
       ? { $or: [
-          { name:  { $regex: search, $options: 'i' } },
-          { phone: { $regex: search, $options: 'i' } },
-          { email: { $regex: search, $options: 'i' } },
+          { name:  { $regex: escapeRegex(search), $options: 'i' } },
+          { phone: { $regex: escapeRegex(search), $options: 'i' } },
+          { email: { $regex: escapeRegex(search), $options: 'i' } },
         ] }
       : {};
     const [customers, total] = await Promise.all([

@@ -19,7 +19,18 @@ const {
 } = require("../middleware/validationMiddleware");
 
 const multer = require("multer");
-const multerUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+const multerUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed (jpg, png, webp, gif)'), false);
+    }
+  },
+});
 
 /* =====================================================
    SAFE CONTROLLER LOADER

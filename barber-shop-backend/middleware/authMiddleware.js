@@ -14,7 +14,7 @@ const { formatErrorResponse } = require("../utils/formatters");
 
 const verifyToken = (token) => {
   try {
-    return jwt.verify(token, process.env.JWT_SECRET);
+    return jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
   } catch (error) {
     if (error.name === "TokenExpiredError") {
       throw new Error("Token expired");
