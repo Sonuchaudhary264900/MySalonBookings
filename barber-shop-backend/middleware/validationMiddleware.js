@@ -6,7 +6,11 @@ const { validatePagination } = require('../utils/validators');
 // GLOBAL ERROR HANDLER MIDDLEWARE
 // ===================================================
 const globalErrorHandler = (err, req, res, next) => {
-  console.error('Error:', err);
+  if (process.env.NODE_ENV !== 'production') {
+    console.error('Error:', err);
+  } else {
+    console.error(`[${new Date().toISOString()}] ${err.name || 'Error'}: ${err.message} — ${req.method} ${req.originalUrl}`);
+  }
 
   // Handle Mongoose validation errors
   if (err.name === 'ValidationError') {
@@ -50,9 +54,12 @@ const globalErrorHandler = (err, req, res, next) => {
     );
   }
 
-  // Handle generic errors
+  // Handle generic errors — hide internal details in production
   const statusCode = err.statusCode || 500;
-  const message = err.message || 'Something went wrong. Please try again later.';
+  const isProduction = process.env.NODE_ENV === 'production';
+  const message = statusCode === 500 && isProduction
+    ? 'Something went wrong. Please try again later.'
+    : err.message || 'Something went wrong. Please try again later.';
 
   res.status(statusCode).json(
     formatErrorResponse(message, statusCode)

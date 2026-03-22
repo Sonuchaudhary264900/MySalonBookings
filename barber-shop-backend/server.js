@@ -29,6 +29,8 @@ const dotenv = require("dotenv");
 const http = require("http");
 const socketIO = require("socket.io");
 const morgan = require("morgan");
+const mongoSanitize = require("express-mongo-sanitize");
+const hpp = require("hpp");
 
 /* ============================================================
    LOAD ENVIRONMENT
@@ -93,7 +95,11 @@ app.set('trust proxy', 1);
    ALLOWED ORIGINS
 ============================================================ */
 
-const defaultOrigins = [
+const productionOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map(o => o.trim())
+  : [];
+
+const developmentOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "http://localhost:5175",
@@ -103,11 +109,9 @@ const defaultOrigins = [
   "http://localhost:3001"
 ];
 
-const envOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(",").map(o => o.trim())
-  : [];
-
-const allowedOrigins = [...new Set([...defaultOrigins, ...envOrigins])];
+const allowedOrigins = process.env.NODE_ENV === "production"
+  ? productionOrigins
+  : [...new Set([...developmentOrigins, ...productionOrigins])];
 
 /* ============================================================
    SOCKET.IO CONFIGURATION
@@ -166,6 +170,12 @@ app.use(
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use("/uploads", express.static("uploads"));
+
+// Sanitize request data — removes MongoDB operators ($, .) from req.body/params/query
+app.use(mongoSanitize());
+
+// Prevent HTTP Parameter Pollution (e.g. ?status=active&status=admin)
+app.use(hpp());
 
 /* ============================================================
    LOGGER
