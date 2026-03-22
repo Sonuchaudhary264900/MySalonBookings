@@ -86,6 +86,9 @@ const cronJobs = require("./cron");
 const app = express();
 const server = http.createServer(app);
 
+// Trust Render/Heroku reverse proxy so express-rate-limit reads the correct client IP
+app.set('trust proxy', 1);
+
 /* ============================================================
    ALLOWED ORIGINS
 ============================================================ */
