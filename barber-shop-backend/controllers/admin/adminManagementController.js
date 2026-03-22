@@ -1,5 +1,7 @@
 const Owner = require('../../models/Owner');
 const Salon = require('../../models/Salon');
+const Booking = require('../../models/Booking');
+const Customer = require('../../models/Customer');
 const { formatSuccessResponse, formatErrorResponse } = require('../../utils/formatters');
 
 // GET /admin/dashboard
@@ -128,4 +130,164 @@ const getSalonDetail = async (req, res) => {
   }
 };
 
-module.exports = { getDashboardStats, getAllOwners, getAllSalons, toggleSalonActive, getSalonDetail, getFilterOptions };
+// GET /admin/bookings?page&limit&status&from&to&search
+const getAllBookings = async (req, res) => {
+  try {
+    const { page = 1, limit = 15, status = '', from = '', to = '', search = '' } = req.query;
+    const query = {};
+    if (status) query.status = status;
+    if (from || to) {
+      query.appointmentDate = {};
+      if (from) query.appointmentDate.$gte = new Date(from);
+      if (to)   query.appointmentDate.$lte = new Date(new Date(to).setHours(23, 59, 59, 999));
+    }
+    if (search) {
+      query.$or = [
+        { customerName: { $regex: search, $options: 'i' } },
+        { customerPhone: { $regex: search, $options: 'i' } },
+        { salonName: { $regex: search, $options: 'i' } },
+        { bookingId: { $regex: search, $options: 'i' } },
+      ];
+    }
+    const [bookings, total] = await Promise.all([
+      Booking.find(query)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(parseInt(limit))
+        .lean(),
+      Booking.countDocuments(query),
+    ]);
+    res.json(formatSuccessResponse({
+      bookings,
+      pagination: { total, page: parseInt(page), limit: parseInt(limit), pages: Math.ceil(total / limit) }
+    }, 'Bookings fetched'));
+  } catch (error) {
+    console.error('Get all bookings error:', error);
+    res.status(500).json(formatErrorResponse('Server error', 500));
+  }
+};
+
+// GET /admin/customers?page&limit&search
+const getAllCustomers = async (req, res) => {
+  try {
+    const { page = 1, limit = 15, search = '' } = req.query;
+    const query = search
+      ? { $or: [
+          { name:  { $regex: search, $options: 'i' } },
+          { phone: { $regex: search, $options: 'i' } },
+          { email: { $regex: search, $options: 'i' } },
+        ] }
+      : {};
+    const [customers, total] = await Promise.all([
+      Customer.find(query)
+        .select('name phone email createdAt')
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(parseInt(limit))
+        .lean(),
+      Customer.countDocuments(query),
+    ]);
+
+    // Attach booking count per customer
+    const ids = customers.map(c => c._id);
+    const counts = await Booking.aggregate([
+      { $match: { customerId: { $in: ids } } },
+      { $group: { _id: '$customerId', count: { $sum: 1 } } },
+    ]);
+    const countMap = {};
+    counts.forEach(c => { countMap[c._id.toString()] = c.count; });
+    const enriched = customers.map(c => ({ ...c, bookingCount: countMap[c._id.toString()] || 0 }));
+
+    res.json(formatSuccessResponse({
+      customers: enriched,
+      pagination: { total, page: parseInt(page), limit: parseInt(limit), pages: Math.ceil(total / limit) }
+    }, 'Customers fetched'));
+  } catch (error) {
+    console.error('Get all customers error:', error);
+    res.status(500).json(formatErrorResponse('Server error', 500));
+  }
+};
+
+// GET /admin/analytics
+const getAnalytics = async (req, res) => {
+  try {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const last7Start   = new Date(startOfToday); last7Start.setDate(last7Start.getDate() - 6);
+    const last30Start  = new Date(startOfToday); last30Start.setDate(last30Start.getDate() - 29);
+
+    const [
+      totalBookings, totalCustomers, totalOwners, totalSalons,
+      bookingsByStatus, revenueAgg, todayBookings, last30Bookings,
+      dailyTrend, topSalons,
+    ] = await Promise.all([
+      Booking.countDocuments(),
+      Customer.countDocuments(),
+      Owner.countDocuments(),
+      Salon.countDocuments({ approvalStatus: 'approved' }),
+
+      // bookings grouped by status
+      Booking.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
+
+      // total revenue from completed bookings
+      Booking.aggregate([
+        { $match: { status: 'completed', totalAmount: { $exists: true } } },
+        { $group: { _id: null, total: { $sum: '$totalAmount' } } },
+      ]),
+
+      // today's bookings
+      Booking.countDocuments({ createdAt: { $gte: startOfToday } }),
+
+      // last 30 days bookings
+      Booking.countDocuments({ createdAt: { $gte: last30Start } }),
+
+      // daily count last 7 days
+      Booking.aggregate([
+        { $match: { createdAt: { $gte: last7Start } } },
+        { $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          count: { $sum: 1 },
+        }},
+        { $sort: { _id: 1 } },
+      ]),
+
+      // top 5 salons by booking count
+      Booking.aggregate([
+        { $group: { _id: '$salonId', salonName: { $first: '$salonName' }, count: { $sum: 1 }, revenue: { $sum: '$totalAmount' } } },
+        { $sort: { count: -1 } },
+        { $limit: 5 },
+      ]),
+    ]);
+
+    // Build a full 7-day array (fill missing days with 0)
+    const trendMap = {};
+    dailyTrend.forEach(d => { trendMap[d._id] = d.count; });
+    const trend = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(startOfToday); d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      trend.push({ date: key, count: trendMap[key] || 0 });
+    }
+
+    const statusMap = {};
+    bookingsByStatus.forEach(b => { statusMap[b._id] = b.count; });
+
+    res.json(formatSuccessResponse({
+      totalBookings,
+      totalCustomers,
+      totalOwners,
+      totalSalons,
+      totalRevenue: revenueAgg[0]?.total || 0,
+      todayBookings,
+      last30Bookings,
+      bookingsByStatus: statusMap,
+      dailyTrend: trend,
+      topSalons,
+    }, 'Analytics fetched'));
+  } catch (error) {
+    console.error('Analytics error:', error);
+    res.status(500).json(formatErrorResponse('Server error', 500));
+  }
+};
+
+module.exports = { getDashboardStats, getAllOwners, getAllSalons, toggleSalonActive, getSalonDetail, getFilterOptions, getAllBookings, getAllCustomers, getAnalytics };

@@ -1,11 +1,14 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Clock, Store, Users, LogOut, Scissors } from 'lucide-react';
+import { LayoutDashboard, Clock, Store, Users, LogOut, Scissors, BookOpen, TrendingUp, UserCheck } from 'lucide-react';
 
 const nav = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/pending', icon: Clock, label: 'Pending Approvals' },
-  { to: '/salons', icon: Store, label: 'All Salons' },
-  { to: '/owners', icon: Users, label: 'Owners' },
+  { to: '/analytics', icon: TrendingUp,      label: 'Analytics' },
+  { to: '/pending',   icon: Clock,           label: 'Pending Approvals' },
+  { to: '/bookings',  icon: BookOpen,        label: 'Bookings' },
+  { to: '/salons',    icon: Store,           label: 'All Salons' },
+  { to: '/owners',    icon: UserCheck,       label: 'Owners' },
+  { to: '/customers', icon: Users,           label: 'Customers' },
 ];
 
 export default function Layout() {

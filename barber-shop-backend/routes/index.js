@@ -981,6 +981,9 @@ router.get("/admin/salons/all", authenticateAdmin, asyncHandler(adminManagementC
 router.get("/admin/salons/filter-options", authenticateAdmin, asyncHandler(adminManagementController.getFilterOptions));
 router.get("/admin/salons/:salonId/detail", authenticateAdmin, asyncHandler(adminManagementController.getSalonDetail));
 router.put("/admin/salons/:salonId/toggle", authenticateAdmin, asyncHandler(adminManagementController.toggleSalonActive));
+router.get("/admin/bookings", authenticateAdmin, asyncHandler(adminManagementController.getAllBookings));
+router.get("/admin/customers", authenticateAdmin, asyncHandler(adminManagementController.getAllCustomers));
+router.get("/admin/analytics", authenticateAdmin, asyncHandler(adminManagementController.getAnalytics));
 
 /* =====================================================
    ADMIN SALON APPROVAL
