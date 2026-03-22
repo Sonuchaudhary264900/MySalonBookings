@@ -57,6 +57,7 @@
       "expo-asset",
       "expo-font"
     ],
+    "newArchEnabled": false,
     "owner": "sonuchaudhary264900",
     "extra": {
       "eas": {
