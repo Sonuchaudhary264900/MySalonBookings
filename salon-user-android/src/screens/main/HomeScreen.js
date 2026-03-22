@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, memo, useMemo } from '
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   TextInput, ActivityIndicator, Image, RefreshControl,
-  ScrollView,
+  ScrollView, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -59,15 +59,29 @@ function StarRating({ rating }) {
   );
 }
 
-const SalonCard = memo(function SalonCard({ salon, onPress, distance }) {
+const SalonCard = memo(function SalonCard({ salon, onPress, distance, isFavorited, onToggleFavorite }) {
   const { theme } = useTheme();
   const styles = getStyles(theme);
+  const [toggling, setToggling] = React.useState(false);
   const photo = salon.photos?.[0] || salon.coverPhoto || salon.ownerPhoto;
   const rating = salon.rating || salon.averageRating || 0;
   const reviewCount = salon.reviewCount || salon.totalReviews || 0;
   const category = (salon.category || 'salon').replace('_', ' ');
   const openStatus = isOpenNow(salon.workingHours);
   const todayHours = getTodayHours(salon.workingHours);
+
+  const handleHeart = async (e) => {
+    if (toggling) return;
+    setToggling(true);
+    try {
+      await api.post(`/customer/favorites/${salon._id}`);
+      onToggleFavorite?.(salon._id, !isFavorited);
+    } catch {
+      Alert.alert('Error', 'Could not update favourites. Try again.');
+    } finally {
+      setToggling(false);
+    }
+  };
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.92}>
@@ -83,6 +97,12 @@ const SalonCard = memo(function SalonCard({ salon, onPress, distance }) {
         <View style={styles.categoryBadge}>
           <Text style={styles.categoryBadgeText}>{category}</Text>
         </View>
+        {/* Heart / Favourite button */}
+        <TouchableOpacity style={styles.heartBtn} onPress={handleHeart} disabled={toggling}>
+          {toggling
+            ? <ActivityIndicator size="small" color="#ef4444" />
+            : <Ionicons name={isFavorited ? 'heart' : 'heart-outline'} size={18} color={isFavorited ? '#ef4444' : '#64748b'} />}
+        </TouchableOpacity>
         {salon.ownerPhoto && (
           <View style={styles.ownerAvatarBadge}>
             <Image source={{ uri: salon.ownerPhoto }} style={styles.ownerAvatarImg} />
@@ -192,9 +212,10 @@ export default function HomeScreen({ navigation }) {
   const [searching, setSearching]     = useState(false);
   const [userCoords, setUserCoords]   = useState(null);
   const [locDenied, setLocDenied]     = useState(false);
+  const [favoriteIds, setFavoriteIds] = useState(new Set());
   const searchTimer                   = useRef(null);
 
-  // Get location on mount
+  // Get location and favorites on mount
   useEffect(() => {
     (async () => {
       try {
@@ -209,6 +230,11 @@ export default function HomeScreen({ navigation }) {
         setLoading(false);
       }
     })();
+    // Load favourite IDs in background
+    api.get('/customer/favorites').then(res => {
+      const data = res.data.data?.salons || res.data.data || [];
+      setFavoriteIds(new Set(data.map(s => s._id)));
+    }).catch(() => {});
   }, []);
 
   const fetchSalons = async (sortKey, coords) => {
@@ -318,13 +344,23 @@ export default function HomeScreen({ navigation }) {
     return haversineKm(userCoords.lat, userCoords.lng, lat, lng);
   }, [userCoords]);
 
+  const handleToggleFavorite = useCallback((salonId, nowFavorited) => {
+    setFavoriteIds(prev => {
+      const next = new Set(prev);
+      if (nowFavorited) next.add(salonId); else next.delete(salonId);
+      return next;
+    });
+  }, []);
+
   const renderItem = useCallback(({ item }) => (
     <SalonCard
       salon={item}
       distance={getDistance(item)}
       onPress={() => navigation.navigate('SalonDetails', { salonId: item._id })}
+      isFavorited={favoriteIds.has(item._id)}
+      onToggleFavorite={handleToggleFavorite}
     />
-  ), [getDistance, navigation]);
+  ), [getDistance, navigation, favoriteIds, handleToggleFavorite]);
 
   return (
     <View style={styles.container}>
@@ -505,6 +541,7 @@ const getStyles = (t) => StyleSheet.create({
   ownerAvatarImg: { width: '100%', height: '100%' },
   cardImg: { width: '100%', height: 160 },
   cardImgPlaceholder: { backgroundColor: '#dbeafe', alignItems: 'center', justifyContent: 'center' },
+  heartBtn: { position: 'absolute', top: 10, right: 10, width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
   categoryBadge: { position: 'absolute', top: 10, left: 10, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
   categoryBadgeText: { fontSize: 11, fontWeight: '700', color: '#fff', textTransform: 'capitalize' },
   cardBody: { padding: 12, paddingTop: 22, gap: 5 },
