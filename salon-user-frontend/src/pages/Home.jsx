@@ -184,35 +184,52 @@ function Home() {
   return (
     <div className="min-h-screen bg-slate-50">
 
-      {/* ── SEARCH HEADER ─────────────────────────────────────── */}
-      <div className="bg-white border-b border-slate-100 px-4 sm:px-6 py-4">
+      {/* ── HEADER (matches app HomeScreen header) ───────────────── */}
+      <div className="bg-white border-b border-slate-100 px-4 sm:px-6 pt-5 pb-4">
         <div className="max-w-3xl mx-auto">
-          <p className="text-xs font-semibold text-indigo-500 uppercase tracking-wide mb-1">
-            {locDenied ? "Search to find salons" : "Salons within 5 km"}
-          </p>
-          <h1 className="text-xl font-bold text-slate-900 mb-3">Find Your Perfect Salon</h1>
 
-          {/* Search input */}
-          <div className="flex items-center gap-2 bg-slate-100 rounded-xl px-4 h-12 border border-slate-200 focus-within:border-indigo-400 focus-within:bg-white transition">
-            <svg className="w-5 h-5 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          {/* Top row: title + subtitle left | location btn right */}
+          <div className="flex items-center justify-between mb-[14px]">
+            <div>
+              <h1 className="text-xl font-extrabold text-slate-900 leading-tight">Find Nearby Salons</h1>
+              <p className="text-[12px] text-slate-400 mt-0.5">
+                {locDenied ? "Search to find salons" : "Salons within 5 km"}
+              </p>
+            </div>
+            <button
+              onClick={handleLocation}
+              disabled={locLoading}
+              title="Use my location"
+              className="w-9 h-9 rounded-[10px] bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition disabled:opacity-50 shrink-0"
+            >
+              {locLoading
+                ? <span className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                : <LocateFixed className="w-5 h-5" />}
+            </button>
+          </div>
+
+          {/* Search bar: matches app searchBar style exactly */}
+          <div className="flex items-center gap-2 bg-slate-100 rounded-xl border border-slate-200 px-3 h-[46px] focus-within:border-indigo-400 focus-within:bg-white transition">
+            <svg className="w-[18px] h-[18px] text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z" />
             </svg>
             <input
               type="text"
-              placeholder="Search salons, services, or city..."
+              placeholder="Search salons, services, city..."
               value={searchText}
               onChange={(e) => handleSearch(e.target.value)}
-              className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 outline-none"
+              className="flex-1 bg-transparent text-[14px] text-slate-800 placeholder-slate-400 outline-none"
             />
             {isSearchActive && !searching && (
-              <button onClick={clearSearch} className="text-slate-400 hover:text-slate-600 transition">
-                <X className="w-4 h-4" />
+              <button onClick={clearSearch} className="text-slate-400 hover:text-slate-600 transition shrink-0">
+                <X className="w-[18px] h-[18px]" />
               </button>
             )}
             {searching && (
               <span className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin shrink-0" />
             )}
           </div>
+
         </div>
       </div>
 
