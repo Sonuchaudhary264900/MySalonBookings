@@ -887,7 +887,7 @@ function PrivacySection() {
       ))}
       <TouchableOpacity
         style={[styles.privacyLinkBtn, { borderColor: theme.border }]}
-        onPress={() => Linking.openURL('https://mysalonbookings.com/privacy-policy')}
+        onPress={() => Linking.openURL('https://owner.mysalonbookings.com/privacy-policy')}
         activeOpacity={0.7}
       >
         <Ionicons name="document-text-outline" size={16} color="#6366f1" />

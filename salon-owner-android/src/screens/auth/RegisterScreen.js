@@ -282,9 +282,9 @@ export default function RegisterScreen({ navigation }) {
 
           <Text style={styles.privacyConsent}>
             By creating an account, you agree to our{' '}
-            <Text style={styles.privacyLink} onPress={() => Linking.openURL('https://mysalonbookings.com/privacy-policy')}>Privacy Policy</Text>
+            <Text style={styles.privacyLink} onPress={() => Linking.openURL('https://owner.mysalonbookings.com/privacy-policy')}>Privacy Policy</Text>
             {' '}and{' '}
-            <Text style={styles.privacyLink} onPress={() => Linking.openURL('https://mysalonbookings.com/terms')}>Terms & Conditions</Text>.
+            <Text style={styles.privacyLink} onPress={() => Linking.openURL('https://owner.mysalonbookings.com/terms')}>Terms & Conditions</Text>.
           </Text>
 
           <View style={styles.divider}>
