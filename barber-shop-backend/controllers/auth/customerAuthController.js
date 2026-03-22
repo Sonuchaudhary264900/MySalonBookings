@@ -320,6 +320,51 @@ exports.firebaseRegister = async (req, res) => {
 };
 
 // ===================================================
+// FIREBASE PHONE AUTH - RESET PASSWORD
+// ===================================================
+exports.firebaseResetPassword = async (req, res) => {
+  try {
+    const { firebaseToken, newPassword } = req.body;
+
+    if (!firebaseToken || !newPassword) {
+      return res.status(400).json(
+        formatErrorResponse('Firebase token and new password are required', 400)
+      );
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json(
+        formatErrorResponse('Password must be at least 6 characters', 400)
+      );
+    }
+
+    const { verifyFirebaseToken } = require('../../config/firebaseAdmin');
+    const firebaseUser = await verifyFirebaseToken(firebaseToken);
+    const phone = firebaseUser.phone;
+
+    const customer = await Customer.findOne({ phone });
+    if (!customer) {
+      return res.status(404).json(
+        formatErrorResponse('No account found with this phone number', 404)
+      );
+    }
+
+    customer.password = newPassword;
+    // Invalidate all refresh tokens on password reset
+    customer.refreshTokens = [];
+    await customer.save();
+
+    res.json(
+      formatSuccessResponse(null, 'Password reset successfully')
+    );
+  } catch (error) {
+    console.error('Error in firebase reset password:', error);
+    res.status(500).json(
+      formatErrorResponse(error.message || messages.GENERIC.ERROR, 500)
+    );
+  }
+};
+
+// ===================================================
 // LOGIN WITH PHONE & PASSWORD
 // ===================================================
 exports.loginWithPhone = async (req, res) => {

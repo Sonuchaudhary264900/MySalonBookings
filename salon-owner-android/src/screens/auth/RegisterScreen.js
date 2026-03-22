@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Alert, Image, Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import auth from '@react-native-firebase/auth';
 import api from '../../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/AuthContext';
@@ -11,16 +12,17 @@ import { useAuth } from '../../context/AuthContext';
 export default function RegisterScreen({ navigation }) {
   const { refreshUser } = useAuth();
 
-  const [step, setStep] = useState(1); // 1=details, 2=otp
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [step, setStep]               = useState(1);
+  const [name, setName]               = useState('');
+  const [phone, setPhone]             = useState('');
+  const [email, setEmail]             = useState('');
+  const [password, setPassword]       = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [otp, setOtp] = useState('');
   const [referralCode, setReferralCode] = useState('');
+  const [otp, setOtp]                 = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading]         = useState(false);
+  const confirmationRef               = useRef(null);
 
   const formatPhone = (raw) => {
     const digits = raw.replace(/\D/g, '');
@@ -69,16 +71,12 @@ export default function RegisterScreen({ navigation }) {
     setLoading(true);
     try {
       const formattedPhone = formatPhone(phone);
-      const res = await api.post('/owner/auth/send-otp', {
-        phone: formattedPhone,
-        email: email.trim(),
-      });
-      if (!res.data.success) throw new Error(res.data.message || 'Failed to send OTP');
+      const confirmation = await auth().signInWithPhoneNumber(formattedPhone);
+      confirmationRef.current = confirmation;
       setStep(2);
-      Alert.alert('OTP Sent', `A verification code was sent to ${email.trim()}`);
+      Alert.alert('OTP Sent', `A verification code was sent to ${formattedPhone}`);
     } catch (err) {
-      console.error('Send OTP error:', err);
-      Alert.alert('Error', err?.response?.data?.message || err.message || 'Failed to send OTP. Try again.');
+      Alert.alert('Error', err?.message || 'Failed to send OTP. Try again.');
     } finally {
       setLoading(false);
     }
@@ -86,18 +84,19 @@ export default function RegisterScreen({ navigation }) {
 
   const handleVerifyAndRegister = async () => {
     if (otp.length !== 6) {
-      Alert.alert('Error', 'Enter the 6-digit OTP from your email');
+      Alert.alert('Error', 'Enter the 6-digit OTP');
       return;
     }
     setLoading(true);
     try {
-      const formattedPhone = formatPhone(phone);
-      const res = await api.post('/owner/auth/register', {
+      const result = await confirmationRef.current.confirm(otp);
+      const idToken = await result.user.getIdToken();
+
+      const res = await api.post('/owner/auth/firebase-register', {
+        firebaseToken: idToken,
         name: name.trim(),
-        phone: formattedPhone,
         email: email.trim(),
         password,
-        otp,
       });
 
       if (!res.data.success) throw new Error(res.data.message || 'Registration failed');
@@ -106,7 +105,7 @@ export default function RegisterScreen({ navigation }) {
       await AsyncStorage.setItem('token', token);
       if (refreshToken) await AsyncStorage.setItem('refreshToken', refreshToken);
 
-      // Apply referral code if provided (silently — don't block registration)
+      // Apply referral code if provided (silently)
       if (referralCode.trim()) {
         try {
           await api.post('/owner/referral/apply', { code: referralCode.trim() });
@@ -115,8 +114,7 @@ export default function RegisterScreen({ navigation }) {
 
       await refreshUser();
     } catch (err) {
-      console.error('Register error:', err);
-      Alert.alert('Registration Failed', err?.response?.data?.message || err.message || 'Please try again.');
+      Alert.alert('Registration Failed', err?.response?.data?.message || err?.message || 'Please try again.');
     } finally {
       setLoading(false);
     }
@@ -195,7 +193,6 @@ export default function RegisterScreen({ navigation }) {
                 </View>
               </View>
 
-              {/* Password hint */}
               <View style={styles.hintBox}>
                 <Ionicons name="information-circle-outline" size={14} color="#6b7280" />
                 <Text style={styles.hintText}>
@@ -203,7 +200,6 @@ export default function RegisterScreen({ navigation }) {
                 </Text>
               </View>
 
-              {/* Optional referral code */}
               <View style={styles.field}>
                 <Text style={styles.label}>Referral Code <Text style={{ color: '#9ca3af', fontWeight: '400' }}>(optional)</Text></Text>
                 <View style={styles.inputRow}>
@@ -230,21 +226,21 @@ export default function RegisterScreen({ navigation }) {
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <>
-                    <Ionicons name="mail-outline" size={18} color="#fff" />
-                    <Text style={styles.btnText}>Send OTP via Email</Text>
+                    <Ionicons name="phone-portrait-outline" size={18} color="#fff" />
+                    <Text style={styles.btnText}>Send OTP via SMS</Text>
                   </>
                 )}
               </TouchableOpacity>
             </>
           ) : (
             <>
-              <Text style={styles.cardTitle}>Verify Email</Text>
+              <Text style={styles.cardTitle}>Verify Phone</Text>
               <Text style={styles.cardSubtitle}>
-                Enter the 6-digit code sent to {email}
+                Enter the 6-digit code sent to {formatPhone(phone)}
               </Text>
 
               <View style={styles.field}>
-                <Text style={styles.label}>Email OTP Code</Text>
+                <Text style={styles.label}>SMS OTP Code</Text>
                 <View style={styles.inputRow}>
                   <Ionicons name="key-outline" size={18} color="#6b7280" style={styles.inputIcon} />
                   <TextInput
@@ -276,7 +272,7 @@ export default function RegisterScreen({ navigation }) {
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() => { setStep(1); setOtp(''); }}
+                onPress={() => { setStep(1); setOtp(''); confirmationRef.current = null; }}
                 style={{ marginTop: 12, alignItems: 'center' }}
               >
                 <Text style={styles.backLink}>← Back · Change details</Text>

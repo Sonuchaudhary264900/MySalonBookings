@@ -1,0 +1,97 @@
+{
+  "project_info": {
+    "project_number": "1073830044380",
+    "project_id": "smartsalonotp",
+    "storage_bucket": "smartsalonotp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1073830044380:android:67b12ee724a5da3c6a8a19",
+        "android_client_info": {
+          "package_name": "com.creatorx.mysalonbookings"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1073830044380-bhv7pbp6o6sg1o013nftoqd56f6pldkg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD3SnDWmh13tClf5kJYk0KPybtz1xHCdt0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1073830044380-bhv7pbp6o6sg1o013nftoqd56f6pldkg.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1073830044380:android:ee6f79dc9d49c9126a8a19",
+        "android_client_info": {
+          "package_name": "com.mysalonbookings.owner"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1073830044380-bhv7pbp6o6sg1o013nftoqd56f6pldkg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD3SnDWmh13tClf5kJYk0KPybtz1xHCdt0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1073830044380-bhv7pbp6o6sg1o013nftoqd56f6pldkg.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1073830044380:android:433d14d6873e1d116a8a19",
+        "android_client_info": {
+          "package_name": "com.mysalonbookings.user"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1073830044380-bhv7pbp6o6sg1o013nftoqd56f6pldkg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD3SnDWmh13tClf5kJYk0KPybtz1xHCdt0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1073830044380-bhv7pbp6o6sg1o013nftoqd56f6pldkg.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

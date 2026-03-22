@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image, Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import auth from '@react-native-firebase/auth';
 import { showError, showSuccess } from '../../utils/toast';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api, { setToken } from '../../services/api';
@@ -14,12 +15,13 @@ export default function RegisterScreen({ navigation }) {
   const [step, setStep]                 = useState(1);
   const [name, setName]                 = useState('');
   const [phone, setPhone]               = useState('');
-  const [email, setEmail]               = useState('');
+  const [gender, setGender]             = useState('');
   const [password, setPassword]         = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [otp, setOtp]                   = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading]           = useState(false);
+  const confirmationRef                 = useRef(null);
 
   const normalizePhone = (p) => {
     const digits = p.replace(/\D/g, '');
@@ -38,7 +40,7 @@ export default function RegisterScreen({ navigation }) {
     if (!name.trim() || name.trim().length < 2) { showError('Error', 'Name must be at least 2 characters'); return; }
     const cleaned = phone.replace(/\D/g, '');
     if (cleaned.length < 10) { showError('Error', 'Enter a valid 10-digit phone number'); return; }
-    if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) { showError('Error', 'A valid email address is required'); return; }
+    if (!gender) { showError('Error', 'Please select your gender'); return; }
     if (!validatePassword(password)) {
       showError('Weak Password', 'Min 8 chars with uppercase, lowercase, number & special character');
       return;
@@ -48,10 +50,10 @@ export default function RegisterScreen({ navigation }) {
     setLoading(true);
     try {
       const formattedPhone = normalizePhone(phone);
-      const res = await api.post('/customer/auth/send-otp', { phone: formattedPhone, email: email.trim() });
-      if (!res.data.success) throw new Error(res.data.message || 'Failed to send OTP');
+      const confirmation = await auth().signInWithPhoneNumber(formattedPhone);
+      confirmationRef.current = confirmation;
       setStep(2);
-      showSuccess('OTP Sent', `Verification code sent to ${email.trim()}`);
+      showSuccess('OTP Sent', `Verification code sent to ${formattedPhone}`);
     } catch (err) {
       showError('Error', err?.message || 'Failed to send OTP. Try again.');
     } finally {
@@ -60,16 +62,17 @@ export default function RegisterScreen({ navigation }) {
   };
 
   const handleVerifyAndRegister = async () => {
-    if (otp.length !== 6) { showError('Error', 'Enter the 6-digit OTP from your email'); return; }
+    if (otp.length !== 6) { showError('Error', 'Enter the 6-digit OTP'); return; }
     setLoading(true);
     try {
-      const formattedPhone = normalizePhone(phone);
-      const res = await api.post('/customer/auth/register', {
+      const result = await confirmationRef.current.confirm(otp);
+      const idToken = await result.user.getIdToken();
+
+      const res = await api.post('/customer/auth/firebase-register', {
+        firebaseToken: idToken,
         name: name.trim(),
-        phone: formattedPhone,
-        email: email.trim(),
         password,
-        otp,
+        gender,
       });
       if (!res.data.success) throw new Error(res.data.message || 'Registration failed');
       const { token, refreshToken } = res.data.data || {};
@@ -79,7 +82,8 @@ export default function RegisterScreen({ navigation }) {
       setToken(token);
       await refreshUser();
     } catch (err) {
-      showError('Registration Failed', err?.response?.data?.message || err?.message || 'Please try again.');
+      const msg = err?.response?.data?.message || err?.message || 'Please try again.';
+      showError('Registration Failed', msg);
     } finally {
       setLoading(false);
     }
@@ -101,29 +105,66 @@ export default function RegisterScreen({ navigation }) {
               <Text style={styles.cardTitle}>Register</Text>
               <Text style={styles.cardSubtitle}>Fill in your details to get started</Text>
 
-              {[
-                { label: 'Full Name', value: name, setter: setName, icon: 'person-outline', placeholder: 'Your full name', keyboard: 'default' },
-                { label: 'Phone Number', value: phone, setter: setPhone, icon: 'call-outline', placeholder: '+91 98765 43210', keyboard: 'phone-pad' },
-                { label: 'Email Address', value: email, setter: setEmail, icon: 'mail-outline', placeholder: 'your@email.com', keyboard: 'email-address' },
-              ].map((f) => (
-                <View style={styles.field} key={f.label}>
-                  <Text style={styles.label}>{f.label}</Text>
-                  <View style={styles.inputRow}>
-                    <Ionicons name={f.icon} size={18} color="#6b7280" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder={f.placeholder}
-                      placeholderTextColor="#9ca3af"
-                      keyboardType={f.keyboard}
-                      value={f.value}
-                      onChangeText={f.setter}
-                      editable={!loading}
-                      autoCapitalize="none"
-                    />
-                  </View>
+              {/* Full Name */}
+              <View style={styles.field}>
+                <Text style={styles.label}>Full Name</Text>
+                <View style={styles.inputRow}>
+                  <Ionicons name="person-outline" size={18} color="#6b7280" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Your full name"
+                    placeholderTextColor="#9ca3af"
+                    value={name}
+                    onChangeText={setName}
+                    editable={!loading}
+                    autoCapitalize="words"
+                  />
                 </View>
-              ))}
+              </View>
 
+              {/* Phone */}
+              <View style={styles.field}>
+                <Text style={styles.label}>Phone Number</Text>
+                <View style={styles.inputRow}>
+                  <Ionicons name="call-outline" size={18} color="#6b7280" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="+91 98765 43210"
+                    placeholderTextColor="#9ca3af"
+                    keyboardType="phone-pad"
+                    value={phone}
+                    onChangeText={setPhone}
+                    editable={!loading}
+                    autoCapitalize="none"
+                  />
+                </View>
+              </View>
+
+              {/* Gender */}
+              <View style={styles.field}>
+                <Text style={styles.label}>Gender</Text>
+                <View style={styles.genderRow}>
+                  {['male', 'female'].map((g) => (
+                    <TouchableOpacity
+                      key={g}
+                      style={[styles.genderBtn, gender === g && styles.genderBtnActive]}
+                      onPress={() => setGender(g)}
+                      disabled={loading}
+                    >
+                      <Ionicons
+                        name={g === 'male' ? 'man-outline' : 'woman-outline'}
+                        size={16}
+                        color={gender === g ? '#fff' : '#6b7280'}
+                      />
+                      <Text style={[styles.genderText, gender === g && styles.genderTextActive]}>
+                        {g.charAt(0).toUpperCase() + g.slice(1)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Password */}
               <View style={styles.field}>
                 <Text style={styles.label}>Password</Text>
                 <View style={styles.inputRow}>
@@ -143,6 +184,7 @@ export default function RegisterScreen({ navigation }) {
                 </View>
               </View>
 
+              {/* Confirm Password */}
               <View style={styles.field}>
                 <Text style={styles.label}>Confirm Password</Text>
                 <View style={styles.inputRow}>
@@ -166,17 +208,17 @@ export default function RegisterScreen({ navigation }) {
 
               <TouchableOpacity style={[styles.btn, loading && styles.btnDisabled]} onPress={handleSendOtp} disabled={loading}>
                 {loading ? <ActivityIndicator color="#fff" /> : (
-                  <><Ionicons name="mail-outline" size={18} color="#fff" /><Text style={styles.btnText}>Send OTP via Email</Text></>
+                  <><Ionicons name="phone-portrait-outline" size={18} color="#fff" /><Text style={styles.btnText}>Send OTP via SMS</Text></>
                 )}
               </TouchableOpacity>
             </>
           ) : (
             <>
-              <Text style={styles.cardTitle}>Verify Email</Text>
-              <Text style={styles.cardSubtitle}>Enter the 6-digit code sent to {email}</Text>
+              <Text style={styles.cardTitle}>Verify Phone</Text>
+              <Text style={styles.cardSubtitle}>Enter the 6-digit code sent to {normalizePhone(phone)}</Text>
 
               <View style={styles.field}>
-                <Text style={styles.label}>Email OTP Code</Text>
+                <Text style={styles.label}>SMS OTP Code</Text>
                 <View style={styles.inputRow}>
                   <Ionicons name="key-outline" size={18} color="#6b7280" style={styles.inputIcon} />
                   <TextInput
@@ -202,7 +244,7 @@ export default function RegisterScreen({ navigation }) {
                 )}
               </TouchableOpacity>
 
-              <TouchableOpacity onPress={() => { setStep(1); setOtp(''); }} style={{ marginTop: 12, alignItems: 'center' }}>
+              <TouchableOpacity onPress={() => { setStep(1); setOtp(''); confirmationRef.current = null; }} style={{ marginTop: 12, alignItems: 'center' }}>
                 <Text style={styles.backLink}>← Back · Change details</Text>
               </TouchableOpacity>
             </>
@@ -242,6 +284,11 @@ const styles = StyleSheet.create({
   inputRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: '#d1d5db', borderRadius: 10, paddingHorizontal: 12, height: 48 },
   inputIcon: { marginRight: 8 },
   input: { flex: 1, fontSize: 15, color: '#111827' },
+  genderRow: { flexDirection: 'row', gap: 12 },
+  genderBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1.5, borderColor: '#d1d5db', borderRadius: 10, height: 44 },
+  genderBtnActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
+  genderText: { fontSize: 14, fontWeight: '600', color: '#6b7280' },
+  genderTextActive: { color: '#fff' },
   hintBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, backgroundColor: '#f9fafb', borderRadius: 8, padding: 10, marginBottom: 14 },
   hintText: { fontSize: 12, color: '#6b7280', flex: 1, lineHeight: 17 },
   btn: { backgroundColor: '#2563eb', borderRadius: 12, height: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 4, marginBottom: 8 },

@@ -6,7 +6,7 @@
 
 const axios = require('axios');
 
-const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY || 'AIzaSyDAN129txmFNPJVCUovGTxqWXgoR66HNYE';
+const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY || 'AIzaSyD3SnDWmh13tClf5kJYk0KPybtz1xHCdt0';
 
 /**
  * Verifies a Firebase Phone Auth ID token.

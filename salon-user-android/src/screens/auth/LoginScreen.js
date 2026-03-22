@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image, Dimensions, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import auth from '@react-native-firebase/auth';
 import { useAuth } from '../../context/AuthContext';
 import { showError } from '../../utils/toast';
 import api from '../../services/api';
@@ -25,6 +26,7 @@ export default function LoginScreen({ navigation }) {
   const [fpShowPw, setFpShowPw] = useState(false);
   const [fpLoading, setFpLoading] = useState(false);
   const [fpTimer, setFpTimer]   = useState(0);
+  const fpConfirmationRef       = useRef(null);
 
   useEffect(() => {
     if (fpTimer <= 0) return;
@@ -32,33 +34,42 @@ export default function LoginScreen({ navigation }) {
     return () => clearInterval(id);
   }, [fpTimer]);
 
+  const normalizeFpPhone = (p) => {
+    const digits = p.replace(/\D/g, '');
+    if (digits.length === 10) return `+91${digits}`;
+    if (digits.length === 12 && digits.startsWith('91')) return `+${digits}`;
+    if (p.startsWith('+')) return p.trim();
+    return `+91${digits}`;
+  };
+
   const handleFpSendOtp = async () => {
     if (!fpPhone.trim()) { Alert.alert('Error', 'Please enter your phone number'); return; }
-    const digits = fpPhone.replace(/\D/g, '');
-    const normalized = digits.length === 10 ? `+91${digits}` : digits.startsWith('91') && digits.length === 12 ? `+${digits}` : fpPhone.trim();
+    const normalized = normalizeFpPhone(fpPhone);
     setFpLoading(true);
     try {
-      await api.post('/customer/auth/forgot-password/send-otp', { phone: normalized });
+      const confirmation = await auth().signInWithPhoneNumber(normalized);
+      fpConfirmationRef.current = confirmation;
       setFpStep(2); setFpTimer(60);
-      Alert.alert('OTP Sent', 'Enter the OTP to reset your password');
+      Alert.alert('OTP Sent', 'Enter the SMS code to reset your password');
     } catch (err) {
-      Alert.alert('Error', err.response?.data?.message || 'Failed to send OTP');
+      Alert.alert('Error', err?.message || 'Failed to send OTP');
     } finally { setFpLoading(false); }
   };
 
   const handleFpReset = async () => {
-    if (!fpOtp.trim()) { Alert.alert('Error', 'Please enter the OTP'); return; }
+    if (!fpOtp.trim() || fpOtp.length !== 6) { Alert.alert('Error', 'Please enter the 6-digit OTP'); return; }
     if (!fpNewPw || fpNewPw.length < 6) { Alert.alert('Error', 'Password must be at least 6 characters'); return; }
     if (fpNewPw !== fpConfirm) { Alert.alert('Error', 'Passwords do not match'); return; }
-    const digits = fpPhone.replace(/\D/g, '');
-    const normalized = digits.length === 10 ? `+91${digits}` : digits.startsWith('91') && digits.length === 12 ? `+${digits}` : fpPhone.trim();
     setFpLoading(true);
     try {
-      await api.post('/customer/auth/forgot-password/reset', { phone: normalized, otp: fpOtp, newPassword: fpNewPw });
+      const result = await fpConfirmationRef.current.confirm(fpOtp);
+      const idToken = await result.user.getIdToken();
+      await api.post('/customer/auth/firebase-reset-password', { firebaseToken: idToken, newPassword: fpNewPw });
       Alert.alert('Success', 'Password reset successfully! Please log in.');
       setFpMode(false); setFpStep(1); setFpPhone(''); setFpOtp(''); setFpNewPw(''); setFpConfirm('');
+      fpConfirmationRef.current = null;
     } catch (err) {
-      Alert.alert('Error', err.response?.data?.message || 'Failed to reset password');
+      Alert.alert('Error', err?.response?.data?.message || err?.message || 'Failed to reset password');
     } finally { setFpLoading(false); }
   };
 
@@ -187,7 +198,7 @@ export default function LoginScreen({ navigation }) {
           <View style={styles.fpCard}>
             <View style={styles.fpHeader}>
               <Text style={styles.fpTitle}>{fpStep === 1 ? 'Forgot Password' : 'Reset Password'}</Text>
-              <TouchableOpacity onPress={() => { setFpMode(false); setFpStep(1); }}>
+              <TouchableOpacity onPress={() => { setFpMode(false); setFpStep(1); fpConfirmationRef.current = null; }}>
                 <Ionicons name="close" size={22} color="#6b7280" />
               </TouchableOpacity>
             </View>

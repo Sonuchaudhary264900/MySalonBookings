@@ -586,6 +586,40 @@ exports.deleteAccount = async (req, res) => {
 };
 
 // ===================================================
+// FIREBASE PHONE AUTH - RESET PASSWORD
+// ===================================================
+exports.firebaseResetPassword = async (req, res) => {
+  try {
+    const { firebaseToken, newPassword } = req.body;
+
+    if (!firebaseToken || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Firebase token and new password are required' });
+    }
+    if (newPassword.length < 8) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 8 characters' });
+    }
+
+    const { verifyFirebaseToken } = require('../../config/firebaseAdmin');
+    const firebaseUser = await verifyFirebaseToken(firebaseToken);
+    const phone = firebaseUser.phone;
+
+    const owner = await Owner.findOne({ phone });
+    if (!owner) {
+      return res.status(404).json({ success: false, message: 'No account found with this phone number' });
+    }
+
+    owner.password = newPassword;
+    owner.refreshTokens = [];
+    await owner.save();
+
+    res.json({ success: true, message: 'Password reset successfully' });
+  } catch (error) {
+    console.error('Error in owner firebase reset password:', error);
+    res.status(500).json({ success: false, message: error.message || 'Internal server error' });
+  }
+};
+
+// ===================================================
 // FIREBASE PHONE AUTH REGISTER
 // ===================================================
 exports.firebaseRegister = async (req, res) => {
