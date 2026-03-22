@@ -62,7 +62,14 @@ async function registerPushToken() {
   }
   if (finalStatus !== 'granted') return null;
   await setupNotificationChannels();
-  const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+
+  // easConfig.projectId is auto-populated in EAS builds; fall back to extra only if real
+  const easProjectId = Constants.easConfig?.projectId;
+  const extraProjectId = Constants.expoConfig?.extra?.eas?.projectId;
+  const projectId =
+    easProjectId ||
+    (extraProjectId && extraProjectId !== 'your-eas-project-id' ? extraProjectId : undefined);
+
   const tokenData = await Notifications.getExpoPushTokenAsync(
     projectId ? { projectId } : {}
   );
