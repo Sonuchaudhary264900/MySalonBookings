@@ -8,12 +8,8 @@ export default defineConfig({
     react(),
   ],
 
-  esbuild: {
-    drop: ['console', 'debugger'],
-  },
-
   build: {
-    minify: 'esbuild',
+    minify: 'oxc',
     target: 'es2020',
     cssCodeSplit: true,
     reportCompressedSize: false,
