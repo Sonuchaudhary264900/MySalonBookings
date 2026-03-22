@@ -1,27 +1,38 @@
 import { Link } from "react-router-dom";
-
+import { useTheme } from "../context/ThemeContext";
 
 function Footer() {
+  const { isDark } = useTheme();
+
+  const bg      = isDark ? "bg-slate-900"   : "bg-slate-100";
+  const heading = isDark ? "text-white"      : "text-slate-800";
+  const muted   = isDark ? "text-slate-400"  : "text-slate-500";
+  const lhover  = isDark ? "hover:text-white": "hover:text-indigo-600";
+  const btnBg   = isDark ? "bg-slate-800"    : "bg-white";
+  const divider = isDark ? "border-slate-800": "border-slate-200";
+  const sub     = isDark ? "text-slate-500"  : "text-slate-400";
+
   return (
-    <footer className="bg-slate-900 text-white mt-16">
+    <footer className={`${bg} mt-16 transition-colors duration-300`}>
       <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
+
           {/* Brand */}
           <div className="md:col-span-2">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
                 <span className="text-white text-base">✂</span>
               </div>
-              <span className="text-xl font-bold text-white">MySalonBookings</span>
+              <span className={`text-xl font-bold ${heading}`}>MySalonBookings</span>
             </div>
-            <p className="text-slate-400 text-sm leading-relaxed max-w-xs">
+            <p className={`${muted} text-sm leading-relaxed max-w-xs`}>
               Discover top-rated salons near you and book appointments in seconds. Your perfect look is just a tap away.
             </p>
             <div className="flex gap-4 mt-5">
               {["📘", "📸", "🐦"].map((icon, i) => (
                 <button
                   key={i}
-                  className="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-indigo-600 transition-colors"
+                  className={`w-9 h-9 rounded-full ${btnBg} flex items-center justify-center hover:bg-indigo-600 transition-colors`}
                 >
                   <span className="text-sm">{icon}</span>
                 </button>
@@ -31,7 +42,7 @@ function Footer() {
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Quick Links</h4>
+            <h4 className={`text-sm font-semibold ${heading} uppercase tracking-wider mb-4`}>Quick Links</h4>
             <ul className="space-y-2.5">
               {[
                 { to: "/", label: "Browse Salons" },
@@ -39,7 +50,7 @@ function Footer() {
                 { to: "/favorites", label: "Favorites" },
               ].map(({ to, label }) => (
                 <li key={to}>
-                  <Link to={to} className="text-slate-400 hover:text-white text-sm transition-colors">
+                  <Link to={to} className={`${muted} ${lhover} text-sm transition-colors`}>
                     {label}
                   </Link>
                 </li>
@@ -49,14 +60,14 @@ function Footer() {
 
           {/* Contact */}
           <div>
-            <h4 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Contact</h4>
-            <ul className="space-y-2.5 text-slate-400 text-sm">
+            <h4 className={`text-sm font-semibold ${heading} uppercase tracking-wider mb-4`}>Contact</h4>
+            <ul className={`space-y-2.5 ${muted} text-sm`}>
               <li className="flex items-center gap-2">
                 <span>✉</span>
                 <span>support@mysalonbookings.com</span>
               </li>
               <li className="flex items-center gap-2">
-                <img src="https://img.freepik.com/free-vector/location_53876-25530.jpg" alt="location" className="w-4 h-4 object-contain" />
+                <span>📍</span>
                 <span>Across India</span>
               </li>
               <li className="flex items-center gap-2">
@@ -67,11 +78,11 @@ function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-slate-800 pt-6 flex flex-col md:flex-row justify-between items-center gap-2 text-sm text-slate-500">
+        <div className={`border-t ${divider} pt-6 flex flex-col md:flex-row justify-between items-center gap-2 text-sm ${sub}`}>
           <p>© {new Date().getFullYear()} SmartSalon. All rights reserved.</p>
           <div className="flex gap-4">
-            <Link to="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link>
-            <Link to="/terms" className="hover:text-white transition-colors">Terms &amp; Conditions</Link>
+            <Link to="/privacy-policy" className={`${lhover} transition-colors`}>Privacy Policy</Link>
+            <Link to="/terms" className={`${lhover} transition-colors`}>Terms &amp; Conditions</Link>
           </div>
         </div>
       </div>
