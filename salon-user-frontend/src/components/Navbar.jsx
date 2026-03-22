@@ -29,7 +29,7 @@ function NotificationPanel({ onClose }) {
     useNotifications();
 
   return (
-    <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden fade-in">
+    <div className="absolute right-0 top-full mt-2 w-[min(320px,calc(100vw-32px))] bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden fade-in">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
         <div className="flex items-center gap-2">
@@ -106,7 +106,8 @@ function NotificationPanel({ onClose }) {
 function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOpen }) {
   const navigate   = useNavigate();
   const location   = useLocation();
-  const panelRef   = useRef(null);
+  const panelRef         = useRef(null);
+  const mobilePanelRef   = useRef(null);
   const token      = localStorage.getItem("customerToken");
   const [scrolled,   setScrolled]   = useState(false);
   const [_panelOpen, _setPanelOpen] = useState(false);
@@ -129,9 +130,9 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
   useEffect(() => {
     if (!panelOpen) return;
     const handle = (e) => {
-      if (panelRef.current && !panelRef.current.contains(e.target)) {
-        setPanelOpen(false);
-      }
+      const inDesktop = panelRef.current && panelRef.current.contains(e.target);
+      const inMobile  = mobilePanelRef.current && mobilePanelRef.current.contains(e.target);
+      if (!inDesktop && !inMobile) setPanelOpen(false);
     };
     document.addEventListener("mousedown", handle);
     return () => document.removeEventListener("mousedown", handle);
@@ -186,6 +187,44 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
           {token && navLink("/favorites", "Favorites")}
           {token && navLink("/profile", "My Profile")}
         </nav>
+
+        {/* Mobile actions — theme toggle + notification bell */}
+        <div className="flex md:hidden items-center gap-1 ml-auto">
+          {/* Theme toggle */}
+          <button
+            onClick={toggleTheme}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 transition"
+            title={isDark ? "Switch to Light" : "Switch to Dark"}
+          >
+            {isDark ? (
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" />
+              </svg>
+            )}
+          </button>
+          {/* Notification bell */}
+          <div className="relative" ref={mobilePanelRef}>
+            <button
+              onClick={() => setPanelOpen((v) => !v)}
+              className="relative w-9 h-9 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 transition"
+              title="Notifications"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </button>
+            {panelOpen && <NotificationPanel onClose={() => setPanelOpen(false)} />}
+          </div>
+        </div>
 
         {/* Desktop actions */}
         <div className="hidden md:flex items-center gap-3">
