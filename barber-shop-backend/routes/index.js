@@ -902,8 +902,8 @@ router.put("/owner/bookings/:bookingId", authenticateOwner, validateObjectId("bo
     });
   }
 
-  // Send push notification to customer when booking is completed
-  if (status === "completed" && booking.customerId) {
+  // Send push notification to customer on all status changes
+  if (booking.customerId) {
     try {
       const Customer = require("../models/Customer");
       const customer = await Customer.findById(booking.customerId).select("pushToken");
@@ -911,13 +911,38 @@ router.put("/owner/bookings/:bookingId", authenticateOwner, validateObjectId("bo
         const { Expo } = require("expo-server-sdk");
         const expo = new Expo();
         if (Expo.isExpoPushToken(customer.pushToken)) {
-          await expo.sendPushNotificationsAsync([{
-            to: customer.pushToken,
-            sound: "default",
-            title: "How was your experience? ⭐",
-            body: `Your service at ${salon.name} is complete. Tap to leave a review!`,
-            data: { bookingId: booking._id.toString(), type: "review_prompt" },
-          }]);
+          const pushMap = {
+            confirmed: {
+              title: "Booking Confirmed ✅",
+              body: `Your appointment at ${salon.name} is confirmed. See you soon!`,
+              type: "booking_confirmed",
+            },
+            in_progress: {
+              title: "Your Service Has Started 💈",
+              body: `Your appointment at ${salon.name} is now in progress.`,
+              type: "booking_in_progress",
+            },
+            cancelled: {
+              title: "Booking Cancelled ❌",
+              body: `Your appointment at ${salon.name} has been cancelled.`,
+              type: "booking_cancelled",
+            },
+            completed: {
+              title: "How was your experience? ⭐",
+              body: `Your service at ${salon.name} is complete. Tap to leave a review!`,
+              type: "review_prompt",
+            },
+          };
+          const push = pushMap[status];
+          if (push) {
+            await expo.sendPushNotificationsAsync([{
+              to: customer.pushToken,
+              sound: "default",
+              title: push.title,
+              body: push.body,
+              data: { bookingId: booking._id.toString(), type: push.type },
+            }]);
+          }
         }
       }
     } catch (e) { /* non-critical, ignore push errors */ }
