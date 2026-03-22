@@ -5,72 +5,122 @@ const SECTIONS = [
   {
     title: '1. Information We Collect',
     body: [
-      'When you register as a salon owner, we collect: your name, phone number, email address, business name, business address, and profile photo.',
-      'We collect salon information you provide: photos, services, pricing, working hours, and any documents submitted for verification.',
-      'We automatically collect usage data such as login times, features used, booking activity, and device/browser information.',
-      'We may collect your location to enable location-based features for your salon listing.',
+      'Account information: When you register, we collect your full name, phone number, and email address. Phone numbers are verified using Firebase Phone Authentication (Google LLC) via a one-time password (OTP).',
+      'Salon information: We collect your salon name, address, location (GPS coordinates), working hours, services, pricing, and salon photos you upload.',
+      'Profile and salon photos: Photos are stored securely on Cloudinary (Cloudinary Ltd.) servers.',
+      'Booking data: We store all bookings made by customers at your salon, including customer names, phone numbers, selected services, appointment times, and status history.',
+      'Referral data: If you use the referral programme, we store your referral code and the referrer identity to process rewards.',
+      'Payment information: Payments are processed by Razorpay (Razorpay Software Pvt. Ltd.). We do not store your card details or banking credentials. We only retain transaction IDs and payment status.',
+      'Push notification token: We collect your device push token via Expo Notifications to send you new booking alerts. This token is stored securely on our servers.',
+      'Device and usage data: We automatically collect device type, OS version, app version, login times, features used, and crash/error logs to maintain platform stability.',
     ],
   },
   {
     title: '2. How We Use Your Information',
     body: [
-      'To create and manage your salon owner account and dashboard.',
-      'To display your salon profile to customers searching the MySalonBookings platform.',
-      'To send you booking notifications, customer messages, and platform updates.',
-      'To generate analytics and reports on your bookings and revenue.',
-      'To verify your identity and salon credentials during the approval process.',
-      'To improve our platform and develop new features based on usage patterns.',
+      'To register and manage your salon owner account and dashboard.',
+      'To verify your identity via phone number OTP during registration and password reset.',
+      'To display your salon profile, services, photos, and location to customers searching on the MySalonBookings platform.',
+      'To receive and manage bookings from customers in real time.',
+      'To send you instant push notifications for new bookings and customer activity.',
+      'To process payments for bookings through Razorpay.',
+      'To generate booking analytics and revenue reports on your dashboard.',
+      'To process referral rewards when applicable.',
+      'To respond to your support queries and resolve disputes.',
+      'To improve app performance and develop new features using anonymised usage analytics.',
     ],
   },
   {
-    title: '3. Sharing Your Information',
+    title: '3. Third-Party Services We Use',
     body: [
-      'Your salon name, location, services, photos, and ratings are publicly visible to customers on the MySalonBookings user app and website.',
-      'Your contact information shared with customers is limited to what is necessary for booking fulfilment.',
-      'We do not sell or rent your personal information to third parties for marketing.',
-      'We may share data with trusted service providers (hosting, analytics) who process it on our behalf under strict confidentiality agreements.',
-      'We may disclose information if required by law or valid legal process.',
+      'Firebase Authentication (Google LLC) — Used for phone number OTP verification. Privacy policy: https://policies.google.com/privacy',
+      'Cloudinary (Cloudinary Ltd.) — Used to store and serve salon and profile photos. Privacy policy: https://cloudinary.com/privacy',
+      'Google Maps Platform (Google LLC) — Used to display and set your salon location on a map. Privacy policy: https://policies.google.com/privacy',
+      'Razorpay (Razorpay Software Pvt. Ltd.) — Used to process customer payments. Your banking/payment details are handled entirely by Razorpay. Privacy policy: https://razorpay.com/privacy',
+      'Expo Notifications (Expo Inc.) — Used to send push notifications to your device for new bookings. Privacy policy: https://expo.dev/privacy',
+      'MongoDB Atlas (MongoDB Inc.) — Our primary database provider. Privacy policy: https://www.mongodb.com/legal/privacy-policy',
+      'Render (Render Services Inc.) — Our backend server hosting provider. Privacy policy: https://render.com/privacy',
     ],
   },
   {
-    title: '4. Data Storage & Security',
+    title: '4. Sharing Your Information',
     body: [
-      'Your data is stored on secure servers in India using encryption in transit (HTTPS/TLS) and at rest.',
-      'Passwords are hashed using industry-standard algorithms and are never stored in plain text.',
-      'Access to your data within our organisation is limited to personnel who need it to operate the platform.',
-      'We retain your data for as long as your account is active or as required by law.',
+      'Customers: Your salon name, location, services, photos, working hours, and ratings are publicly visible to customers on the MySalonBookings platform.',
+      'Customer data: When a customer books your salon, you receive their name, phone number, and booking details. This data must be used only to fulfil the appointment.',
+      'Payment processor: Transaction data is shared with Razorpay solely to process payments.',
+      'Third-party services: We share only the minimum necessary data with the service providers listed in Section 3, solely to operate the platform.',
+      'We do not sell, rent, or trade your personal information to any third party for advertising or marketing purposes.',
+      'We may disclose your information if required by applicable law, court order, or government authority in India.',
     ],
   },
   {
-    title: '5. Your Rights',
+    title: '5. Data Storage & Retention',
     body: [
-      'You may update your personal and salon information at any time from your dashboard.',
-      'You may request a copy of all data we hold about you by contacting support@mysalonbookings.com.',
-      'You may request deletion of your account and associated data — subject to legal retention obligations.',
-      'You may opt out of marketing communications at any time.',
+      'Your data is stored on secure servers (MongoDB Atlas) with encryption in transit (HTTPS/TLS) and at rest.',
+      'Passwords are hashed using bcrypt and are never stored in plain text.',
+      'We retain your account data for as long as your account is active.',
+      'Booking records are retained for a minimum of 2 years for dispute resolution and legal compliance.',
+      'If you delete your account, your personal data is removed within 30 days, except where retention is required by law.',
+      'Customer booking data associated with your salon is retained per our obligations to those customers.',
     ],
   },
   {
-    title: '6. Referral Programme Data',
+    title: '6. Your Rights',
     body: [
-      'If you participate in the referral programme, we store your referral code and the identity of the referrer.',
-      'This data is used solely to process referral rewards and is not shared externally.',
+      'Access & Update: You may view and update your personal and salon information at any time from your dashboard settings.',
+      'Delete account: You may request deletion of your account and all associated personal data by contacting us at sonuchaudhary264900@gmail.com. We will process your request within 30 days.',
+      'Withdraw location permission: You may disable location access in your device settings. This will affect your ability to set your salon location.',
+      'Disable notifications: You may turn off push notifications from your device settings or within the app.',
+      'Data portability: You may request a copy of the data we hold about you by contacting us.',
     ],
   },
   {
-    title: '7. Changes to This Policy',
+    title: '7. Permissions We Request (Mobile App)',
     body: [
-      'We may update this Privacy Policy periodically. Significant changes will be communicated via email or dashboard notification.',
-      'Continued use of the platform after changes are posted constitutes your acceptance.',
+      'Location (Fine & Coarse): Used to set and display your salon location on the map.',
+      'Camera & Photo Library: Used when you upload salon photos or update your profile picture.',
+      'Push Notifications: Used to alert you instantly when a new booking is received.',
+      'Internet: Required for the app to connect to our servers, maps, and payment gateway.',
     ],
   },
   {
-    title: '8. Contact Us',
+    title: '8. Referral Programme',
     body: [
-      'For privacy-related questions or requests:',
-      'Email: support@mysalonbookings.com',
+      'If you participate in the referral programme, we store your referral code and the referrer identity.',
+      'This data is used solely to track and process referral rewards and is not shared with third parties.',
+    ],
+  },
+  {
+    title: '9. Data Security',
+    body: [
+      'We implement industry-standard security measures including HTTPS/TLS encryption, hashed passwords, JWT-based authentication, and rate limiting.',
+      'Access to user data is restricted to authorised personnel only.',
+      'While we take every reasonable precaution, no system can guarantee 100% security. We will notify affected users promptly in the event of a data breach.',
+    ],
+  },
+  {
+    title: '10. Children\'s Privacy',
+    body: [
+      'MySalonBookings Owner platform is intended for business owners aged 18 and above.',
+      'We do not knowingly collect information from anyone under 18. If you believe this has occurred, contact us at sonuchaudhary264900@gmail.com.',
+    ],
+  },
+  {
+    title: '11. Changes to This Policy',
+    body: [
+      'We may update this Privacy Policy from time to time to reflect changes in our practices or legal requirements.',
+      'We will notify you of significant changes via push notification or email at least 7 days before the change takes effect.',
+      'Continued use of the platform after the effective date constitutes your acceptance of the updated policy.',
+    ],
+  },
+  {
+    title: '12. Contact Us',
+    body: [
+      'For any privacy-related questions, data requests, or complaints, please contact us:',
+      'Email: sonuchaudhary264900@gmail.com',
       'Phone: +91 87264 90024',
       'Address: MySalonBookings, India',
+      'We will respond to all privacy-related requests within 30 days.',
     ],
   },
 ];
@@ -100,7 +150,7 @@ export default function PrivacyPolicy() {
       <div className="bg-gradient-to-br from-indigo-600 to-violet-700 py-14 px-4">
         <div className="max-w-3xl mx-auto text-center">
           <h1 className="text-3xl sm:text-4xl font-extrabold text-white mb-3">Privacy Policy</h1>
-          <p className="text-indigo-100 text-sm">Last updated: March 2026 · MySalonBookings Owner Platform</p>
+          <p className="text-indigo-100 text-sm">Last updated: 22 March 2026 · MySalonBookings Owner Platform</p>
         </div>
       </div>
 
