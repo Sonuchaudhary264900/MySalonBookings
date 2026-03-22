@@ -109,7 +109,6 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
   const panelRef   = useRef(null);
   const token      = localStorage.getItem("customerToken");
   const [scrolled,   setScrolled]   = useState(false);
-  const [menuOpen,   setMenuOpen]   = useState(false);
   const [_panelOpen, _setPanelOpen] = useState(false);
   const { isDark, toggleTheme } = useTheme();
 
@@ -125,7 +124,6 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 
   // Close panel on outside click
   useEffect(() => {
@@ -252,61 +250,7 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
           )}
         </div>
 
-        {/* Mobile menu toggle */}
-        <button
-          className="md:hidden p-2 rounded-lg hover:bg-slate-100 transition"
-          onClick={() => setMenuOpen(!menuOpen)}
-          aria-label="Toggle menu"
-        >
-          <div className="w-5 flex flex-col gap-1.5">
-            <span className={`block h-0.5 bg-slate-700 rounded transition-all ${menuOpen ? "rotate-45 translate-y-2" : ""}`} />
-            <span className={`block h-0.5 bg-slate-700 rounded transition-all ${menuOpen ? "opacity-0" : ""}`} />
-            <span className={`block h-0.5 bg-slate-700 rounded transition-all ${menuOpen ? "-rotate-45 -translate-y-2" : ""}`} />
-          </div>
-        </button>
       </div>
-
-      {/* Mobile menu */}
-      {menuOpen && (
-        <div className="md:hidden border-t border-slate-100 bg-white px-4 py-4 flex flex-col gap-4 fade-in">
-          <button
-            onClick={toggleTheme}
-            className="flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-indigo-600"
-          >
-            {isDark ? "☀️ Light Mode" : "🌙 Dark Mode"}
-          </button>
-          <Link to="/" className="text-sm font-medium text-slate-700 hover:text-indigo-600">Home</Link>
-          {token && <Link to="/dashboard" className="text-sm font-medium text-slate-700 hover:text-indigo-600">My Bookings</Link>}
-          {token && <Link to="/favorites" className="text-sm font-medium text-slate-700 hover:text-indigo-600">Favorites</Link>}
-          {token && <Link to="/profile" className="text-sm font-medium text-slate-700 hover:text-indigo-600">My Profile</Link>}
-          {token && (
-            <button
-              onClick={() => { setMenuOpen(false); setPanelOpen(true); }}
-              className="text-left text-sm font-medium text-slate-700 hover:text-indigo-600 flex items-center gap-2"
-            >
-              🔔 Notifications
-              {unreadCount > 0 && (
-                <span className="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full leading-none">
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-          )}
-          {!token ? (
-            <div className="flex flex-col gap-2 pt-2 border-t border-slate-100">
-              <Link to="/login" className="btn-outline text-center text-sm">Sign In</Link>
-              <Link to="/register" className="btn-primary text-center text-sm">Join Free</Link>
-            </div>
-          ) : (
-            <button
-              onClick={handleLogout}
-              className="text-left text-sm font-medium text-red-500 border-t border-slate-100 pt-2"
-            >
-              Sign Out
-            </button>
-          )}
-        </div>
-      )}
     </header>
   );
 }
