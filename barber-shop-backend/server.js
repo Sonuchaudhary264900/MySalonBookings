@@ -8,6 +8,19 @@
 const dns = require("dns");
 dns.setServers(["8.8.8.8", "8.8.4.4"]); // Fix: ISP DNS blocks MongoDB Atlas SRV lookups
 
+/* ============================================================
+   SENTRY — must be initialized before any other requires
+============================================================ */
+
+const Sentry = require("@sentry/node");
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || "production",
+    tracesSampleRate: 0.2,   // capture 20% of requests for performance tracing
+  });
+}
+
 const express = require("express");
 const compression = require("compression");
 const cors = require("cors");
@@ -206,6 +219,8 @@ io.on("connection", (socket) => {
 ============================================================ */
 
 app.use(notFoundHandler);
+// Sentry error handler — must be before globalErrorHandler
+if (process.env.SENTRY_DSN) Sentry.setupExpressErrorHandler(app);
 app.use(globalErrorHandler);
 
 /* ============================================================
