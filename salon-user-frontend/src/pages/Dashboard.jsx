@@ -1,134 +1,140 @@
-import { useEffect, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { io } from "socket.io-client";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import API from "../services/api";
-import { formatDate, formatTime } from "../utils/formatters";
+import { getCustomerToken } from "../utils/auth";
+import { useNotifications } from "../context/NotificationContext";
 
-const SOCKET_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1")
-  .replace(/\/api\/v1\/?$/, "");
-
-// Decode JWT payload to extract customer ID without extra API call
-const getCustomerIdFromToken = (token) => {
-  try {
-    return JSON.parse(atob(token.split(".")[1]))?.id || null;
-  } catch { return null; }
-};
-
-const CACHE_KEY = "smartsalon_booking_statuses";
+// ── Constants (matching app exactly) ────────────────────────
+const FILTERS   = ['Upcoming', 'Completed', 'Cancelled', 'All'];
+const PAGE_SIZE = 5;
 
 const STATUS_CONFIG = {
-  pending:     { label: "Pending",     color: "bg-amber-50 text-amber-600 border border-amber-200" },
-  confirmed:   { label: "Confirmed",   color: "bg-blue-50 text-blue-600 border border-blue-200" },
-  in_progress: { label: "In Progress", color: "bg-violet-50 text-violet-600 border border-violet-200" },
-  completed:   { label: "Completed",   color: "bg-green-50 text-green-600 border border-green-200" },
-  cancelled:   { label: "Cancelled",   color: "bg-red-50 text-red-500 border border-red-200" },
+  pending:     { label: 'Pending',     color: '#d97706', bg: '#fef3c7', border: '#fde68a' },
+  confirmed:   { label: 'Confirmed',   color: '#2563eb', bg: '#dbeafe', border: '#93c5fd' },
+  in_progress: { label: 'In Progress', color: '#7c3aed', bg: '#f5f3ff', border: '#c4b5fd' },
+  completed:   { label: 'Completed',   color: '#16a34a', bg: '#dcfce7', border: '#86efac' },
+  cancelled:   { label: 'Cancelled',   color: '#dc2626', bg: '#fee2e2', border: '#fca5a5' },
 };
 
-const FILTERS = ["All", "Upcoming", "Completed", "Cancelled"];
-
-// Haversine distance in km
-function getDistanceKm(lat1, lng1, lat2, lng2) {
+// ── Helpers ───────────────────────────────────────────────────
+function haversineKm(lat1, lng1, lat2, lng2) {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLng / 2) ** 2;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function formatDistance(km) {
-  if (km < 1) return `${Math.round(km * 1000)} m away`;
-  return `${km.toFixed(1)} km away`;
+function formatDateLabel(dateStr) {
+  if (!dateStr) return '—';
+  const d = new Date(String(dateStr).slice(0, 10) + 'T12:00:00');
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function ReviewPrompt({ bookingId, salonId, onReviewed }) {
-  const [open, setOpen] = useState(false);
-  const [rating, setRating] = useState(0);
-  const [hover, setHover] = useState(0);
-  const [text, setText] = useState("");
+function formatTimeLabel(t) {
+  if (!t) return '—';
+  const [h, m] = t.split(':');
+  const hour = parseInt(h, 10);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  return `${hour % 12 || 12}:${m || '00'} ${ampm}`;
+}
+
+function todayString() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// ── StatusBadge ───────────────────────────────────────────────
+function StatusBadge({ status }) {
+  const cfg = STATUS_CONFIG[status] || { label: status, color: '#6b7280', bg: '#f3f4f6', border: '#e5e7eb' };
+  return (
+    <span className="px-2 py-0.5 rounded-full border text-[11px] font-bold shrink-0"
+      style={{ color: cfg.color, backgroundColor: cfg.bg, borderColor: cfg.border }}>
+      {cfg.label}
+    </span>
+  );
+}
+
+// ── ReviewPrompt ──────────────────────────────────────────────
+function ReviewPrompt({ bookingId, onReviewed }) {
+  const [open, setOpen]           = useState(false);
+  const [rating, setRating]       = useState(0);
+  const [hover, setHover]         = useState(0);
+  const [text, setText]           = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [done, setDone] = useState(false);
+  const [done, setDone]           = useState(false);
 
   if (done) return (
-    <div className="mt-3 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-xs text-green-700">
-      ✅ Thank you for your review!
+    <div className="mt-2.5 p-2.5 bg-green-50 border border-green-200 rounded-lg">
+      <p className="text-xs text-green-600">Thank you for your review!</p>
     </div>
   );
 
   if (!open) return (
-    <div className="mt-3 px-3 py-2 bg-indigo-50 border border-indigo-100 rounded-lg text-xs text-indigo-700 flex items-center justify-between">
-      <span>⭐ How was your experience?</span>
-      <button onClick={() => setOpen(true)} className="font-semibold hover:underline ml-2">Leave a Review</button>
-    </div>
+    <button onClick={() => setOpen(true)}
+      className="mt-2.5 w-full flex items-center justify-between p-2.5 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition">
+      <p className="text-xs text-indigo-700">How was your experience?</p>
+      <p className="text-xs font-bold text-indigo-700">Leave a Review</p>
+    </button>
   );
 
   const handleSubmit = async () => {
     if (!rating) return;
     setSubmitting(true);
     try {
-      await API.post("/customer/reviews", { bookingId, salonRating: rating, reviewText: text.trim() || undefined });
+      await API.post('/customer/reviews', { bookingId, salonRating: rating, reviewText: text.trim() || undefined });
       setDone(true);
-      onReviewed?.(bookingId);
-    } catch {
-      // silent — already reviewed
-      setDone(true);
-    } finally {
-      setSubmitting(false);
-    }
+      onReviewed?.();
+    } catch { setDone(true); }
+    finally { setSubmitting(false); }
   };
 
   return (
-    <div className="mt-3 px-3 py-3 bg-indigo-50 border border-indigo-100 rounded-lg space-y-2">
-      <p className="text-xs font-semibold text-indigo-700">Rate your experience</p>
-      <div className="flex gap-1">
-        {[1,2,3,4,5].map(n => (
-          <button key={n} type="button"
-            onClick={() => setRating(n)}
-            onMouseEnter={() => setHover(n)}
-            onMouseLeave={() => setHover(0)}
-            className={`text-xl transition-colors ${n <= (hover || rating) ? "text-amber-400" : "text-slate-300"}`}
-          >★</button>
+    <div className="mt-2.5 p-3 bg-indigo-50 rounded-lg space-y-2.5">
+      <p className="text-xs font-bold text-indigo-700">Rate your experience</p>
+      <div className="flex gap-1.5">
+        {[1, 2, 3, 4, 5].map(n => (
+          <button key={n} onClick={() => setRating(n)}
+            onMouseEnter={() => setHover(n)} onMouseLeave={() => setHover(0)}
+            className="text-2xl leading-none transition">
+            <span style={{ color: n <= (hover || rating) ? '#f59e0b' : '#d1d5db' }}>★</span>
+          </button>
         ))}
       </div>
       <textarea value={text} onChange={e => setText(e.target.value)} rows={2}
         placeholder="Share your experience (optional)"
-        className="w-full px-2 py-1.5 border border-indigo-200 rounded-lg text-xs bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400 resize-none"
-      />
+        className="w-full border border-indigo-200 rounded-lg p-2 text-xs text-slate-700 bg-white outline-none resize-none focus:border-indigo-400 transition placeholder-slate-400" />
       <div className="flex gap-2">
         <button onClick={handleSubmit} disabled={!rating || submitting}
-          className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition">
-          {submitting ? "Submitting…" : "Submit"}
+          className="px-3.5 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold disabled:opacity-50 hover:bg-indigo-700 transition flex items-center justify-center min-w-[70px]">
+          {submitting ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Submit'}
         </button>
-        <button onClick={() => setOpen(false)} className="text-xs text-slate-500 hover:underline">Cancel</button>
+        <button onClick={() => setOpen(false)} className="px-3.5 py-2 text-xs text-slate-500 hover:text-slate-700">
+          Cancel
+        </button>
       </div>
     </div>
   );
 }
 
+// ── RescheduleModal ───────────────────────────────────────────
 function RescheduleModal({ booking, onClose, onRescheduled }) {
-  const _now = new Date();
-  const today = `${_now.getFullYear()}-${String(_now.getMonth()+1).padStart(2,'0')}-${String(_now.getDate()).padStart(2,'0')}`;
-  const [newDate, setNewDate] = useState(today);
-  const [newTime, setNewTime] = useState("");
-  const [slots, setSlots] = useState([]);
+  const [newDate, setNewDate]         = useState(todayString());
+  const [newTime, setNewTime]         = useState('');
+  const [slots, setSlots]             = useState([]);
   const [blockedSlots, setBlockedSlots] = useState([]);
-  const [closedDay, setClosedDay] = useState(false);
+  const [closedDay, setClosedDay]     = useState(false);
   const [slotsLoading, setSlotsLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [saving, setSaving]           = useState(false);
+  const [error, setError]             = useState('');
 
   const salonId = booking.salonId?._id || booking.salonId;
   const duration = booking.estimatedDuration || 30;
 
-  // Fetch available slots whenever date changes
   useEffect(() => {
     if (!newDate || !salonId) return;
-    setNewTime("");
-    setSlots([]);
-    setBlockedSlots([]);
-    setClosedDay(false);
+    setNewTime(''); setSlots([]); setBlockedSlots([]); setClosedDay(false);
     setSlotsLoading(true);
     API.get(`/public/salons/${salonId}/booked-slots?date=${newDate}&duration=${duration}`)
       .then(res => {
@@ -142,85 +148,103 @@ function RescheduleModal({ booking, onClose, onRescheduled }) {
   }, [newDate, salonId, duration]);
 
   const handleSave = async () => {
-    if (!newDate || !newTime) { setError("Please select a date and an available time slot."); return; }
-    setSaving(true);
-    setError("");
+    if (!newDate || !newTime) { setError('Please select a date and a time slot.'); return; }
+    setSaving(true); setError('');
     try {
       await API.put(`/customer/bookings/${booking._id}/reschedule`, { appointmentDate: newDate, appointmentTime: newTime });
       onRescheduled(booking._id, newDate, newTime);
       onClose();
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to reschedule. Please try another slot.");
-    } finally {
-      setSaving(false);
-    }
+    } catch (err) { setError(err?.response?.data?.message || 'Failed to reschedule. Try another slot.'); }
+    finally { setSaving(false); }
   };
 
+  const quickDates = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() + i);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric' });
+    return { key, label };
+  });
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full max-h-[90vh] overflow-y-auto">
-        <h3 className="text-lg font-bold text-slate-900 mb-4">Reschedule Booking</h3>
-
-        {/* Date picker */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-slate-700 mb-1">Select Date</label>
-          <input type="date" min={today} value={newDate} onChange={e => setNewDate(e.target.value)}
-            className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45" onClick={onClose}>
+      <div className="bg-white rounded-t-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-5"
+        onClick={e => e.stopPropagation()}>
+        {/* Title */}
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-[17px] font-bold text-slate-900">Reschedule Booking</p>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
-        {/* Available slots */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-slate-700 mb-2">Select Time Slot</label>
-          {slotsLoading ? (
-            <div className="flex items-center gap-2 py-3 text-slate-400 text-sm">
-              <div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
-              Loading slots…
+        {/* Date selector */}
+        <p className="text-[13px] font-semibold text-slate-500 mb-2">Select Date</p>
+        <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-hide">
+          {quickDates.map(({ key, label }) => (
+            <button key={key} onClick={() => setNewDate(key)}
+              className={`px-3.5 py-2 rounded-full text-[13px] font-semibold whitespace-nowrap border transition shrink-0 ${
+                newDate === key ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-slate-100 border-slate-200 text-slate-500'
+              }`}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Slot grid */}
+        <p className="text-[13px] font-semibold text-slate-500 mb-2">Select Time Slot</p>
+        {slotsLoading ? (
+          <div className="flex items-center gap-2 py-3">
+            <span className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+            <span className="text-[13px] text-slate-400">Loading slots…</span>
+          </div>
+        ) : closedDay ? (
+          <div className="p-3 bg-amber-50 rounded-lg mb-3">
+            <p className="text-[13px] text-amber-600">Salon is closed on this day. Choose another date.</p>
+          </div>
+        ) : slots.length === 0 ? (
+          <div className="p-3 bg-slate-100 rounded-lg mb-3">
+            <p className="text-[13px] text-slate-400">No available slots on this date.</p>
+          </div>
+        ) : (
+          <>
+            <div className="flex gap-3 mb-2.5">
+              {[['#fca5a5', 'Booked'], ['#6366f1', 'Selected'], ['#e2e8f0', 'Available']].map(([c, l]) => (
+                <div key={l} className="flex items-center gap-1">
+                  <div className="w-2.5 h-2.5 rounded-[3px]" style={{ backgroundColor: c }} />
+                  <span className="text-[11px] text-slate-500">{l}</span>
+                </div>
+              ))}
             </div>
-          ) : closedDay ? (
-            <p className="text-sm text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">🔒 Salon is closed on this day. Choose another date.</p>
-          ) : slots.length === 0 ? (
-            <p className="text-sm text-slate-400 bg-slate-50 px-3 py-2 rounded-lg">No available slots on this date.</p>
-          ) : (
-            <>
-              <div className="flex items-center gap-3 mb-2 text-xs text-slate-400 flex-wrap">
-                <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-red-300" /> Booked</span>
-                <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-indigo-600" /> Selected</span>
-                <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded border border-slate-200" /> Available</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {slots.map(s => {
-                  const blocked = blockedSlots.includes(s);
-                  const selected = newTime === s;
-                  return (
-                    <button key={s} type="button"
-                      onClick={() => { if (!blocked) setNewTime(s); }}
-                      disabled={blocked}
-                      className={`py-2 px-1 text-xs rounded-lg border font-medium transition-all text-center ${
-                        blocked
-                          ? "bg-red-50 text-red-400 border-red-200 cursor-not-allowed"
-                          : selected
-                          ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
-                          : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
-                      }`}
-                    >
-                      {s}
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          )}
-        </div>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {slots.map(s => {
+                const blocked = blockedSlots.includes(s);
+                const selected = newTime === s;
+                return (
+                  <button key={s} onClick={() => { if (!blocked) setNewTime(s); }} disabled={blocked}
+                    className={`px-3.5 py-2 rounded-lg border text-xs font-semibold transition ${
+                      blocked  ? 'bg-red-50 border-red-200 text-red-400 cursor-not-allowed' :
+                      selected ? 'bg-indigo-600 border-indigo-600 text-white' :
+                                 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300'
+                    }`}>
+                    {formatTimeLabel(s)}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
 
         {error && <p className="text-xs text-red-500 mb-3">{error}</p>}
 
-        <div className="flex gap-2">
+        <div className="flex gap-2.5">
           <button onClick={handleSave} disabled={saving || !newTime}
-            className="flex-1 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition">
-            {saving ? "Saving…" : "Confirm Reschedule"}
+            className="flex-[2] h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 transition text-white font-bold text-sm disabled:opacity-50 flex items-center justify-center">
+            {saving ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Confirm Reschedule'}
           </button>
           <button onClick={onClose}
-            className="flex-1 py-2.5 bg-slate-100 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-200 transition">
+            className="flex-1 h-12 rounded-xl border-2 border-slate-200 text-sm font-semibold text-slate-500 hover:bg-slate-50 transition">
             Cancel
           </button>
         </div>
@@ -229,378 +253,387 @@ function RescheduleModal({ booking, onClose, onRescheduled }) {
   );
 }
 
-function BookingCard({ booking, userCoords, onCancelled }) {
-  const [cancelling, setCancelling] = useState(false);
-  const [reviewed, setReviewed] = useState(false);
+// ── BookingCard ───────────────────────────────────────────────
+function BookingCard({ booking: initialBooking, userCoords, onCancelled }) {
+  const [booking, setBooking]         = useState(initialBooking);
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
-  const [bookingData, setBookingData] = useState(booking);
-  const status = bookingData.status || "pending";
-  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
+  const [reviewed, setReviewed]       = useState(false);
+  const [cancelling, setCancelling]   = useState(false);
+  const status = booking.status || 'pending';
 
   const handleCancel = async () => {
-    if (!window.confirm("Cancel this booking?")) return;
+    if (!window.confirm('Are you sure you want to cancel this booking?')) return;
     setCancelling(true);
     try {
       await API.post(`/customer/bookings/${booking._id}/cancel`);
       onCancelled(booking._id);
-    } catch {
-      alert("Failed to cancel. Please try again.");
-    } finally {
-      setCancelling(false);
-    }
+    } catch (err) { alert(err?.message || 'Could not cancel. Try again.'); }
+    finally { setCancelling(false); }
   };
 
   const handleRescheduled = (id, date, time) => {
-    setBookingData(prev => ({ ...prev, appointmentDate: date, appointmentTime: time, status: "pending" }));
+    setBooking(prev => ({ ...prev, appointmentDate: date, appointmentTime: time, status: 'pending' }));
   };
 
-  // appointmentDate may come as full ISO ("2026-03-14T12:00:00.000Z") or "YYYY-MM-DD"
-  const dateOnly = bookingData.appointmentDate ? String(bookingData.appointmentDate).slice(0, 10) : null;
-  const dateStr = dateOnly ? formatDate(dateOnly + "T12:00:00") : "—";
+  const salonDoc    = booking.salonId;
+  const salonName   = booking.salonName || salonDoc?.name || 'Salon';
+  const salonCity   = salonDoc?.city || salonDoc?.address || '';
+  const salonPhone  = salonDoc?.phone || null;
+  const serviceName = booking.serviceName ||
+    (Array.isArray(booking.serviceIds) ? booking.serviceIds.map(s => s?.name || s).filter(Boolean).join(' + ') : '') ||
+    'Service';
 
-  // Duration label
   const dur = booking.estimatedDuration;
-  const durLabel = dur ? (dur >= 60 ? `${dur / 60}h` : `${dur} min`) : null;
+  const durLabel = dur
+    ? (dur >= 60 ? `${Math.floor(dur / 60)}h${dur % 60 ? ` ${dur % 60}m` : ''}` : `${dur} min`)
+    : null;
 
-  // Distance — salonId is populated with location, address, city, phone
-  const salonDoc = booking.salonId;
   let distanceLabel = null;
   if (userCoords && salonDoc?.location?.coordinates?.length === 2) {
     const [salonLng, salonLat] = salonDoc.location.coordinates;
-    const km = getDistanceKm(userCoords.lat, userCoords.lng, salonLat, salonLng);
-    distanceLabel = formatDistance(km);
+    const km = haversineKm(userCoords.lat, userCoords.lng, salonLat, salonLng);
+    distanceLabel = km < 1 ? `${Math.round(km * 1000)} m away` : `${km.toFixed(1)} km away`;
   }
 
-  const salonName = booking.salonName || salonDoc?.name || "Salon";
-  const salonCity = salonDoc?.city || salonDoc?.address || "";
-  const salonPhone = salonDoc?.phone || null;
-
-  // Google Maps link — prefer coordinates, fall back to address search
   let mapsUrl = null;
   if (salonDoc?.location?.coordinates?.length === 2) {
     const [lng, lat] = salonDoc.location.coordinates;
     mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
   } else {
-    const query = [salonDoc?.address || booking.salonName, salonDoc?.city].filter(Boolean).join(", ");
+    const query = [salonDoc?.address || booking.salonName, salonDoc?.city].filter(Boolean).join(', ');
     if (query) mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
   }
 
+  const canCancel     = ['pending', 'confirmed'].includes(status);
+  const canReschedule = ['pending', 'confirmed'].includes(status);
+  const canReview     = status === 'completed' && !reviewed && !initialBooking.reviewed;
+
+  const detailTiles = [
+    { label: 'Date',     value: formatDateLabel(booking.appointmentDate) },
+    { label: 'Time',     value: formatTimeLabel(booking.appointmentTime) },
+    { label: 'Amount',   value: booking.totalAmount != null ? `₹${booking.totalAmount}` : '—', amount: true },
+    ...(durLabel ? [{ label: 'Duration', value: durLabel }] : []),
+    { label: 'Payment',  value: booking.paymentMethod ? booking.paymentMethod.charAt(0).toUpperCase() + booking.paymentMethod.slice(1) : '—' },
+    ...(distanceLabel ? [{ label: 'Distance', value: distanceLabel, accent: true }] : []),
+  ];
+
   return (
-    <div className="bg-white rounded-xl border border-slate-100 p-5 hover:shadow-sm transition-shadow">
+    <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm space-y-3">
+
       {/* Header row */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 gradient-primary rounded-xl flex items-center justify-center text-white text-xl shrink-0">
-            ✂
-          </div>
-          <div>
-            <h3 className="font-semibold text-slate-800">{booking.serviceName || "Service"}</h3>
-            <p className="text-sm text-slate-500">{salonName}</p>
-            {salonCity && <p className="text-xs text-slate-400">{salonCity}</p>}
-          </div>
+      <div className="flex items-start gap-3">
+        <div className="w-11 h-11 rounded-xl bg-indigo-600 flex items-center justify-center text-white text-lg shrink-0">✂</div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[15px] font-bold text-slate-900 truncate">{serviceName}</p>
+          <p className="text-[13px] text-slate-500 mt-0.5 truncate">{salonName}</p>
+          {!!salonCity && <p className="text-[12px] text-slate-400 mt-0.5 truncate">{salonCity}</p>}
         </div>
-        <span className={`badge text-xs px-2.5 py-1 rounded-full font-semibold whitespace-nowrap ${cfg.color}`}>
-          {cfg.label}
-        </span>
+        <StatusBadge status={status} />
       </div>
 
-      {/* Detail grid */}
-      <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-sm">
-        <div className="bg-slate-50 rounded-lg p-2.5">
-          <p className="text-slate-400 text-xs mb-0.5">Date</p>
-          <p className="text-slate-700 font-medium">{dateStr}</p>
-        </div>
-        <div className="bg-slate-50 rounded-lg p-2.5">
-          <p className="text-slate-400 text-xs mb-0.5">Time</p>
-          <p className="text-slate-700 font-medium">{formatTime(bookingData.appointmentTime)}</p>
-        </div>
-        <div className="bg-slate-50 rounded-lg p-2.5">
-          <p className="text-slate-400 text-xs mb-0.5">Amount</p>
-          <p className="text-indigo-600 font-bold">₹{booking.totalAmount ?? "—"}</p>
-        </div>
-        {durLabel && (
-          <div className="bg-slate-50 rounded-lg p-2.5">
-            <p className="text-slate-400 text-xs mb-0.5">Duration</p>
-            <p className="text-slate-700 font-medium">{durLabel}</p>
+      {/* Detail tiles grid */}
+      <div className="flex flex-wrap gap-2">
+        {detailTiles.map(tile => (
+          <div key={tile.label}
+            className={`flex-1 min-w-[30%] rounded-lg p-2.5 ${tile.accent ? 'bg-indigo-50' : 'bg-slate-50'}`}>
+            <p className={`text-[11px] mb-0.5 ${tile.accent ? 'text-indigo-400' : 'text-slate-400'}`}>{tile.label}</p>
+            <p className={`text-[13px] font-semibold ${
+              tile.amount ? 'text-indigo-600 font-bold' : tile.accent ? 'text-indigo-700' : 'text-slate-700'
+            }`}>{tile.value}</p>
           </div>
-        )}
-        <div className="bg-slate-50 rounded-lg p-2.5">
-          <p className="text-slate-400 text-xs mb-0.5">Payment</p>
-          <p className="text-slate-700 font-medium capitalize">{booking.paymentMethod || "—"}</p>
-        </div>
-        {distanceLabel && (
-          <div className="bg-indigo-50 rounded-lg p-2.5">
-            <p className="text-indigo-400 text-xs mb-0.5">Distance</p>
-            <p className="text-indigo-700 font-medium flex items-center gap-1"><img src="https://img.freepik.com/free-vector/location_53876-25530.jpg" alt="location" className="w-4 h-4 object-contain" /> {distanceLabel}</p>
-          </div>
-        )}
+        ))}
       </div>
 
-      {/* Pending info banner */}
-      {status === "pending" && (
-        <div className="mt-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
-          ⏳ Awaiting confirmation from the salon. You'll be notified here once confirmed.
+      {/* Pending banner */}
+      {status === 'pending' && (
+        <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
+          <p className="text-xs text-amber-700">Awaiting confirmation from the salon. You'll be notified once confirmed.</p>
         </div>
       )}
 
-      {/* Review prompt for completed bookings */}
-      {status === "completed" && !reviewed && (
-        <ReviewPrompt bookingId={booking._id} salonId={booking.salonId?._id || booking.salonId} onReviewed={() => setReviewed(true)} />
+      {/* Review prompt */}
+      {canReview && <ReviewPrompt bookingId={booking._id} onReviewed={() => setReviewed(true)} />}
+      {reviewed && (
+        <div className="p-2.5 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-xs text-green-600">Thank you for your review!</p>
+        </div>
       )}
 
       {/* Footer */}
-      <div className="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between flex-wrap gap-2">
-        <p className="text-xs text-slate-400">
-          Booking ID: <span className="font-mono text-slate-500">{booking.bookingId || booking._id?.slice(-8)}</span>
+      <div className="pt-2.5 border-t border-slate-50 space-y-1.5">
+        <p className="text-[11px] text-slate-400">
+          Booking ID: <span className="font-mono">{booking.bookingId || booking._id?.slice(-8) || '—'}</span>
         </p>
-        <div className="flex items-center gap-3">
-          {salonPhone && (
-            <a
-              href={`tel:${salonPhone}`}
-              className="text-xs text-indigo-600 font-medium hover:underline flex items-center gap-1"
-            >
-              📞 {salonPhone}
+        <div className="flex flex-wrap gap-3.5">
+          {!!salonPhone && (
+            <a href={`tel:${salonPhone}`} className="flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:underline">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+              {salonPhone}
             </a>
           )}
-          {mapsUrl && (
-            <a
-              href={mapsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-green-600 font-medium hover:underline flex items-center gap-1"
-            >
-              <img src="https://img.freepik.com/free-vector/location_53876-25530.jpg" alt="location" className="w-4 h-4 object-contain" /> Get Directions
+          {!!mapsUrl && (
+            <a href={mapsUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs font-semibold text-green-600 hover:underline">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              Directions
             </a>
           )}
-          {["pending", "confirmed"].includes(status) && (
-            <button
-              onClick={() => setRescheduleOpen(true)}
-              className="text-xs text-indigo-500 font-medium hover:underline"
-            >
+          {canReschedule && (
+            <button onClick={() => setRescheduleOpen(true)} className="text-xs font-semibold text-indigo-600 hover:underline">
               Reschedule
             </button>
           )}
-          {["pending", "confirmed"].includes(status) && (
-            <button
-              onClick={handleCancel}
-              disabled={cancelling}
-              className="text-xs text-red-500 font-medium hover:underline disabled:opacity-50"
-            >
-              {cancelling ? "Cancelling…" : "Cancel"}
+          {canCancel && (
+            <button onClick={handleCancel} disabled={cancelling} className="text-xs font-semibold text-red-500 hover:underline disabled:opacity-50">
+              {cancelling ? 'Cancelling…' : 'Cancel'}
             </button>
           )}
         </div>
       </div>
 
       {rescheduleOpen && (
-        <RescheduleModal
-          booking={bookingData}
-          onClose={() => setRescheduleOpen(false)}
-          onRescheduled={handleRescheduled}
-        />
+        <RescheduleModal booking={booking} onClose={() => setRescheduleOpen(false)} onRescheduled={handleRescheduled} />
       )}
     </div>
   );
 }
 
-function Dashboard() {
+// ── Main Page ─────────────────────────────────────────────────
+export default function Dashboard() {
   const navigate = useNavigate();
-  const [bookings, setBookings] = useState([]);
-  const [filter, setFilter] = useState("Upcoming");
+  const { unreadCount } = useNotifications();
 
-  const handleCancelled = (bookingId) => {
-    setBookings(prev => prev.map(b => b._id === bookingId ? { ...b, status: "cancelled" } : b));
-  };
-  const [loading, setLoading] = useState(true);
-  const [userCoords, setUserCoords] = useState(null);
-  const [confirmedToasts, setConfirmedToasts] = useState([]); // newly confirmed bookings
-  const token = localStorage.getItem("customerToken");
-  const pollRef = useRef(null);
-  const socketRef = useRef(null);
+  const [filter, setFilter]             = useState('Upcoming');
+  const [bookings, setBookings]         = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [refreshing, setRefreshing]     = useState(false);
+  const [userCoords, setUserCoords]     = useState(null);
+  const [confirmedToasts, setConfirmedToasts] = useState([]);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const prevStatusRef = useRef({});
 
+  const isAuth = !!getCustomerToken();
+
+  // Get location for distance tiles
   useEffect(() => {
-    if (!token) { navigate("/login"); return; }
-    loadBookings();
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => {}
-      );
-    }
-
-    // ── Socket.IO real-time updates ──────────────────────────
-    const customerId = getCustomerIdFromToken(token);
-    if (customerId) {
-      const socket = io(SOCKET_URL, { transports: ["websocket", "polling"], reconnectionAttempts: 5 });
-      socketRef.current = socket;
-      socket.emit("join-customer-room", customerId);
-      socket.on("booking-status-changed", ({ bookingId, status }) => {
-        setBookings(prev =>
-          prev.map(b => b._id === bookingId ? { ...b, status } : b)
-        );
-        // Detect newly confirmed via socket too
-        if (status === "confirmed") {
-          setConfirmedToasts(prev => [...prev, bookingId]);
-          setFilter("Upcoming");
-        }
-      });
-    }
-
-    // Poll every 30 seconds as fallback
-    pollRef.current = setInterval(() => loadBookings(true), 30000);
-    return () => {
-      clearInterval(pollRef.current);
-      socketRef.current?.disconnect();
-    };
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      pos => setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => {},
+      { maximumAge: 60000, timeout: 6000 }
+    );
   }, []);
 
-  // Dismiss a toast
-  const dismissToast = (id) => setConfirmedToasts(prev => prev.filter(t => t !== id));
-
-  const loadBookings = async (silent = false) => {
+  const loadBookings = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const res = await API.get("/customer/bookings");
+      const res = await API.get('/customer/bookings');
       const fresh = res.data.data?.bookings || res.data.data || [];
+      const arr = Array.isArray(fresh) ? fresh : [];
 
-      // Compare with cached statuses — detect pending → confirmed
-      try {
-        const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || "{}");
-        const newlyConfirmed = fresh.filter(
-          b => cached[b._id] === "pending" && b.status === "confirmed"
-        );
-        if (newlyConfirmed.length > 0) {
-          setConfirmedToasts(prev => [...prev, ...newlyConfirmed.map(b => b._id)]);
-          setFilter("Upcoming"); // switch to upcoming so they see it
-        }
-        // Update cache
-        const updated = {};
-        fresh.forEach(b => { updated[b._id] = b.status; });
-        localStorage.setItem(CACHE_KEY, JSON.stringify(updated));
-      } catch { /* ignore cache errors */ }
+      // Detect pending → confirmed
+      const newlyConfirmed = arr.filter(
+        b => b._id && prevStatusRef.current[b._id] === 'pending' && b.status === 'confirmed'
+      );
+      if (newlyConfirmed.length > 0) {
+        setConfirmedToasts(prev => [...prev, ...newlyConfirmed.map(b => b._id)]);
+        setFilter('Upcoming');
+      }
+      arr.forEach(b => { if (b._id) prevStatusRef.current[b._id] = b.status; });
+      setBookings(arr);
+    } catch { setBookings([]); }
+    finally { setLoading(false); }
+  }, []);
 
-      setBookings(fresh);
-    } catch {
-      setBookings([]);
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    if (!isAuth) return;
+    loadBookings();
+  }, [isAuth, loadBookings]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadBookings(true);
+    setRefreshing(false);
   };
 
-  const filtered = bookings.filter((b) => {
-    if (filter === "All") return true;
-    if (filter === "Upcoming") return ["pending", "confirmed", "in_progress"].includes(b.status);
-    if (filter === "Completed") return b.status === "completed";
-    if (filter === "Cancelled") return b.status === "cancelled";
+  const handleCancelled = (id) => {
+    setBookings(prev => prev.map(b => b._id === id ? { ...b, status: 'cancelled' } : b));
+  };
+
+  const filtered = bookings.filter(b => {
+    if (filter === 'All')       return true;
+    if (filter === 'Upcoming')  return ['pending', 'confirmed', 'in_progress'].includes(b.status);
+    if (filter === 'Completed') return b.status === 'completed';
+    if (filter === 'Cancelled') return b.status === 'cancelled';
     return true;
   });
 
+  const visible = filtered.slice(0, visibleCount);
+  const hasMore = visibleCount < filtered.length;
+
   const stats = {
-    total: bookings.length,
-    upcoming: bookings.filter((b) => ["pending", "confirmed", "in_progress"].includes(b.status)).length,
-    completed: bookings.filter((b) => b.status === "completed").length,
+    total:     bookings.length,
+    upcoming:  bookings.filter(b => ['pending', 'confirmed', 'in_progress'].includes(b.status)).length,
+    completed: bookings.filter(b => b.status === 'completed').length,
   };
 
+  // Not authenticated
+  if (!isAuth) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center px-6 pb-20">
+        <svg className="w-14 h-14 text-slate-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+        <p className="text-[18px] font-bold text-slate-800 mt-2">Sign in to view bookings</p>
+        <p className="text-[14px] text-slate-400 text-center mt-1 leading-relaxed">Track all your salon appointments in one place</p>
+        <Link to="/login" className="mt-5 px-8 py-3 bg-blue-600 text-white font-bold rounded-xl text-[15px] hover:bg-blue-700 transition">
+          Sign In
+        </Link>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-slate-50 py-8 px-4">
-      <div className="max-w-3xl mx-auto">
-        {/* Header */}
-        <div className="mb-7">
-          <h1 className="text-2xl font-bold text-slate-900">My Bookings</h1>
-          <p className="text-muted mt-1">Track and manage all your appointments.</p>
-        </div>
+    <div className="min-h-screen bg-slate-50">
 
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          {[
-            { label: "Total",     value: stats.total,    color: "text-slate-700" },
-            { label: "Upcoming",  value: stats.upcoming, color: "text-blue-600" },
-            { label: "Completed", value: stats.completed, color: "text-green-600" },
-          ].map(({ label, value, color }) => (
-            <div key={label} className="bg-white rounded-xl border border-slate-100 p-4 text-center">
-              <div className={`text-2xl font-bold ${color}`}>{loading ? "—" : value}</div>
-              <div className="text-xs text-slate-500 mt-0.5">{label}</div>
-            </div>
-          ))}
+      {/* ── HEADER ─────────────────────────────────────────── */}
+      <div className="bg-white border-b border-slate-100 px-4 sm:px-6 pt-5 pb-4">
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
+          <div>
+            <h1 className="text-[22px] font-extrabold text-slate-900 leading-tight">My Bookings</h1>
+            <p className="text-[13px] text-slate-400 mt-0.5">
+              {bookings.length} booking{bookings.length !== 1 ? 's' : ''} total
+            </p>
+          </div>
+          {/* Notification bell */}
+          <Link to="/notifications" className="relative w-9 h-9 rounded-[10px] bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition shrink-0">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+            </svg>
+            {unreadCount > 0 && (
+              <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1 leading-none border-2 border-white">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </Link>
         </div>
+      </div>
 
-        {/* Confirmation toasts */}
-        {confirmedToasts.length > 0 && bookings
-          .filter(b => confirmedToasts.includes(b._id))
-          .map(b => (
-            <div key={b._id} className="flex items-start justify-between gap-3 mb-3 px-4 py-3 bg-green-50 border border-green-200 rounded-xl fade-in">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">✅</span>
-                <div>
-                  <p className="text-sm font-semibold text-green-800">Booking Confirmed!</p>
-                  <p className="text-xs text-green-600">
-                    <strong>{b.serviceName}</strong> at <strong>{b.salonName}</strong> — {b.appointmentTime}
+      <div className="max-w-2xl mx-auto px-4 py-4 space-y-3">
+
+        {/* Stats row */}
+        {!loading && (
+          <div className="flex gap-2">
+            {[
+              { label: 'Total',     value: stats.total,     color: 'text-slate-900' },
+              { label: 'Upcoming',  value: stats.upcoming,  color: 'text-blue-600' },
+              { label: 'Completed', value: stats.completed, color: 'text-green-600' },
+            ].map(({ label, value, color }) => (
+              <div key={label} className="flex-1 bg-white rounded-xl p-3.5 text-center border border-slate-100 shadow-sm">
+                <p className={`text-[22px] font-extrabold ${color}`}>{value}</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">{label}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Confirmed toasts */}
+        {confirmedToasts.map(id => {
+          const b = bookings.find(x => x._id === id);
+          if (!b) return null;
+          return (
+            <div key={id} className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-xl gap-2">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <span className="text-lg shrink-0">✅</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-bold text-green-700">Booking Confirmed!</p>
+                  <p className="text-[11px] text-green-600 truncate mt-0.5">
+                    {b.serviceName} at {b.salonName || b.salonId?.name} — {b.appointmentTime}
                   </p>
                 </div>
               </div>
-              <button onClick={() => dismissToast(b._id)} className="text-green-400 hover:text-green-600 text-lg leading-none shrink-0">×</button>
+              <button onClick={() => setConfirmedToasts(prev => prev.filter(t => t !== id))}
+                className="text-green-500 hover:text-green-700 shrink-0">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
             </div>
-          ))
-        }
+          );
+        })}
 
-        {/* Filter tabs */}
-        <div className="flex gap-1 bg-white rounded-xl p-1 border border-slate-100 mb-5 overflow-x-auto scrollbar-hide">
-          {FILTERS.map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`flex-1 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-all min-w-max px-3 ${
-                filter === f
-                  ? "bg-indigo-600 text-white shadow-sm"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
+        {/* Filter tabs — full-width row matching app exactly */}
+        <div className="flex bg-white rounded-xl p-1 border border-slate-100 shadow-sm gap-1">
+          {FILTERS.map(f => (
+            <button key={f} onClick={() => { setFilter(f); setVisibleCount(PAGE_SIZE); }}
+              className={`flex-1 py-2.5 rounded-[10px] text-xs font-semibold text-center transition ${
+                filter === f ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-600'
+              }`}>
               {f}
             </button>
           ))}
         </div>
 
-        {/* Content */}
-        {loading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white rounded-xl border border-slate-100 p-5">
-                <div className="flex gap-3 items-center mb-4">
-                  <div className="w-11 h-11 skeleton rounded-xl" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 skeleton rounded w-1/2" />
-                    <div className="h-3 skeleton rounded w-1/3" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  {[1, 2, 3].map((j) => <div key={j} className="h-12 skeleton rounded-lg" />)}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="text-5xl mb-4">📅</div>
-            <h3 className="text-lg font-semibold text-slate-700 mb-2">
-              {filter === "All" ? "No bookings yet" : `No ${filter.toLowerCase()} bookings`}
-            </h3>
-            <p className="text-slate-400 text-sm mb-6">
-              {filter === "All" ? "Book your first appointment to get started." : "Try a different filter."}
-            </p>
-            {filter === "All" && (
-              <button onClick={() => navigate("/")} className="btn-primary">Browse Salons</button>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {filtered.map((b) => (
-              <BookingCard key={b._id} booking={b} userCoords={userCoords} onCancelled={handleCancelled} />
-            ))}
+        {/* Refresh button */}
+        <div className="flex justify-end">
+          <button onClick={handleRefresh} disabled={refreshing}
+            className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 disabled:opacity-50 transition">
+            <svg className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            {refreshing ? 'Refreshing…' : 'Refresh'}
+          </button>
+        </div>
+
+        {/* Loading */}
+        {loading && (
+          <div className="flex justify-center py-10">
+            <span className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
           </div>
         )}
+
+        {/* Empty state */}
+        {!loading && filtered.length === 0 && (
+          <div className="flex flex-col items-center py-10 gap-2.5">
+            <span className="text-5xl">📅</span>
+            <p className="text-[18px] font-bold text-slate-800">
+              No {filter === 'All' ? '' : filter.toLowerCase()} bookings
+            </p>
+            <p className="text-[14px] text-slate-400 text-center leading-relaxed max-w-xs">
+              {filter === 'All' ? 'Book your first salon appointment now!' : `You have no ${filter.toLowerCase()} bookings.`}
+            </p>
+            {filter === 'All' && (
+              <Link to="/" className="mt-2 px-6 py-3 bg-blue-600 text-white font-bold rounded-xl text-sm hover:bg-blue-700 transition">
+                Explore Salons
+              </Link>
+            )}
+          </div>
+        )}
+
+        {/* Booking cards */}
+        {!loading && visible.map(b => (
+          <BookingCard key={b._id} booking={b} userCoords={userCoords} onCancelled={handleCancelled} />
+        ))}
+
+        {/* Load more */}
+        {!loading && hasMore && (
+          <button onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
+            className="w-full flex items-center justify-center gap-1.5 py-3.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-indigo-600 hover:bg-slate-50 transition shadow-sm">
+            Load More
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+        )}
+
+        {/* All loaded */}
+        {!loading && !hasMore && filtered.length > PAGE_SIZE && (
+          <p className="text-center text-xs text-slate-400 pt-2 pb-1">
+            All {filtered.length} bookings shown
+          </p>
+        )}
+
+        <div className="h-4" />
       </div>
     </div>
   );
 }
-
-export default Dashboard;
