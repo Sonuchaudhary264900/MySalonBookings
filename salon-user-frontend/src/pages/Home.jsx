@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Store, Scissors, Sparkles, Leaf, Heart, TrendingUp, Star, MapPin, LocateFixed, SearchX, X } from "lucide-react";
+import { Store, Scissors, Sparkles, Leaf, Heart, TrendingUp, Star, MapPin, LocateFixed, SearchX, X, MoreHorizontal } from "lucide-react";
 import API from "../services/api";
 import SalonCard from "../components/SalonCard";
 
@@ -9,6 +9,7 @@ const CATEGORIES = [
   { key: "hair_salon", label: "Hair Salon", icon: <Sparkles className="w-4 h-4" /> },
   { key: "spa",        label: "Spa",        icon: <Leaf className="w-4 h-4" /> },
   { key: "massage",    label: "Massage",    icon: <Heart className="w-4 h-4" /> },
+  { key: "other",      label: "Other",      icon: <MoreHorizontal className="w-4 h-4" /> },
 ];
 
 const SORT_OPTIONS = [
