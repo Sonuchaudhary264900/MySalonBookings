@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
+  View, Text, TextInput, TouchableOpacity, StyleSheet, Linking,
   ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image, Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -250,6 +250,13 @@ export default function RegisterScreen({ navigation }) {
             </>
           )}
 
+          <Text style={styles.privacyConsent}>
+            By creating an account, you agree to our{' '}
+            <Text style={styles.privacyLink} onPress={() => Linking.openURL('https://mysalonbookings.com/privacy-policy')}>Privacy Policy</Text>
+            {' '}and{' '}
+            <Text style={styles.privacyLink} onPress={() => Linking.openURL('https://mysalonbookings.com/terms')}>Terms & Conditions</Text>.
+          </Text>
+
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
             <Text style={styles.dividerText}>OR</Text>
@@ -298,6 +305,8 @@ const styles = StyleSheet.create({
   divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 16 },
   dividerLine: { flex: 1, height: 1, backgroundColor: '#e5e7eb' },
   dividerText: { marginHorizontal: 12, color: '#9ca3af', fontSize: 12 },
+  privacyConsent: { fontSize: 11, color: '#9ca3af', textAlign: 'center', marginTop: 14, lineHeight: 18 },
+  privacyLink: { color: '#2563eb', textDecorationLine: 'underline' },
   registerRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   registerText: { fontSize: 14, color: '#6b7280' },
   registerLink: { fontSize: 14, color: '#2563eb', fontWeight: '700' },
