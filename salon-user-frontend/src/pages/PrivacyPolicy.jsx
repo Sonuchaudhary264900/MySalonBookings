@@ -6,7 +6,6 @@ const SECTIONS = [
     title: '1. Information We Collect',
     body: [
       'Account information: When you register, we collect your full name and phone number. Phone numbers are verified using Firebase Phone Authentication (Google LLC) via a one-time password (OTP).',
-      'Profile photo: You may optionally upload a profile photo. Photos are stored securely on Cloudinary (Cloudinary Ltd.) servers.',
       'Location data: We collect your device GPS location to show nearby salons. Location is used in real-time and is not stored permanently on our servers.',
       'Booking data: We store your booking history, selected services, appointment dates and times, and any special notes you provide.',
       'Reviews and ratings: Any reviews or star ratings you submit for salons are stored and displayed publicly within the app.',
@@ -33,7 +32,7 @@ const SECTIONS = [
     title: '3. Third-Party Services We Use',
     body: [
       'Firebase Authentication (Google LLC) — Used for phone number OTP verification. Google may collect device identifiers during this process. Privacy policy: https://policies.google.com/privacy',
-      'Cloudinary (Cloudinary Ltd.) — Used to store and serve profile photos and salon images. Privacy policy: https://cloudinary.com/privacy',
+      'Cloudinary (Cloudinary Ltd.) — Used to serve salon images uploaded by salon owners. Privacy policy: https://cloudinary.com/privacy',
       'Google Maps Platform (Google LLC) — Used to display salon locations on a map and calculate distances. Privacy policy: https://policies.google.com/privacy',
       'Razorpay (Razorpay Software Pvt. Ltd.) — Used to process payments. Your payment details are handled entirely by Razorpay and are not stored by us. Privacy policy: https://razorpay.com/privacy',
       'Expo Notifications (Expo Inc.) — Used to send push notifications to your device. Your push token is stored on our servers. Privacy policy: https://expo.dev/privacy',
@@ -66,7 +65,7 @@ const SECTIONS = [
     title: '6. Your Rights',
     body: [
       'Access: You may view all your personal information from your Profile page within the app.',
-      'Update: You may update your name and profile photo at any time from Profile settings.',
+      'Update: You may update your name at any time from Profile settings.',
       'Delete account: You may request deletion of your account and all associated data by contacting us at sonuchaudhary264900@gmail.com. We will process your request within 30 days.',
       'Withdraw location permission: You may disable location access in your device settings at any time. This will limit nearby-salon discovery but will not affect existing bookings.',
       'Disable notifications: You may turn off push notifications from your device settings or within the app.',
@@ -77,7 +76,6 @@ const SECTIONS = [
     title: '7. Permissions We Request',
     body: [
       'Location (Fine & Coarse): Used to find salons near you. Only accessed when the app is in use.',
-      'Camera & Photo Library: Used only when you choose to upload or update your profile photo.',
       'Push Notifications: Used to send you booking status updates and reminders.',
       'Internet: Required for the app to function — connecting to our servers, maps, and payment gateway.',
     ],
