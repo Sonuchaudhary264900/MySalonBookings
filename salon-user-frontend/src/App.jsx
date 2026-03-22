@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useState } from "react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -114,6 +115,7 @@ function App() {
         </ErrorBoundary>
       </NotificationProvider>
       </ThemeProvider>
+      <SpeedInsights />
     </BrowserRouter>
   );
 }

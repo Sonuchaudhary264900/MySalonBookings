@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Toaster } from 'react-hot-toast';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -32,6 +33,7 @@ export default function App() {
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
+      <SpeedInsights />
     </BrowserRouter>
   );
 }
