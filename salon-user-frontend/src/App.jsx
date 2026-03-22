@@ -21,6 +21,7 @@ const Booking      = lazy(() => import("./pages/Booking"));
 const Dashboard    = lazy(() => import("./pages/Dashboard"));
 const Favorites    = lazy(() => import("./pages/Favorites"));
 const Profile             = lazy(() => import("./pages/Profile"));
+const MyProfile           = lazy(() => import("./pages/MyProfile"));
 const PrivacyPolicy       = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsAndConditions  = lazy(() => import("./pages/TermsAndConditions"));
 
@@ -89,6 +90,7 @@ function App() {
             <Route path="/dashboard"                   element={<Dashboard />} />
             <Route path="/favorites"                   element={<Favorites />} />
             <Route path="/profile"                     element={<Profile />} />
+            <Route path="/my-profile"                  element={<MyProfile />} />
             <Route path="/privacy-policy"              element={<PrivacyPolicy />} />
             <Route path="/terms"                       element={<TermsAndConditions />} />
 
