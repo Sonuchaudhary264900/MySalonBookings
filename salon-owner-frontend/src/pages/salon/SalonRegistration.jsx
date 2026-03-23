@@ -418,8 +418,8 @@ const SalonRegistration = () => {
             placeMarker(mapInstance, rLat, rLng);
             setLocationAccuracy(rAcc);
 
-            if (rAcc <= 50) {
-              // Good enough — stop watching
+            if (rAcc <= 10) {
+              // Within 10 metres — stop watching
               stopWatch();
               setLocationLoading(false);
               setLocationStatus(`Fine location locked (±${rAcc}m). Drag the pin to adjust.`);
@@ -1393,12 +1393,12 @@ const SalonRegistration = () => {
                   </p>
                   {locationAccuracy !== null && (
                     <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                      locationAccuracy <= 20 ? 'bg-green-100 text-green-700'
-                      : locationAccuracy <= 50 ? 'bg-blue-100 text-blue-700'
+                      locationAccuracy <= 10 ? 'bg-green-100 text-green-700'
+                      : locationAccuracy <= 30 ? 'bg-blue-100 text-blue-700'
                       : locationAccuracy <= 100 ? 'bg-yellow-100 text-yellow-700'
                       : 'bg-orange-100 text-orange-700'
                     }`}>
-                      {locationAccuracy <= 20 ? '🎯' : locationAccuracy <= 50 ? '📍' : '⚠️'} ±{locationAccuracy}m accuracy
+                      {locationAccuracy <= 10 ? '🎯' : locationAccuracy <= 30 ? '📍' : '⚠️'} ±{locationAccuracy}m accuracy
                     </span>
                   )}
                 </div>
