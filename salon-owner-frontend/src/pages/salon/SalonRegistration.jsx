@@ -139,6 +139,97 @@ const FEMALE_OPTIONALS = [
   { key: 'atHomeServices', label: 'At-Home Services', icon: '🏠' },
 ];
 
+const UNISEX_CATEGORIES = [
+  {
+    key: 'hair_services_unisex',
+    label: 'Hair Services',
+    icon: '✂️',
+    subServices: [
+      'Basic Haircut (Men)', 'Fade / Taper / Skin Fade', 'Designer Haircut',
+      'Haircut (Layer / Step / Trim)', 'Advanced Haircut (Women)',
+      'Hair Styling', 'Hair Wash', 'Blow Dry', 'Hair Coloring',
+      'Highlights / Balayage', 'Hair Straightening', 'Hair Smoothening',
+      'Rebonding', 'Keratin Treatment', 'Hair Spa',
+      'Dandruff Treatment', 'Hair Fall Treatment',
+    ],
+  },
+  {
+    key: 'beard_grooming_unisex',
+    label: 'Beard & Grooming',
+    icon: '🧔',
+    subServices: [
+      'Beard Trim', 'Clean Shave', 'Beard Styling / Shape',
+      'Designer Beard', 'Beard Coloring', 'Hot Towel Shave',
+    ],
+  },
+  {
+    key: 'nail_services_unisex',
+    label: 'Nail Services',
+    icon: '💅',
+    subServices: [
+      'Manicure', 'Pedicure', 'Nail Art', 'Gel Nails',
+      'Acrylic Nails', 'Nail Extensions', 'Nail Repair',
+    ],
+  },
+  {
+    key: 'skin_beauty_unisex',
+    label: 'Skin & Face / Beauty',
+    icon: '🧖',
+    subServices: [
+      'Basic Facial', 'Gold Facial', 'Diamond Facial', 'Hydra Facial',
+      'Clean-up', 'Detan', 'Face Bleach', 'Anti-Acne Treatment',
+      'Anti-aging Treatment', 'Skin Brightening',
+    ],
+  },
+  {
+    key: 'spa_massage_unisex',
+    label: 'Spa & Massage',
+    icon: '💆',
+    subServices: [
+      'Head Massage', 'Neck & Shoulder Massage', 'Full Body Massage',
+      'Foot Massage', 'Deep Tissue Massage', 'Relaxation Massage',
+      'Aromatherapy', 'Spa Therapy',
+    ],
+  },
+  {
+    key: 'body_grooming_unisex',
+    label: 'Body Grooming',
+    icon: '🧴',
+    subServices: [
+      'Full Body Wax', 'Half Wax', 'Chest Waxing', 'Back Waxing',
+      'Bikini Wax', 'Threading (Eyebrow / Upper Lip / Forehead)',
+      'Body Polish', 'Body Scrub', 'Nose Wax', 'Ear Cleaning',
+    ],
+  },
+  {
+    key: 'bridal_events_unisex',
+    label: 'Bridal & Events',
+    icon: '👰',
+    subServices: [
+      'Bridal Makeup', 'Engagement Makeup', 'Party Makeup',
+      'Hairstyling', 'Saree Draping',
+    ],
+  },
+  {
+    key: 'kids_services_unisex',
+    label: 'Kids Services',
+    icon: '👶',
+    subServices: [
+      "Kids' Haircut (Boys)", "Kids' Haircut (Girls)",
+      "Kids' Hair Styling", "Kids' Hair Wash",
+    ],
+  },
+  {
+    key: 'at_home_services_unisex',
+    label: 'At-Home Services',
+    icon: '🏠',
+    subServices: [
+      'At-Home Haircut', 'At-Home Facial', 'At-Home Waxing',
+      'At-Home Massage', 'At-Home Bridal',
+    ],
+  },
+];
+
 /**
  * Salon Registration Page
  *
@@ -202,6 +293,31 @@ const SalonRegistration = () => {
 
   const toggleMaleSubService = (categoryKey, subService) => {
     setMaleSelections(prev => {
+      const current = prev[categoryKey].subServices;
+      const updated = current.includes(subService)
+        ? current.filter(s => s !== subService)
+        : [...current, subService];
+      return { ...prev, [categoryKey]: { ...prev[categoryKey], subServices: updated } };
+    });
+  };
+
+  // Unisex category selections
+  const [unisexSelections, setUnisexSelections] = useState(
+    Object.fromEntries(UNISEX_CATEGORIES.map(c => [c.key, { enabled: false, subServices: [] }]))
+  );
+  const [expandedUnisexCategoryKey, setExpandedUnisexCategoryKey] = useState(null);
+
+  const toggleUnisexCategory = (key) => {
+    setUnisexSelections(prev => {
+      const nowEnabled = !prev[key].enabled;
+      if (nowEnabled) setExpandedUnisexCategoryKey(key);
+      else if (expandedUnisexCategoryKey === key) setExpandedUnisexCategoryKey(null);
+      return { ...prev, [key]: { ...prev[key], enabled: nowEnabled } };
+    });
+  };
+
+  const toggleUnisexSubService = (categoryKey, subService) => {
+    setUnisexSelections(prev => {
       const current = prev[categoryKey].subServices;
       const updated = current.includes(subService)
         ? current.filter(s => s !== subService)
@@ -434,6 +550,11 @@ const SalonRegistration = () => {
       if (!anyEnabled) errors.femaleCategories = 'Please select at least one service category';
     }
 
+    if (step1Data.servedGender === 'unisex') {
+      const anyEnabled = UNISEX_CATEGORIES.some(c => unisexSelections[c.key].enabled);
+      if (!anyEnabled) errors.unisexCategories = 'Please select at least one service category';
+    }
+
     setStep1Errors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -613,6 +734,12 @@ const SalonRegistration = () => {
           .map(c => ({ name: c.label, subServices: femaleSelections[c.key].subServices }));
         kidsExtra = femaleOptionals.kidsServices;
         atHomeExtra = femaleOptionals.atHomeServices;
+      } else if (step1Data.servedGender === 'unisex') {
+        offeredCategories = UNISEX_CATEGORIES
+          .filter(c => unisexSelections[c.key].enabled)
+          .map(c => ({ name: c.label, subServices: unisexSelections[c.key].subServices }));
+        kidsExtra = unisexSelections['kids_services_unisex']?.enabled || false;
+        atHomeExtra = unisexSelections['at_home_services_unisex']?.enabled || false;
       }
 
       const salonPayload = {
@@ -620,7 +747,7 @@ const SalonRegistration = () => {
         description: step1Data.description,
         category: step1Data.servedGender === 'male' ? 'barber'
           : step1Data.servedGender === 'female' ? 'hair_salon'
-          : step1Data.category,
+          : 'other',
         servedGender: step1Data.servedGender,
         offeredCategories,
         kidsHaircut: kidsExtra,
@@ -1015,25 +1142,91 @@ const SalonRegistration = () => {
                     <p className="text-sm text-red-600">{step1Errors.femaleCategories}</p>
                   )}
                 </div>
-              ) : (
-                <div className="space-y-2">
+              ) : step1Data.servedGender === 'unisex' ? (
+                <div className="space-y-3">
                   <label className="block text-sm font-medium text-gray-700">
-                    Salon Category
+                    Select Services You Offer <span className="text-red-500">*</span>
+                    <span className="ml-2 text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-semibold">
+                      🚀 All categories available
+                    </span>
                   </label>
-                  <select
-                    name="category"
-                    value={step1Data.category}
-                    onChange={handleStep1Change}
-                    className="w-full px-4 py-2 rounded-lg border-2 border-gray-300 focus:border-blue-500 focus:outline-none"
-                  >
-                    <option value="barber">Barber Shop</option>
-                    <option value="hair_salon">Hair Salon</option>
-                    <option value="spa">Spa</option>
-                    <option value="massage">Massage</option>
-                    <option value="other">Other</option>
-                  </select>
+
+                  {UNISEX_CATEGORIES.map((cat) => {
+                    const sel = unisexSelections[cat.key];
+                    const isExpanded = expandedUnisexCategoryKey === cat.key;
+                    return (
+                      <div
+                        key={cat.key}
+                        className={`rounded-xl border-2 transition ${
+                          sel.enabled ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200 bg-white'
+                        }`}
+                      >
+                        <div className="w-full flex items-center justify-between px-4 py-3">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (sel.enabled) {
+                                setExpandedUnisexCategoryKey(isExpanded ? null : cat.key);
+                              }
+                            }}
+                            className="flex items-center gap-2 font-semibold text-sm text-gray-800 flex-1 text-left"
+                          >
+                            <span className="text-lg">{cat.icon}</span>
+                            {cat.label}
+                            {sel.enabled && (
+                              <span className="text-gray-400 text-xs ml-1">
+                                {isExpanded ? '▲' : '▼'}
+                              </span>
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleUnisexCategory(cat.key)}
+                            className={`w-11 h-6 rounded-full transition-colors flex-shrink-0 relative ml-3 ${
+                              sel.enabled ? 'bg-indigo-500' : 'bg-gray-300'
+                            }`}
+                          >
+                            <span
+                              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                                sel.enabled ? 'translate-x-5' : 'translate-x-0'
+                              }`}
+                            />
+                          </button>
+                        </div>
+
+                        {sel.enabled && isExpanded && (
+                          <div className="px-4 pb-4">
+                            <p className="text-xs text-gray-500 mb-2">Select sub-services (optional — leave all unchecked to offer everything):</p>
+                            <div className="flex flex-wrap gap-2">
+                              {cat.subServices.map((sub) => {
+                                const checked = sel.subServices.includes(sub);
+                                return (
+                                  <button
+                                    key={sub}
+                                    type="button"
+                                    onClick={() => toggleUnisexSubService(cat.key, sub)}
+                                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
+                                      checked
+                                        ? 'bg-indigo-500 text-white border-indigo-500'
+                                        : 'bg-white text-gray-600 border-gray-300 hover:border-indigo-400'
+                                    }`}
+                                  >
+                                    {checked ? '✓ ' : ''}{sub}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {step1Errors.unisexCategories && (
+                    <p className="text-sm text-red-600">{step1Errors.unisexCategories}</p>
+                  )}
                 </div>
-              )}
+              ) : null}
 
               {/* Phone & Email */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
