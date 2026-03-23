@@ -29,17 +29,23 @@ const Services = () => {
   const [selectedService, setSelectedService] = useState(null);
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
 
-  // Fetch services and salon on mount
+  // Fetch services and salon on mount — run independently so one failure doesn't block the other
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       try {
-        await Promise.all([fetchServices(), fetchSalon()]);
+        await fetchServices();
       } catch (err) {
         setError('Failed to load services');
         console.error('Error fetching services:', err);
       } finally {
         setLoading(false);
+      }
+      // Fetch salon separately — failure here only affects categories display, not services list
+      try {
+        await fetchSalon();
+      } catch (err) {
+        console.error('Error fetching salon:', err);
       }
     };
 
@@ -161,8 +167,21 @@ const Services = () => {
           />
         )}
 
+        {/* Search */}
+        <div>
+          <Input
+            label="Search Services"
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search by name or description..."
+            icon={<Search className="w-5 h-5" />}
+            disabled={loading}
+          />
+        </div>
+
         {/* Offered Categories from Registration */}
-        {salon?.offeredCategories?.length > 0 && (
+        {!searchTerm && salon?.offeredCategories?.length > 0 && (
           <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
             <div className="flex items-center justify-between">
               <div>
@@ -206,39 +225,16 @@ const Services = () => {
           </div>
         )}
 
-        {/* Search */}
-        <div>
-          <Input
-            label="Search Services"
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by name or description..."
-            icon={<Search className="w-5 h-5" />}
-            disabled={loading}
-          />
-        </div>
-
         {/* Services Grid */}
         {loading && !services?.length ? (
           <div className="text-center py-12">
             <p className="text-gray-600">Loading services...</p>
           </div>
-        ) : filteredServices.length === 0 ? (
-          <div className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-12 text-center">
-            <p className="text-gray-600 mb-4">
-              {searchTerm ? 'No services match your search' : 'No services yet'}
-            </p>
-            {!searchTerm && (
-              <Button
-                variant="primary"
-                onClick={() => handleOpenModal(null)}
-              >
-                Create Your First Service
-              </Button>
-            )}
+        ) : filteredServices.length === 0 && searchTerm ? (
+          <div className="text-center py-8">
+            <p className="text-gray-500">No services match your search</p>
           </div>
-        ) : (
+        ) : filteredServices.length === 0 ? null : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredServices.map(service => (
               <ServiceCard

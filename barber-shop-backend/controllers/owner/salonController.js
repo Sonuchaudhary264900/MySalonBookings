@@ -190,7 +190,7 @@ exports.getMySalon = async (req, res) => {
     console.error('Error fetching salon:', error);
 
     res.status(500).json(
-      formatErrorResponse(messages.GENERIC.ERROR, 500)
+      formatErrorResponse(`${messages.GENERIC.ERROR} [DEBUG: ${error.name}: ${error.message}]`, 500)
     );
 
   }

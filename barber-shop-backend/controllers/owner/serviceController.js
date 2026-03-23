@@ -93,7 +93,7 @@ exports.getSalonServices = async (req, res) => {
   } catch (error) {
     console.error('Error fetching services:', error);
     res.status(500).json(
-      formatErrorResponse(messages.GENERIC.ERROR, 500)
+      formatErrorResponse(`${messages.GENERIC.ERROR} [DEBUG: ${error.name}: ${error.message}]`, 500)
     );
   }
 };
