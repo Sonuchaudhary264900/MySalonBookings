@@ -56,6 +56,7 @@ const SalonRegistration = () => {
     name: '',
     description: '',
     category: 'barber',
+    servedGender: 'unisex',
     phone: '',
     email: '',
     address: '',
@@ -412,6 +413,7 @@ const SalonRegistration = () => {
         name: step1Data.name,
         description: step1Data.description,
         category: step1Data.category,
+        servedGender: step1Data.servedGender,
         phone: step1Data.phone,
         email: step1Data.email,
         address: step1Data.address,
@@ -558,6 +560,36 @@ const SalonRegistration = () => {
                   <option value="massage">Massage</option>
                   <option value="other">Other</option>
                 </select>
+              </div>
+
+              {/* Served Gender */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Services For <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { value: 'male', label: 'Male', icon: '♂' },
+                    { value: 'female', label: 'Female', icon: '♀' },
+                    { value: 'unisex', label: 'Unisex', icon: '⚥' },
+                  ].map(({ value, label, icon }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() =>
+                        setStep1Data(prev => ({ ...prev, servedGender: value }))
+                      }
+                      className={`flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-lg border-2 font-medium text-sm transition ${
+                        step1Data.servedGender === value
+                          ? 'border-blue-600 bg-blue-50 text-blue-700'
+                          : 'border-gray-300 bg-white text-gray-600 hover:border-blue-300 hover:bg-blue-50'
+                      }`}
+                    >
+                      <span className="text-xl">{icon}</span>
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Phone & Email */}
@@ -849,6 +881,10 @@ const SalonRegistration = () => {
               <div>
                 <p className="text-gray-600">Category</p>
                 <p className="font-medium text-gray-900 capitalize">{step1Data.category}</p>
+              </div>
+              <div>
+                <p className="text-gray-600">Services For</p>
+                <p className="font-medium text-gray-900 capitalize">{step1Data.servedGender}</p>
               </div>
               <div>
                 <p className="text-gray-600">Address</p>
