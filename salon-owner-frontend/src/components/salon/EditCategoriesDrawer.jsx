@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, ChevronDown, ChevronUp, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Button from '../common/Button';
@@ -22,7 +22,9 @@ const Toggle = ({ name, checked, onChange }) => (
 
 const normalizeSubs = (subs) =>
   (subs || []).map(s =>
-    typeof s === 'string' ? { name: s, price: '' } : { name: s.name, price: s.price ?? '' }
+    typeof s === 'string'
+      ? { name: s, price: '', duration: '' }
+      : { name: s.name, price: s.price ?? '', duration: s.duration ?? '' }
   );
 
 const buildSelections = (catList, offeredCategories) =>
@@ -32,10 +34,15 @@ const buildSelections = (catList, offeredCategories) =>
     return acc;
   }, {});
 
+const EMPTY_MODAL = { open: false, catKey: '', subName: '', price: '', duration: '' };
+
 const EditCategoriesDrawer = ({ isOpen, onClose, salon, updateSalon }) => {
   const [gender,      setGender]      = useState(salon?.servedGender || '');
   const [loading,     setLoading]     = useState(false);
   const [expandedKey, setExpandedKey] = useState(null);
+  const [priceModal,  setPriceModal]  = useState(EMPTY_MODAL);
+  const priceRef    = useRef(null);
+  const durationRef = useRef(null);
 
   const [maleSelections,   setMaleSelections]   = useState(() => buildSelections(MALE_CATEGORIES,   salon?.offeredCategories));
   const [femaleSelections, setFemaleSelections] = useState(() => buildSelections(FEMALE_CATEGORIES, salon?.offeredCategories));
@@ -53,6 +60,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, salon, updateSalon }) => {
     setMaleOptionals({ kidsHaircut: salon.kidsHaircut || false, atHomeServices: salon.atHomeServices || false });
     setFemaleOptionals({ kidsServices: salon.kidsHaircut || false, atHomeServices: salon.atHomeServices || false });
     setExpandedKey(null);
+    setPriceModal(EMPTY_MODAL);
   }, [isOpen]);
 
   const toggleCat = (key) => {
@@ -66,28 +74,50 @@ const EditCategoriesDrawer = ({ isOpen, onClose, salon, updateSalon }) => {
     else                          setUnisexSelections(update);
   };
 
-  const toggleSub = (catKey, sub) => {
-    const update = (prev) => {
-      const subs = prev[catKey].subServices;
-      const exists = subs.find(s => s.name === sub);
-      const next = exists ? subs.filter(s => s.name !== sub) : [...subs, { name: sub, price: '' }];
-      return { ...prev, [catKey]: { ...prev[catKey], subServices: next } };
-    };
+  const getSels = () =>
+    gender === 'male' ? maleSelections : gender === 'female' ? femaleSelections : unisexSelections;
+  const setSels = (update) => {
     if (gender === 'male')        setMaleSelections(update);
     else if (gender === 'female') setFemaleSelections(update);
     else                          setUnisexSelections(update);
   };
 
-  const updateSubPrice = (catKey, subName, price) => {
-    const update = (prev) => {
-      const updated = prev[catKey].subServices.map(s =>
-        s.name === subName ? { ...s, price } : s
-      );
-      return { ...prev, [catKey]: { ...prev[catKey], subServices: updated } };
-    };
-    if (gender === 'male')        setMaleSelections(update);
-    else if (gender === 'female') setFemaleSelections(update);
-    else                          setUnisexSelections(update);
+  const toggleSub = (catKey, sub) => {
+    const subs = getSels()[catKey].subServices;
+    const exists = subs.find(s => s.name === sub);
+    if (exists) {
+      // deselect immediately
+      setSels(prev => ({
+        ...prev,
+        [catKey]: { ...prev[catKey], subServices: subs.filter(s => s.name !== sub) },
+      }));
+    } else {
+      // open modal to enter price + duration
+      setPriceModal({ open: true, catKey, subName: sub, price: '', duration: '' });
+      setTimeout(() => priceRef.current?.focus(), 50);
+    }
+  };
+
+  const confirmSubPrice = () => {
+    const { catKey, subName, price, duration } = priceModal;
+    if (!price || parseFloat(price) <= 0) {
+      toast.error('Please enter a valid price');
+      priceRef.current?.focus();
+      return;
+    }
+    if (!duration || parseInt(duration) <= 0) {
+      toast.error('Please enter a valid duration');
+      durationRef.current?.focus();
+      return;
+    }
+    setSels(prev => ({
+      ...prev,
+      [catKey]: {
+        ...prev[catKey],
+        subServices: [...prev[catKey].subServices, { name: subName, price, duration }],
+      },
+    }));
+    setPriceModal(EMPTY_MODAL);
   };
 
   const handleSave = async () => {
@@ -96,7 +126,11 @@ const EditCategoriesDrawer = ({ isOpen, onClose, salon, updateSalon }) => {
     let kidsHaircut = false;
     let atHomeServices = false;
 
-    const toPayload = (subs) => subs.map(s => ({ name: s.name, price: parseFloat(s.price) || 0 }));
+    const toPayload = (subs) => subs.map(s => ({
+      name:     s.name,
+      price:    parseFloat(s.price)    || 0,
+      duration: parseInt(s.duration)   || 0,
+    }));
 
     if (gender === 'male') {
       offeredCategories = MALE_CATEGORIES.filter(c => maleSelections[c.key].enabled)
@@ -208,7 +242,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, salon, updateSalon }) => {
                     </div>
                     {isExpanded && (
                       <div className="px-4 pb-3 pt-2 border-t border-blue-100 bg-white">
-                        <p className="text-xs text-gray-400 mb-2">Tap to select · set price below</p>
+                        <p className="text-xs text-gray-400 mb-2">Tap to select · enter price &amp; duration</p>
                         <div className="flex flex-wrap gap-1.5">
                           {cat.subServices.map(sub => {
                             const active = sel.subServices.find(s => s.name === sub);
@@ -220,29 +254,25 @@ const EditCategoriesDrawer = ({ isOpen, onClose, salon, updateSalon }) => {
                                     : 'bg-white border-gray-300 text-gray-600 hover:border-gray-400'
                                 }`}>
                                 {sub}
+                                {active && active.price > 0 && (
+                                  <span className="ml-1 opacity-80">₹{active.price}</span>
+                                )}
                               </button>
                             );
                           })}
                         </div>
                         {sel.subServices.length > 0 && (
-                          <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
-                            <p className="text-xs text-gray-500 font-medium">Prices (₹):</p>
-                            {sel.subServices.map(s => (
-                              <div key={s.name} className="flex items-center gap-2">
-                                <span className="flex-1 text-xs text-gray-700 truncate">{s.name}</span>
-                                <div className="flex items-center gap-1 shrink-0">
-                                  <span className="text-xs text-gray-400">₹</span>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    placeholder="0"
-                                    value={s.price}
-                                    onChange={e => updateSubPrice(cat.key, s.name, e.target.value)}
-                                    className="w-20 text-xs border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:border-blue-400"
-                                  />
+                          <div className="mt-3 pt-3 border-t border-gray-100">
+                            <p className="text-xs text-gray-500 font-medium mb-1">Selected:</p>
+                            <div className="space-y-1">
+                              {sel.subServices.map(s => (
+                                <div key={s.name} className="flex items-center gap-2 text-xs text-gray-600">
+                                  <span className="flex-1 truncate">{s.name}</span>
+                                  <span className="text-blue-600 font-medium shrink-0">₹{s.price}</span>
+                                  <span className="text-gray-400 shrink-0">{s.duration} min</span>
                                 </div>
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -291,6 +321,72 @@ const EditCategoriesDrawer = ({ isOpen, onClose, salon, updateSalon }) => {
           </Button>
         </div>
       </div>
+
+      {/* Price + Duration modal */}
+      {priceModal.open && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setPriceModal(EMPTY_MODAL)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-xs p-5 space-y-4">
+            <div>
+              <h3 className="text-base font-bold text-gray-900">Set Price &amp; Duration</h3>
+              <p className="text-sm text-gray-500 mt-0.5 font-medium">{priceModal.subName}</p>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-gray-700 mb-1 block">Price (₹) *</label>
+                <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:border-blue-500">
+                  <span className="px-3 text-gray-400 text-sm bg-gray-50 border-r border-gray-300 py-2">₹</span>
+                  <input
+                    ref={priceRef}
+                    type="number"
+                    min="1"
+                    placeholder="e.g. 250"
+                    value={priceModal.price}
+                    onChange={e => setPriceModal(p => ({ ...p, price: e.target.value }))}
+                    onKeyDown={e => e.key === 'Enter' && durationRef.current?.focus()}
+                    className="flex-1 px-3 py-2 text-sm outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-gray-700 mb-1 block">Duration (minutes) *</label>
+                <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:border-blue-500">
+                  <span className="px-3 text-gray-400 text-sm bg-gray-50 border-r border-gray-300 py-2">min</span>
+                  <input
+                    ref={durationRef}
+                    type="number"
+                    min="1"
+                    placeholder="e.g. 30"
+                    value={priceModal.duration}
+                    onChange={e => setPriceModal(p => ({ ...p, duration: e.target.value }))}
+                    onKeyDown={e => e.key === 'Enter' && confirmSubPrice()}
+                    className="flex-1 px-3 py-2 text-sm outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setPriceModal(EMPTY_MODAL)}
+                className="flex-1 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmSubPrice}
+                className="flex-1 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

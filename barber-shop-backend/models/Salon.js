@@ -211,8 +211,9 @@ location: {
         name: { type: String, required: true },
         subServices: [
           {
-            name:  { type: String },
-            price: { type: Number, default: 0 },
+            name:     { type: String },
+            price:    { type: Number, default: 0 },
+            duration: { type: Number, default: 0 }, // minutes
           },
         ],
       },
