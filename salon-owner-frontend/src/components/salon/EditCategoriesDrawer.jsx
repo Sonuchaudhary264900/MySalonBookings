@@ -190,8 +190,8 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 shrink-0">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Edit Service Categories</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Toggle categories and select sub-services</p>
+            <h2 className="text-lg font-bold text-gray-900">Service Menu</h2>
+            <p className="text-xs text-gray-500 mt-0.5">Configure categories, services &amp; pricing</p>
           </div>
           <button
             type="button"
@@ -352,7 +352,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
         {/* Sticky footer */}
         <div className="px-5 py-4 border-t border-gray-200 shrink-0">
           <Button variant="primary" onClick={handleSave} loading={loading} disabled={loading || !gender} fullWidth>
-            <Save className="w-4 h-4" /> Save Categories
+            <Save className="w-4 h-4" /> Save Menu
           </Button>
         </div>
       </div>

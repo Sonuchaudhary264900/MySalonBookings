@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Pencil } from 'lucide-react';
+import { Plus, Search, LayoutList } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Button from '../../components/common/Button';
@@ -141,8 +141,8 @@ const Services = () => {
               disabled={loading}
               className="flex items-center gap-2"
             >
-              <Pencil className="w-4 h-4" />
-              Edit Categories
+              <LayoutList className="w-4 h-4" />
+              Service Menu
             </Button>
             <Button
               variant="primary"
@@ -185,9 +185,9 @@ const Services = () => {
           <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Service Categories</h2>
+                <h2 className="text-lg font-semibold text-gray-900">Service Menu</h2>
                 <p className="text-sm text-gray-500 mt-0.5">
-                  Selected during registration · Serves{' '}
+                  Serves{' '}
                   <span className="capitalize font-medium">{salon.servedGender}</span> customers
                 </p>
               </div>
