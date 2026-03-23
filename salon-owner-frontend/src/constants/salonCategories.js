@@ -123,14 +123,19 @@ export const UNISEX_CATEGORIES = [
     key: 'hair_services_unisex',
     label: 'Hair Services',
     icon: '✂️',
-    subServices: [
-      'Basic Haircut (Men)', 'Fade / Taper / Skin Fade', 'Designer Haircut',
-      'Haircut (Layer / Step / Trim)', 'Advanced Haircut (Women)',
+    maleSubServices: [
+      'Basic Haircut', 'Fade / Taper / Skin Fade', 'Designer Haircut',
       'Hair Styling', 'Hair Wash', 'Blow Dry', 'Hair Coloring',
-      'Highlights / Balayage', 'Hair Straightening', 'Hair Smoothening',
-      'Rebonding', 'Keratin Treatment', 'Hair Spa',
+      'Hair Straightening', 'Hair Smoothening', 'Hair Spa',
       'Dandruff Treatment', 'Hair Fall Treatment',
     ],
+    femaleSubServices: [
+      'Haircut (Layer / Step / Trim)', 'Advanced Haircut',
+      'Hair Styling (Straight / Curl / Party)', 'Hair Wash', 'Blow Dry',
+      'Hair Coloring', 'Highlights / Balayage', 'Hair Smoothening',
+      'Rebonding', 'Keratin Treatment', 'Hair Spa',
+    ],
+    get subServices() { return [...new Set([...this.maleSubServices, ...this.femaleSubServices])]; },
   },
   {
     key: 'beard_grooming_unisex',
@@ -154,11 +159,15 @@ export const UNISEX_CATEGORIES = [
     key: 'skin_beauty_unisex',
     label: 'Skin & Face / Beauty',
     icon: '🧖',
-    subServices: [
-      'Basic Facial', 'Gold Facial', 'Diamond Facial', 'Hydra Facial',
-      'Clean-up', 'Detan', 'Face Bleach', 'Anti-Acne Treatment',
-      'Anti-aging Treatment', 'Skin Brightening',
+    maleSubServices: [
+      'Basic Facial', 'Gold Facial', 'Diamond Facial', 'Clean-up',
+      'Detan', 'Face Bleach', 'Anti-Acne Treatment', 'Skin Brightening',
     ],
+    femaleSubServices: [
+      'Basic Facial', 'Gold Facial', 'Diamond Facial', 'Hydra Facial',
+      'Clean-up', 'Detan', 'Bleach', 'Anti-aging Treatment', 'Skin Brightening',
+    ],
+    get subServices() { return [...new Set([...this.maleSubServices, ...this.femaleSubServices])]; },
   },
   {
     key: 'spa_massage_unisex',
@@ -174,11 +183,15 @@ export const UNISEX_CATEGORIES = [
     key: 'body_grooming_unisex',
     label: 'Body Grooming',
     icon: '🧴',
-    subServices: [
-      'Full Body Wax', 'Half Wax', 'Chest Waxing', 'Back Waxing',
-      'Bikini Wax', 'Threading (Eyebrow / Upper Lip / Forehead)',
-      'Body Polish', 'Body Scrub', 'Nose Wax', 'Ear Cleaning',
+    maleSubServices: [
+      'Chest Waxing', 'Back Waxing', 'Full Body Wax',
+      'Threading (optional)', 'Nose Wax', 'Ear Cleaning',
     ],
+    femaleSubServices: [
+      'Full Body Wax', 'Half Wax', 'Bikini Wax',
+      'Threading (Eyebrow / Upper Lip / Forehead)', 'Body Polish', 'Body Scrub',
+    ],
+    get subServices() { return [...new Set([...this.maleSubServices, ...this.femaleSubServices])]; },
   },
   {
     key: 'bridal_events_unisex',
