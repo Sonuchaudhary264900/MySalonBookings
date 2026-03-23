@@ -274,6 +274,7 @@ const Services = () => {
       <EditCategoriesDrawer
         isOpen={isCategoriesOpen}
         onClose={() => setIsCategoriesOpen(false)}
+        onOpen={fetchSalon}
         salon={salon}
         updateSalon={updateSalon}
       />

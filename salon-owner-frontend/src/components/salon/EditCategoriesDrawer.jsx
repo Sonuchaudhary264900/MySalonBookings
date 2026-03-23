@@ -36,7 +36,7 @@ const buildSelections = (catList, offeredCategories) =>
 
 const EMPTY_MODAL = { open: false, catKey: '', subName: '', price: '', duration: '' };
 
-const EditCategoriesDrawer = ({ isOpen, onClose, salon, updateSalon }) => {
+const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) => {
   const [gender,      setGender]      = useState(salon?.servedGender || '');
   const [loading,     setLoading]     = useState(false);
   const [expandedKey, setExpandedKey] = useState(null);
@@ -50,7 +50,12 @@ const EditCategoriesDrawer = ({ isOpen, onClose, salon, updateSalon }) => {
   const [maleOptionals,    setMaleOptionals]    = useState({ kidsHaircut: salon?.kidsHaircut || false, atHomeServices: salon?.atHomeServices || false });
   const [femaleOptionals,  setFemaleOptionals]  = useState({ kidsServices: salon?.kidsHaircut || false, atHomeServices: salon?.atHomeServices || false });
 
-  // Sync with latest salon data when drawer opens
+  // Fetch fresh salon data every time the drawer opens
+  useEffect(() => {
+    if (isOpen && onOpen) onOpen();
+  }, [isOpen]);
+
+  // Sync with latest salon data when drawer opens OR when salon data arrives
   useEffect(() => {
     if (!isOpen || !salon) return;
     setGender(salon.servedGender || '');
@@ -61,7 +66,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, salon, updateSalon }) => {
     setFemaleOptionals({ kidsServices: salon.kidsHaircut || false, atHomeServices: salon.atHomeServices || false });
     setExpandedKey(null);
     setPriceModal(EMPTY_MODAL);
-  }, [isOpen]);
+  }, [isOpen, salon]);
 
   const toggleCat = (key) => {
     const update = (prev) => {
