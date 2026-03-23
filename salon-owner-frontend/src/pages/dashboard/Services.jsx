@@ -53,9 +53,10 @@ const Services = () => {
   }, []);
 
   // Filter services by search term
+  const term = searchTerm.toLowerCase();
   const filteredServices = (services || []).filter(service =>
-    service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (service.description && service.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    (service.name || '').toLowerCase().includes(term) ||
+    (service.description || '').toLowerCase().includes(term)
   );
 
   const handleOpenModal = (service = null) => {
@@ -227,13 +228,19 @@ const Services = () => {
         {/* Services Grid */}
         {loading && !services?.length ? (
           <div className="text-center py-12">
-            <p className="text-gray-600">Loading services...</p>
+            <p className="text-gray-500">Loading services...</p>
           </div>
-        ) : filteredServices.length === 0 && searchTerm ? (
-          <div className="text-center py-8">
-            <p className="text-gray-500">No services match your search</p>
+        ) : searchTerm && filteredServices.length === 0 ? (
+          <div className="text-center py-10 border border-dashed border-gray-200 rounded-xl">
+            <p className="text-gray-500 font-medium">No services match &quot;{searchTerm}&quot;</p>
+            <p className="text-sm text-gray-400 mt-1">Try a different name or clear the search</p>
           </div>
-        ) : filteredServices.length === 0 ? null : (
+        ) : !searchTerm && !services?.length ? (
+          <div className="text-center py-10 border border-dashed border-gray-200 rounded-xl">
+            <p className="text-gray-500 font-medium">No services added yet</p>
+            <p className="text-sm text-gray-400 mt-1">Click <strong>+ Add Service</strong> to create your first service</p>
+          </div>
+        ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredServices.map(service => (
               <ServiceCard
