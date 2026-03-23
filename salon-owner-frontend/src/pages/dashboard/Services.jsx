@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Button from '../../components/common/Button';
@@ -7,6 +7,7 @@ import Input from '../../components/common/Input';
 import Alert from '../../components/common/Alert';
 import ServiceCard from '../../components/Services/ServiceCard';
 import ServiceModal from '../../components/Services/ServiceModal';
+import EditCategoriesDrawer from '../../components/salon/EditCategoriesDrawer';
 import { useSalon } from '../../hooks/useSalon';
 
 /**
@@ -20,12 +21,13 @@ import { useSalon } from '../../hooks/useSalon';
  * - Search services
  */
 const Services = () => {
-  const { salon, services, createService, updateService, deleteService, fetchServices, fetchSalon } = useSalon();
+  const { salon, services, createService, updateService, deleteService, fetchServices, fetchSalon, updateSalon } = useSalon();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
+  const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
 
   // Fetch services and salon on mount
   useEffect(() => {
@@ -126,15 +128,26 @@ const Services = () => {
             <p className="text-gray-600 mt-1">Manage your salon services</p>
           </div>
 
-          <Button
-            variant="primary"
-            onClick={() => handleOpenModal(null)}
-            disabled={loading}
-            className="flex items-center gap-2"
-          >
-            <Plus className="w-5 h-5" />
-            Add Service
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsCategoriesOpen(true)}
+              disabled={loading}
+              className="flex items-center gap-2"
+            >
+              <Pencil className="w-4 h-4" />
+              Edit Categories
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => handleOpenModal(null)}
+              disabled={loading}
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              Add Service
+            </Button>
+          </div>
         </div>
 
         {/* Error Alert */}
@@ -256,6 +269,14 @@ const Services = () => {
           error={error}
         />
       </div>
+
+      {/* Edit Categories Drawer */}
+      <EditCategoriesDrawer
+        isOpen={isCategoriesOpen}
+        onClose={() => setIsCategoriesOpen(false)}
+        salon={salon}
+        updateSalon={updateSalon}
+      />
     </DashboardLayout>
   );
 };
