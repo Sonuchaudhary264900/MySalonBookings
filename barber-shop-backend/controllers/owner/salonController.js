@@ -228,7 +228,10 @@ exports.updateSalon = async (req, res) => {
     if (pincode) salon.pincode = pincode;
     if (description) salon.description = description;
     if (servedGender) salon.servedGender = servedGender;
-    if (Array.isArray(offeredCategories)) salon.offeredCategories = offeredCategories;
+    if (Array.isArray(offeredCategories)) {
+      salon.offeredCategories = offeredCategories;
+      salon.markModified('offeredCategories');
+    }
     if (kidsHaircut !== undefined) salon.kidsHaircut = kidsHaircut;
     if (atHomeServices !== undefined) salon.atHomeServices = atHomeServices;
 
