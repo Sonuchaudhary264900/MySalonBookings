@@ -45,7 +45,7 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
       setForm({
         name: '', description: '', basePrice: '', duration: '',
         category: '',
-        applicableFor: servedGender === 'unisex' ? 'both' : servedGender,
+        applicableFor: servedGender === 'unisex' ? '' : servedGender,
       });
     }
     setErrors({});
@@ -59,12 +59,13 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
 
   const validate = () => {
     const errs = {};
-    if (!form.name.trim())                    errs.name      = 'Service name is required';
-    if (!form.category)                       errs.category  = 'Please select a category';
-    if (!form.basePrice)                      errs.basePrice = 'Price is required';
-    else if (Number(form.basePrice) < 0)      errs.basePrice = 'Price must be positive';
-    if (!form.duration)                       errs.duration  = 'Duration is required';
-    else if (Number(form.duration) < 1)       errs.duration  = 'Duration must be at least 1 min';
+    if (!form.name.trim())                    errs.name          = 'Service name is required';
+    if (servedGender === 'unisex' && !form.applicableFor) errs.applicableFor = 'Please select who this service is for';
+    if (!form.category)                       errs.category      = 'Please select a category';
+    if (!form.basePrice)                      errs.basePrice     = 'Price is required';
+    else if (Number(form.basePrice) < 0)      errs.basePrice     = 'Price must be positive';
+    if (!form.duration)                       errs.duration      = 'Duration is required';
+    else if (Number(form.duration) < 1)       errs.duration      = 'Duration must be at least 1 min';
     return errs;
   };
 
@@ -110,16 +111,22 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
             <div className="flex gap-2">
               {[['male', '👨 Men'], ['female', '👩 Women'], ['both', '👥 Both']].map(([val, label]) => (
                 <button key={val} type="button"
-                  onClick={() => setForm(p => ({ ...p, applicableFor: val }))}
+                  onClick={() => {
+                    setForm(p => ({ ...p, applicableFor: val }));
+                    if (errors.applicableFor) setErrors(p => ({ ...p, applicableFor: '' }));
+                  }}
                   className={`flex-1 py-2 rounded-xl border-2 text-sm font-medium transition ${
                     form.applicableFor === val
                       ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                      : errors.applicableFor
+                      ? 'border-red-300 text-gray-600'
                       : 'border-gray-200 text-gray-600 hover:border-gray-300'
                   }`}>
                   {label}
                 </button>
               ))}
             </div>
+            {errors.applicableFor && <p className="mt-1 text-xs text-red-500">{errors.applicableFor}</p>}
           </div>
         )}
 
