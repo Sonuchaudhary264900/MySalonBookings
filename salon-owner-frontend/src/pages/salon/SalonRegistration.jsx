@@ -874,16 +874,22 @@ const SalonRegistration = () => {
 
             <div className="space-y-6">
               {/* Photos */}
-              <PhotoUpload
-                photos={step4Data.photos}
-                onPhotosChange={(updatedPhotos) =>
-                  setStep4Data(prev => ({ ...prev, photos: updatedPhotos }))
-                }
-                disabled={loading}
-              />
-              {step4Errors.photos && (
-                <p className="text-sm text-red-600">{step4Errors.photos}</p>
-              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Salon Photos <span className="text-red-500">*</span>
+                  <span className="text-gray-400 font-normal ml-1 text-xs">At least one photo is required</span>
+                </label>
+                <PhotoUpload
+                  photos={step4Data.photos}
+                  onPhotosChange={(updatedPhotos) =>
+                    setStep4Data(prev => ({ ...prev, photos: updatedPhotos }))
+                  }
+                  disabled={loading}
+                />
+                {step4Errors.photos && (
+                  <p className="text-sm text-red-600 mt-1">{step4Errors.photos}</p>
+                )}
+              </div>
 
               {/* Business License */}
               <DocumentUpload
@@ -940,8 +946,10 @@ const SalonRegistration = () => {
                 </p>
               </div>
               <div>
-                <p className="text-gray-600">Photos</p>
-                <p className="font-medium text-gray-900">{step4Data.photos.length} uploaded</p>
+                <p className="text-gray-600">Photos <span className="text-red-500">*</span></p>
+                <p className={`font-medium ${step4Data.photos.length === 0 ? 'text-red-500' : 'text-gray-900'}`}>
+                  {step4Data.photos.length === 0 ? 'None — required' : `${step4Data.photos.length} uploaded`}
+                </p>
               </div>
             </div>
           </div>
