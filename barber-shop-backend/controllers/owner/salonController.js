@@ -205,7 +205,11 @@ exports.updateSalon = async (req, res) => {
 
   try {
 
-    const { name, phone, email, address, city, state, pincode, location, workingHours, description } = req.body;
+    const {
+      name, phone, email, address, city, state, pincode,
+      location, workingHours, description,
+      servedGender, offeredCategories, kidsHaircut, atHomeServices,
+    } = req.body;
 
     const salon = await Salon.findOne({ ownerId: req.owner._id });
 
@@ -223,6 +227,10 @@ exports.updateSalon = async (req, res) => {
     if (state) salon.state = state;
     if (pincode) salon.pincode = pincode;
     if (description) salon.description = description;
+    if (servedGender) salon.servedGender = servedGender;
+    if (Array.isArray(offeredCategories)) salon.offeredCategories = offeredCategories;
+    if (kidsHaircut !== undefined) salon.kidsHaircut = kidsHaircut;
+    if (atHomeServices !== undefined) salon.atHomeServices = atHomeServices;
 
     if (location && location.latitude && location.longitude) {
 

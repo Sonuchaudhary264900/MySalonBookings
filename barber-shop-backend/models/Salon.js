@@ -204,7 +204,7 @@ location: {
     },
 
     // ==========================================
-    // OFFERED CATEGORIES (male-specific service selections)
+    // OFFERED CATEGORIES (gender-specific service selections)
     // ==========================================
     offeredCategories: [
       {
