@@ -90,9 +90,19 @@ const SalonRegistration = () => {
   const toggleMaleSubService = (categoryKey, subService) => {
     setMaleSelections(prev => {
       const current = prev[categoryKey].subServices;
-      const updated = current.includes(subService)
-        ? current.filter(s => s !== subService)
-        : [...current, subService];
+      const exists = current.find(s => s.name === subService);
+      const updated = exists
+        ? current.filter(s => s.name !== subService)
+        : [...current, { name: subService, price: '' }];
+      return { ...prev, [categoryKey]: { ...prev[categoryKey], subServices: updated } };
+    });
+  };
+
+  const updateMaleSubPrice = (categoryKey, subName, price) => {
+    setMaleSelections(prev => {
+      const updated = prev[categoryKey].subServices.map(s =>
+        s.name === subName ? { ...s, price } : s
+      );
       return { ...prev, [categoryKey]: { ...prev[categoryKey], subServices: updated } };
     });
   };
@@ -115,9 +125,19 @@ const SalonRegistration = () => {
   const toggleUnisexSubService = (categoryKey, subService) => {
     setUnisexSelections(prev => {
       const current = prev[categoryKey].subServices;
-      const updated = current.includes(subService)
-        ? current.filter(s => s !== subService)
-        : [...current, subService];
+      const exists = current.find(s => s.name === subService);
+      const updated = exists
+        ? current.filter(s => s.name !== subService)
+        : [...current, { name: subService, price: '' }];
+      return { ...prev, [categoryKey]: { ...prev[categoryKey], subServices: updated } };
+    });
+  };
+
+  const updateUnisexSubPrice = (categoryKey, subName, price) => {
+    setUnisexSelections(prev => {
+      const updated = prev[categoryKey].subServices.map(s =>
+        s.name === subName ? { ...s, price } : s
+      );
       return { ...prev, [categoryKey]: { ...prev[categoryKey], subServices: updated } };
     });
   };
@@ -141,9 +161,19 @@ const SalonRegistration = () => {
   const toggleFemaleSubService = (categoryKey, subService) => {
     setFemaleSelections(prev => {
       const current = prev[categoryKey].subServices;
-      const updated = current.includes(subService)
-        ? current.filter(s => s !== subService)
-        : [...current, subService];
+      const exists = current.find(s => s.name === subService);
+      const updated = exists
+        ? current.filter(s => s.name !== subService)
+        : [...current, { name: subService, price: '' }];
+      return { ...prev, [categoryKey]: { ...prev[categoryKey], subServices: updated } };
+    });
+  };
+
+  const updateFemaleSubPrice = (categoryKey, subName, price) => {
+    setFemaleSelections(prev => {
+      const updated = prev[categoryKey].subServices.map(s =>
+        s.name === subName ? { ...s, price } : s
+      );
       return { ...prev, [categoryKey]: { ...prev[categoryKey], subServices: updated } };
     });
   };
@@ -579,22 +609,27 @@ const SalonRegistration = () => {
       let kidsExtra = false;
       let atHomeExtra = false;
 
+      const normalizeSubs = (subs) => subs.map(s => ({
+        name: s.name,
+        price: parseFloat(s.price) || 0,
+      }));
+
       if (step1Data.servedGender === 'male') {
         offeredCategories = MALE_CATEGORIES
           .filter(c => maleSelections[c.key].enabled)
-          .map(c => ({ name: c.label, subServices: maleSelections[c.key].subServices }));
+          .map(c => ({ name: c.label, subServices: normalizeSubs(maleSelections[c.key].subServices) }));
         kidsExtra = maleOptionals.kidsHaircut;
         atHomeExtra = maleOptionals.atHomeServices;
       } else if (step1Data.servedGender === 'female') {
         offeredCategories = FEMALE_CATEGORIES
           .filter(c => femaleSelections[c.key].enabled)
-          .map(c => ({ name: c.label, subServices: femaleSelections[c.key].subServices }));
+          .map(c => ({ name: c.label, subServices: normalizeSubs(femaleSelections[c.key].subServices) }));
         kidsExtra = femaleOptionals.kidsServices;
         atHomeExtra = femaleOptionals.atHomeServices;
       } else if (step1Data.servedGender === 'unisex') {
         offeredCategories = UNISEX_CATEGORIES
           .filter(c => unisexSelections[c.key].enabled)
-          .map(c => ({ name: c.label, subServices: unisexSelections[c.key].subServices }));
+          .map(c => ({ name: c.label, subServices: normalizeSubs(unisexSelections[c.key].subServices) }));
         kidsExtra = unisexSelections['kids_services_unisex']?.enabled || false;
         atHomeExtra = unisexSelections['at_home_services_unisex']?.enabled || false;
       }
@@ -831,7 +866,7 @@ const SalonRegistration = () => {
                             <p className="text-xs text-gray-500 mb-2">Select sub-services (optional — leave all unchecked to offer everything):</p>
                             <div className="flex flex-wrap gap-2">
                               {cat.subServices.map((sub) => {
-                                const checked = sel.subServices.includes(sub);
+                                const checked = sel.subServices.find(s => s.name === sub);
                                 return (
                                   <button
                                     key={sub}
@@ -940,7 +975,7 @@ const SalonRegistration = () => {
                             <p className="text-xs text-gray-500 mb-2">Select sub-services (optional — leave all unchecked to offer everything):</p>
                             <div className="flex flex-wrap gap-2">
                               {cat.subServices.map((sub) => {
-                                const checked = sel.subServices.includes(sub);
+                                const checked = sel.subServices.find(s => s.name === sub);
                                 return (
                                   <button
                                     key={sub}
@@ -1051,7 +1086,7 @@ const SalonRegistration = () => {
                             <p className="text-xs text-gray-500 mb-2">Select sub-services (optional — leave all unchecked to offer everything):</p>
                             <div className="flex flex-wrap gap-2">
                               {cat.subServices.map((sub) => {
-                                const checked = sel.subServices.includes(sub);
+                                const checked = sel.subServices.find(s => s.name === sub);
                                 return (
                                   <button
                                     key={sub}

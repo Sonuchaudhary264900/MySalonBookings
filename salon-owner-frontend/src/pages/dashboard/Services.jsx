@@ -187,11 +187,15 @@ const Services = () => {
                   <p className="font-medium text-gray-800 text-sm mb-2">{cat.name}</p>
                   {cat.subServices?.length > 0 ? (
                     <div className="flex flex-wrap gap-1">
-                      {cat.subServices.map((sub, si) => (
-                        <span key={si} className="text-xs bg-white border border-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
-                          {sub}
+                      {cat.subServices.map((sub, si) => {
+                        const name  = typeof sub === 'string' ? sub : sub.name;
+                        const price = typeof sub === 'string' ? null : sub.price;
+                        return (
+                        <span key={si} className="text-xs bg-white border border-gray-200 text-gray-600 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          {name}{price > 0 && <span className="text-blue-600 font-medium">₹{price}</span>}
                         </span>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <p className="text-xs text-gray-400">No sub-services selected</p>

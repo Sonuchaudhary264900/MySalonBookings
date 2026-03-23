@@ -20,10 +20,15 @@ const Toggle = ({ name, checked, onChange }) => (
   </label>
 );
 
+const normalizeSubs = (subs) =>
+  (subs || []).map(s =>
+    typeof s === 'string' ? { name: s, price: '' } : { name: s.name, price: s.price ?? '' }
+  );
+
 const buildSelections = (catList, offeredCategories) =>
   catList.reduce((acc, cat) => {
     const found = (offeredCategories || []).find(c => c.name === cat.label);
-    acc[cat.key] = { enabled: !!found, subServices: found?.subServices || [] };
+    acc[cat.key] = { enabled: !!found, subServices: normalizeSubs(found?.subServices) };
     return acc;
   }, {});
 
@@ -64,8 +69,21 @@ const EditCategoriesDrawer = ({ isOpen, onClose, salon, updateSalon }) => {
   const toggleSub = (catKey, sub) => {
     const update = (prev) => {
       const subs = prev[catKey].subServices;
-      const next = subs.includes(sub) ? subs.filter(s => s !== sub) : [...subs, sub];
+      const exists = subs.find(s => s.name === sub);
+      const next = exists ? subs.filter(s => s.name !== sub) : [...subs, { name: sub, price: '' }];
       return { ...prev, [catKey]: { ...prev[catKey], subServices: next } };
+    };
+    if (gender === 'male')        setMaleSelections(update);
+    else if (gender === 'female') setFemaleSelections(update);
+    else                          setUnisexSelections(update);
+  };
+
+  const updateSubPrice = (catKey, subName, price) => {
+    const update = (prev) => {
+      const updated = prev[catKey].subServices.map(s =>
+        s.name === subName ? { ...s, price } : s
+      );
+      return { ...prev, [catKey]: { ...prev[catKey], subServices: updated } };
     };
     if (gender === 'male')        setMaleSelections(update);
     else if (gender === 'female') setFemaleSelections(update);
@@ -78,19 +96,21 @@ const EditCategoriesDrawer = ({ isOpen, onClose, salon, updateSalon }) => {
     let kidsHaircut = false;
     let atHomeServices = false;
 
+    const toPayload = (subs) => subs.map(s => ({ name: s.name, price: parseFloat(s.price) || 0 }));
+
     if (gender === 'male') {
       offeredCategories = MALE_CATEGORIES.filter(c => maleSelections[c.key].enabled)
-        .map(c => ({ name: c.label, subServices: maleSelections[c.key].subServices }));
+        .map(c => ({ name: c.label, subServices: toPayload(maleSelections[c.key].subServices) }));
       kidsHaircut    = maleOptionals.kidsHaircut;
       atHomeServices = maleOptionals.atHomeServices;
     } else if (gender === 'female') {
       offeredCategories = FEMALE_CATEGORIES.filter(c => femaleSelections[c.key].enabled)
-        .map(c => ({ name: c.label, subServices: femaleSelections[c.key].subServices }));
+        .map(c => ({ name: c.label, subServices: toPayload(femaleSelections[c.key].subServices) }));
       kidsHaircut    = femaleOptionals.kidsServices;
       atHomeServices = femaleOptionals.atHomeServices;
     } else {
       offeredCategories = UNISEX_CATEGORIES.filter(c => unisexSelections[c.key].enabled)
-        .map(c => ({ name: c.label, subServices: unisexSelections[c.key].subServices }));
+        .map(c => ({ name: c.label, subServices: toPayload(unisexSelections[c.key].subServices) }));
       kidsHaircut    = unisexSelections['kids_services_unisex']?.enabled || false;
       atHomeServices = unisexSelections['at_home_services_unisex']?.enabled || false;
     }
@@ -188,10 +208,10 @@ const EditCategoriesDrawer = ({ isOpen, onClose, salon, updateSalon }) => {
                     </div>
                     {isExpanded && (
                       <div className="px-4 pb-3 pt-2 border-t border-blue-100 bg-white">
-                        <p className="text-xs text-gray-400 mb-2">Tap to select sub-services</p>
+                        <p className="text-xs text-gray-400 mb-2">Tap to select · set price below</p>
                         <div className="flex flex-wrap gap-1.5">
                           {cat.subServices.map(sub => {
-                            const active = sel.subServices.includes(sub);
+                            const active = sel.subServices.find(s => s.name === sub);
                             return (
                               <button key={sub} type="button" onClick={() => toggleSub(cat.key, sub)}
                                 className={`text-xs px-2.5 py-1 rounded-full border transition ${
@@ -204,6 +224,27 @@ const EditCategoriesDrawer = ({ isOpen, onClose, salon, updateSalon }) => {
                             );
                           })}
                         </div>
+                        {sel.subServices.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
+                            <p className="text-xs text-gray-500 font-medium">Prices (₹):</p>
+                            {sel.subServices.map(s => (
+                              <div key={s.name} className="flex items-center gap-2">
+                                <span className="flex-1 text-xs text-gray-700 truncate">{s.name}</span>
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <span className="text-xs text-gray-400">₹</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    placeholder="0"
+                                    value={s.price}
+                                    onChange={e => updateSubPrice(cat.key, s.name, e.target.value)}
+                                    className="w-20 text-xs border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:border-blue-400"
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

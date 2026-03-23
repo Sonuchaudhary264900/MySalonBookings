@@ -209,7 +209,12 @@ location: {
     offeredCategories: [
       {
         name: { type: String, required: true },
-        subServices: [{ type: String }],
+        subServices: [
+          {
+            name:  { type: String },
+            price: { type: Number, default: 0 },
+          },
+        ],
       },
     ],
     kidsHaircut: { type: Boolean, default: false },
