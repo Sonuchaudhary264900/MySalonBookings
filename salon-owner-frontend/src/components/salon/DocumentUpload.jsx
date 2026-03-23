@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { FileText, X, Upload } from 'lucide-react';
+import { FileText, X } from 'lucide-react';
 
 const DocumentUpload = ({
   documents = [],
@@ -12,7 +12,13 @@ const DocumentUpload = ({
   const inputRef = useRef(null);
 
   const handleFileChange = (e) => {
-    const files = Array.from(e.target.files);
+    const files = Array.from(e.target.files).filter(f => {
+      if (f.size > 5 * 1024 * 1024) {
+        alert(`"${f.name}" exceeds the 5MB limit and was not added.`);
+        return false;
+      }
+      return true;
+    });
     if (!files.length) return;
 
     if (multiple) {
@@ -32,26 +38,27 @@ const DocumentUpload = ({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2 mb-2">
-        <FileText className="w-5 h-5 text-green-600" />
-        <h3 className="font-semibold text-gray-900">{label}</h3>
-      </div>
-
-      {/* Drop zone */}
-      <div
-        onClick={() => !disabled && inputRef.current?.click()}
-        className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-          disabled
-            ? 'border-gray-200 bg-gray-50 cursor-not-allowed'
-            : 'border-gray-300 hover:border-green-400 hover:bg-green-50'
-        }`}
-      >
-        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-        <p className="text-sm text-gray-600">{label}</p>
-        <p className="text-xs text-gray-400 mt-1">
-          {description || 'PDF, JPG, PNG • Up to 20MB'}
-        </p>
+    <div className="space-y-3">
+      {/* Upload button */}
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => !disabled && inputRef.current?.click()}
+          disabled={disabled}
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+            disabled
+              ? 'border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed'
+              : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50 cursor-pointer'
+          }`}
+        >
+          <FileText className="w-4 h-4" />
+          {label}
+        </button>
+        {documents.length > 0 && (
+          <span className="text-sm text-gray-500">
+            {documents.length} file{documents.length !== 1 ? 's' : ''} selected
+          </span>
+        )}
         <input
           ref={inputRef}
           type="file"
@@ -63,12 +70,11 @@ const DocumentUpload = ({
         />
       </div>
 
+      <p className="text-xs text-gray-400">{description || 'PDF, JPG, PNG • Up to 20MB'}</p>
+
       {/* Preview list */}
       {documents.length > 0 && (
         <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-700">
-            {documents.length} document{documents.length !== 1 ? 's' : ''} selected
-          </p>
           {documents.map((file, i) => (
             <div
               key={i}
