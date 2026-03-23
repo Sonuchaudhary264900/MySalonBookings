@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, ChevronDown, ChevronUp, Save, Users } from 'lucide-react';
+import { X, ChevronDown, ChevronUp, Save, Users, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Button from '../common/Button';
 import {
@@ -37,10 +37,11 @@ const buildSelections = (catList, offeredCategories) =>
 const EMPTY_MODAL = { open: false, catKey: '', subName: '', price: '', duration: '' };
 
 const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) => {
-  const [gender,       setGender]      = useState(salon?.servedGender || '');
-  const [genderOpen,   setGenderOpen]  = useState(false);
-  const [loading,      setLoading]     = useState(false);
-  const [expandedKey,  setExpandedKey] = useState(null);
+  const [gender,         setGender]       = useState(salon?.servedGender || '');
+  const [genderOpen,     setGenderOpen]   = useState(false);
+  const [pendingGender,  setPendingGender] = useState(null);
+  const [loading,        setLoading]      = useState(false);
+  const [expandedKey,    setExpandedKey]  = useState(null);
   const [priceModal,  setPriceModal]  = useState(EMPTY_MODAL);
   const priceRef    = useRef(null);
   const durationRef = useRef(null);
@@ -67,6 +68,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
     setFemaleOptionals({ kidsServices: salon.kidsHaircut || false, atHomeServices: salon.atHomeServices || false });
     setExpandedKey(null);
     setGenderOpen(false);
+    setPendingGender(null);
     setPriceModal(EMPTY_MODAL);
   }, [isOpen, salon]);
 
@@ -242,7 +244,17 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
               <div className="mt-2 grid grid-cols-3 gap-2">
                 {[['male','👨','Male'],['female','👩','Female'],['unisex','👥','Unisex']].map(([val, emoji, label]) => (
                   <button key={val} type="button"
-                    onClick={() => { setGender(val); setExpandedKey(null); setGenderOpen(false); }}
+                    onClick={() => {
+                      if (val === gender) { setGenderOpen(false); return; }
+                      // check if current gender has any enabled categories
+                      const currentSels = gender === 'male' ? maleSelections : gender === 'female' ? femaleSelections : unisexSelections;
+                      const hasData = Object.values(currentSels).some(s => s.enabled);
+                      if (hasData) {
+                        setPendingGender(val);
+                      } else {
+                        setGender(val); setExpandedKey(null); setGenderOpen(false);
+                      }
+                    }}
                     className={`flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-xl border-2 font-medium text-sm transition ${
                       gender === val
                         ? 'border-blue-600 bg-blue-50 text-blue-700'
@@ -388,6 +400,51 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
           </Button>
         </div>
       </div>
+
+      {/* Gender change confirmation */}
+      {pendingGender && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setPendingGender(null)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
+                <AlertTriangle className="w-5 h-5 text-amber-500" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900">Change customer type?</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  You have categories configured for{' '}
+                  <span className="font-semibold text-gray-700 capitalize">{gender}</span> customers.
+                  Switching to{' '}
+                  <span className="font-semibold text-gray-700 capitalize">{pendingGender}</span> will
+                  replace all saved categories when you save.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setPendingGender(null)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
+              >
+                Keep Current
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setGender(pendingGender);
+                  setExpandedKey(null);
+                  setGenderOpen(false);
+                  setPendingGender(null);
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-amber-500 text-white text-sm font-semibold hover:bg-amber-600 transition"
+              >
+                Yes, Change
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Price + Duration modal */}
       {priceModal.open && (
