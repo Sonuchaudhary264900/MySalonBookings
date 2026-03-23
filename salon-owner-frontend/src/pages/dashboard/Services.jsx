@@ -212,11 +212,6 @@ const Services = () => {
           <div className="text-center py-12">
             <p className="text-gray-500">Loading services...</p>
           </div>
-        ) : !services?.length ? (
-          <div className="text-center py-10 border border-dashed border-gray-200 rounded-xl">
-            <p className="text-gray-500 font-medium">No services added yet</p>
-            <p className="text-sm text-gray-400 mt-1">Click <strong>+ Add Service</strong> to create your first service</p>
-          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredServices.map(service => (
