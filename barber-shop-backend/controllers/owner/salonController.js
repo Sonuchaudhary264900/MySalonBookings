@@ -33,7 +33,12 @@ exports.createSalon = async (req, res) => {
       );
     }
 
-    const { name, phone, email, address, city, state, pincode, workingHours, description, photos, category, location: bodyLocation } = req.body;
+    const {
+      name, phone, email, address, city, state, pincode,
+      workingHours, description, photos, category,
+      servedGender, offeredCategories, kidsHaircut, atHomeServices,
+      location: bodyLocation,
+    } = req.body;
 
     const validation = validateSalonData({
       name,
@@ -101,6 +106,10 @@ exports.createSalon = async (req, res) => {
 
       description: description || '',
       category: category || 'barber',
+      servedGender: servedGender || 'unisex',
+      offeredCategories: Array.isArray(offeredCategories) ? offeredCategories : [],
+      kidsHaircut: kidsHaircut || false,
+      atHomeServices: atHomeServices || false,
       photos: Array.isArray(photos) ? photos : [],
       coverPhoto: Array.isArray(photos) && photos.length > 0 ? photos[0] : null,
 
