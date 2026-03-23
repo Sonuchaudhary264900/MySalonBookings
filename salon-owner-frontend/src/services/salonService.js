@@ -99,6 +99,10 @@ export const updateSalon = async (salonData) => {
   if (salonData.advanceBookingDays !== undefined)   body.advanceBookingDays   = salonData.advanceBookingDays;
   if (salonData.bookingMode !== undefined)          body.bookingMode          = salonData.bookingMode;
   if (salonData.autoConfirmBookings !== undefined)  body.autoConfirmBookings  = salonData.autoConfirmBookings;
+  if (salonData.servedGender)                       body.servedGender         = salonData.servedGender;
+  if (Array.isArray(salonData.offeredCategories))   body.offeredCategories    = salonData.offeredCategories;
+  if (salonData.kidsHaircut !== undefined)          body.kidsHaircut          = salonData.kidsHaircut;
+  if (salonData.atHomeServices !== undefined)       body.atHomeServices       = salonData.atHomeServices;
 
   const response = await api.put('/owner/salon', body);
   return { success: true, message: 'Salon updated successfully', data: response.data.data };
