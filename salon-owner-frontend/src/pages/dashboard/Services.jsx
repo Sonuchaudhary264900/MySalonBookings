@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, LayoutList } from 'lucide-react';
+import { Plus, LayoutList } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Button from '../../components/common/Button';
@@ -23,7 +23,6 @@ const Services = () => {
   const { salon, services, createService, updateService, deleteService, fetchServices, fetchSalon, updateSalon } = useSalon();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
@@ -51,12 +50,7 @@ const Services = () => {
     loadData();
   }, []);
 
-  // Filter services by search term
-  const term = searchTerm.toLowerCase();
-  const filteredServices = (services || []).filter(service =>
-    (service.name || '').toLowerCase().includes(term) ||
-    (service.description || '').toLowerCase().includes(term)
-  );
+  const filteredServices = services || [];
 
   const handleOpenModal = (service = null) => {
     setSelectedService(service);
@@ -167,29 +161,9 @@ const Services = () => {
           />
         )}
 
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search services by name or description…"
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 text-sm text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            style={{ backgroundColor: 'var(--input-bg, #fff)', color: 'var(--input-text, #111827)' }}
-          />
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-lg leading-none"
-            >
-              ×
-            </button>
-          )}
-        </div>
 
         {/* Offered Categories from Registration */}
-        {!searchTerm && salon?.offeredCategories?.length > 0 && (
+        {salon?.offeredCategories?.length > 0 && (
           <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
             <div className="flex items-center justify-between">
               <div>
@@ -238,12 +212,7 @@ const Services = () => {
           <div className="text-center py-12">
             <p className="text-gray-500">Loading services...</p>
           </div>
-        ) : searchTerm && filteredServices.length === 0 ? (
-          <div className="text-center py-10 border border-dashed border-gray-200 rounded-xl">
-            <p className="text-gray-500 font-medium">No services match &quot;{searchTerm}&quot;</p>
-            <p className="text-sm text-gray-400 mt-1">Try a different name or clear the search</p>
-          </div>
-        ) : !searchTerm && !services?.length ? (
+        ) : !services?.length ? (
           <div className="text-center py-10 border border-dashed border-gray-200 rounded-xl">
             <p className="text-gray-500 font-medium">No services added yet</p>
             <p className="text-sm text-gray-400 mt-1">Click <strong>+ Add Service</strong> to create your first service</p>
@@ -268,7 +237,6 @@ const Services = () => {
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm text-blue-800">
               📊 You have <strong>{services.length}</strong> service{services.length !== 1 ? 's' : ''} in your salon
-              {searchTerm && ` (${filteredServices.length} match your search)`}
             </p>
           </div>
         )}
