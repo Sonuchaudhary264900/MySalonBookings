@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import Modal from '../common/Modal';
 import {
   MALE_CATEGORIES,
@@ -18,6 +19,7 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
   const servedGender = salon?.servedGender || 'male';
   const categoryOptions = getCategoryOptions(servedGender);
 
+  const [catOpen, setCatOpen] = useState(false);
   const [form, setForm] = useState({
     name: '', description: '', basePrice: '', duration: '',
     category: '', applicableFor: servedGender === 'unisex' ? 'both' : servedGender,
@@ -133,27 +135,54 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
         {/* Category */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Category *</label>
-          <div className="grid grid-cols-2 gap-2">
-            {categoryOptions.map(opt => (
-              <button
-                key={opt.label}
-                type="button"
-                disabled={loading}
-                onClick={() => {
-                  setForm(p => ({ ...p, category: opt.label }));
-                  if (errors.category) setErrors(p => ({ ...p, category: '' }));
-                }}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium text-left transition ${
-                  form.category === opt.label
-                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                    : 'border-gray-200 bg-white text-gray-600 hover:border-indigo-300'
-                }`}
-              >
-                <span className="text-lg shrink-0">{opt.icon}</span>
-                <span className="leading-tight">{opt.label}</span>
-              </button>
-            ))}
-          </div>
+
+          {/* Trigger button */}
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => setCatOpen(o => !o)}
+            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition ${
+              errors.category
+                ? 'border-red-400 text-red-500'
+                : form.category
+                ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                : 'border-gray-200 text-gray-400 hover:border-indigo-300'
+            }`}
+          >
+            <span>
+              {form.category
+                ? `${categoryOptions.find(o => o.label === form.category)?.icon ?? ''} ${form.category}`
+                : 'Select category…'}
+            </span>
+            {catOpen ? <ChevronUp className="w-4 h-4 shrink-0" /> : <ChevronDown className="w-4 h-4 shrink-0" />}
+          </button>
+
+          {/* Expandable grid */}
+          {catOpen && (
+            <div className="mt-2 grid grid-cols-2 gap-2 border border-gray-200 rounded-xl p-2 bg-gray-50">
+              {categoryOptions.map(opt => (
+                <button
+                  key={opt.label}
+                  type="button"
+                  disabled={loading}
+                  onClick={() => {
+                    setForm(p => ({ ...p, category: opt.label }));
+                    if (errors.category) setErrors(p => ({ ...p, category: '' }));
+                    setCatOpen(false);
+                  }}
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border-2 text-sm font-medium text-left transition ${
+                    form.category === opt.label
+                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-indigo-300'
+                  }`}
+                >
+                  <span className="text-lg shrink-0">{opt.icon}</span>
+                  <span className="leading-tight">{opt.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
           {errors.category && <p className="mt-1 text-xs text-red-500">{errors.category}</p>}
         </div>
 
