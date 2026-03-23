@@ -121,6 +121,7 @@ const Register = () => {
     try {
       const normalized = normalizePhone(phoneNumber);
       const verifier = getRecaptcha();
+      await verifier.render(); // ensure widget is fully loaded before use
       const confirmation = await signInWithPhoneNumber(auth, normalized, verifier);
       confirmationResultRef.current = confirmation;
       setStep(2);
