@@ -105,8 +105,8 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
 
         {/* Category */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
-          <div className="max-h-44 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Category *</label>
+          <div className="grid grid-cols-2 gap-2">
             {categoryOptions.map(opt => (
               <button
                 key={opt.label}
@@ -116,17 +116,14 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
                   setForm(p => ({ ...p, category: opt.label }));
                   if (errors.category) setErrors(p => ({ ...p, category: '' }));
                 }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left transition ${
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium text-left transition ${
                   form.category === opt.label
-                    ? 'bg-indigo-50 text-indigo-700 font-semibold'
-                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                    : 'border-gray-200 bg-white text-gray-600 hover:border-indigo-300'
                 }`}
               >
-                <span className="text-base shrink-0">{opt.icon}</span>
-                <span className="flex-1">{opt.label}</span>
-                {form.category === opt.label && (
-                  <span className="text-indigo-500 text-xs shrink-0">✓</span>
-                )}
+                <span className="text-lg shrink-0">{opt.icon}</span>
+                <span className="leading-tight">{opt.label}</span>
               </button>
             ))}
           </div>
