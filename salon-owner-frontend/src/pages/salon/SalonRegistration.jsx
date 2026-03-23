@@ -920,10 +920,6 @@ const SalonRegistration = () => {
                 <p className="font-medium text-gray-900">{step1Data.name}</p>
               </div>
               <div>
-                <p className="text-gray-600">Category</p>
-                <p className="font-medium text-gray-900 capitalize">{step1Data.category}</p>
-              </div>
-              <div>
                 <p className="text-gray-600">Services For</p>
                 <p className="font-medium text-gray-900 capitalize">{step1Data.servedGender}</p>
               </div>
