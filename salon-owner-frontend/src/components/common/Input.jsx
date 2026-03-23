@@ -22,6 +22,7 @@ const Input = ({
   error = false,
   errorMessage,
   disabled = false,
+  readOnly = false,
   required = false,
   icon,
   rightIcon,
@@ -56,6 +57,7 @@ const Input = ({
           onBlur={onBlur}
           placeholder={placeholder}
           disabled={disabled}
+          readOnly={readOnly}
           className={`
             w-full
             ${icon ? 'pl-10' : 'pl-3'} 
@@ -66,6 +68,7 @@ const Input = ({
             transition
             focus:outline-none
             disabled:bg-gray-100
+            disabled:text-gray-700
             disabled:cursor-not-allowed
             ${error 
               ? 'border-red-500 focus:border-red-600 focus:ring-red-200' 

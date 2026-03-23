@@ -21,9 +21,64 @@ import { useAuth } from '../../hooks/useAuth';
 import { uploadSalonPhotos } from '../../services/salonService';
 import ROUTES from '../../routes';
 
+const MALE_CATEGORIES = [
+  {
+    key: 'hair_services',
+    label: 'Hair Services (Men)',
+    icon: '✂️',
+    subServices: [
+      'Basic Haircut', 'Fade / Taper / Skin Fade', 'Designer Haircut',
+      'Hair Styling', 'Hair Wash', 'Blow Dry', 'Hair Coloring',
+      'Hair Straightening', 'Hair Smoothening', 'Hair Spa',
+      'Dandruff Treatment', 'Hair Fall Treatment',
+    ],
+  },
+  {
+    key: 'beard_grooming',
+    label: 'Beard & Grooming',
+    icon: '🧔',
+    subServices: [
+      'Beard Trim', 'Clean Shave', 'Beard Styling / Shape',
+      'Designer Beard', 'Beard Coloring', 'Hot Towel Shave',
+    ],
+  },
+  {
+    key: 'spa_massage',
+    label: 'Spa & Massage',
+    icon: '💆',
+    subServices: [
+      'Head Massage', 'Neck & Shoulder Massage', 'Full Body Massage',
+      'Foot Massage', 'Deep Tissue Massage', 'Relaxation Massage',
+    ],
+  },
+  {
+    key: 'skin_face',
+    label: 'Skin & Face (Men Grooming)',
+    icon: '🧴',
+    subServices: [
+      'Basic Facial', 'Gold Facial', 'Diamond Facial', 'Clean-up',
+      'Detan', 'Face Bleach', 'Anti-Acne Treatment', 'Skin Brightening',
+    ],
+  },
+  {
+    key: 'body_grooming',
+    label: 'Body Grooming',
+    icon: '🧍',
+    subServices: [
+      'Chest Waxing', 'Back Waxing', 'Full Body Wax',
+      'Threading (optional)', 'Nose Wax', 'Ear Cleaning',
+    ],
+  },
+];
+
+const MALE_OPTIONALS = [
+  { key: 'kidsHaircut', label: "Kids' Haircut", icon: '👶' },
+  { key: 'atHomeServices', label: 'At-Home Services', icon: '🏠' },
+];
+
 /**
  * Salon Registration Page
- * 
+ *
  * 4-Step Form:
  * Step 1: Basic Information
  * Step 2: Location (Google Maps)
@@ -62,6 +117,35 @@ const SalonRegistration = () => {
     address: '',
   });
   const [step1Errors, setStep1Errors] = useState({});
+
+  // Male category selections: { key: { enabled, subServices: [] } }
+  const [maleSelections, setMaleSelections] = useState(
+    Object.fromEntries(MALE_CATEGORIES.map(c => [c.key, { enabled: false, subServices: [] }]))
+  );
+  const [maleOptionals, setMaleOptionals] = useState({ kidsHaircut: false, atHomeServices: false });
+  // Accordion: only one category's sub-services expanded at a time
+  const [expandedCategoryKey, setExpandedCategoryKey] = useState(null);
+
+  const toggleMaleCategory = (key) => {
+    setMaleSelections(prev => {
+      const nowEnabled = !prev[key].enabled;
+      // When turning ON: expand this one and auto-close any other
+      if (nowEnabled) setExpandedCategoryKey(key);
+      // When turning OFF: collapse if it was open
+      else if (expandedCategoryKey === key) setExpandedCategoryKey(null);
+      return { ...prev, [key]: { ...prev[key], enabled: nowEnabled } };
+    });
+  };
+
+  const toggleMaleSubService = (categoryKey, subService) => {
+    setMaleSelections(prev => {
+      const current = prev[categoryKey].subServices;
+      const updated = current.includes(subService)
+        ? current.filter(s => s !== subService)
+        : [...current, subService];
+      return { ...prev, [categoryKey]: { ...prev[categoryKey], subServices: updated } };
+    });
+  };
 
   // Auto-fill phone and email from owner profile
   useEffect(() => {
@@ -251,6 +335,11 @@ const SalonRegistration = () => {
       errors.servedGender = 'Please select who you serve';
     }
 
+    if (step1Data.servedGender === 'male') {
+      const anyEnabled = MALE_CATEGORIES.some(c => maleSelections[c.key].enabled);
+      if (!anyEnabled) errors.maleCategories = 'Please select at least one service category';
+    }
+
     setStep1Errors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -413,11 +502,24 @@ const SalonRegistration = () => {
       // Build JSON payload
       // Use the address from step 1 for geocoding;
       // also send step 2 coordinates if the user picked a pin on the map
+      // Build offered categories for male salons
+      const offeredCategories = step1Data.servedGender === 'male'
+        ? MALE_CATEGORIES
+            .filter(c => maleSelections[c.key].enabled)
+            .map(c => ({
+              name: c.label,
+              subServices: maleSelections[c.key].subServices,
+            }))
+        : [];
+
       const salonPayload = {
         name: step1Data.name,
         description: step1Data.description,
-        category: step1Data.category,
+        category: step1Data.servedGender === 'male' ? 'barber' : step1Data.category,
         servedGender: step1Data.servedGender,
+        offeredCategories,
+        kidsHaircut: step1Data.servedGender === 'male' ? maleOptionals.kidsHaircut : false,
+        atHomeServices: step1Data.servedGender === 'male' ? maleOptionals.atHomeServices : false,
         phone: step1Data.phone,
         email: step1Data.email,
         address: step1Data.address,
@@ -547,25 +649,6 @@ const SalonRegistration = () => {
                 />
               </div>
 
-              {/* Category */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Salon Category
-                </label>
-                <select
-                  name="category"
-                  value={step1Data.category}
-                  onChange={handleStep1Change}
-                  className="w-full px-4 py-2 rounded-lg border-2 border-gray-300 focus:border-blue-500 focus:outline-none"
-                >
-                  <option value="barber">Barber Shop</option>
-                  <option value="hair_salon">Hair Salon</option>
-                  <option value="spa">Spa</option>
-                  <option value="massage">Massage</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-
               {/* Served Gender */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">
@@ -598,6 +681,140 @@ const SalonRegistration = () => {
                   <p className="text-sm text-red-600 mt-1">{step1Errors.servedGender}</p>
                 )}
               </div>
+
+              {/* Category — simple dropdown for female/unisex, rich selector for male */}
+              {step1Data.servedGender === 'male' ? (
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Select Services You Offer <span className="text-red-500">*</span>
+                    <span className="text-gray-400 font-normal ml-1 text-xs">(toggle a category, then pick sub-services)</span>
+                  </label>
+
+                  {MALE_CATEGORIES.map((cat) => {
+                    const sel = maleSelections[cat.key];
+                    const isExpanded = expandedCategoryKey === cat.key;
+                    return (
+                      <div
+                        key={cat.key}
+                        className={`rounded-xl border-2 transition ${
+                          sel.enabled ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'
+                        }`}
+                      >
+                        {/* Category header */}
+                        <div className="w-full flex items-center justify-between px-4 py-3">
+                          {/* Clicking label area expands/collapses sub-services (only when enabled) */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (sel.enabled) {
+                                setExpandedCategoryKey(isExpanded ? null : cat.key);
+                              }
+                            }}
+                            className="flex items-center gap-2 font-semibold text-sm text-gray-800 flex-1 text-left"
+                          >
+                            <span className="text-lg">{cat.icon}</span>
+                            {cat.label}
+                            {sel.enabled && (
+                              <span className="text-gray-400 text-xs ml-1">
+                                {isExpanded ? '▲' : '▼'}
+                              </span>
+                            )}
+                          </button>
+                          {/* Toggle switch */}
+                          <button
+                            type="button"
+                            onClick={() => toggleMaleCategory(cat.key)}
+                            className={`w-11 h-6 rounded-full transition-colors flex-shrink-0 relative ml-3 ${
+                              sel.enabled ? 'bg-blue-600' : 'bg-gray-300'
+                            }`}
+                          >
+                            <span
+                              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                                sel.enabled ? 'translate-x-5' : 'translate-x-0'
+                              }`}
+                            />
+                          </button>
+                        </div>
+
+                        {/* Sub-services — only when category is enabled AND expanded */}
+                        {sel.enabled && isExpanded && (
+                          <div className="px-4 pb-4">
+                            <p className="text-xs text-gray-500 mb-2">Select sub-services (optional — leave all unchecked to offer everything):</p>
+                            <div className="flex flex-wrap gap-2">
+                              {cat.subServices.map((sub) => {
+                                const checked = sel.subServices.includes(sub);
+                                return (
+                                  <button
+                                    key={sub}
+                                    type="button"
+                                    onClick={() => toggleMaleSubService(cat.key, sub)}
+                                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
+                                      checked
+                                        ? 'bg-blue-600 text-white border-blue-600'
+                                        : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
+                                    }`}
+                                  >
+                                    {checked ? '✓ ' : ''}{sub}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {/* Optional toggles */}
+                  <div className="mt-2">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                      ⚡ Optional Add-ons
+                    </p>
+                    <div className="flex gap-3">
+                      {MALE_OPTIONALS.map(({ key, label, icon }) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() =>
+                            setMaleOptionals(prev => ({ ...prev, [key]: !prev[key] }))
+                          }
+                          className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 text-sm font-medium transition ${
+                            maleOptionals[key]
+                              ? 'border-green-500 bg-green-50 text-green-700'
+                              : 'border-gray-300 bg-white text-gray-600 hover:border-green-400'
+                          }`}
+                        >
+                          <span>{icon}</span>
+                          {label}
+                          {maleOptionals[key] && <span className="text-green-500">✓</span>}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {step1Errors.maleCategories && (
+                    <p className="text-sm text-red-600">{step1Errors.maleCategories}</p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Salon Category
+                  </label>
+                  <select
+                    name="category"
+                    value={step1Data.category}
+                    onChange={handleStep1Change}
+                    className="w-full px-4 py-2 rounded-lg border-2 border-gray-300 focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="barber">Barber Shop</option>
+                    <option value="hair_salon">Hair Salon</option>
+                    <option value="spa">Spa</option>
+                    <option value="massage">Massage</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+              )}
 
               {/* Phone & Email */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -204,6 +204,18 @@ location: {
     },
 
     // ==========================================
+    // OFFERED CATEGORIES (male-specific service selections)
+    // ==========================================
+    offeredCategories: [
+      {
+        name: { type: String, required: true },
+        subServices: [{ type: String }],
+      },
+    ],
+    kidsHaircut: { type: Boolean, default: false },
+    atHomeServices: { type: Boolean, default: false },
+
+    // ==========================================
     // SERVICES & STAFF
     // ==========================================
     services: [
