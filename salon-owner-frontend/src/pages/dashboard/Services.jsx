@@ -20,19 +20,19 @@ import { useSalon } from '../../hooks/useSalon';
  * - Search services
  */
 const Services = () => {
-  const { services, createService, updateService, deleteService, fetchServices } = useSalon();
+  const { salon, services, createService, updateService, deleteService, fetchServices, fetchSalon } = useSalon();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
 
-  // Fetch services on mount
+  // Fetch services and salon on mount
   useEffect(() => {
-    const loadServices = async () => {
+    const loadData = async () => {
       setLoading(true);
       try {
-        await fetchServices();
+        await Promise.all([fetchServices(), fetchSalon()]);
       } catch (err) {
         setError('Failed to load services');
         console.error('Error fetching services:', err);
@@ -41,7 +41,7 @@ const Services = () => {
       }
     };
 
-    loadServices();
+    loadData();
   }, []);
 
   // Filter services by search term
@@ -146,6 +146,47 @@ const Services = () => {
             dismissible
             onDismiss={() => setError('')}
           />
+        )}
+
+        {/* Offered Categories from Registration */}
+        {salon?.offeredCategories?.length > 0 && (
+          <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Service Categories</h2>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  Selected during registration · Serves{' '}
+                  <span className="capitalize font-medium">{salon.servedGender}</span> customers
+                </p>
+              </div>
+              <div className="flex gap-2 flex-wrap justify-end">
+                {salon.kidsHaircut && (
+                  <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-medium">👶 Kids' Haircut</span>
+                )}
+                {salon.atHomeServices && (
+                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium">🏠 At-Home Services</span>
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {salon.offeredCategories.map((cat, idx) => (
+                <div key={idx} className="border border-gray-100 rounded-lg p-3 bg-gray-50">
+                  <p className="font-medium text-gray-800 text-sm mb-2">{cat.name}</p>
+                  {cat.subServices?.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {cat.subServices.map((sub, si) => (
+                        <span key={si} className="text-xs bg-white border border-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
+                          {sub}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-400">No sub-services selected</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* Search */}

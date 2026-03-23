@@ -12,10 +12,15 @@ export const createSalon = async (salonData) => {
   const city     = get('city');
   const state    = get('state');
   const pincode  = get('pincode');
-  const description  = get('description');
-  const category     = get('category');
-  const workingHours = get('workingHours');
-  const photos       = get('photos');
+  const description      = get('description');
+  const category         = get('category');
+  const workingHours     = get('workingHours');
+  const photos           = get('photos');
+  const servedGender     = get('servedGender');
+  const offeredCategories = get('offeredCategories');
+  const kidsHaircut      = get('kidsHaircut');
+  const atHomeServices   = get('atHomeServices');
+  const locationData     = get('location');
 
   if (!name)    throw new Error('Salon name is required');
   if (!phone)   throw new Error('Phone is required');
@@ -39,6 +44,11 @@ export const createSalon = async (salonData) => {
   if (category)    body.category    = category;
   if (workingHours) body.workingHours = typeof workingHours === 'string' ? JSON.parse(workingHours) : workingHours;
   if (photos && photos.length > 0) body.photos = photos;
+  if (servedGender) body.servedGender = servedGender;
+  if (offeredCategories) body.offeredCategories = typeof offeredCategories === 'string' ? JSON.parse(offeredCategories) : offeredCategories;
+  if (kidsHaircut !== undefined && kidsHaircut !== null) body.kidsHaircut = kidsHaircut;
+  if (atHomeServices !== undefined && atHomeServices !== null) body.atHomeServices = atHomeServices;
+  if (locationData) body.location = typeof locationData === 'string' ? JSON.parse(locationData) : locationData;
 
   const response = await api.post('/owner/salon', body);
   return { success: true, message: 'Salon created successfully', data: response.data.data };
