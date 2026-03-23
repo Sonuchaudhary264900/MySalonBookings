@@ -40,6 +40,11 @@ const ServiceCard = ({
                 <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">Inactive</span>
               )}
             </div>
+            {service.category && (
+              <span className="inline-block text-xs bg-indigo-50 text-indigo-600 border border-indigo-100 px-2 py-0.5 rounded-full mt-1 font-medium">
+                {service.category}
+              </span>
+            )}
             {service.description && (
               <p className="text-sm text-gray-600 mt-1">{service.description}</p>
             )}

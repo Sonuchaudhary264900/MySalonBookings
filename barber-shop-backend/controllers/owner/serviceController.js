@@ -104,7 +104,7 @@ exports.getSalonServices = async (req, res) => {
 exports.updateService = async (req, res) => {
   try {
     const { serviceId } = req.params;
-    const { name, description, basePrice, duration, variants, isActive } = req.body;
+    const { name, description, category, basePrice, duration, variants, isActive, applicableFor } = req.body;
 
     // Find service
     const service = await Service.findById(serviceId);
@@ -125,10 +125,12 @@ exports.updateService = async (req, res) => {
     // Update fields
     if (name) service.name = name;
     if (description !== undefined) service.description = description;
+    if (category !== undefined) service.category = category;
     if (basePrice !== undefined) service.basePrice = basePrice;
     if (duration !== undefined) service.duration = duration;
     if (variants) service.variants = variants;
     if (isActive !== undefined) service.isActive = isActive;
+    if (Array.isArray(applicableFor)) service.applicableFor = applicableFor;
 
     await service.save();
 

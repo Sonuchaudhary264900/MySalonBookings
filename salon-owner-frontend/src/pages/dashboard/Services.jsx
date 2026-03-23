@@ -267,6 +267,7 @@ const Services = () => {
           onSubmit={handleSubmit}
           loading={loading}
           error={error}
+          salon={salon}
         />
       </div>
 

@@ -1,20 +1,52 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../common/Modal';
+import {
+  MALE_CATEGORIES,
+  FEMALE_CATEGORIES,
+  UNISEX_CATEGORIES,
+} from '../../constants/salonCategories';
 
-const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = false, error = '' }) => {
-  const [form, setForm] = useState({ name: '', description: '', basePrice: '', duration: '' });
+const GENDER_LABELS = { male: 'Male', female: 'Female' };
+
+const getCategoryOptions = (servedGender) => {
+  if (servedGender === 'male')   return MALE_CATEGORIES.map(c => ({ icon: c.icon, label: c.label }));
+  if (servedGender === 'female') return FEMALE_CATEGORIES.map(c => ({ icon: c.icon, label: c.label }));
+  return UNISEX_CATEGORIES.map(c => ({ icon: c.icon, label: c.label }));
+};
+
+const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = false, error = '', salon }) => {
+  const servedGender = salon?.servedGender || 'male';
+  const categoryOptions = getCategoryOptions(servedGender);
+
+  const [form, setForm] = useState({
+    name: '', description: '', basePrice: '', duration: '',
+    category: '', applicableFor: servedGender === 'unisex' ? 'both' : servedGender,
+  });
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (service) {
+      const af = service.applicableFor || [];
+      let applicableFor = 'both';
+      if (servedGender !== 'unisex') {
+        applicableFor = servedGender;
+      } else if (af.length === 1) {
+        applicableFor = af[0];
+      }
       setForm({
-        name:        service.name        || '',
-        description: service.description || '',
-        basePrice:   service.basePrice   ?? '',
-        duration:    service.duration    ?? '',
+        name:          service.name        || '',
+        description:   service.description || '',
+        basePrice:     service.basePrice   ?? '',
+        duration:      service.duration    ?? '',
+        category:      service.category    || '',
+        applicableFor,
       });
     } else {
-      setForm({ name: '', description: '', basePrice: '', duration: '' });
+      setForm({
+        name: '', description: '', basePrice: '', duration: '',
+        category: '',
+        applicableFor: servedGender === 'unisex' ? 'both' : servedGender,
+      });
     }
     setErrors({});
   }, [service, isOpen]);
@@ -27,11 +59,12 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
 
   const validate = () => {
     const errs = {};
-    if (!form.name.trim())          errs.name      = 'Service name is required';
-    if (!form.basePrice)            errs.basePrice  = 'Price is required';
-    else if (Number(form.basePrice) < 0) errs.basePrice = 'Price must be positive';
-    if (!form.duration)             errs.duration  = 'Duration is required';
-    else if (Number(form.duration) < 1)  errs.duration  = 'Duration must be at least 1 min';
+    if (!form.name.trim())                    errs.name      = 'Service name is required';
+    if (!form.category)                       errs.category  = 'Please select a category';
+    if (!form.basePrice)                      errs.basePrice = 'Price is required';
+    else if (Number(form.basePrice) < 0)      errs.basePrice = 'Price must be positive';
+    if (!form.duration)                       errs.duration  = 'Duration is required';
+    else if (Number(form.duration) < 1)       errs.duration  = 'Duration must be at least 1 min';
     return errs;
   };
 
@@ -39,11 +72,17 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
+
+    const applicableFor =
+      form.applicableFor === 'both' ? ['male', 'female'] : [form.applicableFor];
+
     await onSubmit({
-      name:        form.name.trim(),
-      description: form.description.trim(),
-      basePrice:   Number(form.basePrice),
-      duration:    Number(form.duration),
+      name:          form.name.trim(),
+      description:   form.description.trim(),
+      category:      form.category,
+      applicableFor,
+      basePrice:     Number(form.basePrice),
+      duration:      Number(form.duration),
     });
   };
 
@@ -63,6 +102,41 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
             placeholder="e.g. Haircut" className={inputCls('name')} />
           {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name}</p>}
         </div>
+
+        {/* Category */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
+          <select name="category" value={form.category} onChange={handleChange} disabled={loading}
+            className={inputCls('category') + ' bg-white'}>
+            <option value="">Select a category…</option>
+            {categoryOptions.map(opt => (
+              <option key={opt.label} value={opt.label}>
+                {opt.icon}  {opt.label}
+              </option>
+            ))}
+          </select>
+          {errors.category && <p className="mt-1 text-xs text-red-500">{errors.category}</p>}
+        </div>
+
+        {/* Applicable For — only shown for unisex salons */}
+        {servedGender === 'unisex' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Applicable For *</label>
+            <div className="flex gap-2">
+              {[['male', '👨 Men'], ['female', '👩 Women'], ['both', '👥 Both']].map(([val, label]) => (
+                <button key={val} type="button"
+                  onClick={() => setForm(p => ({ ...p, applicableFor: val }))}
+                  className={`flex-1 py-2 rounded-lg border-2 text-sm font-medium transition ${
+                    form.applicableFor === val
+                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  }`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>

@@ -122,11 +122,12 @@ export const createService = async (serviceData) => {
   if (!serviceData.duration || serviceData.duration <= 0) throw new Error('Valid duration is required');
 
   const response = await api.post('/owner/services', {
-    name:        serviceData.name.trim(),
-    description: serviceData.description?.trim(),
-    category:    serviceData.category || 'haircut',
-    basePrice:   parseFloat(price),
-    duration:    parseInt(serviceData.duration),
+    name:          serviceData.name.trim(),
+    description:   serviceData.description?.trim(),
+    category:      serviceData.category || '',
+    applicableFor: serviceData.applicableFor || ['male'],
+    basePrice:     parseFloat(price),
+    duration:      parseInt(serviceData.duration),
   });
   return { success: true, message: 'Service created', data: response.data.data };
 };
@@ -145,11 +146,12 @@ export const getServices = async () => {
 export const updateService = async (serviceId, serviceData) => {
   const price = serviceData.basePrice ?? serviceData.price;
   const response = await api.put(`/owner/services/${serviceId}`, {
-    name:        serviceData.name?.trim(),
-    description: serviceData.description?.trim(),
-    category:    serviceData.category,
-    basePrice:   price ? parseFloat(price) : undefined,
-    duration:    serviceData.duration ? parseInt(serviceData.duration) : undefined,
+    name:          serviceData.name?.trim(),
+    description:   serviceData.description?.trim(),
+    category:      serviceData.category,
+    applicableFor: serviceData.applicableFor,
+    basePrice:     price ? parseFloat(price) : undefined,
+    duration:      serviceData.duration ? parseInt(serviceData.duration) : undefined,
   });
   return { success: true, message: 'Service updated', data: response.data.data };
 };
