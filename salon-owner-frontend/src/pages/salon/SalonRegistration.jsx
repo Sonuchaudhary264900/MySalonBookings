@@ -373,7 +373,86 @@ const SalonRegistration = () => {
   const [map, setMap] = useState(null);
   const markerRef = useRef(null);
   const [locationLoading, setLocationLoading] = useState(false);
-  const [locationStatus, setLocationStatus] = useState(''); // info message for user
+  const [locationStatus, setLocationStatus] = useState('');
+  const [locationAccuracy, setLocationAccuracy] = useState(null); // metres
+  const watchIdRef = useRef(null);
+
+  // Stop any active watchPosition
+  const stopWatch = () => {
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+  };
+
+  // Fine-location helper: quick rough fix → then refine with watchPosition
+  const getFineLocation = (mapInstance) => {
+    if (!navigator.geolocation) {
+      setLocationStatus('Geolocation not supported. Enter address manually.');
+      return;
+    }
+
+    stopWatch();
+    setLocationLoading(true);
+    setLocationAccuracy(null);
+    setLocationStatus('Getting your location…');
+
+    // Pass 1 — quick low-accuracy fix to show map immediately
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const acc = Math.round(pos.coords.accuracy);
+        mapInstance.setCenter({ lat, lng });
+        mapInstance.setZoom(17);
+        placeMarker(mapInstance, lat, lng);
+        setLocationAccuracy(acc);
+        setLocationStatus(`Refining accuracy… (currently ±${acc}m)`);
+
+        // Pass 2 — watchPosition for GPS-level fine accuracy
+        watchIdRef.current = navigator.geolocation.watchPosition(
+          (refined) => {
+            const rLat = refined.coords.latitude;
+            const rLng = refined.coords.longitude;
+            const rAcc = Math.round(refined.coords.accuracy);
+            placeMarker(mapInstance, rLat, rLng);
+            setLocationAccuracy(rAcc);
+
+            if (rAcc <= 50) {
+              // Good enough — stop watching
+              stopWatch();
+              setLocationLoading(false);
+              setLocationStatus(`Fine location locked (±${rAcc}m). Drag the pin to adjust.`);
+            } else {
+              setLocationStatus(`Refining accuracy… (±${rAcc}m)`);
+            }
+          },
+          () => {
+            // watchPosition failed — rough fix is still on the map
+            stopWatch();
+            setLocationLoading(false);
+            setLocationStatus(`Location set (±${acc}m). Drag the pin to fine-tune.`);
+          },
+          { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
+        );
+
+        // Safety: stop watching after 20s regardless
+        setTimeout(() => {
+          if (watchIdRef.current !== null) {
+            stopWatch();
+            setLocationLoading(false);
+            setLocationStatus(`Location set (±${locationAccuracy ?? acc}m). Drag the pin to adjust.`);
+          }
+        }, 20000);
+      },
+      (err) => {
+        setLocationLoading(false);
+        setLocationStatus('Could not detect location. Click on the map to set it manually.');
+        console.warn('Geolocation error:', err.message);
+      },
+      { enableHighAccuracy: false, maximumAge: 10000, timeout: 8000 }
+    );
+  };
 
   // Step 3: Working Hours
   const [step3Data, setStep3Data] = useState({
@@ -467,35 +546,17 @@ const SalonRegistration = () => {
     });
 
     setMap(newMap);
+    getFineLocation(newMap);
 
-    // ---- Auto-fetch user location ----
-    if (!navigator.geolocation) {
-      setLocationStatus('Geolocation not supported by your browser. Enter address manually.');
-      return;
-    }
-
-    setLocationLoading(true);
-    setLocationStatus('Detecting your location…');
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        newMap.setCenter({ lat, lng });
-        newMap.setZoom(17);
-        placeMarker(newMap, lat, lng);
-        setLocationLoading(false);
-        setLocationStatus('Location detected. Drag the pin to fine-tune.');
-      },
-      (err) => {
-        setLocationLoading(false);
-        setLocationStatus('Could not detect location. Click on the map to set it manually.');
-        console.warn('Geolocation error:', err.message);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep, map]);
+
+  // Clean up watchPosition when leaving step 2 or unmounting
+  useEffect(() => {
+    if (currentStep !== 2) stopWatch();
+    return () => stopWatch();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStep]);
 
   // ========== STEP 1: BASIC INFO HANDLERS ==========
 
@@ -1291,26 +1352,7 @@ const SalonRegistration = () => {
                   {!locationLoading && (
                     <button
                       type="button"
-                      onClick={() => {
-                        setLocationLoading(true);
-                        setLocationStatus('Detecting your location…');
-                        navigator.geolocation.getCurrentPosition(
-                          (pos) => {
-                            const lat = pos.coords.latitude;
-                            const lng = pos.coords.longitude;
-                            map.setCenter({ lat, lng });
-                            map.setZoom(17);
-                            placeMarker(map, lat, lng);
-                            setLocationLoading(false);
-                            setLocationStatus('Location detected. Drag the pin to fine-tune.');
-                          },
-                          () => {
-                            setLocationLoading(false);
-                            setLocationStatus('Could not detect location. Click on the map to set it manually.');
-                          },
-                          { enableHighAccuracy: true, timeout: 10000 }
-                        );
-                      }}
+                      onClick={() => getFineLocation(map)}
                       className="text-xs font-medium underline whitespace-nowrap"
                     >
                       Re-detect
@@ -1343,12 +1385,22 @@ const SalonRegistration = () => {
                 required
               />
 
-              {/* Coordinates badge */}
+              {/* Coordinates + accuracy badge */}
               {step2Data.latitude && step2Data.longitude && (
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between flex-wrap gap-2">
                   <p className="text-sm text-blue-700">
                     <strong>Coordinates:</strong> {step2Data.latitude.toFixed(6)}, {step2Data.longitude.toFixed(6)}
                   </p>
+                  {locationAccuracy !== null && (
+                    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                      locationAccuracy <= 20 ? 'bg-green-100 text-green-700'
+                      : locationAccuracy <= 50 ? 'bg-blue-100 text-blue-700'
+                      : locationAccuracy <= 100 ? 'bg-yellow-100 text-yellow-700'
+                      : 'bg-orange-100 text-orange-700'
+                    }`}>
+                      {locationAccuracy <= 20 ? '🎯' : locationAccuracy <= 50 ? '📍' : '⚠️'} ±{locationAccuracy}m accuracy
+                    </span>
+                  )}
                 </div>
               )}
             </div>
