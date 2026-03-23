@@ -176,7 +176,6 @@ const Services = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search by name or description..."
             icon={<Search className="w-5 h-5" />}
-            disabled={loading}
           />
         </div>
 
