@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, ChevronDown, ChevronUp, Save } from 'lucide-react';
+import { X, ChevronDown, ChevronUp, Save, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Button from '../common/Button';
 import {
@@ -37,9 +37,10 @@ const buildSelections = (catList, offeredCategories) =>
 const EMPTY_MODAL = { open: false, catKey: '', subName: '', price: '', duration: '' };
 
 const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) => {
-  const [gender,      setGender]      = useState(salon?.servedGender || '');
-  const [loading,     setLoading]     = useState(false);
-  const [expandedKey, setExpandedKey] = useState(null);
+  const [gender,       setGender]      = useState(salon?.servedGender || '');
+  const [genderOpen,   setGenderOpen]  = useState(false);
+  const [loading,      setLoading]     = useState(false);
+  const [expandedKey,  setExpandedKey] = useState(null);
   const [priceModal,  setPriceModal]  = useState(EMPTY_MODAL);
   const priceRef    = useRef(null);
   const durationRef = useRef(null);
@@ -65,6 +66,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
     setMaleOptionals({ kidsHaircut: salon.kidsHaircut || false, atHomeServices: salon.atHomeServices || false });
     setFemaleOptionals({ kidsServices: salon.kidsHaircut || false, atHomeServices: salon.atHomeServices || false });
     setExpandedKey(null);
+    setGenderOpen(false);
     setPriceModal(EMPTY_MODAL);
   }, [isOpen, salon]);
 
@@ -207,21 +209,51 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
 
           {/* Gender selector */}
           <div>
-            <p className="text-sm font-medium text-gray-700 mb-2">Who do you serve?</p>
-            <div className="grid grid-cols-3 gap-2">
-              {[['male','👨','Male'],['female','👩','Female'],['unisex','👥','Unisex']].map(([val, emoji, label]) => (
-                <button key={val} type="button"
-                  onClick={() => { setGender(val); setExpandedKey(null); }}
-                  className={`flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-lg border-2 font-medium text-sm transition ${
-                    gender === val
-                      ? 'border-blue-600 bg-blue-50 text-blue-700'
-                      : 'border-gray-300 bg-white text-gray-600 hover:border-blue-300'
-                  }`}>
-                  <span className="text-xl">{emoji}</span>
-                  {label}
-                </button>
-              ))}
-            </div>
+            {/* Trigger button */}
+            <button
+              type="button"
+              onClick={() => setGenderOpen(o => !o)}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 transition ${
+                gender
+                  ? 'border-blue-500 bg-blue-50'
+                  : 'border-gray-300 bg-white hover:border-blue-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-blue-500 shrink-0" />
+                {gender ? (
+                  <span className="text-sm font-semibold text-blue-700">
+                    {gender === 'male' ? '👨 Male' : gender === 'female' ? '👩 Female' : '👥 Unisex'}
+                  </span>
+                ) : (
+                  <span className="text-sm font-medium text-gray-500">Who do you serve?</span>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5">
+                {gender && (
+                  <span className="text-xs text-blue-500 font-medium">Change</span>
+                )}
+                {genderOpen ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+              </div>
+            </button>
+
+            {/* Expandable options */}
+            {genderOpen && (
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                {[['male','👨','Male'],['female','👩','Female'],['unisex','👥','Unisex']].map(([val, emoji, label]) => (
+                  <button key={val} type="button"
+                    onClick={() => { setGender(val); setExpandedKey(null); setGenderOpen(false); }}
+                    className={`flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-xl border-2 font-medium text-sm transition ${
+                      gender === val
+                        ? 'border-blue-600 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 bg-white text-gray-600 hover:border-blue-300'
+                    }`}>
+                    <span className="text-xl">{emoji}</span>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Category list */}
