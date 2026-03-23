@@ -20,6 +20,7 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
   const categoryOptions = getCategoryOptions(servedGender);
 
   const [catOpen, setCatOpen] = useState(false);
+  const [customCategory, setCustomCategory] = useState('');
   const [form, setForm] = useState({
     name: '', description: '', basePrice: '', duration: '',
     category: '', applicableFor: servedGender === 'unisex' ? 'both' : servedGender,
@@ -35,15 +36,19 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
       } else if (af.length === 1) {
         applicableFor = af[0];
       }
+      const cat = service.category || '';
+      const isCustom = cat && !categoryOptions.find(o => o.label === cat);
+      setCustomCategory(isCustom ? cat : '');
       setForm({
         name:          service.name        || '',
         description:   service.description || '',
         basePrice:     service.basePrice   ?? '',
         duration:      service.duration    ?? '',
-        category:      service.category    || '',
+        category:      cat,
         applicableFor,
       });
     } else {
+      setCustomCategory('');
       setForm({
         name: '', description: '', basePrice: '', duration: '',
         category: '',
@@ -63,7 +68,7 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
     const errs = {};
     if (!form.name.trim())                    errs.name          = 'Service name is required';
     if (servedGender === 'unisex' && !form.applicableFor) errs.applicableFor = 'Please select who this service is for';
-    if (!form.category)                       errs.category      = 'Please select a category';
+    if (!form.category || form.category === '__other__') errs.category = 'Please select a category';
     if (!form.basePrice)                      errs.basePrice     = 'Price is required';
     else if (Number(form.basePrice) < 0)      errs.basePrice     = 'Price must be positive';
     if (!form.duration)                       errs.duration      = 'Duration is required';
@@ -144,14 +149,16 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
             className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition ${
               errors.category
                 ? 'border-red-400 text-red-500'
-                : form.category
+                : form.category && form.category !== '__other__'
                 ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
                 : 'border-gray-200 text-gray-400 hover:border-indigo-300'
             }`}
           >
             <span>
-              {form.category
-                ? `${categoryOptions.find(o => o.label === form.category)?.icon ?? ''} ${form.category}`
+              {form.category && form.category !== '__other__'
+                ? `${categoryOptions.find(o => o.label === form.category)?.icon ?? '✏️'} ${form.category}`
+                : form.category === '__other__'
+                ? '✏️ Other…'
                 : 'Select category…'}
             </span>
             {catOpen ? <ChevronUp className="w-4 h-4 shrink-0" /> : <ChevronDown className="w-4 h-4 shrink-0" />}
@@ -159,27 +166,77 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
 
           {/* Expandable grid */}
           {catOpen && (
-            <div className="mt-2 grid grid-cols-2 gap-2 border border-gray-200 rounded-xl p-2 bg-gray-50">
-              {categoryOptions.map(opt => (
+            <div className="mt-2 border border-gray-200 rounded-xl p-2 bg-gray-50 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                {categoryOptions.map(opt => (
+                  <button
+                    key={opt.label}
+                    type="button"
+                    disabled={loading}
+                    onClick={() => {
+                      setCustomCategory('');
+                      setForm(p => ({ ...p, category: opt.label }));
+                      if (errors.category) setErrors(p => ({ ...p, category: '' }));
+                      setCatOpen(false);
+                    }}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border-2 text-sm font-medium text-left transition ${
+                      form.category === opt.label
+                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                        : 'border-gray-200 bg-white text-gray-600 hover:border-indigo-300'
+                    }`}
+                  >
+                    <span className="text-lg shrink-0">{opt.icon}</span>
+                    <span className="leading-tight">{opt.label}</span>
+                  </button>
+                ))}
+
+                {/* Other option */}
                 <button
-                  key={opt.label}
                   type="button"
                   disabled={loading}
                   onClick={() => {
-                    setForm(p => ({ ...p, category: opt.label }));
+                    setForm(p => ({ ...p, category: '__other__' }));
                     if (errors.category) setErrors(p => ({ ...p, category: '' }));
-                    setCatOpen(false);
                   }}
                   className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border-2 text-sm font-medium text-left transition ${
-                    form.category === opt.label
+                    form.category === '__other__' || (form.category && !categoryOptions.find(o => o.label === form.category))
                       ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
                       : 'border-gray-200 bg-white text-gray-600 hover:border-indigo-300'
                   }`}
                 >
-                  <span className="text-lg shrink-0">{opt.icon}</span>
-                  <span className="leading-tight">{opt.label}</span>
+                  <span className="text-lg shrink-0">✏️</span>
+                  <span className="leading-tight">Other</span>
                 </button>
-              ))}
+              </div>
+
+              {/* Custom category input shown when Other is selected */}
+              {(form.category === '__other__' || (customCategory && !categoryOptions.find(o => o.label === form.category))) && (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    placeholder="Type category name…"
+                    disabled={loading}
+                    className="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    disabled={loading || !customCategory.trim()}
+                    onClick={() => {
+                      const val = customCategory.trim();
+                      if (!val) return;
+                      setForm(p => ({ ...p, category: val }));
+                      if (errors.category) setErrors(p => ({ ...p, category: '' }));
+                      setCatOpen(false);
+                    }}
+                    className="px-3 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition"
+                  >
+                    Add
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
