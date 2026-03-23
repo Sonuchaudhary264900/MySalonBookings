@@ -136,7 +136,7 @@ location: {
     servedGender: {
       type: String,
       enum: ['male', 'female', 'unisex'],
-      default: 'unisex',
+      required: [true, 'Please select who you serve (male / female / unisex)'],
     },
 
     // ==========================================

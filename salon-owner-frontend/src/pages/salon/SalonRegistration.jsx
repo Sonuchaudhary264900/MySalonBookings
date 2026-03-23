@@ -56,7 +56,7 @@ const SalonRegistration = () => {
     name: '',
     description: '',
     category: 'barber',
-    servedGender: 'unisex',
+    servedGender: '',
     phone: '',
     email: '',
     address: '',
@@ -245,6 +245,10 @@ const SalonRegistration = () => {
 
     if (!step1Data.address.trim()) {
       errors.address = 'Full address is required';
+    }
+
+    if (!step1Data.servedGender) {
+      errors.servedGender = 'Please select who you serve';
     }
 
     setStep1Errors(errors);
@@ -590,6 +594,9 @@ const SalonRegistration = () => {
                     </button>
                   ))}
                 </div>
+                {step1Errors.servedGender && (
+                  <p className="text-sm text-red-600 mt-1">{step1Errors.servedGender}</p>
+                )}
               </div>
 
               {/* Phone & Email */}
