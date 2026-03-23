@@ -1,17 +1,7 @@
-import React from 'react';
-import { Edit2, Trash2, Tag, Clock } from 'lucide-react';
+import React, { useState } from 'react';
+import { Edit2, Trash2, Tag, Clock, AlertTriangle } from 'lucide-react';
 import Button from '../common/Button';
 
-/**
- * ServiceCard Component
- * 
- * Shows:
- * - Service name
- * - Description
- * - Price
- * - Duration
- * - Edit/Delete buttons
- */
 const ServiceCard = ({
   service,
   onEdit,
@@ -19,9 +9,26 @@ const ServiceCard = ({
   onToggle,
   loading = false,
 }) => {
-  const isActive = service.isActive !== false; // default true if undefined
+  const isActive = service.isActive !== false;
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const handleToggleClick = () => {
+    if (isActive) {
+      // turning OFF → show confirmation first
+      setShowConfirm(true);
+    } else {
+      // turning ON → immediate, no confirmation needed
+      onToggle(service._id || service.id, true);
+    }
+  };
+
+  const confirmDeactivate = () => {
+    setShowConfirm(false);
+    onToggle(service._id || service.id, false);
+  };
 
   return (
+    <>
     <div className={`bg-white rounded-lg border-2 p-4 hover:shadow-lg transition ${isActive ? 'border-gray-200' : 'border-gray-200 opacity-60'}`}>
       <div className="space-y-3">
         {/* Header */}
@@ -40,7 +47,7 @@ const ServiceCard = ({
           {/* Active / Inactive toggle */}
           {onToggle && (
             <button
-              onClick={() => onToggle(service._id || service.id, !isActive)}
+              onClick={handleToggleClick}
               disabled={loading}
               title={isActive ? 'Deactivate service' : 'Activate service'}
               className={`relative shrink-0 ml-2 w-11 h-6 rounded-full transition-colors focus:outline-none ${isActive ? 'bg-indigo-600' : 'bg-gray-300'} disabled:opacity-50`}
@@ -99,6 +106,43 @@ const ServiceCard = ({
         </div>
       </div>
     </div>
+
+    {/* Deactivate confirmation modal */}
+    {showConfirm && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+        <div className="absolute inset-0 bg-black/50" onClick={() => setShowConfirm(false)} />
+        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5 text-orange-500" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-gray-900">Disable Service?</h3>
+              <p className="text-sm text-gray-500 mt-0.5">
+                <span className="font-medium text-gray-700">"{service.name}"</span> will be hidden from customers and cannot be booked.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button
+              type="button"
+              onClick={() => setShowConfirm(false)}
+              className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={confirmDeactivate}
+              className="flex-1 py-2.5 rounded-xl bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 transition"
+            >
+              Yes, Disable
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 };
 
