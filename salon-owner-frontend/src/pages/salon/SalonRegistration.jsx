@@ -55,7 +55,6 @@ const SalonRegistration = () => {
   const [step1Data, setStep1Data] = useState({
     name: '',
     description: '',
-    category: 'barber',
     servedGender: '',
     phone: '',
     email: '',
@@ -476,9 +475,6 @@ const SalonRegistration = () => {
       const salonPayload = {
         name: step1Data.name,
         description: step1Data.description,
-        category: step1Data.servedGender === 'male' ? 'barber'
-          : step1Data.servedGender === 'female' ? 'hair_salon'
-          : 'other',
         servedGender: step1Data.servedGender,
         offeredCategories: [],
         kidsHaircut: false,
