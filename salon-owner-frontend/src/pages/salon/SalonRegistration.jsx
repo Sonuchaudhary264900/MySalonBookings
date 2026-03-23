@@ -76,6 +76,69 @@ const MALE_OPTIONALS = [
   { key: 'atHomeServices', label: 'At-Home Services', icon: '🏠' },
 ];
 
+const FEMALE_CATEGORIES = [
+  {
+    key: 'hair_services_women',
+    label: 'Hair Services (Women)',
+    icon: '💇',
+    subServices: [
+      'Haircut (Layer / Step / Trim)', 'Advanced Haircut',
+      'Hair Styling (Straight / Curl / Party)', 'Hair Wash', 'Blow Dry',
+      'Hair Coloring', 'Highlights / Balayage', 'Hair Smoothening',
+      'Rebonding', 'Keratin Treatment', 'Hair Spa',
+    ],
+  },
+  {
+    key: 'nail_services',
+    label: 'Nail Services',
+    icon: '💅',
+    subServices: [
+      'Manicure', 'Pedicure', 'Nail Art', 'Gel Nails',
+      'Acrylic Nails', 'Nail Extensions', 'Nail Repair',
+    ],
+  },
+  {
+    key: 'skin_beauty',
+    label: 'Skin & Beauty',
+    icon: '🧖',
+    subServices: [
+      'Basic Facial', 'Gold Facial', 'Diamond Facial', 'Hydra Facial',
+      'Clean-up', 'Detan', 'Bleach', 'Anti-aging Treatment', 'Skin Brightening',
+    ],
+  },
+  {
+    key: 'body_grooming_women',
+    label: 'Body Grooming',
+    icon: '🧴',
+    subServices: [
+      'Full Body Wax', 'Half Wax', 'Bikini Wax',
+      'Threading (Eyebrow / Upper Lip / Forehead)', 'Body Polish', 'Body Scrub',
+    ],
+  },
+  {
+    key: 'spa_relaxation',
+    label: 'Spa & Relaxation',
+    icon: '💆',
+    subServices: [
+      'Head Massage', 'Full Body Massage', 'Aromatherapy', 'Spa Therapy',
+    ],
+  },
+  {
+    key: 'bridal_events',
+    label: 'Bridal & Events',
+    icon: '👰',
+    subServices: [
+      'Bridal Makeup', 'Engagement Makeup', 'Party Makeup',
+      'Hairstyling', 'Saree Draping',
+    ],
+  },
+];
+
+const FEMALE_OPTIONALS = [
+  { key: 'kidsServices', label: "Kids' Services", icon: '👶' },
+  { key: 'atHomeServices', label: 'At-Home Services', icon: '🏠' },
+];
+
 /**
  * Salon Registration Page
  *
@@ -139,6 +202,32 @@ const SalonRegistration = () => {
 
   const toggleMaleSubService = (categoryKey, subService) => {
     setMaleSelections(prev => {
+      const current = prev[categoryKey].subServices;
+      const updated = current.includes(subService)
+        ? current.filter(s => s !== subService)
+        : [...current, subService];
+      return { ...prev, [categoryKey]: { ...prev[categoryKey], subServices: updated } };
+    });
+  };
+
+  // Female category selections
+  const [femaleSelections, setFemaleSelections] = useState(
+    Object.fromEntries(FEMALE_CATEGORIES.map(c => [c.key, { enabled: false, subServices: [] }]))
+  );
+  const [femaleOptionals, setFemaleOptionals] = useState({ kidsServices: false, atHomeServices: false });
+  const [expandedFemaleCategoryKey, setExpandedFemaleCategoryKey] = useState(null);
+
+  const toggleFemaleCategory = (key) => {
+    setFemaleSelections(prev => {
+      const nowEnabled = !prev[key].enabled;
+      if (nowEnabled) setExpandedFemaleCategoryKey(key);
+      else if (expandedFemaleCategoryKey === key) setExpandedFemaleCategoryKey(null);
+      return { ...prev, [key]: { ...prev[key], enabled: nowEnabled } };
+    });
+  };
+
+  const toggleFemaleSubService = (categoryKey, subService) => {
+    setFemaleSelections(prev => {
       const current = prev[categoryKey].subServices;
       const updated = current.includes(subService)
         ? current.filter(s => s !== subService)
@@ -340,6 +429,11 @@ const SalonRegistration = () => {
       if (!anyEnabled) errors.maleCategories = 'Please select at least one service category';
     }
 
+    if (step1Data.servedGender === 'female') {
+      const anyEnabled = FEMALE_CATEGORIES.some(c => femaleSelections[c.key].enabled);
+      if (!anyEnabled) errors.femaleCategories = 'Please select at least one service category';
+    }
+
     setStep1Errors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -502,24 +596,35 @@ const SalonRegistration = () => {
       // Build JSON payload
       // Use the address from step 1 for geocoding;
       // also send step 2 coordinates if the user picked a pin on the map
-      // Build offered categories for male salons
-      const offeredCategories = step1Data.servedGender === 'male'
-        ? MALE_CATEGORIES
-            .filter(c => maleSelections[c.key].enabled)
-            .map(c => ({
-              name: c.label,
-              subServices: maleSelections[c.key].subServices,
-            }))
-        : [];
+      // Build offered categories for male / female salons
+      let offeredCategories = [];
+      let kidsExtra = false;
+      let atHomeExtra = false;
+
+      if (step1Data.servedGender === 'male') {
+        offeredCategories = MALE_CATEGORIES
+          .filter(c => maleSelections[c.key].enabled)
+          .map(c => ({ name: c.label, subServices: maleSelections[c.key].subServices }));
+        kidsExtra = maleOptionals.kidsHaircut;
+        atHomeExtra = maleOptionals.atHomeServices;
+      } else if (step1Data.servedGender === 'female') {
+        offeredCategories = FEMALE_CATEGORIES
+          .filter(c => femaleSelections[c.key].enabled)
+          .map(c => ({ name: c.label, subServices: femaleSelections[c.key].subServices }));
+        kidsExtra = femaleOptionals.kidsServices;
+        atHomeExtra = femaleOptionals.atHomeServices;
+      }
 
       const salonPayload = {
         name: step1Data.name,
         description: step1Data.description,
-        category: step1Data.servedGender === 'male' ? 'barber' : step1Data.category,
+        category: step1Data.servedGender === 'male' ? 'barber'
+          : step1Data.servedGender === 'female' ? 'hair_salon'
+          : step1Data.category,
         servedGender: step1Data.servedGender,
         offeredCategories,
-        kidsHaircut: step1Data.servedGender === 'male' ? maleOptionals.kidsHaircut : false,
-        atHomeServices: step1Data.servedGender === 'male' ? maleOptionals.atHomeServices : false,
+        kidsHaircut: kidsExtra,
+        atHomeServices: atHomeExtra,
         phone: step1Data.phone,
         email: step1Data.email,
         address: step1Data.address,
@@ -794,6 +899,120 @@ const SalonRegistration = () => {
 
                   {step1Errors.maleCategories && (
                     <p className="text-sm text-red-600">{step1Errors.maleCategories}</p>
+                  )}
+                </div>
+              ) : step1Data.servedGender === 'female' ? (
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Select Services You Offer <span className="text-red-500">*</span>
+                    <span className="text-gray-400 font-normal ml-1 text-xs">(toggle a category, then pick sub-services)</span>
+                  </label>
+
+                  {FEMALE_CATEGORIES.map((cat) => {
+                    const sel = femaleSelections[cat.key];
+                    const isExpanded = expandedFemaleCategoryKey === cat.key;
+                    return (
+                      <div
+                        key={cat.key}
+                        className={`rounded-xl border-2 transition ${
+                          sel.enabled ? 'border-pink-400 bg-pink-50' : 'border-gray-200 bg-white'
+                        }`}
+                      >
+                        <div className="w-full flex items-center justify-between px-4 py-3">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (sel.enabled) {
+                                setExpandedFemaleCategoryKey(isExpanded ? null : cat.key);
+                              }
+                            }}
+                            className="flex items-center gap-2 font-semibold text-sm text-gray-800 flex-1 text-left"
+                          >
+                            <span className="text-lg">{cat.icon}</span>
+                            {cat.label}
+                            {cat.key === 'bridal_events' && (
+                              <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold">
+                                Must Have
+                              </span>
+                            )}
+                            {sel.enabled && (
+                              <span className="text-gray-400 text-xs ml-1">
+                                {isExpanded ? '▲' : '▼'}
+                              </span>
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleFemaleCategory(cat.key)}
+                            className={`w-11 h-6 rounded-full transition-colors flex-shrink-0 relative ml-3 ${
+                              sel.enabled ? 'bg-pink-500' : 'bg-gray-300'
+                            }`}
+                          >
+                            <span
+                              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                                sel.enabled ? 'translate-x-5' : 'translate-x-0'
+                              }`}
+                            />
+                          </button>
+                        </div>
+
+                        {sel.enabled && isExpanded && (
+                          <div className="px-4 pb-4">
+                            <p className="text-xs text-gray-500 mb-2">Select sub-services (optional — leave all unchecked to offer everything):</p>
+                            <div className="flex flex-wrap gap-2">
+                              {cat.subServices.map((sub) => {
+                                const checked = sel.subServices.includes(sub);
+                                return (
+                                  <button
+                                    key={sub}
+                                    type="button"
+                                    onClick={() => toggleFemaleSubService(cat.key, sub)}
+                                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
+                                      checked
+                                        ? 'bg-pink-500 text-white border-pink-500'
+                                        : 'bg-white text-gray-600 border-gray-300 hover:border-pink-400'
+                                    }`}
+                                  >
+                                    {checked ? '✓ ' : ''}{sub}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {/* Optional toggles */}
+                  <div className="mt-2">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                      ⚡ Optional Add-ons
+                    </p>
+                    <div className="flex gap-3">
+                      {FEMALE_OPTIONALS.map(({ key, label, icon }) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() =>
+                            setFemaleOptionals(prev => ({ ...prev, [key]: !prev[key] }))
+                          }
+                          className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 text-sm font-medium transition ${
+                            femaleOptionals[key]
+                              ? 'border-green-500 bg-green-50 text-green-700'
+                              : 'border-gray-300 bg-white text-gray-600 hover:border-green-400'
+                          }`}
+                        >
+                          <span>{icon}</span>
+                          {label}
+                          {femaleOptionals[key] && <span className="text-green-500">✓</span>}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {step1Errors.femaleCategories && (
+                    <p className="text-sm text-red-600">{step1Errors.femaleCategories}</p>
                   )}
                 </div>
               ) : (
