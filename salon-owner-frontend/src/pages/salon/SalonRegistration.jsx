@@ -1057,11 +1057,6 @@ const SalonRegistration = () => {
                           >
                             <span className="text-lg">{cat.icon}</span>
                             {cat.label}
-                            {cat.key === 'bridal_events' && (
-                              <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold">
-                                Must Have
-                              </span>
-                            )}
                             {sel.enabled && (
                               <span className="text-gray-400 text-xs ml-1">
                                 {isExpanded ? '▲' : '▼'}
