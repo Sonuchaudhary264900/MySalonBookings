@@ -3,7 +3,6 @@ import { Plus, Search, LayoutList } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Button from '../../components/common/Button';
-import Input from '../../components/common/Input';
 import Alert from '../../components/common/Alert';
 import ServiceCard from '../../components/Services/ServiceCard';
 import ServiceModal from '../../components/Services/ServiceModal';
@@ -169,15 +168,24 @@ const Services = () => {
         )}
 
         {/* Search */}
-        <div>
-          <Input
-            label="Search Services"
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by name or description..."
-            icon={<Search className="w-5 h-5" />}
+            placeholder="Search services by name or description…"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 text-sm text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            style={{ backgroundColor: 'var(--input-bg, #fff)', color: 'var(--input-text, #111827)' }}
           />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-lg leading-none"
+            >
+              ×
+            </button>
+          )}
         </div>
 
         {/* Offered Categories from Registration */}
