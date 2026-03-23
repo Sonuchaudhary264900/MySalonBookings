@@ -312,20 +312,6 @@ const SalonRegistration = () => {
       errors.servedGender = 'Please select who you serve';
     }
 
-    if (step1Data.servedGender === 'male') {
-      const anyEnabled = MALE_CATEGORIES.some(c => maleSelections[c.key].enabled);
-      if (!anyEnabled) errors.maleCategories = 'Please select at least one service category';
-    }
-
-    if (step1Data.servedGender === 'female') {
-      const anyEnabled = FEMALE_CATEGORIES.some(c => femaleSelections[c.key].enabled);
-      if (!anyEnabled) errors.femaleCategories = 'Please select at least one service category';
-    }
-
-    if (step1Data.servedGender === 'unisex') {
-      const anyEnabled = UNISEX_CATEGORIES.some(c => unisexSelections[c.key].enabled);
-      if (!anyEnabled) errors.unisexCategories = 'Please select at least one service category';
-    }
 
     setStep1Errors(errors);
     return Object.keys(errors).length === 0;
