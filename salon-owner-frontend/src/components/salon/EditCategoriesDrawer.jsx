@@ -405,7 +405,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
       {pendingGender && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setPendingGender(null)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+          <div className="relative z-10 bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
                 <AlertTriangle className="w-5 h-5 text-amber-500" />
@@ -450,7 +450,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
       {priceModal.open && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setPriceModal(EMPTY_MODAL)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-xs p-5 space-y-4">
+          <div className="relative z-10 bg-white rounded-2xl shadow-2xl w-full max-w-xs p-5 space-y-4">
             <div>
               <h3 className="text-base font-bold text-gray-900">Set Price &amp; Duration</h3>
               <p className="text-sm text-gray-500 mt-0.5 font-medium">{priceModal.subName}</p>
