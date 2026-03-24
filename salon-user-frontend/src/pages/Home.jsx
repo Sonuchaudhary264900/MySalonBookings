@@ -47,16 +47,19 @@ function Home() {
 
   // ── initial location detect ──────────────────────────────────
   useEffect(() => {
+    let ignore = false;
     if (!navigator.geolocation) { setLocDenied(true); setLoading(false); return; }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        if (ignore) return;
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setUserCoords(coords);
         fetchBySort("nearby", coords);
       },
-      () => { setLocDenied(true); setLoading(false); },
+      () => { if (!ignore) { setLocDenied(true); setLoading(false); } },
       { maximumAge: 60000, timeout: 6000 }
     );
+    return () => { ignore = true; };
   }, []);
 
   // ── fetch salons from API ─────────────────────────────────────

@@ -423,10 +423,11 @@ export default function Dashboard() {
     );
   }, []);
 
-  const loadBookings = useCallback(async (silent = false) => {
+  const loadBookings = useCallback(async (silent = false, signal = null) => {
     if (!silent) setLoading(true);
     try {
       const res = await API.get('/customer/bookings');
+      if (signal?.aborted) return;
       const fresh = res.data.data?.bookings || res.data.data || [];
       const arr = Array.isArray(fresh) ? fresh : [];
 
@@ -440,13 +441,15 @@ export default function Dashboard() {
       }
       arr.forEach(b => { if (b._id) prevStatusRef.current[b._id] = b.status; });
       setBookings(arr);
-    } catch { setBookings([]); }
-    finally { setLoading(false); }
+    } catch { if (!signal?.aborted) setBookings([]); }
+    finally { if (!signal?.aborted) setLoading(false); }
   }, []);
 
   useEffect(() => {
     if (!isAuth) return;
-    loadBookings();
+    const signal = { aborted: false };
+    loadBookings(false, signal);
+    return () => { signal.aborted = true; };
   }, [isAuth, loadBookings]);
 
   const handleRefresh = async () => {
