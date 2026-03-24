@@ -10,10 +10,11 @@ import api from '../../services/api';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { showSuccess, showError } from '../../utils/toast';
+import { useSalon } from '../../context/SalonContext';
 
 const CATEGORIES = ['haircut', 'beard_trim', 'coloring', 'treatment', 'styling', 'shaving', 'nail', 'other'];
 
-function ServiceModal({ visible, service, onClose, onSaved }) {
+function ServiceModal({ visible, service, salon, onClose, onSaved }) {
   const editing = !!service?._id;
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -44,7 +45,11 @@ function ServiceModal({ visible, service, onClose, onSaved }) {
     if (!duration || isNaN(Number(duration))) { setError('Enter a valid duration in minutes'); return; }
     setError(''); setLoading(true);
     try {
-      const payload = { name: name.trim(), description: description.trim(), basePrice: Number(basePrice), duration: Number(duration), category, isActive };
+      const applicableFor =
+        salon?.servedGender === 'male'   ? ['male'] :
+        salon?.servedGender === 'female' ? ['female'] :
+        ['male', 'female'];
+      const payload = { name: name.trim(), description: description.trim(), basePrice: Number(basePrice), duration: Number(duration), category, isActive, applicableFor };
       if (editing) {
         await api.put(`/owner/services/${service._id}`, payload);
       } else {
@@ -112,6 +117,7 @@ export default function ServicesScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const navigation = useNavigation();
+  const { salon } = useSalon();
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -274,6 +280,7 @@ export default function ServicesScreen() {
       <ServiceModal
         visible={modalVisible}
         service={editingService}
+        salon={salon}
         onClose={() => { setModalVisible(false); setEditingService(null); }}
         onSaved={fetchServices}
       />
