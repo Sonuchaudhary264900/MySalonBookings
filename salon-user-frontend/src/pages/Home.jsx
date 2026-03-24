@@ -123,21 +123,22 @@ function Home() {
   // ── gender filter (client-side) ───────────────────────────────
   const handleGenderFilter = (gender) => {
     setGenderFilter(gender);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
     if (searchText.trim()) {
-      if (searchTimer.current) clearTimeout(searchTimer.current);
-      searchTimer.current = setTimeout(() => runSearch(searchText, category), 0);
+      searchTimer.current = setTimeout(() => runSearch(searchText, category, gender), 0);
     } else {
       setSalons(applyFilters(allSalons, category, gender));
     }
   };
 
   // ── search (debounced 400 ms) ─────────────────────────────────
-  const runSearch = useCallback(async (text, cat) => {
+  const runSearch = useCallback(async (text, cat, gender) => {
     if (!text.trim()) return;
     setSearching(true);
     setServiceMatchLabel("");
     const q = text.toLowerCase();
-    const activeCat = cat ?? category;
+    const activeCat    = cat    ?? category;
+    const activeGender = gender ?? genderFilter;
 
     // local match first
     const local = allSalons.filter(
@@ -146,7 +147,7 @@ function Home() {
         s.city?.toLowerCase().includes(q) ||
         s.address?.toLowerCase().includes(q)
     );
-    const localFiltered = applyFilters(local, activeCat, genderFilter);
+    const localFiltered = applyFilters(local, activeCat, activeGender);
 
     if (localFiltered.length > 0) {
       setSalons(localFiltered);
@@ -159,7 +160,7 @@ function Home() {
       const res = await API.get(`/public/services/search?q=${encodeURIComponent(text.trim())}`);
       const data = res.data.data;
       if (data?.salons?.length > 0) {
-        const filtered = applyFilters(data.salons, activeCat, genderFilter);
+        const filtered = applyFilters(data.salons, activeCat, activeGender);
         setSalons(filtered);
         setServiceMatchLabel(`Salons offering "${data.matchedService}"`);
       } else {
