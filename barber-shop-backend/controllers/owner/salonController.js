@@ -285,6 +285,43 @@ exports.updateSalon = async (req, res) => {
 
     await salon.save();
 
+    // Sync offeredCategories sub-services → Service collection
+    // so they appear in the user-facing /public/salons/:id/services endpoint
+    if (Array.isArray(offeredCategories)) {
+      const effectiveGender = servedGender || salon.servedGender;
+      const applicableFor =
+        effectiveGender === 'male'   ? ['male'] :
+        effectiveGender === 'female' ? ['female'] :
+        ['male', 'female'];
+
+      const upsertedIds = [];
+      for (const cat of offeredCategories) {
+        const categoryName = cat.name || '';
+        for (const sub of (cat.subServices || [])) {
+          const basePrice = parseFloat(sub.price) || 0;
+          const duration  = parseInt(sub.duration) || 0;
+          if (!sub.name || basePrice <= 0 || duration <= 0) continue;
+
+          const upserted = await Service.findOneAndUpdate(
+            { salonId: salon._id, name: sub.name },
+            {
+              $set: { category: categoryName, basePrice, duration, isActive: true },
+              $setOnInsert: { salonId: salon._id, name: sub.name, applicableFor },
+            },
+            { upsert: true, new: true }
+          );
+          upsertedIds.push(upserted._id);
+        }
+      }
+
+      // Ensure all synced services are referenced in salon.services[]
+      if (upsertedIds.length > 0) {
+        await Salon.findByIdAndUpdate(salon._id, {
+          $addToSet: { services: { $each: upsertedIds } },
+        });
+      }
+    }
+
     res.json(
       formatSuccessResponse(salon, messages.SALON.SALON_UPDATED)
     );
