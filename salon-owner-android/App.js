@@ -172,11 +172,22 @@ function CustomDrawer(props) {
 }
 
 
-const TAB_SCREENS = ['Home', 'Reports', 'Profile', 'Settings'];
+const TAB_SCREENS = ['Home', 'Reports', 'Services', 'Profile', 'Settings'];
 
-// ── 4-tab swipeable navigator with bottom indicator ────────────────
+const TAB_ICONS = {
+  Home:     { off: 'grid-outline',      on: 'grid' },
+  Reports:  { off: 'bar-chart-outline', on: 'bar-chart' },
+  Services: { off: 'cut-outline',       on: 'cut' },
+  Profile:  { off: 'person-outline',    on: 'person' },
+  Settings: { off: 'settings-outline',  on: 'settings' },
+};
+
+const TAB_LABELS = {
+  Home: 'Dashboard', Reports: 'Analytics', Services: 'Services', Profile: 'Profile', Settings: 'Settings',
+};
+
+// ── 5-tab swipeable navigator matching website bottom nav ──────────
 function MainTabs() {
-  const { t } = useLanguage();
   return (
     <Tab.Navigator
       tabBarPosition="bottom"
@@ -185,6 +196,7 @@ function MainTabs() {
         animationEnabled: true,
         tabBarStyle: {
           backgroundColor: '#111827',
+          borderTopWidth: 1,
           borderTopColor: '#1f2937',
           height: 62,
           elevation: 8,
@@ -192,24 +204,32 @@ function MainTabs() {
           shadowOpacity: 0.3,
           shadowRadius: 8,
         },
-        tabBarActiveTintColor: '#fff',
+        tabBarActiveTintColor: '#ffffff',
         tabBarInactiveTintColor: '#6b7280',
-        tabBarIndicatorStyle: { display: 'none' },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '700', marginBottom: 4 },
-        tabBarIconStyle: { marginTop: 4 },
+        tabBarIndicatorStyle: {
+          top: 0,
+          bottom: 'auto',
+          height: 2,
+          backgroundColor: '#6366f1',
+          width: '40%',
+          marginLeft: '5%',
+          borderRadius: 2,
+        },
+        tabBarIndicatorContainerStyle: { top: 0 },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '700', marginBottom: 4, textTransform: 'none' },
+        tabBarIconStyle: { marginTop: 6 },
         tabBarShowIcon: true,
-        tabBarIcon: ({ color }) => {
-          const icons        = { Home: 'home-outline',  Reports: 'bar-chart-outline',  Profile: 'person-outline',  Settings: 'settings-outline' };
-          const iconsFocused = { Home: 'home',          Reports: 'bar-chart',          Profile: 'person',          Settings: 'settings' };
-          const isFocused = color === '#fff';
-          return <Ionicons name={isFocused ? iconsFocused[route.name] : icons[route.name]} size={22} color={color} />;
+        tabBarIcon: ({ color, focused }) => {
+          const ic = TAB_ICONS[route.name];
+          return <Ionicons name={focused ? ic.on : ic.off} size={21} color={color} />;
         },
       })}
     >
-      <Tab.Screen name="Home"     component={HomeScreen}     options={{ tabBarLabel: t('tabDashboard') }} />
-      <Tab.Screen name="Reports"  component={ReportsScreen}  options={{ tabBarLabel: t('tabAnalytics') }} />
-      <Tab.Screen name="Profile"  component={ProfileScreen}  options={{ tabBarLabel: t('tabProfile') }} />
-      <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarLabel: t('tabSettings') }} />
+      <Tab.Screen name="Home"     component={HomeScreen}     options={{ tabBarLabel: TAB_LABELS.Home }} />
+      <Tab.Screen name="Reports"  component={ReportsScreen}  options={{ tabBarLabel: TAB_LABELS.Reports }} />
+      <Tab.Screen name="Services" component={ServicesScreen} options={{ tabBarLabel: TAB_LABELS.Services }} />
+      <Tab.Screen name="Profile"  component={ProfileScreen}  options={{ tabBarLabel: TAB_LABELS.Profile }} />
+      <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarLabel: TAB_LABELS.Settings }} />
     </Tab.Navigator>
   );
 }
@@ -230,7 +250,6 @@ function MainDrawer() {
     >
       <Drawer.Screen name="MainTabs"      component={MainTabs} />
       <Drawer.Screen name="Bookings"      component={BookingsScreen} />
-      <Drawer.Screen name="Services"      component={ServicesScreen} />
       <Drawer.Screen name="Reports"       component={ReportsScreen} />
       <Drawer.Screen name="Reviews"       component={ReviewsScreen} />
       <Drawer.Screen name="Notifications" component={NotificationsScreen} />
