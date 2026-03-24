@@ -145,14 +145,16 @@ export const getServices = async () => {
 // ── UPDATE SERVICE ──────────────────────────────────────────────
 export const updateService = async (serviceId, serviceData) => {
   const price = serviceData.basePrice ?? serviceData.price;
-  const response = await api.put(`/owner/services/${serviceId}`, {
+  const body = {
     name:          serviceData.name?.trim(),
     description:   serviceData.description?.trim(),
     category:      serviceData.category,
     applicableFor: serviceData.applicableFor,
     basePrice:     price ? parseFloat(price) : undefined,
     duration:      serviceData.duration ? parseInt(serviceData.duration) : undefined,
-  });
+  };
+  if (serviceData.isActive !== undefined) body.isActive = serviceData.isActive;
+  const response = await api.put(`/owner/services/${serviceId}`, body);
   return { success: true, message: 'Service updated', data: response.data.data };
 };
 
