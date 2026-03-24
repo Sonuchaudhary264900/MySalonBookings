@@ -265,20 +265,48 @@ const Services = () => {
                         ? <ChevronUp className="w-4 h-4 text-gray-400 shrink-0" />
                         : <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" />}
                     </button>
-                    {isOpen && (
-                      <div className="border-t border-gray-100 divide-y divide-gray-100">
-                        {svcs.map(service => (
-                          <ServiceCard
-                            key={service._id || service.id}
-                            service={service}
-                            onEdit={handleOpenModal}
-                            onDelete={handleDelete}
-                            onToggle={handleToggle}
-                            loading={loading}
-                          />
-                        ))}
-                      </div>
-                    )}
+                    {isOpen && (() => {
+                      const isUnisex = salon?.servedGender === 'unisex';
+                      const maleOnly   = isUnisex ? svcs.filter(s => s.applicableFor?.length === 1 && s.applicableFor[0] === 'male') : [];
+                      const femaleOnly = isUnisex ? svcs.filter(s => s.applicableFor?.length === 1 && s.applicableFor[0] === 'female') : [];
+                      const both       = isUnisex ? svcs.filter(s => !s.applicableFor || s.applicableFor.length !== 1) : svcs;
+                      const hasSplit   = isUnisex && (maleOnly.length > 0 || femaleOnly.length > 0);
+
+                      const renderCard = (service) => (
+                        <ServiceCard
+                          key={service._id || service.id}
+                          service={service}
+                          onEdit={handleOpenModal}
+                          onDelete={handleDelete}
+                          onToggle={handleToggle}
+                          loading={loading}
+                        />
+                      );
+
+                      return hasSplit ? (
+                        <div className="border-t border-gray-100 divide-y divide-gray-100">
+                          {maleOnly.length > 0 && (
+                            <div>
+                              <p className="text-xs font-semibold text-blue-600 px-4 py-2 bg-blue-50 border-b border-blue-100">👨 Men</p>
+                              <div className="divide-y divide-gray-100">{maleOnly.map(renderCard)}</div>
+                            </div>
+                          )}
+                          {femaleOnly.length > 0 && (
+                            <div>
+                              <p className="text-xs font-semibold text-pink-600 px-4 py-2 bg-pink-50 border-b border-pink-100">👩 Women</p>
+                              <div className="divide-y divide-gray-100">{femaleOnly.map(renderCard)}</div>
+                            </div>
+                          )}
+                          {both.length > 0 && (
+                            <div className="divide-y divide-gray-100">{both.map(renderCard)}</div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="border-t border-gray-100 divide-y divide-gray-100">
+                          {svcs.map(renderCard)}
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })}
