@@ -80,7 +80,7 @@ exports.getSalonServices = async (req, res) => {
       );
     }
 
-    const services = await Service.find({ salonId: salon._id })
+    const services = await Service.find({ salonId: salon._id, isActive: true })
       .sort({ createdAt: -1 })
       .lean();
 
