@@ -40,11 +40,11 @@ const Register = () => {
   // Step 3: details
   const [name, setName] = useState('');
   const [gender, setGender] = useState('');
+  const [genderError, setGenderError] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [nameError, setNameError] = useState('');
-  const [genderError, setGenderError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
@@ -381,7 +381,7 @@ const Register = () => {
                     </button>
                   ))}
                 </div>
-                {genderError && <p className="text-sm text-red-600">{genderError}</p>}
+                {genderError && <p className="text-sm text-red-600 mt-1">{genderError}</p>}
               </div>
 
               <Input

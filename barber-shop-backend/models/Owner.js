@@ -63,8 +63,8 @@ const ownerSchema = new mongoose.Schema(
     },
     gender: {
       type: String,
-      enum: [null, 'male', 'female', 'other'],
-      default: null,
+      enum: ['male', 'female', 'other'],
+      required: [true, 'Gender is required'],
     },
     profilePhoto: {
       type: String, // Cloudinary URL

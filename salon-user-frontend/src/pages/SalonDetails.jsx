@@ -183,6 +183,16 @@ function SalonDetails() {
               {salon.servedGender === 'male' ? 'Men' : salon.servedGender === 'female' ? 'Women' : 'Unisex'}
             </span>
           )}
+          {salon.ownerGender && (
+            <span className={`badge flex items-center gap-1 ${
+              salon.ownerGender === 'male' ? 'bg-blue-50 text-blue-700' :
+              salon.ownerGender === 'female' ? 'bg-pink-50 text-pink-700' :
+              'bg-gray-50 text-gray-600'
+            }`}>
+              {salon.ownerGender === 'male' ? '👨' : salon.ownerGender === 'female' ? '👩' : '🧑'}
+              {' Owner: '}{salon.ownerGender.charAt(0).toUpperCase() + salon.ownerGender.slice(1)}
+            </span>
+          )}
           {salon.isApproved && (
             <span className="badge bg-green-50 text-green-600 flex items-center gap-1"><Check className="w-3 h-3" /> Verified</span>
           )}

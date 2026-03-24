@@ -182,7 +182,7 @@ router.get("/public/salons/nearby", asyncHandler(async (req, res) => {
 router.get("/public/salons/:salonId", validateObjectId("salonId"), asyncHandler(async (req, res) => {
   const Coupon = require("../models/Coupon");
   const Barber = require("../models/Barber");
-  const salon = await Salon.findById(req.params.salonId).populate("ownerId", "profilePhoto").lean();
+  const salon = await Salon.findById(req.params.salonId).populate("ownerId", "profilePhoto gender name").lean();
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
   if (!salon.isApproved) return res.status(403).json({ success: false, message: "Salon not approved" });
   const now = new Date();
@@ -191,7 +191,9 @@ router.get("/public/salons/:salonId", validateObjectId("salonId"), asyncHandler(
     Barber.countDocuments({ salonId: salon._id, isActive: true }),
   ]);
   const ownerPhoto = salon.ownerId?.profilePhoto || null;
-  res.json({ success: true, data: { ...salon, ownerPhoto, ownerId: undefined, hasCoupons: couponCount > 0, hasBarbers: barberCount > 0 } });
+  const ownerGender = salon.ownerId?.gender || null;
+  const ownerName = salon.ownerId?.name || null;
+  res.json({ success: true, data: { ...salon, ownerPhoto, ownerGender, ownerName, ownerId: undefined, hasCoupons: couponCount > 0, hasBarbers: barberCount > 0 } });
 }));
 
 // GET /public/salons/:salonId/services

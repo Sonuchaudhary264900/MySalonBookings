@@ -161,6 +161,7 @@ const createBooking = async (req, res) => {
       customerId: req.customer._id,
       customerName: customer.name,
       customerPhone: customer.phone,
+      customerGender: customer.gender || null,
       salonId,
       salonName: salon.name,
       serviceId: primaryService._id,

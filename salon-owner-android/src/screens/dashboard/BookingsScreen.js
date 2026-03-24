@@ -421,7 +421,16 @@ export default function BookingsScreen() {
         {/* Top row */}
         <View style={bStyles.cardTop}>
           <View style={{ flex: 1 }}>
-            <Text style={[bStyles.customerName, { color: theme.text }]}>{b.customerName || '—'}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={[bStyles.customerName, { color: theme.text }]}>{b.customerName || '—'}</Text>
+              {b.customerGender && (
+                <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 20, backgroundColor: b.customerGender === 'male' ? '#dbeafe' : '#fce7f3' }}>
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: b.customerGender === 'male' ? '#1d4ed8' : '#be185d' }}>
+                    {b.customerGender === 'male' ? '👨 Male' : '👩 Female'}
+                  </Text>
+                </View>
+              )}
+            </View>
             {b.customerPhone && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
                 <Ionicons name="call-outline" size={12} color="#9ca3af" />

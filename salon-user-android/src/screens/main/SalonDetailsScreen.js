@@ -222,6 +222,25 @@ export default function SalonDetailsScreen({ route, navigation }) {
             </TouchableOpacity>
           )}
 
+          {(salon.servedGender || salon.ownerGender) && (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+              {salon.servedGender && (
+                <View style={[styles.genderBadge, salon.servedGender === 'male' ? styles.genderBadgeMale : salon.servedGender === 'female' ? styles.genderBadgeFemale : styles.genderBadgeUnisex]}>
+                  <Text style={[styles.genderBadgeText, salon.servedGender === 'male' ? { color: '#1d4ed8' } : salon.servedGender === 'female' ? { color: '#be185d' } : { color: '#7c3aed' }]}>
+                    {salon.servedGender === 'male' ? '👨 Men' : salon.servedGender === 'female' ? '👩 Women' : '👥 Unisex'}
+                  </Text>
+                </View>
+              )}
+              {salon.ownerGender && (
+                <View style={[styles.genderBadge, salon.ownerGender === 'male' ? styles.genderBadgeMale : salon.ownerGender === 'female' ? styles.genderBadgeFemale : styles.genderBadgeUnisex]}>
+                  <Text style={[styles.genderBadgeText, salon.ownerGender === 'male' ? { color: '#1d4ed8' } : salon.ownerGender === 'female' ? { color: '#be185d' } : { color: '#374151' }]}>
+                    {salon.ownerGender === 'male' ? '👨 Owner: Male' : salon.ownerGender === 'female' ? '👩 Owner: Female' : '🧑 Owner: Other'}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+
           {salon.description && (
             <Text style={styles.description}>{salon.description}</Text>
           )}
@@ -583,6 +602,11 @@ const getStyles = (t) => StyleSheet.create({
   metaRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
   metaText: { fontSize: 13, color: t.subText, flex: 1, lineHeight: 18 },
   description: { fontSize: 13, color: t.subText, lineHeight: 19, marginTop: 4 },
+  genderBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  genderBadgeMale: { backgroundColor: '#eff6ff' },
+  genderBadgeFemale: { backgroundColor: '#fdf2f8' },
+  genderBadgeUnisex: { backgroundColor: '#f5f3ff' },
+  genderBadgeText: { fontSize: 12, fontWeight: '600' },
   tabBar: { flexDirection: 'row', backgroundColor: t.card, marginHorizontal: 16, borderRadius: 12, padding: 4, marginBottom: 12, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1, borderWidth: 1, borderColor: t.border },
   tabBtn: { flex: 1, paddingVertical: 9, alignItems: 'center', borderRadius: 9 },
   tabBtnActive: { backgroundColor: '#2563eb' },

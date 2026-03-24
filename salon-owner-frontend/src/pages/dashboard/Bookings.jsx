@@ -403,6 +403,13 @@ const BookingCard = ({ booking, updating, onStatusChange, isBlocked, blockLoadin
               <p className="font-semibold text-gray-900 leading-tight">
                 {booking.customerName || 'Unknown Customer'}
               </p>
+              {booking.customerGender && (
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                  booking.customerGender === 'male' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'
+                }`}>
+                  {booking.customerGender === 'male' ? '👨 Male' : '👩 Female'}
+                </span>
+              )}
               {booking.isWalkIn && (
                 <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">Walk-in</span>
               )}

@@ -357,8 +357,7 @@ exports.login = async (req, res) => {
     // ==========================================
     // UPDATE LAST LOGIN
     // ==========================================
-    owner.lastLogin = new Date();
-    await owner.save();
+    await owner.constructor.updateOne({ _id: owner._id }, { lastLogin: new Date() });
 
     // ==========================================
     // GENERATE ACCESS TOKEN
