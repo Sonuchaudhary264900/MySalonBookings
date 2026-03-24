@@ -1,15 +1,7 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import API from "../services/api";
 import SalonCard from "../components/SalonCard";
 import SearchBar from "../components/SearchBar";
-
-const CATEGORIES = [
-  { key: "all", label: "All", icon: "🏪" },
-  { key: "barber", label: "Barber", icon: "✂" },
-  { key: "hair_salon", label: "Hair Salon", icon: "💇" },
-  { key: "spa", label: "Spa", icon: "🧖" },
-  { key: "massage", label: "Massage", icon: "💆" },
-];
 
 const STATS = [
   { label: "Salons Listed", value: "200+", icon: "🏪" },
@@ -34,7 +26,6 @@ function SkeletonCard() {
 function Home() {
   const [allSalons, setAllSalons] = useState([]);
   const [salons, setSalons] = useState([]);
-  const [category, setCategory] = useState("all");
   const [loading, setLoading] = useState(true);
   const [locLoading, setLocLoading] = useState(false);
   const [isNearby, setIsNearby] = useState(false);
@@ -59,18 +50,6 @@ function Home() {
     }
   };
 
-  const applyCategory = useCallback(
-    (cat, base = allSalons) => {
-      setCategory(cat);
-      if (cat === "all") {
-        setSalons(base);
-      } else {
-        setSalons(base.filter((s) => s.category === cat));
-      }
-    },
-    [allSalons]
-  );
-
   const handleSearch = (query) => {
     if (!query.trim()) {
       setSalons(allSalons);
@@ -79,7 +58,6 @@ function Home() {
     }
     setSearchActive(true);
     setIsNearby(false);
-    setCategory("all");
     const q = query.toLowerCase();
     setSalons(
       allSalons.filter(
@@ -104,7 +82,6 @@ function Home() {
           setSalons(data);
           setIsNearby(true);
           setSearchActive(false);
-          setCategory("all");
         } catch {
           alert("Could not find nearby salons.");
         } finally {
@@ -122,7 +99,6 @@ function Home() {
     loadSalons();
     setIsNearby(false);
     setSearchActive(false);
-    setCategory("all");
   };
 
   return (
@@ -161,25 +137,6 @@ function Home() {
               <div className="text-xl font-extrabold text-slate-900">{value}</div>
               <div className="text-xs text-slate-500">{label}</div>
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── CATEGORY FILTER ───────────────────── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-8">
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
-          {CATEGORIES.map(({ key, label, icon }) => (
-            <button
-              key={key}
-              onClick={() => applyCategory(key)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-                category === key
-                  ? "bg-indigo-600 text-white shadow-sm"
-                  : "bg-white text-slate-600 border border-slate-200 hover:border-indigo-300"
-              }`}
-            >
-              <span>{icon}</span> {label}
-            </button>
           ))}
         </div>
       </section>
