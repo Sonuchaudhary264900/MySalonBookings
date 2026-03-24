@@ -225,6 +225,27 @@ function SalonCard({ salon, userCoords }) {
             </p>
           )}
 
+          {/* Gender + special badges */}
+          {(salon.servedGender || salon.kidsHaircut || salon.atHomeServices) && (
+            <div className="flex items-center gap-1 flex-wrap">
+              {salon.servedGender && (
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                  salon.servedGender === "male"   ? "bg-blue-50 text-blue-600" :
+                  salon.servedGender === "female" ? "bg-pink-50 text-pink-600" :
+                  "bg-purple-50 text-purple-600"
+                }`}>
+                  {salon.servedGender === "male" ? "👨 Men" : salon.servedGender === "female" ? "👩 Women" : "👥 Unisex"}
+                </span>
+              )}
+              {salon.kidsHaircut && (
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-yellow-50 text-yellow-700">👶 Kids</span>
+              )}
+              {salon.atHomeServices && (
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-50 text-green-700">🏠 At-Home</span>
+              )}
+            </div>
+          )}
+
           {/* Footer */}
           <div className="pt-2 mt-1 border-t border-slate-100 flex items-center justify-between">
             <span className="text-xs font-bold text-indigo-600 flex items-center gap-1">

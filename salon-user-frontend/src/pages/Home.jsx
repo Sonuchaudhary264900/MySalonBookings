@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Store, Scissors, Sparkles, Leaf, Heart, TrendingUp, Star, MapPin, LocateFixed, SearchX, X, MoreHorizontal } from "lucide-react";
+import { Store, Scissors, Sparkles, Leaf, Heart, TrendingUp, Star, MapPin, LocateFixed, SearchX, X, MoreHorizontal, Users } from "lucide-react";
 import API from "../services/api";
 import SalonCard from "../components/SalonCard";
 
@@ -16,6 +16,13 @@ const SORT_OPTIONS = [
   { key: "nearby", label: "Nearest",       icon: <MapPin className="w-3.5 h-3.5" /> },
   { key: "booked", label: "Most Booked",   icon: <TrendingUp className="w-3.5 h-3.5" /> },
   { key: "rated",  label: "Top Rated",     icon: <Star className="w-3.5 h-3.5" /> },
+];
+
+const GENDER_FILTERS = [
+  { key: "all",     label: "All",    icon: <Users className="w-3.5 h-3.5" /> },
+  { key: "male",    label: "Men",    icon: <span className="text-sm">👨</span> },
+  { key: "female",  label: "Women",  icon: <span className="text-sm">👩</span> },
+  { key: "unisex",  label: "Unisex", icon: <span className="text-sm">👥</span> },
 ];
 
 function SkeletonCard() {
@@ -35,6 +42,7 @@ function Home() {
   const [salons, setSalons]             = useState([]);
   const [allSalons, setAllSalons]       = useState([]);
   const [category, setCategory]         = useState("all");
+  const [genderFilter, setGenderFilter] = useState("all");
   const [sort, setSort]                 = useState("nearby");
   const [loading, setLoading]           = useState(true);
   const [locLoading, setLocLoading]     = useState(false);
@@ -62,8 +70,16 @@ function Home() {
     return () => { ignore = true; };
   }, []);
 
+  // ── filter helper (category + gender) ────────────────────────
+  const applyFilters = (data, cat, gender) => {
+    let result = data;
+    if (cat !== "all")    result = result.filter((s) => s.category === cat);
+    if (gender !== "all") result = result.filter((s) => (s.servedGender || "unisex") === gender);
+    return result;
+  };
+
   // ── fetch salons from API ─────────────────────────────────────
-  const fetchBySort = async (sortKey, coords, cat) => {
+  const fetchBySort = async (sortKey, coords, cat, gender) => {
     if (!coords) return;
     setLoading(true);
     setSearchText("");
@@ -74,8 +90,9 @@ function Home() {
       );
       const data = res.data.data?.salons || res.data.data || [];
       setAllSalons(data);
-      const activeCat = cat ?? category;
-      setSalons(activeCat === "all" ? data : data.filter((s) => s.category === activeCat));
+      const activeCat    = cat    ?? category;
+      const activeGender = gender ?? genderFilter;
+      setSalons(applyFilters(data, activeCat, activeGender));
     } catch {
       setAllSalons([]);
       setSalons([]);
@@ -88,7 +105,8 @@ function Home() {
   const handleSort = (key) => {
     setSort(key);
     setCategory("all");
-    fetchBySort(key, userCoords, "all");
+    setGenderFilter("all");
+    fetchBySort(key, userCoords, "all", "all");
   };
 
   // ── category filter (client-side) ────────────────────────────
@@ -98,7 +116,18 @@ function Home() {
       if (searchTimer.current) clearTimeout(searchTimer.current);
       searchTimer.current = setTimeout(() => runSearch(searchText, cat), 0);
     } else {
-      setSalons(cat === "all" ? allSalons : allSalons.filter((s) => s.category === cat));
+      setSalons(applyFilters(allSalons, cat, genderFilter));
+    }
+  };
+
+  // ── gender filter (client-side) ───────────────────────────────
+  const handleGenderFilter = (gender) => {
+    setGenderFilter(gender);
+    if (searchText.trim()) {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+      searchTimer.current = setTimeout(() => runSearch(searchText, category), 0);
+    } else {
+      setSalons(applyFilters(allSalons, category, gender));
     }
   };
 
@@ -117,7 +146,7 @@ function Home() {
         s.city?.toLowerCase().includes(q) ||
         s.address?.toLowerCase().includes(q)
     );
-    const localFiltered = activeCat === "all" ? local : local.filter((s) => s.category === activeCat);
+    const localFiltered = applyFilters(local, activeCat, genderFilter);
 
     if (localFiltered.length > 0) {
       setSalons(localFiltered);
@@ -130,7 +159,7 @@ function Home() {
       const res = await API.get(`/public/services/search?q=${encodeURIComponent(text.trim())}`);
       const data = res.data.data;
       if (data?.salons?.length > 0) {
-        const filtered = activeCat === "all" ? data.salons : data.salons.filter((s) => s.category === activeCat);
+        const filtered = applyFilters(data.salons, activeCat, genderFilter);
         setSalons(filtered);
         setServiceMatchLabel(`Salons offering "${data.matchedService}"`);
       } else {
@@ -141,14 +170,14 @@ function Home() {
     } finally {
       setSearching(false);
     }
-  }, [allSalons, category]);
+  }, [allSalons, category, genderFilter]);
 
   const handleSearch = (text) => {
     setSearchText(text);
     if (searchTimer.current) clearTimeout(searchTimer.current);
     if (!text.trim()) {
       setServiceMatchLabel("");
-      setSalons(category === "all" ? allSalons : allSalons.filter((s) => s.category === category));
+      setSalons(applyFilters(allSalons, category, genderFilter));
       return;
     }
     searchTimer.current = setTimeout(() => runSearch(text, category), 400);
@@ -166,7 +195,8 @@ function Home() {
         setUserCoords(coords);
         setLocDenied(false);
         setSort("nearby");
-        fetchBySort("nearby", coords, "all").finally(() => setLocLoading(false));
+        setGenderFilter("all");
+        fetchBySort("nearby", coords, "all", "all").finally(() => setLocLoading(false));
       },
       () => {
         setLocLoading(false);
@@ -267,6 +297,25 @@ function Home() {
                   sort === key
                     ? "border-indigo-500 text-indigo-600 bg-indigo-50"
                     : "bg-white text-slate-500 border-slate-200 hover:border-indigo-300"
+                }`}
+              >
+                {icon} {label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* ── GENDER FILTER ────────────────────────────────────── */}
+        {(!locDenied || isSearchActive) && (
+          <div className="flex gap-2 mt-1 mb-1 pb-1 overflow-x-auto scrollbar-hide">
+            {GENDER_FILTERS.map(({ key, label, icon }) => (
+              <button
+                key={key}
+                onClick={() => handleGenderFilter(key)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 border ${
+                  genderFilter === key
+                    ? "bg-rose-500 text-white border-rose-500 shadow-sm"
+                    : "bg-white text-slate-500 border-slate-200 hover:border-rose-300 hover:text-rose-500"
                 }`}
               >
                 {icon} {label}

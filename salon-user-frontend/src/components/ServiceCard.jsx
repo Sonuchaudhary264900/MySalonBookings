@@ -23,7 +23,7 @@ function getIcon(name = "") {
   return serviceIconMap.default;
 }
 
-function ServiceCard({ service, isSelected, onToggle }) {
+function ServiceCard({ service, isSelected, onToggle, showGenderBadge = false }) {
   const navigate = useNavigate();
 
   const handleToggle = () => {
@@ -54,7 +54,7 @@ function ServiceCard({ service, isSelected, onToggle }) {
           {service.description && (
             <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">{service.description}</p>
           )}
-          <div className="flex items-center gap-3 mt-1">
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className="text-xs text-slate-500 flex items-center gap-1">
               <Clock className="w-3.5 h-3.5" /> {service.duration} min
             </span>
@@ -63,6 +63,16 @@ function ServiceCard({ service, isSelected, onToggle }) {
             ) : (
               <span className="text-xs text-red-400">Unavailable</span>
             )}
+            {showGenderBadge && service.applicableFor?.length > 0 && (() => {
+              const af = service.applicableFor;
+              const hasMale   = af.includes("male");
+              const hasFemale = af.includes("female");
+              const label = hasMale && hasFemale ? "👥 Both" : hasMale ? "👨 Men" : "👩 Women";
+              const cls   = hasMale && hasFemale ? "bg-purple-50 text-purple-600" : hasMale ? "bg-blue-50 text-blue-600" : "bg-pink-50 text-pink-600";
+              return (
+                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${cls}`}>{label}</span>
+              );
+            })()}
           </div>
         </div>
       </div>

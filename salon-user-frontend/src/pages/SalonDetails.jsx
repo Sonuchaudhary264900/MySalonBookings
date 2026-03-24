@@ -20,6 +20,7 @@ function SalonDetails() {
   const TABS = reviews.length > 0 ? BASE_TABS : BASE_TABS.filter(t => t !== "Reviews");
   const activeTab = TABS.includes(tab) ? tab : "Services";
   const [selectedServices, setSelectedServices] = useState([]);
+  const [serviceGenderFilter, setServiceGenderFilter] = useState("all");
   const token = localStorage.getItem("customerToken");
 
   const toggleService = (service) => {
@@ -211,27 +212,63 @@ function SalonDetails() {
         </div>
 
         {/* ── SERVICES TAB ──────────────────── */}
-        {activeTab === "Services" && (
-          <div className="fade-in">
-            {services.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="flex justify-center mb-3"><Scissors className="w-10 h-10 text-slate-200" /></div>
-                <p className="text-slate-500">No services listed yet.</p>
-              </div>
-            ) : (
-              <div className="space-y-3 pb-32">
-                {services.map((service) => (
-                  <ServiceCard
-                    key={service._id}
-                    service={service}
-                    isSelected={selectedServices.some(s => s._id === service._id)}
-                    onToggle={() => toggleService(service)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        {activeTab === "Services" && (() => {
+          const isUnisex = salon.servedGender === "unisex";
+          const visibleServices = !isUnisex || serviceGenderFilter === "all"
+            ? services
+            : services.filter((s) => {
+                const af = s.applicableFor || [];
+                if (serviceGenderFilter === "male")   return af.includes("male")   || af.length === 0;
+                if (serviceGenderFilter === "female") return af.includes("female") || af.length === 0;
+                return true;
+              });
+
+          return (
+            <div className="fade-in">
+              {/* Gender filter — only for unisex salons */}
+              {isUnisex && services.length > 0 && (
+                <div className="flex gap-2 mb-4">
+                  {[
+                    { key: "all",    label: "All Services", emoji: "👥" },
+                    { key: "male",   label: "For Men",       emoji: "👨" },
+                    { key: "female", label: "For Women",     emoji: "👩" },
+                  ].map(({ key, label, emoji }) => (
+                    <button
+                      key={key}
+                      onClick={() => setServiceGenderFilter(key)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${
+                        serviceGenderFilter === key
+                          ? "bg-indigo-600 text-white border-indigo-600"
+                          : "bg-white text-slate-500 border-slate-200 hover:border-indigo-300"
+                      }`}
+                    >
+                      <span>{emoji}</span> {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {visibleServices.length === 0 ? (
+                <div className="text-center py-16">
+                  <div className="flex justify-center mb-3"><Scissors className="w-10 h-10 text-slate-200" /></div>
+                  <p className="text-slate-500">No services listed yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-3 pb-32">
+                  {visibleServices.map((service) => (
+                    <ServiceCard
+                      key={service._id}
+                      service={service}
+                      isSelected={selectedServices.some(s => s._id === service._id)}
+                      onToggle={() => toggleService(service)}
+                      showGenderBadge={isUnisex}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* ── REVIEWS TAB ───────────────────── */}
         {activeTab === "Reviews" && (
