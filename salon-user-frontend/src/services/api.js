@@ -43,7 +43,8 @@ API.interceptors.response.use(
         // Refresh failed — clear session and redirect
         localStorage.removeItem("customerToken");
         localStorage.removeItem("customerRefreshToken");
-        window.location.href = "/login";
+        const onAuthPage = ["/login", "/register"].includes(window.location.pathname);
+        if (!onAuthPage) window.location.href = "/login";
         return Promise.reject(error);
       }
     }
@@ -52,7 +53,8 @@ API.interceptors.response.use(
     if (status === 403 && message.toLowerCase().includes("customer role")) {
       localStorage.removeItem("customerToken");
       localStorage.removeItem("customerRefreshToken");
-      window.location.href = "/login";
+      const onAuthPage = ["/login", "/register"].includes(window.location.pathname);
+      if (!onAuthPage) window.location.href = "/login";
     }
 
     // Normalise error shape so callers get a predictable object
