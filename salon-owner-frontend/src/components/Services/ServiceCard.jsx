@@ -29,87 +29,44 @@ const ServiceCard = ({
 
   return (
     <>
-    <div className={`bg-white rounded-lg border-2 p-4 hover:shadow-lg transition ${isActive ? 'border-gray-200' : 'border-gray-200 opacity-60'}`}>
-      <div className="space-y-3">
-        {/* Header */}
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold text-gray-900 text-lg">{service.name}</h3>
-              {!isActive && (
-                <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">Inactive</span>
-              )}
-            </div>
-            {service.category && (
-              <span className="inline-block text-xs bg-indigo-50 text-indigo-600 border border-indigo-100 px-2 py-0.5 rounded-full mt-1 font-medium">
-                {service.category}
-              </span>
-            )}
-            {service.description && (
-              <p className="text-sm text-gray-600 mt-1">{service.description}</p>
-            )}
-          </div>
-          {/* Active / Inactive toggle */}
-          {onToggle && (
-            <button
-              onClick={handleToggleClick}
-              disabled={loading}
-              title={isActive ? 'Deactivate service' : 'Activate service'}
-              className={`relative shrink-0 ml-2 w-11 h-6 rounded-full transition-colors focus:outline-none ${isActive ? 'bg-indigo-600' : 'bg-gray-300'} disabled:opacity-50`}
-            >
-              <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${isActive ? 'translate-x-5' : 'translate-x-0'}`} />
-            </button>
-          )}
+    <div className={`bg-white rounded-lg border px-3 py-2 flex items-center gap-3 hover:shadow-sm transition ${!isActive ? 'opacity-50' : ''}`}>
+      {/* Name + meta */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-sm font-semibold text-gray-900 truncate">{service.name}</span>
+          {!isActive && <span className="text-xs bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full">Inactive</span>}
+          {service.category && <span className="text-xs bg-indigo-50 text-indigo-500 px-1.5 py-0.5 rounded-full">{service.category}</span>}
         </div>
-
-        {/* Info */}
-        <div className="flex items-center gap-4 py-3 border-t border-b border-gray-200">
-          <div className="flex items-center gap-1">
-            <Tag className="w-4 h-4 text-blue-600" />
-            <span className="text-sm font-bold text-gray-900">
-              ₹{service.basePrice ?? service.price}
-            </span>
-          </div>
-
-          {service.duration && (
-            <div className="flex items-center gap-1">
-              <Clock className="w-4 h-4 text-green-600" />
-              <span className="text-sm text-gray-600">
-                {service.duration} min
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onEdit(service)}
-            disabled={loading}
-            className="flex-1 flex items-center justify-center gap-2"
-          >
-            <Edit2 className="w-4 h-4" />
-            Edit
-          </Button>
-
-          <Button
-            variant="danger"
-            size="sm"
-            onClick={() => {
-              if (window.confirm('Are you sure you want to delete this service?')) {
-                onDelete(service._id || service.id);
-              }
-            }}
-            disabled={loading}
-            className="flex-1 flex items-center justify-center gap-2"
-          >
-            <Trash2 className="w-4 h-4" />
-            Delete
-          </Button>
+        <div className="flex items-center gap-3 mt-0.5">
+          <span className="text-xs font-bold text-blue-600">₹{service.basePrice ?? service.price}</span>
+          {service.duration && <span className="text-xs text-gray-400">{service.duration} min</span>}
         </div>
       </div>
+
+      {/* Toggle */}
+      {onToggle && (
+        <button
+          onClick={handleToggleClick}
+          disabled={loading}
+          title={isActive ? 'Deactivate' : 'Activate'}
+          className={`relative shrink-0 w-9 h-5 rounded-full transition-colors focus:outline-none ${isActive ? 'bg-indigo-500' : 'bg-gray-300'} disabled:opacity-50`}
+        >
+          <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${isActive ? 'translate-x-4' : 'translate-x-0'}`} />
+        </button>
+      )}
+
+      {/* Actions */}
+      <button onClick={() => onEdit(service)} disabled={loading} className="text-gray-400 hover:text-indigo-600 transition" title="Edit">
+        <Edit2 className="w-4 h-4" />
+      </button>
+      <button
+        onClick={() => { if (window.confirm('Delete this service?')) onDelete(service._id || service.id); }}
+        disabled={loading}
+        className="text-gray-400 hover:text-red-500 transition"
+        title="Delete"
+      >
+        <Trash2 className="w-4 h-4" />
+      </button>
     </div>
 
     {/* Deactivate confirmation modal */}

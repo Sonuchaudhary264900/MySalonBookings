@@ -213,7 +213,7 @@ const Services = () => {
             <p className="text-gray-500">Loading services...</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="flex flex-col gap-1.5">
             {filteredServices.map(service => (
               <ServiceCard
                 key={service._id || service.id}
