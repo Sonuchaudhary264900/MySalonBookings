@@ -73,8 +73,9 @@ function Login() {
     setLoading(true);
     try {
       const res = await API.post("/customer/auth/login", { phone: normalizePhone(phone), password });
-      const token = res.data.data?.token || res.data.token;
+      const { token, customer } = res.data.data || {};
       if (token) localStorage.setItem("customerToken", token);
+      if (customer?.gender) localStorage.setItem("customerGender", customer.gender);
       navigate("/");
     } catch (err) {
       setError(err.response?.data?.message || "Login failed. Check your credentials.");

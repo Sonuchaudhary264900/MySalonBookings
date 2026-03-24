@@ -11,6 +11,7 @@ import api from '../../services/api';
 import { useNotifications } from '../../context/NotificationContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
 
 const CATEGORY_KEYS = [
   { key: 'all',                  label: 'All',              emoji: '🏠' },
@@ -222,6 +223,7 @@ export default function HomeScreen({ navigation }) {
   const { t } = useLanguage();
   const styles = getStyles(theme);
   const { unreadCount } = useNotifications();
+  const { user } = useAuth();
   const [salons, setSalons]           = useState([]);
   const [allSalons, setAllSalons]     = useState([]);
   const [selectedCats, setSelectedCats] = useState([]);
@@ -235,6 +237,15 @@ export default function HomeScreen({ navigation }) {
   const [locDenied, setLocDenied]     = useState(false);
   const [favoriteIds, setFavoriteIds] = useState(new Set());
   const searchTimer                   = useRef(null);
+
+  // Auto-set gender filter from user profile (runs once when user loads)
+  const genderInitialized = useRef(false);
+  useEffect(() => {
+    if (!genderInitialized.current && user?.gender && (user.gender === 'male' || user.gender === 'female')) {
+      setGenderFilter(user.gender);
+      genderInitialized.current = true;
+    }
+  }, [user]);
 
   // Get location and favorites on mount
   useEffect(() => {

@@ -56,7 +56,10 @@ function Home() {
   const [salons, setSalons]             = useState([]);
   const [allSalons, setAllSalons]       = useState([]);
   const [selectedCats, setSelectedCats] = useState([]);
-  const [genderFilter, setGenderFilter] = useState("all");
+  const [genderFilter, setGenderFilter] = useState(() => {
+    const g = localStorage.getItem("customerGender");
+    return g === "male" || g === "female" ? g : "all";
+  });
   const [sort, setSort]                 = useState("nearby");
   const [loading, setLoading]           = useState(true);
   const [locLoading, setLocLoading]     = useState(false);
