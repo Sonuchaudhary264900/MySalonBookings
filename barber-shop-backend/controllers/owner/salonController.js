@@ -303,10 +303,16 @@ exports.updateSalon = async (req, res) => {
           const duration  = parseInt(sub.duration) || 0;
           if (!sub.name || basePrice <= 0 || duration <= 0) continue;
 
+          // Use per-sub applicableFor if set (gender-split unisex categories),
+          // otherwise fall back to salon-level applicableFor
+          const serviceApplicableFor = Array.isArray(sub.applicableFor) && sub.applicableFor.length > 0
+            ? sub.applicableFor
+            : applicableFor;
+
           const upserted = await Service.findOneAndUpdate(
-            { salonId: salon._id, name: sub.name },
+            { salonId: salon._id, name: sub.name, applicableFor: serviceApplicableFor },
             {
-              $set: { category: categoryName, basePrice, duration, isActive: true, applicableFor },
+              $set: { category: categoryName, basePrice, duration, isActive: true, applicableFor: serviceApplicableFor },
             },
             { upsert: true, new: true }
           );

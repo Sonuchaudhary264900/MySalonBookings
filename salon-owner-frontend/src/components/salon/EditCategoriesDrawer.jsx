@@ -24,7 +24,15 @@ const normalizeSubs = (subs) =>
   (subs || []).map(s =>
     typeof s === 'string'
       ? { name: s, price: '', duration: '' }
-      : { name: s.name, price: s.price ?? '', duration: s.duration ?? '' }
+      : {
+          name: s.name,
+          price: s.price ?? '',
+          duration: s.duration ?? '',
+          ...(s.applicableFor ? {
+            applicableFor: s.applicableFor,
+            genderContext: s.applicableFor.length === 1 ? s.applicableFor[0] : null,
+          } : {}),
+        }
   );
 
 const buildSelections = (catList, offeredCategories) =>
@@ -34,7 +42,7 @@ const buildSelections = (catList, offeredCategories) =>
     return acc;
   }, {});
 
-const EMPTY_MODAL = { open: false, catKey: '', subName: '', price: '', duration: '' };
+const EMPTY_MODAL = { open: false, catKey: '', subName: '', price: '', duration: '', genderContext: null };
 
 const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) => {
   const [gender,         setGender]       = useState(salon?.servedGender || '');
@@ -91,24 +99,29 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
     else                          setUnisexSelections(update);
   };
 
-  const toggleSub = (catKey, sub) => {
+  const toggleSub = (catKey, sub, genderContext = null) => {
     const subs = getSels()[catKey].subServices;
-    const exists = subs.find(s => s.name === sub);
+    const exists = genderContext
+      ? subs.find(s => s.name === sub && s.genderContext === genderContext)
+      : subs.find(s => s.name === sub);
     if (exists) {
-      // deselect immediately
       setSels(prev => ({
         ...prev,
-        [catKey]: { ...prev[catKey], subServices: subs.filter(s => s.name !== sub) },
+        [catKey]: {
+          ...prev[catKey],
+          subServices: genderContext
+            ? subs.filter(s => !(s.name === sub && s.genderContext === genderContext))
+            : subs.filter(s => s.name !== sub),
+        },
       }));
     } else {
-      // open modal to enter price + duration
-      setPriceModal({ open: true, catKey, subName: sub, price: '', duration: '' });
+      setPriceModal({ open: true, catKey, subName: sub, price: '', duration: '', genderContext });
       setTimeout(() => priceRef.current?.focus(), 50);
     }
   };
 
   const confirmSubPrice = () => {
-    const { catKey, subName, price, duration } = priceModal;
+    const { catKey, subName, price, duration, genderContext } = priceModal;
     if (!price || parseFloat(price) <= 0) {
       toast.error('Please enter a valid price');
       priceRef.current?.focus();
@@ -119,11 +132,15 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
       durationRef.current?.focus();
       return;
     }
+    const applicableFor = genderContext === 'male' ? ['male'] : genderContext === 'female' ? ['female'] : null;
     setSels(prev => ({
       ...prev,
       [catKey]: {
         ...prev[catKey],
-        subServices: [...prev[catKey].subServices, { name: subName, price, duration }],
+        subServices: [
+          ...prev[catKey].subServices,
+          { name: subName, price, duration, genderContext, ...(applicableFor ? { applicableFor } : {}) },
+        ],
       },
     }));
     setPriceModal(EMPTY_MODAL);
@@ -139,6 +156,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
       name:     s.name,
       price:    parseFloat(s.price)    || 0,
       duration: parseInt(s.duration)   || 0,
+      ...(s.applicableFor ? { applicableFor: s.applicableFor } : {}),
     }));
 
     if (gender === 'male') {
@@ -296,34 +314,38 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
                         {/* Unisex gender-split chips */}
                         {gender === 'unisex' && cat.maleSubServices ? (
                           <div className="space-y-3">
-                            <div>
-                              <p className="text-xs font-semibold text-blue-700 mb-1.5 flex items-center gap-1">👨 Men</p>
-                              <div className="flex flex-wrap gap-1.5">
-                                {cat.maleSubServices.map(sub => {
-                                  const active = sel.subServices.find(s => s.name === sub);
-                                  return (
-                                    <button key={sub} type="button" onClick={() => toggleSub(cat.key, sub)}
-                                      className={`text-xs px-2.5 py-1 rounded-full border transition ${active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white border-gray-300 text-gray-600 hover:border-gray-400'}`}>
-                                      {sub}{active && active.price > 0 && <span className="ml-1 opacity-80">₹{active.price}</span>}
-                                    </button>
-                                  );
-                                })}
+                            {cat.maleSubServices.length > 0 && (
+                              <div>
+                                <p className="text-xs font-semibold text-blue-700 mb-1.5 flex items-center gap-1">👨 Men</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {cat.maleSubServices.map(sub => {
+                                    const active = sel.subServices.find(s => s.name === sub && s.genderContext === 'male');
+                                    return (
+                                      <button key={sub} type="button" onClick={() => toggleSub(cat.key, sub, 'male')}
+                                        className={`text-xs px-2.5 py-1 rounded-full border transition ${active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white border-gray-300 text-gray-600 hover:border-gray-400'}`}>
+                                        {sub}{active && active.price > 0 && <span className="ml-1 opacity-80">₹{active.price}</span>}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
                               </div>
-                            </div>
-                            <div>
-                              <p className="text-xs font-semibold text-pink-600 mb-1.5 flex items-center gap-1">👩 Women</p>
-                              <div className="flex flex-wrap gap-1.5">
-                                {cat.femaleSubServices.map(sub => {
-                                  const active = sel.subServices.find(s => s.name === sub);
-                                  return (
-                                    <button key={sub} type="button" onClick={() => toggleSub(cat.key, sub)}
-                                      className={`text-xs px-2.5 py-1 rounded-full border transition ${active ? 'bg-pink-500 text-white border-pink-500' : 'bg-white border-gray-300 text-gray-600 hover:border-gray-400'}`}>
-                                      {sub}{active && active.price > 0 && <span className="ml-1 opacity-80">₹{active.price}</span>}
-                                    </button>
-                                  );
-                                })}
+                            )}
+                            {cat.femaleSubServices.length > 0 && (
+                              <div>
+                                <p className="text-xs font-semibold text-pink-600 mb-1.5 flex items-center gap-1">👩 Women</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {cat.femaleSubServices.map(sub => {
+                                    const active = sel.subServices.find(s => s.name === sub && s.genderContext === 'female');
+                                    return (
+                                      <button key={sub} type="button" onClick={() => toggleSub(cat.key, sub, 'female')}
+                                        className={`text-xs px-2.5 py-1 rounded-full border transition ${active ? 'bg-pink-500 text-white border-pink-500' : 'bg-white border-gray-300 text-gray-600 hover:border-gray-400'}`}>
+                                        {sub}{active && active.price > 0 && <span className="ml-1 opacity-80">₹{active.price}</span>}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
                               </div>
-                            </div>
+                            )}
                           </div>
                         ) : (
                           /* Single-gender chips (male / female / no-split unisex) */
@@ -344,8 +366,11 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
                           <div className="mt-3 pt-3 border-t border-gray-100">
                             <p className="text-xs text-gray-500 font-medium mb-1">Selected:</p>
                             <div className="space-y-1">
-                              {sel.subServices.map(s => (
-                                <div key={s.name} className="flex items-center gap-2 text-xs text-gray-600">
+                              {sel.subServices.map((s, i) => (
+                                <div key={i} className="flex items-center gap-2 text-xs text-gray-600">
+                                  {s.genderContext && (
+                                    <span className="shrink-0">{s.genderContext === 'male' ? '👨' : '👩'}</span>
+                                  )}
                                   <span className="flex-1 truncate">{s.name}</span>
                                   <span className="text-blue-600 font-medium shrink-0">₹{s.price}</span>
                                   <span className="text-gray-400 shrink-0">{s.duration} min</span>

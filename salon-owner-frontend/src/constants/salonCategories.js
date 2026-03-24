@@ -141,19 +141,25 @@ export const UNISEX_CATEGORIES = [
     key: 'beard_grooming_unisex',
     label: 'Beard & Grooming',
     icon: '🧔',
-    subServices: [
+    maleSubServices: [
       'Beard Trim', 'Clean Shave', 'Beard Styling / Shape',
       'Designer Beard', 'Beard Coloring', 'Hot Towel Shave',
     ],
+    femaleSubServices: [],
+    get subServices() { return this.maleSubServices; },
   },
   {
     key: 'nail_services_unisex',
     label: 'Nail Services',
     icon: '💅',
-    subServices: [
+    maleSubServices: [
+      'Manicure', 'Pedicure',
+    ],
+    femaleSubServices: [
       'Manicure', 'Pedicure', 'Nail Art', 'Gel Nails',
       'Acrylic Nails', 'Nail Extensions', 'Nail Repair',
     ],
+    get subServices() { return [...new Set([...this.maleSubServices, ...this.femaleSubServices])]; },
   },
   {
     key: 'skin_beauty_unisex',
@@ -173,11 +179,15 @@ export const UNISEX_CATEGORIES = [
     key: 'spa_massage_unisex',
     label: 'Spa & Massage',
     icon: '💆',
-    subServices: [
+    maleSubServices: [
       'Head Massage', 'Neck & Shoulder Massage', 'Full Body Massage',
       'Foot Massage', 'Deep Tissue Massage', 'Relaxation Massage',
-      'Aromatherapy', 'Spa Therapy',
     ],
+    femaleSubServices: [
+      'Head Massage', 'Full Body Massage', 'Foot Massage',
+      'Aromatherapy', 'Spa Therapy', 'Relaxation Massage',
+    ],
+    get subServices() { return [...new Set([...this.maleSubServices, ...this.femaleSubServices])]; },
   },
   {
     key: 'body_grooming_unisex',
@@ -197,27 +207,38 @@ export const UNISEX_CATEGORIES = [
     key: 'bridal_events_unisex',
     label: 'Bridal & Events',
     icon: '👰',
-    subServices: [
+    maleSubServices: [
+      'Groom Makeup', 'Hairstyling (Groom)', 'Shave & Grooming (Groom)',
+    ],
+    femaleSubServices: [
       'Bridal Makeup', 'Engagement Makeup', 'Party Makeup',
       'Hairstyling', 'Saree Draping',
     ],
+    get subServices() { return [...new Set([...this.maleSubServices, ...this.femaleSubServices])]; },
   },
   {
     key: 'kids_services_unisex',
     label: 'Kids Services',
     icon: '👶',
-    subServices: [
-      "Kids' Haircut (Boys)", "Kids' Haircut (Girls)",
-      "Kids' Hair Styling", "Kids' Hair Wash",
+    maleSubServices: [
+      "Kids' Haircut (Boys)", "Kids' Hair Styling (Boys)", "Kids' Hair Wash",
     ],
+    femaleSubServices: [
+      "Kids' Haircut (Girls)", "Kids' Hair Styling (Girls)", "Kids' Hair Wash", "Kids' Braiding",
+    ],
+    get subServices() { return [...new Set([...this.maleSubServices, ...this.femaleSubServices])]; },
   },
   {
     key: 'at_home_services_unisex',
     label: 'At-Home Services',
     icon: '🏠',
-    subServices: [
-      'At-Home Haircut', 'At-Home Facial', 'At-Home Waxing',
+    maleSubServices: [
+      'At-Home Haircut (Men)', 'At-Home Shave', 'At-Home Massage', 'At-Home Facial (Men)',
+    ],
+    femaleSubServices: [
+      'At-Home Haircut (Women)', 'At-Home Facial', 'At-Home Waxing',
       'At-Home Massage', 'At-Home Bridal',
     ],
+    get subServices() { return [...new Set([...this.maleSubServices, ...this.femaleSubServices])]; },
   },
 ];
