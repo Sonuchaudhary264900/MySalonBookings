@@ -62,7 +62,7 @@ export default function ProfileScreen() {
 
   const [activeSection, setActiveSection] = useState(null);
   const [editing, setEditing] = useState(false);
-  const [profileForm, setProfileForm] = useState({ name: '', email: '', phone: '' });
+  const [profileForm, setProfileForm] = useState({ name: '', email: '', phone: '', gender: '' });
   const [profileLoading, setProfileLoading] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
 
@@ -85,7 +85,7 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     if (user) {
-      setProfileForm({ name: user.name || '', email: user.email || '', phone: user.phone || '' });
+      setProfileForm({ name: user.name || '', email: user.email || '', phone: user.phone || '', gender: user.gender || '' });
     }
   }, [user]);
 
@@ -336,6 +336,7 @@ img.src=${qrApiUrl};
               {[
                 { icon: 'mail-outline', color: '#3b82f6', label: 'Email', value: user?.email },
                 { icon: 'call-outline', color: '#10b981', label: 'Phone', value: user?.phone },
+                { icon: 'person-outline', color: '#f59e0b', label: 'Gender', value: user?.gender ? user.gender.charAt(0).toUpperCase() + user.gender.slice(1) : null },
                 salon && { icon: 'business-outline', color: '#8b5cf6', label: 'Salon', value: salon.name },
                 salon && { icon: 'location-outline', color: '#ef4444', label: 'Address', value: salon.address },
               ].filter(Boolean).map(({ icon, color, label, value }) => (
@@ -374,12 +375,39 @@ img.src=${qrApiUrl};
                   </View>
                 </View>
               ))}
+              <View style={styles.inputField}>
+                <Text style={styles.inputLabel}>Gender</Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {[
+                    { value: 'male', label: 'Male', emoji: '👨' },
+                    { value: 'female', label: 'Female', emoji: '👩' },
+                    { value: 'other', label: 'Other', emoji: '🧑' },
+                  ].map(opt => (
+                    <TouchableOpacity
+                      key={opt.value}
+                      onPress={() => setProfileForm(p => ({ ...p, gender: opt.value }))}
+                      style={{
+                        flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+                        paddingVertical: 8, borderRadius: 8, borderWidth: 1.5,
+                        borderColor: profileForm.gender === opt.value ? '#3b82f6' : theme.border,
+                        backgroundColor: profileForm.gender === opt.value ? '#eff6ff' : theme.bg,
+                        gap: 4,
+                      }}
+                    >
+                      <Text style={{ fontSize: 14 }}>{opt.emoji}</Text>
+                      <Text style={{ fontSize: 13, color: profileForm.gender === opt.value ? '#3b82f6' : theme.text, fontWeight: profileForm.gender === opt.value ? '600' : '400' }}>
+                        {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
               <View style={styles.row}>
                 <TouchableOpacity style={[styles.btn, styles.btnPrimary, { flex: 1, marginRight: 6 }]} onPress={handleSaveProfile} disabled={profileLoading}>
                   {profileLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.btnPrimaryText}>Save Changes</Text>}
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.btn, styles.btnOutline, { flex: 1, borderColor: theme.border }]} disabled={profileLoading}
-                  onPress={() => { setEditing(false); if (user) setProfileForm({ name: user.name || '', email: user.email || '', phone: user.phone || '' }); }}>
+                  onPress={() => { setEditing(false); if (user) setProfileForm({ name: user.name || '', email: user.email || '', phone: user.phone || '', gender: user.gender || '' }); }}>
                   <Text style={[styles.btnOutlineText, { color: theme.text }]}>Cancel</Text>
                 </TouchableOpacity>
               </View>
