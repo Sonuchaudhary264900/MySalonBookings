@@ -61,6 +61,11 @@ const ownerSchema = new mongoose.Schema(
       trim: true,
       minlength: [2, 'Name must be at least 2 characters'],
     },
+    gender: {
+      type: String,
+      enum: ['male', 'female', 'other'],
+      default: null,
+    },
     profilePhoto: {
       type: String, // Cloudinary URL
       default: null,

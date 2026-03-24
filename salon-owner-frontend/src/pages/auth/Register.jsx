@@ -39,10 +39,12 @@ const Register = () => {
 
   // Step 3: details
   const [name, setName] = useState('');
+  const [gender, setGender] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [nameError, setNameError] = useState('');
+  const [genderError, setGenderError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
@@ -163,11 +165,13 @@ const Register = () => {
     e.preventDefault();
     setError('');
     setNameError('');
+    setGenderError('');
     setEmailError('');
     setPasswordError('');
     setConfirmPasswordError('');
 
     if (!name.trim()) { setNameError('Name is required'); return; }
+    if (!gender) { setGenderError('Please select your gender'); return; }
     if (!email.trim()) { setEmailError('Email is required'); return; }
     if (!/\S+@\S+\.\S+/.test(email)) { setEmailError('Enter a valid email'); return; }
     if (!password) { setPasswordError('Password is required'); return; }
@@ -180,7 +184,7 @@ const Register = () => {
 
     setRegLoading(true);
     try {
-      const { token } = await register(firebaseTokenRef.current, name.trim(), email.trim().toLowerCase(), password);
+      const { token } = await register(firebaseTokenRef.current, name.trim(), email.trim().toLowerCase(), password, gender);
       // Apply referral code silently if provided
       if (referralCode.trim() && token) {
         try {
@@ -349,6 +353,36 @@ const Register = () => {
                 disabled={regLoading}
                 required
               />
+
+              {/* Gender selector */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Gender <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { value: 'male',   label: 'Male',   emoji: '👨' },
+                    { value: 'female', label: 'Female', emoji: '👩' },
+                    { value: 'other',  label: 'Other',  emoji: '🧑' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      disabled={regLoading}
+                      onClick={() => { setGender(opt.value); setGenderError(''); }}
+                      className={`flex flex-col items-center gap-1 py-2.5 rounded-lg border-2 text-sm font-medium transition ${
+                        gender === opt.value
+                          ? 'border-blue-500 bg-blue-50 text-blue-700'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                      } ${regLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                    >
+                      <span className="text-xl">{opt.emoji}</span>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                {genderError && <p className="text-sm text-red-600">{genderError}</p>}
+              </div>
 
               <Input
                 label="Email Address"

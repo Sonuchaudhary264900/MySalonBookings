@@ -898,7 +898,7 @@ const SalonRegistration = () => {
                 onDocumentsChange={(docs) =>
                   setStep4Data(prev => ({ ...prev, businessLicense: docs }))
                 }
-                description="PDF, JPG, PNG • Up to 20MB"
+                description="PDF, JPG, PNG • Up to 5MB"
                 disabled={loading}
               />
 
@@ -909,7 +909,7 @@ const SalonRegistration = () => {
                 onDocumentsChange={(docs) =>
                   setStep4Data(prev => ({ ...prev, businessRegistration: docs }))
                 }
-                description="PDF, JPG, PNG • Up to 20MB"
+                description="PDF, JPG, PNG • Up to 5MB"
                 disabled={loading}
               />
             </div>

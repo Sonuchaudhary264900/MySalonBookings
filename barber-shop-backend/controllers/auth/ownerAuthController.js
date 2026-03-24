@@ -440,7 +440,7 @@ exports.getCurrentOwner = async (req, res) => {
 // ===================================================
 exports.updateProfile = async (req, res) => {
   try {
-    const { name, email, profilePhoto } = req.body;
+    const { name, email, profilePhoto, gender } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json(
@@ -467,6 +467,7 @@ exports.updateProfile = async (req, res) => {
 
     owner.name = name.trim();
     if (profilePhoto !== undefined) owner.profilePhoto = profilePhoto;
+    if (gender && ['male', 'female', 'other'].includes(gender)) owner.gender = gender;
     await owner.save();
 
     res.json(
@@ -624,7 +625,7 @@ exports.firebaseResetPassword = async (req, res) => {
 // ===================================================
 exports.firebaseRegister = async (req, res) => {
   try {
-    const { firebaseToken, name, email, password } = req.body;
+    const { firebaseToken, name, email, password, gender } = req.body;
 
     if (!firebaseToken) {
       return res.status(400).json(
@@ -639,6 +640,7 @@ exports.firebaseRegister = async (req, res) => {
     if (!password || !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/.test(password)) {
       errors.push('Password must be at least 8 characters with uppercase, lowercase, number, and special character');
     }
+    if (gender && !['male', 'female', 'other'].includes(gender)) errors.push('Gender must be male, female, or other');
     if (errors.length > 0) {
       return res.status(400).json(
         formatErrorResponse(messages.GENERIC.VALIDATION_ERROR, 400, errors)
@@ -667,6 +669,7 @@ exports.firebaseRegister = async (req, res) => {
       name: name.trim(),
       email: email.toLowerCase().trim(),
       password,
+      gender: gender || null,
       status: 'mobile_verified',
       role: 'owner',
     });

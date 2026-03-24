@@ -38,7 +38,9 @@ const DocumentUpload = ({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
+      <p className="text-sm font-medium text-gray-700">{label}</p>
+
       {/* Upload button */}
       <div className="flex items-center gap-3">
         <button
@@ -52,7 +54,7 @@ const DocumentUpload = ({
           }`}
         >
           <FileText className="w-4 h-4" />
-          {label}
+          Choose File
         </button>
         {documents.length > 0 && (
           <span className="text-sm text-gray-500">
@@ -70,7 +72,7 @@ const DocumentUpload = ({
         />
       </div>
 
-      <p className="text-xs text-gray-400">{description || 'PDF, JPG, PNG • Up to 20MB'}</p>
+      <p className="text-xs text-gray-400">{description || 'PDF, JPG, PNG • Up to 5MB'}</p>
 
       {/* Preview list */}
       {documents.length > 0 && (
