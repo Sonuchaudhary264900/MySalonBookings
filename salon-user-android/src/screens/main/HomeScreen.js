@@ -13,13 +13,26 @@ import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 
 const CATEGORY_KEYS = [
-  { key: 'all',        labelKey: 'catAll',       icon: 'storefront-outline' },
-  { key: 'barber',     labelKey: 'catBarber',    icon: 'cut-outline' },
-  { key: 'hair_salon', labelKey: 'catHairSalon', icon: 'color-wand-outline' },
-  { key: 'spa',        labelKey: 'catSpa',       icon: 'leaf-outline' },
-  { key: 'massage',    labelKey: 'catMassage',   icon: 'body-outline' },
-  { key: 'other',      labelKey: 'catOther',     icon: 'ellipsis-horizontal-outline' },
+  { key: 'all',                  label: 'All',              emoji: '🏠' },
+  { key: 'Hair Services',        label: 'Hair Services',    emoji: '✂️' },
+  { key: 'Beard & Grooming',     label: 'Beard & Grooming', emoji: '🧔' },
+  { key: 'Nail Services',        label: 'Nail Services',    emoji: '💅' },
+  { key: 'Skin & Face / Beauty', label: 'Skin',             emoji: '🧖' },
+  { key: 'Spa & Massage',        label: 'Spa & Massage',    emoji: '💆' },
+  { key: 'Body Grooming',        label: 'Body Grooming',    emoji: '🧴' },
+  { key: 'Bridal & Events',      label: 'Bridal & Events',  emoji: '👰' },
+  { key: 'Kids Services',        label: 'Kids',             emoji: '👶' },
+  { key: 'At-Home Services',     label: 'At-Home',          emoji: '🏡' },
 ];
+
+const CATEGORY_ALIASES = {
+  'Hair Services':        ['Hair Services', 'Hair Services (Men)', 'Hair Services (Women)'],
+  'Skin & Face / Beauty': ['Skin & Face / Beauty', 'Skin & Face (Men Grooming)', 'Skin & Beauty'],
+  'Spa & Massage':        ['Spa & Massage', 'Spa & Relaxation'],
+};
+
+const MALE_ONLY_CHIPS   = ['Beard & Grooming', 'Body Grooming'];
+const FEMALE_ONLY_CHIPS = ['Bridal & Events'];
 
 const SORT_KEYS = [
   { key: 'nearby',  labelKey: 'sortNearest',    icon: 'location-outline' },
@@ -211,7 +224,7 @@ export default function HomeScreen({ navigation }) {
   const { unreadCount } = useNotifications();
   const [salons, setSalons]           = useState([]);
   const [allSalons, setAllSalons]     = useState([]);
-  const [category, setCategory]       = useState('all');
+  const [selectedCats, setSelectedCats] = useState([]);
   const [genderFilter, setGenderFilter] = useState('all');
   const [sort, setSort]               = useState('nearby');
   const [loading, setLoading]         = useState(true);
@@ -245,9 +258,16 @@ export default function HomeScreen({ navigation }) {
     }).catch(() => {});
   }, []);
 
-  const applyFilters = (data, cat, gender) => {
+  const applyFilters = (data, cats, gender) => {
     let result = data;
-    if (cat !== 'all') result = result.filter(s => s.category === cat);
+    if (cats.length > 0) {
+      result = result.filter(s =>
+        cats.some(cat => {
+          const aliases = CATEGORY_ALIASES[cat] || [cat];
+          return (s.offeredCategoryNames || []).some(n => aliases.includes(n));
+        })
+      );
+    }
     if (gender === 'unisex') {
       result = result.filter(s => (s.servedGender || 'unisex') === 'unisex');
     } else if (gender !== 'all') {
@@ -259,7 +279,7 @@ export default function HomeScreen({ navigation }) {
     return result;
   };
 
-  const fetchSalons = async (sortKey, coords, cat, gender) => {
+  const fetchSalons = async (sortKey, coords, cats, gender) => {
     if (!coords) return;
     setLoading(true);
     setSearchText('');
@@ -267,7 +287,7 @@ export default function HomeScreen({ navigation }) {
       const res = await api.get(`/public/salons/nearby?latitude=${coords.lat}&longitude=${coords.lng}&sort=${sortKey}`);
       const data = res.data.data?.salons || res.data.data || [];
       setAllSalons(data);
-      setSalons(applyFilters(data, cat ?? category, gender ?? genderFilter));
+      setSalons(applyFilters(data, cats ?? selectedCats, gender ?? genderFilter));
     } catch {
       setAllSalons([]);
       setSalons([]);
@@ -278,18 +298,24 @@ export default function HomeScreen({ navigation }) {
 
   const handleSort = (key) => {
     setSort(key);
-    setCategory('all');
+    setSelectedCats([]);
     setGenderFilter('all');
-    fetchSalons(key, userCoords, 'all', 'all');
+    fetchSalons(key, userCoords, [], 'all');
   };
 
   const handleGenderFilter = (gender) => {
+    const newCats = selectedCats.filter(k => {
+      if (gender === 'female' && MALE_ONLY_CHIPS.includes(k))   return false;
+      if (gender === 'male'   && FEMALE_ONLY_CHIPS.includes(k)) return false;
+      return true;
+    });
+    setSelectedCats(newCats);
     setGenderFilter(gender);
     if (searchText.trim()) {
       if (searchTimer.current) clearTimeout(searchTimer.current);
-      searchTimer.current = setTimeout(() => runSearch(searchText, category, userCoords, gender), 0);
+      searchTimer.current = setTimeout(() => runSearch(searchText, newCats, userCoords, gender), 0);
     } else {
-      setSalons(applyFilters(allSalons, category, gender));
+      setSalons(applyFilters(allSalons, newCats, gender));
     }
   };
 
@@ -306,9 +332,10 @@ export default function HomeScreen({ navigation }) {
     });
   }, []);
 
-  const runSearch = useCallback(async (text, cat, coords, gender) => {
+  const runSearch = useCallback(async (text, cats, coords, gender) => {
     if (!text.trim()) return;
     setSearching(true);
+    const activeCats   = cats   ?? selectedCats;
     const activeGender = gender ?? genderFilter;
     try {
       const params = new URLSearchParams({ q: text.trim(), limit: '50' });
@@ -329,7 +356,7 @@ export default function HomeScreen({ navigation }) {
         if (id && !seen.has(id)) { seen.add(id); merged.push(s); }
       }
 
-      setSalons(sortByNearest(applyFilters(merged, cat ?? category, activeGender), coords));
+      setSalons(sortByNearest(applyFilters(merged, activeCats, activeGender), coords));
     } catch {
       const q = text.toLowerCase();
       const localResults = allSalons.filter(s =>
@@ -337,19 +364,27 @@ export default function HomeScreen({ navigation }) {
         s.address?.toLowerCase().includes(q) ||
         s.city?.toLowerCase().includes(q)
       );
-      setSalons(sortByNearest(applyFilters(localResults, cat ?? category, activeGender), coords));
+      setSalons(sortByNearest(applyFilters(localResults, activeCats, activeGender), coords));
     } finally {
       setSearching(false);
     }
-  }, [allSalons, sortByNearest, genderFilter, category]);
+  }, [allSalons, sortByNearest, genderFilter, selectedCats]);
 
   const handleCategory = (cat) => {
-    setCategory(cat);
+    let newCats;
+    if (cat === 'all') {
+      newCats = [];
+    } else {
+      newCats = selectedCats.includes(cat)
+        ? selectedCats.filter(c => c !== cat)
+        : [...selectedCats, cat];
+    }
+    setSelectedCats(newCats);
     if (searchText.trim()) {
       if (searchTimer.current) clearTimeout(searchTimer.current);
-      searchTimer.current = setTimeout(() => runSearch(searchText, cat, userCoords, genderFilter), 0);
+      searchTimer.current = setTimeout(() => runSearch(searchText, newCats, userCoords, genderFilter), 0);
     } else {
-      setSalons(applyFilters(allSalons, cat, genderFilter));
+      setSalons(applyFilters(allSalons, newCats, genderFilter));
     }
   };
 
@@ -357,11 +392,11 @@ export default function HomeScreen({ navigation }) {
     setSearchText(text);
     if (searchTimer.current) clearTimeout(searchTimer.current);
     if (!text.trim()) {
-      setSalons(applyFilters(allSalons, category, genderFilter));
+      setSalons(applyFilters(allSalons, selectedCats, genderFilter));
       return;
     }
-    searchTimer.current = setTimeout(() => runSearch(text, category, userCoords, genderFilter), 400);
-  }, [allSalons, category, genderFilter, userCoords, runSearch]);
+    searchTimer.current = setTimeout(() => runSearch(text, selectedCats, userCoords, genderFilter), 400);
+  }, [allSalons, selectedCats, genderFilter, userCoords, runSearch]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -473,8 +508,13 @@ export default function HomeScreen({ navigation }) {
                 contentContainerStyle={styles.chipsContent}
                 nestedScrollEnabled={true}
               >
-                {CATEGORY_KEYS.map((c) => {
-                  const active = category === c.key;
+                {CATEGORY_KEYS.filter(({ key }) => {
+                  if (key === 'all') return true;
+                  if (genderFilter === 'female' && MALE_ONLY_CHIPS.includes(key))   return false;
+                  if (genderFilter === 'male'   && FEMALE_ONLY_CHIPS.includes(key)) return false;
+                  return true;
+                }).map((c) => {
+                  const active = c.key === 'all' ? selectedCats.length === 0 : selectedCats.includes(c.key);
                   return (
                     <TouchableOpacity
                       key={c.key}
@@ -482,29 +522,13 @@ export default function HomeScreen({ navigation }) {
                       onPress={() => handleCategory(c.key)}
                       activeOpacity={0.75}
                     >
-                      <Ionicons name={c.icon} size={14} color={active ? '#fff' : theme.subText} />
-                      <Text style={[styles.chipText, active && styles.chipTextActive]}>{t(c.labelKey)}</Text>
+                      <Text style={{ fontSize: 14 }}>{c.emoji}</Text>
+                      <Text style={[styles.chipText, active && styles.chipTextActive]}>{c.label}</Text>
                     </TouchableOpacity>
                   );
                 })}
               </ScrollView>
 
-              {/* Sort bar */}
-              {!searchText && (
-                <View style={styles.sortRow}>
-                  {SORT_KEYS.map((s) => (
-                    <TouchableOpacity
-                      key={s.key}
-                      style={[styles.sortBtn, sort === s.key && styles.sortBtnActive]}
-                      onPress={() => handleSort(s.key)}
-                      disabled={!userCoords}
-                    >
-                      <Ionicons name={s.icon} size={13} color={sort === s.key ? theme.accent : theme.subText} />
-                      <Text style={[styles.sortText, sort === s.key && styles.sortTextActive]}>{t(s.labelKey)}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
 
               {/* Gender filter chips */}
               <ScrollView
@@ -544,11 +568,33 @@ export default function HomeScreen({ navigation }) {
                 </View>
               )}
 
-              {/* Results count */}
+              {/* Results count + sort picker */}
               {!loading && salons.length > 0 && (
-                <Text style={styles.resultsCount}>
-                  {salons.length} salon{salons.length !== 1 ? 's' : ''} {searchText ? 'found' : 'nearby'}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, marginBottom: 4 }}>
+                  <Text style={styles.resultsCount}>
+                    {salons.length} salon{salons.length !== 1 ? 's' : ''} {searchText ? 'found' : 'nearby'}
+                  </Text>
+                  {!searchText && userCoords && (
+                    <View style={{ flexDirection: 'row', gap: 4 }}>
+                      {SORT_KEYS.map(s => (
+                        <TouchableOpacity
+                          key={s.key}
+                          onPress={() => handleSort(s.key)}
+                          style={{
+                            paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10,
+                            backgroundColor: sort === s.key ? '#4f46e5' : 'transparent',
+                            borderWidth: 1,
+                            borderColor: sort === s.key ? '#4f46e5' : theme.border,
+                          }}
+                        >
+                          <Text style={{ fontSize: 11, fontWeight: '600', color: sort === s.key ? '#fff' : theme.subText }}>
+                            {s.key === 'nearby' ? '📍' : s.key === 'booked' ? '🔥' : '⭐'} {t(s.labelKey)}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                </View>
               )}
             </View>
           }
@@ -592,7 +638,7 @@ const getStyles = (t) => StyleSheet.create({
   sortTextActive: { color: t.accent, fontWeight: '700' },
   noLocBox: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16, marginBottom: 8, backgroundColor: '#fef3c7', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#fde68a' },
   noLocText: { fontSize: 13, color: '#92400e', flex: 1 },
-  resultsCount: { fontSize: 12, color: t.subText, paddingHorizontal: 16, marginBottom: 4 },
+  resultsCount: { fontSize: 12, color: t.subText },
   emptyBox: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, gap: 8 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: t.text },
   emptyText: { fontSize: 14, color: t.subText, textAlign: 'center', lineHeight: 20 },
