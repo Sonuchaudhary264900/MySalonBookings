@@ -42,7 +42,7 @@ function WorkingHoursRow({ day, hours, styles }) {
 
 export default function SalonDetailsScreen({ route, navigation }) {
   const { salonId } = route.params;
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -54,6 +54,12 @@ export default function SalonDetailsScreen({ route, navigation }) {
   const [selectedServices, setSelectedServices] = useState([]);
   const [isFavorite, setIsFavorite]       = useState(false);
   const [favLoading, setFavLoading]       = useState(false);
+
+  // Default gender filter to logged-in user's gender
+  const userGender = user?.gender;
+  const [serviceGenderFilter, setServiceGenderFilter] = useState(
+    userGender === 'male' || userGender === 'female' ? userGender : 'all'
+  );
 
   useEffect(() => {
     Promise.all([loadSalon(), loadServices(), loadReviews()]).finally(() => setLoading(false));
@@ -239,41 +245,82 @@ export default function SalonDetailsScreen({ route, navigation }) {
         <View style={{ paddingHorizontal: 16, paddingBottom: selectedServices.length > 0 ? 100 : 32 }}>
 
           {/* Services Tab */}
-          {activeTab === 'Services' && (
-            <View style={{ gap: 10 }}>
-              {services.length === 0 ? (
-                <View style={styles.emptyTab}>
-                  <Ionicons name="cut-outline" size={36} color="#d1d5db" />
-                  <Text style={styles.emptyTabText}>No services listed</Text>
-                </View>
-              ) : services.map(svc => {
-                const selected = selectedServices.some(s => s._id === svc._id);
-                return (
-                  <TouchableOpacity
-                    key={svc._id}
-                    style={[styles.serviceCard, selected && styles.serviceCardSelected]}
-                    onPress={() => toggleService(svc)}
-                    activeOpacity={0.85}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <View style={styles.serviceTop}>
-                        <Text style={[styles.serviceName, selected && { color: '#2563eb' }]}>{svc.name}</Text>
-                        <Text style={styles.servicePrice}>₹{svc.basePrice || svc.price}</Text>
+          {activeTab === 'Services' && (() => {
+            const isUnisex = salon.servedGender === 'unisex';
+            const visibleServices = !isUnisex || serviceGenderFilter === 'all'
+              ? services
+              : services.filter(s => {
+                  const af = s.applicableFor || [];
+                  if (serviceGenderFilter === 'male')   return af.includes('male')   || af.length === 0;
+                  if (serviceGenderFilter === 'female') return af.includes('female') || af.length === 0;
+                  return true;
+                });
+
+            return (
+              <View style={{ gap: 10 }}>
+                {/* Gender filter — only for unisex salons */}
+                {isUnisex && services.length > 0 && (
+                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
+                    {[
+                      { key: 'all',    label: 'All',    emoji: '👥' },
+                      { key: 'male',   label: 'Men',    emoji: '👨' },
+                      { key: 'female', label: 'Women',  emoji: '👩' },
+                    ].map(({ key, label, emoji }) => (
+                      <TouchableOpacity
+                        key={key}
+                        onPress={() => setServiceGenderFilter(key)}
+                        style={{
+                          flexDirection: 'row', alignItems: 'center', gap: 4,
+                          paddingHorizontal: 12, paddingVertical: 7,
+                          borderRadius: 20, borderWidth: 1.5,
+                          backgroundColor: serviceGenderFilter === key ? '#4f46e5' : '#fff',
+                          borderColor: serviceGenderFilter === key ? '#4f46e5' : '#d1d5db',
+                        }}
+                      >
+                        <Text style={{ fontSize: 13 }}>{emoji}</Text>
+                        <Text style={{
+                          fontSize: 12, fontWeight: '600',
+                          color: serviceGenderFilter === key ? '#fff' : '#6b7280',
+                        }}>{label}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+
+                {visibleServices.length === 0 ? (
+                  <View style={styles.emptyTab}>
+                    <Ionicons name="cut-outline" size={36} color="#d1d5db" />
+                    <Text style={styles.emptyTabText}>No services listed</Text>
+                  </View>
+                ) : visibleServices.map(svc => {
+                  const selected = selectedServices.some(s => s._id === svc._id);
+                  return (
+                    <TouchableOpacity
+                      key={svc._id}
+                      style={[styles.serviceCard, selected && styles.serviceCardSelected]}
+                      onPress={() => toggleService(svc)}
+                      activeOpacity={0.85}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <View style={styles.serviceTop}>
+                          <Text style={[styles.serviceName, selected && { color: '#2563eb' }]}>{svc.name}</Text>
+                          <Text style={styles.servicePrice}>₹{svc.basePrice || svc.price}</Text>
+                        </View>
+                        <View style={styles.serviceMeta}>
+                          <Ionicons name="time-outline" size={12} color="#9ca3af" />
+                          <Text style={styles.serviceMetaText}>{svc.duration} min</Text>
+                          {svc.description && <Text style={styles.serviceDesc} numberOfLines={1}>· {svc.description}</Text>}
+                        </View>
                       </View>
-                      <View style={styles.serviceMeta}>
-                        <Ionicons name="time-outline" size={12} color="#9ca3af" />
-                        <Text style={styles.serviceMetaText}>{svc.duration} min</Text>
-                        {svc.description && <Text style={styles.serviceDesc} numberOfLines={1}>· {svc.description}</Text>}
+                      <View style={[styles.checkbox, selected && styles.checkboxChecked]}>
+                        {selected && <Ionicons name="checkmark" size={14} color="#fff" />}
                       </View>
-                    </View>
-                    <View style={[styles.checkbox, selected && styles.checkboxChecked]}>
-                      {selected && <Ionicons name="checkmark" size={14} color="#fff" />}
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            );
+          })()}
 
           {/* Reviews Tab */}
           {activeTab === 'Reviews' && (
