@@ -227,12 +227,22 @@ function SalonDetails() {
         {/* ── SERVICES TAB ──────────────────── */}
         {activeTab === "Services" && (() => {
           const isUnisex = salon.servedGender === "unisex";
+
+          // Category-level gender overrides — these categories are inherently gendered
+          // regardless of what applicableFor says in the DB
+          const MALE_ONLY_CATS   = ["Beard & Grooming", "Body Grooming"];
+          const FEMALE_ONLY_CATS = ["Bridal & Events"];
+
           const visibleServices = !isUnisex || serviceGenderFilter === "all"
             ? services
             : services.filter((s) => {
+                const cat = s.category || "";
+                if (serviceGenderFilter === "female" && MALE_ONLY_CATS.includes(cat))   return false;
+                if (serviceGenderFilter === "male"   && FEMALE_ONLY_CATS.includes(cat)) return false;
                 const af = s.applicableFor || [];
-                if (serviceGenderFilter === "male")   return af.includes("male")   || af.length === 0;
-                if (serviceGenderFilter === "female") return af.includes("female") || af.length === 0;
+                if (af.length === 0) return true; // no restriction
+                if (serviceGenderFilter === "male")   return af.includes("male");
+                if (serviceGenderFilter === "female") return af.includes("female");
                 return true;
               });
 
