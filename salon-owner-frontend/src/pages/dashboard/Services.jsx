@@ -207,25 +207,71 @@ const Services = () => {
           </div>
         )}
 
-        {/* Services Grid */}
+        {/* Services — grouped by category */}
         {loading && !services?.length ? (
           <div className="text-center py-12">
             <p className="text-gray-500">Loading services...</p>
           </div>
-        ) : (
-          <div className="flex flex-col gap-1.5">
-            {filteredServices.map(service => (
-              <ServiceCard
-                key={service._id || service.id}
-                service={service}
-                onEdit={handleOpenModal}
-                onDelete={handleDelete}
-                onToggle={handleToggle}
-                loading={loading}
-              />
-            ))}
-          </div>
-        )}
+        ) : filteredServices.length === 0 ? null : (() => {
+          const CATEGORY_ICON = {
+            'Hair Services': '✂️', 'Hair Services (Men)': '✂️', 'Hair Services (Women)': '✂️',
+            'Beard & Grooming': '🧔',
+            'Nail Services': '💅',
+            'Skin & Face / Beauty': '🧖', 'Skin & Face (Men Grooming)': '🧴', 'Skin & Beauty': '🧖',
+            'Spa & Massage': '💆', 'Spa & Relaxation': '💆',
+            'Body Grooming': '🧴',
+            'Bridal & Events': '👰',
+            'Kids Services': '👶',
+            'At-Home Services': '🏠',
+          };
+          const CATEGORY_ORDER = [
+            'Hair Services', 'Hair Services (Men)', 'Hair Services (Women)',
+            'Beard & Grooming', 'Nail Services',
+            'Skin & Face / Beauty', 'Skin & Face (Men Grooming)', 'Skin & Beauty',
+            'Spa & Massage', 'Spa & Relaxation', 'Body Grooming',
+            'Bridal & Events', 'Kids Services', 'At-Home Services',
+          ];
+
+          const grouped = filteredServices.reduce((acc, svc) => {
+            const cat = svc.category || 'Other';
+            if (!acc[cat]) acc[cat] = [];
+            acc[cat].push(svc);
+            return acc;
+          }, {});
+
+          const sorted = Object.entries(grouped).sort(([a], [b]) => {
+            const ai = CATEGORY_ORDER.indexOf(a), bi = CATEGORY_ORDER.indexOf(b);
+            if (ai === -1 && bi === -1) return a.localeCompare(b);
+            if (ai === -1) return 1; if (bi === -1) return -1;
+            return ai - bi;
+          });
+
+          return (
+            <div className="space-y-4">
+              {sorted.map(([cat, svcs]) => (
+                <div key={cat} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-200">
+                    <span className="text-base">{CATEGORY_ICON[cat] || '✨'}</span>
+                    <span className="text-sm font-semibold text-gray-700">{cat}</span>
+                    <span className="text-xs text-gray-400 ml-auto">{svcs.length}</span>
+                  </div>
+                  <div className="divide-y divide-gray-100">
+                    {svcs.map(service => (
+                      <ServiceCard
+                        key={service._id || service.id}
+                        service={service}
+                        onEdit={handleOpenModal}
+                        onDelete={handleDelete}
+                        onToggle={handleToggle}
+                        loading={loading}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
 
         {/* Stats */}
         {!loading && services?.length > 0 && (

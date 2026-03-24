@@ -29,7 +29,7 @@ const ServiceCard = ({
 
   return (
     <>
-    <div className={`bg-white rounded-lg border px-3 py-2 flex items-center gap-3 hover:shadow-sm transition ${!isActive ? 'opacity-50' : ''}`}>
+    <div className={`bg-white px-4 py-2.5 flex items-center gap-3 hover:bg-gray-50 transition ${!isActive ? 'opacity-50' : ''}`}>
       {/* Name + meta */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 flex-wrap">
