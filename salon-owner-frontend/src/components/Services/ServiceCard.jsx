@@ -73,7 +73,7 @@ const ServiceCard = ({
     {showConfirm && (
       <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
         <div className="absolute inset-0 bg-black/50" onClick={() => setShowConfirm(false)} />
-        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+        <div className="relative z-10 bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
               <AlertTriangle className="w-5 h-5 text-orange-500" />
