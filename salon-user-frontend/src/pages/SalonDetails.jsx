@@ -236,6 +236,31 @@ function SalonDetails() {
                 return true;
               });
 
+          const categoryIconMap = {
+            "Hair Services":          "✂️",
+            "Hair Services (Men)":    "✂️",
+            "Hair Services (Women)":  "✂️",
+            "Beard & Grooming":       "🧔",
+            "Nail Services":          "💅",
+            "Skin & Face / Beauty":   "🧖",
+            "Skin & Face (Men Grooming)": "🧴",
+            "Skin & Beauty":          "🧖",
+            "Spa & Massage":          "💆",
+            "Spa & Relaxation":       "💆",
+            "Body Grooming":          "🧴",
+            "Bridal & Events":        "👰",
+            "Kids Services":          "👶",
+            "At-Home Services":       "🏠",
+          };
+
+          // Group by category, preserving order of first appearance
+          const grouped = visibleServices.reduce((acc, svc) => {
+            const cat = svc.category || "Other";
+            if (!acc[cat]) acc[cat] = [];
+            acc[cat].push(svc);
+            return acc;
+          }, {});
+
           return (
             <div className="fade-in">
               {/* Gender filter — only for unisex salons */}
@@ -267,15 +292,26 @@ function SalonDetails() {
                   <p className="text-slate-500">No services listed yet.</p>
                 </div>
               ) : (
-                <div className="space-y-3 pb-32">
-                  {visibleServices.map((service) => (
-                    <ServiceCard
-                      key={service._id}
-                      service={service}
-                      isSelected={selectedServices.some(s => s._id === service._id)}
-                      onToggle={() => toggleService(service)}
-                      showGenderBadge={isUnisex}
-                    />
+                <div className="space-y-6 pb-32">
+                  {Object.entries(grouped).map(([cat, catServices]) => (
+                    <div key={cat}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-lg">{categoryIconMap[cat] || "✨"}</span>
+                        <h3 className="text-sm font-bold text-slate-700">{cat}</h3>
+                        <span className="text-xs text-slate-400">({catServices.length})</span>
+                      </div>
+                      <div className="space-y-2">
+                        {catServices.map((service) => (
+                          <ServiceCard
+                            key={service._id}
+                            service={service}
+                            isSelected={selectedServices.some(s => s._id === service._id)}
+                            onToggle={() => toggleService(service)}
+                            showGenderBadge={isUnisex}
+                          />
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}

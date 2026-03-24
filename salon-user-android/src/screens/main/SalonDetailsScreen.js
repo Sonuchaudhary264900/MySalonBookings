@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Image, ActivityIndicator, Linking, Alert, FlatList,
+  Image, ActivityIndicator, Linking, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -256,8 +256,24 @@ export default function SalonDetailsScreen({ route, navigation }) {
                   return true;
                 });
 
+            const categoryIconMap = {
+              'Hair Services': '✂️', 'Hair Services (Men)': '✂️', 'Hair Services (Women)': '✂️',
+              'Beard & Grooming': '🧔', 'Nail Services': '💅',
+              'Skin & Face / Beauty': '🧖', 'Skin & Face (Men Grooming)': '🧴', 'Skin & Beauty': '🧖',
+              'Spa & Massage': '💆', 'Spa & Relaxation': '💆',
+              'Body Grooming': '🧴', 'Bridal & Events': '👰',
+              'Kids Services': '👶', 'At-Home Services': '🏠',
+            };
+
+            const grouped = visibleServices.reduce((acc, svc) => {
+              const cat = svc.category || 'Other';
+              if (!acc[cat]) acc[cat] = [];
+              acc[cat].push(svc);
+              return acc;
+            }, {});
+
             return (
-              <View style={{ gap: 10 }}>
+              <View style={{ gap: 16 }}>
                 {/* Gender filter — only for unisex salons */}
                 {isUnisex && services.length > 0 && (
                   <View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
@@ -292,32 +308,44 @@ export default function SalonDetailsScreen({ route, navigation }) {
                     <Ionicons name="cut-outline" size={36} color="#d1d5db" />
                     <Text style={styles.emptyTabText}>No services listed</Text>
                   </View>
-                ) : visibleServices.map(svc => {
-                  const selected = selectedServices.some(s => s._id === svc._id);
-                  return (
-                    <TouchableOpacity
-                      key={svc._id}
-                      style={[styles.serviceCard, selected && styles.serviceCardSelected]}
-                      onPress={() => toggleService(svc)}
-                      activeOpacity={0.85}
-                    >
-                      <View style={{ flex: 1 }}>
-                        <View style={styles.serviceTop}>
-                          <Text style={[styles.serviceName, selected && { color: '#2563eb' }]}>{svc.name}</Text>
-                          <Text style={styles.servicePrice}>₹{svc.basePrice || svc.price}</Text>
-                        </View>
-                        <View style={styles.serviceMeta}>
-                          <Ionicons name="time-outline" size={12} color="#9ca3af" />
-                          <Text style={styles.serviceMetaText}>{svc.duration} min</Text>
-                          {svc.description && <Text style={styles.serviceDesc} numberOfLines={1}>· {svc.description}</Text>}
-                        </View>
-                      </View>
-                      <View style={[styles.checkbox, selected && styles.checkboxChecked]}>
-                        {selected && <Ionicons name="checkmark" size={14} color="#fff" />}
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
+                ) : Object.entries(grouped).map(([cat, catServices]) => (
+                  <View key={cat}>
+                    {/* Category header */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                      <Text style={{ fontSize: 18 }}>{categoryIconMap[cat] || '✨'}</Text>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>{cat}</Text>
+                      <Text style={{ fontSize: 12, color: theme.subText }}>({catServices.length})</Text>
+                    </View>
+                    <View style={{ gap: 8 }}>
+                      {catServices.map(svc => {
+                        const selected = selectedServices.some(s => s._id === svc._id);
+                        return (
+                          <TouchableOpacity
+                            key={svc._id}
+                            style={[styles.serviceCard, selected && styles.serviceCardSelected]}
+                            onPress={() => toggleService(svc)}
+                            activeOpacity={0.85}
+                          >
+                            <View style={{ flex: 1 }}>
+                              <View style={styles.serviceTop}>
+                                <Text style={[styles.serviceName, selected && { color: '#2563eb' }]}>{svc.name}</Text>
+                                <Text style={styles.servicePrice}>₹{svc.basePrice || svc.price}</Text>
+                              </View>
+                              <View style={styles.serviceMeta}>
+                                <Ionicons name="time-outline" size={12} color="#9ca3af" />
+                                <Text style={styles.serviceMetaText}>{svc.duration} min</Text>
+                                {svc.description && <Text style={styles.serviceDesc} numberOfLines={1}>· {svc.description}</Text>}
+                              </View>
+                            </View>
+                            <View style={[styles.checkbox, selected && styles.checkboxChecked]}>
+                              {selected && <Ionicons name="checkmark" size={14} color="#fff" />}
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                ))}
               </View>
             );
           })()}
