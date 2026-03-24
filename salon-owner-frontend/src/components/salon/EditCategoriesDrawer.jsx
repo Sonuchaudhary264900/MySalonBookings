@@ -20,25 +20,38 @@ const Toggle = ({ name, checked, onChange }) => (
   </label>
 );
 
-const normalizeSubs = (subs) =>
-  (subs || []).map(s =>
-    typeof s === 'string'
-      ? { name: s, price: '', duration: '' }
-      : {
-          name: s.name,
-          price: s.price ?? '',
-          duration: s.duration ?? '',
-          ...(s.applicableFor ? {
-            applicableFor: s.applicableFor,
-            genderContext: s.applicableFor.length === 1 ? s.applicableFor[0] : null,
-          } : {}),
-        }
-  );
+const normalizeSubs = (subs, catLabel = null) => {
+  const uniCat    = catLabel ? UNISEX_CATEGORIES.find(u => u.label === catLabel) : null;
+  const maleSet   = uniCat ? new Set(uniCat.maleSubServices)   : new Set();
+  const femaleSet = uniCat ? new Set(uniCat.femaleSubServices) : new Set();
+
+  return (subs || []).map(s => {
+    if (typeof s === 'string') return { name: s, price: '', duration: '' };
+
+    let genderContext = null;
+    if (s.applicableFor?.length === 1) {
+      genderContext = s.applicableFor[0];
+    } else if (!s.applicableFor || s.applicableFor.length === 0) {
+      const inMale   = maleSet.has(s.name);
+      const inFemale = femaleSet.has(s.name);
+      if (inMale && !inFemale)      genderContext = 'male';
+      else if (inFemale && !inMale) genderContext = 'female';
+    }
+
+    return {
+      name: s.name,
+      price: s.price ?? '',
+      duration: s.duration ?? '',
+      genderContext,
+      ...(s.applicableFor ? { applicableFor: s.applicableFor } : {}),
+    };
+  });
+};
 
 const buildSelections = (catList, offeredCategories) =>
   catList.reduce((acc, cat) => {
     const found = (offeredCategories || []).find(c => c.name === cat.label);
-    acc[cat.key] = { enabled: !!found, subServices: normalizeSubs(found?.subServices) };
+    acc[cat.key] = { enabled: !!found, subServices: normalizeSubs(found?.subServices, cat.label) };
     return acc;
   }, {});
 
