@@ -12,13 +12,30 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const token = await AsyncStorage.getItem('token');
+        const [[, token], [, cachedUser]] = await AsyncStorage.multiGet(['token', 'ownerUser']);
         if (!token) { setLoading(false); return; }
-        const response = await api.get('/owner/auth/me');
-        setUser(response.data.data);
+        // Restore from cache immediately so app opens without logout
+        if (cachedUser) {
+          try { setUser(JSON.parse(cachedUser)); } catch {}
+        }
+        // Try to refresh from server
+        try {
+          const response = await api.get('/owner/auth/me');
+          const u = response.data.data;
+          setUser(u);
+          await AsyncStorage.setItem('ownerUser', JSON.stringify(u));
+        } catch (err) {
+          // Interceptor shapes error as { status, message } — check both forms
+          const status = err.response?.status ?? err.status;
+          if (status === 401 || status === 403) {
+            // Token invalid/expired — log out
+            await AsyncStorage.multiRemove(['token', 'refreshToken', 'ownerUser']);
+            setUser(null);
+          }
+          // Network error — keep cached session, don't log out
+        }
       } catch {
-        await AsyncStorage.removeItem('token');
-        await AsyncStorage.removeItem('refreshToken');
+        await AsyncStorage.multiRemove(['token', 'refreshToken', 'ownerUser']);
         setUser(null);
       } finally {
         setLoading(false);
@@ -34,6 +51,7 @@ export const AuthProvider = ({ children }) => {
     const { token, refreshToken, owner: userData } = response.data.data;
     await AsyncStorage.setItem('token', token);
     if (refreshToken) await AsyncStorage.setItem('refreshToken', refreshToken);
+    await AsyncStorage.setItem('ownerUser', JSON.stringify(userData));
     setUser(userData);
     return response.data;
   }, []);
@@ -43,6 +61,7 @@ export const AuthProvider = ({ children }) => {
     const response = await api.put('/owner/auth/me', profileData);
     if (!response.data.success) throw new Error(response.data.message || 'Failed to update profile');
     setUser(response.data.data);
+    await AsyncStorage.setItem('ownerUser', JSON.stringify(response.data.data));
     return response.data;
   }, []);
 
@@ -62,8 +81,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const logout = useCallback(async () => {
-    await AsyncStorage.removeItem('token');
-    await AsyncStorage.removeItem('refreshToken');
+    await AsyncStorage.multiRemove(['token', 'refreshToken', 'ownerUser']);
     setUser(null);
     setError(null);
   }, []);

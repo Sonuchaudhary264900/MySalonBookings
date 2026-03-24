@@ -39,8 +39,7 @@ api.interceptors.response.use(
         original.headers.Authorization = `Bearer ${newToken}`;
         return api(original);
       } catch {
-        await AsyncStorage.removeItem('token');
-        await AsyncStorage.removeItem('refreshToken');
+        await AsyncStorage.multiRemove(['token', 'refreshToken', 'ownerUser']);
         return Promise.reject(error);
       }
     }
