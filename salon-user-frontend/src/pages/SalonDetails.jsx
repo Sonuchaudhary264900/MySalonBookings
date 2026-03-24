@@ -229,10 +229,36 @@ function SalonDetails() {
         {activeTab === "Services" && (() => {
           const isUnisex = salon.servedGender === "unisex";
 
-          // Category-level gender overrides — these categories are inherently gendered
-          // regardless of what applicableFor says in the DB
           const MALE_ONLY_CATS   = ["Beard & Grooming", "Body Grooming"];
           const FEMALE_ONLY_CATS = ["Bridal & Events"];
+
+          // Name-based gender lookup per category (mirrors UNISEX_CATEGORIES in owner app)
+          const UNISEX_CAT_NAMES = {
+            "Hair Services":         { m: new Set(["Basic Haircut","Fade / Taper / Skin Fade","Designer Haircut","Hair Styling","Hair Wash","Blow Dry","Hair Coloring","Hair Straightening","Hair Smoothening","Hair Spa","Dandruff Treatment","Hair Fall Treatment"]), f: new Set(["Haircut (Layer / Step / Trim)","Advanced Haircut","Hair Styling (Straight / Curl / Party)","Hair Wash","Blow Dry","Hair Coloring","Highlights / Balayage","Hair Smoothening","Rebonding","Keratin Treatment","Hair Spa"]) },
+            "Beard & Grooming":      { m: new Set(["Beard Trim","Clean Shave","Beard Styling / Shape","Designer Beard","Beard Coloring","Hot Towel Shave"]), f: new Set() },
+            "Nail Services":         { m: new Set(["Manicure","Pedicure"]), f: new Set(["Manicure","Pedicure","Nail Art","Gel Nails","Acrylic Nails","Nail Extensions","Nail Repair"]) },
+            "Skin & Face / Beauty":  { m: new Set(["Basic Facial","Gold Facial","Diamond Facial","Clean-up","Detan","Face Bleach","Anti-Acne Treatment","Skin Brightening"]), f: new Set(["Basic Facial","Gold Facial","Diamond Facial","Hydra Facial","Clean-up","Detan","Bleach","Anti-aging Treatment","Skin Brightening"]) },
+            "Spa & Massage":         { m: new Set(["Head Massage","Neck & Shoulder Massage","Full Body Massage","Foot Massage","Deep Tissue Massage","Relaxation Massage"]), f: new Set(["Head Massage","Full Body Massage","Foot Massage","Aromatherapy","Spa Therapy","Relaxation Massage"]) },
+            "Body Grooming":         { m: new Set(["Chest Waxing","Back Waxing","Full Body Wax","Threading (optional)","Nose Wax","Ear Cleaning"]), f: new Set(["Full Body Wax","Half Wax","Bikini Wax","Threading (Eyebrow / Upper Lip / Forehead)","Body Polish","Body Scrub"]) },
+            "Bridal & Events":       { m: new Set(["Groom Makeup","Hairstyling (Groom)","Shave & Grooming (Groom)"]), f: new Set(["Bridal Makeup","Engagement Makeup","Party Makeup","Hairstyling","Saree Draping"]) },
+            "Kids Services":         { m: new Set(["Kids' Haircut (Boys)","Kids' Hair Styling (Boys)","Kids' Hair Wash"]), f: new Set(["Kids' Haircut (Girls)","Kids' Hair Styling (Girls)","Kids' Hair Wash","Kids' Braiding"]) },
+            "At-Home Services":      { m: new Set(["At-Home Haircut (Men)","At-Home Shave","At-Home Massage","At-Home Facial (Men)"]), f: new Set(["At-Home Haircut (Women)","At-Home Facial","At-Home Waxing","At-Home Massage","At-Home Bridal"]) },
+          };
+
+          const classifySvc = (s) => {
+            const af = s.applicableFor || [];
+            if (af.length > 0 && af.includes("male")   && !af.includes("female")) return "male";
+            if (af.length > 0 && af.includes("female") && !af.includes("male"))   return "female";
+            // Fallback: look up by service name in category map
+            const lookup = UNISEX_CAT_NAMES[s.category || ""];
+            if (lookup) {
+              const inM = lookup.m.has(s.name);
+              const inF = lookup.f.has(s.name);
+              if (inM && !inF) return "male";
+              if (inF && !inM) return "female";
+            }
+            return "both";
+          };
 
           const visibleServices = !isUnisex || serviceGenderFilter === "all"
             ? services
@@ -240,11 +266,9 @@ function SalonDetails() {
                 const cat = s.category || "";
                 if (serviceGenderFilter === "female" && MALE_ONLY_CATS.includes(cat))   return false;
                 if (serviceGenderFilter === "male"   && FEMALE_ONLY_CATS.includes(cat)) return false;
-                const af = s.applicableFor || [];
-                if (af.length === 0) return true; // no restriction
-                if (serviceGenderFilter === "male")   return af.includes("male");
-                if (serviceGenderFilter === "female") return af.includes("female");
-                return true;
+                const gender = classifySvc(s);
+                if (gender === "both") return true;
+                return gender === serviceGenderFilter;
               });
 
           const categoryIconMap = {
@@ -327,9 +351,9 @@ function SalonDetails() {
                   {sortedGroupEntries.map(([cat, catServices]) => {
                     const isOpen = expandedCat === cat;
                     const showGenderSplit = isUnisex && serviceGenderFilter === "all";
-                    const maleOnly   = showGenderSplit ? catServices.filter(s => s.applicableFor?.length === 1 && s.applicableFor[0] === "male") : [];
-                    const femaleOnly = showGenderSplit ? catServices.filter(s => s.applicableFor?.length === 1 && s.applicableFor[0] === "female") : [];
-                    const both       = showGenderSplit ? catServices.filter(s => !s.applicableFor || s.applicableFor.length !== 1) : catServices;
+                    const maleOnly   = showGenderSplit ? catServices.filter(s => classifySvc(s) === "male")   : [];
+                    const femaleOnly = showGenderSplit ? catServices.filter(s => classifySvc(s) === "female") : [];
+                    const both       = showGenderSplit ? catServices.filter(s => classifySvc(s) === "both")   : catServices;
                     const hasSplit   = showGenderSplit && (maleOnly.length > 0 || femaleOnly.length > 0);
 
                     return (

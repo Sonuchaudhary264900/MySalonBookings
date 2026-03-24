@@ -8,6 +8,7 @@ import ServiceCard from '../../components/Services/ServiceCard';
 import ServiceModal from '../../components/Services/ServiceModal';
 import EditCategoriesDrawer from '../../components/salon/EditCategoriesDrawer';
 import { useSalon } from '../../hooks/useSalon';
+import { UNISEX_CATEGORIES } from '../../constants/salonCategories';
 
 /**
  * Services Page
@@ -183,28 +184,110 @@ const Services = () => {
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {salon.offeredCategories.map((cat, idx) => (
-                <div key={idx} className="border border-gray-100 rounded-lg p-3 bg-gray-50">
-                  <p className="font-medium text-gray-800 text-sm mb-2">{cat.name}</p>
-                  {cat.subServices?.length > 0 ? (
-                    <div className="flex flex-wrap gap-1">
-                      {cat.subServices.map((sub, si) => {
-                        const name  = typeof sub === 'string' ? sub : sub.name;
-                        const price = typeof sub === 'string' ? null : sub.price;
-                        return (
-                        <span key={si} className="text-xs bg-white border border-gray-200 text-gray-600 px-2 py-0.5 rounded-full flex items-center gap-1">
-                          {name}{price > 0 && <span className="text-blue-600 font-medium">₹{price}</span>}
-                        </span>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-gray-400">No sub-services selected</p>
-                  )}
+            {(() => {
+              const CAT_ICON = {
+                'Hair Services': '✂️', 'Hair Services (Men)': '✂️', 'Hair Services (Women)': '✂️',
+                'Beard & Grooming': '🧔', 'Nail Services': '💅',
+                'Skin & Face / Beauty': '🧖', 'Skin & Face (Men Grooming)': '🧴', 'Skin & Beauty': '🧖',
+                'Spa & Massage': '💆', 'Spa & Relaxation': '💆', 'Body Grooming': '🧴',
+                'Bridal & Events': '👰', 'Kids Services': '👶', 'At-Home Services': '🏠',
+              };
+              const CATEGORY_ORDER = [
+                'Hair Services', 'Hair Services (Men)', 'Hair Services (Women)',
+                'Beard & Grooming', 'Nail Services',
+                'Skin & Face / Beauty', 'Skin & Face (Men Grooming)', 'Skin & Beauty',
+                'Spa & Massage', 'Spa & Relaxation', 'Body Grooming',
+                'Bridal & Events', 'Kids Services', 'At-Home Services',
+              ];
+              const MALE_ONLY_CATS   = ['Beard & Grooming', 'Body Grooming'];
+              const FEMALE_ONLY_CATS = ['Bridal & Events'];
+              const isUnisex = salon.servedGender === 'unisex';
+
+              const sortedCategories = [...salon.offeredCategories].sort((a, b) => {
+                const ai = CATEGORY_ORDER.indexOf(a.name);
+                const bi = CATEGORY_ORDER.indexOf(b.name);
+                if (ai === -1 && bi === -1) return 0;
+                if (ai === -1) return 1;
+                if (bi === -1) return -1;
+                return ai - bi;
+              });
+
+              const Chip = ({ sub }) => {
+                const name  = typeof sub === 'string' ? sub : sub.name;
+                const price = typeof sub === 'string' ? null : sub.price;
+                return (
+                  <span className="text-xs bg-white border border-gray-200 text-gray-600 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    {name}{price > 0 && <span className="text-blue-600 font-medium">₹{price}</span>}
+                  </span>
+                );
+              };
+
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {sortedCategories.map((cat, idx) => {
+                    const subs = cat.subServices || [];
+                    const isMaleOnlyCat   = MALE_ONLY_CATS.includes(cat.name);
+                    const isFemaleOnlyCat = FEMALE_ONLY_CATS.includes(cat.name);
+                    const showSplit = isUnisex && !isMaleOnlyCat && !isFemaleOnlyCat;
+
+                    // Lookup from UNISEX_CATEGORIES to classify subs without explicit applicableFor
+                    const uniCat = UNISEX_CATEGORIES.find(u => u.label === cat.name);
+                    const uniMaleSet   = uniCat ? new Set(uniCat.maleSubServices)   : new Set();
+                    const uniFemaleSet = uniCat ? new Set(uniCat.femaleSubServices) : new Set();
+
+                    const classifySub = (s) => {
+                      const name = typeof s === 'string' ? s : s.name;
+                      const af   = (typeof s === 'object' && s.applicableFor) || [];
+                      if (af.length > 0 && af.includes('male')   && !af.includes('female')) return 'male';
+                      if (af.length > 0 && af.includes('female') && !af.includes('male'))   return 'female';
+                      // No explicit single-gender tag — use UNISEX_CATEGORIES definition
+                      const inMale   = uniMaleSet.has(name);
+                      const inFemale = uniFemaleSet.has(name);
+                      if (inMale && !inFemale)   return 'male';
+                      if (inFemale && !inMale)   return 'female';
+                      return 'both';
+                    };
+
+                    const menSubs   = showSplit ? subs.filter(s => classifySub(s) === 'male')   : [];
+                    const womenSubs = showSplit ? subs.filter(s => classifySub(s) === 'female') : [];
+                    const bothSubs  = showSplit ? subs.filter(s => classifySub(s) === 'both')   : [];
+
+                    return (
+                      <div key={idx} className="border border-gray-100 rounded-lg p-3 bg-gray-50">
+                        <p className="font-medium text-gray-800 text-sm mb-2 flex items-center gap-1.5">
+                          <span>{CAT_ICON[cat.name] || '✨'}</span> {cat.name}
+                          {isUnisex && isMaleOnlyCat   && <span className="text-xs text-blue-500 font-normal ml-1">👨 Men</span>}
+                          {isUnisex && isFemaleOnlyCat && <span className="text-xs text-pink-500 font-normal ml-1">👩 Women</span>}
+                        </p>
+                        {subs.length === 0 ? (
+                          <p className="text-xs text-gray-400">No sub-services selected</p>
+                        ) : showSplit ? (
+                          <div className="space-y-2">
+                            {bothSubs.length > 0 && (
+                              <div className="flex flex-wrap gap-1">{bothSubs.map((s, i) => <Chip key={i} sub={s} />)}</div>
+                            )}
+                            {menSubs.length > 0 && (
+                              <div>
+                                <p className="text-xs font-semibold text-blue-600 mb-1">👨 Men</p>
+                                <div className="flex flex-wrap gap-1">{menSubs.map((s, i) => <Chip key={i} sub={s} />)}</div>
+                              </div>
+                            )}
+                            {womenSubs.length > 0 && (
+                              <div>
+                                <p className="text-xs font-semibold text-pink-500 mb-1">👩 Women</p>
+                                <div className="flex flex-wrap gap-1">{womenSubs.map((s, i) => <Chip key={i} sub={s} />)}</div>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex flex-wrap gap-1">{subs.map((s, i) => <Chip key={i} sub={s} />)}</div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
+              );
+            })()}
           </div>
         )}
 
@@ -287,20 +370,39 @@ const Services = () => {
                         );
                       }
 
-                      // For unisex: separate by gender — a service with ['male','female'] appears in both
-                      const menSvcs    = svcs.filter(s => { const af = s.applicableFor || []; return af.length === 0 || af.includes('male'); });
-                      const womenSvcs  = svcs.filter(s => { const af = s.applicableFor || []; return af.length === 0 || af.includes('female'); });
+                      // For unisex: strict gender split using UNISEX_CATEGORIES name lookup as fallback
+                      const uniCatDef     = UNISEX_CATEGORIES.find(u => u.label === cat);
+                      const uniMaleNames  = uniCatDef ? new Set(uniCatDef.maleSubServices)   : new Set();
+                      const uniFemaleNames = uniCatDef ? new Set(uniCatDef.femaleSubServices) : new Set();
+
+                      const classifySvc = (s) => {
+                        const af = s.applicableFor || [];
+                        if (af.length > 0 && af.includes('male')   && !af.includes('female')) return 'male';
+                        if (af.length > 0 && af.includes('female') && !af.includes('male'))   return 'female';
+                        const inMale   = uniMaleNames.has(s.name);
+                        const inFemale = uniFemaleNames.has(s.name);
+                        if (inMale && !inFemale)   return 'male';
+                        if (inFemale && !inMale)   return 'female';
+                        return 'both';
+                      };
+
+                      const menSvcs   = svcs.filter(s => classifySvc(s) === 'male');
+                      const womenSvcs = svcs.filter(s => classifySvc(s) === 'female');
+                      const bothSvcs  = svcs.filter(s => classifySvc(s) === 'both');
 
                       return (
                         <div className="border-t border-gray-100">
+                          {bothSvcs.length > 0 && (
+                            <div className="divide-y divide-gray-100">{bothSvcs.map(renderCard)}</div>
+                          )}
                           {menSvcs.length > 0 && (
-                            <div>
+                            <div className={bothSvcs.length > 0 ? 'border-t border-gray-100' : ''}>
                               <p className="text-xs font-semibold text-blue-600 px-4 py-2 bg-blue-50 border-b border-blue-100">👨 Men</p>
                               <div className="divide-y divide-gray-100">{menSvcs.map(renderCard)}</div>
                             </div>
                           )}
                           {womenSvcs.length > 0 && (
-                            <div className="border-t border-gray-100">
+                            <div className={menSvcs.length > 0 || bothSvcs.length > 0 ? 'border-t border-gray-100' : ''}>
                               <p className="text-xs font-semibold text-pink-600 px-4 py-2 bg-pink-50 border-b border-pink-100">👩 Women</p>
                               <div className="divide-y divide-gray-100">{womenSvcs.map(renderCard)}</div>
                             </div>

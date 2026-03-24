@@ -27,6 +27,13 @@ const SORT_KEYS = [
   { key: 'rated',   labelKey: 'sortTopRated',   icon: 'star-outline' },
 ];
 
+const GENDER_FILTERS = [
+  { key: 'all',    label: 'All',    emoji: '👥' },
+  { key: 'male',   label: 'Men',    emoji: '👨' },
+  { key: 'female', label: 'Women',  emoji: '👩' },
+  { key: 'unisex', label: 'Unisex', emoji: '🏠' },
+];
+
 const DAYS = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
 
 function isOpenNow(workingHours) {
@@ -205,6 +212,7 @@ export default function HomeScreen({ navigation }) {
   const [salons, setSalons]           = useState([]);
   const [allSalons, setAllSalons]     = useState([]);
   const [category, setCategory]       = useState('all');
+  const [genderFilter, setGenderFilter] = useState('all');
   const [sort, setSort]               = useState('nearby');
   const [loading, setLoading]         = useState(true);
   const [refreshing, setRefreshing]   = useState(false);
@@ -237,7 +245,21 @@ export default function HomeScreen({ navigation }) {
     }).catch(() => {});
   }, []);
 
-  const fetchSalons = async (sortKey, coords) => {
+  const applyFilters = (data, cat, gender) => {
+    let result = data;
+    if (cat !== 'all') result = result.filter(s => s.category === cat);
+    if (gender === 'unisex') {
+      result = result.filter(s => (s.servedGender || 'unisex') === 'unisex');
+    } else if (gender !== 'all') {
+      result = result.filter(s => {
+        const sg = s.servedGender || 'unisex';
+        return sg === gender || sg === 'unisex';
+      });
+    }
+    return result;
+  };
+
+  const fetchSalons = async (sortKey, coords, cat, gender) => {
     if (!coords) return;
     setLoading(true);
     setSearchText('');
@@ -245,7 +267,7 @@ export default function HomeScreen({ navigation }) {
       const res = await api.get(`/public/salons/nearby?latitude=${coords.lat}&longitude=${coords.lng}&sort=${sortKey}`);
       const data = res.data.data?.salons || res.data.data || [];
       setAllSalons(data);
-      setSalons(category === 'all' ? data : data.filter(s => s.category === category));
+      setSalons(applyFilters(data, cat ?? category, gender ?? genderFilter));
     } catch {
       setAllSalons([]);
       setSalons([]);
@@ -257,7 +279,18 @@ export default function HomeScreen({ navigation }) {
   const handleSort = (key) => {
     setSort(key);
     setCategory('all');
-    fetchSalons(key, userCoords);
+    setGenderFilter('all');
+    fetchSalons(key, userCoords, 'all', 'all');
+  };
+
+  const handleGenderFilter = (gender) => {
+    setGenderFilter(gender);
+    if (searchText.trim()) {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+      searchTimer.current = setTimeout(() => runSearch(searchText, category, userCoords, gender), 0);
+    } else {
+      setSalons(applyFilters(allSalons, category, gender));
+    }
   };
 
   const sortByNearest = useCallback((list, coords) => {
@@ -273,9 +306,10 @@ export default function HomeScreen({ navigation }) {
     });
   }, []);
 
-  const runSearch = useCallback(async (text, cat, coords) => {
+  const runSearch = useCallback(async (text, cat, coords, gender) => {
     if (!text.trim()) return;
     setSearching(true);
+    const activeGender = gender ?? genderFilter;
     try {
       const params = new URLSearchParams({ q: text.trim(), limit: '50' });
       if (coords) { params.append('latitude', coords.lat); params.append('longitude', coords.lng); }
@@ -288,7 +322,6 @@ export default function HomeScreen({ navigation }) {
       const salonData   = salonRes.status   === 'fulfilled' ? (salonRes.value.data.data?.salons   || []) : [];
       const serviceData = serviceRes.status === 'fulfilled' ? (serviceRes.value.data.data?.salons || []) : [];
 
-      // merge & deduplicate (salon name match takes priority)
       const seen = new Set();
       const merged = [];
       for (const s of [...salonData, ...serviceData]) {
@@ -296,8 +329,7 @@ export default function HomeScreen({ navigation }) {
         if (id && !seen.has(id)) { seen.add(id); merged.push(s); }
       }
 
-      const filtered = cat === 'all' ? merged : merged.filter(s => s.category === cat);
-      setSalons(sortByNearest(filtered, coords));
+      setSalons(sortByNearest(applyFilters(merged, cat ?? category, activeGender), coords));
     } catch {
       const q = text.toLowerCase();
       const localResults = allSalons.filter(s =>
@@ -305,20 +337,19 @@ export default function HomeScreen({ navigation }) {
         s.address?.toLowerCase().includes(q) ||
         s.city?.toLowerCase().includes(q)
       );
-      const filtered = cat === 'all' ? localResults : localResults.filter(s => s.category === cat);
-      setSalons(sortByNearest(filtered, coords));
+      setSalons(sortByNearest(applyFilters(localResults, cat ?? category, activeGender), coords));
     } finally {
       setSearching(false);
     }
-  }, [allSalons, sortByNearest]);
+  }, [allSalons, sortByNearest, genderFilter, category]);
 
   const handleCategory = (cat) => {
     setCategory(cat);
     if (searchText.trim()) {
       if (searchTimer.current) clearTimeout(searchTimer.current);
-      searchTimer.current = setTimeout(() => runSearch(searchText, cat, userCoords), 0);
+      searchTimer.current = setTimeout(() => runSearch(searchText, cat, userCoords, genderFilter), 0);
     } else {
-      setSalons(cat === 'all' ? allSalons : allSalons.filter(s => s.category === cat));
+      setSalons(applyFilters(allSalons, cat, genderFilter));
     }
   };
 
@@ -326,11 +357,11 @@ export default function HomeScreen({ navigation }) {
     setSearchText(text);
     if (searchTimer.current) clearTimeout(searchTimer.current);
     if (!text.trim()) {
-      setSalons(category === 'all' ? allSalons : allSalons.filter(s => s.category === category));
+      setSalons(applyFilters(allSalons, category, genderFilter));
       return;
     }
-    searchTimer.current = setTimeout(() => runSearch(text, category, userCoords), 400);
-  }, [allSalons, category, userCoords, runSearch]);
+    searchTimer.current = setTimeout(() => runSearch(text, category, userCoords, genderFilter), 400);
+  }, [allSalons, category, genderFilter, userCoords, runSearch]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -474,6 +505,36 @@ export default function HomeScreen({ navigation }) {
                   ))}
                 </View>
               )}
+
+              {/* Gender filter chips */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={{ flexGrow: 0, flexShrink: 0, marginBottom: 4 }}
+                contentContainerStyle={{ flexDirection: 'row', paddingHorizontal: 16, gap: 8, paddingRight: 24 }}
+                nestedScrollEnabled={true}
+              >
+                {GENDER_FILTERS.map(({ key, label, emoji }) => {
+                  const active = genderFilter === key;
+                  return (
+                    <TouchableOpacity
+                      key={key}
+                      onPress={() => handleGenderFilter(key)}
+                      style={{
+                        flexDirection: 'row', alignItems: 'center', gap: 4,
+                        paddingHorizontal: 12, paddingVertical: 7,
+                        borderRadius: 20, borderWidth: 1.5,
+                        backgroundColor: active ? '#e11d48' : styles.chip.backgroundColor,
+                        borderColor: active ? '#e11d48' : styles.chip.borderColor,
+                      }}
+                      activeOpacity={0.75}
+                    >
+                      <Text style={{ fontSize: 13 }}>{emoji}</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: active ? '#fff' : styles.chipText.color }}>{label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
 
               {/* Location denied notice */}
               {locDenied && !searchText && (

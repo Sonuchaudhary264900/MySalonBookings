@@ -109,7 +109,7 @@ router.get("/public/salons", asyncHandler(async (req, res) => {
     : { totalBookings: -1, averageRating: -1 }; // default: booked
   const skip = (Number(page) - 1) * Number(limit);
   const rawSalons = await Salon.find(query)
-    .select("name address city phone photos logo coverPhoto averageRating totalReviews totalBookings workingHours category isApproved isOnline lastOnlineAt location ownerId")
+    .select("name address city phone photos logo coverPhoto averageRating totalReviews totalBookings workingHours category servedGender isApproved isOnline lastOnlineAt location ownerId")
     .sort(sortOrder)
     .skip(skip)
     .limit(Number(limit))
@@ -162,7 +162,7 @@ router.get("/public/salons/nearby", asyncHandler(async (req, res) => {
       $project: {
         name: 1, address: 1, city: 1, phone: 1, photos: 1, logo: 1, coverPhoto: 1,
         averageRating: 1, totalReviews: 1, totalBookings: 1,
-        workingHours: 1, category: 1, location: 1, isApproved: 1, isOnline: 1, lastOnlineAt: 1, distance: 1,
+        workingHours: 1, category: 1, servedGender: 1, location: 1, isApproved: 1, isOnline: 1, lastOnlineAt: 1, distance: 1,
         ownerPhoto: { $ifNull: [{ $arrayElemAt: ["$_owner.profilePhoto", 0] }, null] },
       },
     },
@@ -1183,7 +1183,7 @@ router.get("/public/services/search", asyncHandler(async (req, res) => {
     isApproved: true,
     isActive: true,
   })
-    .select("name address city phone photos logo coverPhoto averageRating totalReviews totalBookings workingHours category location ownerId")
+    .select("name address city phone photos logo coverPhoto averageRating totalReviews totalBookings workingHours category servedGender location ownerId")
     .populate("ownerId", "profilePhoto")
     .lean();
 

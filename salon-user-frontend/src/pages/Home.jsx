@@ -73,8 +73,17 @@ function Home() {
   // ── filter helper (category + gender) ────────────────────────
   const applyFilters = (data, cat, gender) => {
     let result = data;
-    if (cat !== "all")    result = result.filter((s) => s.category === cat);
-    if (gender !== "all") result = result.filter((s) => (s.servedGender || "unisex") === gender);
+    if (cat !== "all") result = result.filter((s) => s.category === cat);
+    if (gender === "unisex") {
+      // Unisex tab → only unisex salons
+      result = result.filter((s) => (s.servedGender || "unisex") === "unisex");
+    } else if (gender !== "all") {
+      // Men/Women tabs → include that gender + unisex (unisex serves everyone)
+      result = result.filter((s) => {
+        const sg = s.servedGender || "unisex";
+        return sg === gender || sg === "unisex";
+      });
+    }
     return result;
   };
 
