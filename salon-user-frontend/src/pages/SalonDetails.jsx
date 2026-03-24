@@ -23,6 +23,19 @@ function SalonDetails() {
   const [serviceGenderFilter, setServiceGenderFilter] = useState("all");
   const token = localStorage.getItem("customerToken");
 
+  // Pre-select gender filter based on logged-in user's gender
+  useEffect(() => {
+    if (!token) return;
+    API.get("/customer/auth/me")
+      .then((res) => {
+        const gender = res.data?.data?.gender || res.data?.gender;
+        if (gender === "male" || gender === "female") {
+          setServiceGenderFilter(gender);
+        }
+      })
+      .catch(() => {/* silent — filter stays "all" */});
+  }, [token]);
+
   const toggleService = (service) => {
     setSelectedServices(prev =>
       prev.find(s => s._id === service._id)
