@@ -60,6 +60,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
   const [serviceGenderFilter, setServiceGenderFilter] = useState(
     userGender === 'male' || userGender === 'female' ? userGender : 'all'
   );
+  const [expandedCat, setExpandedCat] = useState(null);
 
   useEffect(() => {
     Promise.all([loadSalon(), loadServices(), loadReviews()]).finally(() => setLoading(false));
@@ -371,34 +372,45 @@ export default function SalonDetailsScreen({ route, navigation }) {
                     );
                   };
 
-                  return (
-                    <View key={cat}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                        <Text style={{ fontSize: 18 }}>{categoryIconMap[cat] || '✨'}</Text>
-                        <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>{cat}</Text>
-                        <Text style={{ fontSize: 12, color: theme.subText }}>({catServices.length})</Text>
-                      </View>
+                  const isOpen = expandedCat === cat;
 
-                      {hasSplit ? (
-                        <View style={{ gap: 12 }}>
-                          {maleOnly.length > 0 && (
-                            <View>
-                              <Text style={{ fontSize: 12, fontWeight: '700', color: '#2563eb', marginBottom: 6 }}>👨 Men</Text>
-                              <View style={{ gap: 8 }}>{maleOnly.map(renderServiceCard)}</View>
+                  return (
+                    <View key={cat} style={{ borderWidth: 1, borderColor: theme.border, borderRadius: 12, overflow: 'hidden', marginBottom: 4 }}>
+                      <TouchableOpacity
+                        onPress={() => setExpandedCat(isOpen ? null : cat)}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: theme.card }}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={{ fontSize: 18 }}>{categoryIconMap[cat] || '✨'}</Text>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text, flex: 1 }}>{cat}</Text>
+                        <Text style={{ fontSize: 12, color: theme.subText, marginRight: 6 }}>{catServices.length}</Text>
+                        <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={16} color={theme.subText} />
+                      </TouchableOpacity>
+
+                      {isOpen && (
+                        <View style={{ borderTopWidth: 1, borderTopColor: theme.border, padding: 12 }}>
+                          {hasSplit ? (
+                            <View style={{ gap: 12 }}>
+                              {maleOnly.length > 0 && (
+                                <View>
+                                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#2563eb', marginBottom: 6 }}>👨 Men</Text>
+                                  <View style={{ gap: 8 }}>{maleOnly.map(renderServiceCard)}</View>
+                                </View>
+                              )}
+                              {femaleOnly.length > 0 && (
+                                <View>
+                                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#ec4899', marginBottom: 6 }}>👩 Women</Text>
+                                  <View style={{ gap: 8 }}>{femaleOnly.map(renderServiceCard)}</View>
+                                </View>
+                              )}
+                              {both.length > 0 && (
+                                <View style={{ gap: 8 }}>{both.map(renderServiceCard)}</View>
+                              )}
                             </View>
-                          )}
-                          {femaleOnly.length > 0 && (
-                            <View>
-                              <Text style={{ fontSize: 12, fontWeight: '700', color: '#ec4899', marginBottom: 6 }}>👩 Women</Text>
-                              <View style={{ gap: 8 }}>{femaleOnly.map(renderServiceCard)}</View>
-                            </View>
-                          )}
-                          {both.length > 0 && (
-                            <View style={{ gap: 8 }}>{both.map(renderServiceCard)}</View>
+                          ) : (
+                            <View style={{ gap: 8 }}>{catServices.map(renderServiceCard)}</View>
                           )}
                         </View>
-                      ) : (
-                        <View style={{ gap: 8 }}>{catServices.map(renderServiceCard)}</View>
                       )}
                     </View>
                   );

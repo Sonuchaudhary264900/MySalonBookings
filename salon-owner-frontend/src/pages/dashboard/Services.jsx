@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, LayoutList } from 'lucide-react';
+import { Plus, LayoutList, ChevronDown, ChevronUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Button from '../../components/common/Button';
@@ -26,6 +26,7 @@ const Services = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
+  const [expandedCat, setExpandedCat] = useState(null);
 
   // Fetch services and salon on mount — run independently so one failure doesn't block the other
   useEffect(() => {
@@ -247,28 +248,40 @@ const Services = () => {
           });
 
           return (
-            <div className="space-y-4">
-              {sorted.map(([cat, svcs]) => (
-                <div key={cat} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-                  <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-200">
-                    <span className="text-base">{CATEGORY_ICON[cat] || '✨'}</span>
-                    <span className="text-sm font-semibold text-gray-700">{cat}</span>
-                    <span className="text-xs text-gray-400 ml-auto">{svcs.length}</span>
+            <div className="space-y-2">
+              {sorted.map(([cat, svcs]) => {
+                const isOpen = expandedCat === cat;
+                return (
+                  <div key={cat} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedCat(isOpen ? null : cat)}
+                      className="w-full flex items-center gap-2 px-4 py-3 hover:bg-gray-50 transition text-left"
+                    >
+                      <span className="text-base">{CATEGORY_ICON[cat] || '✨'}</span>
+                      <span className="text-sm font-semibold text-gray-700 flex-1">{cat}</span>
+                      <span className="text-xs text-gray-400 mr-2">{svcs.length}</span>
+                      {isOpen
+                        ? <ChevronUp className="w-4 h-4 text-gray-400 shrink-0" />
+                        : <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" />}
+                    </button>
+                    {isOpen && (
+                      <div className="border-t border-gray-100 divide-y divide-gray-100">
+                        {svcs.map(service => (
+                          <ServiceCard
+                            key={service._id || service.id}
+                            service={service}
+                            onEdit={handleOpenModal}
+                            onDelete={handleDelete}
+                            onToggle={handleToggle}
+                            loading={loading}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <div className="divide-y divide-gray-100">
-                    {svcs.map(service => (
-                      <ServiceCard
-                        key={service._id || service.id}
-                        service={service}
-                        onEdit={handleOpenModal}
-                        onDelete={handleDelete}
-                        onToggle={handleToggle}
-                        loading={loading}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           );
         })()}

@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Scissors, Phone, Star, Check, MessageSquare, Frown, Building2, Mail, ShoppingBag } from "lucide-react";
 import API from "../services/api";
 import ServiceCard from "../components/ServiceCard";
@@ -21,6 +21,7 @@ function SalonDetails() {
   const activeTab = TABS.includes(tab) ? tab : "Services";
   const [selectedServices, setSelectedServices] = useState([]);
   const [serviceGenderFilter, setServiceGenderFilter] = useState("all");
+  const [expandedCat, setExpandedCat] = useState(null);
   const token = localStorage.getItem("customerToken");
 
   // Pre-select gender filter based on logged-in user's gender
@@ -322,9 +323,9 @@ function SalonDetails() {
                   <p className="text-slate-500">No services listed yet.</p>
                 </div>
               ) : (
-                <div className="space-y-6 pb-32">
+                <div className="space-y-2 pb-32">
                   {sortedGroupEntries.map(([cat, catServices]) => {
-                    // For unisex "All" view: sub-divide by gender within each category
+                    const isOpen = expandedCat === cat;
                     const showGenderSplit = isUnisex && serviceGenderFilter === "all";
                     const maleOnly   = showGenderSplit ? catServices.filter(s => s.applicableFor?.length === 1 && s.applicableFor[0] === "male") : [];
                     const femaleOnly = showGenderSplit ? catServices.filter(s => s.applicableFor?.length === 1 && s.applicableFor[0] === "female") : [];
@@ -332,56 +333,65 @@ function SalonDetails() {
                     const hasSplit   = showGenderSplit && (maleOnly.length > 0 || femaleOnly.length > 0);
 
                     return (
-                      <div key={cat}>
-                        <div className="flex items-center gap-2 mb-3">
+                      <div key={cat} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedCat(isOpen ? null : cat)}
+                          className="w-full flex items-center gap-2.5 px-4 py-3 hover:bg-slate-50 transition text-left"
+                        >
                           <span className="text-lg">{categoryIconMap[cat] || "✨"}</span>
-                          <h3 className="text-sm font-bold text-slate-700">{cat}</h3>
-                          <span className="text-xs text-slate-400">({catServices.length})</span>
-                        </div>
+                          <span className="text-sm font-semibold text-slate-700 flex-1">{cat}</span>
+                          <span className="text-xs text-slate-400 mr-1">{catServices.length}</span>
+                          <span className="text-slate-400 text-sm">{isOpen ? "▲" : "▼"}</span>
+                        </button>
 
-                        {hasSplit ? (
-                          <div className="space-y-3">
-                            {maleOnly.length > 0 && (
-                              <div>
-                                <p className="text-xs font-semibold text-blue-600 mb-1.5 flex items-center gap-1">👨 Men</p>
-                                <div className="space-y-2">
-                                  {maleOnly.map(service => (
-                                    <ServiceCard key={service._id} service={service}
-                                      isSelected={selectedServices.some(s => s._id === service._id)}
-                                      onToggle={() => toggleService(service)} showGenderBadge={false} />
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                            {femaleOnly.length > 0 && (
-                              <div>
-                                <p className="text-xs font-semibold text-pink-500 mb-1.5 flex items-center gap-1">👩 Women</p>
-                                <div className="space-y-2">
-                                  {femaleOnly.map(service => (
-                                    <ServiceCard key={service._id} service={service}
-                                      isSelected={selectedServices.some(s => s._id === service._id)}
-                                      onToggle={() => toggleService(service)} showGenderBadge={false} />
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                            {both.length > 0 && (
+                        {isOpen && (
+                          <div className="border-t border-slate-100 px-4 py-3 space-y-3">
+                            {hasSplit ? (
+                              <>
+                                {maleOnly.length > 0 && (
+                                  <div>
+                                    <p className="text-xs font-semibold text-blue-600 mb-1.5">👨 Men</p>
+                                    <div className="space-y-2">
+                                      {maleOnly.map(service => (
+                                        <ServiceCard key={service._id} service={service}
+                                          isSelected={selectedServices.some(s => s._id === service._id)}
+                                          onToggle={() => toggleService(service)} showGenderBadge={false} />
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                {femaleOnly.length > 0 && (
+                                  <div>
+                                    <p className="text-xs font-semibold text-pink-500 mb-1.5">👩 Women</p>
+                                    <div className="space-y-2">
+                                      {femaleOnly.map(service => (
+                                        <ServiceCard key={service._id} service={service}
+                                          isSelected={selectedServices.some(s => s._id === service._id)}
+                                          onToggle={() => toggleService(service)} showGenderBadge={false} />
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                {both.length > 0 && (
+                                  <div className="space-y-2">
+                                    {both.map(service => (
+                                      <ServiceCard key={service._id} service={service}
+                                        isSelected={selectedServices.some(s => s._id === service._id)}
+                                        onToggle={() => toggleService(service)} showGenderBadge={false} />
+                                    ))}
+                                  </div>
+                                )}
+                              </>
+                            ) : (
                               <div className="space-y-2">
-                                {both.map(service => (
+                                {catServices.map(service => (
                                   <ServiceCard key={service._id} service={service}
                                     isSelected={selectedServices.some(s => s._id === service._id)}
                                     onToggle={() => toggleService(service)} showGenderBadge={false} />
                                 ))}
                               </div>
                             )}
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            {catServices.map(service => (
-                              <ServiceCard key={service._id} service={service}
-                                isSelected={selectedServices.some(s => s._id === service._id)}
-                                onToggle={() => toggleService(service)} showGenderBadge={false} />
-                            ))}
                           </div>
                         )}
                       </div>
