@@ -265,12 +265,33 @@ export default function SalonDetailsScreen({ route, navigation }) {
               'Kids Services': '👶', 'At-Home Services': '🏠',
             };
 
+            const CATEGORY_ORDER = [
+              'Hair Services', 'Hair Services (Men)', 'Hair Services (Women)',
+              'Beard & Grooming',
+              'Nail Services',
+              'Skin & Face / Beauty', 'Skin & Face (Men Grooming)', 'Skin & Beauty',
+              'Spa & Massage', 'Spa & Relaxation',
+              'Body Grooming',
+              'Bridal & Events',
+              'Kids Services',
+              'At-Home Services',
+            ];
+
             const grouped = visibleServices.reduce((acc, svc) => {
               const cat = svc.category || 'Other';
               if (!acc[cat]) acc[cat] = [];
               acc[cat].push(svc);
               return acc;
             }, {});
+
+            const sortedGroupEntries = Object.entries(grouped).sort(([a], [b]) => {
+              const ai = CATEGORY_ORDER.indexOf(a);
+              const bi = CATEGORY_ORDER.indexOf(b);
+              if (ai === -1 && bi === -1) return a.localeCompare(b);
+              if (ai === -1) return 1;
+              if (bi === -1) return -1;
+              return ai - bi;
+            });
 
             return (
               <View style={{ gap: 16 }}>
@@ -308,7 +329,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                     <Ionicons name="cut-outline" size={36} color="#d1d5db" />
                     <Text style={styles.emptyTabText}>No services listed</Text>
                   </View>
-                ) : Object.entries(grouped).map(([cat, catServices]) => {
+                ) : sortedGroupEntries.map(([cat, catServices]) => {
                   const showGenderSplit = salon.servedGender === 'unisex' && serviceGenderFilter === 'all';
                   const maleOnly   = showGenderSplit ? catServices.filter(s => s.applicableFor?.length === 1 && s.applicableFor[0] === 'male') : [];
                   const femaleOnly = showGenderSplit ? catServices.filter(s => s.applicableFor?.length === 1 && s.applicableFor[0] === 'female') : [];
