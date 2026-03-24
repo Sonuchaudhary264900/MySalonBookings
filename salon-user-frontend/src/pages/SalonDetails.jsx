@@ -293,26 +293,70 @@ function SalonDetails() {
                 </div>
               ) : (
                 <div className="space-y-6 pb-32">
-                  {Object.entries(grouped).map(([cat, catServices]) => (
-                    <div key={cat}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-lg">{categoryIconMap[cat] || "✨"}</span>
-                        <h3 className="text-sm font-bold text-slate-700">{cat}</h3>
-                        <span className="text-xs text-slate-400">({catServices.length})</span>
+                  {Object.entries(grouped).map(([cat, catServices]) => {
+                    // For unisex "All" view: sub-divide by gender within each category
+                    const showGenderSplit = isUnisex && serviceGenderFilter === "all";
+                    const maleOnly   = showGenderSplit ? catServices.filter(s => s.applicableFor?.length === 1 && s.applicableFor[0] === "male") : [];
+                    const femaleOnly = showGenderSplit ? catServices.filter(s => s.applicableFor?.length === 1 && s.applicableFor[0] === "female") : [];
+                    const both       = showGenderSplit ? catServices.filter(s => !s.applicableFor || s.applicableFor.length !== 1) : catServices;
+                    const hasSplit   = showGenderSplit && (maleOnly.length > 0 || femaleOnly.length > 0);
+
+                    return (
+                      <div key={cat}>
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="text-lg">{categoryIconMap[cat] || "✨"}</span>
+                          <h3 className="text-sm font-bold text-slate-700">{cat}</h3>
+                          <span className="text-xs text-slate-400">({catServices.length})</span>
+                        </div>
+
+                        {hasSplit ? (
+                          <div className="space-y-3">
+                            {maleOnly.length > 0 && (
+                              <div>
+                                <p className="text-xs font-semibold text-blue-600 mb-1.5 flex items-center gap-1">👨 Men</p>
+                                <div className="space-y-2">
+                                  {maleOnly.map(service => (
+                                    <ServiceCard key={service._id} service={service}
+                                      isSelected={selectedServices.some(s => s._id === service._id)}
+                                      onToggle={() => toggleService(service)} showGenderBadge={false} />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {femaleOnly.length > 0 && (
+                              <div>
+                                <p className="text-xs font-semibold text-pink-500 mb-1.5 flex items-center gap-1">👩 Women</p>
+                                <div className="space-y-2">
+                                  {femaleOnly.map(service => (
+                                    <ServiceCard key={service._id} service={service}
+                                      isSelected={selectedServices.some(s => s._id === service._id)}
+                                      onToggle={() => toggleService(service)} showGenderBadge={false} />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {both.length > 0 && (
+                              <div className="space-y-2">
+                                {both.map(service => (
+                                  <ServiceCard key={service._id} service={service}
+                                    isSelected={selectedServices.some(s => s._id === service._id)}
+                                    onToggle={() => toggleService(service)} showGenderBadge={false} />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {catServices.map(service => (
+                              <ServiceCard key={service._id} service={service}
+                                isSelected={selectedServices.some(s => s._id === service._id)}
+                                onToggle={() => toggleService(service)} showGenderBadge={false} />
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      <div className="space-y-2">
-                        {catServices.map((service) => (
-                          <ServiceCard
-                            key={service._id}
-                            service={service}
-                            isSelected={selectedServices.some(s => s._id === service._id)}
-                            onToggle={() => toggleService(service)}
-                            showGenderBadge={isUnisex}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

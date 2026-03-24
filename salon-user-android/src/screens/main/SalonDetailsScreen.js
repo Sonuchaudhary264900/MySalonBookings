@@ -308,44 +308,72 @@ export default function SalonDetailsScreen({ route, navigation }) {
                     <Ionicons name="cut-outline" size={36} color="#d1d5db" />
                     <Text style={styles.emptyTabText}>No services listed</Text>
                   </View>
-                ) : Object.entries(grouped).map(([cat, catServices]) => (
-                  <View key={cat}>
-                    {/* Category header */}
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                      <Text style={{ fontSize: 18 }}>{categoryIconMap[cat] || '✨'}</Text>
-                      <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>{cat}</Text>
-                      <Text style={{ fontSize: 12, color: theme.subText }}>({catServices.length})</Text>
-                    </View>
-                    <View style={{ gap: 8 }}>
-                      {catServices.map(svc => {
-                        const selected = selectedServices.some(s => s._id === svc._id);
-                        return (
-                          <TouchableOpacity
-                            key={svc._id}
-                            style={[styles.serviceCard, selected && styles.serviceCardSelected]}
-                            onPress={() => toggleService(svc)}
-                            activeOpacity={0.85}
-                          >
-                            <View style={{ flex: 1 }}>
-                              <View style={styles.serviceTop}>
-                                <Text style={[styles.serviceName, selected && { color: '#2563eb' }]}>{svc.name}</Text>
-                                <Text style={styles.servicePrice}>₹{svc.basePrice || svc.price}</Text>
-                              </View>
-                              <View style={styles.serviceMeta}>
-                                <Ionicons name="time-outline" size={12} color="#9ca3af" />
-                                <Text style={styles.serviceMetaText}>{svc.duration} min</Text>
-                                {svc.description && <Text style={styles.serviceDesc} numberOfLines={1}>· {svc.description}</Text>}
-                              </View>
+                ) : Object.entries(grouped).map(([cat, catServices]) => {
+                  const showGenderSplit = salon.servedGender === 'unisex' && serviceGenderFilter === 'all';
+                  const maleOnly   = showGenderSplit ? catServices.filter(s => s.applicableFor?.length === 1 && s.applicableFor[0] === 'male') : [];
+                  const femaleOnly = showGenderSplit ? catServices.filter(s => s.applicableFor?.length === 1 && s.applicableFor[0] === 'female') : [];
+                  const both       = showGenderSplit ? catServices.filter(s => !s.applicableFor || s.applicableFor.length !== 1) : catServices;
+                  const hasSplit   = showGenderSplit && (maleOnly.length > 0 || femaleOnly.length > 0);
+
+                  const renderServiceCard = (svc) => {
+                    const selected = selectedServices.some(s => s._id === svc._id);
+                    return (
+                      <TouchableOpacity
+                        key={svc._id}
+                        style={[styles.serviceCard, selected && styles.serviceCardSelected]}
+                        onPress={() => toggleService(svc)}
+                        activeOpacity={0.85}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <View style={styles.serviceTop}>
+                            <Text style={[styles.serviceName, selected && { color: '#2563eb' }]}>{svc.name}</Text>
+                            <Text style={styles.servicePrice}>₹{svc.basePrice || svc.price}</Text>
+                          </View>
+                          <View style={styles.serviceMeta}>
+                            <Ionicons name="time-outline" size={12} color="#9ca3af" />
+                            <Text style={styles.serviceMetaText}>{svc.duration} min</Text>
+                            {svc.description && <Text style={styles.serviceDesc} numberOfLines={1}>· {svc.description}</Text>}
+                          </View>
+                        </View>
+                        <View style={[styles.checkbox, selected && styles.checkboxChecked]}>
+                          {selected && <Ionicons name="checkmark" size={14} color="#fff" />}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  };
+
+                  return (
+                    <View key={cat}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                        <Text style={{ fontSize: 18 }}>{categoryIconMap[cat] || '✨'}</Text>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>{cat}</Text>
+                        <Text style={{ fontSize: 12, color: theme.subText }}>({catServices.length})</Text>
+                      </View>
+
+                      {hasSplit ? (
+                        <View style={{ gap: 12 }}>
+                          {maleOnly.length > 0 && (
+                            <View>
+                              <Text style={{ fontSize: 12, fontWeight: '700', color: '#2563eb', marginBottom: 6 }}>👨 Men</Text>
+                              <View style={{ gap: 8 }}>{maleOnly.map(renderServiceCard)}</View>
                             </View>
-                            <View style={[styles.checkbox, selected && styles.checkboxChecked]}>
-                              {selected && <Ionicons name="checkmark" size={14} color="#fff" />}
+                          )}
+                          {femaleOnly.length > 0 && (
+                            <View>
+                              <Text style={{ fontSize: 12, fontWeight: '700', color: '#ec4899', marginBottom: 6 }}>👩 Women</Text>
+                              <View style={{ gap: 8 }}>{femaleOnly.map(renderServiceCard)}</View>
                             </View>
-                          </TouchableOpacity>
-                        );
-                      })}
+                          )}
+                          {both.length > 0 && (
+                            <View style={{ gap: 8 }}>{both.map(renderServiceCard)}</View>
+                          )}
+                        </View>
+                      ) : (
+                        <View style={{ gap: 8 }}>{catServices.map(renderServiceCard)}</View>
+                      )}
                     </View>
-                  </View>
-                ))}
+                  );
+                })}
               </View>
             );
           })()}
