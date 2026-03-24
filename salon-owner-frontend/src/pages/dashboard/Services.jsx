@@ -267,10 +267,6 @@ const Services = () => {
                     </button>
                     {isOpen && (() => {
                       const isUnisex = salon?.servedGender === 'unisex';
-                      const maleOnly   = isUnisex ? svcs.filter(s => s.applicableFor?.length === 1 && s.applicableFor[0] === 'male') : [];
-                      const femaleOnly = isUnisex ? svcs.filter(s => s.applicableFor?.length === 1 && s.applicableFor[0] === 'female') : [];
-                      const both       = isUnisex ? svcs.filter(s => !s.applicableFor || s.applicableFor.length !== 1) : svcs;
-                      const hasSplit   = isUnisex && (maleOnly.length > 0 || femaleOnly.length > 0);
 
                       const renderCard = (service) => (
                         <ServiceCard
@@ -283,27 +279,32 @@ const Services = () => {
                         />
                       );
 
-                      return hasSplit ? (
-                        <div className="border-t border-gray-100 divide-y divide-gray-100">
-                          {maleOnly.length > 0 && (
+                      if (!isUnisex) {
+                        return (
+                          <div className="border-t border-gray-100 divide-y divide-gray-100">
+                            {svcs.map(renderCard)}
+                          </div>
+                        );
+                      }
+
+                      // For unisex: separate by gender — a service with ['male','female'] appears in both
+                      const menSvcs    = svcs.filter(s => { const af = s.applicableFor || []; return af.length === 0 || af.includes('male'); });
+                      const womenSvcs  = svcs.filter(s => { const af = s.applicableFor || []; return af.length === 0 || af.includes('female'); });
+
+                      return (
+                        <div className="border-t border-gray-100">
+                          {menSvcs.length > 0 && (
                             <div>
                               <p className="text-xs font-semibold text-blue-600 px-4 py-2 bg-blue-50 border-b border-blue-100">👨 Men</p>
-                              <div className="divide-y divide-gray-100">{maleOnly.map(renderCard)}</div>
+                              <div className="divide-y divide-gray-100">{menSvcs.map(renderCard)}</div>
                             </div>
                           )}
-                          {femaleOnly.length > 0 && (
-                            <div>
+                          {womenSvcs.length > 0 && (
+                            <div className="border-t border-gray-100">
                               <p className="text-xs font-semibold text-pink-600 px-4 py-2 bg-pink-50 border-b border-pink-100">👩 Women</p>
-                              <div className="divide-y divide-gray-100">{femaleOnly.map(renderCard)}</div>
+                              <div className="divide-y divide-gray-100">{womenSvcs.map(renderCard)}</div>
                             </div>
                           )}
-                          {both.length > 0 && (
-                            <div className="divide-y divide-gray-100">{both.map(renderCard)}</div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="border-t border-gray-100 divide-y divide-gray-100">
-                          {svcs.map(renderCard)}
                         </div>
                       );
                     })()}
