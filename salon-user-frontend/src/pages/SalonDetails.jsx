@@ -157,6 +157,17 @@ function SalonDetails() {
               {salon.category.replace("_", " ")}
             </span>
           )}
+          {salon.servedGender && (
+            <span className={`badge capitalize flex items-center gap-1 ${
+              salon.servedGender === 'male' ? 'bg-blue-50 text-blue-600' :
+              salon.servedGender === 'female' ? 'bg-pink-50 text-pink-600' :
+              'bg-purple-50 text-purple-600'
+            }`}>
+              {salon.servedGender === 'male' ? '👨' : salon.servedGender === 'female' ? '👩' : '👥'}
+              {' '}
+              {salon.servedGender === 'male' ? 'Men' : salon.servedGender === 'female' ? 'Women' : 'Unisex'}
+            </span>
+          )}
           {salon.isApproved && (
             <span className="badge bg-green-50 text-green-600 flex items-center gap-1"><Check className="w-3 h-3" /> Verified</span>
           )}

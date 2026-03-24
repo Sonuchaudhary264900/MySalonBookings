@@ -58,7 +58,7 @@ export default function MyProfile() {
   const toggleSection = (name) => setExpandedSection(prev => prev === name ? null : name);
 
   const [editing, setEditing] = useState(false);
-  const [form, setForm]       = useState({ name: '', email: '' });
+  const [form, setForm]       = useState({ name: '', email: '', gender: '' });
 
   useEffect(() => {
     if (!getCustomerToken()) { navigate('/login'); return; }
@@ -66,7 +66,7 @@ export default function MyProfile() {
       .then(res => {
         const data = res.data?.data || res.data;
         setUser(data);
-        setForm({ name: data.name || '', email: data.email || '' });
+        setForm({ name: data.name || '', email: data.email || '', gender: data.gender || '' });
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -82,7 +82,7 @@ export default function MyProfile() {
     if (!form.name.trim() || form.name.trim().length < 2) { flash('Name must be at least 2 characters', true); return; }
     setSaving(true);
     try {
-      const res = await API.put('/customer/auth/me', { name: form.name.trim(), email: form.email.trim() });
+      const res = await API.put('/customer/auth/me', { name: form.name.trim(), email: form.email.trim(), gender: form.gender });
       setUser(res.data?.data || res.data);
       setEditing(false);
       flash('Profile updated!');
@@ -138,8 +138,9 @@ export default function MyProfile() {
                     <>
                       <InfoRow icon={I.person} label="Full Name" value={user?.name} />
                       <InfoRow icon={I.phone}  label="Phone"     value={user?.phone} />
-                      <InfoRow icon={I.mail}   label="Email"     value={user?.email} last />
-                      <button onClick={() => { setForm({ name: user?.name || '', email: user?.email || '' }); setEditing(true); }}
+                      <InfoRow icon={I.mail}   label="Email"     value={user?.email} />
+                      <InfoRow icon={I.person} label="Gender"    value={user?.gender ? (user.gender === 'male' ? '👨 Male' : '👩 Female') : null} last />
+                      <button onClick={() => { setForm({ name: user?.name || '', email: user?.email || '', gender: user?.gender || '' }); setEditing(true); }}
                         className="w-full flex items-center justify-center gap-1.5 py-2.5 text-sm font-bold text-indigo-600 hover:bg-indigo-50 transition">
                         {I.edit} Edit Profile
                       </button>
@@ -164,6 +165,27 @@ export default function MyProfile() {
                             className="flex-1 text-sm text-slate-800 bg-transparent outline-none placeholder-slate-400" />
                         </div>
                       </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 mb-1">Gender</label>
+                        <div className="flex gap-2">
+                          {[{ value: 'male', label: '👨 Male' }, { value: 'female', label: '👩 Female' }].map(opt => (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              disabled={saving}
+                              onClick={() => setForm(p => ({ ...p, gender: opt.value }))}
+                              className={`flex-1 py-2 rounded-[10px] border text-sm font-semibold transition ${
+                                form.gender === opt.value
+                                  ? 'bg-indigo-600 text-white border-indigo-600'
+                                  : 'border-slate-200 text-slate-600 hover:border-indigo-300'
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
                       <div className="flex gap-2.5 pt-1">
                         <button type="button" onClick={() => setEditing(false)} disabled={saving}
                           className="flex-1 h-10 rounded-[10px] border border-slate-200 text-sm font-semibold text-slate-500 hover:bg-slate-50 transition">

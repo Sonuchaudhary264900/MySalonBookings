@@ -4,7 +4,7 @@ import {
   Globe, Bell, Settings, Lock, User, Calendar, CalendarX,
   Save, Edit2, X, ChevronDown, ChevronUp, Plus,
   CheckCircle2, BellOff, Camera, Trash2, ImagePlus, GitBranch,
-  Eye, EyeOff, Gift,
+  Eye, EyeOff,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -960,96 +960,6 @@ const ClosedDatesContent = ({ salon }) => {
   );
 };
 
-// ─── Referral Code content ────────────────────────────────────
-const ReferralContent = () => {
-  const { getToken } = useAuth();
-  const [code, setCode]         = useState('');
-  const [loading, setLoading]   = useState(false);
-  const [checking, setChecking] = useState(true);
-  const [applied, setApplied]   = useState(null);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const token = getToken();
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://mysalonbookings.onrender.com/api/v1'}/owner/referral/status`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        if (data.data?.applied) setApplied(data.data);
-      } catch {}
-      finally { setChecking(false); }
-    })();
-  }, []);
-
-  const handleApply = async () => {
-    if (!code.trim()) { toast.error('Please enter a referral code'); return; }
-    setLoading(true);
-    try {
-      const token = getToken();
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://mysalonbookings.onrender.com/api/v1'}/owner/referral/apply`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ code: code.trim() }),
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.message);
-      toast.success(data.message);
-      setApplied({ code: code.trim().toUpperCase(), appliedAt: new Date().toISOString() });
-      setCode('');
-    } catch (err) {
-      toast.error(err.message || 'Could not apply referral code.');
-    } finally { setLoading(false); }
-  };
-
-  if (checking) return <div className="py-6 flex justify-center"><div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" /></div>;
-
-  if (applied) return (
-    <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl p-4">
-      <span className="text-2xl">✅</span>
-      <div>
-        <p className="font-bold text-green-800 text-sm">Referral code applied!</p>
-        <p className="text-green-700 text-xs mt-0.5">Code: <span className="font-mono font-bold">{applied.code}</span></p>
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-3 items-start">
-        <span className="text-2xl">🎁</span>
-        <div>
-          <p className="font-bold text-amber-800 text-sm">Got a referral code?</p>
-          <p className="text-amber-700 text-xs mt-1">Enter the code shared by a MySalonBookings user. They'll earn a reward when you qualify!</p>
-        </div>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1.5">Referral Code</label>
-        <input
-          type="text"
-          value={code}
-          onChange={e => setCode(e.target.value.toUpperCase())}
-          placeholder="e.g. MSB123456"
-          maxLength={9}
-          className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-mono font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-300"
-        />
-      </div>
-      <button
-        onClick={handleApply}
-        disabled={loading}
-        className="btn-primary text-sm py-2.5 flex items-center justify-center gap-2 disabled:opacity-60"
-      >
-        {loading ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : '🎁 Apply Referral Code'}
-      </button>
-      <button
-        onClick={() => alert('Terms & Conditions:\n\n• Enter the referral code shared by a MySalonBookings user.\n\n• You can only apply one referral code.\n\n• The referring user earns ₹50 after your salon actively uses the app for 30 consecutive days.\n\n• Codes cannot be transferred or reused.')}
-        className="text-xs text-slate-400 underline text-center"
-      >
-        View Terms & Conditions
-      </button>
-    </div>
-  );
-};
 
 
 // ─── Privacy & Security content ───────────────────────────────
@@ -1269,14 +1179,6 @@ const SettingsPage = () => {
       title: 'Closed Dates / Holidays',
       subtitle: 'Mark specific dates when your salon is closed',
       content: <ClosedDatesContent salon={salon} />,
-    },
-    {
-      id: 'referral',
-      icon: Gift,
-      iconBg: 'bg-amber-100 text-amber-600',
-      title: 'Referral Code',
-      subtitle: 'Apply a code from a MySalonBookings user',
-      content: <ReferralContent />,
     },
     {
       id: 'privacy',

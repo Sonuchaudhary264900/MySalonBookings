@@ -556,7 +556,7 @@ exports.getCurrentCustomer = async (req, res) => {
 // ===================================================
 exports.updateProfile = async (req, res) => {
   try {
-    const { name, email } = req.body;
+    const { name, email, gender } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json(
@@ -582,6 +582,7 @@ exports.updateProfile = async (req, res) => {
     }
 
     customer.name = name.trim();
+    if (gender && ['male', 'female'].includes(gender)) customer.gender = gender;
     await customer.save();
 
     res.json(
