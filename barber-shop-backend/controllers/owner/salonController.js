@@ -219,6 +219,11 @@ exports.updateSalon = async (req, res) => {
       );
     }
 
+    // Capture old menu sub-service names before overwriting, so we can deactivate removed ones
+    const oldMenuServiceNames = new Set(
+      (salon.offeredCategories || []).flatMap(cat => (cat.subServices || []).map(s => s.name))
+    );
+
     if (name) salon.name = name;
     if (phone) salon.phone = phone;
     if (email) salon.email = email;
@@ -294,7 +299,9 @@ exports.updateSalon = async (req, res) => {
         effectiveGender === 'female' ? ['female'] :
         ['male', 'female'];
 
+      const newMenuServiceNames = new Set();
       const upsertedIds = [];
+
       for (const cat of offeredCategories) {
         const categoryName = cat.name || '';
         for (const sub of (cat.subServices || [])) {
@@ -302,16 +309,27 @@ exports.updateSalon = async (req, res) => {
           const duration  = parseInt(sub.duration) || 0;
           if (!sub.name || basePrice <= 0 || duration <= 0) continue;
 
+          newMenuServiceNames.add(sub.name);
+
+          // applicableFor is in $set so it updates when owner changes gender
           const upserted = await Service.findOneAndUpdate(
             { salonId: salon._id, name: sub.name },
             {
-              $set: { category: categoryName, basePrice, duration, isActive: true },
-              $setOnInsert: { salonId: salon._id, name: sub.name, applicableFor },
+              $set: { category: categoryName, basePrice, duration, isActive: true, applicableFor },
             },
             { upsert: true, new: true }
           );
           upsertedIds.push(upserted._id);
         }
+      }
+
+      // Deactivate old menu services no longer present in the new menu
+      const namesToDeactivate = [...oldMenuServiceNames].filter(n => !newMenuServiceNames.has(n));
+      if (namesToDeactivate.length > 0) {
+        await Service.updateMany(
+          { salonId: salon._id, name: { $in: namesToDeactivate } },
+          { $set: { isActive: false } }
+        );
       }
 
       // Ensure all synced services are referenced in salon.services[]
