@@ -1,5 +1,3 @@
-import { useNavigate } from "react-router-dom";
-import { isCustomer, clearCustomerAuth } from "../utils/auth";
 import { Scissors, Zap, User, Sparkles, Hand, Leaf, Palette, Clock, Star, Plus, Check } from "lucide-react";
 
 const serviceIconMap = {
@@ -24,17 +22,6 @@ function getIcon(name = "") {
 }
 
 function ServiceCard({ service, isSelected, onToggle, showGenderBadge = false }) {
-  const navigate = useNavigate();
-
-  const handleToggle = () => {
-    if (!isCustomer()) {
-      clearCustomerAuth();
-      navigate("/login");
-      return;
-    }
-    onToggle();
-  };
-
   const unavailable = service.available === false;
 
   return (
@@ -82,7 +69,7 @@ function ServiceCard({ service, isSelected, onToggle, showGenderBadge = false })
           <p className="text-base font-bold text-slate-900">₹{service.basePrice ?? service.price}</p>
         </div>
         <button
-          onClick={handleToggle}
+          onClick={onToggle}
           disabled={unavailable}
           className={`py-2.5 px-5 rounded-xl font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 ${
             isSelected
