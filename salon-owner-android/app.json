@@ -22,10 +22,6 @@
       "package": "com.mysalonbookings.owner",
       "versionCode": 1,
       "googleServicesFile": "./google-services.json",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/icon1.png",
-        "backgroundColor": "#ffffff"
-      },
       "permissions": []
     },
     "web": {
