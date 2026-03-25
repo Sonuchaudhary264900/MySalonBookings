@@ -469,26 +469,26 @@ function Booking() {
 
             {/* Booking summary */}
             {date && slot && (
-              <div className="bg-indigo-50 rounded-xl p-4 text-sm fade-in">
-                <p className="font-semibold text-indigo-800 mb-2">Booking Summary</p>
-                <div className="space-y-1 text-indigo-700">
+              <div className="bg-white border border-slate-200 rounded-xl p-4 text-sm fade-in">
+                <p className="text-xs font-bold text-indigo-600 uppercase tracking-wide mb-3">Booking Summary</p>
+                <div className="space-y-2 text-slate-700">
                   {services.map(s => (
                     <div key={s._id} className="flex justify-between">
-                      <span>{s.name}</span>
-                      <span className="font-medium">₹{s.basePrice || s.price}</span>
+                      <span className="text-slate-600">{s.name}</span>
+                      <span className="font-semibold text-slate-800">₹{s.basePrice || s.price}</span>
                     </div>
                   ))}
                   <div className="flex justify-between">
-                    <span>Duration</span>
-                    <span className="font-medium">{totalDuration} min</span>
+                    <span className="text-slate-500">Duration</span>
+                    <span className="font-medium text-slate-700">{totalDuration} min</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Date</span>
-                    <span className="font-medium">{formatDate(date + "T12:00:00")}</span>
+                    <span className="text-slate-500">Date</span>
+                    <span className="font-medium text-slate-700">{formatDate(date + "T12:00:00")}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Time</span>
-                    <span className="font-medium">{slot} – {(() => {
+                    <span className="text-slate-500">Time</span>
+                    <span className="font-medium text-slate-700">{slot} – {(() => {
                       const [h, m] = slot.split(":").map(Number);
                       const end = h * 60 + m + totalDuration;
                       return `${String(Math.floor(end / 60)).padStart(2, "0")}:${String(end % 60).padStart(2, "0")}`;
@@ -497,12 +497,12 @@ function Booking() {
                   {couponDiscount > 0 && (
                     <div className="flex justify-between text-green-700">
                       <span>Discount ({appliedCoupon?.code})</span>
-                      <span className="font-medium">-₹{couponDiscount}</span>
+                      <span className="font-medium">−₹{couponDiscount}</span>
                     </div>
                   )}
-                  <div className="flex justify-between border-t border-indigo-200 pt-2 mt-2">
-                    <span className="font-semibold">Total</span>
-                    <span className="font-bold text-indigo-900">₹{finalPrice}</span>
+                  <div className="flex justify-between border-t border-slate-200 pt-2 mt-1">
+                    <span className="font-bold text-slate-800">Total (Pay at salon)</span>
+                    <span className="font-bold text-indigo-600 text-base">₹{finalPrice}</span>
                   </div>
                 </div>
               </div>

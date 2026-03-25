@@ -38,24 +38,24 @@ function ServiceCard({ service, isSelected, onToggle, showGenderBadge = false })
   const unavailable = service.available === false;
 
   return (
-    <div className={`flex items-center justify-between p-4 bg-white rounded-xl border transition-all duration-200 group ${
+    <div className={`flex items-center justify-between p-5 bg-white rounded-xl border-2 transition-all duration-200 group ${
       isSelected
         ? "border-indigo-400 shadow-sm bg-indigo-50/30"
         : "border-slate-100 hover:border-indigo-200 hover:shadow-sm"
     }`}>
-      <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isSelected ? "bg-indigo-100" : "bg-indigo-50"}`}>
+      <div className="flex items-center gap-4">
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${isSelected ? "bg-indigo-100" : "bg-indigo-50"}`}>
           {getIcon(service.name)}
         </div>
         <div>
-          <h3 className="font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors">
+          <h3 className="text-[15px] font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors">
             {service.name}
           </h3>
           {service.description && (
             <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">{service.description}</p>
           )}
           <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <span className="text-xs text-slate-500 flex items-center gap-1">
+            <span className="text-[13px] text-slate-500 flex items-center gap-1">
               <Clock className="w-3.5 h-3.5" /> {service.duration} min
             </span>
             {!unavailable ? (
@@ -79,21 +79,21 @@ function ServiceCard({ service, isSelected, onToggle, showGenderBadge = false })
 
       <div className="flex items-center gap-4 shrink-0">
         <div className="text-right">
-          <p className="font-bold text-slate-900">₹{service.basePrice ?? service.price}</p>
+          <p className="text-base font-bold text-slate-900">₹{service.basePrice ?? service.price}</p>
         </div>
         <button
           onClick={handleToggle}
           disabled={unavailable}
-          className={`text-sm py-2 px-4 rounded-xl font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 ${
+          className={`py-2.5 px-5 rounded-xl font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 ${
             isSelected
               ? "bg-indigo-600 text-white hover:bg-indigo-700"
-              : "border border-indigo-600 text-indigo-600 hover:bg-indigo-50"
+              : "border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50"
           }`}
         >
           {isSelected ? (
-            <><Check className="w-3.5 h-3.5" /> Added</>
+            <><Check className="w-4 h-4" /> Added</>
           ) : (
-            <><Plus className="w-3.5 h-3.5" /> Add</>
+            <><Plus className="w-4 h-4" /> Add</>
           )}
         </button>
       </div>
