@@ -1,7 +1,8 @@
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import React, { useEffect, useRef } from 'react';
-import { View, Text, ActivityIndicator, Image, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, ActivityIndicator, Image, StyleSheet, Dimensions, InteractionManager } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer, useNavigation, createNavigationContainerRef } from '@react-navigation/native';
 import * as Notifications from 'expo-notifications';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -141,6 +142,30 @@ function AuthNavigator() {
 // ── Root navigator ────────────────────────────────────────────────
 function RootNavigator() {
   const { isAuthenticated, loading } = useAuth();
+  const prevIsAuth = useRef(false);
+
+  // After login: if a pending booking was saved while browsing as guest,
+  // navigate to BookingScreen once the Auth→Main transition animation finishes.
+  useEffect(() => {
+    if (!isAuthenticated || prevIsAuth.current) {
+      prevIsAuth.current = isAuthenticated;
+      return;
+    }
+    prevIsAuth.current = true;
+    AsyncStorage.getItem('pendingBooking').then(raw => {
+      if (!raw) return;
+      AsyncStorage.removeItem('pendingBooking');
+      const { salonId, serviceIds } = JSON.parse(raw);
+      InteractionManager.runAfterInteractions(() => {
+        if (navigationRef.isReady()) {
+          navigationRef.navigate('Main', {
+            screen: 'HomeTab',
+            params: { screen: 'Booking', params: { salonId, serviceIds } },
+          });
+        }
+      });
+    }).catch(() => {});
+  }, [isAuthenticated]);
 
   // Navigate to Bookings tab when user taps a review_prompt push notification
   useEffect(() => {

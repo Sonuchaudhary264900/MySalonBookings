@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, memo, useMemo } from '
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   TextInput, ActivityIndicator, Image, RefreshControl,
-  ScrollView, Alert, InteractionManager,
+  ScrollView, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,7 +12,6 @@ import { useNotifications } from '../../context/NotificationContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CATEGORY_KEYS = [
   { key: 'all',                  label: 'All',              emoji: '🏠' },
@@ -239,22 +238,6 @@ export default function HomeScreen({ navigation }) {
   const [favoriteIds, setFavoriteIds] = useState(new Set());
   const [serviceMatchLabel, setServiceMatchLabel] = useState('');
   const searchTimer                   = useRef(null);
-
-  // After login redirect: if a pending booking was saved, go straight to Booking.
-  // Uses InteractionManager to wait until the Auth→Main transition animation
-  // finishes — navigation calls during an active transition are silently dropped.
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    const task = InteractionManager.runAfterInteractions(() => {
-      AsyncStorage.getItem('pendingBooking').then(raw => {
-        if (!raw) return;
-        AsyncStorage.removeItem('pendingBooking');
-        const { salonId, serviceIds } = JSON.parse(raw);
-        navigation.navigate('Booking', { salonId, serviceIds });
-      }).catch(() => {});
-    });
-    return () => task.cancel();
-  }, []);
 
   // Auto-set gender filter from user profile (runs once when user loads)
   const genderInitialized = useRef(false);
