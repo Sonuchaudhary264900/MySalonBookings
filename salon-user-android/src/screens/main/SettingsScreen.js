@@ -290,7 +290,9 @@ export default function SettingsScreen({ navigation }) {
           </View>
         </TouchableOpacity>
 
-        {/* ACCOUNT INFO */}
+        {/* ── ACCOUNT ──────────────────────────────────────── */}
+        <SectionHeader title="Account" />
+
         <View style={styles.accordionCard}>
           <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('account')} activeOpacity={0.7}>
             <View style={styles.accordionHeaderLeft}>
@@ -307,39 +309,11 @@ export default function SettingsScreen({ navigation }) {
           {expandedSection === 'account' && (
             <View style={styles.accordionBody}>
               {[
-                {
-                  icon: 'finger-print-outline',
-                  color: '#7c3aed',
-                  label: 'Account ID',
-                  value: user?._id ? String(user._id).slice(-8).toUpperCase() : '—',
-                  mono: true,
-                },
-                {
-                  icon: 'calendar-outline',
-                  color: '#2563eb',
-                  label: 'Member Since',
-                  value: user?.createdAt
-                    ? new Date(user.createdAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })
-                    : '—',
-                },
-                {
-                  icon: 'person-circle-outline',
-                  color: '#10b981',
-                  label: 'Account Type',
-                  value: 'Customer',
-                },
-                {
-                  icon: 'call-outline',
-                  color: '#f59e0b',
-                  label: 'Phone',
-                  value: user?.phone || '—',
-                },
-                {
-                  icon: 'mail-outline',
-                  color: '#6366f1',
-                  label: 'Email',
-                  value: user?.email || '—',
-                },
+                { icon: 'finger-print-outline', color: '#7c3aed', label: 'Account ID',    value: user?._id ? String(user._id).slice(-8).toUpperCase() : '—', mono: true },
+                { icon: 'calendar-outline',     color: '#2563eb', label: 'Member Since',  value: user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' }) : '—' },
+                { icon: 'person-circle-outline',color: '#10b981', label: 'Account Type',  value: 'Customer' },
+                { icon: 'call-outline',         color: '#f59e0b', label: 'Phone',         value: user?.phone || '—' },
+                { icon: 'mail-outline',         color: '#6366f1', label: 'Email',         value: user?.email || '—' },
               ].map((row, i, arr) => (
                 <View key={row.label}>
                   <View style={styles.settingRow}>
@@ -348,9 +322,7 @@ export default function SettingsScreen({ navigation }) {
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.rowSublabel}>{row.label}</Text>
-                      <Text style={[styles.rowLabel, row.mono && { fontFamily: 'monospace', letterSpacing: 1 }]}>
-                        {row.value}
-                      </Text>
+                      <Text style={[styles.rowLabel, row.mono && { fontFamily: 'monospace', letterSpacing: 1 }]}>{row.value}</Text>
                     </View>
                   </View>
                   {i < arr.length - 1 && <Divider />}
@@ -360,14 +332,16 @@ export default function SettingsScreen({ navigation }) {
           )}
         </View>
 
-        {/* NOTIFICATION SETTINGS */}
+        {/* ── PREFERENCES ──────────────────────────────────── */}
+        <SectionHeader title="Preferences" />
+
         <View style={styles.accordionCard}>
           <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('notifications')} activeOpacity={0.7}>
             <View style={styles.accordionHeaderLeft}>
               <View style={[styles.iconBox, { backgroundColor: '#f59e0b18' }]}>
                 <Ionicons name="notifications-outline" size={18} color="#f59e0b" />
               </View>
-              <Text style={styles.accordionHeaderTitle}>Notification Settings</Text>
+              <Text style={styles.accordionHeaderTitle}>Notifications</Text>
             </View>
             <Ionicons name={expandedSection === 'notifications' ? 'chevron-up' : 'chevron-down'} size={18} color={theme.subText} />
           </TouchableOpacity>
@@ -390,12 +364,11 @@ export default function SettingsScreen({ navigation }) {
           )}
         </View>
 
-        {/* APP PREFERENCES */}
         <View style={styles.accordionCard}>
           <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('preferences')} activeOpacity={0.7}>
             <View style={styles.accordionHeaderLeft}>
               <View style={[styles.iconBox, { backgroundColor: '#2563eb18' }]}>
-                <Ionicons name="settings-outline" size={18} color="#2563eb" />
+                <Ionicons name="color-palette-outline" size={18} color="#2563eb" />
               </View>
               <Text style={styles.accordionHeaderTitle}>{t('appPreferences')}</Text>
             </View>
@@ -412,7 +385,9 @@ export default function SettingsScreen({ navigation }) {
           )}
         </View>
 
-        {/* CHANGE PASSWORD */}
+        {/* ── SECURITY ─────────────────────────────────────── */}
+        <SectionHeader title="Security" />
+
         <View style={styles.accordionCard}>
           <TouchableOpacity style={styles.accordionHeader} onPress={() => { toggleSection('password'); setCpStep(1); setCpOtp(''); setCpNewPw(''); setCpConfirm(''); }} activeOpacity={0.7}>
             <View style={styles.accordionHeaderLeft}>
@@ -462,7 +437,6 @@ export default function SettingsScreen({ navigation }) {
           )}
         </View>
 
-        {/* PRIVACY & SECURITY */}
         <View style={styles.accordionCard}>
           <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('privacy')} activeOpacity={0.7}>
             <View style={styles.accordionHeaderLeft}>
@@ -492,26 +466,9 @@ export default function SettingsScreen({ navigation }) {
           )}
         </View>
 
-        {/* ABOUT */}
-        <View style={styles.accordionCard}>
-          <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('about')} activeOpacity={0.7}>
-            <View style={styles.accordionHeaderLeft}>
-              <View style={[styles.iconBox, { backgroundColor: '#2563eb18' }]}>
-                <Ionicons name="information-circle-outline" size={18} color="#2563eb" />
-              </View>
-              <Text style={styles.accordionHeaderTitle}>About</Text>
-            </View>
-            <Ionicons name={expandedSection === 'about' ? 'chevron-up' : 'chevron-down'} size={18} color={theme.subText} />
-          </TouchableOpacity>
-          {expandedSection === 'about' && (
-            <View style={styles.accordionBody}>
-              <SettingRow icon="code-slash-outline" iconColor="#2563eb" label="App Version" rightEl={<Text style={styles.valueText}>v1.0.0</Text>} />
-              <SettingRow icon="globe-outline" iconColor="#2563eb" label="Website" rightEl={<Text style={styles.valueText}>mysalonbookings.com</Text>} />
-            </View>
-          )}
-        </View>
+        {/* ── EARN & SHARE ─────────────────────────────────── */}
+        <SectionHeader title="Earn & Share" />
 
-        {/* REFER & EARN */}
         <View style={styles.accordionCard}>
           <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('refer')} activeOpacity={0.7}>
             <View style={styles.accordionHeaderLeft}>
@@ -525,22 +482,15 @@ export default function SettingsScreen({ navigation }) {
             </View>
             <Ionicons name={expandedSection === 'refer' ? 'chevron-up' : 'chevron-down'} size={18} color={theme.subText} />
           </TouchableOpacity>
-
           {expandedSection === 'refer' && (
             <View style={[styles.accordionBody, { padding: 16, gap: 14 }]}>
-
-              {/* Reward banner */}
               <View style={styles.referBanner}>
                 <Text style={styles.referBannerEmoji}>🎁</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.referBannerTitle}>Earn ₹50 for every salon you refer!</Text>
-                  <Text style={styles.referBannerSub}>
-                    Invite salon owners to join MySalonBookings and earn rewards when they get started.
-                  </Text>
+                  <Text style={styles.referBannerSub}>Invite salon owners to join MySalonBookings and earn rewards when they get started.</Text>
                 </View>
               </View>
-
-              {/* How it works */}
               <View style={{ gap: 8 }}>
                 <Text style={[styles.rowLabel, { fontSize: 13 }]}>How it works</Text>
                 {[
@@ -557,16 +507,9 @@ export default function SettingsScreen({ navigation }) {
                   </View>
                 ))}
               </View>
-
-              {/* Terms */}
-              <TouchableOpacity onPress={() => Alert.alert(
-                'Terms & Conditions',
-                '• The referred salon owner must register using your referral code.\n\n• The salon owner must actively use the MySalonBookings owner app for a minimum of 30 consecutive days.\n\n• ₹50 will be credited to your account once the 30-day qualifying period is complete.\n\n• Each referral code can be used once per salon.\n\n• MySalonBookings reserves the right to modify or cancel the referral program at any time.',
-              )}>
+              <TouchableOpacity onPress={() => Alert.alert('Terms & Conditions', '• The referred salon owner must register using your referral code.\n\n• The salon owner must actively use the MySalonBookings owner app for a minimum of 30 consecutive days.\n\n• ₹50 will be credited to your account once the 30-day qualifying period is complete.\n\n• Each referral code can be used once per salon.\n\n• MySalonBookings reserves the right to modify or cancel the referral program at any time.')}>
                 <Text style={styles.referTermsLink}>View Terms & Conditions</Text>
               </TouchableOpacity>
-
-              {/* Referral code */}
               <View style={styles.referCodeBox}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.referCodeLabel}>Your Referral Code</Text>
@@ -577,44 +520,30 @@ export default function SettingsScreen({ navigation }) {
                   <Text style={styles.referCopyText}>Copy</Text>
                 </TouchableOpacity>
               </View>
-
-              {/* Share button */}
               <TouchableOpacity style={styles.referShareBtn} onPress={handleShare}>
                 <Ionicons name="share-social-outline" size={18} color="#fff" />
                 <Text style={styles.referShareBtnText}>Share & Invite Salon Owners</Text>
               </TouchableOpacity>
-
             </View>
           )}
         </View>
 
-        {/* SIGN OUT */}
-        <View style={styles.accordionCard}>
-          <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('signout')} activeOpacity={0.7}>
-            <View style={styles.accordionHeaderLeft}>
-              <View style={[styles.iconBox, { backgroundColor: '#ef444418' }]}>
-                <Ionicons name="log-out-outline" size={18} color="#ef4444" />
-              </View>
-              <Text style={[styles.accordionHeaderTitle, { color: '#ef4444' }]}>Sign Out</Text>
-            </View>
-            <Ionicons name={expandedSection === 'signout' ? 'chevron-up' : 'chevron-down'} size={18} color="#ef4444" />
-          </TouchableOpacity>
-          {expandedSection === 'signout' && (
-            <View style={[styles.accordionBody, { padding: 14 }]}>
-              <Text style={[styles.rowSublabel, { marginBottom: 12 }]}>
-                You will be logged out of your account on this device.
-              </Text>
-              <TouchableOpacity
-                style={styles.logoutConfirmBtn}
-                onPress={handleLogout}
-                activeOpacity={0.85}
-              >
-                <Ionicons name="log-out-outline" size={18} color="#fff" />
-                <Text style={styles.logoutConfirmText}>Confirm Sign Out</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
+        {/* ── ABOUT ────────────────────────────────────────── */}
+        <SectionHeader title="About" />
+
+        <Card>
+          <SettingRow icon="code-slash-outline" iconColor="#2563eb" label="App Version" rightEl={<Text style={styles.valueText}>v1.0.0</Text>} />
+          <Divider />
+          <SettingRow icon="globe-outline" iconColor="#059669" label="Website" rightEl={<Text style={styles.valueText}>mysalonbookings.com</Text>} onPress={() => Linking.openURL('https://mysalonbookings.com')} chevron />
+          <Divider />
+          <SettingRow icon="document-text-outline" iconColor="#6b7280" label="Terms & Conditions" onPress={() => Linking.openURL('https://mysalonbookings.com/terms')} chevron />
+        </Card>
+
+        {/* ── SIGN OUT ─────────────────────────────────────── */}
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.85}>
+          <Ionicons name="log-out-outline" size={20} color="#ef4444" />
+          <Text style={styles.logoutBtnText}>Sign Out</Text>
+        </TouchableOpacity>
 
         <View style={{ height: 32 }} />
       </ScrollView>
@@ -676,6 +605,4 @@ const getStyles = (t) => StyleSheet.create({
   referShareBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: t.accent, borderRadius: 12, height: 46 },
   referShareBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
   referTermsLink: { fontSize: 12, color: t.subText, textAlign: 'center', textDecorationLine: 'underline' },
-  logoutConfirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#ef4444', borderRadius: 12, height: 48 },
-  logoutConfirmText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 });
