@@ -12,6 +12,7 @@ import { useNotifications } from '../../context/NotificationContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CATEGORY_KEYS = [
   { key: 'all',                  label: 'All',              emoji: '🏠' },
@@ -238,6 +239,16 @@ export default function HomeScreen({ navigation }) {
   const [favoriteIds, setFavoriteIds] = useState(new Set());
   const [serviceMatchLabel, setServiceMatchLabel] = useState('');
   const searchTimer                   = useRef(null);
+
+  // After login redirect: if a pending booking was saved, go straight to Booking
+  useEffect(() => {
+    AsyncStorage.getItem('pendingBooking').then(raw => {
+      if (!raw) return;
+      AsyncStorage.removeItem('pendingBooking');
+      const { salonId, serviceIds } = JSON.parse(raw);
+      navigation.navigate('Booking', { salonId, serviceIds });
+    }).catch(() => {});
+  }, []);
 
   // Auto-set gender filter from user profile (runs once when user loads)
   const genderInitialized = useRef(false);

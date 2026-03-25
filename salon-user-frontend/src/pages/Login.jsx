@@ -183,7 +183,7 @@ function Login() {
 
           <p className="mt-5 text-center text-sm text-slate-500">
             Don't have an account?{" "}
-            <Link to="/register" className="text-indigo-600 font-semibold hover:underline">
+            <Link to="/register" state={{ from, bookingState }} className="text-indigo-600 font-semibold hover:underline">
               Create one free
             </Link>
           </p>

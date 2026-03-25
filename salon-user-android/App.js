@@ -8,7 +8,6 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import Toast from 'react-native-toast-message';
@@ -140,27 +139,6 @@ function AuthNavigator() {
 // ── Root navigator ────────────────────────────────────────────────
 function RootNavigator() {
   const { isAuthenticated, loading } = useAuth();
-
-  // After login, redirect to any pending booking that was saved before sign-in
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    (async () => {
-      try {
-        const raw = await AsyncStorage.getItem('pendingBooking');
-        if (!raw) return;
-        await AsyncStorage.removeItem('pendingBooking');
-        const { salonId, serviceIds } = JSON.parse(raw);
-        setTimeout(() => {
-          if (navigationRef.isReady()) {
-            navigationRef.navigate('Main', {
-              screen: 'HomeTab',
-              params: { screen: 'Booking', params: { salonId, serviceIds } },
-            });
-          }
-        }, 300);
-      } catch {}
-    })();
-  }, [isAuthenticated]);
 
   // Navigate to Bookings tab when user taps a review_prompt push notification
   useEffect(() => {
