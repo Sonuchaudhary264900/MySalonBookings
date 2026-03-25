@@ -30,6 +30,12 @@ Thumbs.db
 .expo/
 **/.expo/
 
+# Generated native Android/iOS projects (Expo prebuild output)
+salon-user-android/android/
+salon-owner-android/android/
+salon-user-android/dist/
+salon-owner-android/dist/
+
 # Editor directories
 .vscode/
 .idea/
