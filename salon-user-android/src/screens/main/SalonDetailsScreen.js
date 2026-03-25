@@ -117,7 +117,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
       }
       Alert.alert('Sign In Required', 'Please sign in to book an appointment.', [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign In', onPress: () => navigation.navigate('Auth') },
+        { text: 'Sign In', onPress: () => navigation.navigate('Login') },
       ]);
       return;
     }

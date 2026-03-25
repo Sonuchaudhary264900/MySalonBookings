@@ -21,6 +21,9 @@ export default function IntroScreen({ navigation }) {
         <TouchableOpacity style={styles.btnSecondary} onPress={() => navigation.navigate('Login')}>
           <Text style={styles.btnSecondaryText}>Already have an account? <Text style={styles.btnSecondaryBold}>Sign In</Text></Text>
         </TouchableOpacity>
+        <TouchableOpacity style={styles.btnGuest} onPress={() => navigation.navigate('GuestHome')}>
+          <Text style={styles.btnGuestText}>Browse Salons</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -38,4 +41,6 @@ const styles = StyleSheet.create({
   btnSecondary: { alignItems: 'center', paddingVertical: 10 },
   btnSecondaryText: { fontSize: 14, color: '#6b7280' },
   btnSecondaryBold: { color: '#2563eb', fontWeight: '700' },
+  btnGuest:     { alignItems: 'center', paddingVertical: 8 },
+  btnGuestText: { fontSize: 13, color: '#9ca3af', textDecorationLine: 'underline' },
 });

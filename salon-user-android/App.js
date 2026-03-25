@@ -129,9 +129,11 @@ function MainTabs() {
 function AuthNavigator() {
   return (
     <AuthStack.Navigator screenOptions={{ headerShown: false }}>
-      <AuthStack.Screen name="Intro"    component={IntroScreen} />
-      <AuthStack.Screen name="Login"    component={LoginScreen} />
-      <AuthStack.Screen name="Register" component={RegisterScreen} />
+      <AuthStack.Screen name="Intro"             component={IntroScreen} />
+      <AuthStack.Screen name="Login"             component={LoginScreen} />
+      <AuthStack.Screen name="Register"          component={RegisterScreen} />
+      <AuthStack.Screen name="GuestHome"         component={HomeScreen} />
+      <AuthStack.Screen name="GuestSalonDetails" component={SalonDetailsScreen} />
     </AuthStack.Navigator>
   );
 }

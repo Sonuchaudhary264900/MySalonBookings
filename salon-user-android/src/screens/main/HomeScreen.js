@@ -224,7 +224,7 @@ export default function HomeScreen({ navigation }) {
   const { t } = useLanguage();
   const styles = getStyles(theme);
   const { unreadCount } = useNotifications();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [salons, setSalons]           = useState([]);
   const [allSalons, setAllSalons]     = useState([]);
   const [selectedCats, setSelectedCats] = useState([]);
@@ -240,8 +240,11 @@ export default function HomeScreen({ navigation }) {
   const [serviceMatchLabel, setServiceMatchLabel] = useState('');
   const searchTimer                   = useRef(null);
 
-  // After login redirect: if a pending booking was saved, go straight to Booking
+  // After login redirect: if a pending booking was saved, go straight to Booking.
+  // Guard with isAuthenticated so GuestHome (in AuthStack) doesn't try to navigate
+  // to 'Booking' before the user has logged in.
   useEffect(() => {
+    if (!isAuthenticated) return;
     AsyncStorage.getItem('pendingBooking').then(raw => {
       if (!raw) return;
       AsyncStorage.removeItem('pendingBooking');
@@ -464,7 +467,7 @@ export default function HomeScreen({ navigation }) {
     <SalonCard
       salon={item}
       distance={getDistance(item)}
-      onPress={() => navigation.navigate('SalonDetails', { salonId: item._id })}
+      onPress={() => navigation.navigate(isAuthenticated ? 'SalonDetails' : 'GuestSalonDetails', { salonId: item._id })}
       isFavorited={favoriteIds.has(item._id)}
       onToggleFavorite={handleToggleFavorite}
     />
