@@ -236,6 +236,7 @@ export default function HomeScreen({ navigation }) {
   const [userCoords, setUserCoords]   = useState(null);
   const [locDenied, setLocDenied]     = useState(false);
   const [favoriteIds, setFavoriteIds] = useState(new Set());
+  const [serviceMatchLabel, setServiceMatchLabel] = useState('');
   const searchTimer                   = useRef(null);
 
   // Auto-set gender filter from user profile (runs once when user loads)
@@ -294,6 +295,7 @@ export default function HomeScreen({ navigation }) {
     if (!coords) return;
     setLoading(true);
     setSearchText('');
+    setServiceMatchLabel('');
     try {
       const res = await api.get(`/public/salons/nearby?latitude=${coords.lat}&longitude=${coords.lng}&sort=${sortKey}`);
       const data = res.data.data?.salons || res.data.data || [];
@@ -357,14 +359,21 @@ export default function HomeScreen({ navigation }) {
         api.get(`/public/services/search?q=${encodeURIComponent(text.trim())}`),
       ]);
 
-      const salonData   = salonRes.status   === 'fulfilled' ? (salonRes.value.data.data?.salons   || []) : [];
-      const serviceData = serviceRes.status === 'fulfilled' ? (serviceRes.value.data.data?.salons || []) : [];
+      const salonData      = salonRes.status   === 'fulfilled' ? (salonRes.value.data.data?.salons   || []) : [];
+      const serviceData    = serviceRes.status === 'fulfilled' ? (serviceRes.value.data.data?.salons || []) : [];
+      const matchedService = serviceRes.status === 'fulfilled' ? serviceRes.value.data.data?.matchedService : null;
 
       const seen = new Set();
       const merged = [];
       for (const s of [...salonData, ...serviceData]) {
         const id = s._id?.toString();
         if (id && !seen.has(id)) { seen.add(id); merged.push(s); }
+      }
+
+      if (matchedService && serviceData.length > 0 && salonData.length === 0) {
+        setServiceMatchLabel(`Salons offering "${matchedService}"`);
+      } else {
+        setServiceMatchLabel('');
       }
 
       setSalons(sortByNearest(applyFilters(merged, activeCats, activeGender), coords));
@@ -403,6 +412,7 @@ export default function HomeScreen({ navigation }) {
     setSearchText(text);
     if (searchTimer.current) clearTimeout(searchTimer.current);
     if (!text.trim()) {
+      setServiceMatchLabel('');
       setSalons(applyFilters(allSalons, selectedCats, genderFilter));
       return;
     }
@@ -428,6 +438,16 @@ export default function HomeScreen({ navigation }) {
       return next;
     });
   }, []);
+
+  const isSearchActive = searchText.trim().length > 0;
+
+  const sectionTitle = serviceMatchLabel
+    ? serviceMatchLabel
+    : isSearchActive
+    ? 'Search Results'
+    : sort === 'nearby' ? 'Salons Near You'
+    : sort === 'rated'  ? 'Top Rated Salons'
+    : 'Most Booked Salons';
 
   const renderItem = useCallback(({ item }) => (
     <SalonCard
@@ -579,32 +599,42 @@ export default function HomeScreen({ navigation }) {
                 </View>
               )}
 
-              {/* Results count + sort picker */}
-              {!loading && salons.length > 0 && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, marginBottom: 4 }}>
-                  <Text style={styles.resultsCount}>
-                    {salons.length} salon{salons.length !== 1 ? 's' : ''} {searchText ? 'found' : 'nearby'}
-                  </Text>
-                  {!searchText && userCoords && (
-                    <View style={{ flexDirection: 'row', gap: 4 }}>
-                      {SORT_KEYS.map(s => (
-                        <TouchableOpacity
-                          key={s.key}
-                          onPress={() => handleSort(s.key)}
-                          style={{
-                            paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10,
-                            backgroundColor: sort === s.key ? '#4f46e5' : 'transparent',
-                            borderWidth: 1,
-                            borderColor: sort === s.key ? '#4f46e5' : theme.border,
-                          }}
-                        >
-                          <Text style={{ fontSize: 11, fontWeight: '600', color: sort === s.key ? '#fff' : theme.subText }}>
-                            {s.key === 'nearby' ? '📍' : s.key === 'booked' ? '🔥' : '⭐'} {t(s.labelKey)}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
+              {/* Section title + results count + sort + Show All */}
+              {!loading && (
+                <View style={{ paddingHorizontal: 16, marginBottom: 4 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                    <Text style={{ fontSize: 15, fontWeight: '800', color: theme.text }}>{sectionTitle}</Text>
+                    {isSearchActive && (
+                      <TouchableOpacity onPress={() => handleSearch('')}>
+                        <Text style={{ fontSize: 13, color: theme.accent, fontWeight: '600' }}>← Show All</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={styles.resultsCount}>
+                      {salons.length} salon{salons.length !== 1 ? 's' : ''} {isSearchActive ? 'found' : 'nearby'}
+                    </Text>
+                    {!isSearchActive && userCoords && (
+                      <View style={{ flexDirection: 'row', gap: 4 }}>
+                        {SORT_KEYS.map(s => (
+                          <TouchableOpacity
+                            key={s.key}
+                            onPress={() => handleSort(s.key)}
+                            style={{
+                              paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10,
+                              backgroundColor: sort === s.key ? '#4f46e5' : 'transparent',
+                              borderWidth: 1,
+                              borderColor: sort === s.key ? '#4f46e5' : theme.border,
+                            }}
+                          >
+                            <Text style={{ fontSize: 11, fontWeight: '600', color: sort === s.key ? '#fff' : theme.subText }}>
+                              {s.key === 'nearby' ? '📍' : s.key === 'booked' ? '🔥' : '⭐'} {t(s.labelKey)}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </View>
                 </View>
               )}
             </View>
