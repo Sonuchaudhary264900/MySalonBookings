@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import API from "../services/api";
 
 function Login() {
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
+  const location  = useLocation();
+  const from      = location.state?.from;
+  const bookingState = location.state?.bookingState;
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
@@ -76,7 +79,11 @@ function Login() {
       const { token, customer } = res.data.data || {};
       if (token) localStorage.setItem("customerToken", token);
       if (customer?.gender) localStorage.setItem("customerGender", customer.gender);
-      navigate("/");
+      if (from) {
+        navigate(from, { state: bookingState, replace: true });
+      } else {
+        navigate("/");
+      }
     } catch (err) {
       setError(err.response?.data?.message || "Login failed. Check your credentials.");
     } finally {

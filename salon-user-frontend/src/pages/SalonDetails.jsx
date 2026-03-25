@@ -51,7 +51,12 @@ function SalonDetails() {
   const handleBookNow = () => {
     if (!isCustomer()) {
       clearCustomerAuth();
-      navigate("/login");
+      navigate("/login", {
+        state: {
+          from: `/booking/${id}`,
+          bookingState: { serviceIds: selectedServices.map(s => s._id) },
+        },
+      });
       return;
     }
     navigate(`/booking/${id}`, {

@@ -289,59 +289,20 @@ export default function ReportsScreen() {
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: 14 + insets.top, backgroundColor: theme.card, borderBottomColor: theme.border }]}>
-        <View style={styles.headerTop}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <View>
-              <Text style={[styles.headerTitle, { color: theme.text }]}>Analytics</Text>
-              <Text style={[styles.headerSub, { color: theme.subText }]}>Real-time overview of your salon's performance</Text>
-            </View>
-          </View>
-          <View style={{ flexDirection: 'row', gap: 6 }}>
-            {data && (
-              <>
-                <TouchableOpacity style={[styles.exportBtn, { backgroundColor: '#16a34a' }]} onPress={exportCSV}>
-                  <Ionicons name="document-text-outline" size={14} color="#fff" />
-                  <Text style={styles.exportBtnText}>CSV</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.exportBtn, { backgroundColor: '#4f46e5' }]} onPress={downloadPDF}>
-                  <Ionicons name="document-outline" size={14} color="#fff" />
-                  <Text style={styles.exportBtnText}>PDF</Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
-        </View>
-
-        {/* Date Range Filter */}
-        <View style={styles.dateFilterRow}>
-          <View style={styles.dateInputBox}>
-            <Text style={[styles.dateInputLabel, { color: theme.subText }]}>From</Text>
-            <TextInput
-              style={[styles.dateInput, { backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }]}
-              value={startDate}
-              onChangeText={setStartDate}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={theme.subText}
-              keyboardType="numeric"
-            />
-          </View>
-          <View style={styles.dateInputBox}>
-            <Text style={[styles.dateInputLabel, { color: theme.subText }]}>To</Text>
-            <TextInput
-              style={[styles.dateInput, { backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }]}
-              value={endDate}
-              onChangeText={setEndDate}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={theme.subText}
-              keyboardType="numeric"
-            />
-          </View>
-          <TouchableOpacity
-            style={[styles.resetBtn, { backgroundColor: theme.bg, borderColor: theme.border }]}
-            onPress={() => { setStartDate(thirtyDaysAgo); setEndDate(today); }}
-          >
-            <Text style={[styles.resetBtnText, { color: theme.text }]}>Reset</Text>
-          </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>Analytics</Text>
+        <View style={{ flexDirection: 'row', gap: 6 }}>
+          {data && (
+            <>
+              <TouchableOpacity style={[styles.exportBtn, { backgroundColor: '#16a34a' }]} onPress={exportCSV}>
+                <Ionicons name="document-text-outline" size={14} color="#fff" />
+                <Text style={styles.exportBtnText}>CSV</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.exportBtn, { backgroundColor: '#4f46e5' }]} onPress={downloadPDF}>
+                <Ionicons name="document-outline" size={14} color="#fff" />
+                <Text style={styles.exportBtnText}>PDF</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </View>
 
@@ -354,6 +315,37 @@ export default function ReportsScreen() {
           contentContainerStyle={{ padding: 12, paddingBottom: 40 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         >
+          {/* Date Range Filter */}
+          <View style={[styles.dateFilterRow, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <View style={styles.dateInputBox}>
+              <Text style={[styles.dateInputLabel, { color: theme.subText }]}>From</Text>
+              <TextInput
+                style={[styles.dateInput, { backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }]}
+                value={startDate}
+                onChangeText={setStartDate}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={theme.subText}
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={styles.dateInputBox}>
+              <Text style={[styles.dateInputLabel, { color: theme.subText }]}>To</Text>
+              <TextInput
+                style={[styles.dateInput, { backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }]}
+                value={endDate}
+                onChangeText={setEndDate}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={theme.subText}
+                keyboardType="numeric"
+              />
+            </View>
+            <TouchableOpacity
+              style={[styles.resetBtn, { backgroundColor: theme.bg, borderColor: theme.border }]}
+              onPress={() => { setStartDate(thirtyDaysAgo); setEndDate(today); }}
+            >
+              <Text style={[styles.resetBtnText, { color: theme.text }]}>Reset</Text>
+            </TouchableOpacity>
+          </View>
           {/* ── KPI Cards ── */}
           <View style={styles.kpiGrid}>
             {/* Total Revenue */}
@@ -504,15 +496,13 @@ export default function ReportsScreen() {
 
 const styles = StyleSheet.create({
   // Header
-  header: { paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1 },
-  headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1 },
   headerTitle: { fontSize: 20, fontWeight: '800' },
-  headerSub: { fontSize: 12, marginTop: 1 },
   exportBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8 },
   exportBtnText: { color: '#fff', fontSize: 12, fontWeight: '600' },
 
   // Date filter
-  dateFilterRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
+  dateFilterRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, borderRadius: 12, borderWidth: 1, padding: 12, marginBottom: 12 },
   dateInputBox: { flex: 1 },
   dateInputLabel: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
   dateInput: { height: 36, borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, fontSize: 13 },

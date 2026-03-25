@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, User, BarChart3, Settings, Scissors } from 'lucide-react';
+import { LayoutDashboard, BarChart3, Settings, Scissors } from 'lucide-react';
 import ROUTES from '../../routes';
 import { useNotifications } from '../../context/NotificationContext';
 
@@ -8,7 +8,6 @@ const TABS = [
   { name: 'dashboard', label: 'Dashboard', path: ROUTES.DASHBOARD, icon: LayoutDashboard },
   { name: 'analytics', label: 'Analytics', path: ROUTES.ANALYTICS, icon: BarChart3       },
   { name: 'services',  label: 'Services',  path: ROUTES.SERVICES,  icon: Scissors        },
-  { name: 'profile',   label: 'Profile',   path: ROUTES.PROFILE,   icon: User            },
   { name: 'settings',  label: 'Settings',  path: ROUTES.SETTINGS,  icon: Settings        },
 ];
 

@@ -26,16 +26,13 @@ function Section({ title, subtitle, icon, iconBg, iconColor, children, defaultOp
   const { theme } = useTheme();
   useEffect(() => { if (resetKey) setOpen(false); }, [resetKey]);
   return (
-    <View style={[sStyles.wrapper, { backgroundColor: theme.card }]}>
+    <View style={[sStyles.wrapper, { backgroundColor: theme.card, borderColor: theme.border }]}>
       <TouchableOpacity style={sStyles.header} onPress={() => setOpen((o) => !o)} activeOpacity={0.8}>
         <View style={sStyles.headerLeft}>
-          <View style={[sStyles.iconCircle, { backgroundColor: iconBg || '#dbeafe' }]}>
-            <Ionicons name={icon} size={18} color={iconColor || '#2563eb'} />
+          <View style={[sStyles.iconCircle, { backgroundColor: theme.bg }]}>
+            <Ionicons name={icon} size={18} color={iconColor || theme.accent} />
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[sStyles.title, { color: theme.text }]}>{title}</Text>
-            {subtitle ? <Text style={[sStyles.subtitle, { color: theme.subText }]}>{subtitle}</Text> : null}
-          </View>
+          <Text style={[sStyles.title, { color: theme.text }]}>{title}</Text>
         </View>
         <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={18} color={theme.subText} />
       </TouchableOpacity>
@@ -768,89 +765,6 @@ function ChangePasswordSection() {
   );
 }
 
-function ReferralSection() {
-  const { theme } = useTheme();
-  const [code, setCode]         = useState('');
-  const [loading, setLoading]   = useState(false);
-  const [checking, setChecking] = useState(true);
-  const [applied, setApplied]   = useState(null); // { code, appliedAt }
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await api.get('/owner/referral/status');
-        if (res.data.data?.applied) setApplied(res.data.data);
-      } catch {}
-      finally { setChecking(false); }
-    })();
-  }, []);
-
-  const handleApply = async () => {
-    if (!code.trim()) { showError('Error', 'Please enter a referral code'); return; }
-    setLoading(true);
-    try {
-      const res = await api.post('/owner/referral/apply', { code: code.trim() });
-      showSuccess('Applied!', res.data.message);
-      setApplied({ code: code.trim().toUpperCase(), appliedAt: new Date().toISOString() });
-      setCode('');
-    } catch (err) {
-      showError('Invalid Code', err.response?.data?.message || 'Could not apply referral code.');
-    } finally { setLoading(false); }
-  };
-
-  if (checking) return <ActivityIndicator color={theme.accent} style={{ padding: 16 }} />;
-
-  if (applied) {
-    return (
-      <View style={[styles.referAppliedBox, { backgroundColor: '#dcfce7', borderColor: '#86efac' }]}>
-        <Ionicons name="checkmark-circle" size={26} color="#16a34a" />
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.referAppliedTitle, { color: '#15803d' }]}>Referral code applied!</Text>
-          <Text style={[styles.referAppliedCode, { color: '#166534' }]}>Code: {applied.code}</Text>
-        </View>
-      </View>
-    );
-  }
-
-  return (
-    <View style={{ gap: 12 }}>
-      <View style={[styles.referInfoBox, { backgroundColor: '#fef3c7', borderColor: '#fde68a' }]}>
-        <Text style={styles.referInfoEmoji}>🎁</Text>
-        <Text style={[styles.referInfoText, { color: '#92400e' }]}>
-          Got a referral code from a MySalonBookings user? Enter it below to help them earn rewards!
-        </Text>
-      </View>
-      <View style={[styles.referInputRow, { borderColor: theme.inputBorder, backgroundColor: theme.input }]}>
-        <Ionicons name="gift-outline" size={18} color={theme.subText} style={{ marginRight: 8 }} />
-        <TextInput
-          style={[styles.referInput, { color: theme.text, flex: 1 }]}
-          value={code}
-          onChangeText={t => setCode(t.toUpperCase())}
-          placeholder="e.g. MSB123456"
-          placeholderTextColor={theme.placeholder}
-          autoCapitalize="characters"
-          maxLength={9}
-          editable={!loading}
-        />
-      </View>
-      <TouchableOpacity
-        style={[styles.referApplyBtn, { backgroundColor: theme.accent }, loading && { opacity: 0.6 }]}
-        onPress={handleApply}
-        disabled={loading}
-      >
-        {loading
-          ? <ActivityIndicator color="#fff" size="small" />
-          : <Text style={styles.referApplyBtnText}>Apply Code</Text>}
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => Alert.alert(
-        'Terms & Conditions',
-        '• Enter the referral code shared by a MySalonBookings user.\n\n• You can only apply one referral code.\n\n• The referring user earns ₹50 after your salon actively uses the app for 30 consecutive days.\n\n• Codes cannot be transferred or reused.',
-      )}>
-        <Text style={[styles.referTermsLink, { color: theme.subText }]}>View Terms & Conditions</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
 
 function PrivacySection() {
   const { theme } = useTheme();
@@ -992,11 +906,7 @@ function SettingsSections({ salon, fetchSalon, resetKey }) {
         <ChangePasswordSection />
       </Section>
 
-      <Section resetKey={resetKey} title="Referral Code" subtitle="Apply a code from a friend" icon="gift-outline" iconBg="#fef3c7" iconColor="#d97706">
-        <ReferralSection />
-      </Section>
-
-      <Section resetKey={resetKey} title={t('privacySecurity')} subtitle={t('privacySecuritySub')} icon="lock-closed-outline" iconBg="#fee2e2" iconColor="#dc2626">
+<Section resetKey={resetKey} title={t('privacySecurity')} subtitle={t('privacySecuritySub')} icon="lock-closed-outline" iconBg="#fee2e2" iconColor="#dc2626">
         <PrivacySection />
       </Section>
     </>
@@ -1016,9 +926,9 @@ export default function SettingsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
-      <View style={[styles.header, { paddingTop: 14 + insets.top }]}>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}><Text style={styles.headerTitle}>Settings</Text><DrawerMenuButton /></View>
-        <Text style={styles.headerSub}>Manage your salon configuration</Text>
+      <View style={[styles.header, { paddingTop: 14 + insets.top, backgroundColor: theme.card, borderBottomColor: theme.border }]}>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>Settings</Text>
+        <DrawerMenuButton />
       </View>
       <ScrollView contentContainerStyle={{ padding: 12, paddingBottom: 40 }}>
         <SettingsSections salon={salon} fetchSalon={fetchSalon} resetKey={resetKey} />
@@ -1028,19 +938,17 @@ export default function SettingsScreen() {
 }
 
 const sStyles = StyleSheet.create({
-  wrapper: { backgroundColor: '#fff', borderRadius: 12, marginBottom: 10, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2, overflow: 'hidden' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 },
+  wrapper: { borderRadius: 14, borderWidth: 1, marginBottom: 10, overflow: 'hidden', elevation: 1 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 14 },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, marginRight: 8 },
-  iconCircle: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  title: { fontSize: 14, fontWeight: '700', color: '#111827' },
-  subtitle: { fontSize: 11, color: '#9ca3af', marginTop: 1 },
-  body: { padding: 16, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#f3f4f6' },
+  iconCircle: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  title: { fontSize: 14, fontWeight: '600' },
+  body: { padding: 16, paddingTop: 8, borderTopWidth: 1 },
 });
 
 const styles = StyleSheet.create({
-  header: { backgroundColor: '#2563eb', paddingHorizontal: 16, paddingVertical: 14 },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  headerSub: { fontSize: 13, color: '#bfdbfe', marginTop: 2 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1 },
+  headerTitle: { fontSize: 20, fontWeight: '800' },
   field: { marginBottom: 14 },
   label: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 6 },
   input: { borderWidth: 1.5, borderColor: '#d1d5db', borderRadius: 10, paddingHorizontal: 12, height: 46, fontSize: 14, color: '#111827' },
@@ -1087,18 +995,7 @@ const styles = StyleSheet.create({
   addHolidayText: { fontSize: 13, color: '#2563eb', fontWeight: '600' },
   cancelBtn: { flex: 1, height: 46, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#d1d5db', marginTop: 8 },
   cancelBtnText: { fontSize: 14, fontWeight: '600', color: '#374151' },
-  referInfoBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, borderRadius: 10, padding: 12, borderWidth: 1 },
-  referInfoEmoji: { fontSize: 20 },
-  referInfoText: { flex: 1, fontSize: 13, lineHeight: 18 },
-  referInputRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, height: 46 },
-  referInput: { fontSize: 15, fontWeight: '700', letterSpacing: 2 },
-  referApplyBtn: { borderRadius: 10, height: 46, alignItems: 'center', justifyContent: 'center' },
-  referApplyBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  referTermsLink: { fontSize: 12, textAlign: 'center', textDecorationLine: 'underline' },
-  referAppliedBox: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 12, padding: 14, borderWidth: 1 },
-  referAppliedTitle: { fontSize: 14, fontWeight: '700' },
-  referAppliedCode: { fontSize: 13, fontWeight: '600', marginTop: 2, letterSpacing: 1 },
-  privacyCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+privacyCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
   privacyCardIcon: { fontSize: 20 },
   privacyCardTitle: { fontSize: 13, fontWeight: '700', color: '#111827' },
   privacyCardSub: { fontSize: 12, color: '#6b7280', marginTop: 2 },

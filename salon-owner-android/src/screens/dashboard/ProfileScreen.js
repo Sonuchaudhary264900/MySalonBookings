@@ -282,16 +282,15 @@ img.src=${qrApiUrl};
     <ScrollView style={[styles.container, { backgroundColor: theme.bg }]} contentContainerStyle={{ paddingBottom: 40 }}>
 
       {/* Page header — matches web */}
-      <View style={[styles.pageHeader, { paddingTop: insets.top + 12, backgroundColor: theme.card, borderBottomColor: theme.border }]}>
+      <View style={[styles.pageHeader, { paddingTop: insets.top + 14, backgroundColor: theme.card, borderBottomColor: theme.border }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          style={{ padding: 4, marginTop: 4 }}
+          style={{ padding: 4 }}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <Ionicons name="arrow-back" size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={[styles.pageTitle, { color: theme.text }]}>My Profile</Text>
-        <Text style={[styles.pageSubtitle, { color: theme.subText }]}>Tap a section to view or edit your details</Text>
       </View>
 
       <View style={styles.body}>
@@ -605,9 +604,8 @@ img.src=${qrApiUrl};
 const styles = StyleSheet.create({
   container: { flex: 1 },
   // Page header
-  pageHeader: { paddingHorizontal: 16, paddingBottom: 16, borderBottomWidth: 1 },
-  pageTitle: { fontSize: 26, fontWeight: '800', marginTop: 12 },
-  pageSubtitle: { fontSize: 13, marginTop: 3 },
+  pageHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1 },
+  pageTitle: { fontSize: 20, fontWeight: '800' },
   body: { padding: 12, gap: 10 },
   // Avatar strip
   avatarStrip: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 14, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },

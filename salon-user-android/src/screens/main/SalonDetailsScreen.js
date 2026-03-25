@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   Image, ActivityIndicator, Linking, Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../services/api';
@@ -106,8 +107,14 @@ export default function SalonDetailsScreen({ route, navigation }) {
     }
   };
 
-  const handleBookNow = () => {
+  const handleBookNow = async () => {
     if (!isAuthenticated) {
+      if (selectedServices.length > 0) {
+        await AsyncStorage.setItem('pendingBooking', JSON.stringify({
+          salonId,
+          serviceIds: selectedServices.map(s => s._id),
+        }));
+      }
       Alert.alert('Sign In Required', 'Please sign in to book an appointment.', [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Sign In', onPress: () => navigation.navigate('Auth') },

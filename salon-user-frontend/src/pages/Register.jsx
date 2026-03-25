@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import { auth } from "../config/firebase";
 import API from "../services/api";
@@ -11,7 +11,10 @@ const STEPS = [
 ];
 
 function Register() {
-  const navigate = useNavigate();
+  const navigate     = useNavigate();
+  const location     = useLocation();
+  const from         = location.state?.from;
+  const bookingState = location.state?.bookingState;
 
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
@@ -122,7 +125,11 @@ function Register() {
       });
       const token = res.data.data?.token || res.data.token;
       if (token) localStorage.setItem("customerToken", token);
-      navigate("/dashboard");
+      if (from) {
+        navigate(from, { state: bookingState, replace: true });
+      } else {
+        navigate("/dashboard");
+      }
     } catch (err) {
       setError(err.response?.data?.message || err.message || "Registration failed.");
     } finally {

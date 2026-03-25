@@ -16,7 +16,7 @@ import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { SalonProvider, useSalon } from './src/context/SalonContext';
 import { NotificationProvider, useNotifications } from './src/context/NotificationContext';
-import { ThemeProvider } from './src/context/ThemeContext';
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { LanguageProvider, useLanguage } from './src/context/LanguageContext';
 import api from './src/services/api';
 import { showSuccess, showError } from './src/utils/toast';
@@ -40,6 +40,7 @@ import WalkInBookingScreen     from './src/screens/dashboard/WalkInBookingScreen
 import CustomersScreen         from './src/screens/dashboard/CustomersScreen';
 import CouponsScreen           from './src/screens/dashboard/CouponsScreen';
 import GalleryScreen           from './src/screens/dashboard/GalleryScreen';
+import ServiceMenuScreen       from './src/screens/dashboard/ServiceMenuScreen';
 
 const RootStack  = createNativeStackNavigator();
 const AuthStack  = createNativeStackNavigator();
@@ -60,13 +61,15 @@ const NAV_ITEMS = [
   { name: 'Notifications', labelKey: 'navNotifications', icon: 'notifications-outline',  iconFocused: 'notifications' },
 ];
 
-// ── Custom Drawer Content — dark sidebar like website ─────────────
+// ── Custom Drawer Content ─────────────────────────────────────────
 function CustomDrawer(props) {
   const { user, logout } = useAuth();
   const { salon } = useSalon();
   const { unreadCount } = useNotifications();
   const { t } = useLanguage();
   const insets = useSafeAreaInsets();
+  const { theme, isDark } = useTheme();
+  const dStyles = getDStyles(theme, isDark);
 
   // Get current active screen name (tab or direct drawer screen)
   const activeTab = useNavigationState(state => {
@@ -142,7 +145,7 @@ function CustomDrawer(props) {
               <Ionicons
                 name={focused ? item.iconFocused : item.icon}
                 size={20}
-                color={focused ? '#fff' : '#9ca3af'}
+                color={focused ? '#fff' : theme.subText}
               />
               <Text style={[dStyles.navLabel, focused && dStyles.navLabelActive]}>
                 {t(item.labelKey)}
@@ -172,22 +175,22 @@ function CustomDrawer(props) {
 }
 
 
-const TAB_SCREENS = ['Home', 'Reports', 'Services', 'Profile', 'Settings'];
+const TAB_SCREENS = ['Home', 'Reports', 'Services', 'Settings'];
 
 const TAB_ICONS = {
   Home:     { off: 'grid-outline',      on: 'grid' },
   Reports:  { off: 'bar-chart-outline', on: 'bar-chart' },
   Services: { off: 'cut-outline',       on: 'cut' },
-  Profile:  { off: 'person-outline',    on: 'person' },
   Settings: { off: 'settings-outline',  on: 'settings' },
 };
 
 const TAB_LABELS = {
-  Home: 'Dashboard', Reports: 'Analytics', Services: 'Services', Profile: 'Profile', Settings: 'Settings',
+  Home: 'Dashboard', Reports: 'Analytics', Services: 'Services', Settings: 'Settings',
 };
 
 // ── 5-tab swipeable navigator matching website bottom nav ──────────
 function MainTabs() {
+  const { theme, isDark } = useTheme();
   return (
     <Tab.Navigator
       tabBarPosition="bottom"
@@ -195,24 +198,24 @@ function MainTabs() {
         swipeEnabled: true,
         animationEnabled: true,
         tabBarStyle: {
-          backgroundColor: '#111827',
+          backgroundColor: theme.card,
           borderTopWidth: 1,
-          borderTopColor: '#1f2937',
+          borderTopColor: theme.border,
           height: 62,
           elevation: 8,
           shadowColor: '#000',
           shadowOpacity: 0.3,
           shadowRadius: 8,
         },
-        tabBarActiveTintColor: '#ffffff',
-        tabBarInactiveTintColor: '#6b7280',
+        tabBarActiveTintColor: isDark ? '#ffffff' : theme.accent,
+        tabBarInactiveTintColor: theme.subText,
         tabBarIndicatorStyle: {
           top: 0,
           bottom: 'auto',
           height: 2,
-          backgroundColor: '#6366f1',
-          width: '40%',
-          marginLeft: '5%',
+          backgroundColor: theme.accent,
+          width: '50%',
+          marginLeft: '0%',
           borderRadius: 2,
         },
         tabBarIndicatorContainerStyle: { top: 0 },
@@ -228,7 +231,6 @@ function MainTabs() {
       <Tab.Screen name="Home"     component={HomeScreen}     options={{ tabBarLabel: TAB_LABELS.Home }} />
       <Tab.Screen name="Reports"  component={ReportsScreen}  options={{ tabBarLabel: TAB_LABELS.Reports }} />
       <Tab.Screen name="Services" component={ServicesScreen} options={{ tabBarLabel: TAB_LABELS.Services }} />
-      <Tab.Screen name="Profile"  component={ProfileScreen}  options={{ tabBarLabel: TAB_LABELS.Profile }} />
       <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarLabel: TAB_LABELS.Settings }} />
     </Tab.Navigator>
   );
@@ -236,6 +238,7 @@ function MainTabs() {
 
 // ── Main drawer navigator ─────────────────────────────────────────
 function MainDrawer() {
+  const { theme } = useTheme();
   return (
     <Drawer.Navigator
       drawerContent={(props) => <CustomDrawer {...props} />}
@@ -243,7 +246,7 @@ function MainDrawer() {
         headerShown: false,
         drawerPosition: 'right',
         drawerType: 'front',
-        drawerStyle: { width: 260, backgroundColor: '#111827' },
+        drawerStyle: { width: 260, backgroundColor: theme.card },
         overlayColor: 'rgba(0,0,0,0.5)',
         swipeEnabled: false,
       }}
@@ -260,6 +263,7 @@ function MainDrawer() {
       <Drawer.Screen name="Customers"     component={CustomersScreen} />
       <Drawer.Screen name="Coupons"       component={CouponsScreen} />
       <Drawer.Screen name="Gallery"       component={GalleryScreen} />
+      <Drawer.Screen name="ServiceMenu"   component={ServiceMenuScreen} />
     </Drawer.Navigator>
   );
 }
@@ -486,30 +490,30 @@ const rootStyles = StyleSheet.create({
   splashSubtitle: { fontSize: 14, color: '#6b7280', textAlign: 'center', lineHeight: 22 },
 });
 
-// ── Drawer styles — dark theme matching website sidebar ───────────
-const dStyles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#111827' },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#1f2937' },
+// ── Drawer styles — theme-aware ────────────────────────────────────
+const getDStyles = (theme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.card },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: theme.border },
   brandIcon: { width: 38, height: 38, borderRadius: 10, backgroundColor: '#2563eb', alignItems: 'center', justifyContent: 'center' },
   brandIconText: { fontSize: 18, color: '#fff' },
-  brandName: { fontSize: 15, fontWeight: '800', color: '#fff' },
-  brandSub: { fontSize: 11, color: '#6b7280', marginTop: 1 },
+  brandName: { fontSize: 15, fontWeight: '800', color: theme.text },
+  brandSub: { fontSize: 11, color: theme.subText, marginTop: 1 },
   userCard: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 14 },
   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center' },
-  avatarImg: { width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: '#374151' },
+  avatarImg: { width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: theme.border },
   avatarInitial: { fontSize: 17, fontWeight: '800', color: '#fff' },
-  userName: { fontSize: 14, fontWeight: '700', color: '#f9fafb' },
-  salonName: { fontSize: 11, color: '#6b7280', marginTop: 1 },
-  divider: { height: 1, backgroundColor: '#1f2937', marginHorizontal: 0 },
+  userName: { fontSize: 14, fontWeight: '700', color: theme.text },
+  salonName: { fontSize: 11, color: theme.subText, marginTop: 1 },
+  divider: { height: 1, backgroundColor: theme.border, marginHorizontal: 0 },
   nav: { paddingHorizontal: 12, paddingVertical: 8 },
   navItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingVertical: 13, borderRadius: 8, marginBottom: 2 },
   navItemActive: { backgroundColor: '#2563eb' },
-  navLabel: { flex: 1, fontSize: 14, fontWeight: '500', color: '#9ca3af' },
+  navLabel: { flex: 1, fontSize: 14, fontWeight: '500', color: theme.subText },
   navLabelActive: { color: '#fff', fontWeight: '600' },
   badge: { backgroundColor: '#ef4444', borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
   badgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
   footer: { paddingHorizontal: 16 },
   logoutBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 14 },
   logoutText: { fontSize: 14, fontWeight: '600', color: '#f87171' },
-  version: { fontSize: 11, color: '#4b5563', paddingBottom: 4 },
+  version: { fontSize: 11, color: theme.subText, paddingBottom: 4 },
 });

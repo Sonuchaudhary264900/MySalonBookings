@@ -157,7 +157,12 @@ function Booking() {
 
     if (!isCustomer()) {
       clearCustomerAuth();
-      navigate("/login");
+      navigate("/login", {
+        state: {
+          from: location.pathname,
+          bookingState: { serviceIds: serviceIdList },
+        },
+      });
       return;
     }
 

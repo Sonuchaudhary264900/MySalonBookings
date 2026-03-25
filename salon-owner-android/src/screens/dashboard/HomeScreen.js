@@ -356,68 +356,43 @@ img.src=${qrApiUrl};
       contentContainerStyle={{ paddingBottom: 20 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
-      {/* Dashboard Header — matches web layout */}
-      <View style={[styles.dashHeader, { paddingTop: insets.top + 12, backgroundColor: theme.card, borderBottomColor: theme.border }]}>
-        {/* Top strip: drawer + logo on left, QR + bell on right */}
-        <View style={styles.dashHeaderTop}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <DrawerMenuButton color={theme.text} />
-            <Text style={[styles.dashBrand, { color: theme.text }]}>My Salon Bookings</Text>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <TouchableOpacity
-              onPress={toggleTheme}
-              style={[styles.dashIconBtn, { backgroundColor: theme.bg }]}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={20} color={theme.subText} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setShowQR(true)}
-              style={[styles.dashIconBtn, { backgroundColor: theme.bg }]}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Ionicons name="qr-code-outline" size={20} color={theme.subText} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Notifications')}
-              style={[styles.dashIconBtn, { backgroundColor: theme.bg }]}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Ionicons name="notifications-outline" size={20} color={theme.subText} />
-              {unreadCount > 0 && (
-                <View style={styles.notifBadge}>
-                  <Text style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-            {/* Profile avatar — matches web navbar top-right */}
-            <TouchableOpacity onPress={() => navigation.navigate('Profile')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              {user?.profilePhoto ? (
-                <Image source={{ uri: user.profilePhoto }} style={styles.navAvatar} />
-              ) : (
-                <View style={[styles.navAvatarFallback, { backgroundColor: '#dbeafe' }]}>
-                  <Ionicons name="person" size={16} color="#2563eb" />
-                </View>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-        {/* Title row: "Dashboard" + "Add Walk-in" button — same as web */}
-        <View style={styles.dashHeaderTitle}>
-          <View>
-            <Text style={[styles.dashTitle, { color: theme.text }]}>{t('dashboard')}</Text>
-            <Text style={[styles.dashSubtitle, { color: theme.subText }]}>{t('dashSubtitle')}</Text>
-          </View>
-          <TouchableOpacity style={styles.walkInBtnHeader} onPress={() => setShowWalkIn(true)}>
-            <Ionicons name="add" size={16} color="#fff" />
-            <Text style={styles.walkInBtnHeaderText}>{t('addWalkIn')}</Text>
+      {/* Header */}
+      <View style={[styles.dashHeader, { paddingTop: insets.top + 14, backgroundColor: theme.card, borderBottomColor: theme.border }]}>
+        <DrawerMenuButton color={theme.text} />
+        <Text style={[styles.dashTitle, { color: theme.text }]}>{t('dashboard')}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <TouchableOpacity onPress={toggleTheme} style={[styles.dashIconBtn, { backgroundColor: theme.bg }]} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={20} color={theme.subText} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setShowQR(true)} style={[styles.dashIconBtn, { backgroundColor: theme.bg }]} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="qr-code-outline" size={20} color={theme.subText} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Notifications')} style={[styles.dashIconBtn, { backgroundColor: theme.bg }]} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="notifications-outline" size={20} color={theme.subText} />
+            {unreadCount > 0 && (
+              <View style={styles.notifBadge}>
+                <Text style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Profile')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            {user?.profilePhoto ? (
+              <Image source={{ uri: user.profilePhoto }} style={styles.navAvatar} />
+            ) : (
+              <View style={[styles.navAvatarFallback, { backgroundColor: '#dbeafe' }]}>
+                <Ionicons name="person" size={16} color="#2563eb" />
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Upcoming Queue */}
       <View style={{ paddingHorizontal: 12, paddingBottom: 32 }}>
+        <TouchableOpacity style={[styles.walkInBtnHeader, { alignSelf: 'flex-end', marginTop: 10, marginBottom: 2 }]} onPress={() => setShowWalkIn(true)}>
+          <Ionicons name="add" size={16} color="#fff" />
+          <Text style={styles.walkInBtnHeaderText}>{t('addWalkIn')}</Text>
+        </TouchableOpacity>
         {/* Section header */}
         <View style={styles.queueHeader}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -816,12 +791,8 @@ const qrStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   container: { flex: 1 }, // kept for ref
   // Dashboard header (matches web layout)
-  dashHeader: { paddingHorizontal: 16, paddingBottom: 16, borderBottomWidth: 1 },
-  dashHeaderTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
-  dashHeaderTitle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  dashBrand: { fontSize: 15, fontWeight: '700' },
-  dashTitle: { fontSize: 24, fontWeight: '800' },
-  dashSubtitle: { fontSize: 13, marginTop: 2 },
+  dashHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1 },
+  dashTitle: { flex: 1, fontSize: 20, fontWeight: '800', marginLeft: 10 },
   dashIconBtn: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   navAvatar: { width: 34, height: 34, borderRadius: 17, borderWidth: 1.5, borderColor: '#e5e7eb' },
   navAvatarFallback: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
