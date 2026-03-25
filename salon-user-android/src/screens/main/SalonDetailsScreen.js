@@ -409,7 +409,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                           </View>
                         </View>
                         <View style={[styles.checkbox, selected && styles.checkboxChecked]}>
-                          {selected && <Ionicons name="checkmark" size={14} color="#fff" />}
+                          {selected && <Ionicons name="checkmark" size={18} color="#fff" />}
                         </View>
                       </TouchableOpacity>
                     );
@@ -421,11 +421,11 @@ export default function SalonDetailsScreen({ route, navigation }) {
                     <View key={cat} style={{ borderWidth: 1, borderColor: theme.border, borderRadius: 12, overflow: 'hidden', marginBottom: 4 }}>
                       <TouchableOpacity
                         onPress={() => setExpandedCat(isOpen ? null : cat)}
-                        style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: theme.card }}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 15, backgroundColor: theme.card }}
                         activeOpacity={0.7}
                       >
                         <Text style={{ fontSize: 18 }}>{categoryIconMap[cat] || '✨'}</Text>
-                        <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text, flex: 1 }}>{cat}</Text>
+                        <Text style={{ fontSize: 15, fontWeight: '700', color: theme.text, flex: 1 }}>{cat}</Text>
                         <Text style={{ fontSize: 12, color: theme.subText, marginRight: 6 }}>{catServices.length}</Text>
                         <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={16} color={theme.subText} />
                       </TouchableOpacity>
@@ -618,15 +618,15 @@ const getStyles = (t) => StyleSheet.create({
   galleryImg: { width: 120, height: 88, borderRadius: 10 },
   emptyTab: { alignItems: 'center', paddingVertical: 40, gap: 10 },
   emptyTabText: { fontSize: 14, color: t.subText },
-  serviceCard: { backgroundColor: t.card, borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1.5, borderColor: t.border, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
+  serviceCard: { backgroundColor: t.card, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', gap: 14, borderWidth: 1.5, borderColor: t.border, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
   serviceCardSelected: { borderColor: '#2563eb', backgroundColor: '#1e3a8a' },
-  serviceTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  serviceName: { fontSize: 14, fontWeight: '700', color: t.text, flex: 1 },
-  servicePrice: { fontSize: 15, fontWeight: '800', color: '#2563eb' },
-  serviceMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  serviceMetaText: { fontSize: 12, color: t.subText },
-  serviceDesc: { fontSize: 12, color: t.subText, flex: 1 },
-  checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: t.inputBorder, alignItems: 'center', justifyContent: 'center' },
+  serviceTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  serviceName: { fontSize: 15, fontWeight: '700', color: t.text, flex: 1 },
+  servicePrice: { fontSize: 16, fontWeight: '800', color: '#2563eb' },
+  serviceMeta: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  serviceMetaText: { fontSize: 13, color: t.subText },
+  serviceDesc: { fontSize: 13, color: t.subText, flex: 1 },
+  checkbox: { width: 30, height: 30, borderRadius: 8, borderWidth: 2, borderColor: t.inputBorder, alignItems: 'center', justifyContent: 'center' },
   checkboxChecked: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
   reviewCard: { backgroundColor: t.card, borderRadius: 12, padding: 14, gap: 8, borderWidth: 1, borderColor: t.border },
   reviewHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
