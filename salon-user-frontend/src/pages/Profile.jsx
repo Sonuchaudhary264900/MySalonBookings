@@ -43,6 +43,15 @@ function Divider() {
   return <div className="h-px bg-slate-50 mx-4" />;
 }
 
+// ── Section label ──────────────────────────────────────────────
+function SectionLabel({ children }) {
+  return (
+    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1 pt-2 pb-0.5">
+      {children}
+    </p>
+  );
+}
+
 // ── Setting row ───────────────────────────────────────────────
 function SettingRow({ icon, iconColor = '#6b7280', label, sublabel, rightEl, onClick, chevron = false }) {
   const inner = (
@@ -292,25 +301,19 @@ export default function Profile() {
           <>
 
             {/* ── PROFILE CARD (matches app profileCard) ───────── */}
-            <Link to="/my-profile"
-              className="bg-white rounded-2xl border border-slate-100 p-3.5 flex items-center gap-3 shadow-sm hover:bg-slate-50 transition block">
-              {/* Blue circle avatar matching app: #1d4ed8, 52px */}
+            <div className="bg-white rounded-2xl border border-slate-100 p-3.5 flex items-center gap-3 shadow-sm">
               <div className="w-[52px] h-[52px] rounded-full bg-[#1d4ed8] flex items-center justify-center shrink-0 text-white">
                 {I.personCircle}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-base font-bold text-slate-900 truncate">{user?.name || 'Guest User'}</p>
-                <p className="text-[13px] text-slate-400 mt-0.5">{user?.phone || 'Tap to sign in'}</p>
+                <p className="text-[13px] text-slate-400 mt-0.5">{user?.phone || ''}</p>
+                {user?.email && <p className="text-xs text-slate-400 mt-0.5 truncate">{user.email}</p>}
               </div>
-              {/* Chevron box matching app profileChevronBox: indigo-50 circle */}
-              <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center shrink-0">
-                <svg className="w-[18px] h-[18px] text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-            </Link>
+            </div>
 
             {/* ── ACCOUNT INFO ─────────────────────────────────── */}
+            <SectionLabel>Account</SectionLabel>
             <AccordionCard id="account" expanded={expandedSection} onToggle={toggleSection}
               iconColor="#7c3aed" icon={I.card} title="Account Info" sublabel="ID, membership and account type">
               {[
@@ -334,6 +337,7 @@ export default function Profile() {
             </AccordionCard>
 
             {/* ── NOTIFICATION SETTINGS ────────────────────────── */}
+            <SectionLabel>Preferences</SectionLabel>
             <AccordionCard id="notifications" expanded={expandedSection} onToggle={toggleSection}
               iconColor="#f59e0b" icon={I.bell} title="Notification Settings">
               {notifLoaded ? (
@@ -386,6 +390,7 @@ export default function Profile() {
             </AccordionCard>
 
             {/* ── CHANGE PASSWORD ──────────────────────────────── */}
+            <SectionLabel>Security</SectionLabel>
             <AccordionCard id="password" expanded={expandedSection}
               onToggle={(id) => { toggleSection(id); setCpStep(1); setCpOtp(''); setCpNewPw(''); setCpConfirm(''); setCpError(''); }}
               iconColor="#6366f1" icon={I.lock} title="Change Password">
@@ -463,14 +468,8 @@ export default function Profile() {
                 chevron={!deletingAccount} onClick={handleDeleteAccount} />
             </AccordionCard>
 
-            {/* ── ABOUT ────────────────────────────────────────── */}
-            <AccordionCard id="about" expanded={expandedSection} onToggle={toggleSection}
-              iconColor="#2563eb" icon={I.info} title="About">
-              <SettingRow icon={I.code}  iconColor="#2563eb" label="App Version" rightEl={<span className="text-sm font-semibold text-slate-400">v1.0.0</span>} />
-              <SettingRow icon={I.globe} iconColor="#2563eb" label="Website"     rightEl={<span className="text-sm font-semibold text-slate-400">mysalonbookings.com</span>} />
-            </AccordionCard>
-
             {/* ── REFER & EARN ─────────────────────────────────── */}
+            <SectionLabel>Earn &amp; Share</SectionLabel>
             <AccordionCard id="refer" expanded={expandedSection} onToggle={toggleSection}
               iconColor="#f59e0b" icon={I.gift} title="Refer & Earn" sublabel="Earn ₹50 per referral">
               <div className="px-4 py-4 space-y-4">
@@ -522,17 +521,23 @@ export default function Profile() {
               </div>
             </AccordionCard>
 
+            {/* ── ABOUT ────────────────────────────────────────── */}
+            <SectionLabel>About</SectionLabel>
+            <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+              <SettingRow icon={I.code}  iconColor="#2563eb" label="App Version" rightEl={<span className="text-sm font-semibold text-slate-400">v1.0.0</span>} />
+              <Divider />
+              <SettingRow icon={I.globe} iconColor="#2563eb" label="Website"     rightEl={<span className="text-sm font-semibold text-slate-400">mysalonbookings.com</span>} />
+              <Divider />
+              <SettingRow icon={I.document} iconColor="#6b7280" label="Terms & Conditions" chevron
+                onClick={() => alert('Terms & Conditions\n\nBy using MySalonBookings, you agree to our terms of service. Please visit mysalonbookings.com for full details.')} />
+            </div>
+
             {/* ── SIGN OUT ─────────────────────────────────────── */}
-            <AccordionCard id="signout" expanded={expandedSection} onToggle={toggleSection}
-              iconColor="#ef4444" icon={I.logout} title="Sign Out" titleColor="text-red-500" chevronColor="text-red-400">
-              <div className="px-4 py-3.5 space-y-3">
-                <p className="text-xs text-slate-400">You will be logged out of your account on this device.</p>
-                <button onClick={handleLogout}
-                  className="w-full bg-red-500 hover:bg-red-600 transition text-white rounded-xl py-3 text-sm font-bold flex items-center justify-center gap-2">
-                  {I.logout} Confirm Sign Out
-                </button>
-              </div>
-            </AccordionCard>
+            <button onClick={handleLogout}
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl border border-red-100 bg-white text-red-500 font-bold text-sm hover:bg-red-50 transition shadow-sm">
+              {I.logout}
+              Sign Out
+            </button>
 
             <div className="h-6" />
           </>
