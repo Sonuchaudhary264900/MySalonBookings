@@ -382,8 +382,10 @@ exports.login = async (req, res) => {
       { expiresIn: process.env.JWT_REFRESH_EXPIRE || "7d" }
     );
 
-    owner.refreshTokens.push({ token: refreshToken });
-    await owner.save();
+    await owner.constructor.updateOne(
+      { _id: owner._id },
+      { $push: { refreshTokens: { token: refreshToken } } }
+    );
 
     // ==========================================
     // RESPONSE
