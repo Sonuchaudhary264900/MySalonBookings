@@ -432,7 +432,7 @@ export default function BookingScreen({ route, navigation }) {
                 <Text style={[styles.priceVal, { color: '#16a34a' }]}>−₹{couponDiscount}</Text>
               </View>
             )}
-            <View style={[styles.priceRow, { borderTopWidth: 1, borderTopColor: '#dbeafe', paddingTop: 8, marginTop: 4 }]}>
+            <View style={[styles.priceRow, { borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 8, marginTop: 4 }]}>
               <Text style={styles.priceTotalLabel}>Total (Pay at salon)</Text>
               <Text style={styles.priceTotalVal}>₹{finalPrice}</Text>
             </View>
@@ -498,7 +498,7 @@ const getStyles = (t) => StyleSheet.create({
   dateChipTextActive: { color: '#fff' },
   barberChip: { alignItems: 'center', gap: 6, backgroundColor: t.card, borderRadius: 12, borderWidth: 1.5, borderColor: t.border, padding: 12, minWidth: 72 },
   barberChipActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
-  barberAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#dbeafe', alignItems: 'center', justifyContent: 'center' },
+  barberAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: t.bg, alignItems: 'center', justifyContent: 'center' },
   barberName: { fontSize: 12, fontWeight: '600', color: t.text },
   barberNameActive: { color: '#fff' },
   barberExp: { fontSize: 10, color: t.subText },
@@ -507,8 +507,8 @@ const getStyles = (t) => StyleSheet.create({
   closedDayText: { fontSize: 13, color: '#92400e', flex: 1 },
   noSlots: { backgroundColor: t.border, borderRadius: 10, padding: 14, alignItems: 'center' },
   noSlotsText: { fontSize: 13, color: t.subText },
-  seqSlot: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#f5f3ff', borderRadius: 10, padding: 12 },
-  seqText: { fontSize: 13, color: '#6d28d9', flex: 1 },
+  seqSlot: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: t.card, borderRadius: 10, padding: 12, borderWidth: 1, borderColor: t.border },
+  seqText: { fontSize: 13, color: t.accent, flex: 1 },
   slotLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 4 },
   slotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   slotBtn: { width: '30%', borderRadius: 10, paddingVertical: 9, alignItems: 'center', borderWidth: 1.5 },
@@ -524,13 +524,13 @@ const getStyles = (t) => StyleSheet.create({
   couponBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   couponApplied: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#f0fdf4', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#bbf7d0' },
   couponAppliedText: { flex: 1, fontSize: 13, color: '#16a34a', fontWeight: '600' },
-  priceSummary: { backgroundColor: '#eff6ff', borderRadius: 14, padding: 14, gap: 8, borderWidth: 1, borderColor: '#bfdbfe' },
-  priceSummaryTitle: { fontSize: 13, fontWeight: '700', color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
+  priceSummary: { backgroundColor: t.card, borderRadius: 14, padding: 14, gap: 8, borderWidth: 1, borderColor: t.border },
+  priceSummaryTitle: { fontSize: 13, fontWeight: '700', color: t.accent, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
   priceRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  priceLabel: { fontSize: 13, color: t.text },
+  priceLabel: { fontSize: 13, color: t.subText },
   priceVal: { fontSize: 13, fontWeight: '600', color: t.text },
-  priceTotalLabel: { fontSize: 14, fontWeight: '700', color: '#1d4ed8' },
-  priceTotalVal: { fontSize: 16, fontWeight: '800', color: '#1d4ed8' },
+  priceTotalLabel: { fontSize: 14, fontWeight: '700', color: t.accent },
+  priceTotalVal: { fontSize: 16, fontWeight: '800', color: t.accent },
   footer: { backgroundColor: t.card, borderTopWidth: 1, borderTopColor: t.border, paddingHorizontal: 16, paddingTop: 12 },
   confirmBtn: { backgroundColor: '#2563eb', borderRadius: 14, height: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   confirmBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
