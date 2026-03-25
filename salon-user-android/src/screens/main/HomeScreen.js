@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, memo, useMemo } from '
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   TextInput, ActivityIndicator, Image, RefreshControl,
-  ScrollView, Alert,
+  ScrollView, Alert, InteractionManager,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -241,16 +241,19 @@ export default function HomeScreen({ navigation }) {
   const searchTimer                   = useRef(null);
 
   // After login redirect: if a pending booking was saved, go straight to Booking.
-  // Guard with isAuthenticated so GuestHome (in AuthStack) doesn't try to navigate
-  // to 'Booking' before the user has logged in.
+  // Uses InteractionManager to wait until the Auth→Main transition animation
+  // finishes — navigation calls during an active transition are silently dropped.
   useEffect(() => {
     if (!isAuthenticated) return;
-    AsyncStorage.getItem('pendingBooking').then(raw => {
-      if (!raw) return;
-      AsyncStorage.removeItem('pendingBooking');
-      const { salonId, serviceIds } = JSON.parse(raw);
-      navigation.navigate('Booking', { salonId, serviceIds });
-    }).catch(() => {});
+    const task = InteractionManager.runAfterInteractions(() => {
+      AsyncStorage.getItem('pendingBooking').then(raw => {
+        if (!raw) return;
+        AsyncStorage.removeItem('pendingBooking');
+        const { salonId, serviceIds } = JSON.parse(raw);
+        navigation.navigate('Booking', { salonId, serviceIds });
+      }).catch(() => {});
+    });
+    return () => task.cancel();
   }, []);
 
   // Auto-set gender filter from user profile (runs once when user loads)
