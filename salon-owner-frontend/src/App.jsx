@@ -152,69 +152,76 @@ function BookingAlertModal() {
 const LANDING_CSS = `
   @keyframes msb-orb1 {
     0%,100%{transform:translate(0,0) scale(1);}
-    40%{transform:translate(60px,-50px) scale(1.08);}
-    70%{transform:translate(-30px,30px) scale(0.94);}
+    40%{transform:translate(70px,-60px) scale(1.1);}
+    70%{transform:translate(-40px,35px) scale(0.92);}
   }
   @keyframes msb-orb2 {
     0%,100%{transform:translate(0,0) scale(1);}
-    35%{transform:translate(-60px,40px) scale(1.06);}
-    65%{transform:translate(40px,-25px) scale(0.96);}
+    35%{transform:translate(-70px,50px) scale(1.08);}
+    65%{transform:translate(50px,-30px) scale(0.94);}
   }
   @keyframes msb-fadeup {
-    from{opacity:0;transform:translateY(22px);}
+    from{opacity:0;transform:translateY(28px);}
     to{opacity:1;transform:translateY(0);}
   }
   @keyframes msb-float {
-    0%,100%{transform:translateY(0);}
-    50%{transform:translateY(-10px);}
+    0%,100%{transform:translateY(0) rotate(-1deg);}
+    50%{transform:translateY(-14px) rotate(1deg);}
   }
   @keyframes msb-shimmer {
     0%{background-position:200% center;}
     100%{background-position:-200% center;}
   }
-  .msb-orb1{animation:msb-orb1 16s ease-in-out infinite;}
-  .msb-orb2{animation:msb-orb2 20s ease-in-out infinite;}
-  .msb-fu1{animation:msb-fadeup .65s .0s ease both;}
-  .msb-fu2{animation:msb-fadeup .65s .12s ease both;}
-  .msb-fu3{animation:msb-fadeup .65s .24s ease both;}
-  .msb-fu4{animation:msb-fadeup .65s .36s ease both;}
-  .msb-fu5{animation:msb-fadeup .65s .48s ease both;}
-  .msb-fu6{animation:msb-fadeup .65s .6s ease both;}
-  .msb-float{animation:msb-float 5s ease-in-out infinite;}
+  @keyframes msb-pulse-dot {
+    0%,100%{opacity:1;transform:scale(1);}
+    50%{opacity:.5;transform:scale(1.5);}
+  }
+  @keyframes msb-bar {
+    from{height:0;}
+    to{height:var(--h);}
+  }
+  .msb-orb1{animation:msb-orb1 18s ease-in-out infinite;}
+  .msb-orb2{animation:msb-orb2 22s ease-in-out infinite;}
+  .msb-fu1{animation:msb-fadeup .7s .0s ease both;}
+  .msb-fu2{animation:msb-fadeup .7s .1s ease both;}
+  .msb-fu3{animation:msb-fadeup .7s .2s ease both;}
+  .msb-fu4{animation:msb-fadeup .7s .3s ease both;}
+  .msb-fu5{animation:msb-fadeup .7s .42s ease both;}
+  .msb-fu6{animation:msb-fadeup .7s .56s ease both;}
+  .msb-float{animation:msb-float 6s ease-in-out infinite;}
+  .msb-pulse-dot{animation:msb-pulse-dot 2s ease-in-out infinite;}
   .msb-shimmer{
-    background:linear-gradient(90deg,#a78bfa,#60a5fa,#c4b5fd,#a78bfa);
+    background:linear-gradient(90deg,#c4b5fd,#818cf8,#67e8f9,#c4b5fd);
     background-size:300% auto;
     -webkit-background-clip:text;
     -webkit-text-fill-color:transparent;
     background-clip:text;
-    animation:msb-shimmer 5s linear infinite;
+    animation:msb-shimmer 6s linear infinite;
   }
-  .msb-feat{transition:transform .3s ease,box-shadow .3s ease,background .3s ease,border-color .3s ease;}
-  .msb-feat:hover{
-    transform:translateY(-7px);
-    background:rgba(255,255,255,0.065)!important;
-    border-color:rgba(139,92,246,0.45)!important;
-    box-shadow:0 24px 56px rgba(139,92,246,0.22);
-  }
-  .msb-stat{transition:transform .3s ease,border-color .3s ease,box-shadow .3s ease;}
-  .msb-stat:hover{transform:translateY(-4px);border-color:rgba(139,92,246,0.4)!important;box-shadow:0 16px 40px rgba(139,92,246,0.18);}
-  .msb-price{transition:transform .3s ease,box-shadow .3s ease;}
-  .msb-price:hover{transform:translateY(-7px);}
-  .msb-btn-p{transition:transform .22s ease,box-shadow .22s ease;}
-  .msb-btn-p:hover{transform:scale(1.04);box-shadow:0 0 40px rgba(124,58,237,0.65)!important;}
-  .msb-btn-s{transition:background .22s ease,transform .22s ease;}
-  .msb-btn-s:hover{background:rgba(255,255,255,0.11)!important;transform:scale(1.02);}
-  .msb-link{transition:color .2s ease;}
+  .msb-feat{transition:transform .28s ease,box-shadow .28s ease,border-color .28s ease;}
+  .msb-feat:hover{transform:translateY(-6px);border-color:rgba(139,92,246,0.5)!important;box-shadow:0 20px 50px rgba(139,92,246,0.2);}
+  .msb-step{transition:transform .28s ease,box-shadow .28s ease;}
+  .msb-step:hover{transform:translateY(-4px);box-shadow:0 16px 40px rgba(0,0,0,0.4)!important;}
+  .msb-price{transition:transform .28s ease,box-shadow .28s ease;}
+  .msb-price:hover{transform:translateY(-8px);}
+  .msb-review{transition:transform .28s ease,border-color .28s ease;}
+  .msb-review:hover{transform:translateY(-4px);border-color:rgba(139,92,246,0.35)!important;}
+  .msb-btn-p{transition:transform .2s ease,box-shadow .2s ease;}
+  .msb-btn-p:hover{transform:scale(1.04);box-shadow:0 0 44px rgba(124,58,237,0.7)!important;}
+  .msb-btn-s{transition:background .2s ease,transform .2s ease,border-color .2s ease;}
+  .msb-btn-s:hover{background:rgba(255,255,255,0.1)!important;transform:scale(1.02);border-color:rgba(255,255,255,0.25)!important;}
+  .msb-link{transition:color .18s ease;}
   .msb-link:hover{color:#a78bfa!important;}
+  .msb-bar{animation:msb-bar 1.4s ease both;}
 `;
 
 const FEATURES_DATA = [
-  { icon:'📅', color:'#818cf8', bg:'rgba(99,102,241,0.13)',  title:'Smart Bookings',    desc:'Real-time slot management with instant confirmations and zero double-bookings.' },
-  { icon:'📊', color:'#a78bfa', bg:'rgba(139,92,246,0.13)', title:'Live Analytics',     desc:'Revenue trends, peak hours, and customer insights updated in real time.'        },
-  { icon:'✂',  color:'#67e8f9', bg:'rgba(6,182,212,0.13)',  title:'Service Menu',       desc:'Manage pricing, duration, and categories — all from one clean interface.'       },
-  { icon:'🔔', color:'#fcd34d', bg:'rgba(245,158,11,0.13)', title:'Auto Notifications', desc:'Push alerts for new bookings, cancellations, and upcoming appointments.'        },
-  { icon:'📈', color:'#6ee7b7', bg:'rgba(16,185,129,0.13)', title:'Reports & Export',   desc:'Download earnings, booking history, and customer data instantly.'               },
-  { icon:'⚙️', color:'#f9a8d4', bg:'rgba(236,72,153,0.13)', title:'Salon Settings',     desc:'Working hours, holidays, staff, and profile — fully customizable.'             },
+  { icon:'📅', color:'#818cf8', bg:'rgba(99,102,241,0.15)',  title:'Smart Bookings',     desc:'Real-time slot management with instant confirmations and zero double-bookings.' },
+  { icon:'📊', color:'#a78bfa', bg:'rgba(139,92,246,0.15)', title:'Live Analytics',      desc:'Revenue trends, peak hours, and customer insights updated in real time.'        },
+  { icon:'✂',  color:'#67e8f9', bg:'rgba(6,182,212,0.15)',  title:'Service Menu',        desc:'Manage pricing, duration, and categories — all from one clean interface.'       },
+  { icon:'🔔', color:'#fcd34d', bg:'rgba(245,158,11,0.15)', title:'Instant Alerts',      desc:'Push notifications for every new booking, cancellation, and reminder.'          },
+  { icon:'👥', color:'#6ee7b7', bg:'rgba(16,185,129,0.15)', title:'Customer Profiles',   desc:'Full visit history, preferences, and loyalty tracking per customer.'            },
+  { icon:'🖼', color:'#f9a8d4', bg:'rgba(236,72,153,0.15)', title:'Gallery & Coupons',   desc:'Showcase your work and run discount campaigns to attract more clients.'          },
 ];
 
 const PRICING_PLANS = [
@@ -244,57 +251,90 @@ const PRICING_PLANS = [
   },
 ];
 
-/* Dashboard preview mock – pure CSS/JSX, no images */
+const REVIEWS = [
+  { name:'Rakesh Sharma', salon:'Sharma Cuts, Pune', rating:5, text:'My bookings doubled in the first month. The dashboard is incredibly easy to use — I manage everything from my phone.' },
+  { name:'Priya Nair', salon:'Glam Studio, Kochi', rating:5, text:'No more missed appointments. Customers love booking online and I get instant notifications. Best ₹150 I spend every month.' },
+  { name:'Mohammed Farhan', salon:'Style Hub, Hyderabad', rating:5, text:'The analytics show me which services earn the most. I switched to the starter plan and never looked back.' },
+];
+
+/* Dashboard preview mock */
 const DashboardMock = () => (
-  <div className="msb-float mx-auto" style={{ maxWidth: 820, borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.09)', boxShadow: '0 48px 120px rgba(0,0,0,0.65), 0 0 80px rgba(124,58,237,0.18)', background: 'rgba(10,10,22,0.95)' }}>
+  <div className="msb-float mx-auto" style={{ maxWidth:840, borderRadius:22, overflow:'hidden', border:'1px solid rgba(255,255,255,0.08)', boxShadow:'0 56px 130px rgba(0,0,0,0.7), 0 0 90px rgba(124,58,237,0.16)', background:'rgba(8,8,20,0.97)' }}>
     {/* Window chrome */}
-    <div style={{ background: 'rgba(255,255,255,0.035)', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 7 }}>
-      <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
-      <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }} />
-      <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
-      <span style={{ fontSize: 11, color: '#334155', marginLeft: 14, letterSpacing: 0.3 }}>My Salon Bookings — Owner Dashboard</span>
+    <div style={{ background:'rgba(255,255,255,0.03)', borderBottom:'1px solid rgba(255,255,255,0.06)', padding:'10px 16px', display:'flex', alignItems:'center', gap:7 }}>
+      <span style={{ width:11, height:11, borderRadius:'50%', background:'#ef4444', display:'inline-block' }} />
+      <span style={{ width:11, height:11, borderRadius:'50%', background:'#f59e0b', display:'inline-block' }} />
+      <span style={{ width:11, height:11, borderRadius:'50%', background:'#22c55e', display:'inline-block' }} />
+      <span style={{ flex:1, height:22, background:'rgba(255,255,255,0.04)', borderRadius:6, marginLeft:12, display:'flex', alignItems:'center', paddingLeft:10 }}>
+        <span style={{ fontSize:10, color:'#334155' }}>mysalonbookings.in/dashboard</span>
+      </span>
     </div>
-    <div style={{ display: 'flex', minHeight: 360 }}>
+    <div style={{ display:'flex', minHeight:380 }}>
       {/* Sidebar */}
-      <div style={{ width: 186, background: 'rgba(0,0,0,0.35)', borderRight: '1px solid rgba(255,255,255,0.05)', padding: '18px 12px', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 22, padding: '0 6px' }}>
-          <div style={{ width: 28, height: 28, borderRadius: 8, background: 'linear-gradient(135deg,#7c3aed,#3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>✂</div>
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0' }}>My Salon</span>
+      <div style={{ width:190, background:'rgba(0,0,0,0.4)', borderRight:'1px solid rgba(255,255,255,0.05)', padding:'18px 12px', flexShrink:0 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:9, marginBottom:24, padding:'0 6px' }}>
+          <div style={{ width:30, height:30, borderRadius:9, background:'linear-gradient(135deg,#7c3aed,#3b82f6)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14 }}>✂</div>
+          <div>
+            <div style={{ fontSize:11, fontWeight:700, color:'#e2e8f0' }}>My Salon</div>
+            <div style={{ fontSize:9, color:'#334155' }}>Owner Dashboard</div>
+          </div>
         </div>
-        {[['🏠','Dashboard',true],['📅','Bookings',false],['✂','Services',false],['👥','Customers',false],['📊','Analytics',false],['💳','Billing',false],['⚙️','Settings',false]].map(([icon,label,active]) => (
-          <div key={label} style={{ display:'flex', alignItems:'center', gap:9, padding:'8px 9px', borderRadius:9, marginBottom:3, background: active ? 'rgba(124,58,237,0.2)' : 'transparent', color: active ? '#a78bfa' : '#475569', fontSize:11, fontWeight: active ? 700 : 400 }}>
-            <span style={{ fontSize:13 }}>{icon}</span>{label}
+        {[['🏠','Dashboard',true],['📅','Bookings',false],['✂','Services',false],['👥','Customers',false],['📊','Analytics',false],['🖼','Gallery',false],['💳','Billing',false]].map(([icon,label,active]) => (
+          <div key={label} style={{ display:'flex', alignItems:'center', gap:9, padding:'7px 9px', borderRadius:9, marginBottom:2, background: active ? 'rgba(124,58,237,0.22)' : 'transparent', color: active ? '#a78bfa' : '#334155', fontSize:11, fontWeight: active ? 700 : 400 }}>
+            <span style={{ fontSize:12 }}>{icon}</span>{label}
           </div>
         ))}
       </div>
-      {/* Main */}
-      <div style={{ flex:1, padding:'18px 22px', overflow:'hidden' }}>
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
-          <div style={{ fontSize:13, fontWeight:700, color:'#e2e8f0' }}>Overview · Today</div>
-          <div style={{ fontSize:10, color:'#334155', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:8, padding:'4px 10px' }}>Thu, 26 Mar 2026</div>
+      {/* Main content */}
+      <div style={{ flex:1, padding:'18px 20px', overflow:'hidden' }}>
+        {/* Header row */}
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
+          <div>
+            <div style={{ fontSize:13, fontWeight:700, color:'#e2e8f0' }}>Good morning, Rahul! ☀️</div>
+            <div style={{ fontSize:10, color:'#334155' }}>Friday, 27 Mar 2026 · Sharma Cuts</div>
+          </div>
+          <div style={{ display:'flex', gap:6 }}>
+            <div style={{ background:'rgba(16,185,129,0.15)', color:'#6ee7b7', fontSize:9, fontWeight:700, padding:'3px 9px', borderRadius:99, border:'1px solid rgba(16,185,129,0.25)' }}>● LIVE</div>
+          </div>
         </div>
         {/* Stat cards */}
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:9, marginBottom:16 }}>
-          {[['Bookings','24','#818cf8'],['Revenue','₹4.2K','#6ee7b7'],['Customers','18','#fcd34d'],['Rating','4.9 ★','#f9a8d4']].map(([label,val,color]) => (
-            <div key={label} style={{ background:'rgba(255,255,255,0.04)', borderRadius:11, padding:'11px 11px', border:'1px solid rgba(255,255,255,0.06)' }}>
-              <div style={{ fontSize:9, color:'#475569', marginBottom:5, fontWeight:600, letterSpacing:0.5 }}>{label}</div>
-              <div style={{ fontSize:16, fontWeight:800, color }}>{val}</div>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8, marginBottom:14 }}>
+          {[['Today','24 Bookings','#818cf8','rgba(99,102,241,0.12)'],['Revenue','₹4,200','#6ee7b7','rgba(16,185,129,0.12)'],['Queue','6 Waiting','#fcd34d','rgba(245,158,11,0.12)'],['Rating','4.9 ⭐','#f9a8d4','rgba(236,72,153,0.12)']].map(([label,val,color,bg]) => (
+            <div key={label} style={{ background:bg, borderRadius:11, padding:'10px 11px', border:`1px solid ${color}25` }}>
+              <div style={{ fontSize:9, color:'#475569', marginBottom:4, fontWeight:600 }}>{label}</div>
+              <div style={{ fontSize:14, fontWeight:800, color }}>{val}</div>
             </div>
           ))}
         </div>
-        {/* Bookings table */}
-        <div style={{ background:'rgba(255,255,255,0.025)', borderRadius:12, border:'1px solid rgba(255,255,255,0.06)', overflow:'hidden' }}>
-          <div style={{ padding:'9px 14px', borderBottom:'1px solid rgba(255,255,255,0.05)', display:'grid', gridTemplateColumns:'1fr 1fr 70px 72px', gap:8, fontSize:9, fontWeight:700, color:'#334155', letterSpacing:0.6 }}>
-            <span>CUSTOMER</span><span>SERVICE</span><span>TIME</span><span>STATUS</span>
-          </div>
-          {[['Rahul S.','Hair Cut','10:00','Confirmed','#22c55e'],['Priya M.','Spa Facial','11:30','Pending','#f59e0b'],['Arjun K.','Beard Trim','12:00','Confirmed','#22c55e'],['Sneha P.','Hair Color','14:00','Completed','#818cf8']].map(([name,svc,time,status,sc]) => (
-            <div key={name} style={{ padding:'8px 14px', borderBottom:'1px solid rgba(255,255,255,0.03)', display:'grid', gridTemplateColumns:'1fr 1fr 70px 72px', gap:8, alignItems:'center', fontSize:10 }}>
-              <span style={{ color:'#cbd5e1', fontWeight:600 }}>{name}</span>
-              <span style={{ color:'#475569' }}>{svc}</span>
-              <span style={{ color:'#64748b' }}>{time}</span>
-              <span style={{ color:sc, fontSize:9, fontWeight:700 }}>{status}</span>
+        {/* Mini chart + bookings */}
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1.4fr', gap:8 }}>
+          {/* Bar chart */}
+          <div style={{ background:'rgba(255,255,255,0.025)', borderRadius:12, border:'1px solid rgba(255,255,255,0.06)', padding:'10px 12px' }}>
+            <div style={{ fontSize:9, color:'#475569', fontWeight:700, marginBottom:10 }}>WEEKLY REVENUE</div>
+            <div style={{ display:'flex', alignItems:'flex-end', gap:5, height:52 }}>
+              {[28,42,35,58,45,70,62].map((h,i) => (
+                <div key={i} style={{ flex:1, height:`${h}%`, borderRadius:'3px 3px 0 0', background: i===5 ? 'linear-gradient(180deg,#7c3aed,#3b82f6)' : 'rgba(139,92,246,0.25)' }} />
+              ))}
             </div>
-          ))}
+            <div style={{ display:'flex', justifyContent:'space-between', marginTop:5 }}>
+              {['M','T','W','T','F','S','S'].map((d,i) => (
+                <div key={i} style={{ flex:1, textAlign:'center', fontSize:8, color:'#334155' }}>{d}</div>
+              ))}
+            </div>
+          </div>
+          {/* Bookings list */}
+          <div style={{ background:'rgba(255,255,255,0.025)', borderRadius:12, border:'1px solid rgba(255,255,255,0.06)', overflow:'hidden' }}>
+            <div style={{ padding:'7px 12px', borderBottom:'1px solid rgba(255,255,255,0.05)', display:'grid', gridTemplateColumns:'1fr 80px 56px', gap:6, fontSize:8, fontWeight:700, color:'#334155', letterSpacing:0.6 }}>
+              <span>CUSTOMER</span><span>SERVICE</span><span>STATUS</span>
+            </div>
+            {[['Rahul S.','Hair Cut','#22c55e','Done'],['Priya M.','Facial','#f59e0b','Next'],['Arjun K.','Beard','#818cf8','Conf.'],['Sneha P.','Color','#64748b','Later']].map(([n,s,c,st]) => (
+              <div key={n} style={{ padding:'6px 12px', borderBottom:'1px solid rgba(255,255,255,0.03)', display:'grid', gridTemplateColumns:'1fr 80px 56px', gap:6, alignItems:'center' }}>
+                <span style={{ fontSize:10, color:'#cbd5e1', fontWeight:600 }}>{n}</span>
+                <span style={{ fontSize:9, color:'#475569' }}>{s}</span>
+                <span style={{ fontSize:8, color:c, fontWeight:700 }}>{st}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -304,103 +344,215 @@ const DashboardMock = () => (
 const LandingPage = () => (
   <>
     <style>{LANDING_CSS}</style>
-    <div style={{ background:'#06060f', color:'#e2e8f0', minHeight:'100vh', fontFamily:"'Inter','Segoe UI',system-ui,sans-serif" }}>
+    <div style={{ background:'#050510', color:'#e2e8f0', minHeight:'100vh', fontFamily:"'Inter','Segoe UI',system-ui,sans-serif" }}>
 
       {/* ── NAVBAR ────────────────────────────────────────────── */}
-      <nav style={{ position:'sticky', top:0, zIndex:50, background:'rgba(6,6,15,0.8)', backdropFilter:'blur(18px)', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <nav style={{ position:'sticky', top:0, zIndex:50, background:'rgba(5,5,16,0.85)', backdropFilter:'blur(20px)', borderBottom:'1px solid rgba(255,255,255,0.07)' }}>
+        <div className="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div style={{ width:36, height:36, borderRadius:11, background:'linear-gradient(135deg,#7c3aed,#3b82f6)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, boxShadow:'0 0 18px rgba(124,58,237,0.5)' }}>✂</div>
-            <span style={{ fontWeight:700, fontSize:17, color:'#f1f5f9', letterSpacing:'-0.3px' }}>My Salon Bookings</span>
-            <span style={{ fontSize:10, background:'rgba(124,58,237,0.18)', color:'#a78bfa', border:'1px solid rgba(124,58,237,0.3)', borderRadius:20, padding:'2px 9px', fontWeight:700, letterSpacing:0.3 }}>OWNER</span>
+            <div style={{ width:38, height:38, borderRadius:12, background:'linear-gradient(135deg,#7c3aed,#2563eb)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, boxShadow:'0 0 22px rgba(124,58,237,0.55)', flexShrink:0 }}>✂</div>
+            <div className="hidden sm:flex flex-col">
+              <span style={{ fontWeight:800, fontSize:16, color:'#f1f5f9', letterSpacing:'-0.4px', lineHeight:1.1 }}>My Salon Bookings</span>
+              <span style={{ fontSize:9, color:'#475569', fontWeight:500, letterSpacing:0.5 }}>FOR SALON OWNERS</span>
+            </div>
+            <span className="sm:hidden" style={{ fontWeight:800, fontSize:15, color:'#f1f5f9' }}>MySalonBookings</span>
           </div>
           <div className="flex items-center gap-2">
-            <a href={ROUTES.LOGIN} className="msb-link px-4 py-2 text-sm font-medium" style={{ color:'#64748b' }}>Sign In</a>
-            <a href={ROUTES.REGISTER} className="msb-btn-p px-5 py-2.5 text-sm font-bold rounded-xl" style={{ background:'linear-gradient(135deg,#7c3aed,#3b82f6)', color:'#fff', boxShadow:'0 0 22px rgba(124,58,237,0.4)' }}>
-              Start Free Trial →
+            <a href={ROUTES.LOGIN} className="msb-link hidden sm:block px-4 py-2 text-sm font-medium rounded-xl" style={{ color:'#64748b' }}>Sign In</a>
+            <a href={ROUTES.REGISTER} className="msb-btn-p px-5 py-2.5 text-sm font-bold rounded-xl" style={{ background:'linear-gradient(135deg,#7c3aed,#2563eb)', color:'#fff', boxShadow:'0 0 24px rgba(124,58,237,0.45)' }}>
+              Start Free →
             </a>
           </div>
         </div>
       </nav>
 
       {/* ── HERO ──────────────────────────────────────────────── */}
-      <section style={{ position:'relative', overflow:'hidden', padding:'100px 24px 80px', textAlign:'center' }}>
-        {/* Animated orbs */}
-        <div className="msb-orb1" style={{ position:'absolute', top:-120, left:'8%', width:550, height:550, borderRadius:'50%', background:'radial-gradient(circle,rgba(124,58,237,0.22) 0%,transparent 70%)', pointerEvents:'none' }} />
-        <div className="msb-orb2" style={{ position:'absolute', top:-40, right:'4%', width:620, height:620, borderRadius:'50%', background:'radial-gradient(circle,rgba(59,130,246,0.18) 0%,transparent 70%)', pointerEvents:'none' }} />
-        <div style={{ position:'absolute', bottom:0, left:'50%', transform:'translateX(-50%)', width:'80%', height:1, background:'linear-gradient(90deg,transparent,rgba(139,92,246,0.35),transparent)', pointerEvents:'none' }} />
+      <section style={{ position:'relative', overflow:'hidden', padding:'96px 20px 76px', textAlign:'center' }}>
+        <div className="msb-orb1" style={{ position:'absolute', top:-140, left:'5%', width:600, height:600, borderRadius:'50%', background:'radial-gradient(circle,rgba(124,58,237,0.2) 0%,transparent 68%)', pointerEvents:'none' }} />
+        <div className="msb-orb2" style={{ position:'absolute', top:-60, right:'2%', width:680, height:680, borderRadius:'50%', background:'radial-gradient(circle,rgba(37,99,235,0.16) 0%,transparent 68%)', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse 80% 50% at 50% 0%,rgba(124,58,237,0.08) 0%,transparent 70%)', pointerEvents:'none' }} />
 
         <div className="max-w-4xl mx-auto relative" style={{ zIndex:1 }}>
-          {/* Trust badge */}
-          <div className="msb-fu1 inline-flex items-center gap-2.5 mb-8" style={{ background:'rgba(124,58,237,0.1)', border:'1px solid rgba(124,58,237,0.28)', borderRadius:99, padding:'6px 18px', fontSize:12.5, color:'#a78bfa', fontWeight:600 }}>
-            <span style={{ width:7, height:7, borderRadius:'50%', background:'#7c3aed', display:'inline-block', boxShadow:'0 0 8px #7c3aed' }} />
-            Trusted by 500+ salon owners across India · 30-Day Free Trial
+          {/* Live badge */}
+          <div className="msb-fu1 inline-flex items-center gap-2 mb-7" style={{ background:'rgba(16,185,129,0.08)', border:'1px solid rgba(16,185,129,0.22)', borderRadius:99, padding:'5px 16px', fontSize:12, color:'#6ee7b7', fontWeight:600 }}>
+            <span className="msb-pulse-dot" style={{ width:7, height:7, borderRadius:'50%', background:'#10b981', display:'inline-block' }} />
+            500+ salons running live across India
           </div>
 
           {/* Headline */}
-          <h1 className="msb-fu2" style={{ fontSize:'clamp(2.6rem,6.5vw,4.8rem)', fontWeight:800, lineHeight:1.07, letterSpacing:'-2px', color:'#f8fafc', marginBottom:22 }}>
-            Manage Your Salon<br />
-            <span className="msb-shimmer">Smarter, Faster.</span>
+          <h1 className="msb-fu2" style={{ fontSize:'clamp(2.4rem,6vw,4.6rem)', fontWeight:900, lineHeight:1.06, letterSpacing:'-2.5px', color:'#f8fafc', marginBottom:20 }}>
+            Run Your Salon Like<br />
+            <span className="msb-shimmer">a Pro, Not Paper.</span>
           </h1>
 
           {/* Subheading */}
-          <p className="msb-fu3 mx-auto" style={{ fontSize:'clamp(1rem,2.5vw,1.18rem)', color:'#64748b', lineHeight:1.75, maxWidth:540, marginBottom:44 }}>
-            One powerful dashboard for bookings, analytics, services,<br className="hidden sm:block" />
-            and customer management — built for Indian salons.
+          <p className="msb-fu3 mx-auto" style={{ fontSize:'clamp(1rem,2.4vw,1.15rem)', color:'#64748b', lineHeight:1.8, maxWidth:520, marginBottom:40 }}>
+            Bookings, analytics, staff, payments & customers —<br className="hidden sm:block" />
+            all in one dashboard built for Indian salons.
           </p>
 
-          {/* CTA Buttons */}
-          <div className="msb-fu4 flex flex-wrap gap-4 justify-center mb-4">
-            <a href={ROUTES.REGISTER} className="msb-btn-p px-9 py-4 font-bold rounded-xl text-[15px]" style={{ background:'linear-gradient(135deg,#7c3aed,#3b82f6)', color:'#fff', boxShadow:'0 0 32px rgba(124,58,237,0.5)', display:'inline-flex', alignItems:'center', gap:8 }}>
-              🚀&nbsp; Start Free Trial
+          {/* CTA row */}
+          <div className="msb-fu4 flex flex-wrap gap-3 justify-center mb-3">
+            <a href={ROUTES.REGISTER} className="msb-btn-p px-8 py-4 font-bold rounded-2xl text-base" style={{ background:'linear-gradient(135deg,#7c3aed,#2563eb)', color:'#fff', boxShadow:'0 0 36px rgba(124,58,237,0.55)', display:'inline-flex', alignItems:'center', gap:10 }}>
+              🚀&nbsp; Start 30-Day Free Trial
             </a>
-            <a href={ROUTES.LOGIN} className="msb-btn-s px-9 py-4 font-semibold rounded-xl text-[15px]" style={{ background:'rgba(255,255,255,0.055)', border:'1px solid rgba(255,255,255,0.12)', color:'#cbd5e1', display:'inline-flex', alignItems:'center', gap:8 }}>
-              Login to Dashboard →
+            <a href={ROUTES.LOGIN} className="msb-btn-s px-8 py-4 font-semibold rounded-2xl text-base" style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.13)', color:'#94a3b8', display:'inline-flex', alignItems:'center', gap:8 }}>
+              Owner Login →
             </a>
           </div>
-          <p className="msb-fu5" style={{ fontSize:12, color:'#334155', marginBottom:72 }}>
-            ✓ No credit card &nbsp;·&nbsp; ✓ 30-day free trial &nbsp;·&nbsp; ✓ Setup in 5 minutes &nbsp;·&nbsp; ✓ Cancel anytime
+          <p className="msb-fu5" style={{ fontSize:11.5, color:'#1e293b', marginBottom:64 }}>
+            ✓ No credit card &nbsp;·&nbsp; ✓ Full access from day 1 &nbsp;·&nbsp; ✓ 5-minute setup &nbsp;·&nbsp; ✓ Cancel anytime
           </p>
 
           {/* Dashboard preview */}
-          <div className="msb-fu6"><DashboardMock /></div>
+          <div className="msb-fu6 px-0 sm:px-4"><DashboardMock /></div>
         </div>
       </section>
 
-      {/* ── STATS ─────────────────────────────────────────────── */}
-      <section style={{ background:'rgba(255,255,255,0.018)', borderTop:'1px solid rgba(255,255,255,0.055)', borderBottom:'1px solid rgba(255,255,255,0.055)', padding:'52px 24px' }}>
-        <div className="max-w-5xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-5">
+      {/* ── STATS BAR ─────────────────────────────────────────── */}
+      <section style={{ background:'rgba(255,255,255,0.02)', borderTop:'1px solid rgba(255,255,255,0.06)', borderBottom:'1px solid rgba(255,255,255,0.06)', padding:'48px 20px' }}>
+        <div className="max-w-5xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { icon:'✂',  value:'500+',  label:'Salons Onboarded', color:'#818cf8' },
-            { icon:'📅', value:'50K+',  label:'Bookings Managed', color:'#6ee7b7' },
-            { icon:'⚡', value:'99.9%', label:'Platform Uptime',  color:'#fcd34d' },
-            { icon:'⭐', value:'4.9',   label:'Owner Rating',     color:'#f9a8d4' },
-          ].map(({ icon, value, label, color }) => (
-            <div key={label} className="msb-stat" style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:18, padding:'28px 20px', textAlign:'center' }}>
-              <div style={{ fontSize:26, marginBottom:10 }}>{icon}</div>
-              <div style={{ fontSize:32, fontWeight:800, color, marginBottom:5, letterSpacing:'-1.2px' }}>{value}</div>
-              <div style={{ fontSize:12, color:'#475569', fontWeight:500 }}>{label}</div>
+            { value:'500+',  label:'Salon Owners',     sub:'across India',  color:'#818cf8', glow:'rgba(99,102,241,0.3)' },
+            { value:'50K+',  label:'Bookings Managed', sub:'and counting',  color:'#6ee7b7', glow:'rgba(16,185,129,0.3)' },
+            { value:'99.9%', label:'Platform Uptime',  sub:'guaranteed',    color:'#fcd34d', glow:'rgba(245,158,11,0.3)' },
+            { value:'4.9★',  label:'Average Rating',   sub:'by owners',     color:'#f9a8d4', glow:'rgba(236,72,153,0.3)' },
+          ].map(({ value, label, sub, color, glow }) => (
+            <div key={label} style={{ background:'rgba(255,255,255,0.025)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:20, padding:'24px 20px', textAlign:'center', transition:'transform .3s ease,border-color .3s ease', cursor:'default' }}
+              onMouseEnter={e=>{ e.currentTarget.style.transform='translateY(-4px)'; e.currentTarget.style.borderColor=`${color}40`; }}
+              onMouseLeave={e=>{ e.currentTarget.style.transform=''; e.currentTarget.style.borderColor='rgba(255,255,255,0.06)'; }}>
+              <div style={{ fontSize:30, fontWeight:900, color, letterSpacing:'-1.5px', textShadow:`0 0 30px ${glow}`, marginBottom:4 }}>{value}</div>
+              <div style={{ fontSize:12.5, color:'#94a3b8', fontWeight:600, marginBottom:2 }}>{label}</div>
+              <div style={{ fontSize:10, color:'#334155' }}>{sub}</div>
             </div>
           ))}
         </div>
       </section>
 
+      {/* ── HOW IT WORKS ──────────────────────────────────────── */}
+      <section style={{ padding:'96px 20px' }}>
+        <div className="max-w-5xl mx-auto">
+          <div style={{ textAlign:'center', marginBottom:60 }}>
+            <div style={{ display:'inline-block', background:'rgba(124,58,237,0.1)', border:'1px solid rgba(124,58,237,0.25)', borderRadius:99, padding:'4px 16px', fontSize:11, color:'#a78bfa', fontWeight:700, letterSpacing:1.5, marginBottom:18 }}>HOW IT WORKS</div>
+            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:'#f1f5f9', letterSpacing:'-1px', marginBottom:12 }}>Up and running in minutes</h2>
+            <p style={{ color:'#475569', fontSize:15, lineHeight:1.7 }}>No technical skills needed — just sign up and go.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            {[
+              { step:'01', icon:'📝', title:'Create Your Account', desc:'Register your salon in under 5 minutes. Add your services, pricing, and working hours.', color:'#818cf8' },
+              { step:'02', icon:'📲', title:'Share Your Profile', desc:'Customers find your salon on the app, pick a service, and book an available slot instantly.', color:'#a78bfa' },
+              { step:'03', icon:'💰', title:'Grow Your Revenue', desc:'Track earnings, manage bookings, get paid — all from your phone or browser.', color:'#67e8f9' },
+            ].map(({ step, icon, title, desc, color }) => (
+              <div key={step} className="msb-step" style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:22, padding:'30px 26px', position:'relative', overflow:'hidden', boxShadow:'0 4px 24px rgba(0,0,0,0.3)' }}>
+                <div style={{ position:'absolute', top:16, right:18, fontSize:52, fontWeight:900, color:'rgba(255,255,255,0.04)', lineHeight:1, userSelect:'none' }}>{step}</div>
+                <div style={{ width:52, height:52, borderRadius:16, background:`${color}18`, border:`1px solid ${color}30`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, marginBottom:20, boxShadow:`0 0 24px ${color}25` }}>{icon}</div>
+                <h3 style={{ fontSize:16, fontWeight:700, color:'#f1f5f9', marginBottom:10 }}>{title}</h3>
+                <p style={{ fontSize:13.5, color:'#475569', lineHeight:1.75 }}>{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── HOW CUSTOMERS FIND YOU ────────────────────────────── */}
+      <section style={{ padding:'0 20px 96px' }}>
+        <div className="max-w-5xl mx-auto">
+          <div style={{ textAlign:'center', marginBottom:60 }}>
+            <div style={{ display:'inline-block', background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.25)', borderRadius:99, padding:'4px 16px', fontSize:11, color:'#6ee7b7', fontWeight:700, letterSpacing:1.5, marginBottom:18 }}>FOR CUSTOMERS</div>
+            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:'#f1f5f9', letterSpacing:'-1px', marginBottom:12 }}>4 ways customers discover &amp; book your salon</h2>
+            <p style={{ color:'#475569', fontSize:15, maxWidth:480, margin:'0 auto', lineHeight:1.7 }}>Your salon is visible to thousands of customers on the My Salon Bookings app — for free.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {[
+              {
+                num:'01', icon:'📍', title:'Nearby Search',
+                desc:'Customers open the app and instantly see salons close to them. Your profile appears automatically based on location — no ads or extra cost needed.',
+                color:'#6ee7b7', bg:'rgba(16,185,129,0.13)', border:'rgba(255,255,255,0.08)', highlight:false,
+              },
+              {
+                num:'02', icon:'🔍', title:'Search by Service',
+                desc:'When a customer searches "hair cut", "facial", or "beard trim", your salon surfaces if you offer that service. The more services you list, the more you get found.',
+                color:'#818cf8', bg:'rgba(99,102,241,0.13)', border:'rgba(255,255,255,0.08)', highlight:false,
+              },
+              {
+                num:'03', icon:'📲', title:'QR Code & Direct Link',
+                desc:'Every salon gets a unique QR code and booking link. Place the QR on your counter, business cards, or WhatsApp status — customers scan and land straight on your booking page.',
+                color:'#a78bfa', bg:'rgba(139,92,246,0.15)', border:'rgba(139,92,246,0.35)', highlight:true,
+              },
+              {
+                num:'04', icon:'⭐', title:'Ratings & Categories',
+                desc:'Top-rated salons appear higher in results. Customers filter by Men / Women / Unisex and by category. Better reviews and a complete profile = more bookings.',
+                color:'#fcd34d', bg:'rgba(245,158,11,0.13)', border:'rgba(255,255,255,0.08)', highlight:false,
+              },
+            ].map(({ num, icon, title, desc, color, bg, border, highlight }) => (
+              <div key={num} className="msb-step" style={{
+                background: highlight ? 'linear-gradient(145deg,rgba(139,92,246,0.1),rgba(99,102,241,0.06))' : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${border}`,
+                borderRadius:22, padding:'28px 26px', position:'relative', overflow:'hidden',
+                boxShadow: highlight ? '0 0 50px rgba(139,92,246,0.15)' : '0 4px 24px rgba(0,0,0,0.25)',
+              }}>
+                {/* Watermark number */}
+                <div style={{ position:'absolute', top:14, right:20, fontSize:56, fontWeight:900, color:'rgba(255,255,255,0.04)', lineHeight:1, userSelect:'none', letterSpacing:'-3px' }}>{num}</div>
+                {/* Icon */}
+                <div style={{ width:52, height:52, borderRadius:16, background:bg, border:`1px solid ${color}25`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, marginBottom:18, boxShadow:`0 0 24px ${color}25` }}>{icon}</div>
+                <h3 style={{ fontSize:16.5, fontWeight:700, color:'#f1f5f9', marginBottom:10 }}>{title}</h3>
+                <p style={{ fontSize:13.5, color:'#475569', lineHeight:1.78, marginBottom: highlight ? 18 : 0 }}>{desc}</p>
+                {highlight && (
+                  <a href={ROUTES.REGISTER} className="msb-link inline-flex items-center gap-1.5" style={{ fontSize:13, color:'#a78bfa', fontWeight:600 }}>
+                    Generate your QR free →
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── FEATURES ──────────────────────────────────────────── */}
-      <section style={{ padding:'100px 24px' }}>
+      <section style={{ padding:'0 20px 96px' }}>
         <div className="max-w-6xl mx-auto">
-          <div style={{ textAlign:'center', marginBottom:64 }}>
-            <div style={{ display:'inline-block', background:'rgba(124,58,237,0.1)', border:'1px solid rgba(124,58,237,0.25)', borderRadius:99, padding:'4px 16px', fontSize:11, color:'#a78bfa', fontWeight:700, letterSpacing:1.2, marginBottom:18 }}>FEATURES</div>
-            <h2 style={{ fontSize:'clamp(1.9rem,4.5vw,3rem)', fontWeight:800, color:'#f1f5f9', letterSpacing:'-1px', marginBottom:14 }}>All Tools. One Dashboard.</h2>
-            <p style={{ color:'#475569', fontSize:16, maxWidth:460, margin:'0 auto', lineHeight:1.7 }}>No juggling between apps — manage everything from one powerful place.</p>
+          <div style={{ textAlign:'center', marginBottom:60 }}>
+            <div style={{ display:'inline-block', background:'rgba(124,58,237,0.1)', border:'1px solid rgba(124,58,237,0.25)', borderRadius:99, padding:'4px 16px', fontSize:11, color:'#a78bfa', fontWeight:700, letterSpacing:1.5, marginBottom:18 }}>FEATURES</div>
+            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:'#f1f5f9', letterSpacing:'-1px', marginBottom:12 }}>Everything your salon needs</h2>
+            <p style={{ color:'#475569', fontSize:15, maxWidth:440, margin:'0 auto', lineHeight:1.7 }}>One platform replaces all the apps and notebooks you currently use.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {FEATURES_DATA.map(({ icon, color, bg, title, desc }) => (
-              <div key={title} className="msb-feat" style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:22, padding:'30px 26px', cursor:'default' }}>
-                <div style={{ width:54, height:54, borderRadius:16, background:bg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, marginBottom:20, boxShadow:`0 0 28px ${color}35` }}>
-                  {icon}
+              <div key={title} className="msb-feat" style={{ background:'rgba(255,255,255,0.025)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:22, padding:'28px 24px', cursor:'default' }}>
+                <div style={{ width:52, height:52, borderRadius:15, background:bg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, marginBottom:18, boxShadow:`0 0 26px ${color}30` }}>{icon}</div>
+                <h3 style={{ fontSize:16, fontWeight:700, color:'#f1f5f9', marginBottom:8 }}>{title}</h3>
+                <p style={{ fontSize:13.5, color:'#475569', lineHeight:1.75 }}>{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── REVIEWS ───────────────────────────────────────────── */}
+      <section style={{ padding:'0 20px 96px' }}>
+        <div className="max-w-5xl mx-auto">
+          <div style={{ textAlign:'center', marginBottom:56 }}>
+            <div style={{ display:'inline-block', background:'rgba(124,58,237,0.1)', border:'1px solid rgba(124,58,237,0.25)', borderRadius:99, padding:'4px 16px', fontSize:11, color:'#a78bfa', fontWeight:700, letterSpacing:1.5, marginBottom:18 }}>REVIEWS</div>
+            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:'#f1f5f9', letterSpacing:'-1px', marginBottom:12 }}>Loved by salon owners</h2>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6, marginTop:8 }}>
+              <span style={{ color:'#fcd34d', fontSize:18, letterSpacing:2 }}>★★★★★</span>
+              <span style={{ color:'#94a3b8', fontSize:14, fontWeight:600 }}>4.9 / 5 · 500+ reviews</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            {REVIEWS.map(({ name, salon, rating, text }) => (
+              <div key={name} className="msb-review" style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:20, padding:'24px 22px' }}>
+                <div style={{ color:'#fcd34d', fontSize:15, marginBottom:14, letterSpacing:2 }}>{'★'.repeat(rating)}</div>
+                <p style={{ fontSize:13.5, color:'#94a3b8', lineHeight:1.75, marginBottom:18, fontStyle:'italic' }}>"{text}"</p>
+                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                  <div style={{ width:36, height:36, borderRadius:'50%', background:'linear-gradient(135deg,#7c3aed,#2563eb)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, color:'#fff', flexShrink:0 }}>
+                    {name[0]}
+                  </div>
+                  <div>
+                    <div style={{ fontSize:13, fontWeight:700, color:'#e2e8f0' }}>{name}</div>
+                    <div style={{ fontSize:11, color:'#475569' }}>{salon}</div>
+                  </div>
                 </div>
-                <h3 style={{ fontSize:16.5, fontWeight:700, color:'#f1f5f9', marginBottom:9 }}>{title}</h3>
-                <p style={{ fontSize:13.5, color:'#475569', lineHeight:1.72 }}>{desc}</p>
               </div>
             ))}
           </div>
@@ -408,95 +560,141 @@ const LandingPage = () => (
       </section>
 
       {/* ── PRICING ───────────────────────────────────────────── */}
-      <section style={{ padding:'100px 24px', background:'rgba(255,255,255,0.012)', borderTop:'1px solid rgba(255,255,255,0.055)' }}>
+      <section style={{ padding:'0 20px 96px', background:'rgba(255,255,255,0.012)', borderTop:'1px solid rgba(255,255,255,0.055)', paddingTop:96 }}>
         <div className="max-w-5xl mx-auto">
-          <div style={{ textAlign:'center', marginBottom:64 }}>
-            <div style={{ display:'inline-block', background:'rgba(124,58,237,0.1)', border:'1px solid rgba(124,58,237,0.25)', borderRadius:99, padding:'4px 16px', fontSize:11, color:'#a78bfa', fontWeight:700, letterSpacing:1.2, marginBottom:18 }}>PRICING</div>
-            <h2 style={{ fontSize:'clamp(1.9rem,4.5vw,3rem)', fontWeight:800, color:'#f1f5f9', letterSpacing:'-1px', marginBottom:14 }}>Simple, Transparent Pricing</h2>
-            <p style={{ color:'#475569', fontSize:16 }}>Start with a 30-day free trial. Pick the plan that fits your salon.</p>
+          <div style={{ textAlign:'center', marginBottom:60 }}>
+            <div style={{ display:'inline-block', background:'rgba(124,58,237,0.1)', border:'1px solid rgba(124,58,237,0.25)', borderRadius:99, padding:'4px 16px', fontSize:11, color:'#a78bfa', fontWeight:700, letterSpacing:1.5, marginBottom:18 }}>PRICING</div>
+            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:'#f1f5f9', letterSpacing:'-1px', marginBottom:12 }}>Simple, honest pricing</h2>
+            <p style={{ color:'#475569', fontSize:15 }}>Start free. No credit card. Switch plans anytime.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
             {PRICING_PLANS.map(({ name, price, period, desc, highlight, features, cta, badge }) => (
               <div key={name} className="msb-price" style={{
-                background: highlight ? 'linear-gradient(145deg,rgba(124,58,237,0.18),rgba(59,130,246,0.12))' : 'rgba(255,255,255,0.03)',
-                border: highlight ? '1px solid rgba(124,58,237,0.45)' : '1px solid rgba(255,255,255,0.08)',
-                borderRadius:26, padding:'38px 30px', position:'relative',
-                boxShadow: highlight ? '0 0 70px rgba(124,58,237,0.22)' : 'none',
+                background: highlight ? 'linear-gradient(155deg,rgba(124,58,237,0.16),rgba(37,99,235,0.1))' : 'rgba(255,255,255,0.03)',
+                border: highlight ? '1px solid rgba(124,58,237,0.5)' : '1px solid rgba(255,255,255,0.08)',
+                borderRadius:26, padding:'36px 28px', position:'relative',
+                boxShadow: highlight ? '0 0 80px rgba(124,58,237,0.2),inset 0 1px 0 rgba(255,255,255,0.07)' : 'none',
               }}>
+                {highlight && <div style={{ position:'absolute', inset:0, borderRadius:26, background:'radial-gradient(ellipse 80% 60% at 50% 0%,rgba(124,58,237,0.12) 0%,transparent 70%)', pointerEvents:'none' }} />}
                 {badge && (
-                  <div style={{ position:'absolute', top:-14, left:'50%', transform:'translateX(-50%)', background:'linear-gradient(135deg,#7c3aed,#3b82f6)', borderRadius:99, padding:'5px 18px', fontSize:11, fontWeight:700, color:'#fff', whiteSpace:'nowrap', boxShadow:'0 0 20px rgba(124,58,237,0.5)' }}>
+                  <div style={{ position:'absolute', top:-13, left:'50%', transform:'translateX(-50%)', background:'linear-gradient(135deg,#7c3aed,#2563eb)', borderRadius:99, padding:'5px 18px', fontSize:10.5, fontWeight:700, color:'#fff', whiteSpace:'nowrap', boxShadow:'0 0 24px rgba(124,58,237,0.55)' }}>
                     {badge}
                   </div>
                 )}
-                <div style={{ fontSize:11, fontWeight:700, color: highlight ? '#a78bfa' : '#475569', letterSpacing:1.2, marginBottom:14 }}>{name.toUpperCase()}</div>
-                <div style={{ display:'flex', alignItems:'flex-end', gap:4, marginBottom:8 }}>
-                  <span style={{ fontSize:44, fontWeight:800, color:'#f1f5f9', letterSpacing:'-2px' }}>{price}</span>
-                  <span style={{ color:'#475569', fontSize:14, paddingBottom:9 }}>{period}</span>
+                <div style={{ fontSize:10.5, fontWeight:700, color: highlight ? '#a78bfa' : '#475569', letterSpacing:1.4, marginBottom:12, position:'relative' }}>{name.toUpperCase()}</div>
+                <div style={{ display:'flex', alignItems:'flex-end', gap:4, marginBottom:6, position:'relative' }}>
+                  <span style={{ fontSize:46, fontWeight:900, color:'#f1f5f9', letterSpacing:'-2.5px', lineHeight:1 }}>{price}</span>
+                  <span style={{ color:'#475569', fontSize:13.5, paddingBottom:8 }}>{period}</span>
                 </div>
-                <p style={{ fontSize:13, color:'#475569', marginBottom:28, lineHeight:1.6 }}>{desc}</p>
-                <div style={{ borderTop:'1px solid rgba(255,255,255,0.07)', paddingTop:26, marginBottom:30 }}>
+                <p style={{ fontSize:13, color:'#475569', marginBottom:26, lineHeight:1.65, position:'relative' }}>{desc}</p>
+                <div style={{ borderTop:'1px solid rgba(255,255,255,0.07)', paddingTop:22, marginBottom:28, position:'relative' }}>
                   {features.map(f => (
-                    <div key={f} style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12, fontSize:13, color:'#94a3b8' }}>
-                      <span style={{ color: highlight ? '#a78bfa' : '#6ee7b7', fontWeight:700, fontSize:14, flexShrink:0 }}>✓</span>{f}
+                    <div key={f} style={{ display:'flex', alignItems:'center', gap:10, marginBottom:11, fontSize:13, color:'#94a3b8' }}>
+                      <span style={{ color: highlight ? '#a78bfa' : '#6ee7b7', fontWeight:800, fontSize:13, flexShrink:0 }}>✓</span>{f}
                     </div>
                   ))}
                 </div>
                 <a href={ROUTES.REGISTER} className={highlight ? 'msb-btn-p' : 'msb-btn-s'} style={{
-                  display:'block', textAlign:'center', padding:'14px 0', borderRadius:14,
+                  display:'block', textAlign:'center', padding:'13px 0', borderRadius:14, position:'relative',
                   ...(highlight
-                    ? { background:'linear-gradient(135deg,#7c3aed,#3b82f6)', color:'#fff', fontWeight:700, fontSize:14.5, boxShadow:'0 0 28px rgba(124,58,237,0.45)' }
-                    : { background:'transparent', border:'1px solid rgba(255,255,255,0.12)', color:'#cbd5e1', fontWeight:600, fontSize:14.5 }),
+                    ? { background:'linear-gradient(135deg,#7c3aed,#2563eb)', color:'#fff', fontWeight:700, fontSize:14, boxShadow:'0 0 30px rgba(124,58,237,0.5)' }
+                    : { background:'transparent', border:'1px solid rgba(255,255,255,0.12)', color:'#cbd5e1', fontWeight:600, fontSize:14 }),
                 }}>
                   {cta}
                 </a>
               </div>
             ))}
           </div>
-          <p style={{ textAlign:'center', marginTop:36, fontSize:13, color:'#334155' }}>
-            Start with a <strong style={{ color:'#a78bfa' }}>30-day free trial</strong> — full access, no credit card. Switch plans anytime from your dashboard.
+          <p style={{ textAlign:'center', marginTop:32, fontSize:13, color:'#334155' }}>
+            All plans include the <strong style={{ color:'#a78bfa' }}>My Salon Bookings app</strong> and full platform access. No hidden fees.
           </p>
         </div>
       </section>
 
-      {/* ── MID-PAGE CTA ──────────────────────────────────────── */}
-      <section style={{ padding:'96px 24px', position:'relative', overflow:'hidden', borderTop:'1px solid rgba(255,255,255,0.055)' }}>
-        <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse at 50% 50%,rgba(124,58,237,0.18) 0%,transparent 70%)', pointerEvents:'none' }} />
-        <div style={{ position:'absolute', top:0, left:'50%', transform:'translateX(-50%)', width:'60%', height:1, background:'linear-gradient(90deg,transparent,rgba(139,92,246,0.4),transparent)', pointerEvents:'none' }} />
-        <div className="max-w-2xl mx-auto text-center relative" style={{ zIndex:1 }}>
-          <h2 style={{ fontSize:'clamp(1.9rem,4.5vw,2.8rem)', fontWeight:800, color:'#f1f5f9', letterSpacing:'-1px', marginBottom:16, lineHeight:1.15 }}>
-            Start managing your salon<br />smarter today
+      {/* ── APP DOWNLOAD ──────────────────────────────────────── */}
+      <section style={{ padding:'80px 20px', borderTop:'1px solid rgba(255,255,255,0.06)', position:'relative', overflow:'hidden' }}>
+        <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse 70% 60% at 50% 100%,rgba(37,99,235,0.1) 0%,transparent 70%)', pointerEvents:'none' }} />
+        <div className="max-w-4xl mx-auto text-center relative" style={{ zIndex:1 }}>
+          <div style={{ fontSize:48, marginBottom:16 }}>📱</div>
+          <h2 style={{ fontSize:'clamp(1.6rem,3.5vw,2.4rem)', fontWeight:800, color:'#f1f5f9', letterSpacing:'-1px', marginBottom:12 }}>
+            Manage your salon on the go
           </h2>
-          <p style={{ color:'#475569', fontSize:16, marginBottom:40, lineHeight:1.7 }}>
-            Join 500+ salon owners across India growing their business with My Salon Bookings.
+          <p style={{ color:'#475569', fontSize:15, lineHeight:1.75, maxWidth:440, margin:'0 auto 32px' }}>
+            My Salon Bookings lets you accept bookings, track revenue, and manage your team — right from your phone.
           </p>
-          <a href={ROUTES.REGISTER} className="msb-btn-p px-12 py-4 font-bold rounded-xl inline-flex items-center gap-3" style={{ background:'linear-gradient(135deg,#7c3aed,#3b82f6)', color:'#fff', boxShadow:'0 0 48px rgba(124,58,237,0.55)', fontSize:17 }}>
-            🚀&nbsp; Start Free Trial
+          <a
+            href="https://play.google.com/store/apps/details?id=com.mysalonbookings.owner"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="msb-btn-p inline-flex items-center gap-3 px-7 py-4 rounded-2xl font-bold text-sm"
+            style={{ background:'linear-gradient(135deg,#1a1a2e,#16213e)', border:'1px solid rgba(255,255,255,0.15)', color:'#f1f5f9', boxShadow:'0 0 30px rgba(37,99,235,0.3)', display:'inline-flex' }}
+          >
+            <span style={{ fontSize:26 }}>▶</span>
+            <div style={{ textAlign:'left' }}>
+              <div style={{ fontSize:9, fontWeight:500, color:'#64748b', letterSpacing:0.5 }}>GET IT ON</div>
+              <div style={{ fontSize:15, fontWeight:800, color:'#f1f5f9', marginTop:1 }}>Google Play</div>
+            </div>
           </a>
-          <p style={{ fontSize:12, color:'#1e293b', marginTop:20 }}>
-            ✓ Free 30 days &nbsp;·&nbsp; ✓ No card needed &nbsp;·&nbsp; ✓ Cancel anytime
+        </div>
+      </section>
+
+      {/* ── FINAL CTA ─────────────────────────────────────────── */}
+      <section style={{ padding:'96px 20px', position:'relative', overflow:'hidden', borderTop:'1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse 70% 70% at 50% 50%,rgba(124,58,237,0.16) 0%,transparent 70%)', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', top:0, left:'50%', transform:'translateX(-50%)', width:'70%', height:1, background:'linear-gradient(90deg,transparent,rgba(139,92,246,0.45),transparent)', pointerEvents:'none' }} />
+        <div className="max-w-2xl mx-auto text-center relative" style={{ zIndex:1 }}>
+          <div style={{ fontSize:44, marginBottom:16 }}>✂</div>
+          <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:900, color:'#f1f5f9', letterSpacing:'-1.2px', marginBottom:14, lineHeight:1.15 }}>
+            Your salon deserves<br />better tools.
+          </h2>
+          <p style={{ color:'#475569', fontSize:15.5, marginBottom:36, lineHeight:1.75, maxWidth:400, margin:'0 auto 36px' }}>
+            Join 500+ salon owners already growing smarter with My Salon Bookings.
+          </p>
+          <a href={ROUTES.REGISTER} className="msb-btn-p px-10 py-4 font-bold rounded-2xl inline-flex items-center gap-3" style={{ background:'linear-gradient(135deg,#7c3aed,#2563eb)', color:'#fff', boxShadow:'0 0 52px rgba(124,58,237,0.6)', fontSize:16 }}>
+            🚀&nbsp; Start Free — No Card Needed
+          </a>
+          <p style={{ fontSize:12, color:'#1e293b', marginTop:18 }}>
+            ✓ 30 days free &nbsp;·&nbsp; ✓ Full access &nbsp;·&nbsp; ✓ Cancel anytime
           </p>
         </div>
       </section>
 
       {/* ── FOOTER ────────────────────────────────────────────── */}
-      <footer style={{ borderTop:'1px solid rgba(255,255,255,0.06)', padding:'36px 24px' }}>
+      <footer style={{ borderTop:'1px solid rgba(255,255,255,0.07)', padding:'40px 20px' }}>
         <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-5">
-            <div className="flex items-center gap-3">
-              <div style={{ width:32, height:32, borderRadius:9, background:'linear-gradient(135deg,#7c3aed,#3b82f6)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14 }}>✂</div>
-              <div>
-                <div style={{ fontSize:14, fontWeight:700, color:'#94a3b8' }}>My Salon Bookings</div>
-                <div style={{ fontSize:11, color:'#1e293b' }}>by Gigamind Technology Pvt Ltd</div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-8">
+            {/* Brand */}
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <div style={{ width:34, height:34, borderRadius:10, background:'linear-gradient(135deg,#7c3aed,#2563eb)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}>✂</div>
+                <div>
+                  <div style={{ fontSize:14, fontWeight:700, color:'#94a3b8' }}>My Salon Bookings</div>
+                  <div style={{ fontSize:10, color:'#1e293b' }}>by Gigamind Technology Pvt Ltd</div>
+                </div>
               </div>
+              <p style={{ fontSize:12.5, color:'#334155', lineHeight:1.75 }}>India's leading salon management platform for modern salon owners.</p>
             </div>
-            <div style={{ fontSize:12, color:'#1e293b', textAlign:'center' }}>
-              © 2026 My Salon Bookings by Gigamind Technology Pvt Ltd. All rights reserved.
+            {/* Links */}
+            <div>
+              <div style={{ fontSize:11, fontWeight:700, color:'#475569', letterSpacing:1.2, marginBottom:14 }}>PRODUCT</div>
+              {[['Features','#features'],['Pricing','#pricing'],['My Salon Bookings App','https://play.google.com/store/apps/details?id=com.mysalonbookings.owner'],['Sign In', ROUTES.LOGIN]].map(([label,href]) => (
+                <div key={label} style={{ marginBottom:9 }}>
+                  <a href={href} className="msb-link" style={{ fontSize:13, color:'#334155' }}>{label}</a>
+                </div>
+              ))}
             </div>
-            <div className="flex items-center gap-6" style={{ fontSize:12 }}>
-              <a href={ROUTES.OWNER_PRIVACY} className="msb-link" style={{ color:'#334155' }}>Privacy Policy</a>
-              <a href={ROUTES.OWNER_TERMS}   className="msb-link" style={{ color:'#334155' }}>Terms &amp; Conditions</a>
-              <a href="mailto:support@mysalonbookings.com" className="msb-link" style={{ color:'#334155' }}>Contact</a>
+            {/* Legal */}
+            <div>
+              <div style={{ fontSize:11, fontWeight:700, color:'#475569', letterSpacing:1.2, marginBottom:14 }}>LEGAL & SUPPORT</div>
+              {[[`Privacy Policy`, ROUTES.OWNER_PRIVACY],[`Terms of Service`, ROUTES.OWNER_TERMS],[`Contact Us`,'mailto:support@mysalonbookings.in']].map(([label,href]) => (
+                <div key={label} style={{ marginBottom:9 }}>
+                  <a href={href} className="msb-link" style={{ fontSize:13, color:'#334155' }}>{label}</a>
+                </div>
+              ))}
             </div>
+          </div>
+          <div style={{ borderTop:'1px solid rgba(255,255,255,0.06)', paddingTop:20, textAlign:'center', fontSize:12, color:'#1e293b' }}>
+            © 2026 My Salon Bookings by Gigamind Technology Pvt Ltd. All rights reserved.
           </div>
         </div>
       </footer>
