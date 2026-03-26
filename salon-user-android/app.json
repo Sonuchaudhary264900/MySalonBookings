@@ -4,10 +4,10 @@
     "slug": "salon-user-android",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/Icon-1024.png",
+    "icon": "./assets/original-icon.png",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/Icon-1024.png",
+      "image": "./assets/original-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -29,7 +29,7 @@
         "android.permission.ACCESS_COARSE_LOCATION"
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon-foreground.png",
+        "foregroundImage": "./assets/original-icon.png",
         "backgroundColor": "#ffffff"
       }
     },
@@ -41,7 +41,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/Icon-1024.png",
+          "icon": "./assets/original-icon.png",
           "color": "#2563eb",
           "sounds": []
         }
