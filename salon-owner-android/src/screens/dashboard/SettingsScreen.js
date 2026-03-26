@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Alert, Switch, Image, Linking,
@@ -799,15 +800,7 @@ function PrivacySection() {
           </View>
         </View>
       ))}
-      <TouchableOpacity
-        style={[styles.privacyLinkBtn, { borderColor: theme.border }]}
-        onPress={() => Linking.openURL('https://owner.mysalonbookings.com/privacy-policy')}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="document-text-outline" size={16} color="#6366f1" />
-        <Text style={[styles.privacyLinkText, { color: '#6366f1' }]}>View Privacy Policy</Text>
-        <Ionicons name="open-outline" size={14} color="#6366f1" />
-      </TouchableOpacity>
+      <LegalButtons />
       <View style={[styles.divider, { backgroundColor: theme.border }]} />
       {!confirming ? (
         <TouchableOpacity style={styles.deleteAccountBtn} onPress={() => setConfirming(true)}>
@@ -858,6 +851,34 @@ function PrivacySection() {
         </View>
       )}
     </>
+  );
+}
+
+// ── Legal Buttons (inside Privacy section) ────────────────────────
+function LegalButtons() {
+  const navigation = useNavigation();
+  const { theme } = useTheme();
+  return (
+    <View style={{ gap: 8, marginVertical: 8 }}>
+      <TouchableOpacity
+        style={[styles.privacyLinkBtn, { borderColor: theme.border }]}
+        onPress={() => navigation.navigate('Legal')}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="shield-checkmark-outline" size={16} color="#6366f1" />
+        <Text style={[styles.privacyLinkText, { color: '#6366f1' }]}>View Privacy Policy</Text>
+        <Ionicons name="chevron-forward" size={14} color="#6366f1" />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.privacyLinkBtn, { borderColor: theme.border }]}
+        onPress={() => { navigation.navigate('Legal'); }}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="document-text-outline" size={16} color="#7c3aed" />
+        <Text style={[styles.privacyLinkText, { color: '#7c3aed' }]}>View Terms & Conditions</Text>
+        <Ionicons name="chevron-forward" size={14} color="#7c3aed" />
+      </TouchableOpacity>
+    </View>
   );
 }
 

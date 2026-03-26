@@ -23,6 +23,7 @@ function Register() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [otpTimer, setOtpTimer] = useState(0);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const recaptchaRef = useRef(null);
   const confirmationRef = useRef(null);
@@ -60,6 +61,7 @@ function Register() {
     e.preventDefault();
     if (!name.trim() || !phone.trim()) { setError("Please fill all fields."); return; }
     if (!validatePhone(phone)) { setError("Enter a valid 10-digit Indian mobile number (6–9 start)."); return; }
+    if (!agreedToTerms) { setError("Please accept the Terms & Conditions and Privacy Policy to continue."); return; }
     setError("");
     setLoading(true);
     try {
@@ -219,7 +221,30 @@ function Register() {
                   required
                 />
               </div>
-              <button type="submit" disabled={loading} className="btn-primary w-full py-3 disabled:opacity-60">
+              {/* Terms Agreement */}
+              <div className="flex items-start gap-3">
+                <button
+                  type="button"
+                  onClick={() => setAgreedToTerms(v => !v)}
+                  className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                    agreedToTerms ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300'
+                  }`}
+                >
+                  {agreedToTerms && <span className="text-white text-xs leading-none">✓</span>}
+                </button>
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  I agree to the{' '}
+                  <Link to="/legal/customer-terms" target="_blank" className="text-indigo-600 underline hover:text-indigo-700">
+                    Terms & Conditions
+                  </Link>
+                  {' '}and{' '}
+                  <Link to="/legal/customer-privacy" target="_blank" className="text-indigo-600 underline hover:text-indigo-700">
+                    Privacy Policy
+                  </Link>
+                </p>
+              </div>
+
+              <button type="submit" disabled={loading || !agreedToTerms} className="btn-primary w-full py-3 disabled:opacity-60">
                 {loading ? "Sending OTP..." : "Send OTP →"}
               </button>
             </form>
@@ -318,7 +343,14 @@ function Register() {
             </form>
           )}
 
-          <p className="mt-6 text-center text-sm text-slate-500">
+          <p className="mt-4 text-center text-xs text-slate-400 leading-relaxed">
+            By creating an account, you agree to our{" "}
+            <Link to="/legal/customer-privacy" className="text-indigo-500 hover:underline">Privacy Policy</Link>
+            {" "}and{" "}
+            <Link to="/legal/customer-terms" className="text-indigo-500 hover:underline">Terms &amp; Conditions</Link>.
+          </p>
+
+          <p className="mt-4 text-center text-sm text-slate-500">
             Already have an account?{" "}
             <Link to="/login" className="text-indigo-600 font-semibold hover:underline">Sign in</Link>
           </p>

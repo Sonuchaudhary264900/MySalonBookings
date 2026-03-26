@@ -22,8 +22,12 @@ const Booking      = lazy(() => import("./pages/Booking"));
 const Dashboard    = lazy(() => import("./pages/Dashboard"));
 const Favorites    = lazy(() => import("./pages/Favorites"));
 const Profile             = lazy(() => import("./pages/Profile"));
-const PrivacyPolicy       = lazy(() => import("./pages/PrivacyPolicy"));
-const TermsAndConditions  = lazy(() => import("./pages/TermsAndConditions"));
+const PrivacyPolicy           = lazy(() => import("./pages/PrivacyPolicy"));
+const TermsAndConditions      = lazy(() => import("./pages/TermsAndConditions"));
+const CustomerPrivacyPolicy   = lazy(() => import("./pages/legal/CustomerPrivacyPolicy"));
+const CustomerTerms           = lazy(() => import("./pages/legal/CustomerTerms"));
+const OwnerPrivacyPolicy      = lazy(() => import("./pages/legal/OwnerPrivacyPolicy"));
+const OwnerTerms              = lazy(() => import("./pages/legal/OwnerTerms"));
 
 // ── Page loading fallback ──────────────────────────────────────
 function PageLoader() {
@@ -92,6 +96,10 @@ function App() {
             <Route path="/profile"                     element={<Profile />} />
             <Route path="/privacy-policy"              element={<PrivacyPolicy />} />
             <Route path="/terms"                       element={<TermsAndConditions />} />
+            <Route path="/legal/customer-privacy"      element={<CustomerPrivacyPolicy />} />
+            <Route path="/legal/customer-terms"        element={<CustomerTerms />} />
+            <Route path="/legal/owner-privacy"         element={<OwnerPrivacyPolicy />} />
+            <Route path="/legal/owner-terms"           element={<OwnerTerms />} />
 
             {/* 404 */}
             <Route path="*" element={

@@ -1,19 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  MapPin, 
-  Clock, 
-  FileText, 
-  Camera, 
-  ChevronRight, 
-  ChevronLeft,
-  Check
+import {
+  MapPin, Clock, FileText, Camera, ChevronRight, ChevronLeft, Check, Store,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import DashboardLayout from '../../components/layout/DashboardLayout';
-import Input from '../../components/common/Input';
-import Button from '../../components/common/Button';
-import Alert from '../../components/common/Alert';
 import PhotoUpload from '../../components/salon/PhotoUpload';
 import DocumentUpload from '../../components/salon/DocumentUpload';
 import { useSalon } from '../../hooks/useSalon';
@@ -21,48 +11,216 @@ import { useAuth } from '../../hooks/useAuth';
 import { uploadSalonPhotos } from '../../services/salonService';
 import ROUTES from '../../routes';
 
-/**
- * Salon Registration Page
- *
- * 4-Step Form:
- * Step 1: Basic Information
- * Step 2: Location (Google Maps)
- * Step 3: Working Hours
- * Step 4: Photos & Documents
- */
+/* ─── CSS injected once ─────────────────────────────────────────────────── */
+const SR_CSS = `
+  @keyframes sr-orb1 {
+    0%,100%{transform:translate(0,0) scale(1)}
+    33%{transform:translate(40px,-50px) scale(1.15)}
+    66%{transform:translate(-30px,30px) scale(0.9)}
+  }
+  @keyframes sr-orb2 {
+    0%,100%{transform:translate(0,0) scale(1)}
+    33%{transform:translate(-40px,40px) scale(1.1)}
+    66%{transform:translate(30px,-30px) scale(0.95)}
+  }
+  @keyframes sr-fadeup {
+    from{opacity:0;transform:translateY(20px)}
+    to{opacity:1;transform:translateY(0)}
+  }
+  @keyframes sr-spin { to{transform:rotate(360deg)} }
+
+  .sr-inp {
+    background:rgba(255,255,255,0.06);
+    border:1.5px solid rgba(255,255,255,0.1);
+    border-radius:12px;
+    color:#f1f5f9;
+    padding:12px 16px;
+    width:100%;
+    outline:none;
+    font-size:14px;
+    transition:border-color 0.2s, box-shadow 0.2s;
+    box-sizing:border-box;
+    font-family:inherit;
+  }
+  .sr-inp:focus {
+    border-color:rgba(139,92,246,0.7);
+    box-shadow:0 0 0 3px rgba(139,92,246,0.15);
+  }
+  .sr-inp::placeholder { color:rgba(255,255,255,0.28); }
+  .sr-inp:disabled { opacity:0.5; cursor:not-allowed; }
+  .sr-inp-err { border-color:rgba(248,113,113,0.6) !important; }
+
+  .sr-textarea {
+    background:rgba(255,255,255,0.06);
+    border:1.5px solid rgba(255,255,255,0.1);
+    border-radius:12px;
+    color:#f1f5f9;
+    padding:12px 16px;
+    width:100%;
+    outline:none;
+    font-size:14px;
+    resize:vertical;
+    min-height:88px;
+    transition:border-color 0.2s, box-shadow 0.2s;
+    box-sizing:border-box;
+    font-family:inherit;
+  }
+  .sr-textarea:focus {
+    border-color:rgba(139,92,246,0.7);
+    box-shadow:0 0 0 3px rgba(139,92,246,0.15);
+  }
+  .sr-textarea::placeholder { color:rgba(255,255,255,0.28); }
+
+  .sr-time {
+    background:rgba(255,255,255,0.06);
+    border:1.5px solid rgba(255,255,255,0.1);
+    border-radius:12px;
+    color:#f1f5f9;
+    padding:12px 14px;
+    width:100%;
+    outline:none;
+    font-size:15px;
+    transition:border-color 0.2s, box-shadow 0.2s;
+    box-sizing:border-box;
+    font-family:inherit;
+    color-scheme:dark;
+  }
+  .sr-time:focus {
+    border-color:rgba(139,92,246,0.7);
+    box-shadow:0 0 0 3px rgba(139,92,246,0.15);
+  }
+
+  .sr-label {
+    display:block;
+    font-size:13px;
+    font-weight:500;
+    color:rgba(255,255,255,0.6);
+    margin-bottom:6px;
+  }
+  .sr-err { color:#f87171; font-size:12px; margin-top:5px; display:block; }
+
+  .sr-btn-primary {
+    background:linear-gradient(135deg,#7c3aed,#3b82f6);
+    border:none;
+    border-radius:12px;
+    color:#fff;
+    font-weight:700;
+    font-size:15px;
+    padding:13px 28px;
+    cursor:pointer;
+    transition:transform 0.15s, box-shadow 0.15s;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-family:inherit;
+  }
+  .sr-btn-primary:hover:not(:disabled) {
+    transform:scale(1.03);
+    box-shadow:0 8px 30px rgba(124,58,237,0.4);
+  }
+  .sr-btn-primary:disabled { opacity:0.5; cursor:not-allowed; }
+
+  .sr-btn-outline {
+    background:rgba(255,255,255,0.06);
+    border:1.5px solid rgba(255,255,255,0.14);
+    border-radius:12px;
+    color:#cbd5e1;
+    font-weight:600;
+    font-size:15px;
+    padding:12px 24px;
+    cursor:pointer;
+    transition:background 0.15s;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-family:inherit;
+  }
+  .sr-btn-outline:hover:not(:disabled) { background:rgba(255,255,255,0.1); }
+  .sr-btn-outline:disabled { opacity:0.4; cursor:not-allowed; }
+
+  .sr-gender {
+    background:rgba(255,255,255,0.05);
+    border:1.5px solid rgba(255,255,255,0.1);
+    border-radius:12px;
+    padding:14px 8px;
+    cursor:pointer;
+    transition:all 0.18s;
+    text-align:center;
+    color:#cbd5e1;
+    font-family:inherit;
+    width:100%;
+  }
+  .sr-gender:hover { border-color:rgba(139,92,246,0.5); background:rgba(139,92,246,0.1); }
+  .sr-gender.active { background:rgba(139,92,246,0.18); border-color:rgba(139,92,246,0.7); color:#a78bfa; }
+
+  .sr-day {
+    background:rgba(255,255,255,0.05);
+    border:1.5px solid rgba(255,255,255,0.09);
+    border-radius:10px;
+    padding:10px 4px;
+    cursor:pointer;
+    transition:all 0.18s;
+    text-align:center;
+    color:#94a3b8;
+    font-size:12px;
+    font-weight:500;
+    font-family:inherit;
+    width:100%;
+  }
+  .sr-day:hover { border-color:rgba(139,92,246,0.4); }
+  .sr-day.active { background:rgba(139,92,246,0.18); border-color:rgba(139,92,246,0.7); color:#a78bfa; font-weight:700; }
+
+  .sr-card-inner {
+    background:rgba(255,255,255,0.03);
+    border:1px solid rgba(255,255,255,0.07);
+    border-radius:14px;
+    padding:18px 20px;
+  }
+  .sr-photo-wrap {
+    background:rgba(255,255,255,0.03);
+    border-radius:14px;
+    padding:16px;
+  }
+
+  @media(max-width:600px) {
+    .sr-grid2 { grid-template-columns:1fr !important; }
+    .sr-days-grid { grid-template-columns:repeat(4,1fr) !important; }
+  }
+`;
+
+const STEP_META = [
+  { num: 1, label: 'Basic Info',  Icon: FileText },
+  { num: 2, label: 'Location',   Icon: MapPin   },
+  { num: 3, label: 'Hours',      Icon: Clock    },
+  { num: 4, label: 'Photos',     Icon: Camera   },
+];
+
+/* ─── Component ─────────────────────────────────────────────────────────── */
 const SalonRegistration = () => {
   const navigate = useNavigate();
-  const { createSalon, salon, fetchSalon } = useSalon();
+  const { createSalon, fetchSalon } = useSalon();
   const { user } = useAuth();
 
-  // If owner already has a salon, go to approval waiting
+  // Redirect if owner already has a salon
   useEffect(() => {
     fetchSalon().then((res) => {
       if (res?.data) navigate(ROUTES.APPROVAL_WAITING, { replace: true });
     });
   }, []);
+
   const mapRef = useRef(null);
 
-  // ========== STEP STATE ==========
-
+  /* ── Step state ── */
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // ========== FORM DATA ==========
-
-  // Step 1: Basic Information
+  /* ── Step 1 data ── */
   const [step1Data, setStep1Data] = useState({
-    name: '',
-    description: '',
-    servedGender: '',
-    phone: '',
-    email: '',
-    address: '',
+    name: '', description: '', servedGender: '', phone: '', email: '', address: '',
   });
   const [step1Errors, setStep1Errors] = useState({});
 
-  // Auto-fill phone and email from owner profile
   useEffect(() => {
     if (user) {
       setStep1Data(prev => ({
@@ -73,21 +231,16 @@ const SalonRegistration = () => {
     }
   }, [user]);
 
-  // Step 2: Location
-  const [step2Data, setStep2Data] = useState({
-    address: '',
-    latitude: null,
-    longitude: null,
-  });
+  /* ── Step 2 data ── */
+  const [step2Data, setStep2Data] = useState({ address: '', latitude: null, longitude: null });
   const [step2Errors, setStep2Errors] = useState({});
   const [map, setMap] = useState(null);
   const markerRef = useRef(null);
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationStatus, setLocationStatus] = useState('');
-  const [locationAccuracy, setLocationAccuracy] = useState(null); // metres
+  const [locationAccuracy, setLocationAccuracy] = useState(null);
   const watchIdRef = useRef(null);
 
-  // Stop any active watchPosition
   const stopWatch = () => {
     if (watchIdRef.current !== null) {
       navigator.geolocation.clearWatch(watchIdRef.current);
@@ -95,19 +248,15 @@ const SalonRegistration = () => {
     }
   };
 
-  // Fine-location helper: quick rough fix → then refine with watchPosition
   const getFineLocation = (mapInstance) => {
     if (!navigator.geolocation) {
       setLocationStatus('Geolocation not supported. Enter address manually.');
       return;
     }
-
     stopWatch();
     setLocationLoading(true);
     setLocationAccuracy(null);
     setLocationStatus('Getting your location…');
-
-    // Pass 1 — quick low-accuracy fix to show map immediately
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const lat = pos.coords.latitude;
@@ -118,8 +267,6 @@ const SalonRegistration = () => {
         placeMarker(mapInstance, lat, lng);
         setLocationAccuracy(acc);
         setLocationStatus(`Refining accuracy… (currently ±${acc}m)`);
-
-        // Pass 2 — watchPosition for GPS-level fine accuracy
         watchIdRef.current = navigator.geolocation.watchPosition(
           (refined) => {
             const rLat = refined.coords.latitude;
@@ -127,9 +274,7 @@ const SalonRegistration = () => {
             const rAcc = Math.round(refined.coords.accuracy);
             placeMarker(mapInstance, rLat, rLng);
             setLocationAccuracy(rAcc);
-
             if (rAcc <= 10) {
-              // Within 10 metres — stop watching
               stopWatch();
               setLocationLoading(false);
               setLocationStatus(`Fine location locked (±${rAcc}m). Drag the pin to adjust.`);
@@ -138,15 +283,12 @@ const SalonRegistration = () => {
             }
           },
           () => {
-            // watchPosition failed — rough fix is still on the map
             stopWatch();
             setLocationLoading(false);
             setLocationStatus(`Location set (±${acc}m). Drag the pin to fine-tune.`);
           },
           { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
         );
-
-        // Safety: stop watching after 20s regardless
         setTimeout(() => {
           if (watchIdRef.current !== null) {
             stopWatch();
@@ -164,200 +306,118 @@ const SalonRegistration = () => {
     );
   };
 
-  // Step 3: Working Hours
+  /* ── Step 3 data ── */
   const [step3Data, setStep3Data] = useState({
     openingTime: '09:00',
     closingTime: '21:00',
     lunchBreakStart: '13:00',
     lunchBreakEnd: '14:00',
     daysOfOperation: [
-      { day: 'Monday', selected: true },
-      { day: 'Tuesday', selected: true },
-      { day: 'Wednesday', selected: true },
-      { day: 'Thursday', selected: true },
-      { day: 'Friday', selected: true },
-      { day: 'Saturday', selected: true },
-      { day: 'Sunday', selected: false },
+      { day: 'Monday',    selected: true  },
+      { day: 'Tuesday',   selected: true  },
+      { day: 'Wednesday', selected: true  },
+      { day: 'Thursday',  selected: true  },
+      { day: 'Friday',    selected: true  },
+      { day: 'Saturday',  selected: true  },
+      { day: 'Sunday',    selected: false },
     ],
   });
   const [step3Errors, setStep3Errors] = useState({});
 
-  // Step 4: Photos & Documents
+  /* ── Step 4 data ── */
   const [step4Data, setStep4Data] = useState({
-    photos: [],
-    businessLicense: [],
-    businessRegistration: [],
+    photos: [], businessLicense: [], businessRegistration: [],
   });
   const [step4Errors, setStep4Errors] = useState({});
 
-  // ========== GOOGLE MAPS INITIALIZATION ==========
-
-  // Place / update draggable marker and reverse-geocode the position
+  /* ── Google Maps ── */
   const placeMarker = (mapInstance, lat, lng) => {
     if (markerRef.current) markerRef.current.setMap(null);
-
     const newMarker = new window.google.maps.Marker({
       position: { lat, lng },
       map: mapInstance,
       draggable: true,
       title: 'Drag to adjust location',
     });
-
-    // Update state immediately
     setStep2Data(prev => ({ ...prev, latitude: lat, longitude: lng }));
     mapInstance.panTo({ lat, lng });
-
-    // Reverse geocode
     const geocoder = new window.google.maps.Geocoder();
     geocoder.geocode({ location: { lat, lng } }, (results, status) => {
       if (status === 'OK' && results[0]) {
-        setStep2Data(prev => ({
-          ...prev,
-          address: results[0].formatted_address,
-        }));
+        setStep2Data(prev => ({ ...prev, address: results[0].formatted_address }));
       }
     });
-
-    // Allow drag to adjust
     newMarker.addListener('dragend', () => {
       const pos = newMarker.getPosition();
       const dLat = pos.lat();
       const dLng = pos.lng();
       setStep2Data(prev => ({ ...prev, latitude: dLat, longitude: dLng }));
-
       geocoder.geocode({ location: { lat: dLat, lng: dLng } }, (res, s) => {
         if (s === 'OK' && res[0]) {
           setStep2Data(prev => ({ ...prev, address: res[0].formatted_address }));
         }
       });
     });
-
     markerRef.current = newMarker;
     return newMarker;
   };
 
   useEffect(() => {
     if (currentStep !== 2 || !mapRef.current || map) return;
-
-    const defaultLocation = { lat: 28.7041, lng: 77.1025 }; // fallback: Delhi
-
+    const defaultLocation = { lat: 28.7041, lng: 77.1025 };
     const newMap = new window.google.maps.Map(mapRef.current, {
-      zoom: 15,
-      center: defaultLocation,
-      mapTypeControl: false,
-      streetViewControl: false,
+      zoom: 15, center: defaultLocation, mapTypeControl: false, streetViewControl: false,
     });
-
-    // Click anywhere on map to drop/move pin
     newMap.addListener('click', (event) => {
-      const lat = event.latLng.lat();
-      const lng = event.latLng.lng();
-      placeMarker(newMap, lat, lng);
+      placeMarker(newMap, event.latLng.lat(), event.latLng.lng());
     });
-
     setMap(newMap);
     getFineLocation(newMap);
-
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep, map]);
 
-  // Clean up watchPosition when leaving step 2 or unmounting
   useEffect(() => {
     if (currentStep !== 2) stopWatch();
     return () => stopWatch();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep]);
 
-  // ========== STEP 1: BASIC INFO HANDLERS ==========
-
+  /* ── Handlers ── */
   const handleStep1Change = (e) => {
     const { name, value } = e.target;
-    setStep1Data(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-    if (step1Errors[name]) {
-      setStep1Errors(prev => ({
-        ...prev,
-        [name]: '',
-      }));
-    }
+    setStep1Data(prev => ({ ...prev, [name]: value }));
+    if (step1Errors[name]) setStep1Errors(prev => ({ ...prev, [name]: '' }));
   };
 
   const validateStep1 = () => {
     const errors = {};
-
-    if (!step1Data.name.trim()) {
-      errors.name = 'Salon name is required';
-    }
-
-    if (!step1Data.phone.trim()) {
-      errors.phone = 'Phone is required';
-    } else if (!/^\+?[\d\s\-()]{9,}$/.test(step1Data.phone)) {
-      errors.phone = 'Phone is invalid';
-    }
-
-    if (!step1Data.email.trim()) {
-      errors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(step1Data.email)) {
-      errors.email = 'Email is invalid';
-    }
-
-    if (!step1Data.address.trim()) {
-      errors.address = 'Full address is required';
-    }
-
-    if (!step1Data.servedGender) {
-      errors.servedGender = 'Please select who you serve';
-    }
-
-
+    if (!step1Data.name.trim()) errors.name = 'Salon name is required';
+    if (!step1Data.phone.trim()) errors.phone = 'Phone is required';
+    else if (!/^\+?[\d\s\-()]{9,}$/.test(step1Data.phone)) errors.phone = 'Phone is invalid';
+    if (!step1Data.email.trim()) errors.email = 'Email is required';
+    else if (!/\S+@\S+\.\S+/.test(step1Data.email)) errors.email = 'Email is invalid';
+    if (!step1Data.address.trim()) errors.address = 'Full address is required';
+    if (!step1Data.servedGender) errors.servedGender = 'Please select who you serve';
     setStep1Errors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  // ========== STEP 2: LOCATION HANDLERS ==========
-
   const validateStep2 = () => {
     const errors = {};
-
-    if (!step2Data.address.trim()) {
-      errors.address = 'Address is required';
-    }
-
-    // Coordinates are optional — backend auto-detects from address via Google Maps
-
+    if (!step2Data.address.trim()) errors.address = 'Address is required';
     setStep2Errors(errors);
     return Object.keys(errors).length === 0;
   };
 
   const handleAddressChange = (e) => {
-    setStep2Data(prev => ({
-      ...prev,
-      address: e.target.value,
-    }));
-    if (step2Errors.address) {
-      setStep2Errors(prev => ({
-        ...prev,
-        address: '',
-      }));
-    }
+    setStep2Data(prev => ({ ...prev, address: e.target.value }));
+    if (step2Errors.address) setStep2Errors(prev => ({ ...prev, address: '' }));
   };
-
-  // ========== STEP 3: WORKING HOURS HANDLERS ==========
 
   const handleStep3Change = (e) => {
     const { name, value } = e.target;
-    setStep3Data(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-    if (step3Errors[name]) {
-      setStep3Errors(prev => ({
-        ...prev,
-        [name]: '',
-      }));
-    }
+    setStep3Data(prev => ({ ...prev, [name]: value }));
+    if (step3Errors[name]) setStep3Errors(prev => ({ ...prev, [name]: '' }));
   };
 
   const handleDayToggle = (dayIndex) => {
@@ -371,83 +431,39 @@ const SalonRegistration = () => {
 
   const validateStep3 = () => {
     const errors = {};
-
-    if (!step3Data.openingTime) {
-      errors.openingTime = 'Opening time is required';
-    }
-
-    if (!step3Data.closingTime) {
-      errors.closingTime = 'Closing time is required';
-    }
-
-    if (step3Data.openingTime >= step3Data.closingTime) {
-      errors.closingTime = 'Closing time must be after opening time';
-    }
-
-    if (!step3Data.daysOfOperation.some(d => d.selected)) {
-      errors.days = 'Select at least one day';
-    }
-
+    if (!step3Data.openingTime) errors.openingTime = 'Opening time is required';
+    if (!step3Data.closingTime) errors.closingTime = 'Closing time is required';
+    if (step3Data.openingTime >= step3Data.closingTime) errors.closingTime = 'Closing time must be after opening time';
+    if (!step3Data.daysOfOperation.some(d => d.selected)) errors.days = 'Select at least one day';
     setStep3Errors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  // ========== STEP 4: PHOTOS & DOCUMENTS HANDLERS ==========
-
-
   const validateStep4 = () => {
     const errors = {};
-
-    if (step4Data.photos.length === 0) {
-      errors.photos = 'Please upload at least one salon photo';
-    }
-
-    // Documents are optional — backend handles them separately
+    if (step4Data.photos.length === 0) errors.photos = 'Please upload at least one salon photo';
     setStep4Errors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  // ========== NAVIGATION HANDLERS ==========
-
   const handleNext = () => {
     let isValid = false;
-
     switch (currentStep) {
-      case 1:
-        isValid = validateStep1();
-        break;
-      case 2:
-        isValid = validateStep2();
-        break;
-      case 3:
-        isValid = validateStep3();
-        break;
-      default:
-        isValid = true;
+      case 1: isValid = validateStep1(); break;
+      case 2: isValid = validateStep2(); break;
+      case 3: isValid = validateStep3(); break;
+      default: isValid = true;
     }
-
-    if (isValid) {
-      setCurrentStep(prev => prev + 1);
-      setError('');
-    }
+    if (isValid) { setCurrentStep(prev => prev + 1); setError(''); }
   };
 
-  const handlePrev = () => {
-    setCurrentStep(prev => prev - 1);
-    setError('');
-  };
+  const handlePrev = () => { setCurrentStep(prev => prev - 1); setError(''); };
 
   const handleSubmit = async () => {
-    if (!validateStep4()) {
-      return;
-    }
-
+    if (!validateStep4()) return;
     setLoading(true);
     setError('');
-
     try {
-      // Build workingHours in backend format:
-      // { monday: { open, close, isClosed }, ... }
       const dayMap = {
         Monday: 'monday', Tuesday: 'tuesday', Wednesday: 'wednesday',
         Thursday: 'thursday', Friday: 'friday', Saturday: 'saturday', Sunday: 'sunday',
@@ -463,7 +479,6 @@ const SalonRegistration = () => {
         };
       });
 
-      // Upload photos to Cloudinary first
       let photoUrls = [];
       if (step4Data.photos.length > 0) {
         toast.loading('Uploading photos...', { id: 'photo-upload' });
@@ -471,7 +486,6 @@ const SalonRegistration = () => {
         toast.dismiss('photo-upload');
       }
 
-      // Build JSON payload
       const salonPayload = {
         name: step1Data.name,
         description: step1Data.description,
@@ -486,26 +500,18 @@ const SalonRegistration = () => {
         workingHours,
         photos: photoUrls,
       };
-      // If the user placed a map pin in step 2, pass those coordinates so the
-      // backend doesn't need to geocode (avoids Google Maps API failures)
       if (step2Data.latitude && step2Data.longitude) {
-        salonPayload.location = {
-          latitude: step2Data.latitude,
-          longitude: step2Data.longitude,
-        };
+        salonPayload.location = { latitude: step2Data.latitude, longitude: step2Data.longitude };
       }
 
-      // Submit
       await createSalon(salonPayload);
       toast.success('Salon registered successfully!');
       navigate(ROUTES.APPROVAL_WAITING);
     } catch (err) {
-      // If salon already exists (409), go straight to approval waiting
       if (err.response?.status === 409 || err.status === 409 || err.message?.includes('already')) {
         navigate(ROUTES.APPROVAL_WAITING, { replace: true });
         return;
       }
-      // Surface specific backend validation errors if available
       const backendErrors = err.data?.errors;
       if (backendErrors && Array.isArray(backendErrors) && backendErrors.length > 0) {
         setError(`Validation failed:\n• ${backendErrors.join('\n• ')}`);
@@ -519,481 +525,395 @@ const SalonRegistration = () => {
     }
   };
 
-  // ========== RENDER METHODS ==========
+  const progressPct = ((currentStep - 1) / 3) * 100;
 
+  /* ─── Render ──────────────────────────────────────────────────────────── */
   return (
-    <DashboardLayout>
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Register Your Salon</h1>
-          <p className="text-gray-600 mt-2">Complete all steps to set up your salon</p>
-        </div>
+    <>
+      <style>{SR_CSS}</style>
+      <div style={{
+        minHeight: '100vh',
+        background: '#06060f',
+        position: 'relative',
+        overflow: 'hidden',
+        fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif',
+      }}>
+        {/* Orbs */}
+        <div style={{ position:'fixed', top:'-20%', left:'-10%', width:600, height:600, borderRadius:'50%', background:'radial-gradient(circle,rgba(124,58,237,0.18) 0%,transparent 70%)', animation:'sr-orb1 18s ease-in-out infinite', pointerEvents:'none', zIndex:0 }} />
+        <div style={{ position:'fixed', bottom:'-20%', right:'-10%', width:500, height:500, borderRadius:'50%', background:'radial-gradient(circle,rgba(59,130,246,0.15) 0%,transparent 70%)', animation:'sr-orb2 22s ease-in-out infinite', pointerEvents:'none', zIndex:0 }} />
 
-        {/* Progress Indicator */}
-        <div className="flex justify-between mb-8">
-          {[1, 2, 3, 4].map(step => (
-            <div key={step} className="flex items-center flex-1">
-              <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition ${
-                  currentStep >= step
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-600'
-                }`}
-              >
-                {currentStep > step ? <Check className="w-6 h-6" /> : step}
-              </div>
-              {step < 4 && (
-                <div
-                  className={`flex-1 h-1 mx-2 transition ${
-                    currentStep > step ? 'bg-blue-600' : 'bg-gray-200'
-                  }`}
-                />
-              )}
-            </div>
-          ))}
-        </div>
+        <div style={{ position:'relative', zIndex:1, maxWidth:780, margin:'0 auto', padding:'40px 20px 64px' }}>
 
-        {/* Error Alert */}
-        {error && (
-          <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 mb-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="font-semibold text-red-800 text-sm">Registration Error</p>
-                <pre className="text-red-700 text-sm mt-1 whitespace-pre-wrap font-sans">{error}</pre>
+          {/* ── Header ── */}
+          <div style={{ textAlign:'center', marginBottom:36, animation:'sr-fadeup 0.5s ease' }}>
+            <div style={{ display:'inline-flex', alignItems:'center', gap:10, marginBottom:14 }}>
+              <div style={{ width:40, height:40, borderRadius:10, background:'linear-gradient(135deg,#7c3aed,#3b82f6)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <Store size={20} color="#fff" />
               </div>
-              <button
-                onClick={() => setError('')}
-                className="text-red-400 hover:text-red-600 ml-4 text-lg leading-none"
-              >
-                ×
-              </button>
+              <span style={{ fontSize:18, fontWeight:700, color:'#f1f5f9', letterSpacing:'-0.3px' }}>My Salon Bookings</span>
             </div>
+            <h1 style={{ fontSize:28, fontWeight:800, color:'#f1f5f9', margin:0, marginBottom:8, letterSpacing:'-0.5px' }}>Register Your Salon</h1>
+            <p style={{ color:'rgba(255,255,255,0.45)', fontSize:14, margin:0 }}>Complete all 4 steps to get your salon listed</p>
           </div>
-        )}
 
-        {/* Step 1: Basic Information */}
-        {currentStep === 1 && (
-          <div className="bg-white rounded-lg border-2 border-gray-200 p-8">
-            <div className="flex items-center gap-3 mb-6">
-              <FileText className="w-6 h-6 text-blue-600" />
-              <h2 className="text-xl font-bold text-gray-900">Basic Information</h2>
-            </div>
-
-            <div className="space-y-4">
-              {/* Salon Name */}
-              <Input
-                label="Salon Name"
-                name="name"
-                value={step1Data.name}
-                onChange={handleStep1Change}
-                placeholder="Enter salon name"
-                error={!!step1Errors.name}
-                errorMessage={step1Errors.name}
-                required
-              />
-
-              {/* Description */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Description (Optional)
-                </label>
-                <textarea
-                  name="description"
-                  value={step1Data.description}
-                  onChange={handleStep1Change}
-                  placeholder="Describe your salon..."
-                  className="w-full px-4 py-2 rounded-lg border-2 border-gray-300 focus:border-blue-500 focus:outline-none resize-none"
-                  rows="3"
-                />
-              </div>
-
-              {/* Served Gender */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Services For <span className="text-red-500">*</span>
-                </label>
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { value: 'male', label: 'Male', icon: '♂' },
-                    { value: 'female', label: 'Female', icon: '♀' },
-                    { value: 'unisex', label: 'Unisex', icon: '⚥' },
-                  ].map(({ value, label, icon }) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() =>
-                        setStep1Data(prev => ({ ...prev, servedGender: value }))
-                      }
-                      className={`flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-lg border-2 font-medium text-sm transition ${
-                        step1Data.servedGender === value
-                          ? 'border-blue-600 bg-blue-50 text-blue-700'
-                          : 'border-gray-300 bg-white text-gray-600 hover:border-blue-300 hover:bg-blue-50'
-                      }`}
-                    >
-                      <span className="text-xl">{icon}</span>
-                      <span>{label}</span>
-                    </button>
-                  ))}
-                </div>
-                {step1Errors.servedGender && (
-                  <p className="text-sm text-red-600 mt-1">{step1Errors.servedGender}</p>
-                )}
-              </div>
-
-
-              {/* Phone & Email */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="Phone Number"
-                  name="phone"
-                  type="tel"
-                  value={step1Data.phone}
-                  onChange={handleStep1Change}
-                  placeholder="+91 98765 43210"
-                  error={!!step1Errors.phone}
-                  errorMessage={step1Errors.phone}
-                  readOnly={!!user?.phone}
-                  disabled={!!user?.phone}
-                  required
-                />
-
-                <Input
-                  label="Email Address"
-                  name="email"
-                  type="email"
-                  value={step1Data.email}
-                  onChange={handleStep1Change}
-                  placeholder="salon@email.com"
-                  error={!!step1Errors.email}
-                  errorMessage={step1Errors.email}
-                  readOnly={!!user?.email}
-                  disabled={!!user?.email}
-                  required
-                />
-              </div>
-
-              {/* Full Address */}
-              <Input
-                label="Full Address"
-                name="address"
-                value={step1Data.address}
-                onChange={handleStep1Change}
-                placeholder="e.g. 123 MG Road, Koramangala, Bangalore, Karnataka"
-                error={!!step1Errors.address}
-                errorMessage={step1Errors.address}
-                required
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Step 2: Location */}
-        {currentStep === 2 && (
-          <div className="bg-white rounded-lg border-2 border-gray-200 p-8">
-            <div className="flex items-center gap-3 mb-6">
-              <MapPin className="w-6 h-6 text-blue-600" />
-              <h2 className="text-xl font-bold text-gray-900">Location</h2>
-            </div>
-
-            <div className="space-y-4">
-              {/* Location status */}
-              {locationStatus && (
-                <div className={`flex items-center justify-between gap-3 px-4 py-3 rounded-lg border text-sm ${
-                  locationLoading
-                    ? 'bg-yellow-50 border-yellow-200 text-yellow-800'
-                    : step2Data.latitude
-                    ? 'bg-green-50 border-green-200 text-green-800'
-                    : 'bg-orange-50 border-orange-200 text-orange-800'
-                }`}>
-                  <span>{locationLoading ? '📍 ' : step2Data.latitude ? '✅ ' : '⚠️ '}{locationStatus}</span>
-                  {!locationLoading && (
-                    <button
-                      type="button"
-                      onClick={() => getFineLocation(map)}
-                      className="text-xs font-medium underline whitespace-nowrap"
-                    >
-                      Re-detect
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {/* Map */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Pin your salon location
-                  <span className="text-gray-400 font-normal ml-1">(click map or drag pin)</span>
-                </label>
-                <div
-                  ref={mapRef}
-                  className="w-full h-96 rounded-lg border-2 border-gray-300"
-                />
-              </div>
-
-              {/* Auto-filled address */}
-              <Input
-                label="Address"
-                name="address"
-                value={step2Data.address}
-                onChange={handleAddressChange}
-                placeholder="Auto-filled from map — or type manually"
-                error={!!step2Errors.address}
-                errorMessage={step2Errors.address}
-                required
-              />
-
-              {/* Coordinates + accuracy badge */}
-              {step2Data.latitude && step2Data.longitude && (
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between flex-wrap gap-2">
-                  <p className="text-sm text-blue-700">
-                    <strong>Coordinates:</strong> {step2Data.latitude.toFixed(6)}, {step2Data.longitude.toFixed(6)}
-                  </p>
-                  {locationAccuracy !== null && (
-                    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                      locationAccuracy <= 10 ? 'bg-green-100 text-green-700'
-                      : locationAccuracy <= 30 ? 'bg-blue-100 text-blue-700'
-                      : locationAccuracy <= 100 ? 'bg-yellow-100 text-yellow-700'
-                      : 'bg-orange-100 text-orange-700'
-                    }`}>
-                      {locationAccuracy <= 10 ? '🎯' : locationAccuracy <= 30 ? '📍' : '⚠️'} ±{locationAccuracy}m accuracy
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: Working Hours */}
-        {currentStep === 3 && (
-          <div className="bg-white rounded-lg border-2 border-gray-200 p-8">
-            <div className="flex items-center gap-3 mb-6">
-              <Clock className="w-6 h-6 text-blue-600" />
-              <h2 className="text-xl font-bold text-gray-900">Working Hours</h2>
-            </div>
-
-            <div className="space-y-6">
-              {/* Opening & Closing Times */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Opening Time
-                  </label>
-                  <input
-                    type="time"
-                    name="openingTime"
-                    value={step3Data.openingTime}
-                    onChange={handleStep3Change}
-                    className="w-full px-4 py-2 rounded-lg border-2 border-gray-300 focus:border-blue-500 focus:outline-none"
-                  />
-                  {step3Errors.openingTime && (
-                    <p className="text-sm text-red-600">{step3Errors.openingTime}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Closing Time
-                  </label>
-                  <input
-                    type="time"
-                    name="closingTime"
-                    value={step3Data.closingTime}
-                    onChange={handleStep3Change}
-                    className="w-full px-4 py-2 rounded-lg border-2 border-gray-300 focus:border-blue-500 focus:outline-none"
-                  />
-                  {step3Errors.closingTime && (
-                    <p className="text-sm text-red-600">{step3Errors.closingTime}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Lunch Break */}
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Lunch Break (Optional)</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="block text-xs text-gray-600">Start Time</label>
-                    <input
-                      type="time"
-                      name="lunchBreakStart"
-                      value={step3Data.lunchBreakStart}
-                      onChange={handleStep3Change}
-                      className="w-full px-4 py-2 rounded-lg border-2 border-gray-300 focus:border-blue-500 focus:outline-none"
-                    />
+          {/* ── Step Indicator ── */}
+          <div style={{ display:'flex', alignItems:'center', marginBottom:32, animation:'sr-fadeup 0.5s ease 0.08s both' }}>
+            {STEP_META.map((step, idx) => (
+              <React.Fragment key={step.num}>
+                <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
+                  <div style={{
+                    width: 44, height: 44, borderRadius: '50%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontWeight: 700, fontSize: 15, transition: 'all 0.3s',
+                    background: currentStep >= step.num ? 'linear-gradient(135deg,#7c3aed,#3b82f6)' : 'rgba(255,255,255,0.07)',
+                    color: currentStep >= step.num ? '#fff' : 'rgba(255,255,255,0.3)',
+                    boxShadow: currentStep === step.num ? '0 0 20px rgba(124,58,237,0.45)' : 'none',
+                    border: currentStep === step.num ? '2px solid rgba(167,139,250,0.4)' : '2px solid transparent',
+                  }}>
+                    {currentStep > step.num ? <Check size={18} /> : step.num}
                   </div>
-
-                  <div className="space-y-2">
-                    <label className="block text-xs text-gray-600">End Time</label>
-                    <input
-                      type="time"
-                      name="lunchBreakEnd"
-                      value={step3Data.lunchBreakEnd}
-                      onChange={handleStep3Change}
-                      className="w-full px-4 py-2 rounded-lg border-2 border-gray-300 focus:border-blue-500 focus:outline-none"
-                    />
+                  <span style={{ fontSize:11, fontWeight: currentStep === step.num ? 600 : 400, color: currentStep >= step.num ? '#a78bfa' : 'rgba(255,255,255,0.28)', whiteSpace:'nowrap' }}>
+                    {step.label}
+                  </span>
+                </div>
+                {idx < 3 && (
+                  <div style={{ flex:1, height:2, margin:'0 6px 20px', background:'rgba(255,255,255,0.08)', borderRadius:2, overflow:'hidden', position:'relative' }}>
+                    <div style={{ position:'absolute', inset:0, background:'linear-gradient(90deg,#7c3aed,#3b82f6)', transform: currentStep > step.num ? 'scaleX(1)' : 'scaleX(0)', transformOrigin:'left', transition:'transform 0.4s ease' }} />
                   </div>
-                </div>
-              </div>
-
-              {/* Days of Operation */}
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Days of Operation</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {step3Data.daysOfOperation.map((dayObj, index) => (
-                    <label
-                      key={index}
-                      className="flex items-center gap-2 p-2 rounded-lg border-2 cursor-pointer hover:bg-blue-50 transition"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={dayObj.selected}
-                        onChange={() => handleDayToggle(index)}
-                        className="w-4 h-4 rounded border-gray-300"
-                      />
-                      <span className="text-sm text-gray-700">{dayObj.day}</span>
-                    </label>
-                  ))}
-                </div>
-                {step3Errors.days && (
-                  <p className="text-sm text-red-600 mt-2">{step3Errors.days}</p>
                 )}
-              </div>
-            </div>
+              </React.Fragment>
+            ))}
           </div>
-        )}
 
-        {/* Step 4: Photos & Documents */}
-        {currentStep === 4 && (
-          <div className="bg-white rounded-lg border-2 border-gray-200 p-8">
-            <div className="flex items-center gap-3 mb-6">
-              <Camera className="w-6 h-6 text-blue-600" />
-              <h2 className="text-xl font-bold text-gray-900">Photos & Documents</h2>
+          {/* ── Error Banner ── */}
+          {error && (
+            <div style={{ background:'rgba(239,68,68,0.1)', border:'1.5px solid rgba(239,68,68,0.3)', borderRadius:12, padding:'14px 18px', marginBottom:20, display:'flex', justifyContent:'space-between', alignItems:'flex-start', animation:'sr-fadeup 0.3s ease' }}>
+              <div>
+                <p style={{ color:'#f87171', fontWeight:700, fontSize:14, margin:0, marginBottom:4 }}>Registration Error</p>
+                <pre style={{ color:'#fca5a5', fontSize:13, margin:0, whiteSpace:'pre-wrap', fontFamily:'inherit' }}>{error}</pre>
+              </div>
+              <button onClick={() => setError('')} style={{ background:'none', border:'none', color:'#f87171', cursor:'pointer', fontSize:22, lineHeight:1, padding:0, marginLeft:12 }}>×</button>
             </div>
-
-            <div className="space-y-6">
-              {/* Photos */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Salon Photos <span className="text-red-500">*</span>
-                  <span className="text-gray-400 font-normal ml-1 text-xs">At least one photo is required</span>
-                </label>
-                <PhotoUpload
-                  photos={step4Data.photos}
-                  onPhotosChange={(updatedPhotos) =>
-                    setStep4Data(prev => ({ ...prev, photos: updatedPhotos }))
-                  }
-                  disabled={loading}
-                />
-                {step4Errors.photos && (
-                  <p className="text-sm text-red-600 mt-1">{step4Errors.photos}</p>
-                )}
-              </div>
-
-              {/* Business License */}
-              <DocumentUpload
-                label="Business License (Optional)"
-                documents={step4Data.businessLicense}
-                onDocumentsChange={(docs) =>
-                  setStep4Data(prev => ({ ...prev, businessLicense: docs }))
-                }
-                description="PDF, JPG, PNG • Up to 5MB"
-                disabled={loading}
-              />
-
-              {/* Business Registration */}
-              <DocumentUpload
-                label="Business Registration (Optional)"
-                documents={step4Data.businessRegistration}
-                onDocumentsChange={(docs) =>
-                  setStep4Data(prev => ({ ...prev, businessRegistration: docs }))
-                }
-                description="PDF, JPG, PNG • Up to 5MB"
-                disabled={loading}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Summary (Step 4) */}
-        {currentStep === 4 && (
-          <div className="mt-8 bg-blue-50 border-2 border-blue-200 rounded-lg p-6">
-            <h3 className="font-bold text-gray-900 mb-4">Registration Summary</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-gray-600">Salon Name</p>
-                <p className="font-medium text-gray-900">{step1Data.name}</p>
-              </div>
-              <div>
-                <p className="text-gray-600">Services For</p>
-                <p className="font-medium text-gray-900 capitalize">{step1Data.servedGender}</p>
-              </div>
-              <div>
-                <p className="text-gray-600">Address</p>
-                <p className="font-medium text-gray-900">{step2Data.address}</p>
-              </div>
-              <div>
-                <p className="text-gray-600">Hours</p>
-                <p className="font-medium text-gray-900">
-                  {step3Data.openingTime} - {step3Data.closingTime}
-                </p>
-              </div>
-              <div>
-                <p className="text-gray-600">Operating Days</p>
-                <p className="font-medium text-gray-900">
-                  {step3Data.daysOfOperation.filter(d => d.selected).length} days
-                </p>
-              </div>
-              <div>
-                <p className="text-gray-600">Photos <span className="text-red-500">*</span></p>
-                <p className={`font-medium ${step4Data.photos.length === 0 ? 'text-red-500' : 'text-gray-900'}`}>
-                  {step4Data.photos.length === 0 ? 'None — required' : `${step4Data.photos.length} uploaded`}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Navigation Buttons */}
-        <div className="mt-8 flex gap-4">
-          <Button
-            variant="outline"
-            onClick={handlePrev}
-            disabled={currentStep === 1 || loading}
-            className="flex items-center gap-2"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Previous
-          </Button>
-
-          <div className="flex-1" />
-
-          {currentStep < 4 ? (
-            <Button
-              variant="primary"
-              onClick={handleNext}
-              disabled={loading}
-              className="flex items-center gap-2"
-            >
-              Next
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          ) : (
-            <Button
-              variant="primary"
-              onClick={handleSubmit}
-              loading={loading}
-              disabled={loading}
-              className="flex items-center gap-2"
-            >
-              <Check className="w-4 h-4" />
-              Complete Registration
-            </Button>
           )}
+
+          {/* ── Main Card ── */}
+          <div style={{ background:'rgba(255,255,255,0.03)', border:'1.5px solid rgba(255,255,255,0.08)', borderRadius:20, overflow:'hidden', animation:'sr-fadeup 0.5s ease 0.14s both' }}>
+
+            {/* Progress bar */}
+            <div style={{ height:3, background:'rgba(255,255,255,0.06)' }}>
+              <div style={{ height:'100%', background:'linear-gradient(90deg,#7c3aed,#3b82f6)', width:`${progressPct}%`, transition:'width 0.4s ease', borderRadius:'0 3px 3px 0' }} />
+            </div>
+
+            <div style={{ padding:'32px 36px' }}>
+
+              {/* ══ STEP 1: BASIC INFO ══ */}
+              {currentStep === 1 && (
+                <div style={{ animation:'sr-fadeup 0.4s ease' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:28 }}>
+                    <div style={{ width:42, height:42, borderRadius:11, background:'rgba(124,58,237,0.2)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                      <FileText size={19} color="#a78bfa" />
+                    </div>
+                    <div>
+                      <h2 style={{ color:'#f1f5f9', fontWeight:700, fontSize:19, margin:0 }}>Basic Information</h2>
+                      <p style={{ color:'rgba(255,255,255,0.38)', fontSize:13, margin:0 }}>Tell us about your salon</p>
+                    </div>
+                  </div>
+
+                  <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
+                    {/* Salon Name */}
+                    <div>
+                      <label className="sr-label">Salon Name <span style={{ color:'#f87171' }}>*</span></label>
+                      <input className={`sr-inp${step1Errors.name ? ' sr-inp-err' : ''}`} name="name" value={step1Data.name} onChange={handleStep1Change} placeholder="e.g. Glamour Studio" />
+                      {step1Errors.name && <span className="sr-err">{step1Errors.name}</span>}
+                    </div>
+
+                    {/* Description */}
+                    <div>
+                      <label className="sr-label">Description <span style={{ color:'rgba(255,255,255,0.28)', fontWeight:400 }}>(Optional)</span></label>
+                      <textarea className="sr-textarea" name="description" value={step1Data.description} onChange={handleStep1Change} placeholder="Describe your salon, specialties, and what makes you unique…" />
+                    </div>
+
+                    {/* Served Gender */}
+                    <div>
+                      <label className="sr-label">Services For <span style={{ color:'#f87171' }}>*</span></label>
+                      <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12 }}>
+                        {[
+                          { value:'male',   label:'Male',   icon:'♂' },
+                          { value:'female', label:'Female', icon:'♀' },
+                          { value:'unisex', label:'Unisex', icon:'⚥' },
+                        ].map(({ value, label, icon }) => (
+                          <button key={value} type="button" className={`sr-gender${step1Data.servedGender === value ? ' active' : ''}`} onClick={() => setStep1Data(prev => ({ ...prev, servedGender: value }))}>
+                            <div style={{ fontSize:24, marginBottom:4 }}>{icon}</div>
+                            <div style={{ fontSize:13, fontWeight:600 }}>{label}</div>
+                          </button>
+                        ))}
+                      </div>
+                      {step1Errors.servedGender && <span className="sr-err">{step1Errors.servedGender}</span>}
+                    </div>
+
+                    {/* Phone & Email */}
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }} className="sr-grid2">
+                      <div>
+                        <label className="sr-label">Phone Number <span style={{ color:'#f87171' }}>*</span></label>
+                        <input className={`sr-inp${step1Errors.phone ? ' sr-inp-err' : ''}`} name="phone" type="tel" value={step1Data.phone} onChange={handleStep1Change} placeholder="+91 98765 43210" readOnly={!!user?.phone} disabled={!!user?.phone} />
+                        {step1Errors.phone && <span className="sr-err">{step1Errors.phone}</span>}
+                      </div>
+                      <div>
+                        <label className="sr-label">Email Address <span style={{ color:'#f87171' }}>*</span></label>
+                        <input className={`sr-inp${step1Errors.email ? ' sr-inp-err' : ''}`} name="email" type="email" value={step1Data.email} onChange={handleStep1Change} placeholder="salon@email.com" readOnly={!!user?.email} disabled={!!user?.email} />
+                        {step1Errors.email && <span className="sr-err">{step1Errors.email}</span>}
+                      </div>
+                    </div>
+
+                    {/* Full Address */}
+                    <div>
+                      <label className="sr-label">Full Address <span style={{ color:'#f87171' }}>*</span></label>
+                      <input className={`sr-inp${step1Errors.address ? ' sr-inp-err' : ''}`} name="address" value={step1Data.address} onChange={handleStep1Change} placeholder="e.g. 123 MG Road, Koramangala, Bangalore, Karnataka" />
+                      {step1Errors.address && <span className="sr-err">{step1Errors.address}</span>}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ══ STEP 2: LOCATION ══ */}
+              {currentStep === 2 && (
+                <div style={{ animation:'sr-fadeup 0.4s ease' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:28 }}>
+                    <div style={{ width:42, height:42, borderRadius:11, background:'rgba(59,130,246,0.18)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                      <MapPin size={19} color="#60a5fa" />
+                    </div>
+                    <div>
+                      <h2 style={{ color:'#f1f5f9', fontWeight:700, fontSize:19, margin:0 }}>Pin Your Location</h2>
+                      <p style={{ color:'rgba(255,255,255,0.38)', fontSize:13, margin:0 }}>Help customers find you on the map</p>
+                    </div>
+                  </div>
+
+                  <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+                    {/* Location status */}
+                    {locationStatus && (
+                      <div style={{
+                        padding:'11px 16px', borderRadius:10, fontSize:13,
+                        display:'flex', justifyContent:'space-between', alignItems:'center', gap:12,
+                        background: locationLoading ? 'rgba(234,179,8,0.1)' : step2Data.latitude ? 'rgba(34,197,94,0.1)' : 'rgba(249,115,22,0.1)',
+                        border: `1.5px solid ${locationLoading ? 'rgba(234,179,8,0.3)' : step2Data.latitude ? 'rgba(34,197,94,0.3)' : 'rgba(249,115,22,0.3)'}`,
+                        color: locationLoading ? '#fde047' : step2Data.latitude ? '#86efac' : '#fdba74',
+                      }}>
+                        <span>{locationLoading ? '📍 ' : step2Data.latitude ? '✅ ' : '⚠️ '}{locationStatus}</span>
+                        {!locationLoading && (
+                          <button type="button" onClick={() => getFineLocation(map)} style={{ background:'none', border:'none', fontSize:12, fontWeight:600, textDecoration:'underline', cursor:'pointer', color:'inherit', whiteSpace:'nowrap', fontFamily:'inherit' }}>
+                            Re-detect
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Map */}
+                    <div>
+                      <label className="sr-label">Click on the map or drag the pin <span style={{ color:'rgba(255,255,255,0.28)', fontWeight:400 }}>(auto-detects location)</span></label>
+                      <div ref={mapRef} style={{ width:'100%', height:380, borderRadius:14, border:'1.5px solid rgba(255,255,255,0.1)', overflow:'hidden' }} />
+                    </div>
+
+                    {/* Address */}
+                    <div>
+                      <label className="sr-label">Address <span style={{ color:'#f87171' }}>*</span> <span style={{ color:'rgba(255,255,255,0.28)', fontWeight:400 }}>(auto-filled from map)</span></label>
+                      <input className={`sr-inp${step2Errors.address ? ' sr-inp-err' : ''}`} name="address" value={step2Data.address} onChange={handleAddressChange} placeholder="Auto-filled from map — or type manually" />
+                      {step2Errors.address && <span className="sr-err">{step2Errors.address}</span>}
+                    </div>
+
+                    {/* Coordinates badge */}
+                    {step2Data.latitude && step2Data.longitude && (
+                      <div style={{ background:'rgba(59,130,246,0.08)', border:'1px solid rgba(59,130,246,0.22)', borderRadius:10, padding:'11px 16px', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:8 }}>
+                        <p style={{ color:'#93c5fd', fontSize:13, margin:0 }}>
+                          <strong>Coordinates:</strong> {step2Data.latitude.toFixed(6)}, {step2Data.longitude.toFixed(6)}
+                        </p>
+                        {locationAccuracy !== null && (
+                          <span style={{
+                            fontSize:11, fontWeight:700, padding:'3px 10px', borderRadius:20,
+                            background: locationAccuracy <= 10 ? 'rgba(34,197,94,0.2)' : locationAccuracy <= 30 ? 'rgba(59,130,246,0.2)' : 'rgba(234,179,8,0.2)',
+                            color: locationAccuracy <= 10 ? '#86efac' : locationAccuracy <= 30 ? '#93c5fd' : '#fde047',
+                          }}>
+                            {locationAccuracy <= 10 ? '🎯' : locationAccuracy <= 30 ? '📍' : '⚠️'} ±{locationAccuracy}m accuracy
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ══ STEP 3: WORKING HOURS ══ */}
+              {currentStep === 3 && (
+                <div style={{ animation:'sr-fadeup 0.4s ease' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:28 }}>
+                    <div style={{ width:42, height:42, borderRadius:11, background:'rgba(16,185,129,0.18)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                      <Clock size={19} color="#34d399" />
+                    </div>
+                    <div>
+                      <h2 style={{ color:'#f1f5f9', fontWeight:700, fontSize:19, margin:0 }}>Working Hours</h2>
+                      <p style={{ color:'rgba(255,255,255,0.38)', fontSize:13, margin:0 }}>Set when customers can book appointments</p>
+                    </div>
+                  </div>
+
+                  <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
+                    {/* Opening & Closing */}
+                    <div className="sr-card-inner">
+                      <p style={{ color:'rgba(255,255,255,0.5)', fontSize:12, fontWeight:600, margin:'0 0 14px', textTransform:'uppercase', letterSpacing:'0.06em' }}>Operating Hours</p>
+                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }} className="sr-grid2">
+                        <div>
+                          <label className="sr-label">Opening Time</label>
+                          <input type="time" name="openingTime" value={step3Data.openingTime} onChange={handleStep3Change} className="sr-time" />
+                          {step3Errors.openingTime && <span className="sr-err">{step3Errors.openingTime}</span>}
+                        </div>
+                        <div>
+                          <label className="sr-label">Closing Time</label>
+                          <input type="time" name="closingTime" value={step3Data.closingTime} onChange={handleStep3Change} className="sr-time" />
+                          {step3Errors.closingTime && <span className="sr-err">{step3Errors.closingTime}</span>}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Lunch Break */}
+                    <div className="sr-card-inner">
+                      <p style={{ color:'rgba(255,255,255,0.5)', fontSize:12, fontWeight:600, margin:'0 0 14px', textTransform:'uppercase', letterSpacing:'0.06em' }}>
+                        Lunch Break <span style={{ color:'rgba(255,255,255,0.28)', textTransform:'none', fontWeight:400, fontSize:11 }}>(Optional)</span>
+                      </p>
+                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }} className="sr-grid2">
+                        <div>
+                          <label className="sr-label">Start</label>
+                          <input type="time" name="lunchBreakStart" value={step3Data.lunchBreakStart} onChange={handleStep3Change} className="sr-time" />
+                        </div>
+                        <div>
+                          <label className="sr-label">End</label>
+                          <input type="time" name="lunchBreakEnd" value={step3Data.lunchBreakEnd} onChange={handleStep3Change} className="sr-time" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Days */}
+                    <div className="sr-card-inner">
+                      <p style={{ color:'rgba(255,255,255,0.5)', fontSize:12, fontWeight:600, margin:'0 0 14px', textTransform:'uppercase', letterSpacing:'0.06em' }}>Days of Operation</p>
+                      <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:8 }} className="sr-days-grid">
+                        {step3Data.daysOfOperation.map((dayObj, index) => (
+                          <button key={index} type="button" className={`sr-day${dayObj.selected ? ' active' : ''}`} onClick={() => handleDayToggle(index)}>
+                            {dayObj.day.slice(0, 3)}
+                          </button>
+                        ))}
+                      </div>
+                      {step3Errors.days && <span className="sr-err" style={{ marginTop:10 }}>{step3Errors.days}</span>}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ══ STEP 4: PHOTOS & DOCUMENTS ══ */}
+              {currentStep === 4 && (
+                <div style={{ animation:'sr-fadeup 0.4s ease' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:28 }}>
+                    <div style={{ width:42, height:42, borderRadius:11, background:'rgba(245,158,11,0.18)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                      <Camera size={19} color="#fbbf24" />
+                    </div>
+                    <div>
+                      <h2 style={{ color:'#f1f5f9', fontWeight:700, fontSize:19, margin:0 }}>Photos & Documents</h2>
+                      <p style={{ color:'rgba(255,255,255,0.38)', fontSize:13, margin:0 }}>Showcase your salon to attract customers</p>
+                    </div>
+                  </div>
+
+                  <div style={{ display:'flex', flexDirection:'column', gap:22 }}>
+                    {/* Photos */}
+                    <div>
+                      <label className="sr-label">
+                        Salon Photos <span style={{ color:'#f87171' }}>*</span>
+                        <span style={{ color:'rgba(255,255,255,0.28)', fontWeight:400, fontSize:12 }}> — at least one required</span>
+                      </label>
+                      <div className="sr-photo-wrap">
+                        <PhotoUpload
+                          photos={step4Data.photos}
+                          onPhotosChange={(updatedPhotos) => setStep4Data(prev => ({ ...prev, photos: updatedPhotos }))}
+                          disabled={loading}
+                        />
+                      </div>
+                      {step4Errors.photos && <span className="sr-err">{step4Errors.photos}</span>}
+                    </div>
+
+                    <DocumentUpload
+                      label="Business License (Optional)"
+                      documents={step4Data.businessLicense}
+                      onDocumentsChange={(docs) => setStep4Data(prev => ({ ...prev, businessLicense: docs }))}
+                      description="PDF, JPG, PNG • Up to 5MB"
+                      disabled={loading}
+                    />
+
+                    <DocumentUpload
+                      label="Business Registration (Optional)"
+                      documents={step4Data.businessRegistration}
+                      onDocumentsChange={(docs) => setStep4Data(prev => ({ ...prev, businessRegistration: docs }))}
+                      description="PDF, JPG, PNG • Up to 5MB"
+                      disabled={loading}
+                    />
+
+                    {/* Summary */}
+                    <div style={{ background:'rgba(59,130,246,0.07)', border:'1px solid rgba(59,130,246,0.2)', borderRadius:14, padding:20 }}>
+                      <p style={{ color:'#93c5fd', fontSize:12, fontWeight:700, margin:'0 0 16px', textTransform:'uppercase', letterSpacing:'0.06em' }}>Registration Summary</p>
+                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }} className="sr-grid2">
+                        {[
+                          { label:'Salon Name',  value: step1Data.name || '—' },
+                          { label:'Services For', value: step1Data.servedGender ? step1Data.servedGender.charAt(0).toUpperCase() + step1Data.servedGender.slice(1) : '—' },
+                          { label:'Address',      value: step2Data.address || step1Data.address || '—' },
+                          { label:'Hours',        value: `${step3Data.openingTime} – ${step3Data.closingTime}` },
+                          { label:'Open Days',    value: `${step3Data.daysOfOperation.filter(d => d.selected).length} days/week` },
+                          { label:'Photos',       value: step4Data.photos.length === 0 ? 'None — required' : `${step4Data.photos.length} uploaded`, warn: step4Data.photos.length === 0 },
+                        ].map(({ label, value, warn }) => (
+                          <div key={label}>
+                            <p style={{ color:'rgba(255,255,255,0.4)', fontSize:12, margin:'0 0 3px' }}>{label}</p>
+                            <p style={{ color: warn ? '#f87171' : '#e2e8f0', fontSize:14, fontWeight:600, margin:0 }}>{value}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ── Navigation Buttons ── */}
+          <div style={{ display:'flex', gap:12, marginTop:24, animation:'sr-fadeup 0.5s ease 0.2s both' }}>
+            <button className="sr-btn-outline" onClick={handlePrev} disabled={currentStep === 1 || loading}>
+              <ChevronLeft size={18} />
+              Previous
+            </button>
+
+            <div style={{ flex:1 }} />
+
+            {currentStep < 4 ? (
+              <button className="sr-btn-primary" onClick={handleNext} disabled={loading}>
+                Next
+                <ChevronRight size={18} />
+              </button>
+            ) : (
+              <button className="sr-btn-primary" onClick={handleSubmit} disabled={loading}>
+                {loading ? (
+                  <>
+                    <div style={{ width:18, height:18, border:'2px solid rgba(255,255,255,0.3)', borderTopColor:'#fff', borderRadius:'50%', animation:'sr-spin 0.7s linear infinite' }} />
+                    Registering…
+                  </>
+                ) : (
+                  <>
+                    <Check size={18} />
+                    Complete Registration
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+
+          {/* Footer */}
+          <p style={{ textAlign:'center', color:'rgba(255,255,255,0.2)', fontSize:12, marginTop:36 }}>
+            © 2026 My Salon Bookings by Gigamind Technology Pvt Ltd. All rights reserved.
+          </p>
         </div>
       </div>
-    </DashboardLayout>
+    </>
   );
 };
 

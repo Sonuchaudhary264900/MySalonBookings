@@ -42,6 +42,7 @@ import CouponsScreen           from './src/screens/dashboard/CouponsScreen';
 import GalleryScreen           from './src/screens/dashboard/GalleryScreen';
 import ServiceMenuScreen       from './src/screens/dashboard/ServiceMenuScreen';
 import BillingScreen           from './src/screens/dashboard/BillingScreen';
+import LegalScreen             from './src/screens/legal/LegalScreen';
 
 const RootStack  = createNativeStackNavigator();
 const AuthStack  = createNativeStackNavigator();
@@ -267,6 +268,7 @@ function MainDrawer() {
       <Drawer.Screen name="Billing"       component={BillingScreen} />
       <Drawer.Screen name="Gallery"       component={GalleryScreen} />
       <Drawer.Screen name="ServiceMenu"   component={ServiceMenuScreen} />
+      <Drawer.Screen name="Legal"         component={LegalScreen} />
     </Drawer.Navigator>
   );
 }

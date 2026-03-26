@@ -352,7 +352,6 @@ img.src=${qrApiUrl};
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.bg }]}>
-      <TrialBanner navigation={navigation} />
     <ScrollView
       style={{ flex: 1 }}
       contentContainerStyle={{ paddingBottom: 20 }}
@@ -388,6 +387,9 @@ img.src=${qrApiUrl};
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Trial / Billing info bar — sits just below header */}
+      <TrialBanner />
 
       {/* Upcoming Queue */}
       <View style={{ paddingHorizontal: 12, paddingBottom: 32 }}>

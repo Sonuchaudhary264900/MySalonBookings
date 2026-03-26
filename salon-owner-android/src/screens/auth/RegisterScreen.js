@@ -22,6 +22,7 @@ export default function RegisterScreen({ navigation }) {
   const [otp, setOtp]                 = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading]         = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const confirmationRef               = useRef(null);
 
   const formatPhone = (raw) => {
@@ -65,6 +66,10 @@ export default function RegisterScreen({ navigation }) {
     }
     if (password !== confirmPassword) {
       Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+    if (!agreedToTerms) {
+      Alert.alert('Terms Required', 'Please accept the Terms & Conditions and Privacy Policy to continue.');
       return;
     }
 
@@ -217,10 +222,31 @@ export default function RegisterScreen({ navigation }) {
                 </View>
               </View>
 
+              {/* Terms Agreement */}
               <TouchableOpacity
-                style={[styles.btn, loading && styles.btnDisabled]}
+                style={styles.termsRow}
+                onPress={() => setAgreedToTerms(!agreedToTerms)}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
+                  {agreedToTerms && <Ionicons name="checkmark" size={13} color="#fff" />}
+                </View>
+                <Text style={styles.termsText}>
+                  I agree to the{' '}
+                  <Text style={styles.termsLink} onPress={() => Linking.openURL('https://owner.mysalonbookings.com/legal/owner-terms')}>
+                    Terms & Conditions
+                  </Text>
+                  {' '}and{' '}
+                  <Text style={styles.termsLink} onPress={() => Linking.openURL('https://owner.mysalonbookings.com/legal/owner-privacy')}>
+                    Privacy Policy
+                  </Text>
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.btn, (loading || !agreedToTerms) && styles.btnDisabled]}
                 onPress={handleSendOtp}
-                disabled={loading}
+                disabled={loading || !agreedToTerms}
               >
                 {loading ? (
                   <ActivityIndicator color="#fff" />
@@ -334,4 +360,9 @@ const styles = StyleSheet.create({
   registerRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   registerText: { fontSize: 14, color: '#6b7280' },
   registerLink: { fontSize: 14, color: '#2563eb', fontWeight: '600' },
+  termsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 14 },
+  checkbox: { width: 20, height: 20, borderRadius: 5, borderWidth: 2, borderColor: '#d1d5db', alignItems: 'center', justifyContent: 'center', marginTop: 1, flexShrink: 0 },
+  checkboxChecked: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
+  termsText: { flex: 1, fontSize: 13, color: '#4b5563', lineHeight: 20 },
+  termsLink: { color: '#2563eb', fontWeight: '600', textDecorationLine: 'underline' },
 });

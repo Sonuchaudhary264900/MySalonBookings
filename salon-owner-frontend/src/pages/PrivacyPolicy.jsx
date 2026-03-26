@@ -186,7 +186,7 @@ export default function PrivacyPolicy() {
       </div>
 
       <footer className="bg-white border-t border-slate-100 py-5 px-4 text-center text-xs text-slate-400 mt-8">
-        © 2026 MySalonBookings · All rights reserved
+        © 2026 My Salon Bookings by Gigamind Technology Pvt Ltd. All rights reserved
       </footer>
     </div>
   );

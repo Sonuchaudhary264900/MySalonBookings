@@ -1,33 +1,22 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { X, ChevronDown, ChevronUp, Save, Users, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import {
+  X, Save, AlertTriangle, Search, Check,
+  IndianRupee, Clock, ChevronDown, Sparkles, Zap,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
-import Button from '../common/Button';
 import {
   MALE_CATEGORIES, MALE_OPTIONALS,
   FEMALE_CATEGORIES, FEMALE_OPTIONALS,
   UNISEX_CATEGORIES,
 } from '../../constants/salonCategories';
 
-const Toggle = ({ name, checked, onChange }) => (
-  <label className="relative inline-flex items-center cursor-pointer shrink-0">
-    <input type="checkbox" name={name} checked={checked} onChange={onChange} className="sr-only peer" />
-    <div className="w-11 h-6 bg-gray-200 rounded-full peer
-      peer-checked:bg-blue-600
-      after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-      after:bg-white after:border after:border-gray-300 after:rounded-full
-      after:h-5 after:w-5 after:transition-all
-      peer-checked:after:translate-x-full peer-checked:after:border-white" />
-  </label>
-);
-
+/* ─── Helpers ────────────────────────────────────────────────── */
 const normalizeSubs = (subs, catLabel = null) => {
   const uniCat    = catLabel ? UNISEX_CATEGORIES.find(u => u.label === catLabel) : null;
   const maleSet   = uniCat ? new Set(uniCat.maleSubServices)   : new Set();
   const femaleSet = uniCat ? new Set(uniCat.femaleSubServices) : new Set();
-
   return (subs || []).map(s => {
     if (typeof s === 'string') return { name: s, price: '', duration: '' };
-
     let genderContext = null;
     if (s.applicableFor?.length === 1) {
       genderContext = s.applicableFor[0];
@@ -37,14 +26,7 @@ const normalizeSubs = (subs, catLabel = null) => {
       if (inMale && !inFemale)      genderContext = 'male';
       else if (inFemale && !inMale) genderContext = 'female';
     }
-
-    return {
-      name: s.name,
-      price: s.price ?? '',
-      duration: s.duration ?? '',
-      genderContext,
-      ...(s.applicableFor ? { applicableFor: s.applicableFor } : {}),
-    };
+    return { name: s.name, price: s.price ?? '', duration: s.duration ?? '', genderContext, ...(s.applicableFor ? { applicableFor: s.applicableFor } : {}) };
   });
 };
 
@@ -57,13 +39,308 @@ const buildSelections = (catList, offeredCategories) =>
 
 const EMPTY_MODAL = { open: false, catKey: '', subName: '', price: '', duration: '', genderContext: null };
 
+const PRICE_PRESETS  = [99, 149, 199, 249, 299, 499];
+const DUR_PRESETS    = [15, 20, 30, 45, 60, 90];
+
+/* ─── Toggle switch ──────────────────────────────────────────── */
+const Toggle = ({ checked, onChange }) => (
+  <label className="relative inline-flex items-center cursor-pointer shrink-0">
+    <input type="checkbox" checked={checked} onChange={onChange} className="sr-only peer" />
+    <div className={`w-10 h-5 rounded-full transition-colors duration-200
+      ${checked ? 'bg-indigo-500' : 'bg-gray-200 dark:bg-gray-700'}
+      after:content-[''] after:absolute after:top-0.5 after:left-0.5
+      after:w-4 after:h-4 after:bg-white after:rounded-full after:shadow
+      after:transition-transform after:duration-200
+      ${checked ? 'after:translate-x-5' : 'after:translate-x-0'}`} />
+  </label>
+);
+
+/* ─── Service chip ───────────────────────────────────────────── */
+const ServiceChip = ({ sub, active, onClick, genderCtx }) => {
+  const genderColor = genderCtx === 'male'
+    ? active ? 'bg-blue-600 text-white border-blue-600 shadow-blue-500/25'   : 'border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40'
+    : genderCtx === 'female'
+    ? active ? 'bg-pink-500 text-white border-pink-500 shadow-pink-500/25'   : 'border-pink-200 dark:border-pink-800 text-pink-600 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-950/40'
+    : active ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white border-transparent shadow-indigo-500/25' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-indigo-300 dark:hover:border-indigo-700 hover:text-indigo-600 dark:hover:text-indigo-400';
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold
+        transition-all duration-150 shadow-sm ${genderColor}
+        ${active ? 'shadow-md scale-[1.02]' : 'hover:scale-[1.01]'}`}
+    >
+      {active
+        ? <Check className="w-3 h-3 shrink-0" />
+        : <span className="w-3 h-3 shrink-0 flex items-center justify-center text-[10px] font-bold opacity-60">+</span>}
+      <span>{typeof sub === 'string' ? sub : sub.name}</span>
+      {active && active.price > 0 && (
+        <span className="opacity-80 font-bold">₹{active.price}</span>
+      )}
+    </button>
+  );
+};
+
+/* ─── Price modal ────────────────────────────────────────────── */
+const PriceModal = ({ modal, onChange, onConfirm, onClose, priceRef, durationRef }) => (
+  <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center px-4 pb-4 sm:pb-0">
+    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+    <div className="relative z-10 w-full max-w-sm animate-[scalein_0.2s_ease_both]">
+      <style>{`@keyframes scalein{from{opacity:0;transform:scale(0.95) translateY(8px)}to{opacity:1;transform:none}}`}</style>
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700
+        rounded-2xl shadow-2xl overflow-hidden">
+
+        {/* Header */}
+        <div className="px-5 pt-5 pb-4 border-b border-gray-100 dark:border-gray-800">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-950 flex items-center justify-center">
+              <Zap className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900 dark:text-white">Set Price & Duration</p>
+              <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">{modal.subName}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {/* Price */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Price (₹) *</label>
+            <div className="flex items-center gap-2 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden
+              bg-white dark:bg-gray-800 focus-within:ring-2 focus-within:ring-indigo-500">
+              <span className="pl-3.5 pr-2 text-gray-400 dark:text-gray-500 border-r border-gray-200 dark:border-gray-700 py-2.5">
+                <IndianRupee className="w-4 h-4" />
+              </span>
+              <input
+                ref={priceRef}
+                type="number" min="1"
+                placeholder="e.g. 250"
+                value={modal.price}
+                onChange={e => onChange({ price: e.target.value })}
+                onKeyDown={e => e.key === 'Enter' && durationRef.current?.focus()}
+                className="flex-1 px-2 py-2.5 text-sm outline-none bg-transparent text-gray-900 dark:text-white placeholder-gray-400"
+              />
+            </div>
+            {/* Price presets */}
+            <div className="flex flex-wrap gap-1.5">
+              {PRICE_PRESETS.map(p => (
+                <button key={p} type="button" onClick={() => onChange({ price: String(p) })}
+                  className={`text-xs px-2.5 py-1 rounded-lg font-semibold transition-all border ${
+                    modal.price === String(p)
+                      ? 'bg-indigo-600 text-white border-indigo-600'
+                      : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-indigo-300 dark:hover:border-indigo-700'
+                  }`}>
+                  ₹{p}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Duration */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Duration (mins) *</label>
+            <div className="flex items-center gap-2 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden
+              bg-white dark:bg-gray-800 focus-within:ring-2 focus-within:ring-indigo-500">
+              <span className="pl-3.5 pr-2 text-gray-400 dark:text-gray-500 border-r border-gray-200 dark:border-gray-700 py-2.5">
+                <Clock className="w-4 h-4" />
+              </span>
+              <input
+                ref={durationRef}
+                type="number" min="1"
+                placeholder="e.g. 30"
+                value={modal.duration}
+                onChange={e => onChange({ duration: e.target.value })}
+                onKeyDown={e => e.key === 'Enter' && onConfirm()}
+                className="flex-1 px-2 py-2.5 text-sm outline-none bg-transparent text-gray-900 dark:text-white placeholder-gray-400"
+              />
+            </div>
+            {/* Duration presets */}
+            <div className="flex flex-wrap gap-1.5">
+              {DUR_PRESETS.map(d => (
+                <button key={d} type="button" onClick={() => onChange({ duration: String(d) })}
+                  className={`text-xs px-2.5 py-1 rounded-lg font-semibold transition-all border ${
+                    modal.duration === String(d)
+                      ? 'bg-indigo-600 text-white border-indigo-600'
+                      : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-indigo-300 dark:hover:border-indigo-700'
+                  }`}>
+                  {d}m
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2 pt-1">
+            <button type="button" onClick={onClose}
+              className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700
+                text-sm font-medium text-gray-600 dark:text-gray-300
+                hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+              Cancel
+            </button>
+            <button type="button" onClick={onConfirm}
+              className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white
+                bg-gradient-to-r from-indigo-600 to-violet-600
+                hover:from-indigo-500 hover:to-violet-500
+                transition-all shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2">
+              <Check className="w-4 h-4" /> Add Service
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+/* ─── Category card ──────────────────────────────────────────── */
+const CategoryCard = ({
+  cat, sel, isExpanded, gender,
+  onToggle, onExpand, onToggleSub,
+  search,
+}) => {
+  const count      = sel.subServices.length;
+  const isActive   = sel.enabled;
+
+  const filterSubs = (subs) => {
+    if (!search) return subs;
+    const q = search.toLowerCase();
+    return subs.filter(s => (typeof s === 'string' ? s : s).toLowerCase().includes(q));
+  };
+
+  const renderChips = (subs, genderCtx = null) =>
+    filterSubs(subs).map(sub => {
+      const name = typeof sub === 'string' ? sub : sub;
+      const active = genderCtx
+        ? sel.subServices.find(s => s.name === name && s.genderContext === genderCtx)
+        : sel.subServices.find(s => s.name === name);
+      return (
+        <ServiceChip
+          key={`${name}-${genderCtx || 'both'}`}
+          sub={name}
+          active={active}
+          genderCtx={genderCtx}
+          onClick={() => onToggleSub(cat.key, name, genderCtx)}
+        />
+      );
+    });
+
+  return (
+    <div className={`rounded-2xl border transition-all duration-200 overflow-hidden
+      ${isActive
+        ? 'border-indigo-200 dark:border-indigo-800/60 shadow-sm shadow-indigo-100/60 dark:shadow-indigo-900/20'
+        : 'border-gray-200 dark:border-gray-800'
+      }
+      bg-white dark:bg-gray-900`}>
+
+      {/* Card header */}
+      <div className={`flex items-center gap-3 px-4 py-3.5 transition-colors
+        ${isActive ? 'bg-indigo-50/60 dark:bg-indigo-950/20' : 'bg-white dark:bg-gray-900'}
+        ${isActive && isExpanded ? 'border-b border-indigo-100 dark:border-indigo-900/40' : ''}`}>
+
+        <span className="text-xl shrink-0">{cat.icon || '✨'}</span>
+
+        <div className="flex-1 min-w-0">
+          <p className={`text-sm font-bold truncate ${isActive ? 'text-indigo-800 dark:text-indigo-200' : 'text-gray-700 dark:text-gray-300'}`}>
+            {cat.label}
+          </p>
+          {count > 0 && (
+            <p className="text-xs text-indigo-500 dark:text-indigo-400 font-medium">{count} selected</p>
+          )}
+        </div>
+
+        {/* Expand toggle */}
+        {isActive && (
+          <button type="button" onClick={() => onExpand(isExpanded ? null : cat.key)}
+            className="p-1.5 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors">
+            <ChevronDown className={`w-4 h-4 text-indigo-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+          </button>
+        )}
+
+        <Toggle checked={isActive} onChange={() => onToggle(cat.key)} />
+      </div>
+
+      {/* Expanded body */}
+      {isActive && isExpanded && (
+        <div className="px-4 py-4 space-y-4 bg-gray-50/50 dark:bg-gray-800/30">
+          <p className="text-xs text-gray-400 dark:text-gray-600">
+            Tap a service to select it → enter price & duration
+          </p>
+
+          {/* Unisex gender split */}
+          {gender === 'unisex' && cat.maleSubServices ? (
+            <div className="space-y-4">
+              {cat.maleSubServices.length > 0 && (
+                <div>
+                  <p className="text-xs font-bold text-blue-600 dark:text-blue-400 mb-2 flex items-center gap-1.5">
+                    <span>👨</span> Men
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {renderChips(cat.maleSubServices, 'male')}
+                  </div>
+                </div>
+              )}
+              {cat.femaleSubServices.length > 0 && (
+                <div>
+                  <p className="text-xs font-bold text-pink-600 dark:text-pink-400 mb-2 flex items-center gap-1.5">
+                    <span>👩</span> Women
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {renderChips(cat.femaleSubServices, 'female')}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {renderChips(cat.subServices || [])}
+            </div>
+          )}
+
+          {/* Selected summary */}
+          {sel.subServices.length > 0 && (
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1.5">
+                <Check className="w-3 h-3" /> Selected Services
+              </p>
+              <div className="space-y-1.5">
+                {sel.subServices.map((s, i) => (
+                  <div key={i} className="flex items-center gap-2 p-2 rounded-xl
+                    bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
+                    {s.genderContext && (
+                      <span className="text-xs shrink-0">{s.genderContext === 'male' ? '👨' : '👩'}</span>
+                    )}
+                    <span className="flex-1 text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{s.name}</span>
+                    <span className="flex items-center gap-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
+                      <IndianRupee className="w-3 h-3" />{s.price}
+                    </span>
+                    <span className="flex items-center gap-0.5 text-xs text-gray-400 dark:text-gray-500 shrink-0">
+                      <Clock className="w-3 h-3" />{s.duration}m
+                    </span>
+                    <button type="button"
+                      onClick={() => onToggleSub(cat.key, s.name, s.genderContext || null)}
+                      className="text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 transition-colors shrink-0 ml-1">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ─── Main Drawer ────────────────────────────────────────────── */
 const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) => {
-  const [gender,         setGender]       = useState(salon?.servedGender || '');
-  const [genderOpen,     setGenderOpen]   = useState(false);
-  const [pendingGender,  setPendingGender] = useState(null);
-  const [loading,        setLoading]      = useState(false);
-  const [expandedKey,    setExpandedKey]  = useState(null);
-  const [priceModal,  setPriceModal]  = useState(EMPTY_MODAL);
+  const [gender,        setGender]       = useState(salon?.servedGender || '');
+  const [pendingGender, setPendingGender] = useState(null);
+  const [loading,       setLoading]      = useState(false);
+  const [expandedKey,   setExpandedKey]  = useState(null);
+  const [search,        setSearch]       = useState('');
+  const [priceModal,    setPriceModal]   = useState(EMPTY_MODAL);
   const priceRef    = useRef(null);
   const durationRef = useRef(null);
 
@@ -73,12 +350,8 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
   const [maleOptionals,    setMaleOptionals]    = useState({ kidsHaircut: salon?.kidsHaircut || false, atHomeServices: salon?.atHomeServices || false });
   const [femaleOptionals,  setFemaleOptionals]  = useState({ kidsServices: salon?.kidsHaircut || false, atHomeServices: salon?.atHomeServices || false });
 
-  // Fetch fresh salon data every time the drawer opens
-  useEffect(() => {
-    if (isOpen && onOpen) onOpen();
-  }, [isOpen]);
+  useEffect(() => { if (isOpen && onOpen) onOpen(); }, [isOpen]);
 
-  // Sync with latest salon data when drawer opens OR when salon data arrives
   useEffect(() => {
     if (!isOpen || !salon) return;
     setGender(salon.servedGender || '');
@@ -88,32 +361,29 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
     setMaleOptionals({ kidsHaircut: salon.kidsHaircut || false, atHomeServices: salon.atHomeServices || false });
     setFemaleOptionals({ kidsServices: salon.kidsHaircut || false, atHomeServices: salon.atHomeServices || false });
     setExpandedKey(null);
-    setGenderOpen(false);
     setPendingGender(null);
     setPriceModal(EMPTY_MODAL);
+    setSearch('');
   }, [isOpen, salon]);
 
-  const toggleCat = (key) => {
-    const update = (prev) => {
-      const enabling = !prev[key].enabled;
-      if (enabling) setExpandedKey(key);
-      return { ...prev, [key]: { ...prev[key], enabled: enabling } };
-    };
-    if (gender === 'male')        setMaleSelections(update);
-    else if (gender === 'female') setFemaleSelections(update);
-    else                          setUnisexSelections(update);
-  };
-
-  const getSels = () =>
-    gender === 'male' ? maleSelections : gender === 'female' ? femaleSelections : unisexSelections;
+  const getSels = () => gender === 'male' ? maleSelections : gender === 'female' ? femaleSelections : unisexSelections;
   const setSels = (update) => {
     if (gender === 'male')        setMaleSelections(update);
     else if (gender === 'female') setFemaleSelections(update);
     else                          setUnisexSelections(update);
   };
 
+  const toggleCat = (key) => {
+    setSels(prev => {
+      const enabling = !prev[key].enabled;
+      if (enabling) setExpandedKey(key);
+      else if (expandedKey === key) setExpandedKey(null);
+      return { ...prev, [key]: { ...prev[key], enabled: enabling } };
+    });
+  };
+
   const toggleSub = (catKey, sub, genderContext = null) => {
-    const subs = getSels()[catKey].subServices;
+    const subs  = getSels()[catKey].subServices;
     const exists = genderContext
       ? subs.find(s => s.name === sub && s.genderContext === genderContext)
       : subs.find(s => s.name === sub);
@@ -129,22 +399,14 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
       }));
     } else {
       setPriceModal({ open: true, catKey, subName: sub, price: '', duration: '', genderContext });
-      setTimeout(() => priceRef.current?.focus(), 50);
+      setTimeout(() => priceRef.current?.focus(), 80);
     }
   };
 
   const confirmSubPrice = () => {
     const { catKey, subName, price, duration, genderContext } = priceModal;
-    if (!price || parseFloat(price) <= 0) {
-      toast.error('Please enter a valid price');
-      priceRef.current?.focus();
-      return;
-    }
-    if (!duration || parseInt(duration) <= 0) {
-      toast.error('Please enter a valid duration');
-      durationRef.current?.focus();
-      return;
-    }
+    if (!price || parseFloat(price) <= 0) { toast.error('Please enter a valid price'); priceRef.current?.focus(); return; }
+    if (!duration || parseInt(duration) <= 0) { toast.error('Please enter a valid duration'); durationRef.current?.focus(); return; }
     const applicableFor = genderContext === 'male' ? ['male'] : genderContext === 'female' ? ['female'] : null;
     setSels(prev => ({
       ...prev,
@@ -156,327 +418,279 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
         ],
       },
     }));
+    toast.success(`${subName} added!`, { duration: 1500 });
     setPriceModal(EMPTY_MODAL);
   };
 
+  const handleGenderSelect = (val) => {
+    if (val === gender) return;
+    const sels = gender === 'male' ? maleSelections : gender === 'female' ? femaleSelections : unisexSelections;
+    const hasData = Object.values(sels).some(s => s.enabled);
+    if (hasData) { setPendingGender(val); }
+    else { setGender(val); setExpandedKey(null); }
+  };
+
   const handleSave = async () => {
-    if (!gender) { toast.error('Please select a gender'); return; }
+    if (!gender) { toast.error('Please select a customer type'); return; }
     let offeredCategories = [];
     let kidsHaircut = false;
     let atHomeServices = false;
-
     const toPayload = (subs) => subs.map(s => ({
-      name:     s.name,
-      price:    parseFloat(s.price)    || 0,
-      duration: parseInt(s.duration)   || 0,
+      name: s.name, price: parseFloat(s.price) || 0, duration: parseInt(s.duration) || 0,
       ...(s.applicableFor ? { applicableFor: s.applicableFor } : {}),
     }));
-
     if (gender === 'male') {
       offeredCategories = MALE_CATEGORIES.filter(c => maleSelections[c.key].enabled)
         .map(c => ({ name: c.label, subServices: toPayload(maleSelections[c.key].subServices) }));
-      kidsHaircut    = maleOptionals.kidsHaircut;
-      atHomeServices = maleOptionals.atHomeServices;
+      kidsHaircut = maleOptionals.kidsHaircut; atHomeServices = maleOptionals.atHomeServices;
     } else if (gender === 'female') {
       offeredCategories = FEMALE_CATEGORIES.filter(c => femaleSelections[c.key].enabled)
         .map(c => ({ name: c.label, subServices: toPayload(femaleSelections[c.key].subServices) }));
-      kidsHaircut    = femaleOptionals.kidsServices;
-      atHomeServices = femaleOptionals.atHomeServices;
+      kidsHaircut = femaleOptionals.kidsServices; atHomeServices = femaleOptionals.atHomeServices;
     } else {
       offeredCategories = UNISEX_CATEGORIES.filter(c => unisexSelections[c.key].enabled)
         .map(c => ({ name: c.label, subServices: toPayload(unisexSelections[c.key].subServices) }));
-      kidsHaircut    = unisexSelections['kids_services_unisex']?.enabled || false;
+      kidsHaircut = unisexSelections['kids_services_unisex']?.enabled || false;
       atHomeServices = unisexSelections['at_home_services_unisex']?.enabled || false;
     }
-
     if (!offeredCategories.length) { toast.error('Please select at least one category'); return; }
-
     setLoading(true);
     try {
       await updateSalon({ servedGender: gender, offeredCategories, kidsHaircut, atHomeServices });
-      toast.success('Service categories updated!');
+      toast.success('Service menu saved!');
       onClose();
     } catch (err) {
-      toast.error(err.message || 'Failed to update categories');
+      toast.error(err.message || 'Failed to save');
     } finally { setLoading(false); }
   };
 
-  const currentCats = gender === 'male' ? MALE_CATEGORIES
-    : gender === 'female' ? FEMALE_CATEGORIES
-    : gender === 'unisex' ? UNISEX_CATEGORIES : [];
+  const currentCats = gender === 'male' ? MALE_CATEGORIES : gender === 'female' ? FEMALE_CATEGORIES : gender === 'unisex' ? UNISEX_CATEGORIES : [];
+  const currentSels = getSels();
 
-  const currentSels = gender === 'male' ? maleSelections
-    : gender === 'female' ? femaleSelections
-    : gender === 'unisex' ? unisexSelections : {};
+  const totalSelected = useMemo(() =>
+    Object.values(currentSels).reduce((n, s) => n + s.subServices.length, 0),
+    [currentSels]
+  );
+
+  const GENDER_OPTS = [
+    { val: 'male',   emoji: '👨', label: 'Male',   grad: 'from-blue-600 to-indigo-600',  ring: 'ring-blue-400'  },
+    { val: 'female', emoji: '👩', label: 'Female',  grad: 'from-pink-500 to-rose-500',    ring: 'ring-pink-400'  },
+    { val: 'unisex', emoji: '👥', label: 'Unisex',  grad: 'from-indigo-600 to-violet-600', ring: 'ring-indigo-400' },
+  ];
+
+  const currentOptionals = gender === 'male' ? MALE_OPTIONALS : gender === 'female' ? FEMALE_OPTIONALS : [];
+  const currentOptState  = gender === 'male' ? maleOptionals : gender === 'female' ? femaleOptionals : {};
+  const setCurrentOpt    = gender === 'male' ? setMaleOptionals : gender === 'female' ? setFemaleOptionals : () => {};
 
   if (!isOpen) return null;
 
   return (
     <>
       {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/40 z-40"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity" onClick={onClose} />
 
-      {/* Drawer panel */}
-      <div className="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-white shadow-2xl flex flex-col">
+      {/* Drawer */}
+      <div className="fixed inset-y-0 right-0 z-50 w-full max-w-md flex flex-col
+        animate-[slidein_0.28s_cubic-bezier(0.16,1,0.3,1)_both]">
+        <style>{`@keyframes slidein{from{transform:translateX(100%)}to{transform:translateX(0)}}`}</style>
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 shrink-0">
-          <div>
-            <h2 className="text-lg font-bold text-gray-900">Service Menu</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Configure categories, services &amp; pricing</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+        <div className="flex flex-col h-full rounded-l-3xl overflow-hidden shadow-2xl
+          bg-white dark:bg-gray-950
+          border-l border-t border-b border-gray-200 dark:border-gray-800">
 
-        {/* Scrollable body */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-
-          {/* Gender selector */}
-          <div>
-            {/* Trigger button */}
-            <button
-              type="button"
-              onClick={() => setGenderOpen(o => !o)}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 transition ${
-                gender
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-300 bg-white hover:border-blue-300'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-blue-500 shrink-0" />
-                {gender ? (
-                  <span className="text-sm font-semibold text-blue-700">
-                    {gender === 'male' ? '👨 Male' : gender === 'female' ? '👩 Female' : '👥 Unisex'}
-                  </span>
-                ) : (
-                  <span className="text-sm font-medium text-gray-500">Who do you serve?</span>
-                )}
+          {/* ── Header ── */}
+          <div className="shrink-0 px-5 py-4 border-b border-gray-100 dark:border-gray-800
+            bg-white dark:bg-gray-950">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600
+                  flex items-center justify-center shadow-md shrink-0">
+                  <Sparkles className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-gray-900 dark:text-white">Service Menu</h2>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Configure categories, services & pricing</p>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                {gender && (
-                  <span className="text-xs text-blue-500 font-medium">Change</span>
-                )}
-                {genderOpen ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
-              </div>
-            </button>
+              <button type="button" onClick={onClose}
+                className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800
+                  text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200
+                  transition-colors shrink-0">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-            {/* Expandable options */}
-            {genderOpen && (
-              <div className="mt-2 grid grid-cols-3 gap-2">
-                {[['male','👨','Male'],['female','👩','Female'],['unisex','👥','Unisex']].map(([val, emoji, label]) => (
-                  <button key={val} type="button"
-                    onClick={() => {
-                      if (val === gender) { setGenderOpen(false); return; }
-                      // check if current gender has any enabled categories
-                      const currentSels = gender === 'male' ? maleSelections : gender === 'female' ? femaleSelections : unisexSelections;
-                      const hasData = Object.values(currentSels).some(s => s.enabled);
-                      if (hasData) {
-                        setPendingGender(val);
-                      } else {
-                        setGender(val); setExpandedKey(null); setGenderOpen(false);
-                      }
-                    }}
-                    className={`flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-xl border-2 font-medium text-sm transition ${
-                      gender === val
-                        ? 'border-blue-600 bg-blue-50 text-blue-700'
-                        : 'border-gray-200 bg-white text-gray-600 hover:border-blue-300'
-                    }`}>
-                    <span className="text-xl">{emoji}</span>
-                    {label}
-                  </button>
-                ))}
+            {/* Total badge */}
+            {totalSelected > 0 && (
+              <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-xl
+                bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50">
+                <Check className="w-3.5 h-3.5 text-indigo-500" />
+                <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">
+                  {totalSelected} service{totalSelected !== 1 ? 's' : ''} selected
+                </span>
               </div>
             )}
           </div>
 
-          {/* Category list */}
-          {gender && currentCats.length > 0 && (
-            <div className="space-y-2">
-              {currentCats.map(cat => {
-                const sel = currentSels[cat.key] || { enabled: false, subServices: [] };
-                const isExpanded = expandedKey === cat.key && sel.enabled;
-                return (
-                  <div key={cat.key} className={`rounded-xl border-2 overflow-hidden transition-all ${sel.enabled ? 'border-blue-200' : 'border-gray-200'}`}>
-                    <div className={`flex items-center gap-3 px-4 py-3 ${sel.enabled ? 'bg-blue-50' : 'bg-white'}`}>
-                      <span className="text-lg">{cat.icon}</span>
-                      <span className="flex-1 text-sm font-medium text-gray-800">{cat.label}</span>
-                      {sel.enabled && (
-                        <button type="button"
-                          onClick={() => setExpandedKey(isExpanded ? null : cat.key)}
-                          className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 mr-1">
-                          {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                          {sel.subServices.length}
-                        </button>
-                      )}
-                      <Toggle name={cat.key} checked={sel.enabled} onChange={() => toggleCat(cat.key)} />
-                    </div>
-                    {isExpanded && (
-                      <div className="px-4 pb-3 pt-2 border-t border-blue-100 bg-white">
-                        <p className="text-xs text-gray-400 mb-2">Tap to select · enter price &amp; duration</p>
+          {/* ── Scrollable body ── */}
+          <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5
+            scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800">
 
-                        {/* Unisex gender-split chips */}
-                        {gender === 'unisex' && cat.maleSubServices ? (
-                          <div className="space-y-3">
-                            {cat.maleSubServices.length > 0 && (
-                              <div>
-                                <p className="text-xs font-semibold text-blue-700 mb-1.5 flex items-center gap-1">👨 Men</p>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {cat.maleSubServices.map(sub => {
-                                    const active = sel.subServices.find(s => s.name === sub && s.genderContext === 'male');
-                                    return (
-                                      <button key={sub} type="button" onClick={() => toggleSub(cat.key, sub, 'male')}
-                                        className={`text-xs px-2.5 py-1 rounded-full border transition ${active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white border-gray-300 text-gray-600 hover:border-gray-400'}`}>
-                                        {sub}{active && active.price > 0 && <span className="ml-1 opacity-80">₹{active.price}</span>}
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            )}
-                            {cat.femaleSubServices.length > 0 && (
-                              <div>
-                                <p className="text-xs font-semibold text-pink-600 mb-1.5 flex items-center gap-1">👩 Women</p>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {cat.femaleSubServices.map(sub => {
-                                    const active = sel.subServices.find(s => s.name === sub && s.genderContext === 'female');
-                                    return (
-                                      <button key={sub} type="button" onClick={() => toggleSub(cat.key, sub, 'female')}
-                                        className={`text-xs px-2.5 py-1 rounded-full border transition ${active ? 'bg-pink-500 text-white border-pink-500' : 'bg-white border-gray-300 text-gray-600 hover:border-gray-400'}`}>
-                                        {sub}{active && active.price > 0 && <span className="ml-1 opacity-80">₹{active.price}</span>}
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          /* Single-gender chips (male / female / no-split unisex) */
-                          <div className="flex flex-wrap gap-1.5">
-                            {cat.subServices.map(sub => {
-                              const active = sel.subServices.find(s => s.name === sub);
-                              return (
-                                <button key={sub} type="button" onClick={() => toggleSub(cat.key, sub)}
-                                  className={`text-xs px-2.5 py-1 rounded-full border transition ${active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white border-gray-300 text-gray-600 hover:border-gray-400'}`}>
-                                  {sub}{active && active.price > 0 && <span className="ml-1 opacity-80">₹{active.price}</span>}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-
-                        {sel.subServices.length > 0 && (
-                          <div className="mt-3 pt-3 border-t border-gray-100">
-                            <p className="text-xs text-gray-500 font-medium mb-1">Selected:</p>
-                            <div className="space-y-1">
-                              {sel.subServices.map((s, i) => (
-                                <div key={i} className="flex items-center gap-2 text-xs text-gray-600">
-                                  {s.genderContext && (
-                                    <span className="shrink-0">{s.genderContext === 'male' ? '👨' : '👩'}</span>
-                                  )}
-                                  <span className="flex-1 truncate">{s.name}</span>
-                                  <span className="text-blue-600 font-medium shrink-0">₹{s.price}</span>
-                                  <span className="text-gray-400 shrink-0">{s.duration} min</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-
-              {/* Optional add-ons */}
-              {gender === 'male' && (
-                <div className="space-y-2 pt-1">
-                  <p className="text-xs font-medium text-gray-400 uppercase tracking-wide px-1">Optional Add-ons</p>
-                  {MALE_OPTIONALS.map(opt => (
-                    <div key={opt.key} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-200">
-                      <div className="flex items-center gap-2 text-sm font-medium text-gray-800">
-                        <span>{opt.icon}</span> {opt.label}
-                      </div>
-                      <Toggle name={opt.key} checked={maleOptionals[opt.key]}
-                        onChange={e => setMaleOptionals(p => ({ ...p, [opt.key]: e.target.checked }))} />
-                    </div>
-                  ))}
-                </div>
-              )}
-              {gender === 'female' && (
-                <div className="space-y-2 pt-1">
-                  <p className="text-xs font-medium text-gray-400 uppercase tracking-wide px-1">Optional Add-ons</p>
-                  {FEMALE_OPTIONALS.map(opt => (
-                    <div key={opt.key} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-200">
-                      <div className="flex items-center gap-2 text-sm font-medium text-gray-800">
-                        <span>{opt.icon}</span> {opt.label}
-                      </div>
-                      <Toggle name={opt.key} checked={femaleOptionals[opt.key]}
-                        onChange={e => setFemaleOptionals(p => ({ ...p, [opt.key]: e.target.checked }))} />
-                    </div>
-                  ))}
-                </div>
-              )}
+            {/* ── Gender toggle pills ── */}
+            <div>
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+                Who do you serve?
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {GENDER_OPTS.map(({ val, emoji, label, grad, ring }) => {
+                  const active = gender === val;
+                  return (
+                    <button key={val} type="button" onClick={() => handleGenderSelect(val)}
+                      className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl border-2 font-semibold text-sm
+                        transition-all duration-200
+                        ${active
+                          ? `bg-gradient-to-br ${grad} text-white border-transparent shadow-lg ring-2 ring-offset-2 ${ring} dark:ring-offset-gray-950 scale-[1.03]`
+                          : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 hover:border-indigo-300 dark:hover:border-indigo-700 hover:text-indigo-600 dark:hover:text-indigo-400'
+                        }`}>
+                      <span className="text-xl leading-none">{emoji}</span>
+                      <span className="text-xs">{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          )}
-        </div>
 
-        {/* Sticky footer */}
-        <div className="px-5 py-4 border-t border-gray-200 shrink-0">
-          <Button variant="primary" onClick={handleSave} loading={loading} disabled={loading || !gender} fullWidth>
-            <Save className="w-4 h-4" /> Save Menu
-          </Button>
+            {/* ── Search bar ── */}
+            {gender && currentCats.length > 0 && (
+              <div className="relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Search services…"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm
+                    bg-white dark:bg-gray-900
+                    border-gray-200 dark:border-gray-700
+                    text-gray-900 dark:text-white
+                    placeholder-gray-400 dark:placeholder-gray-500
+                    focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400
+                    transition-colors"
+                />
+              </div>
+            )}
+
+            {/* ── Category cards ── */}
+            {gender && currentCats.length > 0 && (
+              <div className="space-y-2">
+                {currentCats.map(cat => {
+                  const sel = currentSels[cat.key] || { enabled: false, subServices: [] };
+                  const isExpanded = expandedKey === cat.key && sel.enabled;
+                  return (
+                    <CategoryCard
+                      key={cat.key}
+                      cat={cat}
+                      sel={sel}
+                      isExpanded={isExpanded}
+                      gender={gender}
+                      onToggle={toggleCat}
+                      onExpand={setExpandedKey}
+                      onToggleSub={toggleSub}
+                      search={search}
+                    />
+                  );
+                })}
+
+                {/* Optional add-ons */}
+                {(gender === 'male' || gender === 'female') && currentOptionals.length > 0 && (
+                  <div className="pt-1">
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-wider px-1 mb-2">
+                      Optional Add-ons
+                    </p>
+                    <div className="space-y-2">
+                      {currentOptionals.map(opt => (
+                        <div key={opt.key} className="flex items-center justify-between px-4 py-3 rounded-2xl
+                          bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
+                          <div className="flex items-center gap-2.5 text-sm font-medium text-gray-700 dark:text-gray-300">
+                            <span className="text-lg">{opt.icon}</span>
+                            {opt.label}
+                          </div>
+                          <Toggle
+                            checked={currentOptState[opt.key] || false}
+                            onChange={e => setCurrentOpt(p => ({ ...p, [opt.key]: e.target.checked }))}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Empty state when no gender selected */}
+            {!gender && (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-950 flex items-center justify-center mb-4">
+                  <Sparkles className="w-8 h-8 text-indigo-400 dark:text-indigo-500" />
+                </div>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Select customer type</p>
+                <p className="text-xs text-gray-400 dark:text-gray-600">Choose who your salon serves to configure the right service categories</p>
+              </div>
+            )}
+          </div>
+
+          {/* ── Sticky footer ── */}
+          <div className="shrink-0 px-5 py-4 border-t border-gray-100 dark:border-gray-800
+            bg-white dark:bg-gray-950">
+            <button type="button" onClick={handleSave} disabled={loading || !gender}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl
+                font-semibold text-sm text-white transition-all duration-200
+                bg-gradient-to-r from-indigo-600 to-violet-600
+                hover:from-indigo-500 hover:to-violet-500
+                shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40
+                disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none
+                hover:scale-[1.01]">
+              {loading
+                ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving…</>
+                : <><Save className="w-4 h-4" /> Save Service Menu</>}
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Gender change confirmation */}
+      {/* ── Gender change confirm ── */}
       {pendingGender && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setPendingGender(null)} />
-          <div className="relative z-10 bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setPendingGender(null)} />
+          <div className="relative z-10 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800
+            rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4
+            animate-[scalein_0.2s_ease_both]">
+            <style>{`@keyframes scalein{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:none}}`}</style>
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950 flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-5 h-5 text-amber-500" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-gray-900">Change customer type?</h3>
-                <p className="text-sm text-gray-500 mt-1">
+                <h3 className="text-base font-bold text-gray-900 dark:text-white">Change customer type?</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   You have categories configured for{' '}
-                  <span className="font-semibold text-gray-700 capitalize">{gender}</span> customers.
+                  <span className="font-semibold text-gray-700 dark:text-gray-200 capitalize">{gender}</span> customers.
                   Switching to{' '}
-                  <span className="font-semibold text-gray-700 capitalize">{pendingGender}</span> will
+                  <span className="font-semibold text-gray-700 dark:text-gray-200 capitalize">{pendingGender}</span> will
                   replace all saved categories when you save.
                 </p>
               </div>
             </div>
             <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setPendingGender(null)}
-                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
-              >
+              <button type="button" onClick={() => setPendingGender(null)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700
+                  text-sm font-medium text-gray-600 dark:text-gray-300
+                  hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                 Keep Current
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setGender(pendingGender);
-                  setExpandedKey(null);
-                  setGenderOpen(false);
-                  setPendingGender(null);
-                }}
-                className="flex-1 py-2.5 rounded-xl bg-amber-500 text-white text-sm font-semibold hover:bg-amber-600 transition"
-              >
+              <button type="button"
+                onClick={() => { setGender(pendingGender); setExpandedKey(null); setPendingGender(null); }}
+                className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors">
                 Yes, Change
               </button>
             </div>
@@ -484,70 +698,16 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
         </div>
       )}
 
-      {/* Price + Duration modal */}
+      {/* ── Price modal ── */}
       {priceModal.open && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setPriceModal(EMPTY_MODAL)} />
-          <div className="relative z-10 bg-white rounded-2xl shadow-2xl w-full max-w-xs p-5 space-y-4">
-            <div>
-              <h3 className="text-base font-bold text-gray-900">Set Price &amp; Duration</h3>
-              <p className="text-sm text-gray-500 mt-0.5 font-medium">{priceModal.subName}</p>
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-medium text-gray-700 mb-1 block">Price (₹) *</label>
-                <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:border-blue-500">
-                  <span className="px-3 text-gray-400 text-sm bg-gray-50 border-r border-gray-300 py-2">₹</span>
-                  <input
-                    ref={priceRef}
-                    type="number"
-                    min="1"
-                    placeholder="e.g. 250"
-                    value={priceModal.price}
-                    onChange={e => setPriceModal(p => ({ ...p, price: e.target.value }))}
-                    onKeyDown={e => e.key === 'Enter' && durationRef.current?.focus()}
-                    className="flex-1 px-3 py-2 text-sm outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-gray-700 mb-1 block">Duration (minutes) *</label>
-                <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:border-blue-500">
-                  <span className="px-3 text-gray-400 text-sm bg-gray-50 border-r border-gray-300 py-2">min</span>
-                  <input
-                    ref={durationRef}
-                    type="number"
-                    min="1"
-                    placeholder="e.g. 30"
-                    value={priceModal.duration}
-                    onChange={e => setPriceModal(p => ({ ...p, duration: e.target.value }))}
-                    onKeyDown={e => e.key === 'Enter' && confirmSubPrice()}
-                    className="flex-1 px-3 py-2 text-sm outline-none"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => setPriceModal(EMPTY_MODAL)}
-                className="flex-1 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={confirmSubPrice}
-                className="flex-1 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition"
-              >
-                Add
-              </button>
-            </div>
-          </div>
-        </div>
+        <PriceModal
+          modal={priceModal}
+          onChange={patch => setPriceModal(p => ({ ...p, ...patch }))}
+          onConfirm={confirmSubPrice}
+          onClose={() => setPriceModal(EMPTY_MODAL)}
+          priceRef={priceRef}
+          durationRef={durationRef}
+        />
       )}
     </>
   );

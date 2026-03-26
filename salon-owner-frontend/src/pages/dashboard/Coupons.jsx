@@ -1,157 +1,106 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2, Tag, X } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Plus, Tag, RefreshCw, TrendingUp, CheckCircle, XCircle, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import CouponCard  from '../../components/coupons/CouponCard';
+import CouponModal from '../../components/coupons/CouponModal';
 import api from '../../services/api';
 
-function CouponModal({ onClose, onSaved }) {
-  const [code,            setCode]            = useState('');
-  const [discountType,    setDiscountType]    = useState('percentage');
-  const [discountValue,   setDiscountValue]   = useState('');
-  const [minOrderAmount,  setMinOrderAmount]  = useState('');
-  const [maxUses,         setMaxUses]         = useState('');
-  const [expiryDate,      setExpiryDate]      = useState('');
-  const [saving,          setSaving]          = useState(false);
-  const [error,           setError]           = useState('');
-
-  const handleSave = async (e) => {
-    e.preventDefault();
-    if (!code.trim())                               { setError('Please enter a coupon code'); return; }
-    if (!discountValue || isNaN(Number(discountValue))) { setError('Please enter a valid discount value'); return; }
-    setError('');
-    setSaving(true);
-    try {
-      await api.post('/owner/coupons', {
-        code: code.trim().toUpperCase(),
-        discountType,
-        discountValue:  Number(discountValue),
-        minOrderAmount: minOrderAmount ? Number(minOrderAmount) : 0,
-        maxUses:        maxUses ? Number(maxUses) : null,
-        expiryDate:     expiryDate || null,
-      });
-      toast.success('Coupon created');
-      onSaved();
-      onClose();
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create coupon');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 px-4 pb-4 sm:pb-0">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100 sticky top-0 bg-white">
-          <h2 className="text-lg font-bold text-gray-900">Create Coupon</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition">
-            <X className="w-4 h-4 text-gray-500" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSave} className="p-5 space-y-4">
-          {error && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm">{error}</div>}
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Coupon Code</label>
-            <input
-              type="text"
-              value={code}
-              onChange={e => setCode(e.target.value.toUpperCase())}
-              placeholder="e.g. SAVE20"
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono tracking-widest uppercase"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Discount Type</label>
-            <div className="flex gap-2">
-              {[{ value: 'percentage', label: '% Percentage' }, { value: 'fixed', label: '₹ Fixed Amount' }].map(opt => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setDiscountType(opt.value)}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition ${
-                    discountType === opt.value
-                      ? 'bg-indigo-600 text-white border-indigo-600'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-              {discountType === 'percentage' ? 'Discount %' : 'Discount Amount ₹'}
-            </label>
-            <input
-              type="number"
-              value={discountValue}
-              onChange={e => setDiscountValue(e.target.value)}
-              placeholder={discountType === 'percentage' ? 'e.g. 20' : 'e.g. 100'}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Minimum Order Amount ₹ <span className="font-normal text-gray-400">(optional)</span></label>
-            <input
-              type="number"
-              value={minOrderAmount}
-              onChange={e => setMinOrderAmount(e.target.value)}
-              placeholder="e.g. 500"
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Max Uses <span className="font-normal text-gray-400">(optional, blank = unlimited)</span></label>
-            <input
-              type="number"
-              value={maxUses}
-              onChange={e => setMaxUses(e.target.value)}
-              placeholder="e.g. 100"
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Expiry Date <span className="font-normal text-gray-400">(optional)</span></label>
-            <input
-              type="date"
-              value={expiryDate}
-              onChange={e => setExpiryDate(e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={saving}
-            className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold text-sm transition disabled:opacity-50"
-          >
-            {saving ? 'Creating…' : 'Create Coupon'}
-          </button>
-        </form>
-      </div>
+/* ── Stat card ── */
+const StatCard = ({ icon: Icon, label, value, color, bg }) => (
+  <div className={`${bg} rounded-2xl p-4 border border-white/50 dark:border-gray-800 flex items-center gap-3`}>
+    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-white/60 dark:bg-gray-900/60`}>
+      <Icon className={`w-4 h-4 ${color}`} />
     </div>
-  );
-}
+    <div>
+      <p className={`text-xl font-bold ${color}`}>{value}</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
+    </div>
+  </div>
+);
 
+/* ── Skeleton card ── */
+const SkeletonCard = () => (
+  <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 space-y-3 animate-pulse">
+    <div className="h-8 w-32 bg-gray-100 dark:bg-gray-800 rounded-xl" />
+    <div className="h-6 w-24 bg-gray-100 dark:bg-gray-800 rounded-lg" />
+    <div className="space-y-1.5">
+      <div className="h-3 w-3/4 bg-gray-100 dark:bg-gray-800 rounded-full" />
+      <div className="h-3 w-1/2 bg-gray-100 dark:bg-gray-800 rounded-full" />
+    </div>
+    <div className="flex gap-2">
+      <div className="flex-1 h-7 bg-gray-100 dark:bg-gray-800 rounded-xl" />
+      <div className="flex-1 h-7 bg-gray-100 dark:bg-gray-800 rounded-xl" />
+    </div>
+  </div>
+);
+
+/* ── Empty state ── */
+const EmptyState = ({ onAdd, hasFilter }) => (
+  <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
+    <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+      <style>{`@keyframes tag-pulse{0%,100%{opacity:.15;transform:scale(1)}50%{opacity:.3;transform:scale(1.1)}}`}</style>
+      <div className="relative mb-5">
+        <div className="absolute inset-0 w-20 h-20 rounded-full bg-indigo-400/20 blur-2xl"
+          style={{ animation: 'tag-pulse 3s ease-in-out infinite' }} />
+        <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-100 to-violet-100
+          dark:from-indigo-950/60 dark:to-violet-950/60 flex items-center justify-center shadow-lg">
+          <Tag className="w-8 h-8 text-indigo-400 dark:text-indigo-500" />
+        </div>
+      </div>
+      <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">
+        {hasFilter ? 'No coupons in this filter' : 'No coupons yet'}
+      </h3>
+      <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mb-6">
+        {hasFilter
+          ? 'Try switching to "All" to see all your coupons'
+          : 'Create discount codes to attract more customers and grow revenue'
+        }
+      </p>
+      {!hasFilter && (
+        <button onClick={onAdd}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl
+            bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-semibold
+            hover:from-indigo-700 hover:to-violet-700 transition-all shadow-md shadow-indigo-500/25
+            hover:shadow-indigo-500/40 hover:scale-[1.02]">
+          <Plus className="w-4 h-4" /> Create Your First Coupon
+        </button>
+      )}
+    </div>
+  </div>
+);
+
+/* ── Filter pill ── */
+const FilterPill = ({ label, count, active, onClick }) => (
+  <button onClick={onClick}
+    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+      active
+        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30'
+        : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-indigo-300 dark:hover:border-indigo-700'
+    }`}>
+    {label}
+    {count !== undefined && (
+      <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+        active ? 'bg-white/20 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+      }`}>{count}</span>
+    )}
+  </button>
+);
+
+/* ─── Main Coupons page ──────────────────────────────────────── */
 export default function Coupons() {
-  const [coupons,    setCoupons]    = useState([]);
-  const [loading,    setLoading]    = useState(true);
-  const [showModal,  setShowModal]  = useState(false);
-  const [toggling,   setToggling]   = useState(null);
-  const [deleting,   setDeleting]   = useState(null);
+  const [coupons,   setCoupons]   = useState([]);
+  const [loading,   setLoading]   = useState(true);
+  const [filter,    setFilter]    = useState('all'); // all | active | expired | disabled
+  const [modal,     setModal]     = useState(null);  // null | 'create' | coupon-object (edit)
+  const [toggling,  setToggling]  = useState(null);
+  const [deleting,  setDeleting]  = useState(null);
 
-  const fetchCoupons = useCallback(async () => {
+  const fetchCoupons = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await api.get('/owner/coupons');
-      const d = res.data.data;
+      const d   = res.data?.data;
       setCoupons(Array.isArray(d) ? d : (d?.coupons || []));
     } catch {
       setCoupons([]);
@@ -162,11 +111,33 @@ export default function Coupons() {
 
   useEffect(() => { fetchCoupons(); }, [fetchCoupons]);
 
-  const toggleActive = async (coupon) => {
+  const isExpired  = (c) => c.expiryDate && new Date(c.expiryDate) < new Date();
+  const isLimitHit = (c) => c.maxUses && (c.usedCount ?? 0) >= c.maxUses;
+  const isActive   = (c) => c.isActive && !isExpired(c) && !isLimitHit(c);
+
+  /* ── Stats ── */
+  const stats = useMemo(() => ({
+    total:    coupons.length,
+    active:   coupons.filter(isActive).length,
+    expired:  coupons.filter(c => isExpired(c) || isLimitHit(c)).length,
+    disabled: coupons.filter(c => !c.isActive && !isExpired(c) && !isLimitHit(c)).length,
+    totalUsed: coupons.reduce((s, c) => s + (c.usedCount ?? 0), 0),
+  }), [coupons]);
+
+  /* ── Filtered list ── */
+  const filtered = useMemo(() => {
+    if (filter === 'active')   return coupons.filter(isActive);
+    if (filter === 'expired')  return coupons.filter(c => isExpired(c) || isLimitHit(c));
+    if (filter === 'disabled') return coupons.filter(c => !c.isActive && !isExpired(c));
+    return coupons;
+  }, [coupons, filter]);
+
+  const handleToggle = async (coupon) => {
     setToggling(coupon._id);
     try {
       await api.put(`/owner/coupons/${coupon._id}`, { isActive: !coupon.isActive });
       setCoupons(prev => prev.map(c => c._id === coupon._id ? { ...c, isActive: !c.isActive } : c));
+      toast.success(coupon.isActive ? 'Coupon disabled' : 'Coupon enabled');
     } catch {
       toast.error('Failed to update coupon');
     } finally {
@@ -175,7 +146,6 @@ export default function Coupons() {
   };
 
   const handleDelete = async (coupon) => {
-    if (!window.confirm(`Delete coupon "${coupon.code}"?`)) return;
     setDeleting(coupon._id);
     try {
       await api.delete(`/owner/coupons/${coupon._id}`);
@@ -188,97 +158,99 @@ export default function Coupons() {
     }
   };
 
+  const handleSaved = () => fetchCoupons(true);
+
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Coupons</h1>
-            <p className="text-gray-500 text-sm mt-1">Create and manage discount codes</p>
-          </div>
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition"
-          >
-            <Plus className="w-4 h-4" /> Create Coupon
-          </button>
-        </div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
 
-        {/* List */}
-        {loading ? (
-          <div className="flex justify-center py-16">
-            <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : coupons.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-200 py-16 flex flex-col items-center gap-4">
-            <Tag className="w-12 h-12 text-gray-300" />
-            <div className="text-center">
-              <p className="font-semibold text-gray-900">No coupons yet</p>
-              <p className="text-gray-500 text-sm mt-1">Create your first discount code</p>
-            </div>
-            <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition">
-              <Plus className="w-4 h-4" /> Create Coupon
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {coupons.map(coupon => {
-              const expired = coupon.expiryDate && new Date(coupon.expiryDate) < new Date();
-              const active  = coupon.isActive && !expired;
-              return (
-                <div key={coupon._id} className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
-                  {/* Code + toggle */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className={`px-3 py-2 rounded-lg ${active ? 'bg-indigo-50' : 'bg-gray-100'}`}>
-                      <p className={`text-lg font-extrabold tracking-widest font-mono ${active ? 'text-indigo-600' : 'text-gray-400'}`}>
-                        {coupon.code}
-                      </p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer mt-1">
-                      <input
-                        type="checkbox"
-                        className="sr-only peer"
-                        checked={!!active}
-                        disabled={expired || toggling === coupon._id}
-                        onChange={() => toggleActive(coupon)}
-                      />
-                      <div className="w-10 h-5 bg-gray-200 rounded-full peer peer-checked:bg-indigo-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5 peer-disabled:opacity-50" />
-                    </label>
-                  </div>
-
-                  {/* Details */}
-                  <div className="space-y-1 text-sm text-gray-600">
-                    <p className="font-bold text-gray-900 text-base">
-                      {coupon.discountType === 'percentage' ? `${coupon.discountValue}% OFF` : `₹${coupon.discountValue} OFF`}
-                    </p>
-                    {coupon.minOrderAmount > 0 && <p>Min order: ₹{coupon.minOrderAmount}</p>}
-                    <p>Used: {coupon.usedCount ?? 0}{coupon.maxUses ? ` / ${coupon.maxUses}` : ''}</p>
-                    {coupon.expiryDate && (
-                      <p className={expired ? 'text-red-500 font-semibold' : ''}>
-                        {expired ? 'Expired' : `Expires: ${coupon.expiryDate.slice(0, 10)}`}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Delete */}
-                  <button
-                    onClick={() => handleDelete(coupon)}
-                    disabled={deleting === coupon._id}
-                    className="flex items-center gap-1.5 text-xs font-semibold text-red-500 hover:text-red-700 transition disabled:opacity-50"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    {deleting === coupon._id ? 'Deleting…' : 'Delete'}
-                  </button>
+          {/* ── Header ── */}
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600
+                  flex items-center justify-center shadow-md shadow-indigo-500/30">
+                  <Tag className="w-5 h-5 text-white" />
                 </div>
-              );
-            })}
+                Coupons
+              </h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 ml-0.5">
+                Create and manage discount codes
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button onClick={() => fetchCoupons()} disabled={loading}
+                className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-gray-700
+                  bg-white dark:bg-gray-900 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200
+                  hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50" title="Refresh">
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              </button>
+              <button onClick={() => setModal('create')}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl
+                  bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-semibold
+                  hover:from-indigo-700 hover:to-violet-700 transition-all shadow-md shadow-indigo-500/20">
+                <Plus className="w-4 h-4" /> Create Coupon
+              </button>
+            </div>
           </div>
-        )}
+
+          {/* ── Stats ── */}
+          {!loading && coupons.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <StatCard icon={Tag}          label="Total Coupons" value={stats.total}    color="text-indigo-600 dark:text-indigo-400" bg="bg-indigo-50 dark:bg-indigo-950/40" />
+              <StatCard icon={CheckCircle}  label="Active"        value={stats.active}   color="text-emerald-600 dark:text-emerald-400" bg="bg-emerald-50 dark:bg-emerald-950/40" />
+              <StatCard icon={XCircle}      label="Expired"       value={stats.expired}  color="text-red-600 dark:text-red-400"     bg="bg-red-50 dark:bg-red-950/40" />
+              <StatCard icon={TrendingUp}   label="Total Used"    value={stats.totalUsed} color="text-violet-600 dark:text-violet-400" bg="bg-violet-50 dark:bg-violet-950/40" />
+            </div>
+          )}
+
+          {/* ── Filters ── */}
+          {!loading && coupons.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <FilterPill label="All"      count={stats.total}    active={filter === 'all'}      onClick={() => setFilter('all')} />
+              <FilterPill label="Active"   count={stats.active}   active={filter === 'active'}   onClick={() => setFilter('active')} />
+              <FilterPill label="Expired"  count={stats.expired}  active={filter === 'expired'}  onClick={() => setFilter('expired')} />
+              {stats.disabled > 0 && (
+                <FilterPill label="Disabled" count={stats.disabled} active={filter === 'disabled'} onClick={() => setFilter('disabled')} />
+              )}
+            </div>
+          )}
+
+          {/* ── Content ── */}
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[...Array(3)].map((_, i) => <SkeletonCard key={i} />)}
+            </div>
+          ) : coupons.length === 0 ? (
+            <EmptyState onAdd={() => setModal('create')} hasFilter={false} />
+          ) : filtered.length === 0 ? (
+            <EmptyState onAdd={() => setModal('create')} hasFilter={true} />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filtered.map(coupon => (
+                <CouponCard
+                  key={coupon._id}
+                  coupon={coupon}
+                  onToggle={handleToggle}
+                  onEdit={(c) => setModal(c)}
+                  onDelete={handleDelete}
+                  toggling={toggling === coupon._id}
+                  deleting={deleting === coupon._id}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {showModal && (
-        <CouponModal onClose={() => setShowModal(false)} onSaved={fetchCoupons} />
+      {/* ── Modal ── */}
+      {modal && (
+        <CouponModal
+          coupon={modal === 'create' ? null : modal}
+          onClose={() => setModal(null)}
+          onSaved={handleSaved}
+        />
       )}
     </DashboardLayout>
   );

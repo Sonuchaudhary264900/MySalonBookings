@@ -77,7 +77,7 @@ const sendOTPEmail = async (to, otp, userType) => {
       </div>
       <div style="background-color: #f0f0f0; padding: 20px; text-align: center; color: #666; font-size: 12px;">
         <p>If you didn't request this OTP, please ignore this email.</p>
-        <p>&copy; 2024 Barber Shop Booking System. All rights reserved.</p>
+        <p>&copy; 2026 My Salon Bookings by Gigamind Technology Pvt Ltd. All rights reserved.</p>
       </div>
     </div>
   `;
@@ -122,7 +122,7 @@ const sendBookingConfirmationEmail = async (to, bookingDetails) => {
         <p style="color: #666; margin-top: 20px;">You will receive a reminder 10 minutes before your appointment.</p>
       </div>
       <div style="background-color: #f0f0f0; padding: 20px; text-align: center; color: #666; font-size: 12px;">
-        <p>&copy; 2024 Barber Shop Booking System. All rights reserved.</p>
+        <p>&copy; 2026 My Salon Bookings by Gigamind Technology Pvt Ltd. All rights reserved.</p>
       </div>
     </div>
   `;
@@ -146,7 +146,7 @@ const sendReminderEmail = async (to, bookingDetails) => {
         <p style="color: #FF9800; font-weight: bold;">Please arrive on time</p>
       </div>
       <div style="background-color: #f0f0f0; padding: 20px; text-align: center; color: #666; font-size: 12px;">
-        <p>&copy; 2024 Barber Shop Booking System. All rights reserved.</p>
+        <p>&copy; 2026 My Salon Bookings by Gigamind Technology Pvt Ltd. All rights reserved.</p>
       </div>
     </div>
   `;
@@ -174,7 +174,7 @@ const sendSalonApprovalEmail = async (to, salonName) => {
         <p>Log in to your dashboard to get started.</p>
       </div>
       <div style="background-color: #f0f0f0; padding: 20px; text-align: center; color: #666; font-size: 12px;">
-        <p>&copy; 2024 Barber Shop Booking System. All rights reserved.</p>
+        <p>&copy; 2026 My Salon Bookings by Gigamind Technology Pvt Ltd. All rights reserved.</p>
       </div>
     </div>
   `;

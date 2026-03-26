@@ -79,10 +79,10 @@ function Footer() {
         </div>
 
         <div className={`border-t ${divider} pt-6 flex flex-col md:flex-row justify-between items-center gap-2 text-sm ${sub}`}>
-          <p>© {new Date().getFullYear()} SmartSalon. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} My Salon Bookings by Gigamind Technology Pvt Ltd. All rights reserved.</p>
           <div className="flex gap-4">
-            <Link to="/privacy-policy" className={`${lhover} transition-colors`}>Privacy Policy</Link>
-            <Link to="/terms" className={`${lhover} transition-colors`}>Terms &amp; Conditions</Link>
+            <Link to="/legal/customer-privacy" className={`${lhover} transition-colors`}>Privacy Policy</Link>
+            <Link to="/legal/customer-terms" className={`${lhover} transition-colors`}>Terms &amp; Conditions</Link>
           </div>
         </div>
       </div>

@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Globe, Bell, Settings, Lock, User, Calendar, CalendarX,
-  Save, Edit2, X, ChevronDown, ChevronUp, Plus,
+  Save, Edit2, X, ChevronDown, Plus,
   CheckCircle2, BellOff, Camera, Trash2, ImagePlus, GitBranch,
-  Eye, EyeOff,
+  Eye, EyeOff, Info,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -17,65 +17,120 @@ import { useLanguage } from '../../context/LanguageContext';
 import { uploadSalonPhotos } from '../../services/salonService';
 import api from '../../services/api';
 
-// ─── Toggle component ─────────────────────────────────────────
+/* ─── Shared input class ─────────────────────────────────────── */
+const INP = `w-full px-4 py-2.5 rounded-xl border
+  bg-white dark:bg-gray-800/60
+  border-gray-200 dark:border-gray-700
+  text-gray-900 dark:text-white
+  placeholder-gray-400 dark:placeholder-gray-500
+  focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400
+  disabled:opacity-50 text-sm transition-colors`;
+
+const SEL = `w-full px-4 py-2.5 rounded-xl border
+  bg-white dark:bg-gray-800/60
+  border-gray-200 dark:border-gray-700
+  text-gray-900 dark:text-white
+  focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400
+  disabled:opacity-50 text-sm transition-colors`;
+
+/* ─── Toggle ─────────────────────────────────────────────────── */
 const Toggle = ({ name, checked, onChange, disabled }) => (
-  <label className="relative inline-flex items-center cursor-pointer">
+  <label className="relative inline-flex items-center cursor-pointer select-none">
     <input type="checkbox" name={name} checked={checked} onChange={onChange}
       disabled={disabled} className="sr-only peer" />
-    <div className="w-11 h-6 bg-gray-200 rounded-full peer
-      peer-checked:bg-blue-600
+    <div className={`
+      w-11 h-6 rounded-full transition-colors duration-200
+      bg-gray-200 dark:bg-gray-700
+      peer-checked:bg-indigo-600 dark:peer-checked:bg-indigo-500
+      peer-disabled:opacity-40
       after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-      after:bg-white after:border after:border-gray-300 after:rounded-full
-      after:h-5 after:w-5 after:transition-all
-      peer-checked:after:translate-x-full peer-checked:after:border-white
-      peer-disabled:opacity-50" />
+      after:w-5 after:h-5 after:bg-white after:rounded-full after:shadow
+      after:transition-transform after:duration-200
+      peer-checked:after:translate-x-5
+    `} />
   </label>
 );
 
-// ─── Accordion wrapper ────────────────────────────────────────
-const Accordion = ({ id, activeId, onToggle, icon: Icon, iconBg, title, subtitle, children }) => {
+/* ─── Accordion ──────────────────────────────────────────────── */
+const Accordion = ({ id, activeId, onToggle, icon: Icon, iconBg, iconColor, title, subtitle, children }) => {
   const open = activeId === id;
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div className={`rounded-2xl border transition-all duration-200 overflow-hidden
+      ${open
+        ? 'border-indigo-200 dark:border-indigo-800/60 shadow-sm shadow-indigo-100/50 dark:shadow-indigo-900/20'
+        : 'border-gray-200 dark:border-gray-800'
+      }
+      bg-white dark:bg-gray-900`}>
       <button
         type="button"
         onClick={() => onToggle(id)}
-        className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition text-left"
+        className="w-full flex items-center gap-4 px-5 py-4 text-left
+          hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
       >
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${iconBg}`}>
-          <Icon className="w-5 h-5" />
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${iconBg}`}>
+          <Icon className={`w-5 h-5 ${iconColor}`} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-gray-900">{title}</p>
-          <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>
+          <p className="font-semibold text-gray-900 dark:text-white text-sm">{title}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{subtitle}</p>
         </div>
-        {open
-          ? <ChevronUp className="w-5 h-5 text-gray-400 shrink-0" />
-          : <ChevronDown className="w-5 h-5 text-gray-400 shrink-0" />}
+        <ChevronDown className={`w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
-      {open && (
-        <div className="px-5 pb-5 pt-2 border-t border-gray-100">
+      <div className={`transition-all duration-200 overflow-hidden ${open ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+        <div className="px-5 pb-6 pt-1 border-t border-gray-100 dark:border-gray-800">
           {children}
         </div>
-      )}
+      </div>
     </div>
   );
 };
 
-// ─── My Profile content ───────────────────────────────────────
+/* ─── Field row (view mode) ──────────────────────────────────── */
+const FieldRow = ({ label, value }) => (
+  <div className="flex items-start gap-4 py-2.5 border-b border-gray-100 dark:border-gray-800 last:border-0">
+    <span className="w-32 shrink-0 text-sm text-gray-500 dark:text-gray-400">{label}</span>
+    <span className="text-sm font-medium text-gray-900 dark:text-white break-all">{value || '—'}</span>
+  </div>
+);
+
+/* ─── Save bar ───────────────────────────────────────────────── */
+const SaveBar = ({ onSave, onCancel, loading }) => (
+  <div className="flex gap-2 pt-2">
+    <button type="submit" disabled={loading}
+      onClick={onSave}
+      className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl
+        bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500
+        text-white text-sm font-semibold transition-colors disabled:opacity-60">
+      {loading
+        ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        : <Save className="w-4 h-4" />}
+      {loading ? 'Saving…' : 'Save Changes'}
+    </button>
+    <button type="button" disabled={loading} onClick={onCancel}
+      className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl
+        border border-gray-200 dark:border-gray-700
+        text-gray-700 dark:text-gray-300
+        hover:bg-gray-50 dark:hover:bg-gray-800
+        text-sm font-medium transition-colors disabled:opacity-60">
+      <X className="w-4 h-4" /> Cancel
+    </button>
+  </div>
+);
+
+/* ─── My Profile ─────────────────────────────────────────────── */
 const ProfileContent = () => {
   const { user, updateProfile } = useAuth();
   const { salon } = useSalon();
   const [editing, setEditing]     = useState(false);
   const [loading, setLoading]     = useState(false);
-  const [pwStep, setPwStep]       = useState(1); // 1=send otp, 2=verify+reset
+  const [pwStep, setPwStep]       = useState(1);
   const [pwLoading, setPwLoading] = useState(false);
   const [pwTimer, setPwTimer]     = useState(0);
   const [form, setForm]   = useState({ name: '', email: '' });
   const [pw, setPw]       = useState({ otp: '', next: '', confirm: '' });
-  const [pwError, setPwError]     = useState('');
-  const [pwShowPw, setPwShowPw]   = useState(false);
-  const [errors, setErrors] = useState({});
+  const [pwError, setPwError]   = useState('');
+  const [pwShowPw, setPwShowPw] = useState(false);
+  const [errors, setErrors]     = useState({});
 
   useEffect(() => {
     if (pwTimer <= 0) return;
@@ -126,9 +181,9 @@ const ProfileContent = () => {
   const handlePwReset = async (e) => {
     e.preventDefault();
     setPwError('');
-    if (!pw.otp.trim()) { setPwError('OTP is required'); return; }
+    if (!pw.otp.trim())           { setPwError('OTP is required'); return; }
     if (!pw.next || pw.next.length < 8) { setPwError('Password must be at least 8 characters'); return; }
-    if (pw.next !== pw.confirm) { setPwError('Passwords do not match'); return; }
+    if (pw.next !== pw.confirm)   { setPwError('Passwords do not match'); return; }
     setPwLoading(true);
     try {
       await api.post('/owner/auth/forgot-password/reset', { phone: user.phone, otp: pw.otp, newPassword: pw.next });
@@ -144,95 +199,108 @@ const ProfileContent = () => {
     : '—';
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 mt-3">
       {/* Avatar row */}
-      <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
-        <div className="w-12 h-12 rounded-full shrink-0 overflow-hidden">
+      <div className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700/50">
+        <div className="w-12 h-12 rounded-full shrink-0 overflow-hidden ring-2 ring-indigo-100 dark:ring-indigo-900">
           {salon?.logo ? (
-            <img src={salon.logo} alt="profile" className="w-full h-full object-cover rounded-full" />
+            <img src={salon.logo} alt="profile" className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full bg-blue-100 flex items-center justify-center rounded-full">
-              <User className="w-6 h-6 text-blue-600" />
+            <div className="w-full h-full bg-indigo-100 dark:bg-indigo-950 flex items-center justify-center">
+              <User className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             </div>
           )}
         </div>
         <div>
-          <p className="font-bold text-gray-900">{user?.name || '—'}</p>
-          <p className="text-xs text-gray-500">Member since {memberSince}</p>
+          <p className="font-bold text-gray-900 dark:text-white">{user?.name || '—'}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Member since {memberSince}</p>
         </div>
       </div>
 
       {/* Profile fields / form */}
       {editing ? (
         <form onSubmit={handleSaveProfile} className="space-y-4">
-          <Input label="Full Name" name="name" value={form.name} onChange={handleChange}
-            placeholder="Your name" error={!!errors.name} errorMessage={errors.name} disabled={loading} required />
-          <Input label="Email Address" name="email" type="email" value={form.email} onChange={handleChange}
-            placeholder="your@email.com" error={!!errors.email} errorMessage={errors.email} disabled={loading} required />
-          <div className="flex gap-2">
-            <Button type="submit" variant="primary" loading={loading} disabled={loading} fullWidth>
-              <Save className="w-4 h-4" /> Save
-            </Button>
-            <Button type="button" variant="outline" disabled={loading} fullWidth
-              onClick={() => { setEditing(false); setErrors({}); if (user) setForm({ name: user.name||'', email: user.email||'' }); }}>
-              <X className="w-4 h-4" /> Cancel
-            </Button>
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Full Name</label>
+            <input name="name" value={form.name} onChange={handleChange}
+              placeholder="Your name" disabled={loading} required className={INP} />
+            {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
           </div>
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email Address</label>
+            <input name="email" type="email" value={form.email} onChange={handleChange}
+              placeholder="your@email.com" disabled={loading} required className={INP} />
+            {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
+          </div>
+          <SaveBar loading={loading}
+            onCancel={() => { setEditing(false); setErrors({}); if (user) setForm({ name: user.name||'', email: user.email||'' }); }} />
         </form>
       ) : (
-        <div className="space-y-2">
-          {[
-            { label: 'Name',   value: user?.name  || '—' },
-            { label: 'Email',  value: user?.email || '—' },
-            { label: 'Phone',  value: user?.phone || '—' },
-          ].map(({ label, value }) => (
-            <div key={label} className="flex items-center gap-4 py-2 border-b border-gray-100 last:border-0">
-              <span className="w-20 shrink-0 text-sm text-gray-500">{label}</span>
-              <span className="text-sm font-medium text-gray-900">{value}</span>
-            </div>
-          ))}
+        <div>
+          <FieldRow label="Name"  value={user?.name} />
+          <FieldRow label="Email" value={user?.email} />
+          <FieldRow label="Phone" value={user?.phone} />
           <button onClick={() => setEditing(true)}
-            className="mt-2 flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+            className="mt-3 flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700
+              text-sm font-medium text-gray-700 dark:text-gray-300
+              hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
             <Edit2 className="w-4 h-4" /> Edit Profile
           </button>
         </div>
       )}
 
-      {/* Change password via OTP */}
-      <div className="border-t border-gray-100 pt-4">
-        <p className="text-sm font-semibold text-gray-800 mb-3">Change Password</p>
-        {pwError && <p className="text-sm text-red-600 mb-3 bg-red-50 px-3 py-2 rounded-lg">{pwError}</p>}
+      {/* Change password */}
+      <div className="border-t border-gray-100 dark:border-gray-800 pt-5">
+        <p className="text-sm font-semibold text-gray-800 dark:text-white mb-3">Change Password</p>
+        {pwError && (
+          <p className="text-sm text-red-600 dark:text-red-400 mb-3 bg-red-50 dark:bg-red-950/30 px-3 py-2 rounded-xl border border-red-200 dark:border-red-800/50">
+            {pwError}
+          </p>
+        )}
         {pwStep === 1 ? (
           <form onSubmit={handlePwSendOtp} className="space-y-3">
-            <p className="text-sm text-gray-500">An OTP will be sent to your registered phone: <strong>{user?.phone || '—'}</strong></p>
-            <Button type="submit" variant="primary" loading={pwLoading} disabled={pwLoading} fullWidth>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              An OTP will be sent to your registered phone: <strong className="text-gray-700 dark:text-gray-200">{user?.phone || '—'}</strong>
+            </p>
+            <button type="submit" disabled={pwLoading}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl
+                bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors disabled:opacity-60">
+              {pwLoading && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
               Send OTP
-            </Button>
+            </button>
           </form>
         ) : (
           <form onSubmit={handlePwReset} className="space-y-3">
-            <p className="text-sm text-gray-500">OTP sent to {user?.phone}</p>
-            <Input label="OTP" name="otp" type="text" value={pw.otp}
-              onChange={e => setPw(p => ({ ...p, otp: e.target.value }))}
-              placeholder="Enter 6-digit OTP" disabled={pwLoading} maxLength={6} required />
-            <div className="relative">
-              <Input label="New Password" name="next" type={pwShowPw ? 'text' : 'password'} value={pw.next}
+            <p className="text-sm text-gray-500 dark:text-gray-400">OTP sent to <strong className="text-gray-700 dark:text-gray-200">{user?.phone}</strong></p>
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">OTP</label>
+              <input type="text" value={pw.otp} onChange={e => setPw(p => ({ ...p, otp: e.target.value }))}
+                placeholder="Enter 6-digit OTP" disabled={pwLoading} maxLength={6} required className={INP} />
+            </div>
+            <div className="space-y-1.5 relative">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">New Password</label>
+              <input type={pwShowPw ? 'text' : 'password'} value={pw.next}
                 onChange={e => setPw(p => ({ ...p, next: e.target.value }))}
-                placeholder="Min 8 characters" disabled={pwLoading} required />
-              <button type="button" onClick={() => setPwShowPw(!pwShowPw)} className="absolute right-3 top-9 text-gray-400">
+                placeholder="Min 8 characters" disabled={pwLoading} required className={INP} />
+              <button type="button" onClick={() => setPwShowPw(!pwShowPw)}
+                className="absolute right-3 top-9 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
                 {pwShowPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            <Input label="Confirm Password" name="confirm" type="password" value={pw.confirm}
-              onChange={e => setPw(p => ({ ...p, confirm: e.target.value }))}
-              placeholder="Repeat new password" disabled={pwLoading} required />
-            <div className="flex gap-2">
-              <Button type="submit" variant="primary" loading={pwLoading} disabled={pwLoading} fullWidth>
-                <Save className="w-4 h-4" /> Reset Password
-              </Button>
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Confirm Password</label>
+              <input type="password" value={pw.confirm}
+                onChange={e => setPw(p => ({ ...p, confirm: e.target.value }))}
+                placeholder="Repeat new password" disabled={pwLoading} required className={INP} />
             </div>
+            <button type="submit" disabled={pwLoading}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl
+                bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors disabled:opacity-60">
+              {pwLoading && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+              <Save className="w-4 h-4" /> Reset Password
+            </button>
             <button type="button" onClick={pwTimer === 0 ? handlePwSendOtp : undefined} disabled={pwTimer > 0 || pwLoading}
-              className="w-full text-center text-sm text-blue-600 disabled:opacity-50">
+              className="w-full text-center text-sm text-indigo-600 dark:text-indigo-400 disabled:opacity-50 hover:underline">
               {pwTimer > 0 ? `Resend OTP in ${pwTimer}s` : 'Resend OTP'}
             </button>
           </form>
@@ -242,7 +310,7 @@ const ProfileContent = () => {
   );
 };
 
-// ─── Salon Information content ────────────────────────────────
+/* ─── Salon Information ───────────────────────────────────────── */
 const SalonContent = ({ salon, updateSalon }) => {
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -297,102 +365,84 @@ const SalonContent = ({ salon, updateSalon }) => {
     setEditing(false);
   };
 
-  // Extract lat/lng from GeoJSON [lng, lat]
   const coords = salon?.location?.coordinates;
   const [salonLng, salonLat] = coords?.length === 2 ? coords : [null, null];
   const hasCoords = salonLat !== null && salonLng !== null;
   const mapSrc = hasCoords
     ? `https://www.openstreetmap.org/export/embed.html?bbox=${salonLng - 0.01},${salonLat - 0.01},${salonLng + 0.01},${salonLat + 0.01}&layer=mapnik&marker=${salonLat},${salonLng}`
     : null;
-  const mapsLink = hasCoords
-    ? `https://www.google.com/maps?q=${salonLat},${salonLng}`
-    : null;
+  const mapsLink = hasCoords ? `https://www.google.com/maps?q=${salonLat},${salonLng}` : null;
+
+  const LabelInput = ({ label, name, type = 'text', placeholder, required, error }) => (
+    <div className="space-y-1.5">
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
+      <input name={name} type={type} value={form[name]} onChange={handleChange}
+        placeholder={placeholder} disabled={loading} required={required} className={INP} />
+      {error && <p className="text-xs text-red-500">{error}</p>}
+    </div>
+  );
 
   return !editing ? (
-    <div className="space-y-2">
-      {/* Salon main photo */}
+    <div className="space-y-1 mt-3">
       {salon?.coverPhoto || salon?.photos?.[0] ? (
-        <div className="rounded-xl overflow-hidden border border-gray-200 mb-3">
-          <img
-            src={salon.coverPhoto || salon.photos[0]}
-            alt="Salon"
-            className="w-full h-40 object-cover"
-          />
-          <p className="text-xs text-gray-400 px-3 py-1.5 bg-gray-50">
-            Main photo · <span className="font-mono break-all">{salon.coverPhoto || salon.photos[0]}</span>
-          </p>
+        <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 mb-4">
+          <img src={salon.coverPhoto || salon.photos[0]} alt="Salon" className="w-full h-40 object-cover" />
         </div>
       ) : null}
 
       {[
         { label: 'Salon Name',  value: form.name },
-        { label: 'Description', value: form.description || '—' },
+        { label: 'Description', value: form.description },
         { label: 'Category',    value: form.category },
         { label: 'Phone',       value: form.phone },
-        { label: 'Email',       value: form.email || '—' },
-        { label: 'Address',     value: form.address || '—' },
-        { label: 'City',        value: form.city || '—' },
-        { label: 'State',       value: form.state || '—' },
-      ].map(({ label, value }) => (
-        <div key={label} className="flex items-start gap-4 py-2 border-b border-gray-100 last:border-0">
-          <span className="w-32 shrink-0 text-sm text-gray-500">{label}</span>
-          <span className="text-sm font-medium text-gray-900">{value}</span>
-        </div>
-      ))}
+        { label: 'Email',       value: form.email },
+        { label: 'Address',     value: form.address },
+        { label: 'City',        value: form.city },
+        { label: 'State',       value: form.state },
+      ].map(({ label, value }) => <FieldRow key={label} label={label} value={value} />)}
 
       {/* Map preview */}
       <div className="mt-4">
-        <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
-          <Globe className="w-4 h-4 text-gray-400" /> Salon Location on Map
+        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
+          <Globe className="w-4 h-4 text-gray-400" /> Salon Location
         </p>
         {mapSrc ? (
-          <div className="rounded-xl overflow-hidden border border-gray-200">
-            <iframe
-              title="Salon Location"
-              src={mapSrc}
-              width="100%"
-              height="220"
-              className="block"
-              loading="lazy"
-            />
-            <div className="px-3 py-2 bg-gray-50 flex items-center justify-between gap-2 text-xs text-gray-500">
-              <span className="font-mono">{salonLat?.toFixed(6)}, {salonLng?.toFixed(6)}</span>
-              <a
-                href={mapsLink}
-                target="_blank"
-                rel="noreferrer"
-                className="text-blue-600 hover:underline font-medium shrink-0"
-              >
+          <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
+            <iframe title="Salon Location" src={mapSrc} width="100%" height="200" className="block" loading="lazy" />
+            <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800 flex items-center justify-between gap-2 text-xs text-gray-500 dark:text-gray-400">
+              <span className="font-mono">{salonLat?.toFixed(5)}, {salonLng?.toFixed(5)}</span>
+              <a href={mapsLink} target="_blank" rel="noreferrer"
+                className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium shrink-0">
                 Open in Google Maps →
               </a>
             </div>
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 h-28 flex items-center justify-center text-sm text-gray-400">
+          <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 h-24 flex items-center justify-center text-sm text-gray-400 dark:text-gray-500">
             No coordinates saved for this salon
           </div>
         )}
       </div>
 
       <button onClick={() => setEditing(true)}
-        className="mt-3 flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+        className="mt-4 flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700
+          text-sm font-medium text-gray-700 dark:text-gray-300
+          hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
         <Edit2 className="w-4 h-4" /> Edit Salon Info
       </button>
     </div>
   ) : (
-    <form onSubmit={handleSave} className="space-y-4">
-      <Input label="Salon Name" name="name" value={form.name} onChange={handleChange}
-        placeholder="Your salon name" error={!!errors.name} errorMessage={errors.name} disabled={loading} required />
+    <form onSubmit={handleSave} className="space-y-4 mt-3">
+      <LabelInput label="Salon Name" name="name" placeholder="Your salon name" required error={errors.name} />
       <div className="space-y-1.5">
-        <label className="block text-sm font-medium text-gray-700">Description</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
         <textarea name="description" value={form.description} onChange={handleChange} rows={3} disabled={loading}
           placeholder="Describe your salon…"
-          className="w-full px-4 py-2 rounded-lg border-2 border-gray-300 focus:border-blue-500 focus:outline-none disabled:bg-gray-100 resize-none text-sm" />
+          className={`${INP} resize-none`} />
       </div>
       <div className="space-y-1.5">
-        <label className="block text-sm font-medium text-gray-700">Category</label>
-        <select name="category" value={form.category} onChange={handleChange} disabled={loading}
-          className="w-full px-4 py-2 rounded-lg border-2 border-gray-300 focus:border-blue-500 focus:outline-none disabled:bg-gray-100 text-sm">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
+        <select name="category" value={form.category} onChange={handleChange} disabled={loading} className={SEL}>
           <option value="barber">Barber Shop</option>
           <option value="hair_salon">Hair Salon</option>
           <option value="spa">Spa</option>
@@ -402,44 +452,31 @@ const SalonContent = ({ salon, updateSalon }) => {
         </select>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input label="Phone" name="phone" type="tel" value={form.phone} onChange={handleChange}
-          placeholder="+91 98765 43210" error={!!errors.phone} errorMessage={errors.phone} disabled={loading} required />
-        <Input label="Email" name="email" type="email" value={form.email} onChange={handleChange}
-          placeholder="salon@email.com" disabled={loading} />
+        <LabelInput label="Phone" name="phone" type="tel" placeholder="+91 98765 43210" required error={errors.phone} />
+        <LabelInput label="Email" name="email" type="email" placeholder="salon@email.com" />
       </div>
-      <Input label="Address" name="address" value={form.address} onChange={handleChange}
-        placeholder="Street address" disabled={loading} />
+      <LabelInput label="Address" name="address" placeholder="Street address" />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input label="City" name="city" value={form.city} onChange={handleChange}
-          placeholder="City" disabled={loading} />
-        <Input label="State" name="state" value={form.state} onChange={handleChange}
-          placeholder="State" disabled={loading} />
+        <LabelInput label="City" name="city" placeholder="City" />
+        <LabelInput label="State" name="state" placeholder="State" />
       </div>
-      {/* Show current map in edit mode too */}
       {mapSrc && (
         <div>
-          <p className="text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1.5">
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1.5">
             <Globe className="w-4 h-4 text-gray-400" /> Current Location
           </p>
-          <div className="rounded-xl overflow-hidden border border-gray-200">
-            <iframe title="Salon Location" src={mapSrc} width="100%" height="180" className="block" loading="lazy" />
+          <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
+            <iframe title="Salon Location" src={mapSrc} width="100%" height="170" className="block" loading="lazy" />
           </div>
-          <p className="text-xs text-gray-400 mt-1">Map pin shows the coordinates saved during salon registration.</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Coordinates set during salon registration.</p>
         </div>
       )}
-      <div className="flex gap-2">
-        <Button type="submit" variant="primary" loading={loading} disabled={loading} fullWidth>
-          <Save className="w-4 h-4" /> Save Changes
-        </Button>
-        <Button type="button" variant="outline" disabled={loading} fullWidth onClick={handleCancel}>
-          <X className="w-4 h-4" /> Cancel
-        </Button>
-      </div>
+      <SaveBar loading={loading} onCancel={handleCancel} />
     </form>
   );
 };
 
-// ─── Notifications content ────────────────────────────────────
+/* ─── Notifications ──────────────────────────────────────────── */
 const NotificationsContent = () => {
   const { permission, requestPermission } = useNotifications();
   const [prefs, setPrefs] = useState(() => {
@@ -475,33 +512,36 @@ const NotificationsContent = () => {
     { name: 'reviewNotifications', label: 'New Reviews',          desc: 'Get notified when a customer leaves a review' },
   ];
 
+  const pushBg = permission === 'granted'
+    ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800/50'
+    : permission === 'denied'
+    ? 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/50'
+    : 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/50';
+
   return (
-    <div className="space-y-4">
-      {/* Browser push permission banner */}
-      <div className={`flex items-center justify-between gap-4 p-4 rounded-xl border-2 ${
-        permission === 'granted' ? 'bg-green-50 border-green-200' :
-        permission === 'denied'  ? 'bg-red-50 border-red-200' :
-                                   'bg-amber-50 border-amber-200'
-      }`}>
+    <div className="space-y-4 mt-3">
+      {/* Browser push */}
+      <div className={`flex items-center justify-between gap-4 p-4 rounded-xl border-2 ${pushBg}`}>
         <div className="flex items-center gap-3">
           {permission === 'granted'
-            ? <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0" />
-            : <BellOff className="w-5 h-5 text-amber-500 shrink-0" />}
+            ? <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0" />
+            : <BellOff className="w-5 h-5 text-amber-500 dark:text-amber-400 shrink-0" />}
           <div>
-            <p className="text-sm font-semibold text-gray-800">
-              {permission === 'granted' ? 'Push notifications enabled' :
-               permission === 'denied'  ? 'Push notifications blocked' : 'Enable push notifications'}
+            <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+              {permission === 'granted' ? 'Push notifications enabled'
+               : permission === 'denied'  ? 'Push notifications blocked'
+               : 'Enable push notifications'}
             </p>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {permission === 'granted' ? 'You will be alerted in-browser for new bookings.' :
-               permission === 'denied'  ? 'Allow in browser site settings to receive alerts.' :
-                                          'Click Allow to get instant browser alerts.'}
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              {permission === 'granted' ? 'You will be alerted in-browser for new bookings.'
+               : permission === 'denied'  ? 'Allow in browser site settings to receive alerts.'
+               : 'Click Allow to get instant browser alerts.'}
             </p>
           </div>
         </div>
         {permission === 'default' && (
           <button onClick={requestPermission}
-            className="shrink-0 px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold rounded-lg transition">
+            className="shrink-0 px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold rounded-xl transition-colors">
             Allow
           </button>
         )}
@@ -509,24 +549,27 @@ const NotificationsContent = () => {
 
       <div className="space-y-2">
         {ITEMS.map(item => (
-          <div key={item.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+          <div key={item.name} className="flex items-center justify-between p-3.5 rounded-xl
+            bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700/50">
             <div>
-              <p className="text-sm font-medium text-gray-900">{item.label}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{item.desc}</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">{item.label}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{item.desc}</p>
             </div>
             <Toggle name={item.name} checked={prefs[item.name]} onChange={handleChange} />
           </div>
         ))}
       </div>
 
-      <Button variant="primary" onClick={handleSave} fullWidth>
+      <button onClick={handleSave}
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl
+          bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors">
         <Save className="w-4 h-4" /> Save Preferences
-      </Button>
+      </button>
     </div>
   );
 };
 
-// ─── App Preferences content ──────────────────────────────────
+/* ─── App Preferences ────────────────────────────────────────── */
 const AppContent = () => {
   const { changeLanguage } = useLanguage();
   const [prefs, setPrefs] = useState(() => {
@@ -541,20 +584,17 @@ const AppContent = () => {
   const handleSave = () => {
     try {
       localStorage.setItem('appPrefs', JSON.stringify(prefs));
-      // Apply theme immediately
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       if (prefs.theme === 'dark' || (prefs.theme === 'auto' && prefersDark)) {
         document.documentElement.classList.add('dark');
       } else {
         document.documentElement.classList.remove('dark');
       }
-      // Apply language immediately
       changeLanguage(prefs.language);
       toast.success('App preferences saved!');
     } catch { toast.error('Failed to save'); }
   };
 
-  const SELECT = "w-full px-4 py-2 rounded-lg border-2 border-gray-300 focus:border-blue-500 focus:outline-none text-sm";
   const FIELDS = [
     { name:'theme',      label:'Theme',       options:[['light','Light'],['dark','Dark'],['auto','Auto (System)']] },
     { name:'language',   label:'Language',    options:[['en','English'],['hi','Hindi']] },
@@ -563,39 +603,38 @@ const AppContent = () => {
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 mt-3">
       {FIELDS.map(({ name, label, options }) => (
         <div key={name} className="space-y-1.5">
-          <label className="block text-sm font-medium text-gray-700">{label}</label>
-          <select name={name} value={prefs[name]} onChange={handleChange} className={SELECT}>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
+          <select name={name} value={prefs[name]} onChange={handleChange} className={SEL}>
             {options.map(([val, text]) => <option key={val} value={val}>{text}</option>)}
           </select>
         </div>
       ))}
-      <Button variant="primary" onClick={handleSave} fullWidth>
+      <button onClick={handleSave}
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl
+          bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors">
         <Save className="w-4 h-4" /> Save Preferences
-      </Button>
+      </button>
     </div>
   );
 };
 
-// ─── Booking Window content ───────────────────────────────────
+/* ─── Booking Window ─────────────────────────────────────────── */
 const BookingWindowContent = ({ salon, updateSalon }) => {
-  const current = salon?.advanceBookingDays ?? 1;
-  const [days, setDays] = useState(current);
+  const [days, setDays]     = useState(salon?.advanceBookingDays ?? 1);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    setDays(salon?.advanceBookingDays ?? 1);
-  }, [salon]);
+  useEffect(() => { setDays(salon?.advanceBookingDays ?? 1); }, [salon]);
 
   const OPTIONS = [
-    { value: 0, label: 'Today only', desc: 'Customers can only book for the current day' },
-    { value: 1, label: 'Today + Tomorrow', desc: 'Default — customers can book up to 1 day ahead' },
-    { value: 3, label: 'Next 3 days', desc: 'Today and 3 days in advance' },
-    { value: 7, label: 'Next 7 days', desc: 'Today and 7 days in advance' },
-    { value: 14, label: 'Next 14 days', desc: 'Today and 2 weeks in advance' },
-    { value: 30, label: 'Next 30 days', desc: 'Today and 30 days in advance' },
+    { value: 0,  label: 'Today only',         desc: 'Customers can only book for the current day' },
+    { value: 1,  label: 'Today + Tomorrow',    desc: 'Default — customers can book up to 1 day ahead' },
+    { value: 3,  label: 'Next 3 days',         desc: 'Today and 3 days in advance' },
+    { value: 7,  label: 'Next 7 days',         desc: 'Today and 7 days in advance' },
+    { value: 14, label: 'Next 14 days',        desc: 'Today and 2 weeks in advance' },
+    { value: 30, label: 'Next 30 days',        desc: 'Today and 30 days in advance' },
   ];
 
   const handleSave = async () => {
@@ -609,45 +648,42 @@ const BookingWindowContent = ({ salon, updateSalon }) => {
   };
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-gray-500">
+    <div className="space-y-4 mt-3">
+      <p className="text-sm text-gray-500 dark:text-gray-400">
         Control how far in advance customers can book appointments at your salon.
       </p>
       <div className="space-y-2">
         {OPTIONS.map(opt => (
-          <button
-            key={opt.value}
-            type="button"
-            onClick={() => setDays(opt.value)}
+          <button key={opt.value} type="button" onClick={() => setDays(opt.value)}
             className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 text-left transition-all ${
               days === opt.value
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-200 hover:border-gray-300 bg-white'
-            }`}
-          >
+                ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 dark:border-indigo-500'
+                : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/40 hover:border-gray-300 dark:hover:border-gray-600'
+            }`}>
             <div>
-              <p className={`text-sm font-semibold ${days === opt.value ? 'text-blue-700' : 'text-gray-800'}`}>
+              <p className={`text-sm font-semibold ${days === opt.value ? 'text-indigo-700 dark:text-indigo-300' : 'text-gray-800 dark:text-gray-200'}`}>
                 {opt.label}
               </p>
-              <p className="text-xs text-gray-500 mt-0.5">{opt.desc}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{opt.desc}</p>
             </div>
-            {days === opt.value && (
-              <CheckCircle2 className="w-5 h-5 text-blue-500 shrink-0" />
-            )}
+            {days === opt.value && <CheckCircle2 className="w-5 h-5 text-indigo-500 shrink-0" />}
           </button>
         ))}
       </div>
-      <Button variant="primary" onClick={handleSave} loading={loading} disabled={loading} fullWidth>
+      <button onClick={handleSave} disabled={loading}
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl
+          bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors disabled:opacity-60">
+        {loading && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
         <Save className="w-4 h-4" /> Save Booking Window
-      </Button>
+      </button>
     </div>
   );
 };
 
-// ─── Auto Confirm content ─────────────────────────────────────
+/* ─── Auto Confirm ───────────────────────────────────────────── */
 const AutoConfirmContent = ({ salon, updateSalon }) => {
-  const [enabled, setEnabled] = useState(salon?.autoConfirmBookings !== false);
-  const [loading, setLoading] = useState(false);
+  const [enabled, setEnabled]   = useState(salon?.autoConfirmBookings !== false);
+  const [loading, setLoading]   = useState(false);
   const initialized = useRef(false);
 
   useEffect(() => {
@@ -668,35 +704,39 @@ const AutoConfirmContent = ({ salon, updateSalon }) => {
   };
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-gray-500">
-        When enabled, cash bookings are confirmed instantly. When disabled, each booking stays <strong>pending</strong> until you manually confirm it from the Bookings page.
+    <div className="space-y-4 mt-3">
+      <p className="text-sm text-gray-500 dark:text-gray-400">
+        When enabled, cash bookings are confirmed instantly. When disabled, each booking stays{' '}
+        <strong className="text-gray-700 dark:text-gray-300">pending</strong> until you manually confirm it.
       </p>
       <div className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
-        enabled ? 'border-green-400 bg-green-50' : 'border-gray-200 bg-white'
+        enabled
+          ? 'border-green-400 dark:border-green-700 bg-green-50 dark:bg-green-950/30'
+          : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40'
       }`}>
         <div>
-          <p className={`text-sm font-semibold ${enabled ? 'text-green-700' : 'text-gray-800'}`}>
-            {enabled ? '✅ Auto-Confirm is ON' : '⏸️ Auto-Confirm is OFF'}
+          <p className={`text-sm font-semibold ${enabled ? 'text-green-700 dark:text-green-300' : 'text-gray-800 dark:text-gray-200'}`}>
+            {enabled ? 'Auto-Confirm is ON' : 'Auto-Confirm is OFF'}
           </p>
-          <p className="text-xs text-gray-500 mt-0.5">
-            {enabled
-              ? 'New bookings are confirmed automatically.'
-              : 'You must manually confirm each new booking.'}
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            {enabled ? 'New bookings are confirmed automatically.' : 'You must manually confirm each new booking.'}
           </p>
         </div>
         <Toggle name="autoConfirm" checked={enabled} onChange={e => setEnabled(e.target.checked)} />
       </div>
-      <Button variant="primary" onClick={handleSave} loading={loading} disabled={loading} fullWidth>
+      <button onClick={handleSave} disabled={loading}
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl
+          bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors disabled:opacity-60">
+        {loading && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
         <Save className="w-4 h-4" /> Save Setting
-      </Button>
+      </button>
     </div>
   );
 };
 
-// ─── Booking Mode content ─────────────────────────────────────
+/* ─── Booking Mode ───────────────────────────────────────────── */
 const BookingModeContent = ({ salon, updateSalon }) => {
-  const [mode, setMode] = useState(salon?.bookingMode || 'flexible');
+  const [mode, setMode]       = useState(salon?.bookingMode || 'flexible');
   const [loading, setLoading] = useState(false);
   const initialized = useRef(false);
 
@@ -711,14 +751,14 @@ const BookingModeContent = ({ salon, updateSalon }) => {
     {
       value: 'flexible',
       label: 'Flexible (Customer Picks)',
-      desc: 'Customer chooses any available time slot from all open slots.',
-      icon: '🗓️',
+      desc:  'Customer chooses any available time slot from all open slots.',
+      icon:  '🗓️',
     },
     {
       value: 'sequential',
       label: 'Sequential (Next in Line)',
-      desc: 'Bookings are assigned one after another. Customer gets the next open slot automatically — no gap between appointments.',
-      icon: '⏩',
+      desc:  'Bookings are assigned one after another. Customer gets the next open slot automatically — no gap.',
+      icon:  '⏩',
     },
   ];
 
@@ -733,45 +773,42 @@ const BookingModeContent = ({ salon, updateSalon }) => {
   };
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-gray-500">
+    <div className="space-y-4 mt-3">
+      <p className="text-sm text-gray-500 dark:text-gray-400">
         Choose how appointment slots are assigned to customers.
       </p>
       <div className="space-y-2">
         {OPTIONS.map(opt => (
-          <button
-            key={opt.value}
-            type="button"
-            onClick={() => setMode(opt.value)}
+          <button key={opt.value} type="button" onClick={() => setMode(opt.value)}
             className={`w-full flex items-start gap-3 px-4 py-3 rounded-xl border-2 text-left transition-all ${
               mode === opt.value
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-200 hover:border-gray-300 bg-white'
-            }`}
-          >
-            <span className="text-2xl shrink-0 mt-0.5">{opt.icon}</span>
+                ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 dark:border-indigo-500'
+                : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/40 hover:border-gray-300 dark:hover:border-gray-600'
+            }`}>
+            <span className="text-xl shrink-0 mt-0.5">{opt.icon}</span>
             <div className="flex-1 min-w-0">
-              <p className={`text-sm font-semibold ${mode === opt.value ? 'text-blue-700' : 'text-gray-800'}`}>
+              <p className={`text-sm font-semibold ${mode === opt.value ? 'text-indigo-700 dark:text-indigo-300' : 'text-gray-800 dark:text-gray-200'}`}>
                 {opt.label}
               </p>
-              <p className="text-xs text-gray-500 mt-0.5">{opt.desc}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{opt.desc}</p>
             </div>
-            {mode === opt.value && (
-              <CheckCircle2 className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
-            )}
+            {mode === opt.value && <CheckCircle2 className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />}
           </button>
         ))}
       </div>
-      <Button variant="primary" onClick={handleSave} loading={loading} disabled={loading} fullWidth>
+      <button onClick={handleSave} disabled={loading}
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl
+          bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors disabled:opacity-60">
+        {loading && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
         <Save className="w-4 h-4" /> Save Booking Mode
-      </Button>
+      </button>
     </div>
   );
 };
 
-// ─── Salon Photos content ─────────────────────────────────────
+/* ─── Salon Photos ───────────────────────────────────────────── */
 const SalonPhotosContent = ({ salon, fetchSalon }) => {
-  const [photos, setPhotos] = useState(salon?.photos || []);
+  const [photos, setPhotos]     = useState(salon?.photos || []);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -813,70 +850,62 @@ const SalonPhotosContent = ({ salon, fetchSalon }) => {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Upload button */}
+    <div className="space-y-4 mt-3">
       <div
         onClick={() => !uploading && fileInputRef.current?.click()}
-        className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition"
-      >
+        className="flex flex-col items-center justify-center gap-2 p-6 rounded-xl cursor-pointer
+          border-2 border-dashed border-gray-300 dark:border-gray-700
+          hover:border-indigo-400 dark:hover:border-indigo-500
+          hover:bg-indigo-50 dark:hover:bg-indigo-950/20
+          bg-gray-50 dark:bg-gray-800/40 transition-all">
         {uploading
-          ? <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-          : <ImagePlus className="w-7 h-7 text-gray-400" />}
-        <p className="text-sm font-medium text-gray-600">
+          ? <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          : <ImagePlus className="w-7 h-7 text-gray-400 dark:text-gray-500" />}
+        <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
           {uploading ? 'Uploading…' : 'Click to upload salon photos'}
         </p>
-        <p className="text-xs text-gray-400">JPG, PNG, WebP · Up to 10 photos total</p>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          multiple
-          className="hidden"
-          onChange={handleUpload}
-        />
+        <p className="text-xs text-gray-400 dark:text-gray-500">JPG, PNG, WebP · Up to 10 photos total</p>
+        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp"
+          multiple className="hidden" onChange={handleUpload} />
       </div>
 
-      {/* Photo grid */}
       {photos.length > 0 ? (
         <div className="grid grid-cols-3 gap-2">
           {photos.map((url, i) => (
-            <div key={i} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200">
+            <div key={i} className="relative group aspect-square rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
               <img src={url} alt={`Salon photo ${i + 1}`} className="w-full h-full object-cover" />
-              <button
-                onClick={() => handleDelete(url)}
-                className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
-              >
+              <button onClick={() => handleDelete(url)}
+                className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                 <Trash2 className="w-5 h-5 text-white" />
               </button>
             </div>
           ))}
         </div>
       ) : (
-        <p className="text-center text-sm text-gray-400 py-4">No photos uploaded yet</p>
+        <p className="text-center text-sm text-gray-400 dark:text-gray-500 py-4">No photos uploaded yet</p>
       )}
 
-      <p className="text-xs text-gray-400 text-center">{photos.length}/10 photos · Hover a photo to delete it</p>
+      <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
+        {photos.length}/10 photos · Hover a photo to delete it
+      </p>
     </div>
   );
 };
 
-// ─── Closed Dates / Holidays content ─────────────────────────
+/* ─── Closed Dates ───────────────────────────────────────────── */
 const ClosedDatesContent = ({ salon }) => {
-  const [holidays, setHolidays] = useState([]);
-  const [newDate, setNewDate]   = useState('');
+  const [holidays, setHolidays]   = useState([]);
+  const [newDate, setNewDate]     = useState('');
   const [newReason, setNewReason] = useState('');
-  const [adding, setAdding]     = useState(false);
-  const [deleting, setDeleting] = useState(null);
+  const [adding, setAdding]       = useState(false);
+  const [deleting, setDeleting]   = useState(null);
 
-  // Compute today's local date string
   const todayStr = (() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   })();
 
-  useEffect(() => {
-    setHolidays(salon?.workingHours?.holidays || []);
-  }, [salon]);
+  useEffect(() => { setHolidays(salon?.workingHours?.holidays || []); }, [salon]);
 
   const handleAdd = async () => {
     if (!newDate) { toast.error('Please select a date'); return; }
@@ -884,8 +913,7 @@ const ClosedDatesContent = ({ salon }) => {
     try {
       const res = await api.post('/owner/salon/holidays', { date: newDate, reason: newReason.trim() });
       setHolidays(res.data.data.holidays);
-      setNewDate('');
-      setNewReason('');
+      setNewDate(''); setNewReason('');
       toast.success('Closed date added!');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to add closed date');
@@ -904,52 +932,44 @@ const ClosedDatesContent = ({ salon }) => {
   };
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-gray-500">
-        Mark specific dates as closed (e.g. holidays, events). Customers won't be able to book on these dates.
+    <div className="space-y-4 mt-3">
+      <p className="text-sm text-gray-500 dark:text-gray-400">
+        Mark specific dates as closed (e.g. holidays, events). Customers cannot book on these dates.
       </p>
 
-      {/* Add new date */}
-      <div className="border border-gray-200 rounded-xl p-4 space-y-3">
-        <p className="text-sm font-semibold text-gray-800">Add Closed Date</p>
-        <input
-          type="date"
-          min={todayStr}
-          value={newDate}
-          onChange={e => setNewDate(e.target.value)}
-          className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        />
-        <input
-          type="text"
-          value={newReason}
-          onChange={e => setNewReason(e.target.value)}
+      <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3 bg-gray-50 dark:bg-gray-800/40">
+        <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">Add Closed Date</p>
+        <input type="date" min={todayStr} value={newDate} onChange={e => setNewDate(e.target.value)}
+          className={INP} />
+        <input type="text" value={newReason} onChange={e => setNewReason(e.target.value)}
           placeholder="Reason (e.g. Diwali, Owner holiday)"
-          className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        />
-        <Button variant="primary" onClick={handleAdd} loading={adding} disabled={adding} fullWidth>
+          className={INP} />
+        <button onClick={handleAdd} disabled={adding}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl
+            bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors disabled:opacity-60">
+          {adding && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
           <Plus className="w-4 h-4" /> Add Closed Date
-        </Button>
+        </button>
       </div>
 
-      {/* Existing holidays list */}
       {holidays.length === 0 ? (
-        <p className="text-sm text-gray-400 text-center py-3">No closed dates set.</p>
+        <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-3">No closed dates set.</p>
       ) : (
         <div className="space-y-2">
           {[...holidays].sort((a, b) => new Date(a.date) - new Date(b.date)).map((h) => {
             const dateStr = new Date(h.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
             return (
-              <div key={h._id} className="flex items-center justify-between gap-3 p-3 bg-red-50 border border-red-100 rounded-xl">
+              <div key={h._id} className="flex items-center justify-between gap-3 p-3 rounded-xl
+                bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/50">
                 <div>
-                  <p className="text-sm font-semibold text-red-800">{dateStr}</p>
-                  {h.reason && <p className="text-xs text-red-500 mt-0.5">{h.reason}</p>}
+                  <p className="text-sm font-semibold text-red-800 dark:text-red-300">{dateStr}</p>
+                  {h.reason && <p className="text-xs text-red-500 dark:text-red-400 mt-0.5">{h.reason}</p>}
                 </div>
-                <button
-                  onClick={() => handleDelete(h._id)}
-                  disabled={deleting === h._id}
-                  className="shrink-0 p-1.5 rounded-lg hover:bg-red-100 text-red-500 transition disabled:opacity-50"
-                >
-                  {deleting === h._id ? '…' : <Trash2 className="w-4 h-4" />}
+                <button onClick={() => handleDelete(h._id)} disabled={deleting === h._id}
+                  className="shrink-0 p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 text-red-500 transition disabled:opacity-50">
+                  {deleting === h._id
+                    ? <span className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin block" />
+                    : <Trash2 className="w-4 h-4" />}
                 </button>
               </div>
             );
@@ -960,16 +980,14 @@ const ClosedDatesContent = ({ salon }) => {
   );
 };
 
-
-
-// ─── Privacy & Security content ───────────────────────────────
+/* ─── Privacy & Security ─────────────────────────────────────── */
 const PrivacyContent = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [showDelete, setShowDelete] = useState(false);
   const [password, setPassword]     = useState('');
   const [deleting, setDeleting]     = useState(false);
-  const [step, setStep]             = useState(1); // 1=info, 2=confirm, 3=password
+  const [step, setStep]             = useState(1);
 
   const handleDelete = async () => {
     if (!password.trim()) { toast.error('Enter your password'); return; }
@@ -985,62 +1003,65 @@ const PrivacyContent = () => {
     } finally { setDeleting(false); }
   };
 
+  const SHIELDS = [
+    { icon: '🔒', title: 'Data Encryption',  desc: 'All your data is encrypted end-to-end and stored securely.' },
+    { icon: '🚫', title: 'No Data Sharing',  desc: 'We never share your information with third parties.' },
+    { icon: '🛡️', title: 'Security Updates', desc: 'Regular patches and security updates are applied automatically.' },
+    { icon: '🔑', title: 'Token Security',   desc: 'Auth tokens expire automatically and refresh securely.' },
+  ];
+
   return (
-    <div className="space-y-3">
-      {[
-        { icon:'🔒', title:'Data Encryption',  desc:'All your data is encrypted end-to-end and stored securely.' },
-        { icon:'🚫', title:'No Data Sharing',  desc:'We never share your information with third parties.' },
-        { icon:'🛡️', title:'Security Updates', desc:'Regular patches and security updates are applied automatically.' },
-        { icon:'🔑', title:'Token Security',   desc:'Auth tokens expire automatically and refresh securely.' },
-      ].map(({ icon, title, desc }) => (
-        <div key={title} className="flex items-start gap-4 p-4 bg-gray-50 rounded-xl">
+    <div className="space-y-3 mt-3">
+      {SHIELDS.map(({ icon, title, desc }) => (
+        <div key={title} className="flex items-start gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700/50">
           <span className="text-2xl shrink-0">{icon}</span>
           <div>
-            <p className="text-sm font-semibold text-gray-900">{title}</p>
-            <p className="text-xs text-gray-500 mt-0.5">{desc}</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">{title}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{desc}</p>
           </div>
         </div>
       ))}
 
-      {/* ── Delete Account ── */}
-      <div className="border-t border-gray-100 pt-3">
+      {/* Delete account */}
+      <div className="border-t border-gray-100 dark:border-gray-800 pt-3">
         {!showDelete ? (
-          <button
-            type="button"
-            onClick={() => { setShowDelete(true); setStep(1); }}
-            className="w-full flex items-center justify-between px-4 py-3 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition"
-          >
+          <button type="button" onClick={() => { setShowDelete(true); setStep(1); }}
+            className="w-full flex items-center justify-between px-4 py-3 rounded-xl
+              bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50
+              hover:bg-red-100 dark:hover:bg-red-950/50 transition-colors">
             <div className="flex items-center gap-3">
               <span className="text-xl">🗑️</span>
               <div className="text-left">
-                <p className="text-sm font-semibold text-red-700">Delete Account</p>
-                <p className="text-xs text-red-400">Permanently remove your account and all data</p>
+                <p className="text-sm font-semibold text-red-700 dark:text-red-400">Delete Account</p>
+                <p className="text-xs text-red-400 dark:text-red-500">Permanently remove your account and all data</p>
               </div>
             </div>
             <ChevronDown className="w-4 h-4 text-red-400 shrink-0" />
           </button>
         ) : (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 space-y-4">
+          <div className="rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 p-4 space-y-4">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-bold text-red-700">Delete Account Forever</p>
+              <p className="text-sm font-bold text-red-700 dark:text-red-400">Delete Account Forever</p>
               <button type="button" onClick={() => { setShowDelete(false); setStep(1); setPassword(''); }}
-                className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             {step === 1 && (
               <>
-                <div className="space-y-2 text-sm text-red-700">
+                <div className="space-y-2 text-sm text-red-700 dark:text-red-300">
                   <p className="font-medium">This will permanently delete:</p>
-                  <ul className="list-disc pl-5 space-y-1 text-red-600 text-xs">
+                  <ul className="list-disc pl-5 space-y-1 text-red-600 dark:text-red-400 text-xs">
                     <li>Your owner account and profile</li>
                     <li>Your salon listing and all its services</li>
                     <li>All customer reviews on your salon</li>
                     <li>All booking history</li>
                   </ul>
-                  <p className="text-xs text-red-500 font-semibold pt-1">⚠️ This action cannot be undone.</p>
+                  <p className="text-xs text-red-500 font-semibold pt-1">This action cannot be undone.</p>
                 </div>
                 <button type="button" onClick={() => setStep(2)}
-                  className="w-full py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg transition">
+                  className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl transition-colors">
                   I understand, continue
                 </button>
               </>
@@ -1048,21 +1069,23 @@ const PrivacyContent = () => {
 
             {step === 2 && (
               <>
-                <p className="text-sm text-red-700">Enter your password to confirm deletion:</p>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
+                <p className="text-sm text-red-700 dark:text-red-300">Enter your password to confirm deletion:</p>
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)}
                   placeholder="Your current password"
-                  className="w-full px-3 py-2 border-2 border-red-300 focus:border-red-500 focus:outline-none rounded-lg text-sm"
-                />
+                  className="w-full px-3 py-2.5 rounded-xl border-2 border-red-300 dark:border-red-700
+                    bg-white dark:bg-gray-900 text-gray-900 dark:text-white
+                    focus:outline-none focus:border-red-500 text-sm" />
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setStep(1)}
-                    className="flex-1 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition">
+                    className="flex-1 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl
+                      text-sm font-medium text-gray-600 dark:text-gray-300
+                      hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                     Back
                   </button>
                   <button type="button" onClick={handleDelete} disabled={deleting}
-                    className="flex-1 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white text-sm font-semibold rounded-lg transition flex items-center justify-center gap-2">
+                    className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-60
+                      text-white text-sm font-semibold rounded-xl transition-colors
+                      flex items-center justify-center gap-2">
                     {deleting && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                     {deleting ? 'Deleting…' : 'Delete Forever'}
                   </button>
@@ -1076,23 +1099,23 @@ const PrivacyContent = () => {
   );
 };
 
-// ─── About Content ────────────────────────────────────────────
+/* ─── About ──────────────────────────────────────────────────── */
 const AboutContent = () => (
-  <div className="space-y-4">
-    <div className="space-y-1 text-sm">
+  <div className="space-y-4 mt-3">
+    <div className="space-y-1">
       {[
-        { label: 'App Name',    value: 'SmartSalon' },
-        { label: 'Version',     value: '1.0.0' },
-        { label: 'Platform',    value: 'Web (Owner Panel)' },
-        { label: 'Support',     value: 'support@smartsalon.in' },
+        { label: 'App Name',  value: 'My Salon Bookings' },
+        { label: 'Version',   value: '1.0.0' },
+        { label: 'Platform',  value: 'Web (Owner Panel)' },
+        { label: 'Support',   value: 'support@mysalonbookings.in' },
       ].map(({ label, value }) => (
-        <div key={label} className="flex justify-between py-2.5 border-b border-gray-50 last:border-0">
-          <span className="text-gray-500">{label}</span>
-          <span className="font-medium text-gray-800">{value}</span>
+        <div key={label} className="flex justify-between py-2.5 border-b border-gray-100 dark:border-gray-800 last:border-0">
+          <span className="text-sm text-gray-500 dark:text-gray-400">{label}</span>
+          <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{value}</span>
         </div>
       ))}
     </div>
-    <div className="flex gap-4 text-xs text-blue-600 font-medium pt-1">
+    <div className="flex gap-4 text-xs text-indigo-600 dark:text-indigo-400 font-medium pt-1">
       <button type="button" className="hover:underline">Privacy Policy</button>
       <button type="button" className="hover:underline">Terms of Service</button>
       <button type="button" className="hover:underline">Help Center</button>
@@ -1100,7 +1123,7 @@ const AboutContent = () => (
   </div>
 );
 
-// ─── Main Settings Page ───────────────────────────────────────
+/* ─── Settings Page ──────────────────────────────────────────── */
 const SettingsPage = () => {
   const { salon, updateSalon, fetchSalon } = useSalon();
   const [activeId, setActiveId] = useState(null);
@@ -1111,7 +1134,8 @@ const SettingsPage = () => {
     {
       id: 'profile',
       icon: User,
-      iconBg: 'bg-blue-100 text-blue-600',
+      iconBg: 'bg-indigo-100 dark:bg-indigo-950',
+      iconColor: 'text-indigo-600 dark:text-indigo-400',
       title: 'My Profile',
       subtitle: 'Name, email and account details',
       content: <ProfileContent />,
@@ -1119,15 +1143,17 @@ const SettingsPage = () => {
     {
       id: 'salon',
       icon: Globe,
-      iconBg: 'bg-green-100 text-green-600',
+      iconBg: 'bg-emerald-100 dark:bg-emerald-950',
+      iconColor: 'text-emerald-600 dark:text-emerald-400',
       title: 'Salon Information',
-      subtitle: 'Salon name, category and contact',
+      subtitle: 'Salon name, category and contact details',
       content: <SalonContent salon={salon} updateSalon={updateSalon} />,
     },
     {
       id: 'notifications',
       icon: Bell,
-      iconBg: 'bg-amber-100 text-amber-600',
+      iconBg: 'bg-amber-100 dark:bg-amber-950',
+      iconColor: 'text-amber-600 dark:text-amber-400',
       title: 'Notifications',
       subtitle: 'Email, SMS and push notification preferences',
       content: <NotificationsContent />,
@@ -1135,7 +1161,8 @@ const SettingsPage = () => {
     {
       id: 'app',
       icon: Settings,
-      iconBg: 'bg-indigo-100 text-indigo-600',
+      iconBg: 'bg-violet-100 dark:bg-violet-950',
+      iconColor: 'text-violet-600 dark:text-violet-400',
       title: 'App Preferences',
       subtitle: 'Theme, language and display settings',
       content: <AppContent />,
@@ -1143,7 +1170,8 @@ const SettingsPage = () => {
     {
       id: 'booking-window',
       icon: Calendar,
-      iconBg: 'bg-purple-100 text-purple-600',
+      iconBg: 'bg-blue-100 dark:bg-blue-950',
+      iconColor: 'text-blue-600 dark:text-blue-400',
       title: 'Booking Window',
       subtitle: 'How far in advance customers can book',
       content: <BookingWindowContent salon={salon} updateSalon={updateSalon} />,
@@ -1151,7 +1179,8 @@ const SettingsPage = () => {
     {
       id: 'booking-mode',
       icon: GitBranch,
-      iconBg: 'bg-teal-100 text-teal-600',
+      iconBg: 'bg-teal-100 dark:bg-teal-950',
+      iconColor: 'text-teal-600 dark:text-teal-400',
       title: 'Booking Mode',
       subtitle: 'Sequential (next-in-line) or Flexible (customer picks slot)',
       content: <BookingModeContent salon={salon} updateSalon={updateSalon} />,
@@ -1159,7 +1188,8 @@ const SettingsPage = () => {
     {
       id: 'auto-confirm',
       icon: CheckCircle2,
-      iconBg: 'bg-green-100 text-green-600',
+      iconBg: 'bg-green-100 dark:bg-green-950',
+      iconColor: 'text-green-600 dark:text-green-400',
       title: 'Auto-Confirm Bookings',
       subtitle: 'Confirm bookings instantly or review them manually',
       content: <AutoConfirmContent salon={salon} updateSalon={updateSalon} />,
@@ -1167,7 +1197,8 @@ const SettingsPage = () => {
     {
       id: 'photos',
       icon: Camera,
-      iconBg: 'bg-pink-100 text-pink-600',
+      iconBg: 'bg-pink-100 dark:bg-pink-950',
+      iconColor: 'text-pink-600 dark:text-pink-400',
       title: 'Salon Photos',
       subtitle: 'Upload photos customers will see on your salon page',
       content: <SalonPhotosContent salon={salon} fetchSalon={fetchSalon} />,
@@ -1175,7 +1206,8 @@ const SettingsPage = () => {
     {
       id: 'closed-dates',
       icon: CalendarX,
-      iconBg: 'bg-red-100 text-red-600',
+      iconBg: 'bg-red-100 dark:bg-red-950',
+      iconColor: 'text-red-600 dark:text-red-400',
       title: 'Closed Dates / Holidays',
       subtitle: 'Mark specific dates when your salon is closed',
       content: <ClosedDatesContent salon={salon} />,
@@ -1183,31 +1215,35 @@ const SettingsPage = () => {
     {
       id: 'privacy',
       icon: Lock,
-      iconBg: 'bg-red-100 text-red-600',
+      iconBg: 'bg-slate-100 dark:bg-slate-900',
+      iconColor: 'text-slate-600 dark:text-slate-400',
       title: 'Privacy & Security',
-      subtitle: 'Data protection and security information',
+      subtitle: 'Data protection, security and account deletion',
       content: <PrivacyContent />,
     },
     {
       id: 'about',
-      icon: Settings,
-      iconBg: 'bg-slate-100 text-slate-600',
+      icon: Info,
+      iconBg: 'bg-gray-100 dark:bg-gray-800',
+      iconColor: 'text-gray-600 dark:text-gray-400',
       title: 'About',
-      subtitle: 'App info, support and legal',
+      subtitle: 'App version, support and legal',
       content: <AboutContent />,
     },
   ];
 
   return (
     <DashboardLayout>
-      <div className="max-w-2xl space-y-4">
+      <div className="max-w-2xl space-y-3">
         {/* Header */}
-        <div className="mb-2">
-          <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-          <p className="text-gray-500 text-sm mt-1">Tap a section to manage your preferences</p>
+        <div className="mb-4">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+            Manage your account, salon, and preferences
+          </p>
         </div>
 
-        {SECTIONS.map(({ id, icon, iconBg, title, subtitle, content }) => (
+        {SECTIONS.map(({ id, icon, iconBg, iconColor, title, subtitle, content }) => (
           <Accordion
             key={id}
             id={id}
@@ -1215,6 +1251,7 @@ const SettingsPage = () => {
             onToggle={toggle}
             icon={icon}
             iconBg={iconBg}
+            iconColor={iconColor}
             title={title}
             subtitle={subtitle}
           >

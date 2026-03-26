@@ -21,6 +21,7 @@ export default function RegisterScreen({ navigation }) {
   const [otp, setOtp]                   = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading]           = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const confirmationRef                 = useRef(null);
 
   const normalizePhone = (p) => {
@@ -46,6 +47,10 @@ export default function RegisterScreen({ navigation }) {
       return;
     }
     if (password !== confirmPassword) { showError('Error', 'Passwords do not match'); return; }
+    if (!agreedToTerms) {
+      showError('Terms Required', 'Please accept the Terms & Conditions and Privacy Policy to continue.');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -206,7 +211,28 @@ export default function RegisterScreen({ navigation }) {
                 <Text style={styles.hintText}>Password: 8+ chars with uppercase, lowercase, number & special character</Text>
               </View>
 
-              <TouchableOpacity style={[styles.btn, loading && styles.btnDisabled]} onPress={handleSendOtp} disabled={loading}>
+              {/* Terms Agreement */}
+              <TouchableOpacity
+                style={styles.termsRow}
+                onPress={() => setAgreedToTerms(!agreedToTerms)}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
+                  {agreedToTerms && <Ionicons name="checkmark" size={13} color="#fff" />}
+                </View>
+                <Text style={styles.termsText}>
+                  I agree to the{' '}
+                  <Text style={styles.termsLink} onPress={() => Linking.openURL('https://mysalonbookings.com/legal/customer-terms')}>
+                    Terms & Conditions
+                  </Text>
+                  {' '}and{' '}
+                  <Text style={styles.termsLink} onPress={() => Linking.openURL('https://mysalonbookings.com/legal/customer-privacy')}>
+                    Privacy Policy
+                  </Text>
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={[styles.btn, (loading || !agreedToTerms) && styles.btnDisabled]} onPress={handleSendOtp} disabled={loading || !agreedToTerms}>
                 {loading ? <ActivityIndicator color="#fff" /> : (
                   <><Ionicons name="phone-portrait-outline" size={18} color="#fff" /><Text style={styles.btnText}>Send OTP via SMS</Text></>
                 )}
@@ -252,9 +278,9 @@ export default function RegisterScreen({ navigation }) {
 
           <Text style={styles.privacyConsent}>
             By creating an account, you agree to our{' '}
-            <Text style={styles.privacyLink} onPress={() => Linking.openURL('https://mysalonbookings.com/privacy-policy')}>Privacy Policy</Text>
+            <Text style={styles.privacyLink} onPress={() => Linking.openURL('https://mysalonbookings.com/legal/customer-privacy')}>Privacy Policy</Text>
             {' '}and{' '}
-            <Text style={styles.privacyLink} onPress={() => Linking.openURL('https://mysalonbookings.com/terms')}>Terms & Conditions</Text>.
+            <Text style={styles.privacyLink} onPress={() => Linking.openURL('https://mysalonbookings.com/legal/customer-terms')}>Terms & Conditions</Text>.
           </Text>
 
           <View style={styles.divider}>
@@ -310,4 +336,9 @@ const styles = StyleSheet.create({
   registerRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   registerText: { fontSize: 14, color: '#6b7280' },
   registerLink: { fontSize: 14, color: '#2563eb', fontWeight: '700' },
+  termsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 14 },
+  checkbox: { width: 20, height: 20, borderRadius: 5, borderWidth: 2, borderColor: '#d1d5db', alignItems: 'center', justifyContent: 'center', marginTop: 1, flexShrink: 0 },
+  checkboxChecked: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
+  termsText: { flex: 1, fontSize: 13, color: '#4b5563', lineHeight: 20 },
+  termsLink: { color: '#2563eb', fontWeight: '600', textDecorationLine: 'underline' },
 });

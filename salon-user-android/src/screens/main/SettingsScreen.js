@@ -69,10 +69,10 @@ function Divider() {
 }
 
 export default function SettingsScreen({ navigation }) {
-  const insets = useSafeAreaInsets();
+  const insets   = useSafeAreaInsets();
   const { theme } = useTheme();
   const { languageName, setLanguageByName, t } = useLanguage();
-  const styles = getStyles(theme);
+  const styles   = getStyles(theme);
   const { user, logout } = useAuth();
   const { unreadCount } = useNotifications();
 
@@ -459,7 +459,9 @@ export default function SettingsScreen({ navigation }) {
                 <Text style={styles.privacyText}>All communication with our servers is encrypted using HTTPS.</Text>
               </View>
               <Divider />
-              <SettingRow icon="document-text-outline" iconColor="#6b7280" label="Privacy Policy" sublabel="View our data usage policy" onPress={() => Linking.openURL('https://mysalonbookings.com/privacy-policy')} chevron />
+              <SettingRow icon="shield-checkmark-outline" iconColor="#6b7280" label="Privacy Policy" sublabel="How we collect and use your data" onPress={() => navigation.navigate('Legal')} chevron />
+              <Divider />
+              <SettingRow icon="document-text-outline" iconColor="#6b7280" label="Terms & Conditions" sublabel="Rules and responsibilities for users" onPress={() => navigation.navigate('Legal')} chevron />
               <Divider />
               <SettingRow icon="trash-outline" iconColor="#ef4444" label="Delete Account" sublabel="Permanently remove your account and data" onPress={handleDeleteAccount} rightEl={deletingAccount ? <ActivityIndicator size="small" color="#ef4444" /> : null} chevron={!deletingAccount} />
             </View>
@@ -536,7 +538,7 @@ export default function SettingsScreen({ navigation }) {
           <Divider />
           <SettingRow icon="globe-outline" iconColor="#059669" label="Website" rightEl={<Text style={styles.valueText}>mysalonbookings.com</Text>} onPress={() => Linking.openURL('https://mysalonbookings.com')} chevron />
           <Divider />
-          <SettingRow icon="document-text-outline" iconColor="#6b7280" label="Terms & Conditions" onPress={() => Linking.openURL('https://mysalonbookings.com/terms')} chevron />
+          <SettingRow icon="shield-checkmark-outline" iconColor="#7c3aed" label="Legal & Privacy" sublabel="Privacy Policy · Terms & Conditions" onPress={() => navigation.navigate('Legal')} chevron />
         </Card>
 
         {/* ── SIGN OUT ─────────────────────────────────────── */}

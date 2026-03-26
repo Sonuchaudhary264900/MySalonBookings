@@ -2,54 +2,124 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSalon } from '../context/SalonContext';
+import { useTheme } from '../context/ThemeContext';
+import { useNavigation } from '@react-navigation/native';
 
-const TrialBanner = ({ navigation }) => {
+const TrialBanner = () => {
   const { subscription } = useSalon();
+  const { theme, isDark } = useTheme();
+  const navigation = useNavigation();
 
   if (!subscription) return null;
 
-  const { trialActive, trialDaysRemaining, accessStatus } = subscription;
+  const { trialActive, trialDaysRemaining, accessStatus, planType, paymentStatus } = subscription;
 
-  // Don't show if active paid plan
+  // Hide when on a fully paid active plan (not just trial)
   if (accessStatus === 'active') return null;
 
-  let bgColor, borderColor, iconName, iconColor, message;
+  // ── Derive state ────────────────────────────────────────────
+  let iconName, iconColor, leftText, ctaText, accentColor, bgColor, borderColor;
+
+  const hasPlan = planType && planType !== 'free_trial';
+  const planLabel = planType === 'starter' ? '₹150/month Starter' : planType === 'per_booking' ? '₹1/booking Per Booking' : '';
 
   if (trialActive && trialDaysRemaining > 3) {
-    bgColor = '#eff6ff'; borderColor = '#bfdbfe';
-    iconName = 'time-outline'; iconColor = '#3b82f6';
-    message = `Free trial — ${trialDaysRemaining} days remaining`;
+    // Healthy trial
+    iconName    = 'time-outline';
+    iconColor   = '#3b82f6';
+    accentColor = '#3b82f6';
+    leftText    = `Free trial active — ${trialDaysRemaining} days remaining`;
+    ctaText     = 'Go to Billing';
+    bgColor     = isDark ? 'rgba(59,130,246,0.08)' : 'rgba(59,130,246,0.06)';
+    borderColor = isDark ? 'rgba(59,130,246,0.25)' : 'rgba(59,130,246,0.20)';
   } else if (trialActive && trialDaysRemaining <= 3) {
-    bgColor = '#fefce8'; borderColor = '#fde68a';
-    iconName = 'warning-outline'; iconColor = '#f59e0b';
-    message = `Trial expires in ${trialDaysRemaining} day${trialDaysRemaining !== 1 ? 's' : ''} — Choose a plan`;
+    // Expiring soon — amber warning
+    iconName    = 'alert-circle-outline';
+    iconColor   = '#f59e0b';
+    accentColor = '#f59e0b';
+    leftText    = `Trial expires in ${trialDaysRemaining} day${trialDaysRemaining !== 1 ? 's' : ''}`;
+    ctaText     = 'Choose a plan';
+    bgColor     = isDark ? 'rgba(245,158,11,0.08)' : 'rgba(245,158,11,0.06)';
+    borderColor = isDark ? 'rgba(245,158,11,0.25)' : 'rgba(245,158,11,0.20)';
+  } else if (accessStatus === 'overdue' && hasPlan) {
+    // Has a plan but payment is overdue
+    iconName    = 'card-outline';
+    iconColor   = '#ef4444';
+    accentColor = '#ef4444';
+    leftText    = `Payment due — ${planLabel} plan`;
+    ctaText     = 'Pay now';
+    bgColor     = isDark ? 'rgba(239,68,68,0.08)' : 'rgba(239,68,68,0.05)';
+    borderColor = isDark ? 'rgba(239,68,68,0.25)' : 'rgba(239,68,68,0.18)';
   } else {
-    bgColor = '#fef2f2'; borderColor = '#fecaca';
-    iconName = 'close-circle-outline'; iconColor = '#ef4444';
-    message = 'Trial expired — Select a plan to continue';
+    // Trial expired, no plan selected
+    iconName    = 'lock-closed-outline';
+    iconColor   = '#ef4444';
+    accentColor = '#ef4444';
+    leftText    = 'Trial ended — Choose a plan to continue';
+    ctaText     = 'Choose plan';
+    bgColor     = isDark ? 'rgba(239,68,68,0.08)' : 'rgba(239,68,68,0.05)';
+    borderColor = isDark ? 'rgba(239,68,68,0.25)' : 'rgba(239,68,68,0.18)';
   }
 
+  const textColor = isDark ? 'rgba(255,255,255,0.70)' : 'rgba(17,24,39,0.65)';
+
   return (
-    <TouchableOpacity
-      style={[styles.banner, { backgroundColor: bgColor, borderColor }]}
-      onPress={() => navigation?.navigate('Billing')}
-      activeOpacity={0.8}
-    >
-      <Ionicons name={iconName} size={15} color={iconColor} />
-      <Text style={styles.text}>{message}</Text>
-      <Text style={styles.link}>View →</Text>
-    </TouchableOpacity>
+    <View style={[styles.wrap, { backgroundColor: bgColor, borderColor }]}>
+      {/* Left: icon + message */}
+      <View style={styles.left}>
+        <Ionicons name={iconName} size={13} color={iconColor} style={styles.icon} />
+        <Text style={[styles.msg, { color: textColor }]} numberOfLines={1}>
+          {leftText}
+        </Text>
+      </View>
+
+      {/* Right: CTA */}
+      <TouchableOpacity
+        onPress={() => navigation.navigate('Billing')}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 6 }}
+        activeOpacity={0.7}
+      >
+        <Text style={[styles.cta, { color: accentColor }]}>{ctaText} →</Text>
+      </TouchableOpacity>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  banner: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 8,
-    borderBottomWidth: 1,
+  wrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: 14,
+    marginTop: 10,
+    marginBottom: 2,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
   },
-  text: { flex: 1, fontSize: 12, fontWeight: '600', color: '#374151' },
-  link: { fontSize: 12, fontWeight: '700', color: '#6366f1' },
+  left: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 6,
+    marginRight: 10,
+  },
+  icon: {
+    flexShrink: 0,
+  },
+  msg: {
+    fontSize: 12,
+    fontWeight: '500',
+    flex: 1,
+    letterSpacing: 0.1,
+  },
+  cta: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.1,
+    flexShrink: 0,
+  },
 });
 
 export default TrialBanner;

@@ -216,6 +216,8 @@ const BillingScreen = ({ navigation }) => {
 
   const isTrialActive   = data?.trialActive;
   const isPaid          = data?.paymentStatus === 'paid';
+  const isOverdue       = data?.paymentStatus === 'overdue';
+  const hasPlan         = data?.planType && data?.planType !== 'free_trial';
   const isPerBooking    = data?.planType === 'per_booking';
   const preSelected     = data?.planSelectedDuringTrial;
   const hasScheduled    = data?.planChangeRequested;
@@ -274,6 +276,17 @@ const BillingScreen = ({ navigation }) => {
               </View>
               <View style={styles.badgeActive}><Text style={styles.badgeText}>Active</Text></View>
             </View>
+          ) : isOverdue && hasPlan ? (
+            <View style={styles.statusRow}>
+              <Ionicons name="card-outline" size={22} color="#ef4444" />
+              <View style={styles.statusText}>
+                <Text style={styles.statusTitle}>
+                  {data.planType === 'starter' ? 'Starter — ₹150/month' : 'Per Booking — ₹1/booking'}
+                </Text>
+                <Text style={styles.statusSub}>Payment overdue — tap Pay Now below</Text>
+              </View>
+              <View style={styles.badgeOverdue}><Text style={styles.badgeText}>Overdue</Text></View>
+            </View>
           ) : (
             <View style={styles.statusRow}>
               <Ionicons name="warning-outline" size={22} color="#ef4444" />
@@ -281,7 +294,7 @@ const BillingScreen = ({ navigation }) => {
                 <Text style={styles.statusTitle}>Trial Expired</Text>
                 <Text style={styles.statusSub}>Please select a plan to continue</Text>
               </View>
-              <View style={styles.badgeOverdue}><Text style={styles.badgeText}>Overdue</Text></View>
+              <View style={styles.badgeOverdue}><Text style={styles.badgeText}>Expired</Text></View>
             </View>
           )}
         </View>

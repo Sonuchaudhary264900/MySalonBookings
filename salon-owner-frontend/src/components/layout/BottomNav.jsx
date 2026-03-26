@@ -12,37 +12,62 @@ const TABS = [
 ];
 
 export default function BottomNav() {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const location  = useLocation();
+  const navigate  = useNavigate();
   const { unreadCount } = useNotifications();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-gray-900 border-t border-gray-800 flex items-stretch h-16 shadow-[0_-4px_16px_rgba(0,0,0,0.3)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden
+      bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl
+      border-t border-gray-200 dark:border-gray-800/60
+      flex items-stretch h-16
+      shadow-[0_-4px_24px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_24px_rgba(0,0,0,0.4)]
+      transition-colors duration-300">
       {TABS.map(({ name, label, path, icon: Icon }) => {
         const active = location.pathname === path;
         return (
           <button
             key={name}
             onClick={() => navigate(path)}
-            className="flex-1 flex flex-col items-center justify-center gap-0.5 relative"
+            type="button"
+            aria-label={label}
+            className="flex-1 flex flex-col items-center justify-center gap-1 relative group"
           >
+            {/* Active indicator pill at top */}
+            {active && (
+              <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[3px] bg-indigo-600 dark:bg-indigo-400 rounded-full" />
+            )}
+
             <div className="relative">
-              <Icon
-                className={`w-6 h-6 transition-colors ${active ? 'text-white' : 'text-gray-500'}`}
-                strokeWidth={active ? 2.5 : 1.8}
-              />
+              <div className={`p-1.5 rounded-xl transition-all duration-150 ${
+                active
+                  ? 'bg-indigo-50 dark:bg-indigo-950/60'
+                  : 'group-hover:bg-gray-100 dark:group-hover:bg-gray-800/60'
+              }`}>
+                <Icon
+                  className={`w-5 h-5 transition-colors duration-150 ${
+                    active
+                      ? 'text-indigo-600 dark:text-indigo-400'
+                      : 'text-gray-400 dark:text-gray-600'
+                  }`}
+                  strokeWidth={active ? 2.5 : 1.8}
+                />
+              </div>
+              {/* Notification dot */}
               {name === 'notifications' && unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[8px] font-bold rounded-full min-w-[14px] h-3.5 flex items-center justify-center px-0.5 leading-none">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
             </div>
-            <span className={`text-[10px] font-bold leading-none transition-colors ${active ? 'text-white' : 'text-gray-500'}`}>
+
+            <span className={`text-[10px] font-semibold leading-none transition-colors duration-150 ${
+              active
+                ? 'text-indigo-600 dark:text-indigo-400'
+                : 'text-gray-400 dark:text-gray-600'
+            }`}>
               {label}
             </span>
-            {active && (
-              <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-indigo-500 rounded-full" />
-            )}
           </button>
         );
       })}
