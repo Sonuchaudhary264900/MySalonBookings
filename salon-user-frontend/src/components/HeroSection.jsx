@@ -1,4 +1,4 @@
-import { LocateFixed, Search, X } from "lucide-react";
+import { LocateFixed, Search, X, Calendar } from "lucide-react";
 import { Link } from "react-router-dom";
 
 function PhoneMockup() {
@@ -64,7 +64,10 @@ function PhoneMockup() {
   );
 }
 
-export default function HeroSection({ searchText, onSearch, onLocate, locLoading, searching }) {
+export default function HeroSection({
+  searchText, onSearch, onLocate, locLoading, searching,
+  isLoggedIn = false, userName = "there", nearbyCount = 0, upcomingCount = 0,
+}) {
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800">
       {/* Decorative blobs */}
@@ -75,40 +78,81 @@ export default function HeroSection({ searchText, onSearch, onLocate, locLoading
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
 
-          {/* LEFT */}
+          {/* ── LEFT ── */}
           <div className="text-center lg:text-left order-2 lg:order-1">
-            {/* Trust badge */}
-            <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 mb-5">
-              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse shrink-0" />
-              <span className="text-white/90 text-xs sm:text-sm font-medium">1,000+ happy customers across India</span>
-            </div>
 
-            {/* Headline */}
-            <h1 className="text-3xl sm:text-4xl lg:text-[2.85rem] font-extrabold text-white leading-[1.1] tracking-tight mb-4">
-              Discover &amp; Book<br />
-              <span className="text-yellow-300">Top Salons</span><br />
-              Near You
-            </h1>
-            <p className="text-indigo-100 text-sm sm:text-base leading-relaxed mb-7 max-w-md mx-auto lg:mx-0">
-              Find the best salons near you in seconds. No waiting, no phone calls — just pick, book, and look great.
-            </p>
+            {isLoggedIn ? (
+              /* ── LOGGED-IN STATE ── */
+              <>
+                <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 mb-4">
+                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse shrink-0" />
+                  <span className="text-white/90 text-xs sm:text-sm font-medium">Your personal salon assistant</span>
+                </div>
+                <h1 className="text-3xl sm:text-4xl font-extrabold text-white leading-tight tracking-tight mb-2">
+                  Welcome back,<br />
+                  <span className="text-yellow-300">{userName} 👋</span>
+                </h1>
+                <p className="text-indigo-100 text-sm sm:text-base leading-relaxed mb-5 max-w-md mx-auto lg:mx-0">
+                  Ready for your next look today?
+                </p>
+                {/* Quick stats row */}
+                <div className="flex gap-3 mb-6 justify-center lg:justify-start">
+                  {nearbyCount > 0 && (
+                    <div className="bg-white/10 border border-white/20 rounded-2xl px-4 py-2.5 text-center">
+                      <p className="text-white font-extrabold text-xl leading-tight">{nearbyCount}</p>
+                      <p className="text-indigo-200 text-xs mt-0.5">Salons Nearby</p>
+                    </div>
+                  )}
+                  <div className="bg-white/10 border border-white/20 rounded-2xl px-4 py-2.5 text-center">
+                    <p className="text-white font-extrabold text-xl leading-tight">{upcomingCount}</p>
+                    <p className="text-indigo-200 text-xs mt-0.5">Upcoming</p>
+                  </div>
+                  <div className="bg-white/10 border border-white/20 rounded-2xl px-4 py-2.5 text-center">
+                    <p className="text-white font-extrabold text-xl leading-tight">4.9⭐</p>
+                    <p className="text-indigo-200 text-xs mt-0.5">Avg Rating</p>
+                  </div>
+                </div>
+              </>
+            ) : (
+              /* ── LOGGED-OUT STATE ── */
+              <>
+                <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 mb-5">
+                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse shrink-0" />
+                  <span className="text-white/90 text-xs sm:text-sm font-medium">1,000+ happy customers across India</span>
+                </div>
+                <h1 className="text-3xl sm:text-4xl lg:text-[2.85rem] font-extrabold text-white leading-[1.1] tracking-tight mb-4">
+                  Discover &amp; Book<br />
+                  <span className="text-yellow-300">Top Salons</span><br />
+                  Near You
+                </h1>
+                <p className="text-indigo-100 text-sm sm:text-base leading-relaxed mb-7 max-w-md mx-auto lg:mx-0">
+                  Find the best salons near you in seconds. No waiting, no phone calls — just pick, book, and look great.
+                </p>
+              </>
+            )}
 
-            {/* Search bar */}
-            <div className="flex items-center gap-2 bg-white rounded-2xl px-4 h-13 shadow-xl shadow-indigo-900/25 mb-5 max-w-lg mx-auto lg:mx-0" style={{ height: 52 }}>
+            {/* ── Search bar — always shown ── */}
+            <div
+              className="flex items-center gap-2 bg-white rounded-2xl px-4 shadow-xl shadow-indigo-900/25 mb-5 max-w-lg mx-auto lg:mx-0"
+              style={{ height: 52 }}
+            >
               <Search className="w-4 h-4 text-slate-400 shrink-0" />
               <input
                 type="text"
                 placeholder="Search salons, services, city..."
                 value={searchText}
                 onChange={(e) => onSearch(e.target.value)}
-                className="flex-1 text-slate-800 text-sm placeholder-slate-400 outline-none bg-transparent min-w-0"
+                style={{ fontSize: 16 }}
+                className="flex-1 text-slate-800 placeholder-slate-400 outline-none bg-transparent min-w-0"
               />
               {searchText && !searching && (
                 <button onClick={() => onSearch("")} className="shrink-0">
                   <X className="w-4 h-4 text-slate-400 hover:text-slate-600 transition" />
                 </button>
               )}
-              {searching && <span className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin shrink-0" />}
+              {searching && (
+                <span className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin shrink-0" />
+              )}
               <button
                 onClick={onLocate}
                 disabled={locLoading}
@@ -121,7 +165,7 @@ export default function HeroSection({ searchText, onSearch, onLocate, locLoading
               </button>
             </div>
 
-            {/* CTA buttons */}
+            {/* ── CTA buttons ── */}
             <div className="flex flex-wrap gap-3 justify-center lg:justify-start">
               <a
                 href="#salons"
@@ -129,22 +173,34 @@ export default function HeroSection({ searchText, onSearch, onLocate, locLoading
               >
                 🔍 Find Salons
               </a>
-              <Link
-                to="/register"
-                className="inline-flex items-center gap-2 bg-white/10 border border-white/25 text-white font-semibold px-7 py-3 rounded-xl hover:bg-white/20 transition-all text-sm"
-              >
-                Join as Salon Owner →
-              </Link>
+              {isLoggedIn ? (
+                <Link
+                  to="/dashboard"
+                  className="inline-flex items-center gap-2 bg-white/10 border border-white/25 text-white font-semibold px-7 py-3 rounded-xl hover:bg-white/20 transition-all text-sm"
+                >
+                  <Calendar className="w-4 h-4" /> My Bookings
+                </Link>
+              ) : (
+                <Link
+                  to="/register"
+                  className="inline-flex items-center gap-2 bg-white/10 border border-white/25 text-white font-semibold px-7 py-3 rounded-xl hover:bg-white/20 transition-all text-sm"
+                >
+                  Join as Salon Owner →
+                </Link>
+              )}
             </div>
           </div>
 
-          {/* RIGHT — phone mockup */}
+          {/* ── RIGHT — phone mockup ── */}
           <div className="flex justify-center lg:justify-end order-1 lg:order-2">
             <div className="relative">
               <div className="absolute inset-0 bg-indigo-400/20 rounded-full blur-3xl scale-90" />
               <PhoneMockup />
               {/* Floating badge — top rated */}
-              <div className="absolute -left-2 sm:-left-6 top-16 bg-white rounded-2xl shadow-xl px-3 py-2 flex items-center gap-2 animate-bounce" style={{ animationDuration: "3s" }}>
+              <div
+                className="absolute -left-2 sm:-left-6 top-16 bg-white rounded-2xl shadow-xl px-3 py-2 flex items-center gap-2 animate-bounce"
+                style={{ animationDuration: "3s" }}
+              >
                 <span className="text-xl">⭐</span>
                 <div>
                   <p className="text-xs font-bold text-slate-800 leading-tight">Top Rated</p>
@@ -152,7 +208,10 @@ export default function HeroSection({ searchText, onSearch, onLocate, locLoading
                 </div>
               </div>
               {/* Floating badge — verified */}
-              <div className="absolute -right-2 sm:-right-6 bottom-28 bg-white rounded-2xl shadow-xl px-3 py-2 flex items-center gap-2 animate-bounce" style={{ animationDuration: "4s", animationDelay: "1s" }}>
+              <div
+                className="absolute -right-2 sm:-right-6 bottom-28 bg-white rounded-2xl shadow-xl px-3 py-2 flex items-center gap-2 animate-bounce"
+                style={{ animationDuration: "4s", animationDelay: "1s" }}
+              >
                 <span className="text-xl">✅</span>
                 <div>
                   <p className="text-xs font-bold text-slate-800 leading-tight">Verified</p>

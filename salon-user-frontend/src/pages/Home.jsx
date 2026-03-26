@@ -1,10 +1,21 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { SearchX, Users } from "lucide-react";
+import { Link } from "react-router-dom";
+import { SearchX, Users, Star, TrendingUp, MapPin } from "lucide-react";
 import API from "../services/api";
 import SalonCard from "../components/SalonCard";
 import HeroSection from "../components/HeroSection";
 import HowItWorks from "../components/HowItWorks";
 import FeaturesSection from "../components/FeaturesSection";
+
+// ── Helpers ────────────────────────────────────────────────────
+function getUserName() {
+  try {
+    const token = localStorage.getItem("customerToken");
+    if (!token) return "there";
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.name || payload.firstName || payload.username || "there";
+  } catch { return "there"; }
+}
 
 const CATEGORIES = [
   { key: "all",                  label: "All",           icon: "🏠" },
@@ -35,6 +46,17 @@ const GENDER_FILTERS = [
   { key: "unisex", label: "Unisex", icon: <span>👥</span> },
 ];
 
+const TRENDING_SERVICES = [
+  { label: "Hair Cut",   icon: "✂️", cat: "Hair Services" },
+  { label: "Beard Trim", icon: "🧔", cat: "Beard & Grooming" },
+  { label: "Facial",     icon: "🧖", cat: "Skin & Face / Beauty" },
+  { label: "Spa",        icon: "💆", cat: "Spa & Massage" },
+  { label: "Nails",      icon: "💅", cat: "Nail Services" },
+  { label: "Bridal",     icon: "👰", cat: "Bridal & Events" },
+  { label: "Kids Hair",  icon: "👶", cat: "Kids Services" },
+  { label: "At-Home",    icon: "🏡", cat: "At-Home Services" },
+];
+
 function SkeletonCard() {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
@@ -48,7 +70,67 @@ function SkeletonCard() {
   );
 }
 
+function MiniSalonCard({ salon, userCoords }) {
+  const rating = parseFloat(salon.averageRating || salon.rating || 0);
+  const hasPhoto = salon.photos?.[0] || salon.coverPhoto || salon.image || salon.ownerPhoto;
+  const GRADIENTS = {
+    barber:        "from-blue-500 to-indigo-600",
+    hair_salon:    "from-violet-500 to-purple-600",
+    spa:           "from-emerald-500 to-teal-600",
+    nail_salon:    "from-pink-500 to-rose-600",
+    massage:       "from-orange-500 to-amber-600",
+    multi_service: "from-indigo-500 to-violet-600",
+  };
+  const gradient = GRADIENTS[salon.category] || "from-indigo-500 to-violet-600";
+
+  let distLabel = null;
+  if (userCoords && salon.location?.coordinates?.length === 2) {
+    const [lng, lat] = salon.location.coordinates;
+    const R = 6371;
+    const dLat = (lat - userCoords.lat) * Math.PI / 180;
+    const dLng = (lng - userCoords.lng) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(userCoords.lat * Math.PI / 180) * Math.cos(lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+    const km = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    distLabel = km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
+  }
+
+  return (
+    <Link to={`/salon/${salon._id}`} className="group block shrink-0 w-44 sm:w-48">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+        <div className="relative h-28 overflow-hidden">
+          {hasPhoto ? (
+            <img src={hasPhoto} alt={salon.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+          ) : (
+            <div className={`w-full h-full bg-gradient-to-br ${gradient} flex items-center justify-center`}>
+              <span className="text-3xl">✂</span>
+            </div>
+          )}
+          {rating > 0 && (
+            <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+              <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" /> {rating.toFixed(1)}
+            </div>
+          )}
+        </div>
+        <div className="p-2.5">
+          <p className="text-xs font-bold text-slate-900 truncate leading-tight">{salon.name}</p>
+          {distLabel && (
+            <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+              <MapPin className="w-2.5 h-2.5 shrink-0" /> {distLabel}
+            </p>
+          )}
+          <div className="mt-1.5 text-[10px] font-bold text-center bg-gradient-to-r from-indigo-600 to-violet-600 text-white py-1 rounded-lg">
+            Book Now
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
 function Home() {
+  const isLoggedIn = !!localStorage.getItem("customerToken");
+  const userName   = getUserName();
+
   const [salons, setSalons]             = useState([]);
   const [allSalons, setAllSalons]       = useState([]);
   const [selectedCats, setSelectedCats] = useState([]);
@@ -64,6 +146,7 @@ function Home() {
   const [searching, setSearching]       = useState(false);
   const [userCoords, setUserCoords]     = useState(null);
   const [serviceMatchLabel, setServiceMatchLabel] = useState("");
+  const [upcomingCount, setUpcomingCount] = useState(0);
   const searchTimer = useRef(null);
 
   // ── initial location detect ──────────────────────────────────
@@ -82,6 +165,16 @@ function Home() {
     );
     return () => { ignore = true; };
   }, []);
+
+  // ── fetch upcoming count for logged-in user ──────────────────
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    API.get("/customer/bookings").then(res => {
+      const arr = res.data.data?.bookings || res.data.data || [];
+      const count = Array.isArray(arr) ? arr.filter(b => ["pending", "confirmed", "in_progress"].includes(b.status)).length : 0;
+      setUpcomingCount(count);
+    }).catch(() => {});
+  }, [isLoggedIn]);
 
   const applyFilters = (data, cats, gender) => {
     let result = data;
@@ -248,8 +341,14 @@ function Home() {
     : sort === "rated"  ? "Top Rated Salons"
     : "Most Booked Salons";
 
+  // Derive smart sections from loaded data
+  const topRatedSalons = [...allSalons]
+    .filter(s => parseFloat(s.averageRating || s.rating || 0) >= 4.0)
+    .sort((a, b) => parseFloat(b.averageRating || b.rating || 0) - parseFloat(a.averageRating || a.rating || 0))
+    .slice(0, 10);
+
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="bg-slate-50">
 
       {/* ── HERO ──────────────────────────────────────────────── */}
       <HeroSection
@@ -258,7 +357,39 @@ function Home() {
         onLocate={handleLocation}
         locLoading={locLoading}
         searching={searching}
+        isLoggedIn={isLoggedIn}
+        userName={userName}
+        nearbyCount={allSalons.length}
+        upcomingCount={upcomingCount}
       />
+
+      {/* ── TRENDING SERVICES ────────────────────────────────── */}
+      <div className="bg-white border-b border-slate-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingUp className="w-4 h-4 text-indigo-600" />
+            <span className="text-sm font-bold text-slate-800">Trending Services</span>
+          </div>
+          <div className="flex gap-2.5 overflow-x-auto scrollbar-hide pb-1">
+            {TRENDING_SERVICES.map(({ label, icon, cat }) => (
+              <button
+                key={label}
+                onClick={() => {
+                  handleCategory(cat);
+                  document.getElementById("salons")?.scrollIntoView({ behavior: "smooth" });
+                }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all shrink-0 border ${
+                  selectedCats.includes(cat)
+                    ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white border-transparent shadow-md shadow-indigo-200"
+                    : "bg-slate-50 text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
+                }`}
+              >
+                <span>{icon}</span> {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* ── SALONS SECTION ────────────────────────────────────── */}
       <div id="salons" className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-4">
@@ -412,6 +543,53 @@ function Home() {
           </div>
         )}
       </div>
+
+      {/* ── TOP RATED SALONS ──────────────────────────────────── */}
+      {topRatedSalons.length > 0 && !isSearchActive && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">⭐</span>
+              <div>
+                <h2 className="text-base font-bold text-slate-800">Top Rated Near You</h2>
+                <p className="text-xs text-slate-400">Highest rated salons in your area</p>
+              </div>
+            </div>
+            <button
+              onClick={() => handleSort("rated")}
+              className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition"
+            >
+              See all →
+            </button>
+          </div>
+          <div className="flex gap-3.5 overflow-x-auto scrollbar-hide pb-2">
+            {topRatedSalons.map(salon => (
+              <MiniSalonCard key={salon._id} salon={salon} userCoords={userCoords} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── BOOKINGS WIDGET (logged-in only) ─────────────────── */}
+      {isLoggedIn && upcomingCount > 0 && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-4">
+          <div className="bg-gradient-to-r from-indigo-600 to-violet-700 rounded-2xl p-5 flex items-center justify-between shadow-lg shadow-indigo-200">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-white/15 rounded-2xl flex items-center justify-center text-2xl">📅</div>
+              <div>
+                <p className="text-white font-bold text-sm">You have {upcomingCount} upcoming booking{upcomingCount > 1 ? "s" : ""}</p>
+                <p className="text-indigo-200 text-xs mt-0.5">Tap to view details, reschedule or cancel</p>
+              </div>
+            </div>
+            <Link
+              to="/dashboard"
+              className="shrink-0 bg-white text-indigo-700 font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-yellow-300 hover:text-indigo-800 transition shadow-sm"
+            >
+              View →
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* ── HOW IT WORKS ──────────────────────────────────────── */}
       <HowItWorks />

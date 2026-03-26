@@ -3,6 +3,16 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useNotifications } from "../context/NotificationContext";
 import { useTheme } from "../context/ThemeContext";
 
+function getUserInitial() {
+  try {
+    const token = localStorage.getItem("customerToken");
+    if (!token) return "U";
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    const name = payload.name || payload.firstName || payload.username || "";
+    return name.charAt(0).toUpperCase() || "U";
+  } catch { return "U"; }
+}
+
 // ── Helpers ────────────────────────────────────────────────
 function relativeTime(iso) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -108,10 +118,13 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
   const location   = useLocation();
   const panelRef         = useRef(null);
   const mobilePanelRef   = useRef(null);
+  const profileRef       = useRef(null);
   const token      = localStorage.getItem("customerToken");
-  const [scrolled,   setScrolled]   = useState(false);
-  const [_panelOpen, _setPanelOpen] = useState(false);
+  const [scrolled,      setScrolled]     = useState(false);
+  const [_panelOpen,    _setPanelOpen]   = useState(false);
+  const [profileOpen,   setProfileOpen]  = useState(false);
   const { isDark, toggleTheme } = useTheme();
+  const userInitial = getUserInitial();
 
   // Allow external control (from BottomNav bell tap) or internal control
   const panelOpen    = externalNotifOpen ?? _panelOpen;
@@ -126,7 +139,7 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
   }, []);
 
 
-  // Close panel on outside click
+  // Close notification panel on outside click
   useEffect(() => {
     if (!panelOpen) return;
     const handle = (e) => {
@@ -137,6 +150,16 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
     document.addEventListener("mousedown", handle);
     return () => document.removeEventListener("mousedown", handle);
   }, [panelOpen]);
+
+  // Close profile dropdown on outside click
+  useEffect(() => {
+    if (!profileOpen) return;
+    const handle = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false);
+    };
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, [profileOpen]);
 
   const handleLogout = () => {
     localStorage.removeItem("customerToken");
@@ -270,21 +293,52 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
                 {panelOpen && <NotificationPanel onClose={() => setPanelOpen(false)} />}
               </div>
 
-              <Link
-                to="/profile"
-                className="w-9 h-9 rounded-full gradient-primary flex items-center justify-center text-white shadow-sm hover:shadow-md transition"
-                title="My Profile"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="text-sm font-medium text-slate-500 hover:text-red-500 transition-colors"
-              >
-                Sign Out
-              </button>
+              {/* Profile dropdown */}
+              <div className="relative" ref={profileRef}>
+                <button
+                  onClick={() => setProfileOpen(v => !v)}
+                  className="w-9 h-9 rounded-full gradient-primary flex items-center justify-center text-white shadow-sm hover:shadow-md transition font-bold text-sm"
+                  title="My Profile"
+                >
+                  {userInitial}
+                </button>
+                {profileOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 py-1.5 z-50 fade-in">
+                    <Link
+                      to="/profile"
+                      onClick={() => setProfileOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                      My Profile
+                    </Link>
+                    <Link
+                      to="/dashboard"
+                      onClick={() => setProfileOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      My Bookings
+                    </Link>
+                    <Link
+                      to="/favorites"
+                      onClick={() => setProfileOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                      Saved Salons
+                    </Link>
+                    <div className="border-t border-slate-100 my-1" />
+                    <button
+                      onClick={() => { setProfileOpen(false); handleLogout(); }}
+                      className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                      Sign Out
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

@@ -4,6 +4,15 @@ import API from "../services/api";
 import { getCustomerToken } from "../utils/auth";
 import { useNotifications } from "../context/NotificationContext";
 
+function getUserName() {
+  try {
+    const token = localStorage.getItem("customerToken");
+    if (!token) return "there";
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.name || payload.firstName || payload.username || "there";
+  } catch { return "there"; }
+}
+
 // ── Constants (matching app exactly) ────────────────────────
 const FILTERS   = ['Upcoming', 'Completed', 'Cancelled', 'All'];
 const PAGE_SIZE = 5;
@@ -411,7 +420,8 @@ export default function Dashboard() {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const prevStatusRef = useRef({});
 
-  const isAuth = !!getCustomerToken();
+  const isAuth   = !!getCustomerToken();
+  const userName = getUserName();
 
   // Get location for distance tiles
   useEffect(() => {
@@ -479,6 +489,14 @@ export default function Dashboard() {
     completed: bookings.filter(b => b.status === 'completed').length,
   };
 
+  const nextUpcoming = bookings
+    .filter(b => ['pending', 'confirmed'].includes(b.status))
+    .sort((a, b) => {
+      const da = new Date(String(a.appointmentDate).slice(0, 10) + 'T' + (a.appointmentTime || '12:00') + ':00');
+      const db = new Date(String(b.appointmentDate).slice(0, 10) + 'T' + (b.appointmentTime || '12:00') + ':00');
+      return da - db;
+    })[0] || null;
+
   // Not authenticated
   if (!isAuth) {
     return (
@@ -498,46 +516,74 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-slate-50">
 
-      {/* ── HEADER ─────────────────────────────────────────── */}
-      <div className="bg-white border-b border-slate-100 px-4 sm:px-6 pt-5 pb-4">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-[22px] font-extrabold text-slate-900 leading-tight">My Bookings</h1>
-            <p className="text-[13px] text-slate-400 mt-0.5">
-              {bookings.length} booking{bookings.length !== 1 ? 's' : ''} total
-            </p>
+      {/* ── HERO ───────────────────────────────────────────── */}
+      <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 px-4 sm:px-6 pt-8 pb-6 relative overflow-hidden">
+        {/* Decorative blobs */}
+        <div className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
+        <div className="pointer-events-none absolute bottom-0 -left-8 w-48 h-48 bg-violet-500/20 rounded-full blur-3xl" />
+
+        <div className="max-w-2xl mx-auto relative">
+          {/* Top row */}
+          <div className="flex items-start justify-between mb-5">
+            <div>
+              <p className="text-indigo-200 text-sm font-medium mb-1">My Bookings</p>
+              <h1 className="text-2xl font-extrabold text-white leading-tight">
+                Welcome back, {userName} 👋
+              </h1>
+              <p className="text-indigo-200 text-sm mt-1">Ready for your next look today?</p>
+            </div>
+            {/* Notification bell */}
+            <Link
+              to="/notifications"
+              className="relative w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition shrink-0"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+              </svg>
+              {unreadCount > 0 && (
+                <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1 leading-none border-2 border-white">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </Link>
           </div>
-          {/* Notification bell */}
-          <Link to="/notifications" className="relative w-9 h-9 rounded-[10px] bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition shrink-0">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-            </svg>
-            {unreadCount > 0 && (
-              <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1 leading-none border-2 border-white">
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
-            )}
-          </Link>
+
+          {/* Stats row */}
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: 'Upcoming',  value: loading ? '—' : stats.upcoming,  icon: '📅' },
+              { label: 'Completed', value: loading ? '—' : stats.completed, icon: '✅' },
+              { label: 'Total',     value: loading ? '—' : stats.total,     icon: '📋' },
+            ].map(({ label, value, icon }) => (
+              <div key={label} className="bg-white/10 border border-white/15 rounded-2xl p-3 text-center">
+                <p className="text-lg mb-0.5">{icon}</p>
+                <p className="text-xl font-extrabold text-white leading-tight">{value}</p>
+                <p className="text-indigo-200 text-[11px] mt-0.5">{label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Next upcoming booking card */}
+          {!loading && nextUpcoming && (
+            <div className="mt-4 bg-white/10 border border-white/20 rounded-2xl p-3.5 flex items-center justify-between">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center text-xl shrink-0">✂</div>
+                <div className="min-w-0">
+                  <p className="text-white text-sm font-bold truncate">
+                    {nextUpcoming.serviceName || (Array.isArray(nextUpcoming.serviceIds) ? nextUpcoming.serviceIds.map(s => s?.name || s).filter(Boolean).join(' + ') : '') || 'Service'}
+                  </p>
+                  <p className="text-indigo-200 text-xs mt-0.5 truncate">
+                    {nextUpcoming.salonName || nextUpcoming.salonId?.name || 'Salon'} · {formatDateLabel(nextUpcoming.appointmentDate)} {nextUpcoming.appointmentTime ? `· ${formatTimeLabel(nextUpcoming.appointmentTime)}` : ''}
+                  </p>
+                </div>
+              </div>
+              <StatusBadge status={nextUpcoming.status} />
+            </div>
+          )}
         </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-4 space-y-3">
-
-        {/* Stats row */}
-        {!loading && (
-          <div className="flex gap-2">
-            {[
-              { label: 'Total',     value: stats.total,     color: 'text-slate-900' },
-              { label: 'Upcoming',  value: stats.upcoming,  color: 'text-blue-600' },
-              { label: 'Completed', value: stats.completed, color: 'text-green-600' },
-            ].map(({ label, value, color }) => (
-              <div key={label} className="flex-1 bg-white rounded-xl p-3.5 text-center border border-slate-100 shadow-sm">
-                <p className={`text-[22px] font-extrabold ${color}`}>{value}</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">{label}</p>
-              </div>
-            ))}
-          </div>
-        )}
 
         {/* Confirmed toasts */}
         {confirmedToasts.map(id => {
@@ -596,17 +642,26 @@ export default function Dashboard() {
 
         {/* Empty state */}
         {!loading && filtered.length === 0 && (
-          <div className="flex flex-col items-center py-10 gap-2.5">
-            <span className="text-5xl">📅</span>
+          <div className="flex flex-col items-center py-12 gap-3 text-center">
+            <div className="w-20 h-20 rounded-full bg-indigo-50 flex items-center justify-center">
+              <span className="text-4xl">
+                {filter === 'Completed' ? '✅' : filter === 'Cancelled' ? '🚫' : '📅'}
+              </span>
+            </div>
             <p className="text-[18px] font-bold text-slate-800">
-              No {filter === 'All' ? '' : filter.toLowerCase()} bookings
+              {filter === 'All' ? 'No bookings yet' : `No ${filter.toLowerCase()} bookings`}
             </p>
-            <p className="text-[14px] text-slate-400 text-center leading-relaxed max-w-xs">
-              {filter === 'All' ? 'Book your first salon appointment now!' : `You have no ${filter.toLowerCase()} bookings.`}
+            <p className="text-[14px] text-slate-400 leading-relaxed max-w-xs">
+              {filter === 'All'
+                ? "You haven't booked any salon yet. Find top-rated salons near you and book in seconds!"
+                : `You have no ${filter.toLowerCase()} bookings right now.`}
             </p>
-            {filter === 'All' && (
-              <Link to="/" className="mt-2 px-6 py-3 bg-blue-600 text-white font-bold rounded-xl text-sm hover:bg-blue-700 transition">
-                Explore Salons
+            {(filter === 'All' || filter === 'Upcoming') && (
+              <Link
+                to="/"
+                className="mt-1 inline-flex items-center gap-2 px-7 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold rounded-xl text-sm shadow-lg shadow-indigo-200 hover:shadow-indigo-300 transition-all"
+              >
+                🔍 Book Your First Salon Now →
               </Link>
             )}
           </div>

@@ -79,10 +79,11 @@ function App() {
       <ThemeProvider>
       <NotificationProvider>
         <ErrorBoundary>
+          <div className="flex flex-col min-h-screen">
           <SwipeHandler />
           <Navbar notifOpen={notifOpen} setNotifOpen={setNotifOpen} />
           <ToastContainer />
-          <div className="pb-16 md:pb-0">
+          <main className="flex-grow pb-16 md:pb-0">
           <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/"                            element={<Home />} />
@@ -115,9 +116,10 @@ function App() {
             } />
           </Routes>
           </Suspense>
-          </div>
+          </main>
           <Footer />
           <BottomNav />
+          </div>
         </ErrorBoundary>
       </NotificationProvider>
       </ThemeProvider>
