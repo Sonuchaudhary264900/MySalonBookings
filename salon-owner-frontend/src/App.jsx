@@ -380,9 +380,10 @@ const LandingPage = () => (
           </div>
 
           {/* Headline */}
-          <h1 className="msb-fu2" style={{ fontSize:'clamp(2.4rem,6vw,4.6rem)', fontWeight:900, lineHeight:1.06, letterSpacing:'-2.5px', color:'#f8fafc', marginBottom:20 }}>
-            Run Your Salon Like<br />
-            <span className="msb-shimmer">a Pro, Not Paper.</span>
+          <h1 className="msb-fu2" style={{ fontSize:'clamp(2.4rem,6vw,4.6rem)', fontWeight:900, lineHeight:1.1, letterSpacing:'-2.5px', color:'#f8fafc', marginBottom:20 }}>
+            Run Your Salon Online.<br />
+            Get More Customers.<br />
+            <span className="msb-shimmer">Earn More Money.</span>
           </h1>
 
           {/* Subheading */}
