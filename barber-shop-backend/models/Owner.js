@@ -292,6 +292,50 @@ const ownerSchema = new mongoose.Schema(
     },
 
     // ==========================================
+    // SUBSCRIPTION / BILLING
+    // ==========================================
+    subscription: {
+      trialStartDate: {
+        type: Date,
+        default: Date.now,
+      },
+      planType: {
+        type: String,
+        enum: ['free_trial', 'starter', 'per_booking'],
+        default: 'free_trial',
+      },
+      billingCycleStart: {
+        type: Date,
+        default: null,
+      },
+      monthlyBookingCount: {
+        type: Number,
+        default: 0,
+      },
+      lastPaymentDate: {
+        type: Date,
+        default: null,
+      },
+      paymentStatus: {
+        type: String,
+        enum: ['trial', 'paid', 'overdue'],
+        default: 'trial',
+      },
+      razorpaySubscriptionId: {
+        type: String,
+        default: null,
+      },
+      trialEndReminderSent: {
+        type: Boolean,
+        default: false,
+      },
+      paymentDueReminderSent: {
+        type: Boolean,
+        default: false,
+      },
+    },
+
+    // ==========================================
     // TIMESTAMPS
     // ==========================================
     createdAt: {

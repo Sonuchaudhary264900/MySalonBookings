@@ -1,6 +1,7 @@
 import React, { createContext, useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import * as salonService from '../services/salonService';
+import billingService from '../services/billingService';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_BASE_URL?.replace('/api/v1', '') || 'http://localhost:5000';
 
@@ -29,6 +30,8 @@ export const SalonProvider = ({ children }) => {
   const [salonInitialized, setSalonInitialized] = useState(false);
   const [salonFetchFailed, setSalonFetchFailed] = useState(false);
   const [error, setError] = useState(null);
+  const [subscription, setSubscription] = useState(null);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(false);
   const socketRef = useRef(null);
 
   // ── Socket: mark salon online/offline based on connection ─────
@@ -91,6 +94,10 @@ export const SalonProvider = ({ children }) => {
 
       if (response.data) {
         setSalon(response.data);
+        // Load subscription status alongside salon
+        billingService.getSubscriptionStatus().then(res => {
+          if (res?.success) setSubscription(res.data);
+        }).catch(() => {});
       }
 
       return response;
@@ -338,6 +345,21 @@ export const SalonProvider = ({ children }) => {
     }
   }, []);
 
+  // ✅ FETCH SUBSCRIPTION
+  const fetchSubscription = useCallback(async () => {
+    try {
+      setSubscriptionLoading(true);
+      const res = await billingService.getSubscriptionStatus();
+      if (res.success) setSubscription(res.data);
+      return res;
+    } catch (err) {
+      console.error('fetchSubscription error:', err.message);
+      return null;
+    } finally {
+      setSubscriptionLoading(false);
+    }
+  }, []);
+
   // ✅ CLEAR ERROR
   const clearError = useCallback(() => {
     setError(null);
@@ -354,6 +376,8 @@ export const SalonProvider = ({ children }) => {
     salonInitialized,
     salonFetchFailed,
     error,
+    subscription,
+    subscriptionLoading,
 
     // Salon methods
     createSalon,
@@ -377,14 +401,19 @@ export const SalonProvider = ({ children }) => {
     fetchRevenueReport,
     fetchCustomerCount,
 
+    // Subscription methods
+    fetchSubscription,
+
     // Utility methods
     clearError,
   }), [
     salon, services, bookings, analytics, loading, salonInitialized, salonFetchFailed, error,
+    subscription, subscriptionLoading,
     createSalon, fetchSalon, updateSalon, fetchSalonStatus,
     createService, fetchServices, updateService, deleteService,
     fetchBookings, updateBookingStatus, createWalkInBooking,
     fetchAnalytics, fetchRevenueReport, fetchCustomerCount,
+    fetchSubscription,
     clearError,
   ]);
 

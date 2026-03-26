@@ -41,6 +41,7 @@ import CustomersScreen         from './src/screens/dashboard/CustomersScreen';
 import CouponsScreen           from './src/screens/dashboard/CouponsScreen';
 import GalleryScreen           from './src/screens/dashboard/GalleryScreen';
 import ServiceMenuScreen       from './src/screens/dashboard/ServiceMenuScreen';
+import BillingScreen           from './src/screens/dashboard/BillingScreen';
 
 const RootStack  = createNativeStackNavigator();
 const AuthStack  = createNativeStackNavigator();
@@ -57,6 +58,7 @@ const NAV_ITEMS = [
   { name: 'WalkIn',        labelKey: 'navWalkIn',        icon: 'walk-outline',           iconFocused: 'walk' },
   { name: 'Gallery',       labelKey: 'navGallery',       icon: 'images-outline',         iconFocused: 'images' },
   { name: 'Coupons',       labelKey: 'navCoupons',       icon: 'pricetag-outline',       iconFocused: 'pricetag' },
+  { name: 'Billing',       labelKey: 'navBilling',       icon: 'card-outline',           iconFocused: 'card' },
   { name: 'Reviews',       labelKey: 'navReviews',       icon: 'star-outline',           iconFocused: 'star' },
   { name: 'Notifications', labelKey: 'navNotifications', icon: 'notifications-outline',  iconFocused: 'notifications' },
 ];
@@ -262,6 +264,7 @@ function MainDrawer() {
       <Drawer.Screen name="WalkIn"        component={WalkInBookingScreen} />
       <Drawer.Screen name="Customers"     component={CustomersScreen} />
       <Drawer.Screen name="Coupons"       component={CouponsScreen} />
+      <Drawer.Screen name="Billing"       component={BillingScreen} />
       <Drawer.Screen name="Gallery"       component={GalleryScreen} />
       <Drawer.Screen name="ServiceMenu"   component={ServiceMenuScreen} />
     </Drawer.Navigator>

@@ -30,6 +30,7 @@ const Gallery          = lazy(() => import('./pages/dashboard/Gallery'));
 const CalendarPage     = lazy(() => import('./pages/dashboard/CalendarPage'));
 const Customers        = lazy(() => import('./pages/dashboard/Customers'));
 const Coupons          = lazy(() => import('./pages/dashboard/Coupons'));
+const Billing          = lazy(() => import('./pages/dashboard/Billing'));
 const PrivacyPolicy        = lazy(() => import('./pages/PrivacyPolicy'));
 const TermsAndConditions   = lazy(() => import('./pages/TermsAndConditions'));
 
@@ -298,6 +299,7 @@ function App() {
                     <Route path={ROUTES.CALENDAR}      element={<CalendarPage />} />
                     <Route path={ROUTES.CUSTOMERS}     element={<Customers />} />
                     <Route path={ROUTES.COUPONS}       element={<Coupons />} />
+                    <Route path={ROUTES.BILLING}       element={<Billing />} />
                   </Route>
 
                   {/* 404 */}

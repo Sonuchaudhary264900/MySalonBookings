@@ -13,6 +13,7 @@ import {
   Users,
   Tag,
   CalendarDays,
+  CreditCard,
 } from 'lucide-react';
 import ROUTES from '../../routes';
 import { useNotifications } from '../../context/NotificationContext';
@@ -42,6 +43,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { id: 'calendar',      label: 'Calendar',             path: ROUTES.CALENDAR,      icon: CalendarDays },
     { id: 'gallery',       label: 'Gallery',              path: ROUTES.GALLERY,       icon: Images },
     { id: 'coupons',       label: 'Coupons',              path: ROUTES.COUPONS,       icon: Tag },
+    { id: 'billing',       label: 'Billing & Plan',       path: ROUTES.BILLING,       icon: CreditCard },
     { id: 'reviews',       label: 'Reviews',              path: ROUTES.REVIEWS,       icon: Star },
     { id: 'notifications', label: t('nav_notifications'), path: ROUTES.NOTIFICATIONS, icon: Bell },
     { id: 'settings',      label: t('nav_settings'),      path: ROUTES.SETTINGS,      icon: Settings },

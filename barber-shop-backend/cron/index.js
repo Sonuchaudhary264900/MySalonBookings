@@ -27,6 +27,7 @@ const Salon = require('../models/Salon');
 const Service = require('../models/Service');
 const Owner = require('../models/Owner');
 const Customer = require('../models/Customer');
+const Subscription = require('../models/Subscription');
 
 
 
@@ -590,6 +591,196 @@ const send10MinReminders = cron.schedule('* * * * *', async () => {
 
 /*
 ====================================================
+TRIAL EXPIRY REMINDER
+Runs daily at 10 AM — sends push to owners whose
+trial ends in exactly 3 days
+====================================================
+*/
+
+const TRIAL_DAYS = 30;
+
+const trialExpiryReminder = cron.schedule('0 10 * * *', async () => {
+  try {
+    console.log('💳 Checking trial expiry reminders');
+    const { sendExpoPush } = require('../utils/pushNotification');
+
+    const now = new Date();
+    // Owners whose trial started ~27 days ago (trial ends in ~3 days)
+    const windowStart = new Date(now);
+    windowStart.setDate(windowStart.getDate() - (TRIAL_DAYS - 3) - 1);
+    const windowEnd = new Date(now);
+    windowEnd.setDate(windowEnd.getDate() - (TRIAL_DAYS - 3));
+
+    const owners = await Owner.find({
+      'subscription.planType': 'free_trial',
+      'subscription.trialEndReminderSent': { $ne: true },
+      'subscription.trialStartDate': { $gte: windowStart, $lte: windowEnd },
+    }).select('pushToken name subscription').lean();
+
+    let sent = 0;
+    for (const owner of owners) {
+      try {
+        const trialStart = new Date(owner.subscription.trialStartDate);
+        const elapsed = Math.floor((now - trialStart) / (1000 * 60 * 60 * 24));
+        const daysLeft = Math.max(0, TRIAL_DAYS - elapsed);
+
+        if (owner.pushToken) {
+          await sendExpoPush(
+            owner.pushToken,
+            '⏳ Trial Ending Soon',
+            `Your free trial expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}. Choose a plan to keep your salon running.`,
+            { type: 'trial_expiry_reminder' },
+            { channelId: 'billing' }
+          ).catch(() => {});
+        }
+
+        await Owner.updateOne(
+          { _id: owner._id },
+          { $set: { 'subscription.trialEndReminderSent': true } }
+        );
+        sent++;
+      } catch (err) {
+        console.error('Trial reminder single owner error:', err.message);
+      }
+    }
+
+    if (sent > 0) console.log(`✅ Sent ${sent} trial expiry reminders`);
+  } catch (error) {
+    console.error('❌ Trial expiry reminder error:', error);
+  }
+});
+
+
+/*
+====================================================
+MONTHLY BILLING RESET
+Runs on the 1st of every month at midnight
+- Creates invoices for per_booking owners
+- Resets monthlyBookingCount
+- Marks overdue owners
+====================================================
+*/
+
+const monthlyBillingReset = cron.schedule('0 0 1 * *', async () => {
+  try {
+    console.log('🧾 Running monthly billing reset');
+
+    const now = new Date();
+    const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const billingMonth = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}`;
+
+    // Find all active paid per_booking owners
+    const paidOwners = await Owner.find({
+      'subscription.planType': 'per_booking',
+      'subscription.paymentStatus': 'paid',
+    }).select('_id salonId subscription').lean();
+
+    let invoicesCreated = 0;
+    for (const owner of paidOwners) {
+      try {
+        const bookingCount = owner.subscription.monthlyBookingCount || 0;
+        const amount = Math.max(bookingCount * 1, 1);
+
+        const existing = await Subscription.findOne({
+          ownerId: owner._id,
+          billingMonth,
+        });
+        if (!existing) {
+          await Subscription.create({
+            ownerId: owner._id,
+            salonId: owner.salonId,
+            planType: 'per_booking',
+            billingMonth,
+            bookingCount,
+            amount,
+            paymentStatus: 'pending',
+          });
+          invoicesCreated++;
+        }
+
+        await Owner.updateOne(
+          { _id: owner._id },
+          {
+            $set: {
+              'subscription.monthlyBookingCount': 0,
+              'subscription.billingCycleStart': now,
+              'subscription.paymentStatus': 'overdue',
+            },
+          }
+        );
+      } catch (err) {
+        console.error('Monthly billing reset single owner error:', err.message);
+      }
+    }
+
+    // Also reset starter plan owners (just reset booking count + mark overdue)
+    await Owner.updateMany(
+      { 'subscription.planType': 'starter', 'subscription.paymentStatus': 'paid' },
+      {
+        $set: {
+          'subscription.monthlyBookingCount': 0,
+          'subscription.billingCycleStart': now,
+          'subscription.paymentStatus': 'overdue',
+        },
+      }
+    );
+
+    console.log(`✅ Monthly billing reset complete. ${invoicesCreated} per_booking invoices created`);
+  } catch (error) {
+    console.error('❌ Monthly billing reset error:', error);
+  }
+});
+
+
+/*
+====================================================
+PAYMENT DUE REMINDER
+Runs daily at 9 AM — notifies overdue owners
+====================================================
+*/
+
+const paymentDueReminder = cron.schedule('0 9 * * *', async () => {
+  try {
+    console.log('💰 Checking payment due reminders');
+    const { sendExpoPush } = require('../utils/pushNotification');
+
+    const owners = await Owner.find({
+      'subscription.paymentStatus': 'overdue',
+      'subscription.paymentDueReminderSent': { $ne: true },
+    }).select('pushToken name subscription').lean();
+
+    let sent = 0;
+    for (const owner of owners) {
+      try {
+        if (owner.pushToken) {
+          await sendExpoPush(
+            owner.pushToken,
+            '⚠️ Payment Due',
+            'Your subscription payment is overdue. Please pay to continue accepting bookings.',
+            { type: 'payment_due_reminder' },
+            { channelId: 'billing' }
+          ).catch(() => {});
+        }
+
+        await Owner.updateOne(
+          { _id: owner._id },
+          { $set: { 'subscription.paymentDueReminderSent': true } }
+        );
+        sent++;
+      } catch (err) {
+        console.error('Payment due reminder single owner error:', err.message);
+      }
+    }
+
+    if (sent > 0) console.log(`✅ Sent ${sent} payment due reminders`);
+  } catch (error) {
+    console.error('❌ Payment due reminder error:', error);
+  }
+});
+
+
+/*
+====================================================
 EXPORT
 ====================================================
 */
@@ -605,6 +796,9 @@ module.exports = {
   cancelNoShowBookings,
   autoCompleteBookings,
   generateWeeklyReport,
+  trialExpiryReminder,
+  monthlyBillingReset,
+  paymentDueReminder,
 
   stopAllJobs:()=>{
 
@@ -617,6 +811,9 @@ module.exports = {
     cancelNoShowBookings.stop();
     autoCompleteBookings.stop();
     generateWeeklyReport.stop();
+    trialExpiryReminder.stop();
+    monthlyBillingReset.stop();
+    paymentDueReminder.stop();
 
     console.log("🛑 All cron jobs stopped");
 

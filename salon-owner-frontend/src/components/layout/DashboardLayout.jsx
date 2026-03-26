@@ -6,6 +6,9 @@ import Footer from './Footer';
 import BottomNav from './BottomNav';
 import useSwipeNav from '../../hooks/useSwipeNav';
 import ROUTES from '../../routes';
+import TrialBanner from '../billing/TrialBanner';
+import AccessBlockedModal from '../billing/AccessBlockedModal';
+import { useSalon } from '../../hooks/useSalon';
 
 /**
  * DashboardLayout Component
@@ -25,6 +28,8 @@ import ROUTES from '../../routes';
 const DashboardLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { pathname } = useLocation();
+  const { subscription } = useSalon();
+  const isRestricted = subscription && subscription.accessStatus === 'restricted';
   const showMenuToggle = pathname === ROUTES.DASHBOARD || pathname === ROUTES.SETTINGS;
   useSwipeNav();
 
@@ -59,8 +64,10 @@ const DashboardLayout = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      {isRestricted && pathname !== ROUTES.BILLING && <AccessBlockedModal />}
       {/* Navbar */}
       <Navbar onMenuToggle={showMenuToggle ? handleMenuToggle : undefined} />
+      <TrialBanner />
 
       {/* Main Container */}
       <div className="flex flex-1 overflow-hidden">

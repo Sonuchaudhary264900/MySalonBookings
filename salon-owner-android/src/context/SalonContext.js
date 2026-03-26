@@ -12,7 +12,22 @@ export const SalonProvider = ({ children }) => {
   const [salon, setSalon] = useState(null);
   const [loading, setLoading] = useState(true);
   const [salonFetchDone, setSalonFetchDone] = useState(false);
+  const [subscription, setSubscription] = useState(null);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(false);
   const socketRef = useRef(null);
+
+  const fetchSubscription = useCallback(async () => {
+    if (!isAuthenticated) return;
+    setSubscriptionLoading(true);
+    try {
+      const res = await api.get('/owner/subscription/status');
+      if (res.data.success) setSubscription(res.data.data);
+    } catch {
+      // ignore — not critical
+    } finally {
+      setSubscriptionLoading(false);
+    }
+  }, [isAuthenticated]);
 
   const fetchSalon = useCallback(async () => {
     if (!isAuthenticated) return;
@@ -20,6 +35,10 @@ export const SalonProvider = ({ children }) => {
     try {
       const res = await api.get('/owner/salon');
       setSalon(res.data.data || null);
+      // Load subscription alongside salon
+      api.get('/owner/subscription/status').then(r => {
+        if (r.data.success) setSubscription(r.data.data);
+      }).catch(() => {});
     } catch {
       setSalon(null);
     } finally {
@@ -82,7 +101,7 @@ export const SalonProvider = ({ children }) => {
   }, [salon?._id, salon?.isApproved, salon?.approvalStatus, salon?.ownerId]);
 
   return (
-    <SalonContext.Provider value={{ salon, loading, salonFetchDone, fetchSalon, createSalon, updateSalon, fetchSalonStatus, setSalon }}>
+    <SalonContext.Provider value={{ salon, loading, salonFetchDone, fetchSalon, createSalon, updateSalon, fetchSalonStatus, setSalon, subscription, subscriptionLoading, fetchSubscription }}>
       {children}
     </SalonContext.Provider>
   );

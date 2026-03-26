@@ -18,6 +18,8 @@ const {
   asyncHandler
 } = require("../middleware/validationMiddleware");
 
+const { checkSubscription } = require("../middleware/subscriptionMiddleware");
+
 const multer = require("multer");
 const multerUpload = multer({
   storage: multer.memoryStorage(),
@@ -63,6 +65,7 @@ const barberController = safeRequire("../controllers/owner/barberReviewProfileAn
 const salonApprovalController = safeRequire("../controllers/admin/salonApprovalController");
 const adminAuthController = safeRequire("../controllers/admin/adminAuthController");
 const adminManagementController = safeRequire("../controllers/admin/adminManagementController");
+const subscriptionController = safeRequire("../controllers/payment/subscriptionController");
 
 /* =====================================================
    MODELS (for inline public handlers)
@@ -808,7 +811,7 @@ router.get("/owner/bookings", authenticateOwner, validatePaginationParams, async
   res.json({ success: true, data: { bookings, total, page: p, limit: l } });
 }));
 
-router.post("/owner/bookings", authenticateOwner, asyncHandler(async (req, res) => {
+router.post("/owner/bookings", authenticateOwner, checkSubscription, asyncHandler(async (req, res) => {
   const Booking = require("../models/Booking");
   const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
@@ -862,6 +865,15 @@ router.post("/owner/bookings", authenticateOwner, asyncHandler(async (req, res) 
     paymentStatus:    "completed",
     confirmedAt:      new Date(),
   });
+
+  // Increment monthly booking count for subscription billing
+  try {
+    const Owner = require("../models/Owner");
+    await Owner.updateOne(
+      { _id: salon.ownerId || req.owner._id },
+      { $inc: { 'subscription.monthlyBookingCount': 1 } }
+    );
+  } catch {}
 
   // Fire-and-forget push to owner
   try {
@@ -1522,6 +1534,17 @@ router.get("/health", (req, res) => {
   });
 
 });
+
+/* =====================================================
+   SUBSCRIPTION / BILLING ROUTES
+===================================================== */
+
+router.get("/owner/subscription/status", authenticateOwner, asyncHandler(subscriptionController.getSubscriptionStatus));
+router.post("/owner/subscription/select-plan", authenticateOwner, asyncHandler(subscriptionController.selectPlan));
+router.post("/owner/subscription/create-order", authenticateOwner, asyncHandler(subscriptionController.createPaymentOrder));
+router.post("/owner/subscription/verify-payment", authenticateOwner, asyncHandler(subscriptionController.verifyPayment));
+router.get("/owner/subscription/billing-history", authenticateOwner, asyncHandler(subscriptionController.getBillingHistory));
+router.post("/owner/subscription/webhook", asyncHandler(subscriptionController.razorpayWebhook));
 
 /* =====================================================
    ROUTE NOT FOUND

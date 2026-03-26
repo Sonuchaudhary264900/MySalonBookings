@@ -27,6 +27,7 @@ const ROUTES = {
   CALENDAR:      '/dashboard/calendar',
   CUSTOMERS:     '/dashboard/customers',
   COUPONS:       '/dashboard/coupons',
+  BILLING:       '/dashboard/billing',
 
   // Legal (public)
   PRIVACY:       '/privacy-policy',

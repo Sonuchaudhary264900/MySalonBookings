@@ -14,6 +14,7 @@ import { useSalon } from '../../context/SalonContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import DrawerMenuButton from '../../components/DrawerMenuButton';
+import TrialBanner from '../../components/TrialBanner';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { showSuccess, showError } from '../../utils/toast';
@@ -351,6 +352,7 @@ img.src=${qrApiUrl};
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.bg }]}>
+      <TrialBanner navigation={navigation} />
     <ScrollView
       style={{ flex: 1 }}
       contentContainerStyle={{ paddingBottom: 20 }}
