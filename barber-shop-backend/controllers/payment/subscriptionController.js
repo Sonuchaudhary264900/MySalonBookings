@@ -4,6 +4,7 @@
 const Owner = require('../../models/Owner');
 const Subscription = require('../../models/Subscription');
 const { createOrder, verifyPaymentSignature, razorpayInstance } = require('../../config/razorpay');
+const { logSubscriptionEvent } = require('../../utils/subscriptionLogger');
 
 const TRIAL_DAYS = 30;
 const STARTER_PRICE = 150;   // ₹150/month
@@ -111,6 +112,12 @@ const selectPlan = async (req, res) => {
 
     await owner.save();
 
+    logSubscriptionEvent('plan_selected', owner, {
+      planType,
+      ip: req.ip,
+      meta: { billingCycleStart: owner.subscription.billingCycleStart },
+    });
+
     res.json({
       success: true,
       message: `Plan set to ${planType}`,
@@ -160,8 +167,18 @@ const createPaymentOrder = async (req, res) => {
     );
 
     if (!order.success && order.mode !== 'placeholder') {
+      logSubscriptionEvent('payment_order_created', owner, {
+        planType, amount, ip: req.ip,
+        meta: { error: 'razorpay_order_failed' },
+      });
       return res.status(500).json({ success: false, message: 'Failed to create payment order' });
     }
+
+    logSubscriptionEvent('payment_order_created', owner, {
+      planType, amount,
+      razorpayOrderId: order.orderId || null,
+      ip: req.ip,
+    });
 
     // Create or update invoice record
     if (!invoice) {
@@ -232,6 +249,14 @@ const verifyPayment = async (req, res) => {
     owner.subscription.paymentDueReminderSent = false;
     await owner.save();
 
+    logSubscriptionEvent('payment_success', owner, {
+      amount: invoice.amount,
+      razorpayOrderId: invoice.razorpayOrderId,
+      razorpayPaymentId,
+      ip: req.ip,
+      meta: { invoiceId: invoice._id },
+    });
+
     res.json({
       success: true,
       message: 'Payment verified. Subscription activated.',
@@ -299,6 +324,18 @@ const razorpayWebhook = async (req, res) => {
       const orderId = payload?.payment?.entity?.order_id;
       if (orderId) {
         await Subscription.updateOne({ razorpayOrderId: orderId }, { $set: { paymentStatus: 'failed' } });
+        const failedInvoice = await Subscription.findOne({ razorpayOrderId: orderId });
+        if (failedInvoice) {
+          const Owner = require('../../models/Owner');
+          const owner = await Owner.findById(failedInvoice.ownerId).lean();
+          if (owner) {
+            logSubscriptionEvent('payment_failed', owner, {
+              razorpayOrderId: orderId,
+              amount: failedInvoice.amount,
+              meta: { invoiceId: failedInvoice._id },
+            });
+          }
+        }
       }
     }
 

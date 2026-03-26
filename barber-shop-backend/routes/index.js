@@ -66,6 +66,7 @@ const salonApprovalController = safeRequire("../controllers/admin/salonApprovalC
 const adminAuthController = safeRequire("../controllers/admin/adminAuthController");
 const adminManagementController = safeRequire("../controllers/admin/adminManagementController");
 const subscriptionController = safeRequire("../controllers/payment/subscriptionController");
+const subscriptionAdminController = safeRequire("../controllers/admin/subscriptionAdminController");
 
 /* =====================================================
    MODELS (for inline public handlers)
@@ -1054,6 +1055,15 @@ router.get("/admin/customers", authenticateAdmin, asyncHandler(adminManagementCo
 router.get("/admin/analytics", authenticateAdmin, asyncHandler(adminManagementController.getAnalytics));
 
 /* =====================================================
+   ADMIN SUBSCRIPTION ROUTES
+===================================================== */
+
+router.get("/admin/subscriptions/stats",    authenticateAdmin, asyncHandler(subscriptionAdminController.getSubscriptionStats));
+router.get("/admin/subscriptions/users",    authenticateAdmin, asyncHandler(subscriptionAdminController.getSubscriptionUsers));
+router.get("/admin/subscriptions/logs",     authenticateAdmin, asyncHandler(subscriptionAdminController.getSubscriptionLogs));
+router.get("/admin/subscriptions/invoices", authenticateAdmin, asyncHandler(subscriptionAdminController.getSubscriptionInvoices));
+
+/* =====================================================
    ADMIN SALON APPROVAL
 ===================================================== */
 
@@ -1534,6 +1544,150 @@ router.get("/health", (req, res) => {
   });
 
 });
+
+/* =====================================================
+   TEST / DEBUG HELPERS  (ALLOW_TEST_ENDPOINTS=true only)
+===================================================== */
+
+// POST /test/owner/create  — create a test owner + return token (no Firebase needed)
+router.post("/test/owner/create", asyncHandler(async (req, res) => {
+  if (process.env.ALLOW_TEST_ENDPOINTS !== 'true') {
+    return res.status(403).json({ success: false, message: 'Test endpoints are disabled' });
+  }
+  const Owner = require('../models/Owner');
+  const jwt = require('jsonwebtoken');
+  const { name, email, phone, password } = req.body;
+
+  // Clean up existing test owner with same email
+  await Owner.deleteOne({ email });
+
+  const owner = await Owner.create({
+    name: name || 'Test Owner',
+    email,
+    phone,
+    password: password || 'Test@12345',
+    phoneVerified: true,
+    status: 'approved',
+    approvalStatus: 'approved',
+    role: 'owner',
+    subscription: {
+      trialStartDate: new Date(),
+      planType: 'free_trial',
+      paymentStatus: 'trial',
+      monthlyBookingCount: 0,
+    },
+  });
+
+  const token = jwt.sign({ id: owner._id, role: 'owner' }, process.env.JWT_SECRET, { expiresIn: '1h' });
+  res.json({ success: true, data: { ownerId: owner._id, token } });
+}));
+
+// DELETE /test/owner/cleanup  — delete all test owners (email containing 'test_')
+router.delete("/test/owner/cleanup", asyncHandler(async (req, res) => {
+  if (process.env.ALLOW_TEST_ENDPOINTS !== 'true') {
+    return res.status(403).json({ success: false, message: 'Test endpoints are disabled' });
+  }
+  const Owner = require('../models/Owner');
+  const SubscriptionLog = require('../models/SubscriptionLog');
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ success: false, message: 'email required' });
+  const owner = await Owner.findOne({ email });
+  if (owner) {
+    await SubscriptionLog.deleteMany({ ownerId: owner._id });
+    await Subscription.deleteMany({ ownerId: owner._id });
+    await Owner.deleteOne({ _id: owner._id });
+  }
+  res.json({ success: true, message: 'Test owner cleaned up' });
+}));
+
+// POST /test/subscription/set-trial-date
+// Body: { daysAgo: 31 }  — manually move trialStartDate to simulate expiry
+// ONLY available when ALLOW_TEST_ENDPOINTS=true in .env
+router.post("/test/subscription/set-trial-date", authenticateOwner, asyncHandler(async (req, res) => {
+  if (process.env.ALLOW_TEST_ENDPOINTS !== 'true') {
+    return res.status(403).json({ success: false, message: 'Test endpoints are disabled' });
+  }
+  const { daysAgo = 31 } = req.body;
+  const Owner = require('../models/Owner');
+  const owner = await Owner.findById(req.owner._id);
+  if (!owner) return res.status(404).json({ success: false, message: 'Owner not found' });
+
+  const newDate = new Date();
+  newDate.setDate(newDate.getDate() - Number(daysAgo));
+  owner.subscription.trialStartDate = newDate;
+  await owner.save();
+
+  res.json({
+    success: true,
+    message: `Trial start date set to ${daysAgo} days ago`,
+    data: { trialStartDate: owner.subscription.trialStartDate },
+  });
+}));
+
+// POST /test/subscription/reset
+// Resets owner subscription back to fresh trial state
+router.post("/test/subscription/reset", authenticateOwner, asyncHandler(async (req, res) => {
+  if (process.env.ALLOW_TEST_ENDPOINTS !== 'true') {
+    return res.status(403).json({ success: false, message: 'Test endpoints are disabled' });
+  }
+  const Owner = require('../models/Owner');
+  const owner = await Owner.findById(req.owner._id);
+  if (!owner) return res.status(404).json({ success: false, message: 'Owner not found' });
+
+  owner.subscription = {
+    trialStartDate: new Date(),
+    planType: 'free_trial',
+    billingCycleStart: null,
+    monthlyBookingCount: 0,
+    lastPaymentDate: null,
+    paymentStatus: 'trial',
+    razorpaySubscriptionId: null,
+    trialEndReminderSent: false,
+    paymentDueReminderSent: false,
+  };
+  await owner.save();
+
+  res.json({ success: true, message: 'Subscription reset to fresh trial', data: owner.subscription });
+}));
+
+// GET /test/subscription/owner-state  — dump full subscription state for debugging
+router.get("/test/subscription/owner-state", authenticateOwner, asyncHandler(async (req, res) => {
+  if (process.env.ALLOW_TEST_ENDPOINTS !== 'true') {
+    return res.status(403).json({ success: false, message: 'Test endpoints are disabled' });
+  }
+  const Owner = require('../models/Owner');
+  const SubscriptionLog = require('../models/SubscriptionLog');
+
+  const owner = await Owner.findById(req.owner._id).select('name email subscription createdAt').lean();
+  const logs = await SubscriptionLog.find({ ownerId: req.owner._id })
+    .sort({ createdAt: -1 }).limit(20).lean();
+
+  const sub = owner.subscription || {};
+  const TRIAL_DAYS = 30;
+  const elapsed = Math.floor((Date.now() - new Date(sub.trialStartDate || owner.createdAt)) / 86400000);
+  const daysLeft = Math.max(0, TRIAL_DAYS - elapsed);
+
+  res.json({
+    success: true,
+    data: {
+      owner: { name: owner.name, email: owner.email },
+      subscription: sub,
+      computed: {
+        trialDaysElapsed: elapsed,
+        trialDaysLeft: daysLeft,
+        trialActive: daysLeft > 0,
+        accessStatus: daysLeft > 0
+          ? 'trial'
+          : ['starter', 'per_booking'].includes(sub.planType) && sub.paymentStatus === 'paid'
+          ? 'active'
+          : sub.paymentStatus === 'overdue'
+          ? 'overdue'
+          : 'restricted',
+      },
+      recentLogs: logs,
+    },
+  });
+}));
 
 /* =====================================================
    SUBSCRIPTION / BILLING ROUTES

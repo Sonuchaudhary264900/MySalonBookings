@@ -2,6 +2,7 @@
 // Guards routes that require an active subscription or active trial
 
 const Owner = require('../models/Owner');
+const { logSubscriptionEvent } = require('../utils/subscriptionLogger');
 
 const TRIAL_DAYS = 30;
 
@@ -34,7 +35,13 @@ const checkSubscription = async (req, res, next) => {
       return next();
     }
 
-    // Otherwise block access
+    // Block and log
+    logSubscriptionEvent('access_blocked', owner, {
+      accessStatus: 'restricted',
+      ip: req.ip,
+      meta: { route: req.originalUrl, method: req.method },
+    });
+
     return res.status(403).json({
       success: false,
       restricted: true,
