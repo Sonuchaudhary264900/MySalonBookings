@@ -32,6 +32,13 @@ const ROUTES = {
   // Legal (public)
   PRIVACY:       '/privacy-policy',
   TERMS:         '/terms',
+
+  // Detailed legal pages
+  LEGAL:                  '/legal',
+  CUSTOMER_PRIVACY:       '/legal/customer-privacy',
+  OWNER_PRIVACY:          '/legal/owner-privacy',
+  CUSTOMER_TERMS:         '/legal/customer-terms',
+  OWNER_TERMS:            '/legal/owner-terms',
 };
 
 export default ROUTES;

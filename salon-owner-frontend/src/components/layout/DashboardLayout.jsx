@@ -10,79 +10,91 @@ import TrialBanner from '../billing/TrialBanner';
 import AccessBlockedModal from '../billing/AccessBlockedModal';
 import { useSalon } from '../../hooks/useSalon';
 
-/**
- * DashboardLayout Component
- * 
- * Wraps all dashboard pages
- * Includes:
- * - Navbar at top
- * - Sidebar on left
- * - Main content area
- * - Footer (optional)
- * 
- * Usage:
- * <DashboardLayout>
- *   <Dashboard />
- * </DashboardLayout>
- */
 const DashboardLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try { return localStorage.getItem('msb_sidebar_collapsed') === 'true'; }
+    catch { return false; }
+  });
+
   const { pathname } = useLocation();
   const { subscription } = useSalon();
-  const isRestricted = subscription && subscription.accessStatus === 'restricted';
-  const showMenuToggle = pathname === ROUTES.DASHBOARD || pathname === ROUTES.SETTINGS;
+  const isRestricted = subscription && ['restricted', 'overdue'].includes(subscription.accessStatus);
   useSwipeNav();
 
-  // Left-edge swipe to open drawer (< 30px from left edge → swipe right)
+  // Left-edge swipe to open drawer
   const edgeTouchX = useRef(null);
   useEffect(() => {
     const onStart = (e) => {
-      if (e.touches[0].clientX < 30) edgeTouchX.current = e.touches[0].clientX;
-      else edgeTouchX.current = null;
+      edgeTouchX.current = e.touches[0].clientX < 30 ? e.touches[0].clientX : null;
     };
     const onEnd = (e) => {
       if (edgeTouchX.current === null) return;
       const diff = e.changedTouches[0].clientX - edgeTouchX.current;
       edgeTouchX.current = null;
-      if (diff > 50) setSidebarOpen(true);   // swipe right → open
+      if (diff > 50) setSidebarOpen(true);
     };
     document.addEventListener('touchstart', onStart, { passive: true });
-    document.addEventListener('touchend',   onEnd,   { passive: true });
+    document.addEventListener('touchend', onEnd, { passive: true });
     return () => {
       document.removeEventListener('touchstart', onStart);
-      document.removeEventListener('touchend',   onEnd);
+      document.removeEventListener('touchend', onEnd);
     };
   }, []);
 
-  const handleMenuToggle = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
-
-  const handleSidebarClose = () => {
-    setSidebarOpen(false);
+  const handleToggleCollapse = () => {
+    setSidebarCollapsed(prev => {
+      const next = !prev;
+      try { localStorage.setItem('msb_sidebar_collapsed', String(next)); } catch {}
+      return next;
+    });
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen flex bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
+
+      {/* Access blocked overlay (all pages except billing) */}
       {isRestricted && pathname !== ROUTES.BILLING && <AccessBlockedModal />}
-      {/* Navbar */}
-      <Navbar onMenuToggle={showMenuToggle ? handleMenuToggle : undefined} />
-      <TrialBanner />
 
-      {/* Main Container */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <Sidebar isOpen={sidebarOpen} onClose={handleSidebarClose} />
+      {/* ── Fixed sidebar ── */}
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={handleToggleCollapse}
+      />
 
-        {/* Main Content */}
-        <main className="flex-1 overflow-auto">
-          <div className="p-4 md:p-6 lg:p-8 pb-20 md:pb-6 lg:pb-8">
+      {/* ── Right column: shifts right to clear fixed sidebar on desktop ── */}
+      <div className={`
+        flex flex-col min-h-screen flex-1 min-w-0
+        transition-all duration-300
+        ${sidebarCollapsed ? 'md:ml-[68px]' : 'md:ml-64'}
+      `}>
+
+        {/* Navbar — top of right column */}
+        <Navbar onMenuToggle={() => setSidebarOpen(v => !v)} />
+
+        {/* Trial / payment status banner */}
+        <TrialBanner />
+
+        {/* Page content — flex-1 pushes footer to bottom */}
+        <main className="flex-1 w-full">
+          <div className="p-4 md:p-6 lg:p-8 pb-24 md:pb-8 max-w-[1600px] mx-auto">
             {children}
           </div>
         </main>
+
+        {/* Footer — always at bottom of right column, hidden on mobile (BottomNav takes over) */}
+        <div className="hidden md:block">
+          <Footer />
+        </div>
+
       </div>
-      <Footer />
+
+      {/* Mobile bottom nav */}
       <BottomNav />
+
     </div>
   );
 };

@@ -1,133 +1,193 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  Scissors,
-  Calendar,
-  Star,
-  Settings,
-  Bell,
-  ChevronRight,
-  X,
-  Images,
-  Users,
-  Tag,
-  CalendarDays,
-  CreditCard,
+  LayoutDashboard, Scissors, Calendar, Star, Settings,
+  ChevronRight, ChevronLeft, X, Images, Users, Tag,
+  CreditCard, Store, BarChart2,
 } from 'lucide-react';
 import ROUTES from '../../routes';
 import { useNotifications } from '../../context/NotificationContext';
 import { useLanguage } from '../../context/LanguageContext';
 
-/**
- * Sidebar Component
- * 
- * Features:
- * - Navigation menu items
- * - Active route highlighting
- * - Mobile close button
- * - Icons for each item
- * - Responsive design
- */
-const Sidebar = ({ isOpen, onClose }) => {
+/* ─── Nav structure ────────────────────────────────────────────────────── */
+const NAV_SECTIONS = [
+  {
+    label: 'Main',
+    items: [
+      { id: 'dashboard',     label: 'Dashboard',       path: ROUTES.DASHBOARD,     icon: LayoutDashboard },
+      { id: 'bookings',      label: 'Bookings',         path: ROUTES.BOOKINGS,      icon: Calendar        },
+      { id: 'services',      label: 'Services',         path: ROUTES.SERVICES,      icon: Scissors        },
+      { id: 'customers',     label: 'Customers',        path: ROUTES.CUSTOMERS,     icon: Users           },
+      { id: 'analytics',     label: 'Analytics',        path: ROUTES.ANALYTICS,     icon: BarChart2       },
+    ],
+  },
+  {
+    label: 'Content',
+    items: [
+      { id: 'gallery',       label: 'Gallery',          path: ROUTES.GALLERY,       icon: Images  },
+      { id: 'coupons',       label: 'Coupons',          path: ROUTES.COUPONS,       icon: Tag     },
+      { id: 'reviews',       label: 'Reviews',          path: ROUTES.REVIEWS,       icon: Star    },
+    ],
+  },
+  {
+    label: 'Account',
+    items: [
+      { id: 'billing',       label: 'Billing & Plan',   path: ROUTES.BILLING,       icon: CreditCard      },
+      { id: 'settings',      label: 'Settings',         path: ROUTES.SETTINGS,      icon: Settings        },
+    ],
+  },
+];
+
+/* ─── Sidebar ───────────────────────────────────────────────────────────── */
+const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { unreadCount } = useNotifications();
   const { t } = useLanguage();
 
-  const menuItems = [
-    { id: 'dashboard',     label: t('nav_dashboard'),     path: ROUTES.DASHBOARD,     icon: LayoutDashboard },
-    { id: 'bookings',      label: t('nav_bookings'),      path: ROUTES.BOOKINGS,      icon: Calendar },
-    { id: 'services',      label: t('nav_services'),      path: ROUTES.SERVICES,      icon: Scissors },
-    { id: 'customers',     label: 'Customers',            path: ROUTES.CUSTOMERS,     icon: Users },
-    { id: 'calendar',      label: 'Calendar',             path: ROUTES.CALENDAR,      icon: CalendarDays },
-    { id: 'gallery',       label: 'Gallery',              path: ROUTES.GALLERY,       icon: Images },
-    { id: 'coupons',       label: 'Coupons',              path: ROUTES.COUPONS,       icon: Tag },
-    { id: 'billing',       label: 'Billing & Plan',       path: ROUTES.BILLING,       icon: CreditCard },
-    { id: 'reviews',       label: 'Reviews',              path: ROUTES.REVIEWS,       icon: Star },
-    { id: 'notifications', label: t('nav_notifications'), path: ROUTES.NOTIFICATIONS, icon: Bell },
-    { id: 'settings',      label: t('nav_settings'),      path: ROUTES.SETTINGS,      icon: Settings },
-  ];
-
   const handleNavigation = (path) => {
     navigate(path);
-    onClose();
+    if (window.innerWidth < 768) onClose();
   };
 
   return (
     <>
-      {/* Backdrop for mobile */}
+      {/* Mobile backdrop */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 md:hidden z-30"
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm md:hidden z-30 transition-opacity"
           onClick={onClose}
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={`
-          fixed md:static inset-y-0 left-0 w-64 bg-gray-900 text-white flex flex-col
-          transform transition-transform duration-300 md:transform-none
-          ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} z-40
+          fixed top-0 inset-y-0 left-0 h-screen flex flex-col z-40
+          bg-white dark:bg-gray-950
+          border-r border-gray-100 dark:border-gray-800/60
+          transition-all duration-300 ease-in-out
+          ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+          ${collapsed ? 'md:w-[68px]' : 'md:w-64'} w-64
         `}
       >
-        {/* Header */}
-        <div className="p-5 border-b border-gray-800 shrink-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shrink-0">
-                <span className="text-white text-base">✂</span>
-              </div>
-              <div>
-                <p className="text-white font-bold text-sm leading-tight">SmartSalon</p>
-                <p className="text-xs text-gray-400 leading-tight">{t('owner_panel')}</p>
-              </div>
+        {/* ── Header ── */}
+        <div className={`flex items-center h-16 shrink-0 border-b border-gray-100 dark:border-gray-800/60 px-4 ${collapsed ? 'md:justify-center' : 'justify-between'}`}>
+          <div className={`flex items-center gap-2.5 ${collapsed ? 'md:hidden' : ''}`}>
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-md shrink-0">
+              <Store className="w-4 h-4 text-white" />
             </div>
-            <button
-              onClick={onClose}
-              className="md:hidden p-1.5 hover:bg-gray-800 rounded-lg text-gray-400"
-              type="button"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-gray-900 dark:text-white leading-tight">My Salon Bookings</p>
+              <p className="text-[11px] text-gray-400 leading-tight">Owner Panel</p>
+            </div>
           </div>
+          {/* Icon-only logo when collapsed */}
+          <div className={`hidden ${collapsed ? 'md:flex' : ''} items-center justify-center`}>
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-md">
+              <Store className="w-4 h-4 text-white" />
+            </div>
+          </div>
+          {/* Mobile close */}
+          <button
+            onClick={onClose}
+            className="md:hidden p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-400 transition-colors"
+            type="button"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
-        {/* Navigation Menu */}
-        <nav className="p-4 space-y-2 overflow-y-auto flex-1">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
+        {/* ── Navigation ── */}
+        <nav className="flex-1 overflow-y-auto py-4 px-2 pb-20 md:pb-4 space-y-5
+          scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800">
+          {NAV_SECTIONS.map((section) => (
+            <div key={section.label}>
+              {/* Section label — hidden when collapsed */}
+              {!collapsed && (
+                <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest px-3 mb-1.5">
+                  {section.label}
+                </p>
+              )}
+              {collapsed && (
+                <div className="hidden md:block h-px bg-gray-100 dark:bg-gray-800/60 mx-2 mb-2" />
+              )}
 
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleNavigation(item.path)}
-                className={`
-                  w-full flex items-center gap-3 px-4 py-3 rounded-lg
-                  transition duration-200
-                  ${
-                    isActive
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-800'
-                  }
-                `}
-                type="button"
-              >
-                <Icon className="w-5 h-5" />
-                <span className="flex-1 text-left font-medium">{item.label}</span>
-                {item.id === 'notifications' && unreadCount > 0 && (
-                  <span className="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center leading-none">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-                {isActive && <ChevronRight className="w-4 h-4" />}
-              </button>
-            );
-          })}
+              <div className="space-y-0.5">
+                {section.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = location.pathname === item.path;
+                  const labelText = item.label;
+
+                  return (
+                    <div key={item.id} className="relative group">
+                      <button
+                        onClick={() => handleNavigation(item.path)}
+                        type="button"
+                        aria-label={item.label}
+                        className={`
+                          w-full flex items-center gap-3 rounded-xl
+                          transition-all duration-150 relative
+                          ${collapsed ? 'md:justify-center md:px-2 px-3 py-2.5' : 'px-3 py-2.5'}
+                          ${isActive
+                            ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-semibold'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-white'
+                          }
+                        `}
+                      >
+                        {/* Active left bar */}
+                        {isActive && (
+                          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-indigo-600 dark:bg-indigo-400 rounded-r-full" />
+                        )}
+
+                        <Icon className={`w-[18px] h-[18px] shrink-0 transition-colors ${isActive ? 'text-indigo-600 dark:text-indigo-400' : ''}`} />
+
+                        {/* Label — hidden on collapsed desktop */}
+                        <span className={`flex-1 text-left text-sm transition-all ${collapsed ? 'md:hidden' : ''}`}>
+                          {labelText}
+                        </span>
+
+                        {/* Notification badge */}
+                        {item.id === 'notifications' && unreadCount > 0 && !collapsed && (
+                          <span className="bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 leading-none">
+                            {unreadCount > 9 ? '9+' : unreadCount}
+                          </span>
+                        )}
+
+                        {/* Collapsed notification dot */}
+                        {item.id === 'notifications' && unreadCount > 0 && collapsed && (
+                          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full hidden md:block" />
+                        )}
+                      </button>
+
+                      {/* Tooltip on collapsed */}
+                      {collapsed && (
+                        <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 z-50 pointer-events-none hidden md:block">
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-gray-900 dark:bg-gray-700 text-white text-xs font-medium px-2.5 py-1.5 rounded-lg whitespace-nowrap shadow-xl">
+                            {labelText}
+                            {/* Arrow */}
+                            <span className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900 dark:border-r-gray-700" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
+        {/* ── Collapse toggle (desktop only) ── */}
+        <div className="hidden md:flex shrink-0 p-3 border-t border-gray-100 dark:border-gray-800/60 justify-end">
+          <button
+            onClick={onToggleCollapse}
+            type="button"
+            className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </button>
+        </div>
       </aside>
     </>
   );

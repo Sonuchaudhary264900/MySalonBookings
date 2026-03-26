@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSalon } from '../../hooks/useSalon';
-import { Clock, AlertTriangle, XCircle } from 'lucide-react';
+import { Clock, AlertTriangle, XCircle, CreditCard, ArrowRight } from 'lucide-react';
 
 const TrialBanner = () => {
   const { subscription } = useSalon();
@@ -9,40 +9,66 @@ const TrialBanner = () => {
 
   if (!subscription) return null;
 
-  const { trialActive, trialDaysRemaining, accessStatus, planType, paymentStatus } = subscription;
+  const { trialActive, trialDaysRemaining, accessStatus, planType } = subscription;
 
-  // Don't show banner if active paid subscription
+  // Active paid subscription — no banner needed
   if (accessStatus === 'active') return null;
 
-  let bgClass = '';
-  let icon = null;
-  let message = '';
+  const hasPlan    = planType && planType !== 'free_trial';
+  const planLabel  = planType === 'starter' ? 'Starter ₹150/month' : planType === 'per_booking' ? 'Per Booking ₹1/booking' : '';
+
+  let cfg = { bg: '', border: '', text: '', icon: null, message: '', cta: 'Go to Billing' };
 
   if (trialActive && trialDaysRemaining > 3) {
-    bgClass = 'bg-blue-50 border-blue-200 text-blue-800';
-    icon = <Clock size={15} />;
-    message = `Free trial active — ${trialDaysRemaining} days remaining`;
+    cfg = {
+      bg:      'bg-blue-50 dark:bg-blue-950/30',
+      border:  'border-blue-200 dark:border-blue-800/60',
+      text:    'text-blue-800 dark:text-blue-300',
+      icon:    <Clock className="w-4 h-4 shrink-0" />,
+      message: `Free trial active — ${trialDaysRemaining} days remaining`,
+      cta:     'View Plans',
+    };
   } else if (trialActive && trialDaysRemaining <= 3) {
-    bgClass = 'bg-yellow-50 border-yellow-200 text-yellow-800';
-    icon = <AlertTriangle size={15} />;
-    message = `Trial expires in ${trialDaysRemaining} day${trialDaysRemaining !== 1 ? 's' : ''} — Choose a plan now`;
+    cfg = {
+      bg:      'bg-amber-50 dark:bg-amber-950/30',
+      border:  'border-amber-200 dark:border-amber-800/60',
+      text:    'text-amber-800 dark:text-amber-300',
+      icon:    <AlertTriangle className="w-4 h-4 shrink-0" />,
+      message: `Trial expires in ${trialDaysRemaining} day${trialDaysRemaining !== 1 ? 's' : ''} — choose a plan now`,
+      cta:     'Choose a plan',
+    };
+  } else if (accessStatus === 'overdue' && hasPlan) {
+    cfg = {
+      bg:      'bg-red-50 dark:bg-red-950/30',
+      border:  'border-red-200 dark:border-red-800/60',
+      text:    'text-red-800 dark:text-red-300',
+      icon:    <CreditCard className="w-4 h-4 shrink-0" />,
+      message: `Payment due — ${planLabel} plan`,
+      cta:     'Pay now',
+    };
   } else {
-    bgClass = 'bg-red-50 border-red-200 text-red-800';
-    icon = <XCircle size={15} />;
-    message = 'Trial expired — Please select a plan to continue';
+    cfg = {
+      bg:      'bg-red-50 dark:bg-red-950/30',
+      border:  'border-red-200 dark:border-red-800/60',
+      text:    'text-red-800 dark:text-red-300',
+      icon:    <XCircle className="w-4 h-4 shrink-0" />,
+      message: 'Trial expired — Please select a plan to continue',
+      cta:     'Choose plan',
+    };
   }
 
   return (
-    <div className={`border-b px-4 py-2 flex items-center justify-between text-sm ${bgClass}`}>
-      <span className="flex items-center gap-1.5 font-medium">
-        {icon}
-        {message}
+    <div className={`border-b px-4 py-2 flex items-center justify-between gap-4 text-sm transition-colors duration-300 ${cfg.bg} ${cfg.border} ${cfg.text}`}>
+      <span className="flex items-center gap-2 font-medium text-xs md:text-sm">
+        {cfg.icon}
+        {cfg.message}
       </span>
       <button
         onClick={() => navigate('/dashboard/billing')}
-        className="text-xs font-semibold underline underline-offset-2 hover:opacity-75 transition"
+        className="flex items-center gap-1 text-xs font-semibold shrink-0 hover:opacity-75 transition-opacity"
       >
-        Go to Billing →
+        {cfg.cta}
+        <ArrowRight className="w-3 h-3" />
       </button>
     </div>
   );

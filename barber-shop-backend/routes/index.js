@@ -1478,17 +1478,20 @@ router.put("/owner/working-hours", authenticateOwner, asyncHandler(async (req, r
    OWNER CUSTOMERS ROUTES
 ===================================================== */
 
-// GET /owner/customers — list customers who booked at this salon
+// GET /owner/customers — list all customers (registered + walk-in) who booked at this salon
 router.get("/owner/customers", authenticateOwner, asyncHandler(async (req, res) => {
   const Booking = require("../models/Booking");
+  const Customer = require("../models/Customer");
   const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
   const { q } = req.query;
-  let customers = await Booking.aggregate([
+
+  // 1. Registered customers (have customerId)
+  const registered = await Booking.aggregate([
     { $match: { salonId: salon._id, customerId: { $exists: true, $ne: null } } },
     {
       $group: {
-        _id: "$customerId",
+        _id:               "$customerId",
         totalBookings:     { $sum: 1 },
         totalSpent:        { $sum: "$totalAmount" },
         lastVisit:         { $max: "$appointmentDate" },
@@ -1499,19 +1502,63 @@ router.get("/owner/customers", authenticateOwner, asyncHandler(async (req, res) 
     { $unwind: "$customer" },
     {
       $project: {
-        _id: "$customer._id",
-        name: "$customer.name",
-        phone: "$customer.phone",
-        email: "$customer.email",
-        profilePhoto: "$customer.profilePhoto",
-        totalBookings: 1,
-        totalSpent: 1,
-        lastVisit: 1,
+        _id:               "$customer._id",
+        name:              "$customer.name",
+        phone:             "$customer.phone",
+        email:             "$customer.email",
+        profilePhoto:      "$customer.profilePhoto",
+        totalBookings:     1,
+        totalSpent:        1,
+        lastVisit:         1,
         completedBookings: 1,
+        isWalkIn:          { $literal: false },
       }
     },
-    { $sort: { totalBookings: -1 } },
   ]);
+
+  // 2. Walk-in customers (no customerId, have customerPhone, grouped by phone)
+  const walkIns = await Booking.aggregate([
+    {
+      $match: {
+        salonId:       salon._id,
+        customerId:    { $exists: false },
+        customerPhone: { $exists: true, $nin: [null, ""] },
+      }
+    },
+    {
+      $group: {
+        _id:               "$customerPhone",
+        name:              { $last: "$customerName" },
+        phone:             { $last: "$customerPhone" },
+        totalBookings:     { $sum: 1 },
+        totalSpent:        { $sum: "$totalAmount" },
+        lastVisit:         { $max: "$appointmentDate" },
+        completedBookings: { $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] } },
+      }
+    },
+    {
+      $project: {
+        _id:               { $concat: ["walkin_", "$_id"] },
+        name:              1,
+        phone:             1,
+        email:             { $literal: "" },
+        profilePhoto:      { $literal: null },
+        totalBookings:     1,
+        totalSpent:        1,
+        lastVisit:         1,
+        completedBookings: 1,
+        isWalkIn:          { $literal: true },
+      }
+    },
+  ]);
+
+  // Merge: skip walk-ins whose phone already matches a registered customer
+  const registeredPhones = new Set(registered.map(c => c.phone).filter(Boolean));
+  const uniqueWalkIns = walkIns.filter(w => !registeredPhones.has(w.phone));
+
+  let customers = [...registered, ...uniqueWalkIns]
+    .sort((a, b) => (b.totalBookings || 0) - (a.totalBookings || 0));
+
   if (q) {
     const safeQ = escapeRegex(String(q).slice(0, 100)).toLowerCase();
     customers = customers.filter(c =>
@@ -1521,12 +1568,69 @@ router.get("/owner/customers", authenticateOwner, asyncHandler(async (req, res) 
   res.json({ success: true, data: { customers } });
 }));
 
-// GET /owner/customers/:customerId/bookings — booking history for a customer
-router.get("/owner/customers/:customerId/bookings", authenticateOwner, validateObjectId("customerId"), asyncHandler(async (req, res) => {
+// POST /owner/customers — manually add a customer
+router.post("/owner/customers", authenticateOwner, asyncHandler(async (req, res) => {
+  const Customer = require("../models/Customer");
+  const { name, phone, email, notes } = req.body;
+  if (!name?.trim())  return res.status(400).json({ success: false, message: "Name is required" });
+  if (!phone?.trim()) return res.status(400).json({ success: false, message: "Phone is required" });
+  const existing = await Customer.findOne({ phone: phone.trim() });
+  if (existing) return res.status(409).json({ success: false, message: "A customer with this phone already exists" });
+  const customer = await Customer.create({
+    name:    name.trim(),
+    phone:   phone.trim(),
+    email:   email?.trim() || undefined,
+    notes:   notes?.trim() || undefined,
+    gender:  'male',
+    role:    'customer',
+  });
+  res.status(201).json({ success: true, data: customer });
+}));
+
+// PUT /owner/customers/:customerId — update a customer's details
+router.put("/owner/customers/:customerId", authenticateOwner, asyncHandler(async (req, res) => {
+  const Customer = require("../models/Customer");
+  const { name, phone, email, notes } = req.body;
+  const update = {};
+  if (name?.trim())  update.name  = name.trim();
+  if (phone?.trim()) update.phone = phone.trim();
+  if (email !== undefined) update.email = email?.trim() || "";
+  if (notes !== undefined) update.notes = notes?.trim() || "";
+  const customer = await Customer.findByIdAndUpdate(
+    req.params.customerId,
+    { $set: update },
+    { new: true, runValidators: false }
+  );
+  if (!customer) return res.status(404).json({ success: false, message: "Customer not found" });
+  res.json({ success: true, data: customer });
+}));
+
+// DELETE /owner/customers/:customerId — remove a customer record
+router.delete("/owner/customers/:customerId", authenticateOwner, asyncHandler(async (req, res) => {
+  const Customer = require("../models/Customer");
+  const customer = await Customer.findByIdAndDelete(req.params.customerId);
+  if (!customer) return res.status(404).json({ success: false, message: "Customer not found" });
+  res.json({ success: true, message: "Customer deleted" });
+}));
+
+// GET /owner/customers/:customerId/bookings — booking history (registered or walk-in by phone)
+router.get("/owner/customers/:customerId/bookings", authenticateOwner, asyncHandler(async (req, res) => {
   const Booking = require("../models/Booking");
   const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
-  const bookings = await Booking.find({ salonId: salon._id, customerId: req.params.customerId })
+
+  const { customerId } = req.params;
+
+  // Walk-in virtual IDs are prefixed with "walkin_"
+  if (customerId.startsWith("walkin_")) {
+    const phone = customerId.slice(7);
+    const bookings = await Booking.find({ salonId: salon._id, customerPhone: phone, isWalkIn: true })
+      .sort({ appointmentDate: -1 }).limit(50).lean();
+    return res.json({ success: true, data: { bookings } });
+  }
+
+  // Registered customer
+  const bookings = await Booking.find({ salonId: salon._id, customerId })
     .sort({ appointmentDate: -1 }).limit(50).lean();
   res.json({ success: true, data: { bookings } });
 }));

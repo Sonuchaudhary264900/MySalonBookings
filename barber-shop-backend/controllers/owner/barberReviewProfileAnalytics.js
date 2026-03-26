@@ -42,9 +42,37 @@ const getDashboardAnalytics = async (req, res) => {
 
     const totalRevenue = completed.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
 
-    const recentBookings = bookings.slice(0, 5).map(b => ({
+    // Active customers — unique by phone, then customerId, then name
+    const customerSet = new Set();
+    for (const b of bookings) {
+      const key = b.customerPhone || (b.customerId ? String(b.customerId) : null) || b.customerName;
+      if (key) customerSet.add(key);
+    }
+    const activeCustomers = customerSet.size;
+
+    // Growth rate — compare to same-length previous period
+    let growthRate = 0;
+    if (startDate && endDate) {
+      const curStart = new Date(startDate + 'T00:00:00.000Z');
+      const curEnd   = new Date(endDate   + 'T23:59:59.999Z');
+      const spanMs   = curEnd - curStart;
+      const prevEnd   = new Date(curStart.getTime() - 1);
+      const prevStart = new Date(prevEnd.getTime() - spanMs);
+      const prevCount = await Booking.countDocuments({
+        salonId: salon._id,
+        createdAt: { $gte: prevStart, $lte: prevEnd },
+      });
+      if (prevCount > 0) {
+        growthRate = Math.round(((bookings.length - prevCount) / prevCount) * 100);
+      } else if (bookings.length > 0) {
+        growthRate = 100;
+      }
+    }
+
+    const recentBookings = bookings.slice(0, 20).map(b => ({
       _id:             b._id,
       customerName:    b.customerName,
+      customerPhone:   b.customerPhone,
       serviceName:     b.serviceName,
       appointmentDate: b.appointmentDate,
       appointmentTime: b.appointmentTime,
@@ -79,6 +107,8 @@ const getDashboardAnalytics = async (req, res) => {
       confirmedBookings: confirmed.length,
       cancelledBookings: cancelled.length,
       totalRevenue,
+      activeCustomers,
+      growthRate,
       recentBookings,
       topServices,
       dailyRevenue,
