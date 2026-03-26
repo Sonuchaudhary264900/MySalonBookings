@@ -1,13 +1,13 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
-import { SearchX, Users, Star, TrendingUp, MapPin } from "lucide-react";
+import { SearchX, Users, Star, MapPin } from "lucide-react";
 import API from "../services/api";
 import SalonCard from "../components/SalonCard";
 import HeroSection from "../components/HeroSection";
 import HowItWorks from "../components/HowItWorks";
 import FeaturesSection from "../components/FeaturesSection";
 
-// ── Helpers ────────────────────────────────────────────────────
+// ── Helpers ─────────────────────────────────────────────────────
 function getUserName() {
   try {
     const token = localStorage.getItem("customerToken");
@@ -17,6 +17,25 @@ function getUserName() {
   } catch { return "there"; }
 }
 
+function useInView(ref, delay = 0) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => el.classList.add("visible"), delay);
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.08 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [ref, delay]);
+}
+
+// ── Data ─────────────────────────────────────────────────────────
 const CATEGORIES = [
   { key: "all",                  label: "All",           icon: "🏠" },
   { key: "Hair Services",        label: "Hair",          icon: "✂️" },
@@ -57,31 +76,33 @@ const TRENDING_SERVICES = [
   { label: "At-Home",    icon: "🏡", cat: "At-Home Services" },
 ];
 
+// ── Skeleton Card (dark) ─────────────────────────────────────────
 function SkeletonCard() {
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-      <div className="h-48 skeleton" />
+    <div
+      className="rounded-3xl overflow-hidden"
+      style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}
+    >
+      <div className="h-48 skeleton-dark" />
       <div className="p-4 space-y-3">
-        <div className="h-4 skeleton rounded w-3/4" />
-        <div className="h-3 skeleton rounded w-1/2" />
-        <div className="h-3 skeleton rounded w-1/3" />
+        <div className="h-4 skeleton-dark rounded-lg w-3/4" />
+        <div className="h-3 skeleton-dark rounded-lg w-1/2" />
+        <div className="h-8 skeleton-dark rounded-xl w-full mt-2" />
       </div>
     </div>
   );
 }
 
+// ── Mini Salon Card for horizontal scroll ───────────────────────
 function MiniSalonCard({ salon, userCoords }) {
   const rating = parseFloat(salon.averageRating || salon.rating || 0);
   const hasPhoto = salon.photos?.[0] || salon.coverPhoto || salon.image || salon.ownerPhoto;
-  const GRADIENTS = {
-    barber:        "from-blue-500 to-indigo-600",
-    hair_salon:    "from-violet-500 to-purple-600",
-    spa:           "from-emerald-500 to-teal-600",
-    nail_salon:    "from-pink-500 to-rose-600",
-    massage:       "from-orange-500 to-amber-600",
-    multi_service: "from-indigo-500 to-violet-600",
+  const GRADS = {
+    barber: "from-blue-700 to-indigo-800", hair_salon: "from-violet-700 to-purple-800",
+    spa: "from-emerald-700 to-teal-800", nail_salon: "from-pink-700 to-rose-800",
+    massage: "from-orange-700 to-amber-800",
   };
-  const gradient = GRADIENTS[salon.category] || "from-indigo-500 to-violet-600";
+  const gradient = GRADS[salon.category] || "from-indigo-700 to-violet-800";
 
   let distLabel = null;
   if (userCoords && salon.location?.coordinates?.length === 2) {
@@ -96,29 +117,51 @@ function MiniSalonCard({ salon, userCoords }) {
 
   return (
     <Link to={`/salon/${salon._id}`} className="group block shrink-0 w-44 sm:w-48">
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+      <div
+        className="rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1.5"
+        style={{
+          background: "rgba(255,255,255,0.04)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          border: "1px solid rgba(255,255,255,0.07)",
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.borderColor = "rgba(139,92,246,0.4)";
+          e.currentTarget.style.boxShadow = "0 0 20px rgba(139,92,246,0.15), 0 12px 40px rgba(0,0,0,0.4)";
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)";
+          e.currentTarget.style.boxShadow = "none";
+        }}
+      >
         <div className="relative h-28 overflow-hidden">
           {hasPhoto ? (
             <img src={hasPhoto} alt={salon.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
           ) : (
             <div className={`w-full h-full bg-gradient-to-br ${gradient} flex items-center justify-center`}>
-              <span className="text-3xl">✂</span>
+              <span className="text-3xl opacity-50">✂</span>
             </div>
           )}
           {rating > 0 && (
-            <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+            <div
+              className="absolute bottom-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 text-white"
+              style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)" }}
+            >
               <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" /> {rating.toFixed(1)}
             </div>
           )}
         </div>
         <div className="p-2.5">
-          <p className="text-xs font-bold text-slate-900 truncate leading-tight">{salon.name}</p>
+          <p className="text-xs font-bold text-white truncate leading-tight">{salon.name}</p>
           {distLabel && (
-            <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+            <p className="text-[10px] flex items-center gap-1 mt-0.5" style={{ color: "rgba(148,163,184,0.5)" }}>
               <MapPin className="w-2.5 h-2.5 shrink-0" /> {distLabel}
             </p>
           )}
-          <div className="mt-1.5 text-[10px] font-bold text-center bg-gradient-to-r from-indigo-600 to-violet-600 text-white py-1 rounded-lg">
+          <div
+            className="mt-2 text-[10px] font-bold text-center text-white py-1.5 rounded-lg"
+            style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}
+          >
             Book Now
           </div>
         </div>
@@ -127,6 +170,37 @@ function MiniSalonCard({ salon, userCoords }) {
   );
 }
 
+// ── Section heading component ───────────────────────────────────
+function SectionHeading({ icon, title, sub, onSeeAll, seeAllLabel }) {
+  const ref = useRef(null);
+  useInView(ref);
+  return (
+    <div ref={ref} className="inview flex items-end justify-between mb-5">
+      <div className="flex items-center gap-2.5">
+        <div
+          className="w-9 h-9 rounded-xl flex items-center justify-center text-lg"
+          style={{ background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.2)" }}
+        >
+          {icon}
+        </div>
+        <div>
+          <h2 className="text-base font-bold text-white">{title}</h2>
+          {sub && <p className="text-xs" style={{ color: "rgba(148,163,184,0.5)" }}>{sub}</p>}
+        </div>
+      </div>
+      {onSeeAll && (
+        <button
+          onClick={onSeeAll}
+          className="text-xs font-semibold transition-colors duration-200 text-indigo-400 hover:text-violet-400"
+        >
+          {seeAllLabel || "See all →"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ── Main Component ───────────────────────────────────────────────
 function Home() {
   const isLoggedIn = !!localStorage.getItem("customerToken");
   const userName   = getUserName();
@@ -148,8 +222,10 @@ function Home() {
   const [serviceMatchLabel, setServiceMatchLabel] = useState("");
   const [upcomingCount, setUpcomingCount] = useState(0);
   const searchTimer = useRef(null);
+  const salonsRef   = useRef(null);
+  useInView(salonsRef, 100);
 
-  // ── initial location detect ──────────────────────────────────
+  // ── initial location ─────────────────────────────────────────
   useEffect(() => {
     let ignore = false;
     if (!navigator.geolocation) { setLocDenied(true); setLoading(false); return; }
@@ -166,7 +242,7 @@ function Home() {
     return () => { ignore = true; };
   }, []);
 
-  // ── fetch upcoming count for logged-in user ──────────────────
+  // ── upcoming count ───────────────────────────────────────────
   useEffect(() => {
     if (!isLoggedIn) return;
     API.get("/customer/bookings").then(res => {
@@ -228,9 +304,8 @@ function Home() {
 
   const handleCategory = (cat) => {
     let newCats;
-    if (cat === "all") {
-      newCats = [];
-    } else {
+    if (cat === "all") { newCats = []; }
+    else {
       newCats = selectedCats.includes(cat)
         ? selectedCats.filter((c) => c !== cat)
         : [...selectedCats, cat];
@@ -267,36 +342,20 @@ function Home() {
     const q = text.toLowerCase();
     const activeCats   = cats   ?? selectedCats;
     const activeGender = gender ?? genderFilter;
-
     const local = allSalons.filter(
-      (s) =>
-        s.name?.toLowerCase().includes(q) ||
-        s.city?.toLowerCase().includes(q) ||
-        s.address?.toLowerCase().includes(q)
+      (s) => s.name?.toLowerCase().includes(q) || s.city?.toLowerCase().includes(q) || s.address?.toLowerCase().includes(q)
     );
     const localFiltered = applyFilters(local, activeCats, activeGender);
-
-    if (localFiltered.length > 0) {
-      setSalons(localFiltered);
-      setSearching(false);
-      return;
-    }
-
+    if (localFiltered.length > 0) { setSalons(localFiltered); setSearching(false); return; }
     try {
       const res = await API.get(`/public/services/search?q=${encodeURIComponent(text.trim())}`);
       const data = res.data.data;
       if (data?.salons?.length > 0) {
-        const filtered = applyFilters(data.salons, activeCats, activeGender);
-        setSalons(filtered);
+        setSalons(applyFilters(data.salons, activeCats, activeGender));
         setServiceMatchLabel(`Salons offering "${data.matchedService}"`);
-      } else {
-        setSalons([]);
-      }
-    } catch {
-      setSalons([]);
-    } finally {
-      setSearching(false);
-    }
+      } else { setSalons([]); }
+    } catch { setSalons([]); }
+    finally { setSearching(false); }
   }, [allSalons, selectedCats, genderFilter]);
 
   const handleSearch = (text) => {
@@ -335,22 +394,23 @@ function Home() {
 
   const sectionTitle = serviceMatchLabel
     ? serviceMatchLabel
-    : isSearchActive
-    ? "Search Results"
+    : isSearchActive  ? "Search Results"
     : sort === "nearby" ? "Salons Near You"
     : sort === "rated"  ? "Top Rated Salons"
     : "Most Booked Salons";
 
-  // Derive smart sections from loaded data
+  // Smart sections
   const topRatedSalons = [...allSalons]
     .filter(s => parseFloat(s.averageRating || s.rating || 0) >= 4.0)
     .sort((a, b) => parseFloat(b.averageRating || b.rating || 0) - parseFloat(a.averageRating || a.rating || 0))
-    .slice(0, 10);
+    .slice(0, 12);
+
+  const PAGE_BG = "#050509";
 
   return (
-    <div className="bg-slate-50">
+    <div style={{ background: PAGE_BG, minHeight: "100vh" }}>
 
-      {/* ── HERO ──────────────────────────────────────────────── */}
+      {/* ── HERO ─────────────────────────────────────────────── */}
       <HeroSection
         searchText={searchText}
         onSearch={handleSearch}
@@ -363,43 +423,56 @@ function Home() {
         upcomingCount={upcomingCount}
       />
 
-      {/* ── TRENDING SERVICES ────────────────────────────────── */}
-      <div className="bg-white border-b border-slate-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center gap-2 mb-3">
-            <TrendingUp className="w-4 h-4 text-indigo-600" />
-            <span className="text-sm font-bold text-slate-800">Trending Services</span>
-          </div>
-          <div className="flex gap-2.5 overflow-x-auto scrollbar-hide pb-1">
-            {TRENDING_SERVICES.map(({ label, icon, cat }) => (
-              <button
-                key={label}
-                onClick={() => {
-                  handleCategory(cat);
-                  document.getElementById("salons")?.scrollIntoView({ behavior: "smooth" });
-                }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all shrink-0 border ${
-                  selectedCats.includes(cat)
-                    ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white border-transparent shadow-md shadow-indigo-200"
-                    : "bg-slate-50 text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
-                }`}
-              >
-                <span>{icon}</span> {label}
-              </button>
-            ))}
+      {/* ── TRENDING SERVICES BAR ────────────────────────────── */}
+      <div
+        className="sticky top-[57px] z-30"
+        style={{
+          background: "rgba(5,5,9,0.85)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
+        }}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
+          <div className="flex gap-2.5 overflow-x-auto scrollbar-hide">
+            {TRENDING_SERVICES.map(({ label, icon, cat }) => {
+              const active = selectedCats.includes(cat);
+              return (
+                <button
+                  key={label}
+                  onClick={() => {
+                    handleCategory(cat);
+                    document.getElementById("salons")?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all duration-200 shrink-0"
+                  style={{
+                    background: active
+                      ? "linear-gradient(135deg,#6366f1,#8b5cf6)"
+                      : "rgba(255,255,255,0.05)",
+                    border: active
+                      ? "1px solid rgba(139,92,246,0.5)"
+                      : "1px solid rgba(255,255,255,0.08)",
+                    color: active ? "#fff" : "rgba(148,163,184,0.7)",
+                    boxShadow: active ? "0 0 12px rgba(99,102,241,0.35)" : "none",
+                  }}
+                >
+                  <span>{icon}</span> {label}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {/* ── SALONS SECTION ────────────────────────────────────── */}
-      <div id="salons" className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-4">
+      {/* ── SALONS SECTION ───────────────────────────────────── */}
+      <div id="salons" className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-4">
 
         {/* Category chips */}
         {(() => {
           const visible = CATEGORIES.filter(({ key }) => {
             if (key === "all") return true;
-            if (genderFilter === "female" && MALE_ONLY_CHIPS.includes(key))   return false;
-            if (genderFilter === "male"   && FEMALE_ONLY_CHIPS.includes(key)) return false;
+            if (genderFilter === "female" && MALE_ONLY_CHIPS.includes(key)) return false;
+            if (genderFilter === "male" && FEMALE_ONLY_CHIPS.includes(key)) return false;
             return true;
           });
           return (
@@ -410,11 +483,17 @@ function Home() {
                   <button
                     key={key}
                     onClick={() => handleCategory(key)}
-                    className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all duration-200 shrink-0 ${
-                      isActive
-                        ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-200"
-                        : "bg-white text-slate-600 border border-slate-200 hover:border-indigo-300 hover:text-indigo-600 hover:shadow-sm"
-                    }`}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all duration-200 shrink-0"
+                    style={{
+                      background: isActive
+                        ? "linear-gradient(135deg,#6366f1,#8b5cf6)"
+                        : "rgba(255,255,255,0.05)",
+                      border: isActive
+                        ? "1px solid rgba(139,92,246,0.5)"
+                        : "1px solid rgba(255,255,255,0.08)",
+                      color: isActive ? "#fff" : "rgba(148,163,184,0.7)",
+                      boxShadow: isActive ? "0 0 14px rgba(99,102,241,0.35)" : "none",
+                    }}
                   >
                     <span className="text-base leading-none">{icon}</span>
                     {label}
@@ -427,17 +506,19 @@ function Home() {
 
         {/* Gender + sort row */}
         {(!locDenied || isSearchActive) && (
-          <div className="flex items-center justify-between flex-wrap gap-2 mt-2 mb-2">
+          <div className="flex items-center justify-between flex-wrap gap-2 mt-3 mb-3">
             <div className="flex gap-2 overflow-x-auto scrollbar-hide">
               {GENDER_FILTERS.map(({ key, label, icon }) => (
                 <button
                   key={key}
                   onClick={() => handleGenderFilter(key)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 border ${
-                    genderFilter === key
-                      ? "bg-rose-500 text-white border-rose-500 shadow-sm"
-                      : "bg-white text-slate-500 border-slate-200 hover:border-rose-300 hover:text-rose-500"
-                  }`}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0"
+                  style={{
+                    background: genderFilter === key ? "rgba(244,63,94,0.2)" : "rgba(255,255,255,0.05)",
+                    border: genderFilter === key ? "1px solid rgba(244,63,94,0.4)" : "1px solid rgba(255,255,255,0.08)",
+                    color: genderFilter === key ? "#fb7185" : "rgba(148,163,184,0.6)",
+                    boxShadow: genderFilter === key ? "0 0 10px rgba(244,63,94,0.2)" : "none",
+                  }}
                 >
                   {icon} {label}
                 </button>
@@ -447,7 +528,12 @@ function Home() {
               <select
                 value={sort}
                 onChange={(e) => handleSort(e.target.value)}
-                className="text-xs text-indigo-600 font-semibold bg-white border border-slate-200 rounded-xl px-3 py-1.5 outline-none cursor-pointer hover:border-indigo-300 transition"
+                className="text-xs font-semibold rounded-xl px-3 py-1.5 outline-none cursor-pointer transition"
+                style={{
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  color: "#818cf8",
+                }}
               >
                 <option value="nearby">📍 Nearest</option>
                 <option value="booked">🔥 Most Booked</option>
@@ -459,22 +545,23 @@ function Home() {
 
         {/* Location denied */}
         {locDenied && !isSearchActive && (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-20 h-20 rounded-full bg-indigo-50 flex items-center justify-center mb-5">
+          <div className="flex flex-col items-center justify-center py-28 text-center">
+            <div
+              className="w-20 h-20 rounded-full flex items-center justify-center mb-6"
+              style={{ background: "rgba(99,102,241,0.12)", border: "1px solid rgba(99,102,241,0.2)" }}
+            >
               <span className="text-4xl">📍</span>
             </div>
-            <h3 className="text-xl font-bold text-slate-800 mb-2">Enable Location to See Salons</h3>
-            <p className="text-slate-500 text-sm max-w-xs mb-6">
-              We show salons within <span className="font-semibold text-indigo-600">5 km</span> of your location.
+            <h3 className="text-xl font-bold text-white mb-2">Enable Location to See Salons</h3>
+            <p className="text-sm max-w-xs mb-7" style={{ color: "rgba(148,163,184,0.6)" }}>
+              We show salons within <span className="font-semibold text-indigo-400">5 km</span> of your location.
             </p>
             <button
               onClick={handleLocation}
               disabled={locLoading}
-              className="btn-primary flex items-center gap-2"
+              className="neon-btn inline-flex items-center gap-2 px-7 py-3 rounded-xl font-bold text-white text-sm"
             >
-              {locLoading
-                ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                : "📍"}
+              {locLoading ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : "📍"}
               {locLoading ? "Detecting…" : "Allow Location Access"}
             </button>
           </div>
@@ -482,19 +569,19 @@ function Home() {
 
         {/* Salon grid */}
         {(!locDenied || isSearchActive) && (
-          <div className="py-2">
+          <div ref={salonsRef} className="inview py-2">
             {/* Results header */}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-5">
               <div>
-                <h2 className="text-base font-bold text-slate-800">{sectionTitle}</h2>
+                <h2 className="text-base font-bold text-white">{sectionTitle}</h2>
                 {!loading && (
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs mt-0.5" style={{ color: "rgba(148,163,184,0.45)" }}>
                     {salons.length} salon{salons.length !== 1 ? "s" : ""} {isSearchActive ? "found" : "nearby"}
                   </p>
                 )}
               </div>
               {isSearchActive && (
-                <button onClick={clearSearch} className="text-sm text-indigo-600 hover:underline font-medium">
+                <button onClick={clearSearch} className="text-sm font-medium text-indigo-400 hover:text-violet-400 transition-colors">
                   ← Show All
                 </button>
               )}
@@ -509,15 +596,18 @@ function Home() {
 
             {/* Empty state */}
             {!loading && salons.length === 0 && (
-              <div className="text-center py-20">
-                <SearchX className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-slate-700 mb-2">No salons found</h3>
-                <p className="text-slate-400 text-sm mb-6">
-                  {isSearchActive
-                    ? "No salons or services matching your search."
-                    : "No salons found within 5 km of your location."}
+              <div className="flex flex-col items-center py-20 text-center">
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
+                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+                >
+                  <SearchX className="w-7 h-7" style={{ color: "rgba(148,163,184,0.4)" }} />
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">No salons found</h3>
+                <p className="text-sm mb-6 max-w-xs" style={{ color: "rgba(148,163,184,0.5)" }}>
+                  {isSearchActive ? "No salons or services matching your search." : "No salons found within 5 km of your location."}
                 </p>
-                <button onClick={clearSearch} className="btn-primary">Reset Filters</button>
+                <button onClick={clearSearch} className="neon-btn px-6 py-2.5 rounded-xl text-sm font-bold text-white">Reset Filters</button>
               </div>
             )}
 
@@ -530,7 +620,11 @@ function Home() {
                     {salon.matchedServices?.length > 0 && (
                       <div className="flex flex-wrap gap-1 px-3 pb-3 -mt-1">
                         {salon.matchedServices.slice(0, 3).map((svcName) => (
-                          <span key={svcName} className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium">
+                          <span
+                            key={svcName}
+                            className="text-xs px-2 py-0.5 rounded-full font-medium"
+                            style={{ background: "rgba(99,102,241,0.15)", color: "#818cf8", border: "1px solid rgba(99,102,241,0.2)" }}
+                          >
                             {svcName}
                           </span>
                         ))}
@@ -544,24 +638,15 @@ function Home() {
         )}
       </div>
 
-      {/* ── TOP RATED SALONS ──────────────────────────────────── */}
+      {/* ── TOP RATED SALONS ─────────────────────────────────── */}
       {topRatedSalons.length > 0 && !isSearchActive && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">⭐</span>
-              <div>
-                <h2 className="text-base font-bold text-slate-800">Top Rated Near You</h2>
-                <p className="text-xs text-slate-400">Highest rated salons in your area</p>
-              </div>
-            </div>
-            <button
-              onClick={() => handleSort("rated")}
-              className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition"
-            >
-              See all →
-            </button>
-          </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+          <SectionHeading
+            icon="⭐"
+            title="Top Rated Near You"
+            sub="Highest rated salons in your area"
+            onSeeAll={() => handleSort("rated")}
+          />
           <div className="flex gap-3.5 overflow-x-auto scrollbar-hide pb-2">
             {topRatedSalons.map(salon => (
               <MiniSalonCard key={salon._id} salon={salon} userCoords={userCoords} />
@@ -570,20 +655,40 @@ function Home() {
         </div>
       )}
 
-      {/* ── BOOKINGS WIDGET (logged-in only) ─────────────────── */}
+      {/* ── BOOKINGS WIDGET ──────────────────────────────────── */}
       {isLoggedIn && upcomingCount > 0 && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-4">
-          <div className="bg-gradient-to-r from-indigo-600 to-violet-700 rounded-2xl p-5 flex items-center justify-between shadow-lg shadow-indigo-200">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-white/15 rounded-2xl flex items-center justify-center text-2xl">📅</div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-6">
+          <div
+            className="rounded-3xl p-5 flex items-center justify-between"
+            style={{
+              background: "linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.10))",
+              border: "1px solid rgba(99,102,241,0.25)",
+              boxShadow: "0 0 30px rgba(99,102,241,0.1)",
+            }}
+          >
+            <div className="flex items-center gap-4">
+              <div
+                className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl"
+                style={{ background: "rgba(99,102,241,0.2)", border: "1px solid rgba(99,102,241,0.3)" }}
+              >
+                📅
+              </div>
               <div>
-                <p className="text-white font-bold text-sm">You have {upcomingCount} upcoming booking{upcomingCount > 1 ? "s" : ""}</p>
-                <p className="text-indigo-200 text-xs mt-0.5">Tap to view details, reschedule or cancel</p>
+                <p className="text-white font-bold text-sm">
+                  You have {upcomingCount} upcoming booking{upcomingCount > 1 ? "s" : ""}
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: "rgba(148,163,184,0.55)" }}>
+                  Tap to view, reschedule or cancel
+                </p>
               </div>
             </div>
             <Link
               to="/dashboard"
-              className="shrink-0 bg-white text-indigo-700 font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-yellow-300 hover:text-indigo-800 transition shadow-sm"
+              className="shrink-0 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all duration-200"
+              style={{
+                background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
+                boxShadow: "0 0 16px rgba(99,102,241,0.3)",
+              }}
             >
               View →
             </Link>
@@ -591,10 +696,10 @@ function Home() {
         </div>
       )}
 
-      {/* ── HOW IT WORKS ──────────────────────────────────────── */}
+      {/* ── HOW IT WORKS ─────────────────────────────────────── */}
       <HowItWorks />
 
-      {/* ── FEATURES + TRUST ──────────────────────────────────── */}
+      {/* ── FEATURES + TRUST ─────────────────────────────────── */}
       <FeaturesSection />
 
     </div>

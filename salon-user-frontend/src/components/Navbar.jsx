@@ -173,26 +173,32 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
   const navLink = (to, label) => (
     <Link
       to={to}
-      className={`relative text-sm font-medium transition-colors duration-200 ${
-        isActive(to)
-          ? "text-indigo-600"
-          : "text-slate-600 hover:text-indigo-600"
-      }`}
+      className="relative text-sm font-medium transition-colors duration-200"
+      style={{ color: isActive(to) ? "#818cf8" : "rgba(148,163,184,0.7)" }}
+      onMouseEnter={e => { if (!isActive(to)) e.currentTarget.style.color = "#a78bfa"; }}
+      onMouseLeave={e => { if (!isActive(to)) e.currentTarget.style.color = "rgba(148,163,184,0.7)"; }}
     >
       {label}
       {isActive(to) && (
-        <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-indigo-600 rounded-full" />
+        <span
+          className="absolute -bottom-1 left-0 right-0 h-0.5 rounded-full"
+          style={{ background: "linear-gradient(90deg,#6366f1,#8b5cf6)", boxShadow: "0 0 6px rgba(99,102,241,0.6)" }}
+        />
       )}
     </Link>
   );
 
   return (
     <header
-      className={`sticky top-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? "glass shadow-sm border-b border-white/20"
-          : "bg-white border-b border-slate-100"
-      }`}
+      className="sticky top-0 z-50 transition-all duration-300"
+      style={{
+        background: scrolled
+          ? "rgba(5,5,9,0.9)"
+          : "rgba(5,5,9,0.75)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        borderBottom: "1px solid rgba(255,255,255,0.06)",
+      }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
         {/* Logo */}
@@ -200,7 +206,7 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
           <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center shadow-sm">
             <span className="text-white text-base">✂</span>
           </div>
-          <span className="text-xl font-bold text-gradient">My Salon Bookings</span>
+          <span className="text-xl font-bold text-neon-gradient">My Salon Bookings</span>
         </Link>
 
         {/* Desktop nav */}
@@ -269,8 +275,18 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
           </button>
           {!token ? (
             <>
-              <Link to="/login" className="btn-outline text-sm py-2 px-4">Sign In</Link>
-              <Link to="/register" className="btn-primary text-sm py-2 px-4">Join Free</Link>
+              <Link
+                to="/login"
+                className="text-sm font-semibold px-4 py-2 rounded-xl transition-all duration-200"
+                style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(148,163,184,0.9)" }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(139,92,246,0.4)"; e.currentTarget.style.color = "#fff"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "rgba(148,163,184,0.9)"; }}
+              >
+                Sign In
+              </Link>
+              <Link to="/register" className="neon-btn text-sm font-bold px-4 py-2 rounded-xl text-white">
+                Join Free
+              </Link>
             </>
           ) : (
             <div className="flex items-center gap-3">
@@ -278,7 +294,10 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
               <div className="relative" ref={panelRef}>
                 <button
                   onClick={() => setPanelOpen((v) => !v)}
-                  className="relative w-9 h-9 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 hover:text-indigo-600 transition"
+                  className="relative w-9 h-9 rounded-full flex items-center justify-center transition"
+                  style={{ color: "rgba(148,163,184,0.7)", background: "rgba(255,255,255,0.05)" }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "rgba(99,102,241,0.15)"; e.currentTarget.style.color = "#818cf8"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "rgba(148,163,184,0.7)"; }}
                   title="Notifications"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

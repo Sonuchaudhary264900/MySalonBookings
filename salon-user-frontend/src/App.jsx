@@ -83,7 +83,7 @@ function App() {
           <SwipeHandler />
           <Navbar notifOpen={notifOpen} setNotifOpen={setNotifOpen} />
           <ToastContainer />
-          <main className="flex-grow pb-16 md:pb-0">
+          <main className="flex-grow pb-20 md:pb-0">
           <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/"                            element={<Home />} />
