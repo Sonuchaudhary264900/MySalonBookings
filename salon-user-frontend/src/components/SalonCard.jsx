@@ -4,7 +4,6 @@ import { Heart, Clock, CheckCircle, Scissors, MapPin } from "lucide-react";
 import API from "../services/api";
 import { isCustomer } from "../utils/auth";
 
-// ── localStorage helpers ──────────────────────────────────────
 function getFavIds() {
   try { return JSON.parse(localStorage.getItem("customerFavorites") || "[]"); }
   catch { return []; }
@@ -13,7 +12,6 @@ function setFavIds(ids) {
   localStorage.setItem("customerFavorites", JSON.stringify(ids));
 }
 
-// ── Distance ──────────────────────────────────────────────────
 function getDistanceKm(lat1, lng1, lat2, lng2) {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -26,11 +24,10 @@ function getDistanceKm(lat1, lng1, lat2, lng2) {
 }
 
 function formatDistance(km) {
-  if (km < 1) return `${Math.round(km * 1000)} m away`;
-  return `${km.toFixed(1)} km away`;
+  if (km < 1) return `${Math.round(km * 1000)} m`;
+  return `${km.toFixed(1)} km`;
 }
 
-// ── Working hours helpers ─────────────────────────────────────
 const DAYS = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
 
 function isOpenNow(workingHours) {
@@ -53,27 +50,18 @@ function getTodayHours(workingHours) {
   return `${h.open} – ${h.close}`;
 }
 
-// ── Star Rating ───────────────────────────────────────────────
-function StarRating({ rating }) {
-  const r = parseFloat(rating) || 0;
-  return (
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <span
-          key={star}
-          className={`text-sm ${star <= Math.round(r) ? "text-amber-400" : "text-slate-200"}`}
-        >
-          ★
-        </span>
-      ))}
-      {r > 0 && <span className="text-xs text-slate-500 ml-1">{r.toFixed(1)}</span>}
-    </div>
-  );
-}
+const CATEGORY_GRADIENTS = {
+  barber:        "from-blue-600 to-indigo-600",
+  hair_salon:    "from-violet-500 to-purple-600",
+  spa:           "from-emerald-500 to-teal-600",
+  nail_salon:    "from-pink-500 to-rose-600",
+  massage:       "from-orange-500 to-amber-600",
+  multi_service: "from-indigo-500 to-violet-600",
+};
 
 function SalonCard({ salon, userCoords }) {
   const navigate = useNavigate();
-  const [saved, setSaved] = useState(() => getFavIds().includes(salon._id));
+  const [saved, setSaved]   = useState(() => getFavIds().includes(salon._id));
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -115,119 +103,111 @@ function SalonCard({ salon, userCoords }) {
     }
   };
 
-  const categoryColors = {
-    barber:        "bg-blue-900/60 text-white",
-    hair_salon:    "bg-purple-900/60 text-white",
-    spa:           "bg-green-900/60 text-white",
-    nail_salon:    "bg-pink-900/60 text-white",
-    massage:       "bg-orange-900/60 text-white",
-    multi_service: "bg-indigo-900/60 text-white",
-  };
-  const catBadgeClass = categoryColors[salon.category] || "bg-black/50 text-white";
-  const catLabel = salon.category?.replace("_", " ") || "Salon";
-  const rating = salon.averageRating || salon.rating || 0;
+  const gradient = CATEGORY_GRADIENTS[salon.category] || "from-indigo-500 to-violet-600";
+  const catLabel = salon.category?.replace(/_/g, " ") || "Salon";
+  const rating = parseFloat(salon.averageRating || salon.rating || 0);
   const reviewCount = salon.totalReviews || salon.reviewCount || 0;
-  const address = salon.address || [salon.city, salon.state].filter(Boolean).join(", ") || "Address not available";
+  const address = salon.address || [salon.city, salon.state].filter(Boolean).join(", ") || "Location not available";
+  const hasPhoto = salon.photos?.[0] || salon.coverPhoto || salon.image || salon.ownerPhoto;
 
   return (
     <Link to={`/salon/${salon._id}`} className="group block">
-      <div className="card group-hover:shadow-lg group-hover:-translate-y-0.5 transition-all duration-200">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
 
         {/* ── Image ─────────────────────────────────────────── */}
-        <div className="relative h-44 bg-gradient-to-br from-indigo-100 to-violet-100 overflow-hidden">
-          {salon.photos?.[0] || salon.coverPhoto || salon.image || salon.ownerPhoto ? (
+        <div className="relative h-48 overflow-hidden">
+          {hasPhoto ? (
             <img
-              src={salon.photos?.[0] || salon.coverPhoto || salon.image || salon.ownerPhoto}
+              src={hasPhoto}
               alt={salon.name}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              loading="lazy"
+              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
             />
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center gap-2">
-              <Scissors className="w-10 h-10 text-indigo-300" />
-              <span className="text-sm text-slate-400">{salon.name}</span>
+            <div className={`w-full h-full bg-gradient-to-br ${gradient} flex flex-col items-center justify-center gap-2`}>
+              <Scissors className="w-10 h-10 text-white/70" />
+              <span className="text-xs text-white/60 font-medium">{salon.name}</span>
             </div>
           )}
 
-          {/* Owner avatar */}
-          {salon.ownerPhoto && salon.photos?.[0] && (
-            <div className="absolute bottom-3 left-3">
-              <img
-                src={salon.ownerPhoto}
-                alt="owner"
-                className="w-8 h-8 rounded-full object-cover border-2 border-white shadow-md"
-              />
-            </div>
-          )}
+          {/* Gradient overlay at bottom */}
+          <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
 
-          {/* Category badge */}
-          <div className="absolute top-2.5 left-2.5">
-            <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full capitalize ${catBadgeClass}`}>
+          {/* Top badges */}
+          <div className="absolute top-2.5 left-2.5 flex gap-1.5">
+            <span className={`text-[10.5px] font-bold px-2.5 py-1 rounded-full capitalize backdrop-blur-sm ${hasPhoto ? "bg-black/50 text-white" : "bg-white/20 text-white"}`}>
               {catLabel}
             </span>
+            {salon.isApproved && (
+              <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full bg-green-500 text-white">
+                <CheckCircle className="w-2.5 h-2.5" /> Verified
+              </span>
+            )}
           </div>
 
           {/* Favorite button */}
           <button
             onClick={handleFavorite}
-            className={`absolute top-2.5 right-2.5 w-8 h-8 rounded-full flex items-center justify-center shadow-sm transition-all ${
-              saved ? "bg-rose-500 text-white" : "bg-white/90 text-slate-400 hover:text-rose-500"
+            className={`absolute top-2.5 right-2.5 w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all ${
+              saved ? "bg-rose-500 text-white scale-110" : "bg-white/90 text-slate-400 hover:text-rose-500 hover:scale-110"
             }`}
-            title={saved ? "Saved!" : "Save"}
           >
             <Heart className={`w-4 h-4 ${saved ? "fill-white" : ""}`} />
           </button>
+
+          {/* Open / Closed pill — bottom left */}
+          {openStatus !== null && (
+            <div className="absolute bottom-2.5 left-2.5">
+              <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full backdrop-blur-sm ${
+                openStatus ? "bg-green-500/90 text-white" : "bg-red-500/90 text-white"
+              }`}>
+                <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                {openStatus ? "Open Now" : "Closed"}
+              </span>
+            </div>
+          )}
+
+          {/* Distance — bottom right */}
+          {distance && (
+            <div className="absolute bottom-2.5 right-2.5">
+              <span className="text-[10px] font-bold text-white bg-black/50 backdrop-blur-sm px-2 py-0.5 rounded-full flex items-center gap-1">
+                📍 {distance}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* ── Info ──────────────────────────────────────────── */}
-        <div className="p-3 pt-4 space-y-1.5">
-          <h2 className="font-bold text-slate-900 truncate text-[15px]">{salon.name}</h2>
-
-          {/* Rating row + Open/Closed pill */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <StarRating rating={rating} />
-              {reviewCount > 0 && (
-                <span className="text-xs text-slate-400">({reviewCount})</span>
-              )}
-            </div>
-            {openStatus !== null && (
-              <span className={`flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                openStatus ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"
-              }`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${openStatus ? "bg-green-500" : "bg-red-500"}`} />
-                {openStatus ? "Open" : "Closed"}
-              </span>
+        <div className="p-3.5">
+          {/* Name + rating */}
+          <div className="flex items-start justify-between gap-2 mb-1.5">
+            <h2 className="font-bold text-slate-900 text-[15px] leading-tight line-clamp-1 flex-1">{salon.name}</h2>
+            {rating > 0 && (
+              <div className="flex items-center gap-1 shrink-0">
+                <span className="text-amber-400 text-sm">★</span>
+                <span className="text-xs font-bold text-slate-800">{rating.toFixed(1)}</span>
+                {reviewCount > 0 && <span className="text-[10px] text-slate-400">({reviewCount})</span>}
+              </div>
             )}
           </div>
 
-          {/* Address + Hours */}
-          <div className="flex items-start justify-between gap-2">
-            <p className="text-xs text-slate-500 flex items-start gap-1 min-w-0 flex-1">
-              <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5 text-slate-400" />
-              <span className="truncate">{address}</span>
-            </p>
-            {todayHours && (
-              <p className="text-xs text-slate-400 flex items-center gap-1 shrink-0">
-                <Clock className="w-3 h-3 shrink-0" />
-                {todayHours}
-              </p>
-            )}
-          </div>
+          {/* Address */}
+          <p className="text-xs text-slate-500 flex items-center gap-1 mb-2 line-clamp-1">
+            <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+            {address}
+          </p>
 
-          {/* Distance */}
-          {distance && (
-            <p className="text-xs font-semibold text-indigo-600 flex items-center gap-1">
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              {distance}
+          {/* Hours */}
+          {todayHours && (
+            <p className="text-xs text-slate-400 flex items-center gap-1 mb-2">
+              <Clock className="w-3 h-3 shrink-0" />
+              {todayHours}
             </p>
           )}
 
           {/* Gender + special badges */}
           {(salon.servedGender || salon.kidsHaircut || salon.atHomeServices) && (
-            <div className="flex items-center gap-1 flex-wrap">
+            <div className="flex items-center gap-1 flex-wrap mb-3">
               {salon.servedGender && (
                 <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                   salon.servedGender === "male"   ? "bg-blue-50 text-blue-600" :
@@ -246,18 +226,15 @@ function SalonCard({ salon, userCoords }) {
             </div>
           )}
 
-          {/* Footer */}
-          <div className="pt-2 mt-1 border-t border-slate-100 flex items-center justify-between">
-            <span className="text-xs font-bold text-indigo-600 flex items-center gap-1">
-              Book Now
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </span>
-            {salon.isApproved && (
-              <span className="flex items-center gap-1 text-[11px] font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
-                <CheckCircle className="w-3 h-3" /> Verified
-              </span>
+          {/* Book Now CTA */}
+          <div className="flex items-center gap-2">
+            <div className="flex-1 bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-xs font-bold py-2 rounded-xl text-center group-hover:shadow-md group-hover:shadow-indigo-200 transition-shadow">
+              Book Now →
+            </div>
+            {salon.minPrice && (
+              <div className="text-[10px] text-slate-500 text-right shrink-0">
+                <span className="block font-semibold text-slate-700">from ₹{salon.minPrice}</span>
+              </div>
             )}
           </div>
         </div>

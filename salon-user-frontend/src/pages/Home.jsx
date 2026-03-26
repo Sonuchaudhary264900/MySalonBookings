@@ -1,22 +1,24 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { LocateFixed, SearchX, X, Users } from "lucide-react";
+import { SearchX, Users } from "lucide-react";
 import API from "../services/api";
 import SalonCard from "../components/SalonCard";
+import HeroSection from "../components/HeroSection";
+import HowItWorks from "../components/HowItWorks";
+import FeaturesSection from "../components/FeaturesSection";
 
 const CATEGORIES = [
-  { key: "all",                  label: "All",              icon: "🏠" },
-  { key: "Hair Services",        label: "Hair Services",    icon: "✂️" },
-  { key: "Beard & Grooming",     label: "Beard & Grooming", icon: "🧔" },
-  { key: "Nail Services",        label: "Nail Services",    icon: "💅" },
-  { key: "Skin & Face / Beauty", label: "Skin",             icon: "🧖" },
-  { key: "Spa & Massage",        label: "Spa & Massage",    icon: "💆" },
-  { key: "Body Grooming",        label: "Body Grooming",    icon: "🧴" },
-  { key: "Bridal & Events",      label: "Bridal & Events",  icon: "👰" },
-  { key: "Kids Services",        label: "Kids",             icon: "👶" },
-  { key: "At-Home Services",     label: "At-Home",          icon: "🏡" },
+  { key: "all",                  label: "All",           icon: "🏠" },
+  { key: "Hair Services",        label: "Hair",          icon: "✂️" },
+  { key: "Beard & Grooming",     label: "Beard",         icon: "🧔" },
+  { key: "Nail Services",        label: "Nails",         icon: "💅" },
+  { key: "Skin & Face / Beauty", label: "Skin & Beauty", icon: "🧖" },
+  { key: "Spa & Massage",        label: "Spa",           icon: "💆" },
+  { key: "Body Grooming",        label: "Body",          icon: "🧴" },
+  { key: "Bridal & Events",      label: "Bridal",        icon: "👰" },
+  { key: "Kids Services",        label: "Kids",          icon: "👶" },
+  { key: "At-Home Services",     label: "At-Home",       icon: "🏡" },
 ];
 
-// Variant category names that map to the same chip key
 const CATEGORY_ALIASES = {
   "Hair Services":        ["Hair Services", "Hair Services (Men)", "Hair Services (Women)"],
   "Skin & Face / Beauty": ["Skin & Face / Beauty", "Skin & Face (Men Grooming)", "Skin & Beauty"],
@@ -26,23 +28,17 @@ const CATEGORY_ALIASES = {
 const MALE_ONLY_CHIPS   = ["Beard & Grooming", "Body Grooming"];
 const FEMALE_ONLY_CHIPS = ["Bridal & Events"];
 
-const SORT_OPTIONS = [
-  { key: "nearby", label: "📍 Nearest" },
-  { key: "booked", label: "🔥 Most Booked" },
-  { key: "rated",  label: "⭐ Top Rated" },
-];
-
 const GENDER_FILTERS = [
-  { key: "all",     label: "All",    icon: <Users className="w-3.5 h-3.5" /> },
-  { key: "male",    label: "Men",    icon: <span className="text-sm">👨</span> },
-  { key: "female",  label: "Women",  icon: <span className="text-sm">👩</span> },
-  { key: "unisex",  label: "Unisex", icon: <span className="text-sm">👥</span> },
+  { key: "all",    label: "All",    icon: <Users className="w-3.5 h-3.5" /> },
+  { key: "male",   label: "Men",    icon: <span>👨</span> },
+  { key: "female", label: "Women",  icon: <span>👩</span> },
+  { key: "unisex", label: "Unisex", icon: <span>👥</span> },
 ];
 
 function SkeletonCard() {
   return (
-    <div className="card">
-      <div className="h-44 skeleton" />
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+      <div className="h-48 skeleton" />
       <div className="p-4 space-y-3">
         <div className="h-4 skeleton rounded w-3/4" />
         <div className="h-3 skeleton rounded w-1/2" />
@@ -68,7 +64,7 @@ function Home() {
   const [searching, setSearching]       = useState(false);
   const [userCoords, setUserCoords]     = useState(null);
   const [serviceMatchLabel, setServiceMatchLabel] = useState("");
-  const searchTimer                     = useRef(null);
+  const searchTimer = useRef(null);
 
   // ── initial location detect ──────────────────────────────────
   useEffect(() => {
@@ -87,7 +83,6 @@ function Home() {
     return () => { ignore = true; };
   }, []);
 
-  // ── filter helper (selectedCats array + gender) ──────────────
   const applyFilters = (data, cats, gender) => {
     let result = data;
     if (cats.length > 0) {
@@ -99,10 +94,8 @@ function Home() {
       );
     }
     if (gender === "unisex") {
-      // Unisex tab → only unisex salons
       result = result.filter((s) => (s.servedGender || "unisex") === "unisex");
     } else if (gender !== "all") {
-      // Men/Women tabs → include that gender + unisex (unisex serves everyone)
       result = result.filter((s) => {
         const sg = s.servedGender || "unisex";
         return sg === gender || sg === "unisex";
@@ -111,7 +104,6 @@ function Home() {
     return result;
   };
 
-  // ── fetch salons from API ─────────────────────────────────────
   const fetchBySort = async (sortKey, coords, cats, gender) => {
     if (!coords) return;
     setLoading(true);
@@ -134,7 +126,6 @@ function Home() {
     }
   };
 
-  // ── sort tab ──────────────────────────────────────────────────
   const handleSort = (key) => {
     setSort(key);
     setSelectedCats([]);
@@ -142,7 +133,6 @@ function Home() {
     fetchBySort(key, userCoords, [], "all");
   };
 
-  // ── category filter — toggle multi-select ────────────────────
   const handleCategory = (cat) => {
     let newCats;
     if (cat === "all") {
@@ -161,7 +151,6 @@ function Home() {
     }
   };
 
-  // ── gender filter — also clears now-hidden chips ──────────────
   const handleGenderFilter = (gender) => {
     const newCats = selectedCats.filter((k) => {
       if (gender === "female" && MALE_ONLY_CHIPS.includes(k))   return false;
@@ -178,7 +167,6 @@ function Home() {
     }
   };
 
-  // ── search (debounced 400 ms) ─────────────────────────────────
   const runSearch = useCallback(async (text, cats, gender) => {
     if (!text.trim()) return;
     setSearching(true);
@@ -187,7 +175,6 @@ function Home() {
     const activeCats   = cats   ?? selectedCats;
     const activeGender = gender ?? genderFilter;
 
-    // local match first
     const local = allSalons.filter(
       (s) =>
         s.name?.toLowerCase().includes(q) ||
@@ -202,7 +189,6 @@ function Home() {
       return;
     }
 
-    // service search
     try {
       const res = await API.get(`/public/services/search?q=${encodeURIComponent(text.trim())}`);
       const data = res.data.data;
@@ -233,7 +219,6 @@ function Home() {
 
   const clearSearch = () => handleSearch("");
 
-  // ── "Enable Location" button ──────────────────────────────────
   const handleLocation = () => {
     if (!navigator.geolocation) return alert("Geolocation not supported.");
     setLocLoading(true);
@@ -266,60 +251,21 @@ function Home() {
   return (
     <div className="min-h-screen bg-slate-50">
 
-      {/* ── HEADER (matches app HomeScreen header) ───────────────── */}
-      <div className="bg-white border-b border-slate-100 px-4 sm:px-6 pt-5 pb-4">
-        <div className="max-w-3xl mx-auto">
+      {/* ── HERO ──────────────────────────────────────────────── */}
+      <HeroSection
+        searchText={searchText}
+        onSearch={handleSearch}
+        onLocate={handleLocation}
+        locLoading={locLoading}
+        searching={searching}
+      />
 
-          {/* Top row: title + subtitle left | location btn right */}
-          <div className="flex items-center justify-between mb-[14px]">
-            <div>
-              <h1 className="text-xl font-extrabold text-slate-900 leading-tight">Find Nearby Salons</h1>
-              <p className="text-[12px] text-slate-400 mt-0.5">
-                {locDenied ? "Search to find salons" : "Salons within 5 km"}
-              </p>
-            </div>
-            <button
-              onClick={handleLocation}
-              disabled={locLoading}
-              title="Use my location"
-              className="w-9 h-9 rounded-[10px] bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition disabled:opacity-50 shrink-0"
-            >
-              {locLoading
-                ? <span className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                : <LocateFixed className="w-5 h-5" />}
-            </button>
-          </div>
+      {/* ── SALONS SECTION ────────────────────────────────────── */}
+      <div id="salons" className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-4">
 
-          {/* Search bar: matches app searchBar style exactly */}
-          <div className="flex items-center gap-2 bg-slate-100 rounded-xl border border-slate-200 px-3 h-[46px] focus-within:border-indigo-400 focus-within:bg-white transition">
-            <svg className="w-[18px] h-[18px] text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z" />
-            </svg>
-            <input
-              type="text"
-              placeholder="Search salons, services, city..."
-              value={searchText}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="flex-1 bg-transparent text-[14px] text-slate-800 placeholder-slate-400 outline-none"
-            />
-            {isSearchActive && !searching && (
-              <button onClick={clearSearch} className="text-slate-400 hover:text-slate-600 transition shrink-0">
-                <X className="w-[18px] h-[18px]" />
-              </button>
-            )}
-            {searching && (
-              <span className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin shrink-0" />
-            )}
-          </div>
-
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4">
-
-        {/* ── CATEGORY CHIPS ──────────────────────────────────── */}
+        {/* Category chips */}
         {(() => {
-          const visibleCategories = CATEGORIES.filter(({ key }) => {
+          const visible = CATEGORIES.filter(({ key }) => {
             if (key === "all") return true;
             if (genderFilter === "female" && MALE_ONLY_CHIPS.includes(key))   return false;
             if (genderFilter === "male"   && FEMALE_ONLY_CHIPS.includes(key)) return false;
@@ -327,19 +273,20 @@ function Home() {
           });
           return (
             <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
-              {visibleCategories.map(({ key, label, icon }) => {
+              {visible.map(({ key, label, icon }) => {
                 const isActive = key === "all" ? selectedCats.length === 0 : selectedCats.includes(key);
                 return (
                   <button
                     key={key}
                     onClick={() => handleCategory(key)}
-                    className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all shrink-0 ${
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all duration-200 shrink-0 ${
                       isActive
-                        ? "bg-indigo-600 text-white shadow-sm"
-                        : "bg-white text-slate-600 border border-slate-200 hover:border-indigo-300"
+                        ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-200"
+                        : "bg-white text-slate-600 border border-slate-200 hover:border-indigo-300 hover:text-indigo-600 hover:shadow-sm"
                     }`}
                   >
-                    <span className="text-base leading-none">{icon}</span> {label}
+                    <span className="text-base leading-none">{icon}</span>
+                    {label}
                   </button>
                 );
               })}
@@ -347,34 +294,47 @@ function Home() {
           );
         })()}
 
-        {/* ── GENDER FILTER ────────────────────────────────────── */}
+        {/* Gender + sort row */}
         {(!locDenied || isSearchActive) && (
-          <div className="flex gap-2 mt-1 mb-1 pb-1 overflow-x-auto scrollbar-hide">
-            {GENDER_FILTERS.map(({ key, label, icon }) => (
-              <button
-                key={key}
-                onClick={() => handleGenderFilter(key)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 border ${
-                  genderFilter === key
-                    ? "bg-rose-500 text-white border-rose-500 shadow-sm"
-                    : "bg-white text-slate-500 border-slate-200 hover:border-rose-300 hover:text-rose-500"
-                }`}
+          <div className="flex items-center justify-between flex-wrap gap-2 mt-2 mb-2">
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+              {GENDER_FILTERS.map(({ key, label, icon }) => (
+                <button
+                  key={key}
+                  onClick={() => handleGenderFilter(key)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 border ${
+                    genderFilter === key
+                      ? "bg-rose-500 text-white border-rose-500 shadow-sm"
+                      : "bg-white text-slate-500 border-slate-200 hover:border-rose-300 hover:text-rose-500"
+                  }`}
+                >
+                  {icon} {label}
+                </button>
+              ))}
+            </div>
+            {!isSearchActive && !locDenied && (
+              <select
+                value={sort}
+                onChange={(e) => handleSort(e.target.value)}
+                className="text-xs text-indigo-600 font-semibold bg-white border border-slate-200 rounded-xl px-3 py-1.5 outline-none cursor-pointer hover:border-indigo-300 transition"
               >
-                {icon} {label}
-              </button>
-            ))}
+                <option value="nearby">📍 Nearest</option>
+                <option value="booked">🔥 Most Booked</option>
+                <option value="rated">⭐ Top Rated</option>
+              </select>
+            )}
           </div>
         )}
 
-        {/* ── LOCATION DENIED ─────────────────────────────────── */}
+        {/* Location denied */}
         {locDenied && !isSearchActive && (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <div className="w-20 h-20 rounded-full bg-indigo-50 flex items-center justify-center mb-5">
-              <LocateFixed className="w-9 h-9 text-indigo-400" />
+              <span className="text-4xl">📍</span>
             </div>
             <h3 className="text-xl font-bold text-slate-800 mb-2">Enable Location to See Salons</h3>
             <p className="text-slate-500 text-sm max-w-xs mb-6">
-              We show salons within <span className="font-semibold text-indigo-600">5 km</span> of your location. Please allow location access to continue.
+              We show salons within <span className="font-semibold text-indigo-600">5 km</span> of your location.
             </p>
             <button
               onClick={handleLocation}
@@ -383,36 +343,23 @@ function Home() {
             >
               {locLoading
                 ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                : <LocateFixed className="w-4 h-4" />}
+                : "📍"}
               {locLoading ? "Detecting…" : "Allow Location Access"}
             </button>
           </div>
         )}
 
-        {/* ── SALONS GRID ─────────────────────────────────────── */}
+        {/* Salon grid */}
         {(!locDenied || isSearchActive) && (
-          <div className="py-4">
+          <div className="py-2">
             {/* Results header */}
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-base font-bold text-slate-800">{sectionTitle}</h2>
                 {!loading && (
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <p className="text-xs text-slate-400">
-                      {salons.length} salon{salons.length !== 1 ? "s" : ""} {isSearchActive ? "found" : "nearby"}
-                    </p>
-                    {!isSearchActive && !locDenied && (
-                      <select
-                        value={sort}
-                        onChange={(e) => handleSort(e.target.value)}
-                        className="text-xs text-indigo-600 font-semibold bg-transparent border-none outline-none cursor-pointer hover:text-indigo-800"
-                      >
-                        <option value="nearby">📍 Nearest</option>
-                        <option value="booked">🔥 Most Booked</option>
-                        <option value="rated">⭐ Top Rated</option>
-                      </select>
-                    )}
-                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {salons.length} salon{salons.length !== 1 ? "s" : ""} {isSearchActive ? "found" : "nearby"}
+                  </p>
                 )}
               </div>
               {isSearchActive && (
@@ -422,7 +369,7 @@ function Home() {
               )}
             </div>
 
-            {/* Skeleton */}
+            {/* Skeletons */}
             {loading && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {Array(8).fill(0).map((_, i) => <SkeletonCard key={i} />)}
@@ -432,13 +379,11 @@ function Home() {
             {/* Empty state */}
             {!loading && salons.length === 0 && (
               <div className="text-center py-20">
-                <div className="flex justify-center mb-4">
-                  <SearchX className="w-12 h-12 text-slate-300" />
-                </div>
+                <SearchX className="w-12 h-12 text-slate-300 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-slate-700 mb-2">No salons found</h3>
                 <p className="text-slate-400 text-sm mb-6">
                   {isSearchActive
-                    ? "No salons or services matching your search were found."
+                    ? "No salons or services matching your search."
                     : "No salons found within 5 km of your location."}
                 </p>
                 <button onClick={clearSearch} className="btn-primary">Reset Filters</button>
@@ -466,8 +411,14 @@ function Home() {
             )}
           </div>
         )}
-
       </div>
+
+      {/* ── HOW IT WORKS ──────────────────────────────────────── */}
+      <HowItWorks />
+
+      {/* ── FEATURES + TRUST ──────────────────────────────────── */}
+      <FeaturesSection />
+
     </div>
   );
 }
