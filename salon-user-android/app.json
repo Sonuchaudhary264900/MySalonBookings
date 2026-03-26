@@ -37,6 +37,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "./plugins/withLocalProperties",
       "@react-native-firebase/app",
       [
         "expo-notifications",

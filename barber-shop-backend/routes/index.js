@@ -1650,6 +1650,133 @@ router.post("/test/subscription/reset", authenticateOwner, asyncHandler(async (r
   res.json({ success: true, message: 'Subscription reset to fresh trial', data: owner.subscription });
 }));
 
+// POST /test/subscription/force-pay
+// Simulates a successful Razorpay payment without hitting Razorpay.
+// Sets paymentStatus='paid', billingCycleEndDate=now+30d, creates a Subscription invoice.
+// Body: { planType?: 'starter'|'per_booking', bookingCount?: number }
+router.post("/test/subscription/force-pay", authenticateOwner, asyncHandler(async (req, res) => {
+  if (process.env.ALLOW_TEST_ENDPOINTS !== 'true') {
+    return res.status(403).json({ success: false, message: 'Test endpoints are disabled' });
+  }
+  const Owner        = require('../models/Owner');
+  const Subscription = require('../models/Subscription');
+  const owner = await Owner.findById(req.owner._id);
+  if (!owner) return res.status(404).json({ success: false, message: 'Owner not found' });
+
+  const planType = req.body.planType || owner.subscription.planType || 'starter';
+  if (!['starter', 'per_booking'].includes(planType)) {
+    return res.status(400).json({ success: false, message: 'Invalid planType' });
+  }
+
+  const bookingCount = req.body.bookingCount ?? owner.subscription.monthlyBookingCount ?? 0;
+  const amount       = planType === 'starter' ? 150 : Math.max(bookingCount * 1, 1);
+  const now          = new Date();
+  const cycleEnd     = new Date(now.getTime() + 30 * 86400000);
+  const billingMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const fakePayId    = `pay_test_${Date.now()}`;
+  const fakeOrderId  = `order_test_${Date.now()}`;
+
+  // Create or update invoice
+  let invoice = await Subscription.findOne({ ownerId: owner._id, billingMonth, paymentStatus: { $in: ['pending', 'paid'] } });
+  if (!invoice) {
+    invoice = await Subscription.create({
+      ownerId: owner._id, salonId: owner.salonId, planType,
+      billingMonth, bookingCount, amount,
+      razorpayOrderId: fakeOrderId, razorpayPaymentId: fakePayId,
+      paymentStatus: 'paid', paidAt: now,
+    });
+  } else {
+    invoice.paymentStatus = 'paid';
+    invoice.paidAt = now;
+    invoice.razorpayPaymentId = fakePayId;
+    await invoice.save();
+  }
+
+  owner.subscription.planType             = planType;
+  owner.subscription.paymentStatus        = 'paid';
+  owner.subscription.lastPaymentDate      = now;
+  owner.subscription.billingCycleStart    = now;
+  owner.subscription.billingCycleEndDate  = cycleEnd;
+  owner.subscription.planSelectedDuringTrial = null;
+  owner.subscription.paymentDueReminderSent  = false;
+  await owner.save();
+
+  res.json({ success: true, message: 'Payment simulated', data: { planType, amount, billingCycleEndDate: cycleEnd, invoiceId: invoice._id } });
+}));
+
+// POST /test/subscription/set-booking-count
+// Directly sets monthlyBookingCount for testing per-booking billing.
+// Body: { count: number }
+router.post("/test/subscription/set-booking-count", authenticateOwner, asyncHandler(async (req, res) => {
+  if (process.env.ALLOW_TEST_ENDPOINTS !== 'true') {
+    return res.status(403).json({ success: false, message: 'Test endpoints are disabled' });
+  }
+  const Owner = require('../models/Owner');
+  const { count = 0 } = req.body;
+  await Owner.updateOne({ _id: req.owner._id }, { $set: { 'subscription.monthlyBookingCount': Number(count) } });
+  res.json({ success: true, message: `monthlyBookingCount set to ${count}` });
+}));
+
+// POST /test/subscription/run-monthly-reset
+// Runs the billing-cycle reset logic for this specific owner only (simulates cron without waiting for 1st of month).
+router.post("/test/subscription/run-monthly-reset", authenticateOwner, asyncHandler(async (req, res) => {
+  if (process.env.ALLOW_TEST_ENDPOINTS !== 'true') {
+    return res.status(403).json({ success: false, message: 'Test endpoints are disabled' });
+  }
+  const Owner        = require('../models/Owner');
+  const Subscription = require('../models/Subscription');
+  const { logSubscriptionEvent } = require('../utils/subscriptionLogger');
+
+  const owner = await Owner.findById(req.owner._id);
+  if (!owner) return res.status(404).json({ success: false, message: 'Owner not found' });
+
+  const sub = owner.subscription;
+  const now = new Date();
+  const cycleEnd = new Date(now.getTime() + 30 * 86400000);
+  const billingMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const changes = [];
+
+  // Apply scheduled plan switch if pending
+  if (sub.planChangeRequested && sub.nextPlan) {
+    const newPlan = sub.nextPlan;
+    sub.planType              = newPlan;
+    sub.nextPlan              = null;
+    sub.planChangeRequested   = false;
+    sub.planChangeRequestedAt = null;
+    sub.monthlyBookingCount   = 0;
+    sub.billingCycleStart     = now;
+    sub.billingCycleEndDate   = cycleEnd;
+    sub.paymentStatus         = 'overdue';
+    sub.paymentDueReminderSent = false;
+    await owner.save();
+    changes.push(`plan_switched_to:${newPlan}`);
+  } else if (sub.planType === 'per_booking' && sub.paymentStatus === 'paid') {
+    const bookingCount = sub.monthlyBookingCount || 0;
+    const amount = Math.max(bookingCount * 1, 1);
+    const existing = await Subscription.findOne({ ownerId: owner._id, billingMonth });
+    if (!existing) {
+      await Subscription.create({
+        ownerId: owner._id, salonId: owner.salonId, planType: 'per_booking',
+        billingMonth, bookingCount, amount, paymentStatus: 'pending',
+      });
+    }
+    sub.monthlyBookingCount = 0;
+    sub.billingCycleStart   = now;
+    sub.paymentStatus       = 'overdue';
+    await owner.save();
+    changes.push(`per_booking_invoice_created:₹${amount}`, 'booking_count_reset:0');
+  } else if (sub.planType === 'starter' && sub.paymentStatus === 'paid') {
+    sub.monthlyBookingCount = 0;
+    sub.billingCycleStart   = now;
+    sub.billingCycleEndDate = cycleEnd;
+    sub.paymentStatus       = 'overdue';
+    await owner.save();
+    changes.push('starter_cycle_reset', 'booking_count_reset:0');
+  }
+
+  res.json({ success: true, message: 'Monthly reset applied to this owner', data: { changes, subscription: owner.subscription } });
+}));
+
 // GET /test/subscription/owner-state  — dump full subscription state for debugging
 router.get("/test/subscription/owner-state", authenticateOwner, asyncHandler(async (req, res) => {
   if (process.env.ALLOW_TEST_ENDPOINTS !== 'true') {
@@ -1693,12 +1820,14 @@ router.get("/test/subscription/owner-state", authenticateOwner, asyncHandler(asy
    SUBSCRIPTION / BILLING ROUTES
 ===================================================== */
 
-router.get("/owner/subscription/status", authenticateOwner, asyncHandler(subscriptionController.getSubscriptionStatus));
-router.post("/owner/subscription/select-plan", authenticateOwner, asyncHandler(subscriptionController.selectPlan));
-router.post("/owner/subscription/create-order", authenticateOwner, asyncHandler(subscriptionController.createPaymentOrder));
-router.post("/owner/subscription/verify-payment", authenticateOwner, asyncHandler(subscriptionController.verifyPayment));
-router.get("/owner/subscription/billing-history", authenticateOwner, asyncHandler(subscriptionController.getBillingHistory));
-router.post("/owner/subscription/webhook", asyncHandler(subscriptionController.razorpayWebhook));
+router.get("/owner/subscription/status",              authenticateOwner, asyncHandler(subscriptionController.getSubscriptionStatus));
+router.post("/owner/subscription/select-plan",         authenticateOwner, asyncHandler(subscriptionController.selectPlan));
+router.post("/owner/subscription/request-plan-change", authenticateOwner, asyncHandler(subscriptionController.requestPlanChange));
+router.post("/owner/subscription/cancel-plan-change",  authenticateOwner, asyncHandler(subscriptionController.cancelPlanChange));
+router.post("/owner/subscription/create-order",        authenticateOwner, asyncHandler(subscriptionController.createPaymentOrder));
+router.post("/owner/subscription/verify-payment",      authenticateOwner, asyncHandler(subscriptionController.verifyPayment));
+router.get("/owner/subscription/billing-history",      authenticateOwner, asyncHandler(subscriptionController.getBillingHistory));
+router.post("/owner/subscription/webhook",             asyncHandler(subscriptionController.razorpayWebhook));
 
 /* =====================================================
    ROUTE NOT FOUND

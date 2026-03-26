@@ -333,6 +333,36 @@ const ownerSchema = new mongoose.Schema(
         type: Boolean,
         default: false,
       },
+
+      // ── Plan pre-selection during trial ──────────────────────
+      // User may optionally pick a plan before trial ends.
+      // Activates automatically when trial expires.
+      planSelectedDuringTrial: {
+        type: String,
+        enum: ['starter', 'per_booking', null],
+        default: null,
+      },
+
+      // ── Scheduled plan change (anti-abuse: 1 per cycle) ──────
+      nextPlan: {
+        type: String,
+        enum: ['starter', 'per_booking', null],
+        default: null,
+      },
+      planChangeRequested: {
+        type: Boolean,
+        default: false,
+      },
+      planChangeRequestedAt: {
+        type: Date,
+        default: null,
+      },
+
+      // ── Billing cycle end date ────────────────────────────────
+      billingCycleEndDate: {
+        type: Date,
+        default: null,
+      },
     },
 
     // ==========================================

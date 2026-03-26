@@ -1,9 +1,16 @@
 import api from './api';
 
-const getSubscriptionStatus = () => api.get('/owner/subscription/status').then(r => r.data);
+const getSubscriptionStatus = () =>
+  api.get('/owner/subscription/status').then(r => r.data);
 
 const selectPlan = (planType) =>
   api.post('/owner/subscription/select-plan', { planType }).then(r => r.data);
+
+const requestPlanChange = (planType) =>
+  api.post('/owner/subscription/request-plan-change', { planType }).then(r => r.data);
+
+const cancelPlanChange = () =>
+  api.post('/owner/subscription/cancel-plan-change').then(r => r.data);
 
 const createPaymentOrder = (planType) =>
   api.post('/owner/subscription/create-order', { planType }).then(r => r.data);
@@ -14,4 +21,12 @@ const verifyPayment = (data) =>
 const getBillingHistory = () =>
   api.get('/owner/subscription/billing-history').then(r => r.data);
 
-export default { getSubscriptionStatus, selectPlan, createPaymentOrder, verifyPayment, getBillingHistory };
+export default {
+  getSubscriptionStatus,
+  selectPlan,
+  requestPlanChange,
+  cancelPlanChange,
+  createPaymentOrder,
+  verifyPayment,
+  getBillingHistory,
+};

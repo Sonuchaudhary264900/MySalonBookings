@@ -720,12 +720,59 @@ const monthlyBillingReset = cron.schedule('0 0 1 * *', async () => {
         $set: {
           'subscription.monthlyBookingCount': 0,
           'subscription.billingCycleStart': now,
+          'subscription.billingCycleEndDate': new Date(now.getTime() + 30 * 86400000),
           'subscription.paymentStatus': 'overdue',
         },
       }
     );
 
-    console.log(`✅ Monthly billing reset complete. ${invoicesCreated} per_booking invoices created`);
+    // ── Apply scheduled plan changes ─────────────────────────
+    // Owners who requested a plan switch last cycle get their new plan applied now.
+    const { logSubscriptionEvent } = require('../utils/subscriptionLogger');
+    const changeOwners = await Owner.find({
+      'subscription.planChangeRequested': true,
+    }).select('_id salonId subscription').lean();
+
+    let planSwitches = 0;
+    for (const owner of changeOwners) {
+      try {
+        const newPlan = owner.subscription.nextPlan;
+        if (!newPlan) continue;
+
+        const cycleEnd = new Date(now.getTime() + 30 * 86400000);
+        await Owner.updateOne(
+          { _id: owner._id },
+          {
+            $set: {
+              'subscription.planType':              newPlan,
+              'subscription.nextPlan':              null,
+              'subscription.planChangeRequested':   false,
+              'subscription.planChangeRequestedAt': null,
+              'subscription.billingCycleStart':     now,
+              'subscription.billingCycleEndDate':   cycleEnd,
+              'subscription.monthlyBookingCount':   0,
+              'subscription.paymentStatus':         'overdue',
+              'subscription.paymentDueReminderSent': false,
+            },
+          }
+        );
+
+        logSubscriptionEvent('plan_selected', owner, {
+          planType: newPlan,
+          meta: {
+            mode:         'scheduled_switch_applied',
+            previousPlan: owner.subscription.planType,
+            appliedAt:    now,
+          },
+        });
+
+        planSwitches++;
+      } catch (err) {
+        console.error('Plan switch apply error:', err.message);
+      }
+    }
+
+    console.log(`✅ Monthly billing reset complete. ${invoicesCreated} per_booking invoices, ${planSwitches} plan switches applied`);
   } catch (error) {
     console.error('❌ Monthly billing reset error:', error);
   }
