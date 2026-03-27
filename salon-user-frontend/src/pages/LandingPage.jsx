@@ -39,6 +39,10 @@ const CSS = `
   .lp-btn-p:hover{transform:scale(1.04);}
   .lp-btn-s{transition:all .18s ease;}
   .lp-btn-s:hover{transform:scale(1.02);}
+  .lp-benefit{transition:transform .28s ease,border-color .28s ease,box-shadow .28s ease;}
+  .lp-benefit:hover{transform:translateY(-6px);border-color:rgba(99,102,241,0.4)!important;box-shadow:0 20px 50px rgba(99,102,241,0.12);}
+  .lp-pain{transition:transform .25s ease,border-color .25s ease;}
+  .lp-pain:hover{transform:translateY(-3px);}
   .scrollbar-hide{scrollbar-width:none;-ms-overflow-style:none;}
   .scrollbar-hide::-webkit-scrollbar{display:none;}
 `;
@@ -69,12 +73,15 @@ const QUICK_ACTIONS = [
 ];
 
 const FEATURES = [
-  { icon: "📍", title: "Salons Near You",      desc: "Instantly see verified salons in your area. No sign-up needed to browse — just open and explore." },
-  { icon: "⚡", title: "Book in Seconds",       desc: "Pick a service, choose your slot, confirm instantly. No phone calls, no back-and-forth." },
-  { icon: "🔔", title: "Live Notifications",    desc: "Real-time booking confirmations and status updates sent directly to your device." },
-  { icon: "⭐", title: "Verified Reviews",      desc: "Genuine ratings from real customers. Book every time with full confidence." },
-  { icon: "❤️", title: "Save Favourites",       desc: "Save your go-to salons and rebook with one tap. Your history is always there." },
-  { icon: "📲", title: "QR Booking",            desc: "Scan a salon's QR code and land straight on their booking page instantly." },
+  { icon: "📍", color: "#6366f1", title: "Salons Near You",        desc: "Instantly see 500+ verified salons within 5 km. Browse ratings, services, and prices — no sign-up needed." },
+  { icon: "⚡", color: "#8b5cf6", title: "Book in 30 Seconds",     desc: "Pick a service, choose your slot, confirm instantly. No phone calls, no back-and-forth, no waiting." },
+  { icon: "🔔", color: "#6366f1", title: "Smart Reminders",        desc: "Automatic reminders before your appointment so you never forget. Get notified about new offers too." },
+  { icon: "⭐", color: "#8b5cf6", title: "Verified Reviews",       desc: "Genuine ratings from real customers. Always choose the best salon with full confidence." },
+  { icon: "🔁", color: "#6366f1", title: "One-Click Rebooking",    desc: "Book your favourite service again in one tap — no need to search again. Your history is always saved." },
+  { icon: "📲", color: "#8b5cf6", title: "QR Booking",             desc: "Scan a salon's QR on their counter or WhatsApp status — land straight on their booking page instantly." },
+  { icon: "🎁", color: "#6366f1", title: "Exclusive Deals",        desc: "Access coupon codes, festival offers, and weekend deals. Save money while enjoying premium services." },
+  { icon: "🎯", color: "#8b5cf6", title: "Personalised for You",   desc: "The app learns your preferences and suggests services based on your visit history. Your own smart stylist guide." },
+  { icon: "💳", color: "#6366f1", title: "Flexible Payments",      desc: "Pay via UPI, card, or cash at the salon. Secure, smooth, and zero last-minute payment confusion." },
 ];
 
 const STEPS = [
@@ -390,6 +397,47 @@ export default function LandingPage({
         </section>
 
         {/* ══════════════════════════════════════════
+            WHY BOOK ONLINE — PAIN POINTS
+        ══════════════════════════════════════════ */}
+        <section style={{ background: "var(--t-bg-2)", borderTop: "1px solid var(--t-border)", padding: "88px 20px" }}>
+          <div className="max-w-5xl mx-auto">
+            <div style={{ textAlign: "center", marginBottom: 56 }}>
+              <div style={{ display: "inline-block", background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 99, padding: "4px 16px", fontSize: 11, color: "#f87171", fontWeight: 700, letterSpacing: 1.5, marginBottom: 16 }}>
+                SOUND FAMILIAR?
+              </div>
+              <h2 style={{ fontSize: "clamp(1.8rem,4vw,2.8rem)", fontWeight: 900, color: "var(--t-text)", letterSpacing: "-1px", marginBottom: 12 }}>
+                The old way of booking is broken
+              </h2>
+              <p style={{ color: "var(--t-text-2)", fontSize: 15, maxWidth: 440, margin: "0 auto", lineHeight: 1.7 }}>
+                You've been putting up with this for too long. There's a better way.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {[
+                { pain: "📞 Endless phone calls", fix: "Book instantly in the app — no calls, no hold music, no callbacks.", color: "#f87171" },
+                { pain: "⏳ 'Come back in 30 min'", fix: "See real-time slot availability before you even step outside.", color: "#fb923c" },
+                { pain: "😤 Long waits on arrival", fix: "Pick your exact time slot. Walk in, sit down, get styled.", color: "#f87171" },
+                { pain: "🤷 Don't know which salon is good", fix: "100% verified ratings from real customers. No fake reviews.", color: "#fb923c" },
+                { pain: "🤯 Forgetting your appointment", fix: "Auto reminders 24 hrs and 30 min before your booking. Never miss again.", color: "#f87171" },
+                { pain: "💸 Surprise pricing at the counter", fix: "Every price listed clearly upfront. Zero surprises at checkout.", color: "#fb923c" },
+              ].map(({ pain, fix, color }) => (
+                <div
+                  key={pain}
+                  className="lp-pain"
+                  style={{ background: "var(--t-card)", border: "1px solid var(--t-border)", borderRadius: 20, padding: "24px 22px" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = color + "40"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--t-border)"; }}
+                >
+                  <p style={{ fontSize: 14, fontWeight: 700, color, marginBottom: 10 }}>{pain}</p>
+                  <div style={{ width: 28, height: 2, background: "linear-gradient(90deg,#6366f1,#8b5cf6)", borderRadius: 99, marginBottom: 10 }} />
+                  <p style={{ fontSize: 13.5, color: "var(--t-text-2)", lineHeight: 1.7 }}>✓ {fix}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ══════════════════════════════════════════
             HOW IT WORKS
         ══════════════════════════════════════════ */}
         <section style={{ padding: "88px 20px" }}>
@@ -437,22 +485,77 @@ export default function LandingPage({
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {FEATURES.map(({ icon, title, desc }, i) => {
-                const color = i % 2 === 0 ? "#6366f1" : "#8b5cf6";
-                return (
-                  <div
-                    key={title}
-                    className="lp-card"
-                    style={{ background: "var(--t-card)", border: "1px solid var(--t-border)", borderRadius: 22, padding: "28px 24px", cursor: "default" }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = color + "40"; e.currentTarget.style.boxShadow = `0 16px 40px ${color}15`; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--t-border)"; e.currentTarget.style.boxShadow = "none"; }}
-                  >
-                    <div style={{ width: 52, height: 52, borderRadius: 15, background: color + "12", border: `1px solid ${color}25`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, marginBottom: 18 }}>{icon}</div>
-                    <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--t-text)", marginBottom: 8 }}>{title}</h3>
-                    <p style={{ fontSize: 13.5, color: "var(--t-text-2)", lineHeight: 1.75 }}>{desc}</p>
-                  </div>
-                );
-              })}
+              {FEATURES.map(({ icon, color, title, desc }) => (
+                <div
+                  key={title}
+                  className="lp-card"
+                  style={{ background: "var(--t-card)", border: "1px solid var(--t-border)", borderRadius: 22, padding: "28px 24px", cursor: "default" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = color + "40"; e.currentTarget.style.boxShadow = `0 16px 40px ${color}15`; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--t-border)"; e.currentTarget.style.boxShadow = "none"; }}
+                >
+                  <div style={{ width: 52, height: 52, borderRadius: 15, background: color + "12", border: `1px solid ${color}25`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, marginBottom: 18 }}>{icon}</div>
+                  <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--t-text)", marginBottom: 8 }}>{title}</h3>
+                  <p style={{ fontSize: 13.5, color: "var(--t-text-2)", lineHeight: 1.75 }}>{desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ══════════════════════════════════════════
+            BENEFITS — 3 PILLARS
+        ══════════════════════════════════════════ */}
+        <section style={{ padding: "88px 20px" }}>
+          <div className="max-w-5xl mx-auto">
+            <div style={{ textAlign: "center", marginBottom: 56 }}>
+              <div style={{ display: "inline-block", background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.22)", borderRadius: 99, padding: "4px 16px", fontSize: 11, color: "var(--t-accent)", fontWeight: 700, letterSpacing: 1.5, marginBottom: 16 }}>
+                WHY CUSTOMERS LOVE IT
+              </div>
+              <h2 style={{ fontSize: "clamp(1.8rem,4vw,2.8rem)", fontWeight: 900, color: "var(--t-text)", letterSpacing: "-1px", marginBottom: 12 }}>
+                Three things you get. Every time.
+              </h2>
+              <p style={{ color: "var(--t-text-2)", fontSize: 15, maxWidth: 400, margin: "0 auto", lineHeight: 1.7 }}>
+                Not a promise — a guarantee built into every booking.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              {[
+                {
+                  icon: "⚡", color: "#6366f1",
+                  title: "Save Time",
+                  headline: "Book in under 30 seconds.",
+                  points: ["No phone calls or DMs", "Real-time slot availability", "Instant booking confirmation", "One-tap rebooking for regulars"],
+                },
+                {
+                  icon: "💰", color: "#10b981",
+                  title: "Save Money",
+                  headline: "Always the best price.",
+                  points: ["Transparent upfront pricing", "Exclusive app-only offers", "Festival & weekend deals", "No hidden charges ever"],
+                },
+                {
+                  icon: "🎯", color: "#8b5cf6",
+                  title: "Total Control",
+                  headline: "Your schedule, your rules.",
+                  points: ["Choose your exact time slot", "Auto reminders before visit", "Easy reschedule or cancel", "Full booking history always"],
+                },
+              ].map(({ icon, color, title, headline, points }) => (
+                <div
+                  key={title}
+                  className="lp-benefit"
+                  style={{ background: "var(--t-card)", border: "1px solid var(--t-border)", borderRadius: 24, padding: "32px 28px" }}
+                >
+                  <div style={{ width: 56, height: 56, borderRadius: 18, background: color + "14", border: `1px solid ${color}28`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, marginBottom: 20 }}>{icon}</div>
+                  <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color, marginBottom: 8 }}>{title}</p>
+                  <h3 style={{ fontSize: 18, fontWeight: 800, color: "var(--t-text)", marginBottom: 18, letterSpacing: "-0.3px" }}>{headline}</h3>
+                  <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+                    {points.map(p => (
+                      <li key={p} style={{ display: "flex", alignItems: "flex-start", gap: 9, fontSize: 13.5, color: "var(--t-text-2)", lineHeight: 1.5 }}>
+                        <span style={{ color, fontWeight: 700, flexShrink: 0, marginTop: 1 }}>✓</span>{p}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
           </div>
         </section>
@@ -510,10 +613,10 @@ export default function LandingPage({
           <div className="max-w-2xl mx-auto text-center" style={{ position: "relative", zIndex: 1 }}>
             <div style={{ fontSize: 44, marginBottom: 16 }}>✂</div>
             <h2 style={{ fontSize: "clamp(1.8rem,4.5vw,3rem)", fontWeight: 900, color: "var(--t-text)", letterSpacing: "-1.2px", marginBottom: 14, lineHeight: 1.15 }}>
-              Your perfect look<br />is one tap away.
+              Book smart.<br />Save time.<br /><span className="lp-shimmer">Look amazing.</span>
             </h2>
-            <p style={{ color: "var(--t-text-2)", fontSize: 15.5, lineHeight: 1.75, maxWidth: 400, margin: "0 auto 36px" }}>
-              Join 50,000+ customers already booking salons smarter with Salon Bookings.
+            <p style={{ color: "var(--t-text-2)", fontSize: 15.5, lineHeight: 1.75, maxWidth: 440, margin: "0 auto 36px" }}>
+              Join 50,000+ customers who stopped calling salons and started booking smarter — instantly, for free.
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center" }}>
               <Link
