@@ -273,29 +273,53 @@ const REVIEWS = [
 ];
 
 /* Dashboard preview mock */
-const DashboardMock = () => (
-  <div className="msb-float mx-auto" style={{ maxWidth:840, borderRadius:22, overflow:'hidden', border:'1px solid rgba(255,255,255,0.08)', boxShadow:'0 56px 130px rgba(0,0,0,0.7), 0 0 90px rgba(124,58,237,0.16)', background:'rgba(8,8,20,0.97)' }}>
+const DashboardMock = () => {
+  const { isDark } = useTheme();
+  const m = {
+    frame:      isDark ? 'rgba(8,8,20,0.97)'             : '#f1f5f9',
+    frameBorder:isDark ? 'rgba(255,255,255,0.08)'         : 'rgba(0,0,0,0.12)',
+    chrome:     isDark ? 'rgba(255,255,255,0.03)'         : 'rgba(0,0,0,0.04)',
+    chromeBorder:isDark? 'rgba(255,255,255,0.06)'         : 'rgba(0,0,0,0.08)',
+    urlBar:     isDark ? 'rgba(255,255,255,0.04)'         : 'rgba(0,0,0,0.06)',
+    urlText:    isDark ? '#334155'                        : '#94a3b8',
+    sidebar:    isDark ? 'rgba(0,0,0,0.4)'               : 'rgba(0,0,0,0.04)',
+    sidebarBorder:isDark?'rgba(255,255,255,0.05)'         : 'rgba(0,0,0,0.08)',
+    sidebarText:isDark ? '#e2e8f0'                        : '#0f172a',
+    sidebarSub: isDark ? '#334155'                        : '#94a3b8',
+    navInactive:isDark ? '#475569'                        : '#64748b',
+    heading:    isDark ? '#e2e8f0'                        : '#0f172a',
+    sub:        isDark ? '#475569'                        : '#94a3b8',
+    card:       isDark ? 'rgba(255,255,255,0.025)'        : '#ffffff',
+    cardBorder: isDark ? 'rgba(255,255,255,0.06)'         : 'rgba(0,0,0,0.08)',
+    rowBorder:  isDark ? 'rgba(255,255,255,0.03)'         : 'rgba(0,0,0,0.05)',
+    rowText:    isDark ? '#cbd5e1'                        : '#1e293b',
+    rowSub:     isDark ? '#475569'                        : '#64748b',
+    barInactive:isDark ? 'rgba(139,92,246,0.25)'          : 'rgba(139,92,246,0.18)',
+    shadow:     isDark ? '0 56px 130px rgba(0,0,0,0.7),0 0 90px rgba(124,58,237,0.16)' : '0 32px 80px rgba(0,0,0,0.12),0 0 50px rgba(124,58,237,0.08)',
+  };
+  return (
+  <div className="msb-float mx-auto" style={{ maxWidth:840, borderRadius:22, overflow:'hidden', border:`1px solid ${m.frameBorder}`, boxShadow:m.shadow, background:m.frame }}>
     {/* Window chrome */}
-    <div style={{ background:'rgba(255,255,255,0.03)', borderBottom:'1px solid rgba(255,255,255,0.06)', padding:'10px 16px', display:'flex', alignItems:'center', gap:7 }}>
+    <div style={{ background:m.chrome, borderBottom:`1px solid ${m.chromeBorder}`, padding:'10px 16px', display:'flex', alignItems:'center', gap:7 }}>
       <span style={{ width:11, height:11, borderRadius:'50%', background:'#ef4444', display:'inline-block' }} />
       <span style={{ width:11, height:11, borderRadius:'50%', background:'#f59e0b', display:'inline-block' }} />
       <span style={{ width:11, height:11, borderRadius:'50%', background:'#22c55e', display:'inline-block' }} />
-      <span style={{ flex:1, height:22, background:'rgba(255,255,255,0.04)', borderRadius:6, marginLeft:12, display:'flex', alignItems:'center', paddingLeft:10 }}>
-        <span style={{ fontSize:10, color:'#334155' }}>mysalonbookings.com/dashboard</span>
+      <span style={{ flex:1, height:22, background:m.urlBar, borderRadius:6, marginLeft:12, display:'flex', alignItems:'center', paddingLeft:10 }}>
+        <span style={{ fontSize:10, color:m.urlText }}>mysalonbookings.com/dashboard</span>
       </span>
     </div>
     <div style={{ display:'flex', minHeight:380 }}>
       {/* Sidebar */}
-      <div style={{ width:190, background:'rgba(0,0,0,0.4)', borderRight:'1px solid rgba(255,255,255,0.05)', padding:'18px 12px', flexShrink:0 }}>
+      <div style={{ width:190, background:m.sidebar, borderRight:`1px solid ${m.sidebarBorder}`, padding:'18px 12px', flexShrink:0 }}>
         <div style={{ display:'flex', alignItems:'center', gap:9, marginBottom:24, padding:'0 6px' }}>
           <div style={{ width:30, height:30, borderRadius:9, background:'linear-gradient(135deg,#7c3aed,#3b82f6)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14 }}>✂</div>
           <div>
-            <div style={{ fontSize:11, fontWeight:700, color:'#e2e8f0' }}>My Salon</div>
-            <div style={{ fontSize:9, color:'#334155' }}>Owner Dashboard</div>
+            <div style={{ fontSize:11, fontWeight:700, color:m.sidebarText }}>My Salon</div>
+            <div style={{ fontSize:9, color:m.sidebarSub }}>Owner Dashboard</div>
           </div>
         </div>
         {[['🏠','Dashboard',true],['📅','Bookings',false],['✂','Services',false],['👥','Customers',false],['📊','Analytics',false],['🖼','Gallery',false],['💳','Billing',false]].map(([icon,label,active]) => (
-          <div key={label} style={{ display:'flex', alignItems:'center', gap:9, padding:'7px 9px', borderRadius:9, marginBottom:2, background: active ? 'rgba(124,58,237,0.22)' : 'transparent', color: active ? '#a78bfa' : '#334155', fontSize:11, fontWeight: active ? 700 : 400 }}>
+          <div key={label} style={{ display:'flex', alignItems:'center', gap:9, padding:'7px 9px', borderRadius:9, marginBottom:2, background: active ? 'rgba(124,58,237,0.22)' : 'transparent', color: active ? '#a78bfa' : m.navInactive, fontSize:11, fontWeight: active ? 700 : 400 }}>
             <span style={{ fontSize:12 }}>{icon}</span>{label}
           </div>
         ))}
@@ -305,8 +329,8 @@ const DashboardMock = () => (
         {/* Header row */}
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
           <div>
-            <div style={{ fontSize:13, fontWeight:700, color:'#e2e8f0' }}>Good morning, Rahul! ☀️</div>
-            <div style={{ fontSize:10, color:'#334155' }}>Friday, 27 Mar 2026 · Sharma Cuts</div>
+            <div style={{ fontSize:13, fontWeight:700, color:m.heading }}>Good morning, Rahul! ☀️</div>
+            <div style={{ fontSize:10, color:m.sub }}>Friday, 27 Mar 2026 · Sharma Cuts</div>
           </div>
           <div style={{ display:'flex', gap:6 }}>
             <div style={{ background:'rgba(16,185,129,0.15)', color:'#6ee7b7', fontSize:9, fontWeight:700, padding:'3px 9px', borderRadius:99, border:'1px solid rgba(16,185,129,0.25)' }}>● LIVE</div>
@@ -316,7 +340,7 @@ const DashboardMock = () => (
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8, marginBottom:14 }}>
           {[['Today','24 Bookings','#818cf8','rgba(99,102,241,0.12)'],['Revenue','₹4,200','#6ee7b7','rgba(16,185,129,0.12)'],['Queue','6 Waiting','#fcd34d','rgba(245,158,11,0.12)'],['Rating','4.9 ⭐','#f9a8d4','rgba(236,72,153,0.12)']].map(([label,val,color,bg]) => (
             <div key={label} style={{ background:bg, borderRadius:11, padding:'10px 11px', border:`1px solid ${color}25` }}>
-              <div style={{ fontSize:9, color:'#475569', marginBottom:4, fontWeight:600 }}>{label}</div>
+              <div style={{ fontSize:9, color:m.sub, marginBottom:4, fontWeight:600 }}>{label}</div>
               <div style={{ fontSize:14, fontWeight:800, color }}>{val}</div>
             </div>
           ))}
@@ -324,28 +348,28 @@ const DashboardMock = () => (
         {/* Mini chart + bookings */}
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1.4fr', gap:8 }}>
           {/* Bar chart */}
-          <div style={{ background:'rgba(255,255,255,0.025)', borderRadius:12, border:'1px solid rgba(255,255,255,0.06)', padding:'10px 12px' }}>
-            <div style={{ fontSize:9, color:'#475569', fontWeight:700, marginBottom:10 }}>WEEKLY REVENUE</div>
+          <div style={{ background:m.card, borderRadius:12, border:`1px solid ${m.cardBorder}`, padding:'10px 12px' }}>
+            <div style={{ fontSize:9, color:m.sub, fontWeight:700, marginBottom:10 }}>WEEKLY REVENUE</div>
             <div style={{ display:'flex', alignItems:'flex-end', gap:5, height:52 }}>
               {[28,42,35,58,45,70,62].map((h,i) => (
-                <div key={i} style={{ flex:1, height:`${h}%`, borderRadius:'3px 3px 0 0', background: i===5 ? 'linear-gradient(180deg,#7c3aed,#3b82f6)' : 'rgba(139,92,246,0.25)' }} />
+                <div key={i} style={{ flex:1, height:`${h}%`, borderRadius:'3px 3px 0 0', background: i===5 ? 'linear-gradient(180deg,#7c3aed,#3b82f6)' : m.barInactive }} />
               ))}
             </div>
             <div style={{ display:'flex', justifyContent:'space-between', marginTop:5 }}>
               {['M','T','W','T','F','S','S'].map((d,i) => (
-                <div key={i} style={{ flex:1, textAlign:'center', fontSize:8, color:'#334155' }}>{d}</div>
+                <div key={i} style={{ flex:1, textAlign:'center', fontSize:8, color:m.sub }}>{d}</div>
               ))}
             </div>
           </div>
           {/* Bookings list */}
-          <div style={{ background:'rgba(255,255,255,0.025)', borderRadius:12, border:'1px solid rgba(255,255,255,0.06)', overflow:'hidden' }}>
-            <div style={{ padding:'7px 12px', borderBottom:'1px solid rgba(255,255,255,0.05)', display:'grid', gridTemplateColumns:'1fr 80px 56px', gap:6, fontSize:8, fontWeight:700, color:'#334155', letterSpacing:0.6 }}>
+          <div style={{ background:m.card, borderRadius:12, border:`1px solid ${m.cardBorder}`, overflow:'hidden' }}>
+            <div style={{ padding:'7px 12px', borderBottom:`1px solid ${m.rowBorder}`, display:'grid', gridTemplateColumns:'1fr 80px 56px', gap:6, fontSize:8, fontWeight:700, color:m.sub, letterSpacing:0.6 }}>
               <span>CUSTOMER</span><span>SERVICE</span><span>STATUS</span>
             </div>
             {[['Rahul S.','Hair Cut','#22c55e','Done'],['Priya M.','Facial','#f59e0b','Next'],['Arjun K.','Beard','#818cf8','Conf.'],['Sneha P.','Color','#64748b','Later']].map(([n,s,c,st]) => (
-              <div key={n} style={{ padding:'6px 12px', borderBottom:'1px solid rgba(255,255,255,0.03)', display:'grid', gridTemplateColumns:'1fr 80px 56px', gap:6, alignItems:'center' }}>
-                <span style={{ fontSize:10, color:'#cbd5e1', fontWeight:600 }}>{n}</span>
-                <span style={{ fontSize:9, color:'#475569' }}>{s}</span>
+              <div key={n} style={{ padding:'6px 12px', borderBottom:`1px solid ${m.rowBorder}`, display:'grid', gridTemplateColumns:'1fr 80px 56px', gap:6, alignItems:'center' }}>
+                <span style={{ fontSize:10, color:m.rowText, fontWeight:600 }}>{n}</span>
+                <span style={{ fontSize:9, color:m.rowSub }}>{s}</span>
                 <span style={{ fontSize:8, color:c, fontWeight:700 }}>{st}</span>
               </div>
             ))}
@@ -354,7 +378,8 @@ const DashboardMock = () => (
       </div>
     </div>
   </div>
-);
+  );
+};
 
 /* Responsive wrapper — scales the fixed-width mock to fit any screen */
 const DashboardMockWrapper = () => {
