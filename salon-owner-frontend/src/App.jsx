@@ -213,15 +213,30 @@ const LANDING_CSS = `
   .msb-link{transition:color .18s ease;}
   .msb-link:hover{color:#a78bfa!important;}
   .msb-bar{animation:msb-bar 1.4s ease both;}
+  .msb-pain{transition:transform .28s ease,border-color .28s ease,box-shadow .28s ease;}
+  .msb-pain:hover{transform:translateY(-4px);border-color:rgba(239,68,68,0.35)!important;box-shadow:0 16px 40px rgba(239,68,68,0.1);}
+  .msb-result{transition:transform .3s ease,border-color .3s ease,box-shadow .3s ease;}
+  .msb-result:hover{transform:translateY(-6px);border-color:rgba(99,102,241,0.5)!important;box-shadow:0 24px 60px rgba(99,102,241,0.15);}
+  .msb-ai{transition:transform .28s ease,border-color .28s ease;}
+  .msb-ai:hover{transform:translateY(-4px);border-color:rgba(139,92,246,0.5)!important;}
+  @keyframes msb-ticker{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+  .msb-ticker{animation:msb-ticker 28s linear infinite;display:flex;gap:48px;width:max-content;}
+  .msb-ticker:hover{animation-play-state:paused;}
 `;
 
 const FEATURES_DATA = [
-  { icon:'📅', color:'#818cf8', bg:'rgba(99,102,241,0.15)',  title:'Smart Bookings',     desc:'Real-time slot management with instant confirmations and zero double-bookings.' },
-  { icon:'📊', color:'#a78bfa', bg:'rgba(139,92,246,0.15)', title:'Live Analytics',      desc:'Revenue trends, peak hours, and customer insights updated in real time.'        },
-  { icon:'✂',  color:'#67e8f9', bg:'rgba(6,182,212,0.15)',  title:'Service Menu',        desc:'Manage pricing, duration, and categories — all from one clean interface.'       },
-  { icon:'🔔', color:'#fcd34d', bg:'rgba(245,158,11,0.15)', title:'Instant Alerts',      desc:'Push notifications for every new booking, cancellation, and reminder.'          },
-  { icon:'👥', color:'#6ee7b7', bg:'rgba(16,185,129,0.15)', title:'Customer Profiles',   desc:'Full visit history, preferences, and loyalty tracking per customer.'            },
-  { icon:'🖼', color:'#f9a8d4', bg:'rgba(236,72,153,0.15)', title:'Gallery & Coupons',   desc:'Showcase your work and run discount campaigns to attract more clients.'          },
+  { icon:'📅', color:'#818cf8', bg:'rgba(99,102,241,0.15)',  title:'Smart Bookings',        desc:'Real-time slot management with instant confirmations. Zero double-bookings, zero phone calls.' },
+  { icon:'📊', color:'#a78bfa', bg:'rgba(139,92,246,0.15)', title:'Live Analytics',         desc:'Revenue trends, peak hours, and top services — updated live so you always know what\'s working.' },
+  { icon:'✂',  color:'#67e8f9', bg:'rgba(6,182,212,0.15)',  title:'Service & Pricing Menu', desc:'Manage services, create combos (haircut + facial), and set dynamic pricing for peak vs off-peak hours.' },
+  { icon:'🔔', color:'#fcd34d', bg:'rgba(245,158,11,0.15)', title:'Instant Alerts',         desc:'Push notifications for every new booking, cancellation, and reminder. Never miss a customer again.' },
+  { icon:'👥', color:'#6ee7b7', bg:'rgba(16,185,129,0.15)', title:'Customer CRM',           desc:'Full visit history, preferences, and loyalty tracking. One-click rebooking for returning customers.' },
+  { icon:'🖼', color:'#f9a8d4', bg:'rgba(236,72,153,0.15)', title:'Gallery & Coupons',      desc:'Showcase your work and run discount campaigns — festival offers, birthday deals, and loyalty rewards.' },
+  { icon:'🎯', color:'#fb923c', bg:'rgba(249,115,22,0.15)', title:'Marketing Automation',   desc:'Auto-send Diwali offers, birthday discounts, and win-back campaigns for inactive customers — zero manual effort.' },
+  { icon:'👨‍💼', color:'#34d399', bg:'rgba(52,211,153,0.15)', title:'Staff Management',       desc:'Track each stylist\'s bookings, performance, and earnings contribution. Optimize your team during peak hours.' },
+  { icon:'⏱',  color:'#60a5fa', bg:'rgba(59,130,246,0.15)', title:'Digital Queue',          desc:'Customers join a live queue digitally. No more "abhi aa raha hoon" chaos — everyone knows exactly when they\'re next.' },
+  { icon:'💳', color:'#c084fc', bg:'rgba(192,132,252,0.15)', title:'Payments & Billing',    desc:'Accept UPI, cards, and cash. Auto-generate invoices and track daily, weekly, and monthly earnings effortlessly.' },
+  { icon:'🔐', color:'#94a3b8', bg:'rgba(148,163,184,0.15)', title:'Security & Backup',    desc:'Encrypted customer data with cloud backup — no data loss ever. Role-based access for owner vs staff.' },
+  { icon:'🤖', color:'#f472b6', bg:'rgba(244,114,182,0.15)', title:'AI Smart Suggestions',  desc:'Predict busy days, suggest services based on history, and auto-upsell — "Customers also booked facial."' },
 ];
 
 const PRICING_PLANS = [
@@ -458,6 +473,36 @@ const LandingPage = () => (
         </div>
       </section>
 
+      {/* ── PAIN POINTS ─────────────────────────────────────── */}
+      <section style={{ padding:'96px 20px 80px' }}>
+        <div className="max-w-5xl mx-auto">
+          <div style={{ textAlign:'center', marginBottom:56 }}>
+            <div style={{ display:'inline-block', background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.25)', borderRadius:99, padding:'4px 16px', fontSize:11, color:'#fca5a5', fontWeight:700, letterSpacing:1.5, marginBottom:18 }}>SOUND FAMILIAR?</div>
+            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:'#f1f5f9', letterSpacing:'-1px', marginBottom:12 }}>Every salon owner faces these problems</h2>
+            <p style={{ color:'#475569', fontSize:15, lineHeight:1.7 }}>We built My Salon Bookings to solve every single one of them.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              { pain:'"Abhi aa raha hoon" — customers arrive late or not at all',   fix:'Automated reminders & digital queue eliminate no-shows', icon:'📵' },
+              { pain:'Phone rings all day while you\'re mid-haircut',                fix:'Customers self-book online 24/7 — your phone stays silent', icon:'📞' },
+              { pain:'No idea which services actually make you money',               fix:'Live analytics show top earners, peak days, and growth trends', icon:'❓' },
+              { pain:'Peak hour chaos — everyone wants the same slot',              fix:'Smart slot system distributes load and shows wait times', icon:'😤' },
+              { pain:'Repeat customers forget to come back',                        fix:'Automated follow-ups and offers bring them back automatically', icon:'👋' },
+              { pain:'Staff performance is a guessing game',                        fix:'Track each stylist\'s bookings, revenue, and productivity live', icon:'📋' },
+            ].map(({ pain, fix, icon }) => (
+              <div key={pain} className="msb-pain" style={{ background:'rgba(255,255,255,0.025)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:20, padding:'22px 20px', cursor:'default' }}>
+                <div style={{ fontSize:28, marginBottom:12 }}>{icon}</div>
+                <p style={{ fontSize:13, color:'#ef4444', fontWeight:600, lineHeight:1.6, marginBottom:12, fontStyle:'italic' }}>"{pain}"</p>
+                <div style={{ display:'flex', alignItems:'flex-start', gap:8 }}>
+                  <span style={{ color:'#6ee7b7', fontWeight:800, fontSize:14, flexShrink:0, marginTop:1 }}>✓</span>
+                  <p style={{ fontSize:12.5, color:'#64748b', lineHeight:1.65 }}>{fix}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── HOW IT WORKS ──────────────────────────────────────── */}
       <section style={{ padding:'96px 20px' }}>
         <div className="max-w-5xl mx-auto">
@@ -553,6 +598,89 @@ const LandingPage = () => (
                 <p style={{ fontSize:13.5, color:'#475569', lineHeight:1.75 }}>{desc}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── RESULTS — WHAT YOU GET ────────────────────────── */}
+      <section style={{ padding:'96px 20px', background:'rgba(255,255,255,0.015)', borderTop:'1px solid rgba(255,255,255,0.06)', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
+        <div className="max-w-5xl mx-auto">
+          <div style={{ textAlign:'center', marginBottom:56 }}>
+            <div style={{ display:'inline-block', background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.25)', borderRadius:99, padding:'4px 16px', fontSize:11, color:'#6ee7b7', fontWeight:700, letterSpacing:1.5, marginBottom:18 }}>RESULTS</div>
+            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:'#f1f5f9', letterSpacing:'-1px', marginBottom:12 }}>What happens in your first 30 days</h2>
+            <p style={{ color:'#475569', fontSize:15, lineHeight:1.7, maxWidth:460, margin:'0 auto' }}>Salon owners consistently report these outcomes in their first month on the platform.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-16">
+            {[
+              { value:'2×', label:'More Bookings',      sub:'vs phone-only salons',  color:'#818cf8', glow:'rgba(99,102,241,0.35)',  icon:'📈' },
+              { value:'40%', label:'Fewer No-Shows',    sub:'with automated reminders', color:'#6ee7b7', glow:'rgba(16,185,129,0.35)', icon:'🔔' },
+              { value:'3×', label:'Faster Check-in',    sub:'with digital queue',    color:'#fcd34d', glow:'rgba(245,158,11,0.35)',  icon:'⚡' },
+              { value:'₹0', label:'Extra Marketing Cost', sub:'customers find you free', color:'#f9a8d4', glow:'rgba(236,72,153,0.35)', icon:'💸' },
+            ].map(({ value, label, sub, color, glow, icon }) => (
+              <div key={label} className="msb-result" style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:22, padding:'28px 22px', textAlign:'center', cursor:'default' }}>
+                <div style={{ fontSize:30, marginBottom:10 }}>{icon}</div>
+                <div style={{ fontSize:44, fontWeight:900, color, letterSpacing:'-2px', lineHeight:1, textShadow:`0 0 40px ${glow}`, marginBottom:8 }}>{value}</div>
+                <div style={{ fontSize:13, color:'#94a3b8', fontWeight:700, marginBottom:4 }}>{label}</div>
+                <div style={{ fontSize:11, color:'#475569' }}>{sub}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Before / After table */}
+          <div style={{ background:'rgba(255,255,255,0.025)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:22, overflow:'hidden' }}>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', background:'rgba(255,255,255,0.04)', borderBottom:'1px solid rgba(255,255,255,0.07)', padding:'14px 24px' }}>
+              <div style={{ fontSize:11, fontWeight:700, color:'#475569', letterSpacing:1.2 }}>WHAT YOU DO NOW</div>
+              <div style={{ fontSize:11, fontWeight:700, color:'#475569', letterSpacing:1.2, textAlign:'center' }}>→</div>
+              <div style={{ fontSize:11, fontWeight:700, color:'#6ee7b7', letterSpacing:1.2, textAlign:'right' }}>WITH MY SALON BOOKINGS</div>
+            </div>
+            {[
+              ['Phone calls for every booking',        'Online self-booking 24/7'],
+              ['Handwritten appointment book',          'Live dashboard on any device'],
+              ['Guess which services make money',       'Real-time revenue analytics'],
+              ['Manually remind customers',             'Automated reminders sent for you'],
+              ['Paper bills and manual accounting',     'Auto-invoices and earnings reports'],
+              ['No idea who your loyal customers are',  'Full CRM with visit history'],
+            ].map(([before, after], i) => (
+              <div key={i} style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', padding:'13px 24px', borderBottom: i < 5 ? '1px solid rgba(255,255,255,0.04)' : 'none', alignItems:'center', gap:12 }}>
+                <div style={{ fontSize:12.5, color:'#475569', display:'flex', alignItems:'center', gap:8 }}><span style={{ color:'#ef4444', fontWeight:700 }}>✗</span> {before}</div>
+                <div />
+                <div style={{ fontSize:12.5, color:'#94a3b8', display:'flex', alignItems:'center', gap:8, justifyContent:'flex-end' }}>{after} <span style={{ color:'#6ee7b7', fontWeight:700 }}>✓</span></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── GROWTH ENGINE ─────────────────────────────────── */}
+      <section style={{ padding:'96px 20px' }}>
+        <div className="max-w-5xl mx-auto">
+          <div style={{ textAlign:'center', marginBottom:56 }}>
+            <div style={{ display:'inline-block', background:'rgba(249,115,22,0.1)', border:'1px solid rgba(249,115,22,0.25)', borderRadius:99, padding:'4px 16px', fontSize:11, color:'#fb923c', fontWeight:700, letterSpacing:1.5, marginBottom:18 }}>GROWTH ENGINE</div>
+            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:'#f1f5f9', letterSpacing:'-1px', marginBottom:12 }}>Marketing that runs while you sleep</h2>
+            <p style={{ color:'#475569', fontSize:15, lineHeight:1.7, maxWidth:480, margin:'0 auto' }}>Automated campaigns that bring customers back — without you lifting a finger.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-8">
+            {[
+              { icon:'🎉', color:'#fb923c', title:'Festival Campaigns',     desc:'Auto-send Diwali, Holi, Eid, and Christmas offers to your entire customer list with one click. Increase bookings during high-demand periods.' },
+              { icon:'🎂', color:'#f472b6', title:'Birthday & Anniversary', desc:'Delight customers on their special day with automatic discount messages. Personal touch = loyal customers who keep coming back.' },
+              { icon:'💤', color:'#818cf8', title:'Win-Back Campaigns',     desc:'Customers who haven\'t visited in 30+ days get an automatic "We miss you" offer. Recover lost revenue on autopilot.' },
+              { icon:'🤖', color:'#a78bfa', title:'AI Smart Upselling',     desc:'When a customer books a haircut, the app suggests "Customers also booked facial." Smart suggestions increase your average bill.' },
+            ].map(({ icon, color, title, desc }) => (
+              <div key={title} className="msb-ai" style={{ background:'rgba(255,255,255,0.025)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:20, padding:'26px 24px', display:'flex', gap:18, cursor:'default' }}>
+                <div style={{ width:52, height:52, borderRadius:15, background:`${color}18`, border:`1px solid ${color}30`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, flexShrink:0, boxShadow:`0 0 24px ${color}20` }}>{icon}</div>
+                <div>
+                  <h3 style={{ fontSize:15, fontWeight:700, color:'#f1f5f9', marginBottom:8 }}>{title}</h3>
+                  <p style={{ fontSize:13, color:'#475569', lineHeight:1.7 }}>{desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* AI coming soon pill */}
+          <div style={{ textAlign:'center' }}>
+            <div style={{ display:'inline-flex', alignItems:'center', gap:10, background:'rgba(139,92,246,0.08)', border:'1px solid rgba(139,92,246,0.22)', borderRadius:99, padding:'8px 22px', fontSize:13, color:'#c4b5fd', fontWeight:600 }}>
+              <span style={{ fontSize:16 }}>🚀</span>
+              Coming soon: AI predicts your busiest days and auto-adjusts offers to fill slow hours
+            </div>
           </div>
         </div>
       </section>
@@ -674,10 +802,10 @@ const LandingPage = () => (
         <div className="max-w-2xl mx-auto text-center relative" style={{ zIndex:1 }}>
           <div style={{ fontSize:44, marginBottom:16 }}>✂</div>
           <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:900, color:'#f1f5f9', letterSpacing:'-1.2px', marginBottom:14, lineHeight:1.15 }}>
-            Your salon deserves<br />better tools.
+            Stop losing bookings.<br />Start growing today.
           </h2>
           <p style={{ color:'#475569', fontSize:15.5, marginBottom:36, lineHeight:1.75, maxWidth:400, margin:'0 auto 36px' }}>
-            Join 500+ salon owners already growing smarter with My Salon Bookings.
+            500+ salon owners across India run smarter, earn more, and stress less — with My Salon Bookings. Join them free for 30 days.
           </p>
           <a href={ROUTES.REGISTER} className="msb-btn-p px-10 py-4 font-bold rounded-2xl inline-flex items-center gap-3" style={{ background:'linear-gradient(135deg,#7c3aed,#2563eb)', color:'#fff', boxShadow:'0 0 52px rgba(124,58,237,0.6)', fontSize:16 }}>
             🚀&nbsp; Start Free — No Card Needed
