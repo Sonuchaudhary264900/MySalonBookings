@@ -58,7 +58,7 @@ const createOrder = async (amount, customerId, bookingId, customerEmail, custome
       notes: {
         customerId: customerId,
         bookingId: bookingId,
-        description: 'Barber Shop Booking Payment',
+        description: 'My Salon Bookings Payment',
       },
     };
 
