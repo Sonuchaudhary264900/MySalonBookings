@@ -114,63 +114,58 @@ const cleanupExpiredOTPs = cron.schedule('*/30 * * * *', async () => {
 /*
 ====================================================
 24 HOUR APPOINTMENT REMINDER
-Runs daily at 9 AM
+Runs daily at 9 AM IST (3:30 AM UTC)
+Sends push to customer 24h before appointment
 ====================================================
 */
 
-const send24HourReminders = cron.schedule('0 9 * * *', async () => {
+const send24HourReminders = cron.schedule('30 3 * * *', async () => {
 
   try {
-
     console.log('📨 Sending 24 hour reminders');
+    const { sendExpoPush } = require('../utils/pushNotification');
 
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(0,0,0,0);
-
-    const endOfTomorrow = new Date(tomorrow);
-    endOfTomorrow.setHours(23,59,59,999);
+    const nowIST = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+    // Target: bookings on tomorrow (IST)
+    const tomorrowIST = new Date(nowIST);
+    tomorrowIST.setUTCDate(tomorrowIST.getUTCDate() + 1);
+    const tomorrowStr = tomorrowIST.toISOString().slice(0, 10);
 
     const bookings = await Booking.find({
-
-      appointmentDate:{
-        $gte: tomorrow,
-        $lte: endOfTomorrow
-      },
-
-      status: { $in:['confirmed','in_progress'] },
-
-      reminderSentAt: { $exists:false }
-
-    });
-
-    console.log(`📅 ${bookings.length} bookings found`);
+      status: { $in: ['confirmed', 'pending'] },
+      reminderSentAt: { $exists: false },
+    }).populate('customerId', 'pushToken name').lean();
 
     let sent = 0;
 
-    for(const booking of bookings){
+    for (const booking of bookings) {
+      try {
+        const bookingDate = booking.appointmentDate?.toISOString().slice(0, 10);
+        if (bookingDate !== tomorrowStr) continue;
 
-      try{
+        const token = booking.customerId?.pushToken;
+        if (token) {
+          await sendExpoPush(
+            token,
+            '📅 Appointment Tomorrow',
+            `Reminder: ${booking.serviceName || 'your appointment'} at ${booking.salonName} tomorrow at ${booking.appointmentTime}.`,
+            { bookingId: booking._id.toString(), type: '24h_reminder' },
+            { channelId: 'reminders' }
+          ).catch(() => {});
+        }
 
-        booking.reminderSentAt = new Date();
-        await booking.save();
-
+        await Booking.updateOne({ _id: booking._id }, { $set: { reminderSentAt: new Date() } });
         sent++;
 
-      }catch(error){
-
+      } catch (error) {
         console.error(`Reminder error booking ${booking._id}`, error);
-
       }
-
     }
 
-    console.log(`✅ ${sent} reminders sent`);
+    console.log(`✅ ${sent} 24h reminders sent`);
 
-  } catch(error){
-
+  } catch (error) {
     console.error('❌ 24 hour reminder error', error);
-
   }
 
 });
@@ -179,66 +174,61 @@ const send24HourReminders = cron.schedule('0 9 * * *', async () => {
 /*
 ====================================================
 1 HOUR APPOINTMENT REMINDER
-Runs every hour
+Runs every 5 minutes — sends push 55-65 min before slot
 ====================================================
 */
 
-const send1HourReminders = cron.schedule('0 * * * *', async () => {
+const send1HourReminders = cron.schedule('*/5 * * * *', async () => {
 
-  try{
+  try {
+    const { sendExpoPush } = require('../utils/pushNotification');
 
-    console.log('⏰ Checking 1 hour reminders');
-
-    const now = new Date();
-    const oneHour = new Date(now.getTime()+3600000);
+    const nowIST = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+    const todayIST = nowIST.toISOString().slice(0, 10);
+    const nowMins = nowIST.getUTCHours() * 60 + nowIST.getUTCMinutes();
+    // Window: 55–65 minutes ahead
+    const windowStart = nowMins + 55;
+    const windowEnd   = nowMins + 65;
 
     const bookings = await Booking.find({
-
-      status:{ $in:['confirmed','in_progress'] },
-      oneHourReminderSent:{ $ne:true }
-
-    });
+      status: { $in: ['confirmed', 'pending'] },
+      oneHourReminderSent: { $ne: true },
+    }).populate('customerId', 'pushToken name').lean();
 
     let sent = 0;
 
-    for(const booking of bookings){
+    for (const booking of bookings) {
+      try {
+        const bookingDate = booking.appointmentDate?.toISOString().slice(0, 10);
+        if (bookingDate !== todayIST || !booking.appointmentTime) continue;
 
-      try{
+        const [h, m] = booking.appointmentTime.split(':');
+        const slotMins = parseInt(h, 10) * 60 + parseInt(m, 10);
+        if (slotMins < windowStart || slotMins > windowEnd) continue;
 
-        const appointment = new Date(booking.appointmentDate);
-
-        const [h,m] = booking.appointmentTime.split(':');
-
-        appointment.setHours(h,m,0);
-
-        if(appointment>now && appointment<=oneHour){
-
-          booking.oneHourReminderSent = true;
-
-          await booking.save();
-
-          sent++;
-
+        const token = booking.customerId?.pushToken;
+        if (token) {
+          await sendExpoPush(
+            token,
+            '⏰ Appointment in 1 hour!',
+            `Your ${booking.serviceName || 'appointment'} at ${booking.salonName} is at ${booking.appointmentTime}. Get ready!`,
+            { bookingId: booking._id.toString(), type: '1h_reminder' },
+            { channelId: 'reminders' }
+          ).catch(() => {});
         }
 
-      }catch(error){
+        await Booking.updateOne({ _id: booking._id }, { $set: { oneHourReminderSent: true } });
+        sent++;
 
-        console.error("1 hour reminder error", error);
-
+      } catch (error) {
+        console.error('1 hour reminder error', error);
       }
-
     }
 
-    if(sent>0){
+    if (sent > 0) console.log(`✅ ${sent} 1h reminders sent`);
 
-      console.log(`✅ ${sent} 1 hour reminders sent`);
-
-    }
-
-  }catch(error){
-
-    console.error("❌ 1 hour reminder system error", error);
-
+  } catch (error) {
+    console.error('❌ 1 hour reminder system error', error);
   }
 
 });
@@ -534,6 +524,145 @@ const generateWeeklyReport = cron.schedule('0 6 * * 1', async () => {
 
   }
 
+});
+
+
+/*
+====================================================
+30-MINUTE APPOINTMENT REMINDER
+Runs every 5 minutes — sends push to customer 25-35 min before slot
+Also alerts the owner that a customer is arriving soon
+====================================================
+*/
+
+const send30MinReminders = cron.schedule('*/5 * * * *', async () => {
+  try {
+    const { sendExpoPush } = require('../utils/pushNotification');
+
+    const nowIST = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+    const todayIST = nowIST.toISOString().slice(0, 10);
+    const nowMins = nowIST.getUTCHours() * 60 + nowIST.getUTCMinutes();
+    const windowStart = nowMins + 25;
+    const windowEnd   = nowMins + 35;
+
+    const bookings = await Booking.find({
+      status: { $in: ['confirmed', 'pending'] },
+      thirtyMinReminderSent: { $ne: true },
+    }).populate('customerId', 'pushToken name').lean();
+
+    let sent = 0;
+
+    for (const booking of bookings) {
+      try {
+        const bookingDate = booking.appointmentDate?.toISOString().slice(0, 10);
+        if (bookingDate !== todayIST || !booking.appointmentTime) continue;
+
+        const [h, m] = booking.appointmentTime.split(':');
+        const slotMins = parseInt(h, 10) * 60 + parseInt(m, 10);
+        if (slotMins < windowStart || slotMins > windowEnd) continue;
+
+        // Push to customer
+        const customerToken = booking.customerId?.pushToken;
+        if (customerToken) {
+          await sendExpoPush(
+            customerToken,
+            '🚶 Head over now!',
+            `Your ${booking.serviceName || 'appointment'} at ${booking.salonName} starts in 30 minutes at ${booking.appointmentTime}.`,
+            { bookingId: booking._id.toString(), type: '30min_reminder' },
+            { channelId: 'reminders' }
+          ).catch(() => {});
+        }
+
+        // Push to owner — upcoming customer alert
+        const owner = await Owner.findOne({ salonId: booking.salonId }).select('pushToken').lean();
+        if (owner?.pushToken) {
+          await sendExpoPush(
+            owner.pushToken,
+            '📋 Customer arriving in 30 min',
+            `${booking.customerName || 'A customer'} is booked for ${booking.serviceName || 'a service'} at ${booking.appointmentTime}.`,
+            { bookingId: booking._id.toString(), type: 'owner_upcoming_alert' },
+            { channelId: 'bookings' }
+          ).catch(() => {});
+        }
+
+        await Booking.updateOne({ _id: booking._id }, { $set: { thirtyMinReminderSent: true } });
+        sent++;
+
+      } catch (error) {
+        console.error('30-min reminder single error:', error.message);
+      }
+    }
+
+    if (sent > 0) console.log(`✅ ${sent} 30-min reminders sent`);
+
+  } catch (error) {
+    console.error('❌ 30-min reminder system error:', error);
+  }
+});
+
+
+/*
+====================================================
+OWNER DAILY SUMMARY
+Runs daily at 10 PM IST (4:30 PM UTC)
+Sends each active owner a summary of today's bookings
+====================================================
+*/
+
+const ownerDailySummary = cron.schedule('30 16 * * *', async () => {
+  try {
+    console.log('📊 Sending owner daily summaries');
+    const { sendExpoPush } = require('../utils/pushNotification');
+
+    const nowIST = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+    const todayStr = nowIST.toISOString().slice(0, 10);
+    const dayStart = new Date(todayStr + 'T00:00:00.000Z');
+    const dayEnd   = new Date(todayStr + 'T23:59:59.999Z');
+
+    // Get all salons with at least one booking today
+    const todaysBookings = await Booking.aggregate([
+      {
+        $match: {
+          appointmentDate: { $gte: dayStart, $lte: dayEnd },
+          status: { $in: ['pending', 'confirmed', 'in_progress', 'completed'] },
+        },
+      },
+      {
+        $group: {
+          _id: '$salonId',
+          total:     { $sum: 1 },
+          completed: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } },
+          cancelled: { $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] } },
+          revenue:   { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, '$totalAmount', 0] } },
+        },
+      },
+    ]);
+
+    let sent = 0;
+    for (const row of todaysBookings) {
+      try {
+        const owner = await Owner.findOne({ salonId: row._id }).select('pushToken name').lean();
+        if (!owner?.pushToken) continue;
+
+        await sendExpoPush(
+          owner.pushToken,
+          '📊 Today\'s Summary',
+          `${row.total} bookings today — ${row.completed} completed, ₹${row.revenue || 0} earned. See you tomorrow!`,
+          { type: 'daily_summary', salonId: row._id.toString() },
+          { channelId: 'analytics' }
+        ).catch(() => {});
+
+        sent++;
+      } catch (err) {
+        console.error('Daily summary single owner error:', err.message);
+      }
+    }
+
+    if (sent > 0) console.log(`✅ ${sent} daily summaries sent`);
+
+  } catch (error) {
+    console.error('❌ Daily summary error:', error);
+  }
 });
 
 
@@ -838,7 +967,9 @@ module.exports = {
   cleanupExpiredOTPs,
   send24HourReminders,
   send1HourReminders,
+  send30MinReminders,
   send10MinReminders,
+  ownerDailySummary,
   autoApproveSalons,
   cancelNoShowBookings,
   autoCompleteBookings,
@@ -847,13 +978,15 @@ module.exports = {
   monthlyBillingReset,
   paymentDueReminder,
 
-  stopAllJobs:()=>{
+  stopAllJobs: () => {
 
     cleanupOldQueues.stop();
     cleanupExpiredOTPs.stop();
     send24HourReminders.stop();
     send1HourReminders.stop();
+    send30MinReminders.stop();
     send10MinReminders.stop();
+    ownerDailySummary.stop();
     autoApproveSalons.stop();
     cancelNoShowBookings.stop();
     autoCompleteBookings.stop();
