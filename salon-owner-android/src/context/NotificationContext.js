@@ -30,6 +30,46 @@ async function setupNotificationChannels() {
     sound: 'new_booking.wav',
   });
 
+  // Bookings channel (upcoming customer alerts, status changes)
+  await Notifications.setNotificationChannelAsync('bookings', {
+    name: 'Bookings',
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: [0, 300, 200, 300],
+    lightColor: '#2563eb',
+    enableVibrate: true,
+    sound: 'default',
+  });
+
+  // Reminders channel (30-min upcoming alerts)
+  await Notifications.setNotificationChannelAsync('reminders', {
+    name: 'Appointment Reminders',
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: [0, 250, 250, 250],
+    lightColor: '#10b981',
+    enableVibrate: true,
+    sound: 'default',
+  });
+
+  // Analytics channel (daily summary)
+  await Notifications.setNotificationChannelAsync('analytics', {
+    name: 'Daily Summary',
+    importance: Notifications.AndroidImportance.DEFAULT,
+    vibrationPattern: [0, 200],
+    lightColor: '#6366f1',
+    enableVibrate: false,
+    sound: 'default',
+  });
+
+  // Billing channel (trial expiry, payment due)
+  await Notifications.setNotificationChannelAsync('billing', {
+    name: 'Billing & Subscription',
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: [0, 300, 200, 300],
+    lightColor: '#f59e0b',
+    enableVibrate: true,
+    sound: 'default',
+  });
+
   // Standard channel for other owner notifications
   await Notifications.setNotificationChannelAsync('default', {
     name: 'General',
