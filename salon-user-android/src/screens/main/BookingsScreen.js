@@ -14,18 +14,18 @@ import { useNotifications } from '../../context/NotificationContext';
 import { showSuccess, showError } from '../../utils/toast';
 import { useTheme } from '../../context/ThemeContext';
 
-// Filter order: Upcoming first, All last
 const FILTERS = ['Upcoming', 'Completed', 'Cancelled', 'All'];
+const PAGE_SIZE = 5;
 
 const STATUS_CONFIG = {
-  pending:     { label: 'Pending',     color: '#d97706', bg: '#fef3c7', border: '#fde68a' },
-  confirmed:   { label: 'Confirmed',   color: '#2563eb', bg: '#dbeafe', border: '#93c5fd' },
-  in_progress: { label: 'In Progress', color: '#7c3aed', bg: '#f5f3ff', border: '#c4b5fd' },
-  completed:   { label: 'Completed',   color: '#16a34a', bg: '#dcfce7', border: '#86efac' },
-  cancelled:   { label: 'Cancelled',   color: '#dc2626', bg: '#fee2e2', border: '#fca5a5' },
+  pending:     { label: 'Pending',     color: '#d97706', bg: 'rgba(251,191,36,0.15)',  border: 'rgba(251,191,36,0.35)',  left: '#d97706' },
+  confirmed:   { label: 'Confirmed',   color: '#059669', bg: 'rgba(52,211,153,0.15)',  border: 'rgba(52,211,153,0.35)',  left: '#059669' },
+  in_progress: { label: 'In Progress', color: '#7c3aed', bg: 'rgba(167,139,250,0.15)', border: 'rgba(167,139,250,0.35)', left: '#7c3aed' },
+  completed:   { label: 'Completed',   color: '#2563eb', bg: 'rgba(96,165,250,0.15)',  border: 'rgba(96,165,250,0.35)',  left: '#2563eb' },
+  cancelled:   { label: 'Cancelled',   color: '#dc2626', bg: 'rgba(248,113,113,0.15)', border: 'rgba(248,113,113,0.35)', left: '#dc2626' },
 };
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────
 
 function haversineKm(lat1, lng1, lat2, lng2) {
   const R = 6371;
@@ -57,23 +57,43 @@ function todayString() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-// ── StatusBadge ───────────────────────────────────────────────────────────────
+function useCountdown(dateStr, timeStr) {
+  const [label, setLabel] = useState(null);
+  useEffect(() => {
+    if (!dateStr || !timeStr) { setLabel(null); return; }
+    const compute = () => {
+      const target = new Date(String(dateStr).slice(0, 10) + 'T' + timeStr + ':00');
+      const ms = target - Date.now();
+      if (ms <= 0) { setLabel(null); return; }
+      const totalMins = Math.floor(ms / 60000);
+      const hours = Math.floor(totalMins / 60);
+      const mins  = totalMins % 60;
+      const days  = Math.floor(hours / 24);
+      if (days > 1)       setLabel(`in ${days} days`);
+      else if (days === 1) setLabel('tomorrow');
+      else if (hours > 0)  setLabel(`in ${hours}h ${mins}m`);
+      else if (mins > 0)   setLabel(`in ${mins} min`);
+      else setLabel('starting now');
+    };
+    compute();
+    const id = setInterval(compute, 30000);
+    return () => clearInterval(id);
+  }, [dateStr, timeStr]);
+  return label;
+}
+
+// ── StatusBadge ───────────────────────────────────────────────
 
 function StatusBadge({ status }) {
-  const cfg = STATUS_CONFIG[status] || { label: status, color: '#6b7280', bg: '#f3f4f6', border: '#e5e7eb' };
+  const cfg = STATUS_CONFIG[status] || { label: status, color: '#6b7280', bg: 'rgba(107,114,128,0.1)', border: 'rgba(107,114,128,0.3)' };
   return (
-    <View style={[badgeStyle.wrap, { backgroundColor: cfg.bg, borderColor: cfg.border }]}>
-      <Text style={[badgeStyle.text, { color: cfg.color }]}>{cfg.label}</Text>
+    <View style={{ paddingHorizontal: 9, paddingVertical: 3, borderRadius: 99, borderWidth: 1, backgroundColor: cfg.bg, borderColor: cfg.border }}>
+      <Text style={{ fontSize: 11, fontWeight: '700', color: cfg.color }}>{cfg.label}</Text>
     </View>
   );
 }
 
-const badgeStyle = StyleSheet.create({
-  wrap: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, borderWidth: 1 },
-  text: { fontSize: 11, fontWeight: '700' },
-});
-
-// ── ReviewPrompt ──────────────────────────────────────────────────────────────
+// ── ReviewPrompt ──────────────────────────────────────────────
 
 function ReviewPrompt({ bookingId, onReviewed, theme }) {
   const [open, setOpen] = useState(false);
@@ -83,19 +103,19 @@ function ReviewPrompt({ bookingId, onReviewed, theme }) {
   const [done, setDone] = useState(false);
 
   if (done) return (
-    <View style={{ marginTop: 10, padding: 10, backgroundColor: '#dcfce7', borderRadius: 8, borderWidth: 1, borderColor: '#86efac' }}>
-      <Text style={{ fontSize: 12, color: '#16a34a' }}>Thank you for your review!</Text>
+    <View style={{ marginTop: 10, padding: 10, backgroundColor: 'rgba(52,211,153,0.12)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(52,211,153,0.3)' }}>
+      <Text style={{ fontSize: 12, color: '#34d399' }}>Thank you for your review! ✨</Text>
     </View>
   );
 
   if (!open) return (
     <TouchableOpacity
-      style={{ marginTop: 10, padding: 10, backgroundColor: '#eef2ff', borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+      style={{ marginTop: 10, padding: 10, backgroundColor: 'rgba(99,102,241,0.08)', borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: 'rgba(99,102,241,0.2)' }}
       onPress={() => setOpen(true)}
       activeOpacity={0.8}
     >
-      <Text style={{ fontSize: 12, color: '#4338ca' }}>How was your experience?</Text>
-      <Text style={{ fontSize: 12, color: '#4338ca', fontWeight: '700' }}>Leave a Review</Text>
+      <Text style={{ fontSize: 12, color: '#818cf8' }}>⭐ How was your experience?</Text>
+      <Text style={{ fontSize: 12, color: '#818cf8', fontWeight: '700' }}>Leave a Review →</Text>
     </TouchableOpacity>
   );
 
@@ -114,12 +134,12 @@ function ReviewPrompt({ bookingId, onReviewed, theme }) {
   };
 
   return (
-    <View style={{ marginTop: 10, padding: 12, backgroundColor: '#eef2ff', borderRadius: 8, gap: 10 }}>
-      <Text style={{ fontSize: 12, fontWeight: '700', color: '#4338ca' }}>Rate your experience</Text>
+    <View style={{ marginTop: 10, padding: 12, backgroundColor: 'rgba(99,102,241,0.07)', borderRadius: 10, gap: 10, borderWidth: 1, borderColor: 'rgba(99,102,241,0.18)' }}>
+      <Text style={{ fontSize: 12, fontWeight: '700', color: '#818cf8' }}>Rate your experience</Text>
       <View style={{ flexDirection: 'row', gap: 6 }}>
         {[1, 2, 3, 4, 5].map(n => (
           <TouchableOpacity key={n} onPress={() => setRating(n)}>
-            <Text style={{ fontSize: 26, color: n <= rating ? '#f59e0b' : '#d1d5db' }}>★</Text>
+            <Text style={{ fontSize: 26, color: n <= rating ? '#f59e0b' : theme?.border || '#334155' }}>★</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -127,37 +147,36 @@ function ReviewPrompt({ bookingId, onReviewed, theme }) {
         value={text}
         onChangeText={setText}
         placeholder="Share your experience (optional)"
-        placeholderTextColor="#9ca3af"
+        placeholderTextColor={theme?.placeholder || '#64748b'}
         multiline
         numberOfLines={2}
         style={{
-          borderWidth: 1, borderColor: '#c7d2fe', borderRadius: 8, padding: 8,
-          fontSize: 12, color: theme?.text || '#1e293b', textAlignVertical: 'top',
-          backgroundColor: '#fff', minHeight: 52,
+          borderWidth: 1, borderColor: 'rgba(99,102,241,0.2)', borderRadius: 8, padding: 8,
+          fontSize: 12, color: theme?.text || '#f1f5f9', textAlignVertical: 'top',
+          backgroundColor: theme?.input || '#1e293b', minHeight: 52,
         }}
       />
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <TouchableOpacity
           onPress={handleSubmit}
           disabled={!rating || submitting}
-          style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: '#4f46e5', borderRadius: 8, opacity: !rating || submitting ? 0.5 : 1 }}
+          style={{ paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#4f46e5', borderRadius: 8, opacity: !rating || submitting ? 0.5 : 1 }}
         >
           {submitting
             ? <ActivityIndicator color="#fff" size="small" />
             : <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>Submit</Text>}
         </TouchableOpacity>
         <TouchableOpacity onPress={() => setOpen(false)} style={{ paddingHorizontal: 14, paddingVertical: 8 }}>
-          <Text style={{ fontSize: 12, color: '#6b7280' }}>Cancel</Text>
+          <Text style={{ fontSize: 12, color: theme?.subText || '#94a3b8' }}>Cancel</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 }
 
-// ── RescheduleModal ───────────────────────────────────────────────────────────
+// ── RescheduleModal ───────────────────────────────────────────
 
 function RescheduleModal({ booking, onClose, onRescheduled, theme }) {
-  const rs = getRescheduleStyles(theme);
   const [newDate, setNewDate] = useState(todayString());
   const [newTime, setNewTime] = useState('');
   const [slots, setSlots] = useState([]);
@@ -179,19 +198,18 @@ function RescheduleModal({ booking, onClose, onRescheduled, theme }) {
     setSlotsLoading(true);
     api.get(`/public/salons/${salonId}/booked-slots?date=${newDate}&duration=${duration}`)
       .then(res => {
-        const data = res.data.data || {};
-        setClosedDay(data.closedDay || false);
-        setSlots(data.slots || []);
-        setBlockedSlots(data.blockedSlots || []);
+        const d = res.data.data || {};
+        setClosedDay(d.closedDay || false);
+        setSlots(d.slots || []);
+        setBlockedSlots(d.blockedSlots || []);
       })
       .catch(() => setSlots([]))
       .finally(() => setSlotsLoading(false));
   }, [newDate, salonId, duration]);
 
   const handleSave = async () => {
-    if (!newDate || !newTime) { setError('Please select a date and a time slot.'); return; }
-    setSaving(true);
-    setError('');
+    if (!newDate || !newTime) { setError('Please select a date and time slot.'); return; }
+    setSaving(true); setError('');
     try {
       await api.put(`/customer/bookings/${booking._id}/reschedule`, { appointmentDate: newDate, appointmentTime: newTime });
       onRescheduled(booking._id, newDate, newTime);
@@ -203,185 +221,145 @@ function RescheduleModal({ booking, onClose, onRescheduled, theme }) {
     }
   };
 
-  // Next 7 days as quick-select chips
   const quickDates = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() + i);
+    const d = new Date(); d.setDate(d.getDate() + i);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric' });
     return { key, label };
   });
 
   return (
-    <Modal transparent visible animationType="slide" onRequestClose={onClose}>
-      <View style={rs.overlay}>
-        <View style={rs.sheet}>
+    <Modal visible animationType="slide" transparent onRequestClose={onClose}>
+      <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }} activeOpacity={1} onPress={onClose}>
+        <View style={{ flex: 1 }} />
+        <View style={{ backgroundColor: theme?.card || '#1e293b', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '88%' }}
+          onStartShouldSetResponder={() => true}>
+
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <Text style={rs.title}>Reschedule Booking</Text>
-            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Ionicons name="close" size={22} color={theme?.subText || '#6b7280'} />
+            <Text style={{ fontSize: 17, fontWeight: '800', color: theme?.text || '#f1f5f9' }}>Reschedule Booking</Text>
+            <TouchableOpacity onPress={onClose} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme?.cardAlt || '#162032', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme?.border || '#334155' }}>
+              <Ionicons name="close" size={16} color={theme?.subText || '#94a3b8'} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {/* Quick date selector */}
-            <Text style={rs.label}>Select Date</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
-              <View style={{ flexDirection: 'row', gap: 8, paddingVertical: 4 }}>
-                {quickDates.map(({ key, label }) => (
-                  <TouchableOpacity
-                    key={key}
-                    onPress={() => setNewDate(key)}
-                    style={[rs.dateChip, newDate === key && rs.dateChipActive]}
-                  >
-                    <Text style={[rs.dateChipText, newDate === key && rs.dateChipTextActive]}>{label}</Text>
-                  </TouchableOpacity>
-                ))}
+          <Text style={{ fontSize: 13, fontWeight: '600', color: theme?.subText || '#94a3b8', marginBottom: 8 }}>Select Date</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }} contentContainerStyle={{ gap: 8, paddingBottom: 4 }}>
+            {quickDates.map(({ key, label }) => (
+              <TouchableOpacity key={key} onPress={() => setNewDate(key)}
+                style={{ paddingHorizontal: 16, paddingVertical: 9, borderRadius: 99, borderWidth: 1, backgroundColor: newDate === key ? '#4f46e5' : (theme?.cardAlt || '#162032'), borderColor: newDate === key ? 'transparent' : (theme?.border || '#334155') }}>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: newDate === key ? '#fff' : (theme?.subText || '#94a3b8'), whiteSpace: 'nowrap' }}>{label}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          <Text style={{ fontSize: 13, fontWeight: '600', color: theme?.subText || '#94a3b8', marginBottom: 8 }}>Select Time Slot</Text>
+          {slotsLoading ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 12 }}>
+              <ActivityIndicator size="small" color="#4f46e5" />
+              <Text style={{ fontSize: 13, color: theme?.subText || '#94a3b8' }}>Loading slots…</Text>
+            </View>
+          ) : closedDay ? (
+            <View style={{ padding: 12, backgroundColor: 'rgba(251,191,36,0.1)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(251,191,36,0.3)', marginBottom: 12 }}>
+              <Text style={{ fontSize: 13, color: '#d97706' }}>Salon is closed on this day. Choose another date.</Text>
+            </View>
+          ) : slots.length === 0 ? (
+            <View style={{ padding: 12, backgroundColor: theme?.cardAlt || '#162032', borderRadius: 10, borderWidth: 1, borderColor: theme?.border || '#334155', marginBottom: 12 }}>
+              <Text style={{ fontSize: 13, color: theme?.subText || '#94a3b8' }}>No available slots on this date.</Text>
+            </View>
+          ) : (
+            <ScrollView style={{ maxHeight: 200 }} showsVerticalScrollIndicator={false}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+                {slots.map(s => {
+                  const blocked  = blockedSlots.includes(s);
+                  const selected = newTime === s;
+                  return (
+                    <TouchableOpacity key={s} onPress={() => { if (!blocked) setNewTime(s); }} disabled={blocked}
+                      style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, borderWidth: 1,
+                        backgroundColor: blocked ? 'rgba(248,113,113,0.1)' : selected ? '#4f46e5' : (theme?.cardAlt || '#162032'),
+                        borderColor: blocked ? 'rgba(248,113,113,0.3)' : selected ? 'transparent' : (theme?.border || '#334155'),
+                      }}>
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: blocked ? '#f87171' : selected ? '#fff' : (theme?.text || '#f1f5f9') }}>
+                        {formatTimeLabel(s)}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </ScrollView>
+          )}
 
-            {/* Slot grid */}
-            <Text style={rs.label}>Select Time Slot</Text>
-            {slotsLoading ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 12 }}>
-                <ActivityIndicator color="#4f46e5" size="small" />
-                <Text style={{ fontSize: 13, color: '#6b7280' }}>Loading slots…</Text>
-              </View>
-            ) : closedDay ? (
-              <View style={{ padding: 12, backgroundColor: '#fef3c7', borderRadius: 8, marginBottom: 12 }}>
-                <Text style={{ fontSize: 13, color: '#d97706' }}>Salon is closed on this day. Choose another date.</Text>
-              </View>
-            ) : slots.length === 0 ? (
-              <View style={{ padding: 12, backgroundColor: '#f1f5f9', borderRadius: 8, marginBottom: 12 }}>
-                <Text style={{ fontSize: 13, color: '#94a3b8' }}>No available slots on this date.</Text>
-              </View>
-            ) : (
-              <>
-                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 10 }}>
-                  {[['#fca5a5', 'Booked'], ['#6366f1', 'Selected'], ['#e2e8f0', 'Available']].map(([c, l]) => (
-                    <View key={l} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                      <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: c }} />
-                      <Text style={{ fontSize: 11, color: '#6b7280' }}>{l}</Text>
-                    </View>
-                  ))}
-                </View>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-                  {slots.map(s => {
-                    const blocked = blockedSlots.includes(s);
-                    const selected = newTime === s;
-                    return (
-                      <TouchableOpacity
-                        key={s}
-                        onPress={() => { if (!blocked) setNewTime(s); }}
-                        disabled={blocked}
-                        style={[rs.slotChip, blocked && rs.slotBlocked, selected && rs.slotSelected]}
-                      >
-                        <Text style={[rs.slotText, blocked && rs.slotBlockedText, selected && rs.slotSelectedText]}>
-                          {formatTimeLabel(s)}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </>
-            )}
+          {!!error && <Text style={{ fontSize: 12, color: '#f87171', marginBottom: 10 }}>{error}</Text>}
 
-            {!!error && <Text style={{ fontSize: 12, color: '#dc2626', marginBottom: 10 }}>{error}</Text>}
-
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              <TouchableOpacity
-                onPress={handleSave}
-                disabled={saving || !newTime}
-                style={[rs.saveBtn, (!newTime || saving) && { opacity: 0.5 }]}
-              >
-                {saving
-                  ? <ActivityIndicator color="#fff" size="small" />
-                  : <Text style={rs.saveBtnText}>Confirm Reschedule</Text>}
-              </TouchableOpacity>
-              <TouchableOpacity onPress={onClose} style={rs.cancelBtn}>
-                <Text style={rs.cancelBtnText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+            <TouchableOpacity onPress={handleSave} disabled={saving || !newTime}
+              style={{ flex: 2, height: 50, borderRadius: 14, backgroundColor: '#4f46e5', alignItems: 'center', justifyContent: 'center', opacity: saving || !newTime ? 0.6 : 1 }}>
+              {saving
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Confirm Reschedule</Text>}
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onClose}
+              style={{ flex: 1, height: 50, borderRadius: 14, backgroundColor: theme?.cardAlt || '#162032', borderWidth: 1, borderColor: theme?.border || '#334155', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ color: theme?.subText || '#94a3b8', fontWeight: '600', fontSize: 14 }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      </TouchableOpacity>
     </Modal>
   );
 }
 
-const getRescheduleStyles = (t) => StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: t?.card || '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '90%' },
-  title: { fontSize: 17, fontWeight: '700', color: t?.text || '#1e293b' },
-  label: { fontSize: 13, fontWeight: '600', color: t?.subText || '#6b7280', marginBottom: 8 },
-  dateChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: t?.border || '#f1f5f9', borderWidth: 1, borderColor: t?.border || '#e2e8f0' },
-  dateChipActive: { backgroundColor: '#4f46e5', borderColor: '#4f46e5' },
-  dateChipText: { fontSize: 13, color: t?.subText || '#6b7280', fontWeight: '600' },
-  dateChipTextActive: { color: '#fff' },
-  slotChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#fff' },
-  slotBlocked: { backgroundColor: '#fff1f2', borderColor: '#fca5a5' },
-  slotSelected: { backgroundColor: '#4f46e5', borderColor: '#4f46e5' },
-  slotText: { fontSize: 12, color: '#475569', fontWeight: '600' },
-  slotBlockedText: { color: '#ef4444' },
-  slotSelectedText: { color: '#fff' },
-  saveBtn: { flex: 2, height: 48, borderRadius: 12, backgroundColor: '#4f46e5', alignItems: 'center', justifyContent: 'center' },
-  saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  cancelBtn: { flex: 1, height: 48, borderRadius: 12, borderWidth: 1.5, borderColor: t?.border || '#e2e8f0', alignItems: 'center', justifyContent: 'center' },
-  cancelBtnText: { fontSize: 14, fontWeight: '600', color: t?.subText || '#6b7280' },
-});
+// ── BookingCard ───────────────────────────────────────────────
 
-// ── BookingCard ───────────────────────────────────────────────────────────────
-
-function BookingCard({ booking: initialBooking, userCoords, onCancelled, theme }) {
-  const cs = getCardStyles(theme);
-  const [booking, setBooking] = useState(initialBooking);
+function BookingCard({ booking: initialBooking, userCoords, onCancelled, theme, isNext }) {
+  const [booking, setBooking]               = useState(initialBooking);
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
-  const [reviewed, setReviewed] = useState(false);
+  const [reviewed, setReviewed]             = useState(false);
+  const [cancelling, setCancelling]         = useState(false);
+  const countdown = useCountdown(booking.appointmentDate, booking.appointmentTime);
+
   const status = booking.status || 'pending';
+  const cfg    = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
 
   const handleCancel = () => {
-    Alert.alert('Cancel Booking', 'Are you sure you want to cancel this booking?', [
-      { text: 'No', style: 'cancel' },
-      {
-        text: 'Yes, Cancel', style: 'destructive', onPress: async () => {
-          try {
-            await api.post(`/customer/bookings/${booking._id}/cancel`);
-            showSuccess('Cancelled', 'Your booking has been cancelled.');
-            onCancelled(booking._id);
-          } catch (err) {
-            showError('Error', err?.message || 'Could not cancel. Try again.');
-          }
+    Alert.alert(
+      'Cancel Booking',
+      'Are you sure you want to cancel this booking?',
+      [
+        { text: 'Keep', style: 'cancel' },
+        {
+          text: 'Cancel Booking', style: 'destructive',
+          onPress: async () => {
+            setCancelling(true);
+            try { await api.post(`/customer/bookings/${booking._id}/cancel`); onCancelled(booking._id); }
+            catch (err) { showError(err?.message || 'Could not cancel.'); }
+            finally { setCancelling(false); }
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
-  const handleRescheduled = (id, date, time) => {
+  const handleRescheduled = (id, date, time) =>
     setBooking(prev => ({ ...prev, appointmentDate: date, appointmentTime: time, status: 'pending' }));
-  };
 
-  const salonDoc    = booking.salonId;
-  const salonName   = booking.salonName || salonDoc?.name || 'Salon';
-  const salonCity   = salonDoc?.city || salonDoc?.address || '';
-  const salonPhone  = salonDoc?.phone || null;
-  const serviceName = booking.serviceName ||
-    (Array.isArray(booking.serviceIds) ? booking.serviceIds.map(s => s?.name || s).filter(Boolean).join(' + ') : '') ||
-    'Service';
+  const salonDoc     = booking.salonId;
+  const salonName    = booking.salonName || salonDoc?.name || 'Salon';
+  const salonInitial = salonName.charAt(0).toUpperCase();
+  const salonCity    = salonDoc?.city || salonDoc?.address || '';
+  const salonPhone   = salonDoc?.phone || null;
+  const serviceName  = booking.serviceName ||
+    (Array.isArray(booking.serviceIds) ? booking.serviceIds.map(s => s?.name || s).filter(Boolean).join(' + ') : '') || 'Service';
 
   const dur = booking.estimatedDuration;
-  const durLabel = dur
-    ? (dur >= 60 ? `${Math.floor(dur / 60)}h${dur % 60 ? ` ${dur % 60}m` : ''}` : `${dur} min`)
-    : null;
+  const durLabel = dur ? (dur >= 60 ? `${Math.floor(dur / 60)}h${dur % 60 ? ` ${dur % 60}m` : ''}` : `${dur}m`) : null;
 
-  // Distance
   let distanceLabel = null;
   if (userCoords && salonDoc?.location?.coordinates?.length === 2) {
     const [salonLng, salonLat] = salonDoc.location.coordinates;
     const km = haversineKm(userCoords.lat, userCoords.lng, salonLat, salonLng);
-    distanceLabel = km < 1 ? `${Math.round(km * 1000)} m away` : `${km.toFixed(1)} km away`;
+    distanceLabel = km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
   }
 
-  // Maps URL
   let mapsUrl = null;
   if (salonDoc?.location?.coordinates?.length === 2) {
     const [lng, lat] = salonDoc.location.coordinates;
@@ -394,152 +372,232 @@ function BookingCard({ booking: initialBooking, userCoords, onCancelled, theme }
   const canCancel     = ['pending', 'confirmed'].includes(status);
   const canReschedule = ['pending', 'confirmed'].includes(status);
   const canReview     = status === 'completed' && !reviewed && !initialBooking.reviewed;
+  const isUpcoming    = ['pending', 'confirmed', 'in_progress'].includes(status);
 
-  const detailTiles = [
-    { label: 'Date',    value: formatDateLabel(booking.appointmentDate) },
-    { label: 'Time',    value: formatTimeLabel(booking.appointmentTime) },
-    { label: 'Amount',  value: booking.totalAmount != null ? `\u20B9${booking.totalAmount}` : '\u2014', amountStyle: true },
-    ...(durLabel ? [{ label: 'Duration', value: durLabel }] : []),
-    { label: 'Payment', value: booking.paymentMethod ? booking.paymentMethod.charAt(0).toUpperCase() + booking.paymentMethod.slice(1) : '\u2014' },
-    ...(distanceLabel ? [{ label: 'Distance', value: distanceLabel, accent: true }] : []),
-  ];
+  const microcopy = status === 'confirmed'
+    ? { text: 'Arrive 5 mins early · Slot reserved for you', color: '#059669' }
+    : status === 'pending'
+    ? { text: 'Awaiting confirmation from salon', color: '#d97706' }
+    : status === 'in_progress'
+    ? { text: 'Your appointment is in progress right now', color: '#7c3aed' }
+    : null;
 
   return (
-    <View style={cs.card}>
-      {/* Header */}
-      <View style={cs.headerRow}>
-        <View style={cs.iconWrap}>
-          <Text style={{ fontSize: 20, color: '#fff' }}>✂</Text>
+    <View style={{
+      backgroundColor: theme?.card || '#1e293b',
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: theme?.border || '#334155',
+      borderLeftWidth: 3,
+      borderLeftColor: cfg.left,
+      overflow: 'hidden',
+      shadowColor: '#000',
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 2,
+    }}>
+      {/* Next appointment ribbon */}
+      {isNext && (
+        <View style={{ backgroundColor: '#4f46e5', paddingHorizontal: 14, paddingVertical: 7, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text style={{ fontSize: 11, fontWeight: '700', color: '#fff', letterSpacing: 0.6, textTransform: 'uppercase' }}>
+            ⚡ Next Appointment
+          </Text>
+          {countdown && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Ionicons name="time-outline" size={11} color="rgba(255,255,255,0.85)" />
+              <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.85)', fontWeight: '600' }}>{countdown}</Text>
+            </View>
+          )}
         </View>
-        <View style={{ flex: 1 }}>
-          <Text style={cs.serviceName} numberOfLines={1}>{serviceName}</Text>
-          <Text style={cs.salonName} numberOfLines={1}>{salonName}</Text>
-          {!!salonCity && <Text style={cs.salonCity} numberOfLines={1}>{salonCity}</Text>}
-        </View>
-        <StatusBadge status={status} />
-      </View>
+      )}
 
-      {/* Detail grid */}
-      <View style={cs.grid}>
-        {detailTiles.map(tile => (
-          <View key={tile.label} style={[cs.tile, tile.accent && cs.tileAccent]}>
-            <Text style={[cs.tileLabel, tile.accent && cs.tileLabelAccent]}>{tile.label}</Text>
-            <Text style={[cs.tileValue, tile.amountStyle && cs.tileAmountValue, tile.accent && cs.tileValueAccent]}>
-              {tile.value}
+      <View style={{ padding: 14, gap: 12 }}>
+        {/* ── Header ── */}
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+          {/* Salon initial avatar */}
+          <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: '#4f46e5', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Text style={{ fontSize: 22, fontWeight: '900', color: '#fff' }}>{salonInitial}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 15, fontWeight: '800', color: theme?.text || '#f1f5f9', letterSpacing: -0.2 }} numberOfLines={1}>
+              {salonName}
+            </Text>
+            <Text style={{ fontSize: 13, color: theme?.subText || '#94a3b8', marginTop: 1 }} numberOfLines={1}>
+              {serviceName}
+            </Text>
+            {!!salonCity && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 }}>
+                <Ionicons name="location-outline" size={11} color={theme?.subText || '#64748b'} />
+                <Text style={{ fontSize: 11, color: theme?.subText || '#64748b' }} numberOfLines={1}>{salonCity}</Text>
+              </View>
+            )}
+          </View>
+          <StatusBadge status={status} />
+        </View>
+
+        {/* ── Info grid ── */}
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {/* Date */}
+          <View style={{ flex: 1, backgroundColor: theme?.cardAlt || '#162032', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: theme?.border || '#334155' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 3 }}>
+              <Ionicons name="calendar-outline" size={11} color={theme?.subText || '#64748b'} />
+              <Text style={{ fontSize: 10, color: theme?.subText || '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>Date</Text>
+            </View>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: theme?.text || '#f1f5f9', lineHeight: 16 }}>
+              {formatDateLabel(booking.appointmentDate)}
             </Text>
           </View>
-        ))}
-      </View>
+          {/* Time */}
+          <View style={{ flex: 1, backgroundColor: theme?.cardAlt || '#162032', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: theme?.border || '#334155' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 3 }}>
+              <Ionicons name="time-outline" size={11} color={theme?.subText || '#64748b'} />
+              <Text style={{ fontSize: 10, color: theme?.subText || '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>Time</Text>
+            </View>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: theme?.text || '#f1f5f9' }}>
+              {formatTimeLabel(booking.appointmentTime)}
+            </Text>
+          </View>
+          {/* Amount */}
+          <View style={{ flex: 1, backgroundColor: 'rgba(99,102,241,0.08)', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: 'rgba(99,102,241,0.18)' }}>
+            <Text style={{ fontSize: 10, color: '#818cf8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>Amount</Text>
+            <Text style={{ fontSize: 12, fontWeight: '800', color: '#818cf8' }}>
+              {booking.totalAmount != null ? `₹${booking.totalAmount}` : '—'}
+            </Text>
+          </View>
+        </View>
 
-      {/* Pending banner */}
-      {status === 'pending' && (
-        <View style={cs.pendingBanner}>
-          <Text style={cs.pendingText}>
-            Awaiting confirmation from the salon. You'll be notified once confirmed.
+        {/* ── Secondary info row ── */}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
+          {durLabel && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Ionicons name="hourglass-outline" size={12} color={theme?.subText || '#64748b'} />
+              <Text style={{ fontSize: 12, color: theme?.subText || '#64748b' }}>{durLabel}</Text>
+            </View>
+          )}
+          {distanceLabel && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Ionicons name="location-outline" size={12} color={theme?.subText || '#64748b'} />
+              <Text style={{ fontSize: 12, color: theme?.subText || '#64748b' }}>{distanceLabel}</Text>
+            </View>
+          )}
+          {booking.paymentMethod && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Ionicons name="card-outline" size={12} color={theme?.subText || '#64748b'} />
+              <Text style={{ fontSize: 12, color: theme?.subText || '#64748b' }}>
+                {booking.paymentMethod.charAt(0).toUpperCase() + booking.paymentMethod.slice(1)}
+              </Text>
+              {booking.paymentStatus && (
+                <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 99, marginLeft: 2,
+                  backgroundColor: booking.paymentStatus === 'paid' ? 'rgba(52,211,153,0.12)' : 'rgba(251,191,36,0.12)',
+                  borderWidth: 1, borderColor: booking.paymentStatus === 'paid' ? 'rgba(52,211,153,0.3)' : 'rgba(251,191,36,0.3)',
+                }}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: booking.paymentStatus === 'paid' ? '#34d399' : '#d97706' }}>
+                    {booking.paymentStatus === 'paid' ? 'Paid' : 'Pending'}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+          <Text style={{ marginLeft: 'auto', fontSize: 11, color: theme?.subText || '#64748b', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
+            #{booking.bookingId || booking._id?.slice(-6) || '—'}
           </Text>
         </View>
-      )}
 
-      {/* Inline review prompt */}
-      {canReview && (
-        <ReviewPrompt bookingId={booking._id} onReviewed={() => setReviewed(true)} theme={theme} />
-      )}
-      {reviewed && (
-        <View style={{ marginTop: 10, padding: 10, backgroundColor: '#dcfce7', borderRadius: 8, borderWidth: 1, borderColor: '#86efac' }}>
-          <Text style={{ fontSize: 12, color: '#16a34a' }}>Thank you for your review!</Text>
-        </View>
-      )}
+        {/* ── Microcopy ── */}
+        {microcopy && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9, borderWidth: 1,
+            backgroundColor: `${microcopy.color}18`, borderColor: `${microcopy.color}33`,
+          }}>
+            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: microcopy.color, flexShrink: 0 }} />
+            <Text style={{ fontSize: 12, color: microcopy.color, fontWeight: '600', flex: 1 }}>{microcopy.text}</Text>
+          </View>
+        )}
 
-      {/* Footer */}
-      <View style={cs.footer}>
-        <Text style={cs.bookingId}>
-          {'Booking ID: '}
-          <Text style={{ fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
-            {booking.bookingId || (booking._id?.slice(-8) || '\u2014')}
-          </Text>
-        </Text>
-        <View style={cs.footerActions}>
-          {!!salonPhone && (
-            <TouchableOpacity onPress={() => Linking.openURL(`tel:${salonPhone}`)} style={cs.footerLink}>
-              <Ionicons name="call-outline" size={12} color="#4f46e5" />
-              <Text style={[cs.footerLinkText, { color: '#4f46e5' }]}>{salonPhone}</Text>
+        {/* ── Pay Now banner ── */}
+        {booking.paymentStatus === 'pending' && booking.paymentMethod && booking.paymentMethod !== 'cash' && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 9, backgroundColor: 'rgba(251,191,36,0.08)', borderRadius: 9, borderWidth: 1, borderColor: 'rgba(251,191,36,0.25)' }}>
+            <Text style={{ fontSize: 12, color: '#d97706', fontWeight: '600' }}>Payment pending · ₹{booking.totalAmount}</Text>
+            <TouchableOpacity style={{ paddingHorizontal: 12, paddingVertical: 5, backgroundColor: '#d97706', borderRadius: 7 }}>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#fff' }}>Pay Now</Text>
             </TouchableOpacity>
-          )}
-          {!!mapsUrl && (
-            <TouchableOpacity onPress={() => Linking.openURL(mapsUrl)} style={cs.footerLink}>
-              <Ionicons name="navigate-outline" size={12} color="#16a34a" />
-              <Text style={[cs.footerLinkText, { color: '#16a34a' }]}>Directions</Text>
-            </TouchableOpacity>
-          )}
-          {canReschedule && (
-            <TouchableOpacity onPress={() => setRescheduleOpen(true)}>
-              <Text style={[cs.footerLinkText, { color: '#4f46e5' }]}>Reschedule</Text>
-            </TouchableOpacity>
-          )}
-          {canCancel && (
-            <TouchableOpacity onPress={handleCancel}>
-              <Text style={[cs.footerLinkText, { color: '#dc2626' }]}>Cancel</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+          </View>
+        )}
+
+        {/* ── Review prompt ── */}
+        {canReview && <ReviewPrompt bookingId={booking._id} onReviewed={() => setReviewed(true)} theme={theme} />}
+        {reviewed && (
+          <View style={{ padding: 10, backgroundColor: 'rgba(52,211,153,0.1)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(52,211,153,0.3)' }}>
+            <Text style={{ fontSize: 12, color: '#34d399' }}>Thank you for your review! ✨</Text>
+          </View>
+        )}
+
+        {/* ── Action buttons ── */}
+        {(isUpcoming || !!salonPhone || !!mapsUrl || status === 'completed') && (
+          <View style={{ paddingTop: 12, borderTopWidth: 1, borderTopColor: theme?.border || '#334155', flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {canReschedule && (
+              <TouchableOpacity onPress={() => setRescheduleOpen(true)} activeOpacity={0.8}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: 'rgba(99,102,241,0.08)', borderRadius: 9, borderWidth: 1, borderColor: 'rgba(99,102,241,0.2)' }}>
+                <Ionicons name="calendar-outline" size={13} color="#818cf8" />
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#818cf8' }}>Reschedule</Text>
+              </TouchableOpacity>
+            )}
+            {canCancel && (
+              <TouchableOpacity onPress={handleCancel} disabled={cancelling} activeOpacity={0.8}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: 'rgba(248,113,113,0.07)', borderRadius: 9, borderWidth: 1, borderColor: 'rgba(248,113,113,0.2)', opacity: cancelling ? 0.5 : 1 }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#f87171' }}>{cancelling ? '…' : 'Cancel'}</Text>
+              </TouchableOpacity>
+            )}
+            {!!salonPhone && (
+              <TouchableOpacity onPress={() => Linking.openURL(`tel:${salonPhone}`)} activeOpacity={0.8}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: 'rgba(52,211,153,0.07)', borderRadius: 9, borderWidth: 1, borderColor: 'rgba(52,211,153,0.2)' }}>
+                <Ionicons name="call-outline" size={13} color="#34d399" />
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#34d399' }}>Call</Text>
+              </TouchableOpacity>
+            )}
+            {!!mapsUrl && (
+              <TouchableOpacity onPress={() => Linking.openURL(mapsUrl)} activeOpacity={0.8}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: 'rgba(96,165,250,0.07)', borderRadius: 9, borderWidth: 1, borderColor: 'rgba(96,165,250,0.2)' }}>
+                <Ionicons name="navigate-outline" size={13} color="#60a5fa" />
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#60a5fa' }}>Directions</Text>
+              </TouchableOpacity>
+            )}
+            {status === 'completed' && (
+              <TouchableOpacity activeOpacity={0.8}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: 'rgba(99,102,241,0.08)', borderRadius: 9, borderWidth: 1, borderColor: 'rgba(99,102,241,0.2)' }}>
+                <Ionicons name="repeat-outline" size={13} color="#818cf8" />
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#818cf8' }}>Rebook</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
       </View>
 
       {rescheduleOpen && (
-        <RescheduleModal
-          booking={booking}
-          onClose={() => setRescheduleOpen(false)}
-          onRescheduled={handleRescheduled}
-          theme={theme}
-        />
+        <RescheduleModal booking={booking} onClose={() => setRescheduleOpen(false)} onRescheduled={handleRescheduled} theme={theme} />
       )}
     </View>
   );
 }
 
-const getCardStyles = (t) => StyleSheet.create({
-  card: { backgroundColor: t?.card || '#fff', borderRadius: 14, padding: 16, gap: 12, borderWidth: 1, borderColor: t?.border || '#f1f5f9', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
-  headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  iconWrap: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#4f46e5', alignItems: 'center', justifyContent: 'center' },
-  serviceName: { fontSize: 15, fontWeight: '700', color: t?.text || '#1e293b' },
-  salonName: { fontSize: 13, color: t?.subText || '#64748b', marginTop: 1 },
-  salonCity: { fontSize: 12, color: t?.subText || '#94a3b8', marginTop: 1 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  tile: { flex: 1, minWidth: '30%', backgroundColor: t?.bg || '#f8fafc', borderRadius: 8, padding: 10 },
-  tileAccent: { backgroundColor: '#eef2ff' },
-  tileLabel: { fontSize: 11, color: t?.subText || '#94a3b8', marginBottom: 2 },
-  tileLabelAccent: { color: '#818cf8' },
-  tileValue: { fontSize: 13, fontWeight: '600', color: t?.text || '#334155' },
-  tileAmountValue: { color: '#4f46e5', fontWeight: '700' },
-  tileValueAccent: { color: '#4338ca' },
-  pendingBanner: { padding: 10, backgroundColor: '#fef3c7', borderWidth: 1, borderColor: '#fde68a', borderRadius: 8 },
-  pendingText: { fontSize: 12, color: '#d97706' },
-  footer: { paddingTop: 10, borderTopWidth: 1, borderTopColor: t?.border || '#f1f5f9', gap: 6 },
-  bookingId: { fontSize: 11, color: t?.subText || '#94a3b8' },
-  footerActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
-  footerLink: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  footerLinkText: { fontSize: 12, fontWeight: '600' },
-});
-
-// ── Main Screen ───────────────────────────────────────────────────────────────
+// ── Main Screen ───────────────────────────────────────────────
 
 export default function BookingsScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
-  const styles = getStyles(theme);
-  const { isAuthenticated } = useAuth();
+  const { theme, isDark } = useTheme();
+  const { isAuthenticated, user } = useAuth();
   const { unreadCount } = useNotifications();
 
-  const PAGE_SIZE = 5;
-  const [filter, setFilter]         = useState('Upcoming'); // default: Upcoming
-  const [bookings, setBookings]     = useState([]);
-  const [loading, setLoading]       = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [userCoords, setUserCoords] = useState(null);
+  const firstName = (user?.name || user?.firstName || 'there').split(' ')[0];
+
+  const [filter, setFilter]               = useState('Upcoming');
+  const [bookings, setBookings]           = useState([]);
+  const [loading, setLoading]             = useState(true);
+  const [refreshing, setRefreshing]       = useState(false);
+  const [userCoords, setUserCoords]       = useState(null);
   const [confirmedToasts, setConfirmedToasts] = useState([]);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [visibleCount, setVisibleCount]   = useState(PAGE_SIZE);
   const prevStatusRef = useRef({});
 
-  // Request location once for distance tiles
   useEffect(() => {
     Location.requestForegroundPermissionsAsync().then(({ status }) => {
       if (status === 'granted') {
@@ -561,8 +619,6 @@ export default function BookingsScreen({ navigation }) {
       const res = await api.get('/customer/bookings');
       const fresh = res.data.data?.bookings || res.data.data || [];
       const arr = Array.isArray(fresh) ? fresh : [];
-
-      // Detect pending → confirmed transitions
       const newlyConfirmed = arr.filter(
         b => b._id && prevStatusRef.current[b._id] === 'pending' && b.status === 'confirmed'
       );
@@ -571,7 +627,6 @@ export default function BookingsScreen({ navigation }) {
         setFilter('Upcoming');
       }
       arr.forEach(b => { if (b._id) prevStatusRef.current[b._id] = b.status; });
-
       setBookings(arr);
     } catch {
       setBookings([]);
@@ -590,6 +645,52 @@ export default function BookingsScreen({ navigation }) {
     setBookings(prev => prev.map(b => b._id === id ? { ...b, status: 'cancelled' } : b));
   };
 
+  // ── Computed stats ──────────────────────────────────────────
+  const stats = {
+    total:      bookings.length,
+    upcoming:   bookings.filter(b => ['pending', 'confirmed', 'in_progress'].includes(b.status)).length,
+    completed:  bookings.filter(b => b.status === 'completed').length,
+    totalSpent: bookings.filter(b => b.status === 'completed' && b.totalAmount != null).reduce((s, b) => s + b.totalAmount, 0),
+  };
+
+  const filterCounts = {
+    Upcoming:  bookings.filter(b => ['pending', 'confirmed', 'in_progress'].includes(b.status)).length,
+    Completed: bookings.filter(b => b.status === 'completed').length,
+    Cancelled: bookings.filter(b => b.status === 'cancelled').length,
+    All:       bookings.length,
+  };
+
+  const nextUpcoming = bookings
+    .filter(b => ['pending', 'confirmed'].includes(b.status))
+    .sort((a, b) => {
+      const da = new Date(String(a.appointmentDate).slice(0,10)+'T'+(a.appointmentTime||'12:00')+':00');
+      const db = new Date(String(b.appointmentDate).slice(0,10)+'T'+(b.appointmentTime||'12:00')+':00');
+      return da - db;
+    })[0] || null;
+
+  const lastCompleted = bookings.find(b => b.status === 'completed');
+
+  // Insights
+  const salonFreq = bookings.reduce((acc, b) => {
+    const name = b.salonName || b.salonId?.name;
+    if (name) acc[name] = (acc[name] || 0) + 1;
+    return acc;
+  }, {});
+  const favSalon = Object.entries(salonFreq).sort((a,b) => b[1]-a[1])[0]?.[0] || null;
+
+  const serviceFreq = bookings.reduce((acc, b) => {
+    const name = b.serviceName || (Array.isArray(b.serviceIds) ? b.serviceIds[0]?.name : null);
+    if (name) acc[name] = (acc[name] || 0) + 1;
+    return acc;
+  }, {});
+  const favService = Object.entries(serviceFreq).sort((a,b) => b[1]-a[1])[0]?.[0] || null;
+
+  const thisMonthVisits = bookings.filter(b => {
+    const d = new Date(b.appointmentDate || b.createdAt);
+    const now = new Date();
+    return b.status === 'completed' && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).length;
+
   const filtered = bookings.filter(b => {
     if (filter === 'All')       return true;
     if (filter === 'Upcoming')  return ['pending', 'confirmed', 'in_progress'].includes(b.status);
@@ -598,112 +699,248 @@ export default function BookingsScreen({ navigation }) {
     return true;
   });
 
-  const visible = filtered.slice(0, visibleCount);
-  const hasMore = visibleCount < filtered.length;
+  const visible  = filtered.slice(0, visibleCount);
+  const hasMore  = visibleCount < filtered.length;
 
-  const stats = {
-    total:     bookings.length,
-    upcoming:  bookings.filter(b => ['pending', 'confirmed', 'in_progress'].includes(b.status)).length,
-    completed: bookings.filter(b => b.status === 'completed').length,
-  };
-
+  // ── Not authenticated ───────────────────────────────────────
   if (!isAuthenticated) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top + 60, alignItems: 'center', justifyContent: 'center' }]}>
-        <Ionicons name="calendar-outline" size={56} color="#d1d5db" />
-        <Text style={styles.guestTitle}>Sign in to view bookings</Text>
-        <Text style={styles.guestText}>Track all your salon appointments in one place</Text>
-        <TouchableOpacity style={styles.signInBtn} onPress={() => navigation.navigate('Auth')}>
-          <Text style={styles.signInBtnText}>Sign In</Text>
+      <View style={{ flex: 1, backgroundColor: theme.bg, paddingTop: insets.top + 60, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+        <View style={{ width: 80, height: 80, borderRadius: 24, backgroundColor: '#4f46e5', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+          <Ionicons name="calendar-outline" size={40} color="#fff" />
+        </View>
+        <Text style={{ fontSize: 22, fontWeight: '900', color: theme.text, marginBottom: 8, letterSpacing: -0.5, textAlign: 'center' }}>
+          Your bookings, one place
+        </Text>
+        <Text style={{ fontSize: 14, color: theme.subText, textAlign: 'center', lineHeight: 22, marginBottom: 28, maxWidth: 260 }}>
+          Track all your salon appointments, rebook favourites, and never miss a slot.
+        </Text>
+        <TouchableOpacity style={{ backgroundColor: '#4f46e5', borderRadius: 14, paddingHorizontal: 36, paddingVertical: 14 }} onPress={() => navigation.navigate('Auth')} activeOpacity={0.85}>
+          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Sign In →</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  const ListHeader = (
-    <>
-      {/* Stats row */}
-      {!loading && (
-        <View style={styles.statsRow}>
-          {[
-            { label: 'Total',     value: stats.total,     color: theme.text },
-            { label: 'Upcoming',  value: stats.upcoming,  color: '#2563eb' },
-            { label: 'Completed', value: stats.completed, color: '#16a34a' },
-          ].map(({ label, value, color }) => (
-            <View key={label} style={styles.statCard}>
-              <Text style={[styles.statValue, { color }]}>{value}</Text>
-              <Text style={styles.statLabel}>{label}</Text>
+  // ── HERO ────────────────────────────────────────────────────
+  const HeroSection = (
+    <View style={{ backgroundColor: '#1e1b4b', paddingTop: insets.top + 20, paddingHorizontal: 16, paddingBottom: 24, overflow: 'hidden' }}>
+      {/* Decorative circles */}
+      <View style={{ position: 'absolute', top: -80, right: -40, width: 260, height: 260, borderRadius: 130, backgroundColor: 'rgba(139,92,246,0.18)' }} />
+      <View style={{ position: 'absolute', bottom: -50, left: -30, width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(99,102,241,0.14)' }} />
+
+      {/* Top row */}
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
+        <View>
+          <Text style={{ fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.5)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: 1 }}>
+            My Bookings
+          </Text>
+          <Text style={{ fontSize: 24, fontWeight: '900', color: '#fff', letterSpacing: -0.5, marginBottom: 3 }}>
+            Welcome back, {firstName} 👋
+          </Text>
+          <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>Ready for your next look?</Text>
+        </View>
+        <TouchableOpacity
+          style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' }}
+          onPress={() => navigation.getParent()?.navigate('HomeTab', { screen: 'Notifications' })}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="notifications-outline" size={20} color="#fff" />
+          {unreadCount > 0 && (
+            <View style={{ position: 'absolute', top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: '#1e1b4b' }}>
+              <Text style={{ color: '#fff', fontSize: 9, fontWeight: '700' }}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
             </View>
-          ))}
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* 4 Stat cards */}
+      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+        {[
+          { label: 'Upcoming',  value: loading ? '—' : stats.upcoming,  icon: '📅', accent: false },
+          { label: 'Completed', value: loading ? '—' : stats.completed, icon: '✅', accent: false },
+          { label: 'Total',     value: loading ? '—' : stats.total,     icon: '📋', accent: false },
+          { label: 'Spent',     value: loading ? '—' : `₹${stats.totalSpent}`, icon: '💰', accent: true },
+        ].map(({ label, value, icon, accent }) => (
+          <View key={label} style={{ flex: 1, backgroundColor: accent ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.09)', borderRadius: 14, paddingVertical: 11, paddingHorizontal: 6, alignItems: 'center', borderWidth: 1, borderColor: accent ? 'rgba(251,191,36,0.3)' : 'rgba(255,255,255,0.14)' }}>
+            <Text style={{ fontSize: 16, marginBottom: 3 }}>{icon}</Text>
+            <Text style={{ fontSize: label === 'Spent' ? 12 : 18, fontWeight: '900', color: accent ? '#fde68a' : '#fff', marginBottom: 2 }} numberOfLines={1}>{value}</Text>
+            <Text style={{ fontSize: 10, color: accent ? 'rgba(253,230,138,0.7)' : 'rgba(255,255,255,0.55)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 }}>{label}</Text>
+          </View>
+        ))}
+      </View>
+
+      {/* Next upcoming banner */}
+      {!loading && nextUpcoming && (
+        <View style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 14, padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+            <View style={{ width: 36, height: 36, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Ionicons name="cut-outline" size={18} color="#fff" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#fff' }} numberOfLines={1}>
+                {nextUpcoming.serviceName || (Array.isArray(nextUpcoming.serviceIds) ? nextUpcoming.serviceIds.map(s => s?.name || s).filter(Boolean).join(' + ') : '') || 'Service'}
+              </Text>
+              <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 1 }} numberOfLines={1}>
+                {nextUpcoming.salonName || nextUpcoming.salonId?.name} · {formatDateLabel(nextUpcoming.appointmentDate)}{nextUpcoming.appointmentTime ? ` · ${formatTimeLabel(nextUpcoming.appointmentTime)}` : ''}
+              </Text>
+            </View>
+          </View>
+          <StatusBadge status={nextUpcoming.status} />
+        </View>
+      )}
+    </View>
+  );
+
+  // ── QUICK ACTIONS ────────────────────────────────────────────
+  const QuickActions = (
+    <View style={{ backgroundColor: theme.card, borderBottomWidth: 1, borderBottomColor: theme.border, paddingVertical: 12 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}>
+        <TouchableOpacity onPress={() => navigation.navigate('HomeTab')} activeOpacity={0.8}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#4f46e5', borderRadius: 12 }}>
+          <Ionicons name="add" size={16} color="#fff" />
+          <Text style={{ fontSize: 13, fontWeight: '700', color: '#fff' }}>Book New</Text>
+        </TouchableOpacity>
+        {lastCompleted && (
+          <TouchableOpacity activeOpacity={0.8}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: theme.cardAlt, borderRadius: 12, borderWidth: 1, borderColor: theme.border }}>
+            <Ionicons name="repeat-outline" size={14} color={theme.subText} />
+            <Text style={{ fontSize: 13, fontWeight: '600', color: theme.subText }}>Rebook Last</Text>
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity onPress={() => navigation.navigate('HomeTab')} activeOpacity={0.8}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: theme.cardAlt, borderRadius: 12, borderWidth: 1, borderColor: theme.border }}>
+          <Ionicons name="location-outline" size={14} color={theme.subText} />
+          <Text style={{ fontSize: 13, fontWeight: '600', color: theme.subText }}>Explore Salons</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
+  );
+
+  // ── LIST HEADER ──────────────────────────────────────────────
+  const ListHeader = (
+    <View style={{ gap: 0 }}>
+      {HeroSection}
+      {QuickActions}
+      <View style={{ padding: 16, gap: 10 }}>
+
+        {/* Confirmed toasts */}
+        {confirmedToasts.map(id => {
+          const b = bookings.find(x => x._id === id);
+          if (!b) return null;
+          return (
+            <View key={id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, backgroundColor: 'rgba(52,211,153,0.1)', borderWidth: 1, borderColor: 'rgba(52,211,153,0.3)', borderRadius: 12, gap: 8, marginBottom: 2 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                <Text style={{ fontSize: 18 }}>✅</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#34d399' }}>Booking Confirmed!</Text>
+                  <Text style={{ fontSize: 11, color: 'rgba(52,211,153,0.8)', marginTop: 1 }} numberOfLines={1}>
+                    {b.serviceName} at {b.salonName || b.salonId?.name} — {b.appointmentTime}
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => setConfirmedToasts(prev => prev.filter(t => t !== id))} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name="close" size={18} color="#34d399" />
+              </TouchableOpacity>
+            </View>
+          );
+        })}
+
+        {/* Filter tabs with count badges */}
+        <View style={{ flexDirection: 'row', backgroundColor: theme.card, borderRadius: 13, padding: 4, borderWidth: 1, borderColor: theme.border, gap: 3 }}>
+          {FILTERS.map(f => {
+            const count = filterCounts[f] || 0;
+            const active = filter === f;
+            return (
+              <TouchableOpacity key={f}
+                style={{ flex: 1, paddingVertical: 9, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: active ? '#4f46e5' : 'transparent', flexDirection: 'row', gap: 3 }}
+                onPress={() => { setFilter(f); setVisibleCount(PAGE_SIZE); }}
+              >
+                <Text style={{ fontSize: 12, fontWeight: '700', color: active ? '#fff' : theme.subText }}>{f}</Text>
+                {count > 0 && (
+                  <View style={{ paddingHorizontal: 5, paddingVertical: 1, borderRadius: 99, backgroundColor: active ? 'rgba(255,255,255,0.25)' : 'rgba(99,102,241,0.12)' }}>
+                    <Text style={{ fontSize: 9, fontWeight: '800', color: active ? '#fff' : '#818cf8' }}>{count}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+    </View>
+  );
+
+  // ── FOOTER (Insights + CTA) ──────────────────────────────────
+  const ListFooter = (
+    <View style={{ paddingHorizontal: 16, paddingBottom: 32, gap: 14 }}>
+      {/* Load more */}
+      {hasMore && (
+        <TouchableOpacity
+          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderRadius: 12, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
+          onPress={() => setVisibleCount(c => c + PAGE_SIZE)}
+          activeOpacity={0.8}
+        >
+          <Text style={{ fontSize: 14, fontWeight: '700', color: '#818cf8' }}>Load More</Text>
+          <Ionicons name="chevron-down" size={16} color="#818cf8" />
+        </TouchableOpacity>
+      )}
+      {!hasMore && filtered.length > PAGE_SIZE && (
+        <Text style={{ textAlign: 'center', fontSize: 12, color: theme.subText, marginTop: 4 }}>
+          All {filtered.length} bookings shown
+        </Text>
+      )}
+
+      {/* Insights */}
+      {bookings.length > 0 && (
+        <View style={{ backgroundColor: theme.card, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: theme.border, gap: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Ionicons name="trending-up-outline" size={16} color="#818cf8" />
+            <Text style={{ fontSize: 13, fontWeight: '800', color: theme.text }}>Your Insights</Text>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View style={{ flex: 1, backgroundColor: theme.cardAlt, borderRadius: 12, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: theme.border }}>
+              <Text style={{ fontSize: 22, fontWeight: '900', color: '#818cf8', marginBottom: 2 }}>{thisMonthVisits}</Text>
+              <Text style={{ fontSize: 10, color: theme.subText, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4, textAlign: 'center' }}>This Month</Text>
+            </View>
+            <View style={{ flex: 1, backgroundColor: theme.cardAlt, borderRadius: 12, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: theme.border }}>
+              <Ionicons name="heart-outline" size={16} color="#f87171" style={{ marginBottom: 3 }} />
+              <Text style={{ fontSize: 10, color: theme.subText, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4, textAlign: 'center', marginBottom: 3 }}>Fav Salon</Text>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: theme.text, textAlign: 'center' }} numberOfLines={2}>{favSalon || '—'}</Text>
+            </View>
+            <View style={{ flex: 1, backgroundColor: theme.cardAlt, borderRadius: 12, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: theme.border }}>
+              <Ionicons name="cut-outline" size={16} color="#60a5fa" style={{ marginBottom: 3 }} />
+              <Text style={{ fontSize: 10, color: theme.subText, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4, textAlign: 'center', marginBottom: 3 }}>Top Service</Text>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: theme.text, textAlign: 'center' }} numberOfLines={2}>{favService || '—'}</Text>
+            </View>
+          </View>
         </View>
       )}
 
-      {/* Confirmed toasts */}
-      {confirmedToasts.map(id => {
-        const b = bookings.find(x => x._id === id);
-        if (!b) return null;
-        return (
-          <View key={id} style={styles.toast}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-              <Text style={{ fontSize: 18 }}>✅</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.toastTitle}>Booking Confirmed!</Text>
-                <Text style={styles.toastBody} numberOfLines={1}>
-                  {b.serviceName} at {b.salonName || b.salonId?.name} — {b.appointmentTime}
-                </Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              onPress={() => setConfirmedToasts(prev => prev.filter(t => t !== id))}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Ionicons name="close" size={18} color="#16a34a" />
-            </TouchableOpacity>
-          </View>
-        );
-      })}
-
-      {/* Filter tabs — full width, left to right */}
-      <View style={styles.filterRow}>
-        {FILTERS.map(f => (
-          <TouchableOpacity
-            key={f}
-            style={[styles.filterChip, filter === f && styles.filterChipActive]}
-            onPress={() => { setFilter(f); setVisibleCount(PAGE_SIZE); }}
-          >
-            <Text style={[styles.filterChipText, filter === f && styles.filterChipTextActive]}>{f}</Text>
+      {/* CTA */}
+      <View style={{ backgroundColor: '#1e1b4b', borderRadius: 20, padding: 22, overflow: 'hidden', position: 'relative' }}>
+        <View style={{ position: 'absolute', top: -40, right: -30, width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(139,92,246,0.18)' }} />
+        <Text style={{ fontSize: 17, fontWeight: '900', color: '#fff', marginBottom: 5, letterSpacing: -0.3 }}>
+          Book your next appointment now
+        </Text>
+        <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 16 }}>
+          No waiting, no hassle — instant confirmation
+        </Text>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <TouchableOpacity onPress={() => navigation.navigate('HomeTab')} activeOpacity={0.85}
+            style={{ paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#fff', borderRadius: 11 }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: '#4f46e5' }}>Book Now</Text>
           </TouchableOpacity>
-        ))}
+          <TouchableOpacity onPress={() => navigation.navigate('HomeTab')} activeOpacity={0.85}
+            style={{ paddingHorizontal: 18, paddingVertical: 10, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 11, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }}>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#fff' }}>Explore Salons</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </>
+    </View>
   );
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.headerTitle}>My Bookings</Text>
-            <Text style={styles.headerSub}>{bookings.length} booking{bookings.length !== 1 ? 's' : ''} total</Text>
-          </View>
-          <View style={{ flexDirection: 'row', gap: 4 }}>
-            <TouchableOpacity
-              style={styles.menuBtn}
-              onPress={() => navigation.getParent()?.navigate('HomeTab', { screen: 'Notifications' })}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Ionicons name="notifications-outline" size={20} color={theme.subText} />
-              {unreadCount > 0 && (
-                <View style={styles.notifBadge}>
-                  <Text style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-
+    <View style={{ flex: 1, backgroundColor: theme.bg }}>
       <FlatList
         initialNumToRender={5}
         maxToRenderPerBatch={5}
@@ -712,92 +949,58 @@ export default function BookingsScreen({ navigation }) {
         data={loading ? [] : visible}
         keyExtractor={item => item._id}
         renderItem={({ item }) => (
-          <BookingCard
-            booking={item}
-            userCoords={userCoords}
-            onCancelled={handleCancelled}
-            theme={theme}
-          />
+          <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
+            <BookingCard
+              booking={item}
+              userCoords={userCoords}
+              onCancelled={handleCancelled}
+              theme={theme}
+              isNext={nextUpcoming?._id === item._id && filter === 'Upcoming'}
+            />
+          </View>
         )}
-        contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#2563eb']} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#4f46e5']} tintColor="#4f46e5" />}
         ListHeaderComponent={ListHeader}
         ListEmptyComponent={
           loading ? (
-            <View style={{ paddingTop: 40, alignItems: 'center' }}>
-              <ActivityIndicator size="large" color="#2563eb" />
+            <View style={{ paddingHorizontal: 16, gap: 12 }}>
+              {[1, 2, 3].map(i => (
+                <View key={i} style={{ backgroundColor: theme.card, borderRadius: 18, padding: 16, gap: 12, borderWidth: 1, borderColor: theme.border }}>
+                  <View style={{ flexDirection: 'row', gap: 12 }}>
+                    <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: theme.border }} />
+                    <View style={{ flex: 1, gap: 8 }}>
+                      <View style={{ height: 14, backgroundColor: theme.border, borderRadius: 7, width: '70%' }} />
+                      <View style={{ height: 12, backgroundColor: theme.border, borderRadius: 6, width: '45%' }} />
+                    </View>
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    {[1,2,3].map(j => <View key={j} style={{ flex: 1, height: 54, backgroundColor: theme.border, borderRadius: 10 }} />)}
+                  </View>
+                </View>
+              ))}
             </View>
           ) : (
-            <View style={styles.empty}>
-              <Text style={{ fontSize: 48, marginBottom: 8 }}>📅</Text>
-              <Text style={styles.emptyTitle}>
-                No {filter === 'All' ? '' : filter.toLowerCase()} bookings
+            <View style={{ alignItems: 'center', padding: 48, gap: 14 }}>
+              <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(99,102,241,0.08)', borderWidth: 1, borderColor: 'rgba(99,102,241,0.15)', alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ fontSize: 36 }}>{filter === 'Completed' ? '✅' : filter === 'Cancelled' ? '🚫' : '📅'}</Text>
+              </View>
+              <Text style={{ fontSize: 20, fontWeight: '900', color: theme.text, letterSpacing: -0.3, textAlign: 'center' }}>
+                {filter === 'All' ? 'No bookings yet' : `No ${filter.toLowerCase()} bookings`}
               </Text>
-              <Text style={styles.emptyText}>
-                {filter === 'All'
-                  ? 'Book your first salon appointment now!'
-                  : `You have no ${filter.toLowerCase()} bookings.`}
+              <Text style={{ fontSize: 14, color: theme.subText, textAlign: 'center', lineHeight: 22, maxWidth: 260 }}>
+                {filter === 'All' ? 'Find top-rated salons near you and book your first appointment!' : 'Nothing here right now — check another tab.'}
               </Text>
-              {filter === 'All' && (
-                <TouchableOpacity style={styles.exploreBtn} onPress={() => navigation.navigate('HomeTab')}>
-                  <Text style={styles.exploreBtnText}>Explore Salons</Text>
+              {(filter === 'All' || filter === 'Upcoming') && (
+                <TouchableOpacity style={{ marginTop: 4, backgroundColor: '#4f46e5', borderRadius: 14, paddingHorizontal: 28, paddingVertical: 13 }} onPress={() => navigation.navigate('HomeTab')} activeOpacity={0.85}>
+                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Explore Salons →</Text>
                 </TouchableOpacity>
               )}
             </View>
           )
         }
-        ListFooterComponent={
-          hasMore ? (
-            <TouchableOpacity
-              style={styles.loadMoreBtn}
-              onPress={() => setVisibleCount(c => c + PAGE_SIZE)}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.loadMoreText}>Load More</Text>
-              <Ionicons name="chevron-down" size={16} color={theme.accent} />
-            </TouchableOpacity>
-          ) : filtered.length > PAGE_SIZE ? (
-            <Text style={styles.allLoadedText}>All {filtered.length} bookings shown</Text>
-          ) : null
-        }
+        ListFooterComponent={ListFooter}
       />
     </View>
   );
 }
-
-const getStyles = (t) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: t.bg },
-  header: { backgroundColor: t.card, paddingHorizontal: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: t.border },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: t.text },
-  headerSub: { fontSize: 13, color: t.subText, marginTop: 2 },
-  menuBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: t.bg, alignItems: 'center', justifyContent: 'center' },
-  notifBadge: { position: 'absolute', top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: t.card },
-  notifBadgeText: { color: '#fff', fontSize: 9, fontWeight: '700' },
-  statsRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
-  statCard: { flex: 1, backgroundColor: t.card, borderRadius: 12, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: t.border },
-  statValue: { fontSize: 22, fontWeight: '800' },
-  statLabel: { fontSize: 11, color: t.subText, marginTop: 2 },
-  toast: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, backgroundColor: '#f0fdf4', borderWidth: 1, borderColor: '#bbf7d0', borderRadius: 12, marginBottom: 10, gap: 8 },
-  toastTitle: { fontSize: 13, fontWeight: '700', color: '#15803d' },
-  toastBody: { fontSize: 11, color: '#16a34a', marginTop: 1 },
-  // Filter tabs: full-width row, each chip gets flex: 1
-  filterRow: { flexDirection: 'row', backgroundColor: t.card, borderRadius: 12, padding: 4, borderWidth: 1, borderColor: t.border, marginBottom: 14 },
-  filterChip: { flex: 1, paddingVertical: 9, alignItems: 'center', justifyContent: 'center', borderRadius: 9 },
-  filterChipActive: { backgroundColor: '#4f46e5' },
-  filterChipText: { fontSize: 12, fontWeight: '600', color: t.subText },
-  filterChipTextActive: { color: '#fff' },
-  empty: { alignItems: 'center', padding: 40, gap: 10, paddingTop: 20 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: t.text },
-  emptyText: { fontSize: 14, color: t.subText, textAlign: 'center', lineHeight: 20 },
-  exploreBtn: { marginTop: 8, backgroundColor: '#2563eb', borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12 },
-  exploreBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  guestTitle: { fontSize: 18, fontWeight: '700', color: t.text, marginTop: 16 },
-  guestText: { fontSize: 14, color: t.subText, textAlign: 'center', lineHeight: 20, marginBottom: 8 },
-  signInBtn: { backgroundColor: '#2563eb', borderRadius: 12, paddingHorizontal: 32, paddingVertical: 12, marginTop: 8 },
-  signInBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  loadMoreBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 8, paddingVertical: 14, borderRadius: 12, backgroundColor: t.card, borderWidth: 1, borderColor: t.border },
-  loadMoreText: { fontSize: 14, fontWeight: '700', color: t.accent },
-  allLoadedText: { textAlign: 'center', fontSize: 12, color: t.subText, marginTop: 12, paddingBottom: 8 },
-});
