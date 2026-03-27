@@ -117,10 +117,15 @@ function SalonCard({ salon, userCoords }) {
         className="glass-card overflow-hidden"
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
+        style={{
+          transition: "transform 0.25s ease, box-shadow 0.25s ease",
+          transform: hovered ? "translateY(-5px)" : "translateY(0)",
+          boxShadow: hovered ? "0 20px 48px rgba(99,102,241,0.18), 0 6px 20px rgba(0,0,0,0.15)" : undefined,
+        }}
       >
 
         {/* ── Image ── */}
-        <div className="relative h-48 overflow-hidden" style={{ borderRadius: "20px 20px 0 0" }}>
+        <div className="relative h-52 overflow-hidden" style={{ borderRadius: "20px 20px 0 0" }}>
           {hasPhoto ? (
             <img
               src={hasPhoto}
