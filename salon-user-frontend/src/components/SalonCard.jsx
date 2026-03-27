@@ -219,12 +219,14 @@ function SalonCard({ salon, userCoords }) {
 
           {/* Top-left: category + verified + trust badge */}
           <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1.5">
-            <span
-              className="text-[10px] font-bold px-2.5 py-1 rounded-full capitalize text-white"
-              style={{ background: "rgba(0,0,0,0.52)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.12)" }}
-            >
-              {catLabel}
-            </span>
+            {catLabel.toLowerCase() !== "salon" && (
+              <span
+                className="text-[10px] font-bold px-2.5 py-1 rounded-full capitalize text-white"
+                style={{ background: "rgba(0,0,0,0.52)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.12)" }}
+              >
+                {catLabel}
+              </span>
+            )}
             {salon.isApproved && (
               <span
                 className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-1.5 rounded-full text-white"
@@ -346,18 +348,6 @@ function SalonCard({ salon, userCoords }) {
           <h2 className="font-bold text-[15px] leading-snug line-clamp-1 mb-1" style={{ color: "var(--t-text)" }}>
             {salon.name}
           </h2>
-
-          {/* Verified hygiene bar */}
-          {salon.isApproved && (
-            <div
-              className="flex items-center gap-1.5 mb-2 px-2.5 py-1.5 rounded-xl"
-              style={{ background: "rgba(16,185,129,0.09)", border: "1px solid rgba(16,185,129,0.28)" }}
-            >
-              <CheckCircle className="w-3.5 h-3.5 shrink-0" style={{ color: "#10b981" }} />
-              <span className="text-[11px] font-bold" style={{ color: "#10b981" }}>Verified Salon</span>
-              <span className="text-[10px]" style={{ color: "var(--t-text-3)" }}>· Hygiene Assured</span>
-            </div>
-          )}
 
           {/* Stars + rating + review count */}
           <div className="flex items-center gap-1.5 mb-1.5">
