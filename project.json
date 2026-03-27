@@ -38,7 +38,7 @@
       ]
     },
     {
-      "name": "salon-owner-frontend",
+      "name": "My Salon Bookings",
       "type": "web",
       "description": "Owner web dashboard",
       "language": "JavaScript",
@@ -50,7 +50,7 @@
       }
     },
     {
-      "name": "salon-user-frontend",
+      "name": "Salon Bookings",
       "type": "web",
       "description": "Customer web app",
       "language": "JavaScript",
@@ -74,7 +74,7 @@
       }
     },
     {
-      "name": "salon-owner-android",
+      "name": "My Salon Bookings App",
       "type": "mobile",
       "description": "Owner Android app",
       "language": "JavaScript",
@@ -111,7 +111,7 @@
       ]
     },
     {
-      "name": "salon-user-android",
+      "name": "Salon Bookings App",
       "type": "mobile",
       "description": "Customer Android app",
       "language": "JavaScript",
