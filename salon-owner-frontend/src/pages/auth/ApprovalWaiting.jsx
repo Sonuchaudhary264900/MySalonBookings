@@ -98,7 +98,7 @@ const NEXT_STEPS = [
   "Our team will verify your salon information and documents",
   "We'll check your business credentials and photos",
   "You'll receive a notification via email once approved",
-  "Access your full dashboard to add services, barbers & more",
+  "Access your full dashboard to add services, staff & more",
 ];
 
 /* ─── Component ─────────────────────────────────────────────────────────── */
