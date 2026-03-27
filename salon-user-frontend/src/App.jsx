@@ -1,6 +1,6 @@
-import React, { lazy, Suspense, useState } from "react";
+import React, { lazy, Suspense, useState, useEffect } from "react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import BottomNav from "./components/BottomNav";
@@ -10,6 +10,12 @@ import ToastContainer from "./components/ToastContainer";
 import useSwipeNav from "./hooks/useSwipeNav";
 
 function SwipeHandler() { useSwipeNav(); return null; }
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  return null;
+}
 
 // ── Eagerly loaded (critical path) ────────────────────────────
 import Home from "./pages/Home";
@@ -81,9 +87,10 @@ function App() {
         <ErrorBoundary>
           <div className="flex flex-col min-h-screen">
           <SwipeHandler />
+          <ScrollToTop />
           <Navbar notifOpen={notifOpen} setNotifOpen={setNotifOpen} />
           <ToastContainer />
-          <main className="flex-grow pb-20 md:pb-0">
+          <main className="flex-grow pb-20 md:pb-0 pt-16">
           <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/"                            element={<Home />} />
