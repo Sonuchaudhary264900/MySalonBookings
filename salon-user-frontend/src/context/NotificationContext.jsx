@@ -60,7 +60,7 @@ export function NotificationProvider({ children }) {
 
   // ── Poll customer bookings every 30s — detect status changes ──
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('customerToken');
     if (!token) return;
 
     const poll = async () => {
