@@ -20,6 +20,7 @@
   --t-input-bg:     #ffffff;
   --t-input-border: #e2e8f0;
   --t-nav-bg:       rgba(248,250,252,0.92);
+  --t-nav-bg-solid: #f1f5f9;
   --t-accent:       #6366f1;
   --t-accent-2:     #8b5cf6;
   --t-accent-text:  #6366f1;
@@ -47,6 +48,7 @@ html.dark {
   --t-input-bg:     rgba(255,255,255,0.05);
   --t-input-border: rgba(255,255,255,0.1);
   --t-nav-bg:       rgba(5,5,9,0.92);
+  --t-nav-bg-solid: #0d0d18;
   --t-accent:       #818cf8;
   --t-accent-2:     #a78bfa;
   --t-accent-text:  #818cf8;
