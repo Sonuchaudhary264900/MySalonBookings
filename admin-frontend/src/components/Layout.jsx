@@ -26,7 +26,7 @@ export default function Layout() {
               <Scissors size={20} color="#fff" />
             </div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 15 }}>SmartSalon</div>
+              <div style={{ fontWeight: 700, fontSize: 15 }}>My Salon Bookings</div>
               <div style={{ fontSize: 11, color: '#94a3b8' }}>Admin Panel</div>
             </div>
           </div>
