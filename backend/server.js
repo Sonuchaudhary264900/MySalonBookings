@@ -332,8 +332,9 @@ const startServer = async () => {
     // Keep-alive ping for Render free tier
     if (process.env.NODE_ENV === "production") {
       const selfUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+      const pingModule = selfUrl.startsWith("https") ? require("https") : http;
       setInterval(() => {
-        http.get(`${selfUrl}/ping`, res => res.resume()).on("error", () => {});
+        pingModule.get(`${selfUrl}/ping`, res => res.resume()).on("error", () => {});
       }, 10 * 60 * 1000);
       logger.info("✅ Keep-alive ping enabled (every 10 min)");
     }

@@ -141,16 +141,17 @@ export default function Login() {
 
   /* theme-aware color palette */
   const c = {
-    bg:         isDark ? '#080812'                        : '#f8fafc',
-    formBg:     isDark ? 'rgba(255,255,255,0.04)'         : '#ffffff',
-    formBorder: isDark ? 'rgba(255,255,255,0.08)'         : 'rgba(0,0,0,0.08)',
+    bg:         isDark ? '#050507'                        : '#f8fafc',
+    formBg:     isDark ? 'rgba(255,255,255,0.03)'         : '#ffffff',
+    formBorder: isDark ? 'rgba(255,255,255,0.07)'         : 'rgba(0,0,0,0.08)',
     text:       isDark ? '#f1f5f9'                        : '#0f172a',
     text2:      isDark ? '#94a3b8'                        : '#475569',
-    text3:      isDark ? '#475569'                        : '#94a3b8',
-    inpBg:      isDark ? 'rgba(255,255,255,0.06)'         : 'rgba(0,0,0,0.04)',
-    inpBgFocus: isDark ? 'rgba(99,102,241,0.1)'           : 'rgba(99,102,241,0.05)',
-    inpBorder:  isDark ? 'rgba(255,255,255,0.1)'          : 'rgba(0,0,0,0.12)',
-    icon:       isDark ? '#475569'                        : '#94a3b8',
+    text3:      isDark ? '#64748b'                        : '#94a3b8',
+    inpBg:      isDark ? 'rgba(255,255,255,0.05)'         : 'rgba(0,0,0,0.04)',
+    inpBgFocus: isDark ? 'rgba(139,92,246,0.1)'           : 'rgba(99,102,241,0.05)',
+    inpBorder:  isDark ? 'rgba(255,255,255,0.08)'         : 'rgba(0,0,0,0.12)',
+    icon:       isDark ? '#4b5563'                        : '#94a3b8',
+    iconTeal:   isDark ? '#67e8f9'                        : '#818cf8',
   };
 
   const inputStyle = (field) => ({
@@ -178,7 +179,7 @@ export default function Login() {
 
   /* left panel */
   const leftBg = isDark
-    ? "linear-gradient(145deg,#0a0a1f 0%,#12083a 40%,#1a0a4a 70%,#0e0828 100%)"
+    ? "linear-gradient(145deg,#06060a 0%,#09081a 40%,#0e0c22 70%,#070610 100%)"
     : "linear-gradient(135deg,#3730a3 0%,#6366f1 40%,#7c3aed 70%,#4f46e5 100%)";
 
   return (
@@ -191,9 +192,9 @@ export default function Login() {
           style={{ position:"relative", overflow:"hidden", background:leftBg, flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"60px 56px" }}>
 
           {/* Orbs */}
-          <div className="lg-pulse" style={{ position:"absolute", top:-120, left:-80, width:480, height:480, borderRadius:"50%", background: isDark ? "radial-gradient(circle,rgba(99,102,241,0.35) 0%,transparent 65%)" : "radial-gradient(circle,rgba(139,92,246,0.45) 0%,transparent 65%)", pointerEvents:"none" }} />
-          <div className="lg-pulse" style={{ position:"absolute", bottom:-80, right:-60, width:360, height:360, borderRadius:"50%", background: isDark ? "radial-gradient(circle,rgba(139,92,246,0.3) 0%,transparent 65%)" : "radial-gradient(circle,rgba(99,102,241,0.4) 0%,transparent 65%)", pointerEvents:"none", animationDelay:"1.5s" }} />
-          <div style={{ position:"absolute", inset:0, backgroundImage:"linear-gradient(rgba(255,255,255,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.04) 1px,transparent 1px)", backgroundSize:"48px 48px", pointerEvents:"none" }} />
+          <div className="lg-pulse" style={{ position:"absolute", top:-120, left:-80, width:480, height:480, borderRadius:"50%", background: isDark ? "radial-gradient(circle,rgba(109,40,217,0.18) 0%,transparent 65%)" : "radial-gradient(circle,rgba(139,92,246,0.45) 0%,transparent 65%)", pointerEvents:"none" }} />
+          <div className="lg-pulse" style={{ position:"absolute", bottom:-80, right:-60, width:360, height:360, borderRadius:"50%", background: isDark ? "radial-gradient(circle,rgba(76,29,149,0.15) 0%,transparent 65%)" : "radial-gradient(circle,rgba(99,102,241,0.4) 0%,transparent 65%)", pointerEvents:"none", animationDelay:"1.5s" }} />
+          <div style={{ position:"absolute", inset:0, backgroundImage:"linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px)", backgroundSize:"48px 48px", pointerEvents:"none" }} />
 
           <div style={{ position:"relative", zIndex:1, width:"100%", maxWidth:440 }}>
             {/* Logo */}
@@ -216,10 +217,10 @@ export default function Login() {
             <div className="lg-u2" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginTop:40 }}>
               {FEATURES.map(({ icon, label, sub }, i) => (
                 <div key={label} className={i % 2 === 0 ? "lg-f1" : "lg-f2"}
-                  style={{ background:"rgba(255,255,255,0.1)", backdropFilter:"blur(12px)", border:"1px solid rgba(255,255,255,0.18)", borderRadius:16, padding:"16px 18px", animationDelay:`${i * 0.4}s` }}>
-                  <div style={{ fontSize:22, marginBottom:6 }}>{icon}</div>
-                  <div style={{ fontSize:13, fontWeight:700, color:"#fff", marginBottom:2 }}>{label}</div>
-                  <div style={{ fontSize:11, color:"rgba(255,255,255,0.55)" }}>{sub}</div>
+                  style={{ background: isDark ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.1)", backdropFilter:"blur(12px)", border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(255,255,255,0.18)", borderRadius:16, padding:"16px 18px", animationDelay:`${i * 0.4}s` }}>
+                  <div style={{ fontSize:22, marginBottom:6, filter: isDark ? "drop-shadow(0 0 6px rgba(103,232,249,0.5))" : "none" }}>{icon}</div>
+                  <div style={{ fontSize:13, fontWeight:700, color: isDark ? "#e2e8f0" : "#fff", marginBottom:2 }}>{label}</div>
+                  <div style={{ fontSize:11, color: isDark ? "rgba(103,232,249,0.6)" : "rgba(255,255,255,0.55)" }}>{sub}</div>
                 </div>
               ))}
             </div>
@@ -237,7 +238,7 @@ export default function Login() {
         </div>
 
         {/* ── RIGHT FORM PANEL ── */}
-        <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"32px 24px", position:"relative", minHeight:"100vh", background:c.bg }}>
+        <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"32px 24px", position:"relative", minHeight:"100vh", background: isDark ? `radial-gradient(ellipse at 60% 10%, rgba(109,40,217,0.12) 0%, transparent 55%), ${c.bg}` : c.bg }}>
 
           {/* Theme toggle */}
           <button onClick={toggleTheme} title={isDark ? "Light mode" : "Dark mode"}
@@ -333,7 +334,7 @@ export default function Login() {
         {/* ── FORGOT PASSWORD MODAL ── */}
         {fpOpen && (
           <div style={{ position:"fixed", inset:0, zIndex:60, display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(0,0,0,0.65)", backdropFilter:"blur(6px)", padding:20 }}>
-            <div style={{ width:"100%", maxWidth:380, background:isDark?"#0e0e1e":"#ffffff", border:`1px solid ${c.formBorder}`, borderRadius:24, padding:28, boxShadow:"0 32px 80px rgba(0,0,0,0.4)" }}>
+            <div style={{ width:"100%", maxWidth:380, background:isDark?"#0a0a12":"#ffffff", border:`1px solid ${c.formBorder}`, borderRadius:24, padding:28, boxShadow:"0 32px 80px rgba(0,0,0,0.6)" }}>
               <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20 }}>
                 <div>
                   <h3 style={{ fontSize:18, fontWeight:800, color:c.text, marginBottom:2 }}>
