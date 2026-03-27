@@ -198,9 +198,11 @@ const SalonCard = memo(function SalonCard({ salon, onPress, distance, isFavorite
 
         {/* Top-left: category + verified + trust badge */}
         <View style={styles.topLeftBadges}>
-          <View style={styles.categoryBadge}>
-            <Text style={styles.categoryBadgeText}>{category}</Text>
-          </View>
+          {category.toLowerCase() !== 'salon' && (
+            <View style={styles.categoryBadge}>
+              <Text style={styles.categoryBadgeText}>{category}</Text>
+            </View>
+          )}
           {salon.isApproved && (
             <View style={styles.verifiedImgBadge}>
               <Ionicons name="checkmark-circle" size={10} color="#fff" />
@@ -269,15 +271,6 @@ const SalonCard = memo(function SalonCard({ salon, onPress, distance, isFavorite
       <View style={styles.cardBody}>
         {/* Salon name */}
         <Text style={styles.cardName} numberOfLines={1}>{salon.name}</Text>
-
-        {/* Verified hygiene bar */}
-        {salon.isApproved && (
-          <View style={styles.verifiedBar}>
-            <Ionicons name="checkmark-circle" size={13} color="#10b981" />
-            <Text style={styles.verifiedBarText}>Verified Salon</Text>
-            <Text style={styles.verifiedBarSub}>· Hygiene Assured</Text>
-          </View>
-        )}
 
         {/* Stars + rating + review count */}
         <View style={[styles.cardRow, { marginBottom: 6 }]}>
