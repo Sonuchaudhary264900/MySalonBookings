@@ -5,7 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import { SalonProvider } from './context/SalonContext';
 import { NotificationProvider, useNotifications } from './context/NotificationContext';
 import { LanguageProvider } from './context/LanguageContext';
-import { ThemeProvider } from './context/ThemeContext';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import ROUTES from './routes';
 import ProtectedRoute from './routes/ProtectedRoute';
 import PublicRoute from './routes/PublicRoute';
