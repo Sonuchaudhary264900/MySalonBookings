@@ -479,19 +479,21 @@ export default function HomeScreen({ navigation }) {
           >
             <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={20} color={theme.subText} />
           </TouchableOpacity>
-          {/* Notification bell */}
-          <TouchableOpacity
-            style={styles.menuBtn}
-            onPress={() => navigation.navigate('Notifications')}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Ionicons name="notifications-outline" size={20} color={theme.subText} />
-            {unreadCount > 0 && (
-              <View style={styles.notifBadge}>
-                <Text style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+          {/* Notification bell — only when logged in */}
+          {isAuthenticated && (
+            <TouchableOpacity
+              style={styles.menuBtn}
+              onPress={() => navigation.navigate('Notifications')}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="notifications-outline" size={20} color={theme.subText} />
+              {unreadCount > 0 && (
+                <View style={styles.notifBadge}>
+                  <Text style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          )}
 
         </View>
 
