@@ -20,9 +20,11 @@ const { initiateRefund } = require('../config/razorpay');
 
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
+const isTLS = REDIS_URL.startsWith('rediss://');
 const workerConnection = () => new IORedis(REDIS_URL, {
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
+  ...(isTLS && { tls: { rejectUnauthorized: false } }),
 });
 
 const workers = [];

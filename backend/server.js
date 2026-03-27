@@ -117,7 +117,8 @@ if (process.env.REDIS_URL) {
   try {
     const { createAdapter } = require("@socket.io/redis-adapter");
     const IORedis = require("ioredis");
-    const pubClient = new IORedis(process.env.REDIS_URL, { maxRetriesPerRequest: null });
+    const redisTLS = process.env.REDIS_URL?.startsWith('rediss://') ? { tls: { rejectUnauthorized: false } } : {};
+    const pubClient = new IORedis(process.env.REDIS_URL, { maxRetriesPerRequest: null, ...redisTLS });
     const subClient = pubClient.duplicate();
     io.adapter(createAdapter(pubClient, subClient));
     logger.info("✅ Socket.io Redis adapter enabled (horizontal scaling ready)");

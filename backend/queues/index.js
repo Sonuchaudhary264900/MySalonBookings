@@ -28,9 +28,11 @@ let queueConnection = null;
 
 const getQueueConnection = () => {
   if (!queueConnection) {
+    const isTLS = REDIS_URL.startsWith('rediss://');
     queueConnection = new IORedis(REDIS_URL, {
       maxRetriesPerRequest: null, // required by BullMQ
       enableReadyCheck: false,
+      ...(isTLS && { tls: { rejectUnauthorized: false } }),
     });
   }
   return queueConnection;

@@ -16,20 +16,23 @@ let isRedisConnected = false;
 
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
+// Upstash (and any rediss:// URL) requires TLS
+const isTLS = REDIS_URL.startsWith('rediss://');
+
 const redisOptions = {
   maxRetriesPerRequest: 3,
   enableReadyCheck: true,
   retryStrategy(times) {
-    const delay = Math.min(times * 200, 3000); // max 3s between retries
+    const delay = Math.min(times * 200, 3000);
     return delay;
   },
   reconnectOnError(err) {
-    const targetError = 'READONLY';
-    if (err.message.includes(targetError)) return true;
+    if (err.message.includes('READONLY')) return true;
     return false;
   },
   lazyConnect: false,
   showFriendlyErrorStack: process.env.NODE_ENV !== 'production',
+  ...(isTLS && { tls: { rejectUnauthorized: false } }),
 };
 
 try {
