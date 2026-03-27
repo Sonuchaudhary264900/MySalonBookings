@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Heart, Clock, CheckCircle, Scissors, MapPin, Star } from "lucide-react";
 import API from "../services/api";
 import { isCustomer } from "../utils/auth";
@@ -114,9 +114,11 @@ const CATEGORY_GRADIENTS = {
 
 function SalonCard({ salon, userCoords }) {
   const navigate = useNavigate();
-  const [saved, setSaved]     = useState(() => getFavIds().includes(salon._id));
-  const [saving, setSaving]   = useState(false);
-  const [hovered, setHovered] = useState(false);
+  const [saved, setSaved]       = useState(() => getFavIds().includes(salon._id));
+  const [saving, setSaving]     = useState(false);
+  const [hovered, setHovered]   = useState(false);
+  const [heartBounce, setHeartBounce] = useState(false);
+  const heartTimer = useRef(null);
 
   useEffect(() => {
     setSaved(getFavIds().includes(salon._id));
@@ -152,6 +154,9 @@ function SalonCard({ salon, userCoords }) {
         setFavIds(ids.filter((id) => id !== salon._id));
       }
       setSaved(liked);
+      clearTimeout(heartTimer.current);
+      setHeartBounce(true);
+      heartTimer.current = setTimeout(() => setHeartBounce(false), 400);
     } catch (err) {
       console.error("Favourite error:", err?.message || err);
     } finally {
@@ -160,12 +165,12 @@ function SalonCard({ salon, userCoords }) {
   };
 
   const gradient      = CATEGORY_GRADIENTS[salon.category] || "from-indigo-700 to-violet-800";
-  const catLabel      = salon.category?.replace(/_/g, " ") || "Salon";
+  const catLabel      = (salon.category?.replace(/_/g, " ") || "Salon").replace(/\bbarber\b/i, "Salon");
   const rating        = parseFloat(salon.averageRating || salon.rating || 0);
   const reviewCount   = salon.totalReviews  || salon.reviewCount  || 0;
   const totalBookings = salon.totalBookings || 0;
   const address       = salon.address || [salon.city, salon.state].filter(Boolean).join(", ") || "Location not available";
-  const hasPhoto      = salon.photos?.[0] || salon.coverPhoto || salon.image || salon.ownerPhoto;
+  const hasPhoto      = salon.photos?.[0] || salon.coverPhoto || salon.image;
 
   const isTopRated  = rating >= 4.5 && reviewCount >= 10;
   const isTrending  = !isTopRated && totalBookings >= 50;
@@ -222,10 +227,15 @@ function SalonCard({ salon, userCoords }) {
             </span>
             {salon.isApproved && (
               <span
-                className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full text-white"
-                style={{ background: "rgba(16,185,129,0.88)", backdropFilter: "blur(4px)", boxShadow: "0 0 10px rgba(16,185,129,0.4)" }}
+                className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-1.5 rounded-full text-white"
+                style={{
+                  background: "rgba(16,185,129,0.92)",
+                  backdropFilter: "blur(8px)",
+                  boxShadow: "0 0 16px rgba(16,185,129,0.6), 0 0 32px rgba(16,185,129,0.22)",
+                  border: "1.5px solid rgba(255,255,255,0.22)",
+                }}
               >
-                <CheckCircle className="w-2.5 h-2.5" /> Verified
+                <CheckCircle className="w-3 h-3" /> ✓ Verified
               </span>
             )}
             {isTopRated && (
@@ -249,16 +259,27 @@ function SalonCard({ salon, userCoords }) {
           {/* Top-right: Favorite */}
           <button
             onClick={handleFavorite}
-            className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200"
+            className="absolute top-2.5 right-2.5 w-9 h-9 rounded-full flex items-center justify-center"
             style={{
-              background: saved ? "rgba(244,63,94,0.9)" : "rgba(0,0,0,0.5)",
+              background: saved ? "rgba(244,63,94,0.92)" : "rgba(0,0,0,0.52)",
               backdropFilter: "blur(8px)",
-              border: saved ? "1px solid rgba(244,63,94,0.4)" : "1px solid rgba(255,255,255,0.14)",
-              boxShadow: saved ? "0 0 14px rgba(244,63,94,0.45)" : "none",
-              transform: saved ? "scale(1.12)" : "scale(1)",
+              border: saved ? "1.5px solid rgba(244,63,94,0.5)" : "1px solid rgba(255,255,255,0.16)",
+              boxShadow: saved ? "0 0 18px rgba(244,63,94,0.55), 0 0 36px rgba(244,63,94,0.18)" : "none",
+              transform: heartBounce ? "scale(1.48)" : saved ? "scale(1.12)" : "scale(1)",
+              transition: heartBounce
+                ? "transform 0.18s cubic-bezier(0.17,0.89,0.32,1.49)"
+                : "transform 0.22s ease, box-shadow 0.22s ease, background 0.22s ease",
             }}
           >
-            <Heart className="w-4 h-4 text-white" fill={saved ? "white" : "none"} />
+            <Heart
+              className="w-4 h-4"
+              style={{
+                color: saved ? "#fff" : "#cbd5e1",
+                fill: saved ? "#fff" : "none",
+                filter: heartBounce ? "drop-shadow(0 0 6px rgba(244,63,94,0.8))" : "none",
+                transition: "filter 0.2s ease",
+              }}
+            />
           </button>
 
           {/* Bottom-left: Open / Closed + Opens at */}
@@ -326,6 +347,18 @@ function SalonCard({ salon, userCoords }) {
             {salon.name}
           </h2>
 
+          {/* Verified hygiene bar */}
+          {salon.isApproved && (
+            <div
+              className="flex items-center gap-1.5 mb-2 px-2.5 py-1.5 rounded-xl"
+              style={{ background: "rgba(16,185,129,0.09)", border: "1px solid rgba(16,185,129,0.28)" }}
+            >
+              <CheckCircle className="w-3.5 h-3.5 shrink-0" style={{ color: "#10b981" }} />
+              <span className="text-[11px] font-bold" style={{ color: "#10b981" }}>Verified Salon</span>
+              <span className="text-[10px]" style={{ color: "var(--t-text-3)" }}>· Hygiene Assured</span>
+            </div>
+          )}
+
           {/* Stars + rating + review count */}
           <div className="flex items-center gap-1.5 mb-1.5">
             <div className="flex items-center gap-0.5">
@@ -390,8 +423,11 @@ function SalonCard({ salon, userCoords }) {
           <div className="flex items-center justify-between gap-2 mb-3">
             <div className="flex items-center gap-1.5 flex-wrap flex-1">
               {totalBookings >= 10 && (
-                <span className="text-[10px] font-medium" style={{ color: "var(--t-text-3)" }}>
-                  👥 {totalBookings >= 1000 ? `${(totalBookings / 1000).toFixed(1)}k` : `${totalBookings}+`} served
+                <span
+                  className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                  style={{ background: "rgba(239,68,68,0.09)", color: "#f87171", border: "1px solid rgba(239,68,68,0.18)" }}
+                >
+                  🔥 {totalBookings >= 1000 ? `${(totalBookings / 1000).toFixed(1)}k` : `${totalBookings}+`} booked
                 </span>
               )}
               {salon.servedGender && (
