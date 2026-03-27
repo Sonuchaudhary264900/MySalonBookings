@@ -107,7 +107,7 @@ module.exports = {
   FILE_UPLOAD: {
     MAX_FILE_SIZE: 5 * 1024 * 1024,     // 5 MB
     ALLOWED_FORMATS: ['image/jpeg', 'image/png', 'image/webp'],
-    CLOUDINARY_FOLDER: 'barber-shop-booking',
+    CLOUDINARY_FOLDER: 'my-salon-bookings',
     MAX_PHOTOS: 10,
   },
 
@@ -171,12 +171,12 @@ module.exports = {
 
   // ===== EMAIL TEMPLATES =====
   EMAIL_SUBJECTS: {
-    OTP: 'Your OTP for Barber Shop Booking',
-    BOOKING_CONFIRMATION: 'Booking Confirmation - Barber Shop Booking',
-    BOOKING_REMINDER: 'Appointment Reminder - Barber Shop Booking',
-    SALON_APPROVAL: 'Salon Approved - Welcome to Barber Shop Booking',
+    OTP: 'Your OTP for My Salon Bookings',
+    BOOKING_CONFIRMATION: 'Booking Confirmation - My Salon Bookings',
+    BOOKING_REMINDER: 'Appointment Reminder - My Salon Bookings',
+    SALON_APPROVAL: 'Salon Approved - Welcome to My Salon Bookings',
     SALON_REJECTION: 'Salon Application - Review Required',
-    PASSWORD_RESET: 'Password Reset - Barber Shop Booking',
+    PASSWORD_RESET: 'Password Reset - My Salon Bookings',
   },
 
   // ===== ADMIN SETTINGS =====
