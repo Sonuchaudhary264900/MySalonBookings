@@ -439,7 +439,7 @@ const LandingPage = () => {
     <div style={{ background:c.bg, color:c.text, minHeight:'100vh', fontFamily:"'Inter','Segoe UI',system-ui,sans-serif", overflowX:'hidden' }}>
 
       {/* ── NAVBAR ────────────────────────────────────────────── */}
-      <nav style={{ position:'sticky', top:0, zIndex:50, background:c.nav, backdropFilter:'blur(20px)', borderBottom:`1px solid ${c.border}` }}>
+      <nav style={{ position:'fixed', top:0, left:0, right:0, zIndex:50, background:c.nav, backdropFilter:'blur(20px)', borderBottom:`1px solid ${c.border}` }}>
         <div className="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div style={{ width:38, height:38, borderRadius:12, background:'linear-gradient(135deg,#7c3aed,#2563eb)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, boxShadow:'0 0 22px rgba(124,58,237,0.55)', flexShrink:0 }}>✂</div>
@@ -472,6 +472,8 @@ const LandingPage = () => {
           </div>
         </div>
       </nav>
+      {/* Spacer to push content below fixed navbar */}
+      <div style={{ height: 64 }} />
 
       {/* ── HERO ──────────────────────────────────────────────── */}
       <section style={{ position:'relative', overflow:'hidden', padding:'clamp(52px,8vh,96px) 20px clamp(44px,6vh,76px)', textAlign:'center' }}>
