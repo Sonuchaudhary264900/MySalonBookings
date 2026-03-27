@@ -81,7 +81,8 @@ function SkeletonCard() {
 }
 
 // ── Shared search input ───────────────────────────────────────────
-function SearchInput({ value, onChange, onFocus, onBlur, focused, onClear, onLocate, locLoading, searching, compact }) {
+function SearchInput({ value, onChange, onSearch, onFocus, onBlur, focused, onClear, onLocate, locLoading, searching, compact }) {
+  const handleKey = e => { if (e.key === 'Enter') { e.preventDefault(); onSearch?.(); } };
   return (
     <div
       style={{
@@ -99,12 +100,19 @@ function SearchInput({ value, onChange, onFocus, onBlur, focused, onClear, onLoc
         transition: "all 0.22s ease",
       }}
     >
-      <Search style={{ width: compact ? 16 : 18, height: compact ? 16 : 18, flexShrink: 0, color: focused ? "var(--t-accent)" : "var(--t-text-3)", transition: "color 0.2s" }} />
+      <button
+        onClick={onSearch}
+        style={{ display: "flex", background: "none", border: "none", cursor: value ? "pointer" : "default", padding: 0, flexShrink: 0 }}
+        title="Search"
+      >
+        <Search style={{ width: compact ? 16 : 18, height: compact ? 16 : 18, color: focused ? "var(--t-accent)" : "var(--t-text-3)", transition: "color 0.2s" }} />
+      </button>
       <input
         type="text"
         placeholder="Search salons, services, city…"
         value={value}
         onChange={e => onChange(e.target.value)}
+        onKeyDown={handleKey}
         onFocus={onFocus}
         onBlur={onBlur}
         style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: compact ? 14 : 16, color: "var(--t-text)", minWidth: 0 }}
@@ -173,7 +181,6 @@ export default function Home() {
   const [upcomingCount, setUpcomingCount] = useState(0);
   const [showSticky, setShowSticky]     = useState(false);
   const heroSearchRef = useRef(null);
-  const searchTimer   = useRef(null);
 
   // ── Fetch real name from API (token has no name field) ────────
   useEffect(() => {
@@ -207,7 +214,7 @@ export default function Home() {
         fetchBySort("nearby", coords);
       },
       () => { if (!ignore) { setLocDenied(true); setLoading(false); } },
-      { maximumAge: 60000, timeout: 6000 }
+      { enableHighAccuracy: false, maximumAge: 120000, timeout: 12000 }
     );
     return () => { ignore = true; };
   }, []);
@@ -252,7 +259,7 @@ export default function Home() {
   const handleCategory = cat => {
     const newCats = cat === "all" ? [] : selectedCats.includes(cat) ? selectedCats.filter(c => c !== cat) : [...selectedCats, cat];
     setSelectedCats(newCats);
-    if (searchText.trim()) { searchTimer.current = setTimeout(() => runSearch(searchText, newCats), 0); }
+    if (searchText.trim()) { runSearch(searchText, newCats); }
     else { setSalons(applyFilters(allSalons, newCats, genderFilter, openNow)); }
   };
 
@@ -264,7 +271,7 @@ export default function Home() {
     });
     setSelectedCats(newCats);
     setGenderFilter(gender);
-    if (searchText.trim()) { searchTimer.current = setTimeout(() => runSearch(searchText, newCats, gender), 0); }
+    if (searchText.trim()) { runSearch(searchText, newCats, gender); }
     else { setSalons(applyFilters(allSalons, newCats, gender, openNow)); }
   };
 
@@ -295,13 +302,30 @@ export default function Home() {
 
   const handleSearch = text => {
     setSearchText(text);
-    if (searchTimer.current) clearTimeout(searchTimer.current);
-    if (!text.trim()) { setServiceMatchLabel(""); setSalons(applyFilters(allSalons, selectedCats, genderFilter, openNow)); return; }
-    searchTimer.current = setTimeout(() => runSearch(text, selectedCats), 400);
+    if (!text.trim()) { setServiceMatchLabel(""); setSalons(applyFilters(allSalons, selectedCats, genderFilter, openNow)); }
   };
 
-  const handleLocation = () => {
-    if (!navigator.geolocation) return;
+  const handleSearchSubmit = () => {
+    if (!searchText.trim()) return;
+    runSearch(searchText, selectedCats);
+  };
+
+  const handleLocation = async () => {
+    if (!navigator.geolocation) {
+      alert("Your browser does not support location. Please try Chrome or Firefox.");
+      return;
+    }
+    // Opera / some browsers need a permissions check first — without this they silently fail
+    if (navigator.permissions) {
+      try {
+        const result = await navigator.permissions.query({ name: "geolocation" });
+        if (result.state === "denied") {
+          setLocDenied(true);
+          alert("Location access is blocked. Please allow it in your browser's address bar settings, then try again.");
+          return;
+        }
+      } catch { /* permissions API not supported — proceed anyway */ }
+    }
     setLocLoading(true);
     navigator.geolocation.getCurrentPosition(
       pos => {
@@ -312,7 +336,16 @@ export default function Home() {
         setGenderFilter("all");
         fetchBySort("nearby", coords, [], "all").finally(() => setLocLoading(false));
       },
-      () => { setLocLoading(false); alert("Location access denied. Please allow location in browser settings."); }
+      err => {
+        setLocLoading(false);
+        setLocDenied(true);
+        if (err.code === 1) {
+          alert("Location access denied. Click the lock/location icon in your browser's address bar and allow location, then try again.");
+        } else {
+          alert("Could not detect your location. Please check your device's location settings.");
+        }
+      },
+      { enableHighAccuracy: false, timeout: 12000, maximumAge: 120000 }
     );
   };
 
@@ -391,6 +424,7 @@ export default function Home() {
         <LandingPage
           searchText={searchText}
           onSearch={handleSearch}
+          onSearchSubmit={handleSearchSubmit}
           onLocate={handleLocation}
           locLoading={locLoading}
           searching={searching}
@@ -431,6 +465,7 @@ export default function Home() {
           <SearchInput
             value={searchText}
             onChange={handleSearch}
+            onSearch={handleSearchSubmit}
             onFocus={() => setStickyFocused(true)}
             onBlur={() => setStickyFocused(false)}
             focused={stickyFocused}
@@ -456,7 +491,7 @@ export default function Home() {
           </p>
           <p style={{ fontSize: 13, color: "var(--t-text-3)", marginBottom: 16 }}>Where would you like to book today?</p>
           <div ref={heroSearchRef} id="hero-search">
-            <SearchInput value={searchText} onChange={handleSearch} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} focused={focused} onClear={() => handleSearch("")} onLocate={handleLocation} locLoading={locLoading} searching={searching} />
+            <SearchInput value={searchText} onChange={handleSearch} onSearch={handleSearchSubmit} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} focused={focused} onClear={() => handleSearch("")} onLocate={handleLocation} locLoading={locLoading} searching={searching} />
           </div>
         </div>
       </section>
