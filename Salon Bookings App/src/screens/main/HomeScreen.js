@@ -50,6 +50,13 @@ const GENDER_FILTERS = [
 
 const DAYS = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
 
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good Morning';
+  if (h < 17) return 'Good Afternoon';
+  return 'Good Evening';
+}
+
 function isOpenNow(workingHours) {
   if (!workingHours) return null;
   const todayKey = DAYS[new Date().getDay()];
@@ -70,28 +77,82 @@ function getTodayHours(workingHours) {
   return `${h.open} – ${h.close}`;
 }
 
-function StarRating({ rating }) {
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-      {[1,2,3,4,5].map(i => (
-        <Ionicons key={i} name={i <= Math.round(rating) ? 'star' : 'star-outline'} size={11} color="#f59e0b" />
-      ))}
-    </View>
-  );
+function getOpensAt(workingHours) {
+  if (!workingHours) return null;
+  const todayKey = DAYS[new Date().getDay()];
+  const h = workingHours[todayKey];
+  if (!h || h.isClosed || !h.open) return null;
+  return h.open;
+}
+
+// Returns the next available slot label derived from working hours.
+// Approximation: assumes 30-min slots, ignores existing bookings (accurate for card-level display).
+function getNextSlot(workingHours, intervalMins = 30) {
+  if (!workingHours) return null;
+  const now    = new Date();
+  const nowDay = now.getDay();
+  const nowM   = now.getHours() * 60 + now.getMinutes();
+
+  for (let i = 0; i < 7; i++) {
+    const dayIdx = (nowDay + i) % 7;
+    const h = workingHours[DAYS[dayIdx]];
+    if (!h || h.isClosed || !h.open || !h.close) continue;
+
+    const [oh, om] = h.open.split(':').map(Number);
+    const [ch, cm] = h.close.split(':').map(Number);
+    const openM  = oh * 60 + om;
+    const closeM = ch * 60 + cm;
+
+    let slotM;
+    if (i === 0) {
+      if (nowM >= closeM) continue;
+      if (nowM <= openM) {
+        slotM = openM;
+      } else {
+        const elapsed = Math.ceil((nowM - openM) / intervalMins);
+        slotM = openM + elapsed * intervalMins;
+        if (slotM >= closeM) continue;
+      }
+    } else {
+      slotM = openM;
+    }
+
+    const hh    = String(Math.floor(slotM / 60)).padStart(2, '0');
+    const mm    = String(slotM % 60).padStart(2, '0');
+    const label = `${hh}:${mm}`;
+    if (i === 0) return label;
+    if (i === 1) return `Tomorrow ${label}`;
+    const dayName = DAYS[dayIdx].charAt(0).toUpperCase() + DAYS[dayIdx].slice(1, 3);
+    return `${dayName} ${label}`;
+  }
+  return null;
 }
 
 const SalonCard = memo(function SalonCard({ salon, onPress, distance, isFavorited, onToggleFavorite }) {
   const { theme } = useTheme();
   const styles = getStyles(theme);
   const [toggling, setToggling] = React.useState(false);
-  const photo = salon.photos?.[0] || salon.coverPhoto || salon.ownerPhoto;
-  const rating = salon.rating || salon.averageRating || 0;
-  const reviewCount = salon.reviewCount || salon.totalReviews || 0;
-  const category = (salon.category || 'salon').replace('_', ' ');
-  const openStatus = isOpenNow(salon.workingHours);
-  const todayHours = getTodayHours(salon.workingHours);
+  const [pressed, setPressed]   = React.useState(false);
 
-  const handleHeart = async (e) => {
+  const photo         = salon.photos?.[0] || salon.coverPhoto || salon.ownerPhoto;
+  const rating        = salon.rating || salon.averageRating || 0;
+  const reviewCount   = salon.reviewCount || salon.totalReviews || 0;
+  const totalBookings = salon.totalBookings || 0;
+  const category      = (salon.category || 'salon').replace(/_/g, ' ');
+  const openStatus    = isOpenNow(salon.workingHours);
+  const todayHours    = getTodayHours(salon.workingHours);
+  const opensAt       = getOpensAt(salon.workingHours);
+  const nextSlot      = getNextSlot(salon.workingHours);
+  const isTopRated    = rating >= 4.5 && reviewCount >= 10;
+  const isTrending    = !isTopRated && totalBookings >= 50;
+
+  const offerLabel = salon.topOffer
+    ? salon.topOffer.discountType === 'percentage'
+      ? `${salon.topOffer.discountValue}% OFF${salon.topOffer.minAmount > 0 ? ` on ₹${salon.topOffer.minAmount}+` : ''}`
+      : `₹${salon.topOffer.discountValue} OFF${salon.topOffer.minAmount > 0 ? ` on ₹${salon.topOffer.minAmount}+` : ''}`
+    : null;
+
+  const handleHeart = async () => {
     if (toggling) return;
     setToggling(true);
     try {
@@ -105,55 +166,121 @@ const SalonCard = memo(function SalonCard({ salon, onPress, distance, isFavorite
   };
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.92}>
-      {/* Photo */}
+    <TouchableOpacity
+      style={[styles.card, pressed && { transform: [{ scale: 0.985 }], shadowOpacity: 0.03 }]}
+      onPress={onPress}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      activeOpacity={1}
+    >
+      {/* ── Image ── */}
       <View style={styles.cardImgWrapper}>
         {photo ? (
           <Image source={{ uri: photo }} style={styles.cardImg} />
         ) : (
           <View style={[styles.cardImg, styles.cardImgPlaceholder]}>
-            <Ionicons name="cut" size={36} color="#93c5fd" />
+            <Ionicons name="cut" size={40} color="#93c5fd" />
           </View>
         )}
-        <View style={styles.categoryBadge}>
-          <Text style={styles.categoryBadgeText}>{category}</Text>
-        </View>
-        {/* Heart / Favourite button */}
-        <TouchableOpacity style={styles.heartBtn} onPress={handleHeart} disabled={toggling}>
-          {toggling
-            ? <ActivityIndicator size="small" color="#ef4444" />
-            : <Ionicons name={isFavorited ? 'heart' : 'heart-outline'} size={18} color={isFavorited ? '#ef4444' : '#64748b'} />}
-        </TouchableOpacity>
-        {salon.ownerPhoto && (
-          <View style={styles.ownerAvatarBadge}>
-            <Image source={{ uri: salon.ownerPhoto }} style={styles.ownerAvatarImg} />
-          </View>
-        )}
-      </View>
 
-      {/* Info */}
-      <View style={styles.cardBody}>
-        <Text style={styles.cardName} numberOfLines={1}>{salon.name}</Text>
+        {/* Overlays for depth */}
+        <View style={styles.imgOverlayTop} />
+        <View style={styles.imgOverlayBottom} />
 
-        {/* Stars left — Open/Closed right */}
-        <View style={styles.cardRowSpread}>
-          <View style={styles.cardRow}>
-            <StarRating rating={rating} />
-            <Text style={styles.cardRating}>{rating > 0 ? rating.toFixed(1) : '—'}</Text>
-            {reviewCount > 0 && <Text style={styles.cardReviews}>({reviewCount})</Text>}
+        {/* Top-left: category + verified + trust badge */}
+        <View style={styles.topLeftBadges}>
+          <View style={styles.categoryBadge}>
+            <Text style={styles.categoryBadgeText}>{category}</Text>
           </View>
-          {openStatus !== null && (
-            <View style={[styles.openPill, { backgroundColor: openStatus ? '#dcfce7' : '#fee2e2' }]}>
-              <View style={[styles.openDot, { backgroundColor: openStatus ? '#16a34a' : '#dc2626' }]} />
-              <Text style={[styles.openPillText, { color: openStatus ? '#16a34a' : '#dc2626' }]}>
-                {openStatus ? 'Open' : 'Closed'}
-              </Text>
+          {salon.isApproved && (
+            <View style={styles.verifiedImgBadge}>
+              <Ionicons name="checkmark-circle" size={10} color="#fff" />
+              <Text style={styles.verifiedImgText}>Verified</Text>
+            </View>
+          )}
+          {isTopRated && (
+            <View style={styles.topRatedBadge}>
+              <Text style={styles.topRatedText}>🏆 Top Rated</Text>
+            </View>
+          )}
+          {isTrending && (
+            <View style={styles.trendingBadge}>
+              <Text style={styles.trendingText}>🔥 Trending</Text>
             </View>
           )}
         </View>
 
-        {/* Address left — Hours right */}
-        <View style={styles.cardRowSpread}>
+        {/* Top-right: Heart */}
+        <TouchableOpacity
+          style={[styles.heartBtn, isFavorited && styles.heartBtnActive]}
+          onPress={handleHeart}
+          disabled={toggling}
+        >
+          {toggling
+            ? <ActivityIndicator size="small" color="#ef4444" />
+            : <Ionicons name={isFavorited ? 'heart' : 'heart-outline'} size={18} color={isFavorited ? '#fff' : '#94a3b8'} />}
+        </TouchableOpacity>
+
+        {/* Bottom image row: open pill (left) + rating + distance (right) */}
+        <View style={styles.imgBottomRow}>
+          <View>
+            {openStatus !== null && (
+              <View style={[styles.openPillImg, { backgroundColor: openStatus ? 'rgba(16,185,129,0.92)' : 'rgba(239,68,68,0.92)' }]}>
+                <View style={styles.openDotImg} />
+                <Text style={styles.openPillImgText}>
+                  {openStatus ? 'Open Now' : opensAt ? `Opens ${opensAt}` : 'Closed'}
+                </Text>
+              </View>
+            )}
+          </View>
+          <View style={{ alignItems: 'flex-end', gap: 4 }}>
+            {rating > 0 && (
+              <View style={styles.ratingPillImg}>
+                <Ionicons name="star" size={11} color="#f59e0b" />
+                <Text style={styles.ratingPillText}>{rating.toFixed(1)}</Text>
+                {reviewCount > 0 && <Text style={styles.reviewCountText}>({reviewCount})</Text>}
+              </View>
+            )}
+            {distance != null && (
+              <View style={styles.distancePillImg}>
+                <Text style={styles.distancePillText}>
+                  📍 {distance < 1 ? `${Math.round(distance * 1000)} m` : `${distance.toFixed(1)} km`}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </View>
+
+      {/* ── Info ── */}
+      <View style={styles.cardBody}>
+        {/* Salon name */}
+        <Text style={styles.cardName} numberOfLines={1}>{salon.name}</Text>
+
+        {/* Stars + rating + review count */}
+        <View style={[styles.cardRow, { marginBottom: 6 }]}>
+          {[1,2,3,4,5].map(i => (
+            <Ionicons
+              key={i}
+              name={
+                rating > 0 && i <= Math.floor(rating) ? 'star' :
+                rating > 0 && i === Math.ceil(rating) && rating % 1 >= 0.5 ? 'star-half' :
+                'star-outline'
+              }
+              size={13}
+              color={rating > 0 && i <= Math.ceil(rating) ? '#f59e0b' : theme.border}
+            />
+          ))}
+          <Text style={styles.cardRatingValue}>{rating > 0 ? rating.toFixed(1) : '—'}</Text>
+          <Text style={styles.cardReviewCount}>
+            {reviewCount > 0
+              ? `(${reviewCount.toLocaleString()} ${reviewCount === 1 ? 'review' : 'reviews'})`
+              : 'No reviews yet'}
+          </Text>
+        </View>
+
+        {/* Address + Hours */}
+        <View style={[styles.cardRowSpread, { marginBottom: 6 }]}>
           <View style={[styles.cardRow, { flex: 1, marginRight: 8 }]}>
             <Ionicons name="location-outline" size={13} color={theme.subText} />
             <Text style={styles.cardAddress} numberOfLines={1}>
@@ -168,26 +295,44 @@ const SalonCard = memo(function SalonCard({ salon, onPress, distance, isFavorite
           )}
         </View>
 
-        {distance != null && (
-          <View style={styles.cardRow}>
-            <Ionicons name="navigate-outline" size={13} color={theme.accent} />
-            <Text style={styles.cardDistance}>
-              {distance < 1 ? `${Math.round(distance * 1000)} m away` : `${distance.toFixed(1)} km away`}
-            </Text>
+        {/* Next available slot */}
+        {nextSlot && (
+          <View style={styles.nextSlotRow}>
+            <Text style={styles.nextSlotText}>⏱ Next slot: {nextSlot}</Text>
           </View>
         )}
 
-        <View style={styles.cardFooter}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Text style={styles.viewDetails}>Book Now</Text>
-              <Ionicons name="arrow-forward" size={13} color={theme.accent} />
+        {/* Social proof + price */}
+        {(totalBookings >= 10 || salon.minPrice) && (
+          <View style={[styles.cardRowSpread, { marginBottom: 10 }]}>
+            {totalBookings >= 10 ? (
+              <Text style={{ fontSize: 11, color: theme.subText }}>
+                👥 {totalBookings >= 1000 ? `${(totalBookings / 1000).toFixed(1)}k` : `${totalBookings}+`} served
+              </Text>
+            ) : <View />}
+            {salon.minPrice && (
+              <Text style={{ fontSize: 12, fontWeight: '700', color: theme.accent }}>
+                from ₹{salon.minPrice}
+              </Text>
+            )}
+          </View>
+        )}
+
+        {/* Offer / promo tag */}
+        {offerLabel && (
+          <View style={styles.offerRow}>
+            <Text style={{ fontSize: 13 }}>🏷️</Text>
+            <Text style={styles.offerLabel} numberOfLines={1}>{offerLabel}</Text>
+            <View style={styles.offerCodeBadge}>
+              <Text style={styles.offerCodeText}>{salon.topOffer.code}</Text>
             </View>
-          {salon.isApproved && (
-            <View style={styles.verifiedBadge}>
-              <Ionicons name="checkmark-circle" size={12} color="#16a34a" />
-              <Text style={styles.verifiedText}>Verified</Text>
-            </View>
-          )}
+          </View>
+        )}
+
+        {/* Book Now CTA */}
+        <View style={styles.bookBtn}>
+          <Text style={styles.bookBtnText}>Book Now</Text>
+          <Ionicons name="arrow-forward" size={15} color="#fff" />
         </View>
       </View>
     </TouchableOpacity>
@@ -200,10 +345,11 @@ function SkeletonCard() {
   return (
     <View style={[styles.card, { overflow: 'hidden' }]}>
       <View style={[styles.cardImg, { backgroundColor: theme.border }]} />
-      <View style={{ padding: 12, gap: 8 }}>
+      <View style={{ padding: 14, gap: 9 }}>
         <View style={{ height: 14, backgroundColor: theme.border, borderRadius: 6, width: '70%' }} />
         <View style={{ height: 11, backgroundColor: theme.border, borderRadius: 6, width: '50%' }} />
-        <View style={{ height: 11, backgroundColor: theme.border, borderRadius: 6, width: '60%' }} />
+        <View style={{ height: 11, backgroundColor: theme.border, borderRadius: 6, width: '40%' }} />
+        <View style={{ height: 38, backgroundColor: theme.border, borderRadius: 12, width: '100%', marginTop: 4 }} />
       </View>
     </View>
   );
@@ -237,6 +383,8 @@ export default function HomeScreen({ navigation }) {
   const [locDenied, setLocDenied]     = useState(false);
   const [favoriteIds, setFavoriteIds] = useState(new Set());
   const [serviceMatchLabel, setServiceMatchLabel] = useState('');
+  const [openNow, setOpenNow]         = useState(false);
+  const [upcomingCount, setUpcomingCount] = useState(0);
   const searchTimer                   = useRef(null);
 
   // Auto-set gender filter from user profile (runs once when user loads)
@@ -270,7 +418,7 @@ export default function HomeScreen({ navigation }) {
     }).catch(() => {});
   }, []);
 
-  const applyFilters = (data, cats, gender) => {
+  const applyFilters = (data, cats, gender, onlyOpen) => {
     let result = data;
     if (cats.length > 0) {
       result = result.filter(s =>
@@ -288,6 +436,9 @@ export default function HomeScreen({ navigation }) {
         return sg === gender || sg === 'unisex';
       });
     }
+    if (onlyOpen) {
+      result = result.filter(s => isOpenNow(s.workingHours) === true);
+    }
     return result;
   };
 
@@ -300,7 +451,7 @@ export default function HomeScreen({ navigation }) {
       const res = await api.get(`/public/salons/nearby?latitude=${coords.lat}&longitude=${coords.lng}&sort=${sortKey}`);
       const data = res.data.data?.salons || res.data.data || [];
       setAllSalons(data);
-      setSalons(applyFilters(data, cats ?? selectedCats, gender ?? genderFilter));
+      setSalons(applyFilters(data, cats ?? selectedCats, gender ?? genderFilter, openNow));
     } catch {
       setAllSalons([]);
       setSalons([]);
@@ -328,7 +479,7 @@ export default function HomeScreen({ navigation }) {
       if (searchTimer.current) clearTimeout(searchTimer.current);
       searchTimer.current = setTimeout(() => runSearch(searchText, newCats, userCoords, gender), 0);
     } else {
-      setSalons(applyFilters(allSalons, newCats, gender));
+      setSalons(applyFilters(allSalons, newCats, gender, openNow));
     }
   };
 
@@ -404,7 +555,7 @@ export default function HomeScreen({ navigation }) {
       if (searchTimer.current) clearTimeout(searchTimer.current);
       searchTimer.current = setTimeout(() => runSearch(searchText, newCats, userCoords, genderFilter), 0);
     } else {
-      setSalons(applyFilters(allSalons, newCats, genderFilter));
+      setSalons(applyFilters(allSalons, newCats, genderFilter, openNow));
     }
   };
 
@@ -413,11 +564,26 @@ export default function HomeScreen({ navigation }) {
     if (searchTimer.current) clearTimeout(searchTimer.current);
     if (!text.trim()) {
       setServiceMatchLabel('');
-      setSalons(applyFilters(allSalons, selectedCats, genderFilter));
+      setSalons(applyFilters(allSalons, selectedCats, genderFilter, openNow));
       return;
     }
     searchTimer.current = setTimeout(() => runSearch(text, selectedCats, userCoords, genderFilter), 400);
   }, [allSalons, selectedCats, genderFilter, userCoords, runSearch]);
+
+  const handleOpenNow = () => {
+    const next = !openNow;
+    setOpenNow(next);
+    setSalons(applyFilters(allSalons, selectedCats, genderFilter, next));
+  };
+
+  // Fetch upcoming bookings count for the My Bookings badge
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    api.get('/customer/bookings').then(res => {
+      const arr = res.data.data?.bookings || res.data.data || [];
+      setUpcomingCount(Array.isArray(arr) ? arr.filter(b => ['pending', 'confirmed', 'in_progress'].includes(b.status)).length : 0);
+    }).catch(() => {});
+  }, [isAuthenticated]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -466,9 +632,13 @@ export default function HomeScreen({ navigation }) {
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerTop}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.headerTitle}>{t('homeTitle')}</Text>
+            <Text style={styles.headerTitle}>
+              {getGreeting()},{' '}
+              <Text style={{ color: theme.accent }}>{user?.name || user?.firstName || 'there'}</Text>
+              {' '}👋
+            </Text>
             <Text style={styles.headerSub}>
-              {locDenied ? t('homeSubLocDenied') : t('homeSubNearby')}
+              {locDenied ? t('homeSubLocDenied') : 'Where would you like to book today?'}
             </Text>
           </View>
           {/* Theme toggle */}
@@ -593,6 +763,67 @@ export default function HomeScreen({ navigation }) {
                 })}
               </ScrollView>
 
+              {/* Open Now + Clear row */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={{ flexGrow: 0, flexShrink: 0, marginBottom: 4 }}
+                contentContainerStyle={{ flexDirection: 'row', paddingHorizontal: 16, gap: 8, paddingRight: 24, alignItems: 'center' }}
+                nestedScrollEnabled={true}
+              >
+                <TouchableOpacity
+                  onPress={handleOpenNow}
+                  style={{
+                    flexDirection: 'row', alignItems: 'center', gap: 5,
+                    paddingHorizontal: 12, paddingVertical: 7,
+                    borderRadius: 20, borderWidth: 1.5,
+                    backgroundColor: openNow ? 'rgba(16,185,129,0.12)' : styles.chip.backgroundColor,
+                    borderColor: openNow ? '#10b981' : styles.chip.borderColor,
+                  }}
+                  activeOpacity={0.75}
+                >
+                  <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: openNow ? '#10b981' : styles.chipText.color }} />
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: openNow ? '#10b981' : styles.chipText.color }}>Open Now</Text>
+                </TouchableOpacity>
+                {(openNow || selectedCats.length > 0 || genderFilter !== 'all') && (
+                  <TouchableOpacity
+                    onPress={() => { setOpenNow(false); setSelectedCats([]); setGenderFilter('all'); setSalons(applyFilters(allSalons, [], 'all', false)); }}
+                    style={{ paddingHorizontal: 10, paddingVertical: 7 }}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: theme.accent }}>✕ Clear all</Text>
+                  </TouchableOpacity>
+                )}
+              </ScrollView>
+
+              {/* Quick nav shortcuts */}
+              {isAuthenticated && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={{ flexGrow: 0, flexShrink: 0, marginBottom: 8 }}
+                  contentContainerStyle={{ flexDirection: 'row', paddingHorizontal: 16, gap: 8, paddingRight: 24 }}
+                  nestedScrollEnabled={true}
+                >
+                  <TouchableOpacity
+                    onPress={() => navigation.getParent()?.navigate('BookingsTab')}
+                    style={styles.navShortcut}
+                  >
+                    <Text style={styles.navShortcutText}>📅 My Bookings</Text>
+                    {upcomingCount > 0 && (
+                      <View style={styles.navBadge}>
+                        <Text style={styles.navBadgeText}>{upcomingCount}</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => navigation.getParent()?.navigate('FavoritesTab')}
+                    style={styles.navShortcut}
+                  >
+                    <Text style={styles.navShortcutText}>❤️ Saved Salons</Text>
+                  </TouchableOpacity>
+                </ScrollView>
+              )}
+
               {/* Location denied notice */}
               {locDenied && !searchText && (
                 <View style={styles.noLocBox}>
@@ -685,29 +916,62 @@ const getStyles = (t) => StyleSheet.create({
   emptyBox: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, gap: 8 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: t.text },
   emptyText: { fontSize: 14, color: t.subText, textAlign: 'center', lineHeight: 20 },
-  card: { backgroundColor: t.card, borderRadius: 16, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2, borderWidth: 1, borderColor: t.border },
+  // ── Card ─────────────────────────────────────────────────────────
+  card: { backgroundColor: t.card, borderRadius: 20, overflow: 'hidden', shadowColor: '#6366f1', shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 4, borderWidth: 1, borderColor: t.border, marginBottom: 2 },
   cardImgWrapper: { position: 'relative' },
-  ownerAvatarBadge: { position: 'absolute', bottom: -16, left: 12, width: 34, height: 34, borderRadius: 17, borderWidth: 2, borderColor: t.card, overflow: 'hidden', elevation: 3 },
-  ownerAvatarImg: { width: '100%', height: '100%' },
-  cardImg: { width: '100%', height: 160 },
-  cardImgPlaceholder: { backgroundColor: '#dbeafe', alignItems: 'center', justifyContent: 'center' },
-  heartBtn: { position: 'absolute', top: 10, right: 10, width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
-  categoryBadge: { position: 'absolute', top: 10, left: 10, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
-  categoryBadgeText: { fontSize: 11, fontWeight: '700', color: '#fff', textTransform: 'capitalize' },
-  cardBody: { padding: 12, paddingTop: 22, gap: 5 },
-  cardName: { fontSize: 16, fontWeight: '700', color: t.text },
+  cardImg: { width: '100%', height: 190 },
+  cardImgPlaceholder: { backgroundColor: '#1e3a8a', alignItems: 'center', justifyContent: 'center' },
+
+  imgOverlayTop: { ...StyleSheet.absoluteFillObject, top: 0, bottom: undefined, height: 70, backgroundColor: 'rgba(0,0,0,0.24)' },
+  imgOverlayBottom: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 100, backgroundColor: 'rgba(0,0,0,0.62)' },
+
+  topLeftBadges: { position: 'absolute', top: 10, left: 10, flexDirection: 'row', flexWrap: 'wrap', gap: 5, maxWidth: '75%' },
+  categoryBadge: { backgroundColor: 'rgba(0,0,0,0.52)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
+  categoryBadgeText: { fontSize: 10, fontWeight: '700', color: '#fff', textTransform: 'capitalize' },
+  verifiedImgBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(16,185,129,0.9)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4 },
+  verifiedImgText: { fontSize: 10, fontWeight: '700', color: '#fff' },
+  topRatedBadge: { backgroundColor: 'rgba(234,179,8,0.92)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4 },
+  topRatedText: { fontSize: 10, fontWeight: '700', color: '#1a1200' },
+  trendingBadge: { backgroundColor: 'rgba(239,68,68,0.9)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4 },
+  trendingText: { fontSize: 10, fontWeight: '700', color: '#fff' },
+
+  heartBtn: { position: 'absolute', top: 10, right: 10, width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(0,0,0,0.48)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)' },
+  heartBtnActive: { backgroundColor: 'rgba(244,63,94,0.9)', borderColor: 'rgba(244,63,94,0.4)' },
+
+  imgBottomRow: { position: 'absolute', bottom: 10, left: 10, right: 10, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
+  openPillImg: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999 },
+  openDotImg: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#fff' },
+  openPillImgText: { fontSize: 11, fontWeight: '700', color: '#fff' },
+  ratingPillImg: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.58)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  ratingPillText: { fontSize: 12, fontWeight: '800', color: '#fff' },
+  reviewCountText: { fontSize: 10, color: 'rgba(255,255,255,0.65)' },
+  distancePillImg: { backgroundColor: 'rgba(0,0,0,0.58)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  distancePillText: { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.9)' },
+
+  cardBody: { padding: 14, gap: 0 },
+  cardName: { fontSize: 16, fontWeight: '800', color: t.text, marginBottom: 4 },
+  cardRatingValue: { fontSize: 13, fontWeight: '800', color: t.text, marginLeft: 3 },
+  cardReviewCount: { fontSize: 11, color: t.subText },
   cardRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  cardRating: { fontSize: 12, fontWeight: '700', color: t.text },
-  cardReviews: { fontSize: 12, color: t.subText },
-  cardAddress: { fontSize: 12, color: t.subText, flex: 1 },
-  cardDistance: { fontSize: 12, color: t.accent, fontWeight: '600' },
-  cardHours: { fontSize: 11, color: t.subText },
   cardRowSpread: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  openPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999 },
-  openDot: { width: 6, height: 6, borderRadius: 3 },
-  openPillText: { fontSize: 11, fontWeight: '700' },
-  cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6, paddingTop: 8, borderTopWidth: 1, borderTopColor: t.border },
-  viewDetails: { fontSize: 12, fontWeight: '700', color: t.accent },
-  verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#dcfce7', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999 },
-  verifiedText: { fontSize: 11, fontWeight: '600', color: '#16a34a' },
+  cardAddress: { fontSize: 12, color: t.subText, flex: 1 },
+  cardHours: { fontSize: 11, color: t.subText },
+  cardDistance: { fontSize: 12, color: t.accent, fontWeight: '600' },
+
+  nextSlotRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, alignSelf: 'flex-start', backgroundColor: 'rgba(99,102,241,0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(99,102,241,0.2)' },
+  nextSlotText: { fontSize: 11, fontWeight: '600', color: '#6366f1' },
+
+  offerRow: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(16,185,129,0.1)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.22)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 8, marginBottom: 10 },
+  offerLabel: { fontSize: 12, fontWeight: '700', color: '#059669', flex: 1 },
+  offerCodeBadge: { backgroundColor: 'rgba(5,150,105,0.15)', borderWidth: 1, borderColor: 'rgba(5,150,105,0.25)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
+  offerCodeText: { fontSize: 10, fontWeight: '800', color: '#059669', letterSpacing: 0.5 },
+
+  bookBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 13, borderRadius: 14, backgroundColor: '#6366f1', shadowColor: '#6366f1', shadowOpacity: 0.38, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
+  bookBtnText: { fontSize: 14, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
+
+  // ── Nav shortcuts ────────────────────────────────────────────────
+  navShortcut: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: t.card, borderWidth: 1, borderColor: t.border },
+  navShortcutText: { fontSize: 12, fontWeight: '600', color: t.text },
+  navBadge: { minWidth: 16, height: 16, borderRadius: 8, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
+  navBadgeText: { fontSize: 9, fontWeight: '800', color: '#fff' },
 });
