@@ -111,7 +111,7 @@ function SalonInfoSection({ salon, onSaved }) {
 
   return (
     <>
-      <Field label="Salon Name *" value={name} setter={setName} placeholder="Royal Barbers" />
+      <Field label="Salon Name *" value={name} setter={setName} placeholder="Royal Salon" />
       <Field label="Description" value={description} setter={setDescription} placeholder="About your salon…" multiline />
       <View style={styles.field}>
         <Text style={styles.label}>Category</Text>
