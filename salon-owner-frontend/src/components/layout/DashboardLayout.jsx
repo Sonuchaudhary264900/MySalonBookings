@@ -72,20 +72,22 @@ const DashboardLayout = ({ children }) => {
         ${sidebarCollapsed ? 'md:ml-[68px]' : 'md:ml-64'}
       `}>
 
-        {/* Navbar — top of right column */}
+        {/* Navbar — fixed, always visible */}
         <Navbar onMenuToggle={() => setSidebarOpen(v => !v)} />
 
-        {/* Trial / payment status banner */}
-        <TrialBanner />
+        {/* Trial / payment status banner — offset below fixed navbar */}
+        <div className="pt-16">
+          <TrialBanner />
+        </div>
 
-        {/* Page content — flex-1 pushes footer to bottom */}
+        {/* Page content */}
         <main className="flex-1 w-full">
           <div className="p-4 md:p-6 lg:p-8 pb-24 md:pb-8 max-w-[1600px] mx-auto">
             {children}
           </div>
         </main>
 
-        {/* Footer — always at bottom of right column, hidden on mobile (BottomNav takes over) */}
+        {/* Footer — hidden on mobile (BottomNav takes over) */}
         <div className="hidden md:block">
           <Footer />
         </div>
