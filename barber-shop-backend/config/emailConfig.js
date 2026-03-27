@@ -46,7 +46,7 @@ const sendEmail = async (to, subject, htmlContent, textContent) => {
       to: to,
       subject: subject,
       html: htmlContent,
-      text: textContent || 'Email sent from Barber Shop Booking System',
+      text: textContent || 'Email sent from My Salon Bookings',
     };
 
     const info = await transporter.sendMail(mailOptions);
@@ -60,11 +60,11 @@ const sendEmail = async (to, subject, htmlContent, textContent) => {
 
 // Send OTP email
 const sendOTPEmail = async (to, otp, userType) => {
-  const subject = 'Your OTP for Barber Shop Booking';
+  const subject = 'Your OTP for My Salon Bookings';
   const htmlContent = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <div style="background-color: #4CAF50; color: white; padding: 20px; text-align: center;">
-        <h1>Barber Shop Booking</h1>
+        <h1>My Salon Bookings</h1>
       </div>
       <div style="padding: 20px; background-color: #f9f9f9;">
         <h2>Verify Your ${userType === 'owner' ? 'Business' : 'Account'}</h2>
@@ -89,7 +89,7 @@ const sendOTPEmail = async (to, otp, userType) => {
 
 // Send booking confirmation email
 const sendBookingConfirmationEmail = async (to, bookingDetails) => {
-  const subject = 'Booking Confirmation - Barber Shop Booking';
+  const subject = 'Booking Confirmation - My Salon Bookings';
   const htmlContent = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <div style="background-color: #4CAF50; color: white; padding: 20px; text-align: center;">
@@ -132,7 +132,7 @@ const sendBookingConfirmationEmail = async (to, bookingDetails) => {
 
 // Send appointment reminder email
 const sendReminderEmail = async (to, bookingDetails) => {
-  const subject = 'Appointment Reminder - Barber Shop Booking';
+  const subject = 'Appointment Reminder - My Salon Bookings';
   const htmlContent = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <div style="background-color: #FF9800; color: white; padding: 20px; text-align: center;">
@@ -156,7 +156,7 @@ const sendReminderEmail = async (to, bookingDetails) => {
 
 // Send salon approval email (to owner)
 const sendSalonApprovalEmail = async (to, salonName) => {
-  const subject = 'Salon Approved - Welcome to Barber Shop Booking';
+  const subject = 'Salon Approved - Welcome to My Salon Bookings';
   const htmlContent = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <div style="background-color: #4CAF50; color: white; padding: 20px; text-align: center;">
@@ -167,7 +167,7 @@ const sendSalonApprovalEmail = async (to, salonName) => {
         <p>You can now:</p>
         <ul>
           <li>Add services and pricing</li>
-          <li>Manage your barbers</li>
+          <li>Manage your staff</li>
           <li>Accept bookings from customers</li>
           <li>Track your earnings</li>
         </ul>
