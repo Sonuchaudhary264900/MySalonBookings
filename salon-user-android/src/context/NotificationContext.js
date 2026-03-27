@@ -29,6 +29,17 @@ async function setupNotificationChannels() {
     sound: 'default',
   });
 
+  // Reminders channel (1h, 30-min, 10-min appointment reminders)
+  await Notifications.setNotificationChannelAsync('reminders', {
+    name: 'Appointment Reminders',
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: [0, 250, 200, 250],
+    lightColor: '#10b981',
+    enableVibrate: true,
+    showBadge: false,
+    sound: 'default',
+  });
+
   // Light vibration for 10-minute reminder — gentle, not alarming
   await Notifications.setNotificationChannelAsync('ten_min_reminder', {
     name: '10-Minute Reminders',
