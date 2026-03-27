@@ -55,6 +55,7 @@ const bookingSchema = new mongoose.Schema(
     confirmationSentAt: Date,
     reminderSentAt: Date,
     tenMinReminderSent: { type: Boolean, default: false },
+    thirtyMinReminderSent: { type: Boolean, default: false },
     oneHourReminderSent: { type: Boolean, default: false },
     ownerNotes: String,
     createdAt: { type: Date, default: Date.now },
