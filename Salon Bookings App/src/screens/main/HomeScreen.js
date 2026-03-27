@@ -185,7 +185,7 @@ const SalonCard = memo(function SalonCard({ salon, onPress, distance, isFavorite
       {/* ── Image ── */}
       <View style={styles.cardImgWrapper}>
         {photo ? (
-          <Image source={{ uri: photo }} style={styles.cardImg} />
+          <Image source={{ uri: photo }} style={styles.cardImg} resizeMode="cover" />
         ) : (
           <View style={[styles.cardImg, styles.cardImgPlaceholder]}>
             <Ionicons name="cut" size={40} color="#93c5fd" />
@@ -939,8 +939,8 @@ const getStyles = (t) => StyleSheet.create({
   cardImg: { width: '100%', height: 190 },
   cardImgPlaceholder: { backgroundColor: '#1e3a8a', alignItems: 'center', justifyContent: 'center' },
 
-  imgOverlayTop: { ...StyleSheet.absoluteFillObject, top: 0, bottom: undefined, height: 70, backgroundColor: 'rgba(0,0,0,0.24)' },
-  imgOverlayBottom: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 100, backgroundColor: 'rgba(0,0,0,0.62)' },
+  imgOverlayTop: { position: 'absolute', top: 0, left: 0, right: 0, height: 60, backgroundColor: 'rgba(0,0,0,0.18)' },
+  imgOverlayBottom: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 90, backgroundColor: 'rgba(0,0,0,0.48)' },
 
   topLeftBadges: { position: 'absolute', top: 10, left: 10, flexDirection: 'row', flexWrap: 'wrap', gap: 5, maxWidth: '75%' },
   categoryBadge: { backgroundColor: 'rgba(0,0,0,0.52)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
