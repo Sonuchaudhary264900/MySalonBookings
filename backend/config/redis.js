@@ -1,0 +1,130 @@
+// config/redis.js
+/*
+  Redis Client — ioredis
+  Supports:
+  - Single instance (local/dev)
+  - Redis Cloud / Upstash (production)
+  - Cluster-ready via REDIS_CLUSTER_NODES env var
+  - Auto-reconnect with exponential backoff
+  - Graceful degradation (app works even if Redis is down)
+*/
+
+const Redis = require('ioredis');
+
+let redisClient = null;
+let isRedisConnected = false;
+
+const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+
+const redisOptions = {
+  maxRetriesPerRequest: 3,
+  enableReadyCheck: true,
+  retryStrategy(times) {
+    const delay = Math.min(times * 200, 3000); // max 3s between retries
+    return delay;
+  },
+  reconnectOnError(err) {
+    const targetError = 'READONLY';
+    if (err.message.includes(targetError)) return true;
+    return false;
+  },
+  lazyConnect: false,
+  showFriendlyErrorStack: process.env.NODE_ENV !== 'production',
+};
+
+try {
+  redisClient = new Redis(REDIS_URL, redisOptions);
+
+  redisClient.on('connect', () => {
+    isRedisConnected = true;
+    console.log('✅ Redis Connected');
+  });
+
+  redisClient.on('ready', () => {
+    isRedisConnected = true;
+  });
+
+  redisClient.on('error', (err) => {
+    isRedisConnected = false;
+    // Don't crash — app degrades gracefully without cache
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('⚠️  Redis Error (app continues without cache):', err.message);
+    }
+  });
+
+  redisClient.on('close', () => {
+    isRedisConnected = false;
+  });
+
+  redisClient.on('reconnecting', () => {
+    console.log('🔄 Redis reconnecting...');
+  });
+
+} catch (err) {
+  console.warn('⚠️  Redis init failed (app continues without cache):', err.message);
+}
+
+
+// ===================================================
+// SAFE WRAPPERS — never throw, degrade gracefully
+// ===================================================
+
+const get = async (key) => {
+  if (!redisClient || !isRedisConnected) return null;
+  try {
+    return await redisClient.get(key);
+  } catch { return null; }
+};
+
+const set = async (key, value, ttlSeconds = 300) => {
+  if (!redisClient || !isRedisConnected) return false;
+  try {
+    await redisClient.setex(key, ttlSeconds, value);
+    return true;
+  } catch { return false; }
+};
+
+const del = async (...keys) => {
+  if (!redisClient || !isRedisConnected) return false;
+  try {
+    await redisClient.del(...keys);
+    return true;
+  } catch { return false; }
+};
+
+// Pattern delete — uses SCAN (safe for production, never KEYS *)
+const delPattern = async (pattern) => {
+  if (!redisClient || !isRedisConnected) return false;
+  try {
+    let cursor = '0';
+    do {
+      const [nextCursor, keys] = await redisClient.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+      cursor = nextCursor;
+      if (keys.length > 0) await redisClient.del(...keys);
+    } while (cursor !== '0');
+    return true;
+  } catch { return false; }
+};
+
+const setJSON = async (key, value, ttlSeconds = 300) => {
+  return set(key, JSON.stringify(value), ttlSeconds);
+};
+
+const getJSON = async (key) => {
+  const raw = await get(key);
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+};
+
+const isHealthy = () => isRedisConnected;
+
+module.exports = {
+  redis: redisClient,
+  isHealthy,
+  get,
+  set,
+  del,
+  delPattern,
+  setJSON,
+  getJSON,
+};

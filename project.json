@@ -7,9 +7,9 @@
 
   "modules": [
     {
-      "name": "barber-shop-backend",
+      "name": "backend",
       "type": "backend",
-      "description": "Node.js + Express REST API",
+      "description": "Hyper-scalable Node.js + Express + Redis + BullMQ REST API",
       "language": "JavaScript",
       "runtime": "Node.js >= 18",
       "framework": "Express.js 4",
