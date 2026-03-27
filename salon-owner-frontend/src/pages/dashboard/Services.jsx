@@ -163,18 +163,18 @@ const ServiceMenuSection = ({ salon }) => {
           const uniCat       = UNISEX_CATEGORIES.find(u => u.label === cat.name);
           const uniMaleSet   = uniCat ? new Set(uniCat.maleSubServices)   : new Set();
           const uniFemaleSet = uniCat ? new Set(uniCat.femaleSubServices) : new Set();
-          const classify = (s) => {
+          const classifyGenders = (s) => {
             const name = typeof s === 'string' ? s : s.name;
             const af   = (typeof s === 'object' && s.applicableFor) || [];
-            if (af.includes('male')   && !af.includes('female')) return 'male';
-            if (af.includes('female') && !af.includes('male'))   return 'female';
-            if (uniMaleSet.has(name)   && !uniFemaleSet.has(name)) return 'male';
-            if (uniFemaleSet.has(name) && !uniMaleSet.has(name))   return 'female';
-            return 'both';
+            if (af.includes('male') && af.includes('female')) return ['male', 'female'];
+            if (af.includes('male'))   return ['male'];
+            if (af.includes('female')) return ['female'];
+            if (uniMaleSet.has(name) && !uniFemaleSet.has(name)) return ['male'];
+            if (uniFemaleSet.has(name) && !uniMaleSet.has(name)) return ['female'];
+            return ['male', 'female'];
           };
-          const menSubs   = showSplit ? subs.filter(s => classify(s) === 'male')   : [];
-          const womenSubs = showSplit ? subs.filter(s => classify(s) === 'female') : [];
-          const bothSubs  = showSplit ? subs.filter(s => classify(s) === 'both')   : [];
+          const menSubs   = showSplit ? subs.filter(s => classifyGenders(s).includes('male'))   : [];
+          const womenSubs = showSplit ? subs.filter(s => classifyGenders(s).includes('female')) : [];
 
           return (
             <div key={idx}>
@@ -194,7 +194,6 @@ const ServiceMenuSection = ({ salon }) => {
                     <p className="text-xs text-gray-400 dark:text-gray-600 py-2">No sub-services selected</p>
                   ) : showSplit ? (
                     <div className="space-y-3">
-                      {bothSubs.length > 0 && <div className="flex flex-wrap gap-1.5">{bothSubs.map((s,i) => <Chip key={i} sub={s}/>)}</div>}
                       {menSubs.length > 0 && (
                         <div>
                           <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1.5">👨 Men</p>
@@ -327,17 +326,19 @@ const Services = () => {
     });
   }, [filteredServices]);
 
-  /* Unisex classifier */
-  const classifySvc = (s, cat) => {
+  /* Unisex classifier — returns array of genders this service applies to */
+  const svcGenders = (s, cat) => {
     const af = s.applicableFor || [];
-    if (af.includes('male')   && !af.includes('female')) return 'male';
-    if (af.includes('female') && !af.includes('male'))   return 'female';
+    if (af.includes('male') && af.includes('female')) return ['male', 'female'];
+    if (af.includes('male'))   return ['male'];
+    if (af.includes('female')) return ['female'];
+    // Fallback: name-based lookup
     const uniCatDef    = UNISEX_CATEGORIES.find(u => u.label === cat);
     const uniMaleNames = uniCatDef ? new Set(uniCatDef.maleSubServices)   : new Set();
     const uniFemNames  = uniCatDef ? new Set(uniCatDef.femaleSubServices) : new Set();
-    if (uniMaleNames.has(s.name) && !uniFemNames.has(s.name))  return 'male';
-    if (uniFemNames.has(s.name)  && !uniMaleNames.has(s.name)) return 'female';
-    return 'both';
+    if (uniMaleNames.has(s.name) && !uniFemNames.has(s.name)) return ['male'];
+    if (uniFemNames.has(s.name) && !uniMaleNames.has(s.name)) return ['female'];
+    return ['male', 'female'];
   };
 
   const isUnisex = salon?.servedGender === 'unisex';
@@ -463,9 +464,8 @@ const Services = () => {
               const isFemaleOnly = FEMALE_ONLY_CATS.includes(cat);
               const showSplit = isUnisex && !isMaleOnly && !isFemaleOnly;
 
-              const menSvcs   = showSplit ? svcs.filter(s => classifySvc(s, cat) === 'male')   : [];
-              const womenSvcs = showSplit ? svcs.filter(s => classifySvc(s, cat) === 'female') : [];
-              const bothSvcs  = showSplit ? svcs.filter(s => classifySvc(s, cat) === 'both')   : [];
+              const menSvcs   = showSplit ? svcs.filter(s => svcGenders(s, cat).includes('male'))   : [];
+              const womenSvcs = showSplit ? svcs.filter(s => svcGenders(s, cat).includes('female')) : [];
 
               const renderCards = (list) => (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -508,7 +508,6 @@ const Services = () => {
                         renderCards(svcs)
                       ) : (
                         <div className="space-y-5">
-                          {bothSvcs.length > 0 && renderCards(bothSvcs)}
                           {menSvcs.length > 0 && (
                             <div>
                               <div className="flex items-center gap-2 mb-3 px-1">
