@@ -199,13 +199,13 @@ export default function LandingPage({
 
             {/* Headline */}
             <h1 className="lp-u2" style={{ fontSize: "clamp(2.6rem,7vw,4.8rem)", fontWeight: 900, lineHeight: 1.06, letterSpacing: "-2.5px", marginBottom: 20 }}>
-              Book the Perfect Salon,<br />
-              <span className="lp-shimmer">Instantly.</span>
+              Book smart, save time,<br />
+              <span className="lp-shimmer">avoid waiting.</span>
             </h1>
 
             {/* Sub */}
             <p className="lp-u3" style={{ fontSize: "clamp(1rem,2.4vw,1.15rem)", color: "var(--t-text-2)", lineHeight: 1.8, maxWidth: 460, margin: "0 auto 36px" }}>
-              Hair, spa, beard, nails &amp; more —<br className="hidden sm:block" />
+              Enjoy a seamless salon experience —<br className="hidden sm:block" />
               browse real reviews, pick your slot, confirm instantly.
             </p>
 
