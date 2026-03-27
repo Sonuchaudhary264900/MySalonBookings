@@ -447,7 +447,7 @@ const LandingPage = () => {
               <span style={{ fontWeight:800, fontSize:16, color:c.heading, letterSpacing:'-0.4px', lineHeight:1.1 }}>My Salon Bookings</span>
               <span style={{ fontSize:9, color:c.subtle, fontWeight:500, letterSpacing:0.5 }}>FOR SALON OWNERS</span>
             </div>
-            <span className="sm:hidden" style={{ fontWeight:800, fontSize:15, color:c.heading }}>MySalonBookings</span>
+            <span className="sm:hidden" style={{ fontWeight:800, fontSize:15, color:c.heading }}>My Salon Bookings</span>
           </div>
           <div className="flex items-center gap-2">
             <button
