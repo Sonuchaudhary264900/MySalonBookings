@@ -280,10 +280,10 @@ export default function BookingScreen({ route, navigation }) {
           </ScrollView>
         </View>
 
-        {/* Barber Selection */}
+        {/* Stylist Selection */}
         {barbers.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Select Barber <Text style={{ fontWeight: '400', color: '#9ca3af' }}>(optional)</Text></Text>
+            <Text style={styles.sectionTitle}>Select Stylist <Text style={{ fontWeight: '400', color: '#9ca3af' }}>(optional)</Text></Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
               <TouchableOpacity
                 style={[styles.barberChip, barberId === '' && styles.barberChipActive]}
