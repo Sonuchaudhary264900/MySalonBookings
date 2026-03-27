@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, memo, useMemo } from '
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   TextInput, ActivityIndicator, Image, RefreshControl,
-  ScrollView, Alert,
+  ScrollView, Alert, Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -133,12 +133,13 @@ const SalonCard = memo(function SalonCard({ salon, onPress, distance, isFavorite
   const styles = getStyles(theme);
   const [toggling, setToggling] = React.useState(false);
   const [pressed, setPressed]   = React.useState(false);
+  const heartScale = React.useRef(new Animated.Value(1)).current;
 
-  const photo         = salon.photos?.[0] || salon.coverPhoto || salon.ownerPhoto;
+  const photo         = salon.photos?.[0] || salon.coverPhoto;
   const rating        = salon.rating || salon.averageRating || 0;
   const reviewCount   = salon.reviewCount || salon.totalReviews || 0;
   const totalBookings = salon.totalBookings || 0;
-  const category      = (salon.category || 'salon').replace(/_/g, ' ');
+  const category      = (salon.category || 'salon').replace(/_/g, ' ').replace(/\bbarber\b/i, 'Salon');
   const openStatus    = isOpenNow(salon.workingHours);
   const todayHours    = getTodayHours(salon.workingHours);
   const opensAt       = getOpensAt(salon.workingHours);
@@ -152,8 +153,16 @@ const SalonCard = memo(function SalonCard({ salon, onPress, distance, isFavorite
       : `₹${salon.topOffer.discountValue} OFF${salon.topOffer.minAmount > 0 ? ` on ₹${salon.topOffer.minAmount}+` : ''}`
     : null;
 
+  const animateHeart = () => {
+    Animated.sequence([
+      Animated.spring(heartScale, { toValue: 1.5, useNativeDriver: true, tension: 280, friction: 4 }),
+      Animated.spring(heartScale, { toValue: 1,   useNativeDriver: true, tension: 200, friction: 6 }),
+    ]).start();
+  };
+
   const handleHeart = async () => {
     if (toggling) return;
+    animateHeart();
     setToggling(true);
     try {
       await api.post(`/customer/favorites/${salon._id}`);
@@ -218,7 +227,11 @@ const SalonCard = memo(function SalonCard({ salon, onPress, distance, isFavorite
         >
           {toggling
             ? <ActivityIndicator size="small" color="#ef4444" />
-            : <Ionicons name={isFavorited ? 'heart' : 'heart-outline'} size={18} color={isFavorited ? '#fff' : '#94a3b8'} />}
+            : (
+              <Animated.View style={{ transform: [{ scale: heartScale }] }}>
+                <Ionicons name={isFavorited ? 'heart' : 'heart-outline'} size={18} color={isFavorited ? '#fff' : '#94a3b8'} />
+              </Animated.View>
+            )}
         </TouchableOpacity>
 
         {/* Bottom image row: open pill (left) + rating + distance (right) */}
@@ -256,6 +269,15 @@ const SalonCard = memo(function SalonCard({ salon, onPress, distance, isFavorite
       <View style={styles.cardBody}>
         {/* Salon name */}
         <Text style={styles.cardName} numberOfLines={1}>{salon.name}</Text>
+
+        {/* Verified hygiene bar */}
+        {salon.isApproved && (
+          <View style={styles.verifiedBar}>
+            <Ionicons name="checkmark-circle" size={13} color="#10b981" />
+            <Text style={styles.verifiedBarText}>Verified Salon</Text>
+            <Text style={styles.verifiedBarSub}>· Hygiene Assured</Text>
+          </View>
+        )}
 
         {/* Stars + rating + review count */}
         <View style={[styles.cardRow, { marginBottom: 6 }]}>
@@ -306,9 +328,11 @@ const SalonCard = memo(function SalonCard({ salon, onPress, distance, isFavorite
         {(totalBookings >= 10 || salon.minPrice) && (
           <View style={[styles.cardRowSpread, { marginBottom: 10 }]}>
             {totalBookings >= 10 ? (
-              <Text style={{ fontSize: 11, color: theme.subText }}>
-                👥 {totalBookings >= 1000 ? `${(totalBookings / 1000).toFixed(1)}k` : `${totalBookings}+`} served
-              </Text>
+              <View style={styles.popularityPill}>
+                <Text style={styles.popularityText}>
+                  🔥 {totalBookings >= 1000 ? `${(totalBookings / 1000).toFixed(1)}k` : `${totalBookings}+`} booked
+                </Text>
+              </View>
             ) : <View />}
             {salon.minPrice && (
               <Text style={{ fontSize: 12, fontWeight: '700', color: theme.accent }}>
@@ -928,8 +952,8 @@ const getStyles = (t) => StyleSheet.create({
   topLeftBadges: { position: 'absolute', top: 10, left: 10, flexDirection: 'row', flexWrap: 'wrap', gap: 5, maxWidth: '75%' },
   categoryBadge: { backgroundColor: 'rgba(0,0,0,0.52)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
   categoryBadgeText: { fontSize: 10, fontWeight: '700', color: '#fff', textTransform: 'capitalize' },
-  verifiedImgBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(16,185,129,0.9)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4 },
-  verifiedImgText: { fontSize: 10, fontWeight: '700', color: '#fff' },
+  verifiedImgBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(16,185,129,0.94)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.22)', shadowColor: '#10b981', shadowOpacity: 0.7, shadowRadius: 8, elevation: 4 },
+  verifiedImgText: { fontSize: 11, fontWeight: '800', color: '#fff' },
   topRatedBadge: { backgroundColor: 'rgba(234,179,8,0.92)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4 },
   topRatedText: { fontSize: 10, fontWeight: '700', color: '#1a1200' },
   trendingBadge: { backgroundColor: 'rgba(239,68,68,0.9)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4 },
@@ -957,6 +981,13 @@ const getStyles = (t) => StyleSheet.create({
   cardAddress: { fontSize: 12, color: t.subText, flex: 1 },
   cardHours: { fontSize: 11, color: t.subText },
   cardDistance: { fontSize: 12, color: t.accent, fontWeight: '600' },
+
+  verifiedBar: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(16,185,129,0.09)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.28)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, marginBottom: 8 },
+  verifiedBarText: { fontSize: 11, fontWeight: '800', color: '#10b981' },
+  verifiedBarSub: { fontSize: 10, color: '#6b7280' },
+
+  popularityPill: { backgroundColor: 'rgba(239,68,68,0.09)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.18)', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3 },
+  popularityText: { fontSize: 11, fontWeight: '600', color: '#f87171' },
 
   nextSlotRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, alignSelf: 'flex-start', backgroundColor: 'rgba(99,102,241,0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(99,102,241,0.2)' },
   nextSlotText: { fontSize: 11, fontWeight: '600', color: '#6366f1' },
