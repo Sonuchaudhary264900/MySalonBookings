@@ -9,6 +9,7 @@ import Bookings from './pages/Bookings';
 import AllSalons from './pages/AllSalons';
 import Owners from './pages/Owners';
 import Customers from './pages/Customers';
+import Subscriptions from './pages/Subscriptions';
 import Layout from './components/Layout';
 
 const isAuth = () => !!localStorage.getItem('admin_token');
@@ -29,7 +30,8 @@ export default function App() {
           <Route path="bookings"  element={<Bookings />} />
           <Route path="salons"    element={<AllSalons />} />
           <Route path="owners"    element={<Owners />} />
-          <Route path="customers" element={<Customers />} />
+          <Route path="customers"      element={<Customers />} />
+          <Route path="subscriptions"  element={<Subscriptions />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

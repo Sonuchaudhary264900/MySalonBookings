@@ -1,14 +1,15 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Clock, Store, Users, LogOut, Scissors, BookOpen, TrendingUp, UserCheck } from 'lucide-react';
+import { LayoutDashboard, Clock, Store, Users, LogOut, Scissors, BookOpen, TrendingUp, UserCheck, CreditCard } from 'lucide-react';
 
 const nav = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/analytics', icon: TrendingUp,      label: 'Analytics' },
-  { to: '/pending',   icon: Clock,           label: 'Pending Approvals' },
-  { to: '/bookings',  icon: BookOpen,        label: 'Bookings' },
-  { to: '/salons',    icon: Store,           label: 'All Salons' },
-  { to: '/owners',    icon: UserCheck,       label: 'Owners' },
-  { to: '/customers', icon: Users,           label: 'Customers' },
+  { to: '/dashboard',     icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/analytics',     icon: TrendingUp,      label: 'Analytics' },
+  { to: '/pending',       icon: Clock,           label: 'Pending Approvals' },
+  { to: '/bookings',      icon: BookOpen,        label: 'Bookings' },
+  { to: '/salons',        icon: Store,           label: 'All Salons' },
+  { to: '/owners',        icon: UserCheck,       label: 'Owners' },
+  { to: '/customers',     icon: Users,           label: 'Customers' },
+  { to: '/subscriptions', icon: CreditCard,      label: 'Subscriptions' },
 ];
 
 export default function Layout() {
