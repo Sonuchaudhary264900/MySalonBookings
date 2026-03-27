@@ -36,6 +36,8 @@ const salonSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Phone number is required'],
       trim: true,
+      unique: true,
+      sparse: true,
     },
     email: {
       type: String,

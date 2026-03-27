@@ -85,6 +85,13 @@ exports.createSalon = async (req, res) => {
       );
     }
 
+    const phoneInUse = await Salon.findOne({ phone: phone.trim() });
+    if (phoneInUse) {
+      return res.status(409).json(
+        formatErrorResponse('This phone number is already registered to another salon. Please use a different number.', 409)
+      );
+    }
+
     const salon = await Salon.create({
 
       name,
@@ -220,7 +227,15 @@ exports.updateSalon = async (req, res) => {
     }
 
     if (name) salon.name = name;
-    if (phone) salon.phone = phone;
+    if (phone && phone.trim() !== salon.phone) {
+      const phoneInUse = await Salon.findOne({ phone: phone.trim(), _id: { $ne: salon._id } });
+      if (phoneInUse) {
+        return res.status(409).json(
+          formatErrorResponse('This phone number is already registered to another salon.', 409)
+        );
+      }
+      salon.phone = phone.trim();
+    }
     if (email) salon.email = email;
     if (address) salon.address = address;
     if (city) salon.city = city;
