@@ -443,7 +443,7 @@ const SalonContent = ({ salon, updateSalon }) => {
       <div className="space-y-1.5">
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
         <select name="category" value={form.category} onChange={handleChange} disabled={loading} className={SEL}>
-          <option value="barber">Barber Shop</option>
+          <option value="barber">Men's Salon</option>
           <option value="hair_salon">Hair Salon</option>
           <option value="spa">Spa</option>
           <option value="massage">Massage</option>
