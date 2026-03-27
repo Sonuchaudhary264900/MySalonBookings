@@ -199,7 +199,7 @@ app.use("/api/", rateLimiter(500, 900000));
 app.get("/health", (req, res) => {
   res.json({
     status: "OK",
-    service: "Barber Shop SaaS API",
+    service: "My Salon Bookings API",
     timestamp: new Date().toISOString()
   });
 });
@@ -300,7 +300,7 @@ const startServer = async () => {
     const PORT = process.env.PORT || 5000;
 
     console.log("══════════════════════════════════════════════");
-    console.log("🚀 BARBER SHOP SaaS BACKEND SERVER STARTING");
+    console.log("🚀 MY SALON BOOKINGS BACKEND SERVER STARTING");
     console.log("══════════════════════════════════════════════");
 
     await initializeDatabase();
