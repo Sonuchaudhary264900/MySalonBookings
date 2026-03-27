@@ -59,7 +59,7 @@ export default function OwnerPrivacyPolicy() {
             <li style={S.li}><strong>Salon Address & Location</strong> – for displaying your salon to customers nearby</li>
             <li style={S.li}><strong>Services & Pricing</strong> – the services you list and their prices</li>
             <li style={S.li}><strong>Salon Photos</strong> – images you upload (stored on Cloudinary)</li>
-            <li style={S.li}><strong>Business Category</strong> – barbershop, unisex salon, ladies salon, etc.</li>
+            <li style={S.li}><strong>Business Category</strong> – men's salon, unisex salon, ladies salon, etc.</li>
             <li style={S.li}><strong>Operating Hours</strong> – your salon's schedule for customer-facing display</li>
           </ul>
 
