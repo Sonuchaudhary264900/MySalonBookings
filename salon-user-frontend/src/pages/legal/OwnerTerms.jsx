@@ -162,7 +162,7 @@ export default function OwnerTerms() {
           <h3 style={S.h3}>6.3 Customer Data Handling</h3>
           <p style={S.p}>You will have access to customer names and phone numbers for booking fulfillment purposes. You must:</p>
           <ul style={S.ul}>
-            <li style={S.li">Use customer data <strong style={{ color: '#fff' }}>only</strong> to manage bookings made through MySalonBookings</li>
+            <li style={S.li}>Use customer data <strong style={{ color: '#fff' }}>only</strong> to manage bookings made through MySalonBookings</li>
             <li style={S.li}>Not contact customers for unsolicited marketing without their explicit consent</li>
             <li style={S.li}>Not sell, share, or transfer customer data to any third party</li>
             <li style={S.li}>Comply with applicable Indian data protection laws when handling customer information</li>
