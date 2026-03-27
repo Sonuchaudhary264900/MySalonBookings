@@ -72,17 +72,17 @@ module.exports = {
   },
 
   // ===================================================
-  // BARBER MESSAGES
+  // STYLIST / STAFF MESSAGES
   // ===================================================
   BARBER: {
     // Success
-    BARBER_CREATED: 'Barber added successfully.',
-    BARBER_UPDATED: 'Barber details updated successfully.',
-    BARBER_DELETED: 'Barber removed successfully.',
+    BARBER_CREATED: 'Stylist added successfully.',
+    BARBER_UPDATED: 'Stylist details updated successfully.',
+    BARBER_DELETED: 'Stylist removed successfully.',
 
     // Errors
-    BARBER_NOT_FOUND: 'Barber not found.',
-    BARBER_NOT_AVAILABLE: 'Barber is not available.',
+    BARBER_NOT_FOUND: 'Stylist not found.',
+    BARBER_NOT_AVAILABLE: 'Stylist is not available.',
   },
 
   // ===================================================
@@ -283,7 +283,7 @@ module.exports = {
     YOURE_NEXT_SMS: () => 'You\'re next! Come in now.',
 
     // EMAIL
-    WELCOME_EMAIL: 'Welcome to Barber Shop Booking!',
+    WELCOME_EMAIL: 'Welcome to My Salon Bookings!',
     OTP_EMAIL: 'Your OTP for verification',
     BOOKING_CONFIRMATION_EMAIL: 'Booking Confirmation',
     APPOINTMENT_REMINDER_EMAIL: 'Appointment Reminder',
