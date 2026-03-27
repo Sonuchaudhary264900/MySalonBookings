@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Phone, Lock, ArrowRight, Scissors, BarChart2, Users, Calendar } from 'lucide-react';
+import { Eye, EyeOff, Phone, Lock, ArrowRight, Scissors, BarChart2, Users, Calendar, Sun, Moon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../hooks/useAuth';
+import { useTheme } from '../../context/ThemeContext';
 import ROUTES from '../../routes';
 
 /* ─── CSS animations injected once ─────────────────────────────── */
@@ -146,6 +147,21 @@ const LOGIN_CSS = `
   }
   .lgn-modal-input::placeholder{color:#475569;}
   .lgn-modal-input:focus{border-color:rgba(139,92,246,0.6);box-shadow:0 0 0 3px rgba(139,92,246,0.12);}
+  /* ── Light mode overrides ── */
+  [data-lm] .lgn-input{background:rgba(0,0,0,0.04);border-color:rgba(0,0,0,0.1);color:#0f172a;}
+  [data-lm] .lgn-input::placeholder{color:#94a3b8;}
+  [data-lm] .lgn-input:focus{border-color:rgba(124,58,237,0.5);background:rgba(0,0,0,0.06);box-shadow:0 0 0 3px rgba(124,58,237,0.1);}
+  [data-lm] .lgn-input.err{border-color:rgba(239,68,68,0.55);}
+  [data-lm] .lgn-input.err:focus{box-shadow:0 0 0 3px rgba(239,68,68,0.12);}
+  [data-lm] .lgn-modal-input{background:rgba(0,0,0,0.04);border-color:rgba(0,0,0,0.1);color:#0f172a;}
+  [data-lm] .lgn-modal-input::placeholder{color:#94a3b8;}
+  [data-lm] .lgn-modal-input:focus{border-color:rgba(124,58,237,0.5);box-shadow:0 0 0 3px rgba(124,58,237,0.1);}
+  [data-lm] .lgn-outline-btn{background:rgba(0,0,0,0.04);color:#475569;border-color:rgba(0,0,0,0.1);}
+  [data-lm] .lgn-outline-btn:hover{background:rgba(0,0,0,0.07);}
+  [data-lm] .lgn-hero-card{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.1);}
+  [data-lm] .lgn-hero-card:hover{border-color:rgba(199,210,254,0.5);}
+  [data-lm] .lgn-link{color:#7c3aed;}
+  [data-lm] .lgn-link:hover{color:#6d28d9;}
 `;
 
 /* ─── Hero feature pills shown on the left side ────────────────── */
@@ -158,8 +174,9 @@ const HERO_FEATURES = [
 
 /* ═══════════════════════════════════════════════════════════════ */
 const Login = () => {
-  const navigate        = useNavigate();
-  const { login, user } = useAuth();
+  const navigate           = useNavigate();
+  const { login, user }    = useAuth();
+  const { isDark, toggleTheme } = useTheme();
 
   /* redirect if already logged in */
   useEffect(() => {
@@ -288,8 +305,26 @@ const Login = () => {
     <>
       <style>{LOGIN_CSS}</style>
 
+      {/* Theme toggle — fixed top-right */}
+      <button
+        onClick={toggleTheme}
+        type="button"
+        title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+        aria-label="Toggle theme"
+        style={{
+          position:'fixed', top:16, right:16, zIndex:9999,
+          width:40, height:40, borderRadius:'50%',
+          background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)',
+          border: isDark ? '1px solid rgba(255,255,255,0.14)' : '1px solid rgba(0,0,0,0.1)',
+          cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+          backdropFilter:'blur(8px)', transition:'all 0.2s ease',
+        }}
+      >
+        {isDark ? <Sun size={17} color="#fbbf24" /> : <Moon size={17} color="#475569" />}
+      </button>
+
       {/* ── PAGE WRAPPER ─────────────────────────────────────── */}
-      <div style={{ minHeight:'100vh', background:'#06060f', display:'flex', fontFamily:"'Inter','Segoe UI',system-ui,sans-serif", position:'relative', overflow:'hidden' }}>
+      <div data-lm={isDark ? undefined : '1'} style={{ minHeight:'100vh', background: isDark ? '#06060f' : '#f4f6fb', display:'flex', fontFamily:"'Inter','Segoe UI',system-ui,sans-serif", position:'relative', overflow:'hidden' }}>
 
         {/* Animated background orbs */}
         <div className="lgn-orb1" style={{ position:'absolute', top:'-10%', left:'-5%', width:600, height:600, borderRadius:'50%', background:'radial-gradient(circle,rgba(124,58,237,0.2) 0%,transparent 70%)', pointerEvents:'none' }} />
@@ -297,7 +332,7 @@ const Login = () => {
         <div className="lgn-orb3" style={{ position:'absolute', top:'40%', left:'40%', width:400, height:400, borderRadius:'50%', background:'radial-gradient(circle,rgba(139,92,246,0.1) 0%,transparent 70%)', pointerEvents:'none' }} />
 
         {/* ── LEFT HERO PANEL (desktop only) ───────────────────── */}
-        <div className="hidden lg:flex" style={{ width:'46%', flexDirection:'column', justifyContent:'center', padding:'60px 56px', position:'relative', zIndex:1 }}>
+        <div className="hidden lg:flex" style={{ width:'46%', flexDirection:'column', justifyContent:'center', padding:'60px 56px', position:'relative', zIndex:1, background: isDark ? 'transparent' : 'linear-gradient(160deg,#1e1b4b 0%,#2d1f6e 100%)' }}>
 
           {/* Logo */}
           <div className="lgn-fu1" style={{ display:'flex', alignItems:'center', gap:12, marginBottom:56 }}>
@@ -345,18 +380,18 @@ const Login = () => {
             <div className="flex lg:hidden lgn-fu1 items-center gap-3 justify-center mb-8">
               <div style={{ width:40, height:40, borderRadius:12, background:'linear-gradient(135deg,#7c3aed,#3b82f6)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, boxShadow:'0 0 18px rgba(124,58,237,0.5)' }}>✂</div>
               <div>
-                <div style={{ fontSize:16, fontWeight:700, color:'#f1f5f9' }}>My Salon Bookings</div>
-                <div style={{ fontSize:11, color:'#475569' }}>Owner Dashboard</div>
+                <div style={{ fontSize:16, fontWeight:700, color: isDark ? '#f1f5f9' : '#0f172a' }}>My Salon Bookings</div>
+                <div style={{ fontSize:11, color:'#64748b' }}>Owner Dashboard</div>
               </div>
             </div>
 
             {/* ── GLASS CARD ─────────────────────────────────── */}
-            <div className="lgn-fu2" style={{ background:'rgba(255,255,255,0.04)', backdropFilter:'blur(24px)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:24, padding:'36px 36px 32px', boxShadow:'0 32px 80px rgba(0,0,0,0.5), 0 0 60px rgba(124,58,237,0.08)' }}>
+            <div className="lgn-fu2" style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', backdropFilter:'blur(24px)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'}`, borderRadius:24, padding:'36px 36px 32px', boxShadow: isDark ? '0 32px 80px rgba(0,0,0,0.5), 0 0 60px rgba(124,58,237,0.08)' : '0 32px 80px rgba(0,0,0,0.1)' }}>
 
               {/* Card header */}
               <div style={{ marginBottom:28 }}>
-                <h2 style={{ fontSize:22, fontWeight:800, color:'#f1f5f9', letterSpacing:'-0.6px', marginBottom:6 }}>Welcome back</h2>
-                <p style={{ fontSize:14, color:'#475569', margin:0 }}>Sign in to your owner dashboard</p>
+                <h2 style={{ fontSize:22, fontWeight:800, color: isDark ? '#f1f5f9' : '#0f172a', letterSpacing:'-0.6px', marginBottom:6 }}>Welcome back</h2>
+                <p style={{ fontSize:14, color: isDark ? '#475569' : '#64748b', margin:0 }}>Sign in to your owner dashboard</p>
               </div>
 
               {/* Global error */}
@@ -376,7 +411,7 @@ const Login = () => {
 
                 {/* Phone */}
                 <div>
-                  <label style={{ display:'block', fontSize:13, fontWeight:600, color:'#94a3b8', marginBottom:7, letterSpacing:0.2 }}>
+                  <label style={{ display:'block', fontSize:13, fontWeight:600, color: isDark ? '#94a3b8' : '#64748b', marginBottom:7, letterSpacing:0.2 }}>
                     Phone Number
                   </label>
                   <div style={{ position:'relative' }}>
@@ -399,7 +434,7 @@ const Login = () => {
 
                 {/* Password */}
                 <div>
-                  <label style={{ display:'block', fontSize:13, fontWeight:600, color:'#94a3b8', marginBottom:7, letterSpacing:0.2 }}>
+                  <label style={{ display:'block', fontSize:13, fontWeight:600, color: isDark ? '#94a3b8' : '#64748b', marginBottom:7, letterSpacing:0.2 }}>
                     Password
                   </label>
                   <div style={{ position:'relative' }}>
@@ -433,15 +468,15 @@ const Login = () => {
                     <div
                       onClick={() => setRememberMe(v => !v)}
                       style={{
-                        width:18, height:18, borderRadius:5, border: rememberMe ? 'none' : '1.5px solid rgba(255,255,255,0.2)',
-                        background: rememberMe ? 'linear-gradient(135deg,#7c3aed,#3b82f6)' : 'rgba(255,255,255,0.05)',
+                        width:18, height:18, borderRadius:5, border: rememberMe ? 'none' : `1.5px solid ${isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)'}`,
+                        background: rememberMe ? 'linear-gradient(135deg,#7c3aed,#3b82f6)' : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'),
                         display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
                         transition:'all .2s ease', flexShrink:0,
                       }}
                     >
                       {rememberMe && <span style={{ color:'#fff', fontSize:11, fontWeight:700, lineHeight:1 }}>✓</span>}
                     </div>
-                    <span style={{ fontSize:13, color:'#64748b', userSelect:'none' }}>Remember me</span>
+                    <span style={{ fontSize:13, color: isDark ? '#64748b' : '#475569', userSelect:'none' }}>Remember me</span>
                   </label>
                   <button
                     type="button"
@@ -464,14 +499,14 @@ const Login = () => {
 
               {/* Divider */}
               <div style={{ display:'flex', alignItems:'center', gap:14, margin:'24px 0' }}>
-                <div style={{ flex:1, height:1, background:'rgba(255,255,255,0.07)' }} />
-                <span style={{ fontSize:12, color:'#334155', fontWeight:500 }}>OR</span>
-                <div style={{ flex:1, height:1, background:'rgba(255,255,255,0.07)' }} />
+                <div style={{ flex:1, height:1, background: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)' }} />
+                <span style={{ fontSize:12, color: isDark ? '#334155' : '#94a3b8', fontWeight:500 }}>OR</span>
+                <div style={{ flex:1, height:1, background: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)' }} />
               </div>
 
               {/* Register */}
               <div style={{ textAlign:'center' }}>
-                <p style={{ fontSize:13.5, color:'#475569', marginBottom:12 }}>Don't have an account?</p>
+                <p style={{ fontSize:13.5, color: isDark ? '#475569' : '#64748b', marginBottom:12 }}>Don't have an account?</p>
                 <a href={ROUTES.REGISTER} className="lgn-outline-btn" style={{ display:'block', textDecoration:'none' }}>
                   Create Free Account → 30-Day Trial
                 </a>
@@ -483,12 +518,12 @@ const Login = () => {
             {/* Footer links */}
             <div className="lgn-fu3" style={{ display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'center', gap:'6px 20px', marginTop:24 }}>
               <a href={ROUTES.OWNER_TERMS}   className="lgn-link" style={{ fontSize:12 }}>Terms &amp; Conditions</a>
-              <span style={{ color:'#1e293b', fontSize:12 }}>·</span>
+              <span style={{ color: isDark ? '#1e293b' : '#94a3b8', fontSize:12 }}>·</span>
               <a href={ROUTES.OWNER_PRIVACY} className="lgn-link" style={{ fontSize:12 }}>Privacy Policy</a>
-              <span style={{ color:'#1e293b', fontSize:12 }}>·</span>
+              <span style={{ color: isDark ? '#1e293b' : '#94a3b8', fontSize:12 }}>·</span>
               <a href="mailto:support@mysalonbookings.com" className="lgn-link" style={{ fontSize:12 }}>Contact Support</a>
             </div>
-            <p style={{ textAlign:'center', fontSize:11.5, color:'#1e293b', marginTop:14 }}>
+            <p style={{ textAlign:'center', fontSize:11.5, color: isDark ? '#1e293b' : '#94a3b8', marginTop:14 }}>
               © 2026 My Salon Bookings by Gigamind Technology Pvt Ltd
             </p>
 

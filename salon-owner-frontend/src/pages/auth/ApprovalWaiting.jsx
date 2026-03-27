@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, Clock, LogOut, RefreshCw, Store } from 'lucide-react';
+import { CheckCircle, Clock, LogOut, RefreshCw, Store, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useSalon } from '../../hooks/useSalon';
+import { useTheme } from '../../context/ThemeContext';
 import ROUTES from '../../routes';
 
 /* ─── CSS injected once ─────────────────────────────────────────────────── */
@@ -76,6 +77,9 @@ const AW_CSS = `
     justify-content:center;
   }
   .aw-btn-outline:hover { background:rgba(255,255,255,0.1); color:#cbd5e1; }
+  /* ── Light mode overrides ── */
+  [data-lm] .aw-btn-outline{background:rgba(0,0,0,0.04);border-color:rgba(0,0,0,0.1);color:#475569;}
+  [data-lm] .aw-btn-outline:hover{background:rgba(0,0,0,0.07);color:#334155;}
   .aw-step { display:flex; gap:14px; align-items:flex-start; }
   .aw-step-num {
     width:28px; height:28px; border-radius:50%;
@@ -106,6 +110,7 @@ const ApprovalWaiting = () => {
   const navigate = useNavigate();
   const { user, logout, refreshUser } = useAuth();
   const { salon, fetchSalon } = useSalon();
+  const { isDark, toggleTheme } = useTheme();
   const [loading, setLoading] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
@@ -143,9 +148,28 @@ const ApprovalWaiting = () => {
   return (
     <>
       <style>{AW_CSS}</style>
-      <div style={{
+
+      {/* Theme toggle — fixed top-right */}
+      <button
+        onClick={toggleTheme}
+        type="button"
+        title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+        aria-label="Toggle theme"
+        style={{
+          position:'fixed', top:16, right:16, zIndex:9999,
+          width:40, height:40, borderRadius:'50%',
+          background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)',
+          border: isDark ? '1px solid rgba(255,255,255,0.14)' : '1px solid rgba(0,0,0,0.1)',
+          cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+          backdropFilter:'blur(8px)', transition:'all 0.2s ease',
+        }}
+      >
+        {isDark ? <Sun size={17} color="#fbbf24" /> : <Moon size={17} color="#475569" />}
+      </button>
+
+      <div data-lm={isDark ? undefined : '1'} style={{
         minHeight: '100vh',
-        background: '#06060f',
+        background: isDark ? '#06060f' : '#f4f6fb',
         position: 'relative',
         overflow: 'hidden',
         fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif',
@@ -166,12 +190,12 @@ const ApprovalWaiting = () => {
               <div style={{ width:38, height:38, borderRadius:9, background:'linear-gradient(135deg,#7c3aed,#3b82f6)', display:'flex', alignItems:'center', justifyContent:'center' }}>
                 <Store size={18} color="#fff" />
               </div>
-              <span style={{ fontSize:17, fontWeight:700, color:'#f1f5f9' }}>My Salon Bookings</span>
+              <span style={{ fontSize:17, fontWeight:700, color: isDark ? '#f1f5f9' : '#0f172a' }}>My Salon Bookings</span>
             </div>
           </div>
 
           {/* ── Main card ── */}
-          <div style={{ background:'rgba(255,255,255,0.03)', border:'1.5px solid rgba(255,255,255,0.08)', borderRadius:22, overflow:'hidden' }}>
+          <div style={{ background: isDark ? 'rgba(255,255,255,0.03)' : '#ffffff', border: `1.5px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'}`, borderRadius:22, overflow:'hidden', boxShadow: isDark ? 'none' : '0 24px 60px rgba(0,0,0,0.08)' }}>
 
             {/* Header strip */}
             <div style={{

@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
-import { Eye, EyeOff, Phone, ArrowRight, Check, User, Mail, Gift, Scissors } from 'lucide-react';
+import { Eye, EyeOff, Phone, ArrowRight, Check, User, Mail, Gift, Scissors, Sun, Moon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../hooks/useAuth';
+import { useTheme } from '../../context/ThemeContext';
 import { auth } from '../../config/firebase';
 import ROUTES from '../../routes';
 
@@ -155,6 +156,18 @@ const REG_CSS = `
     height:4px;border-radius:4px;
     transition:width .4s ease,background .4s ease;
   }
+  /* ── Light mode overrides ── */
+  [data-lm] .reg-input{background:rgba(0,0,0,0.04);border-color:rgba(0,0,0,0.1);color:#0f172a;}
+  [data-lm] .reg-input::placeholder{color:#94a3b8;}
+  [data-lm] .reg-input:focus{border-color:rgba(124,58,237,0.5);background:rgba(0,0,0,0.06);box-shadow:0 0 0 3px rgba(124,58,237,0.1);}
+  [data-lm] .reg-input.err{border-color:rgba(239,68,68,0.55);}
+  [data-lm] .reg-input.err:focus{box-shadow:0 0 0 3px rgba(239,68,68,0.12);}
+  [data-lm] .reg-btn-outline{background:rgba(0,0,0,0.04);color:#475569;border-color:rgba(0,0,0,0.1);}
+  [data-lm] .reg-btn-outline:hover{background:rgba(0,0,0,0.07);}
+  [data-lm] .reg-link{color:#7c3aed;}
+  [data-lm] .reg-link:hover{color:#6d28d9;}
+  [data-lm] .reg-ghost-btn{color:#64748b;}
+  [data-lm] .reg-ghost-btn:hover{color:#7c3aed;}
 `;
 
 /* ─── Password strength helper ──────────────────────────────────── */
@@ -186,8 +199,9 @@ const STEPS = [
 
 /* ══════════════════════════════════════════════════════════════════ */
 const Register = () => {
-  const navigate        = useNavigate();
-  const { register, user } = useAuth();
+  const navigate              = useNavigate();
+  const { register, user }    = useAuth();
+  const { isDark, toggleTheme } = useTheme();
 
   useEffect(() => {
     if (user) navigate(ROUTES.DASHBOARD);
@@ -404,8 +418,26 @@ const Register = () => {
     <>
       <style>{REG_CSS}</style>
 
+      {/* Theme toggle — fixed top-right */}
+      <button
+        onClick={toggleTheme}
+        type="button"
+        title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+        aria-label="Toggle theme"
+        style={{
+          position:'fixed', top:16, right:16, zIndex:9999,
+          width:40, height:40, borderRadius:'50%',
+          background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)',
+          border: isDark ? '1px solid rgba(255,255,255,0.14)' : '1px solid rgba(0,0,0,0.1)',
+          cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+          backdropFilter:'blur(8px)', transition:'all 0.2s ease',
+        }}
+      >
+        {isDark ? <Sun size={17} color="#fbbf24" /> : <Moon size={17} color="#475569" />}
+      </button>
+
       {/* ── PAGE ──────────────────────────────────────────────── */}
-      <div style={{ minHeight:'100vh', background:'#06060f', display:'flex', fontFamily:"'Inter','Segoe UI',system-ui,sans-serif", position:'relative', overflow:'hidden' }}>
+      <div data-lm={isDark ? undefined : '1'} style={{ minHeight:'100vh', background: isDark ? '#06060f' : '#f4f6fb', display:'flex', fontFamily:"'Inter','Segoe UI',system-ui,sans-serif", position:'relative', overflow:'hidden' }}>
 
         {/* Orbs */}
         <div className="reg-orb1" style={{ position:'absolute', top:'-10%', left:'-6%', width:580, height:580, borderRadius:'50%', background:'radial-gradient(circle,rgba(124,58,237,0.22) 0%,transparent 70%)', pointerEvents:'none' }} />
@@ -419,7 +451,7 @@ const Register = () => {
           <div className="reg-fu1" style={{ display:'flex', alignItems:'center', gap:12, marginBottom:52 }}>
             <div style={{ width:44, height:44, borderRadius:13, background:'linear-gradient(135deg,#7c3aed,#3b82f6)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, boxShadow:'0 0 22px rgba(124,58,237,0.5)' }}>✂</div>
             <div>
-              <div style={{ fontSize:17, fontWeight:700, color:'#f1f5f9', letterSpacing:'-0.3px' }}>My Salon Bookings</div>
+              <div style={{ fontSize:17, fontWeight:700, color: isDark ? '#f1f5f9' : '#0f172a', letterSpacing:'-0.3px' }}>My Salon Bookings</div>
               <div style={{ fontSize:11, color:'#475569' }}>Owner Registration</div>
             </div>
           </div>
@@ -478,19 +510,19 @@ const Register = () => {
             <div className="flex lg:hidden reg-fu1 items-center gap-3 justify-center mb-7">
               <div style={{ width:40, height:40, borderRadius:12, background:'linear-gradient(135deg,#7c3aed,#3b82f6)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, boxShadow:'0 0 18px rgba(124,58,237,0.5)' }}>✂</div>
               <div>
-                <div style={{ fontSize:16, fontWeight:700, color:'#f1f5f9' }}>My Salon Bookings</div>
-                <div style={{ fontSize:11, color:'#475569' }}>Create your free account</div>
+                <div style={{ fontSize:16, fontWeight:700, color: isDark ? '#f1f5f9' : '#0f172a' }}>My Salon Bookings</div>
+                <div style={{ fontSize:11, color: isDark ? '#475569' : '#64748b' }}>Create your free account</div>
               </div>
             </div>
 
             {/* ── GLASS CARD ──────────────────────────────────── */}
-            <div className="reg-fu2" style={{ background:'rgba(255,255,255,0.04)', backdropFilter:'blur(24px)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:24, padding:'32px 32px 28px', boxShadow:'0 32px 80px rgba(0,0,0,0.5), 0 0 60px rgba(124,58,237,0.08)' }}>
+            <div className="reg-fu2" style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', backdropFilter:'blur(24px)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'}`, borderRadius:24, padding:'32px 32px 28px', boxShadow: isDark ? '0 32px 80px rgba(0,0,0,0.5), 0 0 60px rgba(124,58,237,0.08)' : '0 32px 80px rgba(0,0,0,0.1)' }}>
 
               {/* ── STEP PROGRESS BAR ──────────────────────── */}
               <div style={{ marginBottom:28 }}>
                 <div style={{ display:'flex', gap:6, marginBottom:10 }}>
                   {STEPS.map(({ n }) => (
-                    <div key={n} style={{ flex:1, height:4, borderRadius:4, background: step >= n ? 'linear-gradient(90deg,#7c3aed,#3b82f6)' : 'rgba(255,255,255,0.08)', transition:'background .4s ease' }} />
+                    <div key={n} style={{ flex:1, height:4, borderRadius:4, background: step >= n ? 'linear-gradient(90deg,#7c3aed,#3b82f6)' : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'), transition:'background .4s ease' }} />
                   ))}
                 </div>
                 <div style={{ display:'flex', justifyContent:'space-between' }}>
@@ -517,12 +549,12 @@ const Register = () => {
               {step === 1 && (
                 <form className="reg-step" onSubmit={handleSendOtp} noValidate style={{ display:'flex', flexDirection:'column', gap:18 }}>
                   <div style={{ marginBottom:4 }}>
-                    <h2 style={{ fontSize:20, fontWeight:800, color:'#f1f5f9', letterSpacing:'-0.5px', margin:'0 0 5px' }}>Verify your phone</h2>
+                    <h2 style={{ fontSize:20, fontWeight:800, color: isDark ? '#f1f5f9' : '#0f172a', letterSpacing:'-0.5px', margin:'0 0 5px' }}>Verify your phone</h2>
                     <p style={{ fontSize:13.5, color:'#475569', margin:0 }}>We'll send a one-time code via SMS</p>
                   </div>
 
                   <div>
-                    <label style={{ display:'block', fontSize:13, fontWeight:600, color:'#94a3b8', marginBottom:7, letterSpacing:0.2 }}>Phone Number</label>
+                    <label style={{ display:'block', fontSize:13, fontWeight:600, color: isDark ? '#94a3b8' : '#64748b', marginBottom:7, letterSpacing:0.2 }}>Phone Number</label>
                     <div style={{ position:'relative' }}>
                       {/* +91 prefix */}
                       <div style={{ position:'absolute', left:0, top:0, bottom:0, display:'flex', alignItems:'center', paddingLeft:14, paddingRight:10, borderRight:'1.5px solid rgba(255,255,255,0.1)', pointerEvents:'none' }}>
@@ -564,9 +596,9 @@ const Register = () => {
               {step === 2 && (
                 <form className="reg-step" onSubmit={handleVerifyOtp} noValidate style={{ display:'flex', flexDirection:'column', gap:20 }}>
                   <div>
-                    <h2 style={{ fontSize:20, fontWeight:800, color:'#f1f5f9', letterSpacing:'-0.5px', margin:'0 0 5px' }}>Enter the OTP</h2>
+                    <h2 style={{ fontSize:20, fontWeight:800, color: isDark ? '#f1f5f9' : '#0f172a', letterSpacing:'-0.5px', margin:'0 0 5px' }}>Enter the OTP</h2>
                     <p style={{ fontSize:13.5, color:'#475569', margin:0 }}>
-                      Sent to <strong style={{ color:'#94a3b8' }}>{normalizePhone(phoneNumber)}</strong>
+                      Sent to <strong style={{ color: isDark ? '#94a3b8' : '#64748b' }}>{normalizePhone(phoneNumber)}</strong>
                     </p>
                   </div>
 
@@ -630,13 +662,13 @@ const Register = () => {
               {step === 3 && (
                 <form className="reg-step" onSubmit={handleRegister} noValidate style={{ display:'flex', flexDirection:'column', gap:16 }}>
                   <div style={{ marginBottom:2 }}>
-                    <h2 style={{ fontSize:20, fontWeight:800, color:'#f1f5f9', letterSpacing:'-0.5px', margin:'0 0 5px' }}>Set up your profile</h2>
+                    <h2 style={{ fontSize:20, fontWeight:800, color: isDark ? '#f1f5f9' : '#0f172a', letterSpacing:'-0.5px', margin:'0 0 5px' }}>Set up your profile</h2>
                     <p style={{ fontSize:13.5, color:'#475569', margin:0 }}>Almost done — just a few details</p>
                   </div>
 
                   {/* Full name */}
                   <div>
-                    <label style={{ display:'block', fontSize:13, fontWeight:600, color:'#94a3b8', marginBottom:7 }}>Full Name</label>
+                    <label style={{ display:'block', fontSize:13, fontWeight:600, color: isDark ? '#94a3b8' : '#64748b', marginBottom:7 }}>Full Name</label>
                     <div style={{ position:'relative' }}>
                       <User size={15} color="#475569" style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', pointerEvents:'none' }} />
                       <input
@@ -655,7 +687,7 @@ const Register = () => {
 
                   {/* Gender */}
                   <div>
-                    <label style={{ display:'block', fontSize:13, fontWeight:600, color:'#94a3b8', marginBottom:8 }}>Gender</label>
+                    <label style={{ display:'block', fontSize:13, fontWeight:600, color: isDark ? '#94a3b8' : '#64748b', marginBottom:8 }}>Gender</label>
                     <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8 }}>
                       {[{v:'male',l:'Male',e:'👨'},{v:'female',l:'Female',e:'👩'},{v:'other',l:'Other',e:'🧑'}].map(opt => (
                         <button
@@ -682,7 +714,7 @@ const Register = () => {
 
                   {/* Email */}
                   <div>
-                    <label style={{ display:'block', fontSize:13, fontWeight:600, color:'#94a3b8', marginBottom:7 }}>Email Address</label>
+                    <label style={{ display:'block', fontSize:13, fontWeight:600, color: isDark ? '#94a3b8' : '#64748b', marginBottom:7 }}>Email Address</label>
                     <div style={{ position:'relative' }}>
                       <Mail size={15} color="#475569" style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', pointerEvents:'none' }} />
                       <input
@@ -701,7 +733,7 @@ const Register = () => {
 
                   {/* Password */}
                   <div>
-                    <label style={{ display:'block', fontSize:13, fontWeight:600, color:'#94a3b8', marginBottom:7 }}>Password</label>
+                    <label style={{ display:'block', fontSize:13, fontWeight:600, color: isDark ? '#94a3b8' : '#64748b', marginBottom:7 }}>Password</label>
                     <div style={{ position:'relative' }}>
                       <div style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', pointerEvents:'none' }}>
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -735,7 +767,7 @@ const Register = () => {
 
                   {/* Confirm password */}
                   <div>
-                    <label style={{ display:'block', fontSize:13, fontWeight:600, color:'#94a3b8', marginBottom:7 }}>Confirm Password</label>
+                    <label style={{ display:'block', fontSize:13, fontWeight:600, color: isDark ? '#94a3b8' : '#64748b', marginBottom:7 }}>Confirm Password</label>
                     <div style={{ position:'relative' }}>
                       <div style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', pointerEvents:'none' }}>
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -765,7 +797,7 @@ const Register = () => {
 
                   {/* Optional referral code */}
                   <div>
-                    <label style={{ display:'block', fontSize:13, fontWeight:600, color:'#94a3b8', marginBottom:7 }}>
+                    <label style={{ display:'block', fontSize:13, fontWeight:600, color: isDark ? '#94a3b8' : '#64748b', marginBottom:7 }}>
                       Referral Code <span style={{ fontWeight:400, color:'#334155' }}>(optional)</span>
                     </label>
                     <div style={{ position:'relative' }}>

@@ -9,26 +9,25 @@ function getSystemTheme() {
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
-    const manual = localStorage.getItem('salon-theme-manual');
-    // If no manual override recorded, always use system default
-    if (!manual) {
-      localStorage.removeItem('salon-theme');
-      return getSystemTheme();
-    }
-    return localStorage.getItem('salon-theme') || getSystemTheme();
+    // Session-only override — cleared automatically when tab/browser closes
+    const manual = sessionStorage.getItem('salon-theme-manual');
+    if (!manual) return getSystemTheme();
+    return sessionStorage.getItem('salon-theme') || getSystemTheme();
   });
 
   useEffect(() => {
-    const root = document.documentElement;
-    root.classList.toggle('dark', theme === 'dark');
-    localStorage.setItem('salon-theme', theme);
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+    // Write to sessionStorage only (never localStorage — no forever persistence)
+    if (sessionStorage.getItem('salon-theme-manual')) {
+      sessionStorage.setItem('salon-theme', theme);
+    }
   }, [theme]);
 
-  // Follow system preference changes when user hasn't manually overridden
+  // Follow system preference changes when user hasn't manually overridden this session
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const handler = (e) => {
-      const manual = localStorage.getItem('salon-theme-manual');
+      const manual = sessionStorage.getItem('salon-theme-manual');
       if (!manual) setTheme(e.matches ? 'dark' : 'light');
     };
     mq.addEventListener('change', handler);
@@ -38,7 +37,9 @@ export function ThemeProvider({ children }) {
   const toggleTheme = () => {
     setTheme(t => {
       const next = t === 'dark' ? 'light' : 'dark';
-      localStorage.setItem('salon-theme-manual', '1');
+      // Mark as manually overridden for this session only
+      sessionStorage.setItem('salon-theme-manual', '1');
+      sessionStorage.setItem('salon-theme', next);
       return next;
     });
   };
