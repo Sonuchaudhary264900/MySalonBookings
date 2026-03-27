@@ -430,7 +430,15 @@ const LandingPage = () => {
               title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
               style={{ display:'flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:10, background: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)', border:`1px solid ${c.border}`, cursor:'pointer', fontSize:16, transition:'all .2s ease', flexShrink:0 }}
             >
-              {isDark ? '☀️' : '🌙'}
+              {isDark ? (
+                <svg xmlns="http://www.w3.org/2000/svg" width={16} height={16} fill="none" viewBox="0 0 24 24" stroke={c.muted} strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" width={16} height={16} fill="none" viewBox="0 0 24 24" stroke={c.muted} strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" />
+                </svg>
+              )}
             </button>
             <a href={ROUTES.LOGIN} className="msb-link hidden sm:block px-4 py-2 text-sm font-medium rounded-xl" style={{ color:'#64748b' }}>Sign In</a>
             <a href={ROUTES.REGISTER} className="msb-btn-p px-5 py-2.5 text-sm font-bold rounded-xl" style={{ background:'linear-gradient(135deg,#7c3aed,#2563eb)', color:'#fff', boxShadow:'0 0 24px rgba(124,58,237,0.45)' }}>
