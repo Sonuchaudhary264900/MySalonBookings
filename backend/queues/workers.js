@@ -46,6 +46,10 @@ const notificationWorker = new Worker('notifications', async (job) => {
 // Processes nodemailer email jobs
 // ===================================================
 const emailWorker = new Worker('emails', async (job) => {
+  if (process.env.GMAIL_ENABLED !== 'true') {
+    logger.info('[Email disabled] Skipping email job', { subject: job.data.subject, to: job.data.to });
+    return;
+  }
   const nodemailer = require('nodemailer');
   const transporter = nodemailer.createTransport({
     service: 'gmail',

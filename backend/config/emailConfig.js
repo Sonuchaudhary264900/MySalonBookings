@@ -23,6 +23,10 @@ const transporter = nodemailer.createTransport({
 
 // Test email configuration
 const testEmailConnection = async () => {
+  if (process.env.GMAIL_ENABLED !== 'true') {
+    console.log('📧 Gmail disabled (GMAIL_ENABLED=false) — skipping SMTP check');
+    return false;
+  }
   try {
     await transporter.verify();
     console.log('✅ Gmail SMTP Connected Successfully');
@@ -30,16 +34,18 @@ const testEmailConnection = async () => {
     return true;
   } catch (error) {
     console.error('❌ Gmail SMTP Connection Failed:', error.message);
-    console.error('Make sure:');
-    console.error('1. 2FA is enabled on your Gmail account');
-    console.error('2. App password is created and correct in .env');
-    console.error('3. GMAIL_USER and GMAIL_APP_PASSWORD are set in .env');
     return false;
   }
 };
 
 // Generic email sending function
 const sendEmail = async (to, subject, htmlContent, textContent) => {
+  // EMAIL DISABLED — set GMAIL_ENABLED=true in .env to re-enable
+  if (process.env.GMAIL_ENABLED !== 'true') {
+    console.log(`📧 [Email disabled] Would have sent "${subject}" to ${to}`);
+    return { success: true, skipped: true };
+  }
+
   try {
     const mailOptions = {
       from: process.env.GMAIL_USER,
