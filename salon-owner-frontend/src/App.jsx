@@ -384,23 +384,54 @@ const DashboardMockWrapper = () => {
   );
 };
 
-const LandingPage = () => (
+const LandingPage = () => {
+  const { isDark, toggleTheme } = useTheme();
+
+  const c = {
+    bg:           isDark ? '#050510'                  : '#f8fafc',
+    nav:          isDark ? 'rgba(5,5,16,0.88)'        : 'rgba(248,250,252,0.94)',
+    text:         isDark ? '#e2e8f0'                  : '#0f172a',
+    heading:      isDark ? '#f1f5f9'                  : '#0f172a',
+    card:         isDark ? 'rgba(255,255,255,0.03)'   : '#ffffff',
+    card2:        isDark ? 'rgba(255,255,255,0.04)'   : 'rgba(0,0,0,0.025)',
+    shadow:       isDark ? '0 4px 24px rgba(0,0,0,0.3)' : '0 2px 12px rgba(0,0,0,0.07)',
+    border:       isDark ? 'rgba(255,255,255,0.07)'   : 'rgba(0,0,0,0.09)',
+    section:      isDark ? 'rgba(255,255,255,0.015)'  : 'rgba(0,0,0,0.025)',
+    sectionAlt:   isDark ? 'rgba(255,255,255,0.012)'  : 'rgba(0,0,0,0.018)',
+    divider:      isDark ? 'rgba(255,255,255,0.06)'   : 'rgba(0,0,0,0.08)',
+    dividerFaint: isDark ? 'rgba(255,255,255,0.04)'   : 'rgba(0,0,0,0.05)',
+    muted:        isDark ? '#94a3b8'                  : '#64748b',
+    subtle:       isDark ? '#475569'                  : '#64748b',
+    watermark:    isDark ? 'rgba(255,255,255,0.04)'   : 'rgba(0,0,0,0.06)',
+    btnSecBg:     isDark ? 'rgba(255,255,255,0.05)'   : 'rgba(0,0,0,0.04)',
+    btnSecBorder: isDark ? 'rgba(255,255,255,0.13)'   : 'rgba(0,0,0,0.13)',
+    btnBorder:    isDark ? 'rgba(255,255,255,0.12)'   : 'rgba(0,0,0,0.12)',
+  };
+
+  return (
   <>
     <style>{LANDING_CSS}</style>
-    <div style={{ background:'#050510', color:'#e2e8f0', minHeight:'100vh', fontFamily:"'Inter','Segoe UI',system-ui,sans-serif", overflowX:'hidden' }}>
+    <div style={{ background:c.bg, color:c.text, minHeight:'100vh', fontFamily:"'Inter','Segoe UI',system-ui,sans-serif", overflowX:'hidden' }}>
 
       {/* ── NAVBAR ────────────────────────────────────────────── */}
-      <nav style={{ position:'sticky', top:0, zIndex:50, background:'rgba(5,5,16,0.85)', backdropFilter:'blur(20px)', borderBottom:'1px solid rgba(255,255,255,0.07)' }}>
+      <nav style={{ position:'sticky', top:0, zIndex:50, background:c.nav, backdropFilter:'blur(20px)', borderBottom:`1px solid ${c.border}` }}>
         <div className="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div style={{ width:38, height:38, borderRadius:12, background:'linear-gradient(135deg,#7c3aed,#2563eb)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, boxShadow:'0 0 22px rgba(124,58,237,0.55)', flexShrink:0 }}>✂</div>
             <div className="hidden sm:flex flex-col">
-              <span style={{ fontWeight:800, fontSize:16, color:'#f1f5f9', letterSpacing:'-0.4px', lineHeight:1.1 }}>My Salon Bookings</span>
-              <span style={{ fontSize:9, color:'#475569', fontWeight:500, letterSpacing:0.5 }}>FOR SALON OWNERS</span>
+              <span style={{ fontWeight:800, fontSize:16, color:c.heading, letterSpacing:'-0.4px', lineHeight:1.1 }}>My Salon Bookings</span>
+              <span style={{ fontSize:9, color:c.subtle, fontWeight:500, letterSpacing:0.5 }}>FOR SALON OWNERS</span>
             </div>
-            <span className="sm:hidden" style={{ fontWeight:800, fontSize:15, color:'#f1f5f9' }}>MySalonBookings</span>
+            <span className="sm:hidden" style={{ fontWeight:800, fontSize:15, color:c.heading }}>MySalonBookings</span>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={toggleTheme}
+              title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+              style={{ display:'flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:10, background: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)', border:`1px solid ${c.border}`, cursor:'pointer', fontSize:16, transition:'all .2s ease', flexShrink:0 }}
+            >
+              {isDark ? '☀️' : '🌙'}
+            </button>
             <a href={ROUTES.LOGIN} className="msb-link hidden sm:block px-4 py-2 text-sm font-medium rounded-xl" style={{ color:'#64748b' }}>Sign In</a>
             <a href={ROUTES.REGISTER} className="msb-btn-p px-5 py-2.5 text-sm font-bold rounded-xl" style={{ background:'linear-gradient(135deg,#7c3aed,#2563eb)', color:'#fff', boxShadow:'0 0 24px rgba(124,58,237,0.45)' }}>
               Start Free →
@@ -423,14 +454,14 @@ const LandingPage = () => (
           </div>
 
           {/* Headline */}
-          <h1 className="msb-fu2" style={{ fontSize:'clamp(1.9rem,6vw,4.6rem)', fontWeight:900, lineHeight:1.15, letterSpacing:'-1.5px', color:'#f8fafc', marginBottom:20 }}>
+          <h1 className="msb-fu2" style={{ fontSize:'clamp(1.9rem,6vw,4.6rem)', fontWeight:900, lineHeight:1.15, letterSpacing:'-1.5px', color:c.heading, marginBottom:20 }}>
             Run Your Salon Online.<br />
             Get More Customers.<br />
             <span className="msb-shimmer">Earn More Money.</span>
           </h1>
 
           {/* Subheading */}
-          <p className="msb-fu3 mx-auto" style={{ fontSize:'clamp(1rem,2.4vw,1.15rem)', color:'#64748b', lineHeight:1.8, maxWidth:520, marginBottom:40 }}>
+          <p className="msb-fu3 mx-auto" style={{ fontSize:'clamp(1rem,2.4vw,1.15rem)', color:c.muted, lineHeight:1.8, maxWidth:520, marginBottom:40 }}>
             Bookings, analytics, staff, payments & customers —<br className="hidden sm:block" />
             all in one dashboard built for Indian salons.
           </p>
@@ -440,11 +471,11 @@ const LandingPage = () => (
             <a href={ROUTES.REGISTER} className="msb-btn-p px-8 py-4 font-bold rounded-2xl text-base" style={{ background:'linear-gradient(135deg,#7c3aed,#2563eb)', color:'#fff', boxShadow:'0 0 36px rgba(124,58,237,0.55)', display:'inline-flex', alignItems:'center', gap:10 }}>
               🚀&nbsp; Start 30-Day Free Trial
             </a>
-            <a href={ROUTES.LOGIN} className="msb-btn-s px-8 py-4 font-semibold rounded-2xl text-base" style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.13)', color:'#94a3b8', display:'inline-flex', alignItems:'center', gap:8 }}>
+            <a href={ROUTES.LOGIN} className="msb-btn-s px-8 py-4 font-semibold rounded-2xl text-base" style={{ background:c.btnSecBg, border:`1px solid ${c.btnSecBorder}`, color:c.muted, display:'inline-flex', alignItems:'center', gap:8 }}>
               Owner Login →
             </a>
           </div>
-          <p className="msb-fu5" style={{ fontSize:11.5, color:'#475569', marginBottom:48 }}>
+          <p className="msb-fu5" style={{ fontSize:11.5, color:c.subtle, marginBottom:48 }}>
             ✓ No credit card &nbsp;·&nbsp; ✓ Full access from day 1 &nbsp;·&nbsp; ✓ 5-minute setup &nbsp;·&nbsp; ✓ Cancel anytime
           </p>
 
@@ -454,7 +485,7 @@ const LandingPage = () => (
       </section>
 
       {/* ── STATS BAR ─────────────────────────────────────────── */}
-      <section style={{ background:'rgba(255,255,255,0.02)', borderTop:'1px solid rgba(255,255,255,0.06)', borderBottom:'1px solid rgba(255,255,255,0.06)', padding:'48px 20px' }}>
+      <section style={{ background:c.section, borderTop:`1px solid ${c.divider}`, borderBottom:`1px solid ${c.divider}`, padding:'48px 20px' }}>
         <div className="max-w-5xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
             { value:'500+',  label:'Salon Owners',     sub:'across India',  color:'#818cf8', glow:'rgba(99,102,241,0.3)' },
@@ -462,12 +493,12 @@ const LandingPage = () => (
             { value:'99.9%', label:'Platform Uptime',  sub:'guaranteed',    color:'#fcd34d', glow:'rgba(245,158,11,0.3)' },
             { value:'4.9★',  label:'Average Rating',   sub:'by owners',     color:'#f9a8d4', glow:'rgba(236,72,153,0.3)' },
           ].map(({ value, label, sub, color, glow }) => (
-            <div key={label} style={{ background:'rgba(255,255,255,0.025)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:20, padding:'24px 20px', textAlign:'center', transition:'transform .3s ease,border-color .3s ease', cursor:'default' }}
+            <div key={label} style={{ background:c.card, border:`1px solid ${c.border}`, borderRadius:20, padding:'24px 20px', textAlign:'center', transition:'transform .3s ease,border-color .3s ease', cursor:'default' }}
               onMouseEnter={e=>{ e.currentTarget.style.transform='translateY(-4px)'; e.currentTarget.style.borderColor=`${color}40`; }}
-              onMouseLeave={e=>{ e.currentTarget.style.transform=''; e.currentTarget.style.borderColor='rgba(255,255,255,0.06)'; }}>
+              onMouseLeave={e=>{ e.currentTarget.style.transform=''; e.currentTarget.style.borderColor=c.border; }}>
               <div style={{ fontSize:30, fontWeight:900, color, letterSpacing:'-1.5px', textShadow:`0 0 30px ${glow}`, marginBottom:4 }}>{value}</div>
-              <div style={{ fontSize:12.5, color:'#94a3b8', fontWeight:600, marginBottom:2 }}>{label}</div>
-              <div style={{ fontSize:10, color:'#475569' }}>{sub}</div>
+              <div style={{ fontSize:12.5, color:c.muted, fontWeight:600, marginBottom:2 }}>{label}</div>
+              <div style={{ fontSize:10, color:c.subtle }}>{sub}</div>
             </div>
           ))}
         </div>
@@ -478,8 +509,8 @@ const LandingPage = () => (
         <div className="max-w-5xl mx-auto">
           <div style={{ textAlign:'center', marginBottom:56 }}>
             <div style={{ display:'inline-block', background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.25)', borderRadius:99, padding:'4px 16px', fontSize:11, color:'#fca5a5', fontWeight:700, letterSpacing:1.5, marginBottom:18 }}>SOUND FAMILIAR?</div>
-            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:'#f1f5f9', letterSpacing:'-1px', marginBottom:12 }}>Every salon owner faces these problems</h2>
-            <p style={{ color:'#475569', fontSize:15, lineHeight:1.7 }}>We built My Salon Bookings to solve every single one of them.</p>
+            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:c.heading, letterSpacing:'-1px', marginBottom:12 }}>Every salon owner faces these problems</h2>
+            <p style={{ color:c.subtle, fontSize:15, lineHeight:1.7 }}>We built My Salon Bookings to solve every single one of them.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[
@@ -490,12 +521,12 @@ const LandingPage = () => (
               { pain:'Repeat customers forget to come back',                        fix:'Automated follow-ups and offers bring them back automatically', icon:'👋' },
               { pain:'Staff performance is a guessing game',                        fix:'Track each stylist\'s bookings, revenue, and productivity live', icon:'📋' },
             ].map(({ pain, fix, icon }) => (
-              <div key={pain} className="msb-pain" style={{ background:'rgba(255,255,255,0.025)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:20, padding:'22px 20px', cursor:'default' }}>
+              <div key={pain} className="msb-pain" style={{ background:c.card, border:`1px solid ${c.border}`, borderRadius:20, padding:'22px 20px', cursor:'default' }}>
                 <div style={{ fontSize:28, marginBottom:12 }}>{icon}</div>
                 <p style={{ fontSize:13, color:'#ef4444', fontWeight:600, lineHeight:1.6, marginBottom:12, fontStyle:'italic' }}>"{pain}"</p>
                 <div style={{ display:'flex', alignItems:'flex-start', gap:8 }}>
                   <span style={{ color:'#6ee7b7', fontWeight:800, fontSize:14, flexShrink:0, marginTop:1 }}>✓</span>
-                  <p style={{ fontSize:12.5, color:'#64748b', lineHeight:1.65 }}>{fix}</p>
+                  <p style={{ fontSize:12.5, color:c.muted, lineHeight:1.65 }}>{fix}</p>
                 </div>
               </div>
             ))}
@@ -508,8 +539,8 @@ const LandingPage = () => (
         <div className="max-w-5xl mx-auto">
           <div style={{ textAlign:'center', marginBottom:60 }}>
             <div style={{ display:'inline-block', background:'rgba(124,58,237,0.1)', border:'1px solid rgba(124,58,237,0.25)', borderRadius:99, padding:'4px 16px', fontSize:11, color:'#a78bfa', fontWeight:700, letterSpacing:1.5, marginBottom:18 }}>HOW IT WORKS</div>
-            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:'#f1f5f9', letterSpacing:'-1px', marginBottom:12 }}>Up and running in minutes</h2>
-            <p style={{ color:'#475569', fontSize:15, lineHeight:1.7 }}>No technical skills needed — just sign up and go.</p>
+            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:c.heading, letterSpacing:'-1px', marginBottom:12 }}>Up and running in minutes</h2>
+            <p style={{ color:c.subtle, fontSize:15, lineHeight:1.7 }}>No technical skills needed — just sign up and go.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
             {[
@@ -517,11 +548,11 @@ const LandingPage = () => (
               { step:'02', icon:'📲', title:'Share Your Profile', desc:'Customers find your salon on the app, pick a service, and book an available slot instantly.', color:'#a78bfa' },
               { step:'03', icon:'💰', title:'Grow Your Revenue', desc:'Track earnings, manage bookings, get paid — all from your phone or browser.', color:'#67e8f9' },
             ].map(({ step, icon, title, desc, color }) => (
-              <div key={step} className="msb-step" style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:22, padding:'30px 26px', position:'relative', overflow:'hidden', boxShadow:'0 4px 24px rgba(0,0,0,0.3)' }}>
-                <div style={{ position:'absolute', top:16, right:18, fontSize:52, fontWeight:900, color:'rgba(255,255,255,0.04)', lineHeight:1, userSelect:'none' }}>{step}</div>
+              <div key={step} className="msb-step" style={{ background:c.card, border:`1px solid ${c.border}`, borderRadius:22, padding:'30px 26px', position:'relative', overflow:'hidden', boxShadow:c.shadow }}>
+                <div style={{ position:'absolute', top:16, right:18, fontSize:52, fontWeight:900, color:c.watermark, lineHeight:1, userSelect:'none' }}>{step}</div>
                 <div style={{ width:52, height:52, borderRadius:16, background:`${color}18`, border:`1px solid ${color}30`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, marginBottom:20, boxShadow:`0 0 24px ${color}25` }}>{icon}</div>
-                <h3 style={{ fontSize:16, fontWeight:700, color:'#f1f5f9', marginBottom:10 }}>{title}</h3>
-                <p style={{ fontSize:13.5, color:'#475569', lineHeight:1.75 }}>{desc}</p>
+                <h3 style={{ fontSize:16, fontWeight:700, color:c.heading, marginBottom:10 }}>{title}</h3>
+                <p style={{ fontSize:13.5, color:c.subtle, lineHeight:1.75 }}>{desc}</p>
               </div>
             ))}
           </div>
@@ -533,20 +564,20 @@ const LandingPage = () => (
         <div className="max-w-5xl mx-auto">
           <div style={{ textAlign:'center', marginBottom:60 }}>
             <div style={{ display:'inline-block', background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.25)', borderRadius:99, padding:'4px 16px', fontSize:11, color:'#6ee7b7', fontWeight:700, letterSpacing:1.5, marginBottom:18 }}>FOR CUSTOMERS</div>
-            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:'#f1f5f9', letterSpacing:'-1px', marginBottom:12 }}>4 ways customers discover &amp; book your salon</h2>
-            <p style={{ color:'#475569', fontSize:15, maxWidth:480, margin:'0 auto', lineHeight:1.7 }}>Your salon is visible to thousands of customers on the My Salon Bookings app — for free.</p>
+            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:c.heading, letterSpacing:'-1px', marginBottom:12 }}>4 ways customers discover &amp; book your salon</h2>
+            <p style={{ color:c.subtle, fontSize:15, maxWidth:480, margin:'0 auto', lineHeight:1.7 }}>Your salon is visible to thousands of customers on the My Salon Bookings app — for free.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             {[
               {
                 num:'01', icon:'📍', title:'Nearby Search',
                 desc:'Customers open the app and instantly see salons close to them. Your profile appears automatically based on location — no ads or extra cost needed.',
-                color:'#6ee7b7', bg:'rgba(16,185,129,0.13)', border:'rgba(255,255,255,0.08)', highlight:false,
+                color:'#6ee7b7', bg:'rgba(16,185,129,0.13)', highlight:false,
               },
               {
                 num:'02', icon:'🔍', title:'Search by Service',
                 desc:'When a customer searches "hair cut", "facial", or "beard trim", your salon surfaces if you offer that service. The more services you list, the more you get found.',
-                color:'#818cf8', bg:'rgba(99,102,241,0.13)', border:'rgba(255,255,255,0.08)', highlight:false,
+                color:'#818cf8', bg:'rgba(99,102,241,0.13)', highlight:false,
               },
               {
                 num:'03', icon:'📲', title:'QR Code & Direct Link',
@@ -556,21 +587,19 @@ const LandingPage = () => (
               {
                 num:'04', icon:'⭐', title:'Ratings & Categories',
                 desc:'Top-rated salons appear higher in results. Customers filter by Men / Women / Unisex and by category. Better reviews and a complete profile = more bookings.',
-                color:'#fcd34d', bg:'rgba(245,158,11,0.13)', border:'rgba(255,255,255,0.08)', highlight:false,
+                color:'#fcd34d', bg:'rgba(245,158,11,0.13)', highlight:false,
               },
-            ].map(({ num, icon, title, desc, color, bg, border, highlight }) => (
+            ].map(({ num, icon, title, desc, color, bg, highlight }) => (
               <div key={num} className="msb-step" style={{
-                background: highlight ? 'linear-gradient(145deg,rgba(139,92,246,0.1),rgba(99,102,241,0.06))' : 'rgba(255,255,255,0.03)',
-                border: `1px solid ${border}`,
+                background: highlight ? 'linear-gradient(145deg,rgba(139,92,246,0.1),rgba(99,102,241,0.06))' : c.card,
+                border: highlight ? '1px solid rgba(139,92,246,0.35)' : `1px solid ${c.border}`,
                 borderRadius:22, padding:'28px 26px', position:'relative', overflow:'hidden',
-                boxShadow: highlight ? '0 0 50px rgba(139,92,246,0.15)' : '0 4px 24px rgba(0,0,0,0.25)',
+                boxShadow: highlight ? '0 0 50px rgba(139,92,246,0.15)' : c.shadow,
               }}>
-                {/* Watermark number */}
-                <div style={{ position:'absolute', top:14, right:20, fontSize:56, fontWeight:900, color:'rgba(255,255,255,0.04)', lineHeight:1, userSelect:'none', letterSpacing:'-3px' }}>{num}</div>
-                {/* Icon */}
+                <div style={{ position:'absolute', top:14, right:20, fontSize:56, fontWeight:900, color:c.watermark, lineHeight:1, userSelect:'none', letterSpacing:'-3px' }}>{num}</div>
                 <div style={{ width:52, height:52, borderRadius:16, background:bg, border:`1px solid ${color}25`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, marginBottom:18, boxShadow:`0 0 24px ${color}25` }}>{icon}</div>
-                <h3 style={{ fontSize:16.5, fontWeight:700, color:'#f1f5f9', marginBottom:10 }}>{title}</h3>
-                <p style={{ fontSize:13.5, color:'#475569', lineHeight:1.78, marginBottom: highlight ? 18 : 0 }}>{desc}</p>
+                <h3 style={{ fontSize:16.5, fontWeight:700, color:c.heading, marginBottom:10 }}>{title}</h3>
+                <p style={{ fontSize:13.5, color:c.subtle, lineHeight:1.78, marginBottom: highlight ? 18 : 0 }}>{desc}</p>
                 {highlight && (
                   <a href={ROUTES.REGISTER} className="msb-link inline-flex items-center gap-1.5" style={{ fontSize:13, color:'#a78bfa', fontWeight:600 }}>
                     Generate your QR free →
@@ -587,15 +616,15 @@ const LandingPage = () => (
         <div className="max-w-6xl mx-auto">
           <div style={{ textAlign:'center', marginBottom:60 }}>
             <div style={{ display:'inline-block', background:'rgba(124,58,237,0.1)', border:'1px solid rgba(124,58,237,0.25)', borderRadius:99, padding:'4px 16px', fontSize:11, color:'#a78bfa', fontWeight:700, letterSpacing:1.5, marginBottom:18 }}>FEATURES</div>
-            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:'#f1f5f9', letterSpacing:'-1px', marginBottom:12 }}>Everything your salon needs</h2>
-            <p style={{ color:'#475569', fontSize:15, maxWidth:440, margin:'0 auto', lineHeight:1.7 }}>One platform replaces all the apps and notebooks you currently use.</p>
+            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:c.heading, letterSpacing:'-1px', marginBottom:12 }}>Everything your salon needs</h2>
+            <p style={{ color:c.subtle, fontSize:15, maxWidth:440, margin:'0 auto', lineHeight:1.7 }}>One platform replaces all the apps and notebooks you currently use.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {FEATURES_DATA.map(({ icon, color, bg, title, desc }) => (
-              <div key={title} className="msb-feat" style={{ background:'rgba(255,255,255,0.025)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:22, padding:'28px 24px', cursor:'default' }}>
+              <div key={title} className="msb-feat" style={{ background:c.card, border:`1px solid ${c.border}`, borderRadius:22, padding:'28px 24px', cursor:'default' }}>
                 <div style={{ width:52, height:52, borderRadius:15, background:bg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, marginBottom:18, boxShadow:`0 0 26px ${color}30` }}>{icon}</div>
-                <h3 style={{ fontSize:16, fontWeight:700, color:'#f1f5f9', marginBottom:8 }}>{title}</h3>
-                <p style={{ fontSize:13.5, color:'#475569', lineHeight:1.75 }}>{desc}</p>
+                <h3 style={{ fontSize:16, fontWeight:700, color:c.heading, marginBottom:8 }}>{title}</h3>
+                <p style={{ fontSize:13.5, color:c.subtle, lineHeight:1.75 }}>{desc}</p>
               </div>
             ))}
           </div>
@@ -603,12 +632,12 @@ const LandingPage = () => (
       </section>
 
       {/* ── RESULTS — WHAT YOU GET ────────────────────────── */}
-      <section style={{ padding:'96px 20px', background:'rgba(255,255,255,0.015)', borderTop:'1px solid rgba(255,255,255,0.06)', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
+      <section style={{ padding:'96px 20px', background:c.section, borderTop:`1px solid ${c.divider}`, borderBottom:`1px solid ${c.divider}` }}>
         <div className="max-w-5xl mx-auto">
           <div style={{ textAlign:'center', marginBottom:56 }}>
             <div style={{ display:'inline-block', background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.25)', borderRadius:99, padding:'4px 16px', fontSize:11, color:'#6ee7b7', fontWeight:700, letterSpacing:1.5, marginBottom:18 }}>RESULTS</div>
-            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:'#f1f5f9', letterSpacing:'-1px', marginBottom:12 }}>What happens in your first 30 days</h2>
-            <p style={{ color:'#475569', fontSize:15, lineHeight:1.7, maxWidth:460, margin:'0 auto' }}>Salon owners consistently report these outcomes in their first month on the platform.</p>
+            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:c.heading, letterSpacing:'-1px', marginBottom:12 }}>What happens in your first 30 days</h2>
+            <p style={{ color:c.subtle, fontSize:15, lineHeight:1.7, maxWidth:460, margin:'0 auto' }}>Salon owners consistently report these outcomes in their first month on the platform.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-16">
             {[
@@ -617,20 +646,20 @@ const LandingPage = () => (
               { value:'3×', label:'Faster Check-in',    sub:'with digital queue',    color:'#fcd34d', glow:'rgba(245,158,11,0.35)',  icon:'⚡' },
               { value:'₹0', label:'Extra Marketing Cost', sub:'customers find you free', color:'#f9a8d4', glow:'rgba(236,72,153,0.35)', icon:'💸' },
             ].map(({ value, label, sub, color, glow, icon }) => (
-              <div key={label} className="msb-result" style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:22, padding:'28px 22px', textAlign:'center', cursor:'default' }}>
+              <div key={label} className="msb-result" style={{ background:c.card, border:`1px solid ${c.border}`, borderRadius:22, padding:'28px 22px', textAlign:'center', cursor:'default' }}>
                 <div style={{ fontSize:30, marginBottom:10 }}>{icon}</div>
                 <div style={{ fontSize:44, fontWeight:900, color, letterSpacing:'-2px', lineHeight:1, textShadow:`0 0 40px ${glow}`, marginBottom:8 }}>{value}</div>
-                <div style={{ fontSize:13, color:'#94a3b8', fontWeight:700, marginBottom:4 }}>{label}</div>
-                <div style={{ fontSize:11, color:'#475569' }}>{sub}</div>
+                <div style={{ fontSize:13, color:c.muted, fontWeight:700, marginBottom:4 }}>{label}</div>
+                <div style={{ fontSize:11, color:c.subtle }}>{sub}</div>
               </div>
             ))}
           </div>
 
           {/* Before / After table */}
-          <div style={{ background:'rgba(255,255,255,0.025)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:22, overflow:'hidden' }}>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', background:'rgba(255,255,255,0.04)', borderBottom:'1px solid rgba(255,255,255,0.07)', padding:'14px 24px' }}>
-              <div style={{ fontSize:11, fontWeight:700, color:'#475569', letterSpacing:1.2 }}>WHAT YOU DO NOW</div>
-              <div style={{ fontSize:11, fontWeight:700, color:'#475569', letterSpacing:1.2, textAlign:'center' }}>→</div>
+          <div style={{ background:c.card, border:`1px solid ${c.border}`, borderRadius:22, overflow:'hidden' }}>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', background:c.card2, borderBottom:`1px solid ${c.divider}`, padding:'14px 24px' }}>
+              <div style={{ fontSize:11, fontWeight:700, color:c.subtle, letterSpacing:1.2 }}>WHAT YOU DO NOW</div>
+              <div style={{ fontSize:11, fontWeight:700, color:c.subtle, letterSpacing:1.2, textAlign:'center' }}>→</div>
               <div style={{ fontSize:11, fontWeight:700, color:'#6ee7b7', letterSpacing:1.2, textAlign:'right' }}>WITH MY SALON BOOKINGS</div>
             </div>
             {[
@@ -641,10 +670,10 @@ const LandingPage = () => (
               ['Paper bills and manual accounting',     'Auto-invoices and earnings reports'],
               ['No idea who your loyal customers are',  'Full CRM with visit history'],
             ].map(([before, after], i) => (
-              <div key={i} style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', padding:'13px 24px', borderBottom: i < 5 ? '1px solid rgba(255,255,255,0.04)' : 'none', alignItems:'center', gap:12 }}>
-                <div style={{ fontSize:12.5, color:'#475569', display:'flex', alignItems:'center', gap:8 }}><span style={{ color:'#ef4444', fontWeight:700 }}>✗</span> {before}</div>
+              <div key={i} style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', padding:'13px 24px', borderBottom: i < 5 ? `1px solid ${c.dividerFaint}` : 'none', alignItems:'center', gap:12 }}>
+                <div style={{ fontSize:12.5, color:c.subtle, display:'flex', alignItems:'center', gap:8 }}><span style={{ color:'#ef4444', fontWeight:700 }}>✗</span> {before}</div>
                 <div />
-                <div style={{ fontSize:12.5, color:'#94a3b8', display:'flex', alignItems:'center', gap:8, justifyContent:'flex-end' }}>{after} <span style={{ color:'#6ee7b7', fontWeight:700 }}>✓</span></div>
+                <div style={{ fontSize:12.5, color:c.muted, display:'flex', alignItems:'center', gap:8, justifyContent:'flex-end' }}>{after} <span style={{ color:'#6ee7b7', fontWeight:700 }}>✓</span></div>
               </div>
             ))}
           </div>
@@ -656,8 +685,8 @@ const LandingPage = () => (
         <div className="max-w-5xl mx-auto">
           <div style={{ textAlign:'center', marginBottom:56 }}>
             <div style={{ display:'inline-block', background:'rgba(249,115,22,0.1)', border:'1px solid rgba(249,115,22,0.25)', borderRadius:99, padding:'4px 16px', fontSize:11, color:'#fb923c', fontWeight:700, letterSpacing:1.5, marginBottom:18 }}>GROWTH ENGINE</div>
-            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:'#f1f5f9', letterSpacing:'-1px', marginBottom:12 }}>Marketing that runs while you sleep</h2>
-            <p style={{ color:'#475569', fontSize:15, lineHeight:1.7, maxWidth:480, margin:'0 auto' }}>Automated campaigns that bring customers back — without you lifting a finger.</p>
+            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:c.heading, letterSpacing:'-1px', marginBottom:12 }}>Marketing that runs while you sleep</h2>
+            <p style={{ color:c.subtle, fontSize:15, lineHeight:1.7, maxWidth:480, margin:'0 auto' }}>Automated campaigns that bring customers back — without you lifting a finger.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-8">
             {[
@@ -666,11 +695,11 @@ const LandingPage = () => (
               { icon:'💤', color:'#818cf8', title:'Win-Back Campaigns',     desc:'Customers who haven\'t visited in 30+ days get an automatic "We miss you" offer. Recover lost revenue on autopilot.' },
               { icon:'🤖', color:'#a78bfa', title:'AI Smart Upselling',     desc:'When a customer books a haircut, the app suggests "Customers also booked facial." Smart suggestions increase your average bill.' },
             ].map(({ icon, color, title, desc }) => (
-              <div key={title} className="msb-ai" style={{ background:'rgba(255,255,255,0.025)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:20, padding:'26px 24px', display:'flex', gap:18, cursor:'default' }}>
+              <div key={title} className="msb-ai" style={{ background:c.card, border:`1px solid ${c.border}`, borderRadius:20, padding:'26px 24px', display:'flex', gap:18, cursor:'default' }}>
                 <div style={{ width:52, height:52, borderRadius:15, background:`${color}18`, border:`1px solid ${color}30`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, flexShrink:0, boxShadow:`0 0 24px ${color}20` }}>{icon}</div>
                 <div>
-                  <h3 style={{ fontSize:15, fontWeight:700, color:'#f1f5f9', marginBottom:8 }}>{title}</h3>
-                  <p style={{ fontSize:13, color:'#475569', lineHeight:1.7 }}>{desc}</p>
+                  <h3 style={{ fontSize:15, fontWeight:700, color:c.heading, marginBottom:8 }}>{title}</h3>
+                  <p style={{ fontSize:13, color:c.subtle, lineHeight:1.7 }}>{desc}</p>
                 </div>
               </div>
             ))}
@@ -690,24 +719,24 @@ const LandingPage = () => (
         <div className="max-w-5xl mx-auto">
           <div style={{ textAlign:'center', marginBottom:56 }}>
             <div style={{ display:'inline-block', background:'rgba(124,58,237,0.1)', border:'1px solid rgba(124,58,237,0.25)', borderRadius:99, padding:'4px 16px', fontSize:11, color:'#a78bfa', fontWeight:700, letterSpacing:1.5, marginBottom:18 }}>REVIEWS</div>
-            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:'#f1f5f9', letterSpacing:'-1px', marginBottom:12 }}>Loved by salon owners</h2>
+            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:c.heading, letterSpacing:'-1px', marginBottom:12 }}>Loved by salon owners</h2>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6, marginTop:8 }}>
               <span style={{ color:'#fcd34d', fontSize:18, letterSpacing:2 }}>★★★★★</span>
-              <span style={{ color:'#94a3b8', fontSize:14, fontWeight:600 }}>4.9 / 5 · 500+ reviews</span>
+              <span style={{ color:c.muted, fontSize:14, fontWeight:600 }}>4.9 / 5 · 500+ reviews</span>
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
             {REVIEWS.map(({ name, salon, rating, text }) => (
-              <div key={name} className="msb-review" style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:20, padding:'24px 22px' }}>
+              <div key={name} className="msb-review" style={{ background:c.card, border:`1px solid ${c.border}`, borderRadius:20, padding:'24px 22px' }}>
                 <div style={{ color:'#fcd34d', fontSize:15, marginBottom:14, letterSpacing:2 }}>{'★'.repeat(rating)}</div>
-                <p style={{ fontSize:13.5, color:'#94a3b8', lineHeight:1.75, marginBottom:18, fontStyle:'italic' }}>"{text}"</p>
+                <p style={{ fontSize:13.5, color:c.muted, lineHeight:1.75, marginBottom:18, fontStyle:'italic' }}>"{text}"</p>
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                   <div style={{ width:36, height:36, borderRadius:'50%', background:'linear-gradient(135deg,#7c3aed,#2563eb)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, color:'#fff', flexShrink:0 }}>
                     {name[0]}
                   </div>
                   <div>
-                    <div style={{ fontSize:13, fontWeight:700, color:'#e2e8f0' }}>{name}</div>
-                    <div style={{ fontSize:11, color:'#475569' }}>{salon}</div>
+                    <div style={{ fontSize:13, fontWeight:700, color:c.text }}>{name}</div>
+                    <div style={{ fontSize:11, color:c.subtle }}>{salon}</div>
                   </div>
                 </div>
               </div>
@@ -717,18 +746,18 @@ const LandingPage = () => (
       </section>
 
       {/* ── PRICING ───────────────────────────────────────────── */}
-      <section style={{ padding:'0 20px 96px', background:'rgba(255,255,255,0.012)', borderTop:'1px solid rgba(255,255,255,0.055)', paddingTop:96 }}>
+      <section style={{ background:c.sectionAlt, borderTop:`1px solid ${c.divider}`, padding:'96px 20px' }}>
         <div className="max-w-5xl mx-auto">
           <div style={{ textAlign:'center', marginBottom:60 }}>
             <div style={{ display:'inline-block', background:'rgba(124,58,237,0.1)', border:'1px solid rgba(124,58,237,0.25)', borderRadius:99, padding:'4px 16px', fontSize:11, color:'#a78bfa', fontWeight:700, letterSpacing:1.5, marginBottom:18 }}>PRICING</div>
-            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:'#f1f5f9', letterSpacing:'-1px', marginBottom:12 }}>Simple, honest pricing</h2>
-            <p style={{ color:'#475569', fontSize:15 }}>Start free. No credit card. Switch plans anytime.</p>
+            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:c.heading, letterSpacing:'-1px', marginBottom:12 }}>Simple, honest pricing</h2>
+            <p style={{ color:c.subtle, fontSize:15 }}>Start free. No credit card. Switch plans anytime.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
             {PRICING_PLANS.map(({ name, price, period, desc, highlight, features, cta, badge }) => (
               <div key={name} className="msb-price" style={{
-                background: highlight ? 'linear-gradient(155deg,rgba(124,58,237,0.16),rgba(37,99,235,0.1))' : 'rgba(255,255,255,0.03)',
-                border: highlight ? '1px solid rgba(124,58,237,0.5)' : '1px solid rgba(255,255,255,0.08)',
+                background: highlight ? 'linear-gradient(155deg,rgba(124,58,237,0.16),rgba(37,99,235,0.1))' : c.card,
+                border: highlight ? '1px solid rgba(124,58,237,0.5)' : `1px solid ${c.border}`,
                 borderRadius:26, padding:'36px 28px', position:'relative',
                 boxShadow: highlight ? '0 0 80px rgba(124,58,237,0.2),inset 0 1px 0 rgba(255,255,255,0.07)' : 'none',
               }}>
@@ -738,15 +767,15 @@ const LandingPage = () => (
                     {badge}
                   </div>
                 )}
-                <div style={{ fontSize:10.5, fontWeight:700, color: highlight ? '#a78bfa' : '#475569', letterSpacing:1.4, marginBottom:12, position:'relative' }}>{name.toUpperCase()}</div>
+                <div style={{ fontSize:10.5, fontWeight:700, color: highlight ? '#a78bfa' : c.subtle, letterSpacing:1.4, marginBottom:12, position:'relative' }}>{name.toUpperCase()}</div>
                 <div style={{ display:'flex', alignItems:'flex-end', gap:4, marginBottom:6, position:'relative' }}>
-                  <span style={{ fontSize:46, fontWeight:900, color:'#f1f5f9', letterSpacing:'-2.5px', lineHeight:1 }}>{price}</span>
-                  <span style={{ color:'#475569', fontSize:13.5, paddingBottom:8 }}>{period}</span>
+                  <span style={{ fontSize:46, fontWeight:900, color:c.heading, letterSpacing:'-2.5px', lineHeight:1 }}>{price}</span>
+                  <span style={{ color:c.subtle, fontSize:13.5, paddingBottom:8 }}>{period}</span>
                 </div>
-                <p style={{ fontSize:13, color:'#475569', marginBottom:26, lineHeight:1.65, position:'relative' }}>{desc}</p>
-                <div style={{ borderTop:'1px solid rgba(255,255,255,0.07)', paddingTop:22, marginBottom:28, position:'relative' }}>
+                <p style={{ fontSize:13, color:c.subtle, marginBottom:26, lineHeight:1.65, position:'relative' }}>{desc}</p>
+                <div style={{ borderTop:`1px solid ${c.border}`, paddingTop:22, marginBottom:28, position:'relative' }}>
                   {features.map(f => (
-                    <div key={f} style={{ display:'flex', alignItems:'center', gap:10, marginBottom:11, fontSize:13, color:'#94a3b8' }}>
+                    <div key={f} style={{ display:'flex', alignItems:'center', gap:10, marginBottom:11, fontSize:13, color:c.muted }}>
                       <span style={{ color: highlight ? '#a78bfa' : '#6ee7b7', fontWeight:800, fontSize:13, flexShrink:0 }}>✓</span>{f}
                     </div>
                   ))}
@@ -755,28 +784,28 @@ const LandingPage = () => (
                   display:'block', textAlign:'center', padding:'13px 0', borderRadius:14, position:'relative',
                   ...(highlight
                     ? { background:'linear-gradient(135deg,#7c3aed,#2563eb)', color:'#fff', fontWeight:700, fontSize:14, boxShadow:'0 0 30px rgba(124,58,237,0.5)' }
-                    : { background:'transparent', border:'1px solid rgba(255,255,255,0.12)', color:'#cbd5e1', fontWeight:600, fontSize:14 }),
+                    : { background:'transparent', border:`1px solid ${c.btnBorder}`, color:c.muted, fontWeight:600, fontSize:14 }),
                 }}>
                   {cta}
                 </a>
               </div>
             ))}
           </div>
-          <p style={{ textAlign:'center', marginTop:32, fontSize:13, color:'#475569' }}>
+          <p style={{ textAlign:'center', marginTop:32, fontSize:13, color:c.subtle }}>
             All plans include the <strong style={{ color:'#a78bfa' }}>My Salon Bookings app</strong> and full platform access. No hidden fees.
           </p>
         </div>
       </section>
 
       {/* ── APP DOWNLOAD ──────────────────────────────────────── */}
-      <section style={{ padding:'80px 20px', borderTop:'1px solid rgba(255,255,255,0.06)', position:'relative', overflow:'hidden' }}>
+      <section style={{ padding:'80px 20px', borderTop:`1px solid ${c.divider}`, position:'relative', overflow:'hidden' }}>
         <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse 70% 60% at 50% 100%,rgba(37,99,235,0.1) 0%,transparent 70%)', pointerEvents:'none' }} />
         <div className="max-w-4xl mx-auto text-center relative" style={{ zIndex:1 }}>
           <div style={{ fontSize:48, marginBottom:16 }}>📱</div>
-          <h2 style={{ fontSize:'clamp(1.6rem,3.5vw,2.4rem)', fontWeight:800, color:'#f1f5f9', letterSpacing:'-1px', marginBottom:12 }}>
+          <h2 style={{ fontSize:'clamp(1.6rem,3.5vw,2.4rem)', fontWeight:800, color:c.heading, letterSpacing:'-1px', marginBottom:12 }}>
             Manage your salon on the go
           </h2>
-          <p style={{ color:'#475569', fontSize:15, lineHeight:1.75, maxWidth:440, margin:'0 auto 32px' }}>
+          <p style={{ color:c.subtle, fontSize:15, lineHeight:1.75, maxWidth:440, margin:'0 auto 32px' }}>
             My Salon Bookings lets you accept bookings, track revenue, and manage your team — right from your phone.
           </p>
           <a
@@ -784,40 +813,40 @@ const LandingPage = () => (
             target="_blank"
             rel="noopener noreferrer"
             className="msb-btn-p inline-flex items-center gap-3 px-7 py-4 rounded-2xl font-bold text-sm"
-            style={{ background:'linear-gradient(135deg,#1a1a2e,#16213e)', border:'1px solid rgba(255,255,255,0.15)', color:'#f1f5f9', boxShadow:'0 0 30px rgba(37,99,235,0.3)', display:'inline-flex' }}
+            style={{ background: isDark ? 'linear-gradient(135deg,#1a1a2e,#16213e)' : 'linear-gradient(135deg,#f1f5f9,#e2e8f0)', border:`1px solid ${c.btnBorder}`, color:c.heading, boxShadow:'0 0 30px rgba(37,99,235,0.3)', display:'inline-flex' }}
           >
             <span style={{ fontSize:26 }}>▶</span>
             <div style={{ textAlign:'left' }}>
-              <div style={{ fontSize:9, fontWeight:500, color:'#64748b', letterSpacing:0.5 }}>GET IT ON</div>
-              <div style={{ fontSize:15, fontWeight:800, color:'#f1f5f9', marginTop:1 }}>Google Play</div>
+              <div style={{ fontSize:9, fontWeight:500, color:c.subtle, letterSpacing:0.5 }}>GET IT ON</div>
+              <div style={{ fontSize:15, fontWeight:800, color:c.heading, marginTop:1 }}>Google Play</div>
             </div>
           </a>
         </div>
       </section>
 
       {/* ── FINAL CTA ─────────────────────────────────────────── */}
-      <section style={{ padding:'96px 20px', position:'relative', overflow:'hidden', borderTop:'1px solid rgba(255,255,255,0.06)' }}>
+      <section style={{ padding:'96px 20px', position:'relative', overflow:'hidden', borderTop:`1px solid ${c.divider}` }}>
         <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse 70% 70% at 50% 50%,rgba(124,58,237,0.16) 0%,transparent 70%)', pointerEvents:'none' }} />
         <div style={{ position:'absolute', top:0, left:'50%', transform:'translateX(-50%)', width:'70%', height:1, background:'linear-gradient(90deg,transparent,rgba(139,92,246,0.45),transparent)', pointerEvents:'none' }} />
         <div className="max-w-2xl mx-auto text-center relative" style={{ zIndex:1 }}>
           <div style={{ fontSize:44, marginBottom:16 }}>✂</div>
-          <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:900, color:'#f1f5f9', letterSpacing:'-1.2px', marginBottom:14, lineHeight:1.15 }}>
+          <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:900, color:c.heading, letterSpacing:'-1.2px', marginBottom:14, lineHeight:1.15 }}>
             Stop losing bookings.<br />Start growing today.
           </h2>
-          <p style={{ color:'#475569', fontSize:15.5, marginBottom:36, lineHeight:1.75, maxWidth:400, margin:'0 auto 36px' }}>
+          <p style={{ color:c.subtle, fontSize:15.5, marginBottom:36, lineHeight:1.75, maxWidth:400, margin:'0 auto 36px' }}>
             500+ salon owners across India run smarter, earn more, and stress less — with My Salon Bookings. Join them free for 30 days.
           </p>
           <a href={ROUTES.REGISTER} className="msb-btn-p px-10 py-4 font-bold rounded-2xl inline-flex items-center gap-3" style={{ background:'linear-gradient(135deg,#7c3aed,#2563eb)', color:'#fff', boxShadow:'0 0 52px rgba(124,58,237,0.6)', fontSize:16 }}>
             🚀&nbsp; Start Free — No Card Needed
           </a>
-          <p style={{ fontSize:12, color:'#475569', marginTop:18 }}>
+          <p style={{ fontSize:12, color:c.subtle, marginTop:18 }}>
             ✓ 30 days free &nbsp;·&nbsp; ✓ Full access &nbsp;·&nbsp; ✓ Cancel anytime
           </p>
         </div>
       </section>
 
       {/* ── FOOTER ────────────────────────────────────────────── */}
-      <footer style={{ borderTop:'1px solid rgba(255,255,255,0.07)', padding:'40px 20px' }}>
+      <footer style={{ borderTop:`1px solid ${c.divider}`, padding:'40px 20px', background:c.bg }}>
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-8">
             {/* Brand */}
@@ -825,32 +854,32 @@ const LandingPage = () => (
               <div className="flex items-center gap-3 mb-4">
                 <div style={{ width:34, height:34, borderRadius:10, background:'linear-gradient(135deg,#7c3aed,#2563eb)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}>✂</div>
                 <div>
-                  <div style={{ fontSize:14, fontWeight:700, color:'#94a3b8' }}>My Salon Bookings</div>
-                  <div style={{ fontSize:10, color:'#475569' }}>by Gigamind Technology Pvt Ltd</div>
+                  <div style={{ fontSize:14, fontWeight:700, color:c.muted }}>My Salon Bookings</div>
+                  <div style={{ fontSize:10, color:c.subtle }}>by Gigamind Technology Pvt Ltd</div>
                 </div>
               </div>
-              <p style={{ fontSize:12.5, color:'#475569', lineHeight:1.75 }}>India's leading salon management platform for modern salon owners.</p>
+              <p style={{ fontSize:12.5, color:c.subtle, lineHeight:1.75 }}>India's leading salon management platform for modern salon owners.</p>
             </div>
             {/* Links */}
             <div>
-              <div style={{ fontSize:11, fontWeight:700, color:'#475569', letterSpacing:1.2, marginBottom:14 }}>PRODUCT</div>
+              <div style={{ fontSize:11, fontWeight:700, color:c.subtle, letterSpacing:1.2, marginBottom:14 }}>PRODUCT</div>
               {[['Features','#features'],['Pricing','#pricing'],['My Salon Bookings App','https://play.google.com/store/apps/details?id=com.mysalonbookings.owner'],['Sign In', ROUTES.LOGIN]].map(([label,href]) => (
                 <div key={label} style={{ marginBottom:9 }}>
-                  <a href={href} className="msb-link" style={{ fontSize:13, color:'#64748b' }}>{label}</a>
+                  <a href={href} className="msb-link" style={{ fontSize:13, color:c.muted }}>{label}</a>
                 </div>
               ))}
             </div>
             {/* Legal */}
             <div>
-              <div style={{ fontSize:11, fontWeight:700, color:'#475569', letterSpacing:1.2, marginBottom:14 }}>LEGAL & SUPPORT</div>
+              <div style={{ fontSize:11, fontWeight:700, color:c.subtle, letterSpacing:1.2, marginBottom:14 }}>LEGAL & SUPPORT</div>
               {[[`Privacy Policy`, ROUTES.OWNER_PRIVACY],[`Terms of Service`, ROUTES.OWNER_TERMS],[`Contact Us`,'mailto:support@mysalonbookings.com']].map(([label,href]) => (
                 <div key={label} style={{ marginBottom:9 }}>
-                  <a href={href} className="msb-link" style={{ fontSize:13, color:'#64748b' }}>{label}</a>
+                  <a href={href} className="msb-link" style={{ fontSize:13, color:c.muted }}>{label}</a>
                 </div>
               ))}
             </div>
           </div>
-          <div style={{ borderTop:'1px solid rgba(255,255,255,0.06)', paddingTop:20, textAlign:'center', fontSize:12, color:'#475569' }}>
+          <div style={{ borderTop:`1px solid ${c.dividerFaint}`, paddingTop:20, textAlign:'center', fontSize:12, color:c.subtle }}>
             © 2026 My Salon Bookings by Gigamind Technology Pvt Ltd. All rights reserved.
           </div>
         </div>
@@ -858,7 +887,8 @@ const LandingPage = () => (
 
     </div>
   </>
-);
+  );
+};
 
 // ── App ────────────────────────────────────────────────────────
 function App() {
