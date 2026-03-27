@@ -27,7 +27,7 @@ export default function Footer() {
         style={{ background: "radial-gradient(ellipse, rgba(99,102,241,0.8), transparent)" }}
       />
 
-      <div className="max-w-7xl mx-auto px-6 pt-14 pb-8 relative">
+      <div className="max-w-7xl mx-auto px-6 pt-14 pb-28 md:pb-8 relative">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
 
           {/* Brand */}
@@ -107,7 +107,7 @@ export default function Footer() {
             <h4 className="text-sm font-bold uppercase tracking-wider mb-5" style={{ color: "var(--t-text)" }}>For Salon Owners</h4>
             <ul className="space-y-3">
               {[
-                { href: "https://mysalonbookings.com", label: "Owner Dashboard" },
+                { href: "https://owner.mysalonbookings.com", label: "Owner Dashboard" },
                 { href: "https://play.google.com/store/apps/details?id=com.mysalonbookings.owner", label: "Owner App" },
               ].map(({ href, label }) => (
                 <li key={label}>
