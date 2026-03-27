@@ -39,9 +39,9 @@ function NotificationPanel({ onClose }) {
     useNotifications();
 
   return (
-    <div className="absolute right-0 top-full mt-2 w-[min(320px,calc(100vw-32px))] bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden fade-in">
+    <div className="absolute right-0 top-full mt-2 w-[min(320px,calc(100vw-32px))] t-card rounded-2xl shadow-xl z-50 overflow-hidden fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+      <div className="flex items-center justify-between px-4 py-3 t-divider">
         <div className="flex items-center gap-2">
           <span className="font-bold text-slate-900 text-sm">Notifications</span>
           {unreadCount > 0 && (
@@ -71,7 +71,7 @@ function NotificationPanel({ onClose }) {
       </div>
 
       {/* List */}
-      <div className="max-h-80 overflow-y-auto divide-y divide-slate-50">
+      <div className="max-h-80 overflow-y-auto divide-y" style={{ borderColor: 'var(--t-border)' }}>
         {notifications.length === 0 ? (
           <div className="py-10 text-center">
             <p className="text-3xl mb-2">🔔</p>
@@ -82,15 +82,16 @@ function NotificationPanel({ onClose }) {
             <div
               key={n.id}
               onClick={() => markRead(n.id)}
-              className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition hover:bg-slate-50 ${
-                !n.read ? "bg-indigo-50/40" : ""
-              }`}
+              className="flex items-start gap-3 px-4 py-3 cursor-pointer transition"
+              style={{ background: !n.read ? 'rgba(99,102,241,0.06)' : 'transparent' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--t-bg-2)'}
+              onMouseLeave={e => e.currentTarget.style.background = !n.read ? 'rgba(99,102,241,0.06)' : 'transparent'}
             >
               <span className="text-xl mt-0.5 shrink-0">
                 {TYPE_ICON[n.type] || TYPE_ICON.info}
               </span>
               <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium truncate ${!n.read ? "text-slate-900" : "text-slate-600"}`}>
+                <p className="text-sm font-medium truncate" style={{ color: !n.read ? 'var(--t-text)' : 'var(--t-text-2)' }}>
                   {n.title}
                 </p>
                 {n.message && (
@@ -192,12 +193,11 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
     <header
       className="sticky top-0 z-50 transition-all duration-300"
       style={{
-        background: scrolled
-          ? "rgba(5,5,9,0.9)"
-          : "rgba(5,5,9,0.75)",
+        background: scrolled ? "var(--t-nav-bg)" : "var(--t-nav-bg)",
+        opacity: scrolled ? 1 : 0.92,
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        borderBottom: "1px solid var(--t-border)",
       }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
@@ -206,7 +206,7 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
           <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center shadow-sm">
             <span className="text-white text-base">✂</span>
           </div>
-          <span className="text-xl font-bold text-neon-gradient">My Salon Bookings</span>
+          <span className="text-xl font-bold text-neon-gradient">Salon Bookings</span>
         </Link>
 
         {/* Desktop nav */}
@@ -322,11 +322,14 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
                   {userInitial}
                 </button>
                 {profileOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 py-1.5 z-50 fade-in">
+                  <div className="absolute right-0 top-full mt-2 w-48 t-card rounded-2xl shadow-xl py-1.5 z-50 fade-in">
                     <Link
                       to="/profile"
                       onClick={() => setProfileOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition"
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm transition"
+                      style={{ color: 'var(--t-text-2)' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--t-bg-2)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                       My Profile
@@ -334,7 +337,10 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
                     <Link
                       to="/dashboard"
                       onClick={() => setProfileOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition"
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm transition"
+                      style={{ color: 'var(--t-text-2)' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--t-bg-2)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                       My Bookings
@@ -342,15 +348,20 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
                     <Link
                       to="/favorites"
                       onClick={() => setProfileOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition"
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm transition"
+                      style={{ color: 'var(--t-text-2)' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--t-bg-2)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
                       Saved Salons
                     </Link>
-                    <div className="border-t border-slate-100 my-1" />
+                    <div className="my-1 t-divider" />
                     <button
                       onClick={() => { setProfileOpen(false); handleLogout(); }}
-                      className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition"
+                      className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-500 transition"
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--t-error-bg)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
                       Sign Out

@@ -222,25 +222,25 @@ function SalonCard({ salon, userCoords }) {
         <div className="p-3.5" style={{ background: "transparent" }}>
           {/* Name + rating */}
           <div className="flex items-start justify-between gap-2 mb-1.5">
-            <h2 className="font-bold text-white text-[15px] leading-tight line-clamp-1 flex-1">{salon.name}</h2>
+            <h2 className="font-bold text-[15px] leading-tight line-clamp-1 flex-1" style={{ color: 'var(--t-text)' }}>{salon.name}</h2>
             {rating > 0 && (
               <div className="flex items-center gap-1 shrink-0">
                 <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
                 <span className="text-xs font-bold text-amber-400">{rating.toFixed(1)}</span>
-                {reviewCount > 0 && <span className="text-[10px]" style={{ color: "rgba(148,163,184,0.5)" }}>({reviewCount})</span>}
+                {reviewCount > 0 && <span className="text-[10px]" style={{ color: "var(--t-text-3)" }}>({reviewCount})</span>}
               </div>
             )}
           </div>
 
           {/* Address */}
-          <p className="text-xs flex items-center gap-1 mb-2 line-clamp-1" style={{ color: "rgba(148,163,184,0.65)" }}>
+          <p className="text-xs flex items-center gap-1 mb-2 line-clamp-1" style={{ color: "var(--t-text-2)" }}>
             <MapPin className="w-3 h-3 shrink-0" style={{ color: "rgba(99,102,241,0.7)" }} />
             {address}
           </p>
 
           {/* Hours */}
           {todayHours && (
-            <p className="text-xs flex items-center gap-1 mb-2" style={{ color: "rgba(148,163,184,0.5)" }}>
+            <p className="text-xs flex items-center gap-1 mb-2" style={{ color: "var(--t-text-3)" }}>
               <Clock className="w-3 h-3 shrink-0" />
               {todayHours}
             </p>
@@ -286,8 +286,8 @@ function SalonCard({ salon, userCoords }) {
               Book Now →
             </div>
             {salon.minPrice && (
-              <div className="text-[10px] text-right shrink-0" style={{ color: "rgba(148,163,184,0.6)" }}>
-                <span className="block font-semibold" style={{ color: "rgba(148,163,184,0.9)" }}>from ₹{salon.minPrice}</span>
+              <div className="text-[10px] text-right shrink-0" style={{ color: "var(--t-text-3)" }}>
+                <span className="block font-semibold" style={{ color: "var(--t-text-2)" }}>from ₹{salon.minPrice}</span>
               </div>
             )}
           </div>

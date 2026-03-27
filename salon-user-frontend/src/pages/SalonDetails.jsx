@@ -93,7 +93,7 @@ function SalonDetails() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="t-page">
         <div className="h-56 skeleton" />
         <div className="max-w-4xl mx-auto px-4 py-6 space-y-4">
           <div className="h-6 skeleton rounded w-1/2" />
@@ -106,10 +106,10 @@ function SalonDetails() {
 
   if (!salon) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="t-page min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="flex justify-center mb-4"><Frown className="w-12 h-12 text-slate-300" /></div>
-          <p className="text-slate-600 mb-4">Salon not found.</p>
+          <div className="flex justify-center mb-4"><Frown className="w-12 h-12" style={{ color: 'var(--t-text-3)' }} /></div>
+          <p className="mb-4" style={{ color: 'var(--t-text-2)' }}>Salon not found.</p>
           <button onClick={() => navigate("/")} className="btn-primary">Go Home</button>
         </div>
       </div>
@@ -124,7 +124,7 @@ function SalonDetails() {
   const dayOrder = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="t-page">
       {/* ── HERO IMAGE ─────────────────────── */}
       <div className="relative h-56 sm:h-72 bg-gradient-to-br from-indigo-400 to-violet-500 overflow-hidden">
         {(salon.coverPhoto || salon.image || salon.photos?.[0] || salon.ownerPhoto) ? (
@@ -173,66 +173,79 @@ function SalonDetails() {
         {/* Quick info badges */}
         <div className="flex flex-wrap gap-2 mb-5">
           {salon.category && (
-            <span className="badge bg-indigo-50 text-indigo-600 capitalize">
+            <span className="badge" style={{ background: 'rgba(99,102,241,0.12)', color: '#818cf8' }}>
               {salon.category.replace("_", " ")}
             </span>
           )}
           {salon.servedGender && (
-            <span className={`badge capitalize flex items-center gap-1 ${
-              salon.servedGender === 'male' ? 'bg-blue-50 text-blue-600' :
-              salon.servedGender === 'female' ? 'bg-pink-50 text-pink-600' :
-              'bg-purple-50 text-purple-600'
-            }`}>
+            <span className="badge capitalize flex items-center gap-1" style={
+              salon.servedGender === 'male'   ? { background: 'rgba(59,130,246,0.12)', color: '#60a5fa' } :
+              salon.servedGender === 'female' ? { background: 'rgba(236,72,153,0.12)', color: '#f472b6' } :
+                                                { background: 'rgba(139,92,246,0.12)', color: '#a78bfa' }
+            }>
               {salon.servedGender === 'male' ? '👨' : salon.servedGender === 'female' ? '👩' : '👥'}
               {' '}
               {salon.servedGender === 'male' ? 'Men' : salon.servedGender === 'female' ? 'Women' : 'Unisex'}
             </span>
           )}
           {salon.ownerGender && (
-            <span className={`badge flex items-center gap-1 ${
-              salon.ownerGender === 'male' ? 'bg-blue-50 text-blue-700' :
-              salon.ownerGender === 'female' ? 'bg-pink-50 text-pink-700' :
-              'bg-gray-50 text-gray-600'
-            }`}>
+            <span className="badge flex items-center gap-1" style={
+              salon.ownerGender === 'male'   ? { background: 'rgba(59,130,246,0.12)', color: '#60a5fa' } :
+              salon.ownerGender === 'female' ? { background: 'rgba(236,72,153,0.12)', color: '#f472b6' } :
+                                               { background: 'rgba(148,163,184,0.12)', color: 'var(--t-text-2)' }
+            }>
               {salon.ownerGender === 'male' ? '👨' : salon.ownerGender === 'female' ? '👩' : '🧑'}
               {' Owner: '}{salon.ownerGender.charAt(0).toUpperCase() + salon.ownerGender.slice(1)}
             </span>
           )}
           {salon.isApproved && (
-            <span className="badge bg-green-50 text-green-600 flex items-center gap-1"><Check className="w-3 h-3" /> Verified</span>
+            <span className="badge flex items-center gap-1" style={{ background: 'rgba(34,197,94,0.12)', color: '#4ade80' }}>
+              <Check className="w-3 h-3" /> Verified
+            </span>
           )}
           {salon.phone && (
-            <a href={`tel:${salon.phone}`} className="badge bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center gap-1">
+            <a href={`tel:${salon.phone}`} className="badge flex items-center gap-1 transition-opacity hover:opacity-80"
+              style={{ background: 'var(--t-bg-2)', color: 'var(--t-text-2)', border: '1px solid var(--t-border)' }}>
               <Phone className="w-3 h-3" /> {salon.phone}
             </a>
           )}
           {reviews.length > 0 && (
-            <span className="badge bg-amber-50 text-amber-600 flex items-center gap-1">
+            <span className="badge flex items-center gap-1" style={{ background: 'rgba(251,191,36,0.12)', color: '#fbbf24' }}>
               <Star className="w-3 h-3" /> {reviews.length} review{reviews.length !== 1 ? "s" : ""}
             </span>
           )}
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-white rounded-xl p-1 border border-slate-100 mb-6">
+        <div
+          className="flex gap-1 rounded-xl p-1 mb-6"
+          style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}
+        >
           {TABS.map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${
+              className="flex-1 py-2 text-sm font-semibold rounded-lg transition-all"
+              style={
                 activeTab === t
-                  ? "bg-indigo-600 text-white shadow-sm"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
+                  ? { background: '#6366f1', color: '#fff' }
+                  : { color: 'var(--t-text-2)' }
+              }
             >
               {t}
               {t === "Services" && services.length > 0 && (
-                <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${activeTab === t ? "bg-white/25" : "bg-slate-100"}`}>
+                <span
+                  className="ml-1.5 text-xs px-1.5 py-0.5 rounded-full"
+                  style={{ background: activeTab === t ? 'rgba(255,255,255,0.25)' : 'var(--t-bg-2)' }}
+                >
                   {services.length}
                 </span>
               )}
               {t === "Reviews" && reviews.length > 0 && (
-                <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${activeTab === t ? "bg-white/25" : "bg-slate-100"}`}>
+                <span
+                  className="ml-1.5 text-xs px-1.5 py-0.5 rounded-full"
+                  style={{ background: activeTab === t ? 'rgba(255,255,255,0.25)' : 'var(--t-bg-2)' }}
+                >
                   {reviews.length}
                 </span>
               )}
@@ -344,11 +357,12 @@ function SalonDetails() {
                     <button
                       key={key}
                       onClick={() => setServiceGenderFilter(key)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+                      style={
                         serviceGenderFilter === key
-                          ? "bg-indigo-600 text-white border-indigo-600"
-                          : "bg-white text-slate-500 border-slate-200 hover:border-indigo-300"
-                      }`}
+                          ? { background: '#6366f1', color: '#fff', border: '1px solid #6366f1' }
+                          : { background: 'var(--t-input-bg)', color: 'var(--t-text-2)', border: '1px solid var(--t-border)' }
+                      }
                     >
                       <span>{emoji}</span> {label}
                     </button>
@@ -358,8 +372,8 @@ function SalonDetails() {
 
               {visibleServices.length === 0 ? (
                 <div className="text-center py-16">
-                  <div className="flex justify-center mb-3"><Scissors className="w-10 h-10 text-slate-200" /></div>
-                  <p className="text-slate-500">No services listed yet.</p>
+                  <div className="flex justify-center mb-3"><Scissors className="w-10 h-10" style={{ color: 'var(--t-border)' }} /></div>
+                  <p style={{ color: 'var(--t-text-2)' }}>No services listed yet.</p>
                 </div>
               ) : (
                 <div className="space-y-2 pb-32">
@@ -372,25 +386,30 @@ function SalonDetails() {
                     const hasSplit   = showGenderSplit && (maleOnly.length > 0 || femaleOnly.length > 0);
 
                     return (
-                      <div key={cat} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                      <div key={cat} className="rounded-xl overflow-hidden"
+                        style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
                         <button
                           type="button"
                           onClick={() => setExpandedCat(isOpen ? null : cat)}
-                          className="w-full flex items-center gap-2.5 px-4 py-3 hover:bg-slate-50 transition text-left"
+                          className="w-full flex items-center gap-2.5 px-4 py-3 transition text-left"
+                          style={{ color: 'var(--t-text)' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = 'var(--t-bg-2)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                         >
                           <span className="text-lg">{categoryIconMap[cat] || "✨"}</span>
-                          <span className="text-sm font-semibold text-slate-700 flex-1">{cat}</span>
-                          <span className="text-xs text-slate-400 mr-1">{catServices.length}</span>
-                          <span className="text-slate-400 text-sm">{isOpen ? "▲" : "▼"}</span>
+                          <span className="text-sm font-semibold flex-1" style={{ color: 'var(--t-text)' }}>{cat}</span>
+                          <span className="text-xs mr-1" style={{ color: 'var(--t-text-3)' }}>{catServices.length}</span>
+                          <span className="text-sm" style={{ color: 'var(--t-text-3)' }}>{isOpen ? "▲" : "▼"}</span>
                         </button>
 
                         {isOpen && (
-                          <div className="border-t border-slate-100 px-4 py-3 space-y-3">
+                          <div className="px-4 py-3 space-y-3"
+                            style={{ borderTop: '1px solid var(--t-border)' }}>
                             {hasSplit ? (
                               <>
                                 {maleOnly.length > 0 && (
                                   <div>
-                                    <p className="text-xs font-semibold text-blue-600 mb-1.5">👨 Men</p>
+                                    <p className="text-xs font-semibold mb-1.5" style={{ color: '#60a5fa' }}>👨 Men</p>
                                     <div className="space-y-2">
                                       {maleOnly.map(service => (
                                         <ServiceCard key={service._id} service={service}
@@ -402,7 +421,7 @@ function SalonDetails() {
                                 )}
                                 {femaleOnly.length > 0 && (
                                   <div>
-                                    <p className="text-xs font-semibold text-pink-500 mb-1.5">👩 Women</p>
+                                    <p className="text-xs font-semibold mb-1.5" style={{ color: '#f472b6' }}>👩 Women</p>
                                     <div className="space-y-2">
                                       {femaleOnly.map(service => (
                                         <ServiceCard key={service._id} service={service}
@@ -445,14 +464,15 @@ function SalonDetails() {
         {/* ── REVIEWS TAB ───────────────────── */}
         {activeTab === "Reviews" && (
           <div className="fade-in">
-            <div className="mb-5 p-4 bg-indigo-50 border border-indigo-100 rounded-xl text-sm text-indigo-700 flex items-center gap-3">
+            <div className="mb-5 p-4 rounded-xl text-sm flex items-center gap-3"
+              style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', color: '#818cf8' }}>
               <span>⭐</span>
               <span>Reviews can be submitted after completing a booking. You'll receive a notification once your service is done.</span>
             </div>
             {reviews.length === 0 ? (
               <div className="text-center py-12">
-                <div className="flex justify-center mb-3"><MessageSquare className="w-10 h-10 text-slate-200" /></div>
-                <p className="text-slate-500">No reviews yet. Be the first!</p>
+                <div className="flex justify-center mb-3"><MessageSquare className="w-10 h-10" style={{ color: 'var(--t-border)' }} /></div>
+                <p style={{ color: 'var(--t-text-2)' }}>No reviews yet. Be the first!</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -469,8 +489,8 @@ function SalonDetails() {
           <div className="fade-in space-y-4">
             {/* Photo Gallery */}
             {salon.photos?.length > 0 && (
-              <div className="bg-white rounded-xl border border-slate-100 p-5">
-                <h3 className="font-semibold text-slate-800 mb-3">Photos ({salon.photos.length})</h3>
+              <div className="rounded-xl p-5" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
+                <h3 className="font-semibold mb-3" style={{ color: 'var(--t-text)' }}>Photos ({salon.photos.length})</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {salon.photos.map((url, i) => (
                     <a key={i} href={url} target="_blank" rel="noreferrer" className="block aspect-square rounded-lg overflow-hidden">
@@ -482,48 +502,48 @@ function SalonDetails() {
             )}
 
             {salon.description && (
-              <div className="bg-white rounded-xl border border-slate-100 p-5">
-                <h3 className="font-semibold text-slate-800 mb-2">About</h3>
-                <p className="text-slate-600 text-sm leading-relaxed">{salon.description}</p>
+              <div className="rounded-xl p-5" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
+                <h3 className="font-semibold mb-2" style={{ color: 'var(--t-text)' }}>About</h3>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--t-text-2)' }}>{salon.description}</p>
               </div>
             )}
 
-            <div className="bg-white rounded-xl border border-slate-100 p-5">
-              <h3 className="font-semibold text-slate-800 mb-3">Contact & Location</h3>
-              <ul className="space-y-2 text-sm text-slate-600">
+            <div className="rounded-xl p-5" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
+              <h3 className="font-semibold mb-3" style={{ color: 'var(--t-text)' }}>Contact &amp; Location</h3>
+              <ul className="space-y-2 text-sm" style={{ color: 'var(--t-text-2)' }}>
                 {salon.address && (
                   <li className="flex gap-2"><img src="https://img.freepik.com/free-vector/location_53876-25530.jpg" alt="location" className="w-4 h-4 object-contain mt-0.5 shrink-0" /> {salon.address}</li>
                 )}
                 {salon.city && (
-                  <li className="flex gap-2 items-center"><Building2 className="w-4 h-4 shrink-0 text-slate-400" /> {salon.city}</li>
+                  <li className="flex gap-2 items-center"><Building2 className="w-4 h-4 shrink-0" style={{ color: 'var(--t-text-3)' }} /> {salon.city}</li>
                 )}
                 {salon.phone && (
-                  <li className="flex gap-2 items-center"><Phone className="w-4 h-4 shrink-0 text-slate-400" />
-                    <a href={`tel:${salon.phone}`} className="text-indigo-600 hover:underline">{salon.phone}</a>
+                  <li className="flex gap-2 items-center"><Phone className="w-4 h-4 shrink-0" style={{ color: 'var(--t-text-3)' }} />
+                    <a href={`tel:${salon.phone}`} className="text-indigo-400 hover:underline">{salon.phone}</a>
                   </li>
                 )}
                 {salon.email && (
-                  <li className="flex gap-2 items-center"><Mail className="w-4 h-4 shrink-0 text-slate-400" />
-                    <a href={`mailto:${salon.email}`} className="text-indigo-600 hover:underline">{salon.email}</a>
+                  <li className="flex gap-2 items-center"><Mail className="w-4 h-4 shrink-0" style={{ color: 'var(--t-text-3)' }} />
+                    <a href={`mailto:${salon.email}`} className="text-indigo-400 hover:underline">{salon.email}</a>
                   </li>
                 )}
               </ul>
             </div>
 
             {salon.workingHours && (
-              <div className="bg-white rounded-xl border border-slate-100 p-5">
-                <h3 className="font-semibold text-slate-800 mb-3">Working Hours</h3>
+              <div className="rounded-xl p-5" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
+                <h3 className="font-semibold mb-3" style={{ color: 'var(--t-text)' }}>Working Hours</h3>
                 <div className="space-y-2">
                   {dayOrder.map((day) => {
                     const h = salon.workingHours[day];
                     if (!h) return null;
                     return (
                       <div key={day} className="flex justify-between text-sm">
-                        <span className="capitalize text-slate-600 font-medium">{day}</span>
+                        <span className="capitalize font-medium" style={{ color: 'var(--t-text-2)' }}>{day}</span>
                         {h.isClosed ? (
-                          <span className="text-red-400">Closed</span>
+                          <span style={{ color: 'var(--t-error-text)' }}>Closed</span>
                         ) : (
-                          <span className="text-slate-700">{h.open} – {h.close}</span>
+                          <span style={{ color: 'var(--t-text)' }}>{h.open} – {h.close}</span>
                         )}
                       </div>
                     );
@@ -537,17 +557,19 @@ function SalonDetails() {
 
       {/* ── STICKY BOOKING BAR ─────────────────── */}
       {selectedServices.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 shadow-xl px-4 py-3 fade-in">
+        <div className="fixed bottom-0 left-0 right-0 z-50 shadow-xl px-4 py-3 fade-in"
+          style={{ background: 'var(--t-card)', borderTop: '1px solid var(--t-border)' }}>
           <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
-                <ShoppingBag className="w-4 h-4 text-indigo-600" />
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: 'rgba(99,102,241,0.15)' }}>
+                <ShoppingBag className="w-4 h-4" style={{ color: '#818cf8' }} />
               </div>
               <div className="min-w-0">
-                <p className="font-semibold text-slate-800 text-sm">
+                <p className="font-semibold text-sm" style={{ color: 'var(--t-text)' }}>
                   {selectedServices.length} service{selectedServices.length > 1 ? "s" : ""} selected
                 </p>
-                <p className="text-xs text-indigo-600 font-medium truncate">
+                <p className="text-xs font-medium truncate" style={{ color: '#818cf8' }}>
                   ₹{totalPrice} · {totalDuration} min total
                 </p>
               </div>
@@ -555,7 +577,10 @@ function SalonDetails() {
             <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={() => setSelectedServices([])}
-                className="text-sm text-slate-400 hover:text-slate-600 px-3 py-2 transition"
+                className="text-sm px-3 py-2 transition"
+                style={{ color: 'var(--t-text-3)' }}
+                onMouseEnter={e => { e.currentTarget.style.color = 'var(--t-text-2)'; }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'var(--t-text-3)'; }}
               >
                 Clear
               </button>

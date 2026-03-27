@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState } from 'react';
+import React, { lazy, Suspense, useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
@@ -266,7 +266,7 @@ const DashboardMock = () => (
       <span style={{ width:11, height:11, borderRadius:'50%', background:'#f59e0b', display:'inline-block' }} />
       <span style={{ width:11, height:11, borderRadius:'50%', background:'#22c55e', display:'inline-block' }} />
       <span style={{ flex:1, height:22, background:'rgba(255,255,255,0.04)', borderRadius:6, marginLeft:12, display:'flex', alignItems:'center', paddingLeft:10 }}>
-        <span style={{ fontSize:10, color:'#334155' }}>mysalonbookings.in/dashboard</span>
+        <span style={{ fontSize:10, color:'#334155' }}>mysalonbookings.com/dashboard</span>
       </span>
     </div>
     <div style={{ display:'flex', minHeight:380 }}>
@@ -341,10 +341,38 @@ const DashboardMock = () => (
   </div>
 );
 
+/* Responsive wrapper — scales the fixed-width mock to fit any screen */
+const DashboardMockWrapper = () => {
+  const wrapRef = useRef(null);
+  const [scale, setScale] = useState(1);
+  const MOCK_W = 840;
+  const MOCK_H = 430; // approximate rendered height
+
+  useEffect(() => {
+    const update = () => {
+      if (wrapRef.current) {
+        const w = wrapRef.current.offsetWidth;
+        setScale(Math.min(1, w / MOCK_W));
+      }
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  return (
+    <div ref={wrapRef} style={{ width: '100%', overflow: 'hidden', height: MOCK_H * scale, borderRadius: 22 }}>
+      <div style={{ width: MOCK_W, transform: `scale(${scale})`, transformOrigin: 'top left' }}>
+        <DashboardMock />
+      </div>
+    </div>
+  );
+};
+
 const LandingPage = () => (
   <>
     <style>{LANDING_CSS}</style>
-    <div style={{ background:'#050510', color:'#e2e8f0', minHeight:'100vh', fontFamily:"'Inter','Segoe UI',system-ui,sans-serif" }}>
+    <div style={{ background:'#050510', color:'#e2e8f0', minHeight:'100vh', fontFamily:"'Inter','Segoe UI',system-ui,sans-serif", overflowX:'hidden' }}>
 
       {/* ── NAVBAR ────────────────────────────────────────────── */}
       <nav style={{ position:'sticky', top:0, zIndex:50, background:'rgba(5,5,16,0.85)', backdropFilter:'blur(20px)', borderBottom:'1px solid rgba(255,255,255,0.07)' }}>
@@ -367,7 +395,7 @@ const LandingPage = () => (
       </nav>
 
       {/* ── HERO ──────────────────────────────────────────────── */}
-      <section style={{ position:'relative', overflow:'hidden', padding:'96px 20px 76px', textAlign:'center' }}>
+      <section style={{ position:'relative', overflow:'hidden', padding:'clamp(52px,8vh,96px) 20px clamp(44px,6vh,76px)', textAlign:'center' }}>
         <div className="msb-orb1" style={{ position:'absolute', top:-140, left:'5%', width:600, height:600, borderRadius:'50%', background:'radial-gradient(circle,rgba(124,58,237,0.2) 0%,transparent 68%)', pointerEvents:'none' }} />
         <div className="msb-orb2" style={{ position:'absolute', top:-60, right:'2%', width:680, height:680, borderRadius:'50%', background:'radial-gradient(circle,rgba(37,99,235,0.16) 0%,transparent 68%)', pointerEvents:'none' }} />
         <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse 80% 50% at 50% 0%,rgba(124,58,237,0.08) 0%,transparent 70%)', pointerEvents:'none' }} />
@@ -380,7 +408,7 @@ const LandingPage = () => (
           </div>
 
           {/* Headline */}
-          <h1 className="msb-fu2" style={{ fontSize:'clamp(2.4rem,6vw,4.6rem)', fontWeight:900, lineHeight:1.1, letterSpacing:'-2.5px', color:'#f8fafc', marginBottom:20 }}>
+          <h1 className="msb-fu2" style={{ fontSize:'clamp(1.9rem,6vw,4.6rem)', fontWeight:900, lineHeight:1.15, letterSpacing:'-1.5px', color:'#f8fafc', marginBottom:20 }}>
             Run Your Salon Online.<br />
             Get More Customers.<br />
             <span className="msb-shimmer">Earn More Money.</span>
@@ -401,12 +429,12 @@ const LandingPage = () => (
               Owner Login →
             </a>
           </div>
-          <p className="msb-fu5" style={{ fontSize:11.5, color:'#1e293b', marginBottom:64 }}>
+          <p className="msb-fu5" style={{ fontSize:11.5, color:'#475569', marginBottom:48 }}>
             ✓ No credit card &nbsp;·&nbsp; ✓ Full access from day 1 &nbsp;·&nbsp; ✓ 5-minute setup &nbsp;·&nbsp; ✓ Cancel anytime
           </p>
 
           {/* Dashboard preview */}
-          <div className="msb-fu6 px-0 sm:px-4"><DashboardMock /></div>
+          <div className="msb-fu6 px-0 sm:px-4"><DashboardMockWrapper /></div>
         </div>
       </section>
 
@@ -424,7 +452,7 @@ const LandingPage = () => (
               onMouseLeave={e=>{ e.currentTarget.style.transform=''; e.currentTarget.style.borderColor='rgba(255,255,255,0.06)'; }}>
               <div style={{ fontSize:30, fontWeight:900, color, letterSpacing:'-1.5px', textShadow:`0 0 30px ${glow}`, marginBottom:4 }}>{value}</div>
               <div style={{ fontSize:12.5, color:'#94a3b8', fontWeight:600, marginBottom:2 }}>{label}</div>
-              <div style={{ fontSize:10, color:'#334155' }}>{sub}</div>
+              <div style={{ fontSize:10, color:'#475569' }}>{sub}</div>
             </div>
           ))}
         </div>
@@ -606,7 +634,7 @@ const LandingPage = () => (
               </div>
             ))}
           </div>
-          <p style={{ textAlign:'center', marginTop:32, fontSize:13, color:'#334155' }}>
+          <p style={{ textAlign:'center', marginTop:32, fontSize:13, color:'#475569' }}>
             All plans include the <strong style={{ color:'#a78bfa' }}>My Salon Bookings app</strong> and full platform access. No hidden fees.
           </p>
         </div>
@@ -654,7 +682,7 @@ const LandingPage = () => (
           <a href={ROUTES.REGISTER} className="msb-btn-p px-10 py-4 font-bold rounded-2xl inline-flex items-center gap-3" style={{ background:'linear-gradient(135deg,#7c3aed,#2563eb)', color:'#fff', boxShadow:'0 0 52px rgba(124,58,237,0.6)', fontSize:16 }}>
             🚀&nbsp; Start Free — No Card Needed
           </a>
-          <p style={{ fontSize:12, color:'#1e293b', marginTop:18 }}>
+          <p style={{ fontSize:12, color:'#475569', marginTop:18 }}>
             ✓ 30 days free &nbsp;·&nbsp; ✓ Full access &nbsp;·&nbsp; ✓ Cancel anytime
           </p>
         </div>
@@ -670,31 +698,31 @@ const LandingPage = () => (
                 <div style={{ width:34, height:34, borderRadius:10, background:'linear-gradient(135deg,#7c3aed,#2563eb)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}>✂</div>
                 <div>
                   <div style={{ fontSize:14, fontWeight:700, color:'#94a3b8' }}>My Salon Bookings</div>
-                  <div style={{ fontSize:10, color:'#1e293b' }}>by Gigamind Technology Pvt Ltd</div>
+                  <div style={{ fontSize:10, color:'#475569' }}>by Gigamind Technology Pvt Ltd</div>
                 </div>
               </div>
-              <p style={{ fontSize:12.5, color:'#334155', lineHeight:1.75 }}>India's leading salon management platform for modern salon owners.</p>
+              <p style={{ fontSize:12.5, color:'#475569', lineHeight:1.75 }}>India's leading salon management platform for modern salon owners.</p>
             </div>
             {/* Links */}
             <div>
               <div style={{ fontSize:11, fontWeight:700, color:'#475569', letterSpacing:1.2, marginBottom:14 }}>PRODUCT</div>
               {[['Features','#features'],['Pricing','#pricing'],['My Salon Bookings App','https://play.google.com/store/apps/details?id=com.mysalonbookings.owner'],['Sign In', ROUTES.LOGIN]].map(([label,href]) => (
                 <div key={label} style={{ marginBottom:9 }}>
-                  <a href={href} className="msb-link" style={{ fontSize:13, color:'#334155' }}>{label}</a>
+                  <a href={href} className="msb-link" style={{ fontSize:13, color:'#64748b' }}>{label}</a>
                 </div>
               ))}
             </div>
             {/* Legal */}
             <div>
               <div style={{ fontSize:11, fontWeight:700, color:'#475569', letterSpacing:1.2, marginBottom:14 }}>LEGAL & SUPPORT</div>
-              {[[`Privacy Policy`, ROUTES.OWNER_PRIVACY],[`Terms of Service`, ROUTES.OWNER_TERMS],[`Contact Us`,'mailto:support@mysalonbookings.in']].map(([label,href]) => (
+              {[[`Privacy Policy`, ROUTES.OWNER_PRIVACY],[`Terms of Service`, ROUTES.OWNER_TERMS],[`Contact Us`,'mailto:support@mysalonbookings.com']].map(([label,href]) => (
                 <div key={label} style={{ marginBottom:9 }}>
-                  <a href={href} className="msb-link" style={{ fontSize:13, color:'#334155' }}>{label}</a>
+                  <a href={href} className="msb-link" style={{ fontSize:13, color:'#64748b' }}>{label}</a>
                 </div>
               ))}
             </div>
           </div>
-          <div style={{ borderTop:'1px solid rgba(255,255,255,0.06)', paddingTop:20, textAlign:'center', fontSize:12, color:'#1e293b' }}>
+          <div style={{ borderTop:'1px solid rgba(255,255,255,0.06)', paddingTop:20, textAlign:'center', fontSize:12, color:'#475569' }}>
             © 2026 My Salon Bookings by Gigamind Technology Pvt Ltd. All rights reserved.
           </div>
         </div>

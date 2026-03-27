@@ -113,7 +113,8 @@ function ReviewPrompt({ bookingId, onReviewed }) {
       </div>
       <textarea value={text} onChange={e => setText(e.target.value)} rows={2}
         placeholder="Share your experience (optional)"
-        className="w-full border border-indigo-200 rounded-lg p-2 text-xs text-slate-700 bg-white outline-none resize-none focus:border-indigo-400 transition placeholder-slate-400" />
+        className="w-full rounded-lg p-2 text-xs outline-none resize-none focus:border-indigo-400 transition placeholder-slate-400"
+        style={{ background: 'var(--t-input-bg)', border: '1px solid var(--t-border)', color: 'var(--t-text)' }} />
       <div className="flex gap-2">
         <button onClick={handleSubmit} disabled={!rating || submitting}
           className="px-3.5 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold disabled:opacity-50 hover:bg-indigo-700 transition flex items-center justify-center min-w-[70px]">
@@ -176,7 +177,7 @@ function RescheduleModal({ booking, onClose, onRescheduled }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45" onClick={onClose}>
-      <div className="bg-white rounded-t-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-5"
+      <div className="t-card rounded-t-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-5" style={{ background: 'var(--t-card)', borderBottom: 'none', borderRadius: '20px 20px 0 0' }}
         onClick={e => e.stopPropagation()}>
         {/* Title */}
         <div className="flex items-center justify-between mb-4">
@@ -193,9 +194,8 @@ function RescheduleModal({ booking, onClose, onRescheduled }) {
         <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-hide">
           {quickDates.map(({ key, label }) => (
             <button key={key} onClick={() => setNewDate(key)}
-              className={`px-3.5 py-2 rounded-full text-[13px] font-semibold whitespace-nowrap border transition shrink-0 ${
-                newDate === key ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-slate-100 border-slate-200 text-slate-500'
-              }`}>
+              style={newDate === key ? { background: '#4f46e5', borderColor: '#4f46e5', color: '#fff' } : { background: 'var(--t-bg-2)', borderColor: 'var(--t-border)', color: 'var(--t-text-2)' }}
+              className="px-3.5 py-2 rounded-full text-[13px] font-semibold whitespace-nowrap border transition shrink-0">
               {label}
             </button>
           ))}
@@ -232,11 +232,12 @@ function RescheduleModal({ booking, onClose, onRescheduled }) {
                 const selected = newTime === s;
                 return (
                   <button key={s} onClick={() => { if (!blocked) setNewTime(s); }} disabled={blocked}
-                    className={`px-3.5 py-2 rounded-lg border text-xs font-semibold transition ${
-                      blocked  ? 'bg-red-50 border-red-200 text-red-400 cursor-not-allowed' :
-                      selected ? 'bg-indigo-600 border-indigo-600 text-white' :
-                                 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300'
-                    }`}>
+                    style={
+                      blocked  ? { background: 'var(--t-error-bg)', borderColor: 'var(--t-error-border)', color: 'var(--t-error-text)' } :
+                      selected ? { background: '#4f46e5', borderColor: '#4f46e5', color: '#fff' } :
+                                 { background: 'var(--t-input-bg)', borderColor: 'var(--t-border)', color: 'var(--t-text-2)' }
+                    }
+                    className={`px-3.5 py-2 rounded-lg border text-xs font-semibold transition ${blocked ? 'cursor-not-allowed' : 'hover:border-indigo-400'}`}>
                     {formatTimeLabel(s)}
                   </button>
                 );
@@ -253,7 +254,8 @@ function RescheduleModal({ booking, onClose, onRescheduled }) {
             {saving ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Confirm Reschedule'}
           </button>
           <button onClick={onClose}
-            className="flex-1 h-12 rounded-xl border-2 border-slate-200 text-sm font-semibold text-slate-500 hover:bg-slate-50 transition">
+            className="flex-1 h-12 rounded-xl border-2 text-sm font-semibold transition"
+            style={{ borderColor: 'var(--t-border)', color: 'var(--t-text-2)' }}>
             Cancel
           </button>
         </div>
@@ -327,7 +329,7 @@ function BookingCard({ booking: initialBooking, userCoords, onCancelled }) {
   ];
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm space-y-3">
+    <div className="t-card rounded-2xl p-4 space-y-3">
 
       {/* Header row */}
       <div className="flex items-start gap-3">
@@ -344,7 +346,8 @@ function BookingCard({ booking: initialBooking, userCoords, onCancelled }) {
       <div className="flex flex-wrap gap-2">
         {detailTiles.map(tile => (
           <div key={tile.label}
-            className={`flex-1 min-w-[30%] rounded-lg p-2.5 ${tile.accent ? 'bg-indigo-50' : 'bg-slate-50'}`}>
+            className={`flex-1 min-w-[30%] rounded-lg p-2.5 ${tile.accent ? 'bg-indigo-50' : 'bg-slate-50'}`}
+            style={tile.accent ? { background: 'rgba(99,102,241,0.1)', borderRadius: 8 } : { background: 'var(--t-bg-2)', borderRadius: 8 }}>
             <p className={`text-[11px] mb-0.5 ${tile.accent ? 'text-indigo-400' : 'text-slate-400'}`}>{tile.label}</p>
             <p className={`text-[13px] font-semibold ${
               tile.amount ? 'text-indigo-600 font-bold' : tile.accent ? 'text-indigo-700' : 'text-slate-700'
@@ -369,7 +372,7 @@ function BookingCard({ booking: initialBooking, userCoords, onCancelled }) {
       )}
 
       {/* Footer */}
-      <div className="pt-2.5 border-t border-slate-50 space-y-1.5">
+      <div className="pt-2.5 t-divider space-y-1.5">
         <p className="text-[11px] text-slate-400">
           Booking ID: <span className="font-mono">{booking.bookingId || booking._id?.slice(-8) || '—'}</span>
         </p>
@@ -500,7 +503,7 @@ export default function Dashboard() {
   // Not authenticated
   if (!isAuth) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center px-6 pb-20">
+      <div className="t-page flex flex-col items-center justify-center px-6 pb-20">
         <svg className="w-14 h-14 text-slate-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
         </svg>
@@ -514,7 +517,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="t-page">
 
       {/* ── HERO ───────────────────────────────────────────── */}
       <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 px-4 sm:px-6 pt-8 pb-6 relative overflow-hidden">
@@ -611,12 +614,13 @@ export default function Dashboard() {
         })}
 
         {/* Filter tabs — full-width row matching app exactly */}
-        <div className="flex bg-white rounded-xl p-1 border border-slate-100 shadow-sm gap-1">
+        <div className="flex t-card rounded-xl p-1 gap-1" style={{ boxShadow: 'var(--t-shadow)' }}>
           {FILTERS.map(f => (
             <button key={f} onClick={() => { setFilter(f); setVisibleCount(PAGE_SIZE); }}
               className={`flex-1 py-2.5 rounded-[10px] text-xs font-semibold text-center transition ${
-                filter === f ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-600'
-              }`}>
+                filter === f ? 'bg-indigo-600 text-white' : 'hover:text-slate-600'
+              }`}
+              style={filter !== f ? { color: 'var(--t-text-3)' } : {}}>
               {f}
             </button>
           ))}
@@ -675,7 +679,7 @@ export default function Dashboard() {
         {/* Load more */}
         {!loading && hasMore && (
           <button onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
-            className="w-full flex items-center justify-center gap-1.5 py-3.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-indigo-600 hover:bg-slate-50 transition shadow-sm">
+            className="w-full flex items-center justify-center gap-1.5 py-3.5 t-card rounded-xl text-sm font-bold text-indigo-400 hover:border-indigo-400 transition">
             Load More
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/>

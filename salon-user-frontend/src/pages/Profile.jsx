@@ -40,13 +40,13 @@ function IBox({ color, children }) {
 
 // ── Divider ───────────────────────────────────────────────────
 function Divider() {
-  return <div className="h-px bg-slate-50 mx-4" />;
+  return <div className="h-px mx-4" style={{ background: 'var(--t-border)' }} />;
 }
 
 // ── Section label ──────────────────────────────────────────────
 function SectionLabel({ children }) {
   return (
-    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1 pt-2 pb-0.5">
+    <p className="text-[11px] font-bold uppercase tracking-widest px-1 pt-2 pb-0.5" style={{ color: 'var(--t-text-3)' }}>
       {children}
     </p>
   );
@@ -58,42 +58,52 @@ function SettingRow({ icon, iconColor = '#6b7280', label, sublabel, rightEl, onC
     <div className="flex items-center gap-3 px-4 py-3">
       <IBox color={iconColor}>{icon}</IBox>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-slate-800 leading-tight">{label}</p>
-        {sublabel && <p className="text-xs text-slate-400 mt-0.5">{sublabel}</p>}
+        <p className="text-sm font-semibold leading-tight" style={{ color: 'var(--t-text)' }}>{label}</p>
+        {sublabel && <p className="text-xs mt-0.5" style={{ color: 'var(--t-text-3)' }}>{sublabel}</p>}
       </div>
       {rightEl}
       {chevron && (
-        <svg className="w-4 h-4 text-slate-400 shrink-0ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className="w-4 h-4 shrink-0 ml-1" style={{ color: 'var(--t-text-3)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
         </svg>
       )}
     </div>
   );
   return onClick
-    ? <button type="button" onClick={onClick} className="w-full hover:bg-slate-50 transition text-left">{inner}</button>
+    ? (
+      <button type="button" onClick={onClick}
+        className="w-full transition text-left"
+        onMouseEnter={e => e.currentTarget.style.background = 'var(--t-bg-2)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+      >{inner}</button>
+    )
     : inner;
 }
 
 // ── Accordion card ────────────────────────────────────────────
-function AccordionCard({ id, expanded, onToggle, iconColor, icon, title, sublabel, titleColor = 'text-slate-800', chevronColor = 'text-slate-400', children }) {
+function AccordionCard({ id, expanded, onToggle, iconColor, icon, title, sublabel, titleColor, children }) {
   const open = expanded === id;
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+    <div className="t-card rounded-2xl overflow-hidden">
       <button type="button" onClick={() => onToggle(id)}
-        className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-slate-50 transition text-left">
+        className="w-full flex items-center justify-between px-4 py-3.5 transition text-left"
+        onMouseEnter={e => e.currentTarget.style.background = 'var(--t-bg-2)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+      >
         <div className="flex items-center gap-3">
           <IBox color={iconColor}>{icon}</IBox>
           <div>
-            <p className={`text-sm font-semibold ${titleColor}`}>{title}</p>
-            {sublabel && <p className="text-xs text-slate-400 mt-0.5">{sublabel}</p>}
+            <p className="text-sm font-semibold" style={{ color: titleColor || 'var(--t-text)' }}>{title}</p>
+            {sublabel && <p className="text-xs mt-0.5" style={{ color: 'var(--t-text-3)' }}>{sublabel}</p>}
           </div>
         </div>
-        <svg className={`w-[18px] h-[18px] ${chevronColor} transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+        <svg className={`w-[18px] h-[18px] transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          style={{ color: 'var(--t-text-3)' }}
           fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </svg>
       </button>
-      {open && <div className="border-t border-slate-100">{children}</div>}
+      {open && <div className="t-divider">{children}</div>}
     </div>
   );
 }
@@ -269,17 +279,18 @@ export default function Profile() {
 
   // ─────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="t-page">
 
-      {/* ── HEADER (matches SettingsScreen header) ─────────── */}
-      <div className="bg-white border-b border-slate-100 px-4 sm:px-6 pt-5 pb-4">
+      {/* ── HEADER ─────────────────────────────────────────── */}
+      <div className="px-4 sm:px-6 pt-5 pb-4 t-divider" style={{ background: 'var(--t-card)' }}>
         <div className="max-w-xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-[22px] font-extrabold text-slate-900 leading-tight">Settings</h1>
-            <p className="text-[13px] text-slate-400 mt-0.5">Manage your preferences</p>
+            <h1 className="text-[22px] font-extrabold leading-tight" style={{ color: 'var(--t-text)' }}>Settings</h1>
+            <p className="text-[13px] mt-0.5" style={{ color: 'var(--t-text-3)' }}>Manage your preferences</p>
           </div>
-          {/* Notification bell (matches app menuBtn) */}
-          <Link to="/notifications" className="relative w-9 h-9 rounded-[10px] bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition shrink-0">
+          <Link to="/notifications"
+            className="relative w-9 h-9 rounded-[10px] flex items-center justify-center transition shrink-0"
+            style={{ background: 'var(--t-bg-2)', color: 'var(--t-text-2)' }}>
             {I.bell}
             {unreadCount > 0 && (
               <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1 leading-none border-2 border-white">
@@ -293,22 +304,22 @@ export default function Profile() {
       <div className="max-w-xl mx-auto px-4 py-4 space-y-1.5">
 
         {loading ? (
-          <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center">
+          <div className="t-card rounded-2xl p-10 text-center">
             <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-sm text-slate-400">Loading…</p>
+            <p className="text-sm" style={{ color: 'var(--t-text-3)' }}>Loading…</p>
           </div>
         ) : (
           <>
 
             {/* ── PROFILE CARD (matches app profileCard) ───────── */}
-            <div className="bg-white rounded-2xl border border-slate-100 p-3.5 flex items-center gap-3 shadow-sm">
+            <div className="t-card rounded-2xl p-3.5 flex items-center gap-3">
               <div className="w-[52px] h-[52px] rounded-full bg-[#1d4ed8] flex items-center justify-center shrink-0 text-white">
                 {I.personCircle}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-base font-bold text-slate-900 truncate">{user?.name || 'Guest User'}</p>
-                <p className="text-[13px] text-slate-400 mt-0.5">{user?.phone || ''}</p>
-                {user?.email && <p className="text-xs text-slate-400 mt-0.5 truncate">{user.email}</p>}
+                <p className="text-base font-bold truncate" style={{ color: 'var(--t-text)' }}>{user?.name || 'Guest User'}</p>
+                <p className="text-[13px] mt-0.5" style={{ color: 'var(--t-text-3)' }}>{user?.phone || ''}</p>
+                {user?.email && <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--t-text-3)' }}>{user.email}</p>}
               </div>
             </div>
 
@@ -327,8 +338,8 @@ export default function Profile() {
                   <div className="flex items-center gap-3 px-4 py-3">
                     <IBox color={row.color}>{row.icon}</IBox>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-slate-400">{row.label}</p>
-                      <p className={`text-sm font-semibold text-slate-800 truncate ${row.mono ? 'font-mono tracking-widest' : ''}`}>{row.value}</p>
+                      <p className="text-xs" style={{ color: 'var(--t-text-3)' }}>{row.label}</p>
+                      <p className={`text-sm font-semibold truncate ${row.mono ? 'font-mono tracking-widest' : ''}`} style={{ color: 'var(--t-text)' }}>{row.value}</p>
                     </div>
                   </div>
                   {i < arr.length - 1 && <Divider />}
@@ -367,7 +378,7 @@ export default function Profile() {
               <SettingRow icon={I.language} iconColor="#2563eb" label="Language" chevron
                 rightEl={
                   <select value={language} onChange={e => { setLanguage(e.target.value); saveAppPref('language', e.target.value); }}
-                    className="text-sm font-semibold text-slate-500 bg-transparent border-none outline-none cursor-pointer text-right max-w-[120px]">
+                    className="text-sm font-semibold bg-transparent border-none outline-none cursor-pointer text-right max-w-[120px]" style={{ color: "var(--t-text-2)" }}>
                     {['English', 'हिंदी'].map(l => <option key={l} value={l}>{l}</option>)}
                   </select>
                 } />
@@ -375,7 +386,7 @@ export default function Profile() {
               <SettingRow icon={I.clock} iconColor="#0891b2" label="Time Format" chevron
                 rightEl={
                   <select value={timeFormat} onChange={e => { setTimeFormat(e.target.value); saveAppPref('timeFormat', e.target.value); }}
-                    className="text-sm font-semibold text-slate-500 bg-transparent border-none outline-none cursor-pointer text-right max-w-[120px]">
+                    className="text-sm font-semibold bg-transparent border-none outline-none cursor-pointer text-right max-w-[120px]" style={{ color: "var(--t-text-2)" }}>
                     {['12-hour', '24-hour'].map(f => <option key={f} value={f}>{f}</option>)}
                   </select>
                 } />
@@ -383,7 +394,7 @@ export default function Profile() {
               <SettingRow icon={I.calendar} iconColor="#059669" label="Date Format" chevron
                 rightEl={
                   <select value={dateFormat} onChange={e => { setDateFormat(e.target.value); saveAppPref('dateFormat', e.target.value); }}
-                    className="text-sm font-semibold text-slate-500 bg-transparent border-none outline-none cursor-pointer text-right max-w-[120px]">
+                    className="text-sm font-semibold bg-transparent border-none outline-none cursor-pointer text-right max-w-[120px]" style={{ color: "var(--t-text-2)" }}>
                     {['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'].map(f => <option key={f} value={f}>{f}</option>)}
                   </select>
                 } />
@@ -409,28 +420,28 @@ export default function Profile() {
                   <>
                     <p className="text-xs text-slate-400">OTP sent to {user?.phone}</p>
                     {/* OTP input */}
-                    <div className="flex items-center border border-slate-200 rounded-xl px-3 h-[42px] focus-within:border-indigo-400 transition">
+                    <div className="flex items-center rounded-xl px-3 h-[42px] focus-within:border-indigo-400 transition" style={{ border: "1px solid var(--t-border)", background: "var(--t-input-bg)" }}>
                       <span className="text-slate-400 mr-2">{I.key}</span>
                       <input type="text" value={cpOtp} onChange={e => setCpOtp(e.target.value)}
                         placeholder="Enter OTP" maxLength={6} inputMode="numeric" disabled={cpLoading}
-                        className="flex-1 text-sm text-slate-800 bg-transparent outline-none placeholder-slate-400" />
+                        className="flex-1 text-sm bg-transparent outline-none placeholder-slate-400" style={{ color: "var(--t-text)" }} />
                     </div>
                     {/* New password */}
-                    <div className="flex items-center border border-slate-200 rounded-xl px-3 h-[42px] focus-within:border-indigo-400 transition">
+                    <div className="flex items-center rounded-xl px-3 h-[42px] focus-within:border-indigo-400 transition" style={{ border: "1px solid var(--t-border)", background: "var(--t-input-bg)" }}>
                       <span className="text-slate-400 mr-2">{I.lock}</span>
                       <input type={cpShowPw ? 'text' : 'password'} value={cpNewPw} onChange={e => setCpNewPw(e.target.value)}
                         placeholder="New password" disabled={cpLoading}
-                        className="flex-1 text-sm text-slate-800 bg-transparent outline-none placeholder-slate-400" />
+                        className="flex-1 text-sm bg-transparent outline-none placeholder-slate-400" style={{ color: "var(--t-text)" }} />
                       <button type="button" onClick={() => setCpShowPw(v => !v)} className="text-slate-400 hover:text-slate-600 ml-2">
                         {cpShowPw ? I.eyeOff : I.eye}
                       </button>
                     </div>
                     {/* Confirm password */}
-                    <div className="flex items-center border border-slate-200 rounded-xl px-3 h-[42px] focus-within:border-indigo-400 transition">
+                    <div className="flex items-center rounded-xl px-3 h-[42px] focus-within:border-indigo-400 transition" style={{ border: "1px solid var(--t-border)", background: "var(--t-input-bg)" }}>
                       <span className="text-slate-400 mr-2">{I.lock}</span>
                       <input type="password" value={cpConfirm} onChange={e => setCpConfirm(e.target.value)}
                         placeholder="Confirm password" disabled={cpLoading}
-                        className="flex-1 text-sm text-slate-800 bg-transparent outline-none placeholder-slate-400" />
+                        className="flex-1 text-sm bg-transparent outline-none placeholder-slate-400" style={{ color: "var(--t-text)" }} />
                     </div>
                     {/* Reset button */}
                     <button onClick={handleCpReset} disabled={cpLoading}
@@ -523,10 +534,10 @@ export default function Profile() {
 
             {/* ── ABOUT ────────────────────────────────────────── */}
             <SectionLabel>About</SectionLabel>
-            <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
-              <SettingRow icon={I.code}  iconColor="#2563eb" label="App Version" rightEl={<span className="text-sm font-semibold text-slate-400">v1.0.0</span>} />
+            <div className="t-card rounded-2xl overflow-hidden">
+              <SettingRow icon={I.code}  iconColor="#2563eb" label="App Version" rightEl={<span className="text-sm font-semibold" style={{ color: 'var(--t-text-3)' }}>v1.0.0</span>} />
               <Divider />
-              <SettingRow icon={I.globe} iconColor="#2563eb" label="Website"     rightEl={<span className="text-sm font-semibold text-slate-400">mysalonbookings.com</span>} />
+              <SettingRow icon={I.globe} iconColor="#2563eb" label="Website"     rightEl={<span className="text-sm font-semibold" style={{ color: 'var(--t-text-3)' }}>mysalonbookings.com</span>} />
               <Divider />
               <SettingRow icon={I.document} iconColor="#6b7280" label="Terms & Conditions" chevron
                 onClick={() => alert('Terms & Conditions\n\nBy using MySalonBookings, you agree to our terms of service. Please visit mysalonbookings.com for full details.')} />
@@ -534,7 +545,8 @@ export default function Profile() {
 
             {/* ── SIGN OUT ─────────────────────────────────────── */}
             <button onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl border border-red-100 bg-white text-red-500 font-bold text-sm hover:bg-red-50 transition shadow-sm">
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm transition"
+              style={{ border: '1px solid var(--t-error-border)', background: 'var(--t-error-bg)', color: 'var(--t-error-text)' }}>
               {I.logout}
               Sign Out
             </button>

@@ -200,23 +200,26 @@ function Booking() {
   if (success) {
     const isPending = bookingStatus === "pending";
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 max-w-sm w-full text-center fade-in">
-          <div className={`w-16 h-16 ${isPending ? "bg-amber-100" : "bg-green-100"} rounded-full flex items-center justify-center text-3xl mx-auto mb-4`}>
+      <div className="t-page flex items-center justify-center px-4">
+        <div className="t-card rounded-2xl p-8 max-w-sm w-full text-center fade-in">
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center text-3xl mx-auto mb-4"
+            style={{ background: isPending ? 'var(--t-warn-bg)' : 'var(--t-success-bg)' }}
+          >
             {isPending ? "⏳" : "✓"}
           </div>
-          <h2 className="text-xl font-bold text-slate-900 mb-2">
+          <h2 className="text-xl font-bold mb-2" style={{ color: 'var(--t-text)' }}>
             {isPending ? "Booking Received!" : "Booking Confirmed!"}
           </h2>
           {isPending && (
-            <div className="mb-3 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-sm">
+            <div className="t-warn mb-3 px-4 py-2.5 rounded-xl text-sm">
               Your booking is <strong>pending confirmation</strong> from the salon. You'll be notified once confirmed.
             </div>
           )}
-          <p className="text-slate-500 text-sm mb-1">
-            <strong>{services.map(s => s.name).join(" + ")}</strong> at <strong>{salon?.name}</strong>
+          <p className="text-sm mb-1" style={{ color: 'var(--t-text-2)' }}>
+            <strong style={{ color: 'var(--t-text)' }}>{services.map(s => s.name).join(" + ")}</strong> at <strong style={{ color: 'var(--t-text)' }}>{salon?.name}</strong>
           </p>
-          <p className="text-slate-500 text-sm mb-6">{date} at {slot}</p>
+          <p className="text-sm mb-6" style={{ color: 'var(--t-text-2)' }}>{date} at {slot}</p>
           <div className="flex flex-col gap-2">
             <button onClick={() => navigate("/dashboard")} className="btn-primary w-full">
               View My Bookings
@@ -231,38 +234,39 @@ function Booking() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8 px-4">
+    <div className="t-page py-8 px-4">
       <div className="max-w-lg mx-auto">
 
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 mb-5 transition-colors"
+          className="flex items-center gap-2 text-sm mb-5 transition-colors"
+          style={{ color: 'var(--t-text-2)' }}
         >
           ← Back
         </button>
 
-        <h1 className="text-2xl font-bold text-slate-900 mb-1">Book Appointment</h1>
-        <p className="text-muted mb-6">Fill in the details to confirm your booking.</p>
+        <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--t-text)' }}>Book Appointment</h1>
+        <p className="text-muted mb-6" style={{ color: 'var(--t-text-2)' }}>Fill in the details to confirm your booking.</p>
 
         {/* Summary card */}
         {(salon || services.length > 0) && (
-          <div className="bg-white rounded-xl border border-slate-100 p-4 mb-5">
+          <div className="t-card rounded-xl p-4 mb-5">
             <div className="flex items-center gap-4 mb-3">
               <div className="w-12 h-12 gradient-primary rounded-xl flex items-center justify-center text-xl shrink-0">✂</div>
-              <p className="font-semibold text-slate-800 truncate">{salon?.name || "Salon"}</p>
+              <p className="font-semibold truncate" style={{ color: 'var(--t-text)' }}>{salon?.name || "Salon"}</p>
             </div>
             {services.length > 0 && (
               <div className="space-y-1.5">
                 {services.map(s => (
-                  <div key={s._id} className="flex justify-between text-sm text-slate-600">
-                    <span>{s.name} <span className="text-slate-400">· {s.duration} min</span></span>
-                    <span className="font-medium text-indigo-600">₹{s.basePrice || s.price}</span>
+                  <div key={s._id} className="flex justify-between text-sm" style={{ color: 'var(--t-text-2)' }}>
+                    <span>{s.name} <span style={{ color: 'var(--t-text-3)' }}>· {s.duration} min</span></span>
+                    <span className="font-medium" style={{ color: 'var(--t-accent)' }}>₹{s.basePrice || s.price}</span>
                   </div>
                 ))}
                 {services.length > 1 && (
-                  <div className="flex justify-between text-sm font-semibold text-slate-800 border-t border-slate-100 pt-1.5 mt-1.5">
+                  <div className="flex justify-between text-sm font-semibold pt-1.5 mt-1.5 t-divider" style={{ color: 'var(--t-text)' }}>
                     <span>Total · {totalDuration} min</span>
-                    <span className="text-indigo-700">₹{totalPrice}</span>
+                    <span style={{ color: 'var(--t-accent)' }}>₹{totalPrice}</span>
                   </div>
                 )}
               </div>
@@ -270,13 +274,13 @@ function Booking() {
           </div>
         )}
 
-        <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+        <div className="t-card rounded-2xl p-6">
           <form onSubmit={handleBooking} className="space-y-5">
             {error && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm">{error}</div>}
 
             {/* Date picker */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Select Date</label>
+              <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--t-text-2)' }}>Select Date</label>
               <input
                 type="date"
                 min={today}
@@ -295,15 +299,18 @@ function Booking() {
               )}
             </div>
 
-            {/* Barber selection (optional) */}
+            {/* Stylist selection (optional) */}
             {barbers.length > 0 && (
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Select Barber <span className="text-slate-400 font-normal">(optional)</span></label>
+                <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--t-text-2)' }}>
+                  Select Stylist <span className="font-normal" style={{ color: 'var(--t-text-3)' }}>(optional)</span>
+                </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setBarberId("")}
-                    className={`px-3 py-2.5 rounded-xl border text-sm font-medium transition-all text-left ${barberId === "" ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300"}`}
+                    className="px-3 py-2.5 rounded-xl border text-sm font-medium transition-all text-left"
+                    style={barberId === "" ? { background: 'var(--t-accent)', color: '#fff', borderColor: 'var(--t-accent)' } : { background: 'var(--t-input-bg)', color: 'var(--t-text-2)', borderColor: 'var(--t-border)' }}
                   >
                     <span className="block text-xs opacity-75 mb-0.5">Any</span>
                     <span>No preference</span>
@@ -313,10 +320,11 @@ function Booking() {
                       key={b._id}
                       type="button"
                       onClick={() => setBarberId(b._id)}
-                      className={`px-3 py-2.5 rounded-xl border text-sm font-medium transition-all text-left ${barberId === b._id ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300"}`}
+                      className="px-3 py-2.5 rounded-xl border text-sm font-medium transition-all text-left"
+                      style={barberId === b._id ? { background: 'var(--t-accent)', color: '#fff', borderColor: 'var(--t-accent)' } : { background: 'var(--t-input-bg)', color: 'var(--t-text-2)', borderColor: 'var(--t-border)' }}
                     >
                       <span className="block font-semibold">{b.name}</span>
-                      {b.experience > 0 && <span className={`text-xs ${barberId === b._id ? "text-indigo-200" : "text-slate-400"}`}>{b.experience} yr exp</span>}
+                      {b.experience > 0 && <span className="text-xs" style={{ color: barberId === b._id ? 'rgba(255,255,255,0.7)' : 'var(--t-text-3)' }}>{b.experience} yr exp</span>}
                     </button>
                   ))}
                 </div>
@@ -325,10 +333,10 @@ function Booking() {
 
             {/* Time slots */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--t-text-2)' }}>
                 {bookingMode === "sequential" ? "Your Time Slot" : "Select Time Slot"}
                 {totalDuration > 0 && (
-                  <span className="ml-2 text-xs font-normal text-slate-400">
+                  <span className="ml-2 text-xs font-normal" style={{ color: 'var(--t-text-3)' }}>
                     ({totalDuration} min total)
                   </span>
                 )}
@@ -346,7 +354,7 @@ function Booking() {
                   🔒 Bookings are not available on this date. Please choose another date.
                 </div>
               ) : slots.length === 0 ? (
-                <div className="p-4 bg-slate-50 rounded-xl text-slate-500 text-sm text-center">
+                <div className="p-4 rounded-xl text-sm text-center" style={{ background: 'var(--t-bg-2)', color: 'var(--t-text-2)' }}>
                   No available slots for this date.
                 </div>
               ) : bookingMode === "sequential" ? (
@@ -370,11 +378,11 @@ function Booking() {
                 </div>
               ) : (
                 <>
-                  <div className="flex items-center gap-4 mb-3 text-xs text-slate-500 flex-wrap">
-                    <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-slate-300" /> Past</span>
+                  <div className="flex items-center gap-4 mb-3 text-xs flex-wrap" style={{ color: 'var(--t-text-3)' }}>
+                    <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded" style={{ background: 'var(--t-border)' }} /> Past</span>
                     <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-red-400" /> Booked</span>
                     <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-indigo-600" /> Selected</span>
-                    <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded border border-slate-200 bg-white" /> Available</span>
+                    <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded" style={{ border: '1px solid var(--t-border)', background: 'var(--t-input-bg)' }} /> Available</span>
                   </div>
 
                   <div className="grid grid-cols-3 gap-2">
@@ -396,15 +404,13 @@ function Booking() {
                             if (blocked) { setSlotPopup("booked"); return; }
                             setSlot(s);
                           }}
-                          className={`py-2 px-1 text-xs rounded-lg border transition-all font-medium text-center leading-tight ${
-                            past
-                              ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
-                              : blocked
-                              ? "bg-red-100 text-red-500 border-red-300 cursor-not-allowed"
-                              : selected
-                              ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
-                              : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
-                          }`}
+                          className="py-2 px-1 text-xs rounded-lg border transition-all font-medium text-center leading-tight"
+                          style={
+                            past    ? { background: 'var(--t-bg-2)', color: 'var(--t-text-3)', borderColor: 'var(--t-border)', cursor: 'not-allowed' } :
+                            blocked ? { background: 'var(--t-error-bg)', color: 'var(--t-error-text)', borderColor: 'var(--t-error-border)', cursor: 'not-allowed' } :
+                            selected? { background: 'var(--t-accent)', color: '#fff', borderColor: 'var(--t-accent)' } :
+                                      { background: 'var(--t-input-bg)', color: 'var(--t-text-2)', borderColor: 'var(--t-border)' }
+                          }
                         >
                           <span className="block">{s}</span>
                           <span className="block opacity-75">– {endTime}</span>
@@ -419,18 +425,18 @@ function Booking() {
             {/* Slot unavailable popup */}
             {slotPopup && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-                <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full text-center">
+                <div className="t-card rounded-2xl shadow-xl p-6 max-w-sm w-full text-center">
                   {slotPopup === "past" ? (
                     <>
-                      <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center text-3xl mx-auto mb-3">⏰</div>
-                      <h3 className="text-lg font-bold text-slate-900 mb-2">Time Has Passed</h3>
-                      <p className="text-sm text-slate-500 mb-5">This time slot has already passed. Please choose an upcoming slot.</p>
+                      <div className="w-14 h-14 rounded-full flex items-center justify-center text-3xl mx-auto mb-3" style={{ background: 'var(--t-bg-2)' }}>⏰</div>
+                      <h3 className="text-lg font-bold mb-2" style={{ color: 'var(--t-text)' }}>Time Has Passed</h3>
+                      <p className="text-sm mb-5" style={{ color: 'var(--t-text-2)' }}>This time slot has already passed. Please choose an upcoming slot.</p>
                     </>
                   ) : (
                     <>
-                      <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center text-3xl mx-auto mb-3">🚫</div>
-                      <h3 className="text-lg font-bold text-slate-900 mb-2">Slot Already Booked</h3>
-                      <p className="text-sm text-slate-500 mb-5">This slot is taken. Please choose another available slot.</p>
+                      <div className="w-14 h-14 rounded-full flex items-center justify-center text-3xl mx-auto mb-3" style={{ background: 'var(--t-error-bg)' }}>🚫</div>
+                      <h3 className="text-lg font-bold mb-2" style={{ color: 'var(--t-text)' }}>Slot Already Booked</h3>
+                      <p className="text-sm mb-5" style={{ color: 'var(--t-text-2)' }}>This slot is taken. Please choose another available slot.</p>
                     </>
                   )}
                   <button onClick={() => setSlotPopup(null)} className="btn-primary w-full">
@@ -443,7 +449,7 @@ function Booking() {
             {/* Coupon code — only shown if salon has active coupons */}
             {date && slot && salon?.hasCoupons && (
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Have a coupon?</label>
+                <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--t-text-2)' }}>Have a coupon?</label>
                 {appliedCoupon ? (
                   <div className="flex items-center justify-between px-3 py-2.5 bg-green-50 border border-green-200 rounded-xl text-sm">
                     <span className="text-green-700 font-medium">✓ {appliedCoupon.code} — ₹{couponDiscount} off</span>
@@ -474,40 +480,40 @@ function Booking() {
 
             {/* Booking summary */}
             {date && slot && (
-              <div className="bg-white border border-slate-200 rounded-xl p-4 text-sm fade-in">
-                <p className="text-xs font-bold text-indigo-600 uppercase tracking-wide mb-3">Booking Summary</p>
-                <div className="space-y-2 text-slate-700">
+              <div className="t-card-2 rounded-xl p-4 text-sm fade-in">
+                <p className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: 'var(--t-accent)' }}>Booking Summary</p>
+                <div className="space-y-2">
                   {services.map(s => (
                     <div key={s._id} className="flex justify-between">
-                      <span className="text-slate-600">{s.name}</span>
-                      <span className="font-semibold text-slate-800">₹{s.basePrice || s.price}</span>
+                      <span style={{ color: 'var(--t-text-2)' }}>{s.name}</span>
+                      <span className="font-semibold" style={{ color: 'var(--t-text)' }}>₹{s.basePrice || s.price}</span>
                     </div>
                   ))}
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Duration</span>
-                    <span className="font-medium text-slate-700">{totalDuration} min</span>
+                    <span style={{ color: 'var(--t-text-3)' }}>Duration</span>
+                    <span className="font-medium" style={{ color: 'var(--t-text-2)' }}>{totalDuration} min</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Date</span>
-                    <span className="font-medium text-slate-700">{formatDate(date + "T12:00:00")}</span>
+                    <span style={{ color: 'var(--t-text-3)' }}>Date</span>
+                    <span className="font-medium" style={{ color: 'var(--t-text-2)' }}>{formatDate(date + "T12:00:00")}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Time</span>
-                    <span className="font-medium text-slate-700">{slot} – {(() => {
+                    <span style={{ color: 'var(--t-text-3)' }}>Time</span>
+                    <span className="font-medium" style={{ color: 'var(--t-text-2)' }}>{slot} – {(() => {
                       const [h, m] = slot.split(":").map(Number);
                       const end = h * 60 + m + totalDuration;
                       return `${String(Math.floor(end / 60)).padStart(2, "0")}:${String(end % 60).padStart(2, "0")}`;
                     })()}</span>
                   </div>
                   {couponDiscount > 0 && (
-                    <div className="flex justify-between text-green-700">
+                    <div className="flex justify-between" style={{ color: 'var(--t-success-text)' }}>
                       <span>Discount ({appliedCoupon?.code})</span>
                       <span className="font-medium">−₹{couponDiscount}</span>
                     </div>
                   )}
-                  <div className="flex justify-between border-t border-slate-200 pt-2 mt-1">
-                    <span className="font-bold text-slate-800">Total (Pay at salon)</span>
-                    <span className="font-bold text-indigo-600 text-base">₹{finalPrice}</span>
+                  <div className="flex justify-between t-divider pt-2 mt-1">
+                    <span className="font-bold" style={{ color: 'var(--t-text)' }}>Total (Pay at salon)</span>
+                    <span className="font-bold text-base" style={{ color: 'var(--t-accent)' }}>₹{finalPrice}</span>
                   </div>
                 </div>
               </div>

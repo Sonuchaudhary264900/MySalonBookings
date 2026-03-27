@@ -92,7 +92,7 @@ function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="t-page flex">
       {/* Left panel */}
       <div className="hidden lg:flex lg:w-1/2 gradient-primary items-center justify-center p-12">
         <div className="text-white text-center max-w-md">
@@ -119,7 +119,7 @@ function Login() {
             <span className="text-xl font-bold text-gradient">SmartSalon</span>
           </div>
 
-          <h1 className="text-2xl font-bold text-slate-900 mb-1">Sign In</h1>
+          <h1 className="text-2xl font-bold mb-1" style={{ color: "var(--t-text)" }}>Sign In</h1>
           <p className="text-muted mb-7">Enter your credentials to continue.</p>
 
           {error && (
@@ -130,7 +130,7 @@ function Login() {
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Phone Number</label>
+              <label className="block text-sm font-semibold mb-1.5" style={{ color: "var(--t-text-2)" }}>Phone Number</label>
               <input
                 type="tel"
                 placeholder="+91 98765 43210"
@@ -142,7 +142,7 @@ function Login() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Password</label>
+              <label className="block text-sm font-semibold mb-1.5" style={{ color: "var(--t-text-2)" }}>Password</label>
               <div className="relative">
                 <input
                   type={showPass ? "text" : "password"}
@@ -155,7 +155,7 @@ function Login() {
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 transition" style={{ color: "var(--t-text-3)" }}
                 >
                   {showPass ? "🙈" : "👁"}
                 </button>
@@ -181,7 +181,7 @@ function Login() {
             </button>
           </div>
 
-          <p className="mt-5 text-center text-sm text-slate-500">
+          <p className="mt-5 text-center text-sm" style={{ color: "var(--t-text-2)" }}>
             Don't have an account?{" "}
             <Link to="/register" state={{ from, bookingState }} className="text-indigo-600 font-semibold hover:underline">
               Create one free
@@ -193,9 +193,9 @@ function Login() {
       {/* Forgot Password Modal */}
       {fpOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm dark:bg-slate-800">
+          <div className="t-card p-6 w-full max-w-sm shadow-2xl">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">{fpStep === 1 ? "Forgot Password" : "Reset Password"}</h3>
+              <h3 className="text-lg font-bold t-text">{fpStep === 1 ? "Forgot Password" : "Reset Password"}</h3>
               <button type="button" onClick={() => { setFpOpen(false); setFpStep(1); }} className="text-slate-400 hover:text-slate-600 text-xl">✕</button>
             </div>
             {fpError && <div className="mb-3 p-2.5 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">{fpError}</div>}

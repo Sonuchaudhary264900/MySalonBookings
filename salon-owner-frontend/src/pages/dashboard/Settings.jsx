@@ -1107,7 +1107,7 @@ const AboutContent = () => (
         { label: 'App Name',  value: 'My Salon Bookings' },
         { label: 'Version',   value: '1.0.0' },
         { label: 'Platform',  value: 'Web (Owner Panel)' },
-        { label: 'Support',   value: 'support@mysalonbookings.in' },
+        { label: 'Support',   value: 'support@mysalonbookings.com' },
       ].map(({ label, value }) => (
         <div key={label} className="flex justify-between py-2.5 border-b border-gray-100 dark:border-gray-800 last:border-0">
           <span className="text-sm text-gray-500 dark:text-gray-400">{label}</span>

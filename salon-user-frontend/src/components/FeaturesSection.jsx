@@ -130,7 +130,7 @@ export default function FeaturesSection() {
             <span className="text-neon-gradient">look your best</span>
           </h2>
           <p className="text-sm sm:text-base max-w-md mx-auto" style={{ color: "rgba(148,163,184,0.65)" }}>
-            My Salon Bookings makes beauty effortless — for customers and salon owners.
+            Salon Bookings makes beauty effortless — for customers and salon owners.
           </p>
         </div>
 

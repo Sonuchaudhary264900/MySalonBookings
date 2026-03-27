@@ -143,7 +143,7 @@ function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="t-page flex">
 
       {/* Left panel */}
       <div className="hidden lg:flex lg:w-1/2 gradient-primary items-center justify-center p-12">
@@ -173,7 +173,7 @@ function Register() {
             <span className="text-xl font-bold text-gradient">SmartSalon</span>
           </div>
 
-          <h1 className="text-2xl font-bold text-slate-900 mb-1">Create Account</h1>
+          <h1 className="text-2xl font-bold mb-1" style={{ color: "var(--t-text)" }}>Create Account</h1>
           <p className="text-muted mb-6">It's free and takes less than 2 minutes.</p>
 
           {/* Step indicator */}
@@ -182,20 +182,19 @@ function Register() {
               <div key={num} className="flex items-center flex-1">
                 <div className="flex flex-col items-center">
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
-                      step > num
-                        ? "bg-green-500 text-white"
-                        : step === num
-                        ? "bg-indigo-600 text-white"
-                        : "bg-slate-200 text-slate-400"
-                    }`}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all"
+                    style={
+                      step > num  ? { background: '#22c55e', color: '#fff' } :
+                      step === num ? { background: 'var(--t-accent)', color: '#fff' } :
+                                    { background: 'var(--t-border)', color: 'var(--t-text-3)' }
+                    }
                   >
                     {step > num ? "✓" : num}
                   </div>
-                  <span className="text-xs text-slate-500 mt-1 whitespace-nowrap">{label}</span>
+                  <span className="text-xs mt-1 whitespace-nowrap" style={{ color: 'var(--t-text-3)' }}>{label}</span>
                 </div>
                 {i < STEPS.length - 1 && (
-                  <div className={`flex-1 h-0.5 mb-4 mx-2 transition-all ${step > num ? "bg-green-400" : "bg-slate-200"}`} />
+                  <div className="flex-1 h-0.5 mb-4 mx-2 transition-all" style={{ background: step > num ? '#22c55e' : 'var(--t-border)' }} />
                 )}
               </div>
             ))}
@@ -211,7 +210,7 @@ function Register() {
           {step === 1 && (
             <form onSubmit={handleSendOtp} className="space-y-4 fade-in">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Full Name</label>
+                <label className="block text-sm font-semibold mb-1.5" style={{ color: "var(--t-text-2)" }}>Full Name</label>
                 <input
                   type="text"
                   placeholder="John Doe"
@@ -222,7 +221,7 @@ function Register() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Phone Number</label>
+                <label className="block text-sm font-semibold mb-1.5" style={{ color: "var(--t-text-2)" }}>Phone Number</label>
                 <input
                   type="tel"
                   placeholder="9876543210"
@@ -233,18 +232,18 @@ function Register() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Gender</label>
+                <label className="block text-sm font-semibold mb-1.5" style={{ color: "var(--t-text-2)" }}>Gender</label>
                 <div className="flex gap-2">
                   {["male", "female"].map((g) => (
                     <button
                       key={g}
                       type="button"
                       onClick={() => setGender(g)}
-                      className={`flex-1 py-2.5 rounded-xl border text-sm font-medium capitalize transition-all ${
-                        gender === g
-                          ? "bg-indigo-600 text-white border-indigo-600"
-                          : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300"
-                      }`}
+                      className="flex-1 py-2.5 rounded-xl border text-sm font-medium capitalize transition-all"
+                      style={gender === g
+                        ? { background: 'var(--t-accent)', color: '#fff', borderColor: 'var(--t-accent)' }
+                        : { background: 'var(--t-input-bg)', color: 'var(--t-text-2)', borderColor: 'var(--t-border)' }
+                      }
                     >
                       {g === "male" ? "👨 Male" : "👩 Female"}
                     </button>
@@ -290,7 +289,7 @@ function Register() {
                 </p>
               </div>
               <div className="mb-4">
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Enter OTP</label>
+                <label className="block text-sm font-semibold mb-1.5" style={{ color: "var(--t-text-2)" }}>Enter OTP</label>
                 <input
                   type="text"
                   placeholder="6-digit code"
@@ -334,7 +333,7 @@ function Register() {
           {step === 3 && (
             <form onSubmit={handleRegister} className="fade-in">
               <div className="mb-5">
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Create Password</label>
+                <label className="block text-sm font-semibold mb-1.5" style={{ color: "var(--t-text-2)" }}>Create Password</label>
                 <div className="relative">
                   <input
                     type={showPass ? "text" : "password"}
@@ -380,7 +379,7 @@ function Register() {
             <Link to="/legal/customer-terms" className="text-indigo-500 hover:underline">Terms &amp; Conditions</Link>.
           </p>
 
-          <p className="mt-4 text-center text-sm text-slate-500">
+          <p className="mt-4 text-center text-sm" style={{ color: "var(--t-text-2)" }}>
             Already have an account?{" "}
             <Link to="/login" className="text-indigo-600 font-semibold hover:underline">Sign in</Link>
           </p>

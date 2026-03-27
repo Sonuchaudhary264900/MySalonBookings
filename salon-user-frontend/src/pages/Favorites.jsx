@@ -27,7 +27,7 @@ function Favorites() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8 px-4">
+    <div className="t-page py-8 px-4">
       <div className="max-w-7xl mx-auto">
         <div className="mb-7">
           <h1 className="text-2xl font-bold text-slate-900">Saved Salons</h1>
