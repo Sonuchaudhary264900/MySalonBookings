@@ -75,6 +75,7 @@ const Salon    = require("../models/Salon");
 const Service  = require("../models/Service");
 const Review   = require("../models/Review");
 const Customer = require("../models/Customer");
+const Coupon   = require("../models/Coupon");
 
 /* =====================================================
    EXTRA ROUTES (MERGED OWNER ROUTES)
@@ -120,6 +121,27 @@ router.get("/public/salons", asyncHandler(async (req, res) => {
     .populate("ownerId", "profilePhoto")
     .lean();
   const salons = rawSalons.map(s => ({ ...s, ownerPhoto: s.ownerId?.profilePhoto || null, ownerId: undefined, offeredCategoryNames: (s.offeredCategories || []).map(c => c.name), offeredCategories: undefined }));
+
+  // Attach best active coupon per salon (single batch query)
+  if (salons.length > 0) {
+    const now = new Date();
+    const salonIds = salons.map(s => s._id);
+    const coupons = await Coupon.find({
+      salonId: { $in: salonIds }, isActive: true,
+      $or: [{ validUntil: null }, { validUntil: { $gte: now } }],
+    }).sort({ discountValue: -1 }).select("salonId code discountType discountValue minAmount maxDiscount description").lean();
+    console.log(`[salons] salonIds=${salonIds.length}, coupons found=${coupons.length}`);
+    const couponMap = {};
+    for (const c of coupons) {
+      const k = String(c.salonId);
+      if (!couponMap[k]) couponMap[k] = c;
+    }
+    salons.forEach(s => {
+      const c = couponMap[String(s._id)];
+      s.topOffer = c ? { code: c.code, discountType: c.discountType, discountValue: c.discountValue, minAmount: c.minAmount || 0, maxDiscount: c.maxDiscount || null, description: c.description || null } : null;
+    });
+  }
+
   const total = await Salon.countDocuments(query);
   res.json({ success: true, data: { salons, total } });
 }));
@@ -179,12 +201,31 @@ router.get("/public/salons/nearby", asyncHandler(async (req, res) => {
     },
   ]);
 
+  // Attach best active coupon per salon (single batch query)
+  if (salons.length > 0) {
+    const now = new Date();
+    const salonIds = salons.map(s => s._id);
+    const coupons = await Coupon.find({
+      salonId: { $in: salonIds }, isActive: true,
+      $or: [{ validUntil: null }, { validUntil: { $gte: now } }],
+    }).sort({ discountValue: -1 }).select("salonId code discountType discountValue minAmount maxDiscount description").lean();
+    console.log(`[nearby] salonIds=${salonIds.length}, coupons found=${coupons.length}`);
+    const couponMap = {};
+    for (const c of coupons) {
+      const k = String(c.salonId);
+      if (!couponMap[k]) couponMap[k] = c;
+    }
+    salons.forEach(s => {
+      const c = couponMap[String(s._id)];
+      s.topOffer = c ? { code: c.code, discountType: c.discountType, discountValue: c.discountValue, minAmount: c.minAmount || 0, maxDiscount: c.maxDiscount || null, description: c.description || null } : null;
+    });
+  }
+
   res.json({ success: true, data: { salons, count: salons.length } });
 }));
 
 // GET /public/salons/:salonId
 router.get("/public/salons/:salonId", validateObjectId("salonId"), asyncHandler(async (req, res) => {
-  const Coupon = require("../models/Coupon");
   const Barber = require("../models/Barber");
   const salon = await Salon.findById(req.params.salonId).populate("ownerId", "profilePhoto gender name").lean();
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
