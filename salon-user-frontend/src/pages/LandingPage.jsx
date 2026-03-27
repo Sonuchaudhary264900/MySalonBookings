@@ -103,7 +103,7 @@ const MALE_ONLY_CATS   = ["Beard & Grooming", "Body Grooming"];
 const FEMALE_ONLY_CATS = ["Bridal & Events"];
 
 export default function LandingPage({
-  searchText = "", onSearch, onLocate, locLoading = false, searching = false,
+  searchText = "", onSearch, onSearchSubmit, onLocate, locLoading = false, searching = false,
   selectedCats = [], onCategorySelect, sort = "nearby", onSortChange,
   genderFilter = "all", salonGrid = null,
 }) {
@@ -116,7 +116,16 @@ export default function LandingPage({
 
   const handleInput = (val) => {
     if (onSearch) onSearch(val);
-    if (val) setTimeout(scrollToSalons, 300);
+    if (!val) return; // clearing — no scroll
+  };
+
+  const handleSubmit = () => {
+    if (onSearchSubmit) onSearchSubmit();
+    setTimeout(scrollToSalons, 200);
+  };
+
+  const handleKey = (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); handleSubmit(); }
   };
 
   /* ── shared token styles ── */
@@ -205,13 +214,16 @@ export default function LandingPage({
                   transition: "all 0.25s ease",
                 }}
               >
-                <Search style={{ width: 18, height: 18, flexShrink: 0, color: focused ? "var(--t-accent)" : "var(--t-text-3)", transition: "color 0.2s" }} />
+                <button onClick={handleSubmit} style={{ display: "flex", background: "none", border: "none", cursor: searchText ? "pointer" : "default", padding: 0, flexShrink: 0 }} title="Search">
+                  <Search style={{ width: 18, height: 18, color: focused ? "var(--t-accent)" : "var(--t-text-3)", transition: "color 0.2s" }} />
+                </button>
                 <input
                   ref={inputRef}
                   type="text"
                   placeholder="Search salons, services, city…"
                   value={searchText}
                   onChange={e => handleInput(e.target.value)}
+                  onKeyDown={handleKey}
                   onFocus={() => setFocused(true)}
                   onBlur={() => setFocused(false)}
                   style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 16, color: "var(--t-text)", minWidth: 0 }}
