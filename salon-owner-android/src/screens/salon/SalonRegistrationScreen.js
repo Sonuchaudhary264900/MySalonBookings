@@ -372,7 +372,7 @@ export default function SalonRegistrationScreen() {
             </View>
             <Text style={styles.cardSub}>Tell us about your salon</Text>
 
-            <Field label="Salon Name *" value={name} setter={setName} placeholder="e.g. Royal Barbers" />
+            <Field label="Salon Name *" value={name} setter={setName} placeholder="e.g. Royal Salon" />
             <Field label="Description (optional)" value={description} setter={setDescription} placeholder="Brief description of your salon" multiline />
 
             <View style={styles.field}>
