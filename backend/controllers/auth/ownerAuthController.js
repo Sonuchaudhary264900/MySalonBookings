@@ -857,15 +857,10 @@ exports.logout = async (req, res) => {
   try {
     const { refreshToken } = req.body;
 
-    if (refreshToken) {
-      // Remove refresh token from database
-      await Owner.findByIdAndUpdate(
-        req.owner._id,
-        {
-          $pull: { refreshTokens: { token: refreshToken } },
-        }
-      );
-    }
+    const update = { expoPushToken: null };
+    if (refreshToken) update.$pull = { refreshTokens: { token: refreshToken } };
+
+    await Owner.findByIdAndUpdate(req.owner._id, update);
 
     res.json(
       formatSuccessResponse(null, messages.AUTH.LOGOUT_SUCCESS)

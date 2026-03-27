@@ -775,14 +775,10 @@ exports.logout = async (req, res) => {
   try {
     const { refreshToken } = req.body;
 
-    if (refreshToken) {
-      await Customer.findByIdAndUpdate(
-        req.customer._id,
-        {
-          $pull: { refreshTokens: { token: refreshToken } },
-        }
-      );
-    }
+    const update = { expoPushToken: null };
+    if (refreshToken) update.$pull = { refreshTokens: { token: refreshToken } };
+
+    await Customer.findByIdAndUpdate(req.customer._id, update);
 
     res.json(
       formatSuccessResponse(null, messages.AUTH.LOGOUT_SUCCESS)
