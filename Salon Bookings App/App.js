@@ -1,12 +1,12 @@
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import React, { useEffect, useRef } from 'react';
-import { View, Text, ActivityIndicator, Image, StyleSheet, Dimensions, InteractionManager } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, Image, StyleSheet, Dimensions, InteractionManager } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer, useNavigation, createNavigationContainerRef } from '@react-navigation/native';
 import * as Notifications from 'expo-notifications';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -36,7 +36,7 @@ import LegalScreen          from './src/screens/legal/LegalScreen';
 
 const RootStack = createNativeStackNavigator();
 const AuthStack = createNativeStackNavigator();
-const Tab       = createBottomTabNavigator();
+const Tab       = createMaterialTopTabNavigator();
 const HomeStack = createNativeStackNavigator();
 const BookStack = createNativeStackNavigator();
 const FavStack  = createNativeStackNavigator();
@@ -84,41 +84,71 @@ function SettingsStackNav() {
   );
 }
 
+// ── Custom bottom tab bar (icons + labels rendered properly) ──────
+const TAB_ICONS = {
+  HomeTab:      ['home',     'home-outline'],
+  BookingsTab:  ['calendar', 'calendar-outline'],
+  FavoritesTab: ['heart',    'heart-outline'],
+  SettingsTab:  ['settings', 'settings-outline'],
+};
+
+function CustomTabBar({ state, navigation }) {
+  const { theme } = useTheme();
+  const { t }     = useLanguage();
+  const labels    = {
+    HomeTab:      t('tabHome'),
+    BookingsTab:  t('tabBookings'),
+    FavoritesTab: t('tabFavorites'),
+    SettingsTab:  t('tabSettings'),
+  };
+  return (
+    <View style={{
+      flexDirection: 'row',
+      backgroundColor: theme.card,
+      borderTopWidth: 1,
+      borderTopColor: theme.border,
+      height: 62,
+      elevation: 8,
+      shadowOpacity: 0.08,
+    }}>
+      {state.routes.map((route, index) => {
+        const focused  = state.index === index;
+        const color    = focused ? theme.accent : theme.subText;
+        const [activeIcon, inactiveIcon] = TAB_ICONS[route.name] || ['ellipse', 'ellipse-outline'];
+        return (
+          <TouchableOpacity
+            key={route.key}
+            style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 6 }}
+            onPress={() => navigation.navigate(route.name)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name={focused ? activeIcon : inactiveIcon} size={22} color={color} />
+            <Text style={{ fontSize: 11, fontWeight: '600', color, marginTop: 2 }}>
+              {labels[route.name]}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
+
 // ── Tab Navigator with swipe support ─────────────────────────────
 function MainTabs() {
-  const { t } = useLanguage();
-  const { theme } = useTheme();
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
+      tabBarPosition="bottom"
+      tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: theme.accent,
-        tabBarInactiveTintColor: theme.subText,
-        tabBarStyle: {
-          backgroundColor: theme.card,
-          borderTopWidth: 1,
-          borderTopColor: theme.border,
-          height: 62,
-          elevation: 8,
-          shadowOpacity: 0.08,
-        },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-        tabBarIcon: ({ focused, color }) => {
-          const icons = {
-            HomeTab:      focused ? 'home'      : 'home-outline',
-            BookingsTab:  focused ? 'calendar'  : 'calendar-outline',
-            FavoritesTab: focused ? 'heart'     : 'heart-outline',
-            SettingsTab:  focused ? 'settings'  : 'settings-outline',
-          };
-          return <Ionicons name={icons[route.name]} size={22} color={color} />;
-        },
-        tabBarItemStyle: { paddingTop: 6, paddingBottom: 6 },
-      })}
+        swipeEnabled: true,
+        tabBarIndicatorStyle: { height: 0 },
+      }}
     >
-      <Tab.Screen name="HomeTab"      component={HomeStackNav}      options={{ tabBarLabel: t('tabHome') }} />
-      <Tab.Screen name="BookingsTab"  component={BookingsStackNav}  options={{ tabBarLabel: t('tabBookings') }} />
-      <Tab.Screen name="FavoritesTab" component={FavoritesStackNav} options={{ tabBarLabel: t('tabFavorites') }} />
-      <Tab.Screen name="SettingsTab"  component={SettingsStackNav}  options={{ tabBarLabel: t('tabSettings') }} />
+      <Tab.Screen name="HomeTab"      component={HomeStackNav} />
+      <Tab.Screen name="BookingsTab"  component={BookingsStackNav} />
+      <Tab.Screen name="FavoritesTab" component={FavoritesStackNav} />
+      <Tab.Screen name="SettingsTab"  component={SettingsStackNav} />
     </Tab.Navigator>
   );
 }
