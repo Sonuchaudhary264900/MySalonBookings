@@ -1,32 +1,144 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import {
   Scissors, Phone, Star, Check, MessageSquare, Frown, Building2,
   Mail, ShoppingBag, MapPin, Navigation, ChevronDown, ChevronUp,
-  Clock, Sparkles, Award, Users, ArrowLeft, Zap,
+  Clock, Sparkles, Award, Users, ArrowLeft, Zap, X, Calendar,
+  User, Tag, CreditCard, CheckCircle,
 } from "lucide-react";
 import API from "../services/api";
 import ServiceCard from "../components/ServiceCard";
 import ReviewCard from "../components/ReviewCard";
 import { isCustomer, clearCustomerAuth } from "../utils/auth";
+import { formatDate } from "../utils/formatters";
+import { useNotifications } from "../context/NotificationContext";
 
 const BASE_TABS = ["Services", "Reviews", "Info"];
+
+// ── Working hours helpers (shared with SalonCard) ─────────────────────────────
+const WH_DAYS = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
+
+const isOpenNow = (wh) => {
+  if (!wh) return null;
+  const h = wh[WH_DAYS[new Date().getDay()]];
+  if (!h || h.isClosed || !h.open || !h.close) return false;
+  const now = new Date(); const nowM = now.getHours() * 60 + now.getMinutes();
+  const [oh, om] = h.open.split(":").map(Number); const [ch, cm] = h.close.split(":").map(Number);
+  return nowM >= oh * 60 + om && nowM < ch * 60 + cm;
+};
+const getTodayHours = (wh) => {
+  if (!wh) return null;
+  const h = wh[WH_DAYS[new Date().getDay()]];
+  if (!h || h.isClosed || !h.open || !h.close) return null;
+  return `${h.open} – ${h.close}`;
+};
+const getOpensAt = (wh) => {
+  if (!wh) return null;
+  const h = wh[WH_DAYS[new Date().getDay()]];
+  if (!h || h.isClosed || !h.open) return null;
+  return h.open;
+};
+const getNextSlot = (wh, intervalMins = 30) => {
+  if (!wh) return null;
+  const now = new Date(); const nowDay = now.getDay(); const nowM = now.getHours() * 60 + now.getMinutes();
+  for (let i = 0; i < 7; i++) {
+    const h = wh[WH_DAYS[(nowDay + i) % 7]];
+    if (!h || h.isClosed || !h.open || !h.close) continue;
+    const [oh, om] = h.open.split(":").map(Number); const [ch, cm] = h.close.split(":").map(Number);
+    const openM = oh * 60 + om; const closeM = ch * 60 + cm;
+    let slotM;
+    if (i === 0) {
+      if (nowM >= closeM) continue;
+      slotM = nowM <= openM ? openM : openM + Math.ceil((nowM - openM) / intervalMins) * intervalMins;
+      if (slotM >= closeM) continue;
+    } else { slotM = openM; }
+    const label = `${String(Math.floor(slotM/60)).padStart(2,"0")}:${String(slotM%60).padStart(2,"0")}`;
+    if (i === 0) return label;
+    if (i === 1) return `Tomorrow ${label}`;
+    return `${WH_DAYS[(nowDay+i)%7].charAt(0).toUpperCase()}${WH_DAYS[(nowDay+i)%7].slice(1,3)} ${label}`;
+  }
+  return null;
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Booking helpers ──────────────────────────────────────────────────────────
+const localDate = (offset = 0) => {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+};
+const todayStr = localDate(0);
+
+const addMinutes = (t, m) => {
+  const [h, min] = t.split(":").map(Number);
+  const total = h * 60 + min + m;
+  return `${String(Math.floor(total / 60)).padStart(2,"0")}:${String(total % 60).padStart(2,"0")}`;
+};
+
+const timeToMinutes = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+
+const isPastSlot = (date, s) => {
+  if (date !== todayStr) return false;
+  const now = new Date();
+  return timeToMinutes(s) <= now.getHours() * 60 + now.getMinutes();
+};
+
+const formatDay = (dateStr) => {
+  const d = new Date(dateStr + "T12:00:00");
+  return ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d.getDay()];
+};
+// ────────────────────────────────────────────────────────────────────────────
 
 function SalonDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [salon, setSalon] = useState(null);
-  const [services, setServices] = useState([]);
-  const [reviews, setReviews] = useState([]);
-  const [tab, setTab] = useState("Services");
-  const [loading, setLoading] = useState(true);
-  const TABS = reviews.length > 0 ? BASE_TABS : BASE_TABS.filter(t => t !== "Reviews");
-  const activeTab = TABS.includes(tab) ? tab : "Services";
+  const { addToast, addNotification } = useNotifications();
+  const token = localStorage.getItem("customerToken");
+
+  // ── Salon details state ──────────────────────────────────────────────────
+  const [salon, setSalon]           = useState(null);
+  const [services, setServices]     = useState([]);
+  const [reviews, setReviews]       = useState([]);
+  const [tab, setTab]               = useState("Services");
+  const [loading, setLoading]       = useState(true);
   const [selectedServices, setSelectedServices] = useState([]);
   const [serviceGenderFilter, setServiceGenderFilter] = useState("all");
   const [expandedCat, setExpandedCat] = useState(null);
-  const token = localStorage.getItem("customerToken");
 
+  const TABS = BASE_TABS;
+  const activeTab = TABS.includes(tab) ? tab : "Services";
+
+  // ── Booking state ────────────────────────────────────────────────────────
+  const [showBooking, setShowBooking]     = useState(false);
+  const [barbers, setBarbers]             = useState([]);
+  const [barberId, setBarberId]           = useState("");
+  const [bookDate, setBookDate]           = useState(todayStr);
+  const [slot, setSlot]                   = useState("");
+  const [slots, setSlots]                 = useState([]);
+  const [blockedSlots, setBlockedSlots]   = useState([]);
+  const [closedDay, setClosedDay]         = useState(false);
+  const [bookingMode, setBookingMode]     = useState("flexible");
+  const [slotsLoading, setSlotsLoading]   = useState(false);
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [couponInput, setCouponInput]     = useState("");
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponError, setCouponError]     = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [slotPopup, setSlotPopup]         = useState(null);
+  const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [bookingStatus, setBookingStatus] = useState("confirmed");
+  const [bookError, setBookError]         = useState("");
+
+  // ── Computed booking values ──────────────────────────────────────────────
+  const totalPrice    = selectedServices.reduce((s, x) => s + (x.basePrice || x.price || 0), 0);
+  const totalDuration = selectedServices.reduce((s, x) => s + (x.duration || 0), 0);
+  const finalPrice    = Math.max(0, totalPrice - couponDiscount);
+  const advanceDays   = salon?.advanceBookingDays ?? 7;
+  const maxDateStr    = localDate(advanceDays);
+  const dateDays      = Array.from({ length: Math.max(advanceDays + 1, 8) }, (_, i) => localDate(i));
+
+  // ── Auto-set gender filter from profile ─────────────────────────────────
   useEffect(() => {
     if (!token) return;
     API.get("/customer/auth/me")
@@ -37,6 +149,40 @@ function SalonDetails() {
       .catch(() => {});
   }, [token]);
 
+  // ── Initial load ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    Promise.all([loadSalon(), loadServices(), loadReviews(), loadBarbers()]).finally(() => setLoading(false));
+  }, [id]);
+
+  const loadSalon    = async () => { try { const r = await API.get(`/public/salons/${id}`);          setSalon(r.data.data || r.data.salon); } catch {} };
+  const loadServices = async () => { try { const r = await API.get(`/public/salons/${id}/services`); setServices(r.data.data?.services || r.data.data || []); } catch {} };
+  const loadReviews  = async () => { try { const r = await API.get(`/public/salons/${id}/reviews`);  setReviews(r.data.data?.reviews || r.data.data || []); } catch {} };
+  const loadBarbers  = async () => { try { const r = await API.get(`/public/salons/${id}/barbers`).catch(() => ({ data: { data: { barbers: [] } } })); setBarbers(r.data.data?.barbers || []); } catch {} };
+
+  // ── Slot fetch when booking modal open + date/duration changes ───────────
+  useEffect(() => {
+    if (!showBooking || !totalDuration || !id) return;
+    setSlot("");
+    setSlots([]);
+    setBlockedSlots([]);
+    setClosedDay(false);
+    const fetchSlots = async () => {
+      setSlotsLoading(true);
+      try {
+        const res = await API.get(`/public/salons/${id}/booked-slots?date=${bookDate}&duration=${totalDuration}`);
+        const data = res.data.data || {};
+        const mode = data.bookingMode || "flexible";
+        setBookingMode(mode);
+        setSlots(data.slots || []);
+        setBlockedSlots(data.blockedSlots || []);
+        setClosedDay(data.closedDay || false);
+        if (mode === "sequential" && data.slots?.length === 1) setSlot(data.slots[0]);
+      } catch { setSlots([]); } finally { setSlotsLoading(false); }
+    };
+    fetchSlots();
+  }, [bookDate, id, totalDuration, showBooking]);
+
+  // ── Service selection ────────────────────────────────────────────────────
   const toggleService = (service) => {
     setSelectedServices(prev =>
       prev.find(s => s._id === service._id)
@@ -45,39 +191,74 @@ function SalonDetails() {
     );
   };
 
-  const totalPrice    = selectedServices.reduce((sum, s) => sum + (s.basePrice || s.price || 0), 0);
-  const totalDuration = selectedServices.reduce((sum, s) => sum + (s.duration || 0), 0);
-
-  const handleBookNow = () => {
+  // ── Open booking drawer ──────────────────────────────────────────────────
+  const openBooking = () => {
     if (!isCustomer()) {
       clearCustomerAuth();
-      navigate("/login", {
-        state: {
-          from: `/booking/${id}`,
-          bookingState: { serviceIds: selectedServices.map(s => s._id) },
-        },
+      navigate("/login", { state: { from: `/salons/${id}` } });
+      return;
+    }
+    setBookDate(todayStr);
+    setSlot("");
+    setBarberId("");
+    setAppliedCoupon(null);
+    setCouponDiscount(0);
+    setCouponInput("");
+    setCouponError("");
+    setBookingSuccess(false);
+    setBookError("");
+    setShowBooking(true);
+  };
+
+  const handleBookNow      = () => { if (selectedServices.length === 0) { addToast("error", "Please select at least one service."); return; } openBooking(); };
+  const handleBookNowEmpty = () => openBooking();
+
+  // ── Coupon ───────────────────────────────────────────────────────────────
+  const applyCoupon = async () => {
+    if (!couponInput.trim()) return;
+    setCouponError(""); setCouponLoading(true);
+    try {
+      const res = await API.post("/customer/coupons/validate", { code: couponInput.trim().toUpperCase(), salonId: id, totalAmount: totalPrice });
+      const { coupon, discount } = res.data.data;
+      setAppliedCoupon(coupon); setCouponDiscount(discount);
+    } catch (err) {
+      setCouponError(err.response?.data?.message || "Invalid coupon");
+      setAppliedCoupon(null); setCouponDiscount(0);
+    } finally { setCouponLoading(false); }
+  };
+
+  const removeCoupon = () => { setAppliedCoupon(null); setCouponDiscount(0); setCouponInput(""); setCouponError(""); };
+
+  // ── Confirm booking ──────────────────────────────────────────────────────
+  const handleConfirm = async (e) => {
+    e.preventDefault();
+    if (!slot) { setBookError("Please select a time slot."); return; }
+    setBookError(""); setBookingLoading(true);
+    try {
+      const res = await API.post("/customer/bookings", {
+        salonId: id,
+        serviceIds: selectedServices.map(s => s._id),
+        barberId: barberId || undefined,
+        appointmentDate: bookDate,
+        appointmentTime: slot,
+        paymentMethod: "cash",
+        couponCode: appliedCoupon?.code || undefined,
       });
-      return;
-    }
-    navigate(`/booking/${id}`, { state: { serviceIds: selectedServices.map(s => s._id) } });
+      const status = res.data.data?.booking?.status || res.data.data?.status || "confirmed";
+      setBookingStatus(status);
+      if (status === "confirmed") {
+        addToast("success", "Booking confirmed!");
+        addNotification({ type: "booking", title: "Booking Confirmed", message: `${selectedServices.map(s => s.name).join(" + ")} at ${salon?.name} on ${bookDate} at ${slot}` });
+      } else {
+        addToast("info", "Booking received! Awaiting salon confirmation.");
+        addNotification({ type: "booking", title: "Booking Pending", message: `Your booking at ${salon?.name} is awaiting confirmation.` });
+      }
+      setBookingSuccess(true);
+    } catch (err) {
+      setBookError(err.message || "Booking failed. Please try again.");
+      addToast("error", err.message || "Booking failed. Please try again.");
+    } finally { setBookingLoading(false); }
   };
-
-  const handleBookNowEmpty = () => {
-    if (!isCustomer()) {
-      clearCustomerAuth();
-      navigate("/login", { state: { from: `/booking/${id}`, bookingState: { serviceIds: [] } } });
-      return;
-    }
-    navigate(`/booking/${id}`, { state: { serviceIds: [] } });
-  };
-
-  useEffect(() => {
-    Promise.all([loadSalon(), loadServices(), loadReviews()]).finally(() => setLoading(false));
-  }, [id]);
-
-  const loadSalon     = async () => { try { const r = await API.get(`/public/salons/${id}`);           setSalon(r.data.data || r.data.salon); } catch {} };
-  const loadServices  = async () => { try { const r = await API.get(`/public/salons/${id}/services`);  setServices(r.data.data?.services || r.data.data || []); } catch {} };
-  const loadReviews   = async () => { try { const r = await API.get(`/public/salons/${id}/reviews`);   setReviews(r.data.data?.reviews || r.data.data || []); } catch {} };
 
   /* ── Loading skeleton ── */
   if (loading) {
@@ -113,9 +294,13 @@ function SalonDetails() {
     ? parseFloat(salon.averageRating || salon.rating).toFixed(1)
     : null;
 
-  const dayOrder = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
+  const openStatus = isOpenNow(salon.workingHours);
+  const todayHours = getTodayHours(salon.workingHours);
+  const opensAt    = getOpensAt(salon.workingHours);
+  const nextSlot   = getNextSlot(salon.workingHours);
+  const totalBookings = salon.totalBookings || 0;
 
-  /* ── Tab icon map ── */
+  const dayOrder = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
   const TAB_ICONS = { Services: <Scissors className="w-4 h-4" />, Reviews: <Star className="w-4 h-4" />, Info: <Building2 className="w-4 h-4" /> };
 
   return (
@@ -135,11 +320,9 @@ function SalonDetails() {
           </div>
         )}
 
-        {/* Multi-layer overlay for depth */}
         <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.15) 100%)' }} />
         <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.25) 0%, transparent 60%)' }} />
 
-        {/* Back button */}
         <button
           onClick={() => navigate(-1)}
           className="absolute top-4 left-4 w-10 h-10 rounded-full flex items-center justify-center text-white transition-all duration-200 hover:scale-110"
@@ -148,7 +331,6 @@ function SalonDetails() {
           <ArrowLeft className="w-5 h-5" />
         </button>
 
-        {/* Top-right: Verified badge */}
         {salon.isApproved && (
           <div
             className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
@@ -158,9 +340,7 @@ function SalonDetails() {
           </div>
         )}
 
-        {/* Bottom overlay content */}
         <div className="absolute bottom-0 left-0 right-0 px-5 pb-5 pt-8">
-          {/* Top Rated badge */}
           {avgRating && parseFloat(avgRating) >= 4.0 && (
             <div className="flex items-center gap-1.5 mb-2">
               <div
@@ -172,11 +352,8 @@ function SalonDetails() {
             </div>
           )}
 
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight mb-1">
-            {salon.name}
-          </h1>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight mb-1">{salon.name}</h1>
 
-          {/* Location */}
           {(salon.address || salon.city) && (
             <p className="flex items-center gap-1.5 text-sm text-white/75 mb-3">
               <MapPin className="w-3.5 h-3.5 shrink-0" />
@@ -184,13 +361,12 @@ function SalonDetails() {
             </p>
           )}
 
-          {/* Stats row */}
           <div className="flex items-center gap-3 mb-4 flex-wrap">
             {avgRating && (
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold"
                 style={{ background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.35)', color: '#fbbf24' }}>
                 <Star className="w-3.5 h-3.5 fill-current" /> {avgRating}
-                {reviews.length > 0 && <span className="font-normal text-white/60 text-xs">({reviews.length})</span>}
+                {(salon.totalReviews || salon.reviewCount || reviews.length) > 0 && <span className="font-normal text-white/60 text-xs">({salon.totalReviews || salon.reviewCount || reviews.length})</span>}
               </div>
             )}
             {services.length > 0 && (
@@ -201,7 +377,6 @@ function SalonDetails() {
             )}
           </div>
 
-          {/* CTA buttons */}
           <div className="flex gap-2.5 flex-wrap">
             <button
               onClick={handleBookNowEmpty}
@@ -222,8 +397,7 @@ function SalonDetails() {
             {(salon.address || salon.city) && (
               <a
                 href={`https://maps.google.com/?q=${encodeURIComponent(salon.address || salon.city)}`}
-                target="_blank"
-                rel="noreferrer"
+                target="_blank" rel="noreferrer"
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:scale-105"
                 style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.2)' }}
               >
@@ -237,18 +411,46 @@ function SalonDetails() {
       {/* ══ TRUST STRIP ═══════════════════════════════════════════════════ */}
       <div className="border-b" style={{ borderColor: 'var(--t-border)', background: 'var(--t-card)' }}>
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-4 overflow-x-auto scrollbar-hide text-xs font-semibold whitespace-nowrap">
+          {/* Open / Closed status */}
+          {openStatus !== null && (
+            <div
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+              style={{
+                background: openStatus ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.1)',
+                color: openStatus ? '#10b981' : '#ef4444',
+                border: `1px solid ${openStatus ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.2)'}`,
+              }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: openStatus ? '#10b981' : '#ef4444' }} />
+              {openStatus ? 'Open Now' : opensAt ? `Opens ${opensAt}` : 'Closed'}
+            </div>
+          )}
+          {todayHours && (
+            <div className="flex items-center gap-1.5" style={{ color: 'var(--t-text-2)' }}>
+              <Clock className="w-3.5 h-3.5" />
+              <span>{todayHours}</span>
+            </div>
+          )}
           {avgRating && (
             <div className="flex items-center gap-1.5" style={{ color: '#fbbf24' }}>
               <Star className="w-3.5 h-3.5 fill-current" />
               <span>{avgRating} Rating</span>
             </div>
           )}
-          {reviews.length > 0 && (
-            <div className="flex items-center gap-1.5" style={{ color: 'var(--t-text-2)' }}>
-              <Users className="w-3.5 h-3.5" />
-              <span>{reviews.length}+ Happy Customers</span>
-            </div>
-          )}
+          {(() => {
+            const rc = salon.totalReviews || salon.reviewCount || reviews.length;
+            return rc > 0 ? (
+              <div className="flex items-center gap-1.5" style={{ color: 'var(--t-text-2)' }}>
+                <Users className="w-3.5 h-3.5" />
+                <span>{rc} {rc === 1 ? "Review" : "Reviews"}</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5" style={{ color: 'var(--t-text-3)' }}>
+                <Users className="w-3.5 h-3.5" />
+                <span>No reviews yet</span>
+              </div>
+            );
+          })()}
           {salon.isApproved && (
             <div className="flex items-center gap-1.5" style={{ color: 'var(--t-success-text)' }}>
               <Check className="w-3.5 h-3.5" />
@@ -258,7 +460,13 @@ function SalonDetails() {
           {services.length > 0 && (
             <div className="flex items-center gap-1.5" style={{ color: 'var(--t-text-2)' }}>
               <Scissors className="w-3.5 h-3.5" />
-              <span>{services.length} Services Available</span>
+              <span>{services.length} Services</span>
+            </div>
+          )}
+          {totalBookings >= 10 && (
+            <div className="flex items-center gap-1.5" style={{ color: '#f87171' }}>
+              <span>🔥</span>
+              <span>{totalBookings >= 1000 ? `${(totalBookings/1000).toFixed(1)}k` : `${totalBookings}+`} booked</span>
             </div>
           )}
           <div className="flex items-center gap-1.5" style={{ color: 'var(--t-text-2)' }}>
@@ -267,6 +475,46 @@ function SalonDetails() {
           </div>
         </div>
       </div>
+
+      {/* ══ QUICK INFO ROW ═════════════════════════════════════════════════ */}
+      {(nextSlot || salon.minPrice || salon.kidsHaircut || salon.atHomeServices) && (
+        <div className="border-b" style={{ borderColor: 'var(--t-border)', background: 'var(--t-bg-2)' }}>
+          <div className="max-w-4xl mx-auto px-4 py-2.5 flex items-center gap-3 overflow-x-auto scrollbar-hide whitespace-nowrap">
+            {nextSlot && (
+              <span
+                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full"
+                style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.18)', color: 'var(--t-accent)' }}
+              >
+                ⏱ Next slot: {nextSlot}
+              </span>
+            )}
+            {salon.minPrice && (
+              <span
+                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full"
+                style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.15)', color: 'var(--t-accent)' }}
+              >
+                💰 From ₹{salon.minPrice}
+              </span>
+            )}
+            {salon.kidsHaircut && (
+              <span
+                className="text-xs font-semibold px-3 py-1.5 rounded-full"
+                style={{ background: 'rgba(234,179,8,0.12)', color: '#f59e0b', border: '1px solid rgba(234,179,8,0.2)' }}
+              >
+                👶 Kids Haircut
+              </span>
+            )}
+            {salon.atHomeServices && (
+              <span
+                className="text-xs font-semibold px-3 py-1.5 rounded-full"
+                style={{ background: 'rgba(16,185,129,0.12)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)' }}
+              >
+                🏠 At-Home Service
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ══ CONTENT ════════════════════════════════════════════════════════ */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-5 pb-2">
@@ -310,6 +558,28 @@ function SalonDetails() {
             </a>
           )}
         </div>
+
+        {/* Offer / promo banner */}
+        {salon.topOffer && (() => {
+          const offerLabel = salon.topOffer.discountType === "percentage"
+            ? `${salon.topOffer.discountValue}% OFF${salon.topOffer.minAmount > 0 ? ` on ₹${salon.topOffer.minAmount}+` : ""}`
+            : `₹${salon.topOffer.discountValue} OFF${salon.topOffer.minAmount > 0 ? ` on ₹${salon.topOffer.minAmount}+` : ""}`;
+          return (
+            <div
+              className="flex items-center gap-3 mb-5 px-4 py-3 rounded-xl"
+              style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.22)" }}
+            >
+              <span style={{ fontSize: 18 }}>🏷️</span>
+              <span className="text-sm font-bold flex-1" style={{ color: "#059669" }}>{offerLabel}</span>
+              <span
+                className="text-xs font-bold px-3 py-1 rounded-full"
+                style={{ background: "rgba(5,150,105,0.15)", color: "#059669", border: "1px solid rgba(5,150,105,0.25)", letterSpacing: "0.5px" }}
+              >
+                {salon.topOffer.code}
+              </span>
+            </div>
+          );
+        })()}
 
         {/* ── TABS ── */}
         <div
@@ -412,7 +682,6 @@ function SalonDetails() {
 
           return (
             <div className="fade-in">
-              {/* Gender filter */}
               {isUnisex && services.length > 0 && (
                 <div className="flex gap-2 mb-5">
                   {[
@@ -535,7 +804,6 @@ function SalonDetails() {
         {/* ══ REVIEWS TAB ════════════════════════════════════════════════ */}
         {activeTab === "Reviews" && (
           <div className="fade-in pb-8">
-            {/* Rating overview */}
             {reviews.length > 0 && avgRating && (
               <div className="rounded-2xl p-5 mb-5 flex items-center gap-5"
                 style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
@@ -567,24 +835,20 @@ function SalonDetails() {
                 </div>
               </div>
             )}
-
             <div className="rounded-2xl p-4 mb-5 flex items-start gap-3"
               style={{ background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.18)' }}>
               <Star className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#818cf8' }} />
               <p className="text-sm" style={{ color: '#818cf8' }}>
-                Reviews can be submitted after completing a booking. You'll receive a notification once your service is done.
+                Reviews can be submitted after completing a booking.
               </p>
             </div>
-
             {reviews.length === 0 ? (
               <div className="text-center py-12">
                 <div className="flex justify-center mb-3"><MessageSquare className="w-10 h-10" style={{ color: 'var(--t-border)' }} /></div>
                 <p style={{ color: 'var(--t-text-2)' }}>No reviews yet. Be the first!</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {reviews.map((r) => <ReviewCard key={r._id} review={r} />)}
-              </div>
+              <div className="space-y-3">{reviews.map((r) => <ReviewCard key={r._id} review={r} />)}</div>
             )}
           </div>
         )}
@@ -592,7 +856,6 @@ function SalonDetails() {
         {/* ══ INFO TAB ═══════════════════════════════════════════════════ */}
         {activeTab === "Info" && (
           <div className="fade-in space-y-4 pb-8">
-            {/* Photo gallery */}
             {salon.photos?.length > 0 && (
               <div className="rounded-2xl p-5" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
                 <h3 className="font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--t-text)' }}>
@@ -601,24 +864,19 @@ function SalonDetails() {
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {salon.photos.map((url, i) => (
-                    <a key={i} href={url} target="_blank" rel="noreferrer"
-                      className="block aspect-square rounded-xl overflow-hidden group">
-                      <img src={url} alt={`Salon photo ${i + 1}`}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                    <a key={i} href={url} target="_blank" rel="noreferrer" className="block aspect-square rounded-xl overflow-hidden group">
+                      <img src={url} alt={`Salon photo ${i + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
                     </a>
                   ))}
                 </div>
               </div>
             )}
-
             {salon.description && (
               <div className="rounded-2xl p-5" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
                 <h3 className="font-bold mb-2" style={{ color: 'var(--t-text)' }}>About</h3>
                 <p className="text-sm leading-relaxed" style={{ color: 'var(--t-text-2)' }}>{salon.description}</p>
               </div>
             )}
-
-            {/* Contact & Location */}
             <div className="rounded-2xl p-5" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
               <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--t-text)' }}>
                 <MapPin className="w-4 h-4" style={{ color: '#818cf8' }} />
@@ -627,8 +885,7 @@ function SalonDetails() {
               <ul className="space-y-3 text-sm">
                 {salon.address && (
                   <li className="flex gap-3 items-start">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
-                      style={{ background: 'rgba(99,102,241,0.1)' }}>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ background: 'rgba(99,102,241,0.1)' }}>
                       <MapPin className="w-4 h-4" style={{ color: '#818cf8' }} />
                     </div>
                     <span style={{ color: 'var(--t-text-2)' }}>{salon.address}</span>
@@ -636,8 +893,7 @@ function SalonDetails() {
                 )}
                 {salon.city && (
                   <li className="flex gap-3 items-center">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                      style={{ background: 'rgba(99,102,241,0.1)' }}>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(99,102,241,0.1)' }}>
                       <Building2 className="w-4 h-4" style={{ color: '#818cf8' }} />
                     </div>
                     <span style={{ color: 'var(--t-text-2)' }}>{salon.city}</span>
@@ -645,8 +901,7 @@ function SalonDetails() {
                 )}
                 {salon.phone && (
                   <li className="flex gap-3 items-center">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                      style={{ background: 'rgba(99,102,241,0.1)' }}>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(99,102,241,0.1)' }}>
                       <Phone className="w-4 h-4" style={{ color: '#818cf8' }} />
                     </div>
                     <a href={`tel:${salon.phone}`} className="font-medium hover:underline" style={{ color: 'var(--t-accent)' }}>{salon.phone}</a>
@@ -654,16 +909,13 @@ function SalonDetails() {
                 )}
                 {salon.email && (
                   <li className="flex gap-3 items-center">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                      style={{ background: 'rgba(99,102,241,0.1)' }}>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(99,102,241,0.1)' }}>
                       <Mail className="w-4 h-4" style={{ color: '#818cf8' }} />
                     </div>
                     <a href={`mailto:${salon.email}`} className="font-medium hover:underline" style={{ color: 'var(--t-accent)' }}>{salon.email}</a>
                   </li>
                 )}
               </ul>
-
-              {/* Directions button */}
               {(salon.address || salon.city) && (
                 <a
                   href={`https://maps.google.com/?q=${encodeURIComponent(salon.address || salon.city)}`}
@@ -675,8 +927,6 @@ function SalonDetails() {
                 </a>
               )}
             </div>
-
-            {/* Working Hours */}
             {salon.workingHours && (
               <div className="rounded-2xl p-5" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
                 <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--t-text)' }}>
@@ -708,8 +958,6 @@ function SalonDetails() {
                 </div>
               </div>
             )}
-
-            {/* Trust badges */}
             <div className="rounded-2xl p-5" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
               <h3 className="font-bold mb-4" style={{ color: 'var(--t-text)' }}>Why Book Here?</h3>
               <div className="grid grid-cols-2 gap-3">
@@ -733,12 +981,8 @@ function SalonDetails() {
 
       {/* ══ STICKY BOOKING BAR ════════════════════════════════════════════ */}
       {selectedServices.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 px-4 py-3 fade-in"
-          style={{
-            background: 'var(--t-card)',
-            borderTop: '1px solid var(--t-border)',
-            boxShadow: '0 -8px 32px rgba(0,0,0,0.15)',
-          }}>
+        <div className="fixed bottom-0 left-0 right-0 z-40 px-4 py-3 fade-in"
+          style={{ background: 'var(--t-card)', borderTop: '1px solid var(--t-border)', boxShadow: '0 -8px 32px rgba(0,0,0,0.15)' }}>
           <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
@@ -759,8 +1003,6 @@ function SalonDetails() {
                 onClick={() => setSelectedServices([])}
                 className="text-sm px-3 py-2 rounded-lg transition-all"
                 style={{ color: 'var(--t-text-3)' }}
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--t-text-2)'}
-                onMouseLeave={e => e.currentTarget.style.color = 'var(--t-text-3)'}
               >
                 Clear
               </button>
@@ -773,6 +1015,317 @@ function SalonDetails() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ══ BOOKING DRAWER ════════════════════════════════════════════════ */}
+      {showBooking && (
+        <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
+          onClick={(e) => { if (e.target === e.currentTarget && !bookingSuccess) setShowBooking(false); }}>
+
+          <div
+            className="mt-auto w-full max-h-[92vh] overflow-y-auto rounded-t-3xl flex flex-col"
+            style={{ background: 'var(--t-bg)', boxShadow: '0 -20px 60px rgba(0,0,0,0.3)' }}
+          >
+            {bookingSuccess ? (
+              /* ── Success view ────────────────────────────────────────── */
+              <div className="flex flex-col items-center justify-center px-6 py-10 text-center">
+                <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4"
+                  style={{ background: bookingStatus === "pending" ? 'var(--t-warn-bg)' : '#dcfce7' }}>
+                  {bookingStatus === "pending"
+                    ? <span className="text-4xl">⏳</span>
+                    : <CheckCircle className="w-10 h-10 text-green-500" />}
+                </div>
+                <h2 className="text-xl font-extrabold mb-1" style={{ color: 'var(--t-text)' }}>
+                  {bookingStatus === "pending" ? "Booking Received!" : "Booking Confirmed!"}
+                </h2>
+                {bookingStatus === "pending" && (
+                  <div className="rounded-xl px-4 py-2.5 mb-3 text-sm" style={{ background: 'var(--t-warn-bg)', color: 'var(--t-warn-text)' }}>
+                    Awaiting salon confirmation. You'll be notified once approved.
+                  </div>
+                )}
+                <div className="rounded-2xl p-4 w-full mb-5 text-sm space-y-1.5" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
+                  <p className="font-bold" style={{ color: 'var(--t-text)' }}>{salon.name}</p>
+                  <p style={{ color: 'var(--t-text-2)' }}>{selectedServices.map(s => s.name).join(" + ")}</p>
+                  <p style={{ color: 'var(--t-text-3)' }}>{formatDate(bookDate + "T12:00:00")} · {slot}</p>
+                  <p style={{ color: 'var(--t-accent)' }}>₹{finalPrice} · Pay at salon</p>
+                </div>
+                <div className="flex flex-col gap-2 w-full">
+                  <button
+                    onClick={() => { setShowBooking(false); navigate("/dashboard"); }}
+                    className="btn-primary w-full py-3"
+                  >
+                    View My Bookings
+                  </button>
+                  <button
+                    onClick={() => { setShowBooking(false); navigate("/"); }}
+                    className="btn-outline w-full py-3"
+                  >
+                    Browse More Salons
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* ── Booking form ─────────────────────────────────────────── */
+              <>
+                {/* Drawer handle + header */}
+                <div className="sticky top-0 z-10 rounded-t-3xl pt-3 pb-4 px-5"
+                  style={{ background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', boxShadow: '0 4px 20px rgba(79,70,229,0.3)' }}>
+                  <div className="w-10 h-1 rounded-full bg-white/30 mx-auto mb-4" />
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-lg font-extrabold text-white">Book Appointment</h2>
+                      <p className="text-xs text-white/70 mt-0.5 truncate max-w-[220px]">
+                        {salon.name}
+                        {selectedServices.length > 0 && ` · ${selectedServices.map(s => s.name).join(", ")}`}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setShowBooking(false)}
+                      className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110"
+                      style={{ background: 'rgba(255,255,255,0.15)' }}
+                    >
+                      <X className="w-5 h-5 text-white" />
+                    </button>
+                  </div>
+                  {selectedServices.length > 0 && (
+                    <div className="mt-3 flex items-center gap-3 px-3 py-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.12)' }}>
+                      <Scissors className="w-4 h-4 text-white/70 shrink-0" />
+                      <span className="text-xs text-white/80 font-semibold flex-1 truncate">
+                        {totalDuration} min · ₹{totalPrice}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <form onSubmit={handleConfirm} className="px-5 py-5 space-y-6 pb-10">
+                  {bookError && <div className="p-3 rounded-xl text-sm" style={{ background: 'var(--t-error-bg)', color: 'var(--t-error-text)' }}>{bookError}</div>}
+
+                  {/* ── Date ── */}
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-bold mb-3" style={{ color: 'var(--t-text)' }}>
+                      <Calendar className="w-4 h-4" style={{ color: '#818cf8' }} /> Select Date
+                    </label>
+                    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                      {dateDays.map(d => {
+                        const active = bookDate === d;
+                        const dateObj = new Date(d + "T12:00:00");
+                        return (
+                          <button
+                            key={d}
+                            type="button"
+                            onClick={() => setBookDate(d)}
+                            className="flex flex-col items-center justify-center rounded-2xl shrink-0 transition-all hover:scale-105"
+                            style={{
+                              width: 52, height: 62, borderWidth: 1.5,
+                              background: active ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : 'var(--t-card)',
+                              borderColor: active ? '#6366f1' : 'var(--t-border)',
+                              boxShadow: active ? '0 4px 12px rgba(99,102,241,0.35)' : 'none',
+                            }}
+                          >
+                            <span className="text-[10px] font-bold" style={{ color: active ? 'rgba(255,255,255,0.8)' : 'var(--t-text-3)' }}>
+                              {formatDay(d)}
+                            </span>
+                            <span className="text-lg font-extrabold" style={{ color: active ? '#fff' : 'var(--t-text)' }}>
+                              {dateObj.getDate()}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* ── Stylist ── */}
+                  {barbers.length > 0 && (
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-bold mb-3" style={{ color: 'var(--t-text)' }}>
+                        <User className="w-4 h-4" style={{ color: '#818cf8' }} />
+                        Select Stylist <span className="font-normal text-xs" style={{ color: 'var(--t-text-3)' }}>(optional)</span>
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button type="button" onClick={() => setBarberId("")}
+                          className="px-3 py-2.5 rounded-xl border text-sm font-medium transition-all text-left hover:scale-[1.02]"
+                          style={barberId === "" ? { background: 'var(--t-accent)', color: '#fff', borderColor: 'var(--t-accent)' } : { background: 'var(--t-input-bg)', color: 'var(--t-text-2)', borderColor: 'var(--t-border)' }}>
+                          <span className="block text-xs opacity-75 mb-0.5">Any</span>
+                          <span>No preference</span>
+                        </button>
+                        {barbers.map(b => (
+                          <button key={b._id} type="button" onClick={() => setBarberId(b._id)}
+                            className="px-3 py-2.5 rounded-xl border text-sm font-medium transition-all text-left hover:scale-[1.02]"
+                            style={barberId === b._id ? { background: 'var(--t-accent)', color: '#fff', borderColor: 'var(--t-accent)' } : { background: 'var(--t-input-bg)', color: 'var(--t-text-2)', borderColor: 'var(--t-border)' }}>
+                            <span className="block font-semibold">{b.name}</span>
+                            {b.experience > 0 && <span className="text-xs" style={{ color: barberId === b._id ? 'rgba(255,255,255,0.7)' : 'var(--t-text-3)' }}>{b.experience} yr exp</span>}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Time slots ── */}
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-bold mb-3" style={{ color: 'var(--t-text)' }}>
+                      <Clock className="w-4 h-4" style={{ color: '#818cf8' }} />
+                      Select Time
+                      {totalDuration > 0 && <span className="font-normal text-xs" style={{ color: 'var(--t-text-3)' }}>({totalDuration} min)</span>}
+                    </label>
+
+                    {slotsLoading ? (
+                      <div className="flex items-center gap-2 py-4 text-sm" style={{ color: 'var(--t-text-3)' }}>
+                        <div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                        Loading available slots…
+                      </div>
+                    ) : closedDay ? (
+                      <div className="p-4 rounded-xl text-sm text-center" style={{ background: '#fef3c7', color: '#92400e' }}>
+                        🔒 Salon is closed on this date. Please try another day.
+                      </div>
+                    ) : slots.length === 0 ? (
+                      <div className="p-4 rounded-xl text-sm text-center" style={{ background: 'var(--t-bg-2)', color: 'var(--t-text-2)' }}>
+                        No available slots for this date.
+                      </div>
+                    ) : bookingMode === "sequential" ? (
+                      <div className="flex items-center gap-3 p-3 rounded-xl text-sm"
+                        style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)' }}>
+                        <Zap className="w-4 h-4 shrink-0" style={{ color: '#818cf8' }} />
+                        <span style={{ color: '#818cf8' }}>Auto-assigned: <strong>{slots[0]} – {addMinutes(slots[0], totalDuration)}</strong></span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-4 mb-3 text-xs flex-wrap" style={{ color: 'var(--t-text-3)' }}>
+                          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded" style={{ background: 'var(--t-border)' }} /> Past</span>
+                          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-red-400" /> Booked</span>
+                          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-indigo-600" /> Selected</span>
+                          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded" style={{ border: '1px solid var(--t-border)', background: 'var(--t-input-bg)' }} /> Available</span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          {slots.map((s) => {
+                            const past    = isPastSlot(bookDate, s);
+                            const blocked = !past && blockedSlots.includes(s);
+                            const selected = slot === s;
+                            const endTime = addMinutes(s, totalDuration);
+                            return (
+                              <button
+                                key={s}
+                                type="button"
+                                onClick={() => {
+                                  if (past)    { setSlotPopup("past");   return; }
+                                  if (blocked) { setSlotPopup("booked"); return; }
+                                  setSlot(s);
+                                }}
+                                className="py-2 px-1 text-xs rounded-xl border transition-all font-medium text-center leading-tight hover:scale-[1.03]"
+                                style={
+                                  past    ? { background: 'var(--t-bg-2)', color: 'var(--t-text-3)', borderColor: 'var(--t-border)', cursor: 'not-allowed' } :
+                                  blocked ? { background: 'var(--t-error-bg)', color: 'var(--t-error-text)', borderColor: 'var(--t-error-border)', cursor: 'not-allowed' } :
+                                  selected? { background: 'var(--t-accent)', color: '#fff', borderColor: 'var(--t-accent)', boxShadow: '0 4px 12px rgba(99,102,241,0.35)' } :
+                                            { background: 'var(--t-input-bg)', color: 'var(--t-text-2)', borderColor: 'var(--t-border)' }
+                                }
+                              >
+                                <span className="block">{s}</span>
+                                <span className="block opacity-75">– {endTime}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* ── Coupon ── */}
+                  {slot && salon?.hasCoupons && (
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-bold mb-3" style={{ color: 'var(--t-text)' }}>
+                        <Tag className="w-4 h-4" style={{ color: '#818cf8' }} /> Have a coupon?
+                      </label>
+                      {appliedCoupon ? (
+                        <div className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm"
+                          style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                          <span className="font-medium" style={{ color: '#16a34a' }}>✓ {appliedCoupon.code} — ₹{couponDiscount} off</span>
+                          <button type="button" onClick={removeCoupon} className="text-xs ml-2" style={{ color: '#ef4444' }}>Remove</button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={couponInput}
+                            onChange={e => { setCouponInput(e.target.value.toUpperCase()); setCouponError(""); }}
+                            placeholder="Enter coupon code"
+                            className="input-field flex-1"
+                          />
+                          <button
+                            type="button"
+                            onClick={applyCoupon}
+                            disabled={couponLoading || !couponInput.trim()}
+                            className="px-4 py-2 text-white rounded-xl text-sm font-semibold disabled:opacity-50 transition"
+                            style={{ background: 'var(--t-accent)' }}
+                          >
+                            {couponLoading ? "…" : "Apply"}
+                          </button>
+                        </div>
+                      )}
+                      {couponError && <p className="text-xs mt-1" style={{ color: '#ef4444' }}>{couponError}</p>}
+                    </div>
+                  )}
+
+                  {/* ── Price summary ── */}
+                  {slot && (
+                    <div className="rounded-2xl p-4 text-sm" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
+                      <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide mb-3" style={{ color: 'var(--t-accent)' }}>
+                        <CreditCard className="w-3.5 h-3.5" /> Booking Summary
+                      </p>
+                      <div className="space-y-2">
+                        {selectedServices.map(s => (
+                          <div key={s._id} className="flex justify-between">
+                            <span style={{ color: 'var(--t-text-2)' }}>{s.name}</span>
+                            <span className="font-semibold" style={{ color: 'var(--t-text)' }}>₹{s.basePrice || s.price}</span>
+                          </div>
+                        ))}
+                        <div className="flex justify-between">
+                          <span style={{ color: 'var(--t-text-3)' }}>Date & Time</span>
+                          <span className="font-medium" style={{ color: 'var(--t-text-2)' }}>{formatDate(bookDate + "T12:00:00")} · {slot}</span>
+                        </div>
+                        {couponDiscount > 0 && (
+                          <div className="flex justify-between" style={{ color: '#16a34a' }}>
+                            <span>Discount ({appliedCoupon?.code})</span>
+                            <span className="font-medium">−₹{couponDiscount}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between pt-2 mt-1" style={{ borderTop: '1px solid var(--t-border)' }}>
+                          <span className="font-bold" style={{ color: 'var(--t-text)' }}>Total (Pay at salon)</span>
+                          <span className="font-bold text-base" style={{ color: 'var(--t-accent)' }}>₹{finalPrice}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={bookingLoading || !slot}
+                    className="btn-primary w-full py-3.5 text-base disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {bookingLoading ? "Confirming…" : "Confirm Booking"}
+                  </button>
+                </form>
+              </>
+            )}
+          </div>
+
+          {/* Slot popup */}
+          {slotPopup && (
+            <div className="absolute inset-0 flex items-center justify-center px-6 z-20" style={{ background: 'rgba(0,0,0,0.5)' }}>
+              <div className="rounded-2xl p-6 max-w-sm w-full text-center" style={{ background: 'var(--t-card)' }}>
+                <div className="w-14 h-14 rounded-full flex items-center justify-center text-3xl mx-auto mb-3"
+                  style={{ background: slotPopup === "past" ? 'var(--t-bg-2)' : 'var(--t-error-bg)' }}>
+                  {slotPopup === "past" ? "⏰" : "🚫"}
+                </div>
+                <h3 className="text-lg font-bold mb-2" style={{ color: 'var(--t-text)' }}>
+                  {slotPopup === "past" ? "Time Has Passed" : "Slot Already Booked"}
+                </h3>
+                <p className="text-sm mb-5" style={{ color: 'var(--t-text-2)' }}>
+                  {slotPopup === "past" ? "This time slot has already passed. Please choose an upcoming slot." : "This slot is taken. Please choose another available slot."}
+                </p>
+                <button onClick={() => setSlotPopup(null)} className="btn-primary w-full">Choose Another Slot</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

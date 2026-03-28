@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Image, ActivityIndicator, Linking, Alert,
+  Image, ActivityIndicator, Linking, Alert, Modal, TextInput,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +13,80 @@ import { useTheme } from '../../context/ThemeContext';
 
 const BASE_TABS = ['Services', 'Reviews', 'Info'];
 const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+// ── Working hours helpers ─────────────────────────────────────────────────────
+const WH_DAYS = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+const isOpenNow = (wh) => {
+  if (!wh) return null;
+  const h = wh[WH_DAYS[new Date().getDay()]];
+  if (!h || h.isClosed || !h.open || !h.close) return false;
+  const now = new Date(); const nowM = now.getHours() * 60 + now.getMinutes();
+  const [oh, om] = h.open.split(':').map(Number); const [ch, cm] = h.close.split(':').map(Number);
+  return nowM >= oh * 60 + om && nowM < ch * 60 + cm;
+};
+const getTodayHours = (wh) => {
+  if (!wh) return null;
+  const h = wh[WH_DAYS[new Date().getDay()]];
+  if (!h || h.isClosed || !h.open || !h.close) return null;
+  return `${h.open} – ${h.close}`;
+};
+const getOpensAt = (wh) => {
+  if (!wh) return null;
+  const h = wh[WH_DAYS[new Date().getDay()]];
+  if (!h || h.isClosed || !h.open) return null;
+  return h.open;
+};
+const getNextSlot = (wh, intervalMins = 30) => {
+  if (!wh) return null;
+  const now = new Date(); const nowDay = now.getDay(); const nowM = now.getHours() * 60 + now.getMinutes();
+  for (let i = 0; i < 7; i++) {
+    const h = wh[WH_DAYS[(nowDay + i) % 7]];
+    if (!h || h.isClosed || !h.open || !h.close) continue;
+    const [oh, om] = h.open.split(':').map(Number); const [ch, cm] = h.close.split(':').map(Number);
+    const openM = oh * 60 + om; const closeM = ch * 60 + cm;
+    let slotM;
+    if (i === 0) {
+      if (nowM >= closeM) continue;
+      slotM = nowM <= openM ? openM : openM + Math.ceil((nowM - openM) / intervalMins) * intervalMins;
+      if (slotM >= closeM) continue;
+    } else { slotM = openM; }
+    const label = `${String(Math.floor(slotM/60)).padStart(2,'0')}:${String(slotM%60).padStart(2,'0')}`;
+    if (i === 0) return label;
+    if (i === 1) return `Tomorrow ${label}`;
+    return `${WH_DAYS[(nowDay+i)%7].charAt(0).toUpperCase()}${WH_DAYS[(nowDay+i)%7].slice(1,3)} ${label}`;
+  }
+  return null;
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Booking helpers ──────────────────────────────────────────────────────────
+const localDate = (offset = 0) => {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+};
+const todayStr = localDate(0);
+
+const addMinutes = (t, m) => {
+  const [h, min] = t.split(':').map(Number);
+  const total = h * 60 + min + m;
+  return `${String(Math.floor(total / 60)).padStart(2,'0')}:${String(total % 60).padStart(2,'0')}`;
+};
+
+const timeToMinutes = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+
+const isPastSlot = (date, s) => {
+  if (date !== todayStr) return false;
+  const now = new Date();
+  return timeToMinutes(s) <= now.getHours() * 60 + now.getMinutes();
+};
+
+const formatDay = (dateStr) => {
+  const d = new Date(dateStr + 'T12:00:00');
+  const names = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  return { day: names[d.getDay()], date: d.getDate() };
+};
+// ────────────────────────────────────────────────────────────────────────────
 
 function StarRating({ rating, size = 14 }) {
   return (
@@ -47,6 +121,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
 
+  // ── Salon details state ────────────────────────────────────────────────────
   const [salon, setSalon]                 = useState(null);
   const [services, setServices]           = useState([]);
   const [reviews, setReviews]             = useState([]);
@@ -56,15 +131,44 @@ export default function SalonDetailsScreen({ route, navigation }) {
   const [isFavorite, setIsFavorite]       = useState(false);
   const [favLoading, setFavLoading]       = useState(false);
 
-  // Default gender filter to logged-in user's gender
   const userGender = user?.gender;
   const [serviceGenderFilter, setServiceGenderFilter] = useState(
     userGender === 'male' || userGender === 'female' ? userGender : 'all'
   );
   const [expandedCat, setExpandedCat] = useState(null);
 
+  // ── Booking modal state ───────────────────────────────────────────────────
+  const [showBooking, setShowBooking]     = useState(false);
+  const [barbers, setBarbers]             = useState([]);
+  const [barberId, setBarberId]           = useState('');
+  const [bookDate, setBookDate]           = useState(todayStr);
+  const [slot, setSlot]                   = useState('');
+  const [slots, setSlots]                 = useState([]);
+  const [blockedSlots, setBlockedSlots]   = useState([]);
+  const [closedDay, setClosedDay]         = useState(false);
+  const [bookingMode, setBookingMode]     = useState('flexible');
+  const [slotsLoading, setSlotsLoading]   = useState(false);
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [couponInput, setCouponInput]     = useState('');
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponError, setCouponError]     = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [slotAlert, setSlotAlert]         = useState('');
+  const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [bookingStatus, setBookingStatus] = useState('confirmed');
+  const [bookingDetail, setBookingDetail] = useState(null);
+
+  // ── Computed booking values ───────────────────────────────────────────────
+  const totalDuration = selectedServices.reduce((s, x) => s + (x.duration || 0), 0);
+  const totalPrice    = selectedServices.reduce((s, x) => s + (x.basePrice || x.price || 0), 0);
+  const finalPrice    = Math.max(0, totalPrice - couponDiscount);
+  const advanceDays   = salon?.advanceBookingDays ?? 7;
+  const dateDays      = Array.from({ length: Math.max(advanceDays + 1, 8) }, (_, i) => localDate(i));
+
+  // ── Initial load ──────────────────────────────────────────────────────────
   useEffect(() => {
-    Promise.all([loadSalon(), loadServices(), loadReviews()]).finally(() => setLoading(false));
+    Promise.all([loadSalon(), loadServices(), loadReviews(), loadBarbers()]).finally(() => setLoading(false));
   }, [salonId]);
 
   const loadSalon = async () => {
@@ -88,6 +192,38 @@ export default function SalonDetailsScreen({ route, navigation }) {
     } catch {}
   };
 
+  const loadBarbers = async () => {
+    try {
+      const res = await api.get(`/public/salons/${salonId}/barbers`).catch(() => ({ data: { data: { barbers: [] } } }));
+      setBarbers(res.data.data?.barbers || []);
+    } catch {}
+  };
+
+  // ── Slot fetch whenever booking modal is open + date/duration changes ─────
+  useEffect(() => {
+    if (!showBooking || !totalDuration || !salonId) return;
+    setSlot('');
+    setSlots([]);
+    setBlockedSlots([]);
+    setClosedDay(false);
+    const fetchSlots = async () => {
+      setSlotsLoading(true);
+      try {
+        const res = await api.get(`/public/salons/${salonId}/booked-slots?date=${bookDate}&duration=${totalDuration}`);
+        const data = res.data.data || {};
+        setBookingMode(data.bookingMode || 'flexible');
+        setSlots(data.slots || []);
+        setBlockedSlots(data.blockedSlots || []);
+        setClosedDay(data.closedDay || false);
+        if ((data.bookingMode || 'flexible') === 'sequential' && data.slots?.length === 1) {
+          setSlot(data.slots[0]);
+        }
+      } catch { setSlots([]); } finally { setSlotsLoading(false); }
+    };
+    fetchSlots();
+  }, [bookDate, salonId, totalDuration, showBooking]);
+
+  // ── Service selection ─────────────────────────────────────────────────────
   const toggleService = (svc) => {
     setSelectedServices(prev =>
       prev.find(s => s._id === svc._id)
@@ -102,11 +238,10 @@ export default function SalonDetailsScreen({ route, navigation }) {
     try {
       await api.post(`/customer/favorites/${salonId}`);
       setIsFavorite(v => !v);
-    } catch {} finally {
-      setFavLoading(false);
-    }
+    } catch {} finally { setFavLoading(false); }
   };
 
+  // ── Open booking modal ────────────────────────────────────────────────────
   const handleBookNow = async () => {
     if (!isAuthenticated) {
       if (selectedServices.length > 0) {
@@ -125,27 +260,88 @@ export default function SalonDetailsScreen({ route, navigation }) {
       showError('Select Services', 'Please select at least one service to continue.');
       return;
     }
-    navigation.navigate('Booking', {
-      salonId,
-      serviceIds: selectedServices.map(s => s._id),
-    });
+    // Reset booking state before opening
+    setBookDate(todayStr);
+    setSlot('');
+    setBarberId('');
+    setAppliedCoupon(null);
+    setCouponDiscount(0);
+    setCouponInput('');
+    setCouponError('');
+    setBookingSuccess(false);
+    setBookingDetail(null);
+    setShowBooking(true);
   };
 
-  const totalPrice    = selectedServices.reduce((s, x) => s + (x.basePrice || x.price || 0), 0);
-  const totalDuration = selectedServices.reduce((s, x) => s + (x.duration || 0), 0);
+  // ── Coupon ────────────────────────────────────────────────────────────────
+  const applyCoupon = async () => {
+    if (!couponInput.trim()) return;
+    setCouponError('');
+    setCouponLoading(true);
+    try {
+      const res = await api.post('/customer/coupons/validate', {
+        code: couponInput.trim().toUpperCase(),
+        salonId,
+        totalAmount: totalPrice,
+      });
+      const { coupon, discount } = res.data.data;
+      setAppliedCoupon(coupon);
+      setCouponDiscount(discount);
+    } catch (err) {
+      setCouponError(err?.message || 'Invalid coupon code');
+      setAppliedCoupon(null);
+      setCouponDiscount(0);
+    } finally { setCouponLoading(false); }
+  };
 
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponDiscount(0);
+    setCouponInput('');
+    setCouponError('');
+  };
+
+  // ── Confirm booking ───────────────────────────────────────────────────────
+  const handleConfirm = async () => {
+    if (!slot) { showError('Select Time', 'Please select a time slot to continue.'); return; }
+    setBookingLoading(true);
+    try {
+      const res = await api.post('/customer/bookings', {
+        salonId,
+        serviceIds: selectedServices.map(s => s._id),
+        barberId: barberId || undefined,
+        appointmentDate: bookDate,
+        appointmentTime: slot,
+        paymentMethod: 'cash',
+        couponCode: appliedCoupon?.code || undefined,
+      });
+      const booking = res.data.data?.booking || res.data.data;
+      setBookingStatus(booking?.status || 'confirmed');
+      setBookingDetail(booking);
+      setBookingSuccess(true);
+    } catch (err) {
+      showError('Booking Failed', err?.message || 'Please try again.');
+    } finally { setBookingLoading(false); }
+  };
+
+  // ── Derived display values ────────────────────────────────────────────────
   const photo = salon?.photos?.[0] || salon?.coverPhoto || salon?.ownerPhoto;
   const rating = salon?.rating || salon?.averageRating || 0;
   const basePhotos = salon?.photos?.length ? salon.photos : [];
   const salonPhotos = salon?.ownerPhoto && !basePhotos.includes(salon.ownerPhoto)
     ? [...basePhotos, salon.ownerPhoto]
     : basePhotos;
-  // Only show Reviews tab if there are reviews
-  const TABS = reviews.length > 0 ? BASE_TABS : BASE_TABS.filter(t => t !== 'Reviews');
-  // If active tab no longer exists (e.g. no reviews), fall back to Services
+  const TABS = BASE_TABS;
   const activeTab = TABS.includes(tab) ? tab : 'Services';
   const styles = getStyles(theme);
 
+  const openStatus  = isOpenNow(salon?.workingHours);
+  const todayHours  = getTodayHours(salon?.workingHours);
+  const opensAt     = getOpensAt(salon?.workingHours);
+  const nextSlot    = getNextSlot(salon?.workingHours);
+  const totalBookings = salon?.totalBookings || 0;
+
+  // ── Loading / error states ────────────────────────────────────────────────
   if (loading) {
     return (
       <View style={[styles.loadingBox, { paddingTop: insets.top }]}>
@@ -172,6 +368,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
     );
   }
 
+  // ── Main render ───────────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
       {/* Back + Favorite buttons overlay */}
@@ -253,6 +450,104 @@ export default function SalonDetailsScreen({ route, navigation }) {
           )}
         </View>
 
+        {/* Trust strip */}
+        <View style={{ borderTopWidth: 1, borderBottomWidth: 1, borderColor: theme === 'dark' ? '#1f2937' : '#e5e7eb', backgroundColor: theme === 'dark' ? '#111827' : '#f9fafb' }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 16, paddingVertical: 10 }}>
+            {openStatus !== null && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: openStatus ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.1)', borderWidth: 1, borderColor: openStatus ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.2)' }}>
+                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: openStatus ? '#10b981' : '#ef4444' }} />
+                <Text style={{ fontSize: 11, fontWeight: '700', color: openStatus ? '#10b981' : '#ef4444' }}>
+                  {openStatus ? 'Open Now' : opensAt ? `Opens ${opensAt}` : 'Closed'}
+                </Text>
+              </View>
+            )}
+            {todayHours && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Ionicons name="time-outline" size={13} color="#6b7280" />
+                <Text style={{ fontSize: 11, fontWeight: '600', color: '#6b7280' }}>{todayHours}</Text>
+              </View>
+            )}
+            {rating > 0 && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Ionicons name="star" size={13} color="#f59e0b" />
+                <Text style={{ fontSize: 11, fontWeight: '700', color: '#f59e0b' }}>{rating.toFixed(1)} Rating</Text>
+              </View>
+            )}
+            {(() => {
+              const rc = salon.totalReviews || salon.reviewCount || reviews.length;
+              return (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Ionicons name="people-outline" size={13} color={rc > 0 ? '#6b7280' : '#9ca3af'} />
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: rc > 0 ? '#6b7280' : '#9ca3af' }}>
+                    {rc > 0 ? `${rc} ${rc === 1 ? 'Review' : 'Reviews'}` : 'No reviews yet'}
+                  </Text>
+                </View>
+              );
+            })()}
+            {salon.isApproved && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Ionicons name="checkmark-circle-outline" size={13} color="#10b981" />
+                <Text style={{ fontSize: 11, fontWeight: '600', color: '#10b981' }}>Verified</Text>
+              </View>
+            )}
+            {services.length > 0 && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Ionicons name="cut-outline" size={13} color="#6b7280" />
+                <Text style={{ fontSize: 11, fontWeight: '600', color: '#6b7280' }}>{services.length} Services</Text>
+              </View>
+            )}
+            {totalBookings >= 10 && (
+              <Text style={{ fontSize: 11, fontWeight: '600', color: '#f87171' }}>
+                🔥 {totalBookings >= 1000 ? `${(totalBookings/1000).toFixed(1)}k` : `${totalBookings}+`} booked
+              </Text>
+            )}
+          </ScrollView>
+        </View>
+
+        {/* Quick info row */}
+        {(nextSlot || salon.minPrice || salon.kidsHaircut || salon.atHomeServices) && (
+          <View style={{ borderBottomWidth: 1, borderColor: theme === 'dark' ? '#1f2937' : '#e5e7eb', backgroundColor: theme === 'dark' ? '#0f172a' : '#f3f4f6' }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 8 }}>
+              {nextSlot && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, backgroundColor: 'rgba(99,102,241,0.1)', borderWidth: 1, borderColor: 'rgba(99,102,241,0.2)' }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#6366f1' }}>⏱ Next slot: {nextSlot}</Text>
+                </View>
+              )}
+              {salon.minPrice && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, backgroundColor: 'rgba(99,102,241,0.08)', borderWidth: 1, borderColor: 'rgba(99,102,241,0.15)' }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#6366f1' }}>💰 From ₹{salon.minPrice}</Text>
+                </View>
+              )}
+              {salon.kidsHaircut && (
+                <View style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, backgroundColor: 'rgba(234,179,8,0.12)', borderWidth: 1, borderColor: 'rgba(234,179,8,0.2)' }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#f59e0b' }}>👶 Kids Haircut</Text>
+                </View>
+              )}
+              {salon.atHomeServices && (
+                <View style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, backgroundColor: 'rgba(16,185,129,0.12)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.2)' }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#10b981' }}>🏠 At-Home Service</Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Offer / promo banner */}
+        {salon.topOffer && (() => {
+          const offerLabel = salon.topOffer.discountType === 'percentage'
+            ? `${salon.topOffer.discountValue}% OFF${salon.topOffer.minAmount > 0 ? ` on ₹${salon.topOffer.minAmount}+` : ''}`
+            : `₹${salon.topOffer.discountValue} OFF${salon.topOffer.minAmount > 0 ? ` on ₹${salon.topOffer.minAmount}+` : ''}`;
+          return (
+            <View style={{ marginHorizontal: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(16,185,129,0.1)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.25)', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10 }}>
+              <Text style={{ fontSize: 18 }}>🏷️</Text>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#059669', flex: 1 }}>{offerLabel}</Text>
+              <View style={{ backgroundColor: 'rgba(5,150,105,0.15)', borderWidth: 1, borderColor: 'rgba(5,150,105,0.25)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3 }}>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: '#059669', letterSpacing: 0.5 }}>{salon.topOffer.code}</Text>
+              </View>
+            </View>
+          );
+        })()}
+
         {/* Tabs */}
         <View style={styles.tabBar}>
           {TABS.map(t => (
@@ -326,14 +621,10 @@ export default function SalonDetailsScreen({ route, navigation }) {
 
             const CATEGORY_ORDER = [
               'Hair Services', 'Hair Services (Men)', 'Hair Services (Women)',
-              'Beard & Grooming',
-              'Nail Services',
+              'Beard & Grooming', 'Nail Services',
               'Skin & Face / Beauty', 'Skin & Face (Men Grooming)', 'Skin & Beauty',
-              'Spa & Massage', 'Spa & Relaxation',
-              'Body Grooming',
-              'Bridal & Events',
-              'Kids Services',
-              'At-Home Services',
+              'Spa & Massage', 'Spa & Relaxation', 'Body Grooming', 'Bridal & Events',
+              'Kids Services', 'At-Home Services',
             ];
 
             const grouped = visibleServices.reduce((acc, svc) => {
@@ -358,9 +649,9 @@ export default function SalonDetailsScreen({ route, navigation }) {
                 {isUnisex && services.length > 0 && (
                   <View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
                     {[
-                      { key: 'all',    label: 'All',    emoji: '👥' },
-                      { key: 'male',   label: 'Men',    emoji: '👨' },
-                      { key: 'female', label: 'Women',  emoji: '👩' },
+                      { key: 'all',    label: 'All',   emoji: '👥' },
+                      { key: 'male',   label: 'Men',   emoji: '👨' },
+                      { key: 'female', label: 'Women', emoji: '👩' },
                     ].map(({ key, label, emoji }) => (
                       <TouchableOpacity
                         key={key}
@@ -374,10 +665,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                         }}
                       >
                         <Text style={{ fontSize: 13 }}>{emoji}</Text>
-                        <Text style={{
-                          fontSize: 12, fontWeight: '600',
-                          color: serviceGenderFilter === key ? '#fff' : '#6b7280',
-                        }}>{label}</Text>
+                        <Text style={{ fontSize: 12, fontWeight: '600', color: serviceGenderFilter === key ? '#fff' : '#6b7280' }}>{label}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -511,7 +799,6 @@ export default function SalonDetailsScreen({ route, navigation }) {
           {/* Info Tab */}
           {activeTab === 'Info' && (
             <View style={{ gap: 12 }}>
-              {/* Contact */}
               <View style={styles.infoSection}>
                 <Text style={styles.infoSectionTitle}>Contact</Text>
                 {salon.phone && (
@@ -528,7 +815,6 @@ export default function SalonDetailsScreen({ route, navigation }) {
                 )}
               </View>
 
-              {/* Address */}
               <View style={styles.infoSection}>
                 <Text style={styles.infoSectionTitle}>Address</Text>
                 <View style={styles.infoRow2}>
@@ -539,7 +825,6 @@ export default function SalonDetailsScreen({ route, navigation }) {
                 </View>
               </View>
 
-              {/* Gallery */}
               {salonPhotos.length > 0 && (
                 <View style={styles.infoSection}>
                   <Text style={styles.infoSectionTitle}>Gallery ({salonPhotos.length})</Text>
@@ -551,7 +836,6 @@ export default function SalonDetailsScreen({ route, navigation }) {
                 </View>
               )}
 
-              {/* Working Hours */}
               {salon.workingHours && (
                 <View style={styles.infoSection}>
                   <Text style={styles.infoSectionTitle}>Working Hours</Text>
@@ -584,11 +868,311 @@ export default function SalonDetailsScreen({ route, navigation }) {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* ── Booking Modal ──────────────────────────────────────────────────── */}
+      <Modal
+        visible={showBooking}
+        animationType="slide"
+        onRequestClose={() => { if (!bookingSuccess) setShowBooking(false); }}
+      >
+        <View style={[styles.bkContainer, { paddingTop: insets.top }]}>
+
+          {bookingSuccess ? (
+            /* ── Success screen ─────────────────────────────────────────── */
+            <View style={styles.successBox}>
+              <View style={styles.successCard}>
+                <View style={[styles.successIcon, { backgroundColor: bookingStatus === 'pending' ? '#fef3c7' : '#dcfce7' }]}>
+                  <Ionicons
+                    name={bookingStatus === 'pending' ? 'time-outline' : 'checkmark-circle'}
+                    size={52}
+                    color={bookingStatus === 'pending' ? '#d97706' : '#16a34a'}
+                  />
+                </View>
+                <Text style={styles.successTitle}>
+                  {bookingStatus === 'pending' ? 'Booking Received!' : 'Booking Confirmed!'}
+                </Text>
+                {bookingStatus === 'pending' && (
+                  <View style={styles.pendingNote}>
+                    <Text style={styles.pendingNoteText}>Awaiting salon confirmation. You'll be notified once approved.</Text>
+                  </View>
+                )}
+                <View style={styles.successDetails}>
+                  <Text style={styles.successSalon}>{salon.name}</Text>
+                  <Text style={styles.successService}>{selectedServices.map(s => s.name).join(' + ')}</Text>
+                  <View style={styles.successRow}>
+                    <Ionicons name="calendar-outline" size={14} color="#6b7280" />
+                    <Text style={styles.successMeta}>{bookDate}</Text>
+                    <Ionicons name="time-outline" size={14} color="#6b7280" style={{ marginLeft: 12 }} />
+                    <Text style={styles.successMeta}>{slot}</Text>
+                  </View>
+                  <View style={styles.successRow}>
+                    <Ionicons name="cash-outline" size={14} color="#6b7280" />
+                    <Text style={styles.successMeta}>₹{finalPrice} · Pay at salon</Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={styles.successBtn}
+                  onPress={() => { setShowBooking(false); navigation.getParent()?.navigate('BookingsTab'); }}
+                >
+                  <Text style={styles.successBtnText}>View My Bookings</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.successBtnOutline}
+                  onPress={() => { setShowBooking(false); navigation.goBack(); }}
+                >
+                  <Text style={styles.successBtnOutlineText}>Browse More Salons</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            /* ── Booking form ───────────────────────────────────────────── */
+            <>
+              {/* Modal header */}
+              <View style={styles.bkHeader}>
+                <View style={styles.bkDecorCircle1} />
+                <View style={styles.bkDecorCircle2} />
+                <View style={styles.bkHeaderRow}>
+                  <TouchableOpacity onPress={() => setShowBooking(false)} style={styles.bkBackBtn}>
+                    <Ionicons name="arrow-back" size={20} color="#fff" />
+                  </TouchableOpacity>
+                  <Text style={styles.bkHeaderTitle}>Book Appointment</Text>
+                  <View style={{ width: 36 }} />
+                </View>
+                {/* Selected services summary strip */}
+                <View style={styles.bkSvcStrip}>
+                  <Text style={styles.bkSvcStripText} numberOfLines={1}>
+                    {salon.name} · {selectedServices.map(s => s.name).join(', ')}
+                  </Text>
+                  <Text style={styles.bkSvcStripMeta}>{totalDuration} min · ₹{totalPrice}</Text>
+                </View>
+              </View>
+
+              <ScrollView style={styles.bkBody} contentContainerStyle={{ padding: 16, gap: 18, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
+
+                {/* Date selection */}
+                <View style={styles.bkSection}>
+                  <Text style={styles.bkSectionTitle}>Select Date</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                    {dateDays.map(d => {
+                      const { day, date: dateNum } = formatDay(d);
+                      const active = bookDate === d;
+                      return (
+                        <TouchableOpacity
+                          key={d}
+                          style={[styles.dateChip, active && styles.dateChipActive]}
+                          onPress={() => setBookDate(d)}
+                        >
+                          <Text style={[styles.dateChipDay, active && styles.dateChipTextActive]}>{day}</Text>
+                          <Text style={[styles.dateChipNum, active && styles.dateChipTextActive]}>{dateNum}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+
+                {/* Stylist selection */}
+                {barbers.length > 0 && (
+                  <View style={styles.bkSection}>
+                    <Text style={styles.bkSectionTitle}>Select Stylist <Text style={{ fontWeight: '400', color: '#9ca3af' }}>(optional)</Text></Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                      <TouchableOpacity
+                        style={[styles.barberChip, barberId === '' && styles.barberChipActive]}
+                        onPress={() => setBarberId('')}
+                      >
+                        <View style={styles.barberAvatar}><Ionicons name="people-outline" size={18} color={barberId === '' ? '#fff' : '#6b7280'} /></View>
+                        <Text style={[styles.barberName, barberId === '' && styles.barberNameActive]}>Any</Text>
+                      </TouchableOpacity>
+                      {barbers.map(b => (
+                        <TouchableOpacity
+                          key={b._id}
+                          style={[styles.barberChip, barberId === b._id && styles.barberChipActive]}
+                          onPress={() => setBarberId(b._id)}
+                        >
+                          <View style={styles.barberAvatar}>
+                            <Text style={{ fontSize: 15, fontWeight: '700', color: barberId === b._id ? '#fff' : '#2563eb' }}>
+                              {b.name.charAt(0).toUpperCase()}
+                            </Text>
+                          </View>
+                          <Text style={[styles.barberName, barberId === b._id && styles.barberNameActive]}>{b.name}</Text>
+                          {b.experience > 0 && <Text style={styles.barberExp}>{b.experience}yr</Text>}
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+
+                {/* Time slots */}
+                <View style={styles.bkSection}>
+                  <Text style={styles.bkSectionTitle}>
+                    Select Time {totalDuration > 0 && <Text style={{ fontWeight: '400', color: '#9ca3af' }}>({totalDuration} min)</Text>}
+                  </Text>
+                  {slotsLoading ? (
+                    <View style={styles.slotsLoading}>
+                      <ActivityIndicator color="#2563eb" size="small" />
+                      <Text style={{ color: '#6b7280', fontSize: 13 }}>Loading slots...</Text>
+                    </View>
+                  ) : closedDay ? (
+                    <View style={styles.closedDay}>
+                      <Ionicons name="lock-closed-outline" size={20} color="#d97706" />
+                      <Text style={styles.closedDayText}>Salon is closed on this date. Try another day.</Text>
+                    </View>
+                  ) : slots.length === 0 ? (
+                    <View style={styles.noSlots}>
+                      <Text style={styles.noSlotsText}>No available slots for this date.</Text>
+                    </View>
+                  ) : bookingMode === 'sequential' ? (
+                    <View style={styles.seqSlot}>
+                      <Ionicons name="flash-outline" size={16} color="#7c3aed" />
+                      <Text style={styles.seqText}>Auto-assigned: <Text style={{ fontWeight: '800' }}>{slots[0]} – {addMinutes(slots[0], totalDuration)}</Text></Text>
+                    </View>
+                  ) : (
+                    <>
+                      <View style={styles.slotLegend}>
+                        {[['#e5e7eb','Past'],['#fecaca','Booked'],['#2563eb','Selected'],['#f3f4f6','Available']].map(([c, l]) => (
+                          <View key={l} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                            <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: c }} />
+                            <Text style={{ fontSize: 10, color: '#6b7280' }}>{l}</Text>
+                          </View>
+                        ))}
+                      </View>
+                      <View style={styles.slotsGrid}>
+                        {slots.map(s => {
+                          const past    = isPastSlot(bookDate, s);
+                          const blocked = !past && blockedSlots.includes(s);
+                          const selected = slot === s;
+                          const end     = addMinutes(s, totalDuration);
+                          return (
+                            <TouchableOpacity
+                              key={s}
+                              style={[
+                                styles.slotBtn,
+                                past    ? styles.slotPast :
+                                blocked ? styles.slotBooked :
+                                selected ? styles.slotSelected :
+                                styles.slotAvailable,
+                              ]}
+                              onPress={() => {
+                                if (past)    { setSlotAlert('past');   return; }
+                                if (blocked) { setSlotAlert('booked'); return; }
+                                setSlot(s);
+                              }}
+                            >
+                              <Text style={[styles.slotTime, selected && { color: '#fff' }, (past || blocked) && { color: '#9ca3af' }]}>{s}</Text>
+                              <Text style={[styles.slotEnd, selected && { color: '#bfdbfe' }, (past || blocked) && { color: '#d1d5db' }]}>–{end}</Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </>
+                  )}
+                </View>
+
+                {/* Coupon */}
+                {slot && salon?.hasCoupons && (
+                  <View style={styles.bkSection}>
+                    <Text style={styles.bkSectionTitle}>Coupon Code</Text>
+                    {appliedCoupon ? (
+                      <View style={styles.couponApplied}>
+                        <Ionicons name="checkmark-circle" size={18} color="#16a34a" />
+                        <Text style={styles.couponAppliedText}>{appliedCoupon.code} — ₹{couponDiscount} off</Text>
+                        <TouchableOpacity onPress={removeCoupon}>
+                          <Text style={{ color: '#ef4444', fontSize: 12, fontWeight: '600' }}>Remove</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <View style={styles.couponRow}>
+                        <TextInput
+                          style={styles.couponInput}
+                          placeholder="Enter coupon code"
+                          placeholderTextColor="#9ca3af"
+                          value={couponInput}
+                          onChangeText={v => { setCouponInput(v.toUpperCase()); setCouponError(''); }}
+                          autoCapitalize="characters"
+                        />
+                        <TouchableOpacity
+                          style={[styles.couponBtn, (!couponInput.trim() || couponLoading) && { opacity: 0.5 }]}
+                          onPress={applyCoupon}
+                          disabled={!couponInput.trim() || couponLoading}
+                        >
+                          {couponLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.couponBtnText}>Apply</Text>}
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                    {!!couponError && <Text style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>{couponError}</Text>}
+                  </View>
+                )}
+
+                {/* Price summary */}
+                {slot && (
+                  <View style={styles.priceSummary}>
+                    <Text style={styles.priceSummaryTitle}>Booking Summary</Text>
+                    {selectedServices.map(s => (
+                      <View key={s._id} style={styles.priceRow}>
+                        <Text style={styles.priceLabel}>{s.name}</Text>
+                        <Text style={styles.priceVal}>₹{s.basePrice || s.price}</Text>
+                      </View>
+                    ))}
+                    <View style={styles.priceRow}>
+                      <Text style={styles.priceLabel}>Date & Time</Text>
+                      <Text style={styles.priceVal}>{bookDate} · {slot}</Text>
+                    </View>
+                    {couponDiscount > 0 && (
+                      <View style={styles.priceRow}>
+                        <Text style={[styles.priceLabel, { color: '#16a34a' }]}>Discount</Text>
+                        <Text style={[styles.priceVal, { color: '#16a34a' }]}>−₹{couponDiscount}</Text>
+                      </View>
+                    )}
+                    <View style={[styles.priceRow, { borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 8, marginTop: 4 }]}>
+                      <Text style={styles.priceTotalLabel}>Total (Pay at salon)</Text>
+                      <Text style={styles.priceTotalVal}>₹{finalPrice}</Text>
+                    </View>
+                  </View>
+                )}
+
+              </ScrollView>
+
+              {/* Confirm button */}
+              <View style={[styles.bkFooter, { paddingBottom: insets.bottom + 12 }]}>
+                <TouchableOpacity
+                  style={[styles.confirmBtn, (!slot || bookingLoading) && { opacity: 0.5 }]}
+                  onPress={handleConfirm}
+                  disabled={!slot || bookingLoading}
+                >
+                  {bookingLoading
+                    ? <ActivityIndicator color="#fff" />
+                    : <><Ionicons name="checkmark-circle-outline" size={20} color="#fff" /><Text style={styles.confirmBtnText}>Confirm Booking</Text></>
+                  }
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+
+          {/* Slot alert mini-modal */}
+          <Modal transparent visible={!!slotAlert} animationType="fade" onRequestClose={() => setSlotAlert('')}>
+            <View style={styles.alertOverlay}>
+              <View style={styles.alertCard}>
+                <View style={[styles.alertIcon, { backgroundColor: slotAlert === 'past' ? '#f3f4f6' : '#fee2e2' }]}>
+                  <Ionicons name={slotAlert === 'past' ? 'time-outline' : 'ban-outline'} size={36} color={slotAlert === 'past' ? '#374151' : '#ef4444'} />
+                </View>
+                <Text style={styles.alertTitle}>{slotAlert === 'past' ? 'Time Has Passed' : 'Slot Already Booked'}</Text>
+                <Text style={styles.alertText}>
+                  {slotAlert === 'past' ? 'This time slot has already passed. Please choose an upcoming slot.' : 'This slot is taken. Please choose another available slot.'}
+                </Text>
+                <TouchableOpacity style={styles.alertBtn} onPress={() => setSlotAlert('')}>
+                  <Text style={styles.alertBtnText}>Choose Another Slot</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const getStyles = (t) => StyleSheet.create({
+  // ── Salon details ──────────────────────────────────────────────────────────
   container: { flex: 1, backgroundColor: t.bg },
   loadingBox: { flex: 1, backgroundColor: t.bg },
   loadingHeader: { height: 240, backgroundColor: t.border },
@@ -659,4 +1243,100 @@ const getStyles = (t) => StyleSheet.create({
   bookBarPrice: { fontSize: 20, fontWeight: '800', color: t.text },
   bookBtn: { backgroundColor: '#2563eb', borderRadius: 14, paddingHorizontal: 24, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 8 },
   bookBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+
+  // ── Booking modal ──────────────────────────────────────────────────────────
+  bkContainer: { flex: 1, backgroundColor: t.bg },
+  bkHeader: { backgroundColor: '#2563eb', paddingHorizontal: 16, paddingBottom: 14, overflow: 'hidden' },
+  bkDecorCircle1: { position: 'absolute', width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.07)', top: -60, right: -30 },
+  bkDecorCircle2: { position: 'absolute', width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.05)', bottom: -20, left: 20 },
+  bkHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 14 },
+  bkBackBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+  bkHeaderTitle: { fontSize: 17, fontWeight: '700', color: '#fff' },
+  bkSvcStrip: { marginTop: 10, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  bkSvcStripText: { fontSize: 13, color: '#fff', fontWeight: '600', flex: 1 },
+  bkSvcStripMeta: { fontSize: 12, color: '#bfdbfe', fontWeight: '600', marginLeft: 8 },
+  bkBody: { flex: 1 },
+  bkSection: { gap: 10 },
+  bkSectionTitle: { fontSize: 14, fontWeight: '700', color: t.text },
+  bkFooter: { backgroundColor: t.card, borderTopWidth: 1, borderTopColor: t.border, paddingHorizontal: 16, paddingTop: 12 },
+
+  // Date chips
+  dateChip: { width: 52, height: 62, borderRadius: 12, backgroundColor: t.card, borderWidth: 1.5, borderColor: t.border, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  dateChipActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
+  dateChipDay: { fontSize: 11, color: t.subText, fontWeight: '600' },
+  dateChipNum: { fontSize: 18, color: t.text, fontWeight: '800' },
+  dateChipTextActive: { color: '#fff' },
+
+  // Barber chips
+  barberChip: { alignItems: 'center', gap: 6, backgroundColor: t.card, borderRadius: 12, borderWidth: 1.5, borderColor: t.border, padding: 12, minWidth: 72 },
+  barberChipActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
+  barberAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: t.bg, alignItems: 'center', justifyContent: 'center' },
+  barberName: { fontSize: 12, fontWeight: '600', color: t.text },
+  barberNameActive: { color: '#fff' },
+  barberExp: { fontSize: 10, color: t.subText },
+
+  // Slots
+  slotsLoading: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12 },
+  closedDay: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#fef3c7', borderRadius: 10, padding: 12 },
+  closedDayText: { fontSize: 13, color: '#92400e', flex: 1 },
+  noSlots: { backgroundColor: t.border, borderRadius: 10, padding: 14, alignItems: 'center' },
+  noSlotsText: { fontSize: 13, color: t.subText },
+  seqSlot: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: t.card, borderRadius: 10, padding: 12, borderWidth: 1, borderColor: t.border },
+  seqText: { fontSize: 13, color: t.accent, flex: 1 },
+  slotLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 4 },
+  slotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  slotBtn: { width: '30%', borderRadius: 10, paddingVertical: 9, alignItems: 'center', borderWidth: 1.5 },
+  slotAvailable: { backgroundColor: t.card, borderColor: t.inputBorder },
+  slotSelected: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
+  slotPast: { backgroundColor: t.border, borderColor: t.border },
+  slotBooked: { backgroundColor: '#fee2e2', borderColor: '#fca5a5' },
+  slotTime: { fontSize: 13, fontWeight: '700', color: t.text },
+  slotEnd: { fontSize: 10, color: t.subText, marginTop: 1 },
+
+  // Coupon
+  couponRow: { flexDirection: 'row', gap: 8 },
+  couponInput: { flex: 1, borderWidth: 1.5, borderColor: t.inputBorder, borderRadius: 10, paddingHorizontal: 12, height: 46, fontSize: 14, color: t.text, letterSpacing: 1 },
+  couponBtn: { backgroundColor: '#2563eb', borderRadius: 10, paddingHorizontal: 16, height: 46, alignItems: 'center', justifyContent: 'center' },
+  couponBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  couponApplied: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#f0fdf4', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#bbf7d0' },
+  couponAppliedText: { flex: 1, fontSize: 13, color: '#16a34a', fontWeight: '600' },
+
+  // Price summary
+  priceSummary: { backgroundColor: t.card, borderRadius: 14, padding: 14, gap: 8, borderWidth: 1, borderColor: t.border },
+  priceSummaryTitle: { fontSize: 13, fontWeight: '700', color: t.accent, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
+  priceRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  priceLabel: { fontSize: 13, color: t.subText },
+  priceVal: { fontSize: 13, fontWeight: '600', color: t.text },
+  priceTotalLabel: { fontSize: 14, fontWeight: '700', color: t.accent },
+  priceTotalVal: { fontSize: 16, fontWeight: '800', color: t.accent },
+
+  // Confirm
+  confirmBtn: { backgroundColor: '#2563eb', borderRadius: 14, height: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  confirmBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+
+  // Success
+  successBox: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 },
+  successCard: { backgroundColor: t.card, borderRadius: 20, padding: 28, width: '100%', maxWidth: 360, alignItems: 'center', gap: 12, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 12, elevation: 4 },
+  successIcon: { width: 90, height: 90, borderRadius: 45, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  successTitle: { fontSize: 22, fontWeight: '800', color: t.text },
+  pendingNote: { backgroundColor: '#fef3c7', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: '#fde68a' },
+  pendingNoteText: { fontSize: 13, color: '#92400e', textAlign: 'center', lineHeight: 18 },
+  successDetails: { backgroundColor: t.bg, borderRadius: 12, padding: 14, width: '100%', gap: 6 },
+  successSalon: { fontSize: 15, fontWeight: '700', color: t.text, textAlign: 'center' },
+  successService: { fontSize: 13, color: t.subText, textAlign: 'center' },
+  successRow: { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center' },
+  successMeta: { fontSize: 13, color: t.text },
+  successBtn: { backgroundColor: '#2563eb', borderRadius: 12, height: 48, width: '100%', alignItems: 'center', justifyContent: 'center' },
+  successBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  successBtnOutline: { borderWidth: 1.5, borderColor: t.border, borderRadius: 12, height: 48, width: '100%', alignItems: 'center', justifyContent: 'center' },
+  successBtnOutlineText: { color: t.text, fontWeight: '600', fontSize: 15 },
+
+  // Slot alert
+  alertOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', padding: 20 },
+  alertCard: { backgroundColor: t.card, borderRadius: 20, padding: 24, width: '100%', maxWidth: 320, alignItems: 'center', gap: 12 },
+  alertIcon: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center' },
+  alertTitle: { fontSize: 18, fontWeight: '700', color: t.text },
+  alertText: { fontSize: 13, color: t.subText, textAlign: 'center', lineHeight: 20 },
+  alertBtn: { backgroundColor: '#2563eb', borderRadius: 12, height: 46, width: '100%', alignItems: 'center', justifyContent: 'center', marginTop: 4 },
+  alertBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 });

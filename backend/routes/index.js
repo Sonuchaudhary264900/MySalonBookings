@@ -231,14 +231,20 @@ router.get("/public/salons/:salonId", validateObjectId("salonId"), asyncHandler(
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
   if (!salon.isApproved) return res.status(403).json({ success: false, message: "Salon not approved" });
   const now = new Date();
-  const [couponCount, barberCount] = await Promise.all([
-    Coupon.countDocuments({ salonId: salon._id, isActive: true, $or: [{ validUntil: null }, { validUntil: { $gte: now } }] }),
+  const [topCoupon, barberCount] = await Promise.all([
+    Coupon.findOne({ salonId: salon._id, isActive: true, $or: [{ validUntil: null }, { validUntil: { $gte: now } }] })
+      .sort({ discountValue: -1 })
+      .select("code discountType discountValue minAmount maxDiscount description")
+      .lean(),
     Barber.countDocuments({ salonId: salon._id, isActive: true }),
   ]);
   const ownerPhoto = salon.ownerId?.profilePhoto || null;
   const ownerGender = salon.ownerId?.gender || null;
   const ownerName = salon.ownerId?.name || null;
-  res.json({ success: true, data: { ...salon, ownerPhoto, ownerGender, ownerName, ownerId: undefined, hasCoupons: couponCount > 0, hasBarbers: barberCount > 0 } });
+  const topOffer = topCoupon
+    ? { code: topCoupon.code, discountType: topCoupon.discountType, discountValue: topCoupon.discountValue, minAmount: topCoupon.minAmount || 0, maxDiscount: topCoupon.maxDiscount || null, description: topCoupon.description || null }
+    : null;
+  res.json({ success: true, data: { ...salon, ownerPhoto, ownerGender, ownerName, ownerId: undefined, hasCoupons: !!topOffer, topOffer, hasBarbers: barberCount > 0 } });
 }));
 
 // GET /public/salons/:salonId/services
