@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Trash2, Edit2, Copy, Check, AlertTriangle, Loader2, IndianRupee, Percent, Users, Calendar, ShoppingBag, Bell } from 'lucide-react';
+import { Trash2, Edit2, Copy, Check, AlertTriangle, Loader2, IndianRupee, Percent, Users, Calendar, ShoppingBag, Bell, BarChart2 } from 'lucide-react';
 
 /* ── Delete confirm overlay ── */
 const DeleteConfirm = ({ code, onConfirm, onCancel, loading }) => (
@@ -30,7 +30,7 @@ const DeleteConfirm = ({ code, onConfirm, onCancel, loading }) => (
   </div>
 );
 
-const CouponCard = ({ coupon, onToggle, onEdit, onDelete, onBroadcast, toggling, deleting, broadcasting }) => {
+const CouponCard = ({ coupon, onToggle, onEdit, onDelete, onBroadcast, onAnalytics, toggling, deleting, broadcasting }) => {
   const [copied,      setCopied]      = useState(false);
   const [showDelete,  setShowDelete]  = useState(false);
 
@@ -236,6 +236,18 @@ const CouponCard = ({ coupon, onToggle, onEdit, onDelete, onBroadcast, toggling,
 
         {/* Actions */}
         <div className="flex items-center gap-2 pt-1 border-t border-gray-100 dark:border-gray-800">
+          {onAnalytics && (coupon.usedCount ?? 0) > 0 && (
+            <button
+              onClick={() => onAnalytics(coupon)}
+              title="View usage analytics"
+              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-semibold
+                bg-violet-50 dark:bg-violet-950/50 text-violet-600 dark:text-violet-400
+                hover:bg-violet-100 dark:hover:bg-violet-950
+                border border-violet-200 dark:border-violet-800
+                transition-all">
+              <BarChart2 className="w-3 h-3" /> Analytics
+            </button>
+          )}
           <button onClick={() => onEdit(coupon)}
             className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-semibold
               bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300

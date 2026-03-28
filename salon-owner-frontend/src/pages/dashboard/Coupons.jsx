@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Plus, Tag, RefreshCw, TrendingUp, CheckCircle, XCircle, Clock, Bell, AlertTriangle } from 'lucide-react';
+import { Plus, Tag, RefreshCw, TrendingUp, CheckCircle, XCircle, Clock, Bell, AlertTriangle, BarChart2, X, Loader2, IndianRupee, Phone, User } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import CouponCard  from '../../components/coupons/CouponCard';
@@ -87,6 +87,108 @@ const FilterPill = ({ label, count, active, onClick }) => (
   </button>
 );
 
+/* ── Analytics Drawer ── */
+const AnalyticsDrawer = ({ coupon, onClose }) => {
+  const [data,    setData]    = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get(`/owner/coupons/${coupon._id}/analytics`)
+      .then(r => setData(r.data?.data || null))
+      .catch(() => setData(null))
+      .finally(() => setLoading(false));
+  }, [coupon._id]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-4 pb-4 sm:pb-0">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800
+        rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[90vh]">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center">
+              <BarChart2 className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-gray-900 dark:text-white font-mono tracking-widest">{coupon.code}</h2>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500">Usage Analytics</p>
+            </div>
+          </div>
+          <button onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-400
+              hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
+            </div>
+          ) : !data ? (
+            <p className="text-center text-sm text-gray-400 py-12">Failed to load analytics</p>
+          ) : (
+            <>
+              {/* Summary stats */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-indigo-50 dark:bg-indigo-950/40 rounded-xl p-3 text-center border border-indigo-100 dark:border-indigo-900">
+                  <p className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{data.usageCount}</p>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Times Used</p>
+                </div>
+                <div className="bg-emerald-50 dark:bg-emerald-950/40 rounded-xl p-3 text-center border border-emerald-100 dark:border-emerald-900">
+                  <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">₹{data.totalDiscount}</p>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Total Discount</p>
+                </div>
+                <div className="bg-violet-50 dark:bg-violet-950/40 rounded-xl p-3 text-center border border-violet-100 dark:border-violet-900">
+                  <p className="text-lg font-bold text-violet-600 dark:text-violet-400">
+                    {data.remaining !== null ? data.remaining : '∞'}
+                  </p>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Remaining</p>
+                </div>
+              </div>
+
+              {/* Usage history */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Usage History</p>
+                {data.history.length === 0 ? (
+                  <p className="text-sm text-gray-400 text-center py-6">No usage history yet</p>
+                ) : (
+                  <div className="space-y-2">
+                    {data.history.map((h, i) => (
+                      <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                        <div className="w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-950 flex items-center justify-center shrink-0">
+                          <User className="w-3.5 h-3.5 text-indigo-500" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">{h.customer}</p>
+                          {h.phone && (
+                            <p className="text-[10px] text-gray-400 flex items-center gap-1 mt-0.5">
+                              <Phone className="w-2.5 h-2.5" />{h.phone}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">-₹{h.discountApplied}</p>
+                          <p className="text-[10px] text-gray-400 mt-0.5">
+                            {new Date(h.usedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* ─── Main Coupons page ──────────────────────────────────────── */
 export default function Coupons() {
   const [coupons,       setCoupons]       = useState([]);
@@ -96,6 +198,7 @@ export default function Coupons() {
   const [toggling,      setToggling]      = useState(null);
   const [deleting,      setDeleting]      = useState(null);
   const [broadcasting,  setBroadcasting]  = useState(null);  // couponId being broadcast
+  const [analytics,     setAnalytics]     = useState(null);  // coupon object for analytics drawer
 
   const fetchCoupons = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -273,6 +376,7 @@ export default function Coupons() {
                   onEdit={(c) => setModal(c)}
                   onDelete={handleDelete}
                   onBroadcast={handleBroadcast}
+                  onAnalytics={(c) => setAnalytics(c)}
                   toggling={toggling === coupon._id}
                   deleting={deleting === coupon._id}
                   broadcasting={broadcasting === coupon._id}
@@ -283,12 +387,20 @@ export default function Coupons() {
         </div>
       </div>
 
-      {/* ── Modal ── */}
+      {/* ── Create/Edit Modal ── */}
       {modal && (
         <CouponModal
           coupon={modal === 'create' ? null : modal}
           onClose={() => setModal(null)}
           onSaved={handleSaved}
+        />
+      )}
+
+      {/* ── Analytics Drawer ── */}
+      {analytics && (
+        <AnalyticsDrawer
+          coupon={analytics}
+          onClose={() => setAnalytics(null)}
         />
       )}
     </DashboardLayout>
