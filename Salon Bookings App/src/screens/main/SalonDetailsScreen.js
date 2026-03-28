@@ -351,7 +351,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
           <View style={{ height: 14, backgroundColor: '#e5e7eb', borderRadius: 6, width: '40%' }} />
           <View style={{ height: 14, backgroundColor: '#e5e7eb', borderRadius: 6, width: '50%' }} />
         </View>
-        <ActivityIndicator color="#2563eb" style={{ marginTop: 20 }} />
+        <ActivityIndicator color="#6366f1" style={{ marginTop: 20 }} />
       </View>
     );
   }
@@ -362,7 +362,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
         <Ionicons name="alert-circle-outline" size={52} color="#d1d5db" />
         <Text style={{ fontSize: 16, color: '#6b7280', marginTop: 12 }}>Salon not found</Text>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn2}>
-          <Text style={{ color: '#2563eb', fontWeight: '700' }}>Go Back</Text>
+          <Text style={{ color: '#6366f1', fontWeight: '700' }}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -371,82 +371,156 @@ export default function SalonDetailsScreen({ route, navigation }) {
   // ── Main render ───────────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
-      {/* Back + Favorite buttons overlay */}
-      <View style={[styles.topBar, { top: insets.top + 8 }]}>
-        <TouchableOpacity style={styles.circleBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={20} color="#111827" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.circleBtn} onPress={toggleFavorite} disabled={favLoading}>
-          {favLoading
-            ? <ActivityIndicator size="small" color="#ef4444" />
-            : <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={20} color={isFavorite ? '#ef4444' : '#111827'} />}
-        </TouchableOpacity>
-      </View>
-
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-        {/* Hero image */}
-        <View style={styles.heroWrapper}>
+
+        {/* ── HERO ────────────────────────────────────────────────────── */}
+        <View style={{ position: 'relative', height: 320 }}>
           {photo ? (
-            <Image source={{ uri: photo }} style={styles.heroImg} />
+            <Image source={{ uri: photo }} style={{ width: '100%', height: 320 }} resizeMode="cover" />
           ) : (
-            <View style={[styles.heroImg, styles.heroPlaceholder]}>
-              <Ionicons name="cut" size={56} color="#93c5fd" />
+            <View style={{ width: '100%', height: 320, backgroundColor: '#312e81', alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="cut" size={64} color="rgba(255,255,255,0.12)" />
             </View>
           )}
-          <View style={styles.heroOverlay} />
-        </View>
 
-        {/* Salon info */}
-        <View style={styles.infoCard}>
-          <View style={styles.infoRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.salonName}>{salon.name}</Text>
-              <Text style={styles.salonCategory}>{(salon.category || '').replace('_', ' ')}</Text>
+          {/* Back + Favorite — glassmorphism */}
+          <View style={{ position: 'absolute', top: insets.top + 10, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16 }}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' }}
+            >
+              <Ionicons name="arrow-back" size={20} color="#fff" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={toggleFavorite} disabled={favLoading}
+              style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isFavorite ? 'rgba(239,68,68,0.85)' : 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: isFavorite ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.18)' }}
+            >
+              {favLoading
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={20} color="#fff" />}
+            </TouchableOpacity>
+          </View>
+
+          {/* Verified badge — top right below fav */}
+          {salon.isApproved && (
+            <View style={{ position: 'absolute', top: insets.top + 58, right: 16, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, backgroundColor: 'rgba(34,197,94,0.2)', borderWidth: 1, borderColor: 'rgba(34,197,94,0.45)' }}>
+              <Ionicons name="checkmark-circle" size={13} color="#4ade80" />
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#4ade80' }}>Verified</Text>
             </View>
-            {rating > 0 && (
-              <View style={styles.ratingBox}>
-                <Text style={styles.ratingNum}>{rating.toFixed(1)}</Text>
-                <Ionicons name="star" size={12} color="#f59e0b" />
-                {salon.reviewCount > 0 && <Text style={styles.ratingCount}>({salon.reviewCount})</Text>}
+          )}
+
+          {/* Bottom content — dark strip behind text only */}
+          <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 18, paddingBottom: 18, paddingTop: 14 }}>
+            {/* Top Rated badge */}
+            {rating >= 4.0 && (salon.totalReviews || salon.reviewCount || reviews.length) > 0 && (
+              <View style={{ flexDirection: 'row', marginBottom: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: 'rgba(251,191,36,0.2)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.45)' }}>
+                  <Ionicons name="trophy-outline" size={11} color="#fbbf24" />
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#fbbf24' }}>Top Rated in Your Area</Text>
+                </View>
               </View>
             )}
-          </View>
-
-          <View style={styles.metaRow}>
-            <Ionicons name="location-outline" size={14} color="#6b7280" />
-            <Text style={styles.metaText} numberOfLines={2}>
-              {salon.address}{salon.city ? `, ${salon.city}` : ''}{salon.state ? `, ${salon.state}` : ''}
-            </Text>
-          </View>
-
-          {salon.phone && (
-            <TouchableOpacity style={styles.metaRow} onPress={() => Linking.openURL(`tel:${salon.phone}`)}>
-              <Ionicons name="call-outline" size={14} color="#2563eb" />
-              <Text style={[styles.metaText, { color: '#2563eb' }]}>{salon.phone}</Text>
-            </TouchableOpacity>
-          )}
-
-          {(salon.servedGender || salon.ownerGender) && (
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-              {salon.servedGender && (
-                <View style={[styles.genderBadge, salon.servedGender === 'male' ? styles.genderBadgeMale : salon.servedGender === 'female' ? styles.genderBadgeFemale : styles.genderBadgeUnisex]}>
-                  <Text style={[styles.genderBadgeText, salon.servedGender === 'male' ? { color: '#1d4ed8' } : salon.servedGender === 'female' ? { color: '#be185d' } : { color: '#7c3aed' }]}>
-                    {salon.servedGender === 'male' ? '👨 Men' : salon.servedGender === 'female' ? '👩 Women' : '👥 Unisex'}
-                  </Text>
+            {/* Name */}
+            <Text style={{ fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 4, lineHeight: 32 }} numberOfLines={2}>{salon.name}</Text>
+            {/* Address */}
+            {(salon.address || salon.city) && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 12 }}>
+                <Ionicons name="location-outline" size={14} color="rgba(255,255,255,0.7)" />
+                <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', flex: 1 }} numberOfLines={1}>
+                  {salon.address}{salon.city ? `, ${salon.city}` : ''}
+                </Text>
+              </View>
+            )}
+            {/* Rating + services row */}
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+              {rating > 0 && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, backgroundColor: 'rgba(251,191,36,0.15)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.35)' }}>
+                  <Ionicons name="star" size={12} color="#fbbf24" />
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#fbbf24' }}>{rating.toFixed(1)}</Text>
+                  {(salon.totalReviews || salon.reviewCount || reviews.length) > 0 && (
+                    <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>({salon.totalReviews || salon.reviewCount || reviews.length})</Text>
+                  )}
                 </View>
               )}
-              {salon.ownerGender && (
-                <View style={[styles.genderBadge, salon.ownerGender === 'male' ? styles.genderBadgeMale : salon.ownerGender === 'female' ? styles.genderBadgeFemale : styles.genderBadgeUnisex]}>
-                  <Text style={[styles.genderBadgeText, salon.ownerGender === 'male' ? { color: '#1d4ed8' } : salon.ownerGender === 'female' ? { color: '#be185d' } : { color: '#374151' }]}>
-                    {salon.ownerGender === 'male' ? '👨 Owner: Male' : salon.ownerGender === 'female' ? '👩 Owner: Female' : '🧑 Owner: Other'}
-                  </Text>
+              {services.length > 0 && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }}>
+                  <Ionicons name="cut-outline" size={12} color="rgba(255,255,255,0.8)" />
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.8)' }}>{services.length} Services</Text>
                 </View>
               )}
             </View>
-          )}
+            {/* Action buttons */}
+            <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+              <TouchableOpacity
+                onPress={() => setShowBooking(true)}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 11, borderRadius: 14, backgroundColor: '#6366f1', shadowColor: '#6366f1', shadowOpacity: 0.55, shadowRadius: 14, elevation: 8 }}
+              >
+                <Ionicons name="flash-outline" size={16} color="#fff" />
+                <Text style={{ fontSize: 14, fontWeight: '700', color: '#fff' }}>Book Now</Text>
+              </TouchableOpacity>
+              {salon.phone && (
+                <TouchableOpacity
+                  onPress={() => Linking.openURL(`tel:${salon.phone}`)}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 11, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' }}
+                >
+                  <Ionicons name="call-outline" size={16} color="#fff" />
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff' }}>Call</Text>
+                </TouchableOpacity>
+              )}
+              {(salon.address || salon.city) && (
+                <TouchableOpacity
+                  onPress={() => Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(salon.address || salon.city || '')}`)}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 11, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' }}
+                >
+                  <Ionicons name="navigate-outline" size={16} color="#fff" />
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff' }}>Directions</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </View>
 
+        {/* ── INFO CHIPS ──────────────────────────────────────────────── */}
+        <View style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 4, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {salon.category && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: 'rgba(99,102,241,0.1)', borderWidth: 1, borderColor: 'rgba(99,102,241,0.22)' }}>
+              <Ionicons name="cut-outline" size={12} color="#818cf8" />
+              <Text style={{ fontSize: 12, fontWeight: '600', color: '#818cf8', textTransform: 'capitalize' }}>{salon.category.replace('_', ' ')}</Text>
+            </View>
+          )}
+          {salon.servedGender && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
+              backgroundColor: salon.servedGender === 'male' ? 'rgba(59,130,246,0.1)' : salon.servedGender === 'female' ? 'rgba(236,72,153,0.1)' : 'rgba(139,92,246,0.1)',
+              borderWidth: 1,
+              borderColor: salon.servedGender === 'male' ? 'rgba(59,130,246,0.22)' : salon.servedGender === 'female' ? 'rgba(236,72,153,0.22)' : 'rgba(139,92,246,0.22)',
+            }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: salon.servedGender === 'male' ? '#60a5fa' : salon.servedGender === 'female' ? '#f472b6' : '#c4b5fd' }}>
+                {salon.servedGender === 'male' ? '👨 Men' : salon.servedGender === 'female' ? '👩 Women' : '👥 Unisex'}
+              </Text>
+            </View>
+          )}
+          {salon.ownerGender && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
+              backgroundColor: salon.ownerGender === 'male' ? 'rgba(59,130,246,0.1)' : salon.ownerGender === 'female' ? 'rgba(236,72,153,0.1)' : 'rgba(148,163,184,0.1)',
+              borderWidth: 1,
+              borderColor: salon.ownerGender === 'male' ? 'rgba(59,130,246,0.22)' : salon.ownerGender === 'female' ? 'rgba(236,72,153,0.22)' : 'rgba(148,163,184,0.2)',
+            }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: salon.ownerGender === 'male' ? '#60a5fa' : salon.ownerGender === 'female' ? '#f472b6' : theme.subText }}>
+                {salon.ownerGender === 'male' ? '👨 Owner: Male' : salon.ownerGender === 'female' ? '👩 Owner: Female' : '🧑 Owner: Other'}
+              </Text>
+            </View>
+          )}
+          {salon.phone && (
+            <TouchableOpacity
+              onPress={() => Linking.openURL(`tel:${salon.phone}`)}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: theme.cardAlt, borderWidth: 1, borderColor: theme.border }}
+            >
+              <Ionicons name="call-outline" size={12} color={theme.subText} />
+              <Text style={{ fontSize: 12, fontWeight: '600', color: theme.subText }}>{salon.phone}</Text>
+            </TouchableOpacity>
+          )}
           {salon.description && (
-            <Text style={styles.description}>{salon.description}</Text>
+            <Text style={{ fontSize: 13, color: theme.subText, lineHeight: 19, width: '100%', marginTop: 4 }}>{salon.description}</Text>
           )}
         </View>
 
@@ -694,7 +768,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                       >
                         <View style={{ flex: 1 }}>
                           <View style={styles.serviceTop}>
-                            <Text style={[styles.serviceName, selected && { color: '#2563eb' }]}>{svc.name}</Text>
+                            <Text style={[styles.serviceName, selected && { color: '#6366f1' }]}>{svc.name}</Text>
                             <Text style={styles.servicePrice}>₹{svc.basePrice || svc.price}</Text>
                           </View>
                           <View style={styles.serviceMeta}>
@@ -731,7 +805,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                             <View style={{ gap: 12 }}>
                               {maleOnly.length > 0 && (
                                 <View>
-                                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#2563eb', marginBottom: 6 }}>👨 Men</Text>
+                                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#6366f1', marginBottom: 6 }}>👨 Men</Text>
                                   <View style={{ gap: 8 }}>{maleOnly.map(renderServiceCard)}</View>
                                 </View>
                               )}
@@ -785,7 +859,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                   {r.ownerResponse && (
                     <View style={styles.ownerReplyBox}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 }}>
-                        <Ionicons name="chatbubble-outline" size={12} color="#2563eb" />
+                        <Ionicons name="chatbubble-outline" size={12} color="#6366f1" />
                         <Text style={styles.ownerReplyLabel}>Owner's Reply</Text>
                       </View>
                       <Text style={styles.ownerReplyText}>{r.ownerResponse}</Text>
@@ -803,8 +877,8 @@ export default function SalonDetailsScreen({ route, navigation }) {
                 <Text style={styles.infoSectionTitle}>Contact</Text>
                 {salon.phone && (
                   <TouchableOpacity style={styles.infoRow2} onPress={() => Linking.openURL(`tel:${salon.phone}`)}>
-                    <Ionicons name="call-outline" size={16} color="#2563eb" />
-                    <Text style={[styles.infoValue, { color: '#2563eb' }]}>{salon.phone}</Text>
+                    <Ionicons name="call-outline" size={16} color="#6366f1" />
+                    <Text style={[styles.infoValue, { color: '#6366f1' }]}>{salon.phone}</Text>
                   </TouchableOpacity>
                 )}
                 {salon.email && (
@@ -989,7 +1063,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                           onPress={() => setBarberId(b._id)}
                         >
                           <View style={styles.barberAvatar}>
-                            <Text style={{ fontSize: 15, fontWeight: '700', color: barberId === b._id ? '#fff' : '#2563eb' }}>
+                            <Text style={{ fontSize: 15, fontWeight: '700', color: barberId === b._id ? '#fff' : '#6366f1' }}>
                               {b.name.charAt(0).toUpperCase()}
                             </Text>
                           </View>
@@ -1008,7 +1082,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                   </Text>
                   {slotsLoading ? (
                     <View style={styles.slotsLoading}>
-                      <ActivityIndicator color="#2563eb" size="small" />
+                      <ActivityIndicator color="#6366f1" size="small" />
                       <Text style={{ color: '#6b7280', fontSize: 13 }}>Loading slots...</Text>
                     </View>
                   ) : closedDay ? (
@@ -1028,7 +1102,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                   ) : (
                     <>
                       <View style={styles.slotLegend}>
-                        {[['#e5e7eb','Past'],['#fecaca','Booked'],['#2563eb','Selected'],['#f3f4f6','Available']].map(([c, l]) => (
+                        {[['#e5e7eb','Past'],['#fecaca','Booked'],['#6366f1','Selected'],['#f3f4f6','Available']].map(([c, l]) => (
                           <View key={l} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                             <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: c }} />
                             <Text style={{ fontSize: 10, color: '#6b7280' }}>{l}</Text>
@@ -1181,7 +1255,7 @@ const getStyles = (t) => StyleSheet.create({
   backBtn2: { marginTop: 16, padding: 12 },
   heroWrapper: { position: 'relative' },
   heroImg: { width: '100%', height: 240 },
-  heroPlaceholder: { backgroundColor: '#1e3a8a', alignItems: 'center', justifyContent: 'center' },
+  heroPlaceholder: { backgroundColor: '#4338ca', alignItems: 'center', justifyContent: 'center' },
   heroOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 80, backgroundColor: 'transparent' },
   infoCard: { backgroundColor: t.card, marginHorizontal: 16, marginTop: -20, borderRadius: 16, padding: 16, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8, elevation: 4, gap: 8, marginBottom: 12, borderWidth: 1, borderColor: t.border },
   infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
@@ -1200,7 +1274,7 @@ const getStyles = (t) => StyleSheet.create({
   genderBadgeText: { fontSize: 12, fontWeight: '600' },
   tabBar: { flexDirection: 'row', backgroundColor: t.card, marginHorizontal: 16, borderRadius: 12, padding: 4, marginBottom: 12, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1, borderWidth: 1, borderColor: t.border },
   tabBtn: { flex: 1, paddingVertical: 9, alignItems: 'center', borderRadius: 9 },
-  tabBtnActive: { backgroundColor: '#2563eb' },
+  tabBtnActive: { backgroundColor: '#6366f1', shadowColor: '#6366f1', shadowOpacity: 0.35, shadowRadius: 8, elevation: 4 },
   tabText: { fontSize: 13, fontWeight: '600', color: t.subText },
   tabTextActive: { color: '#fff' },
   tabBadge: { backgroundColor: t.border, borderRadius: 8, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
@@ -1210,43 +1284,43 @@ const getStyles = (t) => StyleSheet.create({
   emptyTab: { alignItems: 'center', paddingVertical: 40, gap: 10 },
   emptyTabText: { fontSize: 14, color: t.subText },
   serviceCard: { backgroundColor: t.card, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', gap: 14, borderWidth: 1.5, borderColor: t.border, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
-  serviceCardSelected: { borderColor: '#2563eb', backgroundColor: '#1e3a8a' },
+  serviceCardSelected: { borderColor: '#6366f1', backgroundColor: '#4338ca' },
   serviceTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   serviceName: { fontSize: 15, fontWeight: '700', color: t.text, flex: 1 },
-  servicePrice: { fontSize: 16, fontWeight: '800', color: '#2563eb' },
+  servicePrice: { fontSize: 16, fontWeight: '800', color: '#6366f1' },
   serviceMeta: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   serviceMetaText: { fontSize: 13, color: t.subText },
   serviceDesc: { fontSize: 13, color: t.subText, flex: 1 },
   checkbox: { width: 30, height: 30, borderRadius: 8, borderWidth: 2, borderColor: t.inputBorder, alignItems: 'center', justifyContent: 'center' },
-  checkboxChecked: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
+  checkboxChecked: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
   reviewCard: { backgroundColor: t.card, borderRadius: 12, padding: 14, gap: 8, borderWidth: 1, borderColor: t.border },
   reviewHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  reviewAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#1e3a8a', alignItems: 'center', justifyContent: 'center' },
+  reviewAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#4338ca', alignItems: 'center', justifyContent: 'center' },
   reviewAvatarText: { fontSize: 14, fontWeight: '700', color: '#93c5fd' },
   reviewName: { fontSize: 13, fontWeight: '700', color: t.text },
   reviewDate: { fontSize: 11, color: t.subText },
   reviewText: { fontSize: 13, color: t.text, lineHeight: 19 },
-  ownerReplyBox: { backgroundColor: '#eff6ff', borderRadius: 8, padding: 10, borderLeftWidth: 3, borderLeftColor: '#2563eb' },
-  ownerReplyLabel: { fontSize: 11, fontWeight: '700', color: '#2563eb' },
+  ownerReplyBox: { backgroundColor: '#eff6ff', borderRadius: 8, padding: 10, borderLeftWidth: 3, borderLeftColor: '#6366f1' },
+  ownerReplyLabel: { fontSize: 11, fontWeight: '700', color: '#6366f1' },
   ownerReplyText: { fontSize: 12, color: '#1e40af', lineHeight: 17 },
   infoSection: { backgroundColor: t.card, borderRadius: 12, padding: 14, gap: 10, borderWidth: 1, borderColor: t.border },
   infoSectionTitle: { fontSize: 13, fontWeight: '700', color: t.subText, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
   infoRow2: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   infoValue: { fontSize: 13, color: t.text, flex: 1, lineHeight: 19 },
   hoursRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5, borderTopWidth: 1, borderTopColor: t.border },
-  hoursRowToday: { backgroundColor: '#1e3a8a', marginHorizontal: -14, paddingHorizontal: 14, borderRadius: 6 },
+  hoursRowToday: { backgroundColor: '#4338ca', marginHorizontal: -14, paddingHorizontal: 14, borderRadius: 6 },
   hoursDay: { fontSize: 13, color: t.text },
   hoursTime: { fontSize: 13, color: t.text, fontWeight: '600' },
   hoursClosed: { fontSize: 13, color: '#ef4444' },
   bookBar: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: t.card, borderTopWidth: 1, borderTopColor: t.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 14, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 8, elevation: 8 },
   bookBarCount: { fontSize: 12, color: t.subText },
   bookBarPrice: { fontSize: 20, fontWeight: '800', color: t.text },
-  bookBtn: { backgroundColor: '#2563eb', borderRadius: 14, paddingHorizontal: 24, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  bookBtn: { backgroundColor: '#6366f1', borderRadius: 14, paddingHorizontal: 24, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 8 },
   bookBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
 
   // ── Booking modal ──────────────────────────────────────────────────────────
   bkContainer: { flex: 1, backgroundColor: t.bg },
-  bkHeader: { backgroundColor: '#2563eb', paddingHorizontal: 16, paddingBottom: 14, overflow: 'hidden' },
+  bkHeader: { backgroundColor: '#6366f1', paddingHorizontal: 16, paddingBottom: 14, overflow: 'hidden' },
   bkDecorCircle1: { position: 'absolute', width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.07)', top: -60, right: -30 },
   bkDecorCircle2: { position: 'absolute', width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.05)', bottom: -20, left: 20 },
   bkHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 14 },
@@ -1262,14 +1336,14 @@ const getStyles = (t) => StyleSheet.create({
 
   // Date chips
   dateChip: { width: 52, height: 62, borderRadius: 12, backgroundColor: t.card, borderWidth: 1.5, borderColor: t.border, alignItems: 'center', justifyContent: 'center', gap: 2 },
-  dateChipActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
+  dateChipActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
   dateChipDay: { fontSize: 11, color: t.subText, fontWeight: '600' },
   dateChipNum: { fontSize: 18, color: t.text, fontWeight: '800' },
   dateChipTextActive: { color: '#fff' },
 
   // Barber chips
   barberChip: { alignItems: 'center', gap: 6, backgroundColor: t.card, borderRadius: 12, borderWidth: 1.5, borderColor: t.border, padding: 12, minWidth: 72 },
-  barberChipActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
+  barberChipActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
   barberAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: t.bg, alignItems: 'center', justifyContent: 'center' },
   barberName: { fontSize: 12, fontWeight: '600', color: t.text },
   barberNameActive: { color: '#fff' },
@@ -1287,7 +1361,7 @@ const getStyles = (t) => StyleSheet.create({
   slotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   slotBtn: { width: '30%', borderRadius: 10, paddingVertical: 9, alignItems: 'center', borderWidth: 1.5 },
   slotAvailable: { backgroundColor: t.card, borderColor: t.inputBorder },
-  slotSelected: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
+  slotSelected: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
   slotPast: { backgroundColor: t.border, borderColor: t.border },
   slotBooked: { backgroundColor: '#fee2e2', borderColor: '#fca5a5' },
   slotTime: { fontSize: 13, fontWeight: '700', color: t.text },
@@ -1296,7 +1370,7 @@ const getStyles = (t) => StyleSheet.create({
   // Coupon
   couponRow: { flexDirection: 'row', gap: 8 },
   couponInput: { flex: 1, borderWidth: 1.5, borderColor: t.inputBorder, borderRadius: 10, paddingHorizontal: 12, height: 46, fontSize: 14, color: t.text, letterSpacing: 1 },
-  couponBtn: { backgroundColor: '#2563eb', borderRadius: 10, paddingHorizontal: 16, height: 46, alignItems: 'center', justifyContent: 'center' },
+  couponBtn: { backgroundColor: '#6366f1', borderRadius: 10, paddingHorizontal: 16, height: 46, alignItems: 'center', justifyContent: 'center' },
   couponBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   couponApplied: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#f0fdf4', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#bbf7d0' },
   couponAppliedText: { flex: 1, fontSize: 13, color: '#16a34a', fontWeight: '600' },
@@ -1311,7 +1385,7 @@ const getStyles = (t) => StyleSheet.create({
   priceTotalVal: { fontSize: 16, fontWeight: '800', color: t.accent },
 
   // Confirm
-  confirmBtn: { backgroundColor: '#2563eb', borderRadius: 14, height: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  confirmBtn: { backgroundColor: '#6366f1', borderRadius: 14, height: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   confirmBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 
   // Success
@@ -1326,7 +1400,7 @@ const getStyles = (t) => StyleSheet.create({
   successService: { fontSize: 13, color: t.subText, textAlign: 'center' },
   successRow: { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center' },
   successMeta: { fontSize: 13, color: t.text },
-  successBtn: { backgroundColor: '#2563eb', borderRadius: 12, height: 48, width: '100%', alignItems: 'center', justifyContent: 'center' },
+  successBtn: { backgroundColor: '#6366f1', borderRadius: 12, height: 48, width: '100%', alignItems: 'center', justifyContent: 'center' },
   successBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
   successBtnOutline: { borderWidth: 1.5, borderColor: t.border, borderRadius: 12, height: 48, width: '100%', alignItems: 'center', justifyContent: 'center' },
   successBtnOutlineText: { color: t.text, fontWeight: '600', fontSize: 15 },
@@ -1337,6 +1411,6 @@ const getStyles = (t) => StyleSheet.create({
   alertIcon: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center' },
   alertTitle: { fontSize: 18, fontWeight: '700', color: t.text },
   alertText: { fontSize: 13, color: t.subText, textAlign: 'center', lineHeight: 20 },
-  alertBtn: { backgroundColor: '#2563eb', borderRadius: 12, height: 46, width: '100%', alignItems: 'center', justifyContent: 'center', marginTop: 4 },
+  alertBtn: { backgroundColor: '#6366f1', borderRadius: 12, height: 46, width: '100%', alignItems: 'center', justifyContent: 'center', marginTop: 4 },
   alertBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 });

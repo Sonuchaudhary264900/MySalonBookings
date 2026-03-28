@@ -409,16 +409,16 @@ function SalonDetails() {
       </div>
 
       {/* ══ TRUST STRIP ═══════════════════════════════════════════════════ */}
-      <div className="border-b" style={{ borderColor: 'var(--t-border)', background: 'var(--t-card)' }}>
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-4 overflow-x-auto scrollbar-hide text-xs font-semibold whitespace-nowrap">
+      <div className="border-b" style={{ borderColor: 'var(--t-border)', background: 'linear-gradient(135deg, rgba(99,102,241,0.06) 0%, var(--t-card) 60%)' }}>
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3 overflow-x-auto scrollbar-hide text-xs font-semibold whitespace-nowrap">
           {/* Open / Closed status */}
           {openStatus !== null && (
             <div
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
               style={{
                 background: openStatus ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.1)',
                 color: openStatus ? '#10b981' : '#ef4444',
-                border: `1px solid ${openStatus ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.2)'}`,
+                border: `1px solid ${openStatus ? 'rgba(16,185,129,0.28)' : 'rgba(239,68,68,0.22)'}`,
               }}
             >
               <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: openStatus ? '#10b981' : '#ef4444' }} />
@@ -426,50 +426,45 @@ function SalonDetails() {
             </div>
           )}
           {todayHours && (
-            <div className="flex items-center gap-1.5" style={{ color: 'var(--t-text-2)' }}>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.15)', color: '#818cf8' }}>
               <Clock className="w-3.5 h-3.5" />
               <span>{todayHours}</span>
             </div>
           )}
           {avgRating && (
-            <div className="flex items-center gap-1.5" style={{ color: '#fbbf24' }}>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)', color: '#f59e0b' }}>
               <Star className="w-3.5 h-3.5 fill-current" />
               <span>{avgRating} Rating</span>
             </div>
           )}
           {(() => {
             const rc = salon.totalReviews || salon.reviewCount || reviews.length;
-            return rc > 0 ? (
-              <div className="flex items-center gap-1.5" style={{ color: 'var(--t-text-2)' }}>
+            return (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.15)', color: rc > 0 ? '#818cf8' : 'var(--t-text-3)' }}>
                 <Users className="w-3.5 h-3.5" />
-                <span>{rc} {rc === 1 ? "Review" : "Reviews"}</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5" style={{ color: 'var(--t-text-3)' }}>
-                <Users className="w-3.5 h-3.5" />
-                <span>No reviews yet</span>
+                <span>{rc > 0 ? `${rc} ${rc === 1 ? "Review" : "Reviews"}` : "No reviews yet"}</span>
               </div>
             );
           })()}
           {salon.isApproved && (
-            <div className="flex items-center gap-1.5" style={{ color: 'var(--t-success-text)' }}>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', color: '#10b981' }}>
               <Check className="w-3.5 h-3.5" />
-              <span>Verified Salon</span>
+              <span>Verified</span>
             </div>
           )}
           {services.length > 0 && (
-            <div className="flex items-center gap-1.5" style={{ color: 'var(--t-text-2)' }}>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.15)', color: '#818cf8' }}>
               <Scissors className="w-3.5 h-3.5" />
               <span>{services.length} Services</span>
             </div>
           )}
           {totalBookings >= 10 && (
-            <div className="flex items-center gap-1.5" style={{ color: '#f87171' }}>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.18)', color: '#f87171' }}>
               <span>🔥</span>
               <span>{totalBookings >= 1000 ? `${(totalBookings/1000).toFixed(1)}k` : `${totalBookings}+`} booked</span>
             </div>
           )}
-          <div className="flex items-center gap-1.5" style={{ color: 'var(--t-text-2)' }}>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.18)', color: '#a78bfa' }}>
             <Sparkles className="w-3.5 h-3.5" />
             <span>Instant Booking</span>
           </div>
@@ -478,7 +473,7 @@ function SalonDetails() {
 
       {/* ══ QUICK INFO ROW ═════════════════════════════════════════════════ */}
       {(nextSlot || salon.minPrice || salon.kidsHaircut || salon.atHomeServices) && (
-        <div className="border-b" style={{ borderColor: 'var(--t-border)', background: 'var(--t-bg-2)' }}>
+        <div className="border-b" style={{ borderColor: 'var(--t-border)', background: 'linear-gradient(135deg, rgba(99,102,241,0.04) 0%, var(--t-bg-2) 60%)' }}>
           <div className="max-w-4xl mx-auto px-4 py-2.5 flex items-center gap-3 overflow-x-auto scrollbar-hide whitespace-nowrap">
             {nextSlot && (
               <span
