@@ -68,18 +68,13 @@ echo location of your Java installation. 1>&2
 goto fail
 
 :execute
-@rem Auto-create local.properties if missing
-if not exist "%APP_HOME%local.properties" (
-    echo sdk.dir=C\:\\Users\\Dell\\AppData\\Local\\Android\\Sdk> "%APP_HOME%local.properties"
-)
-
 @rem Setup the command line
 
 set CLASSPATH=%APP_HOME%\gradle\wrapper\gradle-wrapper.jar
 
 
 @rem Execute Gradle
-"%JAVA_EXE%" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %GRADLE_OPTS% "-Dorg.gradle.appname=%APP_BASE_NAME%" -classpath "%CLASSPATH%" org.gradle.wrapper.GradleWrapperMain --project-cache-dir "C:\tmp\gradle-user-cache" %*
+"%JAVA_EXE%" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %GRADLE_OPTS% "-Dorg.gradle.appname=%APP_BASE_NAME%" -classpath "%CLASSPATH%" org.gradle.wrapper.GradleWrapperMain %*
 
 :end
 @rem End local scope for the variables with windows NT shell

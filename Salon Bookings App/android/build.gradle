@@ -24,15 +24,6 @@ buildscript {
 
 apply plugin: "com.facebook.react.rootproject"
 
-subprojects { subproject ->
-    if (subproject.name == "react-native-reanimated") {
-        subproject.afterEvaluate {
-            subproject.android.externalNativeBuild.cmake.buildStagingDirectory =
-                new File("C:/tmp/user-rn-cxx")
-        }
-    }
-}
-
 allprojects {
     repositories {
         maven {
