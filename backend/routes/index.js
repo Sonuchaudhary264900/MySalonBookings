@@ -234,16 +234,33 @@ router.get("/public/salons/:salonId", validateObjectId("salonId"), asyncHandler(
   const [topCoupon, barberCount] = await Promise.all([
     Coupon.findOne({ salonId: salon._id, isActive: true, $or: [{ validUntil: null }, { validUntil: { $gte: now } }] })
       .sort({ discountValue: -1 })
-      .select("code discountType discountValue minAmount maxDiscount description")
+      .select("code discountType discountValue minAmount maxDiscount description validUntil maxUsageCount usageCount")
       .lean(),
     Barber.countDocuments({ salonId: salon._id, isActive: true }),
   ]);
   const ownerPhoto = salon.ownerId?.profilePhoto || null;
   const ownerGender = salon.ownerId?.gender || null;
   const ownerName = salon.ownerId?.name || null;
-  const topOffer = topCoupon
-    ? { code: topCoupon.code, discountType: topCoupon.discountType, discountValue: topCoupon.discountValue, minAmount: topCoupon.minAmount || 0, maxDiscount: topCoupon.maxDiscount || null, description: topCoupon.description || null }
-    : null;
+
+  const buildOfferMeta = (c) => {
+    if (!c) return null;
+    const remaining = c.maxUsageCount ? Math.max(0, c.maxUsageCount - (c.usageCount || 0)) : null;
+    const daysLeft  = c.validUntil ? Math.ceil((new Date(c.validUntil) - now) / 86400000) : null;
+    const expiresLabel = daysLeft === 0 ? "Expires today!"
+      : daysLeft === 1 ? "Expires tomorrow"
+      : c.validUntil ? `Expires ${new Date(c.validUntil).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`
+      : null;
+    return {
+      code: c.code, discountType: c.discountType, discountValue: c.discountValue,
+      minAmount: c.minAmount || 0, maxDiscount: c.maxDiscount || null, description: c.description || null,
+      validUntil: c.validUntil || null, remaining,
+      isExpiringSoon: daysLeft !== null && daysLeft <= 3 && daysLeft >= 0,
+      isLimited: remaining !== null && remaining <= 10,
+      daysLeft, expiresLabel,
+    };
+  };
+
+  const topOffer = buildOfferMeta(topCoupon);
   res.json({ success: true, data: { ...salon, ownerPhoto, ownerGender, ownerName, ownerId: undefined, hasCoupons: !!topOffer, topOffer, hasBarbers: barberCount > 0 } });
 }));
 
@@ -254,6 +271,40 @@ router.get("/public/salons/:salonId/services", validateObjectId("salonId"), asyn
     .sort({ basePrice: 1 })
     .lean();
   res.json({ success: true, data: { services } });
+}));
+
+// GET /public/salons/:salonId/offers — all active offers for a salon (customer-facing)
+router.get("/public/salons/:salonId/offers", validateObjectId("salonId"), asyncHandler(async (req, res) => {
+  const now = new Date();
+  const coupons = await Coupon.find({
+    salonId: req.params.salonId,
+    isActive: true,
+    $and: [
+      { $or: [{ validFrom: null }, { validFrom: { $lte: now } }] },
+      { $or: [{ validUntil: null }, { validUntil: { $gte: now } }] },
+    ],
+  })
+    .sort({ discountValue: -1 })
+    .select("code discountType discountValue minAmount maxDiscount description validUntil maxUsageCount usageCount")
+    .lean();
+
+  const offers = coupons.map((c) => {
+    const remaining    = c.maxUsageCount ? Math.max(0, c.maxUsageCount - (c.usageCount || 0)) : null;
+    const daysLeft     = c.validUntil ? Math.ceil((new Date(c.validUntil) - now) / 86400000) : null;
+    const expiresLabel = daysLeft === 0 ? "Expires today!"
+      : daysLeft === 1 ? "Expires tomorrow"
+      : c.validUntil ? `Expires ${new Date(c.validUntil).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`
+      : null;
+    return {
+      code: c.code, discountType: c.discountType, discountValue: c.discountValue,
+      minAmount: c.minAmount || 0, maxDiscount: c.maxDiscount || null, description: c.description || null,
+      validUntil: c.validUntil || null, remaining,
+      isExpiringSoon: daysLeft !== null && daysLeft <= 3 && daysLeft >= 0,
+      isLimited: remaining !== null && remaining <= 10,
+      daysLeft, expiresLabel,
+    };
+  });
+  res.json({ success: true, data: { offers } });
 }));
 
 // GET /public/salons/:salonId/barbers
@@ -1417,13 +1468,22 @@ router.get("/owner/coupons", authenticateOwner, asyncHandler(async (req, res) =>
   const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
   const coupons = await Coupon.find({ salonId: salon._id }).sort({ createdAt: -1 }).lean();
-  const mapped = coupons.map(c => ({
-    ...c,
-    minOrderAmount: c.minAmount || 0,
-    maxUses: c.maxUsageCount || null,
-    expiryDate: c.validUntil ? c.validUntil.toISOString() : null,
-    usedCount: c.usageCount || 0,
-  }));
+  const nowTs = new Date();
+  const mapped = coupons.map(c => {
+    const remaining = c.maxUsageCount ? Math.max(0, c.maxUsageCount - (c.usageCount || 0)) : null;
+    const daysLeft  = c.validUntil ? Math.ceil((new Date(c.validUntil) - nowTs) / 86400000) : null;
+    return {
+      ...c,
+      minOrderAmount: c.minAmount || 0,
+      maxUses: c.maxUsageCount || null,
+      expiryDate: c.validUntil ? c.validUntil.toISOString() : null,
+      usedCount: c.usageCount || 0,
+      remaining,
+      daysLeft,
+      isExpiringSoon: daysLeft !== null && daysLeft <= 3 && daysLeft >= 0,
+      isLimited: remaining !== null && remaining <= 10,
+    };
+  });
   res.json({ success: true, data: mapped });
 }));
 
@@ -1487,6 +1547,82 @@ router.delete("/owner/coupons/:id", authenticateOwner, validateObjectId("id"), a
   const coupon = await Coupon.findOneAndDelete({ _id: req.params.id, salonId: salon._id });
   if (!coupon) return res.status(404).json({ success: false, message: "Coupon not found" });
   res.json({ success: true, message: "Coupon deleted" });
+}));
+
+// GET /owner/coupons/:id/analytics — usage history for a coupon
+router.get("/owner/coupons/:id/analytics", authenticateOwner, validateObjectId("id"), asyncHandler(async (req, res) => {
+  const Coupon = require("../models/Coupon");
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+  const coupon = await Coupon.findOne({ _id: req.params.id, salonId: salon._id })
+    .populate("usageHistory.customerId", "name phone")
+    .lean();
+  if (!coupon) return res.status(404).json({ success: false, message: "Coupon not found" });
+  const totalDiscount = coupon.usageHistory.reduce((s, h) => s + (h.discountApplied || 0), 0);
+  res.json({ success: true, data: {
+    code: coupon.code,
+    usageCount: coupon.usageCount || 0,
+    totalDiscount,
+    remaining: coupon.maxUsageCount ? Math.max(0, coupon.maxUsageCount - (coupon.usageCount || 0)) : null,
+    history: coupon.usageHistory.map(h => ({
+      customer: h.customerId?.name || "Unknown",
+      phone: h.customerId?.phone || null,
+      discountApplied: h.discountApplied,
+      usedAt: h.usedAt,
+    })),
+  }});
+}));
+
+// POST /owner/coupons/broadcast — send push notification to all customers of this salon
+router.post("/owner/coupons/broadcast", authenticateOwner, asyncHandler(async (req, res) => {
+  const Coupon  = require("../models/Coupon");
+  const Booking = require("../models/Booking");
+  const Customer = require("../models/Customer");
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+
+  const { couponId, customMessage } = req.body;
+  const coupon = couponId ? await Coupon.findOne({ _id: couponId, salonId: salon._id }).lean() : null;
+
+  // Gather unique customer IDs who booked at this salon
+  const customerIds = await Booking.distinct("customerId", { salonId: salon._id });
+  const customers = await Customer.find({
+    _id: { $in: customerIds },
+    pushToken: { $exists: true, $ne: null, $ne: "" },
+  }).select("pushToken name").lean();
+
+  if (customers.length === 0) {
+    return res.json({ success: true, data: { sent: 0, total: 0 }, message: "No customers with push tokens found" });
+  }
+
+  const title = coupon
+    ? `🎉 Special Offer at ${salon.name}!`
+    : `📢 Update from ${salon.name}`;
+
+  const body = coupon
+    ? `Use code ${coupon.code} — get ${coupon.discountType === 'percentage' ? coupon.discountValue + '% OFF' : '₹' + coupon.discountValue + ' OFF'}!${coupon.validUntil ? ' Hurry, limited time!' : ''}`
+    : (customMessage || `${salon.name} has something new for you!`);
+
+  const messages = customers
+    .filter(c => c.pushToken && c.pushToken.startsWith('ExponentPushToken'))
+    .map(c => ({
+      to: c.pushToken, sound: 'default', title, body,
+      data: { type: 'offer', salonId: salon._id.toString(), couponCode: coupon?.code || null },
+    }));
+
+  let sent = 0;
+  if (messages.length > 0) {
+    try {
+      const r = await fetch('https://exp.host/--/api/v2/push/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(messages),
+      });
+      if (r.ok) sent = messages.length;
+    } catch { /* non-critical */ }
+  }
+
+  res.json({ success: true, data: { sent, total: customers.length }, message: `Notification sent to ${sent} of ${customers.length} customers` });
 }));
 
 /* =====================================================

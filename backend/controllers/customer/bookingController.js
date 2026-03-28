@@ -151,6 +151,17 @@ const createBooking = async (req, res) => {
         appliedCouponCode = coupon.code;
         coupon.usageCount += 1;
         coupon.usedBy.push(req.customer._id);
+        // Track detailed usage history
+        coupon.usageHistory.push({
+          customerId: req.customer._id,
+          discountApplied: discount,
+          usedAt: new Date(),
+          // bookingId will be patched after booking creation below
+        });
+        // Auto-disable if usage limit reached
+        if (coupon.maxUsageCount && coupon.usageCount >= coupon.maxUsageCount) {
+          coupon.isActive = false;
+        }
         await coupon.save();
       }
     }
@@ -185,6 +196,16 @@ const createBooking = async (req, res) => {
       paymentStatus: "pending",
       status: "pending"
     });
+
+    // Patch bookingId into the coupon usageHistory entry we just created
+    if (appliedCouponCode) {
+      const Coupon = require('../../models/Coupon');
+      await Coupon.updateOne(
+        { code: appliedCouponCode, 'usageHistory.bookingId': { $exists: false } },
+        { $set: { 'usageHistory.$[last].bookingId': booking._id } },
+        { arrayFilters: [{ 'last.bookingId': { $exists: false } }] }
+      ).catch(() => {}); // non-critical, don't fail booking
+    }
 
     // Razorpay payment
     if (paymentMethod === "online") {
