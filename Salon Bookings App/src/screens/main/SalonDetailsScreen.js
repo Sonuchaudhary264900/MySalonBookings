@@ -370,7 +370,34 @@ export default function SalonDetailsScreen({ route, navigation }) {
 
   // ── Main render ───────────────────────────────────────────────────────────
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+
+      {/* ── FIXED OVERLAY: back + fav + verified ── */}
+      <View style={{ position: 'absolute', top: insets.top + 8, left: 0, right: 0, zIndex: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16 }}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' }}
+        >
+          <Ionicons name="arrow-back" size={20} color="#fff" />
+        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          {salon?.isApproved && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, backgroundColor: 'rgba(34,197,94,0.2)', borderWidth: 1, borderColor: 'rgba(34,197,94,0.45)' }}>
+              <Ionicons name="checkmark-circle" size={13} color="#4ade80" />
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#4ade80' }}>Verified</Text>
+            </View>
+          )}
+          <TouchableOpacity
+            onPress={toggleFavorite} disabled={favLoading}
+            style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isFavorite ? 'rgba(239,68,68,0.85)' : 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: isFavorite ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.18)' }}
+          >
+            {favLoading
+              ? <ActivityIndicator size="small" color="#fff" />
+              : <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={20} color="#fff" />}
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
 
         {/* ── HERO ────────────────────────────────────────────────────── */}
@@ -380,32 +407,6 @@ export default function SalonDetailsScreen({ route, navigation }) {
           ) : (
             <View style={{ width: '100%', height: 320, backgroundColor: '#312e81', alignItems: 'center', justifyContent: 'center' }}>
               <Ionicons name="cut" size={64} color="rgba(255,255,255,0.12)" />
-            </View>
-          )}
-
-          {/* Back + Favorite — glassmorphism */}
-          <View style={{ position: 'absolute', top: insets.top + 10, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16 }}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' }}
-            >
-              <Ionicons name="arrow-back" size={20} color="#fff" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={toggleFavorite} disabled={favLoading}
-              style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isFavorite ? 'rgba(239,68,68,0.85)' : 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: isFavorite ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.18)' }}
-            >
-              {favLoading
-                ? <ActivityIndicator size="small" color="#fff" />
-                : <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={20} color="#fff" />}
-            </TouchableOpacity>
-          </View>
-
-          {/* Verified badge — top right below fav */}
-          {salon.isApproved && (
-            <View style={{ position: 'absolute', top: insets.top + 58, right: 16, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, backgroundColor: 'rgba(34,197,94,0.2)', borderWidth: 1, borderColor: 'rgba(34,197,94,0.45)' }}>
-              <Ionicons name="checkmark-circle" size={13} color="#4ade80" />
-              <Text style={{ fontSize: 11, fontWeight: '700', color: '#4ade80' }}>Verified</Text>
             </View>
           )}
 
