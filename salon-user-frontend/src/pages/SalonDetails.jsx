@@ -155,11 +155,19 @@ function SalonDetails() {
     Promise.all([loadSalon(), loadServices(), loadReviews(), loadBarbers(), loadOffers()]).finally(() => setLoading(false));
   }, [id]);
 
-  const loadSalon    = async () => { try { const r = await API.get(`/public/salons/${id}`);          setSalon(r.data.data || r.data.salon); } catch {} };
+  const loadSalon = async () => {
+    try {
+      const r = await API.get(`/public/salons/${id}`);
+      const data = r.data.data || r.data.salon;
+      setSalon(data);
+      // Immediately seed offers from topOffer — guarantees something shows even if /offers call fails
+      if (data?.topOffer) setOffers(prev => prev.length > 0 ? prev : [data.topOffer]);
+    } catch {}
+  };
   const loadServices = async () => { try { const r = await API.get(`/public/salons/${id}/services`); setServices(r.data.data?.services || r.data.data || []); } catch {} };
   const loadReviews  = async () => { try { const r = await API.get(`/public/salons/${id}/reviews`);  setReviews(r.data.data?.reviews || r.data.data || []); } catch {} };
   const loadBarbers  = async () => { try { const r = await API.get(`/public/salons/${id}/barbers`).catch(() => ({ data: { data: { barbers: [] } } })); setBarbers(r.data.data?.barbers || []); } catch {} };
-  const loadOffers   = async () => { try { const r = await API.get(`/public/salons/${id}/offers`);  setOffers(r.data.data?.offers || []); } catch {} };
+  const loadOffers   = async () => { try { const r = await API.get(`/public/salons/${id}/offers`); const list = r.data.data?.offers || []; if (list.length > 0) setOffers(list); } catch {} };
 
   // ── Slot fetch when booking modal open + date/duration changes ───────────
   useEffect(() => {
@@ -301,6 +309,7 @@ function SalonDetails() {
   const opensAt    = getOpensAt(salon.workingHours);
   const nextSlot   = getNextSlot(salon.workingHours);
   const totalBookings = salon.totalBookings || 0;
+
 
   const dayOrder = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
   const TAB_ICONS = { Services: <Scissors className="w-4 h-4" />, Reviews: <Star className="w-4 h-4" />, Info: <Building2 className="w-4 h-4" /> };
@@ -518,13 +527,6 @@ function SalonDetails() {
 
         {/* Info chips */}
         <div className="flex flex-wrap gap-2 mb-5">
-          {salon.category && (
-            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all hover:scale-105"
-              style={{ background: 'rgba(99,102,241,0.12)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.2)' }}>
-              <Scissors className="w-3 h-3" />
-              {salon.category.replace("_", " ")}
-            </span>
-          )}
           {salon.servedGender && (
             <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold capitalize transition-all hover:scale-105"
               style={
@@ -556,15 +558,18 @@ function SalonDetails() {
           )}
         </div>
 
-        {/* Offers / promo section */}
-        {offers.length > 0 && (
+        {/* Offers / promo section — uses /offers API list or falls back to salon.topOffer */}
+        {(() => {
+          const allOffers = offers.length > 0 ? offers : salon.topOffer ? [salon.topOffer] : [];
+          if (allOffers.length === 0) return null;
+          return (
           <div className="mb-5">
             <div className="flex items-center gap-2 mb-2.5">
               <span className="text-sm font-bold" style={{ color: 'var(--t-text)' }}>🏷️ Offers & Coupons</span>
-              <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: 'rgba(16,185,129,0.12)', color: '#059669' }}>{offers.length}</span>
+              <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: 'rgba(16,185,129,0.12)', color: '#059669' }}>{allOffers.length}</span>
             </div>
             <div className="space-y-2">
-              {offers.map((offer) => {
+              {allOffers.map((offer) => {
                 const offerLabel = offer.discountType === "percentage"
                   ? `${offer.discountValue}% OFF${offer.minAmount > 0 ? ` on ₹${offer.minAmount}+` : ""}`
                   : `₹${offer.discountValue} OFF${offer.minAmount > 0 ? ` on ₹${offer.minAmount}+` : ""}`;
@@ -620,7 +625,8 @@ function SalonDetails() {
               })}
             </div>
           </div>
-        )}
+          );
+        })()}
 
         {/* ── TABS ── */}
         <div

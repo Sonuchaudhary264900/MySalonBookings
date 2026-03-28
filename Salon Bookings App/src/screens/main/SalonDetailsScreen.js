@@ -175,7 +175,10 @@ export default function SalonDetailsScreen({ route, navigation }) {
   const loadSalon = async () => {
     try {
       const res = await api.get(`/public/salons/${salonId}`);
-      setSalon(res.data.data || res.data.salon);
+      const data = res.data.data || res.data.salon;
+      setSalon(data);
+      // Seed offers immediately from topOffer — guarantees something shows even if /offers call fails
+      if (data?.topOffer) setOffers(prev => prev.length > 0 ? prev : [data.topOffer]);
     } catch {}
   };
 
@@ -203,7 +206,8 @@ export default function SalonDetailsScreen({ route, navigation }) {
   const loadOffers = async () => {
     try {
       const res = await api.get(`/public/salons/${salonId}/offers`);
-      setOffers(res.data.data?.offers || []);
+      const list = res.data.data?.offers || [];
+      if (list.length > 0) setOffers(list);
     } catch {}
   };
 
@@ -349,6 +353,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
   const nextSlot    = getNextSlot(salon?.workingHours);
   const totalBookings = salon?.totalBookings || 0;
 
+
   // ── Loading / error states ────────────────────────────────────────────────
   if (loading) {
     return (
@@ -491,12 +496,6 @@ export default function SalonDetailsScreen({ route, navigation }) {
 
         {/* ── INFO CHIPS ──────────────────────────────────────────────── */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10 }}>
-          {salon.category && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: 'rgba(99,102,241,0.1)', borderWidth: 1, borderColor: 'rgba(99,102,241,0.22)' }}>
-              <Ionicons name="cut-outline" size={12} color="#818cf8" />
-              <Text style={{ fontSize: 12, fontWeight: '600', color: '#818cf8', textTransform: 'capitalize' }}>{salon.category.replace('_', ' ')}</Text>
-            </View>
-          )}
           {salon.servedGender && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
               backgroundColor: salon.servedGender === 'male' ? 'rgba(59,130,246,0.1)' : salon.servedGender === 'female' ? 'rgba(236,72,153,0.1)' : 'rgba(139,92,246,0.1)',
@@ -615,17 +614,20 @@ export default function SalonDetailsScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* Offers / promo section */}
-        {offers.length > 0 && (
+        {/* Offers / promo section — uses /offers API list or falls back to salon.topOffer */}
+        {(() => {
+          const allOffers = offers.length > 0 ? offers : salon.topOffer ? [salon.topOffer] : [];
+          if (allOffers.length === 0) return null;
+          return (
           <View style={{ marginHorizontal: 16, marginBottom: 14 }}>
             {/* Section header */}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
               <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>🏷️ Offers & Coupons</Text>
               <View style={{ backgroundColor: 'rgba(16,185,129,0.15)', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 }}>
-                <Text style={{ fontSize: 10, fontWeight: '700', color: '#059669' }}>{offers.length}</Text>
+                <Text style={{ fontSize: 10, fontWeight: '700', color: '#059669' }}>{allOffers.length}</Text>
               </View>
             </View>
-            {offers.map((offer) => {
+            {allOffers.map((offer) => {
               const offerLabel = offer.discountType === 'percentage'
                 ? `${offer.discountValue}% OFF${offer.minAmount > 0 ? ` on ₹${offer.minAmount}+` : ''}`
                 : `₹${offer.discountValue} OFF${offer.minAmount > 0 ? ` on ₹${offer.minAmount}+` : ''}`;
@@ -678,7 +680,8 @@ export default function SalonDetailsScreen({ route, navigation }) {
               );
             })}
           </View>
-        )}
+          );
+        })()}
 
         {/* Tabs */}
         <View style={styles.tabBar}>
