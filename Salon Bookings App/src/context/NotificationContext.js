@@ -1,6 +1,7 @@
 import React, { createContext, useState, useCallback, useEffect, useContext, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import * as Location from 'expo-location';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import api from '../services/api';
@@ -110,11 +111,21 @@ export const NotificationProvider = ({ children }) => {
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  // Register push token once when authenticated
+  // Register push token + current location once when authenticated
   useEffect(() => {
     if (!isAuthenticated) return;
-    registerPushToken().then((token) => {
-      if (token) api.post('/customer/push-token', { pushToken: token }).catch(() => {});
+    registerPushToken().then(async (token) => {
+      if (!token) return;
+      const payload = { pushToken: token };
+      try {
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          payload.latitude  = pos.coords.latitude;
+          payload.longitude = pos.coords.longitude;
+        }
+      } catch { /* location optional — don't block token registration */ }
+      api.post('/customer/push-token', payload).catch(() => {});
     });
   }, [isAuthenticated]);
 
