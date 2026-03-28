@@ -231,7 +231,7 @@ function SalonDetails() {
 
   // ── Confirm booking ──────────────────────────────────────────────────────
   const handleConfirm = async (e) => {
-    e.preventDefault();
+    if (e?.preventDefault) e.preventDefault();
     if (!slot) { setBookError("Please select a time slot."); return; }
     setBookError(""); setBookingLoading(true);
     try {
@@ -1019,7 +1019,7 @@ function SalonDetails() {
           onClick={(e) => { if (e.target === e.currentTarget && !bookingSuccess) setShowBooking(false); }}>
 
           <div
-            className="mt-auto w-full max-h-[92vh] overflow-y-auto rounded-t-3xl flex flex-col"
+            className="mt-auto w-full max-h-[92vh] rounded-t-3xl flex flex-col"
             style={{ background: 'var(--t-bg)', boxShadow: '0 -20px 60px rgba(0,0,0,0.3)' }}
           >
             {bookingSuccess ? (
@@ -1064,8 +1064,11 @@ function SalonDetails() {
               /* ── Booking form ─────────────────────────────────────────── */
               <>
                 {/* Drawer handle + header */}
-                <div className="sticky top-0 z-10 rounded-t-3xl pt-3 pb-4 px-5"
+                <div className="rounded-t-3xl pt-3 pb-4 px-5 relative overflow-hidden shrink-0"
                   style={{ background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', boxShadow: '0 4px 20px rgba(79,70,229,0.3)' }}>
+                  {/* Decorative circles like app */}
+                  <div style={{ position: 'absolute', top: -50, right: -30, width: 150, height: 150, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
+                  <div style={{ position: 'absolute', top: -15, right: 70, width: 90, height: 90, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
                   <div className="w-10 h-1 rounded-full bg-white/30 mx-auto mb-4" />
                   <div className="flex items-center justify-between">
                     <div>
@@ -1093,9 +1096,7 @@ function SalonDetails() {
                   )}
                 </div>
 
-                <form onSubmit={handleConfirm} className="px-5 py-5 space-y-6 pb-10">
-                  {bookError && <div className="p-3 rounded-xl text-sm" style={{ background: 'var(--t-error-bg)', color: 'var(--t-error-text)' }}>{bookError}</div>}
-
+                <form onSubmit={handleConfirm} className="px-5 py-5 space-y-6 overflow-y-auto flex-1 min-h-0 pb-4">
                   {/* ── Date ── */}
                   <div>
                     <label className="flex items-center gap-2 text-sm font-bold mb-3" style={{ color: 'var(--t-text)' }}>
@@ -1137,19 +1138,42 @@ function SalonDetails() {
                         <User className="w-4 h-4" style={{ color: '#818cf8' }} />
                         Select Stylist <span className="font-normal text-xs" style={{ color: 'var(--t-text-3)' }}>(optional)</span>
                       </label>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                        {/* Any / No preference */}
                         <button type="button" onClick={() => setBarberId("")}
-                          className="px-3 py-2.5 rounded-xl border text-sm font-medium transition-all text-left hover:scale-[1.02]"
-                          style={barberId === "" ? { background: 'var(--t-accent)', color: '#fff', borderColor: 'var(--t-accent)' } : { background: 'var(--t-input-bg)', color: 'var(--t-text-2)', borderColor: 'var(--t-border)' }}>
-                          <span className="block text-xs opacity-75 mb-0.5">Any</span>
-                          <span>No preference</span>
+                          className="flex flex-col items-center gap-1.5 shrink-0 transition-all hover:scale-105">
+                          <div
+                            className="w-14 h-14 rounded-full flex items-center justify-center text-sm font-bold"
+                            style={barberId === ""
+                              ? { background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', boxShadow: '0 4px 12px rgba(99,102,241,0.4)' }
+                              : { background: 'var(--t-bg-2)', color: 'var(--t-text-2)', border: '2px solid var(--t-border)' }}
+                          >
+                            Any
+                          </div>
+                          <span className="text-xs font-medium" style={{ color: barberId === "" ? '#6366f1' : 'var(--t-text-2)' }}>No Pref</span>
                         </button>
                         {barbers.map(b => (
                           <button key={b._id} type="button" onClick={() => setBarberId(b._id)}
-                            className="px-3 py-2.5 rounded-xl border text-sm font-medium transition-all text-left hover:scale-[1.02]"
-                            style={barberId === b._id ? { background: 'var(--t-accent)', color: '#fff', borderColor: 'var(--t-accent)' } : { background: 'var(--t-input-bg)', color: 'var(--t-text-2)', borderColor: 'var(--t-border)' }}>
-                            <span className="block font-semibold">{b.name}</span>
-                            {b.experience > 0 && <span className="text-xs" style={{ color: barberId === b._id ? 'rgba(255,255,255,0.7)' : 'var(--t-text-3)' }}>{b.experience} yr exp</span>}
+                            className="flex flex-col items-center gap-1.5 shrink-0 transition-all hover:scale-105">
+                            <div
+                              className="w-14 h-14 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden"
+                              style={barberId === b._id
+                                ? { border: '3px solid #6366f1', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', boxShadow: '0 4px 12px rgba(99,102,241,0.4)' }
+                                : { background: 'var(--t-bg-2)', color: 'var(--t-text-2)', border: '2px solid var(--t-border)' }}
+                            >
+                              {b.photo
+                                ? <img src={b.photo} alt={b.name} className="w-full h-full object-cover" />
+                                : (b.name?.charAt(0)?.toUpperCase() || "?")}
+                            </div>
+                            <span className="text-xs font-medium text-center max-w-[60px] truncate"
+                              style={{ color: barberId === b._id ? '#6366f1' : 'var(--t-text-2)' }}>
+                              {b.name}
+                            </span>
+                            {b.experience > 0 && (
+                              <span className="text-[10px]" style={{ color: 'var(--t-text-3)', marginTop: -4 }}>
+                                {b.experience}yr
+                              </span>
+                            )}
                           </button>
                         ))}
                       </div>
@@ -1291,14 +1315,23 @@ function SalonDetails() {
                     </div>
                   )}
 
-                  <button
-                    type="submit"
-                    disabled={bookingLoading || !slot}
-                    className="btn-primary w-full py-3.5 text-base disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {bookingLoading ? "Confirming…" : "Confirm Booking"}
-                  </button>
                 </form>
+
+                {/* ── Sticky footer confirm button ── */}
+                <div className="shrink-0 px-5 py-4"
+                  style={{ borderTop: '1px solid var(--t-border)', background: 'var(--t-bg)' }}>
+                  {bookError && (
+                    <div className="mb-3 p-3 rounded-xl text-sm" style={{ background: 'var(--t-error-bg)', color: 'var(--t-error-text)' }}>{bookError}</div>
+                  )}
+                  <button
+                    onClick={handleConfirm}
+                    disabled={bookingLoading || !slot}
+                    className="w-full py-3.5 text-base font-bold text-white rounded-2xl transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                    style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', boxShadow: slot ? '0 4px 20px rgba(99,102,241,0.4)' : 'none' }}
+                  >
+                    {bookingLoading ? "Confirming…" : !slot ? "Select a time slot" : "Confirm Booking"}
+                  </button>
+                </div>
               </>
             )}
           </div>
