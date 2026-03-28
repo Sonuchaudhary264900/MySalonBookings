@@ -373,7 +373,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
     <View style={[styles.container, { paddingTop: insets.top }]}>
 
       {/* ── FIXED OVERLAY: back + fav + verified ── */}
-      <View style={{ position: 'absolute', top: insets.top + 8, left: 0, right: 0, zIndex: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16 }}>
+      <View style={{ position: 'absolute', top: insets.top + 20, left: 0, right: 0, zIndex: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16 }}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' }}
