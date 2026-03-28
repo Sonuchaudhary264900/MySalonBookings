@@ -99,6 +99,7 @@ function SalonDetails() {
   const [salon, setSalon]           = useState(null);
   const [services, setServices]     = useState([]);
   const [reviews, setReviews]       = useState([]);
+  const [offers, setOffers]         = useState([]);
   const [tab, setTab]               = useState("Services");
   const [loading, setLoading]       = useState(true);
   const [selectedServices, setSelectedServices] = useState([]);
@@ -151,13 +152,14 @@ function SalonDetails() {
 
   // ── Initial load ─────────────────────────────────────────────────────────
   useEffect(() => {
-    Promise.all([loadSalon(), loadServices(), loadReviews(), loadBarbers()]).finally(() => setLoading(false));
+    Promise.all([loadSalon(), loadServices(), loadReviews(), loadBarbers(), loadOffers()]).finally(() => setLoading(false));
   }, [id]);
 
   const loadSalon    = async () => { try { const r = await API.get(`/public/salons/${id}`);          setSalon(r.data.data || r.data.salon); } catch {} };
   const loadServices = async () => { try { const r = await API.get(`/public/salons/${id}/services`); setServices(r.data.data?.services || r.data.data || []); } catch {} };
   const loadReviews  = async () => { try { const r = await API.get(`/public/salons/${id}/reviews`);  setReviews(r.data.data?.reviews || r.data.data || []); } catch {} };
   const loadBarbers  = async () => { try { const r = await API.get(`/public/salons/${id}/barbers`).catch(() => ({ data: { data: { barbers: [] } } })); setBarbers(r.data.data?.barbers || []); } catch {} };
+  const loadOffers   = async () => { try { const r = await API.get(`/public/salons/${id}/offers`);  setOffers(r.data.data?.offers || []); } catch {} };
 
   // ── Slot fetch when booking modal open + date/duration changes ───────────
   useEffect(() => {
@@ -554,27 +556,71 @@ function SalonDetails() {
           )}
         </div>
 
-        {/* Offer / promo banner */}
-        {salon.topOffer && (() => {
-          const offerLabel = salon.topOffer.discountType === "percentage"
-            ? `${salon.topOffer.discountValue}% OFF${salon.topOffer.minAmount > 0 ? ` on ₹${salon.topOffer.minAmount}+` : ""}`
-            : `₹${salon.topOffer.discountValue} OFF${salon.topOffer.minAmount > 0 ? ` on ₹${salon.topOffer.minAmount}+` : ""}`;
-          return (
-            <div
-              className="flex items-center gap-3 mb-5 px-4 py-3 rounded-xl"
-              style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.22)" }}
-            >
-              <span style={{ fontSize: 18 }}>🏷️</span>
-              <span className="text-sm font-bold flex-1" style={{ color: "#059669" }}>{offerLabel}</span>
-              <span
-                className="text-xs font-bold px-3 py-1 rounded-full"
-                style={{ background: "rgba(5,150,105,0.15)", color: "#059669", border: "1px solid rgba(5,150,105,0.25)", letterSpacing: "0.5px" }}
-              >
-                {salon.topOffer.code}
-              </span>
+        {/* Offers / promo section */}
+        {offers.length > 0 && (
+          <div className="mb-5">
+            <div className="flex items-center gap-2 mb-2.5">
+              <span className="text-sm font-bold" style={{ color: 'var(--t-text)' }}>🏷️ Offers & Coupons</span>
+              <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: 'rgba(16,185,129,0.12)', color: '#059669' }}>{offers.length}</span>
             </div>
-          );
-        })()}
+            <div className="space-y-2">
+              {offers.map((offer) => {
+                const offerLabel = offer.discountType === "percentage"
+                  ? `${offer.discountValue}% OFF${offer.minAmount > 0 ? ` on ₹${offer.minAmount}+` : ""}`
+                  : `₹${offer.discountValue} OFF${offer.minAmount > 0 ? ` on ₹${offer.minAmount}+` : ""}`;
+                const isFire     = !offer.isExpiringSoon && !offer.isLimited;
+                const borderClr  = offer.isExpiringSoon ? 'rgba(245,158,11,0.35)' : offer.isLimited ? 'rgba(239,68,68,0.28)' : 'rgba(16,185,129,0.25)';
+                const bgClr      = offer.isExpiringSoon ? 'rgba(245,158,11,0.07)' : offer.isLimited ? 'rgba(239,68,68,0.06)' : 'rgba(16,185,129,0.07)';
+                const textClr    = offer.isExpiringSoon ? '#d97706' : offer.isLimited ? '#dc2626' : '#059669';
+                return (
+                  <div key={offer.code}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl"
+                    style={{ background: bgClr, border: `1px solid ${borderClr}` }}
+                  >
+                    <span style={{ fontSize: 20 }}>{offer.isExpiringSoon ? '⏰' : offer.isLimited ? '🔥' : '🏷️'}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-bold" style={{ color: textClr }}>{offerLabel}</span>
+                        {offer.isExpiringSoon && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(245,158,11,0.15)', color: '#d97706', border: '1px solid rgba(245,158,11,0.3)' }}>
+                            ⏰ Expiring Soon
+                          </span>
+                        )}
+                        {offer.isLimited && !offer.isExpiringSoon && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(239,68,68,0.12)', color: '#dc2626', border: '1px solid rgba(239,68,68,0.25)' }}>
+                            ⚡ Limited Offer
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                        {offer.expiresLabel && (
+                          <span className="text-[11px]" style={{ color: offer.isExpiringSoon ? '#d97706' : 'var(--t-text-3)' }}>
+                            {offer.daysLeft === 0 ? '🔴' : offer.daysLeft === 1 ? '🟡' : '🟢'} {offer.expiresLabel}
+                          </span>
+                        )}
+                        {offer.remaining !== null && (
+                          <span className="text-[11px] font-semibold" style={{ color: offer.isLimited ? '#dc2626' : 'var(--t-text-3)' }}>
+                            {offer.remaining <= 5 ? `🔴 Only ${offer.remaining} left!` : offer.remaining <= 10 ? `🟡 Only ${offer.remaining} left` : `${offer.remaining} uses left`}
+                          </span>
+                        )}
+                        {offer.description && (
+                          <span className="text-[11px]" style={{ color: 'var(--t-text-3)' }}>{offer.description}</span>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => { setCouponInput(offer.code); if (!showBooking) openBooking(); }}
+                      className="text-xs font-bold px-3 py-1.5 rounded-xl shrink-0 transition-all hover:scale-105"
+                      style={{ background: `rgba(${offer.isExpiringSoon ? '245,158,11' : offer.isLimited ? '239,68,68' : '5,150,105'},0.15)`, color: textClr, border: `1px solid ${borderClr}`, letterSpacing: '0.5px' }}
+                    >
+                      {offer.code}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* ── TABS ── */}
         <div

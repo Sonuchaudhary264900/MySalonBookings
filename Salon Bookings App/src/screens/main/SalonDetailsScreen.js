@@ -125,6 +125,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
   const [salon, setSalon]                 = useState(null);
   const [services, setServices]           = useState([]);
   const [reviews, setReviews]             = useState([]);
+  const [offers, setOffers]               = useState([]);
   const [tab, setTab]                     = useState('Services');
   const [loading, setLoading]             = useState(true);
   const [selectedServices, setSelectedServices] = useState([]);
@@ -168,7 +169,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
 
   // ── Initial load ──────────────────────────────────────────────────────────
   useEffect(() => {
-    Promise.all([loadSalon(), loadServices(), loadReviews(), loadBarbers()]).finally(() => setLoading(false));
+    Promise.all([loadSalon(), loadServices(), loadReviews(), loadBarbers(), loadOffers()]).finally(() => setLoading(false));
   }, [salonId]);
 
   const loadSalon = async () => {
@@ -196,6 +197,13 @@ export default function SalonDetailsScreen({ route, navigation }) {
     try {
       const res = await api.get(`/public/salons/${salonId}/barbers`).catch(() => ({ data: { data: { barbers: [] } } }));
       setBarbers(res.data.data?.barbers || []);
+    } catch {}
+  };
+
+  const loadOffers = async () => {
+    try {
+      const res = await api.get(`/public/salons/${salonId}/offers`);
+      setOffers(res.data.data?.offers || []);
     } catch {}
   };
 
@@ -607,21 +615,70 @@ export default function SalonDetailsScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* Offer / promo banner */}
-        {salon.topOffer && (() => {
-          const offerLabel = salon.topOffer.discountType === 'percentage'
-            ? `${salon.topOffer.discountValue}% OFF${salon.topOffer.minAmount > 0 ? ` on ₹${salon.topOffer.minAmount}+` : ''}`
-            : `₹${salon.topOffer.discountValue} OFF${salon.topOffer.minAmount > 0 ? ` on ₹${salon.topOffer.minAmount}+` : ''}`;
-          return (
-            <View style={{ marginHorizontal: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(16,185,129,0.1)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.25)', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10 }}>
-              <Text style={{ fontSize: 18 }}>🏷️</Text>
-              <Text style={{ fontSize: 13, fontWeight: '700', color: '#059669', flex: 1 }}>{offerLabel}</Text>
-              <View style={{ backgroundColor: 'rgba(5,150,105,0.15)', borderWidth: 1, borderColor: 'rgba(5,150,105,0.25)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3 }}>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: '#059669', letterSpacing: 0.5 }}>{salon.topOffer.code}</Text>
+        {/* Offers / promo section */}
+        {offers.length > 0 && (
+          <View style={{ marginHorizontal: 16, marginBottom: 14 }}>
+            {/* Section header */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>🏷️ Offers & Coupons</Text>
+              <View style={{ backgroundColor: 'rgba(16,185,129,0.15)', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 }}>
+                <Text style={{ fontSize: 10, fontWeight: '700', color: '#059669' }}>{offers.length}</Text>
               </View>
             </View>
-          );
-        })()}
+            {offers.map((offer) => {
+              const offerLabel = offer.discountType === 'percentage'
+                ? `${offer.discountValue}% OFF${offer.minAmount > 0 ? ` on ₹${offer.minAmount}+` : ''}`
+                : `₹${offer.discountValue} OFF${offer.minAmount > 0 ? ` on ₹${offer.minAmount}+` : ''}`;
+              const textClr    = offer.isExpiringSoon ? '#d97706' : offer.isLimited ? '#dc2626' : '#059669';
+              const borderClr  = offer.isExpiringSoon ? 'rgba(245,158,11,0.35)' : offer.isLimited ? 'rgba(239,68,68,0.28)' : 'rgba(16,185,129,0.25)';
+              const bgClr      = offer.isExpiringSoon ? 'rgba(245,158,11,0.08)' : offer.isLimited ? 'rgba(239,68,68,0.07)' : 'rgba(16,185,129,0.08)';
+              const icon       = offer.isExpiringSoon ? '⏰' : offer.isLimited ? '🔥' : '🏷️';
+              return (
+                <View key={offer.code} style={{ backgroundColor: bgClr, borderWidth: 1, borderColor: borderClr, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 8 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <Text style={{ fontSize: 18 }}>{icon}</Text>
+                    <View style={{ flex: 1 }}>
+                      {/* Discount label + badges */}
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: textClr }}>{offerLabel}</Text>
+                        {offer.isExpiringSoon && (
+                          <View style={{ backgroundColor: 'rgba(245,158,11,0.15)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.3)', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 }}>
+                            <Text style={{ fontSize: 9, fontWeight: '700', color: '#d97706' }}>⏰ EXPIRING SOON</Text>
+                          </View>
+                        )}
+                        {offer.isLimited && !offer.isExpiringSoon && (
+                          <View style={{ backgroundColor: 'rgba(239,68,68,0.12)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 }}>
+                            <Text style={{ fontSize: 9, fontWeight: '700', color: '#dc2626' }}>⚡ LIMITED</Text>
+                          </View>
+                        )}
+                      </View>
+                      {/* Meta: expiry + remaining */}
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 3, flexWrap: 'wrap' }}>
+                        {offer.expiresLabel && (
+                          <Text style={{ fontSize: 10, color: offer.isExpiringSoon ? '#d97706' : theme.subText }}>
+                            {offer.daysLeft === 0 ? '🔴' : offer.daysLeft === 1 ? '🟡' : '🟢'} {offer.expiresLabel}
+                          </Text>
+                        )}
+                        {offer.remaining !== null && (
+                          <Text style={{ fontSize: 10, fontWeight: '600', color: offer.isLimited ? '#dc2626' : theme.subText }}>
+                            {offer.remaining <= 5 ? `🔴 Only ${offer.remaining} left!` : offer.remaining <= 10 ? `🟡 Only ${offer.remaining} left` : `${offer.remaining} uses left`}
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                    {/* Code pill / tap to apply */}
+                    <TouchableOpacity
+                      onPress={() => { setCouponInput(offer.code); if (!showBooking) openBooking(); }}
+                      style={{ backgroundColor: `rgba(${offer.isExpiringSoon ? '245,158,11' : offer.isLimited ? '239,68,68' : '5,150,105'},0.15)`, borderWidth: 1, borderColor: borderClr, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 }}
+                    >
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: textClr, letterSpacing: 0.5 }}>{offer.code}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
 
         {/* Tabs */}
         <View style={styles.tabBar}>
