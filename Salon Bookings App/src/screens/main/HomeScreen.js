@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, memo, useMemo } from '
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   TextInput, ActivityIndicator, Image, RefreshControl,
-  ScrollView, Alert, Animated,
+  ScrollView, Alert, Animated, Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -639,6 +639,55 @@ export default function HomeScreen({ navigation }) {
     />
   ), [getDistance, navigation, favoriteIds, handleToggleFavorite]);
 
+  // ── Location gate ────────────────────────────────────────────────
+  if (locDenied) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 32 }]}>
+        <View style={{
+          width: 96, height: 96, borderRadius: 48,
+          backgroundColor: 'rgba(99,102,241,0.12)',
+          alignItems: 'center', justifyContent: 'center', marginBottom: 24,
+        }}>
+          <Ionicons name="location-outline" size={48} color={theme.accent} />
+        </View>
+        <Text style={{ fontSize: 22, fontWeight: '800', color: theme.text, textAlign: 'center', marginBottom: 10 }}>
+          Location Required
+        </Text>
+        <Text style={{ fontSize: 14, color: theme.subText, textAlign: 'center', lineHeight: 22, marginBottom: 32 }}>
+          We need your location to show nearby salons. Please allow location access to continue.
+        </Text>
+        <TouchableOpacity
+          style={{
+            backgroundColor: theme.accent, paddingVertical: 14, paddingHorizontal: 36,
+            borderRadius: 14, flexDirection: 'row', alignItems: 'center', gap: 8,
+            shadowColor: theme.accent, shadowOpacity: 0.4, shadowRadius: 12, elevation: 4,
+          }}
+          onPress={async () => {
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            if (status === 'granted') {
+              setLocDenied(false);
+              setLoading(true);
+              const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+              const coords = { lat: loc.coords.latitude, lng: loc.coords.longitude };
+              setUserCoords(coords);
+              fetchSalons('nearby', coords);
+            } else {
+              Linking.openSettings();
+            }
+          }}
+        >
+          <Ionicons name="location" size={18} color="#fff" />
+          <Text style={{ fontSize: 15, fontWeight: '700', color: '#fff' }}>Allow Location</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => Linking.openSettings()} style={{ marginTop: 16 }}>
+          <Text style={{ fontSize: 13, color: theme.subText, textDecorationLine: 'underline' }}>
+            Open Settings
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
 
@@ -838,13 +887,6 @@ export default function HomeScreen({ navigation }) {
                 </ScrollView>
               )}
 
-              {/* Location denied notice */}
-              {locDenied && !searchText && (
-                <View style={styles.noLocBox}>
-                  <Ionicons name="location-outline" size={20} color="#d97706" />
-                  <Text style={styles.noLocText}>Location access denied. Use search to find salons.</Text>
-                </View>
-              )}
 
               {/* Section title + results count + sort + Show All */}
               {!loading && (
@@ -924,8 +966,6 @@ const getStyles = (t) => StyleSheet.create({
   sortBtnActive: { backgroundColor: t.card, borderColor: t.accent },
   sortText: { fontSize: 11, fontWeight: '600', color: t.subText },
   sortTextActive: { color: t.accent, fontWeight: '700' },
-  noLocBox: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16, marginBottom: 8, backgroundColor: '#fef3c7', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#fde68a' },
-  noLocText: { fontSize: 13, color: '#92400e', flex: 1 },
   resultsCount: { fontSize: 12, color: t.subText },
   emptyBox: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, gap: 8 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: t.text },
