@@ -230,7 +230,7 @@ function NotificationsSection() {
             value={prefs[item.key]}
             onValueChange={() => toggle(item.key)}
             trackColor={{ false: '#d1d5db', true: '#60a5fa' }}
-            thumbColor={prefs[item.key] ? '#2563eb' : '#9ca3af'}
+            thumbColor={prefs[item.key] ? '#6366f1' : '#9ca3af'}
           />
         </View>
       ))}
@@ -277,7 +277,7 @@ function AppPreferencesSection() {
       <View style={styles.optionRow}>
         {options.map((o) => (
           <TouchableOpacity key={o.value} style={[styles.optionBtn, { backgroundColor: theme.input, borderColor: theme.inputBorder }, value === o.value && styles.optionBtnActive]} onPress={() => onSelect(o.value)}>
-            {value === o.value && <Ionicons name="checkmark-circle" size={13} color="#2563eb" style={{ marginRight: 4 }} />}
+            {value === o.value && <Ionicons name="checkmark-circle" size={13} color="#6366f1" style={{ marginRight: 4 }} />}
             <Text style={[styles.optionBtnText, { color: theme.subText }, value === o.value && styles.optionBtnTextActive]}>{o.label}</Text>
           </TouchableOpacity>
         ))}
@@ -335,7 +335,7 @@ function BookingWindowSection({ salon, onSaved }) {
               <Text style={[styles.radioCardLabel, { color: theme.text }, active && styles.radioCardLabelActive]}>{opt.label}</Text>
               <Text style={[styles.radioCardSub, { color: theme.subText }]}>{opt.sub}</Text>
             </View>
-            {active && <Ionicons name="checkmark-circle" size={22} color="#2563eb" />}
+            {active && <Ionicons name="checkmark-circle" size={22} color="#6366f1" />}
           </TouchableOpacity>
         );
       })}
@@ -380,7 +380,7 @@ function BookingModeSection({ salon, onSaved }) {
               <Text style={[styles.radioCardLabel, { color: theme.text }, active && styles.radioCardLabelActive]}>{m.label}</Text>
               <Text style={[styles.radioCardSub, { color: theme.subText }]}>{m.sub}</Text>
             </View>
-            {active && <Ionicons name="checkmark-circle" size={22} color="#2563eb" />}
+            {active && <Ionicons name="checkmark-circle" size={22} color="#6366f1" />}
           </TouchableOpacity>
         );
       })}
@@ -412,9 +412,9 @@ function AutoConfirmSection({ salon, onSaved }) {
 
   return (
     <>
-      <View style={[styles.autoConfirmCard, { borderColor: autoConfirm ? '#93c5fd' : theme.inputBorder, backgroundColor: autoConfirm ? '#eff6ff' : theme.input }]}>
+      <View style={[styles.autoConfirmCard, { borderColor: autoConfirm ? '#93c5fd' : theme.inputBorder, backgroundColor: autoConfirm ? '#eef2ff' : theme.input }]}>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.autoConfirmTitle, { color: autoConfirm ? '#2563eb' : theme.text }]}>
+          <Text style={[styles.autoConfirmTitle, { color: autoConfirm ? '#6366f1' : theme.text }]}>
             {autoConfirm ? '✅ Auto-Confirm is ON' : '⏸️ Auto-Confirm is OFF'}
           </Text>
           <Text style={[styles.toggleSub, { color: theme.subText }]}>
@@ -425,7 +425,7 @@ function AutoConfirmSection({ salon, onSaved }) {
           value={autoConfirm}
           onValueChange={setAutoConfirm}
           trackColor={{ false: '#d1d5db', true: '#60a5fa' }}
-          thumbColor={autoConfirm ? '#2563eb' : '#9ca3af'}
+          thumbColor={autoConfirm ? '#6366f1' : '#9ca3af'}
         />
       </View>
       <SaveButton onPress={handleSave} loading={loading} label="Save Setting" />
@@ -516,8 +516,8 @@ function SalonPhotosSection({ salon, onSaved }) {
         disabled={uploading || photos.length >= 10}
       >
         {uploading
-          ? <ActivityIndicator color="#2563eb" size="small" />
-          : <Ionicons name="image-outline" size={18} color="#2563eb" />}
+          ? <ActivityIndicator color="#6366f1" size="small" />
+          : <Ionicons name="image-outline" size={18} color="#6366f1" />}
         <Text style={styles.uploadBtnText}>{uploading ? 'Uploading…' : 'Add Photos'}</Text>
       </TouchableOpacity>
     </>
@@ -574,7 +574,7 @@ function HolidaysSection() {
     ]);
   };
 
-  if (loading) return <ActivityIndicator color="#2563eb" style={{ marginVertical: 16 }} />;
+  if (loading) return <ActivityIndicator color="#6366f1" style={{ marginVertical: 16 }} />;
 
   return (
     <>
@@ -584,7 +584,7 @@ function HolidaysSection() {
       {holidays.map((h) => (
         <View key={h._id} style={[styles.holidayRow, { borderTopColor: theme.border }]}>
           <View style={styles.holidayIcon}>
-            <Ionicons name="calendar-outline" size={16} color="#2563eb" />
+            <Ionicons name="calendar-outline" size={16} color="#6366f1" />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.holidayDate, { color: theme.text }]}>{h.date}</Text>
@@ -608,7 +608,7 @@ function HolidaysSection() {
         </View>
       ) : (
         <TouchableOpacity style={styles.addHolidayBtn} onPress={() => setAdding(true)}>
-          <Ionicons name="add" size={18} color="#2563eb" />
+          <Ionicons name="add" size={18} color="#6366f1" />
           <Text style={styles.addHolidayText}>Add Closed Date</Text>
         </TouchableOpacity>
       )}
@@ -756,7 +756,7 @@ function ChangePasswordSection() {
             onPress={timer === 0 ? handleSendOtp : undefined}
             disabled={timer > 0}
           >
-            <Text style={{ fontSize: 13, color: '#2563eb' }}>
+            <Text style={{ fontSize: 13, color: '#6366f1' }}>
               {timer > 0 ? `Resend OTP in ${timer}s` : 'Resend OTP'}
             </Text>
           </TouchableOpacity>
@@ -891,7 +891,7 @@ function SettingsSections({ salon, fetchSalon, resetKey }) {
         <SalonInfoSection salon={salon} onSaved={fetchSalon} />
       </Section>
 
-      <Section resetKey={resetKey} title={t('workingHours')} subtitle={t('workingHoursSub')} icon="time-outline" iconBg="#dbeafe" iconColor="#2563eb">
+      <Section resetKey={resetKey} title={t('workingHours')} subtitle={t('workingHoursSub')} icon="time-outline" iconBg="#e0e7ff" iconColor="#6366f1">
         <WorkingHoursSection salon={salon} onSaved={fetchSalon} />
       </Section>
 
@@ -923,7 +923,7 @@ function SettingsSections({ salon, fetchSalon, resetKey }) {
         <HolidaysSection />
       </Section>
 
-      <Section resetKey={resetKey} title="Change Password" subtitle="Reset your password via OTP" icon="key-outline" iconBg="#dbeafe" iconColor="#2563eb">
+      <Section resetKey={resetKey} title="Change Password" subtitle="Reset your password via OTP" icon="key-outline" iconBg="#e0e7ff" iconColor="#6366f1">
         <ChangePasswordSection />
       </Section>
 
@@ -975,45 +975,45 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1.5, borderColor: '#d1d5db', borderRadius: 10, paddingHorizontal: 12, height: 46, fontSize: 14, color: '#111827' },
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999, borderWidth: 1.5, borderColor: '#d1d5db', backgroundColor: '#f9fafb' },
-  chipActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
+  chipActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
   chipText: { fontSize: 12, color: '#374151', textTransform: 'capitalize' },
   chipTextActive: { color: '#fff', fontWeight: '600' },
   daysRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   dayChip: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#d1d5db', backgroundColor: '#f9fafb' },
-  dayChipActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
+  dayChipActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
   dayChipText: { fontSize: 11, fontWeight: '600', color: '#6b7280' },
   dayChipTextActive: { color: '#fff' },
   toggleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
   toggleSub: { fontSize: 12, color: '#9ca3af', marginTop: 2 },
-  saveBtn: { backgroundColor: '#2563eb', borderRadius: 10, height: 46, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
+  saveBtn: { backgroundColor: '#6366f1', borderRadius: 10, height: 46, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
   saveBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
   radioCard: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 10, borderWidth: 1.5, borderColor: '#e5e7eb', backgroundColor: '#f9fafb', marginBottom: 8 },
-  radioCardActive: { borderColor: '#2563eb', backgroundColor: '#eff6ff' },
+  radioCardActive: { borderColor: '#6366f1', backgroundColor: '#eef2ff' },
   radioCardLabel: { fontSize: 14, fontWeight: '600', color: '#374151' },
-  radioCardLabelActive: { color: '#2563eb' },
+  radioCardLabelActive: { color: '#6366f1' },
   radioCardSub: { fontSize: 12, color: '#9ca3af', marginTop: 2 },
   autoConfirmCard: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 10, borderWidth: 1.5, marginBottom: 8 },
   autoConfirmTitle: { fontSize: 14, fontWeight: '700', marginBottom: 4 },
   optionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   optionBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1.5, borderColor: '#d1d5db', backgroundColor: '#f9fafb' },
-  optionBtnActive: { borderColor: '#2563eb', backgroundColor: '#eff6ff' },
+  optionBtnActive: { borderColor: '#6366f1', backgroundColor: '#eef2ff' },
   optionBtnText: { fontSize: 12, color: '#374151', fontWeight: '500' },
-  optionBtnTextActive: { color: '#2563eb', fontWeight: '700' },
+  optionBtnTextActive: { color: '#6366f1', fontWeight: '700' },
   photoCount: { fontSize: 12, color: '#6b7280', marginBottom: 10 },
   photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
   photoThumb: { width: 88, height: 88, borderRadius: 8, overflow: 'hidden' },
   photoImg: { width: '100%', height: '100%' },
   photoDeleteBtn: { position: 'absolute', top: 4, right: 4, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 10, padding: 4 },
-  uploadBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, borderWidth: 1.5, borderColor: '#93c5fd', backgroundColor: '#eff6ff' },
-  uploadBtnText: { fontSize: 13, color: '#2563eb', fontWeight: '600' },
+  uploadBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, borderWidth: 1.5, borderColor: '#93c5fd', backgroundColor: '#eef2ff' },
+  uploadBtnText: { fontSize: 13, color: '#6366f1', fontWeight: '600' },
   emptyText: { fontSize: 13, color: '#9ca3af', marginBottom: 12 },
   holidayRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#f3f4f6' },
-  holidayIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#dbeafe', alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+  holidayIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#e0e7ff', alignItems: 'center', justifyContent: 'center', marginRight: 10 },
   holidayDate: { fontSize: 14, fontWeight: '600', color: '#111827' },
   holidayReason: { fontSize: 12, color: '#6b7280', marginTop: 2 },
   addHolidayBox: { borderTopWidth: 1, borderTopColor: '#f3f4f6', paddingTop: 12, marginTop: 8 },
-  addHolidayBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginTop: 8, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8, borderWidth: 1.5, borderColor: '#93c5fd', backgroundColor: '#eff6ff' },
-  addHolidayText: { fontSize: 13, color: '#2563eb', fontWeight: '600' },
+  addHolidayBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginTop: 8, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8, borderWidth: 1.5, borderColor: '#93c5fd', backgroundColor: '#eef2ff' },
+  addHolidayText: { fontSize: 13, color: '#6366f1', fontWeight: '600' },
   cancelBtn: { flex: 1, height: 46, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#d1d5db', marginTop: 8 },
   cancelBtnText: { fontSize: 14, fontWeight: '600', color: '#374151' },
 privacyCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },

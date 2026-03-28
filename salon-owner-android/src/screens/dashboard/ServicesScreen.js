@@ -1,17 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
+  View, Text, StyleSheet, TouchableOpacity,
   ActivityIndicator, RefreshControl, Modal, TextInput,
-  Alert, Switch, ScrollView,
+  Alert, Switch, ScrollView, Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
-import { showError } from '../../utils/toast';
 import { useSalon } from '../../context/SalonContext';
-import DrawerMenuButton from '../../components/DrawerMenuButton';
 
 // ── Category constants ──────────────────────────────────────────
 const CATEGORY_ORDER = [
@@ -30,7 +28,6 @@ const CAT_ICON = {
   'Bridal & Events': '👰', 'Kids Services': '👶', 'At-Home Services': '🏠',
 };
 
-// Inline UNISEX_CATEGORIES lookup — used to classify sub-services by gender
 const UNISEX_CAT_LOOKUP = {
   'Hair Services': {
     male: new Set(['Basic Haircut','Fade / Taper / Skin Fade','Designer Haircut','Hair Styling','Hair Wash','Blow Dry','Hair Coloring','Hair Straightening','Hair Smoothening','Hair Spa','Dandruff Treatment','Hair Fall Treatment']),
@@ -73,21 +70,6 @@ const UNISEX_CAT_LOOKUP = {
 const MALE_ONLY_CATS   = ['Beard & Grooming', 'Body Grooming'];
 const FEMALE_ONLY_CATS = ['Bridal & Events'];
 
-function classifySub(s, catName) {
-  const name = typeof s === 'string' ? s : s.name;
-  const af   = (typeof s === 'object' && s.applicableFor) || [];
-  if (af.length > 0 && af.includes('male')   && !af.includes('female')) return 'male';
-  if (af.length > 0 && af.includes('female') && !af.includes('male'))   return 'female';
-  const lookup = UNISEX_CAT_LOOKUP[catName];
-  if (lookup) {
-    const inMale   = lookup.male.has(name);
-    const inFemale = lookup.female.has(name);
-    if (inMale && !inFemale)   return 'male';
-    if (inFemale && !inMale)   return 'female';
-  }
-  return 'both';
-}
-
 function classifySvc(s) {
   const af = s.applicableFor || [];
   if (af.length > 0 && af.includes('male')   && !af.includes('female')) return 'male';
@@ -102,9 +84,290 @@ function classifySvc(s) {
   return 'both';
 }
 
+function classifyMenuSub(s, catName) {
+  const name = typeof s === 'string' ? s : s.name;
+  const af   = (typeof s === 'object' && s.applicableFor) || [];
+  if (af.length > 0 && af.includes('male')   && !af.includes('female')) return 'male';
+  if (af.length > 0 && af.includes('female') && !af.includes('male'))   return 'female';
+  const lookup = UNISEX_CAT_LOOKUP[catName];
+  if (lookup) {
+    const inMale   = lookup.male.has(name);
+    const inFemale = lookup.female.has(name);
+    if (inMale && !inFemale)   return 'male';
+    if (inFemale && !inMale)   return 'female';
+  }
+  return 'both';
+}
+
+// ── Stats Bar ───────────────────────────────────────────────────
+function StatsBar({ total, active, inactive, theme }) {
+  const stats = [
+    { label: 'Total',    value: total,    icon: 'layers-outline',       iconColor: '#6366f1', bg: '#eef2ff' },
+    { label: 'Active',   value: active,   icon: 'checkmark-circle-outline', iconColor: '#16a34a', bg: '#dcfce7' },
+    { label: 'Inactive', value: inactive, icon: 'close-circle-outline', iconColor: '#9ca3af', bg: '#f3f4f6' },
+  ];
+  return (
+    <View style={styles.statsRow}>
+      {stats.map(({ label, value, icon, iconColor, bg }) => (
+        <View key={label} style={[styles.statCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <View style={[styles.statIconCircle, { backgroundColor: bg }]}>
+            <Ionicons name={icon} size={18} color={iconColor} />
+          </View>
+          <View>
+            <Text style={[styles.statValue, { color: theme.text }]}>{value}</Text>
+            <Text style={[styles.statLabel, { color: theme.subText }]}>{label}</Text>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+// ── Service Menu Sub Chip ───────────────────────────────────────
+function SubChip({ sub, theme }) {
+  const name  = typeof sub === 'string' ? sub : sub.name;
+  const price = typeof sub === 'object' ? sub.price : null;
+  return (
+    <View style={[styles.subChip, { backgroundColor: theme.card, borderColor: theme.border }]}>
+      <Text style={[styles.subChipText, { color: theme.subText }]}>{name}</Text>
+      {price > 0 && <Text style={[styles.subChipPrice, { color: theme.accent }]}>₹{price}</Text>}
+    </View>
+  );
+}
+
+// ── Service Menu Section (collapsible preview) ──────────────────
+function ServiceMenuSection({ salon, theme }) {
+  const [expandedIdx, setExpandedIdx] = useState(null);
+
+  if (!salon?.offeredCategories?.length) return null;
+
+  const isUnisex = salon.servedGender === 'unisex';
+
+  const sortedCategories = [...salon.offeredCategories].sort((a, b) => {
+    const ai = CATEGORY_ORDER.indexOf(a.name), bi = CATEGORY_ORDER.indexOf(b.name);
+    if (ai === -1 && bi === -1) return 0;
+    if (ai === -1) return 1; if (bi === -1) return -1;
+    return ai - bi;
+  });
+
+  return (
+    <View style={[styles.menuSectionCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+      {/* Header */}
+      <View style={[styles.menuSectionHeader, { borderBottomColor: theme.border }]}>
+        <View style={{ flex: 1 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={{ fontSize: 13 }}>✨</Text>
+            <Text style={[styles.menuSectionTitle, { color: theme.text }]}>Service Menu</Text>
+          </View>
+          <Text style={[styles.menuSectionSub, { color: theme.subText }]}>
+            Serves{' '}
+            <Text style={{ color: theme.text, fontWeight: '600', textTransform: 'capitalize' }}>
+              {salon.servedGender}
+            </Text>{' '}
+            customers
+          </Text>
+        </View>
+        <View style={{ flexDirection: 'row', gap: 6 }}>
+          {salon.kidsHaircut && (
+            <View style={styles.optBadge}>
+              <Text style={styles.optBadgeText}>👶 Kids</Text>
+            </View>
+          )}
+          {salon.atHomeServices && (
+            <View style={[styles.optBadge, { backgroundColor: '#dcfce7', borderColor: '#bbf7d0' }]}>
+              <Text style={[styles.optBadgeText, { color: '#166534' }]}>🏠 At-Home</Text>
+            </View>
+          )}
+        </View>
+      </View>
+
+      {/* Category accordion */}
+      {sortedCategories.map((cat, idx) => {
+        const subs = cat.subServices || [];
+        const isOpen = expandedIdx === idx;
+        const isMaleOnly   = MALE_ONLY_CATS.includes(cat.name);
+        const isFemaleOnly = FEMALE_ONLY_CATS.includes(cat.name);
+        const showSplit = isUnisex && !isMaleOnly && !isFemaleOnly;
+
+        const menSubs   = showSplit ? subs.filter(s => classifyMenuSub(s, cat.name) === 'male')   : [];
+        const womenSubs = showSplit ? subs.filter(s => classifyMenuSub(s, cat.name) === 'female') : [];
+        const bothSubs  = showSplit ? subs.filter(s => classifyMenuSub(s, cat.name) === 'both')   : [];
+
+        return (
+          <View key={idx}>
+            {idx > 0 && <View style={[styles.divider, { backgroundColor: theme.border }]} />}
+            <TouchableOpacity
+              style={[styles.menuCatRow, { backgroundColor: theme.card }]}
+              onPress={() => setExpandedIdx(isOpen ? null : idx)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.menuCatEmoji}>{CAT_ICON[cat.name] || '✨'}</Text>
+              <Text style={[styles.menuCatName, { color: theme.text }]}>{cat.name}</Text>
+              {isUnisex && isMaleOnly   && <Text style={styles.genderTagM}>👨 Men</Text>}
+              {isUnisex && isFemaleOnly && <Text style={styles.genderTagF}>👩 Women</Text>}
+              <Text style={[styles.menuCatCount, { color: theme.subText }]}>{subs.length}</Text>
+              <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={14} color={theme.subText} />
+            </TouchableOpacity>
+
+            {isOpen && (
+              <View style={[styles.menuCatBody, { backgroundColor: theme.bg }]}>
+                {subs.length === 0 ? (
+                  <Text style={[styles.noSubsText, { color: theme.subText }]}>No sub-services selected</Text>
+                ) : showSplit ? (
+                  <View style={{ gap: 10 }}>
+                    {bothSubs.length > 0 && (
+                      <View style={styles.subChipsWrap}>
+                        {bothSubs.map((s, i) => <SubChip key={i} sub={s} theme={theme} />)}
+                      </View>
+                    )}
+                    {menSubs.length > 0 && (
+                      <View>
+                        <Text style={styles.gTagM}>👨 Men</Text>
+                        <View style={styles.subChipsWrap}>
+                          {menSubs.map((s, i) => <SubChip key={i} sub={s} theme={theme} />)}
+                        </View>
+                      </View>
+                    )}
+                    {womenSubs.length > 0 && (
+                      <View>
+                        <Text style={styles.gTagF}>👩 Women</Text>
+                        <View style={styles.subChipsWrap}>
+                          {womenSubs.map((s, i) => <SubChip key={i} sub={s} theme={theme} />)}
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                ) : (
+                  <View style={styles.subChipsWrap}>
+                    {subs.map((s, i) => <SubChip key={i} sub={s} theme={theme} />)}
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+// ── Service Card ────────────────────────────────────────────────
+function ServiceCard({ service, onEdit, onDelete, onToggle, theme }) {
+  const isActive = service.isActive !== false;
+
+  const handleToggle = () => {
+    if (isActive) {
+      Alert.alert(
+        'Disable Service?',
+        `"${service.name}" will be hidden from customers and cannot be booked.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Yes, Disable', style: 'destructive', onPress: () => onToggle(service._id, false) },
+        ]
+      );
+    } else {
+      onToggle(service._id, true);
+    }
+  };
+
+  return (
+    <View style={[
+      styles.serviceCard,
+      { backgroundColor: theme.card, borderColor: isActive ? theme.border : theme.border },
+      !isActive && { opacity: 0.65 },
+    ]}>
+      {/* Top row: name + toggle */}
+      <View style={styles.serviceCardTop}>
+        <View style={{ flex: 1, marginRight: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+            <Text style={[styles.serviceCardName, { color: isActive ? theme.text : theme.subText }]} numberOfLines={1}>
+              {service.name}
+            </Text>
+            {!isActive && (
+              <View style={styles.inactiveBadge}>
+                <Text style={styles.inactiveBadgeText}>Inactive</Text>
+              </View>
+            )}
+          </View>
+          {service.category && (
+            <View style={styles.categoryRow}>
+              <Ionicons name="pricetag-outline" size={11} color="#6366f1" />
+              <Text style={styles.categoryText}>{service.category}</Text>
+            </View>
+          )}
+        </View>
+        <Switch
+          value={isActive}
+          onValueChange={handleToggle}
+          trackColor={{ false: '#d1d5db', true: '#6366f1' }}
+          thumbColor="#fff"
+          style={{ transform: [{ scaleX: 0.85 }, { scaleY: 0.85 }] }}
+        />
+      </View>
+
+      {/* Price + Duration */}
+      <View style={styles.serviceCardMeta}>
+        <View style={styles.priceRow}>
+          <Ionicons name="logo-usd" size={13} color="#16a34a" />
+          <Text style={styles.priceText}>₹{service.basePrice ?? service.price ?? '—'}</Text>
+        </View>
+        {!!service.duration && (
+          <>
+            <View style={styles.metaDivider} />
+            <View style={styles.durationRow}>
+              <Ionicons name="time-outline" size={13} color={theme.subText} />
+              <Text style={[styles.durationText, { color: theme.subText }]}>{service.duration} min</Text>
+            </View>
+          </>
+        )}
+      </View>
+
+      {/* Action buttons */}
+      <View style={[styles.serviceCardActions, { borderTopColor: theme.border }]}>
+        <TouchableOpacity
+          style={[styles.actionBtn, { backgroundColor: theme.bg, borderColor: theme.border }]}
+          onPress={() => onEdit(service)}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="create-outline" size={14} color={theme.subText} />
+          <Text style={[styles.actionBtnText, { color: theme.subText }]}>Edit</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.actionBtn, { backgroundColor: theme.bg, borderColor: theme.border }]}
+          onPress={() => onDelete(service)}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="trash-outline" size={14} color="#dc2626" />
+          <Text style={[styles.actionBtnText, { color: '#dc2626' }]}>Delete</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+// ── Empty State ─────────────────────────────────────────────────
+function EmptyState({ onAdd, theme }) {
+  return (
+    <View style={[styles.emptyCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+      <View style={styles.emptyIconWrap}>
+        <Ionicons name="cut-outline" size={36} color="#a5b4fc" />
+      </View>
+      <Text style={[styles.emptyTitle, { color: theme.text }]}>No services added yet</Text>
+      <Text style={[styles.emptyDesc, { color: theme.subText }]}>
+        Start by adding the services your salon offers to attract customers and enable bookings.
+      </Text>
+      <TouchableOpacity style={styles.emptyBtn} onPress={onAdd} activeOpacity={0.85}>
+        <Ionicons name="add" size={16} color="#fff" />
+        <Text style={styles.emptyBtnText}>Add Your First Service</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 // ── Service Modal ───────────────────────────────────────────────
 function ServiceModal({ visible, service, salon, onClose, onSaved }) {
   const editing = !!service?._id;
+  const { theme } = useTheme();
   const [name, setName]           = useState('');
   const [description, setDescription] = useState('');
   const [basePrice, setBasePrice] = useState('');
@@ -154,22 +417,25 @@ function ServiceModal({ visible, service, salon, onClose, onSaved }) {
     }
   };
 
-  // Categories available based on salon's offeredCategories (or all if not set)
   const availableCategories = salon?.offeredCategories?.length > 0
     ? salon.offeredCategories.map(c => c.name)
     : CATEGORY_ORDER;
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={styles.modalContainer}>
-        <View style={styles.modalHeader}>
-          <Text style={styles.modalTitle}>{editing ? 'Edit Service' : 'Add Service'}</Text>
+      <View style={[styles.modalContainer, { backgroundColor: theme.card }]}>
+        <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
+          <Text style={[styles.modalTitle, { color: theme.text }]}>{editing ? 'Edit Service' : 'Add Service'}</Text>
           <TouchableOpacity onPress={onClose}>
-            <Ionicons name="close" size={24} color="#6b7280" />
+            <Ionicons name="close" size={24} color={theme.subText} />
           </TouchableOpacity>
         </View>
         <ScrollView style={styles.modalBody} keyboardShouldPersistTaps="handled">
-          {!!error && <View style={styles.errorBox}><Text style={styles.errorText}>{error}</Text></View>}
+          {!!error && (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
 
           {[
             { label: 'Service Name *', value: name, setter: setName, placeholder: 'e.g. Basic Haircut', keyboard: 'default' },
@@ -178,30 +444,53 @@ function ServiceModal({ visible, service, salon, onClose, onSaved }) {
             { label: 'Duration (minutes) *', value: duration, setter: setDuration, placeholder: '30', keyboard: 'numeric' },
           ].map((f) => (
             <View style={styles.field} key={f.label}>
-              <Text style={styles.label}>{f.label}</Text>
-              <TextInput style={styles.input} placeholder={f.placeholder} placeholderTextColor="#9ca3af" keyboardType={f.keyboard} value={f.value} onChangeText={f.setter} />
+              <Text style={[styles.fieldLabel, { color: theme.text }]}>{f.label}</Text>
+              <TextInput
+                style={[styles.fieldInput, { color: theme.text, borderColor: theme.border, backgroundColor: theme.bg }]}
+                placeholder={f.placeholder}
+                placeholderTextColor={theme.subText}
+                keyboardType={f.keyboard}
+                value={f.value}
+                onChangeText={f.setter}
+              />
             </View>
           ))}
 
           <View style={styles.field}>
-            <Text style={styles.label}>Category</Text>
+            <Text style={[styles.fieldLabel, { color: theme.text }]}>Category</Text>
             <View style={styles.chipsRow}>
               {availableCategories.map((c) => (
-                <TouchableOpacity key={c} style={[styles.chip, category === c && styles.chipActive]} onPress={() => setCategory(c)}>
-                  <Text style={styles.chipEmoji}>{CAT_ICON[c] || '✨'}</Text>
-                  <Text style={[styles.chipText, category === c && styles.chipTextActive]}>{c}</Text>
+                <TouchableOpacity
+                  key={c}
+                  style={[styles.catChip, { borderColor: theme.border, backgroundColor: theme.bg }, category === c && styles.catChipActive]}
+                  onPress={() => setCategory(c)}
+                >
+                  <Text style={styles.catChipEmoji}>{CAT_ICON[c] || '✨'}</Text>
+                  <Text style={[styles.catChipText, { color: theme.text }, category === c && styles.catChipTextActive]}>{c}</Text>
                 </TouchableOpacity>
               ))}
             </View>
           </View>
 
           <View style={styles.toggleRow}>
-            <Text style={styles.label}>Active</Text>
-            <Switch value={isActive} onValueChange={setIsActive} trackColor={{ false: '#d1d5db', true: '#60a5fa' }} thumbColor={isActive ? '#2563eb' : '#9ca3af'} />
+            <Text style={[styles.fieldLabel, { color: theme.text }]}>Active</Text>
+            <Switch
+              value={isActive}
+              onValueChange={setIsActive}
+              trackColor={{ false: '#d1d5db', true: '#6366f1' }}
+              thumbColor="#fff"
+            />
           </View>
 
-          <TouchableOpacity style={[styles.saveBtn, loading && { opacity: 0.7 }]} onPress={handleSave} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>{editing ? 'Save Changes' : 'Add Service'}</Text>}
+          <TouchableOpacity
+            style={[styles.saveBtn, loading && { opacity: 0.7 }]}
+            onPress={handleSave}
+            disabled={loading}
+          >
+            {loading
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={styles.saveBtnText}>{editing ? 'Save Changes' : 'Add Service'}</Text>
+            }
           </TouchableOpacity>
         </ScrollView>
       </View>
@@ -214,13 +503,16 @@ export default function ServicesScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const navigation = useNavigation();
-  const { salon, updateSalon } = useSalon();
+  const { salon } = useSalon();
+
   const [services, setServices]         = useState([]);
   const [loading, setLoading]           = useState(true);
   const [refreshing, setRefreshing]     = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingService, setEditingService] = useState(null);
   const [expandedCat, setExpandedCat]   = useState(null);
+  const [search, setSearch]             = useState('');
+  const [showMenuSection, setShowMenuSection] = useState(false);
 
   const fetchServices = useCallback(async () => {
     try {
@@ -237,232 +529,132 @@ export default function ServicesScreen() {
   const onRefresh = async () => { setRefreshing(true); await fetchServices(); setRefreshing(false); };
 
   const handleDelete = (service) => {
-    Alert.alert('Delete Service', `Delete "${service.name}"?`, [
+    Alert.alert('Delete Service', `Delete "${service.name}"?\nThis cannot be undone.`, [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Delete', style: 'destructive', onPress: async () => {
+        text: 'Delete Forever', style: 'destructive', onPress: async () => {
           try {
             await api.delete(`/owner/services/${service._id}`);
-            setServices((prev) => prev.filter((s) => s._id !== service._id));
-          } catch (err) { showError('Error', err.message || 'Something went wrong'); }
+            setServices(prev => prev.filter(s => s._id !== service._id));
+          } catch (err) {
+            Alert.alert('Error', err.message || 'Something went wrong');
+          }
         },
       },
     ]);
   };
 
-  const handleToggleActive = async (service) => {
+  const handleToggleActive = async (serviceId, isActive) => {
     try {
-      await api.put(`/owner/services/${service._id}`, { isActive: !service.isActive });
-      setServices((prev) => prev.map((s) => s._id === service._id ? { ...s, isActive: !s.isActive } : s));
-    } catch (err) { showError('Error', err.message || 'Something went wrong'); }
+      await api.put(`/owner/services/${serviceId}`, { isActive });
+      setServices(prev => prev.map(s => s._id === serviceId ? { ...s, isActive } : s));
+    } catch (err) {
+      Alert.alert('Error', err.message || 'Something went wrong');
+    }
   };
 
-  // ── Group services by category ────────────────────────────────
-  const grouped = services.reduce((acc, svc) => {
-    const cat = svc.category || 'Other';
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(svc);
-    return acc;
-  }, {});
+  // ── Derived data ──────────────────────────────────────────────
+  const activeCount   = services.filter(s => s.isActive !== false).length;
+  const inactiveCount = services.length - activeCount;
 
-  const sortedGroups = Object.entries(grouped).sort(([a], [b]) => {
-    const ai = CATEGORY_ORDER.indexOf(a), bi = CATEGORY_ORDER.indexOf(b);
-    if (ai === -1 && bi === -1) return a.localeCompare(b);
-    if (ai === -1) return 1; if (bi === -1) return -1;
-    return ai - bi;
-  });
+  const filteredServices = useMemo(() => {
+    if (!search.trim()) return services;
+    const q = search.toLowerCase();
+    return services.filter(s =>
+      s.name?.toLowerCase().includes(q) ||
+      s.category?.toLowerCase().includes(q)
+    );
+  }, [services, search]);
+
+  // Group by category
+  const grouped = useMemo(() => {
+    const g = filteredServices.reduce((acc, svc) => {
+      const cat = svc.category || 'Other';
+      if (!acc[cat]) acc[cat] = [];
+      acc[cat].push(svc);
+      return acc;
+    }, {});
+    return Object.entries(g).sort(([a], [b]) => {
+      const ai = CATEGORY_ORDER.indexOf(a), bi = CATEGORY_ORDER.indexOf(b);
+      if (ai === -1 && bi === -1) return a.localeCompare(b);
+      if (ai === -1) return 1; if (bi === -1) return -1;
+      return ai - bi;
+    });
+  }, [filteredServices]);
 
   const isUnisex = salon?.servedGender === 'unisex';
 
-  const renderServiceRow = (s) => (
-    <View key={s._id} style={[styles.serviceRow, { borderBottomColor: theme.border, backgroundColor: theme.card }]}>
-      <View style={{ flex: 1 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <Text style={[styles.serviceName, { color: theme.text }]}>{s.name}</Text>
-          <View style={[styles.badge, { backgroundColor: s.isActive ? '#dcfce7' : '#f3f4f6' }]}>
-            <Text style={[styles.badgeText, { color: s.isActive ? '#16a34a' : '#9ca3af' }]}>
-              {s.isActive ? 'Active' : 'Inactive'}
-            </Text>
-          </View>
-        </View>
-        {s.description ? <Text style={[styles.serviceDesc, { color: theme.subText }]} numberOfLines={1}>{s.description}</Text> : null}
-        <View style={styles.metaRow}>
-          <View style={styles.metaItem}>
-            <Ionicons name="cash-outline" size={12} color={theme.subText} />
-            <Text style={[styles.metaText, { color: theme.subText }]}>₹{s.basePrice}</Text>
-          </View>
-          <View style={styles.metaItem}>
-            <Ionicons name="time-outline" size={12} color={theme.subText} />
-            <Text style={[styles.metaText, { color: theme.subText }]}>{s.duration} min</Text>
-          </View>
-        </View>
-      </View>
-      <View style={styles.rowActions}>
-        <Switch
-          value={s.isActive !== false}
-          onValueChange={() => handleToggleActive(s)}
-          trackColor={{ false: '#d1d5db', true: '#60a5fa' }}
-          thumbColor={s.isActive !== false ? '#2563eb' : '#9ca3af'}
-          style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
-        />
-        <TouchableOpacity onPress={() => { setEditingService(s); setModalVisible(true); }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Ionicons name="create-outline" size={18} color="#2563eb" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleDelete(s)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Ionicons name="trash-outline" size={18} color="#dc2626" />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
   const renderAccordionGroup = ([cat, svcs]) => {
     const isOpen = expandedCat === cat;
+    const isMaleOnly   = MALE_ONLY_CATS.includes(cat);
+    const isFemaleOnly = FEMALE_ONLY_CATS.includes(cat);
+    const showSplit = isUnisex && !isMaleOnly && !isFemaleOnly;
 
-    // Gender split for unisex
-    const menSvcs   = isUnisex ? svcs.filter(s => classifySvc(s) === 'male')   : [];
-    const womenSvcs = isUnisex ? svcs.filter(s => classifySvc(s) === 'female') : [];
-    const bothSvcs  = isUnisex ? svcs.filter(s => classifySvc(s) === 'both')   : [];
+    const menSvcs   = showSplit ? svcs.filter(s => classifySvc(s) === 'male')   : [];
+    const womenSvcs = showSplit ? svcs.filter(s => classifySvc(s) === 'female') : [];
+    const bothSvcs  = showSplit ? svcs.filter(s => classifySvc(s) === 'both')   : [];
+
+    const renderCards = (list) => list.map(svc => (
+      <ServiceCard
+        key={svc._id}
+        service={svc}
+        theme={theme}
+        onEdit={s => { setEditingService(s); setModalVisible(true); }}
+        onDelete={handleDelete}
+        onToggle={handleToggleActive}
+      />
+    ));
 
     return (
-      <View key={cat} style={[styles.accordionCard, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
+      <View key={cat} style={[styles.accordionCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        {/* Category header */}
         <TouchableOpacity
           style={styles.accordionHeader}
           onPress={() => setExpandedCat(isOpen ? null : cat)}
           activeOpacity={0.7}
         >
-          <View style={[styles.catIconCircle, { backgroundColor: theme.bg }]}>
-            <Text style={styles.catEmoji}>{CAT_ICON[cat] || '✨'}</Text>
-          </View>
+          <Text style={styles.accordionEmoji}>{CAT_ICON[cat] || '✨'}</Text>
           <Text style={[styles.accordionTitle, { color: theme.text }]}>{cat}</Text>
-          <Text style={styles.accordionCount}>{svcs.length} service{svcs.length !== 1 ? 's' : ''}</Text>
+          {isUnisex && isMaleOnly   && <Text style={styles.genderTagM}>👨 Men</Text>}
+          {isUnisex && isFemaleOnly && <Text style={styles.genderTagF}>👩 Women</Text>}
+          <View style={[styles.countBadge, { backgroundColor: theme.bg }]}>
+            <Text style={[styles.countBadgeText, { color: theme.subText }]}>{svcs.length}</Text>
+          </View>
           <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={16} color={theme.subText} />
         </TouchableOpacity>
 
+        {/* Expanded services */}
         {isOpen && (
           <View style={[styles.accordionBody, { borderTopColor: theme.border }]}>
-            {!isUnisex ? (
-              svcs.map(renderServiceRow)
+            {!showSplit ? (
+              renderCards(svcs)
             ) : (
-              <>
-                {bothSvcs.length > 0 && bothSvcs.map(renderServiceRow)}
+              <View style={{ gap: 12 }}>
+                {bothSvcs.length > 0 && renderCards(bothSvcs)}
                 {menSvcs.length > 0 && (
-                  <>
-                    <View style={[styles.genderHeader, { backgroundColor: theme.bg }]}>
-                      <Text style={[styles.genderHeaderText, { color: theme.accent }]}>👨 Men</Text>
+                  <View>
+                    <View style={styles.genderSeparator}>
+                      <View style={[styles.genderLine, { backgroundColor: '#bfdbfe' }]} />
+                      <Text style={styles.genderSepTextM}>👨 Men</Text>
+                      <View style={[styles.genderLine, { backgroundColor: '#bfdbfe' }]} />
                     </View>
-                    {menSvcs.map(renderServiceRow)}
-                  </>
+                    {renderCards(menSvcs)}
+                  </View>
                 )}
                 {womenSvcs.length > 0 && (
-                  <>
-                    <View style={[styles.genderHeader, { backgroundColor: theme.bg }]}>
-                      <Text style={[styles.genderHeaderText, { color: '#be185d' }]}>👩 Women</Text>
+                  <View>
+                    <View style={styles.genderSeparator}>
+                      <View style={[styles.genderLine, { backgroundColor: '#fbcfe8' }]} />
+                      <Text style={styles.genderSepTextF}>👩 Women</Text>
+                      <View style={[styles.genderLine, { backgroundColor: '#fbcfe8' }]} />
                     </View>
-                    {womenSvcs.map(renderServiceRow)}
-                  </>
+                    {renderCards(womenSvcs)}
+                  </View>
                 )}
-              </>
+              </View>
             )}
           </View>
         )}
-      </View>
-    );
-  };
-
-  // ── Service Menu section (offeredCategories) ──────────────────
-  const renderServiceMenu = () => {
-    if (!salon?.offeredCategories?.length) return null;
-
-    const sortedCats = [...salon.offeredCategories].sort((a, b) => {
-      const ai = CATEGORY_ORDER.indexOf(a.name), bi = CATEGORY_ORDER.indexOf(b.name);
-      if (ai === -1 && bi === -1) return 0;
-      if (ai === -1) return 1; if (bi === -1) return -1;
-      return ai - bi;
-    });
-
-    return (
-      <View style={[styles.menuCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        <View style={styles.menuCardHeader}>
-          <Text style={[styles.menuCardTitle, { color: theme.text }]}>Service Menu</Text>
-          <View style={{ flexDirection: 'row', gap: 6 }}>
-            {salon.kidsHaircut && (
-              <View style={styles.optionBadge}>
-                <Text style={styles.optionBadgeText}>👶 Kids</Text>
-              </View>
-            )}
-            {salon.atHomeServices && (
-              <View style={[styles.optionBadge, { backgroundColor: '#dcfce7' }]}>
-                <Text style={[styles.optionBadgeText, { color: '#166534' }]}>🏠 At-Home</Text>
-              </View>
-            )}
-          </View>
-        </View>
-        <View style={styles.genderPickerRow}>
-          {[
-            { key: 'male',   label: '👨 Men' },
-            { key: 'female', label: '👩 Women' },
-            { key: 'unisex', label: '✨ Unisex' },
-          ].map(g => {
-            const active = (salon.servedGender || 'unisex') === g.key;
-            return (
-              <TouchableOpacity
-                key={g.key}
-                style={[styles.genderPill, { borderColor: active ? theme.accent : theme.border, backgroundColor: active ? theme.accent : theme.bg }]}
-                onPress={() => updateSalon({ servedGender: g.key })}
-              >
-                <Text style={[styles.genderPillText, { color: active ? '#fff' : theme.subText }]}>{g.label}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {sortedCats.map((cat, idx) => {
-          const subs = cat.subServices || [];
-          const isMaleOnlyCat   = MALE_ONLY_CATS.includes(cat.name);
-          const isFemaleOnlyCat = FEMALE_ONLY_CATS.includes(cat.name);
-          const showSplit = isUnisex && !isMaleOnlyCat && !isFemaleOnlyCat;
-
-          const menSubs   = showSplit ? subs.filter(s => classifySub(s, cat.name) === 'male')   : [];
-          const womenSubs = showSplit ? subs.filter(s => classifySub(s, cat.name) === 'female') : [];
-          const bothSubs  = showSplit ? subs.filter(s => classifySub(s, cat.name) === 'both')   : [];
-
-          return (
-            <View key={idx} style={[styles.menuCatCard, { borderColor: theme.border, backgroundColor: theme.bg }]}>
-              <Text style={[styles.menuCatTitle, { color: theme.text }]}>
-                {CAT_ICON[cat.name] || '✨'} {cat.name}
-                {isUnisex && isMaleOnlyCat   ? '  👨' : ''}
-                {isUnisex && isFemaleOnlyCat ? '  👩' : ''}
-              </Text>
-              {subs.length === 0 ? (
-                <Text style={[styles.noSubs, { color: theme.subText }]}>No sub-services selected</Text>
-              ) : showSplit ? (
-                <View style={{ gap: 8 }}>
-                  {bothSubs.length > 0 && (
-                    <View style={styles.subChipsRow}>
-                      {bothSubs.map((s, i) => <SubChip key={i} sub={s} />)}
-                    </View>
-                  )}
-                  {menSubs.length > 0 && (
-                    <View>
-                      <Text style={[styles.genderLabel_m, { color: theme.accent }]}>👨 Men</Text>
-                      <View style={styles.subChipsRow}>{menSubs.map((s, i) => <SubChip key={i} sub={s} />)}</View>
-                    </View>
-                  )}
-                  {womenSubs.length > 0 && (
-                    <View>
-                      <Text style={[styles.genderLabel_f, { color: '#be185d' }]}>👩 Women</Text>
-                      <View style={styles.subChipsRow}>{womenSubs.map((s, i) => <SubChip key={i} sub={s} />)}</View>
-                    </View>
-                  )}
-                </View>
-              ) : (
-                <View style={styles.subChipsRow}>
-                  {subs.map((s, i) => <SubChip key={i} sub={s} />)}
-                </View>
-              )}
-            </View>
-          );
-        })}
       </View>
     );
   };
@@ -471,46 +663,102 @@ export default function ServicesScreen() {
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: 14 + insets.top, backgroundColor: theme.card, borderBottomColor: theme.border }]}>
-        <View style={styles.headerTop}>
-          <DrawerMenuButton color={theme.text} />
-          <Text style={[styles.headerTitle, { color: theme.text }]}>Services</Text>
+        <View style={styles.headerRow}>
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="cut" size={14} color="#fff" />
+              </View>
+              <Text style={[styles.headerTitle, { color: theme.text }]}>Services</Text>
+            </View>
+            <Text style={[styles.headerSub, { color: theme.subText, marginTop: 1, marginLeft: 36 }]}>Manage your salon services and pricing</Text>
+          </View>
           <View style={{ flexDirection: 'row', gap: 8 }}>
-            <TouchableOpacity style={[styles.addBtn, { backgroundColor: theme.bg, borderColor: theme.border }]} onPress={() => navigation.navigate('ServiceMenu')}>
-              <Ionicons name="list-outline" size={16} color={theme.accent} />
-              <Text style={[styles.addBtnText, { color: theme.accent }]}>Menu</Text>
+            <TouchableOpacity
+              style={[styles.menuBtn, { borderColor: theme.border, backgroundColor: theme.bg }]}
+              onPress={() => navigation.navigate('ServiceMenu')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="list-outline" size={14} color={theme.text} />
+              <Text style={[styles.menuBtnText, { color: theme.text }]}>Service Menu</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.addBtn, { backgroundColor: theme.bg, borderColor: theme.border }]} onPress={() => { setEditingService(null); setModalVisible(true); }}>
-              <Ionicons name="add" size={18} color={theme.accent} />
-              <Text style={[styles.addBtnText, { color: theme.accent }]}>Add</Text>
+            <TouchableOpacity
+              style={styles.addBtn}
+              onPress={() => { setEditingService(null); setModalVisible(true); }}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="add" size={16} color="#fff" />
+              <Text style={styles.addBtnText}>Add Service</Text>
             </TouchableOpacity>
           </View>
         </View>
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 40 }} />
+        <ActivityIndicator size="large" color="#6366f1" style={{ marginTop: 40 }} />
       ) : (
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 16, paddingBottom: 32, gap: 12 }}
+          contentContainerStyle={{ paddingHorizontal: 14, paddingTop: 16, paddingBottom: 40, gap: 14 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           showsVerticalScrollIndicator={false}
         >
-          {/* Service Menu (offeredCategories) */}
-          {renderServiceMenu()}
+          {/* Stats bar */}
+          {services.length > 0 && (
+            <StatsBar total={services.length} active={activeCount} inactive={inactiveCount} theme={theme} />
+          )}
 
-          {/* Services grouped by category */}
-          {sortedGroups.length === 0 ? (
-            <View style={{ alignItems: 'center', paddingVertical: 48 }}>
-              <Ionicons name="cut-outline" size={48} color="#d1d5db" />
-              <Text style={{ color: '#9ca3af', marginTop: 8, fontSize: 14 }}>No services yet. Tap Add to create one.</Text>
+          {/* View offered service categories toggle */}
+          {salon?.offeredCategories?.length > 0 && (
+            <View style={{ gap: 10 }}>
+              <TouchableOpacity
+                style={styles.menuToggleBtn}
+                onPress={() => setShowMenuSection(v => !v)}
+                activeOpacity={0.7}
+              >
+                <Text style={{ fontSize: 12 }}>✨</Text>
+                <Text style={styles.menuToggleText}>
+                  {showMenuSection ? 'Hide' : 'View'} offered service categories
+                </Text>
+                <Ionicons name={showMenuSection ? 'chevron-up' : 'chevron-down'} size={13} color="#6366f1" />
+              </TouchableOpacity>
+              {showMenuSection && <ServiceMenuSection salon={salon} theme={theme} />}
+            </View>
+          )}
+
+          {/* Search bar */}
+          {services.length > 0 && (
+            <View style={[styles.searchBar, { backgroundColor: theme.card, borderColor: theme.border }]}>
+              <Ionicons name="search-outline" size={16} color={theme.subText} />
+              <TextInput
+                style={[styles.searchInput, { color: theme.text }]}
+                placeholder="Search services by name or category…"
+                placeholderTextColor={theme.subText}
+                value={search}
+                onChangeText={setSearch}
+              />
+              {!!search && (
+                <TouchableOpacity onPress={() => setSearch('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Ionicons name="close-circle" size={16} color={theme.subText} />
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
+          {/* Content */}
+          {services.length === 0 ? (
+            <EmptyState onAdd={() => { setEditingService(null); setModalVisible(true); }} theme={theme} />
+          ) : filteredServices.length === 0 ? (
+            <View style={styles.noResultsWrap}>
+              <Ionicons name="search-outline" size={40} color={theme.border} />
+              <Text style={[styles.noResultsText, { color: theme.subText }]}>No services match "{search}"</Text>
+              <TouchableOpacity onPress={() => setSearch('')}>
+                <Text style={styles.clearSearchText}>Clear search</Text>
+              </TouchableOpacity>
             </View>
           ) : (
-            <>
-              <Text style={[styles.sectionLabel, { color: theme.subText }]}>
-                {services.length} service{services.length !== 1 ? 's' : ''} in your salon
-              </Text>
-              {sortedGroups.map(renderAccordionGroup)}
-            </>
+            <View style={{ gap: 10 }}>
+              {grouped.map(renderAccordionGroup)}
+            </View>
           )}
         </ScrollView>
       )}
@@ -526,86 +774,118 @@ export default function ServicesScreen() {
   );
 }
 
-// ── Sub-service chip ────────────────────────────────────────────
-function SubChip({ sub }) {
-  const { theme } = useTheme();
-  const name  = typeof sub === 'string' ? sub : sub.name;
-  const price = typeof sub === 'object' ? sub.price : null;
-  return (
-    <View style={[styles.subChip, { backgroundColor: theme.bg, borderColor: theme.border }]}>
-      <Text style={[styles.subChipText, { color: theme.subText }]}>{name}</Text>
-      {price > 0 && <Text style={[styles.subChipPrice, { color: theme.accent }]}>₹{price}</Text>}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1 },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  headerTitle: { fontSize: 20, fontWeight: '800' },
-  addBtn: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, gap: 4 },
-  addBtnText: { fontSize: 13, fontWeight: '600' },
+  // Header
+  header: { paddingHorizontal: 14, paddingBottom: 14, borderBottomWidth: 1 },
+  headerRow: { flexDirection: 'row', alignItems: 'center' },
+  headerTitle: { fontSize: 18, fontWeight: '800' },
+  headerSub: { fontSize: 11, marginTop: 1 },
+  menuBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10 },
+  menuBtnText: { fontSize: 12, fontWeight: '600' },
+  addBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: '#6366f1' },
+  addBtnText: { fontSize: 12, fontWeight: '700', color: '#fff' },
 
-  // Service Menu
-  menuCard: { borderRadius: 14, padding: 14, borderWidth: 1, gap: 10 },
-  menuCardTitle: { fontSize: 15, fontWeight: '700' },
-  menuCardSub: { fontSize: 12, marginTop: 2, textTransform: 'capitalize' },
-  optionBadge: { backgroundColor: '#fef9c3', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
-  optionBadgeText: { fontSize: 11, fontWeight: '600', color: '#854d0e' },
-  menuCardHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  genderPickerRow: { flexDirection: 'row', gap: 6, marginTop: 10 },
-  genderPill: { flex: 1, alignItems: 'center', paddingVertical: 6, borderRadius: 8, borderWidth: 1 },
-  genderPillText: { fontSize: 12, fontWeight: '600' },
-  menuCatCard: { borderWidth: 1, borderRadius: 10, padding: 10, gap: 6 },
-  menuCatTitle: { fontSize: 13, fontWeight: '600', marginBottom: 4 },
-  noSubs: { fontSize: 12 },
-  subChipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
-  subChip: { flexDirection: 'row', alignItems: 'center', gap: 3, borderWidth: 1, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
+  // Stats bar
+  statsRow: { flexDirection: 'row', gap: 10 },
+  statCard: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 14, padding: 12, borderWidth: 1 },
+  statIconCircle: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  statValue: { fontSize: 17, fontWeight: '800', lineHeight: 20 },
+  statLabel: { fontSize: 10, fontWeight: '500', marginTop: 1 },
+
+  // Menu toggle
+  menuToggleBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  menuToggleText: { fontSize: 12, fontWeight: '600', color: '#6366f1', flex: 1 },
+
+  // Menu section card
+  menuSectionCard: { borderRadius: 14, borderWidth: 1, overflow: 'hidden' },
+  menuSectionHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1 },
+  menuSectionTitle: { fontSize: 13, fontWeight: '700' },
+  menuSectionSub: { fontSize: 11, marginTop: 2 },
+  optBadge: { backgroundColor: '#fef9c3', borderWidth: 1, borderColor: '#fde68a', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
+  optBadgeText: { fontSize: 11, fontWeight: '600', color: '#854d0e' },
+  divider: { height: 1 },
+  menuCatRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 12 },
+  menuCatEmoji: { fontSize: 15 },
+  menuCatName: { flex: 1, fontSize: 13, fontWeight: '600' },
+  menuCatCount: { fontSize: 12, fontWeight: '500' },
+  menuCatBody: { paddingHorizontal: 14, paddingVertical: 10 },
+  noSubsText: { fontSize: 12 },
+  subChipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
+  subChip: { flexDirection: 'row', alignItems: 'center', gap: 3, borderWidth: 1, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4 },
   subChipText: { fontSize: 11 },
-  subChipPrice: { fontSize: 11, fontWeight: '600' },
-  genderLabel_m: { fontSize: 11, fontWeight: '700', marginBottom: 4 },
-  genderLabel_f: { fontSize: 11, fontWeight: '700', marginBottom: 4 },
+  subChipPrice: { fontSize: 11, fontWeight: '700' },
+  gTagM: { fontSize: 11, fontWeight: '700', color: '#3b82f6', marginBottom: 5 },
+  gTagF: { fontSize: 11, fontWeight: '700', color: '#be185d', marginBottom: 5 },
+  genderTagM: { fontSize: 11, fontWeight: '600', color: '#3b82f6' },
+  genderTagF: { fontSize: 11, fontWeight: '600', color: '#be185d' },
+
+  // Search bar
+  searchBar: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 10 },
+  searchInput: { flex: 1, fontSize: 13, padding: 0 },
 
   // Accordion
-  sectionLabel: { fontSize: 12, fontWeight: '600', marginLeft: 2 },
-  accordionCard: { borderRadius: 12, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
-  accordionHeader: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
-  catIconCircle: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  catEmoji: { fontSize: 18 },
+  accordionCard: { borderRadius: 14, borderWidth: 1, overflow: 'hidden' },
+  accordionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 14 },
+  accordionEmoji: { fontSize: 18 },
   accordionTitle: { flex: 1, fontSize: 14, fontWeight: '700' },
-  accordionCount: { fontSize: 11, color: '#9ca3af' },
-  accordionBody: { borderTopWidth: 1 },
-  genderHeader: { paddingHorizontal: 14, paddingVertical: 6 },
-  genderHeaderText: { fontSize: 12, fontWeight: '700' },
+  countBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999 },
+  countBadgeText: { fontSize: 11, fontWeight: '600' },
+  accordionBody: { borderTopWidth: 1, padding: 12, gap: 10 },
 
-  // Service row
-  serviceRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1, gap: 8 },
-  serviceName: { fontSize: 14, fontWeight: '600' },
-  serviceDesc: { fontSize: 12, marginTop: 2 },
-  metaRow: { flexDirection: 'row', gap: 10, marginTop: 4 },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  metaText: { fontSize: 11 },
-  badge: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999 },
-  badgeText: { fontSize: 10, fontWeight: '600' },
-  rowActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  // Gender separator
+  genderSeparator: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  genderLine: { flex: 1, height: 1 },
+  genderSepTextM: { fontSize: 11, fontWeight: '700', color: '#3b82f6' },
+  genderSepTextF: { fontSize: 11, fontWeight: '700', color: '#be185d' },
+
+  // Service card
+  serviceCard: { borderRadius: 14, borderWidth: 1, padding: 14, gap: 10 },
+  serviceCardTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
+  serviceCardName: { fontSize: 14, fontWeight: '700' },
+  inactiveBadge: { backgroundColor: '#f3f4f6', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999 },
+  inactiveBadgeText: { fontSize: 10, fontWeight: '600', color: '#9ca3af' },
+  categoryRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 3 },
+  categoryText: { fontSize: 11, fontWeight: '600', color: '#6366f1' },
+  serviceCardMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  priceRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  priceText: { fontSize: 16, fontWeight: '800', color: '#16a34a' },
+  metaDivider: { width: 1, height: 12, backgroundColor: '#e5e7eb' },
+  durationRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  durationText: { fontSize: 12 },
+  serviceCardActions: { flexDirection: 'row', gap: 8, borderTopWidth: 1, paddingTop: 10 },
+  actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderWidth: 1, borderRadius: 10, paddingVertical: 7 },
+  actionBtnText: { fontSize: 12, fontWeight: '600' },
+
+  // Empty state
+  emptyCard: { borderRadius: 14, borderWidth: 1, alignItems: 'center', paddingVertical: 48, paddingHorizontal: 24 },
+  emptyIconWrap: { width: 72, height: 72, borderRadius: 20, backgroundColor: '#eef2ff', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  emptyTitle: { fontSize: 18, fontWeight: '800', marginBottom: 8, textAlign: 'center' },
+  emptyDesc: { fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
+  emptyBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#6366f1', paddingHorizontal: 22, paddingVertical: 12, borderRadius: 12 },
+  emptyBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+
+  // No results
+  noResultsWrap: { alignItems: 'center', paddingVertical: 48, gap: 8 },
+  noResultsText: { fontSize: 14, fontWeight: '500' },
+  clearSearchText: { fontSize: 13, color: '#6366f1', fontWeight: '500' },
 
   // Modal
-  modalContainer: { flex: 1, backgroundColor: '#fff' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
+  modalContainer: { flex: 1 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1 },
+  modalTitle: { fontSize: 18, fontWeight: '700' },
   modalBody: { flex: 1, padding: 16 },
-  errorBox: { backgroundColor: '#fee2e2', borderRadius: 8, padding: 12, marginBottom: 12 },
+  errorBox: { backgroundColor: '#fee2e2', borderRadius: 10, padding: 12, marginBottom: 14 },
   errorText: { color: '#dc2626', fontSize: 13 },
   field: { marginBottom: 16 },
-  label: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 6 },
-  input: { borderWidth: 1.5, borderColor: '#d1d5db', borderRadius: 10, paddingHorizontal: 12, height: 44, fontSize: 14, color: '#111827' },
+  fieldLabel: { fontSize: 13, fontWeight: '600', marginBottom: 6 },
+  fieldInput: { borderWidth: 1.5, borderRadius: 10, paddingHorizontal: 12, height: 46, fontSize: 14 },
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: '#e5e7eb', backgroundColor: '#f9fafb' },
-  chipEmoji: { fontSize: 13 },
-  chipActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
-  chipText: { fontSize: 12, color: '#374151' },
-  chipTextActive: { color: '#fff', fontWeight: '600' },
+  catChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 999, borderWidth: 1 },
+  catChipEmoji: { fontSize: 13 },
+  catChipActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
+  catChipText: { fontSize: 12 },
+  catChipTextActive: { color: '#fff', fontWeight: '700' },
   toggleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  saveBtn: { backgroundColor: '#2563eb', borderRadius: 12, height: 50, alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
+  saveBtn: { backgroundColor: '#6366f1', borderRadius: 12, height: 52, alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
   saveBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 });

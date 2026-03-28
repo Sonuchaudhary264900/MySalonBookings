@@ -301,8 +301,8 @@ img.src=${qrApiUrl};
             {user?.profilePhoto ? (
               <Image source={{ uri: user.profilePhoto }} style={styles.avatarImg} />
             ) : (
-              <View style={[styles.avatarCircle, { backgroundColor: '#dbeafe' }]}>
-                <Ionicons name="person" size={28} color="#2563eb" />
+              <View style={[styles.avatarCircle, { backgroundColor: '#e0e7ff' }]}>
+                <Ionicons name="person" size={28} color="#6366f1" />
               </View>
             )}
             <View style={styles.cameraBtn}>
@@ -327,7 +327,7 @@ img.src=${qrApiUrl};
         {/* Section 1: My Profile */}
         <Section
           id="profile" activeSection={activeSection} setActiveSection={setActiveSection}
-          icon="person-outline" iconBg="#dbeafe" iconColor="#2563eb"
+          icon="person-outline" iconBg="#e0e7ff" iconColor="#6366f1"
           title="My Profile" subtitle="Name, email and phone number"
         >
           {!editing ? (
@@ -389,7 +389,7 @@ img.src=${qrApiUrl};
                         flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
                         paddingVertical: 8, borderRadius: 8, borderWidth: 1.5,
                         borderColor: profileForm.gender === opt.value ? '#3b82f6' : theme.border,
-                        backgroundColor: profileForm.gender === opt.value ? '#eff6ff' : theme.bg,
+                        backgroundColor: profileForm.gender === opt.value ? '#eef2ff' : theme.bg,
                         gap: 4,
                       }}
                     >
@@ -548,13 +548,13 @@ img.src=${qrApiUrl};
             </View>
 
             <View style={styles.qrSalonBadge}>
-              <Ionicons name="business-outline" size={14} color="#2563eb" />
+              <Ionicons name="business-outline" size={14} color="#6366f1" />
               <Text style={styles.qrSalonName}>{salon?.name}</Text>
             </View>
             <Text style={styles.qrHint}>Print or display this QR code at your salon</Text>
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 14, width: '100%' }}>
               <TouchableOpacity
-                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 11, backgroundColor: '#2563eb', borderRadius: 12 }}
+                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 11, backgroundColor: '#6366f1', borderRadius: 12 }}
                 onPress={() => { setShowQR(false); setCapturing(true); }}
               >
                 <Ionicons name="image-outline" size={15} color="#fff" />
@@ -661,7 +661,7 @@ const styles = StyleSheet.create({
   qrTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
   qrSub: { fontSize: 13, color: '#6b7280', marginBottom: 20, textAlign: 'center' },
   qrCodeWrap: { padding: 16, backgroundColor: '#fff', borderRadius: 16, borderWidth: 1.5, borderColor: '#e5e7eb', marginBottom: 16 },
-  qrSalonBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#dbeafe', paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, marginBottom: 10 },
-  qrSalonName: { fontSize: 14, fontWeight: '700', color: '#2563eb' },
+  qrSalonBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#e0e7ff', paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, marginBottom: 10 },
+  qrSalonName: { fontSize: 14, fontWeight: '700', color: '#6366f1' },
   qrHint: { fontSize: 12, color: '#9ca3af', textAlign: 'center' },
 });

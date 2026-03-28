@@ -1,3 +1,11 @@
+// WeakRef polyfill for Hermes versions that don't support it (used by React Navigation)
+if (typeof WeakRef === 'undefined') {
+  global.WeakRef = class WeakRef {
+    constructor(target) { this._target = target; }
+    deref() { return this._target; }
+  };
+}
+
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import React, { useState, useEffect } from 'react';
@@ -49,19 +57,33 @@ const AuthStack  = createNativeStackNavigator();
 const Drawer     = createDrawerNavigator();
 const Tab        = createMaterialTopTabNavigator();
 
-// ── Nav items matching the website sidebar ────────────────────────
-const NAV_ITEMS = [
-  { name: 'Bookings',      labelKey: 'navBookings',      icon: 'calendar-outline',       iconFocused: 'calendar' },
-  { name: 'Services',      labelKey: 'navServices',      icon: 'cut-outline',            iconFocused: 'cut' },
-  { name: 'Customers',     labelKey: 'navCustomers',     icon: 'people-outline',         iconFocused: 'people' },
-  { name: 'Calendar',      labelKey: 'navCalendar',      icon: 'calendar-clear-outline', iconFocused: 'calendar-clear' },
-  { name: 'WorkingHours',  labelKey: 'navWorkingHours',  icon: 'time-outline',           iconFocused: 'time' },
-  { name: 'WalkIn',        labelKey: 'navWalkIn',        icon: 'walk-outline',           iconFocused: 'walk' },
-  { name: 'Gallery',       labelKey: 'navGallery',       icon: 'images-outline',         iconFocused: 'images' },
-  { name: 'Coupons',       labelKey: 'navCoupons',       icon: 'pricetag-outline',       iconFocused: 'pricetag' },
-  { name: 'Billing',       labelKey: 'navBilling',       icon: 'card-outline',           iconFocused: 'card' },
-  { name: 'Reviews',       labelKey: 'navReviews',       icon: 'star-outline',           iconFocused: 'star' },
-  { name: 'Notifications', labelKey: 'navNotifications', icon: 'notifications-outline',  iconFocused: 'notifications' },
+// ── Nav sections matching the website sidebar ─────────────────────
+const NAV_SECTIONS = [
+  {
+    label: 'Main',
+    items: [
+      { name: 'Home',      label: 'Dashboard',  icon: 'grid-outline',      iconFocused: 'grid' },
+      { name: 'Bookings',  label: 'Bookings',   icon: 'calendar-outline',  iconFocused: 'calendar' },
+      { name: 'Services',  label: 'Services',   icon: 'cut-outline',       iconFocused: 'cut' },
+      { name: 'Customers', label: 'Customers',  icon: 'people-outline',    iconFocused: 'people' },
+      { name: 'Reports',   label: 'Analytics',  icon: 'bar-chart-outline', iconFocused: 'bar-chart' },
+    ],
+  },
+  {
+    label: 'Content',
+    items: [
+      { name: 'Gallery',  label: 'Gallery',  icon: 'images-outline',   iconFocused: 'images' },
+      { name: 'Coupons',  label: 'Coupons',  icon: 'pricetag-outline', iconFocused: 'pricetag' },
+      { name: 'Reviews',  label: 'Reviews',  icon: 'star-outline',     iconFocused: 'star' },
+    ],
+  },
+  {
+    label: 'Account',
+    items: [
+      { name: 'Billing',  label: 'Billing & Plan', icon: 'card-outline',     iconFocused: 'card' },
+      { name: 'Settings', label: 'Settings',        icon: 'settings-outline', iconFocused: 'settings' },
+    ],
+  },
 ];
 
 // ── Custom Drawer Content ─────────────────────────────────────────
@@ -73,6 +95,8 @@ function CustomDrawer(props) {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
   const dStyles = getDStyles(theme, isDark);
+
+  const ACTIVE_COLOR = isDark ? '#818cf8' : '#4f46e5';
 
   // Get current active screen name (tab or direct drawer screen)
   const activeTab = useNavigationState(state => {
@@ -101,13 +125,15 @@ function CustomDrawer(props) {
       {/* Brand header */}
       <View style={dStyles.brand}>
         <View style={dStyles.brandIcon}>
-          <Text style={dStyles.brandIconText}>✂</Text>
+          <Ionicons name="storefront-outline" size={17} color="#fff" />
         </View>
         <View>
           <Text style={dStyles.brandName}>My Salon Bookings</Text>
           <Text style={dStyles.brandSub}>Owner Panel</Text>
         </View>
       </View>
+
+      <View style={dStyles.divider} />
 
       {/* User card */}
       <View style={dStyles.userCard}>
@@ -126,42 +152,47 @@ function CustomDrawer(props) {
 
       <View style={dStyles.divider} />
 
-      {/* Nav items */}
+      {/* Nav sections */}
       <View style={dStyles.nav}>
-        {NAV_ITEMS.map((item) => {
-          const focused = activeTab === item.name;
-          const badge = item.name === 'Notifications' ? unreadCount : 0;
-          return (
-            <TouchableOpacity
-              key={item.name}
-              style={[dStyles.navItem, focused && dStyles.navItemActive]}
-              onPress={() => {
-                if (TAB_SCREENS.includes(item.name)) {
-                  props.navigation.navigate('MainTabs', { screen: item.name });
-                } else {
-                  props.navigation.navigate(item.name);
-                }
-                props.navigation.closeDrawer();
-              }}
-              activeOpacity={0.8}
-            >
-              <Ionicons
-                name={focused ? item.iconFocused : item.icon}
-                size={20}
-                color={focused ? '#fff' : theme.subText}
-              />
-              <Text style={[dStyles.navLabel, focused && dStyles.navLabelActive]}>
-                {t(item.labelKey)}
-              </Text>
-              {badge > 0 && (
-                <View style={dStyles.badge}>
-                  <Text style={dStyles.badgeText}>{badge > 9 ? '9+' : badge}</Text>
-                </View>
-              )}
-              {focused && <Ionicons name="chevron-forward" size={14} color="#fff" style={{ marginLeft: 'auto' }} />}
-            </TouchableOpacity>
-          );
-        })}
+        {NAV_SECTIONS.map((section) => (
+          <View key={section.label} style={dStyles.section}>
+            <Text style={dStyles.sectionLabel}>{section.label.toUpperCase()}</Text>
+            {section.items.map((item) => {
+              const focused = activeTab === item.name;
+              const badge = item.badge ? unreadCount : 0;
+              return (
+                <TouchableOpacity
+                  key={item.name}
+                  style={[dStyles.navItem, focused && dStyles.navItemActive]}
+                  onPress={() => {
+                    if (TAB_SCREENS.includes(item.name)) {
+                      props.navigation.navigate('MainTabs', { screen: item.name });
+                    } else {
+                      props.navigation.navigate(item.name);
+                    }
+                    props.navigation.closeDrawer();
+                  }}
+                  activeOpacity={0.8}
+                >
+                  {focused && <View style={dStyles.activeBar} />}
+                  <Ionicons
+                    name={focused ? item.iconFocused : item.icon}
+                    size={18}
+                    color={focused ? ACTIVE_COLOR : theme.subText}
+                  />
+                  <Text style={[dStyles.navLabel, focused && dStyles.navLabelActive]}>
+                    {item.label}
+                  </Text>
+                  {badge > 0 && (
+                    <View style={dStyles.badge}>
+                      <Text style={dStyles.badgeText}>{badge > 9 ? '9+' : badge}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ))}
       </View>
 
       {/* Logout at bottom */}
@@ -210,7 +241,7 @@ function MainTabs() {
           shadowOpacity: 0.3,
           shadowRadius: 8,
         },
-        tabBarActiveTintColor: isDark ? '#ffffff' : theme.accent,
+        tabBarActiveTintColor: theme.accent,
         tabBarInactiveTintColor: theme.subText,
         tabBarIndicatorStyle: {
           top: 0,
@@ -247,9 +278,9 @@ function MainDrawer() {
       drawerContent={(props) => <CustomDrawer {...props} />}
       screenOptions={{
         headerShown: false,
-        drawerPosition: 'right',
+        drawerPosition: 'left',
         drawerType: 'front',
-        drawerStyle: { width: 260, backgroundColor: theme.card },
+        drawerStyle: { width: 256, backgroundColor: theme.card },
         overlayColor: 'rgba(0,0,0,0.5)',
         swipeEnabled: false,
       }}
@@ -297,7 +328,7 @@ function RootNavigator() {
         <View style={rootStyles.splashBottom}>
           <Text style={rootStyles.splashTitle}>My Salon Bookings</Text>
           <Text style={rootStyles.splashSubtitle}>Manage your salon, bookings{'\n'}and grow your business</Text>
-          <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 8 }} />
+          <ActivityIndicator size="large" color="#6366f1" style={{ marginTop: 8 }} />
         </View>
       </View>
     );
@@ -363,7 +394,7 @@ function BookingAlertModal() {
 
           <ScrollView contentContainerStyle={alertStyles.body}>
             <View style={alertStyles.row}>
-              <Ionicons name="person-circle-outline" size={40} color="#2563eb" />
+              <Ionicons name="person-circle-outline" size={40} color="#6366f1" />
               <View style={{ flex: 1, marginLeft: 12 }}>
                 <Text style={alertStyles.customerName}>{b.customerName || 'Customer'}</Text>
                 {b.customerPhone ? (
@@ -496,29 +527,31 @@ const rootStyles = StyleSheet.create({
 });
 
 // ── Drawer styles — theme-aware ────────────────────────────────────
-const getDStyles = (theme) => StyleSheet.create({
+const getDStyles = (theme, isDark) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.card },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: theme.border },
-  brandIcon: { width: 38, height: 38, borderRadius: 10, backgroundColor: '#2563eb', alignItems: 'center', justifyContent: 'center' },
-  brandIconText: { fontSize: 18, color: '#fff' },
-  brandName: { fontSize: 15, fontWeight: '800', color: theme.text },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 16 },
+  brandIcon: { width: 34, height: 34, borderRadius: 10, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' },
+  brandName: { fontSize: 14, fontWeight: '800', color: theme.text },
   brandSub: { fontSize: 11, color: theme.subText, marginTop: 1 },
-  userCard: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 14 },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center' },
-  avatarImg: { width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: theme.border },
-  avatarInitial: { fontSize: 17, fontWeight: '800', color: '#fff' },
-  userName: { fontSize: 14, fontWeight: '700', color: theme.text },
+  userCard: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 12 },
+  avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' },
+  avatarImg: { width: 38, height: 38, borderRadius: 19, borderWidth: 1.5, borderColor: theme.border },
+  avatarInitial: { fontSize: 16, fontWeight: '800', color: '#fff' },
+  userName: { fontSize: 13, fontWeight: '700', color: theme.text },
   salonName: { fontSize: 11, color: theme.subText, marginTop: 1 },
-  divider: { height: 1, backgroundColor: theme.border, marginHorizontal: 0 },
-  nav: { paddingHorizontal: 12, paddingVertical: 8 },
-  navItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingVertical: 13, borderRadius: 8, marginBottom: 2 },
-  navItemActive: { backgroundColor: '#2563eb' },
-  navLabel: { flex: 1, fontSize: 14, fontWeight: '500', color: theme.subText },
-  navLabelActive: { color: '#fff', fontWeight: '600' },
-  badge: { backgroundColor: '#ef4444', borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
+  divider: { height: 1, backgroundColor: theme.border },
+  nav: { paddingHorizontal: 8, paddingVertical: 4 },
+  section: { marginBottom: 2 },
+  sectionLabel: { fontSize: 10, fontWeight: '700', color: theme.subText, letterSpacing: 1.2, paddingHorizontal: 8, paddingTop: 12, paddingBottom: 4 },
+  navItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 10, paddingVertical: 10, borderRadius: 10, marginBottom: 1, overflow: 'hidden' },
+  navItemActive: { backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff' },
+  activeBar: { position: 'absolute', left: 0, top: '50%', marginTop: -10, width: 3, height: 20, backgroundColor: isDark ? '#818cf8' : '#4f46e5', borderTopRightRadius: 2, borderBottomRightRadius: 2 },
+  navLabel: { flex: 1, fontSize: 13, fontWeight: '500', color: theme.subText },
+  navLabelActive: { color: isDark ? '#818cf8' : '#4f46e5', fontWeight: '600' },
+  badge: { backgroundColor: '#ef4444', borderRadius: 10, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
   badgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
   footer: { paddingHorizontal: 16 },
   logoutBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 14 },
   logoutText: { fontSize: 14, fontWeight: '600', color: '#f87171' },
-  version: { fontSize: 11, color: theme.subText, paddingBottom: 4 },
+  version: { fontSize: 10, color: theme.subText, paddingBottom: 4 },
 });

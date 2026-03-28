@@ -12,10 +12,15 @@ import { showSuccess, showError } from '../../utils/toast';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-const HOURS = Array.from({ length: 24 }, (_, i) => {
-  const h = i % 12 === 0 ? 12 : i % 12;
-  const ampm = i < 12 ? 'AM' : 'PM';
-  return { label: `${h}:00 ${ampm}`, value: `${String(i).padStart(2, '0')}:00` };
+const HOURS = Array.from({ length: 48 }, (_, i) => {
+  const totalMin = i * 30;
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  const ampm = h < 12 ? 'AM' : 'PM';
+  const label = `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+  const value = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  return { label, value };
 });
 
 const DEFAULT_HOURS = DAYS.map((day) => ({
@@ -118,7 +123,7 @@ export default function WorkingHoursScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 60 }} />
+        <ActivityIndicator size="large" color="#6366f1" style={{ marginTop: 60 }} />
       ) : (
         <>
           <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
@@ -133,8 +138,8 @@ export default function WorkingHoursScreen() {
                     <Switch
                       value={item.isOpen}
                       onValueChange={() => toggleDay(index)}
-                      trackColor={{ false: '#d1d5db', true: '#bfdbfe' }}
-                      thumbColor={item.isOpen ? '#2563eb' : '#9ca3af'}
+                      trackColor={{ false: '#d1d5db', true: '#c7d2fe' }}
+                      thumbColor={item.isOpen ? '#6366f1' : '#9ca3af'}
                     />
                   </View>
                 </View>
@@ -145,7 +150,7 @@ export default function WorkingHoursScreen() {
                       style={[styles.timeBtn, { borderColor: theme.border || '#e5e7eb' }]}
                       onPress={() => setPicker({ dayIndex: index, field: 'openTime' })}
                     >
-                      <Ionicons name="time-outline" size={14} color="#2563eb" />
+                      <Ionicons name="time-outline" size={14} color="#6366f1" />
                       <Text style={[styles.timeBtnText, { color: theme.text }]}>
                         {HOURS.find(h => h.value === item.openTime)?.label || item.openTime}
                       </Text>
@@ -155,7 +160,7 @@ export default function WorkingHoursScreen() {
                       style={[styles.timeBtn, { borderColor: theme.border || '#e5e7eb' }]}
                       onPress={() => setPicker({ dayIndex: index, field: 'closeTime' })}
                     >
-                      <Ionicons name="time-outline" size={14} color="#2563eb" />
+                      <Ionicons name="time-outline" size={14} color="#6366f1" />
                       <Text style={[styles.timeBtnText, { color: theme.text }]}>
                         {HOURS.find(h => h.value === item.closeTime)?.label || item.closeTime}
                       </Text>
@@ -188,10 +193,10 @@ export default function WorkingHoursScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { backgroundColor: '#2563eb', paddingHorizontal: 16, paddingBottom: 14 },
+  header: { backgroundColor: '#6366f1', paddingHorizontal: 16, paddingBottom: 14 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  headerSub: { fontSize: 13, color: '#bfdbfe', marginTop: 2 },
+  headerSub: { fontSize: 13, color: '#c7d2fe', marginTop: 2 },
   card: { borderRadius: 12, padding: 14, marginBottom: 10, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4 },
   dayRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   dayName: { fontSize: 15, fontWeight: '700' },
@@ -202,13 +207,13 @@ const styles = StyleSheet.create({
   timeBtnText: { fontSize: 13, fontWeight: '600' },
   toText: { fontSize: 13, fontWeight: '500' },
   footer: { borderTopWidth: 1, paddingHorizontal: 16, paddingTop: 12 },
-  saveBtn: { backgroundColor: '#2563eb', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+  saveBtn: { backgroundColor: '#6366f1', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
   saveBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
   timePickerBox: { width: 260, borderRadius: 14, padding: 16, elevation: 10 },
   timePickerTitle: { fontSize: 16, fontWeight: '700', marginBottom: 12, textAlign: 'center' },
   timeOption: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, marginBottom: 4 },
-  timeOptionActive: { backgroundColor: '#2563eb' },
+  timeOptionActive: { backgroundColor: '#6366f1' },
   timeOptionText: { fontSize: 14, fontWeight: '500' },
   timeOptionTextActive: { color: '#fff', fontWeight: '700' },
 });

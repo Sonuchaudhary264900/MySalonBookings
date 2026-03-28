@@ -142,7 +142,7 @@ function WalkInModal({ visible, onClose, salonId, services, onSuccess }) {
             <View style={mStyles.field}>
               <Text style={mStyles.label}>Time Slot {selectedService && <Text style={{ color: '#9ca3af', fontWeight: '400' }}>({selectedService.duration} min)</Text>}</Text>
               {slotsLoading ? (
-                <ActivityIndicator size="small" color="#2563eb" style={{ marginVertical: 8 }} />
+                <ActivityIndicator size="small" color="#6366f1" style={{ marginVertical: 8 }} />
               ) : closedDay ? (
                 <Text style={{ color: '#d97706', fontSize: 13 }}>Salon is closed on this day.</Text>
               ) : slots.length === 0 ? (
@@ -164,7 +164,7 @@ function WalkInModal({ visible, onClose, salonId, services, onSuccess }) {
                         disabled={past || blocked}
                       >
                         <Text style={[mStyles.slotText, selected && { color: '#fff' }, (past || blocked) && { color: '#9ca3af' }]}>{s}</Text>
-                        <Text style={[mStyles.slotEnd, selected && { color: '#bfdbfe' }, (past || blocked) && { color: '#c4c9d2' }]}>–{endTime}</Text>
+                        <Text style={[mStyles.slotEnd, selected && { color: '#c7d2fe' }, (past || blocked) && { color: '#c4c9d2' }]}>–{endTime}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -179,9 +179,9 @@ function WalkInModal({ visible, onClose, salonId, services, onSuccess }) {
               <View style={mStyles.summaryRow}><Text style={mStyles.summaryKey}>Customer</Text><Text style={mStyles.summaryVal}>{name || '—'}</Text></View>
               <View style={mStyles.summaryRow}><Text style={mStyles.summaryKey}>Service</Text><Text style={mStyles.summaryVal}>{selectedService.name}</Text></View>
               <View style={mStyles.summaryRow}><Text style={mStyles.summaryKey}>Slot</Text><Text style={mStyles.summaryVal}>{slot}</Text></View>
-              <View style={[mStyles.summaryRow, { borderTopWidth: 1, borderTopColor: '#bfdbfe', paddingTop: 8, marginTop: 4 }]}>
+              <View style={[mStyles.summaryRow, { borderTopWidth: 1, borderTopColor: '#c7d2fe', paddingTop: 8, marginTop: 4 }]}>
                 <Text style={[mStyles.summaryKey, { fontWeight: '700' }]}>Total</Text>
-                <Text style={[mStyles.summaryVal, { fontWeight: '800', color: '#1e40af' }]}>₹{selectedService.basePrice}</Text>
+                <Text style={[mStyles.summaryVal, { fontWeight: '800', color: '#4338ca' }]}>₹{selectedService.basePrice}</Text>
               </View>
             </View>
           )}
@@ -320,6 +320,7 @@ export default function BookingsScreen() {
     try {
       await api.put(`/owner/bookings/${bookingId}`, { status: newStatus });
       setBookings((prev) => prev.map((b) => b._id === bookingId ? { ...b, status: newStatus } : b));
+      setAllBookings((prev) => prev.map((b) => b._id === bookingId ? { ...b, status: newStatus } : b));
     } catch (err) {
       showError('Error', err.message || 'Something went wrong');
     } finally {
@@ -376,7 +377,8 @@ export default function BookingsScreen() {
   };
 
   const createWalkIn = async (data) => {
-    await api.post('/owner/bookings/walk-in', data);
+    await api.post('/owner/bookings', data);
+    showSuccess('Booked', 'Walk-in booking created!');
     await fetchBookings(selectedDate);
   };
 
@@ -384,10 +386,13 @@ export default function BookingsScreen() {
     const d = new Date(selectedDate + 'T12:00:00');
     d.setDate(d.getDate() + days);
     const shifted = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    if (shifted >= today && shifted <= maxDate) setSelectedDate(shifted);
+    const minDate = localDate(-90); // allow 90 days back
+    if (shifted >= minDate && shifted <= maxDate) setSelectedDate(shifted);
   };
 
-  const isToday = selectedDate === today;
+  const isToday    = selectedDate === today;
+  const isMaxDate  = selectedDate >= maxDate;
+  const isMinDate  = selectedDate <= localDate(-90);
   const displayLabel = isToday ? 'Today' : formatDate(selectedDate + 'T12:00:00');
 
   const filtered = viewMode === 'upcoming'
@@ -424,8 +429,8 @@ export default function BookingsScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Text style={[bStyles.customerName, { color: theme.text }]}>{b.customerName || '—'}</Text>
               {b.customerGender && (
-                <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 20, backgroundColor: b.customerGender === 'male' ? '#dbeafe' : '#fce7f3' }}>
-                  <Text style={{ fontSize: 11, fontWeight: '600', color: b.customerGender === 'male' ? '#1d4ed8' : '#be185d' }}>
+                <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 20, backgroundColor: b.customerGender === 'male' ? '#e0e7ff' : '#fce7f3' }}>
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: b.customerGender === 'male' ? '#4f46e5' : '#be185d' }}>
                     {b.customerGender === 'male' ? '👨 Male' : '👩 Female'}
                   </Text>
                 </View>
@@ -470,7 +475,7 @@ export default function BookingsScreen() {
         {nextStatuses.length > 0 && (
           <View style={bStyles.actions}>
             {isUpdating || blocking === String(b.customerId) ? (
-              <ActivityIndicator size="small" color="#2563eb" />
+              <ActivityIndicator size="small" color="#6366f1" />
             ) : (
               nextStatuses.map((s) => (
                 <TouchableOpacity
@@ -527,11 +532,11 @@ export default function BookingsScreen() {
         {/* Date nav — only in upcoming mode */}
         {viewMode === 'upcoming' && (
           <View style={bStyles.dateRow}>
-            <TouchableOpacity style={bStyles.navBtn} onPress={() => shiftDate(-1)}>
+            <TouchableOpacity style={[bStyles.navBtn, isMinDate && { opacity: 0.4 }]} onPress={() => shiftDate(-1)} disabled={isMinDate}>
               <Ionicons name="chevron-back" size={16} color="#6b7280" />
             </TouchableOpacity>
             <Text style={bStyles.dateLabel}>{displayLabel}</Text>
-            <TouchableOpacity style={[bStyles.navBtn, isToday && { opacity: 0.4 }]} onPress={() => shiftDate(1)} disabled={isToday}>
+            <TouchableOpacity style={[bStyles.navBtn, isMaxDate && { opacity: 0.4 }]} onPress={() => shiftDate(1)} disabled={isMaxDate}>
               <Ionicons name="chevron-forward" size={16} color="#6b7280" />
             </TouchableOpacity>
           </View>
@@ -557,7 +562,7 @@ export default function BookingsScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 40 }} />
+        <ActivityIndicator size="large" color="#6366f1" style={{ marginTop: 40 }} />
       ) : (
         <FlatList
           initialNumToRender={8}
@@ -588,10 +593,10 @@ export default function BookingsScreen() {
                   disabled={loadingMore}
                 >
                   {loadingMore
-                    ? <ActivityIndicator size="small" color="#2563eb" />
+                    ? <ActivityIndicator size="small" color="#6366f1" />
                     : (
                       <>
-                        <Ionicons name="chevron-down" size={16} color="#2563eb" />
+                        <Ionicons name="chevron-down" size={16} color="#6366f1" />
                         <Text style={bStyles.loadMoreText}>Load More</Text>
                       </>
                     )}
@@ -663,8 +668,8 @@ export default function BookingsScreen() {
       <Modal visible={!!confirm} transparent animationType="fade" onRequestClose={() => setConfirm(null)}>
         <View style={bStyles.confirmOverlay}>
           <View style={bStyles.confirmBox}>
-            <View style={[bStyles.confirmIcon, { backgroundColor: confirm?.danger ? '#fee2e2' : '#dbeafe' }]}>
-              <Ionicons name={confirm?.danger ? 'warning-outline' : 'help-circle-outline'} size={28} color={confirm?.danger ? '#dc2626' : '#2563eb'} />
+            <View style={[bStyles.confirmIcon, { backgroundColor: confirm?.danger ? '#fee2e2' : '#e0e7ff' }]}>
+              <Ionicons name={confirm?.danger ? 'warning-outline' : 'help-circle-outline'} size={28} color={confirm?.danger ? '#dc2626' : '#6366f1'} />
             </View>
             <Text style={bStyles.confirmTitle}>{confirm?.title}</Text>
             <Text style={bStyles.confirmMsg}>{confirm?.message}</Text>
@@ -672,7 +677,7 @@ export default function BookingsScreen() {
               <TouchableOpacity style={[bStyles.confirmBtn, { backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#334155' }]} onPress={() => setConfirm(null)}>
                 <Text style={[bStyles.confirmBtnText, { color: '#f1f5f9' }]}>No, Go Back</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[bStyles.confirmBtn, { backgroundColor: confirm?.danger ? '#dc2626' : '#2563eb' }]} onPress={confirm?.onConfirm}>
+              <TouchableOpacity style={[bStyles.confirmBtn, { backgroundColor: confirm?.danger ? '#dc2626' : '#6366f1' }]} onPress={confirm?.onConfirm}>
                 <Text style={[bStyles.confirmBtnText, { color: '#fff' }]}>{confirm?.confirmLabel || 'Yes'}</Text>
               </TouchableOpacity>
             </View>
@@ -685,15 +690,15 @@ export default function BookingsScreen() {
 }
 
 const bStyles = StyleSheet.create({
-  header: { backgroundColor: '#2563eb', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 },
+  header: { backgroundColor: '#6366f1', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   modeRow: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 10, padding: 3, marginBottom: 10 },
   modeBtn: { flex: 1, paddingVertical: 7, alignItems: 'center', borderRadius: 8 },
   modeBtnActive: { backgroundColor: '#fff' },
   modeBtnText: { fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.8)' },
-  modeBtnTextActive: { color: '#2563eb' },
+  modeBtnTextActive: { color: '#6366f1' },
   loadMoreBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 8, marginBottom: 24, paddingVertical: 12, borderWidth: 1, borderRadius: 12 },
-  loadMoreText: { color: '#2563eb', fontWeight: '700', fontSize: 14 },
+  loadMoreText: { color: '#6366f1', fontWeight: '700', fontSize: 14 },
   endText: { textAlign: 'center', fontSize: 12, paddingVertical: 16 },
   headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
   walkInBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, gap: 4 },
@@ -705,7 +710,7 @@ const bStyles = StyleSheet.create({
   filterChip: { paddingHorizontal: 14, paddingVertical: 6, marginRight: 8, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },
   filterChipActive: { backgroundColor: '#fff' },
   filterChipText: { color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: '500', textTransform: 'capitalize' },
-  filterChipTextActive: { color: '#2563eb', fontWeight: '700' },
+  filterChipTextActive: { color: '#6366f1', fontWeight: '700' },
   card: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
   cardTop: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10, gap: 8 },
   gearBtn: { padding: 4, marginLeft: 4 },
@@ -718,18 +723,18 @@ const bStyles = StyleSheet.create({
   detailText: { fontSize: 13, color: '#6b7280' },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, borderTopWidth: 1, borderTopColor: '#f3f4f6', paddingTop: 10 },
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1 },
-  actionBtnPrimary: { backgroundColor: '#dbeafe', borderColor: '#93c5fd' },
+  actionBtnPrimary: { backgroundColor: '#e0e7ff', borderColor: '#93c5fd' },
   actionBtnDanger: { backgroundColor: '#fee2e2', borderColor: '#fca5a5' },
   actionBtnWarning: { backgroundColor: '#fef3c7', borderColor: '#fcd34d' },
   actionBtnGray: { backgroundColor: '#f3f4f6', borderColor: '#e5e7eb' },
-  actionBtnText: { fontSize: 12, fontWeight: '600', color: '#2563eb', textTransform: 'capitalize' },
+  actionBtnText: { fontSize: 12, fontWeight: '600', color: '#6366f1', textTransform: 'capitalize' },
   // Modals
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
   sheetBox: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 36 },
   sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#475569', alignSelf: 'center', marginBottom: 16 },
   sheetHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-  sheetAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#dbeafe', alignItems: 'center', justifyContent: 'center' },
-  sheetAvatarText: { fontSize: 20, fontWeight: '800', color: '#2563eb' },
+  sheetAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#e0e7ff', alignItems: 'center', justifyContent: 'center' },
+  sheetAvatarText: { fontSize: 20, fontWeight: '800', color: '#6366f1' },
   sheetName: { fontSize: 16, fontWeight: '700', color: '#f1f5f9' },
   sheetMeta: { fontSize: 12, color: '#94a3b8', marginTop: 2 },
   sheetDivider: { height: 1, backgroundColor: '#334155', marginBottom: 12 },
@@ -763,23 +768,23 @@ const mStyles = StyleSheet.create({
   dropdownText: { fontSize: 14, color: '#374151' },
   dateNav: { flexDirection: 'row', gap: 8 },
   dateChip: { alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', backgroundColor: '#f9fafb' },
-  dateChipActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
+  dateChipActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
   dateChipText: { fontSize: 10, color: '#6b7280', fontWeight: '500' },
   dateChipNum: { fontSize: 14, color: '#374151', fontWeight: '700', marginTop: 2 },
   dateChipActiveText: { color: '#fff' },
   slotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   slot: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, borderWidth: 1, minWidth: 70, alignItems: 'center' },
   slotFree: { borderColor: '#e5e7eb', backgroundColor: '#f9fafb' },
-  slotSelected: { borderColor: '#2563eb', backgroundColor: '#2563eb' },
+  slotSelected: { borderColor: '#6366f1', backgroundColor: '#6366f1' },
   slotBlocked: { borderColor: '#fca5a5', backgroundColor: '#fee2e2' },
   slotPast: { borderColor: '#e5e7eb', backgroundColor: '#f3f4f6' },
   slotText: { fontSize: 12, fontWeight: '600', color: '#374151' },
   slotEnd: { fontSize: 10, color: '#9ca3af', marginTop: 2 },
-  summary: { backgroundColor: '#dbeafe', borderRadius: 12, padding: 14, marginBottom: 16 },
-  summaryTitle: { fontSize: 14, fontWeight: '700', color: '#1e40af', marginBottom: 8 },
+  summary: { backgroundColor: '#e0e7ff', borderRadius: 12, padding: 14, marginBottom: 16 },
+  summaryTitle: { fontSize: 14, fontWeight: '700', color: '#4338ca', marginBottom: 8 },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  summaryKey: { fontSize: 13, color: '#2563eb' },
-  summaryVal: { fontSize: 13, color: '#1e40af', fontWeight: '600' },
-  submitBtn: { backgroundColor: '#2563eb', borderRadius: 12, height: 50, alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
+  summaryKey: { fontSize: 13, color: '#6366f1' },
+  summaryVal: { fontSize: 13, color: '#4338ca', fontWeight: '600' },
+  submitBtn: { backgroundColor: '#6366f1', borderRadius: 12, height: 50, alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
   submitText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 });

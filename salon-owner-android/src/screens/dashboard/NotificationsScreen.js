@@ -9,10 +9,10 @@ import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 
 const TYPE_CONFIG = {
-  booking: { icon: 'calendar-outline', bg: '#dbeafe', color: '#2563eb' },
+  booking: { icon: 'calendar-outline', bg: '#e0e7ff', color: '#6366f1' },
   success: { icon: 'checkmark-circle-outline', bg: '#dcfce7', color: '#16a34a' },
   warning: { icon: 'warning-outline', bg: '#fef9c3', color: '#ca8a04' },
-  info:    { icon: 'information-circle-outline', bg: '#dbeafe', color: '#2563eb' },
+  info:    { icon: 'information-circle-outline', bg: '#e0e7ff', color: '#6366f1' },
 };
 
 function timeAgo(isoStr) {
@@ -114,7 +114,7 @@ export default function NotificationsScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <View style={styles.emptyIcon}>
-              <Ionicons name="notifications-outline" size={48} color="#2563eb" />
+              <Ionicons name="notifications-outline" size={48} color="#6366f1" />
             </View>
             <Text style={styles.emptyTitle}>All caught up!</Text>
             <Text style={styles.emptyText}>
@@ -129,16 +129,16 @@ export default function NotificationsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f9fafb' },
-  header: { backgroundColor: '#2563eb', paddingHorizontal: 16, paddingVertical: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  header: { backgroundColor: '#6366f1', paddingHorizontal: 16, paddingVertical: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  headerSub: { fontSize: 13, color: '#bfdbfe', marginTop: 2 },
+  headerSub: { fontSize: 13, color: '#c7d2fe', marginTop: 2 },
   headerActions: { flexDirection: 'row', gap: 8 },
   headerBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
   headerBtnText: { fontSize: 12, fontWeight: '600', color: '#fff' },
   headerBtnDanger: { backgroundColor: 'rgba(239,68,68,0.25)' },
   card: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 8, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1, position: 'relative' },
-  cardUnread: { borderLeftWidth: 3, borderLeftColor: '#2563eb' },
-  unreadDot: { position: 'absolute', top: 12, right: 38, width: 8, height: 8, borderRadius: 4, backgroundColor: '#2563eb' },
+  cardUnread: { borderLeftWidth: 3, borderLeftColor: '#6366f1' },
+  unreadDot: { position: 'absolute', top: 12, right: 38, width: 8, height: 8, borderRadius: 4, backgroundColor: '#6366f1' },
   iconCircle: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   content: { flex: 1, marginRight: 8 },
   title: { fontSize: 14, fontWeight: '600', color: '#111827', marginBottom: 3 },
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   time: { fontSize: 11, color: '#9ca3af', marginTop: 4 },
   deleteBtn: { padding: 2 },
   empty: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 32 },
-  emptyIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#dbeafe', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  emptyIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#e0e7ff', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: '#111827', marginBottom: 8 },
   emptyText: { fontSize: 14, color: '#6b7280', textAlign: 'center', lineHeight: 20 },
 });

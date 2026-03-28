@@ -14,7 +14,7 @@ export const darkTheme = {
   input: '#1e293b',
   inputBorder: '#475569',
   placeholder: '#64748b',
-  accent: '#3b82f6',
+  accent: '#818cf8',
   navBtn: '#1e293b',
   navBtnBorder: '#334155',
 };
@@ -30,7 +30,7 @@ export const lightTheme = {
   input: '#ffffff',
   inputBorder: '#d1d5db',
   placeholder: '#9ca3af',
-  accent: '#2563eb',
+  accent: '#6366f1',
   navBtn: '#ffffff',
   navBtnBorder: '#e5e7eb',
 };

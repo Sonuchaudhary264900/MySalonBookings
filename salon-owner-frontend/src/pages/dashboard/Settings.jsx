@@ -4,7 +4,7 @@ import {
   Globe, Bell, Settings, Lock, User, Calendar, CalendarX,
   Save, Edit2, X, ChevronDown, Plus,
   CheckCircle2, BellOff, Camera, Trash2, ImagePlus, GitBranch,
-  Eye, EyeOff, Info,
+  Eye, EyeOff, Info, Clock,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -980,6 +980,123 @@ const ClosedDatesContent = ({ salon }) => {
   );
 };
 
+/* ─── Working Hours ──────────────────────────────────────────── */
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+const HOURS_OPTIONS = Array.from({ length: 24 }, (_, i) => {
+  const h = i % 12 === 0 ? 12 : i % 12;
+  const ampm = i < 12 ? 'AM' : 'PM';
+  return { label: `${h}:00 ${ampm}`, value: `${String(i).padStart(2, '0')}:00` };
+});
+
+const DEFAULT_WORKING_HOURS = DAYS.map((day) => ({
+  day,
+  isOpen: day !== 'Sunday',
+  openTime: '09:00',
+  closeTime: '20:00',
+}));
+
+const WorkingHoursContent = () => {
+  const [hours, setHours]   = useState(DEFAULT_WORKING_HOURS);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving]   = useState(false);
+
+  useEffect(() => {
+    api.get('/owner/working-hours')
+      .then((res) => {
+        const d = res.data.data;
+        if (Array.isArray(d) && d.length > 0) setHours(d);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const toggleDay = (index) =>
+    setHours((prev) => prev.map((h, i) => i === index ? { ...h, isOpen: !h.isOpen } : h));
+
+  const setTime = (index, field, value) =>
+    setHours((prev) => prev.map((h, i) => i === index ? { ...h, [field]: value } : h));
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await api.put('/owner/working-hours', { workingHours: hours });
+      toast.success('Working hours updated!');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to save working hours');
+    } finally { setSaving(false); }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-8">
+        <span className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2 mt-3">
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+        Set your salon's open and close times for each day of the week.
+      </p>
+      {hours.map((item, index) => (
+        <div key={item.day}
+          className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 overflow-hidden">
+          {/* Day header row */}
+          <div className="flex items-center justify-between px-4 py-3">
+            <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 w-24 shrink-0">
+              {item.day}
+            </span>
+            <div className="flex items-center gap-2">
+              <span className={`text-xs font-semibold ${item.isOpen ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                {item.isOpen ? 'Open' : 'Closed'}
+              </span>
+              <Toggle
+                name={`working-${item.day}`}
+                checked={item.isOpen}
+                onChange={() => toggleDay(index)}
+              />
+            </div>
+          </div>
+          {/* Time selectors — only when open */}
+          {item.isOpen && (
+            <div className="flex items-center gap-2 px-4 pb-3">
+              <select
+                value={item.openTime}
+                onChange={(e) => setTime(index, 'openTime', e.target.value)}
+                className={`${SEL} flex-1`}
+              >
+                {HOURS_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+              <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">to</span>
+              <select
+                value={item.closeTime}
+                onChange={(e) => setTime(index, 'closeTime', e.target.value)}
+                className={`${SEL} flex-1`}
+              >
+                {HOURS_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      ))}
+      <button onClick={handleSave} disabled={saving}
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl mt-2
+          bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors disabled:opacity-60">
+        {saving
+          ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          : <Save className="w-4 h-4" />}
+        {saving ? 'Saving…' : 'Save Working Hours'}
+      </button>
+    </div>
+  );
+};
+
 /* ─── Privacy & Security ─────────────────────────────────────── */
 const PrivacyContent = () => {
   const { user, logout } = useAuth();
@@ -1211,6 +1328,15 @@ const SettingsPage = () => {
       title: 'Closed Dates / Holidays',
       subtitle: 'Mark specific dates when your salon is closed',
       content: <ClosedDatesContent salon={salon} />,
+    },
+    {
+      id: 'working-hours',
+      icon: Clock,
+      iconBg: 'bg-orange-100 dark:bg-orange-950',
+      iconColor: 'text-orange-600 dark:text-orange-400',
+      title: 'Working Hours',
+      subtitle: 'Set open and close times for each day of the week',
+      content: <WorkingHoursContent />,
     },
     {
       id: 'privacy',

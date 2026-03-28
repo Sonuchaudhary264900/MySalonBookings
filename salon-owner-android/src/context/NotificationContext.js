@@ -24,7 +24,7 @@ async function setupNotificationChannels() {
     name: 'New Bookings',
     importance: Notifications.AndroidImportance.MAX,   // heads-up banner
     vibrationPattern: [0, 500, 200, 500, 200, 500],   // heavy 3-pulse
-    lightColor: '#2563eb',
+    lightColor: '#6366f1',
     enableVibrate: true,
     showBadge: true,
     sound: 'new_booking.wav',
@@ -35,7 +35,7 @@ async function setupNotificationChannels() {
     name: 'Bookings',
     importance: Notifications.AndroidImportance.HIGH,
     vibrationPattern: [0, 300, 200, 300],
-    lightColor: '#2563eb',
+    lightColor: '#6366f1',
     enableVibrate: true,
     sound: 'default',
   });
@@ -75,7 +75,7 @@ async function setupNotificationChannels() {
     name: 'General',
     importance: Notifications.AndroidImportance.DEFAULT,
     vibrationPattern: [0, 250, 250, 250],
-    lightColor: '#2563eb',
+    lightColor: '#6366f1',
     enableVibrate: true,
     sound: 'default',
   });

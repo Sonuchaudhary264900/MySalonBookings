@@ -11,36 +11,54 @@ import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { showSuccess, showError } from '../../utils/toast';
 
-function CouponModal({ visible, onClose, onSaved, theme }) {
+function CouponModal({ visible, coupon, onClose, onSaved, theme }) {
+  const editing = !!coupon?._id;
   const [code, setCode] = useState('');
-  const [discountType, setDiscountType] = useState('percentage'); // percentage | fixed
+  const [discountType, setDiscountType] = useState('percentage');
   const [discountValue, setDiscountValue] = useState('');
   const [minOrderAmount, setMinOrderAmount] = useState('');
   const [maxUses, setMaxUses] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const reset = () => { setCode(''); setDiscountType('percentage'); setDiscountValue(''); setMinOrderAmount(''); setMaxUses(''); setExpiryDate(''); };
+  useEffect(() => {
+    if (coupon) {
+      setCode(coupon.code || '');
+      setDiscountType(coupon.discountType || 'percentage');
+      setDiscountValue(String(coupon.discountValue || ''));
+      setMinOrderAmount(coupon.minOrderAmount ? String(coupon.minOrderAmount) : '');
+      setMaxUses(coupon.maxUses ? String(coupon.maxUses) : '');
+      setExpiryDate(coupon.expiryDate ? coupon.expiryDate.slice(0, 10) : '');
+    } else {
+      setCode(''); setDiscountType('percentage'); setDiscountValue('');
+      setMinOrderAmount(''); setMaxUses(''); setExpiryDate('');
+    }
+  }, [coupon, visible]);
 
   const handleSave = async () => {
     if (!code.trim()) { showError('Required', 'Please enter a coupon code'); return; }
     if (!discountValue || isNaN(Number(discountValue))) { showError('Required', 'Please enter a valid discount value'); return; }
     setSaving(true);
     try {
-      await api.post('/owner/coupons', {
+      const payload = {
         code: code.trim().toUpperCase(),
         discountType,
         discountValue: Number(discountValue),
         minOrderAmount: minOrderAmount ? Number(minOrderAmount) : 0,
         maxUses: maxUses ? Number(maxUses) : null,
         expiryDate: expiryDate || null,
-      });
-      showSuccess('Created', 'Coupon created successfully');
-      reset();
+      };
+      if (editing) {
+        await api.put(`/owner/coupons/${coupon._id}`, payload);
+        showSuccess('Updated', 'Coupon updated successfully');
+      } else {
+        await api.post('/owner/coupons', payload);
+        showSuccess('Created', 'Coupon created successfully');
+      }
       onSaved();
       onClose();
     } catch (err) {
-      showError('Error', err.response?.data?.message || 'Failed to create coupon');
+      showError('Error', err.response?.data?.message || `Failed to ${editing ? 'update' : 'create'} coupon`);
     } finally {
       setSaving(false);
     }
@@ -51,7 +69,7 @@ function CouponModal({ visible, onClose, onSaved, theme }) {
       <View style={styles.modalOverlay}>
         <View style={[styles.modalBox, { backgroundColor: theme.bg }]}>
           <View style={styles.modalHeader}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>Create Coupon</Text>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>{editing ? 'Edit Coupon' : 'Create Coupon'}</Text>
             <TouchableOpacity onPress={onClose}><Ionicons name="close" size={22} color={theme.text} /></TouchableOpacity>
           </View>
           <ScrollView>
@@ -114,7 +132,7 @@ function CouponModal({ visible, onClose, onSaved, theme }) {
             <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
               {saving
                 ? <ActivityIndicator color="#fff" size="small" />
-                : <Text style={styles.saveBtnText}>Create Coupon</Text>}
+                : <Text style={styles.saveBtnText}>{editing ? 'Save Changes' : 'Create Coupon'}</Text>}
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -131,6 +149,7 @@ export default function CouponsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [editingCoupon, setEditingCoupon] = useState(null);
 
   const fetchCoupons = useCallback(async () => {
     try {
@@ -178,8 +197,8 @@ export default function CouponsScreen() {
     return (
       <View style={[styles.card, { backgroundColor: theme.card }]}>
         <View style={styles.cardTop}>
-          <View style={[styles.codeBox, { backgroundColor: item.isActive && !expired ? '#dbeafe' : '#f3f4f6' }]}>
-            <Text style={[styles.code, { color: item.isActive && !expired ? '#2563eb' : '#9ca3af' }]}>{item.code}</Text>
+          <View style={[styles.codeBox, { backgroundColor: item.isActive && !expired ? '#e0e7ff' : '#f3f4f6' }]}>
+            <Text style={[styles.code, { color: item.isActive && !expired ? '#6366f1' : '#9ca3af' }]}>{item.code}</Text>
           </View>
           <View style={{ flex: 1, marginLeft: 12 }}>
             <Text style={[styles.discountText, { color: theme.text }]}>
@@ -201,14 +220,20 @@ export default function CouponsScreen() {
             value={item.isActive && !expired}
             onValueChange={() => toggleActive(item)}
             disabled={expired}
-            trackColor={{ false: '#d1d5db', true: '#bfdbfe' }}
-            thumbColor={item.isActive && !expired ? '#2563eb' : '#9ca3af'}
+            trackColor={{ false: '#d1d5db', true: '#c7d2fe' }}
+            thumbColor={item.isActive && !expired ? '#6366f1' : '#9ca3af'}
           />
         </View>
-        <TouchableOpacity style={styles.deleteBtn} onPress={() => deleteCoupon(item)}>
-          <Ionicons name="trash-outline" size={14} color="#ef4444" />
-          <Text style={styles.deleteBtnText}>Delete</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 16 }}>
+          <TouchableOpacity style={styles.editBtn} onPress={() => { setEditingCoupon(item); setShowModal(true); }}>
+            <Ionicons name="create-outline" size={14} color="#6366f1" />
+            <Text style={styles.editBtnText}>Edit</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.deleteBtn} onPress={() => deleteCoupon(item)}>
+            <Ionicons name="trash-outline" size={14} color="#ef4444" />
+            <Text style={styles.deleteBtnText}>Delete</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   };
@@ -230,7 +255,7 @@ export default function CouponsScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 60 }} />
+        <ActivityIndicator size="large" color="#6366f1" style={{ marginTop: 60 }} />
       ) : (
         <FlatList
           initialNumToRender={8}
@@ -254,14 +279,15 @@ export default function CouponsScreen() {
       {/* FAB */}
       <TouchableOpacity
         style={[styles.fab, { bottom: insets.bottom + 20 }]}
-        onPress={() => setShowModal(true)}
+        onPress={() => { setEditingCoupon(null); setShowModal(true); }}
       >
         <Ionicons name="add" size={28} color="#fff" />
       </TouchableOpacity>
 
       <CouponModal
         visible={showModal}
-        onClose={() => setShowModal(false)}
+        coupon={editingCoupon}
+        onClose={() => { setShowModal(false); setEditingCoupon(null); }}
         onSaved={fetchCoupons}
         theme={theme}
       />
@@ -270,19 +296,21 @@ export default function CouponsScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { backgroundColor: '#2563eb', paddingHorizontal: 16, paddingBottom: 14 },
+  header: { backgroundColor: '#6366f1', paddingHorizontal: 16, paddingBottom: 14 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  headerSub: { fontSize: 13, color: '#bfdbfe', marginTop: 2 },
+  headerSub: { fontSize: 13, color: '#c7d2fe', marginTop: 2 },
   card: { borderRadius: 12, padding: 14, marginBottom: 10, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4 },
   cardTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   codeBox: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
   code: { fontSize: 16, fontWeight: '800', letterSpacing: 1 },
   discountText: { fontSize: 15, fontWeight: '700' },
   meta: { fontSize: 12, marginTop: 2 },
+  editBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingVertical: 4 },
+  editBtnText: { fontSize: 12, color: '#6366f1', fontWeight: '600' },
   deleteBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingVertical: 4 },
   deleteBtnText: { fontSize: 12, color: '#ef4444', fontWeight: '600' },
-  fab: { position: 'absolute', right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: '#2563eb', alignItems: 'center', justifyContent: 'center', elevation: 6, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8 },
+  fab: { position: 'absolute', right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', elevation: 6, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8 },
   // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   modalBox: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '90%' },
@@ -291,9 +319,9 @@ const styles = StyleSheet.create({
   fieldLabel: { fontSize: 12, fontWeight: '600', marginTop: 8, marginBottom: 6 },
   typeRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   typeBtn: { flex: 1, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
-  typeBtnActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
+  typeBtnActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
   typeBtnText: { fontSize: 13, fontWeight: '600' },
   input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 11, fontSize: 14, marginBottom: 10 },
-  saveBtn: { backgroundColor: '#2563eb', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 4 },
+  saveBtn: { backgroundColor: '#6366f1', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 4 },
   saveBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 });

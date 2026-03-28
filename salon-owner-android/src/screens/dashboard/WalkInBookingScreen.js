@@ -154,7 +154,7 @@ export default function WalkInBookingScreen() {
           <View style={[styles.section, { backgroundColor: theme.card }]}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Service</Text>
             {loadingServices ? (
-              <ActivityIndicator color="#2563eb" />
+              <ActivityIndicator color="#6366f1" />
             ) : (
               <View style={styles.serviceGrid}>
                 {services.map((s) => (
@@ -166,7 +166,7 @@ export default function WalkInBookingScreen() {
                     <Text style={[styles.serviceChipText, { color: selectedService?._id === s._id ? '#fff' : theme.text }]}>
                       {s.name}
                     </Text>
-                    <Text style={[styles.servicePrice, { color: selectedService?._id === s._id ? '#bfdbfe' : theme.subText }]}>
+                    <Text style={[styles.servicePrice, { color: selectedService?._id === s._id ? '#c7d2fe' : theme.subText }]}>
                       ₹{s.basePrice}
                     </Text>
                   </TouchableOpacity>
@@ -180,11 +180,11 @@ export default function WalkInBookingScreen() {
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Date</Text>
             <View style={styles.datePicker}>
               <TouchableOpacity style={styles.dateArrow} onPress={() => changeDate(-1)}>
-                <Ionicons name="chevron-back" size={22} color="#2563eb" />
+                <Ionicons name="chevron-back" size={22} color="#6366f1" />
               </TouchableOpacity>
               <Text style={[styles.dateText, { color: theme.text }]}>{formatDisplayDate(selectedDate)}</Text>
               <TouchableOpacity style={styles.dateArrow} onPress={() => changeDate(1)}>
-                <Ionicons name="chevron-forward" size={22} color="#2563eb" />
+                <Ionicons name="chevron-forward" size={22} color="#6366f1" />
               </TouchableOpacity>
             </View>
           </View>
@@ -239,10 +239,10 @@ export default function WalkInBookingScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { backgroundColor: '#2563eb', paddingHorizontal: 16, paddingBottom: 14 },
+  header: { backgroundColor: '#6366f1', paddingHorizontal: 16, paddingBottom: 14 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  headerSub: { fontSize: 13, color: '#bfdbfe', marginTop: 2 },
+  headerSub: { fontSize: 13, color: '#c7d2fe', marginTop: 2 },
   section: { borderRadius: 12, padding: 14, marginBottom: 10, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4 },
   sectionTitle: { fontSize: 14, fontWeight: '700', marginBottom: 10 },
   input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 11, fontSize: 14 },
@@ -252,20 +252,20 @@ const styles = StyleSheet.create({
   notesInput: { minHeight: 80 },
   serviceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   serviceChip: { borderWidth: 1, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12, alignItems: 'center' },
-  serviceChipActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
+  serviceChipActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
   serviceChipText: { fontSize: 13, fontWeight: '600' },
   servicePrice: { fontSize: 11, marginTop: 2 },
   slotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   slot: { borderWidth: 1, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12 },
-  slotActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
+  slotActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
   slotText: { fontSize: 13, fontWeight: '600' },
   footer: { borderTopWidth: 1, paddingHorizontal: 16, paddingTop: 12 },
   pricePreview: { fontSize: 13, textAlign: 'center', marginBottom: 8 },
-  bookBtn: { backgroundColor: '#2563eb', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+  bookBtn: { backgroundColor: '#6366f1', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
   bookBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   successCircle: { width: 90, height: 90, borderRadius: 45, backgroundColor: '#10b981', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
   successTitle: { fontSize: 22, fontWeight: '800', marginBottom: 8 },
   successSub: { fontSize: 14, textAlign: 'center', lineHeight: 22, marginBottom: 28 },
-  newBtn: { backgroundColor: '#2563eb', borderRadius: 12, paddingVertical: 14, paddingHorizontal: 40 },
+  newBtn: { backgroundColor: '#6366f1', borderRadius: 12, paddingVertical: 14, paddingHorizontal: 40 },
   newBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 });

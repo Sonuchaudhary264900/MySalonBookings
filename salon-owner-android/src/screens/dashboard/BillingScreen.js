@@ -591,7 +591,7 @@ const styles = StyleSheet.create({
   historySub:        { fontSize: 12, color: '#94a3b8', marginTop: 1 },
   historyAmount:     { fontSize: 15, fontWeight: '700', color: '#0f172a', marginRight: 10 },
   historyBadge:      { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 },
-  badgeTrial:        { backgroundColor: '#dbeafe', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 },
+  badgeTrial:        { backgroundColor: '#e0e7ff', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 },
   badgeActive:       { backgroundColor: '#dcfce7', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 },
   badgeOverdue:      { backgroundColor: '#fee2e2', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 },
   badgePending:      { backgroundColor: '#fef9c3', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 },

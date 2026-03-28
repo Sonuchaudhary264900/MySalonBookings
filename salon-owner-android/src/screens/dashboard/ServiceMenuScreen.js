@@ -307,7 +307,7 @@ export default function ServiceMenuScreen() {
                       </TouchableOpacity>
                     )}
                     <Switch value={sel.enabled} onValueChange={() => toggleCat(cat.key)}
-                      trackColor={{ false: '#d1d5db', true: '#93c5fd' }} thumbColor={sel.enabled ? '#2563eb' : '#9ca3af'} />
+                      trackColor={{ false: '#d1d5db', true: '#93c5fd' }} thumbColor={sel.enabled ? '#6366f1' : '#9ca3af'} />
                   </View>
 
                   {/* Sub-service chips */}
@@ -397,7 +397,7 @@ export default function ServiceMenuScreen() {
                     <Switch
                       value={gender === 'male' ? maleOptionals[opt.key] : femaleOptionals[opt.key]}
                       onValueChange={val => gender === 'male' ? setMaleOptionals(p => ({ ...p, [opt.key]: val })) : setFemaleOptionals(p => ({ ...p, [opt.key]: val }))}
-                      trackColor={{ false: '#d1d5db', true: '#93c5fd' }} thumbColor="#2563eb"
+                      trackColor={{ false: '#d1d5db', true: '#93c5fd' }} thumbColor="#6366f1"
                     />
                   </View>
                 ))}
@@ -476,7 +476,7 @@ const getSt = (theme, isDark) => StyleSheet.create({
 
   genderRow: { flexDirection: 'row', gap: 10 },
   genderBtn: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 12, borderWidth: 1.5, borderColor: theme.border, backgroundColor: theme.bg, gap: 4 },
-  genderBtnActive: { borderColor: theme.accent, backgroundColor: isDark ? theme.card : '#eff6ff' },
+  genderBtnActive: { borderColor: theme.accent, backgroundColor: isDark ? theme.card : '#eef2ff' },
   genderEmoji: { fontSize: 22 },
   genderLabel: { fontSize: 12, fontWeight: '600', color: theme.subText },
   genderLabelActive: { color: theme.accent },
@@ -493,7 +493,7 @@ const getSt = (theme, isDark) => StyleSheet.create({
 
   chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   chip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.bg, flexDirection: 'row', alignItems: 'center', gap: 3 },
-  chipM: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
+  chipM: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
   chipF: { backgroundColor: '#ec4899', borderColor: '#ec4899' },
   chipTxt: { fontSize: 12, color: theme.text },
   chipTxtM: { color: '#fff', fontWeight: '600' },

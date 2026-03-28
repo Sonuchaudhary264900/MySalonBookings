@@ -26,8 +26,8 @@ const TrialBanner = () => {
   if (trialActive && trialDaysRemaining > 3) {
     // Healthy trial
     iconName    = 'time-outline';
-    iconColor   = '#3b82f6';
-    accentColor = '#3b82f6';
+    iconColor   = '#6366f1';
+    accentColor = '#6366f1';
     leftText    = `Free trial active — ${trialDaysRemaining} days remaining`;
     ctaText     = 'Go to Billing';
     bgColor     = isDark ? 'rgba(59,130,246,0.08)' : 'rgba(59,130,246,0.06)';

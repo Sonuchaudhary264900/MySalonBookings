@@ -22,7 +22,7 @@ export const formatTime = (timeStr) => {
 export const STATUS_COLORS = {
   confirmed:   { bg: '#dcfce7', text: '#16a34a' },
   pending:     { bg: '#fef9c3', text: '#ca8a04' },
-  completed:   { bg: '#dbeafe', text: '#2563eb' },
+  completed:   { bg: '#e0e7ff', text: '#6366f1' },
   cancelled:   { bg: '#fee2e2', text: '#dc2626' },
   in_progress: { bg: '#f3e8ff', text: '#9333ea' },
 };
