@@ -451,7 +451,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
         </View>
 
         {/* Trust strip */}
-        <View style={{ borderTopWidth: 1, borderBottomWidth: 1, borderColor: theme === 'dark' ? '#1f2937' : '#e5e7eb', backgroundColor: theme === 'dark' ? '#111827' : '#f9fafb' }}>
+        <View style={{ borderTopWidth: 1, borderBottomWidth: 1, borderColor: theme.border, backgroundColor: theme.bg }}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 16, paddingVertical: 10 }}>
             {openStatus !== null && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: openStatus ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.1)', borderWidth: 1, borderColor: openStatus ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.2)' }}>
@@ -463,8 +463,8 @@ export default function SalonDetailsScreen({ route, navigation }) {
             )}
             {todayHours && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Ionicons name="time-outline" size={13} color="#6b7280" />
-                <Text style={{ fontSize: 11, fontWeight: '600', color: '#6b7280' }}>{todayHours}</Text>
+                <Ionicons name="time-outline" size={13} color={theme.subText} />
+                <Text style={{ fontSize: 11, fontWeight: '600', color: theme.subText }}>{todayHours}</Text>
               </View>
             )}
             {rating > 0 && (
@@ -477,8 +477,8 @@ export default function SalonDetailsScreen({ route, navigation }) {
               const rc = salon.totalReviews || salon.reviewCount || reviews.length;
               return (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <Ionicons name="people-outline" size={13} color={rc > 0 ? '#6b7280' : '#9ca3af'} />
-                  <Text style={{ fontSize: 11, fontWeight: '600', color: rc > 0 ? '#6b7280' : '#9ca3af' }}>
+                  <Ionicons name="people-outline" size={13} color={theme.subText} />
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: theme.subText }}>
                     {rc > 0 ? `${rc} ${rc === 1 ? 'Review' : 'Reviews'}` : 'No reviews yet'}
                   </Text>
                 </View>
@@ -492,8 +492,8 @@ export default function SalonDetailsScreen({ route, navigation }) {
             )}
             {services.length > 0 && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Ionicons name="cut-outline" size={13} color="#6b7280" />
-                <Text style={{ fontSize: 11, fontWeight: '600', color: '#6b7280' }}>{services.length} Services</Text>
+                <Ionicons name="cut-outline" size={13} color={theme.subText} />
+                <Text style={{ fontSize: 11, fontWeight: '600', color: theme.subText }}>{services.length} Services</Text>
               </View>
             )}
             {totalBookings >= 10 && (
@@ -506,16 +506,16 @@ export default function SalonDetailsScreen({ route, navigation }) {
 
         {/* Quick info row */}
         {(nextSlot || salon.minPrice || salon.kidsHaircut || salon.atHomeServices) && (
-          <View style={{ borderBottomWidth: 1, borderColor: theme === 'dark' ? '#1f2937' : '#e5e7eb', backgroundColor: theme === 'dark' ? '#0f172a' : '#f3f4f6' }}>
+          <View style={{ borderBottomWidth: 1, borderColor: theme.border, backgroundColor: theme.cardAlt }}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 8 }}>
               {nextSlot && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, backgroundColor: 'rgba(99,102,241,0.1)', borderWidth: 1, borderColor: 'rgba(99,102,241,0.2)' }}>
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#6366f1' }}>⏱ Next slot: {nextSlot}</Text>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: theme.accent }}>⏱ Next slot: {nextSlot}</Text>
                 </View>
               )}
               {salon.minPrice && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, backgroundColor: 'rgba(99,102,241,0.08)', borderWidth: 1, borderColor: 'rgba(99,102,241,0.15)' }}>
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#6366f1' }}>💰 From ₹{salon.minPrice}</Text>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: theme.accent }}>💰 From ₹{salon.minPrice}</Text>
                 </View>
               )}
               {salon.kidsHaircut && (
