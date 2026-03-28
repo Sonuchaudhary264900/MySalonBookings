@@ -6,7 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer, useNavigation, createNavigationContainerRef } from '@react-navigation/native';
 import * as Notifications from 'expo-notifications';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -36,7 +36,7 @@ import LegalScreen          from './src/screens/legal/LegalScreen';
 
 const RootStack = createNativeStackNavigator();
 const AuthStack = createNativeStackNavigator();
-const Tab       = createMaterialTopTabNavigator();
+const Tab       = createBottomTabNavigator();
 const HomeStack = createNativeStackNavigator();
 const BookStack = createNativeStackNavigator();
 const FavStack  = createNativeStackNavigator();
@@ -90,10 +90,8 @@ function MainTabs() {
   const { theme } = useTheme();
   return (
     <Tab.Navigator
-      tabBarPosition="bottom"
       screenOptions={({ route }) => ({
         headerShown: false,
-        swipeEnabled: true,
         tabBarActiveTintColor: theme.accent,
         tabBarInactiveTintColor: theme.subText,
         tabBarStyle: {
@@ -104,8 +102,7 @@ function MainTabs() {
           elevation: 8,
           shadowOpacity: 0.08,
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: 2 },
-        tabBarIndicatorStyle: { height: 0 }, // hide top indicator line
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
         tabBarIcon: ({ focused, color }) => {
           const icons = {
             HomeTab:      focused ? 'home'      : 'home-outline',
@@ -115,7 +112,6 @@ function MainTabs() {
           };
           return <Ionicons name={icons[route.name]} size={22} color={color} />;
         },
-        tabBarShowIcon: true,
         tabBarItemStyle: { paddingTop: 6, paddingBottom: 6 },
       })}
     >
