@@ -131,6 +131,21 @@ const customerSchema = new mongoose.Schema(
     ],
 
     // ==========================================
+    // LAST KNOWN LOCATION (updated when app registers push token)
+    // ==========================================
+    lastLocation: {
+      type: {
+        type: String,
+        enum: ['Point'],
+        default: 'Point',
+      },
+      coordinates: {
+        type: [Number], // [longitude, latitude]
+      },
+    },
+    lastLocationAt: { type: Date },
+
+    // ==========================================
     // PREFERENCES
     // ==========================================
     preferredGender: {
@@ -249,6 +264,7 @@ customerSchema.index({ phone: 1, sparse: true });
 customerSchema.index({ createdAt: -1 });
 customerSchema.index({ totalBookings: -1 });
 customerSchema.index({ 'savedLocations.coordinates': '2dsphere' });
+customerSchema.index({ lastLocation: '2dsphere' });
 
 // ===================================================
 // MIDDLEWARE - HASH PASSWORD BEFORE SAVE
