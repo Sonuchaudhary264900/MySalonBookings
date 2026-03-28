@@ -644,10 +644,19 @@ router.put("/customer/bookings/:bookingId/reschedule",
 
 // POST /customer/push-token — save expo push token
 router.post("/customer/push-token", authenticateCustomer, asyncHandler(async (req, res) => {
-  const { pushToken } = req.body;
+  const { pushToken, latitude, longitude } = req.body;
   if (!pushToken) return res.status(400).json({ success: false, message: "pushToken is required" });
   const Customer = require("../models/Customer");
-  await Customer.findByIdAndUpdate(req.customer._id, { pushToken });
+  const update = { pushToken };
+  if (latitude != null && longitude != null) {
+    const lat = Number(latitude);
+    const lng = Number(longitude);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      update.lastLocation = { type: 'Point', coordinates: [lng, lat] };
+      update.lastLocationAt = new Date();
+    }
+  }
+  await Customer.findByIdAndUpdate(req.customer._id, update);
   res.json({ success: true });
 }));
 
@@ -1573,26 +1582,45 @@ router.get("/owner/coupons/:id/analytics", authenticateOwner, validateObjectId("
   }});
 }));
 
-// POST /owner/coupons/broadcast — send push notification to all customers of this salon
+// POST /owner/coupons/broadcast — send push notification to customers of this salon within 5 km
 router.post("/owner/coupons/broadcast", authenticateOwner, asyncHandler(async (req, res) => {
-  const Coupon  = require("../models/Coupon");
-  const Booking = require("../models/Booking");
+  const Coupon   = require("../models/Coupon");
+  const Booking  = require("../models/Booking");
   const Customer = require("../models/Customer");
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] })
+    .select("name location");
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+
+  const salonCoords = salon.location?.coordinates; // [lng, lat]
+  if (!salonCoords || salonCoords.length !== 2) {
+    return res.status(400).json({ success: false, message: "Salon location not configured" });
+  }
 
   const { couponId, customMessage } = req.body;
   const coupon = couponId ? await Coupon.findOne({ _id: couponId, salonId: salon._id }).lean() : null;
 
-  // Gather unique customer IDs who booked at this salon
+  // Customers who have booked at this salon
   const customerIds = await Booking.distinct("customerId", { salonId: salon._id });
+
+  // Filter: must have push token + lastLocation within 5 km of salon
+  const RADIUS_KM = 5;
+  const EARTH_RADIUS_KM = 6371;
   const customers = await Customer.find({
     _id: { $in: customerIds },
     pushToken: { $exists: true, $ne: null, $ne: "" },
+    lastLocation: {
+      $geoWithin: {
+        $centerSphere: [salonCoords, RADIUS_KM / EARTH_RADIUS_KM],
+      },
+    },
   }).select("pushToken name").lean();
 
   if (customers.length === 0) {
-    return res.json({ success: true, data: { sent: 0, total: 0 }, message: "No customers with push tokens found" });
+    return res.json({
+      success: true,
+      data: { sent: 0, total: 0 },
+      message: "No eligible customers within 5 km with notifications enabled",
+    });
   }
 
   const title = coupon
@@ -1622,7 +1650,7 @@ router.post("/owner/coupons/broadcast", authenticateOwner, asyncHandler(async (r
     } catch { /* non-critical */ }
   }
 
-  res.json({ success: true, data: { sent, total: customers.length }, message: `Notification sent to ${sent} of ${customers.length} customers` });
+  res.json({ success: true, data: { sent, total: customers.length }, message: `Notification sent to ${sent} of ${customers.length} nearby customers` });
 }));
 
 /* =====================================================
