@@ -482,7 +482,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
         </View>
 
         {/* ── INFO CHIPS ──────────────────────────────────────────────── */}
-        <View style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 4, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10 }}>
           {salon.category && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: 'rgba(99,102,241,0.1)', borderWidth: 1, borderColor: 'rgba(99,102,241,0.22)' }}>
               <Ionicons name="cut-outline" size={12} color="#818cf8" />
@@ -520,10 +520,10 @@ export default function SalonDetailsScreen({ route, navigation }) {
               <Text style={{ fontSize: 12, fontWeight: '600', color: theme.subText }}>{salon.phone}</Text>
             </TouchableOpacity>
           )}
-          {salon.description && (
-            <Text style={{ fontSize: 13, color: theme.subText, lineHeight: 19, width: '100%', marginTop: 4 }}>{salon.description}</Text>
-          )}
-        </View>
+        </ScrollView>
+        {salon.description && (
+          <Text style={{ fontSize: 13, color: theme.subText, lineHeight: 19, paddingHorizontal: 16, paddingBottom: 10 }}>{salon.description}</Text>
+        )}
 
         {/* Trust strip */}
         <View style={{ borderTopWidth: 1, borderBottomWidth: 1, borderColor: theme.border, backgroundColor: theme.bg }}>
