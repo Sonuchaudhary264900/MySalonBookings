@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Plus, Tag, RefreshCw, TrendingUp, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Plus, Tag, RefreshCw, TrendingUp, CheckCircle, XCircle, Clock, Bell, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import CouponCard  from '../../components/coupons/CouponCard';
@@ -89,12 +89,13 @@ const FilterPill = ({ label, count, active, onClick }) => (
 
 /* ─── Main Coupons page ──────────────────────────────────────── */
 export default function Coupons() {
-  const [coupons,   setCoupons]   = useState([]);
-  const [loading,   setLoading]   = useState(true);
-  const [filter,    setFilter]    = useState('all'); // all | active | expired | disabled
-  const [modal,     setModal]     = useState(null);  // null | 'create' | coupon-object (edit)
-  const [toggling,  setToggling]  = useState(null);
-  const [deleting,  setDeleting]  = useState(null);
+  const [coupons,       setCoupons]       = useState([]);
+  const [loading,       setLoading]       = useState(true);
+  const [filter,        setFilter]        = useState('all'); // all | active | expired | disabled
+  const [modal,         setModal]         = useState(null);  // null | 'create' | coupon-object (edit)
+  const [toggling,      setToggling]      = useState(null);
+  const [deleting,      setDeleting]      = useState(null);
+  const [broadcasting,  setBroadcasting]  = useState(null);  // couponId being broadcast
 
   const fetchCoupons = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -160,6 +161,20 @@ export default function Coupons() {
 
   const handleSaved = () => fetchCoupons(true);
 
+  const handleBroadcast = async (coupon) => {
+    setBroadcasting(coupon._id);
+    try {
+      const res = await api.post('/owner/coupons/broadcast', { couponId: coupon._id });
+      const { sent, total } = res.data.data || {};
+      if (sent > 0) toast.success(`📣 Sent to ${sent} of ${total} customers!`);
+      else toast(`No customers with push notifications enabled yet.`, { icon: 'ℹ️' });
+    } catch {
+      toast.error('Failed to send notification');
+    } finally {
+      setBroadcasting(null);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -194,6 +209,28 @@ export default function Coupons() {
               </button>
             </div>
           </div>
+
+          {/* ── Expiring soon alert ── */}
+          {!loading && (() => {
+            const expiring = coupons.filter(c => {
+              const d = c.daysLeft ?? (c.expiryDate ? Math.ceil((new Date(c.expiryDate) - new Date()) / 86400000) : null);
+              return isActive(c) && d !== null && d <= 3 && d >= 0;
+            });
+            if (!expiring.length) return null;
+            return (
+              <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800">
+                <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+                    {expiring.length} coupon{expiring.length > 1 ? 's' : ''} expiring soon
+                  </p>
+                  <p className="text-xs text-amber-600 dark:text-amber-500 mt-0.5">
+                    {expiring.map(c => c.code).join(', ')} — notify your customers now!
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* ── Stats ── */}
           {!loading && coupons.length > 0 && (
@@ -235,8 +272,10 @@ export default function Coupons() {
                   onToggle={handleToggle}
                   onEdit={(c) => setModal(c)}
                   onDelete={handleDelete}
+                  onBroadcast={handleBroadcast}
                   toggling={toggling === coupon._id}
                   deleting={deleting === coupon._id}
+                  broadcasting={broadcasting === coupon._id}
                 />
               ))}
             </div>

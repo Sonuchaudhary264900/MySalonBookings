@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Trash2, Edit2, Copy, Check, AlertTriangle, Loader2, IndianRupee, Percent, Users, Calendar, ShoppingBag } from 'lucide-react';
+import { Trash2, Edit2, Copy, Check, AlertTriangle, Loader2, IndianRupee, Percent, Users, Calendar, ShoppingBag, Bell } from 'lucide-react';
 
 /* ── Delete confirm overlay ── */
 const DeleteConfirm = ({ code, onConfirm, onCancel, loading }) => (
@@ -30,7 +30,7 @@ const DeleteConfirm = ({ code, onConfirm, onCancel, loading }) => (
   </div>
 );
 
-const CouponCard = ({ coupon, onToggle, onEdit, onDelete, toggling, deleting }) => {
+const CouponCard = ({ coupon, onToggle, onEdit, onDelete, onBroadcast, toggling, deleting, broadcasting }) => {
   const [copied,      setCopied]      = useState(false);
   const [showDelete,  setShowDelete]  = useState(false);
 
@@ -59,6 +59,10 @@ const CouponCard = ({ coupon, onToggle, onEdit, onDelete, toggling, deleting }) 
   const daysLeft = coupon.expiryDate && !isExpired
     ? Math.ceil((new Date(coupon.expiryDate) - new Date()) / 86400000)
     : null;
+
+  const remaining    = coupon.remaining ?? (coupon.maxUses ? Math.max(0, coupon.maxUses - (coupon.usedCount ?? 0)) : null);
+  const isExpiring   = isActive && daysLeft !== null && daysLeft <= 3;
+  const isLimitLow   = isActive && remaining !== null && remaining <= 10;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(coupon.code).then(() => {
@@ -153,6 +157,26 @@ const CouponCard = ({ coupon, onToggle, onEdit, onDelete, toggling, deleting }) 
           </span>
         </div>
 
+        {/* Urgency badges */}
+        {(isExpiring || isLimitLow) && (
+          <div className="flex items-center gap-2 flex-wrap">
+            {isExpiring && (
+              <span className="text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1
+                bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400
+                ring-1 ring-amber-200 dark:ring-amber-800">
+                ⏰ Expiring in {daysLeft === 0 ? 'today' : `${daysLeft}d`}
+              </span>
+            )}
+            {isLimitLow && (
+              <span className="text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1
+                bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400
+                ring-1 ring-red-200 dark:ring-red-800">
+                ⚡ Only {remaining} left
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Meta info */}
         <div className="space-y-1.5">
           {coupon.minOrderAmount > 0 && (
@@ -166,6 +190,11 @@ const CouponCard = ({ coupon, onToggle, onEdit, onDelete, toggling, deleting }) 
             Used: <span className="font-semibold text-gray-700 dark:text-gray-300">
               {coupon.usedCount ?? 0}{coupon.maxUses ? ` / ${coupon.maxUses}` : ''}
             </span>
+            {remaining !== null && isActive && (
+              <span className={`font-semibold ${remaining <= 5 ? 'text-red-500 dark:text-red-400' : remaining <= 10 ? 'text-amber-500 dark:text-amber-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                · {remaining} remaining
+              </span>
+            )}
             {!coupon.maxUses && <span className="text-gray-300 dark:text-gray-600">(unlimited)</span>}
           </div>
           {expiryStr && (
@@ -215,6 +244,20 @@ const CouponCard = ({ coupon, onToggle, onEdit, onDelete, toggling, deleting }) 
               transition-all">
             <Edit2 className="w-3 h-3" /> Edit
           </button>
+          {isActive && onBroadcast && (
+            <button
+              onClick={() => onBroadcast(coupon)}
+              disabled={broadcasting}
+              title="Notify customers"
+              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-semibold
+                bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400
+                hover:bg-indigo-100 dark:hover:bg-indigo-950
+                border border-indigo-200 dark:border-indigo-800
+                transition-all disabled:opacity-50">
+              {broadcasting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Bell className="w-3 h-3" />}
+              Notify
+            </button>
+          )}
           <button onClick={() => setShowDelete(true)}
             className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-semibold
               bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300
