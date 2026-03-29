@@ -32,7 +32,6 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "./plugins/withLocalProperties",
       "./plugins/withAndroidBuildFix",
       "@react-native-firebase/app",
       [
