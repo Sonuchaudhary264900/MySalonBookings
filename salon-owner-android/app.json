@@ -7,8 +7,6 @@
     "icon": "./assets/Icon-1024.png",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/Icon-1024.png",
-      "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
@@ -25,7 +23,7 @@
       "permissions": [],
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon-foreground.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#07071a"
       }
     },
     "web": {

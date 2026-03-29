@@ -92,11 +92,13 @@ export default function IntroScreen({ navigation }) {
           ]}
         >
           <View style={styles.logoGlow} />
-          <Image
-            source={require('../../../assets/Icon-1024.png')}
-            style={styles.logoImg}
-            resizeMode="contain"
-          />
+          <View style={styles.logoCircle}>
+            <Image
+              source={require('../../../assets/Icon-1024.png')}
+              style={styles.logoImg}
+              resizeMode="contain"
+            />
+          </View>
         </Animated.View>
       </View>
 
@@ -123,8 +125,8 @@ export default function IntroScreen({ navigation }) {
         <View style={styles.divider} />
 
         <Text style={styles.headline}>
-          Run Your Salon{'\n'}
-          <Text style={styles.headlineAccent}>Like a Pro.</Text>
+          Run Your Salon Online. Get More Customers.{'\n'}
+          <Text style={styles.headlineAccent}>Earn More Money.</Text>
         </Text>
 
         <Text style={styles.subtext}>
@@ -231,15 +233,31 @@ const styles = StyleSheet.create({
   },
   logoGlow: {
     position: 'absolute',
-    width: W * 0.58,
-    height: W * 0.58,
-    borderRadius: W * 0.29,
+    width: W * 0.62,
+    height: W * 0.62,
+    borderRadius: W * 0.31,
     backgroundColor: '#6366f1',
-    opacity: 0.2,
+    opacity: 0.22,
   },
-  logoImg: {
+  logoCircle: {
     width: W * 0.52,
     height: W * 0.52,
+    borderRadius: W * 0.26,
+    backgroundColor: '#0d0d2b',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    borderWidth: 3,
+    borderColor: 'rgba(56,189,248,0.5)',
+    shadowColor: '#38bdf8',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  logoImg: {
+    width: W * 1.2,
+    height: W * 1.2,
   },
 
   // Bottom

@@ -7,13 +7,12 @@ if (typeof WeakRef === 'undefined') {
 }
 
 import 'react-native-gesture-handler';
-import React, { useState, useEffect } from 'react';
-import { ActivityIndicator, View, Text, TouchableOpacity, StyleSheet, Alert, Image, Dimensions, Modal, ScrollView } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
+import { Animated, ActivityIndicator, View, Text, TouchableOpacity, StyleSheet, Alert, Image, Dimensions, Modal, ScrollView } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import Toast from 'react-native-toast-message';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { createDrawerNavigator, DrawerContentScrollView } from '@react-navigation/drawer';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { useNavigationState } from '@react-navigation/native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -51,10 +50,15 @@ import ServiceMenuScreen       from './src/screens/dashboard/ServiceMenuScreen';
 import BillingScreen           from './src/screens/dashboard/BillingScreen';
 import LegalScreen             from './src/screens/legal/LegalScreen';
 
-const RootStack  = createNativeStackNavigator();
-const AuthStack  = createNativeStackNavigator();
-const Drawer     = createDrawerNavigator();
-const Tab        = createMaterialTopTabNavigator();
+const RootStack = createNativeStackNavigator();
+const AuthStack = createNativeStackNavigator();
+const MainStack = createNativeStackNavigator();
+const Tab       = createMaterialTopTabNavigator();
+
+const DRAWER_WIDTH = 256;
+
+// Exported so DrawerMenuButton can use it without the drawer navigator
+export const DrawerContext = createContext({ openDrawer: () => {}, closeDrawer: () => {} });
 
 // ── Nav sections matching the website sidebar ─────────────────────
 const NAV_SECTIONS = [
@@ -85,8 +89,54 @@ const NAV_SECTIONS = [
   },
 ];
 
-// ── Custom Drawer Content ─────────────────────────────────────────
-function CustomDrawer(props) {
+const TAB_SCREENS = ['Home', 'Reports', 'Services', 'Settings'];
+
+// ── Custom animated drawer layout (no react-native-reanimated) ────
+function CustomDrawerLayout({ children, drawerContent }) {
+  const translateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
+  const overlayOpacity = useRef(new Animated.Value(0)).current;
+  const [isOpen, setIsOpen] = useState(false);
+
+  const openDrawer = useCallback(() => {
+    setIsOpen(true);
+    Animated.parallel([
+      Animated.timing(translateX, { toValue: 0, duration: 250, useNativeDriver: true }),
+      Animated.timing(overlayOpacity, { toValue: 1, duration: 250, useNativeDriver: true }),
+    ]).start();
+  }, [translateX, overlayOpacity]);
+
+  const closeDrawer = useCallback(() => {
+    Animated.parallel([
+      Animated.timing(translateX, { toValue: -DRAWER_WIDTH, duration: 200, useNativeDriver: true }),
+      Animated.timing(overlayOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
+    ]).start(() => setIsOpen(false));
+  }, [translateX, overlayOpacity]);
+
+  return (
+    <DrawerContext.Provider value={{ openDrawer, closeDrawer }}>
+      <View style={{ flex: 1 }}>
+        {children}
+        {/* Backdrop — intercepts taps to close drawer */}
+        <Animated.View
+          pointerEvents={isOpen ? 'auto' : 'none'}
+          style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)', opacity: overlayOpacity }]}
+        >
+          <TouchableOpacity style={{ flex: 1 }} onPress={closeDrawer} activeOpacity={1} />
+        </Animated.View>
+        {/* Drawer panel slides in from left */}
+        <Animated.View
+          pointerEvents={isOpen ? 'box-none' : 'none'}
+          style={[StyleSheet.absoluteFill, { width: DRAWER_WIDTH, transform: [{ translateX }] }]}
+        >
+          {drawerContent}
+        </Animated.View>
+      </View>
+    </DrawerContext.Provider>
+  );
+}
+
+// ── Custom Drawer content ─────────────────────────────────────────
+function CustomDrawer({ navigation }) {
   const { user, logout } = useAuth();
   const { salon } = useSalon();
   const { unreadCount } = useNotifications();
@@ -94,12 +144,17 @@ function CustomDrawer(props) {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
   const dStyles = getDStyles(theme, isDark);
+  const { closeDrawer } = useContext(DrawerContext);
 
   const ACTIVE_COLOR = isDark ? '#818cf8' : '#4f46e5';
 
-  // Get current active screen name (tab or direct drawer screen)
+  // Read which screen is active by traversing the root navigation state
   const activeTab = useNavigationState(state => {
-    const activeRoute = state.routes[state.index];
+    const mainRoute = state.routes.find(r => r.name === 'Main');
+    if (!mainRoute?.state) return 'Home';
+    const mainState = mainRoute.state;
+    const activeRoute = mainState.routes?.[mainState.index];
+    if (!activeRoute) return 'Home';
     if (activeRoute.name === 'MainTabs') {
       const tabState = activeRoute.state;
       if (!tabState) return 'Home';
@@ -115,9 +170,17 @@ function CustomDrawer(props) {
     ]);
   };
 
+  const handleNavItem = (item) => {
+    if (TAB_SCREENS.includes(item.name)) {
+      navigation.navigate('Main', { screen: 'MainTabs', params: { screen: item.name } });
+    } else {
+      navigation.navigate('Main', { screen: item.name });
+    }
+    closeDrawer();
+  };
+
   return (
-    <DrawerContentScrollView
-      {...props}
+    <ScrollView
       contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top, paddingBottom: insets.bottom + 8 }}
       style={dStyles.container}
     >
@@ -163,14 +226,7 @@ function CustomDrawer(props) {
                 <TouchableOpacity
                   key={item.name}
                   style={[dStyles.navItem, focused && dStyles.navItemActive]}
-                  onPress={() => {
-                    if (TAB_SCREENS.includes(item.name)) {
-                      props.navigation.navigate('MainTabs', { screen: item.name });
-                    } else {
-                      props.navigation.navigate(item.name);
-                    }
-                    props.navigation.closeDrawer();
-                  }}
+                  onPress={() => handleNavItem(item)}
                   activeOpacity={0.8}
                 >
                   {focused && <View style={dStyles.activeBar} />}
@@ -203,12 +259,9 @@ function CustomDrawer(props) {
         </TouchableOpacity>
         <Text style={dStyles.version}>My Salon Bookings · Owner App v1.0</Text>
       </View>
-    </DrawerContentScrollView>
+    </ScrollView>
   );
 }
-
-
-const TAB_SCREENS = ['Home', 'Reports', 'Services', 'Settings'];
 
 const TAB_ICONS = {
   Home:     { off: 'grid-outline',      on: 'grid' },
@@ -221,9 +274,9 @@ const TAB_LABELS = {
   Home: 'Dashboard', Reports: 'Analytics', Services: 'Services', Settings: 'Settings',
 };
 
-// ── 5-tab swipeable navigator matching website bottom nav ──────────
+// ── 4-tab swipeable navigator ──────────────────────────────────────
 function MainTabs() {
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
   return (
     <Tab.Navigator
       tabBarPosition="bottom"
@@ -269,37 +322,29 @@ function MainTabs() {
   );
 }
 
-// ── Main drawer navigator ─────────────────────────────────────────
-function MainDrawer() {
-  const { theme } = useTheme();
+// ── Main navigator: stack + custom animated drawer overlay ─────────
+function MainDrawer({ navigation }) {
   return (
-    <Drawer.Navigator
-      drawerContent={(props) => <CustomDrawer {...props} />}
-      screenOptions={{
-        headerShown: false,
-        drawerPosition: 'left',
-        drawerType: 'front',
-        drawerStyle: { width: 256, backgroundColor: theme.card },
-        overlayColor: 'rgba(0,0,0,0.5)',
-        swipeEnabled: false,
-      }}
+    <CustomDrawerLayout
+      drawerContent={<CustomDrawer navigation={navigation} />}
     >
-      <Drawer.Screen name="MainTabs"      component={MainTabs} />
-      <Drawer.Screen name="Bookings"      component={BookingsScreen} />
-      <Drawer.Screen name="Reports"       component={ReportsScreen} />
-      <Drawer.Screen name="Reviews"       component={ReviewsScreen} />
-      <Drawer.Screen name="Notifications" component={NotificationsScreen} />
-      <Drawer.Screen name="Profile"       component={ProfileScreen} />
-      <Drawer.Screen name="Calendar"      component={CalendarScreen} />
-      <Drawer.Screen name="WorkingHours"  component={WorkingHoursScreen} />
-      <Drawer.Screen name="WalkIn"        component={WalkInBookingScreen} />
-      <Drawer.Screen name="Customers"     component={CustomersScreen} />
-      <Drawer.Screen name="Coupons"       component={CouponsScreen} />
-      <Drawer.Screen name="Billing"       component={BillingScreen} />
-      <Drawer.Screen name="Gallery"       component={GalleryScreen} />
-      <Drawer.Screen name="ServiceMenu"   component={ServiceMenuScreen} />
-      <Drawer.Screen name="Legal"         component={LegalScreen} />
-    </Drawer.Navigator>
+      <MainStack.Navigator screenOptions={{ headerShown: false }}>
+        <MainStack.Screen name="MainTabs"      component={MainTabs} />
+        <MainStack.Screen name="Bookings"      component={BookingsScreen} />
+        <MainStack.Screen name="Reviews"       component={ReviewsScreen} />
+        <MainStack.Screen name="Notifications" component={NotificationsScreen} />
+        <MainStack.Screen name="Profile"       component={ProfileScreen} />
+        <MainStack.Screen name="Calendar"      component={CalendarScreen} />
+        <MainStack.Screen name="WorkingHours"  component={WorkingHoursScreen} />
+        <MainStack.Screen name="WalkIn"        component={WalkInBookingScreen} />
+        <MainStack.Screen name="Customers"     component={CustomersScreen} />
+        <MainStack.Screen name="Coupons"       component={CouponsScreen} />
+        <MainStack.Screen name="Billing"       component={BillingScreen} />
+        <MainStack.Screen name="Gallery"       component={GalleryScreen} />
+        <MainStack.Screen name="ServiceMenu"   component={ServiceMenuScreen} />
+        <MainStack.Screen name="Legal"         component={LegalScreen} />
+      </MainStack.Navigator>
+    </CustomDrawerLayout>
   );
 }
 
@@ -323,11 +368,8 @@ function RootNavigator() {
   if (isLoading) {
     return (
       <View style={rootStyles.splash}>
-        <Image source={require('./assets/Icon-1024.png')} style={rootStyles.splashLogoImg} resizeMode="contain" />
-        <View style={rootStyles.splashBottom}>
-          <Text style={rootStyles.splashTitle}>My Salon Bookings</Text>
-          <Text style={rootStyles.splashSubtitle}>Manage your salon, bookings{'\n'}and grow your business</Text>
-          <ActivityIndicator size="large" color="#6366f1" style={{ marginTop: 8 }} />
+        <View style={rootStyles.splashLogoCircle}>
+          <Image source={require('./assets/Icon-1024.png')} style={rootStyles.splashLogoImg} resizeMode="contain" />
         </View>
       </View>
     );
@@ -352,9 +394,7 @@ function RootNavigator() {
   );
 }
 
-// ── Mandatory booking accept/reject modal ─────────────────────────────────────
-// Shows on top of everything when owner receives a new booking and
-// auto-confirm is disabled. Owner MUST accept or reject before continuing.
+// ── Mandatory booking accept/reject modal ─────────────────────────
 function BookingAlertModal() {
   const { pendingBooking, clearPendingBooking } = useNotifications();
   const [saving, setSaving] = useState(false);
@@ -385,7 +425,6 @@ function BookingAlertModal() {
     <Modal visible animationType="slide" transparent statusBarTranslucent>
       <View style={alertStyles.overlay}>
         <View style={alertStyles.sheet}>
-          {/* Red top bar — grabs attention */}
           <View style={alertStyles.topBar}>
             <Ionicons name="notifications" size={22} color="#fff" />
             <Text style={alertStyles.topBarText}>New Booking Request</Text>
@@ -457,12 +496,10 @@ function InfoRow({ icon, label, value }) {
   );
 }
 
-// ── Notification tap handler (background / killed state) ──────────────────────
+// ── Notification tap handler ──────────────────────────────────────
 function NotificationTapHandler() {
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
-      // User tapped a notification — data is available for future navigation
-      // e.g. navigate to bookings screen
       const data = response.notification.request.content.data || {};
       console.log('Notification tapped:', data.type, data.bookingId);
     });
@@ -493,7 +530,7 @@ export default function App() {
   );
 }
 
-// ── Booking alert modal styles ─────────────────────────────────────────────────
+// ── Styles ────────────────────────────────────────────────────────
 const alertStyles = StyleSheet.create({
   overlay:      { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   sheet:        { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden', maxHeight: '80%' },
@@ -516,41 +553,38 @@ const alertStyles = StyleSheet.create({
   acceptBtn:    { backgroundColor: '#16a34a' },
 });
 
-const { height: SCREEN_H } = Dimensions.get('window');
+const { width: SCREEN_W } = Dimensions.get('window');
 const rootStyles = StyleSheet.create({
-  splash: { flex: 1, backgroundColor: '#fff', justifyContent: 'center' },
-  splashLogoImg: { width: '100%', height: SCREEN_H * 0.40, alignSelf: 'center' },
-  splashBottom: { paddingHorizontal: 28, paddingBottom: 40, gap: 8, marginTop: 16 },
-  splashTitle: { fontSize: 26, fontWeight: '800', color: '#111827', textAlign: 'center' },
-  splashSubtitle: { fontSize: 14, color: '#6b7280', textAlign: 'center', lineHeight: 22 },
+  splash:           { flex: 1, backgroundColor: '#ffffff', justifyContent: 'center', alignItems: 'center' },
+  splashLogoCircle: { width: SCREEN_W * 0.55, height: SCREEN_W * 0.55, borderRadius: SCREEN_W * 0.275, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 16, elevation: 8 },
+  splashLogoImg:    { width: SCREEN_W * 0.48, height: SCREEN_W * 0.48 },
 });
 
-// ── Drawer styles — theme-aware ────────────────────────────────────
 const getDStyles = (theme, isDark) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.card },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 16 },
-  brandIcon: { width: 34, height: 34, borderRadius: 10, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' },
-  brandName: { fontSize: 14, fontWeight: '800', color: theme.text },
-  brandSub: { fontSize: 11, color: theme.subText, marginTop: 1 },
-  userCard: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 12 },
-  avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' },
-  avatarImg: { width: 38, height: 38, borderRadius: 19, borderWidth: 1.5, borderColor: theme.border },
-  avatarInitial: { fontSize: 16, fontWeight: '800', color: '#fff' },
-  userName: { fontSize: 13, fontWeight: '700', color: theme.text },
-  salonName: { fontSize: 11, color: theme.subText, marginTop: 1 },
-  divider: { height: 1, backgroundColor: theme.border },
-  nav: { paddingHorizontal: 8, paddingVertical: 4 },
-  section: { marginBottom: 2 },
-  sectionLabel: { fontSize: 10, fontWeight: '700', color: theme.subText, letterSpacing: 1.2, paddingHorizontal: 8, paddingTop: 12, paddingBottom: 4 },
-  navItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 10, paddingVertical: 10, borderRadius: 10, marginBottom: 1, overflow: 'hidden' },
-  navItemActive: { backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff' },
-  activeBar: { position: 'absolute', left: 0, top: '50%', marginTop: -10, width: 3, height: 20, backgroundColor: isDark ? '#818cf8' : '#4f46e5', borderTopRightRadius: 2, borderBottomRightRadius: 2 },
-  navLabel: { flex: 1, fontSize: 13, fontWeight: '500', color: theme.subText },
+  container:      { flex: 1, backgroundColor: theme.card },
+  brand:          { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 16 },
+  brandIcon:      { width: 34, height: 34, borderRadius: 10, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' },
+  brandName:      { fontSize: 14, fontWeight: '800', color: theme.text },
+  brandSub:       { fontSize: 11, color: theme.subText, marginTop: 1 },
+  userCard:       { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 12 },
+  avatar:         { width: 38, height: 38, borderRadius: 19, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' },
+  avatarImg:      { width: 38, height: 38, borderRadius: 19, borderWidth: 1.5, borderColor: theme.border },
+  avatarInitial:  { fontSize: 16, fontWeight: '800', color: '#fff' },
+  userName:       { fontSize: 13, fontWeight: '700', color: theme.text },
+  salonName:      { fontSize: 11, color: theme.subText, marginTop: 1 },
+  divider:        { height: 1, backgroundColor: theme.border },
+  nav:            { paddingHorizontal: 8, paddingVertical: 4 },
+  section:        { marginBottom: 2 },
+  sectionLabel:   { fontSize: 10, fontWeight: '700', color: theme.subText, letterSpacing: 1.2, paddingHorizontal: 8, paddingTop: 12, paddingBottom: 4 },
+  navItem:        { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 10, paddingVertical: 10, borderRadius: 10, marginBottom: 1, overflow: 'hidden' },
+  navItemActive:  { backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff' },
+  activeBar:      { position: 'absolute', left: 0, top: '50%', marginTop: -10, width: 3, height: 20, backgroundColor: isDark ? '#818cf8' : '#4f46e5', borderTopRightRadius: 2, borderBottomRightRadius: 2 },
+  navLabel:       { flex: 1, fontSize: 13, fontWeight: '500', color: theme.subText },
   navLabelActive: { color: isDark ? '#818cf8' : '#4f46e5', fontWeight: '600' },
-  badge: { backgroundColor: '#ef4444', borderRadius: 10, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
-  badgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
-  footer: { paddingHorizontal: 16 },
-  logoutBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 14 },
-  logoutText: { fontSize: 14, fontWeight: '600', color: '#f87171' },
-  version: { fontSize: 10, color: theme.subText, paddingBottom: 4 },
+  badge:          { backgroundColor: '#ef4444', borderRadius: 10, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
+  badgeText:      { color: '#fff', fontSize: 10, fontWeight: '700' },
+  footer:         { paddingHorizontal: 16 },
+  logoutBtn:      { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 14 },
+  logoutText:     { fontSize: 14, fontWeight: '600', color: '#f87171' },
+  version:        { fontSize: 10, color: theme.subText, paddingBottom: 4 },
 });
