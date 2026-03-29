@@ -30,19 +30,13 @@ module.exports = function withAndroidBuildFix(config) {
         fs.writeFileSync(gradlePropertiesPath, content);
       }
 
-      // 3. Fix app/build.gradle: remove enableBundleCompression (invalid in RN 0.76.9)
-      //    and remove REACT_NATIVE_RELEASE_LEVEL buildConfigField (not used in our MainApplication)
+      // 3. Fix app/build.gradle: remove enableBundleCompression (invalid in RN 0.81.5)
       const appBuildGradlePath = path.join(root, 'app', 'build.gradle');
       if (fs.existsSync(appBuildGradlePath)) {
         let content = fs.readFileSync(appBuildGradlePath, 'utf8');
         // Remove enableBundleCompression line if present
         content = content.replace(
           /\s*enableBundleCompression\s*=\s*\(findProperty\([^)]+\)[^)]*\)[^\n]*\n/g,
-          '\n'
-        );
-        // Remove REACT_NATIVE_RELEASE_LEVEL buildConfigField if present
-        content = content.replace(
-          /\s*buildConfigField\s+"String",\s+"REACT_NATIVE_RELEASE_LEVEL"[^\n]*\n/g,
           '\n'
         );
         fs.writeFileSync(appBuildGradlePath, content);
