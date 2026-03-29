@@ -7,7 +7,6 @@ if (typeof WeakRef === 'undefined') {
 }
 
 import 'react-native-gesture-handler';
-import 'react-native-reanimated';
 import React, { useState, useEffect } from 'react';
 import { ActivityIndicator, View, Text, TouchableOpacity, StyleSheet, Alert, Image, Dimensions, Modal, ScrollView } from 'react-native';
 import * as Notifications from 'expo-notifications';

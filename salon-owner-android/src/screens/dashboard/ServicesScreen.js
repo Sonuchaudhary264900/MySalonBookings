@@ -364,45 +364,114 @@ function EmptyState({ onAdd, theme }) {
   );
 }
 
+// ── Category options by gender (mirrors website ServiceModal) ───
+const MALE_CAT_OPTIONS = [
+  { icon: '✂️', label: 'Hair Services (Men)' },
+  { icon: '🧔', label: 'Beard & Grooming' },
+  { icon: '💆', label: 'Spa & Massage' },
+  { icon: '🧴', label: 'Skin & Face (Men Grooming)' },
+  { icon: '🧍', label: 'Body Grooming' },
+];
+const FEMALE_CAT_OPTIONS = [
+  { icon: '💇', label: 'Hair Services (Women)' },
+  { icon: '💅', label: 'Nail Services' },
+  { icon: '🧖', label: 'Skin & Beauty' },
+  { icon: '🧴', label: 'Body Grooming' },
+  { icon: '💆', label: 'Spa & Relaxation' },
+  { icon: '👰', label: 'Bridal & Events' },
+];
+const UNISEX_CAT_OPTIONS = [
+  { icon: '✂️', label: 'Hair Services' },
+  { icon: '🧔', label: 'Beard & Grooming' },
+  { icon: '💅', label: 'Nail Services' },
+  { icon: '🧖', label: 'Skin & Face / Beauty' },
+  { icon: '💆', label: 'Spa & Massage' },
+  { icon: '🧴', label: 'Body Grooming' },
+  { icon: '👰', label: 'Bridal & Events' },
+  { icon: '👶', label: 'Kids Services' },
+  { icon: '🏠', label: 'At-Home Services' },
+];
+
+function getCategoryOptions(servedGender) {
+  if (servedGender === 'male')   return MALE_CAT_OPTIONS;
+  if (servedGender === 'female') return FEMALE_CAT_OPTIONS;
+  return UNISEX_CAT_OPTIONS;
+}
+
 // ── Service Modal ───────────────────────────────────────────────
 function ServiceModal({ visible, service, salon, onClose, onSaved }) {
   const editing = !!service?._id;
   const { theme } = useTheme();
-  const [name, setName]           = useState('');
-  const [description, setDescription] = useState('');
-  const [basePrice, setBasePrice] = useState('');
-  const [duration, setDuration]   = useState('30');
-  const [category, setCategory]   = useState(CATEGORY_ORDER[0]);
-  const [isActive, setIsActive]   = useState(true);
-  const [loading, setLoading]     = useState(false);
-  const [error, setError]         = useState('');
+  const servedGender = salon?.servedGender || 'male';
+  const categoryOptions = getCategoryOptions(servedGender);
+
+  const [name, setName]                   = useState('');
+  const [description, setDescription]     = useState('');
+  const [basePrice, setBasePrice]         = useState('');
+  const [duration, setDuration]           = useState('30');
+  const [category, setCategory]           = useState('');
+  const [customCategory, setCustomCategory] = useState('');
+  const [catExpanded, setCatExpanded]     = useState(false);
+  const [applicableFor, setApplicableFor] = useState(
+    servedGender === 'unisex' ? 'both' : servedGender
+  );
+  const [isActive, setIsActive]           = useState(true);
+  const [loading, setLoading]             = useState(false);
+  const [errors, setErrors]               = useState({});
 
   useEffect(() => {
     if (service) {
       setName(service.name || '');
       setDescription(service.description || '');
-      setBasePrice(String(service.basePrice || ''));
-      setDuration(String(service.duration || '30'));
-      setCategory(service.category || CATEGORY_ORDER[0]);
+      setBasePrice(String(service.basePrice ?? ''));
+      setDuration(String(service.duration ?? '30'));
+      const cat = service.category || '';
+      const isCustom = cat && !categoryOptions.find(o => o.label === cat);
+      setCustomCategory(isCustom ? cat : '');
+      setCategory(cat);
       setIsActive(service.isActive !== false);
+      const af = service.applicableFor || [];
+      if (servedGender !== 'unisex') {
+        setApplicableFor(servedGender);
+      } else if (af.length === 1) {
+        setApplicableFor(af[0]);
+      } else {
+        setApplicableFor('both');
+      }
     } else {
       setName(''); setDescription(''); setBasePrice(''); setDuration('30');
-      setCategory(CATEGORY_ORDER[0]); setIsActive(true);
+      setCategory(''); setCustomCategory(''); setIsActive(true);
+      setApplicableFor(servedGender === 'unisex' ? 'both' : servedGender);
     }
-    setError('');
+    setErrors({});
+    setCatExpanded(false);
   }, [service, visible]);
 
   const handleSave = async () => {
-    if (!name.trim()) { setError('Service name is required'); return; }
-    if (!basePrice || isNaN(Number(basePrice))) { setError('Enter a valid price'); return; }
-    if (!duration || isNaN(Number(duration))) { setError('Enter a valid duration in minutes'); return; }
-    setError(''); setLoading(true);
+    const errs = {};
+    if (!name.trim()) errs.name = 'Service name is required';
+    if (servedGender === 'unisex' && !applicableFor) errs.applicableFor = 'Please select who this service is for';
+    if (!category || category === '__other__') errs.category = 'Please select a category';
+    if (!basePrice) errs.basePrice = 'Price is required';
+    else if (isNaN(Number(basePrice)) || Number(basePrice) < 0) errs.basePrice = 'Price must be a positive number';
+    if (!duration) errs.duration = 'Duration is required';
+    else if (isNaN(Number(duration)) || Number(duration) < 1) errs.duration = 'Duration must be at least 1 min';
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+
+    setErrors({});
+    setLoading(true);
     try {
-      const applicableFor =
-        salon?.servedGender === 'male'   ? ['male'] :
-        salon?.servedGender === 'female' ? ['female'] :
-        ['male', 'female'];
-      const payload = { name: name.trim(), description: description.trim(), basePrice: Number(basePrice), duration: Number(duration), category, isActive, applicableFor };
+      const applicableForArr =
+        applicableFor === 'both' ? ['male', 'female'] : [applicableFor];
+      const payload = {
+        name: name.trim(),
+        description: description.trim(),
+        basePrice: Number(basePrice),
+        duration: Number(duration),
+        category,
+        isActive,
+        applicableFor: applicableForArr,
+      };
       if (editing) {
         await api.put(`/owner/services/${service._id}`, payload);
       } else {
@@ -411,15 +480,13 @@ function ServiceModal({ visible, service, salon, onClose, onSaved }) {
       onSaved();
       onClose();
     } catch (err) {
-      setError(err.message || 'Failed to save service');
+      setErrors({ general: err.message || 'Failed to save service' });
     } finally {
       setLoading(false);
     }
   };
 
-  const availableCategories = salon?.offeredCategories?.length > 0
-    ? salon.offeredCategories.map(c => c.name)
-    : CATEGORY_ORDER;
+  const isCatCustom = category && !categoryOptions.find(o => o.label === category);
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
@@ -431,47 +498,193 @@ function ServiceModal({ visible, service, salon, onClose, onSaved }) {
           </TouchableOpacity>
         </View>
         <ScrollView style={styles.modalBody} keyboardShouldPersistTaps="handled">
-          {!!error && (
+          {!!errors.general && (
             <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{error}</Text>
+              <Text style={styles.errorText}>{errors.general}</Text>
             </View>
           )}
 
-          {[
-            { label: 'Service Name *', value: name, setter: setName, placeholder: 'e.g. Basic Haircut', keyboard: 'default' },
-            { label: 'Description', value: description, setter: setDescription, placeholder: 'Brief description…', keyboard: 'default' },
-            { label: 'Price (₹) *', value: basePrice, setter: setBasePrice, placeholder: '0', keyboard: 'numeric' },
-            { label: 'Duration (minutes) *', value: duration, setter: setDuration, placeholder: '30', keyboard: 'numeric' },
-          ].map((f) => (
-            <View style={styles.field} key={f.label}>
-              <Text style={[styles.fieldLabel, { color: theme.text }]}>{f.label}</Text>
-              <TextInput
-                style={[styles.fieldInput, { color: theme.text, borderColor: theme.border, backgroundColor: theme.bg }]}
-                placeholder={f.placeholder}
-                placeholderTextColor={theme.subText}
-                keyboardType={f.keyboard}
-                value={f.value}
-                onChangeText={f.setter}
-              />
-            </View>
-          ))}
-
+          {/* Service Name */}
           <View style={styles.field}>
-            <Text style={[styles.fieldLabel, { color: theme.text }]}>Category</Text>
-            <View style={styles.chipsRow}>
-              {availableCategories.map((c) => (
-                <TouchableOpacity
-                  key={c}
-                  style={[styles.catChip, { borderColor: theme.border, backgroundColor: theme.bg }, category === c && styles.catChipActive]}
-                  onPress={() => setCategory(c)}
-                >
-                  <Text style={styles.catChipEmoji}>{CAT_ICON[c] || '✨'}</Text>
-                  <Text style={[styles.catChipText, { color: theme.text }, category === c && styles.catChipTextActive]}>{c}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <Text style={[styles.fieldLabel, { color: theme.text }]}>Service Name *</Text>
+            <TextInput
+              style={[styles.fieldInput, { color: theme.text, borderColor: errors.name ? '#dc2626' : theme.border, backgroundColor: theme.bg }]}
+              placeholder="e.g. Basic Haircut"
+              placeholderTextColor={theme.subText}
+              value={name}
+              onChangeText={t => { setName(t); if (errors.name) setErrors(p => ({ ...p, name: '' })); }}
+            />
+            {!!errors.name && <Text style={styles.fieldError}>{errors.name}</Text>}
           </View>
 
+          {/* Applicable For — unisex salons only */}
+          {servedGender === 'unisex' && (
+            <View style={styles.field}>
+              <Text style={[styles.fieldLabel, { color: theme.text }]}>Applicable For *</Text>
+              <View style={styles.applicableRow}>
+                {[['male', '👨 Men'], ['female', '👩 Women'], ['both', '👥 Both']].map(([val, label]) => (
+                  <TouchableOpacity
+                    key={val}
+                    style={[
+                      styles.applicableBtn,
+                      { borderColor: errors.applicableFor ? '#dc2626' : theme.border },
+                      applicableFor === val && styles.applicableBtnActive,
+                    ]}
+                    onPress={() => { setApplicableFor(val); if (errors.applicableFor) setErrors(p => ({ ...p, applicableFor: '' })); }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.applicableBtnText, { color: theme.subText }, applicableFor === val && styles.applicableBtnTextActive]}>
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              {!!errors.applicableFor && <Text style={styles.fieldError}>{errors.applicableFor}</Text>}
+            </View>
+          )}
+
+          {/* Category */}
+          <View style={styles.field}>
+            <Text style={[styles.fieldLabel, { color: theme.text }]}>Category *</Text>
+            <TouchableOpacity
+              style={[
+                styles.catTrigger,
+                {
+                  borderColor: errors.category ? '#dc2626' : (category && category !== '__other__' ? '#6366f1' : theme.border),
+                  backgroundColor: category && category !== '__other__' ? '#eef2ff' : theme.bg,
+                },
+              ]}
+              onPress={() => setCatExpanded(o => !o)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.catTriggerText, { color: (category && category !== '__other__') ? '#4338ca' : theme.subText }]}>
+                {category && category !== '__other__'
+                  ? `${categoryOptions.find(o => o.label === category)?.icon ?? '✏️'} ${category}`
+                  : category === '__other__'
+                  ? '✏️ Other…'
+                  : 'Select category…'}
+              </Text>
+              <Ionicons name={catExpanded ? 'chevron-up' : 'chevron-down'} size={16} color={theme.subText} />
+            </TouchableOpacity>
+
+            {catExpanded && (
+              <View style={[styles.catGrid, { borderColor: theme.border, backgroundColor: theme.bg }]}>
+                {categoryOptions.map(opt => (
+                  <TouchableOpacity
+                    key={opt.label}
+                    style={[
+                      styles.catGridItem,
+                      { borderColor: theme.border, backgroundColor: theme.card },
+                      category === opt.label && styles.catGridItemActive,
+                    ]}
+                    onPress={() => {
+                      setCustomCategory('');
+                      setCategory(opt.label);
+                      if (errors.category) setErrors(p => ({ ...p, category: '' }));
+                      setCatExpanded(false);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.catGridItemEmoji}>{opt.icon}</Text>
+                    <Text
+                      style={[styles.catGridItemText, { color: theme.text }, category === opt.label && { color: '#4338ca', fontWeight: '700' }]}
+                      numberOfLines={2}
+                    >
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+
+                {/* Other option */}
+                <TouchableOpacity
+                  style={[
+                    styles.catGridItem,
+                    { borderColor: theme.border, backgroundColor: theme.card },
+                    (category === '__other__' || isCatCustom) && styles.catGridItemActive,
+                  ]}
+                  onPress={() => { setCategory('__other__'); if (errors.category) setErrors(p => ({ ...p, category: '' })); }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.catGridItemEmoji}>✏️</Text>
+                  <Text style={[styles.catGridItemText, { color: theme.text }, (category === '__other__' || isCatCustom) && { color: '#4338ca', fontWeight: '700' }]}>
+                    Other
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Custom category input */}
+                {(category === '__other__' || (isCatCustom && customCategory)) && (
+                  <View style={styles.customCatRow}>
+                    <TextInput
+                      style={[styles.customCatInput, { color: theme.text, borderColor: theme.border, backgroundColor: theme.card }]}
+                      placeholder="Type category name…"
+                      placeholderTextColor={theme.subText}
+                      value={customCategory}
+                      onChangeText={setCustomCategory}
+                      autoFocus
+                    />
+                    <TouchableOpacity
+                      style={[styles.customCatBtn, !customCategory.trim() && { opacity: 0.5 }]}
+                      onPress={() => {
+                        const val = customCategory.trim();
+                        if (!val) return;
+                        setCategory(val);
+                        if (errors.category) setErrors(p => ({ ...p, category: '' }));
+                        setCatExpanded(false);
+                      }}
+                      disabled={!customCategory.trim()}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.customCatBtnText}>Add</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            )}
+            {!!errors.category && <Text style={styles.fieldError}>{errors.category}</Text>}
+          </View>
+
+          {/* Description */}
+          <View style={styles.field}>
+            <Text style={[styles.fieldLabel, { color: theme.text }]}>Description</Text>
+            <TextInput
+              style={[styles.fieldInput, { color: theme.text, borderColor: theme.border, backgroundColor: theme.bg, height: 80, textAlignVertical: 'top', paddingTop: 10 }]}
+              placeholder="Optional description…"
+              placeholderTextColor={theme.subText}
+              multiline
+              value={description}
+              onChangeText={setDescription}
+            />
+          </View>
+
+          {/* Price */}
+          <View style={styles.field}>
+            <Text style={[styles.fieldLabel, { color: theme.text }]}>Price (₹) *</Text>
+            <TextInput
+              style={[styles.fieldInput, { color: theme.text, borderColor: errors.basePrice ? '#dc2626' : theme.border, backgroundColor: theme.bg }]}
+              placeholder="e.g. 200"
+              placeholderTextColor={theme.subText}
+              keyboardType="numeric"
+              value={basePrice}
+              onChangeText={t => { setBasePrice(t); if (errors.basePrice) setErrors(p => ({ ...p, basePrice: '' })); }}
+            />
+            {!!errors.basePrice && <Text style={styles.fieldError}>{errors.basePrice}</Text>}
+          </View>
+
+          {/* Duration */}
+          <View style={styles.field}>
+            <Text style={[styles.fieldLabel, { color: theme.text }]}>Duration (minutes) *</Text>
+            <TextInput
+              style={[styles.fieldInput, { color: theme.text, borderColor: errors.duration ? '#dc2626' : theme.border, backgroundColor: theme.bg }]}
+              placeholder="e.g. 30"
+              placeholderTextColor={theme.subText}
+              keyboardType="numeric"
+              value={duration}
+              onChangeText={t => { setDuration(t); if (errors.duration) setErrors(p => ({ ...p, duration: '' })); }}
+            />
+            {!!errors.duration && <Text style={styles.fieldError}>{errors.duration}</Text>}
+          </View>
+
+          {/* Active toggle */}
           <View style={styles.toggleRow}>
             <Text style={[styles.fieldLabel, { color: theme.text }]}>Active</Text>
             <Switch
@@ -888,4 +1101,31 @@ const styles = StyleSheet.create({
   toggleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   saveBtn: { backgroundColor: '#6366f1', borderRadius: 12, height: 52, alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
   saveBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+
+  // Field error
+  fieldError: { fontSize: 11, color: '#dc2626', marginTop: 4 },
+
+  // Applicable For buttons
+  applicableRow: { flexDirection: 'row', gap: 8 },
+  applicableBtn: { flex: 1, paddingVertical: 10, borderRadius: 12, borderWidth: 1.5, alignItems: 'center' },
+  applicableBtnActive: { backgroundColor: '#eef2ff', borderColor: '#6366f1' },
+  applicableBtnText: { fontSize: 13, fontWeight: '600' },
+  applicableBtnTextActive: { color: '#4338ca' },
+
+  // Category trigger button
+  catTrigger: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 12 },
+  catTriggerText: { fontSize: 14, flex: 1 },
+
+  // Category expandable grid
+  catGrid: { marginTop: 8, borderWidth: 1, borderRadius: 12, padding: 8, flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  catGridItem: { width: '47%', flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 10, borderRadius: 10, borderWidth: 1.5 },
+  catGridItemActive: { backgroundColor: '#eef2ff', borderColor: '#6366f1' },
+  catGridItemEmoji: { fontSize: 16 },
+  catGridItemText: { fontSize: 12, flex: 1 },
+
+  // Custom category input row
+  customCatRow: { width: '100%', flexDirection: 'row', gap: 8, marginTop: 4 },
+  customCatInput: { flex: 1, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, height: 42, fontSize: 13 },
+  customCatBtn: { backgroundColor: '#6366f1', borderRadius: 10, paddingHorizontal: 16, justifyContent: 'center' },
+  customCatBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
 });
