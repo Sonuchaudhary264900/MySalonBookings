@@ -60,36 +60,26 @@ module.exports = function withAndroidBuildFix(config) {
       const root = config.modRequest.platformProjectRoot; // android/
       const projectRoot = path.join(root, '..'); // project root
 
-      // 1. Fix root build.gradle: pin Kotlin classpath version to 2.1.0
+      // 1. Fix root build.gradle: remove explicit Kotlin classpath to avoid
+      //    version conflict with expo-root-project's bundled Kotlin version
       const rootBuildGradlePath = path.join(root, 'build.gradle');
       if (fs.existsSync(rootBuildGradlePath)) {
         let content = fs.readFileSync(rootBuildGradlePath, 'utf8');
-        // Replace unversioned kotlin-gradle-plugin with versioned one
+        // Remove any explicit kotlin-gradle-plugin classpath line (let expo manage it)
         content = content.replace(
-          /classpath\(['"]org\.jetbrains\.kotlin:kotlin-gradle-plugin['"]\)/g,
-          "classpath('org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0')"
-        );
-        // If it has a wrong version, fix it
-        content = content.replace(
-          /classpath\(['"]org\.jetbrains\.kotlin:kotlin-gradle-plugin:\d+\.\d+\.\d+['"]\)/g,
-          "classpath('org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0')"
+          /\n?\s*classpath\(['"]org\.jetbrains\.kotlin:kotlin-gradle-plugin[^)]*\)[^\n]*\n/g,
+          '\n'
         );
         fs.writeFileSync(rootBuildGradlePath, content);
       }
 
-      // 2. Fix gradle.properties: ensure android.kotlinVersion=2.1.0 and newArchEnabled=true
+      // 2. Fix gradle.properties: ensure newArchEnabled=true
       const gradlePropertiesPath = path.join(root, 'gradle.properties');
       if (fs.existsSync(gradlePropertiesPath)) {
         let content = fs.readFileSync(gradlePropertiesPath, 'utf8');
-        if (!content.includes('android.kotlinVersion=')) {
-          content += '\nandroid.kotlinVersion=2.1.0\n';
-        } else {
-          content = content.replace(
-            /android\.kotlinVersion=.+/,
-            'android.kotlinVersion=2.1.0'
-          );
-        }
-        // Ensure new arch is enabled (required for Expo SDK 54 bridgeless runtime)
+        // Remove android.kotlinVersion if present (let expo manage it)
+        content = content.replace(/\nandroid\.kotlinVersion=.+/g, '');
+        // Ensure new arch is enabled
         content = content.replace(/newArchEnabled=false/, 'newArchEnabled=true');
         fs.writeFileSync(gradlePropertiesPath, content);
       }
