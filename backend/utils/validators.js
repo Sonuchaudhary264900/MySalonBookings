@@ -32,9 +32,7 @@ const validatePhone = (phone) => {
 // PASSWORD VALIDATION
 // ===================================================
 const validatePassword = (password) => {
-  // At least 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 special character
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
-  return passwordRegex.test(password);
+  return typeof password === 'string' && password.length >= 8;
 };
 
 // ===================================================
@@ -276,7 +274,7 @@ const validateOwnerRegistration = (data) => {
   }
 
   if (!data.password || !validatePassword(data.password)) {
-    errors.push('Password must be at least 8 characters with uppercase, lowercase, number, and special character');
+    errors.push('Password must be at least 8 characters');
   }
 
   return {
@@ -304,7 +302,7 @@ const validateCustomerRegistration = (data) => {
   }
 
   if (data.password && !validatePassword(data.password)) {
-    errors.push('Password must be at least 8 characters with uppercase, lowercase, number, and special character');
+    errors.push('Password must be at least 8 characters');
   }
 
   return {

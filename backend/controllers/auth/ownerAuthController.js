@@ -638,8 +638,8 @@ exports.firebaseRegister = async (req, res) => {
     const errors = [];
     if (!name || name.trim().length < 2) errors.push('Valid name is required');
     if (!email || !/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email)) errors.push('Valid email is required');
-    if (!password || !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/.test(password)) {
-      errors.push('Password must be at least 8 characters with uppercase, lowercase, number, and special character');
+    if (!password || password.length < 8) {
+      errors.push('Password must be at least 8 characters');
     }
     if (gender && !['male', 'female', 'other'].includes(gender)) errors.push('Gender must be male, female, or other');
     if (errors.length > 0) {
