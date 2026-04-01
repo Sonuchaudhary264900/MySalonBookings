@@ -397,9 +397,9 @@ location: {
     bookingMode: {
       type: String,
       enum: ['sequential', 'flexible'],
-      default: 'flexible',
-      // sequential = next slot auto-assigned after last booking ends
-      // flexible   = customer picks any available slot (default)
+      default: 'sequential',
+      // sequential = next slot auto-assigned after last booking ends (default)
+      // flexible   = customer picks any available slot
     },
 
     // ==========================================

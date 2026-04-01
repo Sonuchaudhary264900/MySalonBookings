@@ -736,13 +736,13 @@ const AutoConfirmContent = ({ salon, updateSalon }) => {
 
 /* ─── Booking Mode ───────────────────────────────────────────── */
 const BookingModeContent = ({ salon, updateSalon }) => {
-  const [mode, setMode]       = useState(salon?.bookingMode || 'flexible');
+  const [mode, setMode]       = useState(salon?.bookingMode || 'sequential');
   const [loading, setLoading] = useState(false);
   const initialized = useRef(false);
 
   useEffect(() => {
     if (!initialized.current && salon) {
-      setMode(salon.bookingMode || 'flexible');
+      setMode(salon.bookingMode || 'sequential');
       initialized.current = true;
     }
   }, [salon]);

@@ -153,7 +153,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
   const [slots, setSlots]                 = useState([]);
   const [blockedSlots, setBlockedSlots]   = useState([]);
   const [closedDay, setClosedDay]         = useState(false);
-  const [bookingMode, setBookingMode]     = useState('flexible');
+  const [bookingMode, setBookingMode]     = useState('sequential');
   const [slotsLoading, setSlotsLoading]   = useState(false);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [couponInput, setCouponInput]     = useState('');
@@ -236,11 +236,11 @@ export default function SalonDetailsScreen({ route, navigation }) {
       try {
         const res = await api.get(`/public/salons/${salonId}/booked-slots?date=${bookDate}&duration=${totalDuration}`);
         const data = res.data.data || {};
-        setBookingMode(data.bookingMode || 'flexible');
+        setBookingMode(data.bookingMode || 'sequential');
         setSlots(data.slots || []);
         setBlockedSlots(data.blockedSlots || []);
         setClosedDay(data.closedDay || false);
-        if ((data.bookingMode || 'flexible') === 'sequential' && data.slots?.length === 1) {
+        if ((data.bookingMode || 'sequential') === 'sequential' && data.slots?.length === 1) {
           setSlot(data.slots[0]);
         }
       } catch { setSlots([]); } finally { setSlotsLoading(false); }

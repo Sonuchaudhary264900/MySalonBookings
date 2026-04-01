@@ -124,7 +124,7 @@ function SalonDetails() {
   const [slots, setSlots]                 = useState([]);
   const [blockedSlots, setBlockedSlots]   = useState([]);
   const [closedDay, setClosedDay]         = useState(false);
-  const [bookingMode, setBookingMode]     = useState("flexible");
+  const [bookingMode, setBookingMode]     = useState("sequential");
   const [slotsLoading, setSlotsLoading]   = useState(false);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [couponInput, setCouponInput]     = useState("");
@@ -188,7 +188,7 @@ function SalonDetails() {
       try {
         const res = await API.get(`/public/salons/${id}/booked-slots?date=${bookDate}&duration=${totalDuration}`);
         const data = res.data.data || {};
-        const mode = data.bookingMode || "flexible";
+        const mode = data.bookingMode || "sequential";
         setBookingMode(mode);
         setSlots(data.slots || []);
         setBlockedSlots(data.blockedSlots || []);

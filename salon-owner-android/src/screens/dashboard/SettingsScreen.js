@@ -352,7 +352,7 @@ const BOOKING_MODES = [
 
 function BookingModeSection({ salon, onSaved }) {
   const { theme } = useTheme();
-  const [mode, setMode] = useState(salon?.bookingMode || 'flexible');
+  const [mode, setMode] = useState(salon?.bookingMode || 'sequential');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
