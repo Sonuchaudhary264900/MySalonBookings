@@ -125,6 +125,7 @@ export default function ServiceMenuScreen() {
   const [maleOptionals,    setMaleOptionals]    = useState({ kidsHaircut: salon?.kidsHaircut || false, atHomeServices: salon?.atHomeServices || false });
   const [femaleOptionals,  setFemaleOptionals]  = useState({ kidsServices: salon?.kidsHaircut || false, atHomeServices: salon?.atHomeServices || false });
 
+  const [genderModalVisible, setGenderModalVisible] = useState(false);
   const [priceModal, setPriceModal] = useState({ open: false, catKey: '', subName: '', price: '', duration: '', genderContext: null });
   const priceRef    = useRef(null);
   const durationRef = useRef(null);
@@ -271,18 +272,27 @@ export default function ServiceMenuScreen() {
 
       <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 48, gap: 12 }} showsVerticalScrollIndicator={false}>
 
-        {/* Gender selector */}
-        <View style={[st.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <Text style={[st.secLabel, { color: theme.subText }]}>WHO DO YOU SERVE?</Text>
-          <View style={st.genderRow}>
-            {[['male','👨','Men'],['female','👩','Women'],['unisex','👥','Unisex']].map(([val, emoji, label]) => (
-              <TouchableOpacity key={val} style={[st.genderBtn, gender === val && st.genderBtnActive]} onPress={() => handleChangeGender(val)} activeOpacity={0.8}>
-                <Text style={st.genderEmoji}>{emoji}</Text>
-                <Text style={[st.genderLabel, gender === val && st.genderLabelActive]}>{label}</Text>
-              </TouchableOpacity>
-            ))}
+        {/* Gender selector — button that opens popup */}
+        <TouchableOpacity
+          style={[st.genderPickerBtn, { backgroundColor: isDark ? '#1e1b4b' : '#eef2ff', borderColor: isDark ? '#4f46e5' : '#c7d2fe' }]}
+          onPress={() => setGenderModalVisible(true)}
+          activeOpacity={0.8}
+        >
+          <View style={st.genderPickerIcon}>
+            <Ionicons name="people" size={18} color={isDark ? '#a5b4fc' : '#6366f1'} />
           </View>
-        </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[st.genderPickerLabel, { color: isDark ? '#a5b4fc' : '#6366f1' }]}>WHO DO YOU SERVE?</Text>
+            {gender ? (
+              <Text style={[st.genderPickerValue, { color: theme.text }]}>
+                {gender === 'male' ? '👨 Male customers' : gender === 'female' ? '👩 Female customers' : '👥 Unisex customers'}
+              </Text>
+            ) : (
+              <Text style={[st.genderPickerValue, { color: theme.subText }]}>Tap to select…</Text>
+            )}
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={isDark ? '#6366f1' : '#a5b4fc'} />
+        </TouchableOpacity>
 
         {/* Category list */}
         {gender ? (
@@ -414,6 +424,49 @@ export default function ServiceMenuScreen() {
         )}
       </ScrollView>
 
+      {/* Gender Selection Modal */}
+      <Modal visible={genderModalVisible} transparent animationType="fade"
+        onRequestClose={() => setGenderModalVisible(false)}>
+        <TouchableOpacity style={st.overlay} activeOpacity={1} onPress={() => setGenderModalVisible(false)}>
+          <TouchableOpacity activeOpacity={1} style={[st.genderModalBox, { backgroundColor: theme.card }]}>
+            <View style={st.genderModalHeader}>
+              <View>
+                <Text style={[st.genderModalTitle, { color: theme.text }]}>Who do you serve?</Text>
+                <Text style={[st.genderModalSub, { color: theme.subText }]}>Select the type of clients your salon caters to</Text>
+              </View>
+              <TouchableOpacity onPress={() => setGenderModalVisible(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name="close" size={22} color={theme.subText} />
+              </TouchableOpacity>
+            </View>
+            {[
+              { val: 'male',   emoji: '👨', label: 'Male customers',   desc: 'Men-only salon services' },
+              { val: 'female', emoji: '👩', label: 'Female customers',  desc: 'Women-only salon services' },
+              { val: 'unisex', emoji: '👥', label: 'Unisex customers',  desc: 'Services for all genders' },
+            ].map(({ val, emoji, label, desc }) => {
+              const isSelected = gender === val;
+              return (
+                <TouchableOpacity
+                  key={val}
+                  style={[
+                    st.genderOptRow,
+                    { borderColor: isSelected ? theme.accent : theme.border, backgroundColor: isSelected ? (isDark ? '#1e1b4b' : '#eef2ff') : theme.bg },
+                  ]}
+                  onPress={() => { handleChangeGender(val); setGenderModalVisible(false); }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={{ fontSize: 26, marginRight: 12 }}>{emoji}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[st.genderOptLabel, { color: theme.text }]}>{label}</Text>
+                    <Text style={[st.genderOptDesc, { color: theme.subText }]}>{desc}</Text>
+                  </View>
+                  {isSelected && <Ionicons name="checkmark-circle" size={22} color={theme.accent} />}
+                </TouchableOpacity>
+              );
+            })}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
       {/* Price / Duration Modal */}
       <Modal visible={priceModal.open} transparent animationType="fade"
         onRequestClose={() => setPriceModal(p => ({ ...p, open: false }))}>
@@ -474,12 +527,18 @@ const getSt = (theme, isDark) => StyleSheet.create({
   card: { borderRadius: 14, padding: 14, borderWidth: 1 },
   secLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8, marginBottom: 10 },
 
-  genderRow: { flexDirection: 'row', gap: 10 },
-  genderBtn: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 12, borderWidth: 1.5, borderColor: theme.border, backgroundColor: theme.bg, gap: 4 },
-  genderBtnActive: { borderColor: theme.accent, backgroundColor: isDark ? theme.card : '#eef2ff' },
-  genderEmoji: { fontSize: 22 },
-  genderLabel: { fontSize: 12, fontWeight: '600', color: theme.subText },
-  genderLabelActive: { color: theme.accent },
+  genderPickerBtn: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 14, borderRadius: 14, borderWidth: 1.5 },
+  genderPickerIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(99,102,241,0.15)', alignItems: 'center', justifyContent: 'center' },
+  genderPickerLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 0.8, marginBottom: 2 },
+  genderPickerValue: { fontSize: 14, fontWeight: '700' },
+
+  genderModalBox: { width: '100%', borderRadius: 20, padding: 20, gap: 10 },
+  genderModalHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 6 },
+  genderModalTitle: { fontSize: 16, fontWeight: '800' },
+  genderModalSub: { fontSize: 12, marginTop: 2 },
+  genderOptRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 14, borderRadius: 14, borderWidth: 1.5 },
+  genderOptLabel: { fontSize: 14, fontWeight: '700' },
+  genderOptDesc: { fontSize: 12, marginTop: 1 },
 
   catCard: { borderRadius: 12, borderWidth: 1.5, overflow: 'hidden' },
   catRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, gap: 10 },
