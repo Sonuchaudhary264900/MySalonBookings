@@ -1,6 +1,17 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import API from "../services/api";
 
+function playNotifSound() {
+  try { const a = new Audio('/sounds/chat_message.wav'); a.volume = 0.85; a.play().catch(() => {}); } catch {}
+}
+function showBrowserNotif(title, body, tag) {
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  try {
+    const n = new Notification(title, { body, icon: '/icon.png', badge: '/icon.png', tag: tag || 'chat', renotify: true });
+    n.onclick = () => { window.focus(); n.close(); };
+  } catch {}
+}
+
 const NotificationContext = createContext(null);
 
 const STORAGE_KEY = "salon_notifications";
@@ -16,6 +27,13 @@ export function NotificationProvider({ children }) {
   const [toasts,        setToasts]        = useState([]);
   const [notifications, setNotifications] = useState(loadStored);
   const seenStatusRef = useRef(null); // map of bookingId → last seen status
+
+  // Request browser notification permission on mount
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));

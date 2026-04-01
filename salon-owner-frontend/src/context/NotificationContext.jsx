@@ -14,31 +14,59 @@ const localDate = (offset = 0) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
+const fmtTime = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const now = new Date();
+  const diff = now - d;
+  if (diff < 60000)  return 'just now';
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+};
+
+function playNotifSound() {
+  try {
+    const audio = new Audio('/sounds/chat_message.wav');
+    audio.volume = 0.85;
+    audio.play().catch(() => {});
+  } catch {}
+}
+
+function showBrowserNotif(title, body, tag) {
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  try {
+    const n = new Notification(title, {
+      body,
+      icon: '/icon.png',
+      badge: '/icon.png',
+      tag: tag || 'chat',
+      renotify: true,
+      silent: false,
+    });
+    n.onclick = () => { window.focus(); n.close(); };
+  } catch {}
+}
+
 export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
+  const [chatMessages,  setChatMessages]  = useState([]); // unread chat messages
   const [permission, setPermission] = useState(
     typeof Notification !== 'undefined' ? Notification.permission : 'denied'
   );
   const [pendingBooking, setPendingBooking] = useState(null);
-  const seenIdsRef = useRef(null); // Set of seen booking IDs — null = first run
+  const seenIdsRef = useRef(null);
   const timerRef   = useRef(null);
 
-  // ── Request browser permission ────────────────────────────────
+  // ── Request browser notification permission ───────────────────
   const requestPermission = useCallback(async () => {
     if (!('Notification' in window)) return;
-    if (Notification.permission === 'granted') return;
+    if (Notification.permission === 'granted') { setPermission('granted'); return; }
     const result = await Notification.requestPermission();
     setPermission(result);
   }, []);
 
-  // ── Fire a browser notification ───────────────────────────────
-  const pushBrowser = useCallback((title, body) => {
-    if (typeof Notification === 'undefined') return;
-    if (Notification.permission !== 'granted') return;
-    new Notification(title, { body, icon: '/favicon.ico' });
-  }, []);
-
-  // ── Add a notification to the in-app list ────────────────────
+  // ── Add booking notification ──────────────────────────────────
   const addNotification = useCallback((notif) => {
     setNotifications((prev) => [
       { ...notif, id: notif.id || String(Date.now() + Math.random()), read: false, createdAt: notif.createdAt || new Date().toISOString() },
@@ -46,7 +74,68 @@ export const NotificationProvider = ({ children }) => {
     ].slice(0, 50));
   }, []);
 
-  // ── Poll bookings for today + tomorrow ────────────────────────
+  // ── Add chat message to unread panel ─────────────────────────
+  const addChatMessage = useCallback((chatMsg) => {
+    setChatMessages((prev) => {
+      // avoid duplicates by _id
+      if (chatMsg._id && prev.some((m) => m._id === chatMsg._id)) return prev;
+      return [chatMsg, ...prev].slice(0, 100);
+    });
+  }, []);
+
+  // ── Mark chat messages for a booking as read ─────────────────
+  const markChatRead = useCallback((bookingId) => {
+    setChatMessages((prev) => prev.filter((m) => m.bookingId?.toString() !== bookingId?.toString()));
+  }, []);
+
+  // ── Load initial unread chat messages ─────────────────────────
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    api.get('/owner/messages/unread')
+      .then((res) => {
+        const msgs = res.data.data?.messages || [];
+        setChatMessages(msgs);
+      })
+      .catch(() => {});
+  }, []);
+
+  // ── Listen for incoming customer chat messages (via SalonContext window event) ──
+  useEffect(() => {
+    const handler = (e) => {
+      const { bookingId, message } = e.detail || {};
+      if (!bookingId || !message) return;
+
+      // Sound
+      playNotifSound();
+
+      // Rich browser notification
+      const customerName = message.customerName || 'Customer';
+      const preview      = (message.text || '').slice(0, 80);
+      showBrowserNotif(
+        `💬 ${customerName}`,
+        preview,
+        `chat-${bookingId}`
+      );
+
+      // Toast
+      toast(`💬 ${customerName}: ${preview}`, {
+        duration: 6000,
+        style: { background: '#1e293b', color: '#f1f5f9', fontSize: '13px', maxWidth: '340px' },
+      });
+
+      // Add to chat panel
+      addChatMessage({ ...message, bookingId });
+
+      // Mark in booking notifications list too
+      setNotifications((prev) => prev.map((n) => n.id === bookingId?.toString() ? { ...n, hasChat: true } : n));
+    };
+
+    window.addEventListener('new-chat-message', handler);
+    return () => window.removeEventListener('new-chat-message', handler);
+  }, [addChatMessage]);
+
+  // ── Poll bookings ─────────────────────────────────────────────
   const poll = useCallback(async () => {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -61,7 +150,6 @@ export const NotificationProvider = ({ children }) => {
       const allBookings = [...toArr(r1), ...toArr(r2)];
 
       if (seenIdsRef.current === null) {
-        // First run — snapshot, no notifications
         seenIdsRef.current = new Set(allBookings.map((b) => b._id).filter(Boolean));
         return;
       }
@@ -69,75 +157,46 @@ export const NotificationProvider = ({ children }) => {
       const newBookings = allBookings.filter((b) => b._id && !seenIdsRef.current.has(b._id));
       newBookings.forEach((b) => {
         seenIdsRef.current.add(b._id);
-        const msg = `${b.customerName || 'A customer'} booked ${b.serviceName || 'a service'} at ${b.appointmentTime || '—'}`;
-        pushBrowser('New Booking! ✂', msg);
+        const service  = b.serviceName || 'a service';
+        const apptTime = b.appointmentTime || '';
+        const msg = `${b.customerName || 'A customer'} booked ${service}${apptTime ? ` at ${apptTime}` : ''}`;
+        showBrowserNotif('New Booking! ✂', msg, `booking-${b._id}`);
         toast.success(`New booking from ${b.customerName || 'customer'}`, { duration: 6000 });
-        addNotification({
-          id: b._id,
-          type: 'booking',
-          title: 'New Booking',
-          message: msg,
-          createdAt: b.createdAt || new Date().toISOString(),
-        });
-        // Show mandatory alert modal for pending bookings (auto-confirm off)
-        if (b.status === 'pending') {
-          setPendingBooking(b);
-        }
+        addNotification({ id: b._id, type: 'booking', title: 'New Booking', message: msg, createdAt: b.createdAt || new Date().toISOString() });
+        if (b.status === 'pending') setPendingBooking(b);
       });
     } catch { /* silent */ }
-  }, [pushBrowser, addNotification]);
+  }, [addNotification]);
 
-  // ── Bootstrap: request permission + start polling ─────────────
+  // ── Bootstrap ─────────────────────────────────────────────────
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) return;
-
     requestPermission();
     seenIdsRef.current = null;
     poll();
     timerRef.current = setInterval(poll, POLL_INTERVAL);
-
     return () => clearInterval(timerRef.current);
   }, []);
 
-  // ── Helpers ───────────────────────────────────────────────────
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadCount     = notifications.filter((n) => !n.read).length;
+  const chatUnreadCount = chatMessages.length;
 
-  const markRead = useCallback((id) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
-  }, []);
-
-  const markAllRead = useCallback(() => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  }, []);
-
-  const remove = useCallback((id) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-  }, []);
-
-  const clearAll = useCallback(() => {
-    setNotifications([]);
-  }, []);
-
+  const markRead    = useCallback((id) => setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n))), []);
+  const markAllRead = useCallback(() => setNotifications((prev) => prev.map((n) => ({ ...n, read: true }))), []);
+  const remove      = useCallback((id) => setNotifications((prev) => prev.filter((n) => n.id !== id)), []);
+  const clearAll    = useCallback(() => setNotifications([]), []);
   const clearPendingBooking = useCallback(() => setPendingBooking(null), []);
 
   return (
-    <NotificationContext.Provider
-      value={{
-        notifications,
-        unreadCount,
-        permission,
-        pendingBooking,
-        requestPermission,
-        markRead,
-        markAllRead,
-        remove,
-        clearAll,
-        clearPendingBooking,
-      }}
-    >
+    <NotificationContext.Provider value={{
+      notifications, unreadCount,
+      chatMessages, chatUnreadCount,
+      permission, pendingBooking,
+      requestPermission, addNotification, addChatMessage, markChatRead,
+      markRead, markAllRead, remove, clearAll, clearPendingBooking,
+      fmtTime,
+    }}>
       {children}
     </NotificationContext.Provider>
   );

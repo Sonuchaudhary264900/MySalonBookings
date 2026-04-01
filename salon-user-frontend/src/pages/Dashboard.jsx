@@ -122,7 +122,23 @@ function ChatDrawer({ booking, onClose }) {
     socketRef.current = socket;
     socket.on('connect', () => socket.emit('join-chat', { bookingId: booking._id }));
     socket.on('chat-message', ({ bookingId, message }) => {
-      if (bookingId === booking._id) setMessages(prev => [...prev, message]);
+      if (bookingId !== booking._id) return;
+      setMessages(prev => [...prev, message]);
+      // Only notify if message is from owner (not self)
+      if (message?.senderRole === 'owner') {
+        try { const a = new Audio('/sounds/chat_message.wav'); a.volume = 0.85; a.play().catch(() => {}); } catch {}
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+          try {
+            const salonName = booking.salonName || booking.salonId?.name || 'Your salon';
+            const n = new Notification(`💬 ${salonName}`, {
+              body: (message.text || '').slice(0, 100),
+              icon: '/icon.png', badge: '/icon.png',
+              tag: `chat-${bookingId}`, renotify: true,
+            });
+            n.onclick = () => { window.focus(); n.close(); };
+          } catch {}
+        }
+      }
     });
     socket.on('chat-typing', ({ senderRole }) => {
       if (senderRole === 'owner') {

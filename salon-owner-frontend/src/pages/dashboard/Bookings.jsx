@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { io } from 'socket.io-client';
+import { useLocation } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { useSalon } from '../../hooks/useSalon';
 import * as salonService from '../../services/salonService';
@@ -705,6 +706,7 @@ const ChatPanel = ({ booking, onClose }) => {
 /* ─── Main Bookings Page ─────────────────────────────────────── */
 const Bookings = () => {
   const { salon, services, bookings, fetchBookings, fetchServices, updateBookingStatus, createWalkInBooking } = useSalon();
+  const location = useLocation();
   const [filter, setFilter]             = useState('all');
   const [updating, setUpdating]         = useState(null);
   const [showModal, setShowModal]       = useState(false);
@@ -719,6 +721,17 @@ const Bookings = () => {
     setChatBooking(booking);
     setUnreadChats(prev => { const s = new Set(prev); s.delete(String(booking._id)); return s; });
   }, []);
+
+  // Auto-open chat when navigated from MessagesPanel
+  useEffect(() => {
+    const openId = location.state?.openChatBookingId;
+    if (!openId || !bookings?.length) return;
+    const target = bookings.find((b) => b._id === openId);
+    if (target) {
+      handleOpenChat(target);
+      window.history.replaceState({}, ''); // clear state so it doesn't re-open on refresh
+    }
+  }, [location.state?.openChatBookingId, bookings]);
 
   // Listen for incoming customer messages on the salon socket (already joined via SalonContext)
   useEffect(() => {

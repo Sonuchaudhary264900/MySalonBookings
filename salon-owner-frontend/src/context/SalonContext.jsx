@@ -51,12 +51,7 @@ export const SalonProvider = ({ children }) => {
 
     // Notify owner when customer sends a message
     socket.on('new-chat-message', ({ bookingId, message }) => {
-      const preview = message?.text?.slice(0, 60) || 'New message';
-      toast(`💬 Customer: ${preview}`, {
-        duration: 5000,
-        style: { background: '#1e293b', color: '#f1f5f9', fontSize: '13px' },
-      });
-      window.dispatchEvent(new CustomEvent('new-chat-message', { detail: { bookingId } }));
+      window.dispatchEvent(new CustomEvent('new-chat-message', { detail: { bookingId, message } }));
     });
 
     // Mark offline on tab/window close

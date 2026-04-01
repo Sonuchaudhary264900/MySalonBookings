@@ -1,13 +1,14 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Scissors, Calendar, Star, Settings,
   ChevronRight, ChevronLeft, X, Images, Users, Tag,
-  CreditCard, Store, BarChart2, Gift,
+  CreditCard, Store, BarChart2, Gift, MessageSquare,
 } from 'lucide-react';
 import ROUTES from '../../routes';
 import { useNotifications } from '../../context/NotificationContext';
 import { useLanguage } from '../../context/LanguageContext';
+import MessagesPanel from '../chat/MessagesPanel';
 
 /* ─── Nav structure ────────────────────────────────────────────────────── */
 const NAV_SECTIONS = [
@@ -42,14 +43,20 @@ const NAV_SECTIONS = [
 /* ─── Sidebar ───────────────────────────────────────────────────────────── */
 const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
   const location = useLocation();
-  const navigate = useNavigate();
-  const { unreadCount } = useNotifications();
+  const navigate  = useNavigate();
+  const { unreadCount, chatUnreadCount } = useNotifications();
   const { t } = useLanguage();
+  const [msgPanelOpen, setMsgPanelOpen] = useState(false);
 
   const handleNavigation = (path) => {
     navigate(path);
     if (window.innerWidth < 768) onClose();
   };
+
+  const handleOpenChat = useCallback((booking) => {
+    // Navigate to bookings — the Bookings page will pick this up via state
+    navigate(ROUTES.BOOKINGS, { state: { openChatBookingId: booking?._id } });
+  }, [navigate]);
 
   return (
     <>
@@ -103,7 +110,6 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
           scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800">
           {NAV_SECTIONS.map((section) => (
             <div key={section.label}>
-              {/* Section label — hidden when collapsed */}
               {!collapsed && (
                 <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest px-3 mb-1.5">
                   {section.label}
@@ -135,37 +141,27 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
                           }
                         `}
                       >
-                        {/* Active left bar */}
                         {isActive && (
                           <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-indigo-600 dark:bg-indigo-400 rounded-r-full" />
                         )}
-
                         <Icon className={`w-[18px] h-[18px] shrink-0 transition-colors ${isActive ? 'text-indigo-600 dark:text-indigo-400' : ''}`} />
-
-                        {/* Label — hidden on collapsed desktop */}
                         <span className={`flex-1 text-left text-sm transition-all ${collapsed ? 'md:hidden' : ''}`}>
                           {labelText}
                         </span>
-
-                        {/* Notification badge */}
                         {item.id === 'notifications' && unreadCount > 0 && !collapsed && (
                           <span className="bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 leading-none">
                             {unreadCount > 9 ? '9+' : unreadCount}
                           </span>
                         )}
-
-                        {/* Collapsed notification dot */}
                         {item.id === 'notifications' && unreadCount > 0 && collapsed && (
                           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full hidden md:block" />
                         )}
                       </button>
 
-                      {/* Tooltip on collapsed */}
                       {collapsed && (
                         <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 z-50 pointer-events-none hidden md:block">
                           <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-gray-900 dark:bg-gray-700 text-white text-xs font-medium px-2.5 py-1.5 rounded-lg whitespace-nowrap shadow-xl">
                             {labelText}
-                            {/* Arrow */}
                             <span className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900 dark:border-r-gray-700" />
                           </div>
                         </div>
@@ -177,6 +173,51 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
             </div>
           ))}
         </nav>
+
+        {/* ── Messages Button ── */}
+        <div className="shrink-0 px-2 pb-1 border-t border-gray-100 dark:border-gray-800/60 pt-2">
+          <div className="relative group">
+            <button
+              onClick={() => setMsgPanelOpen((v) => !v)}
+              type="button"
+              aria-label="Messages"
+              className={`
+                w-full flex items-center gap-3 rounded-xl px-3 py-2.5
+                transition-all duration-150 relative
+                ${msgPanelOpen
+                  ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-semibold'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-white'
+                }
+                ${collapsed ? 'md:justify-center md:px-2' : ''}
+              `}
+            >
+              <div className="relative shrink-0">
+                <MessageSquare className="w-[18px] h-[18px]" />
+                {chatUnreadCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5 leading-none">
+                    {chatUnreadCount > 9 ? '9+' : chatUnreadCount}
+                  </span>
+                )}
+              </div>
+              <span className={`flex-1 text-left text-sm ${collapsed ? 'md:hidden' : ''}`}>Messages</span>
+              {!collapsed && chatUnreadCount > 0 && (
+                <span className="bg-indigo-600 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 leading-none">
+                  {chatUnreadCount > 9 ? '9+' : chatUnreadCount}
+                </span>
+              )}
+            </button>
+
+            {/* Tooltip on collapsed */}
+            {collapsed && (
+              <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 z-50 pointer-events-none hidden md:block">
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-gray-900 dark:bg-gray-700 text-white text-xs font-medium px-2.5 py-1.5 rounded-lg whitespace-nowrap shadow-xl">
+                  Messages {chatUnreadCount > 0 ? `(${chatUnreadCount})` : ''}
+                  <span className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900 dark:border-r-gray-700" />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* ── Collapse toggle (desktop only) ── */}
         <div className="hidden md:flex shrink-0 p-3 border-t border-gray-100 dark:border-gray-800/60 justify-end">
@@ -190,6 +231,14 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
           </button>
         </div>
       </aside>
+
+      {/* Messages Panel */}
+      {msgPanelOpen && (
+        <MessagesPanel
+          onClose={() => setMsgPanelOpen(false)}
+          onOpenChat={handleOpenChat}
+        />
+      )}
     </>
   );
 };

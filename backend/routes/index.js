@@ -2444,6 +2444,24 @@ async function getChatBooking(bookingId, role, callerId) {
   return booking;
 }
 
+// GET /owner/messages/unread — all unread customer messages across all bookings
+router.get('/owner/messages/unread', authenticateOwner, asyncHandler(async (req, res) => {
+  const salon = await Salon.findOne({ ownerId: req.owner._id }).select('_id').lean();
+  if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
+
+  const messages = await Message.find({ salonId: salon._id, senderRole: 'customer', readAt: null })
+    .sort({ createdAt: -1 }).limit(50).lean();
+
+  const bookingIds = [...new Set(messages.map((m) => m.bookingId.toString()))];
+  const bookings   = await Booking.find({ _id: { $in: bookingIds } })
+    .select('customerName serviceName appointmentDate appointmentTime status customerId').lean();
+  const bookingMap = {};
+  bookings.forEach((b) => { bookingMap[b._id.toString()] = b; });
+
+  const enriched = messages.map((m) => ({ ...m, booking: bookingMap[m.bookingId.toString()] || null }));
+  res.json({ success: true, data: { messages: enriched, count: enriched.length } });
+}));
+
 // GET /owner/bookings/:bookingId/messages
 router.get('/owner/bookings/:bookingId/messages', authenticateOwner, validateObjectId('bookingId'), asyncHandler(async (req, res) => {
   const Salon = require('../models/Salon');
@@ -2473,7 +2491,7 @@ router.post('/owner/bookings/:bookingId/messages', authenticateOwner, validateOb
   const salon = await Salon.findOne({ ownerId: req.owner._id }).select('_id').lean();
   if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
 
-  const booking = await Booking.findOne({ _id: req.params.bookingId, salonId: salon._id }).select('_id customerId salonId status').lean();
+  const booking = await Booking.findOne({ _id: req.params.bookingId, salonId: salon._id }).select('_id customerId salonId status serviceName appointmentDate appointmentTime customerName').lean();
   if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
   if (['completed', 'cancelled'].includes(booking.status))
     return res.status(400).json({ success: false, message: 'Chat is closed for this booking' });
@@ -2500,14 +2518,18 @@ router.post('/owner/bookings/:bookingId/messages', authenticateOwner, validateOb
   // Push notification to customer's app
   try {
     const { sendExpoPush } = require('../utils/pushNotification');
-    const customer = await Customer.findById(booking.customerId).select('pushToken').lean();
+    const customer = await Customer.findById(booking.customerId).select('pushToken name').lean();
     if (customer?.pushToken) {
-      const salonName = salon.name || 'Your salon';
+      const salonName  = req.owner?.salonName || salon.name || 'Your salon';
+      const service    = booking.serviceName  || 'Appointment';
+      const apptDate   = booking.appointmentDate ? new Date(booking.appointmentDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '';
+      const apptTime   = booking.appointmentTime || '';
+      const subtitle   = [service, apptDate, apptTime].filter(Boolean).join(' · ');
       await sendExpoPush(
         customer.pushToken,
-        `💬 New message from ${salonName}`,
-        message.text.slice(0, 100),
-        { type: 'chat_message', bookingId: booking._id.toString() },
+        `💬 ${salonName}`,
+        `${message.text.slice(0, 80)}\n${subtitle}`,
+        { type: 'chat_message', bookingId: booking._id.toString(), salonName, service, apptTime, apptDate },
         { channelId: 'chat' }
       );
     }
@@ -2550,7 +2572,7 @@ router.post('/customer/bookings/:bookingId/messages', authenticateCustomer, vali
   const { text } = req.body;
   if (!text?.trim()) return res.status(400).json({ success: false, message: 'Message text is required' });
 
-  const booking = await Booking.findOne({ _id: req.params.bookingId, customerId: req.customer._id }).select('_id salonId customerId status').lean();
+  const booking = await Booking.findOne({ _id: req.params.bookingId, customerId: req.customer._id }).select('_id salonId customerId status serviceName appointmentDate appointmentTime customerName').lean();
   if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
   if (['completed', 'cancelled'].includes(booking.status))
     return res.status(400).json({ success: false, message: 'Chat is closed for this booking' });
@@ -2581,12 +2603,16 @@ router.post('/customer/bookings/:bookingId/messages', authenticateCustomer, vali
     if (salonDoc?.ownerId) {
       const owner = await Owner.findById(salonDoc.ownerId).select('pushToken').lean();
       if (owner?.pushToken) {
-        const customerName = req.customer?.name || 'Customer';
+        const customerName = booking.customerName || req.customer?.name || 'Customer';
+        const service      = booking.serviceName  || 'Appointment';
+        const apptDate     = booking.appointmentDate ? new Date(booking.appointmentDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '';
+        const apptTime     = booking.appointmentTime || '';
+        const subtitle     = [service, apptDate, apptTime].filter(Boolean).join(' · ');
         await sendExpoPush(
           owner.pushToken,
-          `💬 New message from ${customerName}`,
-          message.text.slice(0, 100),
-          { type: 'chat_message', bookingId: booking._id.toString() },
+          `💬 ${customerName}`,
+          `${message.text.slice(0, 80)}\n${subtitle}`,
+          { type: 'chat_message', bookingId: booking._id.toString(), customerName, service, apptTime, apptDate },
           { channelId: 'chat' }
         );
       }
