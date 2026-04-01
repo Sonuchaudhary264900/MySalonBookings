@@ -322,6 +322,19 @@ const startServer = async () => {
 
   await startupCatchUp();
 
+  // Fix customers with broken lastLocation (type set but no coordinates)
+  try {
+    const Customer = require("./models/Customer");
+    const result = await Customer.updateMany(
+      { 'lastLocation.type': 'Point', 'lastLocation.coordinates': { $exists: false } },
+      { $unset: { lastLocation: '' } }
+    );
+    if (result.modifiedCount > 0)
+      logger.info(`✅ Fixed ${result.modifiedCount} customer(s) with broken lastLocation`);
+  } catch (e) {
+    logger.warn("lastLocation fix error", { error: e.message });
+  }
+
   server.listen(PORT, "0.0.0.0", () => {
     logger.info(`✅ Server running on port ${PORT}`, {
       port: PORT,

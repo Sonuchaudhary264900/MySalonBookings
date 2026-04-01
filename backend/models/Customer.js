@@ -137,7 +137,6 @@ const customerSchema = new mongoose.Schema(
       type: {
         type: String,
         enum: ['Point'],
-        default: 'Point',
       },
       coordinates: {
         type: [Number], // [longitude, latitude]
@@ -263,8 +262,8 @@ const customerSchema = new mongoose.Schema(
 customerSchema.index({ phone: 1, sparse: true });
 customerSchema.index({ createdAt: -1 });
 customerSchema.index({ totalBookings: -1 });
-customerSchema.index({ 'savedLocations.coordinates': '2dsphere' });
-customerSchema.index({ lastLocation: '2dsphere' });
+customerSchema.index({ 'savedLocations.coordinates': '2dsphere' }, { sparse: true });
+customerSchema.index({ lastLocation: '2dsphere' }, { sparse: true });
 
 // ===================================================
 // MIDDLEWARE - HASH PASSWORD BEFORE SAVE
