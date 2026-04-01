@@ -1004,8 +1004,19 @@ const WorkingHoursContent = () => {
   useEffect(() => {
     api.get('/owner/working-hours')
       .then((res) => {
-        const d = res.data.data;
-        if (Array.isArray(d) && d.length > 0) setHours(d);
+        const obj = res.data.data?.workingHours;
+        if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+          const dayOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+          setHours(dayOrder.map((dayName) => {
+            const v = obj[dayName.toLowerCase()] || {};
+            return {
+              day: dayName,
+              isOpen: !v.isClosed,
+              openTime: v.open || '09:00',
+              closeTime: v.close || '20:00',
+            };
+          }));
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -1020,7 +1031,15 @@ const WorkingHoursContent = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.put('/owner/working-hours', { workingHours: hours });
+      const workingHoursObj = {};
+      hours.forEach((h) => {
+        workingHoursObj[h.day.toLowerCase()] = {
+          open: h.openTime,
+          close: h.closeTime,
+          isClosed: !h.isOpen,
+        };
+      });
+      await api.put('/owner/working-hours', { workingHours: workingHoursObj });
       toast.success('Working hours updated!');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to save working hours');
