@@ -77,8 +77,7 @@ function ChatModal({ booking, onClose }) {
     setSending(true);
     try {
       await api.post(`/owner/bookings/${booking._id}/messages`, { text: t });
-      socketRef.current?.emit('chat-send', { bookingId: booking._id, senderRole: 'owner', text: t });
-    } catch { showError('Error', 'Failed to send message'); setText(t); }
+    } catch (err) { showError('Error', err?.message || 'Failed to send message'); setText(t); }
     finally { setSending(false); }
   };
 

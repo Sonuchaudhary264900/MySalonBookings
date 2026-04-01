@@ -366,8 +366,7 @@ function ChatModal({ booking, onClose, theme }) {
     setSending(true);
     try {
       await api.post(`/customer/bookings/${booking._id}/messages`, { text: t });
-      socketRef.current?.emit('chat-send', { bookingId: booking._id, senderRole: 'customer', text: t });
-    } catch { setText(t); }
+    } catch (err) { Alert.alert('Error', err?.message || 'Failed to send message'); setText(t); }
     finally { setSending(false); }
   };
 
