@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Calendar, Clock, Phone, User, IndianRupee, Scissors, X, Plus,
   ShieldOff, ShieldCheck, CalendarOff, ChevronDown, MoreHorizontal,
-  CheckCircle, XCircle, PlayCircle, Loader2,
+  CheckCircle, XCircle, PlayCircle, Loader2, MessageSquare,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { io } from 'socket.io-client';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { useSalon } from '../../hooks/useSalon';
 import * as salonService from '../../services/salonService';
@@ -28,6 +29,9 @@ const STATUS_CFG = {
   completed:   { label: 'Completed',   dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 ring-1 ring-emerald-200 dark:ring-emerald-800/60' },
   cancelled:   { label: 'Cancelled',   dot: 'bg-red-500',     badge: 'bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300 ring-1 ring-red-200 dark:ring-red-800/60' },
 };
+
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_BASE_URL?.replace('/api/v1', '') || 'http://localhost:5000';
+const CHAT_OPEN = new Set(['pending', 'confirmed', 'in_progress']);
 
 const FILTERS = [
   { id: 'all',         label: 'All' },
@@ -353,7 +357,7 @@ const WalkInModal = ({ salon, services, onClose, onSuccess }) => {
 };
 
 /* ─── Booking Table Row ──────────────────────────────────────── */
-const BookingRow = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock }) => {
+const BookingRow = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock, onOpenChat }) => {
   const cfg = STATUS_CFG[booking.status] || { label: booking.status, dot: 'bg-gray-400', badge: 'bg-gray-100 text-gray-600' };
   const dateStr = booking.appointmentDate ? formatDate(booking.appointmentDate) : '—';
 
@@ -431,22 +435,35 @@ const BookingRow = ({ booking, updating, onStatusChange, isBlocked, blockLoading
       </td>
 
       {/* Actions */}
-      <td className="px-4 py-3.5 text-right">
-        <ActionDropdown
-          booking={booking}
-          updating={updating}
-          onStatusChange={onStatusChange}
-          isBlocked={isBlocked}
-          blockLoading={blockLoading}
-          onToggleBlock={onToggleBlock}
-        />
+      <td className="px-4 py-3.5">
+        <div className="flex items-center justify-end gap-1.5">
+          {CHAT_OPEN.has(booking.status) && (
+            <button
+              onClick={() => onOpenChat(booking)}
+              title="Chat with customer"
+              className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/30
+                text-indigo-400 dark:text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400
+                transition-colors"
+            >
+              <MessageSquare className="w-4 h-4" />
+            </button>
+          )}
+          <ActionDropdown
+            booking={booking}
+            updating={updating}
+            onStatusChange={onStatusChange}
+            isBlocked={isBlocked}
+            blockLoading={blockLoading}
+            onToggleBlock={onToggleBlock}
+          />
+        </div>
       </td>
     </tr>
   );
 };
 
 /* ─── Mobile Booking Card ────────────────────────────────────── */
-const BookingCard = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock }) => {
+const BookingCard = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock, onOpenChat }) => {
   const cfg = STATUS_CFG[booking.status] || { label: booking.status, dot: 'bg-gray-400', badge: 'bg-gray-100 text-gray-600' };
   const dateStr = booking.appointmentDate ? formatDate(booking.appointmentDate) : '—';
 
@@ -492,6 +509,16 @@ const BookingCard = ({ booking, updating, onStatusChange, isBlocked, blockLoadin
         {booking.status === 'in_progress' && (
           <ActionBtn label="Mark Complete" cls="bg-emerald-600 hover:bg-emerald-700 text-white" loading={updating} onClick={() => onStatusChange(booking._id,'completed')} />
         )}
+        {CHAT_OPEN.has(booking.status) && (
+          <button
+            onClick={() => onOpenChat(booking)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors border
+              bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400
+              border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-950/50"
+          >
+            <MessageSquare className="w-3.5 h-3.5" /> Chat
+          </button>
+        )}
         {!booking.isWalkIn && booking.customerId && (
           <button onClick={() => onToggleBlock(booking.customerId, isBlocked)} disabled={blockLoading}
             className={`ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition border disabled:opacity-50 ${
@@ -512,6 +539,168 @@ const ActionBtn = ({ label, cls, loading, onClick }) => (
   </button>
 );
 
+/* ─── Chat Panel ─────────────────────────────────────────────── */
+const ChatPanel = ({ booking, onClose }) => {
+  const [messages, setMessages]   = useState([]);
+  const [text, setText]           = useState('');
+  const [sending, setSending]     = useState(false);
+  const [loading, setLoading]     = useState(true);
+  const [peerTyping, setPeerTyping] = useState(false);
+  const socketRef     = useRef(null);
+  const bottomRef     = useRef(null);
+  const typingTimer   = useRef(null);
+  const isChatOpen    = CHAT_OPEN.has(booking.status);
+
+  useEffect(() => {
+    api.get(`/owner/bookings/${booking._id}/messages`)
+      .then(res => setMessages(res.data.data?.messages || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [booking._id]);
+
+  useEffect(() => {
+    const socket = io(SOCKET_URL, { transports: ['websocket'] });
+    socketRef.current = socket;
+    socket.on('connect', () => socket.emit('join-chat', { bookingId: booking._id }));
+    socket.on('chat-message', ({ bookingId, message }) => {
+      if (bookingId === booking._id) setMessages(prev => [...prev, message]);
+    });
+    socket.on('chat-typing', ({ senderRole }) => {
+      if (senderRole === 'customer') {
+        setPeerTyping(true);
+        clearTimeout(typingTimer.current);
+        typingTimer.current = setTimeout(() => setPeerTyping(false), 2500);
+      }
+    });
+    return () => {
+      clearTimeout(typingTimer.current);
+      socket.emit('leave-chat', { bookingId: booking._id });
+      socket.disconnect();
+    };
+  }, [booking._id]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, peerTyping]);
+
+  const handleSend = async () => {
+    const t = text.trim();
+    if (!t || sending || !isChatOpen) return;
+    setText('');
+    setSending(true);
+    try {
+      await api.post(`/owner/bookings/${booking._id}/messages`, { text: t });
+      socketRef.current?.emit('chat-send', { bookingId: booking._id, senderRole: 'owner', text: t });
+    } catch { toast.error('Failed to send message'); setText(t); }
+    finally { setSending(false); }
+  };
+
+  const handleKeyDown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } };
+  const handleChange  = e => {
+    setText(e.target.value);
+    if (isChatOpen) socketRef.current?.emit('chat-typing', { bookingId: booking._id, senderRole: 'owner' });
+  };
+  const fmt = iso => { if (!iso) return ''; const d = new Date(iso); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`; };
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-[360px] flex flex-col
+        bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 shadow-2xl">
+
+        {/* Header */}
+        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-gray-100 dark:border-gray-800">
+          <div className="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-950 flex items-center justify-center shrink-0 text-sm font-bold text-indigo-600 dark:text-indigo-400">
+            {(booking.customerName || '?')[0].toUpperCase()}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{booking.customerName || 'Customer'}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{booking.serviceName} · #{booking._id?.slice(-6)}</p>
+          </div>
+          <button onClick={onClose}
+            className="w-8 h-8 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center transition-colors">
+            <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+          </button>
+        </div>
+
+        {!isChatOpen && (
+          <div className="mx-4 mt-3 px-3.5 py-2.5 rounded-xl text-xs font-medium
+            bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50
+            text-amber-700 dark:text-amber-400">
+            Chat closed — booking is {booking.status.replace('_', ' ')}.
+          </div>
+        )}
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-2 min-h-0">
+          {loading ? (
+            <div className="flex justify-center items-center h-full">
+              <Loader2 className="w-5 h-5 animate-spin text-gray-300 dark:text-gray-600" />
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full gap-2 opacity-50">
+              <MessageSquare className="w-8 h-8 text-gray-300 dark:text-gray-600" />
+              <p className="text-xs text-gray-400 dark:text-gray-500">No messages yet</p>
+            </div>
+          ) : messages.map((msg, i) => {
+            const mine = msg.senderRole === 'owner';
+            return (
+              <div key={i} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[80%] px-3.5 py-2 rounded-2xl text-sm leading-snug break-words ${
+                  mine
+                    ? 'bg-indigo-600 text-white rounded-br-none'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-bl-none'
+                }`}>
+                  <p>{msg.text}</p>
+                  <p className={`text-[10px] mt-0.5 ${mine ? 'text-indigo-200 text-right' : 'text-gray-400 dark:text-gray-500'}`}>
+                    {fmt(msg.createdAt)}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+          {peerTyping && (
+            <div className="flex justify-start">
+              <div className="px-3.5 py-2 rounded-2xl rounded-bl-none bg-gray-100 dark:bg-gray-800 text-xs text-gray-400 dark:text-gray-500 italic">
+                Customer is typing…
+              </div>
+            </div>
+          )}
+          <div ref={bottomRef} />
+        </div>
+
+        {/* Input */}
+        {isChatOpen && (
+          <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-800 flex items-end gap-2">
+            <textarea
+              value={text}
+              onChange={handleChange}
+              onKeyDown={handleKeyDown}
+              placeholder="Message customer…"
+              rows={1}
+              disabled={sending}
+              className="flex-1 px-3.5 py-2.5 rounded-xl border text-sm resize-none min-h-[40px] max-h-28 overflow-y-auto
+                bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700
+                text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+                focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors disabled:opacity-50"
+            />
+            <button
+              onClick={handleSend}
+              disabled={!text.trim() || sending}
+              className="w-10 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center
+                transition-colors disabled:opacity-40 shrink-0 self-end"
+            >
+              {sending
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>}
+            </button>
+          </div>
+        )}
+      </div>
+    </>
+  );
+};
+
 /* ─── Main Bookings Page ─────────────────────────────────────── */
 const Bookings = () => {
   const { salon, services, bookings, fetchBookings, fetchServices, updateBookingStatus, createWalkInBooking } = useSalon();
@@ -522,6 +711,7 @@ const Bookings = () => {
   const [blockedIds, setBlockedIds]     = useState(new Set());
   const [blocking, setBlocking]         = useState(null);
   const [pageLoading, setPageLoading]   = useState(false);
+  const [chatBooking, setChatBooking]   = useState(null);
 
   const loadBookings = useCallback(async (date) => {
     setPageLoading(true);
@@ -727,6 +917,7 @@ const Bookings = () => {
                       isBlocked={booking.customerId ? blockedIds.has(String(booking.customerId)) : false}
                       blockLoading={blocking === String(booking.customerId)}
                       onToggleBlock={handleToggleBlock}
+                      onOpenChat={setChatBooking}
                     />
                   ))}
                 </tbody>
@@ -744,6 +935,7 @@ const Bookings = () => {
                   isBlocked={booking.customerId ? blockedIds.has(String(booking.customerId)) : false}
                   blockLoading={blocking === String(booking.customerId)}
                   onToggleBlock={handleToggleBlock}
+                  onOpenChat={setChatBooking}
                 />
               ))}
             </div>
@@ -758,6 +950,14 @@ const Bookings = () => {
           services={services}
           onClose={() => setShowModal(false)}
           onSuccess={handleWalkInSuccess}
+        />
+      )}
+
+      {/* Chat Panel */}
+      {chatBooking && (
+        <ChatPanel
+          booking={chatBooking}
+          onClose={() => setChatBooking(null)}
         />
       )}
     </DashboardLayout>
