@@ -2437,4 +2437,153 @@ router.get('/customer/my-packages', authenticateCustomer, asyncHandler(async (re
   res.json({ success: true, data: { purchases } });
 }));
 
+/* =====================================================
+   CHAT — PER-BOOKING MESSAGES
+===================================================== */
+
+const Message = require('../models/Message');
+
+// helper — verify booking belongs to the caller and is still open
+async function getChatBooking(bookingId, role, callerId) {
+  const booking = await Booking.findById(bookingId).select('salonId customerId status ownerId').lean();
+  if (!booking) return null;
+  if (['completed', 'cancelled'].includes(booking.status)) return null; // chat closed
+  if (role === 'customer' && booking.customerId.toString() !== callerId.toString()) return null;
+  if (role === 'owner') {
+    const Salon = require('../models/Salon');
+    const salon = await Salon.findOne({ ownerId: callerId }).select('_id').lean();
+    if (!salon || salon._id.toString() !== booking.salonId.toString()) return null;
+  }
+  return booking;
+}
+
+// GET /owner/bookings/:bookingId/messages
+router.get('/owner/bookings/:bookingId/messages', authenticateOwner, validateObjectId('bookingId'), asyncHandler(async (req, res) => {
+  const Salon = require('../models/Salon');
+  const salon = await Salon.findOne({ ownerId: req.owner._id }).select('_id').lean();
+  if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
+
+  const booking = await Booking.findOne({ _id: req.params.bookingId, salonId: salon._id }).select('_id customerId salonId').lean();
+  if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+
+  const messages = await Message.find({ bookingId: booking._id }).sort({ createdAt: 1 }).lean();
+
+  // Mark customer messages as read
+  await Message.updateMany(
+    { bookingId: booking._id, senderRole: 'customer', readAt: null },
+    { $set: { readAt: new Date() } }
+  );
+
+  res.json({ success: true, data: { messages } });
+}));
+
+// POST /owner/bookings/:bookingId/messages
+router.post('/owner/bookings/:bookingId/messages', authenticateOwner, validateObjectId('bookingId'), asyncHandler(async (req, res) => {
+  const { text } = req.body;
+  if (!text?.trim()) return res.status(400).json({ success: false, message: 'Message text is required' });
+
+  const Salon = require('../models/Salon');
+  const salon = await Salon.findOne({ ownerId: req.owner._id }).select('_id').lean();
+  if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
+
+  const booking = await Booking.findOne({ _id: req.params.bookingId, salonId: salon._id }).select('_id customerId salonId status').lean();
+  if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+  if (['completed', 'cancelled'].includes(booking.status))
+    return res.status(400).json({ success: false, message: 'Chat is closed for this booking' });
+
+  const message = await Message.create({
+    bookingId:  booking._id,
+    salonId:    salon._id,
+    customerId: booking.customerId,
+    senderRole: 'owner',
+    text:       text.trim(),
+  });
+
+  // Emit to customer's socket room
+  try {
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`customer-${booking.customerId}`).emit('chat-message', {
+        bookingId:  booking._id,
+        message:    { ...message.toObject() },
+      });
+    }
+  } catch {}
+
+  res.status(201).json({ success: true, data: { message } });
+}));
+
+// PUT /owner/bookings/:bookingId/messages/read — mark owner's unread messages as read
+router.put('/owner/bookings/:bookingId/messages/read', authenticateOwner, validateObjectId('bookingId'), asyncHandler(async (req, res) => {
+  const Salon = require('../models/Salon');
+  const salon = await Salon.findOne({ ownerId: req.owner._id }).select('_id').lean();
+  if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
+
+  await Message.updateMany(
+    { bookingId: req.params.bookingId, salonId: salon._id, senderRole: 'customer', readAt: null },
+    { $set: { readAt: new Date() } }
+  );
+  res.json({ success: true });
+}));
+
+// GET /customer/bookings/:bookingId/messages
+router.get('/customer/bookings/:bookingId/messages', authenticateCustomer, validateObjectId('bookingId'), asyncHandler(async (req, res) => {
+  const booking = await Booking.findOne({ _id: req.params.bookingId, customerId: req.customer._id }).select('_id salonId customerId').lean();
+  if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+
+  const messages = await Message.find({ bookingId: booking._id }).sort({ createdAt: 1 }).lean();
+
+  // Mark owner messages as read
+  await Message.updateMany(
+    { bookingId: booking._id, senderRole: 'owner', readAt: null },
+    { $set: { readAt: new Date() } }
+  );
+
+  res.json({ success: true, data: { messages } });
+}));
+
+// POST /customer/bookings/:bookingId/messages
+router.post('/customer/bookings/:bookingId/messages', authenticateCustomer, validateObjectId('bookingId'), asyncHandler(async (req, res) => {
+  const { text } = req.body;
+  if (!text?.trim()) return res.status(400).json({ success: false, message: 'Message text is required' });
+
+  const booking = await Booking.findOne({ _id: req.params.bookingId, customerId: req.customer._id }).select('_id salonId customerId status').lean();
+  if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+  if (['completed', 'cancelled'].includes(booking.status))
+    return res.status(400).json({ success: false, message: 'Chat is closed for this booking' });
+
+  const message = await Message.create({
+    bookingId:  booking._id,
+    salonId:    booking.salonId,
+    customerId: req.customer._id,
+    senderRole: 'customer',
+    text:       text.trim(),
+  });
+
+  // Emit to salon owner's socket room
+  try {
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`salon-${booking.salonId}`).emit('chat-message', {
+        bookingId: booking._id,
+        message:   { ...message.toObject() },
+      });
+    }
+  } catch {}
+
+  res.status(201).json({ success: true, data: { message } });
+}));
+
+// PUT /customer/bookings/:bookingId/messages/read — mark owner messages as read
+router.put('/customer/bookings/:bookingId/messages/read', authenticateCustomer, validateObjectId('bookingId'), asyncHandler(async (req, res) => {
+  const booking = await Booking.findOne({ _id: req.params.bookingId, customerId: req.customer._id }).select('_id salonId').lean();
+  if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+
+  await Message.updateMany(
+    { bookingId: req.params.bookingId, salonId: booking.salonId, senderRole: 'owner', readAt: null },
+    { $set: { readAt: new Date() } }
+  );
+  res.json({ success: true });
+}));
+
 module.exports = router;

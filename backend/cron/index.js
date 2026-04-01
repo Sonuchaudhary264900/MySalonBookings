@@ -28,6 +28,7 @@ const Service = require('../models/Service');
 const Owner = require('../models/Owner');
 const Customer = require('../models/Customer');
 const Subscription = require('../models/Subscription');
+const Message = require('../models/Message');
 
 
 
@@ -957,6 +958,37 @@ const paymentDueReminder = cron.schedule('0 9 * * *', async () => {
 
 /*
 ====================================================
+CHAT CLEANUP — delete messages for completed/cancelled bookings
+Runs every hour. Deletes messages for bookings that finished
+more than 1 hour ago, so the chat stays live briefly after completion.
+====================================================
+*/
+
+const cleanupChatMessages = cron.schedule('0 * * * *', async () => {
+  try {
+    const cutoff = new Date(Date.now() - 60 * 60 * 1000); // 1 hour ago
+
+    // Find booking IDs that are completed/cancelled before cutoff
+    const closedBookings = await Booking.find({
+      status: { $in: ['completed', 'cancelled'] },
+      updatedAt: { $lt: cutoff },
+    }).select('_id').lean();
+
+    if (closedBookings.length === 0) return;
+
+    const bookingIds = closedBookings.map(b => b._id);
+    const result = await Message.deleteMany({ bookingId: { $in: bookingIds } });
+
+    if (result.deletedCount > 0) {
+      console.log(`🗑️  Deleted ${result.deletedCount} chat messages for ${closedBookings.length} closed bookings`);
+    }
+  } catch (err) {
+    console.error('Chat cleanup cron error:', err.message);
+  }
+});
+
+/*
+====================================================
 EXPORT
 ====================================================
 */
@@ -977,6 +1009,7 @@ module.exports = {
   trialExpiryReminder,
   monthlyBillingReset,
   paymentDueReminder,
+  cleanupChatMessages,
 
   stopAllJobs: () => {
 
@@ -994,6 +1027,7 @@ module.exports = {
     trialExpiryReminder.stop();
     monthlyBillingReset.stop();
     paymentDueReminder.stop();
+    cleanupChatMessages.stop();
 
     console.log("🛑 All cron jobs stopped");
 

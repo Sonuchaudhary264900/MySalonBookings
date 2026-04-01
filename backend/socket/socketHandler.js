@@ -6,11 +6,13 @@
   - Booking status changes
   - Notifications
   - Live customer location
+  - Per-booking chat
 */
 
 const Queue = require('../models/Queue');
 const Booking = require('../models/Booking');
 const Salon = require('../models/Salon');
+const Message = require('../models/Message');
 
 module.exports = (socket, io) => {
   // ===================================================
@@ -326,6 +328,84 @@ module.exports = (socket, io) => {
       console.log(`📨 Notification sent to user ${recipientId}`);
     } catch (error) {
       console.error('Error sending notification:', error);
+    }
+  });
+
+  // ===================================================
+  // CHAT — JOIN BOOKING ROOM
+  // ===================================================
+  socket.on('join-chat', (data) => {
+    try {
+      const { bookingId } = data;
+      if (bookingId) {
+        socket.join(`chat-${bookingId}`);
+        console.log(`💬 Socket joined chat room: chat-${bookingId}`);
+      }
+    } catch (error) {
+      console.error('Error joining chat room:', error);
+    }
+  });
+
+  // ===================================================
+  // CHAT — SEND MESSAGE (real-time delivery via socket)
+  // Persistence is handled by the REST POST route.
+  // This event is for instant delivery to both parties.
+  // ===================================================
+  socket.on('chat-send', async (data) => {
+    try {
+      const { bookingId, senderRole, text, senderId } = data;
+      if (!bookingId || !senderRole || !text?.trim()) return;
+
+      const booking = await Booking.findById(bookingId).select('status customerId salonId').lean();
+      if (!booking) return;
+      if (['completed', 'cancelled'].includes(booking.status)) {
+        socket.emit('chat-error', { message: 'Chat is closed for this booking' });
+        return;
+      }
+
+      // Broadcast to the chat room (both parties see it instantly)
+      io.to(`chat-${bookingId}`).emit('chat-message', {
+        bookingId,
+        message: {
+          senderRole,
+          text: text.trim(),
+          createdAt: new Date().toISOString(),
+          readAt: null,
+        },
+      });
+
+      console.log(`💬 Chat message in booking ${bookingId} from ${senderRole}`);
+    } catch (error) {
+      console.error('Error sending chat message:', error);
+    }
+  });
+
+  // ===================================================
+  // CHAT — LEAVE BOOKING ROOM
+  // ===================================================
+  socket.on('leave-chat', (data) => {
+    try {
+      const { bookingId } = data;
+      if (bookingId) {
+        socket.leave(`chat-${bookingId}`);
+        console.log(`💬 Socket left chat room: chat-${bookingId}`);
+      }
+    } catch (error) {
+      console.error('Error leaving chat room:', error);
+    }
+  });
+
+  // ===================================================
+  // CHAT — TYPING INDICATOR
+  // ===================================================
+  socket.on('chat-typing', (data) => {
+    try {
+      const { bookingId, senderRole } = data;
+      if (bookingId && senderRole) {
+        socket.to(`chat-${bookingId}`).emit('chat-typing', { bookingId, senderRole });
+      }
+    } catch (error) {
+      console.error('Error broadcasting typing:', error);
     }
   });
 
