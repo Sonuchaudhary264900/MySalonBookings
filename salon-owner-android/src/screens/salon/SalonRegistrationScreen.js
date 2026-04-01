@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import * as Location from 'expo-location';
 import { WebView } from 'react-native-webview';
 import { useSalon } from '../../context/SalonContext';
@@ -131,6 +132,7 @@ export default function SalonRegistrationScreen() {
   const [name, setName]               = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory]       = useState('barber');
+  const [servedGender, setServedGender] = useState('');
   const [phone, setPhone]             = useState(user?.phone || '');
   const [email, setEmail]             = useState(user?.email || '');
 
@@ -209,17 +211,45 @@ export default function SalonRegistrationScreen() {
     } catch { setLocationStatus('Pin moved! Verify address.'); }
   };
 
+  /* Compress a single image asset: resize to max 1920 px, re-encode JPEG 82% */
+  const compressImage = async (asset) => {
+    try {
+      const MAX_DIM = 1920;
+      const { uri, width = 0, height = 0 } = asset;
+      const actions = [];
+      if (width > MAX_DIM || height > MAX_DIM) {
+        if (width >= height) {
+          actions.push({ resize: { width: MAX_DIM } });
+        } else {
+          actions.push({ resize: { height: MAX_DIM } });
+        }
+      }
+      const result = await ImageManipulator.manipulateAsync(
+        uri,
+        actions,
+        { compress: 0.82, format: ImageManipulator.SaveFormat.JPEG },
+      );
+      return result.uri;
+    } catch {
+      return asset.uri; // fallback to original on error
+    }
+  };
+
   const pickPhotos = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') { Alert.alert('Permission Required', 'Please allow access to your photo library.'); return; }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
-      quality: 0.8,
+      quality: 1,          // pick at full quality; we compress below
       selectionLimit: 6,
+      exif: false,
     });
     if (!result.canceled) {
-      setPhotos(prev => [...prev, ...result.assets.map(a => a.uri)].slice(0, 6));
+      const slots = 6 - photos.length;
+      const picked = result.assets.slice(0, slots);
+      const uris = await Promise.all(picked.map(compressImage));
+      setPhotos(prev => [...prev, ...uris].slice(0, 6));
     }
   };
 
@@ -248,6 +278,7 @@ export default function SalonRegistrationScreen() {
 
   const validateStep1 = () => {
     if (!name.trim() || name.trim().length < 3) { Alert.alert('Error', 'Salon name must be at least 3 characters'); return false; }
+    if (!servedGender) { Alert.alert('Error', 'Please select who your salon serves'); return false; }
     if (!phone.trim()) { Alert.alert('Error', 'Phone number is required'); return false; }
     if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) { Alert.alert('Error', 'Valid email is required'); return false; }
     return true;
@@ -281,6 +312,7 @@ export default function SalonRegistrationScreen() {
         name: name.trim(),
         description: description.trim() || undefined,
         category,
+        servedGender: servedGender || 'unisex',
         phone: formatPhone(phone),
         email: email.trim(),
         address: address.trim(),
@@ -393,6 +425,53 @@ export default function SalonRegistrationScreen() {
                     </TouchableOpacity>
                   ))}
                 </View>
+              </View>
+
+              {/* ── Who Do You Serve? ── */}
+              <View style={s.serveCard}>
+                <View style={s.serveTitleRow}>
+                  <View style={s.serveIconBadge}>
+                    <Text style={{ fontSize: 16 }}>💈</Text>
+                  </View>
+                  <View>
+                    <Text style={s.serveTitle}>Who Do You Serve? *</Text>
+                    <Text style={s.serveSub}>Select the clients your salon caters to</Text>
+                  </View>
+                </View>
+                <View style={s.serveGrid}>
+                  {[
+                    { value: 'male',   label: 'Male',   icon: '♂',  desc: 'Men only'   },
+                    { value: 'female', label: 'Female', icon: '♀',  desc: 'Women only' },
+                    { value: 'unisex', label: 'Unisex', icon: '⚥',  desc: 'Everyone'  },
+                  ].map(opt => {
+                    const active = servedGender === opt.value;
+                    return (
+                      <TouchableOpacity
+                        key={opt.value}
+                        style={[s.serveChip, active && s.serveChipActive]}
+                        onPress={() => setServedGender(opt.value)}
+                        activeOpacity={0.8}
+                      >
+                        {active && (
+                          <View style={s.serveCheck}>
+                            <Ionicons name="checkmark" size={10} color="#fff" />
+                          </View>
+                        )}
+                        <Text style={s.serveChipIcon}>{opt.icon}</Text>
+                        <Text style={[s.serveChipLabel, active && s.serveChipLabelActive]}>{opt.label}</Text>
+                        <Text style={s.serveChipDesc}>{opt.desc}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                {servedGender !== '' && (
+                  <View style={s.serveSelected}>
+                    <Ionicons name="checkmark-circle" size={14} color="#818cf8" />
+                    <Text style={s.serveSelectedText}>
+                      Serving {servedGender === 'male' ? 'Men only' : servedGender === 'female' ? 'Women only' : 'Everyone (Unisex)'}
+                    </Text>
+                  </View>
+                )}
               </View>
 
               <DarkField label="Phone Number *" value={phone} setter={setPhone} placeholder="+91 9876543210" keyboard="phone-pad" icon="call-outline" editable={!user?.phone} />
@@ -718,6 +797,49 @@ const s = StyleSheet.create({
   chipEmoji: { fontSize: 14 },
   chipText: { fontSize: 13, color: '#94a3b8', fontWeight: '500' },
   chipTextActive: { color: '#c4b5fd', fontWeight: '700' },
+
+  /* ── Who Do You Serve card ── */
+  serveCard: {
+    backgroundColor: 'rgba(99,102,241,0.07)',
+    borderWidth: 1.5, borderColor: 'rgba(99,102,241,0.28)',
+    borderRadius: 16, padding: 18, marginBottom: 4,
+  },
+  serveTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+  serveIconBadge: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: 'rgba(99,102,241,0.2)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  serveTitle: { fontSize: 15, fontWeight: '700', color: '#e0e7ff' },
+  serveSub:   { fontSize: 12, color: '#6b7280', marginTop: 1 },
+  serveGrid:  { flexDirection: 'row', gap: 10 },
+  serveChip: {
+    flex: 1, borderWidth: 2, borderColor: 'rgba(99,102,241,0.25)',
+    borderRadius: 14, paddingVertical: 14, paddingHorizontal: 6,
+    alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.04)',
+    position: 'relative',
+  },
+  serveChipActive: {
+    backgroundColor: 'rgba(99,102,241,0.22)', borderColor: '#6366f1',
+    shadowColor: '#6366f1', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35, shadowRadius: 8, elevation: 4,
+  },
+  serveCheck: {
+    position: 'absolute', top: 6, right: 6,
+    width: 18, height: 18, borderRadius: 9,
+    backgroundColor: '#6366f1',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  serveChipIcon:  { fontSize: 28, marginBottom: 6 },
+  serveChipLabel: { fontSize: 13, fontWeight: '700', color: '#94a3b8' },
+  serveChipLabelActive: { color: '#a5b4fc' },
+  serveChipDesc:  { fontSize: 10, color: '#4b5563', marginTop: 2 },
+  serveSelected: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    marginTop: 12, backgroundColor: 'rgba(99,102,241,0.12)',
+    borderRadius: 8, padding: 9, borderWidth: 1, borderColor: 'rgba(99,102,241,0.3)',
+  },
+  serveSelectedText: { fontSize: 13, color: '#818cf8', fontWeight: '600' },
 
   gpsBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
