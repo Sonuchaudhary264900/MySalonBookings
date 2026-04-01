@@ -2145,20 +2145,6 @@ router.get("/owner/subscription/billing-history",      authenticateOwner, asyncH
 router.post("/owner/subscription/webhook",             asyncHandler(subscriptionController.razorpayWebhook));
 
 /* =====================================================
-   ROUTE NOT FOUND
-===================================================== */
-
-router.use((req, res) => {
-
-  res.status(404).json({
-    success: false,
-    message: "API endpoint not found",
-    path: req.originalUrl
-  });
-
-});
-
-/* =====================================================
    PACKAGES & MEMBERSHIPS — OWNER ROUTES
 ===================================================== */
 
