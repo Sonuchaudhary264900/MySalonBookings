@@ -556,7 +556,14 @@ const ChatPanel = ({ booking, onClose }) => {
 
   useEffect(() => {
     api.get(`/owner/bookings/${booking._id}/messages`)
-      .then(res => setMessages(res.data.data?.messages || []))
+      .then(res => {
+        const msgs = res.data.data?.messages || [];
+        // Mark customer messages as read instantly in local state
+        const now = new Date().toISOString();
+        setMessages(msgs.map(m => m.senderRole === 'customer' && !m.readAt ? { ...m, readAt: now } : m));
+        // Persist to backend (fire-and-forget)
+        api.put(`/owner/bookings/${booking._id}/messages/read`).catch(() => {});
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [booking._id]);
@@ -566,7 +573,14 @@ const ChatPanel = ({ booking, onClose }) => {
     socketRef.current = socket;
     socket.on('connect', () => socket.emit('join-chat', { bookingId: booking._id }));
     socket.on('chat-message', ({ bookingId, message }) => {
-      if (bookingId === booking._id) setMessages(prev => [...prev, message]);
+      if (bookingId === booking._id) {
+        // If owner is already viewing this chat, mark incoming customer message as read instantly
+        const msg = message.senderRole === 'customer' ? { ...message, readAt: new Date().toISOString() } : message;
+        setMessages(prev => [...prev, msg]);
+        if (message.senderRole === 'customer') {
+          api.put(`/owner/bookings/${bookingId}/messages/read`).catch(() => {});
+        }
+      }
     });
     socket.on('chat-typing', ({ senderRole }) => {
       if (senderRole === 'customer') {
