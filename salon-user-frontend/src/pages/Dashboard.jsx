@@ -149,7 +149,6 @@ function ChatDrawer({ booking, onClose }) {
     setSending(true);
     try {
       await API.post(`/customer/bookings/${booking._id}/messages`, { text: t });
-      socketRef.current?.emit('chat-send', { bookingId: booking._id, senderRole: 'customer', text: t });
     } catch { setText(t); }
     finally { setSending(false); }
   };

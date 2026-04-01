@@ -2499,12 +2499,12 @@ router.post('/owner/bookings/:bookingId/messages', authenticateOwner, validateOb
     text:       text.trim(),
   });
 
-  // Emit to customer's socket room
+  // Emit to the shared chat room so both parties receive instantly
   try {
     const io = req.app.get('io');
     if (io) {
-      io.to(`customer-${booking.customerId}`).emit('chat-message', {
-        bookingId:  booking._id,
+      io.to(`chat-${booking._id}`).emit('chat-message', {
+        bookingId:  booking._id.toString(),
         message:    { ...message.toObject() },
       });
     }
@@ -2560,12 +2560,12 @@ router.post('/customer/bookings/:bookingId/messages', authenticateCustomer, vali
     text:       text.trim(),
   });
 
-  // Emit to salon owner's socket room
+  // Emit to the shared chat room so both parties receive instantly
   try {
     const io = req.app.get('io');
     if (io) {
-      io.to(`salon-${booking.salonId}`).emit('chat-message', {
-        bookingId: booking._id,
+      io.to(`chat-${booking._id}`).emit('chat-message', {
+        bookingId: booking._id.toString(),
         message:   { ...message.toObject() },
       });
     }
