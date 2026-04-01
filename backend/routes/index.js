@@ -2158,4 +2158,283 @@ router.use((req, res) => {
 
 });
 
+/* =====================================================
+   PACKAGES & MEMBERSHIPS — OWNER ROUTES
+===================================================== */
+
+const Package     = require('../models/Package');
+const UserPackage = require('../models/UserPackage');
+
+// GET /public/salons/:salonId/packages — active packages for a salon (public)
+router.get('/public/salons/:salonId/packages', validateObjectId('salonId'), asyncHandler(async (req, res) => {
+  const { type } = req.query; // optional filter: 'package' | 'membership'
+  const query = { salonId: req.params.salonId, isActive: true };
+  if (type && ['package', 'membership'].includes(type)) query.type = type;
+  const packages = await Package.find(query).sort({ createdAt: -1 }).lean();
+  res.json({ success: true, data: { packages } });
+}));
+
+// POST /owner/packages — create a package or membership
+router.post('/owner/packages', authenticateOwner, asyncHandler(async (req, res) => {
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
+
+  const {
+    type, name, description, icon, tag,
+    services, originalPrice, discountedPrice, discountPercent, totalDuration,
+    price, billingCycle, durationDays, benefits,
+  } = req.body;
+
+  if (!type || !['package', 'membership'].includes(type))
+    return res.status(400).json({ success: false, message: "type must be 'package' or 'membership'" });
+  if (!name?.trim())
+    return res.status(400).json({ success: false, message: 'name is required' });
+
+  const doc = await Package.create({
+    salonId: salon._id, type,
+    name: name.trim(),
+    description: description?.trim() || '',
+    icon: icon || (type === 'package' ? '🎁' : '💳'),
+    tag: tag || '',
+    // Package fields
+    services: type === 'package' ? (services || []) : [],
+    originalPrice:   type === 'package' ? (Number(originalPrice) || 0)  : 0,
+    discountedPrice: type === 'package' ? (Number(discountedPrice) || 0) : 0,
+    discountPercent: type === 'package' ? (Number(discountPercent) || 0) : 0,
+    totalDuration:   type === 'package' ? (Number(totalDuration) || 0)  : 0,
+    // Membership fields
+    price:        type === 'membership' ? (Number(price) || 0)    : 0,
+    billingCycle: type === 'membership' ? (billingCycle || 'monthly') : 'monthly',
+    durationDays: type === 'membership' ? (Number(durationDays) || 30) : 30,
+    benefits: type === 'membership' ? {
+      freeServices:    benefits?.freeServices    || [],
+      discountPercent: Number(benefits?.discountPercent) || 0,
+      priorityBooking: Boolean(benefits?.priorityBooking),
+    } : { freeServices: [], discountPercent: 0, priorityBooking: false },
+  });
+
+  res.status(201).json({ success: true, data: doc });
+}));
+
+// GET /owner/packages — list all packages/memberships for the salon
+router.get('/owner/packages', authenticateOwner, asyncHandler(async (req, res) => {
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
+  const { type } = req.query;
+  const query = { salonId: salon._id };
+  if (type && ['package', 'membership'].includes(type)) query.type = type;
+  const packages = await Package.find(query).sort({ createdAt: -1 }).lean();
+  res.json({ success: true, data: { packages } });
+}));
+
+// PUT /owner/packages/:id — update or toggle active
+router.put('/owner/packages/:id', authenticateOwner, validateObjectId('id'), asyncHandler(async (req, res) => {
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
+  const pkg = await Package.findOne({ _id: req.params.id, salonId: salon._id });
+  if (!pkg) return res.status(404).json({ success: false, message: 'Package not found' });
+
+  const allowed = ['name','description','icon','tag','isActive',
+    'services','originalPrice','discountedPrice','discountPercent','totalDuration',
+    'price','billingCycle','durationDays','benefits'];
+  for (const key of allowed) {
+    if (req.body[key] !== undefined) pkg[key] = req.body[key];
+  }
+  await pkg.save();
+  res.json({ success: true, data: pkg });
+}));
+
+// DELETE /owner/packages/:id
+router.delete('/owner/packages/:id', authenticateOwner, validateObjectId('id'), asyncHandler(async (req, res) => {
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
+  const pkg = await Package.findOneAndDelete({ _id: req.params.id, salonId: salon._id });
+  if (!pkg) return res.status(404).json({ success: false, message: 'Package not found' });
+  res.json({ success: true, message: 'Deleted' });
+}));
+
+// GET /owner/package-requests — list all purchase requests for this salon
+router.get('/owner/package-requests', authenticateOwner, asyncHandler(async (req, res) => {
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
+  const { status } = req.query;
+  const query = { salonId: salon._id };
+  if (status && ['pending','active','expired','rejected'].includes(status)) query.status = status;
+  const requests = await UserPackage.find(query).sort({ createdAt: -1 }).limit(100).lean();
+  res.json({ success: true, data: { requests } });
+}));
+
+// PUT /owner/package-requests/:id — confirm (activate) or reject a request
+router.put('/owner/package-requests/:id', authenticateOwner, validateObjectId('id'), asyncHandler(async (req, res) => {
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
+  const request = await UserPackage.findOne({ _id: req.params.id, salonId: salon._id });
+  if (!request) return res.status(404).json({ success: false, message: 'Request not found' });
+
+  const { action, rejectedReason } = req.body; // action: 'confirm' | 'reject'
+  if (!['confirm', 'reject'].includes(action))
+    return res.status(400).json({ success: false, message: "action must be 'confirm' or 'reject'" });
+
+  if (action === 'confirm') {
+    // Look up package to get durationDays
+    const pkg = await Package.findById(request.packageId).select('durationDays type').lean();
+    const durationDays = pkg?.type === 'membership' ? (pkg.durationDays || 30) : 0;
+    const now = new Date();
+    request.status      = 'active';
+    request.startDate   = now;
+    request.endDate     = durationDays > 0
+      ? new Date(now.getTime() + durationDays * 86400000)
+      : null; // packages (one-time) have no expiry
+    request.confirmedAt = now;
+
+    // Build usage tracking for memberships
+    if (pkg?.type === 'membership') {
+      const fullPkg = await Package.findById(request.packageId).lean();
+      if (fullPkg?.benefits?.freeServices?.length) {
+        request.usageTracking = fullPkg.benefits.freeServices.map(fs => ({
+          serviceId:   fs.serviceId,
+          serviceName: fs.serviceName,
+          used: 0,
+          limit: fs.usageLimit || 1,
+        }));
+      }
+    }
+  } else {
+    request.status         = 'rejected';
+    request.rejectedAt     = new Date();
+    request.rejectedReason = rejectedReason?.trim() || '';
+  }
+  await request.save();
+
+  // Push notification to customer
+  try {
+    const Customer = require('../models/Customer');
+    const customer = await Customer.findById(request.customerId).select('pushToken name').lean();
+    if (customer?.pushToken) {
+      const isConfirm = action === 'confirm';
+      const { Expo } = require('expo-server-sdk');
+      const expo = new Expo();
+      if (Expo.isExpoPushToken(customer.pushToken)) {
+        await expo.sendPushNotificationsAsync([{
+          to: customer.pushToken,
+          sound: 'default',
+          title: isConfirm
+            ? `✅ ${request.packageName} Activated!`
+            : `❌ ${request.packageName} Request Rejected`,
+          body: isConfirm
+            ? `Your ${request.type} at ${salon.name} is now active. Enjoy!`
+            : `Your request at ${salon.name} was not approved.${rejectedReason ? ' Reason: ' + rejectedReason : ''}`,
+          data: { type: isConfirm ? 'package_confirmed' : 'package_rejected', requestId: request._id.toString() },
+        }]);
+      }
+    }
+  } catch { /* non-critical */ }
+
+  // Real-time socket event to customer
+  try {
+    const io = req.app.get('io');
+    if (io && request.customerId) {
+      io.to(`customer-${request.customerId}`).emit('package-request-updated', {
+        requestId: request._id, status: request.status,
+      });
+    }
+  } catch { /* non-critical */ }
+
+  res.json({ success: true, data: request });
+}));
+
+/* =====================================================
+   PACKAGES & MEMBERSHIPS — CUSTOMER ROUTES
+===================================================== */
+
+// POST /customer/package-request — request to purchase a package/membership
+router.post('/customer/package-request', authenticateCustomer, asyncHandler(async (req, res) => {
+  const Customer = require('../models/Customer');
+  const { packageId, purchaseNote } = req.body;
+  if (!packageId) return res.status(400).json({ success: false, message: 'packageId is required' });
+
+  const pkg = await Package.findById(packageId);
+  if (!pkg || !pkg.isActive)
+    return res.status(404).json({ success: false, message: 'Package not found or inactive' });
+
+  const salon = await Salon.findById(pkg.salonId).select('name ownerId').lean();
+  if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
+
+  const customer = await Customer.findById(req.customer._id).select('name phone').lean();
+
+  // Prevent duplicate pending request
+  const existing = await UserPackage.findOne({
+    customerId: req.customer._id, packageId, status: 'pending',
+  });
+  if (existing) return res.status(409).json({ success: false, message: 'You already have a pending request for this package' });
+
+  const request = await UserPackage.create({
+    customerId:    req.customer._id,
+    customerName:  customer.name,
+    customerPhone: customer.phone || '',
+    salonId:       pkg.salonId,
+    packageId:     pkg._id,
+    type:          pkg.type,
+    packageName:   pkg.name,
+    pricePaid:     pkg.type === 'package' ? pkg.discountedPrice : pkg.price,
+    purchaseNote:  purchaseNote?.trim() || '',
+  });
+
+  // Push notification to salon owner
+  try {
+    const Owner = require('../models/Owner');
+    const owner = await Owner.findById(salon.ownerId).select('pushToken').lean();
+    if (owner?.pushToken) {
+      const { Expo } = require('expo-server-sdk');
+      const expo = new Expo();
+      if (Expo.isExpoPushToken(owner.pushToken)) {
+        await expo.sendPushNotificationsAsync([{
+          to: owner.pushToken,
+          sound: 'default',
+          channelId: 'new_booking',
+          title: `🎁 New ${pkg.type === 'membership' ? 'Membership' : 'Package'} Request!`,
+          body: `${customer.name} wants to buy "${pkg.name}" — ₹${request.pricePaid}`,
+          data: { type: 'package_request', requestId: request._id.toString() },
+        }]);
+      }
+    }
+  } catch { /* non-critical */ }
+
+  // Real-time socket event to salon owner
+  try {
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`salon-${pkg.salonId}`).emit('new-package-request', {
+        requestId:    request._id,
+        customerName: customer.name,
+        packageName:  pkg.name,
+        type:         pkg.type,
+        pricePaid:    request.pricePaid,
+      });
+    }
+  } catch { /* non-critical */ }
+
+  res.status(201).json({ success: true, data: request });
+}));
+
+// GET /customer/my-packages — get all my purchases
+router.get('/customer/my-packages', authenticateCustomer, asyncHandler(async (req, res) => {
+  const { status } = req.query;
+  const query = { customerId: req.customer._id };
+  if (status && ['pending','active','expired','rejected'].includes(status)) query.status = status;
+
+  // Auto-expire any active packages/memberships that passed their endDate
+  const now = new Date();
+  await UserPackage.updateMany(
+    { customerId: req.customer._id, status: 'active', endDate: { $lt: now, $ne: null } },
+    { $set: { status: 'expired' } }
+  );
+
+  const purchases = await UserPackage.find(query)
+    .sort({ createdAt: -1 })
+    .populate('packageId', 'icon type benefits services discountPercent discountedPrice originalPrice')
+    .lean();
+  res.json({ success: true, data: { purchases } });
+}));
+
 module.exports = router;
