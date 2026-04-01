@@ -357,7 +357,7 @@ const WalkInModal = ({ salon, services, onClose, onSuccess }) => {
 };
 
 /* ─── Booking Table Row ──────────────────────────────────────── */
-const BookingRow = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock, onOpenChat }) => {
+const BookingRow = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock, onOpenChat, hasUnread }) => {
   const cfg = STATUS_CFG[booking.status] || { label: booking.status, dot: 'bg-gray-400', badge: 'bg-gray-100 text-gray-600' };
   const dateStr = booking.appointmentDate ? formatDate(booking.appointmentDate) : '—';
 
@@ -441,11 +441,12 @@ const BookingRow = ({ booking, updating, onStatusChange, isBlocked, blockLoading
             <button
               onClick={() => onOpenChat(booking)}
               title="Chat with customer"
-              className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/30
+              className="relative p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/30
                 text-indigo-400 dark:text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400
                 transition-colors"
             >
               <MessageSquare className="w-4 h-4" />
+              {hasUnread && <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-red-500 rounded-full" />}
             </button>
           )}
           <ActionDropdown
@@ -463,7 +464,7 @@ const BookingRow = ({ booking, updating, onStatusChange, isBlocked, blockLoading
 };
 
 /* ─── Mobile Booking Card ────────────────────────────────────── */
-const BookingCard = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock, onOpenChat }) => {
+const BookingCard = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock, onOpenChat, hasUnread }) => {
   const cfg = STATUS_CFG[booking.status] || { label: booking.status, dot: 'bg-gray-400', badge: 'bg-gray-100 text-gray-600' };
   const dateStr = booking.appointmentDate ? formatDate(booking.appointmentDate) : '—';
 
@@ -512,11 +513,12 @@ const BookingCard = ({ booking, updating, onStatusChange, isBlocked, blockLoadin
         {CHAT_OPEN.has(booking.status) && (
           <button
             onClick={() => onOpenChat(booking)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors border
+            className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors border
               bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400
               border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-950/50"
           >
             <MessageSquare className="w-3.5 h-3.5" /> Chat
+            {hasUnread && <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />}
           </button>
         )}
         {!booking.isWalkIn && booking.customerId && (
@@ -711,6 +713,26 @@ const Bookings = () => {
   const [blocking, setBlocking]         = useState(null);
   const [pageLoading, setPageLoading]   = useState(false);
   const [chatBooking, setChatBooking]   = useState(null);
+  const [unreadChats, setUnreadChats]   = useState(new Set()); // bookingIds with unread msgs
+
+  const handleOpenChat = useCallback((booking) => {
+    setChatBooking(booking);
+    setUnreadChats(prev => { const s = new Set(prev); s.delete(String(booking._id)); return s; });
+  }, []);
+
+  // Listen for incoming customer messages on the salon socket (already joined via SalonContext)
+  useEffect(() => {
+    const SOCKET_URL_BOOKINGS = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_BASE_URL?.replace('/api/v1', '') || 'http://localhost:5000';
+    // Re-use the existing salon socket from SalonContext via a ref isn't easy here,
+    // so we just track unread state via a separate listener on window custom events.
+    // The toast is handled in SalonContext; here we just mark the booking as unread.
+    const handler = (e) => {
+      const { bookingId } = e.detail || {};
+      if (bookingId) setUnreadChats(prev => new Set([...prev, String(bookingId)]));
+    };
+    window.addEventListener('new-chat-message', handler);
+    return () => window.removeEventListener('new-chat-message', handler);
+  }, []);
 
   const loadBookings = useCallback(async (date) => {
     setPageLoading(true);
@@ -916,7 +938,8 @@ const Bookings = () => {
                       isBlocked={booking.customerId ? blockedIds.has(String(booking.customerId)) : false}
                       blockLoading={blocking === String(booking.customerId)}
                       onToggleBlock={handleToggleBlock}
-                      onOpenChat={setChatBooking}
+                      onOpenChat={handleOpenChat}
+                      hasUnread={unreadChats.has(String(booking._id))}
                     />
                   ))}
                 </tbody>
@@ -934,7 +957,8 @@ const Bookings = () => {
                   isBlocked={booking.customerId ? blockedIds.has(String(booking.customerId)) : false}
                   blockLoading={blocking === String(booking.customerId)}
                   onToggleBlock={handleToggleBlock}
-                  onOpenChat={setChatBooking}
+                  onOpenChat={handleOpenChat}
+                  hasUnread={unreadChats.has(String(booking._id))}
                 />
               ))}
             </div>

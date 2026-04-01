@@ -2547,14 +2547,13 @@ router.post('/customer/bookings/:bookingId/messages', authenticateCustomer, vali
     text:       text.trim(),
   });
 
-  // Emit to the shared chat room so both parties receive instantly
+  // Emit to chat room (for open chat panel) + salon room (for owner notification)
   try {
     const io = req.app.get('io');
     if (io) {
-      io.to(`chat-${booking._id}`).emit('chat-message', {
-        bookingId: booking._id.toString(),
-        message:   { ...message.toObject() },
-      });
+      const payload = { bookingId: booking._id.toString(), message: { ...message.toObject() } };
+      io.to(`chat-${booking._id}`).emit('chat-message', payload);
+      io.to(`salon-${booking.salonId}`).emit('new-chat-message', payload);
     }
   } catch {}
 

@@ -1,5 +1,6 @@
 import React, { createContext, useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
+import toast from 'react-hot-toast';
 import * as salonService from '../services/salonService';
 import billingService from '../services/billingService';
 
@@ -41,11 +42,21 @@ export const SalonProvider = ({ children }) => {
     if (!isApproved) return;
 
     // Connect socket and mark salon online
-    const socket = io(SOCKET_URL, { transports: ['websocket'] });
+    const socket = io(SOCKET_URL, { transports: ['polling', 'websocket'] });
     socketRef.current = socket;
 
     socket.on('connect', () => {
       socket.emit('join-salon', { salonId: salon._id, ownerId: salon.ownerId });
+    });
+
+    // Notify owner when customer sends a message
+    socket.on('new-chat-message', ({ bookingId, message }) => {
+      const preview = message?.text?.slice(0, 60) || 'New message';
+      toast(`💬 Customer: ${preview}`, {
+        duration: 5000,
+        style: { background: '#1e293b', color: '#f1f5f9', fontSize: '13px' },
+      });
+      window.dispatchEvent(new CustomEvent('new-chat-message', { detail: { bookingId } }));
     });
 
     // Mark offline on tab/window close
