@@ -559,7 +559,7 @@ const ChatPanel = ({ booking, onClose }) => {
   }, [booking._id]);
 
   useEffect(() => {
-    const socket = io(SOCKET_URL, { transports: ['websocket'] });
+    const socket = io(SOCKET_URL, { transports: ['polling', 'websocket'] });
     socketRef.current = socket;
     socket.on('connect', () => socket.emit('join-chat', { bookingId: booking._id }));
     socket.on('chat-message', ({ bookingId, message }) => {
