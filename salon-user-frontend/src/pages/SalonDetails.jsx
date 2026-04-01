@@ -4,7 +4,7 @@ import {
   Scissors, Phone, Star, Check, MessageSquare, Frown, Building2,
   Mail, ShoppingBag, MapPin, Navigation, ChevronDown, ChevronUp,
   Clock, Sparkles, Award, Users, ArrowLeft, Zap, X, Calendar,
-  User, Tag, CreditCard, CheckCircle,
+  User, Tag, CreditCard, CheckCircle, Gift,
 } from "lucide-react";
 import API from "../services/api";
 import ServiceCard from "../components/ServiceCard";
@@ -13,7 +13,7 @@ import { isCustomer, clearCustomerAuth } from "../utils/auth";
 import { formatDate } from "../utils/formatters";
 import { useNotifications } from "../context/NotificationContext";
 
-const BASE_TABS = ["Services", "Reviews", "Info"];
+const BASE_TABS = ["Services", "Packages", "Reviews", "Info"];
 
 // ── Working hours helpers (shared with SalonCard) ─────────────────────────────
 const WH_DAYS = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
@@ -100,8 +100,14 @@ function SalonDetails() {
   const [services, setServices]     = useState([]);
   const [reviews, setReviews]       = useState([]);
   const [offers, setOffers]         = useState([]);
+  const [packages, setPackages]     = useState([]);
   const [tab, setTab]               = useState("Services");
   const [loading, setLoading]       = useState(true);
+
+  // Package request modal state
+  const [pkgReqModal, setPkgReqModal]   = useState(null); // the pkg being requested
+  const [pkgNote, setPkgNote]           = useState('');
+  const [pkgReqLoading, setPkgReqLoading] = useState(false);
   const [selectedServices, setSelectedServices] = useState([]);
   const [serviceGenderFilter, setServiceGenderFilter] = useState("all");
   const [expandedCat, setExpandedCat] = useState(null);
@@ -152,7 +158,7 @@ function SalonDetails() {
 
   // ── Initial load ─────────────────────────────────────────────────────────
   useEffect(() => {
-    Promise.all([loadSalon(), loadServices(), loadReviews(), loadBarbers(), loadOffers()]).finally(() => setLoading(false));
+    Promise.all([loadSalon(), loadServices(), loadReviews(), loadBarbers(), loadOffers(), loadPackages()]).finally(() => setLoading(false));
   }, [id]);
 
   const loadSalon = async () => {
@@ -168,6 +174,7 @@ function SalonDetails() {
   const loadReviews  = async () => { try { const r = await API.get(`/public/salons/${id}/reviews`);  setReviews(r.data.data?.reviews || r.data.data || []); } catch {} };
   const loadBarbers  = async () => { try { const r = await API.get(`/public/salons/${id}/barbers`).catch(() => ({ data: { data: { barbers: [] } } })); setBarbers(r.data.data?.barbers || []); } catch {} };
   const loadOffers   = async () => { try { const r = await API.get(`/public/salons/${id}/offers`); const list = r.data.data?.offers || []; if (list.length > 0) setOffers(list); } catch {} };
+  const loadPackages = async () => { try { const r = await API.get(`/public/salons/${id}/packages`); setPackages(r.data.data?.packages || []); } catch {} };
 
   // ── Slot fetch when booking modal open + date/duration changes ───────────
   useEffect(() => {
@@ -238,6 +245,20 @@ function SalonDetails() {
   };
 
   const removeCoupon = () => { setAppliedCoupon(null); setCouponDiscount(0); setCouponInput(""); setCouponError(""); };
+
+  // ── Package request ──────────────────────────────────────────────────────
+  const handlePackageRequest = async () => {
+    if (!isCustomer()) { navigate('/login'); return; }
+    if (!pkgReqModal) return;
+    setPkgReqLoading(true);
+    try {
+      await API.post('/customer/package-request', { packageId: pkgReqModal._id, purchaseNote: pkgNote.trim() });
+      addToast?.('success', 'Request sent! The salon will confirm after payment.');
+      setPkgReqModal(null); setPkgNote('');
+    } catch (err) {
+      addToast?.('error', err.response?.data?.message || 'Failed to send request');
+    } finally { setPkgReqLoading(false); }
+  };
 
   // ── Confirm booking ──────────────────────────────────────────────────────
   const handleConfirm = async (e) => {
@@ -312,7 +333,7 @@ function SalonDetails() {
 
 
   const dayOrder = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
-  const TAB_ICONS = { Services: <Scissors className="w-4 h-4" />, Reviews: <Star className="w-4 h-4" />, Info: <Building2 className="w-4 h-4" /> };
+  const TAB_ICONS = { Services: <Scissors className="w-4 h-4" />, Packages: <Gift className="w-4 h-4" />, Reviews: <Star className="w-4 h-4" />, Info: <Building2 className="w-4 h-4" /> };
 
   return (
     <div className="t-page">
@@ -646,12 +667,12 @@ function SalonDetails() {
             >
               {TAB_ICONS[t]}
               {t}
-              {(t === "Services" && services.length > 0) || (t === "Reviews" && reviews.length > 0) ? (
+              {(t === "Services" && services.length > 0) || (t === "Packages" && packages.length > 0) || (t === "Reviews" && reviews.length > 0) ? (
                 <span
                   className="text-[10px] px-1.5 py-0.5 rounded-full font-bold"
                   style={{ background: activeTab === t ? 'rgba(255,255,255,0.25)' : 'var(--t-bg-2)' }}
                 >
-                  {t === "Services" ? services.length : reviews.length}
+                  {t === "Services" ? services.length : t === "Packages" ? packages.length : reviews.length}
                 </span>
               ) : null}
             </button>
@@ -847,6 +868,146 @@ function SalonDetails() {
             </div>
           );
         })()}
+
+        {/* ══ PACKAGES TAB ═══════════════════════════════════════════════ */}
+        {activeTab === "Packages" && (
+          <div className="fade-in pb-8 space-y-4">
+            {packages.length === 0 ? (
+              <div className="text-center py-14">
+                <div className="flex justify-center mb-3"><Gift className="w-10 h-10" style={{ color: 'var(--t-border)' }} /></div>
+                <p className="font-semibold" style={{ color: 'var(--t-text-2)' }}>No packages or memberships yet</p>
+                <p className="text-sm mt-1" style={{ color: 'var(--t-text-3)' }}>This salon hasn't added any packages.</p>
+              </div>
+            ) : (
+              <>
+                {/* Packages */}
+                {packages.filter(p => p.type === 'package').length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--t-text)' }}>
+                      <Gift className="w-4 h-4" style={{ color: '#6366f1' }} /> Service Packages
+                    </h3>
+                    <div className="space-y-3">
+                      {packages.filter(p => p.type === 'package').map(pkg => (
+                        <div key={pkg._id} className="rounded-2xl p-4" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
+                          <div className="flex items-start gap-3 mb-3">
+                            <span className="text-2xl shrink-0">{pkg.icon || '🎁'}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-bold text-sm" style={{ color: 'var(--t-text)' }}>{pkg.name}</span>
+                                {pkg.tag && pkg.tag !== '' && (
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                                    style={{ background: 'rgba(99,102,241,0.12)', color: '#818cf8' }}>
+                                    {pkg.tag === 'popular' ? '🔥 Popular' : pkg.tag === 'recommended' ? '⭐ Recommended' : '💰 Best Value'}
+                                  </span>
+                                )}
+                              </div>
+                              {pkg.description && <p className="text-xs mt-0.5" style={{ color: 'var(--t-text-3)' }}>{pkg.description}</p>}
+                            </div>
+                          </div>
+                          {pkg.services?.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mb-3">
+                              {pkg.services.map((s, i) => (
+                                <span key={i} className="text-xs px-2.5 py-1 rounded-full" style={{ background: 'var(--t-bg-2)', color: 'var(--t-text-2)' }}>
+                                  {s.serviceName}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-xl font-extrabold" style={{ color: '#6366f1' }}>₹{pkg.discountedPrice}</span>
+                              {pkg.originalPrice > 0 && pkg.originalPrice !== pkg.discountedPrice && (
+                                <>
+                                  <span className="text-xs line-through" style={{ color: 'var(--t-text-3)' }}>₹{pkg.originalPrice}</span>
+                                  <span className="text-xs font-bold" style={{ color: '#22c55e' }}>{pkg.discountPercent}% OFF</span>
+                                </>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => { if (!isCustomer()) { navigate('/login'); return; } setPkgReqModal(pkg); setPkgNote(''); }}
+                              className="text-sm font-semibold px-4 py-2 rounded-xl transition-all"
+                              style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff' }}
+                            >
+                              Buy Now
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Memberships */}
+                {packages.filter(p => p.type === 'membership').length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--t-text)' }}>
+                      <CreditCard className="w-4 h-4" style={{ color: '#8b5cf6' }} /> Membership Plans
+                    </h3>
+                    <div className="space-y-3">
+                      {packages.filter(p => p.type === 'membership').map(pkg => (
+                        <div key={pkg._id} className="rounded-2xl p-4" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
+                          <div className="flex items-start gap-3 mb-3">
+                            <span className="text-2xl shrink-0">{pkg.icon || '💳'}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-bold text-sm" style={{ color: 'var(--t-text)' }}>{pkg.name}</span>
+                                {pkg.tag && pkg.tag !== '' && (
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                                    style={{ background: 'rgba(139,92,246,0.12)', color: '#a78bfa' }}>
+                                    {pkg.tag === 'popular' ? '🔥 Popular' : pkg.tag === 'recommended' ? '⭐ Recommended' : '💰 Best Value'}
+                                  </span>
+                                )}
+                              </div>
+                              {pkg.description && <p className="text-xs mt-0.5" style={{ color: 'var(--t-text-3)' }}>{pkg.description}</p>}
+                            </div>
+                          </div>
+                          <div className="space-y-1.5 mb-3">
+                            {pkg.benefits?.discountPercent > 0 && (
+                              <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--t-text-2)' }}>
+                                <Tag className="w-3.5 h-3.5 shrink-0" style={{ color: '#8b5cf6' }} />
+                                {pkg.benefits.discountPercent}% off all services
+                              </div>
+                            )}
+                            {pkg.benefits?.priorityBooking && (
+                              <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--t-text-2)' }}>
+                                <Zap className="w-3.5 h-3.5 shrink-0" style={{ color: '#fbbf24' }} />
+                                Priority booking
+                              </div>
+                            )}
+                            {(pkg.benefits?.freeServices || []).map((fs, i) => (
+                              <div key={i} className="flex items-center gap-2 text-xs" style={{ color: 'var(--t-text-2)' }}>
+                                <Check className="w-3.5 h-3.5 shrink-0" style={{ color: '#22c55e' }} />
+                                {fs.serviceName} × {fs.usageLimit}
+                              </div>
+                            ))}
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="flex items-baseline gap-1.5">
+                                <span className="text-xl font-extrabold" style={{ color: '#8b5cf6' }}>₹{pkg.price}</span>
+                                <span className="text-xs" style={{ color: 'var(--t-text-3)' }}>
+                                  /{pkg.billingCycle === 'monthly' ? 'month' : pkg.billingCycle === 'quarterly' ? 'quarter' : 'year'}
+                                </span>
+                              </div>
+                              <p className="text-xs" style={{ color: 'var(--t-text-3)' }}>Valid {pkg.durationDays} days</p>
+                            </div>
+                            <button
+                              onClick={() => { if (!isCustomer()) { navigate('/login'); return; } setPkgReqModal(pkg); setPkgNote(''); }}
+                              className="text-sm font-semibold px-4 py-2 rounded-xl transition-all"
+                              style={{ background: 'linear-gradient(135deg,#7c3aed,#a855f7)', color: '#fff' }}
+                            >
+                              Subscribe
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
 
         {/* ══ REVIEWS TAB ════════════════════════════════════════════════ */}
         {activeTab === "Reviews" && (
@@ -1406,6 +1567,52 @@ function SalonDetails() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ══ PACKAGE REQUEST MODAL ══════════════════════════════════════ */}
+      {pkgReqModal && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.6)' }}>
+          <div className="rounded-2xl w-full max-w-sm p-6" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-3xl">{pkgReqModal.icon || (pkgReqModal.type === 'package' ? '🎁' : '💳')}</span>
+              <div>
+                <p className="font-bold text-sm" style={{ color: 'var(--t-text)' }}>{pkgReqModal.name}</p>
+                <p className="text-xs" style={{ color: 'var(--t-text-3)' }}>
+                  {pkgReqModal.type === 'package' ? `₹${pkgReqModal.discountedPrice}` : `₹${pkgReqModal.price}/${pkgReqModal.billingCycle === 'monthly' ? 'month' : pkgReqModal.billingCycle === 'quarterly' ? 'quarter' : 'year'}`}
+                </p>
+              </div>
+            </div>
+            <div className="rounded-xl p-3 mb-4 text-xs" style={{ background: 'rgba(99,102,241,0.08)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.2)' }}>
+              Pay directly at the salon. The owner will confirm after receiving your payment.
+            </div>
+            <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--t-text-2)' }}>Note (optional)</label>
+            <textarea
+              value={pkgNote}
+              onChange={e => setPkgNote(e.target.value)}
+              rows={2}
+              placeholder="Any message to the salon owner..."
+              className="w-full px-3 py-2 rounded-xl text-sm resize-none mb-4"
+              style={{ background: 'var(--t-bg-2)', border: '1px solid var(--t-border)', color: 'var(--t-text)', outline: 'none' }}
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setPkgReqModal(null); setPkgNote(''); }}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+                style={{ border: '1px solid var(--t-border)', color: 'var(--t-text-2)' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handlePackageRequest}
+                disabled={pkgReqLoading}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
+              >
+                {pkgReqLoading ? 'Sending…' : 'Send Request'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
