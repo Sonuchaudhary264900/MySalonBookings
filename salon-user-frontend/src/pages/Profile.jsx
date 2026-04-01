@@ -166,6 +166,9 @@ export default function Profile() {
   // Delete account
   const [deletingAccount, setDeletingAccount] = useState(false);
 
+  // Gender change
+  const [genderSaving, setGenderSaving] = useState(false);
+
   // Change password (cpStep 1=send otp, 2=enter otp+pw)
   const [cpStep, setCpStep]       = useState(1);
   const [cpOtp, setCpOtp]         = useState('');
@@ -257,6 +260,17 @@ export default function Profile() {
 
   const handleLogout = () => { clearCustomerAuth(); navigate('/'); };
 
+  const handleGenderChange = async (g) => {
+    if (user?.gender === g || genderSaving) return;
+    setGenderSaving(true);
+    try {
+      const res = await API.put('/customer/auth/me', { name: user.name, gender: g });
+      setUser(res.data?.data || { ...user, gender: g });
+      localStorage.setItem('customerGender', g);
+    } catch { /* silent */ }
+    finally { setGenderSaving(false); }
+  };
+
   const referralCode = user?.phone
     ? `MSB${user.phone.replace(/\D/g, '').slice(-6).toUpperCase()}`
     : user?._id ? `MSB${user._id.slice(-6).toUpperCase()}` : 'MSB000';
@@ -346,6 +360,33 @@ export default function Profile() {
                 </div>
               ))}
             </AccordionCard>
+
+            {/* ── GENDER ───────────────────────────────────────── */}
+            <div className="t-card rounded-2xl overflow-hidden">
+              <div className="flex items-center gap-3 px-4 py-3.5">
+                <IBox color="#ec4899">
+                  <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </IBox>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold" style={{ color: 'var(--t-text)' }}>Gender</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--t-text-3)' }}>Used to show relevant services</p>
+                </div>
+                <div className="flex gap-2">
+                  {[{ key: 'male', label: '👨 Male' }, { key: 'female', label: '👩 Female' }].map(({ key, label }) => {
+                    const active = user?.gender === key;
+                    return (
+                      <button key={key} type="button" onClick={() => handleGenderChange(key)} disabled={genderSaving}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                        style={{ background: active ? '#ec4899' : 'var(--t-bg-2)', color: active ? '#fff' : 'var(--t-text-3)', border: active ? '1.5px solid #ec4899' : '1.5px solid var(--t-border)', opacity: genderSaving ? 0.6 : 1 }}>
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
 
             {/* ── NOTIFICATION SETTINGS ────────────────────────── */}
             <SectionLabel>Preferences</SectionLabel>

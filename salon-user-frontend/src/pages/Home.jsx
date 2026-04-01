@@ -182,12 +182,18 @@ export default function Home() {
   const [showSticky, setShowSticky]     = useState(false);
   const heroSearchRef = useRef(null);
 
-  // ── Fetch real name from API (token has no name field) ────────
+  // ── Fetch real name + gender from API ────────────────────────
   useEffect(() => {
     if (!isLoggedIn) return;
     API.get("/customer/auth/me").then(res => {
-      const n = res.data?.data?.name || res.data?.data?.firstName || "";
+      const d = res.data?.data || {};
+      const n = d.name || d.firstName || "";
       if (n) setUserName(n);
+      // Auto-apply gender from profile (overrides localStorage)
+      if (d.gender === "male" || d.gender === "female") {
+        setGenderFilter(d.gender);
+        localStorage.setItem("customerGender", d.gender);
+      }
     }).catch(() => {});
   }, [isLoggedIn]);
 
@@ -378,6 +384,24 @@ export default function Home() {
   if (!isLoggedIn) {
     const guestSalonGrid = (
       <div id="salons">
+        {/* Gender selector for guests — prominent, required to filter services */}
+        {genderFilter === "all" && (
+          <div style={{ background: "linear-gradient(135deg,rgba(99,102,241,0.08),rgba(139,92,246,0.08))", border: "1px solid rgba(99,102,241,0.18)", borderRadius: 16, padding: "16px 18px", marginBottom: 16 }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: "var(--t-text)", marginBottom: 4 }}>Who are you booking for?</p>
+            <p style={{ fontSize: 11, color: "var(--t-text-3)", marginBottom: 12 }}>Select your gender to see relevant services and salons.</p>
+            <div style={{ display: "flex", gap: 8 }}>
+              {[{ key: "male", label: "👨 Men", desc: "Haircuts, beard & grooming" }, { key: "female", label: "👩 Women", desc: "Hair, beauty & bridal" }].map(({ key, label, desc }) => (
+                <button key={key} onClick={() => handleGenderFilter(key)} style={{ flex: 1, padding: "10px 12px", borderRadius: 12, fontSize: 12, fontWeight: 700, cursor: "pointer", transition: "all 0.18s ease", background: "var(--t-card)", border: "2px solid var(--t-border)", color: "var(--t-text)", textAlign: "left" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#6366f1"; e.currentTarget.style.background = "rgba(99,102,241,0.06)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--t-border)"; e.currentTarget.style.background = "var(--t-card)"; }}>
+                  <div>{label}</div>
+                  <div style={{ fontSize: 10, fontWeight: 400, color: "var(--t-text-3)", marginTop: 2 }}>{desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Section header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
           <div>
@@ -529,21 +553,6 @@ export default function Home() {
                   return (
                     <button key={key} onClick={() => handleSortChange(key)} style={{ display: "flex", alignItems: "center", gap: 4, padding: "5px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700, cursor: "pointer", transition: "all 0.18s ease", background: active ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "transparent", color: active ? "#fff" : "var(--t-text-3)", border: "none", whiteSpace: "nowrap" }}>
                       {icon} {label}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Divider */}
-              <div style={{ width: 1, height: 18, background: "var(--t-border)", flexShrink: 0 }} />
-
-              {/* Gender pill-group */}
-              <div style={{ display: "flex", gap: 2, padding: 3, borderRadius: 999, background: "var(--t-input-bg)", border: "1px solid var(--t-border)" }}>
-                {GENDER_FILTERS.map(({ key, label }) => {
-                  const active = genderFilter === key;
-                  return (
-                    <button key={key} onClick={() => handleGenderFilter(key)} style={{ padding: "5px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700, cursor: "pointer", transition: "all 0.18s ease", background: active ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "transparent", color: active ? "#fff" : "var(--t-text-3)", border: "none", whiteSpace: "nowrap" }}>
-                      {label}
                     </button>
                   );
                 })}

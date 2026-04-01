@@ -58,6 +58,7 @@ export default function ProfileScreen({ navigation }) {
   const [name, setName]                   = useState(user?.name || '');
   const [email, setEmail]                 = useState(user?.email || '');
   const [saving, setSaving]               = useState(false);
+  const [genderSaving, setGenderSaving]   = useState(false);
 
   // Change password (OTP-based)
   const [cpStep, setCpStep]     = useState(0); // 0=locked, 1=send otp, 2=enter otp+new pw
@@ -117,6 +118,16 @@ export default function ProfileScreen({ navigation }) {
     } finally {
       setCpLoading(false);
     }
+  };
+
+  const handleGenderChange = async (g) => {
+    if (user?.gender === g || genderSaving) return;
+    setGenderSaving(true);
+    try {
+      await updateProfile({ name: user.name, gender: g });
+      showSuccess('Updated', 'Gender updated successfully.');
+    } catch { showError('Error', 'Failed to update gender.'); }
+    finally { setGenderSaving(false); }
   };
 
   const handleLogout = () => {
@@ -182,10 +193,26 @@ export default function ProfileScreen({ navigation }) {
                   <>
                     <InfoRow icon="person-outline" label="Full Name" value={user?.name} theme={theme} styles={styles} />
                     <InfoRow icon="call-outline"   label="Phone"     value={user?.phone} theme={theme} styles={styles} />
-                    <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
+                    <View style={styles.infoRow}>
                       <Ionicons name="mail-outline" size={16} color={theme.subText} style={{ width: 22 }} />
                       <Text style={styles.infoLabel}>Email</Text>
                       <Text style={styles.infoValue} numberOfLines={1}>{user?.email || '—'}</Text>
+                    </View>
+                    {/* Gender row */}
+                    <View style={[styles.infoRow, { borderBottomWidth: 0, alignItems: 'center' }]}>
+                      <Ionicons name="person-circle-outline" size={16} color={theme.subText} style={{ width: 22 }} />
+                      <Text style={styles.infoLabel}>Gender</Text>
+                      <View style={{ flexDirection: 'row', gap: 8, marginLeft: 'auto' }}>
+                        {[{ key: 'male', label: '👨 Male' }, { key: 'female', label: '👩 Female' }].map(({ key, label }) => {
+                          const active = user?.gender === key;
+                          return (
+                            <TouchableOpacity key={key} onPress={() => handleGenderChange(key)} disabled={genderSaving}
+                              style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 8, borderWidth: 1.5, borderColor: active ? '#ec4899' : (theme.border || '#e5e7eb'), backgroundColor: active ? '#ec4899' : 'transparent' }}>
+                              <Text style={{ fontSize: 12, fontWeight: '700', color: active ? '#fff' : theme.subText }}>{label}</Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
                     </View>
                     <TouchableOpacity style={styles.editBtn} onPress={() => { setName(user?.name || ''); setEmail(user?.email || ''); setEditing(true); }}>
                       <Ionicons name="create-outline" size={15} color={theme.accent} />

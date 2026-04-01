@@ -796,36 +796,6 @@ export default function HomeScreen({ navigation }) {
               </ScrollView>
 
 
-              {/* Gender filter chips */}
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={{ flexGrow: 0, flexShrink: 0, marginBottom: 4 }}
-                contentContainerStyle={{ flexDirection: 'row', paddingHorizontal: 16, gap: 8, paddingRight: 24 }}
-                nestedScrollEnabled={true}
-              >
-                {GENDER_FILTERS.map(({ key, label, emoji }) => {
-                  const active = genderFilter === key;
-                  return (
-                    <TouchableOpacity
-                      key={key}
-                      onPress={() => handleGenderFilter(key)}
-                      style={{
-                        flexDirection: 'row', alignItems: 'center', gap: 4,
-                        paddingHorizontal: 12, paddingVertical: 7,
-                        borderRadius: 20, borderWidth: 1.5,
-                        backgroundColor: active ? '#e11d48' : styles.chip.backgroundColor,
-                        borderColor: active ? '#e11d48' : styles.chip.borderColor,
-                      }}
-                      activeOpacity={0.75}
-                    >
-                      <Text style={{ fontSize: 13 }}>{emoji}</Text>
-                      <Text style={{ fontSize: 12, fontWeight: '600', color: active ? '#fff' : styles.chipText.color }}>{label}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-
               {/* Open Now + Clear row */}
               <ScrollView
                 horizontal
@@ -848,12 +818,12 @@ export default function HomeScreen({ navigation }) {
                   <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: openNow ? '#10b981' : styles.chipText.color }} />
                   <Text style={{ fontSize: 12, fontWeight: '600', color: openNow ? '#10b981' : styles.chipText.color }}>Open Now</Text>
                 </TouchableOpacity>
-                {(openNow || selectedCats.length > 0 || genderFilter !== 'all') && (
+                {(openNow || selectedCats.length > 0) && (
                   <TouchableOpacity
-                    onPress={() => { setOpenNow(false); setSelectedCats([]); setGenderFilter('all'); setSalons(applyFilters(allSalons, [], 'all', false)); }}
+                    onPress={() => { setOpenNow(false); setSelectedCats([]); setSalons(applyFilters(allSalons, [], genderFilter, false)); }}
                     style={{ paddingHorizontal: 10, paddingVertical: 7 }}
                   >
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: theme.accent }}>✕ Clear all</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: theme.accent }}>✕ Clear</Text>
                   </TouchableOpacity>
                 )}
               </ScrollView>
