@@ -70,6 +70,16 @@ async function setupNotificationChannels() {
     sound: 'default',
   });
 
+  // Chat messages channel
+  await Notifications.setNotificationChannelAsync('chat', {
+    name: 'Chat Messages',
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: [0, 200, 100, 200],
+    lightColor: '#6366f1',
+    enableVibrate: true,
+    sound: 'default',
+  });
+
   // Standard channel for other owner notifications
   await Notifications.setNotificationChannelAsync('default', {
     name: 'General',
@@ -161,9 +171,9 @@ export const NotificationProvider = ({ children }) => {
           } catch {}
         }
       }
-      // Also add to in-app notification list
+      // Add to in-app notification list
       addNotification({
-        type: 'booking',
+        type: data.type === 'chat_message' ? 'chat' : 'booking',
         title: notification.request.content.title || 'Notification',
         message: notification.request.content.body || '',
         data,

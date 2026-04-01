@@ -52,6 +52,16 @@ async function setupNotificationChannels() {
     sound: 'default',
   });
 
+  // Chat messages channel
+  await Notifications.setNotificationChannelAsync('chat', {
+    name: 'Chat Messages',
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: [0, 200, 100, 200],
+    lightColor: '#6366f1',
+    enableVibrate: true,
+    sound: 'default',
+  });
+
   // Default channel
   await Notifications.setNotificationChannelAsync('default', {
     name: 'General',

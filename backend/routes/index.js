@@ -2497,6 +2497,22 @@ router.post('/owner/bookings/:bookingId/messages', authenticateOwner, validateOb
     }
   } catch {}
 
+  // Push notification to customer's app
+  try {
+    const { sendExpoPush } = require('../utils/pushNotification');
+    const customer = await Customer.findById(booking.customerId).select('pushToken').lean();
+    if (customer?.pushToken) {
+      const salonName = salon.name || 'Your salon';
+      await sendExpoPush(
+        customer.pushToken,
+        `💬 New message from ${salonName}`,
+        message.text.slice(0, 100),
+        { type: 'chat_message', bookingId: booking._id.toString() },
+        { channelId: 'chat' }
+      );
+    }
+  } catch { /* non-critical */ }
+
   res.status(201).json({ success: true, data: { message } });
 }));
 
@@ -2547,7 +2563,7 @@ router.post('/customer/bookings/:bookingId/messages', authenticateCustomer, vali
     text:       text.trim(),
   });
 
-  // Emit to chat room (for open chat panel) + salon room (for owner notification)
+  // Emit to chat room (for open chat panel) + salon room (for owner web notification)
   try {
     const io = req.app.get('io');
     if (io) {
@@ -2556,6 +2572,26 @@ router.post('/customer/bookings/:bookingId/messages', authenticateCustomer, vali
       io.to(`salon-${booking.salonId}`).emit('new-chat-message', payload);
     }
   } catch {}
+
+  // Push notification to owner's Android app
+  try {
+    const { sendExpoPush } = require('../utils/pushNotification');
+    const Owner = require('../models/Owner');
+    const salonDoc = await Salon.findById(booking.salonId).select('ownerId').lean();
+    if (salonDoc?.ownerId) {
+      const owner = await Owner.findById(salonDoc.ownerId).select('pushToken').lean();
+      if (owner?.pushToken) {
+        const customerName = req.customer?.name || 'Customer';
+        await sendExpoPush(
+          owner.pushToken,
+          `💬 New message from ${customerName}`,
+          message.text.slice(0, 100),
+          { type: 'chat_message', bookingId: booking._id.toString() },
+          { channelId: 'chat' }
+        );
+      }
+    }
+  } catch { /* non-critical */ }
 
   res.status(201).json({ success: true, data: { message } });
 }));
