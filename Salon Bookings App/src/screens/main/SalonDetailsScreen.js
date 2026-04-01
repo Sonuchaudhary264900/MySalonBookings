@@ -11,7 +11,7 @@ import { useAuth } from '../../context/AuthContext';
 import { showError, showInfo } from '../../utils/toast';
 import { useTheme } from '../../context/ThemeContext';
 
-const BASE_TABS = ['Services', 'Reviews', 'Info'];
+const BASE_TABS = ['Services', 'Packages', 'Reviews', 'Info'];
 const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
 // ── Working hours helpers ─────────────────────────────────────────────────────
@@ -126,8 +126,14 @@ export default function SalonDetailsScreen({ route, navigation }) {
   const [services, setServices]           = useState([]);
   const [reviews, setReviews]             = useState([]);
   const [offers, setOffers]               = useState([]);
+  const [packages, setPackages]           = useState([]);
   const [tab, setTab]                     = useState('Services');
   const [loading, setLoading]             = useState(true);
+
+  // Package request modal
+  const [pkgReqItem, setPkgReqItem]         = useState(null);
+  const [pkgNote, setPkgNote]               = useState('');
+  const [pkgReqLoading, setPkgReqLoading]   = useState(false);
   const [selectedServices, setSelectedServices] = useState([]);
   const [isFavorite, setIsFavorite]       = useState(false);
   const [favLoading, setFavLoading]       = useState(false);
@@ -169,7 +175,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
 
   // ── Initial load ──────────────────────────────────────────────────────────
   useEffect(() => {
-    Promise.all([loadSalon(), loadServices(), loadReviews(), loadBarbers(), loadOffers()]).finally(() => setLoading(false));
+    Promise.all([loadSalon(), loadServices(), loadReviews(), loadBarbers(), loadOffers(), loadPackages()]).finally(() => setLoading(false));
   }, [salonId]);
 
   const loadSalon = async () => {
@@ -200,6 +206,13 @@ export default function SalonDetailsScreen({ route, navigation }) {
     try {
       const res = await api.get(`/public/salons/${salonId}/barbers`).catch(() => ({ data: { data: { barbers: [] } } }));
       setBarbers(res.data.data?.barbers || []);
+    } catch {}
+  };
+
+  const loadPackages = async () => {
+    try {
+      const res = await api.get(`/public/salons/${salonId}/packages`);
+      setPackages(res.data.data?.packages || []);
     } catch {}
   };
 
@@ -334,6 +347,20 @@ export default function SalonDetailsScreen({ route, navigation }) {
     } catch (err) {
       showError('Booking Failed', err?.message || 'Please try again.');
     } finally { setBookingLoading(false); }
+  };
+
+  // ── Package request ───────────────────────────────────────────────────────
+  const handlePackageRequest = async () => {
+    if (!isAuthenticated) { showError('Sign In Required', 'Please sign in to request a package.'); return; }
+    if (!pkgReqItem) return;
+    setPkgReqLoading(true);
+    try {
+      await api.post('/customer/package-request', { packageId: pkgReqItem._id, purchaseNote: pkgNote.trim() });
+      setPkgReqItem(null); setPkgNote('');
+      Alert.alert('Request Sent!', 'The salon owner will confirm your package after receiving payment.');
+    } catch (err) {
+      showError('Error', err.response?.data?.message || 'Failed to send request');
+    } finally { setPkgReqLoading(false); }
   };
 
   // ── Derived display values ────────────────────────────────────────────────
@@ -689,9 +716,11 @@ export default function SalonDetailsScreen({ route, navigation }) {
             <TouchableOpacity key={t} style={[styles.tabBtn, activeTab === t && styles.tabBtnActive]} onPress={() => setTab(t)}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 <Text style={[styles.tabText, activeTab === t && styles.tabTextActive]}>{t}</Text>
-                {t === 'Reviews' && reviews.length > 0 && (
+                {((t === 'Reviews' && reviews.length > 0) || (t === 'Packages' && packages.length > 0)) && (
                   <View style={[styles.tabBadge, activeTab === t && styles.tabBadgeActive]}>
-                    <Text style={[styles.tabBadgeText, tab === t && { color: '#bfdbfe' }]}>{reviews.length}</Text>
+                    <Text style={[styles.tabBadgeText, tab === t && { color: '#bfdbfe' }]}>
+                      {t === 'Reviews' ? reviews.length : packages.length}
+                    </Text>
                   </View>
                 )}
               </View>
@@ -891,6 +920,116 @@ export default function SalonDetailsScreen({ route, navigation }) {
               </View>
             );
           })()}
+
+          {/* Packages Tab */}
+          {activeTab === 'Packages' && (
+            <View style={{ gap: 12 }}>
+              {packages.length === 0 ? (
+                <View style={styles.emptyTab}>
+                  <Ionicons name="gift-outline" size={36} color="#d1d5db" />
+                  <Text style={styles.emptyTabText}>No packages or memberships yet</Text>
+                </View>
+              ) : (
+                <>
+                  {/* Service Packages */}
+                  {packages.filter(p => p.type === 'package').length > 0 && (
+                    <View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                        <Ionicons name="gift-outline" size={15} color="#6366f1" />
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>Service Packages</Text>
+                      </View>
+                      {packages.filter(p => p.type === 'package').map(pkg => (
+                        <View key={pkg._id} style={[styles.pkgCard, { borderColor: '#c7d2fe' }]}>
+                          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 8 }}>
+                            <Text style={{ fontSize: 24 }}>{pkg.icon || '🎁'}</Text>
+                            <View style={{ flex: 1 }}>
+                              <Text style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>{pkg.name}</Text>
+                              {pkg.description ? <Text style={{ fontSize: 12, color: theme.subText }} numberOfLines={2}>{pkg.description}</Text> : null}
+                            </View>
+                          </View>
+                          {pkg.services?.length > 0 && (
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
+                              {pkg.services.map((svc, i) => (
+                                <View key={i} style={{ backgroundColor: theme.bg, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 }}>
+                                  <Text style={{ fontSize: 11, color: theme.subText }}>{svc.serviceName}</Text>
+                                </View>
+                              ))}
+                            </View>
+                          )}
+                          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+                              <Text style={{ fontSize: 20, fontWeight: '900', color: '#6366f1' }}>₹{pkg.discountedPrice}</Text>
+                              {pkg.originalPrice > 0 && pkg.originalPrice !== pkg.discountedPrice && (
+                                <>
+                                  <Text style={{ fontSize: 12, color: theme.subText, textDecorationLine: 'line-through' }}>₹{pkg.originalPrice}</Text>
+                                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#22c55e' }}>{pkg.discountPercent}% OFF</Text>
+                                </>
+                              )}
+                            </View>
+                            <TouchableOpacity
+                              onPress={() => { setPkgReqItem(pkg); setPkgNote(''); }}
+                              style={styles.pkgBuyBtn}
+                            >
+                              <Text style={styles.pkgBuyBtnText}>Buy Now</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* Memberships */}
+                  {packages.filter(p => p.type === 'membership').length > 0 && (
+                    <View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                        <Ionicons name="card-outline" size={15} color="#7c3aed" />
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>Membership Plans</Text>
+                      </View>
+                      {packages.filter(p => p.type === 'membership').map(pkg => (
+                        <View key={pkg._id} style={[styles.pkgCard, { borderColor: '#ddd6fe' }]}>
+                          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 8 }}>
+                            <Text style={{ fontSize: 24 }}>{pkg.icon || '💳'}</Text>
+                            <View style={{ flex: 1 }}>
+                              <Text style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>{pkg.name}</Text>
+                              {pkg.description ? <Text style={{ fontSize: 12, color: theme.subText }} numberOfLines={2}>{pkg.description}</Text> : null}
+                            </View>
+                          </View>
+                          <View style={{ gap: 4, marginBottom: 8 }}>
+                            {pkg.benefits?.discountPercent > 0 && (
+                              <Text style={{ fontSize: 12, color: theme.subText }}>🏷 {pkg.benefits.discountPercent}% off all services</Text>
+                            )}
+                            {pkg.benefits?.priorityBooking && (
+                              <Text style={{ fontSize: 12, color: theme.subText }}>⚡ Priority booking</Text>
+                            )}
+                            {(pkg.benefits?.freeServices || []).map((fs, i) => (
+                              <Text key={i} style={{ fontSize: 12, color: theme.subText }}>✓ {fs.serviceName} × {fs.usageLimit}</Text>
+                            ))}
+                          </View>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <View>
+                              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
+                                <Text style={{ fontSize: 20, fontWeight: '900', color: '#7c3aed' }}>₹{pkg.price}</Text>
+                                <Text style={{ fontSize: 12, color: theme.subText }}>
+                                  /{pkg.billingCycle === 'monthly' ? 'month' : pkg.billingCycle === 'quarterly' ? 'quarter' : 'year'}
+                                </Text>
+                              </View>
+                              <Text style={{ fontSize: 11, color: theme.subText }}>Valid {pkg.durationDays} days</Text>
+                            </View>
+                            <TouchableOpacity
+                              onPress={() => { setPkgReqItem(pkg); setPkgNote(''); }}
+                              style={[styles.pkgBuyBtn, { backgroundColor: '#7c3aed' }]}
+                            >
+                              <Text style={styles.pkgBuyBtnText}>Subscribe</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </>
+              )}
+            </View>
+          )}
 
           {/* Reviews Tab */}
           {activeTab === 'Reviews' && (
@@ -1302,6 +1441,60 @@ export default function SalonDetailsScreen({ route, navigation }) {
 
         </View>
       </Modal>
+
+      {/* ── Package Request Modal ─────────────────────────────────────── */}
+      <Modal transparent visible={!!pkgReqItem} animationType="slide" onRequestClose={() => { setPkgReqItem(null); setPkgNote(''); }}>
+        <View style={styles.alertOverlay}>
+          <View style={[styles.alertCard, { alignItems: 'flex-start', gap: 0, padding: 20 }]}>
+            {pkgReqItem && (
+              <>
+                <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 12 }}>
+                  <Text style={{ fontSize: 28 }}>{pkgReqItem.icon || (pkgReqItem.type === 'package' ? '🎁' : '💳')}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>{pkgReqItem.name}</Text>
+                    <Text style={{ fontSize: 12, color: theme.subText }}>
+                      {pkgReqItem.type === 'package'
+                        ? `₹${pkgReqItem.discountedPrice}`
+                        : `₹${pkgReqItem.price}/${pkgReqItem.billingCycle === 'monthly' ? 'month' : pkgReqItem.billingCycle === 'quarterly' ? 'quarter' : 'year'}`}
+                    </Text>
+                  </View>
+                </View>
+                <View style={{ backgroundColor: 'rgba(99,102,241,0.08)', borderRadius: 10, padding: 10, marginBottom: 12, width: '100%' }}>
+                  <Text style={{ fontSize: 12, color: '#6366f1', lineHeight: 17 }}>
+                    Pay directly at the salon. The owner will confirm after receiving your payment.
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: theme.subText, marginBottom: 6 }}>Note (optional)</Text>
+                <TextInput
+                  style={{ borderWidth: 1, borderColor: theme.border, borderRadius: 10, padding: 10, fontSize: 13, color: theme.text, backgroundColor: theme.bg, width: '100%', height: 68, textAlignVertical: 'top', marginBottom: 14 }}
+                  placeholder="Any message to the salon owner..."
+                  placeholderTextColor={theme.subText}
+                  value={pkgNote}
+                  onChangeText={setPkgNote}
+                  multiline
+                />
+                <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
+                  <TouchableOpacity
+                    onPress={() => { setPkgReqItem(null); setPkgNote(''); }}
+                    style={{ flex: 1, borderWidth: 1.5, borderColor: theme.border, borderRadius: 12, height: 46, alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    <Text style={{ color: theme.subText, fontWeight: '600', fontSize: 14 }}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handlePackageRequest}
+                    disabled={pkgReqLoading}
+                    style={{ flex: 1, backgroundColor: '#6366f1', borderRadius: 12, height: 46, alignItems: 'center', justifyContent: 'center', opacity: pkgReqLoading ? 0.6 : 1 }}
+                  >
+                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>
+                      {pkgReqLoading ? 'Sending…' : 'Send Request'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1474,4 +1667,9 @@ const getStyles = (t) => StyleSheet.create({
   alertText: { fontSize: 13, color: t.subText, textAlign: 'center', lineHeight: 20 },
   alertBtn: { backgroundColor: '#6366f1', borderRadius: 12, height: 46, width: '100%', alignItems: 'center', justifyContent: 'center', marginTop: 4 },
   alertBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+
+  // Packages tab
+  pkgCard: { backgroundColor: t.card, borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1 },
+  pkgBuyBtn: { backgroundColor: '#6366f1', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 9 },
+  pkgBuyBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
 });
