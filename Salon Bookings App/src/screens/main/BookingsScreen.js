@@ -2,17 +2,21 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, RefreshControl, Alert, Modal, TextInput,
-  Linking, ScrollView, Platform,
+  Linking, ScrollView, Platform, KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Location from 'expo-location';
+import { io } from 'socket.io-client';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { showSuccess, showError } from '../../utils/toast';
 import { useTheme } from '../../context/ThemeContext';
+
+const SOCKET_URL_RN  = 'https://mysalonbookings.onrender.com';
+const CHAT_OPEN_LIST = ['pending', 'confirmed', 'in_progress'];
 
 const FILTERS = ['Upcoming', 'Completed', 'Cancelled', 'All'];
 const PAGE_SIZE = 5;
@@ -308,6 +312,159 @@ function RescheduleModal({ booking, onClose, onRescheduled, theme }) {
   );
 }
 
+// ── ChatModal ─────────────────────────────────────────────────
+function ChatModal({ booking, onClose, theme }) {
+  const [messages, setMessages]     = useState([]);
+  const [text, setText]             = useState('');
+  const [sending, setSending]       = useState(false);
+  const [loading, setLoading]       = useState(true);
+  const [peerTyping, setPeerTyping] = useState(false);
+  const socketRef   = useRef(null);
+  const flatListRef = useRef(null);
+  const typingTimer = useRef(null);
+  const isChatOpen  = CHAT_OPEN_LIST.includes(booking.status);
+  const salonName   = booking.salonName || booking.salonId?.name || 'Salon';
+
+  useEffect(() => {
+    api.get(`/customer/bookings/${booking._id}/messages`)
+      .then(res => setMessages(res.data.data?.messages || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    const socket = io(SOCKET_URL_RN, { transports: ['websocket'] });
+    socketRef.current = socket;
+    socket.on('connect', () => socket.emit('join-chat', { bookingId: booking._id }));
+    socket.on('chat-message', ({ bookingId, message }) => {
+      if (bookingId === booking._id) setMessages(prev => [...prev, message]);
+    });
+    socket.on('chat-typing', ({ senderRole }) => {
+      if (senderRole === 'owner') {
+        setPeerTyping(true);
+        clearTimeout(typingTimer.current);
+        typingTimer.current = setTimeout(() => setPeerTyping(false), 2500);
+      }
+    });
+    return () => {
+      clearTimeout(typingTimer.current);
+      socket.emit('leave-chat', { bookingId: booking._id });
+      socket.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (messages.length > 0 || peerTyping) {
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 80);
+    }
+  }, [messages, peerTyping]);
+
+  const handleSend = async () => {
+    const t = text.trim();
+    if (!t || sending || !isChatOpen) return;
+    setText('');
+    setSending(true);
+    try {
+      await api.post(`/customer/bookings/${booking._id}/messages`, { text: t });
+      socketRef.current?.emit('chat-send', { bookingId: booking._id, senderRole: 'customer', text: t });
+    } catch { setText(t); }
+    finally { setSending(false); }
+  };
+
+  const fmt = iso => { if (!iso) return ''; const d = new Date(iso); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`; };
+  const listData = peerTyping ? [...messages, { _typing: true }] : messages;
+
+  return (
+    <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <KeyboardAvoidingView style={{ flex: 1, backgroundColor: theme?.bg || '#0f172a' }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+
+        {/* Header */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: theme?.border || '#334155' }}>
+          <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: '#4f46e5', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Text style={{ fontSize: 16, fontWeight: '800', color: '#fff' }}>{salonName[0].toUpperCase()}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: theme?.text || '#f1f5f9' }} numberOfLines={1}>{salonName}</Text>
+            <Text style={{ fontSize: 12, color: theme?.subText || '#94a3b8' }} numberOfLines={1}>#{booking._id?.slice(-6)}</Text>
+          </View>
+          <TouchableOpacity onPress={onClose} style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: theme?.card || '#1e293b' }}>
+            <Ionicons name="close" size={20} color={theme?.subText || '#94a3b8'} />
+          </TouchableOpacity>
+        </View>
+
+        {!isChatOpen && (
+          <View style={{ margin: 12, padding: 12, backgroundColor: 'rgba(251,191,36,0.1)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(251,191,36,0.3)' }}>
+            <Text style={{ fontSize: 12, color: '#d97706' }}>Chat closed — booking is {booking.status.replace('_', ' ')}.</Text>
+          </View>
+        )}
+
+        {/* Messages */}
+        {loading ? (
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+            <ActivityIndicator color="#6366f1" />
+          </View>
+        ) : (
+          <FlatList
+            ref={flatListRef}
+            data={listData}
+            keyExtractor={(item, i) => item._typing ? 'typing' : String(i)}
+            contentContainerStyle={{ padding: 12, gap: 8, flexGrow: 1 }}
+            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+            ListEmptyComponent={
+              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 60 }}>
+                <Ionicons name="chatbubble-outline" size={32} color={theme?.subText || '#475569'} />
+                <Text style={{ fontSize: 13, color: theme?.subText || '#64748b', marginTop: 8 }}>No messages yet</Text>
+              </View>
+            }
+            renderItem={({ item }) => {
+              if (item._typing) {
+                return (
+                  <View style={{ alignSelf: 'flex-start', backgroundColor: theme?.card || '#1e293b', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 18, borderBottomLeftRadius: 4, marginVertical: 2 }}>
+                    <Text style={{ fontSize: 12, color: theme?.subText || '#94a3b8', fontStyle: 'italic' }}>Salon is typing…</Text>
+                  </View>
+                );
+              }
+              const mine = item.senderRole === 'customer';
+              return (
+                <View style={{ alignSelf: mine ? 'flex-end' : 'flex-start', maxWidth: '80%', marginVertical: 2 }}>
+                  <View style={{ paddingHorizontal: 14, paddingVertical: 9, borderRadius: 18, borderBottomRightRadius: mine ? 4 : 18, borderBottomLeftRadius: mine ? 18 : 4, backgroundColor: mine ? '#6366f1' : (theme?.card || '#1e293b') }}>
+                    <Text style={{ fontSize: 14, color: mine ? '#fff' : (theme?.text || '#f1f5f9'), lineHeight: 20 }}>{item.text}</Text>
+                    <Text style={{ fontSize: 10, color: mine ? 'rgba(255,255,255,0.6)' : (theme?.subText || '#64748b'), marginTop: 3, textAlign: mine ? 'right' : 'left' }}>{fmt(item.createdAt)}</Text>
+                  </View>
+                </View>
+              );
+            }}
+          />
+        )}
+
+        {/* Input */}
+        {isChatOpen && (
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 10, padding: 12, paddingBottom: Platform.OS === 'ios' ? 28 : 16, borderTopWidth: 1, borderTopColor: theme?.border || '#334155' }}>
+            <TextInput
+              value={text}
+              onChangeText={t => {
+                setText(t);
+                socketRef.current?.emit('chat-typing', { bookingId: booking._id, senderRole: 'customer' });
+              }}
+              placeholder="Message salon…"
+              placeholderTextColor={theme?.subText || '#64748b'}
+              multiline
+              style={{ flex: 1, minHeight: 42, maxHeight: 100, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14, borderWidth: 1, borderColor: theme?.border || '#334155', backgroundColor: theme?.card || '#1e293b', color: theme?.text || '#f1f5f9', fontSize: 14 }}
+            />
+            <TouchableOpacity
+              onPress={handleSend}
+              disabled={!text.trim() || sending}
+              style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', opacity: !text.trim() || sending ? 0.5 : 1 }}
+            >
+              {sending ? <ActivityIndicator color="#fff" size="small" /> : <Ionicons name="send" size={18} color="#fff" />}
+            </TouchableOpacity>
+          </View>
+        )}
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
 // ── BookingCard ───────────────────────────────────────────────
 
 function BookingCard({ booking: initialBooking, userCoords, onCancelled, theme, isNext }) {
@@ -315,6 +472,7 @@ function BookingCard({ booking: initialBooking, userCoords, onCancelled, theme, 
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [reviewed, setReviewed]             = useState(false);
   const [cancelling, setCancelling]         = useState(false);
+  const [chatOpen, setChatOpen]             = useState(false);
   const countdown = useCountdown(booking.appointmentDate, booking.appointmentTime);
 
   const status = booking.status || 'pending';
@@ -534,6 +692,13 @@ function BookingCard({ booking: initialBooking, userCoords, onCancelled, theme, 
         {/* ── Action buttons ── */}
         {(isUpcoming || !!salonPhone || !!mapsUrl || status === 'completed') && (
           <View style={{ paddingTop: 12, borderTopWidth: 1, borderTopColor: theme?.border || '#334155', flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {CHAT_OPEN_LIST.includes(status) && (
+              <TouchableOpacity onPress={() => setChatOpen(true)} activeOpacity={0.8}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: 'rgba(99,102,241,0.08)', borderRadius: 9, borderWidth: 1, borderColor: 'rgba(99,102,241,0.2)' }}>
+                <Ionicons name="chatbubble-outline" size={13} color="#818cf8" />
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#818cf8' }}>Chat</Text>
+              </TouchableOpacity>
+            )}
             {canReschedule && (
               <TouchableOpacity onPress={() => setRescheduleOpen(true)} activeOpacity={0.8}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: 'rgba(99,102,241,0.08)', borderRadius: 9, borderWidth: 1, borderColor: 'rgba(99,102,241,0.2)' }}>
@@ -574,6 +739,9 @@ function BookingCard({ booking: initialBooking, userCoords, onCancelled, theme, 
 
       {rescheduleOpen && (
         <RescheduleModal booking={booking} onClose={() => setRescheduleOpen(false)} onRescheduled={handleRescheduled} theme={theme} />
+      )}
+      {chatOpen && (
+        <ChatModal booking={booking} onClose={() => setChatOpen(false)} theme={theme} />
       )}
     </View>
   );
