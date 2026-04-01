@@ -338,7 +338,7 @@ export default function BookingScreen({ route, navigation }) {
           ) : (
             <>
               <View style={styles.slotLegend}>
-                {[['#e5e7eb','Past'],['#2563eb','Selected'],['#f3f4f6','Available']].map(([c, l]) => (
+                {[['#e5e7eb','Past'],['#fecaca','Booked'],['#2563eb','Selected'],['#f3f4f6','Available']].map(([c, l]) => (
                   <View key={l} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                     <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: c }} />
                     <Text style={{ fontSize: 10, color: '#6b7280' }}>{l}</Text>
@@ -346,8 +346,9 @@ export default function BookingScreen({ route, navigation }) {
                 ))}
               </View>
               <View style={styles.slotsGrid}>
-                {slots.filter(s => !blockedSlots.includes(s)).map(s => {
+                {slots.map(s => {
                   const past    = isPastSlot(date, s);
+                  const blocked = !past && blockedSlots.includes(s);
                   const selected = slot === s;
                   const end     = addMinutes(s, totalDuration);
                   return (
@@ -355,17 +356,19 @@ export default function BookingScreen({ route, navigation }) {
                       key={s}
                       style={[
                         styles.slotBtn,
-                        past     ? styles.slotPast :
+                        past    ? styles.slotPast :
+                        blocked ? styles.slotBooked :
                         selected ? styles.slotSelected :
                         styles.slotAvailable,
                       ]}
                       onPress={() => {
-                        if (past) { setSlotAlert('past'); return; }
+                        if (past)    { setSlotAlert('past');   return; }
+                        if (blocked) { setSlotAlert('booked'); return; }
                         setSlot(s);
                       }}
                     >
-                      <Text style={[styles.slotTime, selected && { color: '#fff' }, past && { color: '#9ca3af' }]}>{s}</Text>
-                      <Text style={[styles.slotEnd, selected && { color: '#bfdbfe' }, past && { color: '#d1d5db' }]}>–{end}</Text>
+                      <Text style={[styles.slotTime, selected && { color: '#fff' }, (past || blocked) && { color: '#9ca3af' }]}>{s}</Text>
+                      <Text style={[styles.slotEnd, selected && { color: '#bfdbfe' }, (past || blocked) && { color: '#d1d5db' }]}>–{end}</Text>
                     </TouchableOpacity>
                   );
                 })}

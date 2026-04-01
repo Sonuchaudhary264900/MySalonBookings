@@ -1424,12 +1424,14 @@ function SalonDetails() {
                       <>
                         <div className="flex items-center gap-4 mb-3 text-xs flex-wrap" style={{ color: 'var(--t-text-3)' }}>
                           <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded" style={{ background: 'var(--t-border)' }} /> Past</span>
+                          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-red-400" /> Booked</span>
                           <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-indigo-600" /> Selected</span>
                           <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded" style={{ border: '1px solid var(--t-border)', background: 'var(--t-input-bg)' }} /> Available</span>
                         </div>
                         <div className="grid grid-cols-3 gap-2">
-                          {slots.filter(s => !blockedSlots.includes(s)).map((s) => {
+                          {slots.map((s) => {
                             const past    = isPastSlot(bookDate, s);
+                            const blocked = !past && blockedSlots.includes(s);
                             const selected = slot === s;
                             const endTime = addMinutes(s, totalDuration);
                             return (
@@ -1437,12 +1439,14 @@ function SalonDetails() {
                                 key={s}
                                 type="button"
                                 onClick={() => {
-                                  if (past) { setSlotPopup("past"); return; }
+                                  if (past)    { setSlotPopup("past");   return; }
+                                  if (blocked) { setSlotPopup("booked"); return; }
                                   setSlot(s);
                                 }}
                                 className="py-2 px-1 text-xs rounded-xl border transition-all font-medium text-center leading-tight hover:scale-[1.03]"
                                 style={
                                   past    ? { background: 'var(--t-bg-2)', color: 'var(--t-text-3)', borderColor: 'var(--t-border)', cursor: 'not-allowed' } :
+                                  blocked ? { background: 'var(--t-error-bg)', color: 'var(--t-error-text)', borderColor: 'var(--t-error-border)', cursor: 'not-allowed' } :
                                   selected? { background: 'var(--t-accent)', color: '#fff', borderColor: 'var(--t-accent)', boxShadow: '0 4px 12px rgba(99,102,241,0.35)' } :
                                             { background: 'var(--t-input-bg)', color: 'var(--t-text-2)', borderColor: 'var(--t-border)' }
                                 }

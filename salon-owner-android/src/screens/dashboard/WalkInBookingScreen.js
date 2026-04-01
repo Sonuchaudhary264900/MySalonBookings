@@ -25,7 +25,8 @@ export default function WalkInBookingScreen() {
   const [loadingServices, setLoadingServices] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [availableSlots, setAvailableSlots] = useState([]);
+  const [allSlots, setAllSlots] = useState([]);
+  const [bookedSlots, setBookedSlots] = useState([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
 
   const [customerName, setCustomerName] = useState('');
@@ -59,11 +60,10 @@ export default function WalkInBookingScreen() {
     api.get(`/public/salons/${salon._id}/booked-slots?date=${selectedDate}&duration=${duration}`)
       .then(res => {
         const d = res.data.data || {};
-        const all = d.slots || [];
-        const blocked = d.blockedSlots || [];
-        setAvailableSlots(all.filter(s => !blocked.includes(s)));
+        setAllSlots(d.slots || []);
+        setBookedSlots(d.blockedSlots || []);
       })
-      .catch(() => setAvailableSlots([]))
+      .catch(() => { setAllSlots([]); setBookedSlots([]); })
       .finally(() => setSlotsLoading(false));
   }, [salon?._id, selectedDate, selectedService]);
 
@@ -208,21 +208,31 @@ export default function WalkInBookingScreen() {
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Time Slot</Text>
             {slotsLoading ? (
               <ActivityIndicator color="#6366f1" style={{ marginVertical: 8 }} />
-            ) : availableSlots.length === 0 ? (
+            ) : allSlots.length === 0 ? (
               <Text style={{ color: theme.subText, fontSize: 13, textAlign: 'center', paddingVertical: 8 }}>
-                No available slots for this date
+                No slots for this date
               </Text>
             ) : (
               <View style={styles.slotGrid}>
-                {availableSlots.map((t) => (
-                  <TouchableOpacity
-                    key={t}
-                    style={[styles.slot, selectedTime === t && styles.slotActive, { borderColor: theme.border || '#e5e7eb' }]}
-                    onPress={() => setSelectedTime(t)}
-                  >
-                    <Text style={[styles.slotText, { color: selectedTime === t ? '#fff' : theme.text }]}>{t}</Text>
-                  </TouchableOpacity>
-                ))}
+                {allSlots.map((t) => {
+                  const booked = bookedSlots.includes(t);
+                  const active = selectedTime === t;
+                  return (
+                    <TouchableOpacity
+                      key={t}
+                      disabled={booked}
+                      style={[
+                        styles.slot,
+                        booked  ? styles.slotBooked  :
+                        active  ? styles.slotActive  : null,
+                        { borderColor: booked ? '#fca5a5' : active ? '#6366f1' : (theme.border || '#e5e7eb') },
+                      ]}
+                      onPress={() => !booked && setSelectedTime(t)}
+                    >
+                      <Text style={[styles.slotText, { color: booked ? '#ef4444' : active ? '#fff' : theme.text, textDecorationLine: booked ? 'line-through' : 'none' }]}>{t}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             )}
           </View>
@@ -280,6 +290,7 @@ const styles = StyleSheet.create({
   slotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   slot: { borderWidth: 1, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12 },
   slotActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
+  slotBooked: { backgroundColor: '#fef2f2' },
   slotText: { fontSize: 13, fontWeight: '600' },
   footer: { borderTopWidth: 1, paddingHorizontal: 16, paddingTop: 12 },
   pricePreview: { fontSize: 13, textAlign: 'center', marginBottom: 8 },

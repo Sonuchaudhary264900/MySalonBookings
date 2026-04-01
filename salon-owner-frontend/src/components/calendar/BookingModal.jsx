@@ -243,7 +243,7 @@ const BookingModal = ({ isOpen, onClose, booking, services, salon, onSave, defau
             </div>
           </div>
 
-          {/* Time Slots — only available */}
+          {/* Time Slots */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className={LABEL} style={{ marginBottom: 0 }}>Time *</label>
@@ -255,18 +255,22 @@ const BookingModal = ({ isOpen, onClose, booking, services, salon, onSave, defau
             </div>
             <div className="grid grid-cols-4 gap-1.5 mt-1.5 max-h-44 overflow-y-auto pr-0.5">
               {slotsLoading ? (
-                <div className="col-span-4 py-4 text-center text-xs text-gray-400">Loading available slots…</div>
-              ) : availableSlots.length === 0 ? (
-                <div className="col-span-4 py-4 text-center text-xs text-gray-400">No available slots for this date</div>
-              ) : availableSlots.map(s => {
+                <div className="col-span-4 py-4 text-center text-xs text-gray-400">Loading slots…</div>
+              ) : allSlots.length === 0 ? (
+                <div className="col-span-4 py-4 text-center text-xs text-gray-400">No slots for this date</div>
+              ) : allSlots.map(s => {
+                const booked = bookedSlots.includes(s) && !(isEdit && booking?.appointmentTime === s);
                 const selected = form.time === s;
                 return (
                   <button
                     key={s}
                     type="button"
-                    onClick={() => setForm(p => ({ ...p, time: s }))}
+                    disabled={booked}
+                    onClick={() => !booked && setForm(p => ({ ...p, time: s }))}
                     className={`py-1.5 rounded-lg text-xs font-medium transition-all duration-100 ${
-                      selected
+                      booked
+                        ? 'bg-red-50 dark:bg-red-950/30 text-red-400 dark:text-red-500 border border-red-200 dark:border-red-900 line-through cursor-not-allowed'
+                        : selected
                         ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30 scale-[1.04]'
                         : 'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 hover:border-indigo-300 dark:hover:border-indigo-700 hover:text-indigo-600 dark:hover:text-indigo-400'
                     }`}
