@@ -327,7 +327,12 @@ function ChatModal({ booking, onClose, theme }) {
 
   useEffect(() => {
     api.get(`/customer/bookings/${booking._id}/messages`)
-      .then(res => setMessages(res.data.data?.messages || []))
+      .then(res => {
+        const msgs = res.data.data?.messages || [];
+        const now = new Date().toISOString();
+        setMessages(msgs.map(m => m.senderRole === 'customer' && !m.readAt ? { ...m, readAt: now } : m));
+        api.put(`/customer/bookings/${booking._id}/messages/read`).catch(() => {});
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -337,7 +342,13 @@ function ChatModal({ booking, onClose, theme }) {
     socketRef.current = socket;
     socket.on('connect', () => socket.emit('join-chat', { bookingId: booking._id }));
     socket.on('chat-message', ({ bookingId, message }) => {
-      if (bookingId === booking._id) setMessages(prev => [...prev, message]);
+      if (bookingId === booking._id) {
+        const msg = message.senderRole === 'customer' ? { ...message, readAt: new Date().toISOString() } : message;
+        setMessages(prev => [...prev, msg]);
+        if (message.senderRole === 'customer') {
+          api.put(`/customer/bookings/${bookingId}/messages/read`).catch(() => {});
+        }
+      }
     });
     socket.on('chat-typing', ({ senderRole }) => {
       if (senderRole === 'owner') {
