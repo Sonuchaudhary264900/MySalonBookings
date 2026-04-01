@@ -295,9 +295,11 @@ function ChatDrawer({ booking, onClose }) {
                     <div style={{ display:'flex', alignItems:'center', gap:4, paddingLeft: mine ? 0 : 4, paddingRight: mine ? 4 : 0 }}>
                       <span style={{ fontSize:10, color:'var(--t-text-3)' }}>{fmt(msg.createdAt)}</span>
                       {mine && (
-                        <svg width="14" height="10" viewBox="0 0 16 10" fill="none">
-                          <path d="M1 5l4 4L15 1" stroke={msg.readAt ? '#6366f1' : '#94a3b8'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          {msg.readAt && <path d="M5 5l4 4" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>}
+                        <svg width="20" height="11" viewBox="0 0 20 11" fill="none">
+                          {/* First tick (left) */}
+                          <path d="M1 5.5L4 8.5L9.5 1.5" stroke={msg.readAt ? '#25D366' : '#94a3b8'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                          {/* Second tick (right, offset) */}
+                          <path d="M6 5.5L9 8.5L14.5 1.5" stroke={msg.readAt ? '#25D366' : '#94a3b8'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                       )}
                     </div>
