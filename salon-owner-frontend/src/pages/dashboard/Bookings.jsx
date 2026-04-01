@@ -654,9 +654,17 @@ const ChatPanel = ({ booking, onClose }) => {
                     : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-bl-none'
                 }`}>
                   <p>{msg.text}</p>
-                  <p className={`text-[10px] mt-0.5 ${mine ? 'text-indigo-200 text-right' : 'text-gray-400 dark:text-gray-500'}`}>
-                    {fmt(msg.createdAt)}
-                  </p>
+                  <div className={`flex items-center gap-1 mt-0.5 ${mine ? 'justify-end' : 'justify-start'}`}>
+                    <span className={`text-[10px] ${mine ? 'text-indigo-200' : 'text-gray-400 dark:text-gray-500'}`}>
+                      {fmt(msg.createdAt)}
+                    </span>
+                    {mine && (
+                      <svg width="20" height="11" viewBox="0 0 20 11" fill="none">
+                        <path d="M1 5.5L4 8.5L9.5 1.5" stroke={msg.readAt ? '#25D366' : '#94a3b8'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M6 5.5L9 8.5L14.5 1.5" stroke={msg.readAt ? '#25D366' : '#94a3b8'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                  </div>
                 </div>
               </div>
             );

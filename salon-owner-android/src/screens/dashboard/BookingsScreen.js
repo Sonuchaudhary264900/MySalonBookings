@@ -140,7 +140,12 @@ function ChatModal({ booking, onClose }) {
                 <View style={{ alignSelf: mine ? 'flex-end' : 'flex-start', maxWidth: '80%', marginVertical: 2 }}>
                   <View style={{ paddingHorizontal: 14, paddingVertical: 9, borderRadius: 18, borderBottomRightRadius: mine ? 4 : 18, borderBottomLeftRadius: mine ? 18 : 4, backgroundColor: mine ? '#6366f1' : (theme.card || '#1e293b') }}>
                     <Text style={{ fontSize: 14, color: mine ? '#fff' : (theme.text || '#f1f5f9'), lineHeight: 20 }}>{item.text}</Text>
-                    <Text style={{ fontSize: 10, color: mine ? 'rgba(255,255,255,0.6)' : (theme.subText || '#64748b'), marginTop: 3, textAlign: mine ? 'right' : 'left' }}>{fmt(item.createdAt)}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: mine ? 'flex-end' : 'flex-start', marginTop: 3, gap: 3 }}>
+                      <Text style={{ fontSize: 10, color: mine ? 'rgba(255,255,255,0.6)' : (theme.subText || '#64748b') }}>{fmt(item.createdAt)}</Text>
+                      {mine && (
+                        <Text style={{ fontSize: 13, color: item.readAt ? '#25D366' : '#94a3b8', letterSpacing: -4, fontWeight: '900', lineHeight: 14 }}>{'✓✓'}</Text>
+                      )}
+                    </View>
                   </View>
                 </View>
               );
