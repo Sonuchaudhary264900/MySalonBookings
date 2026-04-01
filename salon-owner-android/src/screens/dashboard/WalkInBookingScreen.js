@@ -9,13 +9,7 @@ import api from '../../services/api';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { showSuccess, showError } from '../../utils/toast';
-
-const TIME_SLOTS = [
-  '09:00','09:30','10:00','10:30','11:00','11:30',
-  '12:00','12:30','13:00','13:30','14:00','14:30',
-  '15:00','15:30','16:00','16:30','17:00','17:30',
-  '18:00','18:30','19:00','19:30',
-];
+import { useSalon } from '../../context/SalonContext';
 
 function todayStr() {
   const d = new Date();
@@ -26,10 +20,13 @@ export default function WalkInBookingScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const navigation = useNavigation();
+  const { salon } = useSalon();
   const [services, setServices] = useState([]);
   const [loadingServices, setLoadingServices] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
 
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -52,6 +49,23 @@ export default function WalkInBookingScreen() {
   }, []);
 
   useEffect(() => { fetchServices(); }, [fetchServices]);
+
+  // Fetch available slots whenever date or service changes
+  useEffect(() => {
+    if (!salon?._id || !selectedDate) return;
+    const duration = selectedService?.duration || 30;
+    setSlotsLoading(true);
+    setSelectedTime('');
+    api.get(`/public/salons/${salon._id}/booked-slots?date=${selectedDate}&duration=${duration}`)
+      .then(res => {
+        const d = res.data.data || {};
+        const all = d.slots || [];
+        const blocked = d.blockedSlots || [];
+        setAvailableSlots(all.filter(s => !blocked.includes(s)));
+      })
+      .catch(() => setAvailableSlots([]))
+      .finally(() => setSlotsLoading(false));
+  }, [salon?._id, selectedDate, selectedService]);
 
   const changeDate = (days) => {
     const d = new Date(selectedDate + 'T12:00:00');
@@ -192,17 +206,25 @@ export default function WalkInBookingScreen() {
           {/* Time Slot */}
           <View style={[styles.section, { backgroundColor: theme.card }]}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Time Slot</Text>
-            <View style={styles.slotGrid}>
-              {TIME_SLOTS.map((t) => (
-                <TouchableOpacity
-                  key={t}
-                  style={[styles.slot, selectedTime === t && styles.slotActive, { borderColor: theme.border || '#e5e7eb' }]}
-                  onPress={() => setSelectedTime(t)}
-                >
-                  <Text style={[styles.slotText, { color: selectedTime === t ? '#fff' : theme.text }]}>{t}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            {slotsLoading ? (
+              <ActivityIndicator color="#6366f1" style={{ marginVertical: 8 }} />
+            ) : availableSlots.length === 0 ? (
+              <Text style={{ color: theme.subText, fontSize: 13, textAlign: 'center', paddingVertical: 8 }}>
+                No available slots for this date
+              </Text>
+            ) : (
+              <View style={styles.slotGrid}>
+                {availableSlots.map((t) => (
+                  <TouchableOpacity
+                    key={t}
+                    style={[styles.slot, selectedTime === t && styles.slotActive, { borderColor: theme.border || '#e5e7eb' }]}
+                    onPress={() => setSelectedTime(t)}
+                  >
+                    <Text style={[styles.slotText, { color: selectedTime === t ? '#fff' : theme.text }]}>{t}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </View>
 
           {/* Notes */}
