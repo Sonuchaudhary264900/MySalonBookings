@@ -45,6 +45,7 @@ import CalendarScreen          from './src/screens/dashboard/CalendarScreen';
 import WalkInBookingScreen     from './src/screens/dashboard/WalkInBookingScreen';
 import CustomersScreen         from './src/screens/dashboard/CustomersScreen';
 import CouponsScreen           from './src/screens/dashboard/CouponsScreen';
+import PackagesScreen          from './src/screens/dashboard/PackagesScreen';
 import GalleryScreen           from './src/screens/dashboard/GalleryScreen';
 import ServiceMenuScreen       from './src/screens/dashboard/ServiceMenuScreen';
 import BillingScreen           from './src/screens/dashboard/BillingScreen';
@@ -75,9 +76,10 @@ const NAV_SECTIONS = [
   {
     label: 'Content',
     items: [
-      { name: 'Gallery',  label: 'Gallery',  icon: 'images-outline',   iconFocused: 'images' },
-      { name: 'Coupons',  label: 'Coupons',  icon: 'pricetag-outline', iconFocused: 'pricetag' },
-      { name: 'Reviews',  label: 'Reviews',  icon: 'star-outline',     iconFocused: 'star' },
+      { name: 'Gallery',   label: 'Gallery',         icon: 'images-outline',   iconFocused: 'images'   },
+      { name: 'Coupons',   label: 'Coupons',         icon: 'pricetag-outline', iconFocused: 'pricetag' },
+      { name: 'Packages',  label: 'Packages & Plans', icon: 'gift-outline',     iconFocused: 'gift'     },
+      { name: 'Reviews',   label: 'Reviews',          icon: 'star-outline',     iconFocused: 'star'     },
     ],
   },
   {
@@ -339,6 +341,7 @@ function MainDrawer({ navigation }) {
         <MainStack.Screen name="WalkIn"        component={WalkInBookingScreen} />
         <MainStack.Screen name="Customers"     component={CustomersScreen} />
         <MainStack.Screen name="Coupons"       component={CouponsScreen} />
+        <MainStack.Screen name="Packages"      component={PackagesScreen} />
         <MainStack.Screen name="Billing"       component={BillingScreen} />
         <MainStack.Screen name="Gallery"       component={GalleryScreen} />
         <MainStack.Screen name="ServiceMenu"   component={ServiceMenuScreen} />
