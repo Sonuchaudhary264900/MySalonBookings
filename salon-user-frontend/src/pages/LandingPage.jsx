@@ -13,6 +13,7 @@ const CSS = `
   @keyframes lp-shimmer{0%{background-position:200% center;}100%{background-position:-200% center;}}
   @keyframes lp-dot{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.45;transform:scale(1.6);}}
   @keyframes lp-spin{to{transform:rotate(360deg);}}
+  @keyframes lp-modal-in{from{opacity:0;transform:scale(0.88) translateY(16px);}to{opacity:1;transform:scale(1) translateY(0);}}
   .lp-orb1{animation:lp-orb1 18s ease-in-out infinite;}
   .lp-orb2{animation:lp-orb2 22s ease-in-out infinite;}
   .lp-u0{animation:lp-up .65s .00s ease both;}
@@ -116,6 +117,7 @@ export default function LandingPage({
 }) {
   const { isDark } = useTheme();
   const [focused, setFocused] = useState(false);
+  const [pendingGender, setPendingGender] = useState(null);
   const inputRef = useRef(null);
 
   const scrollToSalons = () =>
@@ -256,36 +258,34 @@ export default function LandingPage({
               </div>
             </div>
 
-            {/* Gender selector */}
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, marginBottom: 24 }}>
-              <p style={{ fontSize: 13, color: "var(--t-text-3)", fontWeight: 600, margin: 0 }}>Who are you booking for?</p>
-              <div style={{ display: "flex", gap: 10 }}>
-                {[
-                  { key: "male",   label: "👨 Men",   active: genderFilter === "male"   },
-                  { key: "female", label: "👩 Women", active: genderFilter === "female" },
-                ].map(({ key, label, active }) => (
-                  <button
-                    key={key}
-                    onClick={() => onGenderFilter && onGenderFilter(active ? "all" : key)}
-                    style={{
-                      padding: "11px 28px", borderRadius: 999, fontSize: 14, fontWeight: 700,
-                      cursor: "pointer", transition: "all 0.18s ease",
-                      background: active ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "var(--t-card)",
-                      border: active ? "1.5px solid transparent" : "1.5px solid var(--t-border)",
-                      color: active ? "#fff" : "var(--t-text-2)",
-                      boxShadow: active ? "0 0 20px rgba(99,102,241,0.35)" : "none",
-                    }}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              {genderFilter !== "all" && (
-                <p style={{ fontSize: 11, color: "var(--t-accent)", margin: 0, fontWeight: 500 }}>
-                  Showing {genderFilter === "male" ? "men's" : "women's"} salons &nbsp;·&nbsp;
-                  <span style={{ cursor: "pointer", textDecoration: "underline" }} onClick={() => onGenderFilter && onGenderFilter("all")}>Show all</span>
+            {/* Gender selector — settings-card style */}
+            <div style={{ maxWidth: 460, margin: "0 auto 24px", background: "var(--t-card)", border: "1px solid var(--t-border)", borderRadius: 18, padding: "14px 18px", boxShadow: "0 4px 20px rgba(0,0,0,0.07)", display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(99,102,241,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>💇</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "var(--t-text)", margin: "0 0 2px", whiteSpace: "nowrap" }}>Who are you booking for?</p>
+                <p style={{ fontSize: 11, color: "var(--t-text-3)", margin: 0 }}>
+                  {genderFilter === "all" ? "Filter salons by gender" : `Showing ${genderFilter === "male" ? "men's" : "women's"} salons`}
                 </p>
-              )}
+              </div>
+              <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                {[{ key: "male", label: "👨 Men" }, { key: "female", label: "👩 Women" }].map(({ key, label }) => {
+                  const active = genderFilter === key;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => active ? onGenderFilter?.("all") : setPendingGender(key)}
+                      style={{
+                        padding: "8px 15px", borderRadius: 10, fontSize: 12, fontWeight: 700,
+                        cursor: "pointer", transition: "all 0.18s ease",
+                        background: active ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "var(--t-bg-2)",
+                        border: active ? "1.5px solid transparent" : "1.5px solid var(--t-border)",
+                        color: active ? "#fff" : "var(--t-text-3)",
+                        boxShadow: active ? "0 0 16px rgba(99,102,241,0.3)" : "none",
+                      }}
+                    >{label}</button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* CTA row */}
@@ -673,6 +673,65 @@ export default function LandingPage({
         </section>
 
       </div>
+
+      {/* ── Gender confirmation modal ── */}
+      {pendingGender && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          {/* Backdrop */}
+          <div
+            style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}
+            onClick={() => setPendingGender(null)}
+          />
+          {/* Dialog */}
+          <div style={{ position: "relative", background: "var(--t-card)", border: "1px solid var(--t-border)", borderRadius: 24, padding: "32px 28px", maxWidth: 380, width: "100%", textAlign: "center", boxShadow: "0 24px 80px rgba(0,0,0,0.3)", animation: "lp-modal-in 0.22s ease both" }}>
+            {/* Icon */}
+            <div style={{ width: 68, height: 68, borderRadius: 22, background: pendingGender === "male" ? "rgba(99,102,241,0.12)" : "rgba(236,72,153,0.12)", border: pendingGender === "male" ? "1.5px solid rgba(99,102,241,0.25)" : "1.5px solid rgba(236,72,153,0.25)", margin: "0 auto 20px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 34 }}>
+              {pendingGender === "male" ? "👨" : "👩"}
+            </div>
+
+            {/* Title */}
+            <h3 style={{ fontSize: 19, fontWeight: 800, color: "var(--t-text)", margin: "0 0 10px" }}>
+              Show salons for {pendingGender === "male" ? "Men" : "Women"}
+            </h3>
+
+            {/* Body */}
+            <p style={{ fontSize: 13.5, color: "var(--t-text-2)", lineHeight: 1.75, margin: "0 0 8px" }}>
+              Services and categories will be filtered to show only{" "}
+              <strong style={{ color: "var(--t-text)" }}>{pendingGender === "male" ? "men's" : "women's"}</strong> options.
+            </p>
+            <div style={{ background: pendingGender === "male" ? "rgba(99,102,241,0.07)" : "rgba(236,72,153,0.07)", border: pendingGender === "male" ? "1px solid rgba(99,102,241,0.18)" : "1px solid rgba(236,72,153,0.18)", borderRadius: 12, padding: "12px 14px", margin: "0 0 22px", textAlign: "left" }}>
+              <p style={{ fontSize: 12, color: "var(--t-text-2)", margin: 0, lineHeight: 1.7 }}>
+                {pendingGender === "male"
+                  ? "✂️ Haircut · 🧔 Beard Trim · 💆 Men's Facial · 💪 Men's Massage"
+                  : "💄 Bridal · 💅 Nails · 🧖 Waxing · 💋 Makeup · 👰 Bridal & Events"}
+              </p>
+            </div>
+            <p style={{ fontSize: 11, color: "var(--t-text-3)", margin: "0 0 24px" }}>
+              You can change this anytime from the filter bar.
+            </p>
+
+            {/* Action buttons */}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() => setPendingGender(null)}
+                style={{ flex: 1, padding: "13px", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer", background: "var(--t-bg-2)", border: "1px solid var(--t-border)", color: "var(--t-text-2)" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { onGenderFilter?.(pendingGender); setPendingGender(null); }}
+                style={{
+                  flex: 1, padding: "13px", borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: "pointer", border: "none", color: "#fff",
+                  background: pendingGender === "male" ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "linear-gradient(135deg,#ec4899,#f43f5e)",
+                  boxShadow: pendingGender === "male" ? "0 0 24px rgba(99,102,241,0.4)" : "0 0 24px rgba(236,72,153,0.4)",
+                }}
+              >
+                Continue →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
