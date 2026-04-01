@@ -15,9 +15,17 @@ const Footer = () => (
           className="flex items-center gap-1.5 text-gray-400 dark:text-gray-600 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
           ✉ support@mysalonbookings.com
         </a>
-        <a href="tel:+918726490024"
+        <a href="tel:+917973270642"
           className="flex items-center gap-1.5 text-gray-400 dark:text-gray-600 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-          📞 +91 87264 90024
+          📞 +91 79732 70642
+        </a>
+        <a href="https://wa.me/917973270642" target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-gray-400 dark:text-gray-600 hover:text-green-500 dark:hover:text-green-400 transition-colors">
+          💬 WhatsApp
+        </a>
+        <a href="https://instagram.com/mysalonbookings_official" target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-gray-400 dark:text-gray-600 hover:text-pink-500 dark:hover:text-pink-400 transition-colors">
+          📸 @mysalonbookings_official
         </a>
       </div>
 

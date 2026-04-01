@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
 
 const SOCIAL = [
-  { icon: "f",  label: "Facebook",  glow: "rgba(59,130,246,0.6)" },
-  { icon: "in", label: "Instagram", glow: "rgba(236,72,153,0.6)" },
-  { icon: "𝕏",  label: "Twitter",  glow: "rgba(148,163,184,0.4)" },
+  { icon: "f",  label: "Facebook",  glow: "rgba(59,130,246,0.6)",  href: null },
+  { icon: "in", label: "Instagram", glow: "rgba(236,72,153,0.6)",  href: "https://instagram.com/mysalonbookings_official" },
+  { icon: "𝕏",  label: "Twitter",  glow: "rgba(148,163,184,0.4)", href: null },
+  { icon: "✓",  label: "WhatsApp", glow: "rgba(34,197,94,0.6)",   href: "https://wa.me/917973270642" },
 ];
 
 export default function Footer() {
@@ -45,34 +46,39 @@ export default function Footer() {
               Discover top-rated salons near you and book appointments in seconds. Your perfect look is just a tap away.
             </p>
             <div className="flex gap-3">
-              {SOCIAL.map(({ icon, label, glow }) => (
-                <button
-                  key={label}
-                  aria-label={label}
-                  className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold transition-all duration-200"
-                  style={{
-                    background: "rgba(255,255,255,0.05)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    color: "rgba(148,163,184,0.7)",
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.background = "rgba(255,255,255,0.1)";
-                    e.currentTarget.style.borderColor = glow.replace("0.6", "0.4").replace("0.4", "0.3");
-                    e.currentTarget.style.boxShadow = `0 0 12px ${glow}`;
-                    e.currentTarget.style.color = "#fff";
-                    e.currentTarget.style.transform = "translateY(-2px)";
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.background = "rgba(255,255,255,0.05)";
-                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
-                    e.currentTarget.style.boxShadow = "none";
-                    e.currentTarget.style.color = "rgba(148,163,184,0.7)";
-                    e.currentTarget.style.transform = "translateY(0)";
-                  }}
-                >
-                  {icon}
-                </button>
-              ))}
+              {SOCIAL.map(({ icon, label, glow, href }) => {
+                const sharedStyle = {
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  color: "rgba(148,163,184,0.7)",
+                };
+                const Tag = href ? "a" : "button";
+                return (
+                  <Tag
+                    key={label}
+                    {...(href ? { href, target: "_blank", rel: "noopener noreferrer" } : {})}
+                    aria-label={label}
+                    className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold transition-all duration-200"
+                    style={sharedStyle}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+                      e.currentTarget.style.borderColor = glow.replace("0.6", "0.4").replace("0.4", "0.3");
+                      e.currentTarget.style.boxShadow = `0 0 12px ${glow}`;
+                      e.currentTarget.style.color = "#fff";
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+                      e.currentTarget.style.boxShadow = "none";
+                      e.currentTarget.style.color = "rgba(148,163,184,0.7)";
+                      e.currentTarget.style.transform = "translateY(0)";
+                    }}
+                  >
+                    {icon}
+                  </Tag>
+                );
+              })}
             </div>
           </div>
 
@@ -171,8 +177,20 @@ export default function Footer() {
               </li>
               <li className="flex items-center gap-2" style={{ color: "var(--t-text-2)" }}>
                 <span>📞</span>
-                <a href="tel:+918726490024" className="transition-colors duration-200 hover:text-violet-400">
-                  +91 87264 90024
+                <a href="tel:+917973270642" className="transition-colors duration-200 hover:text-violet-400">
+                  +91 79732 70642
+                </a>
+              </li>
+              <li className="flex items-center gap-2" style={{ color: "var(--t-text-2)" }}>
+                <span>💬</span>
+                <a href="https://wa.me/917973270642" target="_blank" rel="noopener noreferrer" className="transition-colors duration-200 hover:text-green-400">
+                  WhatsApp Us
+                </a>
+              </li>
+              <li className="flex items-center gap-2" style={{ color: "var(--t-text-2)" }}>
+                <span>📸</span>
+                <a href="https://instagram.com/mysalonbookings_official" target="_blank" rel="noopener noreferrer" className="transition-colors duration-200 hover:text-pink-400">
+                  @mysalonbookings_official
                 </a>
               </li>
               <li className="flex items-center gap-2" style={{ color: "var(--t-text-2)" }}>
