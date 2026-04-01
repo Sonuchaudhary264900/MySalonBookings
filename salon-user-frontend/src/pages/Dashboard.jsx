@@ -149,7 +149,11 @@ function ChatDrawer({ booking, onClose }) {
     setSending(true);
     try {
       await API.post(`/customer/bookings/${booking._id}/messages`, { text: t });
-    } catch { setText(t); }
+    } catch (err) {
+      console.error('Chat send failed:', err?.response?.status, err?.response?.data);
+      alert(err?.response?.data?.message || 'Failed to send message');
+      setText(t);
+    }
     finally { setSending(false); }
   };
 
