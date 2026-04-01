@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { io } from 'socket.io-client';
 import API from "../services/api";
 import { getCustomerToken } from "../utils/auth";
 import { useNotifications } from "../context/NotificationContext";
@@ -92,6 +93,164 @@ const IcRepeat     = () => <svg width="14" height="14" fill="none" viewBox="0 0 
 const IcTimer      = () => <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
 const IcTrend      = () => <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>;
 const IcHeart      = () => <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>;
+
+const SOCKET_URL_WEB = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_BASE_URL?.replace('/api/v1', '') || 'http://localhost:5000';
+const CHAT_OPEN_SET  = new Set(['pending', 'confirmed', 'in_progress']);
+
+// ── ChatDrawer ────────────────────────────────────────────────
+function ChatDrawer({ booking, onClose }) {
+  const [messages, setMessages]     = useState([]);
+  const [text, setText]             = useState('');
+  const [sending, setSending]       = useState(false);
+  const [loading, setLoading]       = useState(true);
+  const [peerTyping, setPeerTyping] = useState(false);
+  const socketRef   = useRef(null);
+  const bottomRef   = useRef(null);
+  const typingTimer = useRef(null);
+  const isChatOpen  = CHAT_OPEN_SET.has(booking.status);
+  const salonName   = booking.salonName || booking.salonId?.name || 'Salon';
+
+  useEffect(() => {
+    API.get(`/customer/bookings/${booking._id}/messages`)
+      .then(res => setMessages(res.data.data?.messages || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [booking._id]);
+
+  useEffect(() => {
+    const socket = io(SOCKET_URL_WEB, { transports: ['websocket'] });
+    socketRef.current = socket;
+    socket.on('connect', () => socket.emit('join-chat', { bookingId: booking._id }));
+    socket.on('chat-message', ({ bookingId, message }) => {
+      if (bookingId === booking._id) setMessages(prev => [...prev, message]);
+    });
+    socket.on('chat-typing', ({ senderRole }) => {
+      if (senderRole === 'owner') {
+        setPeerTyping(true);
+        clearTimeout(typingTimer.current);
+        typingTimer.current = setTimeout(() => setPeerTyping(false), 2500);
+      }
+    });
+    return () => {
+      clearTimeout(typingTimer.current);
+      socket.emit('leave-chat', { bookingId: booking._id });
+      socket.disconnect();
+    };
+  }, [booking._id]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, peerTyping]);
+
+  const handleSend = async () => {
+    const t = text.trim();
+    if (!t || sending || !isChatOpen) return;
+    setText('');
+    setSending(true);
+    try {
+      await API.post(`/customer/bookings/${booking._id}/messages`, { text: t });
+      socketRef.current?.emit('chat-send', { bookingId: booking._id, senderRole: 'customer', text: t });
+    } catch { setText(t); }
+    finally { setSending(false); }
+  };
+
+  const handleKeyDown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } };
+  const handleChange  = e => {
+    setText(e.target.value);
+    if (isChatOpen) socketRef.current?.emit('chat-typing', { bookingId: booking._id, senderRole: 'customer' });
+  };
+  const fmt = iso => { if (!iso) return ''; const d = new Date(iso); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`; };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}>
+      <div style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 520, margin: '0 auto', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
+        onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderBottom: '1px solid var(--t-border)', flexShrink: 0 }}>
+          <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
+            {salonName[0].toUpperCase()}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--t-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>{salonName}</p>
+            <p style={{ fontSize: 11, color: 'var(--t-text-3)', margin: '2px 0 0' }}>#{booking._id?.slice(-6)}</p>
+          </div>
+          <button onClick={onClose}
+            style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--t-input-bg)', border: '1px solid var(--t-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--t-text-3)', flexShrink: 0 }}>
+            ✕
+          </button>
+        </div>
+
+        {!isChatOpen && (
+          <div style={{ margin: '10px 12px 0', padding: '9px 12px', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 9, flexShrink: 0 }}>
+            <p style={{ fontSize: 12, color: '#fbbf24', margin: 0 }}>Chat closed — booking is {booking.status.replace('_', ' ')}.</p>
+          </div>
+        )}
+
+        {/* Messages */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: 12, display: 'flex', flexDirection: 'column', gap: 8, minHeight: 180 }}>
+          {loading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 100 }}>
+              <span style={{ width: 20, height: 20, border: '2.5px solid rgba(99,102,241,0.3)', borderTopColor: '#6366f1', borderRadius: '50%', display: 'block', animation: 'spin 0.7s linear infinite' }} />
+            </div>
+          ) : messages.length === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, opacity: 0.5, gap: 6 }}>
+              <span style={{ fontSize: 28 }}>💬</span>
+              <p style={{ fontSize: 12, color: 'var(--t-text-3)', margin: 0 }}>No messages yet</p>
+            </div>
+          ) : messages.map((msg, i) => {
+            const mine = msg.senderRole === 'customer';
+            return (
+              <div key={i} style={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
+                <div style={{ maxWidth: '78%', padding: '8px 12px', borderRadius: 16, fontSize: 13, lineHeight: 1.5, wordBreak: 'break-word',
+                  borderBottomRightRadius: mine ? 4 : 16, borderBottomLeftRadius: mine ? 16 : 4,
+                  background: mine ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : 'var(--t-bg-2)',
+                  color: mine ? '#fff' : 'var(--t-text)', border: mine ? 'none' : '1px solid var(--t-border)',
+                }}>
+                  <p style={{ margin: 0 }}>{msg.text}</p>
+                  <p style={{ fontSize: 10, marginTop: 3, marginBottom: 0, textAlign: mine ? 'right' : 'left', color: mine ? 'rgba(255,255,255,0.6)' : 'var(--t-text-3)' }}>{fmt(msg.createdAt)}</p>
+                </div>
+              </div>
+            );
+          })}
+          {peerTyping && (
+            <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+              <div style={{ padding: '8px 12px', borderRadius: 16, borderBottomLeftRadius: 4, background: 'var(--t-bg-2)', border: '1px solid var(--t-border)', fontSize: 12, color: 'var(--t-text-3)', fontStyle: 'italic' }}>
+                Salon is typing…
+              </div>
+            </div>
+          )}
+          <div ref={bottomRef} />
+        </div>
+
+        {/* Input */}
+        {isChatOpen && (
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, padding: '10px 12px 20px', borderTop: '1px solid var(--t-border)', flexShrink: 0 }}>
+            <textarea
+              value={text}
+              onChange={handleChange}
+              onKeyDown={handleKeyDown}
+              placeholder="Message salon…"
+              rows={1}
+              disabled={sending}
+              style={{ flex: 1, minHeight: 38, maxHeight: 96, padding: '8px 12px', borderRadius: 12, border: '1px solid var(--t-border)', background: 'var(--t-input-bg)', color: 'var(--t-text)', fontSize: 13, resize: 'none', outline: 'none', fontFamily: 'inherit', opacity: sending ? 0.5 : 1 }}
+            />
+            <button
+              onClick={handleSend}
+              disabled={!text.trim() || sending}
+              style={{ width: 38, height: 38, borderRadius: 12, border: 'none', cursor: !text.trim() || sending ? 'not-allowed' : 'pointer', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: !text.trim() || sending ? 0.5 : 1, flexShrink: 0, alignSelf: 'flex-end' }}
+            >
+              {sending
+                ? <span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', display: 'block', animation: 'spin 0.7s linear infinite' }} />
+                : <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // ── StatusBadge ───────────────────────────────────────────────
 function StatusBadge({ status }) {
@@ -324,6 +483,7 @@ function BookingCard({ booking: initialBooking, userCoords, onCancelled, isNext 
   const [reviewed, setReviewed]             = useState(false);
   const [cancelling, setCancelling]         = useState(false);
   const [hovered, setHovered]               = useState(false);
+  const [chatOpen, setChatOpen]             = useState(false);
   const countdown = useCountdown(booking.appointmentDate, booking.appointmentTime);
 
   const status = booking.status || 'pending';
@@ -534,6 +694,12 @@ function BookingCard({ booking: initialBooking, userCoords, onCancelled, isNext 
           {/* ── Action buttons ── */}
           {(isUpcoming || !!salonPhone || !!mapsUrl) && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, paddingTop: 12, borderTop: '1px solid var(--t-border)', marginTop: 4 }}>
+              {CHAT_OPEN_SET.has(status) && (
+                <button className="bk-btn" onClick={() => setChatOpen(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 9, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--t-accent)' }}>
+                  💬 Chat
+                </button>
+              )}
               {canReschedule && (
                 <button className="bk-btn" onClick={() => setRescheduleOpen(true)}
                   style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 9, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--t-accent)' }}>
@@ -570,6 +736,7 @@ function BookingCard({ booking: initialBooking, userCoords, onCancelled, isNext 
       </div>
 
       {rescheduleOpen && <RescheduleModal booking={booking} onClose={() => setRescheduleOpen(false)} onRescheduled={handleRescheduled} />}
+      {chatOpen && <ChatDrawer booking={booking} onClose={() => setChatOpen(false)} />}
     </>
   );
 }
