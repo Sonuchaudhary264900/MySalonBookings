@@ -112,7 +112,7 @@ const FEMALE_ONLY_CATS = ["Bridal & Events"];
 export default function LandingPage({
   searchText = "", onSearch, onSearchSubmit, onLocate, locLoading = false, searching = false,
   selectedCats = [], onCategorySelect, sort = "nearby", onSortChange,
-  genderFilter = "all", salonGrid = null,
+  genderFilter = "all", onGenderFilter, salonGrid = null,
 }) {
   const { isDark } = useTheme();
   const [focused, setFocused] = useState(false);
@@ -254,6 +254,38 @@ export default function LandingPage({
                   <span className="hidden sm:inline">Locate</span>
                 </button>
               </div>
+            </div>
+
+            {/* Gender selector */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, marginBottom: 24 }}>
+              <p style={{ fontSize: 13, color: "var(--t-text-3)", fontWeight: 600, margin: 0 }}>Who are you booking for?</p>
+              <div style={{ display: "flex", gap: 10 }}>
+                {[
+                  { key: "male",   label: "👨 Men",   active: genderFilter === "male"   },
+                  { key: "female", label: "👩 Women", active: genderFilter === "female" },
+                ].map(({ key, label, active }) => (
+                  <button
+                    key={key}
+                    onClick={() => onGenderFilter && onGenderFilter(active ? "all" : key)}
+                    style={{
+                      padding: "11px 28px", borderRadius: 999, fontSize: 14, fontWeight: 700,
+                      cursor: "pointer", transition: "all 0.18s ease",
+                      background: active ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "var(--t-card)",
+                      border: active ? "1.5px solid transparent" : "1.5px solid var(--t-border)",
+                      color: active ? "#fff" : "var(--t-text-2)",
+                      boxShadow: active ? "0 0 20px rgba(99,102,241,0.35)" : "none",
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {genderFilter !== "all" && (
+                <p style={{ fontSize: 11, color: "var(--t-accent)", margin: 0, fontWeight: 500 }}>
+                  Showing {genderFilter === "male" ? "men's" : "women's"} salons &nbsp;·&nbsp;
+                  <span style={{ cursor: "pointer", textDecoration: "underline" }} onClick={() => onGenderFilter && onGenderFilter("all")}>Show all</span>
+                </p>
+              )}
             </div>
 
             {/* CTA row */}

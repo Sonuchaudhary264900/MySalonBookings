@@ -457,6 +457,7 @@ export default function Home() {
           sort={sort}
           onSortChange={handleSortChange}
           genderFilter={genderFilter}
+          onGenderFilter={handleGenderFilter}
           salonGrid={guestSalonGrid}
         />
       </div>
