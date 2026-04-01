@@ -156,9 +156,8 @@ export default function RegisterScreen({ navigation }) {
     if (!name.trim() || name.trim().length < 2) { Alert.alert('Error', 'Name must be at least 2 characters'); return; }
     if (!gender) { Alert.alert('Error', 'Please select your gender'); return; }
     if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) { Alert.alert('Error', 'Enter a valid email address'); return; }
-    const strength = passwordStrength(password);
-    if (!strength || ['Very Weak', 'Weak'].includes(strength.label)) {
-      Alert.alert('Weak Password', 'Password must be at least 8 characters with uppercase, lowercase, number & special character');
+    if (password.length < 8) {
+      Alert.alert('Weak Password', 'Password must be at least 8 characters');
       return;
     }
     if (password !== confirmPw) { Alert.alert('Error', 'Passwords do not match'); return; }
@@ -416,12 +415,15 @@ export default function RegisterScreen({ navigation }) {
                     <Ionicons name="lock-closed-outline" size={18} color="#818cf8" style={styles.inputIcon} />
                     <TextInput
                       style={[styles.input, { flex: 1 }]}
-                      placeholder="Min 8 chars, uppercase, number, symbol"
+                      placeholder="Minimum 8 characters"
                       placeholderTextColor="#4b5563"
                       secureTextEntry={!showPw}
                       value={password}
                       onChangeText={setPassword}
                       editable={!loading}
+                      autoComplete="new-password"
+                      textContentType="newPassword"
+                      importantForAutofill="yes"
                     />
                     <TouchableOpacity onPress={() => setShowPw(!showPw)} style={{ padding: 4 }}>
                       <Ionicons name={showPw ? 'eye-off-outline' : 'eye-outline'} size={18} color="#6b7280" />
@@ -450,6 +452,9 @@ export default function RegisterScreen({ navigation }) {
                       value={confirmPw}
                       onChangeText={setConfirmPw}
                       editable={!loading}
+                      autoComplete="new-password"
+                      textContentType="newPassword"
+                      importantForAutofill="yes"
                     />
                     {confirmPw.length > 0 && confirmPw === password
                       ? <Ionicons name="checkmark-circle" size={20} color="#22c55e" />

@@ -168,6 +168,10 @@ const REG_CSS = `
   [data-lm] .reg-link:hover{color:#6d28d9;}
   [data-lm] .reg-ghost-btn{color:#64748b;}
   [data-lm] .reg-ghost-btn:hover{color:#7c3aed;}
+  [data-lm] .reg-otp-box{background:rgba(0,0,0,0.04);border-color:rgba(0,0,0,0.15);color:#0f172a;}
+  [data-lm] .reg-otp-box:focus{border-color:rgba(124,58,237,0.6);background:rgba(124,58,237,0.06);box-shadow:0 0 0 3px rgba(124,58,237,0.12);}
+  [data-lm] .reg-otp-box.filled{border-color:rgba(124,58,237,0.5);background:rgba(124,58,237,0.08);color:#0f172a;}
+  [data-lm] .reg-otp-box.err-box{border-color:rgba(239,68,68,0.6);}
 `;
 
 /* ─── Password strength helper ──────────────────────────────────── */
@@ -380,11 +384,8 @@ const Register = () => {
     if (!gender)       { setGenderError('Please select your gender'); valid = false; }
     if (!email.trim()) { setEmailError('Email is required'); valid = false; }
     else if (!/\S+@\S+\.\S+/.test(email)) { setEmailError('Enter a valid email address'); valid = false; }
-    if (!password)     { setPasswordError('Password is required'); valid = false; }
-    else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/.test(password)) {
-      setPasswordError('Min 8 chars · uppercase · lowercase · number · special char');
-      valid = false;
-    }
+    if (!password)              { setPasswordError('Password is required'); valid = false; }
+    else if (password.length < 8) { setPasswordError('Password must be at least 8 characters'); valid = false; }
     if (!confirmPw)            { setConfirmError('Please confirm your password'); valid = false; }
     else if (password !== confirmPw) { setConfirmError('Passwords do not match'); valid = false; }
     if (!agreedToTerms) { setError('Please accept the Terms & Conditions and Privacy Policy to continue.'); valid = false; }
@@ -744,9 +745,11 @@ const Register = () => {
                         type={showPassword ? 'text' : 'password'}
                         value={password}
                         onChange={e => { setPassword(e.target.value); setPasswordError(''); }}
-                        placeholder="Min 8 chars · uppercase · number"
+                        onInput={e => { setPassword(e.target.value); setPasswordError(''); }}
+                        placeholder="Minimum 8 characters"
                         disabled={regLoading}
                         autoComplete="new-password"
+                        name="password"
                         aria-label="Password"
                       />
                       <button type="button" onClick={() => setShowPassword(v => !v)} style={{ position:'absolute', right:13, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:'#475569', display:'flex', alignItems:'center' }} aria-label={showPassword ? 'Hide password' : 'Show password'}>
@@ -778,9 +781,11 @@ const Register = () => {
                         type={showConfirmPw ? 'text' : 'password'}
                         value={confirmPw}
                         onChange={e => { setConfirmPw(e.target.value); setConfirmError(''); }}
+                        onInput={e => { setConfirmPw(e.target.value); setConfirmError(''); }}
                         placeholder="Re-enter your password"
                         disabled={regLoading}
                         autoComplete="new-password"
+                        name="confirm-password"
                         aria-label="Confirm password"
                       />
                       <button type="button" onClick={() => setShowConfirmPw(v => !v)} style={{ position:'absolute', right:13, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:'#475569', display:'flex', alignItems:'center' }} aria-label={showConfirmPw ? 'Hide' : 'Show'}>
@@ -821,8 +826,8 @@ const Register = () => {
                       onClick={() => setAgreedToTerms(v => !v)}
                       style={{
                         width:20, height:20, borderRadius:6, flexShrink:0, marginTop:1,
-                        background: agreedToTerms ? 'linear-gradient(135deg,#7c3aed,#3b82f6)' : 'rgba(255,255,255,0.05)',
-                        border: agreedToTerms ? 'none' : '1.5px solid rgba(255,255,255,0.18)',
+                        background: agreedToTerms ? 'linear-gradient(135deg,#7c3aed,#3b82f6)' : isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)',
+                        border: agreedToTerms ? 'none' : isDark ? '1.5px solid rgba(255,255,255,0.18)' : '1.5px solid rgba(0,0,0,0.2)',
                         display:'flex', alignItems:'center', justifyContent:'center',
                         cursor:'pointer', transition:'all .2s ease',
                         boxShadow: agreedToTerms ? '0 0 12px rgba(124,58,237,0.4)' : 'none',
