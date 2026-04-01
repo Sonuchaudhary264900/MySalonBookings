@@ -76,6 +76,7 @@ const Service  = require("../models/Service");
 const Review   = require("../models/Review");
 const Customer = require("../models/Customer");
 const Coupon   = require("../models/Coupon");
+const Booking  = require("../models/Booking");
 
 /* =====================================================
    EXTRA ROUTES (MERGED OWNER ROUTES)
