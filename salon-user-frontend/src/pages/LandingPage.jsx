@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { LocateFixed, Search, X } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
+import femaleSalonImg from "../assets/female-salon.png";
+import maleBarberImg from "../assets/download.jpg";
 
 /* ─────────────────────────────────────────────
    Animations & utilities
@@ -13,7 +14,6 @@ const CSS = `
   @keyframes lp-shimmer{0%{background-position:200% center;}100%{background-position:-200% center;}}
   @keyframes lp-dot{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.45;transform:scale(1.6);}}
   @keyframes lp-spin{to{transform:rotate(360deg);}}
-  @keyframes lp-modal-in{from{opacity:0;transform:scale(0.88) translateY(16px);}to{opacity:1;transform:scale(1) translateY(0);}}
   .lp-orb1{animation:lp-orb1 18s ease-in-out infinite;}
   .lp-orb2{animation:lp-orb2 22s ease-in-out infinite;}
   .lp-u0{animation:lp-up .65s .00s ease both;}
@@ -113,11 +113,10 @@ const FEMALE_ONLY_CATS = ["Bridal & Events"];
 export default function LandingPage({
   searchText = "", onSearch, onSearchSubmit, onLocate, locLoading = false, searching = false,
   selectedCats = [], onCategorySelect, sort = "nearby", onSortChange,
-  genderFilter = "all", onGenderFilter, salonGrid = null,
+  genderFilter = "all",
 }) {
   const { isDark } = useTheme();
   const [focused, setFocused] = useState(false);
-  const [pendingGender, setPendingGender] = useState(null);
   const inputRef = useRef(null);
 
   const scrollToSalons = () =>
@@ -211,100 +210,79 @@ export default function LandingPage({
               browse real reviews, pick your slot, confirm instantly.
             </p>
 
-            {/* Search bar */}
-            <div className="lp-u4 mx-auto" style={{ maxWidth: 540, marginBottom: 16 }}>
-              <div
-                style={{
-                  display: "flex", alignItems: "center", gap: 10,
-                  padding: "0 16px", height: 60, borderRadius: 999,
-                  background: focused ? "var(--t-card)" : "var(--t-input-bg)",
-                  border: focused ? "1.5px solid rgba(99,102,241,0.55)" : "1.5px solid var(--t-border)",
-                  boxShadow: focused ? "0 0 0 4px rgba(99,102,241,0.1), 0 8px 32px rgba(99,102,241,0.12)" : "0 4px 24px rgba(0,0,0,0.06)",
-                  transition: "all 0.25s ease",
-                }}
-              >
-                <button onClick={handleSubmit} style={{ display: "flex", background: "none", border: "none", cursor: searchText ? "pointer" : "default", padding: 0, flexShrink: 0 }} title="Search">
-                  <Search style={{ width: 18, height: 18, color: focused ? "var(--t-accent)" : "var(--t-text-3)", transition: "color 0.2s" }} />
-                </button>
-                <input
-                  ref={inputRef}
-                  type="text"
-                  placeholder="Search salons, services, city…"
-                  value={searchText}
-                  onChange={e => handleInput(e.target.value)}
-                  onKeyDown={handleKey}
-                  onFocus={() => setFocused(true)}
-                  onBlur={() => setFocused(false)}
-                  style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 16, color: "var(--t-text)", minWidth: 0 }}
-                />
-                {searchText && !searching && (
-                  <button onClick={() => handleInput("")} style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "flex", opacity: 0.6 }}>
-                    <X style={{ width: 15, height: 15, color: "var(--t-text-2)" }} />
-                  </button>
-                )}
-                {searching && <span className="lp-spin" style={{ width: 16, height: 16, border: "2px solid var(--t-accent)", borderTopColor: "transparent", borderRadius: "50%", display: "block", flexShrink: 0 }} />}
-                <div style={{ width: 1, height: 20, background: "var(--t-border)", flexShrink: 0 }} />
-                <button
-                  onClick={onLocate}
-                  disabled={locLoading}
-                  title="Use my location"
-                  style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", color: "var(--t-accent)", fontSize: 12, fontWeight: 600, flexShrink: 0, opacity: locLoading ? 0.5 : 1 }}
-                >
-                  {locLoading
-                    ? <span className="lp-spin" style={{ width: 14, height: 14, border: "2px solid var(--t-accent)", borderTopColor: "transparent", borderRadius: "50%", display: "block" }} />
-                    : <LocateFixed style={{ width: 15, height: 15 }} />}
-                  <span className="hidden sm:inline">Locate</span>
-                </button>
-              </div>
-            </div>
+            {/* ── Gender Entry Tiles — premium full-gradient ── */}
+            <div className="lp-u4" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, maxWidth: 640, margin: "0 auto 28px", textAlign: "left" }}>
 
-            {/* Gender selector — settings-card style */}
-            <div style={{ maxWidth: 460, margin: "0 auto 24px", background: "var(--t-card)", border: "1px solid var(--t-border)", borderRadius: 18, padding: "14px 18px", boxShadow: "0 4px 20px rgba(0,0,0,0.07)", display: "flex", alignItems: "center", gap: 14 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(99,102,241,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>💇</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 13, fontWeight: 700, color: "var(--t-text)", margin: "0 0 2px", whiteSpace: "nowrap" }}>Who are you booking for?</p>
-                <p style={{ fontSize: 11, color: "var(--t-text-3)", margin: 0 }}>
-                  {genderFilter === "all" ? "Filter salons by gender" : `Showing ${genderFilter === "male" ? "men's" : "women's"} salons`}
-                </p>
-              </div>
-              <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                {[{ key: "male", label: "👨 Men" }, { key: "female", label: "👩 Women" }].map(({ key, label }) => {
-                  const active = genderFilter === key;
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => active ? onGenderFilter?.("all") : setPendingGender(key)}
-                      style={{
-                        padding: "8px 15px", borderRadius: 10, fontSize: 12, fontWeight: 700,
-                        cursor: "pointer", transition: "all 0.18s ease",
-                        background: active ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "var(--t-bg-2)",
-                        border: active ? "1.5px solid transparent" : "1.5px solid var(--t-border)",
-                        color: active ? "#fff" : "var(--t-text-3)",
-                        boxShadow: active ? "0 0 16px rgba(99,102,241,0.3)" : "none",
-                      }}
-                    >{label}</button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* CTA row */}
-            <div className="lp-u4" style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center", marginBottom: 16 }}>
-              <a
-                href="#salons"
-                onClick={e => { e.preventDefault(); scrollToSalons(); }}
-                className="lp-btn-p"
-                style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "14px 32px", borderRadius: 16, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff", fontWeight: 700, fontSize: 15, textDecoration: "none", boxShadow: "0 0 40px rgba(99,102,241,0.5)" }}
-              >
-                🔍 Browse Salons
-              </a>
+              {/* Male tile */}
               <Link
-                to="/register"
-                className="lp-btn-s"
-                style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "14px 32px", borderRadius: 16, background: "var(--t-card)", border: "1px solid var(--t-border)", color: "var(--t-text-2)", fontWeight: 600, fontSize: 15, textDecoration: "none" }}
+                to="/men"
+                style={{ display: "flex", borderRadius: 24, textDecoration: "none", background: "linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%)", boxShadow: "0 8px 32px rgba(99,102,241,0.38)", overflow: "hidden", minHeight: 200, transition: "all 0.28s ease", position: "relative", cursor: "pointer" }}
+                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-6px) scale(1.015)"; e.currentTarget.style.boxShadow = "0 22px 60px rgba(99,102,241,0.55)"; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0) scale(1)"; e.currentTarget.style.boxShadow = "0 8px 32px rgba(99,102,241,0.38)"; }}
               >
-                Create Free Account →
+                {/* Orb bg */}
+                <div style={{ position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.10)", pointerEvents: "none" }} />
+                <div style={{ position: "absolute", bottom: -30, left: -30, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.06)", pointerEvents: "none" }} />
+                {/* Left text */}
+                <div style={{ flex: 1, padding: "26px 20px 22px", display: "flex", flexDirection: "column", justifyContent: "space-between", zIndex: 1 }}>
+                  <div>
+                    <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.18em", color: "rgba(255,255,255,0.65)", margin: "0 0 8px", textTransform: "uppercase" }}>Grooming</p>
+                    <p style={{ fontSize: "clamp(1.3rem,3vw,1.7rem)", fontWeight: 900, color: "#fff", margin: "0 0 6px", letterSpacing: "-0.5px", lineHeight: 1.1 }}>Male</p>
+                    <p style={{ fontSize: 11, color: "rgba(255,255,255,0.72)", margin: 0, lineHeight: 1.5 }}>Haircut · Beard · Spa</p>
+                  </div>
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.28)", borderRadius: 999, padding: "6px 14px", marginTop: 18, width: "fit-content" }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>Explore →</span>
+                  </div>
+                </div>
+                {/* Right — male barber image */}
+                <div style={{ width: 105, display: "flex", alignItems: "center", justifyContent: "center", paddingRight: 8, zIndex: 1 }}>
+                  <img
+                    src={maleBarberImg}
+                    alt="Male Salon"
+                    style={{ width: 90, height: 90, objectFit: "cover", borderRadius: 16, opacity: 0.88 }}
+                  />
+                </div>
               </Link>
+
+              {/* Female tile */}
+              <Link
+                to="/women"
+                style={{ display: "flex", borderRadius: 24, textDecoration: "none", background: "linear-gradient(135deg,#ec4899 0%,#f43f5e 100%)", boxShadow: "0 8px 32px rgba(236,72,153,0.38)", overflow: "hidden", minHeight: 200, transition: "all 0.28s ease", position: "relative", cursor: "pointer" }}
+                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-6px) scale(1.015)"; e.currentTarget.style.boxShadow = "0 22px 60px rgba(236,72,153,0.55)"; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0) scale(1)"; e.currentTarget.style.boxShadow = "0 8px 32px rgba(236,72,153,0.38)"; }}
+              >
+                {/* Orb bg */}
+                <div style={{ position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.10)", pointerEvents: "none" }} />
+                <div style={{ position: "absolute", bottom: -30, left: -30, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.06)", pointerEvents: "none" }} />
+                {/* Left text */}
+                <div style={{ flex: 1, padding: "26px 20px 22px", display: "flex", flexDirection: "column", justifyContent: "space-between", zIndex: 1 }}>
+                  <div>
+                    <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.18em", color: "rgba(255,255,255,0.65)", margin: "0 0 8px", textTransform: "uppercase" }}>Beauty</p>
+                    <p style={{ fontSize: "clamp(1.3rem,3vw,1.7rem)", fontWeight: 900, color: "#fff", margin: "0 0 6px", letterSpacing: "-0.5px", lineHeight: 1.1 }}>Female</p>
+                    <p style={{ fontSize: 11, color: "rgba(255,255,255,0.72)", margin: 0, lineHeight: 1.5 }}>Hair · Nails · Bridal</p>
+                  </div>
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.28)", borderRadius: 999, padding: "6px 14px", marginTop: 18, width: "fit-content" }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>Explore →</span>
+                  </div>
+                </div>
+                {/* Right — beauty salon logo */}
+                <div style={{ width: 105, display: "flex", alignItems: "center", justifyContent: "center", paddingRight: 8, zIndex: 1 }}>
+                  <div style={{ width: 90, height: 90, borderRadius: 18, overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
+                    <img
+                      src={femaleSalonImg}
+                      alt="Female Salon"
+                      style={{ width: 90, height: 90, objectFit: "cover" }}
+                    />
+                  </div>
+                </div>
+              </Link>
+            </div>
+
+            {/* Divider */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, maxWidth: 400, margin: "0 auto 20px" }}>
+              <div style={{ flex: 1, height: 1, background: "var(--t-border)" }} />
+              <span style={{ fontSize: 11, color: "var(--t-text-3)", fontWeight: 500, whiteSpace: "nowrap" }}>or search directly</span>
+              <div style={{ flex: 1, height: 1, background: "var(--t-border)" }} />
             </div>
 
             {/* Trust line */}
@@ -312,100 +290,6 @@ export default function LandingPage({
               ✓ No account needed to browse &nbsp;·&nbsp; ✓ Free to book &nbsp;·&nbsp; ✓ Instant confirmation
             </p>
           </div>
-        </section>
-
-        {/* ══════════════════════════════════════════
-            APP SECTION — Categories + Quick Actions
-        ══════════════════════════════════════════ */}
-        <section style={{ background: "var(--t-bg-2)", borderTop: "1px solid var(--t-border)", padding: "40px 20px" }}>
-          <div style={{ maxWidth: 1280, margin: "0 auto" }}>
-
-            {/* What would you like */}
-            <p style={sectionLabel}>What would you like?</p>
-            <div className="scrollbar-hide" style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", marginBottom: 12 }}>
-              <div style={{ display: "flex", gap: 8, width: "max-content", paddingBottom: 2 }}>
-                {CATEGORIES.filter(({ key }) => {
-                  if (genderFilter === "female" && MALE_ONLY_CATS.includes(key)) return false;
-                  if (genderFilter === "male"   && FEMALE_ONLY_CATS.includes(key)) return false;
-                  return true;
-                }).map(({ key, label, icon }) => {
-                  const active = key === "all" ? selectedCats.length === 0 : selectedCats.includes(key);
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => {
-                        if (onCategorySelect) onCategorySelect(key);
-                        setTimeout(scrollToSalons, 80);
-                      }}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 6,
-                        padding: "9px 16px", borderRadius: 999,
-                        fontSize: 13, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
-                        transition: "all 0.18s ease",
-                        background: active ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "var(--t-input-bg)",
-                        border: active ? "1px solid rgba(139,92,246,0.45)" : "1px solid var(--t-border)",
-                        color: active ? "#fff" : "var(--t-text-2)",
-                        boxShadow: active ? "0 0 18px rgba(99,102,241,0.32)" : "none",
-                      }}
-                    >
-                      <span style={{ fontSize: 15 }}>{icon}</span>{label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Sort suggestions */}
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 28 }}>
-              {[
-                { key: "nearby", label: "Near You",  icon: "📍" },
-                { key: "rated",  label: "Top Rated",  icon: "⭐" },
-                { key: "booked", label: "Trending",   icon: "🔥" },
-              ].map(({ key, label, icon }) => (
-                <button
-                  key={key}
-                  onClick={() => { if (onSortChange) onSortChange(key); setTimeout(scrollToSalons, 80); }}
-                  style={chip(sort === key)}
-                >
-                  {icon} {label}
-                </button>
-              ))}
-            </div>
-
-            {/* Quick Access */}
-            <p style={sectionLabel}>Quick Access</p>
-            <div className="scrollbar-hide" style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-              <div style={{ display: "flex", gap: 10, width: "max-content", paddingBottom: 4 }}>
-                {QUICK_ACTIONS.map(action => (
-                  <button
-                    key={action.label}
-                    onClick={() => {
-                      if (action.sort && onSortChange) onSortChange(action.sort);
-                      if (action.cat && onCategorySelect) onCategorySelect(action.cat);
-                      setTimeout(scrollToSalons, 80);
-                    }}
-                    style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 16, background: "var(--t-card)", border: "1px solid var(--t-border)", cursor: "pointer", minWidth: 140, transition: "transform 0.2s ease,box-shadow 0.2s ease,border-color 0.2s ease" }}
-                    onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = `0 8px 24px ${action.color}28`; e.currentTarget.style.borderColor = `${action.color}44`; }}
-                    onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.borderColor = "var(--t-border)"; }}
-                  >
-                    <div style={{ width: 40, height: 40, borderRadius: 12, background: action.color + "1a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 19, flexShrink: 0 }}>{action.icon}</div>
-                    <div style={{ textAlign: "left" }}>
-                      <p style={{ fontSize: 12, fontWeight: 700, color: "var(--t-text)", whiteSpace: "nowrap", marginBottom: 1 }}>{action.label}</p>
-                      <p style={{ fontSize: 10, color: "var(--t-text-3)", whiteSpace: "nowrap" }}>{action.sub}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-          </div>
-
-          {/* ── Nearby Salons — full-width responsive grid ── */}
-          {salonGrid && (
-            <div style={{ maxWidth: 1280, margin: "28px auto 0" }}>
-              {salonGrid}
-            </div>
-          )}
         </section>
 
         {/* ══════════════════════════════════════════
@@ -674,64 +558,6 @@ export default function LandingPage({
 
       </div>
 
-      {/* ── Gender confirmation modal ── */}
-      {pendingGender && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-          {/* Backdrop */}
-          <div
-            style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}
-            onClick={() => setPendingGender(null)}
-          />
-          {/* Dialog */}
-          <div style={{ position: "relative", background: "var(--t-card)", border: "1px solid var(--t-border)", borderRadius: 24, padding: "32px 28px", maxWidth: 380, width: "100%", textAlign: "center", boxShadow: "0 24px 80px rgba(0,0,0,0.3)", animation: "lp-modal-in 0.22s ease both" }}>
-            {/* Icon */}
-            <div style={{ width: 68, height: 68, borderRadius: 22, background: pendingGender === "male" ? "rgba(99,102,241,0.12)" : "rgba(236,72,153,0.12)", border: pendingGender === "male" ? "1.5px solid rgba(99,102,241,0.25)" : "1.5px solid rgba(236,72,153,0.25)", margin: "0 auto 20px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 34 }}>
-              {pendingGender === "male" ? "👨" : "👩"}
-            </div>
-
-            {/* Title */}
-            <h3 style={{ fontSize: 19, fontWeight: 800, color: "var(--t-text)", margin: "0 0 10px" }}>
-              Show salons for {pendingGender === "male" ? "Men" : "Women"}
-            </h3>
-
-            {/* Body */}
-            <p style={{ fontSize: 13.5, color: "var(--t-text-2)", lineHeight: 1.75, margin: "0 0 8px" }}>
-              Services and categories will be filtered to show only{" "}
-              <strong style={{ color: "var(--t-text)" }}>{pendingGender === "male" ? "men's" : "women's"}</strong> options.
-            </p>
-            <div style={{ background: pendingGender === "male" ? "rgba(99,102,241,0.07)" : "rgba(236,72,153,0.07)", border: pendingGender === "male" ? "1px solid rgba(99,102,241,0.18)" : "1px solid rgba(236,72,153,0.18)", borderRadius: 12, padding: "12px 14px", margin: "0 0 22px", textAlign: "left" }}>
-              <p style={{ fontSize: 12, color: "var(--t-text-2)", margin: 0, lineHeight: 1.7 }}>
-                {pendingGender === "male"
-                  ? "✂️ Haircut · 🧔 Beard Trim · 💆 Men's Facial · 💪 Men's Massage"
-                  : "💄 Bridal · 💅 Nails · 🧖 Waxing · 💋 Makeup · 👰 Bridal & Events"}
-              </p>
-            </div>
-            <p style={{ fontSize: 11, color: "var(--t-text-3)", margin: "0 0 24px" }}>
-              You can change this anytime from the filter bar.
-            </p>
-
-            {/* Action buttons */}
-            <div style={{ display: "flex", gap: 10 }}>
-              <button
-                onClick={() => setPendingGender(null)}
-                style={{ flex: 1, padding: "13px", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer", background: "var(--t-bg-2)", border: "1px solid var(--t-border)", color: "var(--t-text-2)" }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => { onGenderFilter?.(pendingGender); setPendingGender(null); }}
-                style={{
-                  flex: 1, padding: "13px", borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: "pointer", border: "none", color: "#fff",
-                  background: pendingGender === "male" ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "linear-gradient(135deg,#ec4899,#f43f5e)",
-                  boxShadow: pendingGender === "male" ? "0 0 24px rgba(99,102,241,0.4)" : "0 0 24px rgba(236,72,153,0.4)",
-                }}
-              >
-                Continue →
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }
