@@ -177,6 +177,12 @@ export default function Reels() {
       });
     }, { threshold: 0.6 });
     Object.values(videoRefs.current).forEach(v => { if (v) observerRef.current.observe(v); });
+
+    // Kick-start the first visible video — the observer may not fire on already-visible elements
+    const firstKey = reels[0]?._id;
+    const firstVid = firstKey ? videoRefs.current[firstKey] : null;
+    if (firstVid) firstVid.play().catch(() => {});
+
     return () => observerRef.current?.disconnect();
   }, [reels]);
 
@@ -279,10 +285,11 @@ export default function Reels() {
                   src={reel.videoUrl}
                   className="reel-video"
                   muted={muted}
+                  autoPlay
                   loop
                   playsInline
                   preload={idx < 2 ? 'auto' : 'metadata'}
-                  onClick={toggleMute}
+                  onClick={(e) => { e.currentTarget.play().catch(() => {}); toggleMute(); }}
                 />
                 <div className="reel-gradient" />
 
@@ -411,7 +418,7 @@ export default function Reels() {
           </p>
           <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>Scroll to explore · Tap to mute/unmute</p>
         </div>
-        {reels.slice(0, 6).map((r, i) => (
+        {reels.slice(0, 6).map((r) => (
           <Link key={r._id} to={`/salon/${r.salon._id}`} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', padding: '10px 14px', background: '#111', borderRadius: 12, border: '1px solid rgba(255,255,255,0.07)' }}>
             <div style={{ width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               {r.salon.logo
