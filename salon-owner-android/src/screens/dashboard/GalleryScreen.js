@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, RefreshControl, Alert, Image, Dimensions,
@@ -7,6 +7,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { Video, ResizeMode } from 'expo-av';
 import api from '../../services/api';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
@@ -17,28 +18,31 @@ const NUM_COLS = 3;
 const TILE_SIZE = (SCREEN_W - 32 - (NUM_COLS - 1) * 4) / NUM_COLS;
 const ALL_TAGS = ['Haircut', 'Beard', 'Facial', 'Spa', 'Nails', 'Makeup'];
 
-function Lightbox({ photos, initialIndex, coverId, onClose, onDeleted, onCoverSet }) {
+/* ── Lightbox ── */
+function Lightbox({ media, initialIndex, coverId, onClose, onDeleted, onCoverSet }) {
   const [idx, setIdx] = useState(initialIndex);
   const [deleting, setDeleting] = useState(false);
   const [settingCover, setSettingCover] = useState(false);
-  const photo = photos[idx];
-  if (!photo) return null;
+  const videoRef = useRef(null);
+  const item = media[idx];
+  if (!item) return null;
 
-  const photoUrl = photo.url || photo.imageUrl || photo.image;
-  const isCover = photo._id === coverId;
+  const mediaUrl = item.url || item.imageUrl || item.image;
+  const isCover = item._id === coverId;
+  const isVideo = item.type === 'video';
 
   const handleDelete = () => {
-    Alert.alert('Delete Photo', 'Remove this photo?', [
+    Alert.alert('Delete Media', `Remove this ${isVideo ? 'video' : 'photo'}?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete', style: 'destructive', onPress: async () => {
           setDeleting(true);
           try {
-            await api.delete(`/owner/gallery/${photo._id}`);
-            onDeleted(photo._id);
-            if (photos.length <= 1) { onClose(); return; }
+            await api.delete(`/owner/gallery/${item._id}`);
+            onDeleted(item._id);
+            if (media.length <= 1) { onClose(); return; }
             setIdx(prev => Math.max(0, prev - 1));
-          } catch { showError('Error', 'Failed to delete photo'); }
+          } catch { showError('Error', 'Failed to delete'); }
           finally { setDeleting(false); }
         }
       },
@@ -46,14 +50,19 @@ function Lightbox({ photos, initialIndex, coverId, onClose, onDeleted, onCoverSe
   };
 
   const handleSetCover = async () => {
-    if (isCover) return;
+    if (isCover || isVideo) return;
     setSettingCover(true);
     try {
-      await api.put('/owner/salon', { coverPhoto: photoUrl });
-      onCoverSet(photo._id);
+      await api.put('/owner/salon', { coverPhoto: mediaUrl });
+      onCoverSet(item._id);
       showSuccess('Cover Updated', 'Cover photo updated!');
     } catch { showError('Error', 'Failed to set cover photo'); }
     finally { setSettingCover(false); }
+  };
+
+  const goTo = (newIdx) => {
+    if (videoRef.current) videoRef.current.pauseAsync?.().catch(() => {});
+    setIdx(newIdx);
   };
 
   return (
@@ -63,34 +72,54 @@ function Lightbox({ photos, initialIndex, coverId, onClose, onDeleted, onCoverSe
           <TouchableOpacity style={lbStyles.topBtn} onPress={onClose}>
             <Ionicons name="close" size={24} color="#fff" />
           </TouchableOpacity>
-          <Text style={lbStyles.counter}>{idx + 1} / {photos.length}</Text>
+          <View style={{ alignItems: 'center' }}>
+            <Text style={lbStyles.counter}>{idx + 1} / {media.length}</Text>
+            {isVideo && (
+              <View style={lbStyles.videoTag}>
+                <Ionicons name="videocam" size={10} color="#a78bfa" />
+                <Text style={lbStyles.videoTagText}>Video</Text>
+              </View>
+            )}
+          </View>
           <TouchableOpacity style={lbStyles.topBtn} onPress={handleDelete} disabled={deleting}>
             {deleting ? <ActivityIndicator color="#fff" size="small" /> : <Ionicons name="trash-outline" size={22} color="#fff" />}
           </TouchableOpacity>
         </View>
 
-        <TouchableWithoutFeedback onPress={onClose}>
-          <View style={lbStyles.imageWrap}>
-            <Image source={{ uri: photoUrl }} style={lbStyles.image} resizeMode="contain" />
+        <TouchableWithoutFeedback onPress={!isVideo ? onClose : undefined}>
+          <View style={lbStyles.mediaWrap}>
+            {isVideo ? (
+              <Video
+                ref={videoRef}
+                source={{ uri: mediaUrl }}
+                style={lbStyles.video}
+                resizeMode={ResizeMode.CONTAIN}
+                useNativeControls
+                shouldPlay
+                isLooping={false}
+              />
+            ) : (
+              <Image source={{ uri: mediaUrl }} style={lbStyles.image} resizeMode="contain" />
+            )}
           </View>
         </TouchableWithoutFeedback>
 
         {idx > 0 && (
-          <TouchableOpacity style={lbStyles.navLeft} onPress={() => setIdx(idx - 1)}>
+          <TouchableOpacity style={lbStyles.navLeft} onPress={() => goTo(idx - 1)}>
             <Ionicons name="chevron-back" size={28} color="#fff" />
           </TouchableOpacity>
         )}
-        {idx < photos.length - 1 && (
-          <TouchableOpacity style={lbStyles.navRight} onPress={() => setIdx(idx + 1)}>
+        {idx < media.length - 1 && (
+          <TouchableOpacity style={lbStyles.navRight} onPress={() => goTo(idx + 1)}>
             <Ionicons name="chevron-forward" size={28} color="#fff" />
           </TouchableOpacity>
         )}
 
         <View style={lbStyles.bottomBar}>
-          {photo.tags?.length > 0 && (
+          {item.tags?.length > 0 && (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
               <View style={{ flexDirection: 'row', gap: 6 }}>
-                {photo.tags.map(t => (
+                {item.tags.map(t => (
                   <View key={t} style={lbStyles.tagPill}>
                     <Text style={lbStyles.tagText}>{t}</Text>
                   </View>
@@ -98,19 +127,21 @@ function Lightbox({ photos, initialIndex, coverId, onClose, onDeleted, onCoverSe
               </View>
             </ScrollView>
           )}
-          <TouchableOpacity
-            style={[lbStyles.coverBtn, isCover && lbStyles.coverBtnActive]}
-            onPress={handleSetCover}
-            disabled={settingCover || isCover}
-          >
-            {settingCover
-              ? <ActivityIndicator color={isCover ? '#f59e0b' : '#fff'} size="small" />
-              : <Ionicons name={isCover ? 'star' : 'star-outline'} size={16} color={isCover ? '#f59e0b' : '#fff'} />
-            }
-            <Text style={[lbStyles.coverBtnText, isCover && { color: '#f59e0b' }]}>
-              {isCover ? 'Cover Photo' : 'Set as Cover'}
-            </Text>
-          </TouchableOpacity>
+          {!isVideo && (
+            <TouchableOpacity
+              style={[lbStyles.coverBtn, isCover && lbStyles.coverBtnActive]}
+              onPress={handleSetCover}
+              disabled={settingCover || isCover}
+            >
+              {settingCover
+                ? <ActivityIndicator color={isCover ? '#f59e0b' : '#fff'} size="small" />
+                : <Ionicons name={isCover ? 'star' : 'star-outline'} size={16} color={isCover ? '#f59e0b' : '#fff'} />
+              }
+              <Text style={[lbStyles.coverBtnText, isCover && { color: '#f59e0b' }]}>
+                {isCover ? 'Cover Photo' : 'Set as Cover'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </Modal>
@@ -121,7 +152,7 @@ export default function GalleryScreen() {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
   const navigation = useNavigation();
-  const [photos, setPhotos] = useState([]);
+  const [media, setMedia] = useState([]);          // combined photos + videos
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -129,7 +160,7 @@ export default function GalleryScreen() {
   const [activeTag, setActiveTag] = useState(null);
   const [lightbox, setLightbox] = useState(null);
 
-  const fetchPhotos = useCallback(async (silent = false) => {
+  const fetchMedia = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
       const [galRes, salonRes] = await Promise.all([
@@ -138,88 +169,142 @@ export default function GalleryScreen() {
       ]);
       const d = galRes.data?.data;
       const arr = Array.isArray(d) ? d : (d?.photos || d?.images || []);
-      setPhotos(arr);
+      setMedia(arr);
       const coverUrl = salonRes.data?.data?.coverPhoto;
       if (coverUrl) {
         const cover = arr.find(p => (p.url || p.imageUrl || p.image) === coverUrl);
         if (cover) setCoverId(cover._id);
       }
-    } catch { setPhotos([]); } finally { setLoading(false); }
+    } catch { setMedia([]); } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { fetchPhotos(); }, [fetchPhotos]);
-  const onRefresh = async () => { setRefreshing(true); await fetchPhotos(true); setRefreshing(false); };
+  useEffect(() => { fetchMedia(); }, [fetchMedia]);
+  const onRefresh = async () => { setRefreshing(true); await fetchMedia(true); setRefreshing(false); };
 
-  const pickAndUpload = async () => {
+  /* ── Upload handler — shows action sheet for photo or video ── */
+  const pickAndUpload = () => {
+    Alert.alert('Upload Media', 'What would you like to upload?', [
+      { text: 'Photos', onPress: () => pickMedia('image') },
+      { text: 'Video', onPress: () => pickMedia('video') },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
+  const pickMedia = async (type) => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') { showError('Permission Denied', 'Please allow photo library access'); return; }
+    if (status !== 'granted') { showError('Permission Denied', 'Please allow media library access'); return; }
+
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: true,
-      quality: 0.8,
+      mediaTypes: type === 'image'
+        ? ImagePicker.MediaTypeOptions.Images
+        : ImagePicker.MediaTypeOptions.Videos,
+      allowsMultipleSelection: type === 'image',
+      quality: type === 'image' ? 0.8 : 1,
+      videoMaxDuration: 120,
     });
     if (result.canceled) return;
+
     setUploading(true);
     try {
-      for (const asset of result.assets) {
+      if (type === 'image') {
+        for (const asset of result.assets) {
+          const fd = new FormData();
+          fd.append('image', {
+            uri: asset.uri,
+            type: asset.mimeType || 'image/jpeg',
+            name: asset.fileName || `photo_${Date.now()}.jpg`,
+          });
+          await api.post('/owner/gallery', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        }
+        showSuccess('Uploaded', `${result.assets.length} photo${result.assets.length > 1 ? 's' : ''} uploaded`);
+      } else {
+        const asset = result.assets[0];
         const fd = new FormData();
-        fd.append('image', { uri: asset.uri, type: asset.mimeType || 'image/jpeg', name: asset.fileName || `photo_${Date.now()}.jpg` });
-        await api.post('/owner/gallery', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        fd.append('video', {
+          uri: asset.uri,
+          type: asset.mimeType || 'video/mp4',
+          name: asset.fileName || `video_${Date.now()}.mp4`,
+        });
+        await api.post('/owner/gallery/video', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        showSuccess('Uploaded', 'Video uploaded successfully');
       }
-      showSuccess('Uploaded', `${result.assets.length} photo${result.assets.length > 1 ? 's' : ''} uploaded`);
-      fetchPhotos(true);
+      fetchMedia(true);
     } catch (err) {
-      showError('Error', err.response?.data?.message || 'Failed to upload');
+      showError('Error', err.response?.data?.message || 'Upload failed');
     } finally { setUploading(false); }
   };
 
-  const handleDeleteFromGrid = (photo) => {
-    Alert.alert('Delete Photo', 'Remove this photo?', [
+  const handleDeleteFromGrid = (item) => {
+    const isVideo = item.type === 'video';
+    Alert.alert('Delete Media', `Remove this ${isVideo ? 'video' : 'photo'}?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete', style: 'destructive', onPress: async () => {
           try {
-            await api.delete(`/owner/gallery/${photo._id}`);
-            setPhotos(prev => prev.filter(p => p._id !== photo._id));
-            if (photo._id === coverId) setCoverId(null);
-            showSuccess('Deleted', 'Photo removed');
-          } catch { showError('Error', 'Failed to delete photo'); }
+            await api.delete(`/owner/gallery/${item._id}`);
+            setMedia(prev => prev.filter(p => p._id !== item._id));
+            if (item._id === coverId) setCoverId(null);
+            showSuccess('Deleted', `${isVideo ? 'Video' : 'Photo'} removed`);
+          } catch { showError('Error', 'Failed to delete'); }
         }
       },
     ]);
   };
 
   const handleLightboxDelete = (id) => {
-    setPhotos(prev => prev.filter(p => p._id !== id));
+    setMedia(prev => prev.filter(p => p._id !== id));
     if (id === coverId) setCoverId(null);
   };
 
   const handleCoverSet = (id) => {
     setCoverId(id);
-    setPhotos(prev => prev.map(p => ({ ...p, isCover: p._id === id })));
+    setMedia(prev => prev.map(p => ({ ...p, isCover: p._id === id })));
   };
 
-  const visiblePhotos = useMemo(() =>
-    activeTag ? photos.filter(p => p.tags?.includes(activeTag)) : photos
-  , [photos, activeTag]);
+  const imageMedia = useMemo(() => media.filter(m => m.type !== 'video'), [media]);
+  const videoMedia = useMemo(() => media.filter(m => m.type === 'video'), [media]);
 
-  const tagCount = (tag) => photos.filter(p => p.tags?.includes(tag)).length;
+  const visibleMedia = useMemo(() =>
+    activeTag
+      ? imageMedia.filter(p => p.tags?.includes(activeTag))
+      : media
+  , [media, imageMedia, activeTag]);
+
+  const tagCount = (tag) => imageMedia.filter(p => p.tags?.includes(tag)).length;
   const availableTags = ALL_TAGS.filter(t => tagCount(t) > 0);
   const featuredPhotos = useMemo(() =>
-    photos.filter(p => p.tags?.length > 0 || p._id === coverId).slice(0, 6)
-  , [photos, coverId]);
+    imageMedia.filter(p => p.tags?.length > 0 || p._id === coverId).slice(0, 6)
+  , [imageMedia, coverId]);
 
-  const openLightbox = (photo) => {
-    const idx = visiblePhotos.findIndex(p => p._id === photo._id);
+  const openLightbox = (item) => {
+    const idx = visibleMedia.findIndex(p => p._id === item._id);
     setLightbox({ index: idx >= 0 ? idx : 0 });
   };
 
   const renderItem = ({ item }) => {
     const isCover = item._id === coverId;
+    const isVideo = item.type === 'video';
+    const thumbUri = item.url || item.imageUrl || item.image;
+
     return (
-      <TouchableOpacity style={styles.tile} onPress={() => openLightbox(item)} onLongPress={() => handleDeleteFromGrid(item)} activeOpacity={0.85}>
-        <Image source={{ uri: item.url || item.imageUrl || item.image }} style={styles.tileImage} resizeMode="cover" />
-        {isCover && (
+      <TouchableOpacity
+        style={styles.tile}
+        onPress={() => openLightbox(item)}
+        onLongPress={() => handleDeleteFromGrid(item)}
+        activeOpacity={0.85}
+      >
+        <Image source={{ uri: thumbUri }} style={styles.tileImage} resizeMode="cover" />
+
+        {/* Video overlay */}
+        {isVideo && (
+          <View style={styles.videoOverlay}>
+            <View style={styles.playCircle}>
+              <Ionicons name="play" size={14} color="#fff" />
+            </View>
+          </View>
+        )}
+
+        {isCover && !isVideo && (
           <View style={styles.coverBadge}>
             <Ionicons name="star" size={10} color="#f59e0b" />
           </View>
@@ -229,19 +314,32 @@ export default function GalleryScreen() {
             <Ionicons name="pricetag" size={9} color="#6366f1" />
           </View>
         )}
+        {isVideo && (
+          <View style={styles.videoBadge}>
+            <Ionicons name="videocam" size={9} color="#a78bfa" />
+          </View>
+        )}
       </TouchableOpacity>
     );
   };
 
   const ListHeader = () => (
     <View style={{ gap: 12, marginBottom: 12 }}>
-      {photos.length > 0 && (
+      {media.length > 0 && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={{ flexDirection: 'row', gap: 8, paddingRight: 12 }}>
-            <View style={[styles.statPill, { borderColor: '#818cf8', backgroundColor: isDark ? 'rgba(99,102,241,0.12)' : '#eef2ff' }]}>
-              <Ionicons name="images-outline" size={13} color="#6366f1" />
-              <Text style={[styles.statPillText, { color: '#6366f1' }]}>{photos.length} photos</Text>
-            </View>
+            {imageMedia.length > 0 && (
+              <View style={[styles.statPill, { borderColor: '#818cf8', backgroundColor: isDark ? 'rgba(99,102,241,0.12)' : '#eef2ff' }]}>
+                <Ionicons name="images-outline" size={13} color="#6366f1" />
+                <Text style={[styles.statPillText, { color: '#6366f1' }]}>{imageMedia.length} photos</Text>
+              </View>
+            )}
+            {videoMedia.length > 0 && (
+              <View style={[styles.statPill, { borderColor: '#a78bfa', backgroundColor: isDark ? 'rgba(139,92,246,0.12)' : '#f5f3ff' }]}>
+                <Ionicons name="videocam-outline" size={13} color="#8b5cf6" />
+                <Text style={[styles.statPillText, { color: '#8b5cf6' }]}>{videoMedia.length} videos</Text>
+              </View>
+            )}
             {coverId && (
               <View style={[styles.statPill, { borderColor: '#fde68a', backgroundColor: isDark ? 'rgba(217,119,6,0.12)' : '#fef9c3' }]}>
                 <Ionicons name="star" size={13} color="#d97706" />
@@ -277,7 +375,7 @@ export default function GalleryScreen() {
         </View>
       )}
 
-      {photos.length > 0 && (
+      {imageMedia.length > 0 && availableTags.length > 0 && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={{ flexDirection: 'row', gap: 8, paddingRight: 12 }}>
             <TouchableOpacity
@@ -310,7 +408,7 @@ export default function GalleryScreen() {
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
             <Text style={styles.headerTitle}>Gallery</Text>
-            <Text style={styles.headerSub}>Showcase your salon's best work</Text>
+            <Text style={styles.headerSub}>Photos & Videos · Long-press to delete</Text>
           </View>
           <TouchableOpacity style={styles.uploadBtn} onPress={pickAndUpload} disabled={uploading}>
             {uploading
@@ -325,7 +423,7 @@ export default function GalleryScreen() {
         <ActivityIndicator size="large" color="#6366f1" style={{ marginTop: 60 }} />
       ) : (
         <FlatList
-          data={visiblePhotos}
+          data={visibleMedia}
           keyExtractor={item => item._id || item.url}
           renderItem={renderItem}
           numColumns={NUM_COLS}
@@ -339,15 +437,15 @@ export default function GalleryScreen() {
                 <Ionicons name="images-outline" size={40} color="#6366f1" />
               </View>
               <Text style={[styles.emptyTitle, { color: theme.text }]}>
-                {activeTag ? `No ${activeTag} photos` : 'No photos uploaded yet'}
+                {activeTag ? `No ${activeTag} photos` : 'No media uploaded yet'}
               </Text>
               <Text style={[styles.emptySub, { color: theme.subText }]}>
-                {activeTag ? 'Try a different tag filter' : 'Upload photos to attract more customers and showcase your salon'}
+                {activeTag ? 'Try a different tag filter' : 'Upload photos and videos to showcase your salon'}
               </Text>
               {!activeTag && (
                 <TouchableOpacity style={styles.uploadBtnLarge} onPress={pickAndUpload}>
                   <Ionicons name="cloud-upload-outline" size={18} color="#fff" />
-                  <Text style={styles.uploadBtnText}>Upload Your First Photo</Text>
+                  <Text style={styles.uploadBtnText}>Upload Media</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -357,7 +455,7 @@ export default function GalleryScreen() {
 
       {lightbox !== null && (
         <Lightbox
-          photos={visiblePhotos}
+          media={visibleMedia}
           initialIndex={lightbox.index}
           coverId={coverId}
           onClose={() => setLightbox(null)}
@@ -370,12 +468,15 @@ export default function GalleryScreen() {
 }
 
 const lbStyles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.96)', justifyContent: 'center' },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.97)', justifyContent: 'center' },
   topBar: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: StatusBar.currentHeight || 44, paddingBottom: 12, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.5)' },
   topBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   counter: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  imageWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  videoTag: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 },
+  videoTagText: { color: '#a78bfa', fontSize: 10, fontWeight: '600' },
+  mediaWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   image: { width: SCREEN_W, height: SCREEN_H * 0.65 },
+  video: { width: SCREEN_W, height: SCREEN_H * 0.55 },
   navLeft: { position: 'absolute', left: 8, top: '50%', marginTop: -24, width: 48, height: 48, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 24 },
   navRight: { position: 'absolute', right: 8, top: '50%', marginTop: -24, width: 48, height: 48, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 24 },
   bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20, backgroundColor: 'rgba(0,0,0,0.6)', paddingBottom: 40 },
@@ -405,8 +506,11 @@ const styles = StyleSheet.create({
   tagFilterText: { fontSize: 12, fontWeight: '600' },
   tile: { width: TILE_SIZE, height: TILE_SIZE, borderRadius: 8, overflow: 'hidden', position: 'relative' },
   tileImage: { width: '100%', height: '100%' },
+  videoOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.25)' },
+  playCircle: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.5)' },
   coverBadge: { position: 'absolute', top: 4, left: 4, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 8, padding: 3 },
   tagBadge: { position: 'absolute', bottom: 4, right: 4, backgroundColor: 'rgba(99,102,241,0.85)', borderRadius: 8, padding: 3 },
+  videoBadge: { position: 'absolute', top: 4, right: 4, backgroundColor: 'rgba(139,92,246,0.85)', borderRadius: 8, padding: 3 },
   emptyIcon: { width: 80, height: 80, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
   emptyTitle: { fontSize: 16, fontWeight: '700', marginBottom: 6 },
   emptySub: { fontSize: 13, textAlign: 'center', maxWidth: 260, marginBottom: 20 },
