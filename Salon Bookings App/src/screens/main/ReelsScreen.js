@@ -145,14 +145,23 @@ function ReelItem({ item, isVisible, isMuted, onToggleMute, onLike, onOpenCommen
           </View>
         </TouchableOpacity>
         <StarRow rating={item.rating} />
-        <TouchableOpacity
-          style={styles.viewSalonBtn}
-          onPress={() => onOpenSalon(item.salonId)}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.viewSalonText}>View Salon</Text>
-          <Ionicons name="arrow-forward" size={13} color="#fff" />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+          <TouchableOpacity
+            style={styles.bookNowBtn}
+            onPress={() => onOpenSalon(item.salonId)}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.bookNowText}>Book Now</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.viewSalonBtn}
+            onPress={() => onOpenSalon(item.salonId)}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.viewSalonText}>View Salon</Text>
+            <Ionicons name="arrow-forward" size={13} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -449,18 +458,33 @@ const styles = StyleSheet.create({
   },
   salonName: { color: '#fff', fontSize: 15, fontWeight: '700' },
   salonCity: { color: '#d1d5db', fontSize: 12 },
+  bookNowBtn: {
+    backgroundColor: '#6366f1',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    alignSelf: 'flex-start',
+    marginTop: 8,
+    shadowColor: '#6366f1',
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  bookNowText: { color: '#fff', fontSize: 13, fontWeight: '800' },
   viewSalonBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(99,102,241,0.85)',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: 20,
     alignSelf: 'flex-start',
     marginTop: 8,
   },
-  viewSalonText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  viewSalonText: { color: '#fff', fontSize: 12, fontWeight: '600' },
 
   // Comment sheet
   sheetBackdrop: {

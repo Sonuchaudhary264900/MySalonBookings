@@ -266,10 +266,16 @@ export default function Reels() {
                   {reel.salon.averageRating > 0 && (
                     <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12, margin: '0 0 8px', fontWeight: 600 }}>⭐ {reel.salon.averageRating.toFixed(1)}</p>
                   )}
-                  <Link to={`/salon/${reel.salon._id}`}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.28)', borderRadius: 20, padding: '6px 14px', color: '#fff', textDecoration: 'none', fontSize: 12, fontWeight: 700 }}>
-                    View Salon →
-                  </Link>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <Link to={`/salon/${reel.salon._id}`}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', borderRadius: 20, padding: '8px 18px', color: '#fff', textDecoration: 'none', fontSize: 13, fontWeight: 800, boxShadow: '0 4px 16px rgba(99,102,241,0.5)' }}>
+                      Book Now
+                    </Link>
+                    <Link to={`/salon/${reel.salon._id}`}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 20, padding: '7px 14px', color: '#fff', textDecoration: 'none', fontSize: 12, fontWeight: 600 }}>
+                      View Salon →
+                    </Link>
+                  </div>
                 </div>
 
                 {/* Right-side buttons */}
