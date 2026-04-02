@@ -8,6 +8,7 @@ import ImageGrid  from '../../components/gallery/ImageGrid';
 import UploadModal from '../../components/gallery/UploadModal';
 import ImageModal  from '../../components/gallery/ImageModal';
 import api from '../../services/api';
+import { useGalleryUpload } from '../../context/GalleryUploadContext';
 
 const ALL_TAGS = ['Haircut', 'Beard', 'Facial', 'Spa', 'Nails', 'Makeup'];
 
@@ -112,6 +113,8 @@ export default function Gallery() {
   const [lightbox,     setLightbox]     = useState(null); // { index }
   const [deletingId,   setDeletingId]   = useState(null);
 
+  const { enqueueUploads, lastCompletedAt } = useGalleryUpload();
+
   /* ── Fetch photos ── */
   const fetchPhotos = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -132,10 +135,14 @@ export default function Gallery() {
 
   useEffect(() => { fetchPhotos(); }, [fetchPhotos]);
 
-  /* ── Upload done ── */
-  const handleUploaded = (count) => {
-    toast.success(`${count} file${count !== 1 ? 's' : ''} uploaded!`);
-    fetchPhotos(true);
+  /* ── Auto-refresh gallery when a background upload finishes ── */
+  useEffect(() => {
+    if (lastCompletedAt) fetchPhotos(true);
+  }, [lastCompletedAt, fetchPhotos]);
+
+  /* ── Hand files to background context, close modal immediately ── */
+  const handleFilesReady = (fileItems) => {
+    enqueueUploads(fileItems);
     setShowUpload(false);
   };
 
@@ -325,7 +332,7 @@ export default function Gallery() {
       <UploadModal
         isOpen={showUpload}
         onClose={() => setShowUpload(false)}
-        onUploaded={handleUploaded}
+        onFilesReady={handleFilesReady}
       />
 
       {/* ── Lightbox ── */}

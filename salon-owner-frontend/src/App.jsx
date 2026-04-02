@@ -2,6 +2,8 @@ import React, { lazy, Suspense, useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
+import { GalleryUploadProvider } from './context/GalleryUploadContext';
+import FloatingUploadBar from './components/gallery/FloatingUploadBar';
 import { SalonProvider } from './context/SalonContext';
 import { NotificationProvider, useNotifications } from './context/NotificationContext';
 import { LanguageProvider } from './context/LanguageContext';
@@ -935,9 +937,11 @@ function App() {
         <LanguageProvider>
         <AuthProvider>
           <SalonProvider>
+            <GalleryUploadProvider>
             <NotificationProvider>
               <Toaster position="top-right" />
               <BookingAlertModal />
+              <FloatingUploadBar />
               <Suspense fallback={<PageLoader />}>
                 <Routes>
                   {/* Public routes */}
@@ -993,6 +997,7 @@ function App() {
                 </Routes>
               </Suspense>
             </NotificationProvider>
+            </GalleryUploadProvider>
           </SalonProvider>
         </AuthProvider>
         </LanguageProvider>
