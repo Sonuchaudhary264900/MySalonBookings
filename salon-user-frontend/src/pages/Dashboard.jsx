@@ -217,7 +217,7 @@ function ChatDrawer({ booking, onClose }) {
 
   const S = { // styles
     overlay: { position:'fixed', inset:0, zIndex:999, display:'flex', alignItems:'flex-end', justifyContent:'center', background:'rgba(0,0,0,0.6)', backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)' },
-    drawer:  { width:'100%', maxWidth:520, maxHeight:'92dvh', minHeight:0, display:'flex', flexDirection:'column', background:'var(--t-card)', borderRadius:'24px 24px 0 0', overflow:'hidden', boxShadow:'0 -8px 40px rgba(0,0,0,0.25)', position:'relative' },
+    drawer:  { width:'100%', maxWidth:520, maxHeight:'min(92vh, calc(100vh - 80px))', minHeight:0, display:'flex', flexDirection:'column', background:'var(--t-card)', borderRadius:'24px 24px 0 0', overflow:'hidden', boxShadow:'0 -8px 40px rgba(0,0,0,0.25)', position:'relative' },
   };
 
   return (
@@ -488,7 +488,7 @@ function RescheduleModal({ booking, onClose, onRescheduled }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={onClose}>
-      <div style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto', padding: 20 }} onClick={e => e.stopPropagation()}>
+      <div style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 520, maxHeight: 'min(90vh, calc(100vh - 80px))', overflowY: 'auto', padding: 20 }} onClick={e => e.stopPropagation()}>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <p style={{ fontSize: 17, fontWeight: 800, color: 'var(--t-text)' }}>Reschedule Booking</p>

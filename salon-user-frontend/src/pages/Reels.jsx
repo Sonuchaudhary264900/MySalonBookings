@@ -4,9 +4,47 @@ import API from "../services/api";
 
 /* ── CSS ── */
 const CSS = `
+  /* Mobile: fullscreen feed */
   .reels-root {
-    position: fixed; inset: 0; z-index: 60; background: #000;
-    display: flex; flex-direction: column;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  @media (max-width: 767px) {
+    .reels-root {
+      position: fixed; inset: 0; z-index: 60;
+    }
+  }
+  @media (min-width: 768px) {
+    .reels-root {
+      position: relative;
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: calc(100vh - 64px);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .reels-desktop-wrap {
+      display: flex;
+      gap: 0;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 16px 32px;
+      align-items: flex-start;
+    }
+    .reels-sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      width: 280px;
+      flex-shrink: 0;
+      padding-top: 8px;
+    }
+  }
+  @media (max-width: 767px) {
+    .reels-desktop-wrap { display: contents; }
+    .reels-sidebar { display: none !important; }
   }
   .reels-feed {
     flex: 1; overflow-y: scroll;
@@ -19,6 +57,9 @@ const CSS = `
     height: 100dvh; scroll-snap-align: start; scroll-snap-stop: always;
     position: relative; overflow: hidden; background: #111;
     flex-shrink: 0;
+  }
+  @media (min-width: 768px) {
+    .reel-item { height: 80vh; min-height: 560px; max-height: 860px; }
   }
   .reel-video {
     width: 100%; height: 100%; object-fit: cover;
@@ -172,11 +213,13 @@ export default function Reels() {
 
   const postComment = () => { setCommentText(""); setCommentReel(null); };
 
+  const loaderStyle = { background: '#000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, minHeight: '60vh' };
+
   /* ── Loading ── */
   if (loading) return (
     <>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-      <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
+      <div style={loaderStyle}>
         <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #6366f1', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
         <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, margin: 0 }}>Finding nearby salon reels…</p>
       </div>
@@ -185,7 +228,7 @@ export default function Reels() {
 
   /* ── Empty ── */
   if (!reels.length) return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, padding: 24 }}>
+    <div style={{ ...loaderStyle, padding: 24 }}>
       <div style={{ fontSize: 52 }}>🎬</div>
       <p style={{ color: '#fff', fontSize: 18, fontWeight: 800, margin: 0 }}>No Reels Yet</p>
       <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textAlign: 'center', maxWidth: 260, margin: 0 }}>No nearby salon videos yet. Check back soon!</p>
@@ -198,6 +241,8 @@ export default function Reels() {
   return (
     <>
       <style>{CSS}</style>
+      <div style={{ background: '#000', minHeight: '100vh' }}>
+      <div className="reels-desktop-wrap">
       <div className="reels-root">
 
         {/* ── Fixed top bar ── */}
@@ -334,9 +379,9 @@ export default function Reels() {
 
         {/* ── Comment sheet ── */}
         {commentReel && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 70, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 70, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center' }}>
             <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }} onClick={() => setCommentReel(null)} />
-            <div style={{ position: 'relative', background: '#181818', borderRadius: '22px 22px 0 0', padding: '20px 16px 40px', zIndex: 1 }}>
+            <div style={{ position: 'relative', background: '#181818', borderRadius: '22px 22px 0 0', padding: '20px 16px 40px', zIndex: 1, width: '100%', maxWidth: 520 }}>
               <div style={{ width: 40, height: 4, background: 'rgba(255,255,255,0.2)', borderRadius: 2, margin: '0 auto 18px' }} />
               <p style={{ color: '#fff', fontWeight: 700, fontSize: 15, marginBottom: 16 }}>Comments</p>
               <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, textAlign: 'center', marginBottom: 16 }}>Be the first to comment on this reel!</div>
@@ -355,6 +400,33 @@ export default function Reels() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* ── Desktop sidebar (nearby salons info) ── */}
+      <div className="reels-sidebar">
+        <div style={{ background: '#111', borderRadius: 16, padding: '20px 18px', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <p style={{ color: '#fff', fontWeight: 800, fontSize: 16, marginBottom: 4 }}>Reels</p>
+          <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, marginBottom: 16 }}>
+            {locLabel === 'Nearby You' ? '📍 Salons within 20km of you' : '🌐 All salon reels'}
+          </p>
+          <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>Scroll to explore · Tap to mute/unmute</p>
+        </div>
+        {reels.slice(0, 6).map((r, i) => (
+          <Link key={r._id} to={`/salon/${r.salon._id}`} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', padding: '10px 14px', background: '#111', borderRadius: 12, border: '1px solid rgba(255,255,255,0.07)' }}>
+            <div style={{ width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              {r.salon.logo
+                ? <img src={r.salon.logo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <span style={{ color: '#fff', fontWeight: 800, fontSize: 14 }}>{r.salon.name?.[0]?.toUpperCase()}</span>}
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <p style={{ color: '#fff', fontSize: 13, fontWeight: 700, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.salon.name}</p>
+              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, margin: 0 }}>📍 {r.salon.city}</p>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      </div>
       </div>
     </>
   );

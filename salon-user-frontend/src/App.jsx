@@ -92,7 +92,7 @@ function App() {
           <ScrollToTop />
           <Navbar notifOpen={notifOpen} setNotifOpen={setNotifOpen} />
           <ToastContainer />
-          <main className="flex-grow pb-20 md:pb-0 pt-16">
+          <main className="flex-grow pb-20 md:pb-0 pt-16 min-w-0">
           <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/"                            element={<Home />} />

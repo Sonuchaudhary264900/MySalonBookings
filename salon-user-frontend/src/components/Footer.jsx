@@ -28,7 +28,7 @@ export default function Footer() {
         style={{ background: "radial-gradient(ellipse, rgba(99,102,241,0.8), transparent)" }}
       />
 
-      <div className="max-w-7xl mx-auto px-6 pt-14 pb-28 md:pb-8 relative">
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 pt-14 pb-28 md:pb-8 relative">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
 
           {/* Brand */}

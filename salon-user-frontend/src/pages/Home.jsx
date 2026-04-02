@@ -396,7 +396,7 @@ export default function Home() {
           </div>
         </div>
         {loading && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-5">
             {Array(8).fill(0).map((_, i) => <SkeletonCard key={i} />)}
           </div>
         )}
@@ -408,7 +408,7 @@ export default function Home() {
           </div>
         )}
         {!loading && salons.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-5">
             {salons.map(s => <SalonCard key={s._id} salon={s} userCoords={userCoords} />)}
           </div>
         )}
@@ -600,7 +600,7 @@ export default function Home() {
 
           {/* Loading grid */}
           {loading && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-5">
               {Array(8).fill(0).map((_, i) => <SkeletonCard key={i} />)}
             </div>
           )}
@@ -616,7 +616,7 @@ export default function Home() {
 
           {/* Salon cards */}
           {!loading && salons.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-5">
               {salons.map(s => (
                 <div key={s._id}>
                   <SalonCard salon={s} userCoords={userCoords} />

@@ -39,7 +39,7 @@ function NotificationPanel({ onClose }) {
     useNotifications();
 
   return (
-    <div className="absolute right-0 top-full mt-2 w-[min(320px,calc(100vw-32px))] t-card rounded-2xl shadow-xl z-50 overflow-hidden fade-in">
+    <div className="absolute right-0 top-full mt-2 w-[min(360px,calc(100vw-32px))] t-card rounded-2xl shadow-xl z-50 overflow-hidden fade-in">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 t-divider">
         <div className="flex items-center gap-2">
@@ -212,6 +212,7 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
         <nav className="hidden md:flex items-center gap-1 flex-1 justify-center">
           {[
             { to: "/",          label: "Home",     icon: "🏠" },
+            { to: "/reels",     label: "Reels",    icon: "🎬" },
             ...(token ? [
               { to: "/dashboard",  label: "Bookings", icon: "📅" },
               { to: "/favorites",  label: "Saved",    icon: "❤️" },

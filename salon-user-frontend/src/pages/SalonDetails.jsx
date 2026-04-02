@@ -1269,9 +1269,9 @@ function SalonDetails() {
 
       {/* ══ STICKY BOOKING BAR ════════════════════════════════════════════ */}
       {selectedServices.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 px-4 py-3 fade-in"
+        <div className="fixed bottom-0 left-0 right-0 z-40 px-4 py-3 fade-in md:bottom-4 md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-2xl md:rounded-2xl md:shadow-2xl"
           style={{ background: 'var(--t-card)', borderTop: '1px solid var(--t-border)', boxShadow: '0 -8px 32px rgba(0,0,0,0.15)' }}>
-          <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
+          <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
                 style={{ background: 'rgba(99,102,241,0.15)' }}>
@@ -1308,11 +1308,11 @@ function SalonDetails() {
 
       {/* ══ BOOKING DRAWER ════════════════════════════════════════════════ */}
       {showBooking && (
-        <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
+        <div className="fixed inset-0 z-50 flex flex-col md:items-center md:justify-center" style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
           onClick={(e) => { if (e.target === e.currentTarget && !bookingSuccess) setShowBooking(false); }}>
 
           <div
-            className="mt-auto w-full max-h-[92vh] rounded-t-3xl flex flex-col"
+            className="mt-auto w-full max-h-[92vh] rounded-t-3xl flex flex-col md:mt-0 md:rounded-3xl md:max-w-xl md:max-h-[88vh]"
             style={{ background: 'var(--t-bg)', boxShadow: '0 -20px 60px rgba(0,0,0,0.3)' }}
           >
             {bookingSuccess ? (
