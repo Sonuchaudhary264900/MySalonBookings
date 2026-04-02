@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Images, Upload, Star, Tag, RefreshCw, Loader2, ImagePlus,
+  Images, Upload, Star, Tag, RefreshCw, Loader2, ImagePlus, Film,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -53,9 +53,9 @@ const EmptyState = ({ onUpload }) => (
       </div>
     </div>
 
-    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">No photos uploaded yet</h3>
+    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">No media uploaded yet</h3>
     <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mb-6">
-      Upload photos to attract more customers and showcase your salon's best work
+      Upload photos and videos to attract more customers and showcase your salon's best work
     </p>
 
     <button
@@ -65,7 +65,7 @@ const EmptyState = ({ onUpload }) => (
         hover:from-indigo-700 hover:to-violet-700 transition-all shadow-lg shadow-indigo-500/25
         hover:shadow-indigo-500/40 hover:scale-[1.02]"
     >
-      <ImagePlus className="w-4 h-4" /> Upload Your First Photo
+      <ImagePlus className="w-4 h-4" /> Upload Your First Media
     </button>
   </div>
 );
@@ -134,7 +134,7 @@ export default function Gallery() {
 
   /* ── Upload done ── */
   const handleUploaded = (count) => {
-    toast.success(`${count} photo${count !== 1 ? 's' : ''} uploaded!`);
+    toast.success(`${count} file${count !== 1 ? 's' : ''} uploaded!`);
     fetchPhotos(true);
     setShowUpload(false);
   };
@@ -182,11 +182,14 @@ export default function Gallery() {
     toast.success('Cover photo updated!');
   };
 
+  const imagePhotos = photos.filter(p => p.type !== 'video');
+  const videoPhotos = photos.filter(p => p.type === 'video');
+
   const visiblePhotos = activeTag
-    ? photos.filter(p => p.tags?.includes(activeTag))
+    ? imagePhotos.filter(p => p.tags?.includes(activeTag))
     : photos;
 
-  const tagCount = (tag) => photos.filter(p => p.tags?.includes(tag)).length;
+  const tagCount = (tag) => imagePhotos.filter(p => p.tags?.includes(tag)).length;
 
   return (
     <DashboardLayout>
@@ -225,7 +228,7 @@ export default function Gallery() {
                   bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-semibold
                   hover:from-indigo-700 hover:to-violet-700 transition-all shadow-md shadow-indigo-500/20"
               >
-                <Upload className="w-4 h-4" /> Upload Photos
+                <Upload className="w-4 h-4" /> Upload Media
               </button>
             </div>
           </div>
@@ -236,9 +239,17 @@ export default function Gallery() {
               <StatPill
                 icon={Images}
                 label="photos"
-                value={photos.length}
+                value={imagePhotos.length}
                 color="border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40"
               />
+              {videoPhotos.length > 0 && (
+                <StatPill
+                  icon={Film}
+                  label="videos"
+                  value={videoPhotos.length}
+                  color="border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/40"
+                />
+              )}
               {coverId && (
                 <StatPill
                   icon={Star}
@@ -263,8 +274,8 @@ export default function Gallery() {
           )}
 
           {/* ── Featured photos strip ── */}
-          {photos.length > 0 && !loading && (
-            <FeaturedStrip photos={photos} coverId={coverId} onView={handleView} />
+          {imagePhotos.length > 0 && !loading && (
+            <FeaturedStrip photos={imagePhotos} coverId={coverId} onView={handleView} />
           )}
 
           {/* ── Tag filters ── */}
