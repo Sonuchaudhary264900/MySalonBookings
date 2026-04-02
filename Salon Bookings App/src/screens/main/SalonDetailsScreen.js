@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Image, ActivityIndicator, Linking, Alert, Modal, TextInput,
+  Image, ActivityIndicator, Linking, Alert, Modal, TextInput, Dimensions,
 } from 'react-native';
+import { Video, ResizeMode } from 'expo-av';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -155,6 +156,8 @@ export default function SalonDetailsScreen({ route, navigation }) {
   const [closedDay, setClosedDay]         = useState(false);
   const [bookingMode, setBookingMode]     = useState('sequential');
   const [slotsLoading, setSlotsLoading]   = useState(false);
+  const [galleryLightbox, setGalleryLightbox] = useState(null); // index into galleryItems
+  const galleryVideoRef = useRef(null);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [couponInput, setCouponInput]     = useState('');
   const [couponDiscount, setCouponDiscount] = useState(0);
@@ -370,6 +373,12 @@ export default function SalonDetailsScreen({ route, navigation }) {
   const salonPhotos = salon?.ownerPhoto && !basePhotos.includes(salon.ownerPhoto)
     ? [...basePhotos, salon.ownerPhoto]
     : basePhotos;
+  const salonVideos = salon?.videos || [];
+  // Combined gallery items: { url, type }
+  const galleryItems = [
+    ...salonPhotos.map(url => ({ url, type: 'image' })),
+    ...salonVideos.map(url => ({ url, type: 'video' })),
+  ];
   const TABS = BASE_TABS;
   const activeTab = TABS.includes(tab) ? tab : 'Services';
   const styles = getStyles(theme);
@@ -1099,12 +1108,28 @@ export default function SalonDetailsScreen({ route, navigation }) {
                 </View>
               </View>
 
-              {salonPhotos.length > 0 && (
+              {galleryItems.length > 0 && (
                 <View style={styles.infoSection}>
-                  <Text style={styles.infoSectionTitle}>Gallery ({salonPhotos.length})</Text>
+                  <Text style={styles.infoSectionTitle}>
+                    Gallery ({salonPhotos.length} photo{salonPhotos.length !== 1 ? 's' : ''}{salonVideos.length > 0 ? ` · ${salonVideos.length} video${salonVideos.length !== 1 ? 's' : ''}` : ''})
+                  </Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingTop: 4 }}>
-                    {salonPhotos.map((url, i) => (
-                      <Image key={i} source={{ uri: url }} style={styles.galleryImg} />
+                    {galleryItems.map((item, i) => (
+                      <TouchableOpacity
+                        key={i}
+                        onPress={() => setGalleryLightbox(i)}
+                        activeOpacity={0.85}
+                        style={{ position: 'relative' }}
+                      >
+                        <Image source={{ uri: item.url }} style={styles.galleryImg} resizeMode="cover" />
+                        {item.type === 'video' && (
+                          <View style={styles.galleryPlayOverlay}>
+                            <View style={styles.galleryPlayCircle}>
+                              <Ionicons name="play" size={16} color="#fff" />
+                            </View>
+                          </View>
+                        )}
+                      </TouchableOpacity>
                     ))}
                   </ScrollView>
                 </View>
@@ -1142,6 +1167,66 @@ export default function SalonDetailsScreen({ route, navigation }) {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* ── Gallery Lightbox ──────────────────────────────────────────────── */}
+      {galleryLightbox !== null && galleryItems[galleryLightbox] && (() => {
+        const lbItem = galleryItems[galleryLightbox];
+        const isVideo = lbItem.type === 'video';
+        const screenW = Dimensions.get('window').width;
+        const screenH = Dimensions.get('window').height;
+        return (
+          <Modal visible transparent animationType="fade" onRequestClose={() => setGalleryLightbox(null)} statusBarTranslucent>
+            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.97)', justifyContent: 'center' }}>
+              {/* Top bar */}
+              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 48, paddingBottom: 12, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.4)' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  {isVideo && <Ionicons name="videocam" size={16} color="#a78bfa" />}
+                  <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>{galleryLightbox + 1} / {galleryItems.length}</Text>
+                </View>
+                <TouchableOpacity onPress={() => { galleryVideoRef.current?.pauseAsync?.().catch(()=>{}); setGalleryLightbox(null); }}
+                  style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="close" size={26} color="#fff" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Media */}
+              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                {isVideo ? (
+                  <Video
+                    ref={galleryVideoRef}
+                    source={{ uri: lbItem.url }}
+                    style={{ width: screenW, height: screenH * 0.55 }}
+                    resizeMode={ResizeMode.CONTAIN}
+                    useNativeControls
+                    shouldPlay
+                    isLooping={false}
+                  />
+                ) : (
+                  <Image source={{ uri: lbItem.url }} style={{ width: screenW, height: screenH * 0.65 }} resizeMode="contain" />
+                )}
+              </View>
+
+              {/* Nav arrows */}
+              {galleryLightbox > 0 && (
+                <TouchableOpacity
+                  onPress={() => { galleryVideoRef.current?.pauseAsync?.().catch(()=>{}); setGalleryLightbox(i => i - 1); }}
+                  style={{ position: 'absolute', left: 8, top: '50%', marginTop: -24, width: 48, height: 48, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 24 }}
+                >
+                  <Ionicons name="chevron-back" size={28} color="#fff" />
+                </TouchableOpacity>
+              )}
+              {galleryLightbox < galleryItems.length - 1 && (
+                <TouchableOpacity
+                  onPress={() => { galleryVideoRef.current?.pauseAsync?.().catch(()=>{}); setGalleryLightbox(i => i + 1); }}
+                  style={{ position: 'absolute', right: 8, top: '50%', marginTop: -24, width: 48, height: 48, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 24 }}
+                >
+                  <Ionicons name="chevron-forward" size={28} color="#fff" />
+                </TouchableOpacity>
+              )}
+            </View>
+          </Modal>
+        );
+      })()}
 
       {/* ── Booking Modal ──────────────────────────────────────────────────── */}
       <Modal
@@ -1535,6 +1620,8 @@ const getStyles = (t) => StyleSheet.create({
   tabBadgeActive: { backgroundColor: 'rgba(255,255,255,0.25)' },
   tabBadgeText: { fontSize: 10, fontWeight: '700', color: t.subText },
   galleryImg: { width: 120, height: 88, borderRadius: 10 },
+  galleryPlayOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.28)', borderRadius: 10 },
+  galleryPlayCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.6)' },
   emptyTab: { alignItems: 'center', paddingVertical: 40, gap: 10 },
   emptyTabText: { fontSize: 14, color: t.subText },
   serviceCard: { backgroundColor: t.card, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', gap: 14, borderWidth: 1.5, borderColor: t.border, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
