@@ -35,6 +35,7 @@ const CustomerPrivacyPolicy   = lazy(() => import("./pages/legal/CustomerPrivacy
 const CustomerTerms           = lazy(() => import("./pages/legal/CustomerTerms"));
 const OwnerPrivacyPolicy      = lazy(() => import("./pages/legal/OwnerPrivacyPolicy"));
 const OwnerTerms              = lazy(() => import("./pages/legal/OwnerTerms"));
+const Reels                   = lazy(() => import("./pages/Reels"));
 
 // ── Page loading fallback ──────────────────────────────────────
 function PageLoader() {
@@ -111,6 +112,7 @@ function App() {
             <Route path="/legal/customer-terms"        element={<CustomerTerms />} />
             <Route path="/legal/owner-privacy"         element={<OwnerPrivacyPolicy />} />
             <Route path="/legal/owner-terms"           element={<OwnerTerms />} />
+            <Route path="/reels"                        element={<Reels />} />
 
             {/* 404 */}
             <Route path="*" element={
