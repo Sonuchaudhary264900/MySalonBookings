@@ -1,10 +1,10 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { X, Upload, ImagePlus, CheckCircle, AlertCircle, Loader2, Trash2, Film, Zap } from 'lucide-react';
+import { X, Upload, ImagePlus, CheckCircle, AlertCircle, Loader2, Trash2, Film } from 'lucide-react';
 
 const ACCEPT_IMAGE = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
 const ACCEPT_VIDEO = ['video/mp4', 'video/quicktime', 'video/webm'];
 const MAX_IMAGE_MB = 10;
-const MAX_VIDEO_MB = 500; // before compression
+const MAX_VIDEO_MB = 300;
 
 /* ── Image compression (canvas) ── */
 const compressImage = (file, maxW = 1920) =>
@@ -27,64 +27,6 @@ const compressImage = (file, maxW = 1920) =>
     };
     reader.readAsDataURL(file);
   });
-
-/* ── Video compression (FFmpeg.wasm — loaded lazily from CDN) ── */
-let _ffmpeg = null;
-let _ffmpegLoading = false;
-let _ffmpegReady = false;
-
-const getFFmpeg = async (onLog) => {
-  if (_ffmpegReady) return _ffmpeg;
-  if (_ffmpegLoading) {
-    // wait until ready
-    await new Promise(r => { const t = setInterval(() => { if (_ffmpegReady) { clearInterval(t); r(); } }, 100); });
-    return _ffmpeg;
-  }
-  _ffmpegLoading = true;
-  const { FFmpeg } = await import('@ffmpeg/ffmpeg');
-  const { toBlobURL } = await import('@ffmpeg/util');
-  _ffmpeg = new FFmpeg();
-  if (onLog) _ffmpeg.on('log', ({ message }) => onLog(message));
-  // Load single-threaded core from CDN (no SharedArrayBuffer needed)
-  const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
-  await _ffmpeg.load({
-    coreURL:  await toBlobURL(`${baseURL}/ffmpeg-core.js`,   'text/javascript'),
-    wasmURL:  await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-  });
-  _ffmpegReady = true;
-  _ffmpegLoading = false;
-  return _ffmpeg;
-};
-
-const compressVideo = async (file, onProgress) => {
-  const ffmpeg = await getFFmpeg();
-  const { fetchFile } = await import('@ffmpeg/util');
-  const ext = file.name.split('.').pop().toLowerCase() || 'mp4';
-  const inName  = `in.${ext}`;
-  const outName = 'out.mp4';
-
-  ffmpeg.on('progress', ({ progress }) => {
-    onProgress(Math.min(95, Math.round(progress * 100)));
-  });
-
-  await ffmpeg.writeFile(inName, await fetchFile(file));
-  await ffmpeg.exec([
-    '-i', inName,
-    '-c:v', 'libx264',
-    '-crf', '28',           // Quality: 0 best – 51 worst. Instagram uses ~28
-    '-preset', 'fast',
-    '-vf', "scale='min(1280,iw)':-2",  // cap at 1280px wide, keep aspect ratio
-    '-c:a', 'aac',
-    '-b:a', '128k',
-    '-movflags', '+faststart',  // web-optimised
-    outName,
-  ]);
-
-  const data = await ffmpeg.readFile(outName);
-  // cleanup
-  try { await ffmpeg.deleteFile(inName); await ffmpeg.deleteFile(outName); } catch {}
-  return new File([data.buffer], 'compressed.mp4', { type: 'video/mp4' });
-};
 
 /* ── Helper: video thumbnail ── */
 const getVideoThumbnail = (file) =>
@@ -109,26 +51,23 @@ const getVideoThumbnail = (file) =>
 const FileRow = ({ item, onRemove }) => {
   const isVideo = item.mediaType === 'video';
   const statusIcon = {
-    pending:      <Upload className="w-4 h-4 text-gray-400" />,
-    compressing:  <Zap className="w-4 h-4 text-amber-500 animate-pulse" />,
-    uploading:    <Loader2 className="w-4 h-4 text-indigo-500 animate-spin" />,
-    done:         <CheckCircle className="w-4 h-4 text-emerald-500" />,
-    error:        <AlertCircle className="w-4 h-4 text-red-500" />,
+    pending:   <Upload className="w-4 h-4 text-gray-400" />,
+    uploading: <Loader2 className="w-4 h-4 text-indigo-500 animate-spin" />,
+    done:      <CheckCircle className="w-4 h-4 text-emerald-500" />,
+    error:     <AlertCircle className="w-4 h-4 text-red-500" />,
   }[item.status];
 
   const statusLabel = {
-    pending:     null,
-    compressing: `Compressing… ${item.compressProgress || 0}%`,
-    uploading:   `Uploading… ${item.progress || 0}%`,
-    done:        'Done',
-    error:       item.error,
+    pending:   null,
+    uploading: `Uploading… ${item.progress || 0}%`,
+    done:      'Done',
+    error:     item.error,
   }[item.status];
 
   return (
     <div className={`flex items-center gap-3 p-2.5 rounded-xl border transition-colors
       ${item.status === 'done'  ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30' :
         item.status === 'error' ? 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30' :
-        item.status === 'compressing' ? 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20' :
         'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900'}`}>
 
       {/* Thumb */}
@@ -148,21 +87,17 @@ const FileRow = ({ item, onRemove }) => {
           {(item.file.size / 1024 / 1024).toFixed(1)} MB
           {isVideo && <span className="ml-1.5 text-amber-600 dark:text-amber-400 font-medium">video</span>}
         </p>
-        {(item.status === 'uploading' || item.status === 'compressing') && (
+        {item.status === 'uploading' && (
           <div className="mt-1 h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
             <div
-              className={`h-full rounded-full transition-all duration-300 ${
-                item.status === 'compressing' ? 'bg-amber-400' : 'bg-indigo-500'
-              }`}
-              style={{ width: `${item.status === 'compressing' ? (item.compressProgress || 5) : item.progress}%` }}
+              className="h-full rounded-full bg-indigo-500 transition-all duration-300"
+              style={{ width: `${item.progress || 5}%` }}
             />
           </div>
         )}
         {statusLabel && (
           <p className={`text-[10px] mt-0.5 font-medium ${
-            item.status === 'error' ? 'text-red-500' :
-            item.status === 'compressing' ? 'text-amber-600 dark:text-amber-400' :
-            'text-indigo-500'
+            item.status === 'error' ? 'text-red-500' : 'text-indigo-500'
           }`}>{statusLabel}</p>
         )}
       </div>
@@ -189,7 +124,6 @@ const UploadModal = ({ isOpen, onClose, onUploaded }) => {
   const [files,     setFiles]     = useState([]);
   const [dragging,  setDragging]  = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [ffmpegLoading, setFfmpegLoading] = useState(false);
   const imageInputRef = useRef(null);
   const videoInputRef = useRef(null);
   const nextId        = useRef(0);
@@ -238,16 +172,6 @@ const UploadModal = ({ isOpen, onClose, onUploaded }) => {
     if (!pending.length) return;
     setUploading(true);
 
-    // Pre-load FFmpeg if any videos
-    const hasVideos = pending.some(i => i.mediaType === 'video');
-    if (hasVideos) {
-      setFfmpegLoading(true);
-      try { await getFFmpeg(); } catch (err) {
-        console.error('FFmpeg load failed', err);
-      }
-      setFfmpegLoading(false);
-    }
-
     let uploaded = 0;
     for (const item of pending) {
       setFiles(prev => prev.map(f => f.id === item.id ? { ...f, status: 'uploading', progress: 5 } : f));
@@ -255,7 +179,6 @@ const UploadModal = ({ isOpen, onClose, onUploaded }) => {
         const { default: api } = await import('../../services/api');
 
         if (item.mediaType === 'image') {
-          // Compress image
           const compressed = await compressImage(item.file);
           setFiles(prev => prev.map(f => f.id === item.id ? { ...f, progress: 30 } : f));
 
@@ -270,15 +193,9 @@ const UploadModal = ({ isOpen, onClose, onUploaded }) => {
           });
 
         } else {
-          // Compress video with FFmpeg
-          setFiles(prev => prev.map(f => f.id === item.id ? { ...f, status: 'compressing', compressProgress: 5 } : f));
-          const compressed = await compressVideo(item.file, (pct) => {
-            setFiles(prev => prev.map(f => f.id === item.id ? { ...f, compressProgress: pct } : f));
-          });
-          setFiles(prev => prev.map(f => f.id === item.id ? { ...f, status: 'uploading', progress: 5 } : f));
-
+          // Upload video directly — Cloudinary optimises on delivery
           const fd = new FormData();
-          fd.append('video', compressed);
+          fd.append('video', item.file);
           await api.post('/owner/gallery/video', fd, {
             headers: { 'Content-Type': 'multipart/form-data' },
             onUploadProgress: (e) => {
@@ -326,7 +243,7 @@ const UploadModal = ({ isOpen, onClose, onUploaded }) => {
           <div>
             <h2 className="text-base font-bold text-gray-900 dark:text-white">Upload Media</h2>
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-              Photos (JPG, PNG, WebP · max {MAX_IMAGE_MB} MB) · Videos (MP4, MOV, WebM · compressed automatically)
+              Photos (JPG, PNG, WebP · max {MAX_IMAGE_MB} MB) · Videos (MP4, MOV, WebM · max {MAX_VIDEO_MB} MB)
             </p>
           </div>
           <button onClick={handleClose} disabled={uploading}
@@ -390,22 +307,12 @@ const UploadModal = ({ isOpen, onClose, onUploaded }) => {
               onChange={e => { addFiles(e.target.files); e.target.value = ''; }} />
           </div>
 
-          {/* FFmpeg loading notice */}
-          {ffmpegLoading && (
-            <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
-              <Loader2 className="w-4 h-4 text-amber-600 animate-spin shrink-0" />
-              <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">
-                Loading video compressor (first time only)…
-              </p>
-            </div>
-          )}
-
-          {/* Video compression notice */}
+          {/* Video info notice */}
           {files.some(f => f.mediaType === 'video' && f.status === 'pending') && !uploading && (
             <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800">
-              <Zap className="w-4 h-4 text-violet-500 shrink-0 mt-0.5" />
+              <Film className="w-4 h-4 text-violet-500 shrink-0 mt-0.5" />
               <p className="text-xs text-violet-700 dark:text-violet-400">
-                Videos will be compressed before uploading — reduced file size, same visual quality (H.264 CRF 28, 1280p max).
+                Videos are uploaded directly and optimised on delivery — no wait time.
               </p>
             </div>
           )}
