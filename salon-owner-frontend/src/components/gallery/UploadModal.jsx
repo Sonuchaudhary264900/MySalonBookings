@@ -1,9 +1,12 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { X, Upload, ImagePlus, CheckCircle, AlertCircle, Loader2, Trash2 } from 'lucide-react';
+import { X, Upload, ImagePlus, CheckCircle, AlertCircle, Loader2, Trash2, Film, Zap } from 'lucide-react';
 
-const ACCEPT = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
-const MAX_SIZE_MB = 10;
+const ACCEPT_IMAGE = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+const ACCEPT_VIDEO = ['video/mp4', 'video/quicktime', 'video/webm'];
+const MAX_IMAGE_MB = 10;
+const MAX_VIDEO_MB = 500; // before compression
 
+/* ── Image compression (canvas) ── */
 const compressImage = (file, maxW = 1920) =>
   new Promise((resolve) => {
     const reader = new FileReader();
@@ -25,24 +28,117 @@ const compressImage = (file, maxW = 1920) =>
     reader.readAsDataURL(file);
   });
 
+/* ── Video compression (FFmpeg.wasm — loaded lazily from CDN) ── */
+let _ffmpeg = null;
+let _ffmpegLoading = false;
+let _ffmpegReady = false;
+
+const getFFmpeg = async (onLog) => {
+  if (_ffmpegReady) return _ffmpeg;
+  if (_ffmpegLoading) {
+    // wait until ready
+    await new Promise(r => { const t = setInterval(() => { if (_ffmpegReady) { clearInterval(t); r(); } }, 100); });
+    return _ffmpeg;
+  }
+  _ffmpegLoading = true;
+  const { FFmpeg } = await import('@ffmpeg/ffmpeg');
+  const { toBlobURL } = await import('@ffmpeg/util');
+  _ffmpeg = new FFmpeg();
+  if (onLog) _ffmpeg.on('log', ({ message }) => onLog(message));
+  // Load single-threaded core from CDN (no SharedArrayBuffer needed)
+  const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
+  await _ffmpeg.load({
+    coreURL:  await toBlobURL(`${baseURL}/ffmpeg-core.js`,   'text/javascript'),
+    wasmURL:  await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+  });
+  _ffmpegReady = true;
+  _ffmpegLoading = false;
+  return _ffmpeg;
+};
+
+const compressVideo = async (file, onProgress) => {
+  const ffmpeg = await getFFmpeg();
+  const { fetchFile } = await import('@ffmpeg/util');
+  const ext = file.name.split('.').pop().toLowerCase() || 'mp4';
+  const inName  = `in.${ext}`;
+  const outName = 'out.mp4';
+
+  ffmpeg.on('progress', ({ progress }) => {
+    onProgress(Math.min(95, Math.round(progress * 100)));
+  });
+
+  await ffmpeg.writeFile(inName, await fetchFile(file));
+  await ffmpeg.exec([
+    '-i', inName,
+    '-c:v', 'libx264',
+    '-crf', '28',           // Quality: 0 best – 51 worst. Instagram uses ~28
+    '-preset', 'fast',
+    '-vf', "scale='min(1280,iw)':-2",  // cap at 1280px wide, keep aspect ratio
+    '-c:a', 'aac',
+    '-b:a', '128k',
+    '-movflags', '+faststart',  // web-optimised
+    outName,
+  ]);
+
+  const data = await ffmpeg.readFile(outName);
+  // cleanup
+  try { await ffmpeg.deleteFile(inName); await ffmpeg.deleteFile(outName); } catch {}
+  return new File([data.buffer], 'compressed.mp4', { type: 'video/mp4' });
+};
+
+/* ── Helper: video thumbnail ── */
+const getVideoThumbnail = (file) =>
+  new Promise((resolve) => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.muted = true;
+    video.src = URL.createObjectURL(file);
+    video.currentTime = 1;
+    video.onloadeddata = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width  = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0);
+      resolve(canvas.toDataURL('image/jpeg', 0.6));
+      URL.revokeObjectURL(video.src);
+    };
+    video.onerror = () => { resolve(null); URL.revokeObjectURL(video.src); };
+  });
+
 /* ── Single file row ── */
 const FileRow = ({ item, onRemove }) => {
+  const isVideo = item.mediaType === 'video';
   const statusIcon = {
-    pending:    <Upload className="w-4 h-4 text-gray-400" />,
-    uploading:  <Loader2 className="w-4 h-4 text-indigo-500 animate-spin" />,
-    done:       <CheckCircle className="w-4 h-4 text-emerald-500" />,
-    error:      <AlertCircle className="w-4 h-4 text-red-500" />,
+    pending:      <Upload className="w-4 h-4 text-gray-400" />,
+    compressing:  <Zap className="w-4 h-4 text-amber-500 animate-pulse" />,
+    uploading:    <Loader2 className="w-4 h-4 text-indigo-500 animate-spin" />,
+    done:         <CheckCircle className="w-4 h-4 text-emerald-500" />,
+    error:        <AlertCircle className="w-4 h-4 text-red-500" />,
+  }[item.status];
+
+  const statusLabel = {
+    pending:     null,
+    compressing: `Compressing… ${item.compressProgress || 0}%`,
+    uploading:   `Uploading… ${item.progress || 0}%`,
+    done:        'Done',
+    error:       item.error,
   }[item.status];
 
   return (
     <div className={`flex items-center gap-3 p-2.5 rounded-xl border transition-colors
       ${item.status === 'done'  ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30' :
         item.status === 'error' ? 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30' :
+        item.status === 'compressing' ? 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20' :
         'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900'}`}>
 
       {/* Thumb */}
-      <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 shrink-0">
+      <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 shrink-0 relative">
         {item.preview && <img src={item.preview} alt="" className="w-full h-full object-cover" />}
+        {isVideo && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+            <Film className="w-4 h-4 text-white" />
+          </div>
+        )}
       </div>
 
       {/* Name + progress */}
@@ -50,17 +146,24 @@ const FileRow = ({ item, onRemove }) => {
         <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 truncate">{item.file.name}</p>
         <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
           {(item.file.size / 1024 / 1024).toFixed(1)} MB
+          {isVideo && <span className="ml-1.5 text-amber-600 dark:text-amber-400 font-medium">video</span>}
         </p>
-        {item.status === 'uploading' && (
+        {(item.status === 'uploading' || item.status === 'compressing') && (
           <div className="mt-1 h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
             <div
-              className="h-full bg-indigo-500 rounded-full transition-all duration-300"
-              style={{ width: `${item.progress}%` }}
+              className={`h-full rounded-full transition-all duration-300 ${
+                item.status === 'compressing' ? 'bg-amber-400' : 'bg-indigo-500'
+              }`}
+              style={{ width: `${item.status === 'compressing' ? (item.compressProgress || 5) : item.progress}%` }}
             />
           </div>
         )}
-        {item.status === 'error' && (
-          <p className="text-[10px] text-red-500 mt-0.5">{item.error}</p>
+        {statusLabel && (
+          <p className={`text-[10px] mt-0.5 font-medium ${
+            item.status === 'error' ? 'text-red-500' :
+            item.status === 'compressing' ? 'text-amber-600 dark:text-amber-400' :
+            'text-indigo-500'
+          }`}>{statusLabel}</p>
         )}
       </div>
 
@@ -86,29 +189,38 @@ const UploadModal = ({ isOpen, onClose, onUploaded }) => {
   const [files,     setFiles]     = useState([]);
   const [dragging,  setDragging]  = useState(false);
   const [uploading, setUploading] = useState(false);
-  const fileInputRef              = useRef(null);
-  const nextId                    = useRef(0);
+  const [ffmpegLoading, setFfmpegLoading] = useState(false);
+  const imageInputRef = useRef(null);
+  const videoInputRef = useRef(null);
+  const nextId        = useRef(0);
 
-  const addFiles = useCallback((raw) => {
-    const valid = [];
-    const invalid = [];
-    Array.from(raw).forEach(f => {
-      if (!ACCEPT.includes(f.type)) { invalid.push(f.name); return; }
-      if (f.size > MAX_SIZE_MB * 1024 * 1024) { invalid.push(`${f.name} (too large)`); return; }
-      valid.push(f);
-    });
-    if (invalid.length) {
-      // show inline error (not toast so we don't import toast here)
-      console.warn('Invalid files:', invalid);
+  const addFiles = useCallback(async (raw) => {
+    const items = [];
+    for (const f of Array.from(raw)) {
+      const isImage = ACCEPT_IMAGE.includes(f.type);
+      const isVideo = ACCEPT_VIDEO.includes(f.type);
+      if (!isImage && !isVideo) continue;
+      if (isImage && f.size > MAX_IMAGE_MB * 1024 * 1024) continue;
+      if (isVideo && f.size > MAX_VIDEO_MB * 1024 * 1024) continue;
+
+      let preview = null;
+      if (isImage) {
+        preview = URL.createObjectURL(f);
+      } else {
+        preview = await getVideoThumbnail(f);
+      }
+
+      items.push({
+        id:              nextId.current++,
+        file:            f,
+        mediaType:       isImage ? 'image' : 'video',
+        preview,
+        status:          'pending',
+        progress:        0,
+        compressProgress: 0,
+        error:           null,
+      });
     }
-    const items = valid.map(f => ({
-      id:       nextId.current++,
-      file:     f,
-      preview:  URL.createObjectURL(f),
-      status:   'pending',
-      progress: 0,
-      error:    null,
-    }));
     setFiles(prev => [...prev, ...items]);
   }, []);
 
@@ -119,7 +231,6 @@ const UploadModal = ({ isOpen, onClose, onUploaded }) => {
 
   const onDragOver = (e) => { e.preventDefault(); setDragging(true); };
   const onDragLeave = () => setDragging(false);
-
   const removeFile = (id) => setFiles(prev => prev.filter(f => f.id !== id));
 
   const handleUpload = async () => {
@@ -127,30 +238,60 @@ const UploadModal = ({ isOpen, onClose, onUploaded }) => {
     if (!pending.length) return;
     setUploading(true);
 
+    // Pre-load FFmpeg if any videos
+    const hasVideos = pending.some(i => i.mediaType === 'video');
+    if (hasVideos) {
+      setFfmpegLoading(true);
+      try { await getFFmpeg(); } catch (err) {
+        console.error('FFmpeg load failed', err);
+      }
+      setFfmpegLoading(false);
+    }
+
     let uploaded = 0;
     for (const item of pending) {
-      // set uploading
-      setFiles(prev => prev.map(f => f.id === item.id ? { ...f, status: 'uploading', progress: 10 } : f));
+      setFiles(prev => prev.map(f => f.id === item.id ? { ...f, status: 'uploading', progress: 5 } : f));
       try {
-        const compressed = await compressImage(item.file);
-        setFiles(prev => prev.map(f => f.id === item.id ? { ...f, progress: 40 } : f));
-
-        const fd = new FormData();
-        fd.append('image', compressed);
-
         const { default: api } = await import('../../services/api');
-        await api.post('/owner/gallery', fd, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-          onUploadProgress: (e) => {
-            const pct = Math.round((e.loaded / e.total) * 50) + 40;
-            setFiles(prev => prev.map(f => f.id === item.id ? { ...f, progress: pct } : f));
-          },
-        });
+
+        if (item.mediaType === 'image') {
+          // Compress image
+          const compressed = await compressImage(item.file);
+          setFiles(prev => prev.map(f => f.id === item.id ? { ...f, progress: 30 } : f));
+
+          const fd = new FormData();
+          fd.append('image', compressed);
+          await api.post('/owner/gallery', fd, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            onUploadProgress: (e) => {
+              const pct = Math.round((e.loaded / e.total) * 60) + 30;
+              setFiles(prev => prev.map(f => f.id === item.id ? { ...f, progress: pct } : f));
+            },
+          });
+
+        } else {
+          // Compress video with FFmpeg
+          setFiles(prev => prev.map(f => f.id === item.id ? { ...f, status: 'compressing', compressProgress: 5 } : f));
+          const compressed = await compressVideo(item.file, (pct) => {
+            setFiles(prev => prev.map(f => f.id === item.id ? { ...f, compressProgress: pct } : f));
+          });
+          setFiles(prev => prev.map(f => f.id === item.id ? { ...f, status: 'uploading', progress: 5 } : f));
+
+          const fd = new FormData();
+          fd.append('video', compressed);
+          await api.post('/owner/gallery/video', fd, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            onUploadProgress: (e) => {
+              const pct = Math.round((e.loaded / e.total) * 90) + 5;
+              setFiles(prev => prev.map(f => f.id === item.id ? { ...f, progress: pct } : f));
+            },
+          });
+        }
 
         setFiles(prev => prev.map(f => f.id === item.id ? { ...f, status: 'done', progress: 100 } : f));
         uploaded++;
       } catch (err) {
-        const msg = err?.data?.message || err?.message || 'Upload failed';
+        const msg = err?.response?.data?.message || err?.message || 'Upload failed';
         setFiles(prev => prev.map(f => f.id === item.id ? { ...f, status: 'error', error: msg } : f));
       }
     }
@@ -160,22 +301,22 @@ const UploadModal = ({ isOpen, onClose, onUploaded }) => {
   };
 
   const reset = () => {
-    files.forEach(f => f.preview && URL.revokeObjectURL(f.preview));
+    files.forEach(f => { if (f.preview && f.mediaType === 'image') URL.revokeObjectURL(f.preview); });
     setFiles([]);
     setUploading(false);
   };
 
   const handleClose = () => { reset(); onClose(); };
 
-  const pendingCount  = files.filter(f => f.status === 'pending').length;
-  const doneCount     = files.filter(f => f.status === 'done').length;
-  const allDone       = files.length > 0 && files.every(f => f.status === 'done' || f.status === 'error');
+  const pendingCount = files.filter(f => f.status === 'pending').length;
+  const doneCount    = files.filter(f => f.status === 'done').length;
+  const allDone      = files.length > 0 && files.every(f => f.status === 'done' || f.status === 'error');
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={!uploading ? handleClose : undefined} />
 
       <div className="relative z-10 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800
         rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh]">
@@ -183,25 +324,27 @@ const UploadModal = ({ isOpen, onClose, onUploaded }) => {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800 shrink-0">
           <div>
-            <h2 className="text-base font-bold text-gray-900 dark:text-white">Upload Photos</h2>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">JPG, PNG or WebP · max {MAX_SIZE_MB} MB each</p>
+            <h2 className="text-base font-bold text-gray-900 dark:text-white">Upload Media</h2>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+              Photos (JPG, PNG, WebP · max {MAX_IMAGE_MB} MB) · Videos (MP4, MOV, WebM · compressed automatically)
+            </p>
           </div>
-          <button onClick={handleClose}
+          <button onClick={handleClose} disabled={uploading}
             className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-400
-              hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+              hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-200 transition-colors disabled:opacity-40">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
+
           {/* Drop zone */}
           <div
             onDrop={onDrop}
             onDragOver={onDragOver}
             onDragLeave={onDragLeave}
-            onClick={() => !uploading && fileInputRef.current?.click()}
             className={`relative flex flex-col items-center justify-center gap-3
-              border-2 border-dashed rounded-2xl py-10 px-6 text-center cursor-pointer
+              border-2 border-dashed rounded-2xl py-10 px-6 text-center
               transition-all duration-200
               ${dragging
                 ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 scale-[1.01]'
@@ -214,21 +357,58 @@ const UploadModal = ({ isOpen, onClose, onUploaded }) => {
             </div>
             <div>
               <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                {dragging ? 'Drop photos here' : 'Drag & drop photos here'}
+                {dragging ? 'Drop files here' : 'Drag & drop photos or videos'}
               </p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                or <span className="text-indigo-600 dark:text-indigo-400 font-medium">click to browse</span>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">or choose file type below</p>
+            </div>
+
+            {/* Two pick buttons */}
+            <div className="flex gap-2 mt-1">
+              <button
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={uploading}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold
+                  bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-40"
+              >
+                <ImagePlus className="w-3.5 h-3.5" /> Photos
+              </button>
+              <button
+                type="button"
+                onClick={() => videoInputRef.current?.click()}
+                disabled={uploading}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold
+                  bg-violet-600 hover:bg-violet-700 text-white transition-colors disabled:opacity-40"
+              >
+                <Film className="w-3.5 h-3.5" /> Videos
+              </button>
+            </div>
+
+            <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden"
+              onChange={e => { addFiles(e.target.files); e.target.value = ''; }} />
+            <input ref={videoInputRef} type="file" accept="video/mp4,video/quicktime,video/webm" multiple className="hidden"
+              onChange={e => { addFiles(e.target.files); e.target.value = ''; }} />
+          </div>
+
+          {/* FFmpeg loading notice */}
+          {ffmpegLoading && (
+            <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+              <Loader2 className="w-4 h-4 text-amber-600 animate-spin shrink-0" />
+              <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">
+                Loading video compressor (first time only)…
               </p>
             </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              multiple
-              className="hidden"
-              onChange={e => { addFiles(e.target.files); e.target.value = ''; }}
-            />
-          </div>
+          )}
+
+          {/* Video compression notice */}
+          {files.some(f => f.mediaType === 'video' && f.status === 'pending') && !uploading && (
+            <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800">
+              <Zap className="w-4 h-4 text-violet-500 shrink-0 mt-0.5" />
+              <p className="text-xs text-violet-700 dark:text-violet-400">
+                Videos will be compressed before uploading — reduced file size, same visual quality (H.264 CRF 28, 1280p max).
+              </p>
+            </div>
+          )}
 
           {/* File list */}
           {files.length > 0 && (
@@ -238,8 +418,7 @@ const UploadModal = ({ isOpen, onClose, onUploaded }) => {
                   {files.length} file{files.length !== 1 ? 's' : ''} selected
                 </p>
                 {!uploading && (
-                  <button onClick={reset}
-                    className="text-xs text-gray-400 hover:text-red-500 transition-colors">
+                  <button onClick={reset} className="text-xs text-gray-400 hover:text-red-500 transition-colors">
                     Clear all
                   </button>
                 )}
@@ -261,10 +440,10 @@ const UploadModal = ({ isOpen, onClose, onUploaded }) => {
             </button>
           ) : (
             <>
-              <button onClick={handleClose}
+              <button onClick={handleClose} disabled={uploading}
                 className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700
                   text-sm font-medium text-gray-600 dark:text-gray-300
-                  hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-40">
                 Cancel
               </button>
               <button
@@ -276,8 +455,8 @@ const UploadModal = ({ isOpen, onClose, onUploaded }) => {
                   flex items-center justify-center gap-2"
               >
                 {uploading
-                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Uploading…</>
-                  : <><Upload className="w-4 h-4" /> Upload {pendingCount > 0 ? `${pendingCount} photo${pendingCount !== 1 ? 's' : ''}` : ''}</>
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Processing…</>
+                  : <><Upload className="w-4 h-4" /> Upload {pendingCount > 0 ? `${pendingCount} file${pendingCount !== 1 ? 's' : ''}` : ''}</>
                 }
               </button>
             </>
