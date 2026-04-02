@@ -149,6 +149,11 @@ location: {
         type: String, // Cloudinary URL
       },
     ],
+    videos: [
+      {
+        type: String, // Cloudinary URL
+      },
+    ],
     logo: {
       type: String, // Cloudinary URL
       default: null,
