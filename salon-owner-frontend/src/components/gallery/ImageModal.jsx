@@ -155,6 +155,7 @@ const ImageModal = ({
   if (!photo) return null;
   const url = photo.url || photo.imageUrl || photo.image || '';
   const isCover = photo._id === coverId;
+  const isVideo = photo.type === 'video';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -200,19 +201,33 @@ const ImageModal = ({
             </div>
           )}
 
-          {/* Image */}
-          {!imgLoaded && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Loader2 className="w-8 h-8 text-white/40 animate-spin" />
-            </div>
+          {/* Media */}
+          {isVideo ? (
+            <video
+              key={url}
+              src={url}
+              controls
+              autoPlay
+              playsInline
+              className="max-h-[50vh] lg:max-h-[80vh] w-full object-contain"
+              onLoadedData={() => setImgLoaded(true)}
+            />
+          ) : (
+            <>
+              {!imgLoaded && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 text-white/40 animate-spin" />
+                </div>
+              )}
+              <img
+                src={url}
+                alt={photo.caption || 'Gallery photo'}
+                onLoad={() => setImgLoaded(true)}
+                className={`max-h-[50vh] lg:max-h-[80vh] w-full object-contain transition-opacity duration-300
+                  ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
+              />
+            </>
           )}
-          <img
-            src={url}
-            alt={photo.caption || 'Gallery photo'}
-            onLoad={() => setImgLoaded(true)}
-            className={`max-h-[50vh] lg:max-h-[80vh] w-full object-contain transition-opacity duration-300
-              ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
-          />
 
           {/* Cover badge */}
           {isCover && (
@@ -228,7 +243,7 @@ const ImageModal = ({
 
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800 shrink-0">
-            <p className="text-sm font-bold text-gray-900 dark:text-white">Photo Details</p>
+            <p className="text-sm font-bold text-gray-900 dark:text-white">{isVideo ? 'Video Details' : 'Photo Details'}</p>
             <div className="flex items-center gap-1">
               <button onClick={handleDownload}
                 className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-400

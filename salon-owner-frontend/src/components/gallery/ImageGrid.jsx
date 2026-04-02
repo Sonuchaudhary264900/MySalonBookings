@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, Trash2, Star, Tag } from 'lucide-react';
+import { Eye, Trash2, Star, Tag, Play } from 'lucide-react';
 
 const TAG_COLORS = {
   Haircut: 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400',
@@ -15,10 +15,11 @@ const SkeletonCard = () => (
   <div className="aspect-square rounded-2xl bg-gray-100 dark:bg-gray-800 animate-pulse" />
 );
 
-/* ── Single image card ── */
+/* ── Single image/video card ── */
 const ImageCard = ({ photo, isCover, onView, onDelete }) => {
   const url = photo.url || photo.imageUrl || photo.image || '';
   const tag = photo.tags?.[0];
+  const isVideo = photo.type === 'video';
 
   return (
     <div
@@ -27,13 +28,32 @@ const ImageCard = ({ photo, isCover, onView, onDelete }) => {
         bg-gray-100 dark:bg-gray-800 shadow-sm hover:shadow-xl hover:shadow-black/10
         dark:hover:shadow-black/40 transition-all duration-300"
     >
-      {/* Image */}
-      <img
-        src={url}
-        alt={photo.caption || 'Gallery photo'}
-        loading="lazy"
-        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-      />
+      {/* Media */}
+      {isVideo ? (
+        <>
+          <video
+            src={url}
+            muted
+            playsInline
+            preload="metadata"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          />
+          {/* Play button overlay */}
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
+            <div className="w-12 h-12 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center
+              group-hover:scale-110 transition-transform shadow-lg">
+              <Play className="w-5 h-5 text-white fill-white ml-0.5" />
+            </div>
+          </div>
+        </>
+      ) : (
+        <img
+          src={url}
+          alt={photo.caption || 'Gallery photo'}
+          loading="lazy"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+        />
+      )}
 
       {/* Gradient overlay on hover */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent
