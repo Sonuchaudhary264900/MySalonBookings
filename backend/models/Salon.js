@@ -154,6 +154,11 @@ location: {
         type: String, // Cloudinary URL
       },
     ],
+    reelVideos: [
+      {
+        type: String, // URLs of videos the owner selected to feature in Reels
+      },
+    ],
     logo: {
       type: String, // Cloudinary URL
       default: null,

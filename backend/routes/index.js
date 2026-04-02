@@ -349,7 +349,8 @@ router.get("/public/reels", asyncHandler(async (req, res) => {
   const lng = Number(longitude);
   const hasCoords = latitude && longitude && !isNaN(lat) && !isNaN(lng);
 
-  const baseQuery = { isApproved: true, "videos.0": { $exists: true } };
+  // Only salons that have explicitly selected reel videos
+  const baseQuery = { isApproved: true, "reelVideos.0": { $exists: true } };
 
   let salons;
   if (hasCoords) {
@@ -362,24 +363,24 @@ router.get("/public/reels", asyncHandler(async (req, res) => {
         },
       },
     })
-      .select("name city logo coverPhoto averageRating videos")
+      .select("name city logo coverPhoto averageRating reelVideos")
       .limit(100)
       .lean();
   } else {
     salons = await Salon.find(baseQuery)
-      .select("name city logo coverPhoto averageRating videos")
+      .select("name city logo coverPhoto averageRating reelVideos")
       .sort({ averageRating: -1, totalBookings: -1 })
       .limit(100)
       .lean();
   }
 
-  // Flatten to individual reel items
+  // Flatten owner-selected reel videos to individual items
   const allReels = [];
   for (const s of salons) {
-    for (let i = 0; i < (s.videos || []).length; i++) {
+    for (let i = 0; i < (s.reelVideos || []).length; i++) {
       allReels.push({
         _id: `${s._id}_${i}`,
-        videoUrl: s.videos[i],
+        videoUrl: s.reelVideos[i],
         salon: { _id: s._id, name: s.name, city: s.city, logo: s.logo || null, coverPhoto: s.coverPhoto || null, averageRating: s.averageRating || 0 },
       });
     }
@@ -1500,9 +1501,26 @@ router.post("/customer/push-token", authenticateCustomer, asyncHandler(async (re
 router.get("/owner/gallery", authenticateOwner, asyncHandler(async (req, res) => {
   const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+  const reelSet = new Set(salon.reelVideos || []);
   const photos = (salon.photos || []).map((url, i) => ({ _id: `p_${i}`, url, type: 'image' }));
-  const videos = (salon.videos || []).map((url, i) => ({ _id: `v_${i}`, url, type: 'video' }));
+  const videos = (salon.videos || []).map((url, i) => ({ _id: `v_${i}`, url, type: 'video', inReels: reelSet.has(url) }));
   res.json({ success: true, data: [...photos, ...videos] });
+}));
+
+// PUT /owner/gallery/reel-toggle — add or remove a video from reelVideos
+router.put("/owner/gallery/reel-toggle", authenticateOwner, asyncHandler(async (req, res) => {
+  const { videoUrl } = req.body;
+  if (!videoUrl) return res.status(400).json({ success: false, message: "videoUrl required" });
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+  const idx = (salon.reelVideos || []).indexOf(videoUrl);
+  if (idx === -1) {
+    salon.reelVideos = [...(salon.reelVideos || []), videoUrl];
+  } else {
+    salon.reelVideos.splice(idx, 1);
+  }
+  await salon.save();
+  res.json({ success: true, inReels: idx === -1 });
 }));
 
 // POST /owner/gallery — upload a photo to Cloudinary and add to salon.photos
