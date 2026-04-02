@@ -20,6 +20,7 @@ function ScrollToTop() {
 // ── Eagerly loaded (critical path) ────────────────────────────
 import Home from "./pages/Home";
 import Login from "./pages/Login";
+import GenderHome from "./pages/GenderHome";
 
 // ── Lazily loaded (split into separate chunks) ─────────────────
 const Register     = lazy(() => import("./pages/Register"));
@@ -94,6 +95,8 @@ function App() {
           <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/"                            element={<Home />} />
+            <Route path="/men"                         element={<GenderHome gender="male" />} />
+            <Route path="/women"                       element={<GenderHome gender="female" />} />
             <Route path="/login"                       element={<Login />} />
             <Route path="/register"                    element={<Register />} />
             <Route path="/salon/:id"                   element={<SalonDetails />} />
