@@ -34,6 +34,20 @@ const multerUpload = multer({
   },
 });
 
+// Separate multer for video uploads (up to 300 MB after client-side compression)
+const multerVideoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 300 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo'];
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only video files are allowed (mp4, mov, webm)'), false);
+    }
+  },
+});
+
 /* =====================================================
    SAFE CONTROLLER LOADER
 ===================================================== */
@@ -1428,12 +1442,13 @@ router.post("/customer/push-token", authenticateCustomer, asyncHandler(async (re
    OWNER GALLERY ROUTES
 ===================================================== */
 
-// GET /owner/gallery — return salon photos as array of objects
+// GET /owner/gallery — return salon photos and videos as array of objects
 router.get("/owner/gallery", authenticateOwner, asyncHandler(async (req, res) => {
   const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
-  const photos = (salon.photos || []).map((url, i) => ({ _id: i.toString(), url }));
-  res.json({ success: true, data: photos });
+  const photos = (salon.photos || []).map((url, i) => ({ _id: `p_${i}`, url, type: 'image' }));
+  const videos = (salon.videos || []).map((url, i) => ({ _id: `v_${i}`, url, type: 'video' }));
+  res.json({ success: true, data: [...photos, ...videos] });
 }));
 
 // POST /owner/gallery — upload a photo to Cloudinary and add to salon.photos
@@ -1452,20 +1467,48 @@ router.post("/owner/gallery", authenticateOwner, multerUpload.single("image"), a
   salon.photos.push(url);
   await salon.save();
   const newIndex = salon.photos.length - 1;
-  res.status(201).json({ success: true, data: { _id: newIndex.toString(), url } });
+  res.status(201).json({ success: true, data: { _id: `p_${newIndex}`, url, type: 'image' } });
 }));
 
-// DELETE /owner/gallery/:photoId — remove photo by index
-router.delete("/owner/gallery/:photoId", authenticateOwner, asyncHandler(async (req, res) => {
+// POST /owner/gallery/video — upload a video to Cloudinary and add to salon.videos
+router.post("/owner/gallery/video", authenticateOwner, multerVideoUpload.single("video"), asyncHandler(async (req, res) => {
+  if (!req.file) return res.status(400).json({ success: false, message: "No video uploaded" });
   const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
-  const idx = parseInt(req.params.photoId, 10);
-  if (isNaN(idx) || idx < 0 || idx >= (salon.photos || []).length) {
-    return res.status(404).json({ success: false, message: "Photo not found" });
-  }
-  salon.photos.splice(idx, 1);
+  const { cloudinary: cloudinaryClient } = require("../config/cloudinary");
+  const url = await new Promise((resolve, reject) => {
+    const stream = cloudinaryClient.uploader.upload_stream(
+      { folder: "smart-salon/gallery-videos", resource_type: "video" },
+      (error, result) => { if (error) reject(error); else resolve(result.secure_url); }
+    );
+    stream.end(req.file.buffer);
+  });
+  if (!salon.videos) salon.videos = [];
+  salon.videos.push(url);
   await salon.save();
-  res.json({ success: true, message: "Photo deleted" });
+  const newIndex = salon.videos.length - 1;
+  res.status(201).json({ success: true, data: { _id: `v_${newIndex}`, url, type: 'video' } });
+}));
+
+// DELETE /owner/gallery/:mediaId — remove photo (p_N) or video (v_N) by prefixed ID
+router.delete("/owner/gallery/:mediaId", authenticateOwner, asyncHandler(async (req, res) => {
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+  const mid = req.params.mediaId;
+  if (mid.startsWith('v_')) {
+    const idx = parseInt(mid.slice(2), 10);
+    if (isNaN(idx) || idx < 0 || idx >= (salon.videos || []).length)
+      return res.status(404).json({ success: false, message: "Video not found" });
+    salon.videos.splice(idx, 1);
+  } else {
+    // p_N or legacy plain number
+    const idx = mid.startsWith('p_') ? parseInt(mid.slice(2), 10) : parseInt(mid, 10);
+    if (isNaN(idx) || idx < 0 || idx >= (salon.photos || []).length)
+      return res.status(404).json({ success: false, message: "Photo not found" });
+    salon.photos.splice(idx, 1);
+  }
+  await salon.save();
+  res.json({ success: true, message: "Media deleted" });
 }));
 
 /* =====================================================
