@@ -384,24 +384,6 @@ export default function Home() {
   if (!isLoggedIn) {
     const guestSalonGrid = (
       <div id="salons">
-        {/* Gender selector for guests — prominent, required to filter services */}
-        {genderFilter === "all" && (
-          <div style={{ background: "linear-gradient(135deg,rgba(99,102,241,0.08),rgba(139,92,246,0.08))", border: "1px solid rgba(99,102,241,0.18)", borderRadius: 16, padding: "16px 18px", marginBottom: 16 }}>
-            <p style={{ fontSize: 13, fontWeight: 700, color: "var(--t-text)", marginBottom: 4 }}>Who are you booking for?</p>
-            <p style={{ fontSize: 11, color: "var(--t-text-3)", marginBottom: 12 }}>Select your gender to see relevant services and salons.</p>
-            <div style={{ display: "flex", gap: 8 }}>
-              {[{ key: "male", label: "👨 Men", desc: "Haircuts, beard & grooming" }, { key: "female", label: "👩 Women", desc: "Hair, beauty & bridal" }].map(({ key, label, desc }) => (
-                <button key={key} onClick={() => handleGenderFilter(key)} style={{ flex: 1, padding: "10px 12px", borderRadius: 12, fontSize: 12, fontWeight: 700, cursor: "pointer", transition: "all 0.18s ease", background: "var(--t-card)", border: "2px solid var(--t-border)", color: "var(--t-text)", textAlign: "left" }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#6366f1"; e.currentTarget.style.background = "rgba(99,102,241,0.06)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--t-border)"; e.currentTarget.style.background = "var(--t-card)"; }}>
-                  <div>{label}</div>
-                  <div style={{ fontSize: 10, fontWeight: 400, color: "var(--t-text-3)", marginTop: 2 }}>{desc}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Section header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
           <div>
@@ -411,16 +393,6 @@ export default function Home() {
             {!loading && salons.length > 0 && (
               <p style={{ fontSize: 12, color: "var(--t-text-3)" }}>{salons.length} salon{salons.length !== 1 ? "s" : ""}</p>
             )}
-          </div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {GENDER_FILTERS.map(({ key, label }) => {
-              const active = genderFilter === key;
-              return (
-                <button key={key} onClick={() => handleGenderFilter(key)} style={{ padding: "5px 12px", borderRadius: 999, fontSize: 11, fontWeight: 600, cursor: "pointer", transition: "all 0.18s ease", background: active ? "rgba(244,63,94,0.13)" : "var(--t-input-bg)", border: active ? "1px solid rgba(244,63,94,0.32)" : "1px solid var(--t-border)", color: active ? "#fb7185" : "var(--t-text-3)", whiteSpace: "nowrap" }}>
-                  {label}
-                </button>
-              );
-            })}
           </div>
         </div>
         {loading && (
@@ -457,7 +429,6 @@ export default function Home() {
           sort={sort}
           onSortChange={handleSortChange}
           genderFilter={genderFilter}
-          onGenderFilter={handleGenderFilter}
           salonGrid={guestSalonGrid}
         />
       </div>
