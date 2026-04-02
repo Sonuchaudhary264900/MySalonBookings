@@ -24,6 +24,7 @@ import IntroScreen        from './src/screens/auth/IntroScreen';
 import LoginScreen        from './src/screens/auth/LoginScreen';
 import RegisterScreen     from './src/screens/auth/RegisterScreen';
 import HomeScreen         from './src/screens/main/HomeScreen';
+import ReelsScreen        from './src/screens/main/ReelsScreen';
 import SalonDetailsScreen from './src/screens/main/SalonDetailsScreen';
 import BookingScreen      from './src/screens/main/BookingScreen';
 import BookingsScreen     from './src/screens/main/BookingsScreen';
@@ -34,13 +35,14 @@ import NotificationsScreen  from './src/screens/main/NotificationsScreen';
 import ReferAndEarnScreen   from './src/screens/main/ReferAndEarnScreen';
 import LegalScreen          from './src/screens/legal/LegalScreen';
 
-const RootStack = createNativeStackNavigator();
-const AuthStack = createNativeStackNavigator();
-const Tab       = createMaterialTopTabNavigator();
-const HomeStack = createNativeStackNavigator();
-const BookStack = createNativeStackNavigator();
-const FavStack  = createNativeStackNavigator();
-const SetgStack = createNativeStackNavigator();
+const RootStack   = createNativeStackNavigator();
+const AuthStack   = createNativeStackNavigator();
+const Tab         = createMaterialTopTabNavigator();
+const HomeStack   = createNativeStackNavigator();
+const BookStack   = createNativeStackNavigator();
+const FavStack    = createNativeStackNavigator();
+const SetgStack   = createNativeStackNavigator();
+const ReelsStack  = createNativeStackNavigator();
 
 
 // ── Stack navigators ─────────────────────────────────────────────
@@ -84,12 +86,21 @@ function SettingsStackNav() {
   );
 }
 
+function ReelsStackNav() {
+  return (
+    <ReelsStack.Navigator screenOptions={{ headerShown: false }}>
+      <ReelsStack.Screen name="ReelsMain" component={ReelsScreen} />
+    </ReelsStack.Navigator>
+  );
+}
+
 // ── Custom bottom tab bar (icons + labels rendered properly) ──────
 const TAB_ICONS = {
-  HomeTab:      ['home',     'home-outline'],
-  BookingsTab:  ['calendar', 'calendar-outline'],
-  FavoritesTab: ['heart',    'heart-outline'],
-  SettingsTab:  ['settings', 'settings-outline'],
+  HomeTab:      ['home',         'home-outline'],
+  ReelsTab:     ['film',         'film-outline'],
+  BookingsTab:  ['calendar',     'calendar-outline'],
+  FavoritesTab: ['heart',        'heart-outline'],
+  SettingsTab:  ['settings',     'settings-outline'],
 };
 
 function CustomTabBar({ state, navigation }) {
@@ -97,6 +108,7 @@ function CustomTabBar({ state, navigation }) {
   const { t }     = useLanguage();
   const labels    = {
     HomeTab:      t('tabHome'),
+    ReelsTab:     t('tabReels'),
     BookingsTab:  t('tabBookings'),
     FavoritesTab: t('tabFavorites'),
     SettingsTab:  t('tabSettings'),
@@ -146,6 +158,7 @@ function MainTabs() {
       }}
     >
       <Tab.Screen name="HomeTab"      component={HomeStackNav} />
+      <Tab.Screen name="ReelsTab"     component={ReelsStackNav} />
       <Tab.Screen name="BookingsTab"  component={BookingsStackNav} />
       <Tab.Screen name="FavoritesTab" component={FavoritesStackNav} />
       <Tab.Screen name="SettingsTab"  component={SettingsStackNav} />
