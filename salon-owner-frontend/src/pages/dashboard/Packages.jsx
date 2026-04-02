@@ -41,6 +41,7 @@ export default function Packages() {
   const { isDark } = useTheme();
   const [activeTab, setActiveTab]   = useState('packages');   // 'packages' | 'memberships' | 'requests'
   const [items, setItems]           = useState([]);
+  const [salonServices, setSalonServices] = useState([]);
   const [requests, setRequests]     = useState([]);
   const [loading, setLoading]       = useState(true);
   const [reqLoading, setReqLoading] = useState(false);
@@ -55,14 +56,17 @@ export default function Packages() {
   const fetchItems = useCallback(async () => {
     setLoading(true);
     try {
-      const [pkgRes, memRes] = await Promise.all([
+      const [pkgRes, memRes, svcRes] = await Promise.all([
         api.get('/owner/packages?type=package'),
         api.get('/owner/packages?type=membership'),
+        api.get('/owner/services'),
       ]);
       setItems([
         ...(pkgRes.data.data?.packages || []),
         ...(memRes.data.data?.packages || []),
       ]);
+      const svcs = svcRes.data?.services ?? svcRes.data?.data ?? svcRes.data ?? [];
+      setSalonServices(Array.isArray(svcs) ? svcs.filter(s => s.isActive !== false) : []);
     } catch { toast.error('Failed to load packages'); }
     finally { setLoading(false); }
   }, []);
@@ -372,6 +376,7 @@ export default function Packages() {
           onChange={handleFormChange}
           onSave={handleSave}
           onClose={() => setShowForm(false)}
+          salonServices={salonServices}
         />
       )}
     </DashboardLayout>
@@ -547,7 +552,7 @@ function MembershipCard({ pkg, onEdit, onDelete, onToggle }) {
 /* ═══════════════════════════════════════════════════════════════
    FORM MODAL
 ═══════════════════════════════════════════════════════════════ */
-function PackageFormModal({ form, editId, saving, onChange, onSave, onClose }) {
+function PackageFormModal({ form, editId, saving, onChange, onSave, onClose, salonServices = [] }) {
   const isPackage = form.type === 'package';
 
   const addFreeService = () => onChange({ freeServices: [...form.freeServices, { serviceName: '', usageLimit: '1' }] });
@@ -568,6 +573,19 @@ function PackageFormModal({ form, editId, saving, onChange, onSave, onClose }) {
     const origTotal = newServices.reduce((s, sv) => s + (parseFloat(sv.price) || 0), 0);
     const durTotal  = newServices.reduce((s, sv) => s + (parseInt(sv.duration) || 0), 0);
     onChange({ services: newServices, originalPrice: String(origTotal || ''), totalDuration: String(durTotal || '') });
+  };
+
+  const selectServiceFromList = (i, selectedSvc) => {
+    const updated = [...form.services];
+    updated[i] = {
+      ...updated[i],
+      serviceName: selectedSvc.name,
+      price: String(selectedSvc.price || selectedSvc.basePrice || ''),
+      duration: String(selectedSvc.duration || ''),
+    };
+    const origTotal = updated.reduce((s, sv) => s + (parseFloat(sv.price) || 0), 0);
+    const durTotal  = updated.reduce((s, sv) => s + (parseInt(sv.duration) || 0), 0);
+    onChange({ services: updated, originalPrice: String(origTotal || ''), totalDuration: String(durTotal || '') });
   };
 
   return (
@@ -647,8 +665,23 @@ function PackageFormModal({ form, editId, saving, onChange, onSave, onClose }) {
                 <div className="space-y-2">
                   {form.services.map((svc, i) => (
                     <div key={i} className="flex gap-2 items-center">
-                      <input value={svc.serviceName} onChange={e => updateService(i, 'serviceName', e.target.value)} placeholder="Service name"
-                        className="flex-1 h-9 px-3 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                      <select
+                        value={svc.serviceName}
+                        onChange={e => {
+                          const found = salonServices.find(s => s.name === e.target.value);
+                          if (found) selectServiceFromList(i, found);
+                          else updateService(i, 'serviceName', e.target.value);
+                        }}
+                        className="flex-1 h-9 px-3 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value="">Select service…</option>
+                        {salonServices.map(s => (
+                          <option key={s._id} value={s.name}>{s.name}</option>
+                        ))}
+                        {svc.serviceName && !salonServices.find(s => s.name === svc.serviceName) && (
+                          <option value={svc.serviceName}>{svc.serviceName}</option>
+                        )}
+                      </select>
                       <input value={svc.price} onChange={e => updateService(i, 'price', e.target.value)} placeholder="₹" type="number" min="0"
                         className="w-20 h-9 px-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                       <input value={svc.duration} onChange={e => updateService(i, 'duration', e.target.value)} placeholder="min" type="number" min="0"
@@ -739,8 +772,19 @@ function PackageFormModal({ form, editId, saving, onChange, onSave, onClose }) {
                 <div className="space-y-2">
                   {form.freeServices.map((fs, i) => (
                     <div key={i} className="flex gap-2 items-center">
-                      <input value={fs.serviceName} onChange={e => updateFreeService(i, 'serviceName', e.target.value)} placeholder="Service name"
-                        className="flex-1 h-9 px-3 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                      <select
+                        value={fs.serviceName}
+                        onChange={e => updateFreeService(i, 'serviceName', e.target.value)}
+                        className="flex-1 h-9 px-3 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+                      >
+                        <option value="">Select service…</option>
+                        {salonServices.map(s => (
+                          <option key={s._id} value={s.name}>{s.name}</option>
+                        ))}
+                        {fs.serviceName && !salonServices.find(s => s.name === fs.serviceName) && (
+                          <option value={fs.serviceName}>{fs.serviceName}</option>
+                        )}
+                      </select>
                       <span className="text-xs text-gray-400 shrink-0">×</span>
                       <input value={fs.usageLimit} onChange={e => updateFreeService(i, 'usageLimit', e.target.value)} type="number" min="1" placeholder="1"
                         className="w-16 h-9 px-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500" />
