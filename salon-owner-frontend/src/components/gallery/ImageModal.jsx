@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   X, ChevronLeft, ChevronRight, Trash2, Edit2, Star, Tag,
-  Check, Loader2, AlertTriangle, Download, Calendar,
+  Check, Loader2, AlertTriangle, Download, Calendar, Zap,
 } from 'lucide-react';
 import api from '../../services/api';
 
@@ -66,6 +66,8 @@ const ImageModal = ({
   const [showDelete,  setShowDelete]   = useState(false);
   const [imgLoaded,   setImgLoaded]    = useState(false);
   const [settingCover, setSettingCover] = useState(false);
+  const [inReels,     setInReels]      = useState(false);
+  const [togglingReel, setTogglingReel] = useState(false);
 
   const photo = photos[idx];
 
@@ -80,6 +82,7 @@ const ImageModal = ({
       setEditMode(false);
       setImgLoaded(false);
       setShowDelete(false);
+      setInReels(photo.inReels || false);
     }
   }, [idx, photo]);
 
@@ -142,6 +145,16 @@ const ImageModal = ({
       onCoverSet(photo._id);
     } catch { /* silent */ } finally {
       setSettingCover(false);
+    }
+  };
+
+  const handleReelToggle = async () => {
+    setTogglingReel(true);
+    try {
+      const res = await api.put('/owner/gallery/reel-toggle', { videoUrl: url });
+      setInReels(res.data.inReels);
+    } catch { /* silent */ } finally {
+      setTogglingReel(false);
     }
   };
 
@@ -334,8 +347,8 @@ const ImageModal = ({
               </div>
             )}
 
-            {/* Cover photo */}
-            {!isCover && (
+            {/* Cover photo — photos only */}
+            {!isVideo && !isCover && (
               <button
                 onClick={handleSetCover}
                 disabled={settingCover}
@@ -349,6 +362,26 @@ const ImageModal = ({
                   : <Star className="w-3.5 h-3.5" />
                 }
                 Set as Cover Photo
+              </button>
+            )}
+
+            {/* Feature in Reels — videos only */}
+            {isVideo && (
+              <button
+                onClick={handleReelToggle}
+                disabled={togglingReel}
+                className={`w-full flex items-center justify-center gap-2 py-2 rounded-xl
+                  text-xs font-semibold transition-colors disabled:opacity-60
+                  ${inReels
+                    ? 'bg-violet-600 hover:bg-violet-700 text-white border border-violet-600'
+                    : 'border border-violet-300 dark:border-violet-700 text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-950/40'
+                  }`}
+              >
+                {togglingReel
+                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  : <Zap className="w-3.5 h-3.5" />
+                }
+                {inReels ? 'Remove from Reels' : 'Feature in Reels'}
               </button>
             )}
           </div>
@@ -376,7 +409,7 @@ const ImageModal = ({
                 className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl
                   border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400
                   hover:bg-red-50 dark:hover:bg-red-950/40 text-xs font-semibold transition-colors">
-                <Trash2 className="w-3.5 h-3.5" /> Delete Photo
+                <Trash2 className="w-3.5 h-3.5" /> {isVideo ? 'Delete Video' : 'Delete Photo'}
               </button>
             )}
           </div>
