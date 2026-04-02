@@ -34,16 +34,20 @@ const multerUpload = multer({
   },
 });
 
-// Separate multer for video uploads (up to 300 MB after client-side compression)
+// Separate multer for video uploads (up to 300 MB)
 const multerVideoUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 300 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const allowed = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo'];
-    if (allowed.includes(file.mimetype)) {
+    // Accept any video/* MIME type, or octet-stream with a video extension
+    const isVideoMime = file.mimetype.startsWith('video/');
+    const ext = (file.originalname || '').split('.').pop().toLowerCase();
+    const videoExts = ['mp4', 'mov', 'webm', 'avi', 'mkv', 'm4v', '3gp'];
+    const isVideoExt = videoExts.includes(ext);
+    if (isVideoMime || (file.mimetype === 'application/octet-stream' && isVideoExt)) {
       cb(null, true);
     } else {
-      cb(new Error('Only video files are allowed (mp4, mov, webm)'), false);
+      cb(new Error('Only video files are allowed (mp4, mov, webm, avi)'), false);
     }
   },
 });
