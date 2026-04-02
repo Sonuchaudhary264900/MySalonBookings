@@ -341,6 +341,60 @@ router.get("/public/salons/:salonId/reviews", validateObjectId("salonId"), async
   res.json({ success: true, data: { reviews } });
 }));
 
+// GET /public/reels?latitude=&longitude=&page=1&limit=20
+// Returns flattened salon videos, sorted by proximity when coords provided
+router.get("/public/reels", asyncHandler(async (req, res) => {
+  const { latitude, longitude, page = 1, limit = 20 } = req.query;
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+  const hasCoords = latitude && longitude && !isNaN(lat) && !isNaN(lng);
+
+  const baseQuery = { isApproved: true, "videos.0": { $exists: true } };
+
+  let salons;
+  if (hasCoords) {
+    salons = await Salon.find({
+      ...baseQuery,
+      location: {
+        $nearSphere: {
+          $geometry: { type: "Point", coordinates: [lng, lat] },
+          $maxDistance: 20000, // 20 km
+        },
+      },
+    })
+      .select("name city logo coverPhoto averageRating videos")
+      .limit(100)
+      .lean();
+  } else {
+    salons = await Salon.find(baseQuery)
+      .select("name city logo coverPhoto averageRating videos")
+      .sort({ averageRating: -1, totalBookings: -1 })
+      .limit(100)
+      .lean();
+  }
+
+  // Flatten to individual reel items
+  const allReels = [];
+  for (const s of salons) {
+    for (let i = 0; i < (s.videos || []).length; i++) {
+      allReels.push({
+        _id: `${s._id}_${i}`,
+        videoUrl: s.videos[i],
+        salon: { _id: s._id, name: s.name, city: s.city, logo: s.logo || null, coverPhoto: s.coverPhoto || null, averageRating: s.averageRating || 0 },
+      });
+    }
+  }
+
+  // Shuffle for feed variety (Fisher-Yates)
+  for (let i = allReels.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [allReels[i], allReels[j]] = [allReels[j], allReels[i]];
+  }
+
+  const skip = (Number(page) - 1) * Number(limit);
+  res.json({ success: true, data: allReels.slice(skip, skip + Number(limit)), total: allReels.length, page: Number(page) });
+}));
+
 // GET /public/salons/:salonId/booked-slots?date=YYYY-MM-DD&duration=N
 router.get("/public/salons/:salonId/booked-slots", validateObjectId("salonId"), asyncHandler(async (req, res) => {
   const { date, duration } = req.query;
