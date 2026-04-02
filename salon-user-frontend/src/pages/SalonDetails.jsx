@@ -1,10 +1,10 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   Scissors, Phone, Star, Check, MessageSquare, Frown, Building2,
   Mail, ShoppingBag, MapPin, Navigation, ChevronDown, ChevronUp,
   Clock, Sparkles, Award, Users, ArrowLeft, Zap, X, Calendar,
-  User, Tag, CreditCard, CheckCircle, Gift,
+  User, Tag, CreditCard, CheckCircle, Gift, Play, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import API from "../services/api";
 import ServiceCard from "../components/ServiceCard";
@@ -116,6 +116,8 @@ function SalonDetails() {
   const activeTab = TABS.includes(tab) ? tab : "Services";
 
   // ── Booking state ────────────────────────────────────────────────────────
+  const [galleryLightbox, setGalleryLightbox] = useState(null); // index into galleryItems
+  const galleryVideoRef = useRef(null);
   const [showBooking, setShowBooking]     = useState(false);
   const [barbers, setBarbers]             = useState([]);
   const [barberId, setBarberId]           = useState("");
@@ -324,6 +326,13 @@ function SalonDetails() {
   const avgRating = salon.averageRating || salon.rating
     ? parseFloat(salon.averageRating || salon.rating).toFixed(1)
     : null;
+
+  const salonPhotos = salon.photos || [];
+  const salonVideos = salon.videos || [];
+  const galleryItems = [
+    ...salonPhotos.map(url => ({ url, type: 'image' })),
+    ...salonVideos.map(url => ({ url, type: 'video' })),
+  ];
 
   const openStatus = isOpenNow(salon.workingHours);
   const todayHours = getTodayHours(salon.workingHours);
@@ -1064,21 +1073,92 @@ function SalonDetails() {
         {/* ══ INFO TAB ═══════════════════════════════════════════════════ */}
         {activeTab === "Info" && (
           <div className="fade-in space-y-4 pb-8">
-            {salon.photos?.length > 0 && (
+            {galleryItems.length > 0 && (
               <div className="rounded-2xl p-5" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
                 <h3 className="font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--t-text)' }}>
                   <Sparkles className="w-4 h-4" style={{ color: '#818cf8' }} />
-                  Gallery ({salon.photos.length})
+                  Gallery ({salonPhotos.length > 0 && `${salonPhotos.length} photo${salonPhotos.length !== 1 ? 's' : ''}`}{salonPhotos.length > 0 && salonVideos.length > 0 && ' · '}{salonVideos.length > 0 && `${salonVideos.length} video${salonVideos.length !== 1 ? 's' : ''}`})
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {salon.photos.map((url, i) => (
-                    <a key={i} href={url} target="_blank" rel="noreferrer" className="block aspect-square rounded-xl overflow-hidden group">
-                      <img src={url} alt={`Salon photo ${i + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
-                    </a>
+                  {galleryItems.map((item, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setGalleryLightbox(i)}
+                      className="relative block aspect-square rounded-xl overflow-hidden group focus:outline-none"
+                    >
+                      {item.type === 'video' ? (
+                        <>
+                          <video src={item.url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" muted preload="metadata" />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/25 group-hover:bg-black/40 transition-colors">
+                            <div className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center border-2 border-white/60 group-hover:scale-110 transition-transform">
+                              <Play className="w-5 h-5 text-white fill-white ml-0.5" />
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <img src={item.url} alt={`Salon photo ${i + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                      )}
+                    </button>
                   ))}
                 </div>
               </div>
             )}
+
+            {/* Gallery Lightbox */}
+            {galleryLightbox !== null && galleryItems[galleryLightbox] && (() => {
+              const lbItem = galleryItems[galleryLightbox];
+              const isVideo = lbItem.type === 'video';
+              const goPrev = () => { galleryVideoRef.current?.pause(); setGalleryLightbox(i => i - 1); };
+              const goNext = () => { galleryVideoRef.current?.pause(); setGalleryLightbox(i => i + 1); };
+              const closeGallery = () => { galleryVideoRef.current?.pause(); setGalleryLightbox(null); };
+              return (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-4" onClick={closeGallery}>
+                  {/* Close */}
+                  <button onClick={closeGallery} className="absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition">
+                    <X className="w-5 h-5" />
+                  </button>
+
+                  {/* Counter + type badge */}
+                  <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10">
+                    <span className="text-white text-sm font-semibold bg-black/40 px-3 py-1 rounded-full">
+                      {galleryLightbox + 1} / {galleryItems.length}
+                    </span>
+                    {isVideo && <span className="text-xs text-violet-300 bg-violet-900/60 px-2 py-1 rounded-full font-semibold">Video</span>}
+                  </div>
+
+                  {/* Media */}
+                  <div className="max-w-4xl w-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
+                    {isVideo ? (
+                      <video
+                        ref={galleryVideoRef}
+                        src={lbItem.url}
+                        controls
+                        autoPlay
+                        className="max-h-[80vh] max-w-full rounded-xl"
+                        style={{ minHeight: 200 }}
+                      />
+                    ) : (
+                      <img src={lbItem.url} alt="" className="max-h-[80vh] max-w-full rounded-xl object-contain" />
+                    )}
+                  </div>
+
+                  {/* Prev */}
+                  {galleryLightbox > 0 && (
+                    <button onClick={e => { e.stopPropagation(); goPrev(); }}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 text-white transition">
+                      <ChevronLeft className="w-6 h-6" />
+                    </button>
+                  )}
+                  {/* Next */}
+                  {galleryLightbox < galleryItems.length - 1 && (
+                    <button onClick={e => { e.stopPropagation(); goNext(); }}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 text-white transition">
+                      <ChevronRight className="w-6 h-6" />
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
             {salon.description && (
               <div className="rounded-2xl p-5" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
                 <h3 className="font-bold mb-2" style={{ color: 'var(--t-text)' }}>About</h3>
