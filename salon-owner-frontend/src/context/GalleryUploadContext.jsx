@@ -73,6 +73,7 @@ export function GalleryUploadProvider({ children }) {
           // Creep bar to 88 while waiting for server response
           const timer = animateTo(item.id, 88);
           await api.post('/owner/gallery', fd, {
+            headers: { 'Content-Type': undefined }, // let axios auto-set multipart boundary
             onUploadProgress: (e) => {
               clearInterval(timer);
               // e.progress is 0-1 in axios ≥1.x; fallback for older
@@ -91,6 +92,7 @@ export function GalleryUploadProvider({ children }) {
           // Creep bar to 92 while waiting — video can take a while server→Cloudinary
           const timer = animateTo(item.id, 92, 600);
           await api.post('/owner/gallery/video', fd, {
+            headers: { 'Content-Type': undefined }, // let axios auto-set multipart boundary
             onUploadProgress: (e) => {
               const ratio = typeof e.progress === 'number'
                 ? e.progress
