@@ -27,10 +27,9 @@ const compressImage = (file, maxW = 1920) =>
   });
 
 export function GalleryUploadProvider({ children }) {
-  const [uploads, setUploads]               = useState([]);
+  const [uploads, setUploads]                 = useState([]);
   const [lastCompletedAt, setLastCompletedAt] = useState(null);
 
-  // Internal queue — items waiting to be uploaded
   const queueRef      = useRef([]);
   const processingRef = useRef(false);
 
@@ -38,7 +37,23 @@ export function GalleryUploadProvider({ children }) {
     setUploads(prev => prev.map(u => u.id === id ? { ...u, ...patch } : u));
   }, []);
 
-  /* Run items from the queue one by one */
+  /* ── Animate progress bar from current% toward cap over time ── */
+  const animateTo = useCallback((id, cap, intervalMs = 400) => {
+    const timer = setInterval(() => {
+      setUploads(prev => {
+        const u = prev.find(x => x.id === id);
+        if (!u || u.progress >= cap || u.status === 'done' || u.status === 'error') {
+          clearInterval(timer);
+          return prev;
+        }
+        // creep 2% per tick toward cap
+        const next = Math.min(cap, u.progress + 2);
+        return prev.map(x => x.id === id ? { ...x, progress: next } : x);
+      });
+    }, intervalMs);
+    return timer;
+  }, []);
+
   const processQueue = useCallback(async () => {
     if (processingRef.current) return;
     processingRef.current = true;
@@ -54,24 +69,39 @@ export function GalleryUploadProvider({ children }) {
 
           const fd = new FormData();
           fd.append('image', compressed);
+
+          // Creep bar to 88 while waiting for server response
+          const timer = animateTo(item.id, 88);
           await api.post('/owner/gallery', fd, {
-            headers: { 'Content-Type': 'multipart/form-data' },
             onUploadProgress: (e) => {
-              const pct = Math.round((e.loaded / e.total) * 60) + 30;
-              patchItem(item.id, { progress: pct });
+              clearInterval(timer);
+              // e.progress is 0-1 in axios ≥1.x; fallback for older
+              const ratio = typeof e.progress === 'number'
+                ? e.progress
+                : (e.total > 0 ? e.loaded / e.total : 0);
+              patchItem(item.id, { progress: Math.min(90, Math.round(ratio * 60) + 30) });
             },
           });
+          clearInterval(timer);
+
         } else {
-          // Videos: upload raw — Cloudinary optimises on delivery
           const fd = new FormData();
           fd.append('video', item.file);
+
+          // Creep bar to 92 while waiting — video can take a while server→Cloudinary
+          const timer = animateTo(item.id, 92, 600);
           await api.post('/owner/gallery/video', fd, {
-            headers: { 'Content-Type': 'multipart/form-data' },
             onUploadProgress: (e) => {
-              const pct = Math.round((e.loaded / e.total) * 90) + 5;
-              patchItem(item.id, { progress: pct });
+              const ratio = typeof e.progress === 'number'
+                ? e.progress
+                : (e.total > 0 ? e.loaded / e.total : 0);
+              if (ratio > 0) {
+                clearInterval(timer);
+                patchItem(item.id, { progress: Math.min(92, Math.round(ratio * 87) + 5) });
+              }
             },
           });
+          clearInterval(timer);
         }
 
         patchItem(item.id, { status: 'done', progress: 100 });
@@ -83,9 +113,8 @@ export function GalleryUploadProvider({ children }) {
     }
 
     processingRef.current = false;
-  }, [patchItem]);
+  }, [patchItem, animateTo]);
 
-  /* Add files to queue and kick off processing */
   const enqueueUploads = useCallback((fileItems) => {
     const items = fileItems.map(f => ({
       ...f,
@@ -98,7 +127,6 @@ export function GalleryUploadProvider({ children }) {
     processQueue();
   }, [processQueue]);
 
-  /* Dismiss done/error items from the floating bar */
   const clearDone = useCallback(() => {
     setUploads(prev => prev.filter(u => u.status !== 'done' && u.status !== 'error'));
   }, []);
