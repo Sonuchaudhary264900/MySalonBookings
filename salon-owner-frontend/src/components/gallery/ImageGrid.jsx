@@ -1,6 +1,14 @@
 import { useState } from 'react';
 import { Eye, Trash2, Star, Tag, Play, AlertTriangle, X } from 'lucide-react';
 
+/* ── Cloudinary video → JPEG thumbnail ── */
+function cloudinaryThumb(url) {
+  if (!url || !url.includes('/video/upload/')) return '';
+  return url
+    .replace('/video/upload/', '/video/upload/so_0,w_400,h_400,c_fill,q_auto,f_jpg/')
+    .replace(/\.(mp4|mov|avi|mkv|webm)(\?.*)?$/i, '.jpg');
+}
+
 const TAG_COLORS = {
   Haircut: 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400',
   Beard:   'bg-violet-100 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400',
@@ -51,6 +59,7 @@ const ImageCard = ({ photo, isCover, onView, onDelete }) => {
           <video
             ref={el => { if (el) el.muted = true; }}
             src={url}
+            poster={cloudinaryThumb(url)}
             playsInline
             preload="metadata"
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"

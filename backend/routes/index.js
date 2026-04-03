@@ -438,7 +438,8 @@ router.get("/public/reels", asyncHandler(async (req, res) => {
   if (pageReels.length > 0) {
     const videoUrls = pageReels.map(r => r.videoUrl);
 
-    const [likesAgg, viewsAgg, likedDocs] = await Promise.all([
+    const ReelComment = require("../models/ReelComment");
+    const [likesAgg, viewsAgg, likedDocs, commentsAgg] = await Promise.all([
       ReelLike.aggregate([
         { $match: { videoUrl: { $in: videoUrls } } },
         { $group: { _id: '$videoUrl', count: { $sum: 1 } } },
@@ -450,16 +451,22 @@ router.get("/public/reels", asyncHandler(async (req, res) => {
       customerId
         ? ReelLike.find({ videoUrl: { $in: videoUrls }, customerId }).select('videoUrl').lean()
         : Promise.resolve([]),
+      ReelComment.aggregate([
+        { $match: { videoUrl: { $in: videoUrls } } },
+        { $group: { _id: '$videoUrl', count: { $sum: 1 } } },
+      ]),
     ]);
 
-    const likeMap   = Object.fromEntries(likesAgg.map(d => [d._id, d.count]));
-    const viewMap   = Object.fromEntries(viewsAgg.map(d => [d._id, d.count]));
-    const likedSet  = new Set((likedDocs || []).map(d => d.videoUrl));
+    const likeMap    = Object.fromEntries(likesAgg.map(d => [d._id, d.count]));
+    const viewMap    = Object.fromEntries(viewsAgg.map(d => [d._id, d.count]));
+    const commentMap = Object.fromEntries(commentsAgg.map(d => [d._id, d.count]));
+    const likedSet   = new Set((likedDocs || []).map(d => d.videoUrl));
 
     pageReels.forEach(r => {
-      r.likeCount  = likeMap[r.videoUrl]  || 0;
-      r.viewCount  = viewMap[r.videoUrl]  || 0;
-      r.liked      = likedSet.has(r.videoUrl);
+      r.likeCount    = likeMap[r.videoUrl]    || 0;
+      r.viewCount    = viewMap[r.videoUrl]    || 0;
+      r.commentCount = commentMap[r.videoUrl] || 0;
+      r.liked        = likedSet.has(r.videoUrl);
     });
   }
 
@@ -467,10 +474,21 @@ router.get("/public/reels", asyncHandler(async (req, res) => {
 }));
 
 // POST /public/reels/view — record a view (called after 3s of watching)
+// Deduplicates: same fingerprint + videoUrl within 24h counts as one view
 router.post("/public/reels/view", asyncHandler(async (req, res) => {
   const { videoUrl, salonId, fingerprint } = req.body;
   if (!videoUrl || !salonId) return res.status(400).json({ success: false, message: "videoUrl and salonId required" });
   const ReelView = require("../models/ReelView");
+
+  if (fingerprint) {
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const exists = await ReelView.findOne({ videoUrl, fingerprint, createdAt: { $gte: since } }).lean();
+    if (exists) {
+      const viewCount = await ReelView.countDocuments({ videoUrl });
+      return res.json({ success: true, viewCount, duplicate: true });
+    }
+  }
+
   await ReelView.create({ videoUrl, salonId, fingerprint: fingerprint || null });
   const viewCount = await ReelView.countDocuments({ videoUrl });
   res.json({ success: true, viewCount });

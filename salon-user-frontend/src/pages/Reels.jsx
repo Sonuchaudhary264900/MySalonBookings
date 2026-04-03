@@ -5,6 +5,24 @@ import API from "../services/api";
 /* ── Auth helper ── */
 const isLoggedIn = () => !!localStorage.getItem('customerToken');
 
+/* ── Cloudinary video → JPEG thumbnail ── */
+function cloudinaryThumb(url) {
+  if (!url || !url.includes('/video/upload/')) return '';
+  return url
+    .replace('/video/upload/', '/video/upload/so_0,w_720,h_1280,c_fill,q_auto,f_jpg/')
+    .replace(/\.(mp4|mov|avi|mkv|webm)(\?.*)?$/i, '.jpg');
+}
+
+/* ── Persistent session ID for view deduplication ── */
+function getSessionId() {
+  let id = localStorage.getItem('reelSessionId');
+  if (!id) {
+    id = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    localStorage.setItem('reelSessionId', id);
+  }
+  return id;
+}
+
 /* ── Relative time (e.g. "2h ago") ── */
 function timeAgo(date) {
   if (!date) return '';
@@ -243,7 +261,7 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
       if (viewedRef.current) return;
       viewedRef.current = true;
       try {
-        const r = await API.post('/public/reels/view', { videoUrl: reel.videoUrl, salonId: reel.salon._id, fingerprint: 'anon' });
+        const r = await API.post('/public/reels/view', { videoUrl: reel.videoUrl, salonId: reel.salon._id, fingerprint: getSessionId() });
         setViewCount(r.data.viewCount || viewCount + 1);
       } catch { setViewCount(c => c + 1); }
     }, 3000);
@@ -311,6 +329,7 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
       <video
         ref={videoRef}
         src={reel.videoUrl}
+        poster={cloudinaryThumb(reel.videoUrl)}
         className="reel-video"
         loop
         playsInline

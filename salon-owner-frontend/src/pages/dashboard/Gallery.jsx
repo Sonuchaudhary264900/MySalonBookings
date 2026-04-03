@@ -104,6 +104,14 @@ const FeaturedStrip = ({ photos, coverId, onView }) => {
   );
 };
 
+/* ── Cloudinary video → JPEG thumbnail ── */
+function cloudinaryThumb(url) {
+  if (!url || !url.includes('/video/upload/')) return '';
+  return url
+    .replace('/video/upload/', '/video/upload/so_0,w_400,h_400,c_fill,q_auto,f_jpg/')
+    .replace(/\.(mp4|mov|avi|mkv|webm)(\?.*)?$/i, '.jpg');
+}
+
 /* ── Relative time ── */
 function timeAgo(date) {
   if (!date) return '';
@@ -149,7 +157,7 @@ const ReelInsightCard = ({ reel }) => {
       <div className="flex items-center gap-3 p-3">
         {/* Thumbnail */}
         <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 shrink-0">
-          <video src={url} muted playsInline preload="metadata" className="w-full h-full object-cover" />
+          <video src={url} poster={cloudinaryThumb(url)} muted playsInline preload="metadata" className="w-full h-full object-cover" />
           <div className="absolute inset-0 flex items-center justify-center bg-black/25">
             <Play className="w-4 h-4 text-white fill-white" />
           </div>
