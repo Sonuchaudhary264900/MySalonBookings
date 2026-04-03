@@ -594,6 +594,28 @@ router.get("/owner/reels/analytics", authenticateOwner, asyncHandler(async (req,
   res.json({ success: true, data: results });
 }));
 
+// POST /owner/reels/comments/:commentId/reply — owner replies to a customer comment
+router.post("/owner/reels/comments/:commentId/reply", authenticateOwner, asyncHandler(async (req, res) => {
+  const { commentId } = req.params;
+  const { text } = req.body;
+  if (!text?.trim()) return res.status(400).json({ success: false, message: "text is required" });
+
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] })
+    .select('name').lean();
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+
+  const ReelComment = require("../models/ReelComment");
+  const comment = await ReelComment.findById(commentId);
+  if (!comment) return res.status(404).json({ success: false, message: "Comment not found" });
+
+  const reply = { ownerName: salon.name, text: text.trim().slice(0, 500), createdAt: new Date() };
+  comment.replies.push(reply);
+  await comment.save();
+
+  const savedReply = comment.replies[comment.replies.length - 1];
+  res.status(201).json({ success: true, data: savedReply });
+}));
+
 // GET /public/salons/:salonId/booked-slots?date=YYYY-MM-DD&duration=N
 router.get("/public/salons/:salonId/booked-slots", validateObjectId("salonId"), asyncHandler(async (req, res) => {
   const { date, duration } = req.query;

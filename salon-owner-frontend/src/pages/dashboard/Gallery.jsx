@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Images, Upload, Star, Tag, RefreshCw, Loader2, ImagePlus, Film,
-  Heart, MessageCircle, ChevronDown, ChevronUp, Play, Eye,
+  Heart, MessageCircle, ChevronDown, ChevronUp, Play, Eye, Send, CornerDownRight,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -104,10 +104,45 @@ const FeaturedStrip = ({ photos, coverId, onView }) => {
   );
 };
 
+/* ── Relative time ── */
+function timeAgo(date) {
+  if (!date) return '';
+  const diff = (Date.now() - new Date(date).getTime()) / 1000;
+  if (diff < 60)    return `${Math.floor(diff)}s ago`;
+  if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
 /* ── Reel Insights card ── */
 const ReelInsightCard = ({ reel }) => {
   const [open, setOpen] = useState(false);
+  const [comments, setComments] = useState(reel.recentComments || []);
+  const [replyingTo, setReplyingTo] = useState(null); // commentId
+  const [replyText, setReplyText]   = useState('');
+  const [posting, setPosting]       = useState(false);
   const url = reel.videoUrl || '';
+
+  const submitReply = async (commentId) => {
+    const text = replyText.trim();
+    if (!text || posting) return;
+    setPosting(true);
+    try {
+      const r = await api.post(`/owner/reels/comments/${commentId}/reply`, { text });
+      setComments(prev => prev.map(c =>
+        String(c._id) === String(commentId)
+          ? { ...c, replies: [...(c.replies || []), r.data.data] }
+          : c
+      ));
+      setReplyText('');
+      setReplyingTo(null);
+      toast.success('Reply posted');
+    } catch {
+      toast.error('Failed to post reply');
+    } finally {
+      setPosting(false);
+    }
+  };
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
@@ -122,7 +157,6 @@ const ReelInsightCard = ({ reel }) => {
 
         {/* Stats */}
         <div className="flex-1 min-w-0">
-          {/* Categories */}
           {reel.categories?.length > 0 && (
             <div className="flex flex-wrap gap-1 mb-1.5">
               {reel.categories.map(c => (
@@ -143,8 +177,8 @@ const ReelInsightCard = ({ reel }) => {
           </div>
         </div>
 
-        {/* Expand toggle (only if comments) */}
-        {reel.recentComments?.length > 0 && (
+        {/* Expand toggle */}
+        {comments.length > 0 && (
           <button
             onClick={() => setOpen(o => !o)}
             className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 transition-colors shrink-0"
@@ -154,18 +188,66 @@ const ReelInsightCard = ({ reel }) => {
         )}
       </div>
 
-      {/* Recent comments */}
-      {open && reel.recentComments?.length > 0 && (
-        <div className="border-t border-gray-100 dark:border-gray-800 px-3 py-2 space-y-2">
-          {reel.recentComments.map((c, i) => (
-            <div key={i} className="flex gap-2">
-              <div className="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-950/60 flex items-center justify-center shrink-0">
-                <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">{c.name?.[0]?.toUpperCase()}</span>
+      {/* Comments + reply UI */}
+      {open && comments.length > 0 && (
+        <div className="border-t border-gray-100 dark:border-gray-800 px-3 py-2 space-y-3">
+          {comments.map((c) => (
+            <div key={c._id}>
+              {/* User comment */}
+              <div className="flex gap-2">
+                <div className="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-950/60 flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">{c.name?.[0]?.toUpperCase()}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-[11px] font-semibold text-gray-600 dark:text-gray-400">{c.name}</p>
+                    <p className="text-[10px] text-gray-400 dark:text-gray-600">{timeAgo(c.createdAt)}</p>
+                  </div>
+                  <p className="text-xs text-gray-800 dark:text-gray-200 break-words">{c.text}</p>
+                  <button
+                    onClick={() => setReplyingTo(replyingTo === c._id ? null : c._id)}
+                    className="mt-1 text-[10px] font-semibold text-indigo-500 hover:text-indigo-400 transition-colors"
+                  >
+                    {replyingTo === c._id ? 'Cancel' : 'Reply'}
+                  </button>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">{c.name}</p>
-                <p className="text-xs text-gray-800 dark:text-gray-200 break-words">{c.text}</p>
-              </div>
+
+              {/* Owner replies */}
+              {c.replies?.map((r, i) => (
+                <div key={i} className="flex gap-2 mt-2 ml-8 pl-2 border-l-2 border-violet-300/40 dark:border-violet-700/40">
+                  <CornerDownRight className="w-3 h-3 text-violet-400 shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="text-[11px] font-bold text-violet-600 dark:text-violet-400">{r.ownerName}</span>
+                      <span className="px-1.5 py-px rounded text-[9px] font-bold bg-violet-100 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400">Owner</span>
+                      <span className="text-[10px] text-gray-400 dark:text-gray-600">{timeAgo(r.createdAt)}</span>
+                    </div>
+                    <p className="text-xs text-gray-800 dark:text-gray-200 break-words">{r.text}</p>
+                  </div>
+                </div>
+              ))}
+
+              {/* Reply input */}
+              {replyingTo === c._id && (
+                <div className="flex gap-2 mt-2 ml-8">
+                  <input
+                    autoFocus
+                    value={replyText}
+                    onChange={e => setReplyText(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && !e.shiftKey && submitReply(c._id)}
+                    placeholder="Write a reply…"
+                    className="flex-1 text-xs px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 placeholder-gray-400 outline-none focus:border-indigo-400 dark:focus:border-indigo-600"
+                  />
+                  <button
+                    onClick={() => submitReply(c._id)}
+                    disabled={posting || !replyText.trim()}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 transition-colors shrink-0"
+                  >
+                    {posting ? <Loader2 className="w-3.5 h-3.5 text-white animate-spin" /> : <Send className="w-3.5 h-3.5 text-white" />}
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>

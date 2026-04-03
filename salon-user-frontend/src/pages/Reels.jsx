@@ -5,6 +5,16 @@ import API from "../services/api";
 /* ── Auth helper ── */
 const isLoggedIn = () => !!localStorage.getItem('customerToken');
 
+/* ── Relative time (e.g. "2h ago") ── */
+function timeAgo(date) {
+  if (!date) return '';
+  const diff = (Date.now() - new Date(date).getTime()) / 1000;
+  if (diff < 60)   return `${Math.floor(diff)}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
 /* ── Count formatter (1200 → 1.2K) ── */
 function fmtCount(n) {
   if (!n || n === 0) return '0';
@@ -749,14 +759,33 @@ export default function Reels() {
               ) : comments.length === 0 ? (
                 <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, textAlign: 'center', padding: '24px 0' }}>No comments yet. Be the first!</p>
               ) : comments.map(c => (
-                <div key={c._id} style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-                  <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <span style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>{c.name?.[0]?.toUpperCase()}</span>
+                <div key={c._id} style={{ marginBottom: 18 }}>
+                  {/* User comment */}
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>{c.name?.[0]?.toUpperCase()}</span>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 3 }}>
+                        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 700, margin: 0 }}>{c.name}</p>
+                        <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, margin: 0 }}>{timeAgo(c.createdAt)}</p>
+                      </div>
+                      <p style={{ color: '#fff', fontSize: 13, margin: 0, lineHeight: 1.4, wordBreak: 'break-word' }}>{c.text}</p>
+                    </div>
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 700, margin: '0 0 3px' }}>{c.name}</p>
-                    <p style={{ color: '#fff', fontSize: 13, margin: 0, lineHeight: 1.4, wordBreak: 'break-word' }}>{c.text}</p>
-                  </div>
+                  {/* Owner replies */}
+                  {c.replies?.map((r, i) => (
+                    <div key={i} style={{ display: 'flex', gap: 10, marginTop: 8, marginLeft: 44, paddingLeft: 10, borderLeft: '2px solid rgba(139,92,246,0.45)' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                          <span style={{ color: '#a78bfa', fontSize: 11, fontWeight: 700 }}>{r.ownerName}</span>
+                          <span style={{ background: 'rgba(139,92,246,0.3)', color: '#c4b5fd', fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 4 }}>Owner</span>
+                          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10 }}>{timeAgo(r.createdAt)}</span>
+                        </div>
+                        <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: 13, margin: 0, lineHeight: 1.4, wordBreak: 'break-word' }}>{r.text}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>
