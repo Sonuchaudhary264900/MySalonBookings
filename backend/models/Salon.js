@@ -163,6 +163,7 @@ location: {
       {
         url:        { type: String, required: true },
         categories: [{ type: String }],
+        createdAt:  { type: Date, default: Date.now },
       },
     ],
     logo: {
@@ -286,6 +287,11 @@ location: {
     isActive: {
       type: Boolean,
       default: true,
+    },
+    // Feed ranking: admin-toggleable boost for premium/featured salons
+    isBoostEnabled: {
+      type: Boolean,
+      default: false,
     },
 
     // ==========================================

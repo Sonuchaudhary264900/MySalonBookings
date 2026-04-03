@@ -357,11 +357,30 @@ const getOptionalCustomerId = (req) => {
   return null;
 };
 
+// ── Reel scoring helper (Phase 1 formula + Phase 3 personalisation) ──────────
+// Score = (normViews * 0.4) + (normLikes * 0.3) + (recentness * 0.2) + (ownerBoost * 0.1)
+// All inputs normalised to [0, 1]; personalisation multipliers applied on top.
+function computeReelScore(viewCount, likeCount, createdAt, isBoostEnabled, categoryBonus = 0, skipPenalty = 0) {
+  const ageMs   = Date.now() - new Date(createdAt || Date.now()).getTime();
+  const ageDays = ageMs / (1000 * 60 * 60 * 24);
+  // Soft normalisation — no global max needed; asymptotically approaches 1
+  const nViews  = viewCount / (viewCount + 100);   // 100-view midpoint
+  const nLikes  = likeCount / (likeCount + 10);    // 10-like midpoint
+  // Recentness decays linearly to 0 at 30 days
+  const recent  = Math.max(0, 1 - ageDays / 30);
+  const boost   = isBoostEnabled ? 1 : 0;
+  // Base score [0, 1]
+  const base = (nViews * 0.4) + (nLikes * 0.3) + (recent * 0.2) + (boost * 0.1);
+  // Phase 3 personalisation: category affinity boosts, skip history penalises
+  return base * (1 + categoryBonus * 0.4) * (1 - skipPenalty * 0.3);
+}
+
 // GET /public/reels?latitude=&longitude=&page=1&limit=30&gender=all|male|female&mode=nearest|all
-// Returns flattened salon reel videos with like/view counts embedded (no extra requests needed)
+// Returns flattened salon reel videos sorted by engagement score, personalised when logged in.
 router.get("/public/reels", asyncHandler(async (req, res) => {
-  const { latitude, longitude, page = 1, limit = 30, gender, mode } = req.query;
-  const customerId = getOptionalCustomerId(req);
+  const { latitude, longitude, page = 1, limit = 30, gender, mode, fingerprint: fpQuery } = req.query;
+  const customerId  = getOptionalCustomerId(req);
+  const fingerprint = fpQuery || req.headers['x-fingerprint'] || null;
   const lat = Number(latitude);
   const lng = Number(longitude);
   const hasCoords = latitude && longitude && !isNaN(lat) && !isNaN(lng);
@@ -385,69 +404,124 @@ router.get("/public/reels", asyncHandler(async (req, res) => {
         },
       },
     })
-      .select("name city logo coverPhoto averageRating reelVideos")
+      .select("name city logo coverPhoto averageRating reelVideos isBoostEnabled")
       .limit(100)
       .lean();
   } else {
     salons = await Salon.find(baseQuery)
-      .select("name city logo coverPhoto averageRating reelVideos")
+      .select("name city logo coverPhoto averageRating reelVideos isBoostEnabled")
       .limit(100)
       .lean();
   }
 
-  // Flatten to individual reel items
+  // Flatten to individual reel items — keep createdAt for scoring
   const allReels = [];
   for (const s of salons) {
     for (let i = 0; i < (s.reelVideos || []).length; i++) {
       const rv = s.reelVideos[i];
       const videoUrl   = typeof rv === 'string' ? rv : rv?.url;
       const categories = typeof rv === 'string' ? [] : (rv?.categories || []);
+      const createdAt  = typeof rv === 'string' ? null : (rv?.createdAt || null);
       if (!videoUrl) continue;
       allReels.push({
         _id: `${s._id}_${i}`,
         videoUrl,
         categories,
+        _createdAt:      createdAt,
+        _isBoostEnabled: s.isBoostEnabled || false,
         salon: { _id: s._id, name: s.name, city: s.city, logo: s.logo || null, averageRating: s.averageRating || 0 },
       });
     }
   }
 
-  const ReelLike = require("../models/ReelLike");
-  const ReelView = require("../models/ReelView");
-
-  if (useNearest) {
-    // Nearest mode: shuffle for feed variety (Fisher-Yates)
-    for (let i = allReels.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [allReels[i], allReels[j]] = [allReels[j], allReels[i]];
-    }
-  } else if (allReels.length > 0) {
-    // All mode: sort globally by most liked first
-    const allUrls = allReels.map(r => r.videoUrl);
-    const globalLikes = await ReelLike.aggregate([
-      { $match: { videoUrl: { $in: allUrls } } },
-      { $group: { _id: '$videoUrl', count: { $sum: 1 } } },
-    ]);
-    const globalLikeMap = Object.fromEntries(globalLikes.map(d => [d._id, d.count]));
-    allReels.sort((a, b) => (globalLikeMap[b.videoUrl] || 0) - (globalLikeMap[a.videoUrl] || 0));
+  if (allReels.length === 0) {
+    return res.json({ success: true, data: [], total: 0, page: Number(page) });
   }
 
+  const ReelLike    = require("../models/ReelLike");
+  const ReelView    = require("../models/ReelView");
+  const ReelComment = require("../models/ReelComment");
+
+  const allUrls = allReels.map(r => r.videoUrl);
+
+  // ── Phase 1: batch-fetch global counts for scoring ALL reels ──────────────
+  const [globalLikesAgg, globalViewsAgg] = await Promise.all([
+    ReelLike.aggregate([
+      { $match: { videoUrl: { $in: allUrls } } },
+      { $group: { _id: '$videoUrl', count: { $sum: 1 } } },
+    ]),
+    ReelView.aggregate([
+      { $match: { videoUrl: { $in: allUrls } } },
+      { $group: { _id: '$videoUrl', count: { $sum: 1 } } },
+    ]),
+  ]);
+  const globalLikeMap = Object.fromEntries(globalLikesAgg.map(d => [d._id, d.count]));
+  const globalViewMap = Object.fromEntries(globalViewsAgg.map(d => [d._id, d.count]));
+
+  // ── Phase 3: personalised category boosts/penalties ───────────────────────
+  const categoryBoostMap   = {}; // videoUrl → 0–1 bonus
+  const skipPenaltyMap     = {}; // videoUrl → 0–1 penalty
+  const userId = customerId || fingerprint;
+  if (userId) {
+    const ReelInteraction = require("../models/ReelInteraction");
+    const sinceDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // last 7 days
+    const recentInteractions = await ReelInteraction.find({
+      $or: [
+        ...(customerId  ? [{ customerId }]  : []),
+        ...(fingerprint ? [{ fingerprint }] : []),
+      ],
+      createdAt: { $gte: sinceDate },
+    }).select('categories action watchRatio').lean();
+
+    // Accumulate per-category affinity signals
+    const catWatchScore = {}; // category → sum of watchRatios
+    const catSkipCount  = {}; // category → skip event count
+    for (const inter of recentInteractions) {
+      for (const cat of (inter.categories || [])) {
+        if (inter.action === 'watch_full') {
+          catWatchScore[cat] = (catWatchScore[cat] || 0) + (inter.watchRatio || 1);
+        } else if (inter.action === 'skip') {
+          catSkipCount[cat]  = (catSkipCount[cat]  || 0) + 1;
+        }
+      }
+    }
+
+    // Normalise to [0, 1] using dataset max
+    const maxWatch = Math.max(...Object.values(catWatchScore), 1);
+    const maxSkip  = Math.max(...Object.values(catSkipCount),  1);
+
+    for (const reel of allReels) {
+      let boost = 0; let penalty = 0;
+      for (const cat of (reel.categories || [])) {
+        boost   = Math.max(boost,   (catWatchScore[cat] || 0) / maxWatch);
+        penalty = Math.max(penalty, (catSkipCount[cat]  || 0) / maxSkip);
+      }
+      if (boost   > 0) categoryBoostMap[reel.videoUrl] = boost;
+      if (penalty > 0) skipPenaltyMap[reel.videoUrl]   = penalty;
+    }
+  }
+
+  // ── Score + sort all reels ─────────────────────────────────────────────────
+  for (const reel of allReels) {
+    reel._score = computeReelScore(
+      globalViewMap[reel.videoUrl]  || 0,
+      globalLikeMap[reel.videoUrl]  || 0,
+      reel._createdAt,
+      reel._isBoostEnabled,
+      categoryBoostMap[reel.videoUrl] || 0,
+      skipPenaltyMap[reel.videoUrl]   || 0,
+    );
+  }
+  allReels.sort((a, b) => b._score - a._score);
+
+  // ── Paginate ───────────────────────────────────────────────────────────────
   const pageReels = allReels.slice((Number(page) - 1) * Number(limit), Number(page) * Number(limit));
 
-  // ── Batch-fetch like counts + view counts + liked state ──
+  // ── Batch-fetch per-page metadata: liked state + comment count ────────────
+  // (likeCount / viewCount reused from global aggregation above — no extra DB hits)
   if (pageReels.length > 0) {
     const videoUrls = pageReels.map(r => r.videoUrl);
-
-    const ReelComment = require("../models/ReelComment");
-    const [likesAgg, viewsAgg, likedDocs, commentsAgg] = await Promise.all([
-      ReelLike.aggregate([
-        { $match: { videoUrl: { $in: videoUrls } } },
-        { $group: { _id: '$videoUrl', count: { $sum: 1 } } },
-      ]),
-      ReelView.aggregate([
-        { $match: { videoUrl: { $in: videoUrls } } },
-        { $group: { _id: '$videoUrl', count: { $sum: 1 } } },
-      ]),
+    const [likedDocs, commentsAgg] = await Promise.all([
       customerId
         ? ReelLike.find({ videoUrl: { $in: videoUrls }, customerId }).select('videoUrl').lean()
         : Promise.resolve([]),
@@ -456,17 +530,18 @@ router.get("/public/reels", asyncHandler(async (req, res) => {
         { $group: { _id: '$videoUrl', count: { $sum: 1 } } },
       ]),
     ]);
-
-    const likeMap    = Object.fromEntries(likesAgg.map(d => [d._id, d.count]));
-    const viewMap    = Object.fromEntries(viewsAgg.map(d => [d._id, d.count]));
     const commentMap = Object.fromEntries(commentsAgg.map(d => [d._id, d.count]));
     const likedSet   = new Set((likedDocs || []).map(d => d.videoUrl));
 
     pageReels.forEach(r => {
-      r.likeCount    = likeMap[r.videoUrl]    || 0;
-      r.viewCount    = viewMap[r.videoUrl]    || 0;
-      r.commentCount = commentMap[r.videoUrl] || 0;
+      r.likeCount    = globalLikeMap[r.videoUrl]  || 0;
+      r.viewCount    = globalViewMap[r.videoUrl]  || 0;
+      r.commentCount = commentMap[r.videoUrl]     || 0;
       r.liked        = likedSet.has(r.videoUrl);
+      // Remove internal scoring fields before sending to client
+      delete r._score;
+      delete r._createdAt;
+      delete r._isBoostEnabled;
     });
   }
 
@@ -474,11 +549,17 @@ router.get("/public/reels", asyncHandler(async (req, res) => {
 }));
 
 // POST /public/reels/view — record a view (called after 3s of watching)
-// Deduplicates: same fingerprint + videoUrl within 24h counts as one view
+// Deduplicates: same fingerprint + videoUrl within 24h counts as one view.
+// Phase 2: also accepts watchTime + videoDuration to measure engagement depth.
+// Phase 3: logs a watch_full ReelInteraction when watchRatio >= 0.7.
 router.post("/public/reels/view", asyncHandler(async (req, res) => {
-  const { videoUrl, salonId, fingerprint } = req.body;
+  const { videoUrl, salonId, fingerprint, categories, watchTime, videoDuration } = req.body;
   if (!videoUrl || !salonId) return res.status(400).json({ success: false, message: "videoUrl and salonId required" });
   const ReelView = require("../models/ReelView");
+
+  const wt  = Number(watchTime)     || 0;
+  const vd  = Number(videoDuration) || 0;
+  const watchRatio = vd > 0 ? Math.min(wt / vd, 1) : 0;
 
   if (fingerprint) {
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -489,9 +570,62 @@ router.post("/public/reels/view", asyncHandler(async (req, res) => {
     }
   }
 
-  await ReelView.create({ videoUrl, salonId, fingerprint: fingerprint || null });
+  await ReelView.create({
+    videoUrl,
+    salonId,
+    fingerprint:   fingerprint || null,
+    watchTime:     wt,
+    videoDuration: vd,
+  });
   const viewCount = await ReelView.countDocuments({ videoUrl });
+
+  // Phase 3: record a positive engagement signal when user watched ≥ 70 %
+  if (watchRatio >= 0.7 && salonId) {
+    const ReelInteraction = require("../models/ReelInteraction");
+    const customerId = getOptionalCustomerId(req);
+    ReelInteraction.create({
+      videoUrl,
+      salonId,
+      customerId:    customerId || null,
+      fingerprint:   fingerprint || null,
+      categories:    Array.isArray(categories) ? categories : [],
+      action:        watchRatio >= 0.95 ? 'replay' : 'watch_full',
+      watchTime:     wt,
+      videoDuration: vd,
+      watchRatio,
+    }).catch(() => {}); // fire-and-forget; never block the view response
+  }
+
   res.json({ success: true, viewCount });
+}));
+
+// POST /public/reels/interaction — track skip / watch signals for Phase 2/3 personalisation
+// Called by the frontend when a user scrolls past a video after watching < 3 s (skip).
+router.post("/public/reels/interaction", asyncHandler(async (req, res) => {
+  const { videoUrl, salonId, categories, action, watchTime, videoDuration, fingerprint } = req.body;
+  if (!videoUrl || !salonId || !action) {
+    return res.status(400).json({ success: false, message: "videoUrl, salonId, and action are required" });
+  }
+  if (!['skip', 'watch_full', 'replay'].includes(action)) {
+    return res.status(400).json({ success: false, message: "action must be skip | watch_full | replay" });
+  }
+  const customerId = getOptionalCustomerId(req);
+  const wt  = Number(watchTime)     || 0;
+  const vd  = Number(videoDuration) || 0;
+  const watchRatio = vd > 0 ? Math.min(wt / vd, 1) : 0;
+  const ReelInteraction = require("../models/ReelInteraction");
+  await ReelInteraction.create({
+    videoUrl,
+    salonId,
+    customerId:    customerId || null,
+    fingerprint:   fingerprint || null,
+    categories:    Array.isArray(categories) ? categories : [],
+    action,
+    watchTime:     wt,
+    videoDuration: vd,
+    watchRatio,
+  });
+  res.json({ success: true });
 }));
 
 // GET /public/reels/comments?videoUrl=...  — fetch comments for a reel
