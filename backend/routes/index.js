@@ -400,6 +400,34 @@ router.get("/public/reels", asyncHandler(async (req, res) => {
   res.json({ success: true, data: allReels.slice(skip, skip + Number(limit)), total: allReels.length, page: Number(page) });
 }));
 
+// GET /public/reels/comments?videoUrl=...  — fetch comments for a reel
+router.get("/public/reels/comments", asyncHandler(async (req, res) => {
+  const { videoUrl } = req.query;
+  if (!videoUrl) return res.status(400).json({ success: false, message: "videoUrl is required" });
+  const ReelComment = require("../models/ReelComment");
+  const comments = await ReelComment.find({ videoUrl })
+    .sort({ createdAt: -1 })
+    .limit(50)
+    .lean();
+  res.json({ success: true, data: comments });
+}));
+
+// POST /public/reels/comments — post a comment on a reel (no auth, guest-friendly)
+router.post("/public/reels/comments", asyncHandler(async (req, res) => {
+  const { videoUrl, salonId, name, text } = req.body;
+  if (!videoUrl || !salonId || !name?.trim() || !text?.trim()) {
+    return res.status(400).json({ success: false, message: "videoUrl, salonId, name, and text are required" });
+  }
+  const ReelComment = require("../models/ReelComment");
+  const comment = await ReelComment.create({
+    videoUrl,
+    salonId,
+    name: name.trim().slice(0, 60),
+    text: text.trim().slice(0, 500),
+  });
+  res.status(201).json({ success: true, data: comment });
+}));
+
 // GET /public/salons/:salonId/booked-slots?date=YYYY-MM-DD&duration=N
 router.get("/public/salons/:salonId/booked-slots", validateObjectId("salonId"), asyncHandler(async (req, res) => {
   const { date, duration } = req.query;

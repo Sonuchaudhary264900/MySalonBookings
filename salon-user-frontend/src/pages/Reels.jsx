@@ -134,9 +134,13 @@ export default function Reels() {
   const [liked, setLiked]     = useState(new Set());
   const [muted, setMuted]     = useState(true);
   const [showMute, setShowMute] = useState(false);
-  const [commentReel, setCommentReel] = useState(null);
+  const [commentReel, setCommentReel] = useState(null); // full reel object
+  const [comments, setComments]       = useState([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
   const [commentText, setCommentText] = useState("");
-  const [copied, setCopied]   = useState(null);
+  const [commentName, setCommentName] = useState(() => localStorage.getItem('reelCommentName') || "");
+  const [posting, setPosting]         = useState(false);
+  const [copied, setCopied]           = useState(null);
 
   const videoRefs   = useRef({});
   const observerRef = useRef(null);
@@ -225,7 +229,34 @@ export default function Reels() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const postComment = () => { setCommentText(""); setCommentReel(null); };
+  /* Load comments when sheet opens */
+  useEffect(() => {
+    if (!commentReel) { setComments([]); return; }
+    setCommentsLoading(true);
+    API.get(`/public/reels/comments?videoUrl=${encodeURIComponent(commentReel.videoUrl)}`)
+      .then(r => setComments(r.data.data || []))
+      .catch(() => setComments([]))
+      .finally(() => setCommentsLoading(false));
+  }, [commentReel]);
+
+  const postComment = async () => {
+    const name = commentName.trim();
+    const text = commentText.trim();
+    if (!name || !text || !commentReel || posting) return;
+    setPosting(true);
+    try {
+      const r = await API.post('/public/reels/comments', {
+        videoUrl: commentReel.videoUrl,
+        salonId:  commentReel.salon._id,
+        name,
+        text,
+      });
+      localStorage.setItem('reelCommentName', name);
+      setComments(prev => [r.data.data, ...prev]);
+      setCommentText("");
+    } catch { /* silent */ }
+    finally { setPosting(false); }
+  };
 
   const loaderStyle = { background: '#000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, minHeight: '60vh' };
 
@@ -351,7 +382,7 @@ export default function Reels() {
                   </button>
 
                   {/* Comment */}
-                  <button onClick={() => setCommentReel(reel._id)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <button onClick={() => setCommentReel(reel)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                     <div style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <CommentIcon />
                     </div>
@@ -395,20 +426,58 @@ export default function Reels() {
         {commentReel && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 70, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center' }}>
             <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }} onClick={() => setCommentReel(null)} />
-            <div style={{ position: 'relative', background: '#181818', borderRadius: '22px 22px 0 0', padding: '20px 16px 40px', zIndex: 1, width: '100%', maxWidth: 520 }}>
-              <div style={{ width: 40, height: 4, background: 'rgba(255,255,255,0.2)', borderRadius: 2, margin: '0 auto 18px' }} />
-              <p style={{ color: '#fff', fontWeight: 700, fontSize: 15, marginBottom: 16 }}>Comments</p>
-              <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, textAlign: 'center', marginBottom: 16 }}>Be the first to comment on this reel!</div>
-              <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ position: 'relative', background: '#181818', borderRadius: '22px 22px 0 0', padding: '20px 16px 24px', zIndex: 1, width: '100%', maxWidth: 520, maxHeight: '75vh', display: 'flex', flexDirection: 'column' }}>
+              {/* Drag handle */}
+              <div style={{ width: 40, height: 4, background: 'rgba(255,255,255,0.2)', borderRadius: 2, margin: '0 auto 14px' }} />
+              <p style={{ color: '#fff', fontWeight: 700, fontSize: 15, margin: '0 0 12px' }}>Comments</p>
+
+              {/* Comments list */}
+              <div style={{ flex: 1, overflowY: 'auto', marginBottom: 12 }}>
+                {commentsLoading ? (
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, textAlign: 'center', padding: '20px 0' }}>Loading…</p>
+                ) : comments.length === 0 ? (
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>No comments yet. Be the first!</p>
+                ) : (
+                  comments.map(c => (
+                    <div key={c._id} style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                      <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <span style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>{c.name?.[0]?.toUpperCase()}</span>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: 700, margin: '0 0 2px' }}>{c.name}</p>
+                        <p style={{ color: '#fff', fontSize: 13, margin: 0, wordBreak: 'break-word' }}>{c.text}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Name input (shown only first time or if empty) */}
+              {!commentName && (
+                <input
+                  value={commentName}
+                  onChange={e => setCommentName(e.target.value)}
+                  placeholder="Your name…"
+                  style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '9px 14px', color: '#fff', fontSize: 13, outline: 'none', marginBottom: 8 }}
+                />
+              )}
+
+              {/* Comment input + post */}
+              <div style={{ display: 'flex', gap: 8 }}>
                 <input
                   value={commentText}
                   onChange={e => setCommentText(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && !e.shiftKey && postComment()}
                   placeholder="Add a comment…"
-                  autoFocus
+                  autoFocus={!!commentName}
                   style={{ flex: 1, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 14, padding: '10px 14px', color: '#fff', fontSize: 13, outline: 'none' }}
                 />
-                <button onClick={postComment} style={{ background: '#6366f1', border: 'none', borderRadius: 14, padding: '0 18px', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
-                  Post
+                <button
+                  onClick={postComment}
+                  disabled={posting || !commentText.trim() || !commentName.trim()}
+                  style={{ background: posting || !commentText.trim() || !commentName.trim() ? 'rgba(99,102,241,0.4)' : '#6366f1', border: 'none', borderRadius: 14, padding: '0 18px', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', transition: 'background 0.2s' }}
+                >
+                  {posting ? '…' : 'Post'}
                 </button>
               </div>
             </div>
