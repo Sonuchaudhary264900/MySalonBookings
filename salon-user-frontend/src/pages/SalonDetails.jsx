@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import {
   Scissors, Phone, Star, Check, MessageSquare, Frown, Building2,
   Mail, ShoppingBag, MapPin, Navigation, ChevronDown, ChevronUp,
@@ -118,6 +118,7 @@ function SalonDetails() {
   // ── Booking state ────────────────────────────────────────────────────────
   const [galleryLightbox, setGalleryLightbox] = useState(null); // index into galleryItems
   const galleryVideoRef = useRef(null);
+  const [videoViewerIdx, setVideoViewerIdx] = useState(null); // index into salonVideoUrls
   const [showBooking, setShowBooking]     = useState(false);
   const [barbers, setBarbers]             = useState([]);
   const [barberId, setBarberId]           = useState("");
@@ -327,11 +328,14 @@ function SalonDetails() {
     ? parseFloat(salon.averageRating || salon.rating).toFixed(1)
     : null;
 
-  const salonPhotos = salon.photos || [];
-  const salonVideos = salon.videos || [];
+  // Normalize — DB may return plain strings or objects {url,...}
+  const salonPhotoUrls = (salon.photos || [])
+    .map(p => (typeof p === 'string' ? p : p?.url)).filter(Boolean);
+  const salonVideoUrls = (salon.videos || [])
+    .map(v => (typeof v === 'string' ? v : v?.url)).filter(Boolean);
   const galleryItems = [
-    ...salonPhotos.map(url => ({ url, type: 'image' })),
-    ...salonVideos.map(url => ({ url, type: 'video' })),
+    ...salonPhotoUrls.map(url => ({ url, type: 'image' })),
+    ...salonVideoUrls.map(url => ({ url, type: 'video' })),
   ];
 
   const openStatus = isOpenNow(salon.workingHours);
@@ -1077,29 +1081,43 @@ function SalonDetails() {
               <div className="rounded-2xl p-5" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
                 <h3 className="font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--t-text)' }}>
                   <Sparkles className="w-4 h-4" style={{ color: '#818cf8' }} />
-                  Gallery ({salonPhotos.length > 0 && `${salonPhotos.length} photo${salonPhotos.length !== 1 ? 's' : ''}`}{salonPhotos.length > 0 && salonVideos.length > 0 && ' · '}{salonVideos.length > 0 && `${salonVideos.length} video${salonVideos.length !== 1 ? 's' : ''}`})
+                  Gallery ({salonPhotoUrls.length > 0 && `${salonPhotoUrls.length} photo${salonPhotoUrls.length !== 1 ? 's' : ''}`}{salonPhotoUrls.length > 0 && salonVideoUrls.length > 0 && ' · '}{salonVideoUrls.length > 0 && `${salonVideoUrls.length} video${salonVideoUrls.length !== 1 ? 's' : ''}`})
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {galleryItems.map((item, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setGalleryLightbox(i)}
-                      className="relative block aspect-square rounded-xl overflow-hidden group focus:outline-none"
-                    >
-                      {item.type === 'video' ? (
-                        <>
-                          <video src={item.url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" muted preload="metadata" />
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/25 group-hover:bg-black/40 transition-colors">
-                            <div className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center border-2 border-white/60 group-hover:scale-110 transition-transform">
-                              <Play className="w-5 h-5 text-white fill-white ml-0.5" />
+                  {galleryItems.map((item, i) => {
+                    const videoIdx = item.type === 'video'
+                      ? salonVideoUrls.indexOf(item.url)
+                      : -1;
+                    const thumbUrl = item.type === 'video' && item.url.includes('/video/upload/')
+                      ? item.url
+                          .replace('/video/upload/', '/video/upload/w_400,h_400,c_fill,q_auto,f_jpg/')
+                          .replace(/\.(mp4|mov|avi|mkv|webm)(\?.*)?$/i, '.jpg')
+                      : '';
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => item.type === 'video' ? setVideoViewerIdx(videoIdx) : setGalleryLightbox(i)}
+                        className="relative block aspect-square rounded-xl overflow-hidden group focus:outline-none"
+                      >
+                        {item.type === 'video' ? (
+                          <>
+                            {thumbUrl ? (
+                              <img src={thumbUrl} alt="Video" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900" />
+                            )}
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/25 group-hover:bg-black/40 transition-colors">
+                              <div className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center border-2 border-white/60 group-hover:scale-110 transition-transform">
+                                <Play className="w-5 h-5 text-white fill-white ml-0.5" />
+                              </div>
                             </div>
-                          </div>
-                        </>
-                      ) : (
-                        <img src={item.url} alt={`Salon photo ${i + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
-                      )}
-                    </button>
-                  ))}
+                          </>
+                        ) : (
+                          <img src={item.url} alt={`Salon photo ${i + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -1159,6 +1177,17 @@ function SalonDetails() {
                 </div>
               );
             })()}
+            {/* ── Instagram-style video viewer ── */}
+            {videoViewerIdx !== null && salonVideoUrls.length > 0 && (
+              <SalonVideoViewer
+                videos={salonVideoUrls}
+                startIdx={videoViewerIdx}
+                salon={salon}
+                onClose={() => setVideoViewerIdx(null)}
+                onBook={() => { setVideoViewerIdx(null); setShowBooking(true); }}
+              />
+            )}
+
             {salon.description && (
               <div className="rounded-2xl p-5" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
                 <h3 className="font-bold mb-2" style={{ color: 'var(--t-text)' }}>About</h3>
@@ -1694,6 +1723,299 @@ function SalonDetails() {
             </div>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────
+   Instagram-style fullscreen video viewer for a salon's videos
+────────────────────────────────────────────────────────────────── */
+function SalonVideoViewer({ videos, startIdx, salon, onClose, onBook }) {
+  const [idx, setIdx]           = useState(startIdx ?? 0);
+  const [playing, setPlaying]   = useState(true);
+  const [muted, setMuted]       = useState(false);
+  const videoRef                = useRef(null);
+  const feedRef                 = useRef(null);
+  const scrolling               = useRef(false);
+  const currentI                = useRef(idx);
+
+  const url     = videos[idx] || '';
+  const total   = videos.length;
+  const salonName = salon?.name || 'Salon';
+  const city      = salon?.city || salon?.address || '';
+  const rating    = salon?.averageRating ? parseFloat(salon.averageRating).toFixed(1) : null;
+
+  // Lock body scroll
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  // Auto-play on index change
+  useEffect(() => {
+    currentI.current = idx;
+    const v = videoRef.current;
+    if (!v) return;
+    v.src = videos[idx] || '';
+    v.muted = muted;
+    v.play().catch(() => {});
+    setPlaying(true);
+  }, [idx]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sync mute
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.muted = muted;
+  }, [muted]);
+
+  const goTo = useCallback((i) => {
+    const clamped = Math.max(0, Math.min(i, total - 1));
+    if (clamped === currentI.current) return;
+    videoRef.current?.pause();
+    setIdx(clamped);
+    // Scroll feed to match
+    if (feedRef.current) {
+      feedRef.current.scrollTop = clamped * feedRef.current.clientHeight;
+    }
+  }, [total]);
+
+  // Scroll tracking (for CSS snap scroll on mobile)
+  useEffect(() => {
+    const feed = feedRef.current;
+    if (!feed) return;
+    const onScroll = () => {
+      const h = feed.clientHeight;
+      if (h > 0) {
+        const i = Math.round(feed.scrollTop / h);
+        if (i !== currentI.current) {
+          currentI.current = i;
+          videoRef.current?.pause();
+          setIdx(i);
+        }
+      }
+    };
+    feed.addEventListener('scroll', onScroll, { passive: true });
+    return () => feed.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Wheel handler (desktop)
+  useEffect(() => {
+    const feed = feedRef.current;
+    if (!feed) return;
+    let t = null;
+    const onWheel = (e) => {
+      e.preventDefault();
+      if (scrolling.current) return;
+      scrolling.current = true;
+      clearTimeout(t);
+      goTo(currentI.current + (e.deltaY > 0 ? 1 : -1));
+      t = setTimeout(() => { scrolling.current = false; }, 600);
+    };
+    feed.addEventListener('wheel', onWheel, { passive: false });
+    return () => { feed.removeEventListener('wheel', onWheel); clearTimeout(t); };
+  }, [goTo]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape')     { onClose(); return; }
+      if (e.key === 'ArrowDown')  goTo(currentI.current + 1);
+      if (e.key === 'ArrowUp')    goTo(currentI.current - 1);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [goTo, onClose]);
+
+  const togglePlay = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) { v.play().catch(() => {}); setPlaying(true); }
+    else          { v.pause();                setPlaying(false); }
+  };
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 200,
+      background: '#000',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      {/* Feed */}
+      <div
+        ref={feedRef}
+        style={{
+          width: '100%', height: '100%',
+          maxWidth: 480,
+          overflowY: 'scroll',
+          scrollSnapType: 'y mandatory',
+          overscrollBehaviorY: 'contain',
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          position: 'relative',
+        }}
+      >
+        {videos.map((vUrl, i) => (
+          <div
+            key={i}
+            style={{
+              height: '100%',
+              width: '100%',
+              flexShrink: 0,
+              scrollSnapAlign: 'start',
+              scrollSnapStop: 'always',
+              position: 'relative',
+              background: '#000',
+            }}
+          >
+            {i === idx && (
+              <video
+                ref={videoRef}
+                src={vUrl}
+                loop
+                playsInline
+                muted={muted}
+                autoPlay
+                onClick={togglePlay}
+                style={{
+                  position: 'absolute', inset: 0,
+                  width: '100%', height: '100%',
+                  objectFit: 'contain',
+                  background: '#000',
+                  cursor: 'pointer',
+                }}
+              />
+            )}
+            {/* Gradient overlays */}
+            <div style={{
+              position: 'absolute', inset: 0, pointerEvents: 'none',
+              background: 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 25%, transparent 55%, rgba(0,0,0,0.85) 100%)',
+            }} />
+
+            {/* Paused indicator */}
+            {i === idx && !playing && (
+              <div style={{
+                position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                pointerEvents: 'none',
+              }}>
+                <div style={{
+                  width: 64, height: 64, borderRadius: '50%',
+                  background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Play style={{ width: 28, height: 28, color: '#fff', fill: '#fff', marginLeft: 3 }} />
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* ── Top bar ── */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+        paddingTop: 'max(14px, env(safe-area-inset-top, 14px))',
+        padding: '14px 16px 12px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        background: 'linear-gradient(to bottom, rgba(0,0,0,0.7), transparent)',
+      }}>
+        <button onClick={onClose} style={{
+          width: 40, height: 40, borderRadius: '50%',
+          background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255,255,255,0.15)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: '#fff', cursor: 'pointer',
+        }}>
+          <X style={{ width: 18, height: 18 }} />
+        </button>
+
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ color: '#fff', fontSize: 14, fontWeight: 800, margin: 0, letterSpacing: '-0.2px' }}>
+            {salonName}
+          </p>
+          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, margin: 0 }}>
+            {idx + 1} / {total} videos
+          </p>
+        </div>
+
+        <button onClick={() => setMuted(m => !m)} style={{
+          width: 40, height: 40, borderRadius: '50%',
+          background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255,255,255,0.15)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: '#fff', cursor: 'pointer', fontSize: 17,
+        }}>
+          {muted ? '🔇' : '🔊'}
+        </button>
+      </div>
+
+      {/* ── Bottom info + Book CTA ── */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10,
+        paddingBottom: 'max(24px, env(safe-area-inset-bottom, 24px))',
+        padding: '0 20px 28px',
+        background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)',
+      }}>
+        <p style={{ color: '#fff', fontSize: 18, fontWeight: 900, margin: '0 0 2px', letterSpacing: '-0.3px' }}>
+          {salonName}
+        </p>
+        {(city || rating) && (
+          <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 6 }}>
+            {city && <span>{city}</span>}
+            {city && rating && <span>·</span>}
+            {rating && <span style={{ color: '#fbbf24', fontWeight: 700 }}>★ {rating}</span>}
+          </p>
+        )}
+        <button
+          onClick={onBook}
+          style={{
+            width: '100%', padding: '14px 0',
+            background: 'linear-gradient(135deg, #6366f1, #7c3aed)',
+            color: '#fff', border: 'none', borderRadius: 16,
+            fontSize: 15, fontWeight: 800, cursor: 'pointer',
+            letterSpacing: 0.2,
+            boxShadow: '0 6px 28px rgba(99,102,241,0.5)',
+          }}
+        >
+          Book Appointment
+        </button>
+      </div>
+
+      {/* Desktop prev/next arrow buttons */}
+      {idx > 0 && (
+        <button
+          onClick={() => goTo(idx - 1)}
+          style={{
+            position: 'absolute', top: '50%', right: 16,
+            transform: 'translateY(-50%)',
+            zIndex: 15,
+            width: 44, height: 44, borderRadius: '50%',
+            background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255,255,255,0.18)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#fff', cursor: 'pointer',
+          }}
+          title="Previous video"
+        >
+          <ChevronLeft style={{ width: 22, height: 22 }} />
+        </button>
+      )}
+      {idx < total - 1 && (
+        <button
+          onClick={() => goTo(idx + 1)}
+          style={{
+            position: 'absolute', bottom: 110, right: 16,
+            zIndex: 15,
+            width: 44, height: 44, borderRadius: '50%',
+            background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255,255,255,0.18)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#fff', cursor: 'pointer',
+          }}
+          title="Next video"
+        >
+          <ChevronRight style={{ width: 22, height: 22 }} />
+        </button>
       )}
     </div>
   );

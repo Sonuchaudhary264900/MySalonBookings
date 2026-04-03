@@ -114,6 +114,7 @@ const CSS = `
     background: #080808;
     flex-shrink: 0;
     scroll-snap-align: start;
+    scroll-snap-stop: always;
   }
 
   /* ── video ── */
@@ -757,17 +758,34 @@ export default function Reels() {
   const currentIdx   = useRef(0);
   const scrolling    = useRef(false);
 
-  /* ── Programmatic scroll to a reel index (works on all devices) ── */
-  const scrollToIdx = useCallback((idx, total) => {
+  /* ── Scroll to index. smooth=true for buttons, false for wheel (avoids snap conflict) ── */
+  const scrollToIdx = useCallback((idx, total, smooth = true) => {
     const feed = feedRef.current;
     if (!feed || total === 0) return;
     const clamped = Math.max(0, Math.min(idx, total - 1));
     currentIdx.current = clamped;
     const itemH = feed.clientHeight;
-    feed.scrollTo({ top: clamped * itemH, behavior: 'smooth' });
+    if (smooth) {
+      feed.scrollTo({ top: clamped * itemH, behavior: 'smooth' });
+    } else {
+      // Instant jump — avoids fighting with scroll-snap on wheel events
+      feed.scrollTop = clamped * itemH;
+    }
   }, []);
 
-  /* ── Wheel handler for desktop (mouse wheel / trackpad) ── */
+  /* ── Track current index on natural scroll (mobile CSS snap + keyboard) ── */
+  useEffect(() => {
+    const feed = feedRef.current;
+    if (!feed) return;
+    const onScroll = () => {
+      const itemH = feed.clientHeight;
+      if (itemH > 0) currentIdx.current = Math.round(feed.scrollTop / itemH);
+    };
+    feed.addEventListener('scroll', onScroll, { passive: true });
+    return () => feed.removeEventListener('scroll', onScroll);
+  }, [reels.length]);
+
+  /* ── Wheel handler for desktop — prevent body scroll, jump to next/prev ── */
   useEffect(() => {
     const feed = feedRef.current;
     if (!feed) return;
@@ -778,12 +796,9 @@ export default function Reels() {
       if (scrolling.current) return;
       scrolling.current = true;
       clearTimeout(wheelTimer);
-
       const dir = e.deltaY > 0 ? 1 : -1;
-      const next = currentIdx.current + dir;
-      scrollToIdx(next, reels.length);
-
-      wheelTimer = setTimeout(() => { scrolling.current = false; }, 700);
+      scrollToIdx(currentIdx.current + dir, reels.length, false); // instant — no snap conflict
+      wheelTimer = setTimeout(() => { scrolling.current = false; }, 600);
     };
 
     feed.addEventListener('wheel', onWheel, { passive: false });
@@ -793,38 +808,7 @@ export default function Reels() {
     };
   }, [reels.length, scrollToIdx]);
 
-  /* ── Touch swipe handler (mobile + tablet) ── */
-  useEffect(() => {
-    const feed = feedRef.current;
-    if (!feed) return;
-    let startY = 0;
-    let startTime = 0;
-
-    const onTouchStart = (e) => {
-      startY = e.touches[0].clientY;
-      startTime = Date.now();
-    };
-
-    const onTouchEnd = (e) => {
-      const diffY = startY - e.changedTouches[0].clientY;
-      const elapsed = Date.now() - startTime;
-      // Require at least 40px swipe OR fast flick (>50px in <300ms)
-      const isFastFlick = Math.abs(diffY) > 50 && elapsed < 300;
-      const isSlowSwipe = Math.abs(diffY) > 80;
-      if (!isFastFlick && !isSlowSwipe) return;
-      const dir = diffY > 0 ? 1 : -1;
-      scrollToIdx(currentIdx.current + dir, reels.length);
-    };
-
-    feed.addEventListener('touchstart', onTouchStart, { passive: true });
-    feed.addEventListener('touchend',   onTouchEnd,   { passive: true });
-    return () => {
-      feed.removeEventListener('touchstart', onTouchStart);
-      feed.removeEventListener('touchend',   onTouchEnd);
-    };
-  }, [reels.length, scrollToIdx]);
-
-  /* ── Keyboard navigation (ArrowUp / ArrowDown / j / k) ── */
+  /* ── Keyboard navigation (ArrowUp / ArrowDown) ── */
   useEffect(() => {
     const onKey = (e) => {
       if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
