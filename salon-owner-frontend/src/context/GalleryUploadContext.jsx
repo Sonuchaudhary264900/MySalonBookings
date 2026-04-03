@@ -50,7 +50,8 @@ const uploadToCloudinary = (file, sig, onProgress, xhrRef) =>
     fd.append('timestamp', sig.timestamp);
     fd.append('signature', sig.signature);
     fd.append('folder',    sig.folder);
-    if (sig.max_bytes) fd.append('max_bytes', sig.max_bytes);
+    // Do NOT send max_bytes — it is not a Cloudinary upload API param and was causing
+    // "Invalid Signature" errors (backend was including it in the signed params).
 
     const xhr = new XMLHttpRequest();
     if (xhrRef) xhrRef.current = xhr; // expose so caller can abort
