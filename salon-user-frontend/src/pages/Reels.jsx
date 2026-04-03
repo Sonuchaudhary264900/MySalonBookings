@@ -757,6 +757,7 @@ export default function Reels() {
   const feedRef      = useRef(null);
   const currentIdx   = useRef(0);
   const scrolling    = useRef(false);
+  const mutedRef     = useRef(muted); // always-fresh muted value for IntersectionObserver callback
 
   /* ── Scroll to index. smooth=true for buttons, false for wheel (avoids snap conflict) ── */
   const scrollToIdx = useCallback((idx, total, smooth = true) => {
@@ -855,15 +856,23 @@ export default function Reels() {
       setLocLabel('All Salons'); setMode('all');
       fetchReels('all', 'all', null);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fetchReels]); // fetchReels is stable (useCallback with [])
 
-  /* ── re-fetch on filter change ── */
+  /* ── re-fetch on filter change (skip first mount — handled by geolocation) ── */
   const didMount = useRef(false);
   useEffect(() => {
     if (!didMount.current) { didMount.current = true; return; }
     setLocLabel(mode === 'nearest' && coords ? 'Nearby You' : 'All Salons');
     fetchReels(mode, gender, coords);
-  }, [mode, gender]); // eslint-disable-line react-hooks/exhaustive-deps
+  // coords intentionally excluded: location never changes after mount; re-fetch only on mode/gender
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, gender, fetchReels]);
+
+  /* ── Keep mutedRef fresh + sync muted to all active videos ── */
+  useEffect(() => {
+    mutedRef.current = muted;
+    Object.values(videoRefs.current).forEach(v => { if (v) v.muted = muted; });
+  }, [muted]);
 
   /* ── IntersectionObserver for autoplay / pause ── */
   useEffect(() => {
@@ -873,7 +882,7 @@ export default function Reels() {
       entries.forEach(entry => {
         const v = entry.target;
         if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
-          v.muted = muted;
+          v.muted = mutedRef.current; // always fresh — no stale closure
           v.play().catch(() => {});
         } else {
           v.pause();
@@ -884,20 +893,15 @@ export default function Reels() {
     Object.values(videoRefs.current).forEach(v => { if (v) observerRef.current.observe(v); });
     const firstKey = reels[0]?._id;
     if (firstKey && videoRefs.current[firstKey]) {
-      videoRefs.current[firstKey].muted = muted;
+      videoRefs.current[firstKey].muted = mutedRef.current;
       videoRefs.current[firstKey].play().catch(() => {});
     }
     return () => observerRef.current?.disconnect();
-  }, [reels]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  /* ── sync muted to all videos ── */
-  useEffect(() => {
-    Object.values(videoRefs.current).forEach(v => { if (v) v.muted = muted; });
-  }, [muted]);
+  }, [reels]);
 
   const handleRegisterRef = useCallback((el, id) => {
     if (el) {
-      el.muted = true;
+      el.muted = mutedRef.current;
       videoRefs.current[id] = el;
       if (observerRef.current) observerRef.current.observe(el);
     } else {

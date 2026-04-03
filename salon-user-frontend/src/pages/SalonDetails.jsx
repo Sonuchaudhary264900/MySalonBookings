@@ -1739,6 +1739,7 @@ function SalonVideoViewer({ videos, startIdx, salon, onClose, onBook }) {
   const feedRef                 = useRef(null);
   const scrolling               = useRef(false);
   const currentI                = useRef(idx);
+  const mutedRef                = useRef(muted); // always-fresh for auto-play effect
 
   const url     = videos[idx] || '';
   const total   = videos.length;
@@ -1753,21 +1754,22 @@ function SalonVideoViewer({ videos, startIdx, salon, onClose, onBook }) {
     return () => { document.body.style.overflow = prev; };
   }, []);
 
-  // Auto-play on index change
+  // Keep mutedRef fresh + sync mute to active video
+  useEffect(() => {
+    mutedRef.current = muted;
+    if (videoRef.current) videoRef.current.muted = muted;
+  }, [muted]);
+
+  // Auto-play on index change — uses mutedRef so muted value is always current
   useEffect(() => {
     currentI.current = idx;
     const v = videoRef.current;
     if (!v) return;
     v.src = videos[idx] || '';
-    v.muted = muted;
+    v.muted = mutedRef.current;
     v.play().catch(() => {});
     setPlaying(true);
-  }, [idx]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Sync mute
-  useEffect(() => {
-    if (videoRef.current) videoRef.current.muted = muted;
-  }, [muted]);
+  }, [idx, videos]); // videos included — mutedRef replaces stale muted closure
 
   const goTo = useCallback((i) => {
     const clamped = Math.max(0, Math.min(i, total - 1));
