@@ -9,7 +9,6 @@ const CSS = `
     background: #000;
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
   }
   @media (max-width: 767px) {
     .reels-root {
@@ -19,27 +18,27 @@ const CSS = `
   @media (min-width: 768px) {
     .reels-root {
       position: relative;
-      max-width: 480px;
-      margin: 0 auto;
-      min-height: calc(100vh - 64px);
-      border-radius: 16px;
+      width: 420px;
+      flex-shrink: 0;
+      height: calc(100vh - 72px);
+      border-radius: 18px;
       overflow: hidden;
     }
     .reels-desktop-wrap {
       display: flex;
-      gap: 0;
+      gap: 24px;
       max-width: 1100px;
       margin: 0 auto;
-      padding: 24px 16px 32px;
+      padding: 24px 24px 32px;
       align-items: flex-start;
     }
     .reels-sidebar {
       display: flex;
       flex-direction: column;
-      gap: 16px;
-      width: 280px;
-      flex-shrink: 0;
-      padding-top: 8px;
+      gap: 14px;
+      flex: 1;
+      min-width: 0;
+      padding-top: 4px;
     }
   }
   @media (max-width: 767px) {
@@ -47,19 +46,21 @@ const CSS = `
     .reels-sidebar { display: none !important; }
   }
   .reels-feed {
-    flex: 1; overflow-y: scroll;
+    flex: 1;
+    height: 100%;
+    overflow-y: scroll;
     scroll-snap-type: y mandatory;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none; -ms-overflow-style: none;
   }
   .reels-feed::-webkit-scrollbar { display: none; }
   .reel-item {
-    height: 100dvh; scroll-snap-align: start; scroll-snap-stop: always;
+    height: 100%; scroll-snap-align: start; scroll-snap-stop: always;
     position: relative; overflow: hidden; background: #111;
     flex-shrink: 0;
   }
-  @media (min-width: 768px) {
-    .reel-item { height: 80vh; min-height: 560px; max-height: 860px; }
+  @media (max-width: 767px) {
+    .reel-item { height: 100dvh; }
   }
   .reel-video {
     width: 100%; height: 100%; object-fit: cover;
@@ -186,10 +187,17 @@ export default function Reels() {
     return () => observerRef.current?.disconnect();
   }, [reels]);
 
-  /* Sync muted state */
+  /* Sync muted state — React's muted prop is broken, must set via DOM */
   useEffect(() => {
     Object.values(videoRefs.current).forEach(v => { if (v) v.muted = muted; });
   }, [muted]);
+
+  /* Set muted=true on every new video ref (React doesn't apply muted prop to DOM) */
+  const setVideoRef = useCallback((el, id) => {
+    if (!el) return;
+    el.muted = true; // always start muted so autoplay is allowed
+    videoRefs.current[id] = el;
+  }, []);
 
   const toggleMute = useCallback(() => {
     setMuted(m => !m);
@@ -248,7 +256,7 @@ export default function Reels() {
     <>
       <style>{CSS}</style>
       <div style={{ background: '#000', minHeight: '100vh' }}>
-      <div className="reels-desktop-wrap">
+      <div className="reels-desktop-wrap" style={{ boxSizing: 'border-box' }}>
       <div className="reels-root">
 
         {/* ── Fixed top bar ── */}
@@ -281,10 +289,9 @@ export default function Reels() {
             return (
               <div key={reel._id} className="reel-item">
                 <video
-                  ref={el => { if (el) videoRefs.current[reel._id] = el; }}
+                  ref={el => setVideoRef(el, reel._id)}
                   src={reel.videoUrl}
                   className="reel-video"
-                  muted={muted}
                   autoPlay
                   loop
                   playsInline
