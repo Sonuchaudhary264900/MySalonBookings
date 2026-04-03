@@ -108,7 +108,7 @@ const FeaturedStrip = ({ photos, coverId, onView }) => {
 function cloudinaryThumb(url) {
   if (!url || !url.includes('/video/upload/')) return '';
   return url
-    .replace('/video/upload/', '/video/upload/so_0,w_400,h_400,c_fill,q_auto,f_jpg/')
+    .replace('/video/upload/', '/video/upload/w_400,h_400,c_fill,q_auto,f_jpg/')
     .replace(/\.(mp4|mov|avi|mkv|webm)(\?.*)?$/i, '.jpg');
 }
 

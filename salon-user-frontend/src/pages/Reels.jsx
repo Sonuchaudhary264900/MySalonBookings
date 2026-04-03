@@ -10,7 +10,7 @@ const isLoggedIn = () => !!localStorage.getItem('customerToken');
 function cloudinaryThumb(url) {
   if (!url || !url.includes('/video/upload/')) return '';
   return url
-    .replace('/video/upload/', '/video/upload/so_0,w_720,h_1280,c_fill,q_auto,f_jpg/')
+    .replace('/video/upload/', '/video/upload/w_720,h_1280,c_fill,q_auto,f_jpg/')
     .replace(/\.(mp4|mov|avi|mkv|webm)(\?.*)?$/i, '.jpg');
 }
 

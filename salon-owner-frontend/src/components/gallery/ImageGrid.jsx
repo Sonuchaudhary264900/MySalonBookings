@@ -4,8 +4,9 @@ import { Eye, Trash2, Star, Tag, Play, AlertTriangle } from 'lucide-react';
 /* ── Cloudinary video → JPEG thumbnail ── */
 function cloudinaryThumb(url) {
   if (!url || !url.includes('/video/upload/')) return '';
+  // Use w_400,h_400,c_fill without so_0 — default frame works on all plans
   return url
-    .replace('/video/upload/', '/video/upload/so_0,w_400,h_400,c_fill,q_auto,f_jpg/')
+    .replace('/video/upload/', '/video/upload/w_400,h_400,c_fill,q_auto,f_jpg/')
     .replace(/\.(mp4|mov|avi|mkv|webm)(\?.*)?$/i, '.jpg');
 }
 
