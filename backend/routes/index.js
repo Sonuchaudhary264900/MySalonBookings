@@ -345,19 +345,37 @@ router.get("/public/salons/:salonId/reviews", validateObjectId("salonId"), async
   res.json({ success: true, data: { reviews } });
 }));
 
-// GET /public/reels?latitude=&longitude=&page=1&limit=20&fingerprint=
+// Helper: try to extract customerId from JWT without rejecting unauthenticated requests
+const getOptionalCustomerId = (req) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return null;
+  try {
+    const jwt = require('jsonwebtoken');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.role === 'customer') return String(decoded.id || decoded._id);
+  } catch {}
+  return null;
+};
+
+// GET /public/reels?latitude=&longitude=&page=1&limit=30&gender=all|male|female&mode=nearest|all
 // Returns flattened salon reel videos with like/view counts embedded (no extra requests needed)
 router.get("/public/reels", asyncHandler(async (req, res) => {
-  const { latitude, longitude, page = 1, limit = 30, fingerprint } = req.query;
+  const { latitude, longitude, page = 1, limit = 30, gender, mode } = req.query;
+  const customerId = getOptionalCustomerId(req);
   const lat = Number(latitude);
   const lng = Number(longitude);
   const hasCoords = latitude && longitude && !isNaN(lat) && !isNaN(lng);
+  const useNearest = (mode !== 'all') && hasCoords;
 
-  // Accept both legacy string arrays and new {url,categories} object arrays
-  const baseQuery = { isApproved: true, "reelVideos.0": { $exists: true } };
+  // Gender filter
+  const genderFilter = {};
+  if (gender === 'male')   genderFilter.servedGender = { $in: ['male', 'unisex'] };
+  else if (gender === 'female') genderFilter.servedGender = { $in: ['female', 'unisex'] };
+
+  const baseQuery = { isApproved: true, "reelVideos.0": { $exists: true }, ...genderFilter };
 
   let salons;
-  if (hasCoords) {
+  if (useNearest) {
     salons = await Salon.find({
       ...baseQuery,
       location: {
@@ -373,7 +391,6 @@ router.get("/public/reels", asyncHandler(async (req, res) => {
   } else {
     salons = await Salon.find(baseQuery)
       .select("name city logo coverPhoto averageRating reelVideos")
-      .sort({ averageRating: -1, totalBookings: -1 })
       .limit(100)
       .lean();
   }
@@ -395,18 +412,30 @@ router.get("/public/reels", asyncHandler(async (req, res) => {
     }
   }
 
-  // Shuffle for feed variety (Fisher-Yates)
-  for (let i = allReels.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [allReels[i], allReels[j]] = [allReels[j], allReels[i]];
+  const ReelLike = require("../models/ReelLike");
+  const ReelView = require("../models/ReelView");
+
+  if (useNearest) {
+    // Nearest mode: shuffle for feed variety (Fisher-Yates)
+    for (let i = allReels.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [allReels[i], allReels[j]] = [allReels[j], allReels[i]];
+    }
+  } else if (allReels.length > 0) {
+    // All mode: sort globally by most liked first
+    const allUrls = allReels.map(r => r.videoUrl);
+    const globalLikes = await ReelLike.aggregate([
+      { $match: { videoUrl: { $in: allUrls } } },
+      { $group: { _id: '$videoUrl', count: { $sum: 1 } } },
+    ]);
+    const globalLikeMap = Object.fromEntries(globalLikes.map(d => [d._id, d.count]));
+    allReels.sort((a, b) => (globalLikeMap[b.videoUrl] || 0) - (globalLikeMap[a.videoUrl] || 0));
   }
 
   const pageReels = allReels.slice((Number(page) - 1) * Number(limit), Number(page) * Number(limit));
 
-  // ── Batch-fetch like counts + view counts in 2-3 queries (not N) ──
+  // ── Batch-fetch like counts + view counts + liked state ──
   if (pageReels.length > 0) {
-    const ReelLike = require("../models/ReelLike");
-    const ReelView = require("../models/ReelView");
     const videoUrls = pageReels.map(r => r.videoUrl);
 
     const [likesAgg, viewsAgg, likedDocs] = await Promise.all([
@@ -418,8 +447,8 @@ router.get("/public/reels", asyncHandler(async (req, res) => {
         { $match: { videoUrl: { $in: videoUrls } } },
         { $group: { _id: '$videoUrl', count: { $sum: 1 } } },
       ]),
-      fingerprint
-        ? ReelLike.find({ videoUrl: { $in: videoUrls }, fingerprint }).select('videoUrl').lean()
+      customerId
+        ? ReelLike.find({ videoUrl: { $in: videoUrls }, customerId }).select('videoUrl').lean()
         : Promise.resolve([]),
     ]);
 
@@ -459,35 +488,39 @@ router.get("/public/reels/comments", asyncHandler(async (req, res) => {
   res.json({ success: true, data: comments });
 }));
 
-// POST /public/reels/comments — post a comment on a reel (no auth, guest-friendly)
-router.post("/public/reels/comments", asyncHandler(async (req, res) => {
-  const { videoUrl, salonId, name, text } = req.body;
-  if (!videoUrl || !salonId || !name?.trim() || !text?.trim()) {
-    return res.status(400).json({ success: false, message: "videoUrl, salonId, name, and text are required" });
+// POST /public/reels/comments — post a comment on a reel (requires customer auth)
+router.post("/public/reels/comments", authenticateCustomer, asyncHandler(async (req, res) => {
+  const { videoUrl, salonId, text } = req.body;
+  if (!videoUrl || !salonId || !text?.trim()) {
+    return res.status(400).json({ success: false, message: "videoUrl, salonId, and text are required" });
   }
+  const Customer = require("../models/Customer");
+  const customer = await Customer.findById(req.customer._id).select('name').lean();
+  const name = customer?.name || 'User';
   const ReelComment = require("../models/ReelComment");
   const comment = await ReelComment.create({
     videoUrl,
     salonId,
-    name: name.trim().slice(0, 60),
+    name,
     text: text.trim().slice(0, 500),
   });
   res.status(201).json({ success: true, data: comment });
 }));
 
-// POST /public/reels/like — toggle like on a reel (fingerprint-based, no auth needed)
-router.post("/public/reels/like", asyncHandler(async (req, res) => {
-  const { videoUrl, salonId, fingerprint } = req.body;
-  if (!videoUrl || !salonId || !fingerprint)
-    return res.status(400).json({ success: false, message: "videoUrl, salonId, fingerprint required" });
+// POST /public/reels/like — toggle like on a reel (requires customer auth)
+router.post("/public/reels/like", authenticateCustomer, asyncHandler(async (req, res) => {
+  const { videoUrl, salonId } = req.body;
+  const customerId = String(req.customer._id);
+  if (!videoUrl || !salonId)
+    return res.status(400).json({ success: false, message: "videoUrl and salonId required" });
   const ReelLike = require("../models/ReelLike");
-  const existing = await ReelLike.findOne({ videoUrl, fingerprint });
+  const existing = await ReelLike.findOne({ videoUrl, customerId });
   if (existing) {
     await existing.deleteOne();
     const count = await ReelLike.countDocuments({ videoUrl });
     return res.json({ success: true, liked: false, count });
   }
-  await ReelLike.create({ videoUrl, salonId, fingerprint });
+  await ReelLike.create({ videoUrl, salonId, customerId });
   const count = await ReelLike.countDocuments({ videoUrl });
   res.json({ success: true, liked: true, count });
 }));
