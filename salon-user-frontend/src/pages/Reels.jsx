@@ -152,6 +152,16 @@ const PinIcon = () => (
   </svg>
 );
 
+/* ── Fingerprint (anonymous user ID) ── */
+function getFingerprint() {
+  let fp = localStorage.getItem('reelFingerprint');
+  if (!fp) {
+    fp = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);
+    localStorage.setItem('reelFingerprint', fp);
+  }
+  return fp;
+}
+
 /* ── Btn helper ── */
 const ActionBtn = ({ onClick, children, label, color }) => (
   <button onClick={onClick} type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, padding: 0 }}>
@@ -168,6 +178,7 @@ export default function Reels() {
   const [loading, setLoading]     = useState(true);
   const [locLabel, setLocLabel]   = useState("Nearby");
   const [liked, setLiked]         = useState(new Set());
+  const [likeCounts, setLikeCounts] = useState({});
   const [muted, setMuted]         = useState(true);
   const [showMute, setShowMute]   = useState(false);
   const [copied, setCopied]       = useState(null);
@@ -184,13 +195,28 @@ export default function Reels() {
   const observerRef = useRef(null);
   const muteTimer   = useRef(null);
 
-  /* ── Fetch reels ── */
+  /* ── Fetch reels + like state ── */
   useEffect(() => {
     const load = async (lat, lng) => {
       try {
         const qs = lat != null ? `?latitude=${lat}&longitude=${lng}&limit=30` : `?limit=30`;
         const res = await API.get(`/public/reels${qs}`);
-        setReels(res.data.data || []);
+        const data = res.data.data || [];
+        setReels(data);
+
+        // Load like counts + liked state for all reels in parallel
+        const fp = getFingerprint();
+        const counts = {};
+        const likedSet = new Set();
+        await Promise.all(data.map(async (reel) => {
+          try {
+            const r = await API.get(`/public/reels/likes?videoUrl=${encodeURIComponent(reel.videoUrl)}&fingerprint=${encodeURIComponent(fp)}`);
+            counts[reel._id] = r.data.count ?? 0;
+            if (r.data.liked) likedSet.add(reel._id);
+          } catch { counts[reel._id] = 0; }
+        }));
+        setLikeCounts(counts);
+        setLiked(likedSet);
       } catch { setReels([]); }
       finally { setLoading(false); }
     };
@@ -243,13 +269,21 @@ export default function Reels() {
     muteTimer.current = setTimeout(() => setShowMute(false), 1200);
   }, []);
 
-  const toggleLike = useCallback((id) => {
-    setLiked(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  }, []);
+  const toggleLike = useCallback(async (reel) => {
+    const fp = getFingerprint();
+    const wasLiked = liked.has(reel._id);
+    // Optimistic update
+    setLiked(prev => { const s = new Set(prev); wasLiked ? s.delete(reel._id) : s.add(reel._id); return s; });
+    setLikeCounts(prev => ({ ...prev, [reel._id]: Math.max(0, (prev[reel._id] ?? 0) + (wasLiked ? -1 : 1)) }));
+    try {
+      const r = await API.post('/public/reels/like', { videoUrl: reel.videoUrl, salonId: reel.salon._id, fingerprint: fp });
+      setLiked(prev => { const s = new Set(prev); r.data.liked ? s.add(reel._id) : s.delete(reel._id); return s; });
+      setLikeCounts(prev => ({ ...prev, [reel._id]: r.data.count ?? prev[reel._id] }));
+    } catch { /* revert on error */
+      setLiked(prev => { const s = new Set(prev); wasLiked ? s.add(reel._id) : s.delete(reel._id); return s; });
+      setLikeCounts(prev => ({ ...prev, [reel._id]: Math.max(0, (prev[reel._id] ?? 0) + (wasLiked ? 1 : -1)) }));
+    }
+  }, [liked]);
 
   const handleShare = useCallback(async (reel) => {
     const url = `${window.location.origin}/salon/${reel.salon._id}`;
@@ -399,7 +433,7 @@ export default function Reels() {
 
                     {/* Right action buttons */}
                     <div style={{ position: 'absolute', bottom: 'calc(env(safe-area-inset-bottom, 0px) + 90px)', right: 10, zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
-                      <ActionBtn onClick={() => toggleLike(reel._id)} label={isLiked ? 'Liked' : 'Like'} color={isLiked ? '#ef4444' : '#fff'}>
+                      <ActionBtn onClick={() => toggleLike(reel)} label={likeCounts[reel._id] > 0 ? String(likeCounts[reel._id]) : (isLiked ? 'Liked' : 'Like')} color={isLiked ? '#ef4444' : '#fff'}>
                         <div className={isLiked ? 'heart-pop' : ''}><HeartIcon filled={isLiked} /></div>
                       </ActionBtn>
                       <ActionBtn onClick={() => setCommentReel(reel)} label="Comment">

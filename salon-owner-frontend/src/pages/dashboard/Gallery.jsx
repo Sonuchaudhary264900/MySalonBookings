@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Images, Upload, Star, Tag, RefreshCw, Loader2, ImagePlus, Film,
+  Heart, MessageCircle, ChevronDown, ChevronUp, Play,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -98,6 +99,125 @@ const FeaturedStrip = ({ photos, coverId, onView }) => {
             />
           </button>
         ))}
+      </div>
+    </div>
+  );
+};
+
+/* ── Reel Insights card ── */
+const ReelInsightCard = ({ reel }) => {
+  const [open, setOpen] = useState(false);
+  const url = reel.videoUrl || '';
+
+  return (
+    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+      <div className="flex items-center gap-3 p-3">
+        {/* Thumbnail */}
+        <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 shrink-0">
+          <video src={url} muted playsInline preload="metadata" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/25">
+            <Play className="w-4 h-4 text-white fill-white" />
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="flex-1 min-w-0">
+          {/* Categories */}
+          {reel.categories?.length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-1.5">
+              {reel.categories.map(c => (
+                <span key={c} className="px-1.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 text-[10px] font-semibold">{c}</span>
+              ))}
+            </div>
+          )}
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1 text-sm font-bold text-red-500">
+              <Heart className="w-3.5 h-3.5 fill-red-500" /> {reel.likeCount}
+            </span>
+            <span className="flex items-center gap-1 text-sm font-bold text-indigo-500">
+              <MessageCircle className="w-3.5 h-3.5" /> {reel.commentCount}
+            </span>
+          </div>
+        </div>
+
+        {/* Expand toggle (only if comments) */}
+        {reel.recentComments?.length > 0 && (
+          <button
+            onClick={() => setOpen(o => !o)}
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 transition-colors shrink-0"
+          >
+            {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+        )}
+      </div>
+
+      {/* Recent comments */}
+      {open && reel.recentComments?.length > 0 && (
+        <div className="border-t border-gray-100 dark:border-gray-800 px-3 py-2 space-y-2">
+          {reel.recentComments.map((c, i) => (
+            <div key={i} className="flex gap-2">
+              <div className="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-950/60 flex items-center justify-center shrink-0">
+                <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">{c.name?.[0]?.toUpperCase()}</span>
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">{c.name}</p>
+                <p className="text-xs text-gray-800 dark:text-gray-200 break-words">{c.text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ── Reel Insights panel ── */
+const ReelInsights = () => {
+  const [analytics, setAnalytics]   = useState([]);
+  const [loading, setLoading]       = useState(true);
+
+  useEffect(() => {
+    api.get('/owner/reels/analytics')
+      .then(r => setAnalytics(r.data.data || []))
+      .catch(() => setAnalytics([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return (
+    <div className="flex items-center justify-center py-10">
+      <Loader2 className="w-5 h-5 animate-spin text-indigo-400" />
+    </div>
+  );
+
+  if (!analytics.length) return (
+    <div className="text-center py-8 text-sm text-gray-400 dark:text-gray-500">
+      No reel videos yet. Upload a video and toggle it as a reel to see insights.
+    </div>
+  );
+
+  const totalLikes    = analytics.reduce((s, r) => s + r.likeCount, 0);
+  const totalComments = analytics.reduce((s, r) => s + r.commentCount, 0);
+
+  return (
+    <div className="space-y-3">
+      {/* Summary */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/40">
+          <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500" />
+          <span className="text-sm font-bold text-red-600 dark:text-red-400">{totalLikes}</span>
+          <span className="text-xs text-red-500/70">total likes</span>
+        </div>
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40">
+          <MessageCircle className="w-3.5 h-3.5 text-indigo-500" />
+          <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{totalComments}</span>
+          <span className="text-xs text-indigo-500/70">total comments</span>
+        </div>
+        <span className="text-xs text-gray-400 ml-auto">{analytics.length} reel{analytics.length !== 1 ? 's' : ''}</span>
+      </div>
+
+      {/* Per-reel cards */}
+      <div className="space-y-2">
+        {analytics.map((reel, i) => <ReelInsightCard key={i} reel={reel} />)}
       </div>
     </div>
   );
@@ -326,6 +446,20 @@ export default function Gallery() {
               onView={handleView}
               onDelete={handleDeleteFromGrid}
             />
+          )}
+
+          {/* ── Reel Insights ── */}
+          {!loading && (
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center">
+                  <Heart className="w-3.5 h-3.5 text-white fill-white" />
+                </div>
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white">Reel Insights</h3>
+                <span className="text-xs text-gray-400 dark:text-gray-500 ml-1">Likes &amp; comments on your reel videos</span>
+              </div>
+              <ReelInsights />
+            </div>
           )}
 
         </div>

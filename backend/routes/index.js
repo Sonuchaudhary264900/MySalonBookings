@@ -434,6 +434,66 @@ router.post("/public/reels/comments", asyncHandler(async (req, res) => {
   res.status(201).json({ success: true, data: comment });
 }));
 
+// POST /public/reels/like — toggle like on a reel (fingerprint-based, no auth needed)
+router.post("/public/reels/like", asyncHandler(async (req, res) => {
+  const { videoUrl, salonId, fingerprint } = req.body;
+  if (!videoUrl || !salonId || !fingerprint)
+    return res.status(400).json({ success: false, message: "videoUrl, salonId, fingerprint required" });
+  const ReelLike = require("../models/ReelLike");
+  const existing = await ReelLike.findOne({ videoUrl, fingerprint });
+  if (existing) {
+    await existing.deleteOne();
+    const count = await ReelLike.countDocuments({ videoUrl });
+    return res.json({ success: true, liked: false, count });
+  }
+  await ReelLike.create({ videoUrl, salonId, fingerprint });
+  const count = await ReelLike.countDocuments({ videoUrl });
+  res.json({ success: true, liked: true, count });
+}));
+
+// GET /public/reels/likes?videoUrl=... — get like count + whether fingerprint liked it
+router.get("/public/reels/likes", asyncHandler(async (req, res) => {
+  const { videoUrl, fingerprint } = req.query;
+  if (!videoUrl) return res.status(400).json({ success: false, message: "videoUrl required" });
+  const ReelLike = require("../models/ReelLike");
+  const [count, liked] = await Promise.all([
+    ReelLike.countDocuments({ videoUrl }),
+    fingerprint ? ReelLike.exists({ videoUrl, fingerprint }) : Promise.resolve(false),
+  ]);
+  res.json({ success: true, count, liked: !!liked });
+}));
+
+// GET /owner/reels/analytics — owner sees likes + comments per reel video
+router.get("/owner/reels/analytics", authenticateOwner, asyncHandler(async (req, res) => {
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] })
+    .select('reelVideos name').lean();
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+
+  const ReelLike    = require("../models/ReelLike");
+  const ReelComment = require("../models/ReelComment");
+
+  const reelEntries = (salon.reelVideos || []).map(rv =>
+    typeof rv === 'string' ? { url: rv, categories: [] } : rv
+  );
+
+  const results = await Promise.all(reelEntries.map(async (rv) => {
+    const [likeCount, commentCount, recentComments] = await Promise.all([
+      ReelLike.countDocuments({ videoUrl: rv.url }),
+      ReelComment.countDocuments({ videoUrl: rv.url }),
+      ReelComment.find({ videoUrl: rv.url }).sort({ createdAt: -1 }).limit(5).lean(),
+    ]);
+    return {
+      videoUrl:       rv.url,
+      categories:     rv.categories || [],
+      likeCount,
+      commentCount,
+      recentComments,
+    };
+  }));
+
+  res.json({ success: true, data: results });
+}));
+
 // GET /public/salons/:salonId/booked-slots?date=YYYY-MM-DD&duration=N
 router.get("/public/salons/:salonId/booked-slots", validateObjectId("salonId"), asyncHandler(async (req, res) => {
   const { date, duration } = req.query;
