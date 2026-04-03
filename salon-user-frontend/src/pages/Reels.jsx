@@ -372,6 +372,16 @@ export default function Reels() {
                           <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, margin: 0 }}>📍 {reel.salon.city}</p>
                         </div>
                       </div>
+                      {/* Category chips */}
+                      {reel.categories?.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
+                          {reel.categories.map(cat => (
+                            <span key={cat} style={{ background: 'rgba(99,102,241,0.75)', backdropFilter: 'blur(6px)', borderRadius: 20, padding: '3px 10px', color: '#fff', fontSize: 10, fontWeight: 700, letterSpacing: 0.2 }}>
+                              {cat}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       {reel.salon.averageRating > 0 && (
                         <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: 12, margin: '0 0 10px', fontWeight: 600 }}>⭐ {reel.salon.averageRating.toFixed(1)}</p>
                       )}

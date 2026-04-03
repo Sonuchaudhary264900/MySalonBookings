@@ -156,7 +156,8 @@ location: {
     ],
     reelVideos: [
       {
-        type: String, // URLs of videos the owner selected to feature in Reels
+        url:        { type: String, required: true },
+        categories: [{ type: String }],
       },
     ],
     logo: {
