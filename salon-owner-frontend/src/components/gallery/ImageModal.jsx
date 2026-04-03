@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   X, ChevronLeft, ChevronRight, Trash2, Edit2, Star, Tag,
   Check, Loader2, AlertTriangle, Download, Calendar, Zap, Play,
+  MoreVertical, Heart, Eye, MessageCircle,
 } from 'lucide-react';
 import api from '../../services/api';
 
@@ -97,6 +98,8 @@ const ImageModal = ({
   // Video-specific
   const [isPlaying,        setIsPlaying]       = useState(true);
   const [showEditPanel,    setShowEditPanel]   = useState(false);
+  const [menuOpen,         setMenuOpen]        = useState(false);
+  const [videoStats,       setVideoStats]      = useState({ likeCount: 0, viewCount: 0, commentCount: 0 });
   const videoElRef = useRef(null);
 
   // ── Derived values (before handlers so handlers can safely reference them) ──
@@ -121,8 +124,25 @@ const ImageModal = ({
       setReelCategories(photo.reelCategories || []);
       setIsPlaying(true);
       setShowEditPanel(false);
+      setMenuOpen(false);
+      setVideoStats({ likeCount: 0, viewCount: 0, commentCount: 0 });
     }
   }, [idx, photo?._id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Fetch analytics when a video opens ──
+  useEffect(() => {
+    if (!isVideo || !url) return;
+    api.get('/owner/reels/analytics').then(res => {
+      const entry = (res.data?.data || []).find(r => r.videoUrl === url);
+      if (entry) {
+        setVideoStats({
+          likeCount:    entry.likeCount    || 0,
+          viewCount:    entry.viewCount    || 0,
+          commentCount: entry.commentCount || 0,
+        });
+      }
+    }).catch(() => {});
+  }, [isVideo, url]);
 
   // ── Lock body scroll ──
   useEffect(() => {
@@ -134,6 +154,7 @@ const ImageModal = ({
   // ── Keyboard navigation ──
   useEffect(() => {
     const onKey = (e) => {
+      if (menuOpen) { if (e.key === 'Escape') setMenuOpen(false); return; }
       if (showEditPanel) return; // don't navigate while editing
       if (e.key === 'ArrowLeft')  goPrev();
       if (e.key === 'ArrowRight') goNext();
@@ -142,7 +163,7 @@ const ImageModal = ({
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [idx, photos.length, showEditPanel, isVideo]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [idx, photos.length, showEditPanel, isVideo, menuOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const goPrev = useCallback(() => setIdx(i => (i > 0 ? i - 1 : photos.length - 1)), [photos.length]);
   const goNext = useCallback(() => setIdx(i => (i < photos.length - 1 ? i + 1 : 0)), [photos.length]);
@@ -252,7 +273,7 @@ const ImageModal = ({
           loop
           className="absolute inset-0 w-full h-full object-contain"
           onLoadedData={() => setImgLoaded(true)}
-          onClick={togglePlay}
+          onClick={() => { if (menuOpen) { setMenuOpen(false); } else { togglePlay(); } }}
           style={{ cursor: 'pointer' }}
         />
 
@@ -307,15 +328,52 @@ const ImageModal = ({
           )}
           {photos.length <= 1 && <div />}
 
-          {/* Download */}
-          <button
-            onClick={handleDownload}
-            className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center
-              text-white hover:bg-black/60 transition-colors"
-            title="Download"
-          >
-            <Download className="w-4 h-4" />
-          </button>
+          {/* Three-dot menu */}
+          <div className="relative">
+            <button
+              onClick={() => setMenuOpen(o => !o)}
+              className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center
+                text-white hover:bg-black/60 transition-colors"
+              title="More options"
+            >
+              <MoreVertical className="w-4 h-4" />
+            </button>
+            {menuOpen && (
+              <div
+                className="absolute right-0 top-11 z-30 min-w-[170px] rounded-2xl overflow-hidden shadow-2xl
+                  bg-gray-900/95 backdrop-blur-xl border border-white/10"
+                onClick={e => e.stopPropagation()}
+              >
+                <button
+                  onClick={() => { setMenuOpen(false); setEditMode(true); setShowEditPanel(true); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors text-left"
+                >
+                  <Edit2 className="w-4 h-4 text-white/60" /> Edit Details
+                </button>
+                <button
+                  onClick={() => { setMenuOpen(false); handleReelToggle(); }}
+                  disabled={togglingReel}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors text-left disabled:opacity-50"
+                >
+                  <Zap className={`w-4 h-4 ${inReels ? 'text-violet-400' : 'text-white/60'}`} />
+                  {inReels ? 'Remove from Reels' : 'Add to Reels'}
+                </button>
+                <button
+                  onClick={() => { setMenuOpen(false); handleDownload(); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors text-left"
+                >
+                  <Download className="w-4 h-4 text-white/60" /> Download
+                </button>
+                <div className="h-px bg-white/10 mx-3" />
+                <button
+                  onClick={() => { setMenuOpen(false); setShowDelete(true); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-400 hover:bg-red-500/15 transition-colors text-left"
+                >
+                  <Trash2 className="w-4 h-4" /> Delete
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* ── Navigation arrows ── */}
@@ -378,45 +436,36 @@ const ImageModal = ({
             </div>
           )}
 
-          {/* Action buttons */}
-          <div className="flex items-center gap-2">
-            {/* Edit details */}
-            <button
-              onClick={() => { setEditMode(true); setShowEditPanel(true); }}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl
-                bg-white/10 backdrop-blur-md border border-white/20 text-white text-xs font-semibold
-                hover:bg-white/20 active:scale-[0.98] transition-all"
-            >
-              <Edit2 className="w-3.5 h-3.5" /> Edit Details
-            </button>
+          {/* Stats row */}
+          {(videoStats.viewCount > 0 || videoStats.likeCount > 0 || videoStats.commentCount > 0) && (
+            <div className="flex items-center gap-4 mb-3">
+              <div className="flex items-center gap-1.5">
+                <Eye className="w-3.5 h-3.5 text-white/60" />
+                <span className="text-white text-xs font-semibold">{videoStats.viewCount.toLocaleString()}</span>
+                <span className="text-white/40 text-xs">views</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Heart className="w-3.5 h-3.5 text-rose-400" />
+                <span className="text-white text-xs font-semibold">{videoStats.likeCount.toLocaleString()}</span>
+                <span className="text-white/40 text-xs">likes</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <MessageCircle className="w-3.5 h-3.5 text-white/60" />
+                <span className="text-white text-xs font-semibold">{videoStats.commentCount.toLocaleString()}</span>
+                <span className="text-white/40 text-xs">comments</span>
+              </div>
+            </div>
+          )}
 
-            {/* Reel toggle */}
-            <button
-              onClick={handleReelToggle}
-              disabled={togglingReel}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl
-                text-xs font-semibold backdrop-blur-md active:scale-[0.98] transition-all disabled:opacity-60
-                ${inReels
-                  ? 'bg-violet-600/80 border border-violet-500/60 text-white hover:bg-violet-700/80'
-                  : 'bg-white/10 border border-white/20 text-white hover:bg-white/20'
-                }`}
-            >
-              {togglingReel
-                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                : <Zap className="w-3.5 h-3.5" />
-              }
-              {inReels ? 'In Reels' : 'Add to Reels'}
-            </button>
-
-            {/* Delete */}
-            <button
-              onClick={() => setShowDelete(true)}
-              className="w-11 h-11 rounded-xl bg-red-500/20 backdrop-blur-md border border-red-500/30
-                flex items-center justify-center text-red-400 hover:bg-red-500/35 active:scale-95 transition-all"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
+          {/* Edit details button */}
+          <button
+            onClick={() => { setEditMode(true); setShowEditPanel(true); }}
+            className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl
+              bg-white/10 backdrop-blur-md border border-white/20 text-white text-xs font-semibold
+              hover:bg-white/20 active:scale-[0.98] transition-all"
+          >
+            <Edit2 className="w-3.5 h-3.5" /> Edit Details
+          </button>
         </div>
 
         {/* ── Edit details panel (slides up from bottom) ── */}

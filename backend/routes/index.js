@@ -1913,18 +1913,33 @@ router.post("/owner/gallery/register-photo", authenticateOwner, asyncHandler(asy
   res.status(201).json({ success: true, data: { _id: `p_${i}`, url, caption: '', tags: [], isCover: false, type: 'image' } });
 }));
 
-// POST /owner/gallery/register-video — save a Cloudinary video URL after direct upload
+// POST /owner/gallery/register-video — save a Cloudinary video URL after direct upload.
+// Automatically adds the video to reelVideos (public feed) with the supplied categories.
 router.post("/owner/gallery/register-video", authenticateOwner, asyncHandler(async (req, res) => {
-  const { url } = req.body;
+  const { url, categories } = req.body;
   if (!url || !url.startsWith('https://res.cloudinary.com/'))
     return res.status(400).json({ success: false, message: "Valid Cloudinary url required" });
   const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+
+  // Save to gallery videos
   if (!salon.videos) salon.videos = [];
   salon.videos.push({ url, caption: '', tags: [] });
+
+  // Auto-add to public reelVideos with the supplied categories
+  if (!salon.reelVideos) salon.reelVideos = [];
+  const reelCats = Array.isArray(categories) ? categories : [];
+  const existingReelIdx = salon.reelVideos.findIndex(rv => (typeof rv === 'string' ? rv : rv?.url) === url);
+  if (existingReelIdx === -1) {
+    salon.reelVideos.push({ url, categories: reelCats, createdAt: new Date() });
+  } else {
+    salon.reelVideos[existingReelIdx] = { url, categories: reelCats, createdAt: new Date() };
+    salon.markModified('reelVideos');
+  }
+
   await salon.save();
   const i = salon.videos.length - 1;
-  res.status(201).json({ success: true, data: { _id: `v_${i}`, url, caption: '', tags: [], type: 'video', inReels: false, reelCategories: [] } });
+  res.status(201).json({ success: true, data: { _id: `v_${i}`, url, caption: '', tags: [], type: 'video', inReels: true, reelCategories: reelCats } });
 }));
 
 // GET /owner/gallery — return all photos + videos

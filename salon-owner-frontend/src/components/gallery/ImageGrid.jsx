@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Eye, Trash2, Star, Tag, Play, AlertTriangle, X } from 'lucide-react';
+import { Eye, Trash2, Star, Tag, Play, AlertTriangle } from 'lucide-react';
 
 /* ── Cloudinary video → JPEG thumbnail ── */
 function cloudinaryThumb(url) {
@@ -25,10 +25,12 @@ const SkeletonCard = () => (
 
 /* ── Single image/video card ── */
 const ImageCard = ({ photo, isCover, onView, onDelete }) => {
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmOpen,  setConfirmOpen]  = useState(false);
+  const [thumbFailed,  setThumbFailed]  = useState(false);
   const url     = photo.url || photo.imageUrl || photo.image || '';
   const tag     = photo.tags?.[0];
   const isVideo = photo.type === 'video';
+  const thumbUrl = isVideo ? cloudinaryThumb(url) : '';
 
   const handleDeleteClick = (e) => {
     e.stopPropagation();
@@ -56,14 +58,16 @@ const ImageCard = ({ photo, isCover, onView, onDelete }) => {
       {/* Media */}
       {isVideo ? (
         <>
-          <video
-            ref={el => { if (el) el.muted = true; }}
-            src={url}
-            poster={cloudinaryThumb(url)}
-            playsInline
-            preload="metadata"
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-          />
+          {thumbUrl && !thumbFailed ? (
+            <img
+              src={thumbUrl}
+              alt={photo.caption || 'Video thumbnail'}
+              onError={() => setThumbFailed(true)}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center" />
+          )}
           <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
             <div className="w-12 h-12 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center
               group-hover:scale-110 transition-transform shadow-lg">
