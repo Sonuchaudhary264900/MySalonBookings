@@ -4,86 +4,112 @@ import API from "../services/api";
 
 /* ── CSS ── */
 const CSS = `
-  /* Mobile: fullscreen feed */
-  .reels-root {
+  html, body { margin: 0; padding: 0; }
+
+  /* ── Outer wrapper ── */
+  .reels-page {
     background: #000;
-    display: flex;
-    flex-direction: column;
+    min-height: 100vh;
   }
+
+  /* ── Mobile: fullscreen takeover ── */
   @media (max-width: 767px) {
-    .reels-root {
-      position: fixed; inset: 0; z-index: 60;
-    }
+    .reels-page { position: fixed; inset: 0; z-index: 60; min-height: unset; }
+    .reels-desktop-wrap { display: contents; }
+    .reels-sidebar { display: none !important; }
+    .reels-col { width: 100%; height: 100%; }
+    .reels-feed { height: 100%; }
+    .reel-item { height: 100dvh; height: 100vh; }
   }
+
+  /* ── Tablet + Desktop: centered column ── */
   @media (min-width: 768px) {
-    .reels-root {
-      position: relative;
-      width: 420px;
-      flex-shrink: 0;
-      height: calc(100vh - 72px);
-      border-radius: 18px;
-      overflow: hidden;
-    }
+    .reels-page { position: static; }
     .reels-desktop-wrap {
       display: flex;
-      gap: 24px;
-      max-width: 1100px;
+      gap: 28px;
+      max-width: 1060px;
       margin: 0 auto;
-      padding: 24px 24px 32px;
+      padding: 20px 20px 40px;
       align-items: flex-start;
+      box-sizing: border-box;
     }
+    .reels-col {
+      width: 400px;
+      flex-shrink: 0;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 8px 48px rgba(0,0,0,0.7);
+    }
+    .reels-feed { height: calc(100vh - 108px); min-height: 500px; }
+    .reel-item { height: calc(100vh - 108px); min-height: 500px; }
     .reels-sidebar {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
       flex: 1;
       min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
       padding-top: 4px;
     }
   }
-  @media (max-width: 767px) {
-    .reels-desktop-wrap { display: contents; }
-    .reels-sidebar { display: none !important; }
-  }
+
+  /* ── Feed scroll container ── */
   .reels-feed {
-    flex: 1;
-    height: 100%;
+    position: relative;
     overflow-y: scroll;
     scroll-snap-type: y mandatory;
     -webkit-overflow-scrolling: touch;
-    scrollbar-width: none; -ms-overflow-style: none;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    background: #000;
   }
   .reels-feed::-webkit-scrollbar { display: none; }
+
+  /* ── Single reel ── */
   .reel-item {
-    height: 100%; scroll-snap-align: start; scroll-snap-stop: always;
-    position: relative; overflow: hidden; background: #111;
+    position: relative;
+    overflow: hidden;
+    background: #111;
     flex-shrink: 0;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
   }
-  @media (max-width: 767px) {
-    .reel-item { height: 100dvh; }
-  }
+
+  /* ── Video fills reel ── */
   .reel-video {
-    width: 100%; height: 100%; object-fit: cover;
-    display: block; position: absolute; inset: 0;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
+
+  /* ── Gradient overlay ── */
   .reel-gradient {
-    position: absolute; inset: 0; pointer-events: none;
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
     background: linear-gradient(
       to top,
-      rgba(0,0,0,0.88) 0%,
-      rgba(0,0,0,0.4) 35%,
-      transparent 65%
+      rgba(0,0,0,0.9) 0%,
+      rgba(0,0,0,0.35) 40%,
+      transparent 68%
     );
   }
-  @keyframes heartPop { 0%,100% { transform: scale(1); } 50% { transform: scale(1.35); } }
-  .heart-pop { animation: heartPop 0.28s ease; }
+
+  /* ── Animations ── */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes heartPop { 0%,100% { transform: scale(1); } 50% { transform: scale(1.4); } }
   @keyframes muteAnim { 0%,100% { opacity: 0; transform: scale(0.7); } 20%,70% { opacity: 1; transform: scale(1); } }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+
+  .heart-pop { animation: heartPop 0.28s ease; }
   .mute-toast { animation: muteAnim 1.1s ease forwards; pointer-events: none; }
-  @keyframes reelFadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
-  .reel-info-in { animation: reelFadeIn 0.35s ease both; }
+  .reel-info-in { animation: slideUp 0.35s ease both; }
 `;
 
-/* ── Icon helpers ── */
+/* ── Icons ── */
 const ChevronLeft = () => (
   <svg viewBox="0 0 24 24" width={20} height={20} fill="none" stroke="currentColor" strokeWidth={2.5}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -126,27 +152,39 @@ const PinIcon = () => (
   </svg>
 );
 
+/* ── Btn helper ── */
+const ActionBtn = ({ onClick, children, label, color }) => (
+  <button onClick={onClick} type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, padding: 0 }}>
+    <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {children}
+    </div>
+    <span style={{ color: color || '#fff', fontSize: 11, fontWeight: 700, textShadow: '0 1px 4px rgba(0,0,0,0.9)', letterSpacing: 0.2 }}>{label}</span>
+  </button>
+);
+
 export default function Reels() {
   const navigate = useNavigate();
-  const [reels, setReels]     = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [locLabel, setLocLabel] = useState("Nearby");
-  const [liked, setLiked]     = useState(new Set());
-  const [muted, setMuted]     = useState(true);
-  const [showMute, setShowMute] = useState(false);
-  const [commentReel, setCommentReel] = useState(null); // full reel object
-  const [comments, setComments]       = useState([]);
+  const [reels, setReels]         = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [locLabel, setLocLabel]   = useState("Nearby");
+  const [liked, setLiked]         = useState(new Set());
+  const [muted, setMuted]         = useState(true);
+  const [showMute, setShowMute]   = useState(false);
+  const [copied, setCopied]       = useState(null);
+
+  // Comments
+  const [commentReel, setCommentReel]         = useState(null);
+  const [comments, setComments]               = useState([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
-  const [commentText, setCommentText] = useState("");
-  const [commentName, setCommentName] = useState(() => localStorage.getItem('reelCommentName') || "");
-  const [posting, setPosting]         = useState(false);
-  const [copied, setCopied]           = useState(null);
+  const [commentText, setCommentText]         = useState("");
+  const [commentName, setCommentName]         = useState(() => localStorage.getItem('reelCommentName') || "");
+  const [posting, setPosting]                 = useState(false);
 
   const videoRefs   = useRef({});
   const observerRef = useRef(null);
   const muteTimer   = useRef(null);
 
-  /* Fetch reels */
+  /* ── Fetch reels ── */
   useEffect(() => {
     const load = async (lat, lng) => {
       try {
@@ -156,7 +194,6 @@ export default function Reels() {
       } catch { setReels([]); }
       finally { setLoading(false); }
     };
-
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         p => { setLocLabel("Nearby You"); load(p.coords.latitude, p.coords.longitude); },
@@ -166,40 +203,36 @@ export default function Reels() {
     } else { setLocLabel("All Salons"); load(); }
   }, []);
 
-  /* IntersectionObserver — autoplay visible video, pause others */
+  /* ── IntersectionObserver: autoplay/pause on scroll ── */
   useEffect(() => {
     if (!reels.length) return;
     observerRef.current?.disconnect();
     observerRef.current = new IntersectionObserver(entries => {
       entries.forEach(entry => {
         const v = entry.target;
-        if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
           v.play().catch(() => {});
         } else {
           v.pause();
           v.currentTime = 0;
         }
       });
-    }, { threshold: 0.6 });
+    }, { threshold: 0.5 });
     Object.values(videoRefs.current).forEach(v => { if (v) observerRef.current.observe(v); });
-
-    // Kick-start the first visible video — the observer may not fire on already-visible elements
-    const firstKey = reels[0]?._id;
-    const firstVid = firstKey ? videoRefs.current[firstKey] : null;
-    if (firstVid) firstVid.play().catch(() => {});
-
+    // kick first
+    const first = videoRefs.current[reels[0]?._id];
+    if (first) first.play().catch(() => {});
     return () => observerRef.current?.disconnect();
   }, [reels]);
 
-  /* Sync muted state — React's muted prop is broken, must set via DOM */
+  /* ── Sync muted (React muted prop is broken — must use DOM) ── */
   useEffect(() => {
     Object.values(videoRefs.current).forEach(v => { if (v) v.muted = muted; });
   }, [muted]);
 
-  /* Set muted=true on every new video ref (React doesn't apply muted prop to DOM) */
   const setVideoRef = useCallback((el, id) => {
     if (!el) return;
-    el.muted = true; // always start muted so autoplay is allowed
+    el.muted = true;
     videoRefs.current[id] = el;
   }, []);
 
@@ -210,26 +243,25 @@ export default function Reels() {
     muteTimer.current = setTimeout(() => setShowMute(false), 1200);
   }, []);
 
-  const toggleLike = (id) => {
+  const toggleLike = useCallback((id) => {
     setLiked(prev => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
-  };
+  }, []);
 
-  const handleShare = async (reel) => {
+  const handleShare = useCallback(async (reel) => {
     const url = `${window.location.origin}/salon/${reel.salon._id}`;
     if (navigator.share) {
-      try { await navigator.share({ title: reel.salon.name, text: `Book at ${reel.salon.name}!`, url }); return; }
-      catch {}
+      try { await navigator.share({ title: reel.salon.name, text: `Book at ${reel.salon.name}!`, url }); return; } catch {}
     }
     try { await navigator.clipboard.writeText(url); } catch {}
     setCopied(reel._id);
     setTimeout(() => setCopied(null), 2000);
-  };
+  }, []);
 
-  /* Load comments when sheet opens */
+  /* ── Comments ── */
   useEffect(() => {
     if (!commentReel) { setComments([]); return; }
     setCommentsLoading(true);
@@ -239,41 +271,33 @@ export default function Reels() {
       .finally(() => setCommentsLoading(false));
   }, [commentReel]);
 
-  const postComment = async () => {
+  const postComment = useCallback(async () => {
     const name = commentName.trim();
     const text = commentText.trim();
     if (!name || !text || !commentReel || posting) return;
     setPosting(true);
     try {
-      const r = await API.post('/public/reels/comments', {
-        videoUrl: commentReel.videoUrl,
-        salonId:  commentReel.salon._id,
-        name,
-        text,
-      });
+      const r = await API.post('/public/reels/comments', { videoUrl: commentReel.videoUrl, salonId: commentReel.salon._id, name, text });
       localStorage.setItem('reelCommentName', name);
       setComments(prev => [r.data.data, ...prev]);
       setCommentText("");
     } catch { /* silent */ }
     finally { setPosting(false); }
-  };
-
-  const loaderStyle = { background: '#000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, minHeight: '60vh' };
+  }, [commentName, commentText, commentReel, posting]);
 
   /* ── Loading ── */
   if (loading) return (
-    <>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-      <div style={loaderStyle}>
-        <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #6366f1', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
-        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, margin: 0 }}>Finding nearby salon reels…</p>
-      </div>
-    </>
+    <div style={{ background: '#000', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
+      <style>{CSS}</style>
+      <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #6366f1', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+      <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, margin: 0 }}>Finding nearby salon reels…</p>
+    </div>
   );
 
   /* ── Empty ── */
   if (!reels.length) return (
-    <div style={{ ...loaderStyle, padding: 24 }}>
+    <div style={{ background: '#000', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, padding: 24 }}>
+      <style>{CSS}</style>
       <div style={{ fontSize: 52 }}>🎬</div>
       <p style={{ color: '#fff', fontSize: 18, fontWeight: 800, margin: 0 }}>No Reels Yet</p>
       <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textAlign: 'center', maxWidth: 260, margin: 0 }}>No nearby salon videos yet. Check back soon!</p>
@@ -286,183 +310,185 @@ export default function Reels() {
   return (
     <>
       <style>{CSS}</style>
-      <div style={{ background: '#000', minHeight: '100vh' }}>
-      <div className="reels-desktop-wrap" style={{ boxSizing: 'border-box' }}>
-      <div className="reels-root">
+      <div className="reels-page">
+        <div className="reels-desktop-wrap">
 
-        {/* ── Fixed top bar ── */}
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', paddingTop: 'max(12px, env(safe-area-inset-top))', background: 'linear-gradient(to bottom, rgba(0,0,0,0.75), transparent)', pointerEvents: 'none' }}>
-          {/* Back */}
-          <button onClick={() => navigate(-1)} style={{ background: 'rgba(255,255,255,0.14)', border: 'none', borderRadius: '50%', width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer', pointerEvents: 'all' }}>
-            <ChevronLeft />
-          </button>
+          {/* ── Reel column ── */}
+          <div className="reels-col">
+            {/* Top bar (absolute over feed) */}
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', paddingTop: 'max(12px, env(safe-area-inset-top))', background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)', pointerEvents: 'none' }}>
+              <button onClick={() => navigate(-1)} type="button" style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer', pointerEvents: 'all', backdropFilter: 'blur(8px)' }}>
+                <ChevronLeft />
+              </button>
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ color: '#fff', fontSize: 15, fontWeight: 800, margin: 0, letterSpacing: '-0.2px' }}>Reels</p>
+                <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, margin: 0, display: 'flex', alignItems: 'center', gap: 3, justifyContent: 'center' }}>
+                  <PinIcon /> {locLabel}
+                </p>
+              </div>
+              <button onClick={toggleMute} type="button" style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer', pointerEvents: 'all', backdropFilter: 'blur(8px)' }}>
+                {muted ? <MutedIcon /> : <UnmutedIcon />}
+              </button>
+            </div>
 
-          {/* Title */}
-          <div style={{ textAlign: 'center' }}>
-            <p style={{ color: '#fff', fontSize: 15, fontWeight: 800, margin: 0, letterSpacing: '-0.2px' }}>Reels</p>
-            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, margin: 0, display: 'flex', alignItems: 'center', gap: 3, justifyContent: 'center' }}>
-              <PinIcon /> {locLabel}
-            </p>
+            {/* ── Scrollable feed ── */}
+            <div className="reels-feed">
+              {reels.map((reel, idx) => {
+                const isLiked = liked.has(reel._id);
+                const initial = reel.salon.name?.[0]?.toUpperCase() || 'S';
+                return (
+                  <div key={reel._id} className="reel-item">
+                    {/* Video */}
+                    <video
+                      ref={el => setVideoRef(el, reel._id)}
+                      src={reel.videoUrl}
+                      className="reel-video"
+                      autoPlay
+                      loop
+                      playsInline
+                      preload={idx < 2 ? 'auto' : 'metadata'}
+                      onClick={(e) => { e.currentTarget.play().catch(() => {}); toggleMute(); }}
+                    />
+                    <div className="reel-gradient" />
+
+                    {/* Mute toast */}
+                    {showMute && (
+                      <div className="mute-toast" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)', borderRadius: 40, padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 8, zIndex: 15 }}>
+                        {muted ? <MutedIcon /> : <UnmutedIcon />}
+                        <span style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>{muted ? 'Muted' : 'Sound On'}</span>
+                      </div>
+                    )}
+
+                    {/* Bottom-left: salon info */}
+                    <div className="reel-info-in" style={{ position: 'absolute', bottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)', left: 14, right: 78, zIndex: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                        <div style={{ width: 44, height: 44, borderRadius: '50%', overflow: 'hidden', border: '2px solid rgba(255,255,255,0.9)', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          {reel.salon.logo
+                            ? <img src={reel.salon.logo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            : <span style={{ color: '#fff', fontWeight: 800, fontSize: 17 }}>{initial}</span>}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <p style={{ color: '#fff', fontWeight: 800, fontSize: 14, margin: 0, textShadow: '0 1px 6px rgba(0,0,0,0.8)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{reel.salon.name}</p>
+                          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, margin: 0 }}>📍 {reel.salon.city}</p>
+                        </div>
+                      </div>
+                      {reel.salon.averageRating > 0 && (
+                        <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: 12, margin: '0 0 10px', fontWeight: 600 }}>⭐ {reel.salon.averageRating.toFixed(1)}</p>
+                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <Link to={`/salon/${reel.salon._id}`}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', borderRadius: 20, padding: '8px 18px', color: '#fff', textDecoration: 'none', fontSize: 13, fontWeight: 800, boxShadow: '0 4px 18px rgba(99,102,241,0.55)' }}>
+                          Book Now
+                        </Link>
+                        <Link to={`/salon/${reel.salon._id}`}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.14)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.28)', borderRadius: 20, padding: '7px 14px', color: '#fff', textDecoration: 'none', fontSize: 12, fontWeight: 600 }}>
+                          View Salon →
+                        </Link>
+                      </div>
+                    </div>
+
+                    {/* Right action buttons */}
+                    <div style={{ position: 'absolute', bottom: 'calc(env(safe-area-inset-bottom, 0px) + 90px)', right: 10, zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+                      <ActionBtn onClick={() => toggleLike(reel._id)} label={isLiked ? 'Liked' : 'Like'} color={isLiked ? '#ef4444' : '#fff'}>
+                        <div className={isLiked ? 'heart-pop' : ''}><HeartIcon filled={isLiked} /></div>
+                      </ActionBtn>
+                      <ActionBtn onClick={() => setCommentReel(reel)} label="Comment">
+                        <CommentIcon />
+                      </ActionBtn>
+                      <ActionBtn onClick={() => handleShare(reel)} label={copied === reel._id ? 'Copied!' : 'Share'} color={copied === reel._id ? '#4ade80' : '#fff'}>
+                        {copied === reel._id ? <CheckIcon /> : <ShareIcon />}
+                      </ActionBtn>
+                      {/* Salon avatar */}
+                      <Link to={`/salon/${reel.salon._id}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
+                        <div style={{ width: 48, height: 48, borderRadius: '50%', border: '2.5px solid #fff', padding: 2 }}>
+                          <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {reel.salon.logo
+                              ? <img src={reel.salon.logo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              : <span style={{ color: '#fff', fontWeight: 800, fontSize: 15 }}>{initial}</span>}
+                          </div>
+                        </div>
+                        <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: 10, fontWeight: 600, maxWidth: 58, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {reel.salon.name.split(' ')[0]}
+                        </span>
+                      </Link>
+                    </div>
+
+                    {/* Safe area spacer */}
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 'env(safe-area-inset-bottom, 0px)' }} />
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Mute toggle */}
-          <button onClick={toggleMute} style={{ background: 'rgba(255,255,255,0.14)', border: 'none', borderRadius: '50%', width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer', pointerEvents: 'all' }}>
-            {muted ? <MutedIcon /> : <UnmutedIcon />}
-          </button>
+          {/* ── Desktop sidebar ── */}
+          <div className="reels-sidebar">
+            <div style={{ background: '#111', borderRadius: 16, padding: '18px 16px', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <p style={{ color: '#fff', fontWeight: 800, fontSize: 16, margin: '0 0 4px' }}>Reels</p>
+              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, margin: '0 0 12px' }}>
+                {locLabel === 'Nearby You' ? '📍 Salons within 20km' : '🌐 All salon reels'}
+              </p>
+              <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, margin: 0 }}>Scroll to explore · Tap to mute/unmute</p>
+            </div>
+            {reels.slice(0, 8).map(r => (
+              <Link key={r._id} to={`/salon/${r.salon._id}`}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', padding: '10px 14px', background: '#111', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  {r.salon.logo
+                    ? <img src={r.salon.logo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : <span style={{ color: '#fff', fontWeight: 800, fontSize: 14 }}>{r.salon.name?.[0]?.toUpperCase()}</span>}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <p style={{ color: '#fff', fontSize: 13, fontWeight: 700, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.salon.name}</p>
+                  <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, margin: 0 }}>📍 {r.salon.city}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+
         </div>
+      </div>
 
-        {/* ── Feed ── */}
-        <div className="reels-feed">
-          {reels.map((reel, idx) => {
-            const isLiked = liked.has(reel._id);
-            const initial = reel.salon.name?.[0]?.toUpperCase() || 'S';
+      {/* ── Comment sheet (portal-style, always on top) ── */}
+      {commentReel && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} onClick={() => setCommentReel(null)} />
+          <div style={{ position: 'relative', background: '#1a1a1a', borderRadius: '24px 24px 0 0', padding: '0 0 max(24px, env(safe-area-inset-bottom))', zIndex: 1, width: '100%', maxWidth: 540, maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+            {/* Handle */}
+            <div style={{ padding: '14px 16px 0', flexShrink: 0 }}>
+              <div style={{ width: 40, height: 4, background: 'rgba(255,255,255,0.18)', borderRadius: 2, margin: '0 auto 14px' }} />
+              <p style={{ color: '#fff', fontWeight: 700, fontSize: 15, margin: '0 0 14px' }}>Comments · {commentReel.salon.name}</p>
+            </div>
 
-            return (
-              <div key={reel._id} className="reel-item">
-                <video
-                  ref={el => setVideoRef(el, reel._id)}
-                  src={reel.videoUrl}
-                  className="reel-video"
-                  autoPlay
-                  loop
-                  playsInline
-                  preload={idx < 2 ? 'auto' : 'metadata'}
-                  onClick={(e) => { e.currentTarget.play().catch(() => {}); toggleMute(); }}
-                />
-                <div className="reel-gradient" />
-
-                {/* Mute toast */}
-                {showMute && (
-                  <div className="mute-toast" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)', borderRadius: 40, padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 8, zIndex: 8 }}>
-                    {muted ? <MutedIcon /> : <UnmutedIcon />}
-                    <span style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>{muted ? 'Muted' : 'Sound On'}</span>
+            {/* List */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px', marginBottom: 4 }}>
+              {commentsLoading ? (
+                <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13, textAlign: 'center', padding: '24px 0' }}>Loading…</p>
+              ) : comments.length === 0 ? (
+                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, textAlign: 'center', padding: '24px 0' }}>No comments yet. Be the first!</p>
+              ) : comments.map(c => (
+                <div key={c._id} style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <span style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>{c.name?.[0]?.toUpperCase()}</span>
                   </div>
-                )}
-
-                {/* Bottom-left: salon info */}
-                <div className="reel-info-in" style={{ position: 'absolute', bottom: 90, left: 16, right: 86, zIndex: 5 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                    <div style={{ width: 46, height: 46, borderRadius: '50%', overflow: 'hidden', border: '2px solid rgba(255,255,255,0.85)', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      {reel.salon.logo
-                        ? <img src={reel.salon.logo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        : <span style={{ color: '#fff', fontWeight: 800, fontSize: 18 }}>{initial}</span>
-                      }
-                    </div>
-                    <div>
-                      <p style={{ color: '#fff', fontWeight: 800, fontSize: 15, margin: 0, textShadow: '0 1px 6px rgba(0,0,0,0.7)' }}>{reel.salon.name}</p>
-                      <p style={{ color: 'rgba(255,255,255,0.72)', fontSize: 12, margin: 0 }}>📍 {reel.salon.city}</p>
-                    </div>
-                  </div>
-                  {reel.salon.averageRating > 0 && (
-                    <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12, margin: '0 0 8px', fontWeight: 600 }}>⭐ {reel.salon.averageRating.toFixed(1)}</p>
-                  )}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <Link to={`/salon/${reel.salon._id}`}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', borderRadius: 20, padding: '8px 18px', color: '#fff', textDecoration: 'none', fontSize: 13, fontWeight: 800, boxShadow: '0 4px 16px rgba(99,102,241,0.5)' }}>
-                      Book Now
-                    </Link>
-                    <Link to={`/salon/${reel.salon._id}`}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 20, padding: '7px 14px', color: '#fff', textDecoration: 'none', fontSize: 12, fontWeight: 600 }}>
-                      View Salon →
-                    </Link>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, fontWeight: 700, margin: '0 0 3px' }}>{c.name}</p>
+                    <p style={{ color: '#fff', fontSize: 13, margin: 0, lineHeight: 1.4, wordBreak: 'break-word' }}>{c.text}</p>
                   </div>
                 </div>
+              ))}
+            </div>
 
-                {/* Right-side buttons */}
-                <div style={{ position: 'absolute', bottom: 100, right: 12, zIndex: 5, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 22 }}>
-
-                  {/* Like */}
-                  <button onClick={() => toggleLike(reel._id)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                    <div className={isLiked ? 'heart-pop' : ''} style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <HeartIcon filled={isLiked} />
-                    </div>
-                    <span style={{ color: isLiked ? '#ef4444' : '#fff', fontSize: 11, fontWeight: 700, textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
-                      {isLiked ? 'Liked' : 'Like'}
-                    </span>
-                  </button>
-
-                  {/* Comment */}
-                  <button onClick={() => setCommentReel(reel)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                    <div style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <CommentIcon />
-                    </div>
-                    <span style={{ color: '#fff', fontSize: 11, fontWeight: 700, textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>Comment</span>
-                  </button>
-
-                  {/* Share */}
-                  <button onClick={() => handleShare(reel)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                    <div style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {copied === reel._id ? <CheckIcon /> : <ShareIcon />}
-                    </div>
-                    <span style={{ color: copied === reel._id ? '#4ade80' : '#fff', fontSize: 11, fontWeight: 700, textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
-                      {copied === reel._id ? 'Copied!' : 'Share'}
-                    </span>
-                  </button>
-
-                  {/* Salon account avatar (tap → salon page) */}
-                  <Link to={`/salon/${reel.salon._id}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
-                    <div style={{ width: 50, height: 50, borderRadius: '50%', border: '2.5px solid #fff', padding: 2, background: 'transparent' }}>
-                      <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {reel.salon.logo
-                          ? <img src={reel.salon.logo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          : <span style={{ color: '#fff', fontWeight: 800, fontSize: 16 }}>{initial}</span>
-                        }
-                      </div>
-                    </div>
-                    <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: 10, fontWeight: 600, maxWidth: 58, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {reel.salon.name.split(' ')[0]}
-                    </span>
-                  </Link>
-                </div>
-
-                {/* Safe area bottom spacer */}
-                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 'env(safe-area-inset-bottom,0px)', background: 'rgba(0,0,0,0.5)' }} />
-              </div>
-            );
-          })}
-        </div>
-
-        {/* ── Comment sheet ── */}
-        {commentReel && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 70, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center' }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }} onClick={() => setCommentReel(null)} />
-            <div style={{ position: 'relative', background: '#181818', borderRadius: '22px 22px 0 0', padding: '20px 16px 24px', zIndex: 1, width: '100%', maxWidth: 520, maxHeight: '75vh', display: 'flex', flexDirection: 'column' }}>
-              {/* Drag handle */}
-              <div style={{ width: 40, height: 4, background: 'rgba(255,255,255,0.2)', borderRadius: 2, margin: '0 auto 14px' }} />
-              <p style={{ color: '#fff', fontWeight: 700, fontSize: 15, margin: '0 0 12px' }}>Comments</p>
-
-              {/* Comments list */}
-              <div style={{ flex: 1, overflowY: 'auto', marginBottom: 12 }}>
-                {commentsLoading ? (
-                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, textAlign: 'center', padding: '20px 0' }}>Loading…</p>
-                ) : comments.length === 0 ? (
-                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>No comments yet. Be the first!</p>
-                ) : (
-                  comments.map(c => (
-                    <div key={c._id} style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-                      <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <span style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>{c.name?.[0]?.toUpperCase()}</span>
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: 700, margin: '0 0 2px' }}>{c.name}</p>
-                        <p style={{ color: '#fff', fontSize: 13, margin: 0, wordBreak: 'break-word' }}>{c.text}</p>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* Name input (shown only first time or if empty) */}
+            {/* Input area */}
+            <div style={{ padding: '10px 16px 0', flexShrink: 0 }}>
               {!commentName && (
                 <input
                   value={commentName}
                   onChange={e => setCommentName(e.target.value)}
                   placeholder="Your name…"
-                  style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '9px 14px', color: '#fff', fontSize: 13, outline: 'none', marginBottom: 8 }}
+                  style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '9px 14px', color: '#fff', fontSize: 13, outline: 'none', marginBottom: 8 }}
                 />
               )}
-
-              {/* Comment input + post */}
               <div style={{ display: 'flex', gap: 8 }}>
                 <input
                   value={commentText}
@@ -470,47 +496,21 @@ export default function Reels() {
                   onKeyDown={e => e.key === 'Enter' && !e.shiftKey && postComment()}
                   placeholder="Add a comment…"
                   autoFocus={!!commentName}
-                  style={{ flex: 1, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 14, padding: '10px 14px', color: '#fff', fontSize: 13, outline: 'none' }}
+                  style={{ flex: 1, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14, padding: '11px 14px', color: '#fff', fontSize: 13, outline: 'none' }}
                 />
                 <button
                   onClick={postComment}
                   disabled={posting || !commentText.trim() || !commentName.trim()}
-                  style={{ background: posting || !commentText.trim() || !commentName.trim() ? 'rgba(99,102,241,0.4)' : '#6366f1', border: 'none', borderRadius: 14, padding: '0 18px', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', transition: 'background 0.2s' }}
+                  type="button"
+                  style={{ background: (posting || !commentText.trim() || !commentName.trim()) ? 'rgba(99,102,241,0.35)' : '#6366f1', border: 'none', borderRadius: 14, padding: '0 20px', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', transition: 'background 0.2s', flexShrink: 0 }}
                 >
                   {posting ? '…' : 'Post'}
                 </button>
               </div>
             </div>
           </div>
-        )}
-      </div>
-
-      {/* ── Desktop sidebar (nearby salons info) ── */}
-      <div className="reels-sidebar">
-        <div style={{ background: '#111', borderRadius: 16, padding: '20px 18px', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <p style={{ color: '#fff', fontWeight: 800, fontSize: 16, marginBottom: 4 }}>Reels</p>
-          <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, marginBottom: 16 }}>
-            {locLabel === 'Nearby You' ? '📍 Salons within 20km of you' : '🌐 All salon reels'}
-          </p>
-          <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>Scroll to explore · Tap to mute/unmute</p>
         </div>
-        {reels.slice(0, 6).map((r) => (
-          <Link key={r._id} to={`/salon/${r.salon._id}`} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', padding: '10px 14px', background: '#111', borderRadius: 12, border: '1px solid rgba(255,255,255,0.07)' }}>
-            <div style={{ width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              {r.salon.logo
-                ? <img src={r.salon.logo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : <span style={{ color: '#fff', fontWeight: 800, fontSize: 14 }}>{r.salon.name?.[0]?.toUpperCase()}</span>}
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <p style={{ color: '#fff', fontSize: 13, fontWeight: 700, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.salon.name}</p>
-              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, margin: 0 }}>📍 {r.salon.city}</p>
-            </div>
-          </Link>
-        ))}
-      </div>
-
-      </div>
-      </div>
+      )}
     </>
   );
 }
