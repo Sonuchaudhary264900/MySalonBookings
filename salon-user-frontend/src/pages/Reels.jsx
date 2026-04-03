@@ -64,9 +64,9 @@ const CSS = `
 
   /* ── desktop: cinema-style centered column ── */
   @media (min-width: 768px) {
-    html, body { margin: 0; padding: 0; overflow: auto; }
+    html, body { margin: 0; padding: 0; overflow: hidden; }
     .reels-page {
-      min-height: 100vh;
+      position: fixed; inset: 0;
       background: #050505;
       background-image:
         radial-gradient(ellipse 60% 50% at 30% 20%, rgba(99,102,241,0.07) 0%, transparent 70%),
@@ -74,12 +74,11 @@ const CSS = `
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 36px 0;
     }
     .reels-col {
       position: relative;
       width: 390px;
-      height: calc(100vh - 72px);
+      height: calc(100vh - 80px);
       max-height: 820px;
       min-height: 500px;
       border-radius: 30px;
@@ -101,6 +100,10 @@ const CSS = `
     scrollbar-width: none;
     -ms-overflow-style: none;
     background: #000;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    will-change: scroll-position;
   }
   .reels-feed::-webkit-scrollbar { display: none; }
 
@@ -197,6 +200,11 @@ const CSS = `
   @keyframes dotPulse {
     0%,80%,100% { transform: scale(0.6); opacity: 0.4; }
     40%          { transform: scale(1);   opacity: 1;   }
+  }
+
+  /* ── desktop nav arrows ── */
+  @media (min-width: 768px) {
+    .reels-desktop-nav { display: flex !important; }
   }
 
   /* ── utility animation classes ── */
@@ -742,9 +750,90 @@ export default function Reels() {
   const [commentText,      setCommentText]      = useState('');
   const [posting,          setPosting]          = useState(false);
 
-  const videoRefs   = useRef({});
-  const observerRef = useRef(null);
-  const muteTimer   = useRef(null);
+  const videoRefs    = useRef({});
+  const observerRef  = useRef(null);
+  const muteTimer    = useRef(null);
+  const feedRef      = useRef(null);
+  const currentIdx   = useRef(0);
+  const scrolling    = useRef(false);
+
+  /* ── Programmatic scroll to a reel index (works on all devices) ── */
+  const scrollToIdx = useCallback((idx, total) => {
+    const feed = feedRef.current;
+    if (!feed || total === 0) return;
+    const clamped = Math.max(0, Math.min(idx, total - 1));
+    currentIdx.current = clamped;
+    const itemH = feed.clientHeight;
+    feed.scrollTo({ top: clamped * itemH, behavior: 'smooth' });
+  }, []);
+
+  /* ── Wheel handler for desktop (mouse wheel / trackpad) ── */
+  useEffect(() => {
+    const feed = feedRef.current;
+    if (!feed) return;
+    let wheelTimer = null;
+
+    const onWheel = (e) => {
+      e.preventDefault();
+      if (scrolling.current) return;
+      scrolling.current = true;
+      clearTimeout(wheelTimer);
+
+      const dir = e.deltaY > 0 ? 1 : -1;
+      const next = currentIdx.current + dir;
+      scrollToIdx(next, reels.length);
+
+      wheelTimer = setTimeout(() => { scrolling.current = false; }, 700);
+    };
+
+    feed.addEventListener('wheel', onWheel, { passive: false });
+    return () => {
+      feed.removeEventListener('wheel', onWheel);
+      clearTimeout(wheelTimer);
+    };
+  }, [reels.length, scrollToIdx]);
+
+  /* ── Touch swipe handler (mobile + tablet) ── */
+  useEffect(() => {
+    const feed = feedRef.current;
+    if (!feed) return;
+    let startY = 0;
+    let startTime = 0;
+
+    const onTouchStart = (e) => {
+      startY = e.touches[0].clientY;
+      startTime = Date.now();
+    };
+
+    const onTouchEnd = (e) => {
+      const diffY = startY - e.changedTouches[0].clientY;
+      const elapsed = Date.now() - startTime;
+      // Require at least 40px swipe OR fast flick (>50px in <300ms)
+      const isFastFlick = Math.abs(diffY) > 50 && elapsed < 300;
+      const isSlowSwipe = Math.abs(diffY) > 80;
+      if (!isFastFlick && !isSlowSwipe) return;
+      const dir = diffY > 0 ? 1 : -1;
+      scrollToIdx(currentIdx.current + dir, reels.length);
+    };
+
+    feed.addEventListener('touchstart', onTouchStart, { passive: true });
+    feed.addEventListener('touchend',   onTouchEnd,   { passive: true });
+    return () => {
+      feed.removeEventListener('touchstart', onTouchStart);
+      feed.removeEventListener('touchend',   onTouchEnd);
+    };
+  }, [reels.length, scrollToIdx]);
+
+  /* ── Keyboard navigation (ArrowUp / ArrowDown / j / k) ── */
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+      if (e.key === 'ArrowDown' || e.key === 'j') scrollToIdx(currentIdx.current + 1, reels.length);
+      if (e.key === 'ArrowUp'   || e.key === 'k') scrollToIdx(currentIdx.current - 1, reels.length);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [reels.length, scrollToIdx]);
 
   /* ── fetch reels ── */
   const fetchReels = useCallback(async (currentMode, currentGender, currentCoords) => {
@@ -1052,7 +1141,7 @@ export default function Reels() {
           </div>
 
           {/* ── Scrollable feed ── */}
-          <div className="reels-feed">
+          <div className="reels-feed" ref={feedRef}>
             {reels.map(reel => (
               <ReelItem
                 key={reel._id}
@@ -1067,6 +1156,53 @@ export default function Reels() {
                 onAuthRequired={handleAuthRequired}
               />
             ))}
+          </div>
+
+          {/* ── Desktop prev/next nav arrows (shown only on md+) ── */}
+          <div style={{
+            display: 'none',
+            position: 'absolute',
+            bottom: 24, left: '50%', transform: 'translateX(-50%)',
+            zIndex: 25, gap: 12,
+          }} className="reels-desktop-nav">
+            <button
+              type="button"
+              onClick={() => scrollToIdx(currentIdx.current - 1, reels.length)}
+              style={{
+                width: 44, height: 44, borderRadius: '50%',
+                background: 'rgba(255,255,255,0.12)',
+                backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255,255,255,0.18)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', color: '#fff',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+                transition: 'background 0.15s',
+              }}
+              title="Previous (↑)"
+            >
+              <svg viewBox="0 0 24 24" width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 15l-6-6-6 6" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToIdx(currentIdx.current + 1, reels.length)}
+              style={{
+                width: 44, height: 44, borderRadius: '50%',
+                background: 'rgba(255,255,255,0.12)',
+                backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255,255,255,0.18)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', color: '#fff',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+                transition: 'background 0.15s',
+              }}
+              title="Next (↓)"
+            >
+              <svg viewBox="0 0 24 24" width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
