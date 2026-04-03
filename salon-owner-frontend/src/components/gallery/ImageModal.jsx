@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   X, ChevronLeft, ChevronRight, Trash2, Edit2, Star, Tag,
-  Check, Loader2, AlertTriangle, Download, Calendar, Zap,
+  Check, Loader2, AlertTriangle, Download, Calendar, Zap, Play,
 } from 'lucide-react';
 import api from '../../services/api';
 
@@ -37,9 +37,9 @@ const REEL_CAT_CFG = {
   'Other':          'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 ring-gray-300 dark:ring-gray-600',
 };
 
-/* ── Delete confirm ── */
+/* ── Delete confirm (shared, used in both layouts) ── */
 const DeleteConfirm = ({ onConfirm, onCancel, loading, isVideo }) => (
-  <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800
       p-6 w-full max-w-sm space-y-4 shadow-2xl">
       <div className="flex items-start gap-3">
@@ -82,21 +82,30 @@ const ImageModal = ({
   onUpdated,
   onCoverSet,
 }) => {
-  const [idx,         setIdx]         = useState(initialIndex ?? 0);
-  const [editMode,    setEditMode]     = useState(false);
-  const [caption,     setCaption]      = useState('');
-  const [tags,        setTags]         = useState([]);
-  const [saving,      setSaving]       = useState(false);
-  const [deleting,    setDeleting]     = useState(false);
-  const [showDelete,  setShowDelete]   = useState(false);
-  const [imgLoaded,   setImgLoaded]    = useState(false);
-  const [settingCover, setSettingCover] = useState(false);
-  const [inReels,         setInReels]         = useState(false);
-  const [reelCategories,  setReelCategories]  = useState([]);
-  const [togglingReel,    setTogglingReel]    = useState(false);
+  const [idx,              setIdx]             = useState(initialIndex ?? 0);
+  const [editMode,         setEditMode]        = useState(false);
+  const [caption,          setCaption]         = useState('');
+  const [tags,             setTags]            = useState([]);
+  const [saving,           setSaving]          = useState(false);
+  const [deleting,         setDeleting]        = useState(false);
+  const [showDelete,       setShowDelete]      = useState(false);
+  const [imgLoaded,        setImgLoaded]       = useState(false);
+  const [settingCover,     setSettingCover]    = useState(false);
+  const [inReels,          setInReels]         = useState(false);
+  const [reelCategories,   setReelCategories]  = useState([]);
+  const [togglingReel,     setTogglingReel]    = useState(false);
+  // Video-specific
+  const [isPlaying,        setIsPlaying]       = useState(true);
+  const [showEditPanel,    setShowEditPanel]   = useState(false);
+  const videoElRef = useRef(null);
 
-  const photo = photos[idx];
+  // ── Derived values (before handlers so handlers can safely reference them) ──
+  const photo   = photos[idx];
+  const url     = photo ? (photo.url || photo.imageUrl || photo.image || '') : '';
+  const isCover = photo ? photo._id === coverId : false;
+  const isVideo = photo ? photo.type === 'video' : false;
 
+  // ── Sync state on item change ──
   useEffect(() => {
     setIdx(initialIndex ?? 0);
   }, [initialIndex]);
@@ -110,31 +119,42 @@ const ImageModal = ({
       setShowDelete(false);
       setInReels(photo.inReels || false);
       setReelCategories(photo.reelCategories || []);
+      setIsPlaying(true);
+      setShowEditPanel(false);
     }
-  }, [idx, photo]);
+  }, [idx, photo?._id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Keyboard navigation
+  // ── Lock body scroll ──
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  // ── Keyboard navigation ──
   useEffect(() => {
     const onKey = (e) => {
+      if (showEditPanel) return; // don't navigate while editing
       if (e.key === 'ArrowLeft')  goPrev();
       if (e.key === 'ArrowRight') goNext();
       if (e.key === 'Escape')     onClose();
+      if (e.key === ' ' && isVideo) { e.preventDefault(); togglePlay(); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [idx, photos.length]);
+  }, [idx, photos.length, showEditPanel, isVideo]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const goPrev = useCallback(() => {
-    setIdx(i => (i > 0 ? i - 1 : photos.length - 1));
-  }, [photos.length]);
+  const goPrev = useCallback(() => setIdx(i => (i > 0 ? i - 1 : photos.length - 1)), [photos.length]);
+  const goNext = useCallback(() => setIdx(i => (i < photos.length - 1 ? i + 1 : 0)), [photos.length]);
 
-  const goNext = useCallback(() => {
-    setIdx(i => (i < photos.length - 1 ? i + 1 : 0));
-  }, [photos.length]);
+  const togglePlay = useCallback(() => {
+    const v = videoElRef.current;
+    if (!v) return;
+    if (v.paused) { v.play().catch(() => {}); setIsPlaying(true); }
+    else          { v.pause();                setIsPlaying(false); }
+  }, []);
 
-  const toggleTag = (t) => {
-    setTags(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
-  };
+  const toggleTag = (t) => setTags(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -142,8 +162,8 @@ const ImageModal = ({
       await api.put(`/owner/gallery/${photo._id}`, { caption, tags });
       onUpdated({ ...photo, caption, tags });
       setEditMode(false);
+      setShowEditPanel(false);
     } catch {
-      // silently keep local state
       setEditMode(false);
     } finally {
       setSaving(false);
@@ -178,10 +198,9 @@ const ImageModal = ({
   const handleReelToggle = async () => {
     setTogglingReel(true);
     try {
-      // If adding to reels, send current categories. If removing, send no categories (toggle off).
       const body = inReels
-        ? { videoUrl: url }                                    // toggle off (remove)
-        : { videoUrl: url, categories: reelCategories };      // toggle on (add with categories)
+        ? { videoUrl: url }
+        : { videoUrl: url, categories: reelCategories };
       const res = await api.put('/owner/gallery/reel-toggle', body);
       setInReels(res.data.inReels);
       if (res.data.inReels) setReelCategories(res.data.reelCategories || []);
@@ -205,52 +224,404 @@ const ImageModal = ({
     setReelCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
   };
 
-  if (!photo) return null;
-  const url     = photo.url || photo.imageUrl || photo.image || '';
-  const isCover = photo._id === coverId;
-  const isVideo = photo.type === 'video';
-
   const handleDownload = () => {
-    const ext = isVideo ? 'mp4' : 'jpg';
     const a = document.createElement('a');
     a.href = url;
-    a.download = photo.caption || (isVideo ? `video.${ext}` : `photo.${ext}`);
+    a.download = photo.caption || (isVideo ? 'video.mp4' : 'photo.jpg');
     a.target = '_blank';
     a.click();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
+  if (!photo) return null;
 
-      {/* ── Container ── */}
-      <div className="relative z-10 flex flex-col lg:flex-row w-full max-w-5xl max-h-[90vh]
-        bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+  /* ────────────────────────────────────────────────────────────────
+     VIDEO: Full-screen Instagram-style layout
+  ──────────────────────────────────────────────────────────────── */
+  if (isVideo) {
+    return (
+      <div className="fixed inset-0 z-[9999] bg-black select-none">
+        {/* ── Video ── */}
+        <video
+          key={url}
+          ref={el => {
+            videoElRef.current = el;
+            if (el) { el.muted = false; el.play().catch(() => {}); }
+          }}
+          src={url}
+          playsInline
+          loop
+          className="absolute inset-0 w-full h-full object-contain"
+          onLoadedData={() => setImgLoaded(true)}
+          onClick={togglePlay}
+          style={{ cursor: 'pointer' }}
+        />
 
-        {/* Delete confirm overlay */}
+        {/* Loading spinner */}
+        {!imgLoaded && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <Loader2 className="w-10 h-10 text-white/50 animate-spin" />
+          </div>
+        )}
+
+        {/* Paused indicator */}
+        {!isPlaying && imgLoaded && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-16 h-16 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
+              <Play className="w-7 h-7 text-white fill-white ml-1" />
+            </div>
+          </div>
+        )}
+
+        {/* Top gradient */}
+        <div
+          className="absolute top-0 left-0 right-0 h-28 pointer-events-none"
+          style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.75), transparent)' }}
+        />
+        {/* Bottom gradient */}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-40 pointer-events-none"
+          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)' }}
+        />
+
+        {/* ── Top bar ── */}
+        <div
+          className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 z-10"
+          style={{ paddingTop: 'max(16px, env(safe-area-inset-top))' }}
+        >
+          {/* Close */}
+          <button
+            onClick={onClose}
+            className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center
+              text-white hover:bg-black/60 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          {/* Counter */}
+          {photos.length > 1 && (
+            <div className="px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md">
+              <span className="text-white text-xs font-semibold tracking-wide">
+                {idx + 1} / {photos.length}
+              </span>
+            </div>
+          )}
+          {photos.length <= 1 && <div />}
+
+          {/* Download */}
+          <button
+            onClick={handleDownload}
+            className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center
+              text-white hover:bg-black/60 transition-colors"
+            title="Download"
+          >
+            <Download className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* ── Navigation arrows ── */}
+        {photos.length > 1 && (
+          <>
+            <button
+              onClick={goPrev}
+              className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full
+                bg-black/40 backdrop-blur-md flex items-center justify-center text-white
+                hover:bg-black/60 active:scale-95 transition-all"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+            <button
+              onClick={goNext}
+              className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full
+                bg-black/40 backdrop-blur-md flex items-center justify-center text-white
+                hover:bg-black/60 active:scale-95 transition-all"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
+          </>
+        )}
+
+        {/* ── Bottom info bar ── */}
+        <div
+          className="absolute bottom-0 left-0 right-0 px-4 z-10"
+          style={{ paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}
+        >
+          {/* Reel badge */}
+          {inReels && (
+            <div className="flex items-center gap-1.5 mb-2">
+              <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-violet-600/80 backdrop-blur-md">
+                <Zap className="w-3 h-3 text-white" />
+                <span className="text-white text-[11px] font-bold">In Reels</span>
+              </div>
+              {reelCategories.slice(0, 2).map(cat => (
+                <span key={cat} className="px-2 py-1 rounded-full bg-white/15 backdrop-blur-md text-white text-[11px] font-semibold">
+                  {cat}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Caption */}
+          {caption && (
+            <p className="text-white text-sm font-medium leading-snug mb-2 line-clamp-2">
+              {caption}
+            </p>
+          )}
+
+          {/* Tag chips */}
+          {tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {tags.map(t => (
+                <span key={t} className="px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-md text-white text-xs font-semibold">
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-2">
+            {/* Edit details */}
+            <button
+              onClick={() => { setEditMode(true); setShowEditPanel(true); }}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl
+                bg-white/10 backdrop-blur-md border border-white/20 text-white text-xs font-semibold
+                hover:bg-white/20 active:scale-[0.98] transition-all"
+            >
+              <Edit2 className="w-3.5 h-3.5" /> Edit Details
+            </button>
+
+            {/* Reel toggle */}
+            <button
+              onClick={handleReelToggle}
+              disabled={togglingReel}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl
+                text-xs font-semibold backdrop-blur-md active:scale-[0.98] transition-all disabled:opacity-60
+                ${inReels
+                  ? 'bg-violet-600/80 border border-violet-500/60 text-white hover:bg-violet-700/80'
+                  : 'bg-white/10 border border-white/20 text-white hover:bg-white/20'
+                }`}
+            >
+              {togglingReel
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                : <Zap className="w-3.5 h-3.5" />
+              }
+              {inReels ? 'In Reels' : 'Add to Reels'}
+            </button>
+
+            {/* Delete */}
+            <button
+              onClick={() => setShowDelete(true)}
+              className="w-11 h-11 rounded-xl bg-red-500/20 backdrop-blur-md border border-red-500/30
+                flex items-center justify-center text-red-400 hover:bg-red-500/35 active:scale-95 transition-all"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* ── Edit details panel (slides up from bottom) ── */}
+        {showEditPanel && (
+          <div className="fixed inset-0 z-20 flex flex-col justify-end">
+            {/* Backdrop tap to dismiss */}
+            <div
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => setShowEditPanel(false)}
+            />
+            <div
+              className="relative bg-gray-950 border-t border-white/10 rounded-t-3xl flex flex-col
+                max-h-[85dvh] overflow-hidden"
+              style={{ boxShadow: '0 -8px 40px rgba(0,0,0,0.6)' }}
+            >
+              {/* Drag handle */}
+              <div className="flex justify-center pt-3 pb-1 shrink-0">
+                <div className="w-10 h-1 rounded-full bg-white/25" />
+              </div>
+
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-3 border-b border-white/10 shrink-0">
+                <button
+                  onClick={() => setShowEditPanel(false)}
+                  className="flex items-center gap-1.5 text-white/60 hover:text-white transition-colors text-sm"
+                >
+                  <ChevronLeft className="w-4 h-4" /> Back
+                </button>
+                <p className="text-white text-sm font-bold">Edit Video Details</p>
+                <div className="w-16" />
+              </div>
+
+              {/* Scrollable body */}
+              <div className="flex-1 overflow-y-auto p-5 space-y-5">
+
+                {/* Caption */}
+                <div>
+                  <label className="block text-xs font-semibold text-white/50 uppercase tracking-wide mb-1.5">
+                    Caption
+                  </label>
+                  <textarea
+                    value={caption}
+                    onChange={e => setCaption(e.target.value)}
+                    rows={2}
+                    placeholder="Add a caption…"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-white/5
+                      text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2
+                      focus:ring-indigo-500/50 focus:border-indigo-500/50 resize-none transition-all"
+                  />
+                </div>
+
+                {/* Tags */}
+                <div>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Tag className="w-3.5 h-3.5 text-white/40" />
+                    <span className="text-xs font-semibold text-white/50 uppercase tracking-wide">Tags</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {ALL_TAGS.map(t => {
+                      const active = tags.includes(t);
+                      return (
+                        <button
+                          key={t}
+                          onClick={() => toggleTag(t)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95
+                            ${active
+                              ? 'bg-indigo-600 text-white ring-1 ring-indigo-400'
+                              : 'bg-white/8 text-white/50 border border-white/10 hover:bg-white/15 hover:text-white'
+                            }`}
+                        >
+                          {active && <span className="mr-0.5">✓</span>}{t}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Reel categories (only when in Reels) */}
+                {inReels && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-1.5">
+                        <Zap className="w-3.5 h-3.5 text-violet-400" />
+                        <span className="text-xs font-semibold text-violet-400 uppercase tracking-wide">Reel Categories</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {REEL_CATEGORIES.map(cat => {
+                        const active = reelCategories.includes(cat);
+                        const cls = REEL_CAT_CFG[cat] || REEL_CAT_CFG['Other'];
+                        return (
+                          <button
+                            key={cat}
+                            onClick={() => toggleReelCategory(cat)}
+                            className={`px-2.5 py-1.5 rounded-full text-[11px] font-semibold transition-all active:scale-95
+                              ${active
+                                ? `${cls} ring-1`
+                                : 'bg-white/8 text-white/50 border border-white/10 hover:bg-white/15'
+                              }`}
+                          >
+                            {active && <span className="mr-0.5">✓</span>}{cat}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <button
+                      onClick={handleCategorySave}
+                      disabled={togglingReel}
+                      className="mt-3 w-full py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white
+                        text-xs font-semibold transition-colors disabled:opacity-60 flex items-center justify-center gap-1.5"
+                    >
+                      {togglingReel ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                      Save Categories
+                    </button>
+                  </div>
+                )}
+
+                {/* Upload date */}
+                {photo.createdAt && (
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-3.5 h-3.5 text-white/30" />
+                    <span className="text-xs text-white/30">
+                      {new Date(photo.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div
+                className="flex gap-2 px-5 py-4 border-t border-white/10 shrink-0"
+                style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
+              >
+                <button
+                  onClick={() => setShowEditPanel(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-white/15 text-xs font-semibold
+                    text-white/70 hover:bg-white/8 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600
+                    text-white text-xs font-semibold hover:from-indigo-700 hover:to-violet-700 transition-all
+                    flex items-center justify-center gap-1.5 disabled:opacity-60"
+                >
+                  {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete confirm */}
         {showDelete && (
           <DeleteConfirm
             onConfirm={handleDelete}
             onCancel={() => setShowDelete(false)}
             loading={deleting}
-            isVideo={isVideo}
+            isVideo
+          />
+        )}
+      </div>
+    );
+  }
+
+  /* ────────────────────────────────────────────────────────────────
+     PHOTO: 2-column card layout (improved sizing + z-index)
+  ──────────────────────────────────────────────────────────────── */
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-5">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/85 backdrop-blur-md" onClick={onClose} />
+
+      {/* Card */}
+      <div className="relative z-10 flex flex-col lg:flex-row w-full max-w-5xl
+        max-h-[96dvh] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl
+        border border-gray-200 dark:border-gray-800 overflow-hidden">
+
+        {/* Delete confirm overlay (inside card) */}
+        {showDelete && (
+          <DeleteConfirm
+            onConfirm={handleDelete}
+            onCancel={() => setShowDelete(false)}
+            loading={deleting}
+            isVideo={false}
           />
         )}
 
         {/* ── Left: image ── */}
-        <div className="relative flex-1 bg-black flex items-center justify-center min-h-[260px] lg:min-h-0">
+        <div className="relative flex-1 bg-black flex items-center justify-center min-h-[220px] lg:min-h-0">
 
           {/* Nav arrows */}
           {photos.length > 1 && (
             <>
               <button onClick={goPrev}
                 className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 flex items-center justify-center
-                  rounded-xl bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm transition-colors">
+                  rounded-xl bg-black/40 hover:bg-black/65 text-white backdrop-blur-sm transition-colors">
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <button onClick={goNext}
                 className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 flex items-center justify-center
-                  rounded-xl bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm transition-colors">
+                  rounded-xl bg-black/40 hover:bg-black/65 text-white backdrop-blur-sm transition-colors">
                 <ChevronRight className="w-5 h-5" />
               </button>
             </>
@@ -264,33 +635,21 @@ const ImageModal = ({
             </div>
           )}
 
-          {/* Media */}
-          {isVideo ? (
-            <video
-              key={url}
-              ref={el => { if (el) { el.muted = false; el.play().catch(() => {}); } }}
-              src={url}
-              controls
-              playsInline
-              className="max-h-[50vh] lg:max-h-[80vh] w-full object-contain"
-              onLoadedData={() => setImgLoaded(true)}
-            />
-          ) : (
-            <>
-              {!imgLoaded && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Loader2 className="w-8 h-8 text-white/40 animate-spin" />
-                </div>
-              )}
-              <img
-                src={url}
-                alt={photo.caption || 'Gallery photo'}
-                onLoad={() => setImgLoaded(true)}
-                className={`max-h-[50vh] lg:max-h-[80vh] w-full object-contain transition-opacity duration-300
-                  ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
-              />
-            </>
+          {/* Loading spinner */}
+          {!imgLoaded && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Loader2 className="w-8 h-8 text-white/40 animate-spin" />
+            </div>
           )}
+
+          {/* Image */}
+          <img
+            src={url}
+            alt={photo.caption || 'Gallery photo'}
+            onLoad={() => setImgLoaded(true)}
+            className={`max-h-[55vh] lg:max-h-[85vh] w-full object-contain transition-opacity duration-300
+              ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
+          />
 
           {/* Cover badge */}
           {isCover && (
@@ -306,7 +665,7 @@ const ImageModal = ({
 
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800 shrink-0">
-            <p className="text-sm font-bold text-gray-900 dark:text-white">{isVideo ? 'Video Details' : 'Photo Details'}</p>
+            <p className="text-sm font-bold text-gray-900 dark:text-white">Photo Details</p>
             <div className="flex items-center gap-1">
               <button onClick={handleDownload}
                 className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-400
@@ -397,8 +756,8 @@ const ImageModal = ({
               </div>
             )}
 
-            {/* Cover photo — photos only */}
-            {!isVideo && !isCover && (
+            {/* Set as cover */}
+            {!isCover && (
               <button
                 onClick={handleSetCover}
                 disabled={settingCover}
@@ -413,65 +772,6 @@ const ImageModal = ({
                 }
                 Set as Cover Photo
               </button>
-            )}
-
-            {/* Feature in Reels — videos only */}
-            {isVideo && (
-              <div className="space-y-3">
-                {/* Toggle button */}
-                <button
-                  onClick={handleReelToggle}
-                  disabled={togglingReel}
-                  className={`w-full flex items-center justify-center gap-2 py-2 rounded-xl
-                    text-xs font-semibold transition-colors disabled:opacity-60
-                    ${inReels
-                      ? 'bg-violet-600 hover:bg-violet-700 text-white border border-violet-600'
-                      : 'border border-violet-300 dark:border-violet-700 text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-950/40'
-                    }`}
-                >
-                  {togglingReel
-                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    : <Zap className="w-3.5 h-3.5" />
-                  }
-                  {inReels ? 'Remove from Reels' : 'Feature in Reels'}
-                </button>
-
-                {/* Category picker — shown only when featured in Reels */}
-                {inReels && (
-                  <div className="rounded-xl border border-violet-200 dark:border-violet-800/60 bg-violet-50/50 dark:bg-violet-950/20 p-3 space-y-2">
-                    <p className="text-[11px] font-semibold text-violet-700 dark:text-violet-400 uppercase tracking-wide">
-                      Reel Categories
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {REEL_CATEGORIES.map(cat => {
-                        const active = reelCategories.includes(cat);
-                        const cls = REEL_CAT_CFG[cat] || REEL_CAT_CFG['Other'];
-                        return (
-                          <button
-                            key={cat}
-                            onClick={() => toggleReelCategory(cat)}
-                            type="button"
-                            className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all hover:scale-105
-                              ${active ? `${cls} ring-1` : 'bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700'}
-                            `}
-                          >
-                            {active && <span className="mr-0.5">✓</span>}{cat}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <button
-                      onClick={handleCategorySave}
-                      disabled={togglingReel}
-                      className="w-full py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white
-                        text-[11px] font-semibold transition-colors disabled:opacity-60 flex items-center justify-center gap-1.5"
-                    >
-                      {togglingReel ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                      Save Categories
-                    </button>
-                  </div>
-                )}
-              </div>
             )}
           </div>
 
@@ -498,7 +798,7 @@ const ImageModal = ({
                 className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl
                   border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400
                   hover:bg-red-50 dark:hover:bg-red-950/40 text-xs font-semibold transition-colors">
-                <Trash2 className="w-3.5 h-3.5" /> {isVideo ? 'Delete Video' : 'Delete Photo'}
+                <Trash2 className="w-3.5 h-3.5" /> Delete Photo
               </button>
             )}
           </div>
