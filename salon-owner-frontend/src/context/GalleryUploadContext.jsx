@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useRef, useCallback } from 'react';
 import api from '../services/api';
+import { MAX_VIDEO_MB, MAX_VIDEO_SECONDS } from '../components/gallery/UploadModal';
 
 const GalleryUploadContext = createContext(null);
 export const useGalleryUpload = () => useContext(GalleryUploadContext);
@@ -49,6 +50,7 @@ const uploadToCloudinary = (file, sig, onProgress, xhrRef) =>
     fd.append('timestamp', sig.timestamp);
     fd.append('signature', sig.signature);
     fd.append('folder',    sig.folder);
+    if (sig.max_bytes) fd.append('max_bytes', sig.max_bytes);
 
     const xhr = new XMLHttpRequest();
     if (xhrRef) xhrRef.current = xhr; // expose so caller can abort
@@ -113,6 +115,18 @@ export function GalleryUploadProvider({ children }) {
     xhrRefs.current[item.id] = xhrRef;
 
     let lastError = null;
+
+    // Secondary guard — reject if somehow bypassed the modal validation
+    if (item.mediaType === 'video') {
+      if (item.file.size > MAX_VIDEO_MB * 1024 * 1024) {
+        patchItem(item.id, { status: 'error', error: `Video exceeds ${MAX_VIDEO_MB} MB limit`, progress: 0 });
+        return;
+      }
+      if (item.duration != null && item.duration > MAX_VIDEO_SECONDS) {
+        patchItem(item.id, { status: 'error', error: `Video exceeds ${MAX_VIDEO_SECONDS}s limit`, progress: 0 });
+        return;
+      }
+    }
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {

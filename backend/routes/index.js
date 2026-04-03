@@ -1605,9 +1605,25 @@ router.get("/owner/gallery/upload-signature", authenticateOwner, asyncHandler(as
   const { cloudinary: cl } = require("../config/cloudinary");
   const timestamp = Math.round(Date.now() / 1000);
   const folder = resource_type === 'video' ? 'smart-salon/gallery-videos' : 'smart-salon/gallery';
-  const paramsToSign = { folder, timestamp };
+  // Enforce server-side size limits (Cloudinary rejects if exceeded)
+  const MAX_VIDEO_BYTES = 100 * 1024 * 1024; // 100 MB
+  const MAX_IMAGE_BYTES =  10 * 1024 * 1024; // 10 MB
+  const paramsToSign = {
+    folder,
+    timestamp,
+    ...(resource_type === 'video' ? { max_bytes: MAX_VIDEO_BYTES } : { max_bytes: MAX_IMAGE_BYTES }),
+  };
   const signature = cl.utils.api_sign_request(paramsToSign, process.env.CLOUDINARY_API_SECRET);
-  res.json({ success: true, data: { signature, timestamp, cloud_name: process.env.CLOUDINARY_CLOUD_NAME, api_key: process.env.CLOUDINARY_API_KEY, folder, resource_type } });
+  res.json({
+    success: true,
+    data: {
+      signature, timestamp,
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key:    process.env.CLOUDINARY_API_KEY,
+      folder,     resource_type,
+      max_bytes:  resource_type === 'video' ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES,
+    },
+  });
 }));
 
 // POST /owner/gallery/register-photo — save a Cloudinary photo URL after direct upload
