@@ -39,29 +39,33 @@ const REEL_CAT_CFG = {
 
 /* ── Delete confirm ── */
 const DeleteConfirm = ({ onConfirm, onCancel, loading, isVideo }) => (
-  <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/70 backdrop-blur-sm rounded-2xl">
+  <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800
-      p-6 mx-4 w-full max-w-xs space-y-4 shadow-2xl">
+      p-6 w-full max-w-sm space-y-4 shadow-2xl">
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-950 flex items-center justify-center shrink-0">
           <AlertTriangle className="w-5 h-5 text-red-500" />
         </div>
         <div>
-          <h3 className="text-sm font-bold text-gray-900 dark:text-white">Delete {isVideo ? 'video' : 'photo'}?</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">This cannot be undone.</p>
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+            Delete this {isVideo ? 'video' : 'photo'}?
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            This will permanently remove it from your gallery{isVideo ? ' and from Reels' : ''}.
+          </p>
         </div>
       </div>
       <div className="flex gap-2">
-        <button onClick={onCancel}
-          className="flex-1 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-xs font-semibold
-            text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+        <button onClick={onCancel} disabled={loading}
+          className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-xs font-semibold
+            text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50">
           Cancel
         </button>
         <button onClick={onConfirm} disabled={loading}
-          className="flex-1 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold
+          className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold
             transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60">
-          {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-          Delete
+          {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+          {loading ? 'Deleting…' : `Delete ${isVideo ? 'Video' : 'Photo'}`}
         </button>
       </div>
     </div>
