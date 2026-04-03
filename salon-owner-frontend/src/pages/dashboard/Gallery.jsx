@@ -148,8 +148,9 @@ export default function Gallery() {
 
   /* ── Open lightbox ── */
   const handleView = (photo) => {
-    const visiblePhotos = activeTag ? photos.filter(p => p.tags?.includes(activeTag)) : photos;
-    const index = visiblePhotos.findIndex(p => p._id === photo._id);
+    // visiblePhotos is computed below — derive same list here for index lookup
+    const list = activeTag ? imagePhotos.filter(p => p.tags?.includes(activeTag)) : photos;
+    const index = list.findIndex(p => p._id === photo._id);
     setLightbox({ index: index >= 0 ? index : 0 });
   };
 
@@ -192,6 +193,8 @@ export default function Gallery() {
   const imagePhotos = photos.filter(p => p.type !== 'video');
   const videoPhotos = photos.filter(p => p.type === 'video');
 
+  // When a tag is active, show only images with that tag.
+  // When no tag active, show everything (images + videos).
   const visiblePhotos = activeTag
     ? imagePhotos.filter(p => p.tags?.includes(activeTag))
     : photos;
@@ -338,7 +341,7 @@ export default function Gallery() {
       {/* ── Lightbox ── */}
       {lightbox !== null && (
         <ImageModal
-          photos={activeTag ? photos.filter(p => p.tags?.includes(activeTag)) : photos}
+          photos={activeTag ? imagePhotos.filter(p => p.tags?.includes(activeTag)) : photos}
           initialIndex={lightbox.index}
           coverId={coverId}
           onClose={() => setLightbox(null)}

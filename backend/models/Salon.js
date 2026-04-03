@@ -146,12 +146,17 @@ location: {
     // ==========================================
     photos: [
       {
-        type: String, // Cloudinary URL
+        url:     { type: String, required: true },
+        caption: { type: String, default: '' },
+        tags:    [{ type: String }],
+        isCover: { type: Boolean, default: false },
       },
     ],
     videos: [
       {
-        type: String, // Cloudinary URL
+        url:     { type: String, required: true },
+        caption: { type: String, default: '' },
+        tags:    [{ type: String }],
       },
     ],
     reelVideos: [

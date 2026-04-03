@@ -38,7 +38,7 @@ const REEL_CAT_CFG = {
 };
 
 /* ── Delete confirm ── */
-const DeleteConfirm = ({ onConfirm, onCancel, loading }) => (
+const DeleteConfirm = ({ onConfirm, onCancel, loading, isVideo }) => (
   <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/70 backdrop-blur-sm rounded-2xl">
     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800
       p-6 mx-4 w-full max-w-xs space-y-4 shadow-2xl">
@@ -47,7 +47,7 @@ const DeleteConfirm = ({ onConfirm, onCancel, loading }) => (
           <AlertTriangle className="w-5 h-5 text-red-500" />
         </div>
         <div>
-          <h3 className="text-sm font-bold text-gray-900 dark:text-white">Delete photo?</h3>
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white">Delete {isVideo ? 'video' : 'photo'}?</h3>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">This cannot be undone.</p>
         </div>
       </div>
@@ -201,17 +201,19 @@ const ImageModal = ({
     setReelCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
   };
 
-  const handleDownload = () => {
-    const url = photo.url || photo.imageUrl || photo.image || '';
-    const a = document.createElement('a');
-    a.href = url; a.download = photo.caption || 'photo'; a.target = '_blank';
-    a.click();
-  };
-
   if (!photo) return null;
-  const url = photo.url || photo.imageUrl || photo.image || '';
+  const url     = photo.url || photo.imageUrl || photo.image || '';
   const isCover = photo._id === coverId;
   const isVideo = photo.type === 'video';
+
+  const handleDownload = () => {
+    const ext = isVideo ? 'mp4' : 'jpg';
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = photo.caption || (isVideo ? `video.${ext}` : `photo.${ext}`);
+    a.target = '_blank';
+    a.click();
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -227,6 +229,7 @@ const ImageModal = ({
             onConfirm={handleDelete}
             onCancel={() => setShowDelete(false)}
             loading={deleting}
+            isVideo={isVideo}
           />
         )}
 

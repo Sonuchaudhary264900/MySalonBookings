@@ -1535,8 +1535,11 @@ router.post("/customer/push-token", authenticateCustomer, asyncHandler(async (re
    OWNER GALLERY ROUTES
 ===================================================== */
 
-// GET /owner/gallery/upload-signature — return a Cloudinary signed upload params
-// Browser uses this to upload directly to Cloudinary (bypasses server timeout entirely)
+// Helper: normalise a photo/video entry that may be a legacy plain String
+const normPhoto = (v) => typeof v === 'string' ? { url: v, caption: '', tags: [], isCover: false } : v;
+const normVideo = (v) => typeof v === 'string' ? { url: v, caption: '', tags: [] } : v;
+
+// GET /owner/gallery/upload-signature
 router.get("/owner/gallery/upload-signature", authenticateOwner, asyncHandler(async (req, res) => {
   const { resource_type = 'image' } = req.query;
   const { cloudinary: cl } = require("../config/cloudinary");
@@ -1544,17 +1547,7 @@ router.get("/owner/gallery/upload-signature", authenticateOwner, asyncHandler(as
   const folder = resource_type === 'video' ? 'smart-salon/gallery-videos' : 'smart-salon/gallery';
   const paramsToSign = { folder, timestamp };
   const signature = cl.utils.api_sign_request(paramsToSign, process.env.CLOUDINARY_API_SECRET);
-  res.json({
-    success: true,
-    data: {
-      signature,
-      timestamp,
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-      api_key:    process.env.CLOUDINARY_API_KEY,
-      folder,
-      resource_type,
-    },
-  });
+  res.json({ success: true, data: { signature, timestamp, cloud_name: process.env.CLOUDINARY_CLOUD_NAME, api_key: process.env.CLOUDINARY_API_KEY, folder, resource_type } });
 }));
 
 // POST /owner/gallery/register-photo — save a Cloudinary photo URL after direct upload
@@ -1564,10 +1557,10 @@ router.post("/owner/gallery/register-photo", authenticateOwner, asyncHandler(asy
     return res.status(400).json({ success: false, message: "Valid Cloudinary url required" });
   const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
-  salon.photos.push(url);
+  salon.photos.push({ url, caption: '', tags: [], isCover: false });
   await salon.save();
-  const newIndex = salon.photos.length - 1;
-  res.status(201).json({ success: true, data: { _id: `p_${newIndex}`, url, type: 'image' } });
+  const i = salon.photos.length - 1;
+  res.status(201).json({ success: true, data: { _id: `p_${i}`, url, caption: '', tags: [], isCover: false, type: 'image' } });
 }));
 
 // POST /owner/gallery/register-video — save a Cloudinary video URL after direct upload
@@ -1578,28 +1571,76 @@ router.post("/owner/gallery/register-video", authenticateOwner, asyncHandler(asy
   const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
   if (!salon.videos) salon.videos = [];
-  salon.videos.push(url);
+  salon.videos.push({ url, caption: '', tags: [] });
   await salon.save();
-  const newIndex = salon.videos.length - 1;
-  res.status(201).json({ success: true, data: { _id: `v_${newIndex}`, url, type: 'video' } });
+  const i = salon.videos.length - 1;
+  res.status(201).json({ success: true, data: { _id: `v_${i}`, url, caption: '', tags: [], type: 'video', inReels: false, reelCategories: [] } });
 }));
 
-// GET /owner/gallery — return salon photos and videos as array of objects
+// GET /owner/gallery — return all photos + videos
 router.get("/owner/gallery", authenticateOwner, asyncHandler(async (req, res) => {
   const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
-  // Build a map: videoUrl → reelEntry (supports both legacy String and new {url,categories} format)
+
+  // Build reel map (url → { inReels, reelCategories })
   const reelMap = new Map();
   for (const rv of (salon.reelVideos || [])) {
     if (typeof rv === 'string') reelMap.set(rv, { inReels: true, reelCategories: [] });
     else if (rv?.url) reelMap.set(rv.url, { inReels: true, reelCategories: rv.categories || [] });
   }
-  const photos = (salon.photos || []).map((url, i) => ({ _id: `p_${i}`, url, type: 'image' }));
-  const videos = (salon.videos || []).map((url, i) => {
-    const rv = reelMap.get(url) || { inReels: false, reelCategories: [] };
-    return { _id: `v_${i}`, url, type: 'video', inReels: rv.inReels, reelCategories: rv.reelCategories };
+
+  const photos = (salon.photos || []).map((p, i) => {
+    const n = normPhoto(p);
+    return { _id: `p_${i}`, url: n.url, caption: n.caption || '', tags: n.tags || [], isCover: n.isCover || false, type: 'image' };
   });
+  const videos = (salon.videos || []).map((v, i) => {
+    const n = normVideo(v);
+    const rv = reelMap.get(n.url) || { inReels: false, reelCategories: [] };
+    return { _id: `v_${i}`, url: n.url, caption: n.caption || '', tags: n.tags || [], type: 'video', inReels: rv.inReels, reelCategories: rv.reelCategories };
+  });
+
   res.json({ success: true, data: [...photos, ...videos] });
+}));
+
+// PUT /owner/gallery/:mediaId — update caption, tags, isCover for a photo or video
+router.put("/owner/gallery/:mediaId", authenticateOwner, asyncHandler(async (req, res) => {
+  const mid = req.params.mediaId;
+  const { caption, tags, isCover } = req.body;
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+
+  if (mid.startsWith('v_')) {
+    const idx = parseInt(mid.slice(2), 10);
+    if (isNaN(idx) || idx < 0 || idx >= (salon.videos || []).length)
+      return res.status(404).json({ success: false, message: "Video not found" });
+    const entry = normVideo(salon.videos[idx]);
+    if (caption  !== undefined) entry.caption = caption;
+    if (tags     !== undefined) entry.tags    = tags;
+    salon.videos[idx] = entry;
+    salon.markModified('videos');
+  } else {
+    const idx = mid.startsWith('p_') ? parseInt(mid.slice(2), 10) : parseInt(mid, 10);
+    if (isNaN(idx) || idx < 0 || idx >= (salon.photos || []).length)
+      return res.status(404).json({ success: false, message: "Photo not found" });
+    const entry = normPhoto(salon.photos[idx]);
+    if (caption  !== undefined) entry.caption  = caption;
+    if (tags     !== undefined) entry.tags     = tags;
+    if (isCover  === true) {
+      // clear isCover on all other photos, then set this one
+      salon.photos = salon.photos.map((p, i) => {
+        const n = normPhoto(p);
+        n.isCover = (i === idx);
+        return n;
+      });
+      salon.markModified('photos');
+    } else {
+      salon.photos[idx] = entry;
+      salon.markModified('photos');
+    }
+  }
+
+  await salon.save();
+  res.json({ success: true, message: "Updated" });
 }));
 
 // PUT /owner/gallery/reel-toggle — add/remove a video from reelVideos, optionally update categories
@@ -1609,7 +1650,6 @@ router.put("/owner/gallery/reel-toggle", authenticateOwner, asyncHandler(async (
   const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
 
-  // Normalise any legacy String entries to object format
   salon.reelVideos = (salon.reelVideos || []).map(rv =>
     typeof rv === 'string' ? { url: rv, categories: [] } : rv
   );
@@ -1617,15 +1657,12 @@ router.put("/owner/gallery/reel-toggle", authenticateOwner, asyncHandler(async (
   const idx = salon.reelVideos.findIndex(rv => rv.url === videoUrl);
   let inReels;
   if (idx === -1) {
-    // Add
     salon.reelVideos.push({ url: videoUrl, categories: categories || [] });
     inReels = true;
   } else if (categories !== undefined) {
-    // Update categories without removing
     salon.reelVideos[idx].categories = categories;
     inReels = true;
   } else {
-    // Remove
     salon.reelVideos.splice(idx, 1);
     inReels = false;
   }
@@ -1634,7 +1671,7 @@ router.put("/owner/gallery/reel-toggle", authenticateOwner, asyncHandler(async (
   res.json({ success: true, inReels, reelCategories: inReels ? (salon.reelVideos.find(rv => rv.url === videoUrl)?.categories || []) : [] });
 }));
 
-// POST /owner/gallery — upload a photo to Cloudinary and add to salon.photos
+// POST /owner/gallery — legacy server-side photo upload (kept for fallback)
 router.post("/owner/gallery", authenticateOwner, multerUpload.single("image"), asyncHandler(async (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: "No image uploaded" });
   const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
@@ -1647,13 +1684,13 @@ router.post("/owner/gallery", authenticateOwner, multerUpload.single("image"), a
     );
     stream.end(req.file.buffer);
   });
-  salon.photos.push(url);
+  salon.photos.push({ url, caption: '', tags: [], isCover: false });
   await salon.save();
-  const newIndex = salon.photos.length - 1;
-  res.status(201).json({ success: true, data: { _id: `p_${newIndex}`, url, type: 'image' } });
+  const i = salon.photos.length - 1;
+  res.status(201).json({ success: true, data: { _id: `p_${i}`, url, caption: '', tags: [], isCover: false, type: 'image' } });
 }));
 
-// POST /owner/gallery/video — upload a video to Cloudinary and add to salon.videos
+// POST /owner/gallery/video — legacy server-side video upload (kept for fallback)
 router.post("/owner/gallery/video", authenticateOwner, multerVideoUpload.single("video"), asyncHandler(async (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: "No video uploaded" });
   const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
@@ -1667,29 +1704,37 @@ router.post("/owner/gallery/video", authenticateOwner, multerVideoUpload.single(
     stream.end(req.file.buffer);
   });
   if (!salon.videos) salon.videos = [];
-  salon.videos.push(url);
+  salon.videos.push({ url, caption: '', tags: [] });
   await salon.save();
-  const newIndex = salon.videos.length - 1;
-  res.status(201).json({ success: true, data: { _id: `v_${newIndex}`, url, type: 'video' } });
+  const i = salon.videos.length - 1;
+  res.status(201).json({ success: true, data: { _id: `v_${i}`, url, caption: '', tags: [], type: 'video', inReels: false, reelCategories: [] } });
 }));
 
-// DELETE /owner/gallery/:mediaId — remove photo (p_N) or video (v_N) by prefixed ID
+// DELETE /owner/gallery/:mediaId — remove photo or video, also clean up reelVideos
 router.delete("/owner/gallery/:mediaId", authenticateOwner, asyncHandler(async (req, res) => {
   const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
   const mid = req.params.mediaId;
+
   if (mid.startsWith('v_')) {
     const idx = parseInt(mid.slice(2), 10);
     if (isNaN(idx) || idx < 0 || idx >= (salon.videos || []).length)
       return res.status(404).json({ success: false, message: "Video not found" });
+    const deletedUrl = normVideo(salon.videos[idx]).url;
     salon.videos.splice(idx, 1);
+    // Also remove from reelVideos
+    salon.reelVideos = (salon.reelVideos || []).filter(rv =>
+      (typeof rv === 'string' ? rv : rv?.url) !== deletedUrl
+    );
+    salon.markModified('reelVideos');
   } else {
-    // p_N or legacy plain number
     const idx = mid.startsWith('p_') ? parseInt(mid.slice(2), 10) : parseInt(mid, 10);
     if (isNaN(idx) || idx < 0 || idx >= (salon.photos || []).length)
       return res.status(404).json({ success: false, message: "Photo not found" });
     salon.photos.splice(idx, 1);
+    salon.markModified('photos');
   }
+
   await salon.save();
   res.json({ success: true, message: "Media deleted" });
 }));
