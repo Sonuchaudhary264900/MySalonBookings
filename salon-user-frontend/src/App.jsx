@@ -78,22 +78,19 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-// ── App ────────────────────────────────────────────────────────
-function App() {
-  const [notifOpen, setNotifOpen] = useState(false);
+// ── Layout wrapper — hides chrome on Reels page ───────────────
+function AppLayout({ notifOpen, setNotifOpen }) {
+  const { pathname } = useLocation();
+  const isReels = pathname === '/reels';
 
   return (
-    <BrowserRouter>
-      <ThemeProvider>
-      <NotificationProvider>
-        <ErrorBoundary>
-          <div className="flex flex-col min-h-screen">
-          <SwipeHandler />
-          <ScrollToTop />
-          <Navbar notifOpen={notifOpen} setNotifOpen={setNotifOpen} />
-          <ToastContainer />
-          <main className="flex-grow pb-20 md:pb-0 pt-16 min-w-0">
-          <Suspense fallback={<PageLoader />}>
+    <div className="flex flex-col min-h-screen">
+      <SwipeHandler />
+      <ScrollToTop />
+      {!isReels && <Navbar notifOpen={notifOpen} setNotifOpen={setNotifOpen} />}
+      <ToastContainer />
+      <main className={isReels ? 'flex-grow min-w-0' : 'flex-grow pb-20 md:pb-0 pt-16 min-w-0'}>
+        <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/"                            element={<Home />} />
             <Route path="/men"                         element={<GenderHome gender="male" />} />
@@ -112,7 +109,7 @@ function App() {
             <Route path="/legal/customer-terms"        element={<CustomerTerms />} />
             <Route path="/legal/owner-privacy"         element={<OwnerPrivacyPolicy />} />
             <Route path="/legal/owner-terms"           element={<OwnerTerms />} />
-            <Route path="/reels"                        element={<Reels />} />
+            <Route path="/reels"                       element={<Reels />} />
 
             {/* 404 */}
             <Route path="*" element={
@@ -127,11 +124,24 @@ function App() {
               </div>
             } />
           </Routes>
-          </Suspense>
-          </main>
-          <Footer />
-          <BottomNav />
-          </div>
+        </Suspense>
+      </main>
+      {!isReels && <Footer />}
+      {!isReels && <BottomNav />}
+    </div>
+  );
+}
+
+// ── App ────────────────────────────────────────────────────────
+function App() {
+  const [notifOpen, setNotifOpen] = useState(false);
+
+  return (
+    <BrowserRouter>
+      <ThemeProvider>
+      <NotificationProvider>
+        <ErrorBoundary>
+          <AppLayout notifOpen={notifOpen} setNotifOpen={setNotifOpen} />
         </ErrorBoundary>
       </NotificationProvider>
       </ThemeProvider>
