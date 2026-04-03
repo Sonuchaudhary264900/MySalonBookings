@@ -1535,6 +1535,55 @@ router.post("/customer/push-token", authenticateCustomer, asyncHandler(async (re
    OWNER GALLERY ROUTES
 ===================================================== */
 
+// GET /owner/gallery/upload-signature — return a Cloudinary signed upload params
+// Browser uses this to upload directly to Cloudinary (bypasses server timeout entirely)
+router.get("/owner/gallery/upload-signature", authenticateOwner, asyncHandler(async (req, res) => {
+  const { resource_type = 'image' } = req.query;
+  const { cloudinary: cl } = require("../config/cloudinary");
+  const timestamp = Math.round(Date.now() / 1000);
+  const folder = resource_type === 'video' ? 'smart-salon/gallery-videos' : 'smart-salon/gallery';
+  const paramsToSign = { folder, timestamp };
+  const signature = cl.utils.api_sign_request(paramsToSign, process.env.CLOUDINARY_API_SECRET);
+  res.json({
+    success: true,
+    data: {
+      signature,
+      timestamp,
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key:    process.env.CLOUDINARY_API_KEY,
+      folder,
+      resource_type,
+    },
+  });
+}));
+
+// POST /owner/gallery/register-photo — save a Cloudinary photo URL after direct upload
+router.post("/owner/gallery/register-photo", authenticateOwner, asyncHandler(async (req, res) => {
+  const { url } = req.body;
+  if (!url || !url.startsWith('https://res.cloudinary.com/'))
+    return res.status(400).json({ success: false, message: "Valid Cloudinary url required" });
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+  salon.photos.push(url);
+  await salon.save();
+  const newIndex = salon.photos.length - 1;
+  res.status(201).json({ success: true, data: { _id: `p_${newIndex}`, url, type: 'image' } });
+}));
+
+// POST /owner/gallery/register-video — save a Cloudinary video URL after direct upload
+router.post("/owner/gallery/register-video", authenticateOwner, asyncHandler(async (req, res) => {
+  const { url } = req.body;
+  if (!url || !url.startsWith('https://res.cloudinary.com/'))
+    return res.status(400).json({ success: false, message: "Valid Cloudinary url required" });
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+  if (!salon.videos) salon.videos = [];
+  salon.videos.push(url);
+  await salon.save();
+  const newIndex = salon.videos.length - 1;
+  res.status(201).json({ success: true, data: { _id: `v_${newIndex}`, url, type: 'video' } });
+}));
+
 // GET /owner/gallery — return salon photos and videos as array of objects
 router.get("/owner/gallery", authenticateOwner, asyncHandler(async (req, res) => {
   const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });

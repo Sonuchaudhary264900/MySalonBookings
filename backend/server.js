@@ -335,6 +335,12 @@ const startServer = async () => {
     logger.warn("lastLocation fix error", { error: e.message });
   }
 
+  // Allow up to 10 minutes for large uploads (Cloudinary direct-upload register calls are fast,
+  // but keep this high so any legacy proxy path also gets sufficient time)
+  server.timeout          = 10 * 60 * 1000; // 10 min
+  server.keepAliveTimeout = 10 * 60 * 1000;
+  server.headersTimeout   = 10 * 60 * 1000 + 1000;
+
   server.listen(PORT, "0.0.0.0", () => {
     logger.info(`✅ Server running on port ${PORT}`, {
       port: PORT,

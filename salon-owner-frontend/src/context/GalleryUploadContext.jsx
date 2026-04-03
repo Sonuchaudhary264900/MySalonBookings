@@ -1,20 +1,26 @@
-import React, { createContext, useContext, useState, useRef, useCallback } from 'react';
+import { createContext, useContext, useState, useRef, useCallback } from 'react';
 import api from '../services/api';
 
 const GalleryUploadContext = createContext(null);
 export const useGalleryUpload = () => useContext(GalleryUploadContext);
 
-/* ── Client-side image compression (canvas) ── */
+/* ─── Constants ─────────────────────────────────────────────── */
+const CONCURRENCY    = 2;          // upload 2 files simultaneously
+const MAX_RETRIES    = 3;          // retry each file up to 3 times
+const RETRY_BASE_MS  = 3000;       // 3s → 6s → 12s exponential backoff
+const CLOUDINARY_TIMEOUT = 20 * 60 * 1000; // 20-min XHR timeout to Cloudinary
+
+/* ─── Client-side image compression ─────────────────────────── */
 const compressImage = (file, maxW = 1920) =>
   new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
-        const scale = Math.min(1, maxW / img.width);
+        const scale  = Math.min(1, maxW / img.width);
         const canvas = document.createElement('canvas');
-        canvas.width  = img.width  * scale;
-        canvas.height = img.height * scale;
+        canvas.width  = Math.round(img.width  * scale);
+        canvas.height = Math.round(img.height * scale);
         canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
         canvas.toBlob(
           (blob) => resolve(new File([blob], file.name, { type: 'image/jpeg' })),
@@ -26,115 +32,198 @@ const compressImage = (file, maxW = 1920) =>
     reader.readAsDataURL(file);
   });
 
+/* ─── Get Cloudinary signature from our backend ─────────────── */
+const getSignature = async (resource_type) => {
+  const res = await api.get(`/owner/gallery/upload-signature?resource_type=${resource_type}`);
+  return res.data.data;
+};
+
+/* ─── Upload file directly to Cloudinary via XHR ────────────── */
+// Uses XHR so we get granular onUploadProgress events.
+// Returns the secure_url string on success.
+const uploadToCloudinary = (file, sig, onProgress, xhrRef) =>
+  new Promise((resolve, reject) => {
+    const fd = new FormData();
+    fd.append('file',      file);
+    fd.append('api_key',   sig.api_key);
+    fd.append('timestamp', sig.timestamp);
+    fd.append('signature', sig.signature);
+    fd.append('folder',    sig.folder);
+
+    const xhr = new XMLHttpRequest();
+    if (xhrRef) xhrRef.current = xhr; // expose so caller can abort
+
+    xhr.upload.addEventListener('progress', (e) => {
+      if (e.lengthComputable) onProgress(e.loaded / e.total);
+    });
+
+    xhr.addEventListener('load', () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          resolve(data.secure_url);
+        } catch {
+          reject(new Error('Invalid Cloudinary response'));
+        }
+      } else {
+        let msg = `Cloudinary error (${xhr.status})`;
+        try { msg = JSON.parse(xhr.responseText)?.error?.message || msg; } catch {}
+        reject(new Error(msg));
+      }
+    });
+    xhr.addEventListener('error',   () => reject(new Error('Network error during upload')));
+    xhr.addEventListener('timeout',  () => reject(new Error('Upload timed out')));
+    xhr.timeout = CLOUDINARY_TIMEOUT;
+
+    const cloudUrl = `https://api.cloudinary.com/v1_1/${sig.cloud_name}/${sig.resource_type}/upload`;
+    xhr.open('POST', cloudUrl);
+    xhr.send(fd);
+  });
+
+/* ─── Register the Cloudinary URL with our backend ──────────── */
+const registerWithBackend = (url, mediaType) =>
+  api.post(
+    mediaType === 'video' ? '/owner/gallery/register-video' : '/owner/gallery/register-photo',
+    { url }
+  );
+
+/* ─── Exponential sleep ──────────────────────────────────────── */
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/* ─── Provider ───────────────────────────────────────────────── */
 export function GalleryUploadProvider({ children }) {
   const [uploads, setUploads]                 = useState([]);
   const [lastCompletedAt, setLastCompletedAt] = useState(null);
 
-  const queueRef      = useRef([]);
-  const processingRef = useRef(false);
+  // queue of items waiting to be processed
+  const queueRef    = useRef([]);
+  // how many concurrent uploads are running right now
+  const activeRef   = useRef(0);
+  // map id → XHR so we can cancel
+  const xhrRefs     = useRef({});
 
+  /* patch a single upload item by id */
   const patchItem = useCallback((id, patch) => {
     setUploads(prev => prev.map(u => u.id === id ? { ...u, ...patch } : u));
   }, []);
 
-  /* ── Animate progress bar from current% toward cap over time ── */
-  const animateTo = useCallback((id, cap, intervalMs = 400) => {
-    const timer = setInterval(() => {
-      setUploads(prev => {
-        const u = prev.find(x => x.id === id);
-        if (!u || u.progress >= cap || u.status === 'done' || u.status === 'error') {
-          clearInterval(timer);
-          return prev;
-        }
-        // creep 2% per tick toward cap
-        const next = Math.min(cap, u.progress + 2);
-        return prev.map(x => x.id === id ? { ...x, progress: next } : x);
-      });
-    }, intervalMs);
-    return timer;
-  }, []);
+  /* ── Upload one item with retry ─── */
+  const uploadOne = useCallback(async (item) => {
+    const xhrRef = { current: null };
+    xhrRefs.current[item.id] = xhrRef;
 
-  const processQueue = useCallback(async () => {
-    if (processingRef.current) return;
-    processingRef.current = true;
+    let lastError = null;
 
-    while (queueRef.current.length > 0) {
-      const item = queueRef.current.shift();
-      patchItem(item.id, { status: 'uploading', progress: 5 });
-
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
+        const isRetry = attempt > 1;
+        patchItem(item.id, {
+          status:   'uploading',
+          progress: isRetry ? 2 : 5,
+          error:    null,
+          attempt,
+        });
+
+        // ── 1. Get signature ──
+        const sig = await getSignature(item.mediaType === 'video' ? 'video' : 'image');
+
+        // ── 2. Compress image (skip for video) ──
+        let fileToUpload = item.file;
         if (item.mediaType === 'image') {
-          const compressed = await compressImage(item.file);
-          patchItem(item.id, { progress: 30 });
-
-          const fd = new FormData();
-          fd.append('image', compressed);
-
-          // Creep bar to 88 while waiting for server response
-          const timer = animateTo(item.id, 88);
-          await api.post('/owner/gallery', fd, {
-            headers: { 'Content-Type': undefined }, // let axios auto-set multipart boundary
-            onUploadProgress: (e) => {
-              clearInterval(timer);
-              // e.progress is 0-1 in axios ≥1.x; fallback for older
-              const ratio = typeof e.progress === 'number'
-                ? e.progress
-                : (e.total > 0 ? e.loaded / e.total : 0);
-              patchItem(item.id, { progress: Math.min(90, Math.round(ratio * 60) + 30) });
-            },
-          });
-          clearInterval(timer);
-
-        } else {
-          const fd = new FormData();
-          fd.append('video', item.file);
-
-          // Creep bar to 92 while waiting — video can take a while server→Cloudinary
-          const timer = animateTo(item.id, 92, 600);
-          await api.post('/owner/gallery/video', fd, {
-            headers: { 'Content-Type': undefined }, // let axios auto-set multipart boundary
-            onUploadProgress: (e) => {
-              const ratio = typeof e.progress === 'number'
-                ? e.progress
-                : (e.total > 0 ? e.loaded / e.total : 0);
-              if (ratio > 0) {
-                clearInterval(timer);
-                patchItem(item.id, { progress: Math.min(92, Math.round(ratio * 87) + 5) });
-              }
-            },
-          });
-          clearInterval(timer);
+          patchItem(item.id, { progress: 10 });
+          fileToUpload = await compressImage(item.file);
+          patchItem(item.id, { progress: 15 });
         }
 
-        patchItem(item.id, { status: 'done', progress: 100 });
+        // ── 3. Upload to Cloudinary directly ──
+        const cloudinaryUrl = await uploadToCloudinary(
+          fileToUpload,
+          sig,
+          (ratio) => {
+            // ratio 0→1 from Cloudinary. Map 15%→90% for progress bar.
+            const pct = Math.round(15 + ratio * 75);
+            patchItem(item.id, { progress: Math.min(90, pct) });
+          },
+          xhrRef
+        );
+
+        // ── 4. Register URL with our backend ──
+        patchItem(item.id, { progress: 95 });
+        await registerWithBackend(cloudinaryUrl, item.mediaType);
+
+        // ── 5. Done ──
+        patchItem(item.id, { status: 'done', progress: 100, error: null });
         setLastCompletedAt(Date.now());
+        return; // success — exit retry loop
+
       } catch (err) {
-        const msg = err?.response?.data?.message || err?.message || 'Upload failed';
-        patchItem(item.id, { status: 'error', error: msg });
+        lastError = err?.message || 'Upload failed';
+
+        if (attempt < MAX_RETRIES) {
+          const waitMs = RETRY_BASE_MS * Math.pow(2, attempt - 1); // 3s, 6s, 12s
+          patchItem(item.id, {
+            status:   'retrying',
+            error:    `${lastError} — retrying in ${waitMs / 1000}s (${attempt}/${MAX_RETRIES})`,
+            progress: 0,
+          });
+          await sleep(waitMs);
+        }
       }
     }
 
-    processingRef.current = false;
-  }, [patchItem, animateTo]);
+    // All retries exhausted
+    patchItem(item.id, { status: 'error', error: lastError, progress: 0 });
+  }, [patchItem]);
 
+  /* ── Drain the queue, respecting CONCURRENCY limit ─── */
+  const drainQueue = useCallback(() => {
+    const startNext = () => {
+      if (queueRef.current.length === 0 || activeRef.current >= CONCURRENCY) return;
+      const item = queueRef.current.shift();
+      activeRef.current += 1;
+      uploadOne(item).finally(() => {
+        activeRef.current -= 1;
+        startNext(); // pick up next item as soon as a slot frees
+      });
+    };
+    // Kick off up to CONCURRENCY slots
+    for (let i = 0; i < CONCURRENCY; i++) startNext();
+  }, [uploadOne]);
+
+  /* ── Public: add files to the upload queue ─── */
   const enqueueUploads = useCallback((fileItems) => {
     const items = fileItems.map(f => ({
       ...f,
       status:   'pending',
       progress: 0,
       error:    null,
+      attempt:  0,
     }));
     setUploads(prev => [...prev, ...items]);
     queueRef.current.push(...items);
-    processQueue();
-  }, [processQueue]);
+    drainQueue();
+  }, [drainQueue]);
 
+  /* ── Public: retry a single failed item ─── */
+  const retryItem = useCallback((id) => {
+    setUploads(prev => {
+      const item = prev.find(u => u.id === id);
+      if (!item || (item.status !== 'error')) return prev;
+      // Reset to pending visually
+      const reset = { ...item, status: 'pending', progress: 0, error: null, attempt: 0 };
+      queueRef.current.push(reset);
+      drainQueue();
+      return prev.map(u => u.id === id ? reset : u);
+    });
+  }, [drainQueue]);
+
+  /* ── Public: clear finished/failed entries ─── */
   const clearDone = useCallback(() => {
     setUploads(prev => prev.filter(u => u.status !== 'done' && u.status !== 'error'));
   }, []);
 
   return (
-    <GalleryUploadContext.Provider value={{ uploads, enqueueUploads, clearDone, lastCompletedAt }}>
+    <GalleryUploadContext.Provider value={{ uploads, enqueueUploads, retryItem, clearDone, lastCompletedAt }}>
       {children}
     </GalleryUploadContext.Provider>
   );
