@@ -345,16 +345,16 @@ router.get("/public/salons/:salonId/reviews", validateObjectId("salonId"), async
   res.json({ success: true, data: { reviews } });
 }));
 
-// GET /public/reels?latitude=&longitude=&page=1&limit=20
-// Returns flattened salon videos, sorted by proximity when coords provided
+// GET /public/reels?latitude=&longitude=&page=1&limit=20&fingerprint=
+// Returns flattened salon reel videos with like/view counts embedded (no extra requests needed)
 router.get("/public/reels", asyncHandler(async (req, res) => {
-  const { latitude, longitude, page = 1, limit = 20 } = req.query;
+  const { latitude, longitude, page = 1, limit = 30, fingerprint } = req.query;
   const lat = Number(latitude);
   const lng = Number(longitude);
   const hasCoords = latitude && longitude && !isNaN(lat) && !isNaN(lng);
 
-  // Only salons that have explicitly selected reel videos
-  const baseQuery = { isApproved: true, "reelVideos.0": { $exists: true }, "reelVideos.0.url": { $exists: true } };
+  // Accept both legacy string arrays and new {url,categories} object arrays
+  const baseQuery = { isApproved: true, "reelVideos.0": { $exists: true } };
 
   let salons;
   if (hasCoords) {
@@ -363,7 +363,7 @@ router.get("/public/reels", asyncHandler(async (req, res) => {
       location: {
         $nearSphere: {
           $geometry: { type: "Point", coordinates: [lng, lat] },
-          $maxDistance: 20000, // 20 km
+          $maxDistance: 20000,
         },
       },
     })
@@ -378,20 +378,19 @@ router.get("/public/reels", asyncHandler(async (req, res) => {
       .lean();
   }
 
-  // Flatten owner-selected reel videos to individual items
+  // Flatten to individual reel items
   const allReels = [];
   for (const s of salons) {
     for (let i = 0; i < (s.reelVideos || []).length; i++) {
       const rv = s.reelVideos[i];
-      // Support both legacy String and new {url, categories} format
-      const videoUrl = typeof rv === 'string' ? rv : rv?.url;
+      const videoUrl   = typeof rv === 'string' ? rv : rv?.url;
       const categories = typeof rv === 'string' ? [] : (rv?.categories || []);
       if (!videoUrl) continue;
       allReels.push({
         _id: `${s._id}_${i}`,
         videoUrl,
         categories,
-        salon: { _id: s._id, name: s.name, city: s.city, logo: s.logo || null, coverPhoto: s.coverPhoto || null, averageRating: s.averageRating || 0 },
+        salon: { _id: s._id, name: s.name, city: s.city, logo: s.logo || null, averageRating: s.averageRating || 0 },
       });
     }
   }
@@ -402,8 +401,50 @@ router.get("/public/reels", asyncHandler(async (req, res) => {
     [allReels[i], allReels[j]] = [allReels[j], allReels[i]];
   }
 
-  const skip = (Number(page) - 1) * Number(limit);
-  res.json({ success: true, data: allReels.slice(skip, skip + Number(limit)), total: allReels.length, page: Number(page) });
+  const pageReels = allReels.slice((Number(page) - 1) * Number(limit), Number(page) * Number(limit));
+
+  // ── Batch-fetch like counts + view counts in 2-3 queries (not N) ──
+  if (pageReels.length > 0) {
+    const ReelLike = require("../models/ReelLike");
+    const ReelView = require("../models/ReelView");
+    const videoUrls = pageReels.map(r => r.videoUrl);
+
+    const [likesAgg, viewsAgg, likedDocs] = await Promise.all([
+      ReelLike.aggregate([
+        { $match: { videoUrl: { $in: videoUrls } } },
+        { $group: { _id: '$videoUrl', count: { $sum: 1 } } },
+      ]),
+      ReelView.aggregate([
+        { $match: { videoUrl: { $in: videoUrls } } },
+        { $group: { _id: '$videoUrl', count: { $sum: 1 } } },
+      ]),
+      fingerprint
+        ? ReelLike.find({ videoUrl: { $in: videoUrls }, fingerprint }).select('videoUrl').lean()
+        : Promise.resolve([]),
+    ]);
+
+    const likeMap   = Object.fromEntries(likesAgg.map(d => [d._id, d.count]));
+    const viewMap   = Object.fromEntries(viewsAgg.map(d => [d._id, d.count]));
+    const likedSet  = new Set((likedDocs || []).map(d => d.videoUrl));
+
+    pageReels.forEach(r => {
+      r.likeCount  = likeMap[r.videoUrl]  || 0;
+      r.viewCount  = viewMap[r.videoUrl]  || 0;
+      r.liked      = likedSet.has(r.videoUrl);
+    });
+  }
+
+  res.json({ success: true, data: pageReels, total: allReels.length, page: Number(page) });
+}));
+
+// POST /public/reels/view — record a view (called after 3s of watching)
+router.post("/public/reels/view", asyncHandler(async (req, res) => {
+  const { videoUrl, salonId, fingerprint } = req.body;
+  if (!videoUrl || !salonId) return res.status(400).json({ success: false, message: "videoUrl and salonId required" });
+  const ReelView = require("../models/ReelView");
+  await ReelView.create({ videoUrl, salonId, fingerprint: fingerprint || null });
+  const viewCount = await ReelView.countDocuments({ videoUrl });
+  res.json({ success: true, viewCount });
 }));
 
 // GET /public/reels/comments?videoUrl=...  — fetch comments for a reel
@@ -476,19 +517,45 @@ router.get("/owner/reels/analytics", authenticateOwner, asyncHandler(async (req,
     typeof rv === 'string' ? { url: rv, categories: [] } : rv
   );
 
-  const results = await Promise.all(reelEntries.map(async (rv) => {
-    const [likeCount, commentCount, recentComments] = await Promise.all([
-      ReelLike.countDocuments({ videoUrl: rv.url }),
-      ReelComment.countDocuments({ videoUrl: rv.url }),
-      ReelComment.find({ videoUrl: rv.url }).sort({ createdAt: -1 }).limit(5).lean(),
-    ]);
-    return {
-      videoUrl:       rv.url,
-      categories:     rv.categories || [],
-      likeCount,
-      commentCount,
-      recentComments,
-    };
+  const ReelView = require("../models/ReelView");
+  const videoUrls = reelEntries.map(rv => rv.url).filter(Boolean);
+
+  // Batch fetch all counts
+  const [likesAgg, viewsAgg, commentsAgg] = await Promise.all([
+    ReelLike.aggregate([
+      { $match: { videoUrl: { $in: videoUrls } } },
+      { $group: { _id: '$videoUrl', count: { $sum: 1 } } },
+    ]),
+    ReelView.aggregate([
+      { $match: { videoUrl: { $in: videoUrls } } },
+      { $group: { _id: '$videoUrl', count: { $sum: 1 } } },
+    ]),
+    ReelComment.aggregate([
+      { $match: { videoUrl: { $in: videoUrls } } },
+      { $group: { _id: '$videoUrl', count: { $sum: 1 } } },
+    ]),
+  ]);
+
+  const likeMap    = Object.fromEntries(likesAgg.map(d => [d._id, d.count]));
+  const viewMap    = Object.fromEntries(viewsAgg.map(d => [d._id, d.count]));
+  const commentMap = Object.fromEntries(commentsAgg.map(d => [d._id, d.count]));
+
+  // Recent comments per video (fetch once, group by videoUrl)
+  const allRecentComments = await ReelComment.find({ videoUrl: { $in: videoUrls } })
+    .sort({ createdAt: -1 }).limit(50).lean();
+  const recentByUrl = {};
+  allRecentComments.forEach(c => {
+    if (!recentByUrl[c.videoUrl]) recentByUrl[c.videoUrl] = [];
+    if (recentByUrl[c.videoUrl].length < 5) recentByUrl[c.videoUrl].push(c);
+  });
+
+  const results = reelEntries.map(rv => ({
+    videoUrl:       rv.url,
+    categories:     rv.categories || [],
+    likeCount:      likeMap[rv.url]    || 0,
+    viewCount:      viewMap[rv.url]    || 0,
+    commentCount:   commentMap[rv.url] || 0,
+    recentComments: recentByUrl[rv.url] || [],
   }));
 
   res.json({ success: true, data: results });

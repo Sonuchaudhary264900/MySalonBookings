@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Images, Upload, Star, Tag, RefreshCw, Loader2, ImagePlus, Film,
-  Heart, MessageCircle, ChevronDown, ChevronUp, Play,
+  Heart, MessageCircle, ChevronDown, ChevronUp, Play, Eye,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -137,6 +137,9 @@ const ReelInsightCard = ({ reel }) => {
             <span className="flex items-center gap-1 text-sm font-bold text-indigo-500">
               <MessageCircle className="w-3.5 h-3.5" /> {reel.commentCount}
             </span>
+            <span className="flex items-center gap-1 text-sm font-bold text-gray-500 dark:text-gray-400">
+              <Eye className="w-3.5 h-3.5" /> {reel.viewCount ?? 0}
+            </span>
           </div>
         </div>
 
@@ -197,20 +200,28 @@ const ReelInsights = () => {
 
   const totalLikes    = analytics.reduce((s, r) => s + r.likeCount, 0);
   const totalComments = analytics.reduce((s, r) => s + r.commentCount, 0);
+  const totalViews    = analytics.reduce((s, r) => s + (r.viewCount ?? 0), 0);
+
+  const fmt = (n) => n >= 1_000_000 ? (n/1_000_000).toFixed(1)+'M' : n >= 1_000 ? (n/1_000).toFixed(1)+'K' : String(n);
 
   return (
     <div className="space-y-3">
       {/* Summary */}
       <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <Eye className="w-3.5 h-3.5 text-gray-500" />
+          <span className="text-sm font-bold text-gray-700 dark:text-gray-300">{fmt(totalViews)}</span>
+          <span className="text-xs text-gray-500/70">views</span>
+        </div>
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/40">
           <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500" />
-          <span className="text-sm font-bold text-red-600 dark:text-red-400">{totalLikes}</span>
-          <span className="text-xs text-red-500/70">total likes</span>
+          <span className="text-sm font-bold text-red-600 dark:text-red-400">{fmt(totalLikes)}</span>
+          <span className="text-xs text-red-500/70">likes</span>
         </div>
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40">
           <MessageCircle className="w-3.5 h-3.5 text-indigo-500" />
-          <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{totalComments}</span>
-          <span className="text-xs text-indigo-500/70">total comments</span>
+          <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{fmt(totalComments)}</span>
+          <span className="text-xs text-indigo-500/70">comments</span>
         </div>
         <span className="text-xs text-gray-400 ml-auto">{analytics.length} reel{analytics.length !== 1 ? 's' : ''}</span>
       </div>
