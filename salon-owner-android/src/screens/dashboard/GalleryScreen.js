@@ -284,7 +284,14 @@ export default function GalleryScreen() {
   const renderItem = ({ item }) => {
     const isCover = item._id === coverId;
     const isVideo = item.type === 'video';
-    const thumbUri = item.url || item.imageUrl || item.image;
+    const rawUri  = item.url || item.imageUrl || item.image;
+    // Cloudinary video URLs can't be displayed by <Image>.
+    // Derive a thumbnail by requesting the first frame as a JPEG.
+    const thumbUri = isVideo
+      ? rawUri
+          .replace('/video/upload/', '/video/upload/so_0,w_400,h_400,c_fill/')
+          .replace(/\.(mp4|mov|avi|mkv|webm)$/i, '.jpg')
+      : rawUri;
 
     return (
       <TouchableOpacity

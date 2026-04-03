@@ -49,8 +49,8 @@ const ImageCard = ({ photo, isCover, onView, onDelete }) => {
       {isVideo ? (
         <>
           <video
+            ref={el => { if (el) el.muted = true; }}
             src={url}
-            muted
             playsInline
             preload="metadata"
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"

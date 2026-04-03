@@ -268,9 +268,9 @@ const ImageModal = ({
           {isVideo ? (
             <video
               key={url}
+              ref={el => { if (el) { el.muted = false; el.play().catch(() => {}); } }}
               src={url}
               controls
-              autoPlay
               playsInline
               className="max-h-[50vh] lg:max-h-[80vh] w-full object-contain"
               onLoadedData={() => setImgLoaded(true)}
