@@ -441,8 +441,40 @@ export default function Messages() {
   const fetchThreads = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const res = await api.get('/owner/messages/threads');
-      setThreads(res.data?.data || []);
+      // Try new threads endpoint; fall back to unread endpoint for older backend versions
+      let threads = [];
+      try {
+        const res = await api.get('/owner/messages/threads');
+        threads = res.data?.data || [];
+      } catch (e) {
+        if (e?.response?.status === 404) {
+          // Fallback: build threads from unread messages (works on older backend)
+          const res = await api.get('/owner/messages/unread');
+          const msgs = res.data?.data?.messages || [];
+          const map = new Map();
+          msgs.forEach((m) => {
+            const key = m.bookingId?.toString();
+            if (!key) return;
+            if (!map.has(key)) {
+              map.set(key, {
+                bookingId:     m.bookingId,
+                booking:       m.booking || null,
+                latestMessage: m,
+                unreadCount:   0,
+                totalCount:    0,
+              });
+            }
+            const t = map.get(key);
+            t.totalCount++;
+            t.unreadCount++;
+            if (new Date(m.createdAt) >= new Date(t.latestMessage.createdAt)) t.latestMessage = m;
+          });
+          threads = [...map.values()].sort((a, b) => new Date(b.latestMessage.createdAt) - new Date(a.latestMessage.createdAt));
+        } else {
+          throw e;
+        }
+      }
+      setThreads(threads);
     } catch { /* silent */ } finally {
       setLoading(false);
     }
