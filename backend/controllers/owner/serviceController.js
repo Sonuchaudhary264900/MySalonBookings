@@ -82,8 +82,8 @@ exports.getSalonServices = async (req, res) => {
       return res.status(404).json(formatErrorResponse(messages.SALON.SALON_NOT_FOUND, 404));
     }
 
-    const services = await Service.find({ salonId: salon._id, isActive: true })
-      .sort({ createdAt: -1 })
+    const services = await Service.find({ salonId: salon._id })
+      .sort({ isActive: -1, createdAt: -1 })
       .lean();
 
     res.json(

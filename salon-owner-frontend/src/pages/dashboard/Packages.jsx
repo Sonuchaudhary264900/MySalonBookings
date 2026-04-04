@@ -66,7 +66,7 @@ export default function Packages() {
         ...(memRes.data.data?.packages || []),
       ]);
       const svcs = svcRes.data?.services ?? svcRes.data?.data ?? svcRes.data ?? [];
-      setSalonServices(Array.isArray(svcs) ? svcs.filter(s => s.isActive !== false) : []);
+      setSalonServices(Array.isArray(svcs) ? svcs : []);
     } catch { toast.error('Failed to load packages'); }
     finally { setLoading(false); }
   }, []);
@@ -923,13 +923,14 @@ function Step2Services({ form, salonServices, onToggle }) {
           <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
             <Scissors className="w-7 h-7 text-gray-300 dark:text-gray-600" />
           </div>
-          <p className="font-semibold text-gray-500 dark:text-gray-400">No active services found</p>
+          <p className="font-semibold text-gray-500 dark:text-gray-400">No services found</p>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Add services on the Services page first</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {salonServices.map(svc => {
             const isSelected = selectedNames.has(svc.name);
+            const isInactive = svc.isActive === false;
             const price = svc.basePrice || svc.price || 0;
             return (
               <button
@@ -941,7 +942,9 @@ function Step2Services({ form, salonServices, onToggle }) {
                   transition-all duration-200 active:scale-[0.97]
                   ${isSelected
                     ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 shadow-md shadow-indigo-500/15'
-                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-md hover:-translate-y-0.5'
+                    : isInactive
+                      ? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 hover:border-indigo-300 dark:hover:border-indigo-700'
+                      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-md hover:-translate-y-0.5'
                   }
                 `}
               >
@@ -954,18 +957,25 @@ function Step2Services({ form, salonServices, onToggle }) {
                   <Check className="w-3 h-3" />
                 </div>
 
-                {/* Category pill */}
-                {svc.category && (
-                  <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full mb-2
-                    ${isSelected
-                      ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500'
-                    }`}>
-                    {svc.category}
-                  </span>
-                )}
+                {/* Category pill + inactive badge */}
+                <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+                  {svc.category && (
+                    <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full
+                      ${isSelected
+                        ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500'
+                      }`}>
+                      {svc.category}
+                    </span>
+                  )}
+                  {isInactive && (
+                    <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400">
+                      Inactive
+                    </span>
+                  )}
+                </div>
 
-                <p className={`font-bold text-sm mb-2 pr-6 ${isSelected ? 'text-indigo-800 dark:text-indigo-200' : 'text-gray-900 dark:text-white'}`}>
+                <p className={`font-bold text-sm mb-2 pr-6 ${isSelected ? 'text-indigo-800 dark:text-indigo-200' : isInactive ? 'text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-white'}`}>
                   {svc.name}
                 </p>
 
