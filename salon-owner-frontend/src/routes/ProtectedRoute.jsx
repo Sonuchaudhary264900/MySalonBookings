@@ -60,7 +60,12 @@ const ProtectedRoute = () => {
   if (needsApprovalCheck) {
     if (!salonInitialized) return <Spinner />;
     if (salonFetchFailed) return <ServerDown onRetry={fetchSalon} />;
-    if (salon?.approvalStatus === 'approved') return <Outlet />;
+    if (salon?.approvalStatus === 'approved') {
+      // First-time approved: if no categories set yet, send to setup
+      const hasCategories = Array.isArray(salon.offeredCategories) && salon.offeredCategories.length > 0;
+      if (!hasCategories) return <Navigate to={ROUTES.SALON_SETUP} replace />;
+      return <Outlet />;
+    }
     return <Navigate to={ROUTES.APPROVAL_WAITING} replace />;
   }
 

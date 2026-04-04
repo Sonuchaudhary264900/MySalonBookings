@@ -13,6 +13,7 @@ const ROUTES = {
   // Semi-Protected Routes (after login but before approval)
   SALON_REGISTER: '/salon/register',
   APPROVAL_WAITING: '/approval-waiting',
+  SALON_SETUP: '/salon/setup',
 
   // Protected Routes (after approval)
   DASHBOARD: '/dashboard',

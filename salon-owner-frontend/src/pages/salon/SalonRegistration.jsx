@@ -176,6 +176,15 @@ const SR_CSS = `
   }
 `;
 
+const INDIAN_STATES = [
+  'Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat',
+  'Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh',
+  'Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan',
+  'Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal',
+  'Andaman & Nicobar Islands','Chandigarh','Dadra & Nagar Haveli and Daman & Diu',
+  'Delhi','Jammu & Kashmir','Ladakh','Lakshadweep','Puducherry',
+];
+
 const STEP_META = [
   { num: 1, label: 'Basic Info', Icon: FileText },
   { num: 2, label: 'Location',  Icon: MapPin   },
@@ -209,7 +218,7 @@ const SalonRegistration = () => {
   const [error, setError]             = useState('');
 
   const [step1Data, setStep1Data] = useState({
-    name: '', description: '', servedGender: '', phone: '', email: '', address: '',
+    name: '', description: '', servedGender: '', phone: '', email: '', state: '', district: '',
   });
   const [step1Errors, setStep1Errors] = useState({});
 
@@ -364,7 +373,8 @@ const SalonRegistration = () => {
     else if (!/^\+?[\d\s\-()]{9,}$/.test(step1Data.phone)) errors.phone = 'Phone is invalid';
     if (!step1Data.email.trim()) errors.email = 'Email is required';
     else if (!/\S+@\S+\.\S+/.test(step1Data.email)) errors.email = 'Email is invalid';
-    if (!step1Data.address.trim()) errors.address = 'Full address is required';
+    if (!step1Data.state) errors.state = 'State is required';
+    if (!step1Data.district.trim()) errors.district = 'District is required';
     if (!step1Data.servedGender) errors.servedGender = 'Please select who you serve';
     setStep1Errors(errors);
     return Object.keys(errors).length === 0;
@@ -450,7 +460,10 @@ const SalonRegistration = () => {
       const salonPayload = {
         name: step1Data.name, description: step1Data.description,
         servedGender: step1Data.servedGender, offeredCategories: [], kidsHaircut: false, atHomeServices: false,
-        phone: step1Data.phone, email: step1Data.email, address: step1Data.address, city: step1Data.address,
+        phone: step1Data.phone, email: step1Data.email,
+        address: `${step1Data.district}, ${step1Data.state}`,
+        city: step1Data.district,
+        state: step1Data.state,
         workingHours, photos: photoUrls,
       };
       if (step2Data.latitude && step2Data.longitude) {
@@ -691,11 +704,33 @@ const SalonRegistration = () => {
                       </div>
                     </div>
 
-                    {/* Address */}
-                    <div>
-                      <label className="sr-label">Full Address <span className="sr-req">*</span></label>
-                      <input className={`sr-inp${step1Errors.address ? ' sr-inp-err' : ''}`} name="address" value={step1Data.address} onChange={handleStep1Change} placeholder="e.g. 123 MG Road, Koramangala, Bangalore, Karnataka" />
-                      {step1Errors.address && <span className="sr-err">{step1Errors.address}</span>}
+                    {/* State + District */}
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }} className="sr-grid2">
+                      <div>
+                        <label className="sr-label">State <span className="sr-req">*</span></label>
+                        <select
+                          className={`sr-inp${step1Errors.state ? ' sr-inp-err' : ''}`}
+                          name="state"
+                          value={step1Data.state}
+                          onChange={handleStep1Change}
+                          style={{ appearance:'none', cursor:'pointer' }}
+                        >
+                          <option value="">Select state…</option>
+                          {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                        {step1Errors.state && <span className="sr-err">{step1Errors.state}</span>}
+                      </div>
+                      <div>
+                        <label className="sr-label">District <span className="sr-req">*</span></label>
+                        <input
+                          className={`sr-inp${step1Errors.district ? ' sr-inp-err' : ''}`}
+                          name="district"
+                          value={step1Data.district}
+                          onChange={handleStep1Change}
+                          placeholder="e.g. Koramangala"
+                        />
+                        {step1Errors.district && <span className="sr-err">{step1Errors.district}</span>}
+                      </div>
                     </div>
                   </div>
                 </div>

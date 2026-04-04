@@ -20,6 +20,7 @@ import Login from './pages/auth/Login';
 const Register         = lazy(() => import('./pages/auth/Register'));
 const ApprovalWaiting  = lazy(() => import('./pages/auth/ApprovalWaiting'));
 const SalonRegistration = lazy(() => import('./pages/salon/SalonRegistration'));
+const SalonSetup        = lazy(() => import('./pages/salon/SalonSetup'));
 const Dashboard        = lazy(() => import('./pages/dashboard/Dashboard'));
 const Services         = lazy(() => import('./pages/dashboard/Services'));
 const Bookings         = lazy(() => import('./pages/dashboard/Bookings'));
@@ -963,6 +964,7 @@ function App() {
                   {/* Semi-protected */}
                   <Route path={ROUTES.SALON_REGISTER}  element={<SalonRegistration />} />
                   <Route path={ROUTES.APPROVAL_WAITING} element={<ApprovalWaiting />} />
+                  <Route path={ROUTES.SALON_SETUP}      element={<SalonSetup />} />
 
                   {/* Protected dashboard routes */}
                   <Route element={<ProtectedRoute />}>
