@@ -177,12 +177,14 @@ const SR_CSS = `
 `;
 
 const INDIAN_STATES = [
-  'Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat',
-  'Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh',
-  'Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan',
-  'Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal',
-  'Andaman & Nicobar Islands','Chandigarh','Dadra & Nagar Haveli and Daman & Diu',
-  'Delhi','Jammu & Kashmir','Ladakh','Lakshadweep','Puducherry',
+  'Andaman & Nicobar Islands','Andhra Pradesh','Arunachal Pradesh','Assam',
+  'Bihar','Chandigarh','Chhattisgarh',
+  'Dadra & Nagar Haveli and Daman & Diu','Delhi','Goa','Gujarat',
+  'Haryana','Himachal Pradesh','Jammu & Kashmir','Jharkhand',
+  'Karnataka','Kerala','Ladakh','Lakshadweep','Madhya Pradesh',
+  'Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland',
+  'Odisha','Puducherry','Punjab','Rajasthan','Sikkim',
+  'Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal',
 ];
 
 const STEP_META = [
@@ -416,10 +418,9 @@ const SalonRegistration = () => {
   };
 
   const validateStep4 = () => {
-    const errors = {};
-    if (step4Data.photos.length === 0) errors.photos = 'Please upload at least one salon photo';
-    setStep4Errors(errors);
-    return Object.keys(errors).length === 0;
+    // Photos are optional — owners can upload from the Gallery after registration
+    setStep4Errors({});
+    return true;
   };
 
   const handleNext = () => {
@@ -871,8 +872,7 @@ const SalonRegistration = () => {
                   <div style={{ display:'flex', flexDirection:'column', gap:22 }}>
                     <div>
                       <label className="sr-label">
-                        Salon Photos <span className="sr-req">*</span>
-                        <span className="sr-opt"> — at least one required</span>
+                        Salon Photos <span className="sr-opt"> — optional, can be added later from Gallery</span>
                       </label>
                       <div className="sr-photo-wrap">
                         <PhotoUpload

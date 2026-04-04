@@ -223,6 +223,10 @@ const validateSalonData = (data) => {
     errors.push('City is required');
   }
 
+  if (data.servedGender !== undefined && !['male', 'female', 'unisex'].includes(data.servedGender)) {
+    errors.push('servedGender must be male, female, or unisex');
+  }
+
   // location coordinates are resolved server-side via Google Maps — not validated here
 
   return {

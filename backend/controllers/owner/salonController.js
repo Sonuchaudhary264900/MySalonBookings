@@ -46,6 +46,7 @@ exports.createSalon = async (req, res) => {
       email,
       address,
       city,
+      servedGender,
     });
 
     if (!validation.valid) {
@@ -156,8 +157,24 @@ exports.createSalon = async (req, res) => {
 
     console.error('Error creating salon:', error);
 
+    // Mongoose validation errors — surface them as 400 so the frontend can show useful messages
+    if (error.name === 'ValidationError') {
+      const msgs = Object.values(error.errors).map(e => e.message);
+      return res.status(400).json(
+        formatErrorResponse('Validation failed', 400, msgs)
+      );
+    }
+
+    // MongoDB duplicate key (unique index violation that slipped past our pre-checks)
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern || {})[0] || 'field';
+      return res.status(409).json(
+        formatErrorResponse(`This ${field} is already registered. Please use a different value.`, 409)
+      );
+    }
+
     res.status(500).json(
-      formatErrorResponse(messages.GENERIC.ERROR, 500)
+      formatErrorResponse(error.message || messages.GENERIC.ERROR, 500)
     );
 
   }
