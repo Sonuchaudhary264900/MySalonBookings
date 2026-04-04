@@ -377,9 +377,9 @@ export default function Packages() {
         />
       )}
 
-      {/* ── Membership modal (unchanged) ─────────────────────── */}
+      {/* ── Membership Builder (step-based) ──────────────────── */}
       {showForm && form.type === 'membership' && (
-        <MembershipFormModal
+        <MembershipBuilder
           form={form}
           editId={editId}
           saving={saving}
@@ -1473,160 +1473,729 @@ function MembershipCard({ pkg, onEdit, onDelete, onToggle }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   MEMBERSHIP FORM MODAL (unchanged from original)
+   MEMBERSHIP BUILDER — Premium 4-step creation flow
 ═══════════════════════════════════════════════════════════════ */
-function MembershipFormModal({ form, editId, saving, onChange, onSave, onClose, salonServices = [] }) {
-  const addFreeService = () => onChange({ freeServices: [...form.freeServices, { serviceName: '', usageLimit: '1' }] });
-  const removeFreeService = (i) => onChange({ freeServices: form.freeServices.filter((_, idx) => idx !== i) });
-  const updateFreeService = (i, field, value) => {
-    const updated = [...form.freeServices];
-    updated[i] = { ...updated[i], [field]: value };
-    onChange({ freeServices: updated });
+
+const MEM_ICONS = ['💳','👑','💎','⭐','🌟','🔮','🎭','🌸','🏆','✨','💰','🎯','🦋','🌈','🎊','🎪'];
+
+const MEM_STEPS = [
+  { num: 1, label: 'Basics',   icon: Sparkles    },
+  { num: 2, label: 'Billing',  icon: IndianRupee },
+  { num: 3, label: 'Benefits', icon: Zap         },
+  { num: 4, label: 'Preview',  icon: Eye         },
+];
+
+const CYCLE_OPTIONS = [
+  { value: 'monthly',   label: 'Monthly',   months: 1,  desc: 'Billed every month'    },
+  { value: 'quarterly', label: 'Quarterly', months: 3,  desc: 'Save vs monthly'       },
+  { value: 'yearly',    label: 'Yearly',    months: 12, desc: 'Best deal', best: true  },
+];
+
+const VALIDITY_PRESETS = [
+  { days: 30,  label: '1 Month'  },
+  { days: 90,  label: '3 Months' },
+  { days: 180, label: '6 Months' },
+  { days: 365, label: '1 Year'   },
+];
+
+const MEM_TAGS = [
+  { v: '',            l: 'None'           },
+  { v: 'popular',     l: '🔥 Popular'     },
+  { v: 'recommended', l: '⭐ Recommended'  },
+  { v: 'best_value',  l: '💰 Best Value'   },
+];
+
+function MembershipBuilder({ form, editId, saving, onChange, onSave, onClose, salonServices = [] }) {
+  const [step, setStep] = useState(1);
+  const [dir,  setDir]  = useState(1);
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
+  const go   = (n) => { setDir(n > step ? 1 : -1); setStep(n); };
+  const next = () => go(step + 1);
+  const back = () => go(step - 1);
+
+  const canNext = step === 1 ? form.name.trim().length > 0
+                : step === 2 ? parseFloat(form.price) > 0
+                : true;
+
+  return (
+    <div className="fixed inset-0 z-[60]">
+      <style>{`
+        @keyframes memSlideIn {
+          from { opacity: 0; transform: translateX(calc(var(--mdir) * 28px)); }
+          to   { opacity: 1; transform: translateX(0); }
+        }
+        .mem-step { animation: memSlideIn 0.24s cubic-bezier(0.4,0,0.2,1) both; }
+        .mem-slider {
+          -webkit-appearance: none; appearance: none;
+          height: 6px; border-radius: 9999px; outline: none; cursor: pointer; width: 100%;
+          background: linear-gradient(to right, #7c3aed var(--val, 0%), #e5e7eb var(--val, 0%));
+        }
+        .dark .mem-slider {
+          background: linear-gradient(to right, #7c3aed var(--val, 0%), #374151 var(--val, 0%));
+        }
+        .mem-slider::-webkit-slider-thumb {
+          -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
+          background: white; border: 3px solid #7c3aed;
+          box-shadow: 0 2px 8px rgba(124,58,237,0.45); cursor: pointer; transition: transform .15s;
+        }
+        .mem-slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
+        .mem-slider::-moz-range-thumb {
+          width: 20px; height: 20px; border-radius: 50%;
+          background: white; border: 3px solid #7c3aed;
+          box-shadow: 0 2px 8px rgba(124,58,237,0.45); cursor: pointer;
+        }
+        @keyframes previewFloat {
+          0%,100% { transform: translateY(0) rotate(-1deg); }
+          50%      { transform: translateY(-6px) rotate(-1deg); }
+        }
+        .preview-float { animation: previewFloat 3.5s ease-in-out infinite; }
+      `}</style>
+
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+
+      {/* Panel */}
+      <div className="absolute inset-0 flex items-center justify-center px-4 py-6 pointer-events-none">
+        <div
+          className="relative w-full max-w-2xl max-h-[92vh] flex flex-col
+            bg-white dark:bg-[#0d1424]
+            border border-gray-100 dark:border-gray-800/60
+            rounded-3xl shadow-2xl shadow-black/25 dark:shadow-black/60
+            pointer-events-auto overflow-hidden"
+          onClick={e => e.stopPropagation()}
+        >
+
+          {/* ── Top bar ── */}
+          <div className="shrink-0 px-6 pt-6 pb-4">
+            <div className="flex items-start justify-between mb-5">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-md">
+                    <CreditCard className="w-4 h-4 text-white" />
+                  </div>
+                  <h2 className="text-base font-bold text-gray-900 dark:text-white">
+                    {editId ? 'Edit Membership' : 'Create Membership'}
+                  </h2>
+                </div>
+                <p className="text-xs text-gray-400 dark:text-gray-500">
+                  Step {step} of {MEM_STEPS.length} — {MEM_STEPS[step - 1].label}
+                </p>
+              </div>
+              <button
+                onClick={onClose}
+                className="p-2 rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-150"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Step indicators */}
+            <div className="flex items-center gap-0">
+              {MEM_STEPS.map((s, i) => {
+                const done    = step > s.num;
+                const current = step === s.num;
+                const Icon    = s.icon;
+                return (
+                  <React.Fragment key={s.num}>
+                    <button
+                      onClick={() => { if (done) go(s.num); }}
+                      className={`flex flex-col items-center gap-1 min-w-0 flex-1 ${done ? 'cursor-pointer' : 'cursor-default'}`}
+                    >
+                      <div className={`w-9 h-9 rounded-2xl flex items-center justify-center transition-all duration-300 font-bold text-sm
+                        ${done    ? 'bg-violet-600 text-white shadow-md shadow-violet-500/30'
+                        : current ? 'bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-lg shadow-violet-500/40 scale-110'
+                        :           'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600'}`}
+                      >
+                        {done ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
+                      </div>
+                      <span className={`text-[10px] font-semibold hidden sm:block truncate transition-colors
+                        ${current ? 'text-violet-600 dark:text-violet-400' : done ? 'text-gray-600 dark:text-gray-400' : 'text-gray-300 dark:text-gray-600'}`}>
+                        {s.label}
+                      </span>
+                    </button>
+                    {i < MEM_STEPS.length - 1 && (
+                      <div className={`h-[2px] flex-1 max-w-[40px] mx-1 rounded-full transition-all duration-500
+                        ${step > s.num ? 'bg-violet-500' : 'bg-gray-200 dark:bg-gray-800'}`} />
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+
+            {/* Progress bar */}
+            <div className="mt-4 h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-violet-500 to-purple-600 rounded-full transition-all duration-500"
+                style={{ width: `${((step - 1) / (MEM_STEPS.length - 1)) * 100}%` }}
+              />
+            </div>
+          </div>
+
+          {/* ── Step content ── */}
+          <div className="flex-1 overflow-y-auto px-6 pb-4 min-h-0">
+            <div key={step} className="mem-step" style={{ '--mdir': dir }}>
+              {step === 1 && <MStep1Basics   form={form} onChange={onChange} />}
+              {step === 2 && <MStep2Billing  form={form} onChange={onChange} />}
+              {step === 3 && <MStep3Benefits form={form} onChange={onChange} salonServices={salonServices} />}
+              {step === 4 && <MStep4Preview  form={form} onChange={onChange} />}
+            </div>
+          </div>
+
+          {/* ── Footer ── */}
+          <div className="shrink-0 px-6 py-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between gap-3">
+            <button
+              onClick={step === 1 ? onClose : back}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              {step === 1 ? 'Cancel' : 'Back'}
+            </button>
+
+            {/* Dot pagination */}
+            <div className="flex gap-1.5">
+              {MEM_STEPS.map(s => (
+                <div key={s.num} className={`h-1.5 rounded-full transition-all duration-300
+                  ${step === s.num ? 'w-6 bg-violet-500' : step > s.num ? 'w-3 bg-violet-300 dark:bg-violet-700' : 'w-3 bg-gray-200 dark:bg-gray-700'}`} />
+              ))}
+            </div>
+
+            {step < 4 ? (
+              <button
+                onClick={next}
+                disabled={!canNext}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white
+                  bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500
+                  disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg shadow-violet-500/25"
+              >
+                Continue <ArrowRight className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                onClick={onSave}
+                disabled={saving}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white
+                  bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500
+                  disabled:opacity-50 transition-all shadow-lg shadow-violet-500/25"
+              >
+                {saving
+                  ? <><RefreshCw className="w-4 h-4 animate-spin" /> Saving…</>
+                  : <><Check className="w-4 h-4" /> {editId ? 'Update Membership' : 'Create Membership'}</>
+                }
+              </button>
+            )}
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Step 1: Basics ─────────────────────────────────────────── */
+function MStep1Basics({ form, onChange }) {
+  return (
+    <div className="space-y-5 py-2">
+
+      {/* Icon picker */}
+      <div>
+        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3">Choose an Icon</p>
+        <div className="grid grid-cols-8 gap-2">
+          {MEM_ICONS.map(icon => (
+            <button
+              key={icon}
+              type="button"
+              onClick={() => onChange({ icon })}
+              className={`h-10 text-xl rounded-xl transition-all duration-150 active:scale-90
+                ${form.icon === icon
+                  ? 'bg-violet-100 dark:bg-violet-950/60 ring-2 ring-violet-500 scale-110 shadow-md'
+                  : 'bg-gray-100 dark:bg-gray-800 hover:bg-violet-50 dark:hover:bg-violet-950/30'}`}
+            >
+              {icon}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Name */}
+      <div>
+        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest block mb-2">
+          Membership Name <span className="text-red-400">*</span>
+        </label>
+        <input
+          value={form.name}
+          onChange={e => onChange({ name: e.target.value })}
+          placeholder="e.g. Gold Member, VIP Club, Platinum Pass…"
+          className="w-full h-11 px-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80
+            text-gray-900 dark:text-white text-sm font-medium
+            focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent
+            placeholder:text-gray-300 dark:placeholder:text-gray-600 transition"
+        />
+      </div>
+
+      {/* Description */}
+      <div>
+        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest block mb-2">Description</label>
+        <textarea
+          value={form.description}
+          onChange={e => onChange({ description: e.target.value })}
+          rows={3}
+          placeholder="Short pitch shown to customers — e.g. 'Priority bookings + 20% off every visit'"
+          className="w-full px-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80
+            text-gray-900 dark:text-white text-sm resize-none
+            focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent
+            placeholder:text-gray-300 dark:placeholder:text-gray-600 transition"
+        />
+      </div>
+
+      {/* Badge */}
+      <div>
+        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest block mb-2">Badge</label>
+        <div className="flex gap-2 flex-wrap">
+          {MEM_TAGS.map(({ v, l }) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => onChange({ tag: v })}
+              className={`px-3.5 py-2 text-xs font-semibold rounded-full border transition-all duration-150 active:scale-95
+                ${form.tag === v
+                  ? 'bg-violet-600 text-white border-violet-600 shadow-md shadow-violet-500/25'
+                  : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-violet-300 dark:hover:border-violet-700'}`}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Step 2: Billing ────────────────────────────────────────── */
+function MStep2Billing({ form, onChange }) {
+  const price = parseFloat(form.price) || 0;
+  const currentCycle = CYCLE_OPTIONS.find(c => c.value === form.billingCycle) || CYCLE_OPTIONS[0];
+  const monthlyEquiv = currentCycle.months > 1 && price > 0
+    ? `≈ ₹${Math.round(price / currentCycle.months)}/mo`
+    : null;
+
+  const suggestions = {
+    monthly:   [299, 499, 799, 999],
+    quarterly: [799, 1299, 1999, 2499],
+    yearly:    [2999, 4999, 7999, 9999],
+  }[form.billingCycle] || [];
+
+  return (
+    <div className="space-y-6 py-2">
+
+      {/* Billing cycle */}
+      <div>
+        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3">Billing Cycle</p>
+        <div className="grid grid-cols-3 gap-3">
+          {CYCLE_OPTIONS.map(cycle => (
+            <button
+              key={cycle.value}
+              type="button"
+              onClick={() => onChange({ billingCycle: cycle.value })}
+              className={`relative flex flex-col items-center gap-1.5 p-4 rounded-2xl border-2 transition-all duration-200 active:scale-95
+                ${form.billingCycle === cycle.value
+                  ? 'border-violet-500 bg-violet-50 dark:bg-violet-950/40 shadow-lg shadow-violet-500/15'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-violet-300 dark:hover:border-violet-700 bg-white dark:bg-gray-900'}`}
+            >
+              {cycle.best && (
+                <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-violet-600 to-purple-600 text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap shadow-sm">
+                  BEST VALUE
+                </span>
+              )}
+              <span className={`text-sm font-bold ${form.billingCycle === cycle.value ? 'text-violet-700 dark:text-violet-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                {cycle.label}
+              </span>
+              <span className={`text-[10px] text-center ${form.billingCycle === cycle.value ? 'text-violet-500 dark:text-violet-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                {cycle.desc}
+              </span>
+              {form.billingCycle === cycle.value && (
+                <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-violet-600 flex items-center justify-center">
+                  <Check className="w-2.5 h-2.5 text-white" />
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Price input */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+            Price <span className="text-red-400">*</span>
+          </p>
+          {monthlyEquiv && (
+            <span className="text-xs font-semibold text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/40 px-2 py-0.5 rounded-full">
+              {monthlyEquiv}
+            </span>
+          )}
+        </div>
+        <div className="relative">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-gray-400 dark:text-gray-500">₹</span>
+          <input
+            value={form.price}
+            onChange={e => onChange({ price: e.target.value })}
+            type="number"
+            min="0"
+            placeholder="0"
+            className="w-full h-14 pl-9 pr-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80
+              text-gray-900 dark:text-white text-2xl font-bold
+              focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition"
+          />
+        </div>
+
+        {/* Quick-pick price chips */}
+        <div className="flex gap-2 mt-3 flex-wrap items-center">
+          <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500">Suggested:</span>
+          {suggestions.map(p => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => onChange({ price: String(p) })}
+              className={`px-3 py-1.5 text-xs font-bold rounded-full border transition-all duration-150 active:scale-95
+                ${form.price === String(p)
+                  ? 'bg-violet-600 text-white border-violet-600'
+                  : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-violet-300'}`}
+            >
+              ₹{p}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Insight */}
+      {price > 0 && (
+        <div className="bg-violet-50 dark:bg-violet-950/30 border border-violet-100 dark:border-violet-900/50 rounded-2xl p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-xl bg-violet-100 dark:bg-violet-900/50 flex items-center justify-center shrink-0">
+              <TrendingUp className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-violet-800 dark:text-violet-200">Pricing Insight</p>
+              <p className="text-xs text-violet-600 dark:text-violet-400 mt-0.5">
+                {form.billingCycle === 'yearly'
+                  ? `Customers pay ₹${price} once a year${monthlyEquiv ? ` (${monthlyEquiv})` : ''}. Annual plans have the best retention.`
+                  : form.billingCycle === 'quarterly'
+                  ? `Customers pay ₹${price} every 3 months${monthlyEquiv ? ` (${monthlyEquiv})` : ''}. A great balance of value and commitment.`
+                  : `Customers pay ₹${price} every month. Keep it under ₹999 for best conversion.`}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Step 3: Benefits ───────────────────────────────────────── */
+function MStep3Benefits({ form, onChange, salonServices }) {
+  const discPct = parseInt(form.benefitDiscountPercent) || 0;
+
+  const toggleFreeService = (svc) => {
+    const exists = form.freeServices.some(fs => fs.serviceName === svc.name);
+    if (exists) {
+      onChange({ freeServices: form.freeServices.filter(fs => fs.serviceName !== svc.name) });
+    } else {
+      onChange({ freeServices: [...form.freeServices, { serviceName: svc.name, usageLimit: '1' }] });
+    }
+  };
+
+  const adjustUsage = (serviceName, delta) => {
+    onChange({
+      freeServices: form.freeServices.map(fs =>
+        fs.serviceName === serviceName
+          ? { ...fs, usageLimit: String(Math.max(1, (parseInt(fs.usageLimit) || 1) + delta)) }
+          : fs
+      ),
+    });
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700
-        rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+    <div className="space-y-6 py-2">
 
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 shrink-0">
+      {/* Discount slider */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Service Discount</p>
+          <div className="flex items-center gap-1.5 bg-violet-50 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-800 px-3 py-1 rounded-full">
+            <Percent className="w-3 h-3 text-violet-600 dark:text-violet-400" />
+            <span className="text-sm font-black text-violet-700 dark:text-violet-300">{discPct}% off</span>
+          </div>
+        </div>
+        <input
+          type="range"
+          min="0"
+          max="50"
+          value={discPct}
+          onChange={e => onChange({ benefitDiscountPercent: e.target.value })}
+          className="mem-slider"
+          style={{ '--val': `${discPct * 2}%` }}
+        />
+        <div className="flex justify-between mt-1.5">
+          <span className="text-[10px] text-gray-400">No discount</span>
+          <span className="text-[10px] text-gray-400">Max 50%</span>
+        </div>
+        {discPct > 0 && (
+          <p className="text-xs text-violet-600 dark:text-violet-400 mt-2 font-medium">
+            Members get {discPct}% off on every service visit ✓
+          </p>
+        )}
+      </div>
+
+      {/* Priority booking toggle */}
+      <div>
+        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3">Perks</p>
+        <div
+          onClick={() => onChange({ priorityBooking: !form.priorityBooking })}
+          className={`flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200
+            ${form.priorityBooking
+              ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-950/30'
+              : 'border-gray-200 dark:border-gray-700 hover:border-yellow-300 dark:hover:border-yellow-700'}`}
+        >
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-violet-50 dark:bg-violet-950 flex items-center justify-center text-xl">{form.icon}</div>
-            <div>
-              <h2 className="text-sm font-bold text-gray-900 dark:text-white">{editId ? 'Edit' : 'Create'} Membership</h2>
-              <p className="text-xs text-gray-400">Recurring subscription plan</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 transition">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
-
-          {/* Icon + Name */}
-          <div className="flex gap-3">
-            <div>
-              <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide block mb-1">Icon</label>
-              <input value={form.icon} onChange={e => onChange({ icon: e.target.value })} maxLength={2}
-                className="w-14 h-10 text-center text-xl border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500" />
-            </div>
-            <div className="flex-1">
-              <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide block mb-1">Name *</label>
-              <input value={form.name} onChange={e => onChange({ name: e.target.value })} placeholder="e.g. Gold Membership"
-                className="w-full h-10 px-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
-            </div>
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide block mb-1">Description</label>
-            <textarea value={form.description} onChange={e => onChange({ description: e.target.value })} rows={2}
-              placeholder="Short description shown to customers..."
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm resize-none focus:outline-none focus:ring-2 focus:ring-violet-500" />
-          </div>
-
-          {/* Tag */}
-          <div>
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide block mb-1">Badge Tag</label>
-            <div className="flex gap-2 flex-wrap">
-              {[{ v: '', l: 'None' }, { v: 'popular', l: '🔥 Popular' }, { v: 'recommended', l: '⭐ Recommended' }, { v: 'best_value', l: '💰 Best Value' }].map(({ v, l }) => (
-                <button key={v} type="button" onClick={() => onChange({ tag: v })}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-full border transition ${
-                    form.tag === v ? 'bg-violet-600 text-white border-violet-600' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-violet-300'
-                  }`}>{l}</button>
-              ))}
-            </div>
-          </div>
-
-          {/* Price + Billing */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide block mb-1">Price ₹ *</label>
-              <input value={form.price} onChange={e => onChange({ price: e.target.value })} type="number" min="0" placeholder="e.g. 999"
-                className="w-full h-10 px-3 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500" />
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors
+              ${form.priorityBooking ? 'bg-yellow-100 dark:bg-yellow-900/50' : 'bg-gray-100 dark:bg-gray-800'}`}>
+              <Zap className={`w-5 h-5 ${form.priorityBooking ? 'text-yellow-500' : 'text-gray-400'}`} />
             </div>
             <div>
-              <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide block mb-1">Billing Cycle</label>
-              <select value={form.billingCycle} onChange={e => onChange({ billingCycle: e.target.value })}
-                className="w-full h-10 px-3 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500">
-                <option value="monthly">Monthly</option>
-                <option value="quarterly">Quarterly</option>
-                <option value="yearly">Yearly</option>
-              </select>
+              <p className={`text-sm font-bold ${form.priorityBooking ? 'text-yellow-800 dark:text-yellow-200' : 'text-gray-700 dark:text-gray-300'}`}>
+                Priority Booking
+              </p>
+              <p className={`text-xs ${form.priorityBooking ? 'text-yellow-600 dark:text-yellow-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                Members skip the queue, book any slot instantly
+              </p>
             </div>
           </div>
-
-          {/* Duration */}
-          <div>
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide block mb-1">Validity (days)</label>
-            <input value={form.durationDays} onChange={e => onChange({ durationDays: e.target.value })} type="number" min="1" placeholder="30"
-              className="w-full h-10 px-3 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500" />
+          <div className={`relative w-11 h-6 rounded-full transition-all duration-300 shrink-0
+            ${form.priorityBooking ? 'bg-yellow-400' : 'bg-gray-200 dark:bg-gray-700'}`}>
+            <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all duration-300
+              ${form.priorityBooking ? 'left-5' : 'left-0.5'}`} />
           </div>
-
-          {/* Benefits */}
-          <div>
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide block mb-2">Benefits</label>
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <IndianRupee className="w-4 h-4 text-violet-500 shrink-0" />
-                <input value={form.benefitDiscountPercent} onChange={e => onChange({ benefitDiscountPercent: e.target.value })} type="number" min="0" max="100" placeholder="0"
-                  className="w-20 h-9 px-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500" />
-                <span className="text-sm text-gray-500 dark:text-gray-400">% discount on all services</span>
-              </div>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input type="checkbox" checked={form.priorityBooking} onChange={e => onChange({ priorityBooking: e.target.checked })} className="w-4 h-4 rounded text-violet-600" />
-                <Zap className="w-4 h-4 text-yellow-500" />
-                <span className="text-sm text-gray-700 dark:text-gray-300">Priority booking</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Free services */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Free Services (per period)</label>
-              <button type="button" onClick={addFreeService} className="text-xs text-violet-600 dark:text-violet-400 font-semibold hover:underline flex items-center gap-1">
-                <Plus className="w-3 h-3" /> Add
-              </button>
-            </div>
-            <div className="space-y-2">
-              {form.freeServices.map((fs, i) => (
-                <div key={i} className="flex gap-2 items-center">
-                  <select
-                    value={fs.serviceName}
-                    onChange={e => updateFreeService(i, 'serviceName', e.target.value)}
-                    className="flex-1 h-9 px-3 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
-                  >
-                    <option value="">Select service…</option>
-                    {salonServices.map(s => <option key={s._id} value={s.name}>{s.name}</option>)}
-                    {fs.serviceName && !salonServices.find(s => s.name === fs.serviceName) && (
-                      <option value={fs.serviceName}>{fs.serviceName}</option>
-                    )}
-                  </select>
-                  <span className="text-xs text-gray-400 shrink-0">×</span>
-                  <input value={fs.usageLimit} onChange={e => updateFreeService(i, 'usageLimit', e.target.value)} type="number" min="1" placeholder="1"
-                    className="w-16 h-9 px-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500" />
-                  <button type="button" onClick={() => removeFreeService(i)} className="text-red-400 hover:text-red-600 p-1">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800 flex gap-3 shrink-0">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
-            Cancel
-          </button>
-          <button onClick={onSave} disabled={saving}
-            className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition flex items-center justify-center gap-2 disabled:opacity-50 bg-violet-600 hover:bg-violet-700 shadow-violet-500/25 shadow-lg">
-            {saving ? <><RefreshCw className="w-4 h-4 animate-spin" /> Saving…</> : <><Check className="w-4 h-4" /> {editId ? 'Update' : 'Create'}</>}
-          </button>
         </div>
       </div>
+
+      {/* Free service cards */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Free Services per Period</p>
+          {form.freeServices.length > 0 && (
+            <span className="text-xs font-bold text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-800 px-2.5 py-1 rounded-full">
+              {form.freeServices.length} selected
+            </span>
+          )}
+        </div>
+
+        {salonServices.length === 0 ? (
+          <div className="text-center py-8 text-gray-400 dark:text-gray-500 text-sm">
+            <Scissors className="w-8 h-8 mx-auto mb-2 opacity-30" />
+            No services found — add services first
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {salonServices.map(svc => {
+              const selected  = form.freeServices.find(fs => fs.serviceName === svc.name);
+              const isInactive = svc.isActive === false;
+              const price = svc.basePrice || svc.price || 0;
+              return (
+                <div
+                  key={svc._id || svc.name}
+                  onClick={() => toggleFreeService(svc)}
+                  className={`relative p-3.5 rounded-2xl border cursor-pointer transition-all duration-200 active:scale-[0.97]
+                    ${selected
+                      ? 'border-violet-500 bg-violet-50 dark:bg-violet-950/40 shadow-md shadow-violet-500/15'
+                      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-violet-300 dark:hover:border-violet-700'}`}
+                >
+                  {/* Top badges */}
+                  <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+                    {svc.category && (
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full
+                        ${selected ? 'bg-violet-100 dark:bg-violet-900/50 text-violet-600 dark:text-violet-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500'}`}>
+                        {svc.category}
+                      </span>
+                    )}
+                    {isInactive && (
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400">
+                        Inactive
+                      </span>
+                    )}
+                  </div>
+
+                  <p className={`text-sm font-bold pr-6 ${selected ? 'text-violet-800 dark:text-violet-200' : isInactive ? 'text-gray-400' : 'text-gray-900 dark:text-white'}`}>
+                    {svc.name}
+                  </p>
+
+                  <div className="flex items-center justify-between mt-2">
+                    <span className={`text-sm font-bold ${selected ? 'text-violet-600 dark:text-violet-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                      ₹{price}
+                    </span>
+
+                    {/* Usage counter — only when selected */}
+                    {selected && (
+                      <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={() => adjustUsage(svc.name, -1)}
+                          className="w-6 h-6 rounded-lg bg-violet-100 dark:bg-violet-900/50 text-violet-600 dark:text-violet-400 flex items-center justify-center font-bold hover:bg-violet-200 dark:hover:bg-violet-900 transition"
+                        >−</button>
+                        <span className="text-xs font-black text-violet-700 dark:text-violet-300 w-5 text-center">
+                          {selected.usageLimit}×
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => adjustUsage(svc.name, 1)}
+                          className="w-6 h-6 rounded-lg bg-violet-100 dark:bg-violet-900/50 text-violet-600 dark:text-violet-400 flex items-center justify-center font-bold hover:bg-violet-200 dark:hover:bg-violet-900 transition"
+                        >+</button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Check indicator */}
+                  <div className={`absolute top-3 right-3 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-200
+                    ${selected ? 'bg-violet-600 text-white scale-100' : 'bg-gray-100 dark:bg-gray-800 text-gray-300 dark:text-gray-600 scale-90'}`}>
+                    <Check className="w-3 h-3" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Step 4: Validity + Live Preview ────────────────────────── */
+function MStep4Preview({ form, onChange }) {
+  const price  = parseFloat(form.price) || 0;
+  const discPct = parseInt(form.benefitDiscountPercent) || 0;
+  const days   = parseInt(form.durationDays) || 30;
+  const cycleLabel = { monthly: '/mo', quarterly: '/qtr', yearly: '/yr' }[form.billingCycle] || '/mo';
+  const tagMeta = TAG_META[form.tag];
+
+  return (
+    <div className="space-y-6 py-2">
+
+      {/* Validity quick-select */}
+      <div>
+        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3">Membership Validity</p>
+        <div className="grid grid-cols-4 gap-2.5">
+          {VALIDITY_PRESETS.map(preset => (
+            <button
+              key={preset.days}
+              type="button"
+              onClick={() => onChange({ durationDays: String(preset.days) })}
+              className={`flex flex-col items-center gap-1 py-3 rounded-2xl border-2 transition-all duration-200 active:scale-95
+                ${days === preset.days
+                  ? 'border-violet-500 bg-violet-50 dark:bg-violet-950/40 shadow-md shadow-violet-500/15'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-violet-300 dark:hover:border-violet-700 bg-white dark:bg-gray-900'}`}
+            >
+              <span className={`text-lg font-black ${days === preset.days ? 'text-violet-700 dark:text-violet-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                {preset.days}
+              </span>
+              <span className={`text-[10px] font-semibold ${days === preset.days ? 'text-violet-500 dark:text-violet-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                {preset.label}
+              </span>
+              {days === preset.days && <div className="w-1.5 h-1.5 rounded-full bg-violet-500 mt-0.5" />}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Live preview card */}
+      <div>
+        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-4">Live Preview</p>
+        <div className="flex justify-center">
+          <div className="preview-float w-full max-w-sm">
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 p-6 shadow-2xl shadow-violet-500/40 text-white">
+
+              {/* Decorative orbs */}
+              <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+              <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full bg-white/5 blur-xl pointer-events-none" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full bg-white/[0.03] pointer-events-none" />
+
+              {/* Header */}
+              <div className="flex items-start justify-between mb-5 relative">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl shadow-inner shrink-0">
+                    {form.icon || '💳'}
+                  </div>
+                  <div>
+                    <p className="font-black text-lg leading-tight">
+                      {form.name || 'Membership Name'}
+                    </p>
+                    {tagMeta && (
+                      <span className="inline-block mt-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-sm">
+                        {tagMeta.label}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Price */}
+              <div className="mb-5 relative">
+                <div className="flex items-end gap-1">
+                  <span className="text-white/70 text-sm font-bold">₹</span>
+                  <span className="text-4xl font-black leading-none">
+                    {price > 0 ? price.toLocaleString('en-IN') : '—'}
+                  </span>
+                  <span className="text-white/70 text-sm mb-1">{cycleLabel}</span>
+                </div>
+                <p className="text-white/60 text-xs mt-1">Valid for {days} days</p>
+              </div>
+
+              {/* Benefits */}
+              <div className="space-y-2 relative">
+                {discPct > 0 && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                      <Percent className="w-3 h-3" />
+                    </div>
+                    <span className="font-medium">{discPct}% off all services</span>
+                  </div>
+                )}
+                {form.priorityBooking && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                      <Zap className="w-3 h-3" />
+                    </div>
+                    <span className="font-medium">Priority booking</span>
+                  </div>
+                )}
+                {form.freeServices.slice(0, 3).map((fs, i) => (
+                  <div key={i} className="flex items-center gap-2 text-sm">
+                    <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                      <Star className="w-3 h-3" />
+                    </div>
+                    <span className="font-medium">{fs.serviceName} × {fs.usageLimit}</span>
+                  </div>
+                ))}
+                {form.freeServices.length === 0 && discPct === 0 && !form.priorityBooking && (
+                  <p className="text-white/40 text-xs italic">No benefits added yet — go back to Step 3</p>
+                )}
+                {form.freeServices.length > 3 && (
+                  <p className="text-white/60 text-xs">+{form.freeServices.length - 3} more services</p>
+                )}
+              </div>
+
+              {/* CTA preview */}
+              <div className="mt-5 py-2.5 rounded-2xl bg-white text-center text-violet-700 text-sm font-black shadow-lg">
+                Subscribe Now
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 }
