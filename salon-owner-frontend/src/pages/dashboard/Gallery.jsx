@@ -10,6 +10,13 @@ import UploadModal from '../../components/gallery/UploadModal';
 import ImageModal  from '../../components/gallery/ImageModal';
 import api from '../../services/api';
 import { useGalleryUpload } from '../../context/GalleryUploadContext';
+import {
+  cloudinaryVideoPosterUrl,
+  getGalleryMediaUrl,
+  hasRenderableGalleryMedia,
+  isGalleryVideo,
+  normalizeOwnerGalleryPayload,
+} from '../../components/gallery/galleryUtils';
 
 const ALL_TAGS = ['Haircut', 'Beard', 'Facial', 'Spa', 'Nails', 'Makeup'];
 
@@ -93,7 +100,7 @@ const FeaturedStrip = ({ photos, coverId, onView }) => {
               hover:ring-2 hover:ring-indigo-400 transition-all duration-150"
           >
             <img
-              src={p.url || p.imageUrl || p.image}
+              src={getGalleryMediaUrl(p)}
               alt=""
               className="w-full h-full object-cover"
             />
@@ -104,14 +111,6 @@ const FeaturedStrip = ({ photos, coverId, onView }) => {
   );
 };
 
-/* ── Cloudinary video → JPEG thumbnail ── */
-function cloudinaryThumb(url) {
-  if (!url || !url.includes('/video/upload/')) return '';
-  return url
-    .replace('/video/upload/', '/video/upload/w_400,h_400,c_fill,q_auto,f_jpg/')
-    .replace(/\.(mp4|mov|avi|mkv|webm)(\?.*)?$/i, '.jpg');
-}
-
 /* ── Relative time ── */
 function timeAgo(date) {
   if (!date) return '';
@@ -121,6 +120,43 @@ function timeAgo(date) {
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return `${Math.floor(diff / 86400)}d ago`;
 }
+
+/* ── Reel thumbnail: Cloudinary JPEG → video element fallback ── */
+const ReelThumb = ({ url }) => {
+  const [cloudFailed, setCloudFailed] = useState(false);
+  const thumbUrl = cloudinaryVideoPosterUrl(url);
+
+  const videoRef = useCallback((el) => {
+    if (!el) return;
+    el.muted = true;
+    el.onloadedmetadata = () => { el.currentTime = 0.1; };
+  }, []);
+
+  return (
+    <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-gray-800 shrink-0">
+      <div className="absolute inset-0 bg-gradient-to-br from-gray-700 to-gray-900" />
+      {!cloudFailed && thumbUrl ? (
+        <img
+          src={thumbUrl}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          onError={() => setCloudFailed(true)}
+        />
+      ) : url ? (
+        <video
+          ref={videoRef}
+          src={url}
+          preload="metadata"
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+      ) : null}
+      <div className="absolute inset-0 flex items-center justify-center bg-black/25">
+        <Play className="w-4 h-4 text-white fill-white" />
+      </div>
+    </div>
+  );
+};
 
 /* ── Reel Insights card ── */
 const ReelInsightCard = ({ reel }) => {
@@ -155,13 +191,8 @@ const ReelInsightCard = ({ reel }) => {
   return (
     <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
       <div className="flex items-center gap-3 p-3">
-        {/* Thumbnail */}
-        <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 shrink-0">
-          <video src={url} poster={cloudinaryThumb(url)} muted playsInline preload="metadata" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 flex items-center justify-center bg-black/25">
-            <Play className="w-4 h-4 text-white fill-white" />
-          </div>
-        </div>
+        {/* Thumbnail — Cloudinary JPEG first, then video element fallback */}
+        <ReelThumb url={url} />
 
         {/* Stats */}
         <div className="flex-1 min-w-0">
@@ -330,6 +361,8 @@ export default function Gallery() {
   const [loading,      setLoading]      = useState(true);
   const [coverId,      setCoverId]      = useState(null);
   const [activeTag,    setActiveTag]    = useState(null);
+  /** Instagram-style grid: everything | photos only | reels (portrait) */
+  const [gridMode,     setGridMode]     = useState('all'); // 'all' | 'photos' | 'reels'
   const [showUpload,   setShowUpload]   = useState(false);
   const [lightbox,     setLightbox]     = useState(null); // { index }
   const [deletingId,   setDeletingId]   = useState(null);
@@ -341,11 +374,29 @@ export default function Gallery() {
     if (!silent) setLoading(true);
     try {
       const res = await api.get('/owner/gallery');
-      const d   = res.data?.data;
-      const arr = Array.isArray(d) ? d : (d?.photos || d?.images || []);
-      setPhotos(arr);
-      // pick cover from the array if flagged
-      const cover = arr.find(p => p.isCover);
+      const raw = res.data?.data ?? res.data;
+      const parsed = normalizeOwnerGalleryPayload(raw);
+      let out = parsed.filter(hasRenderableGalleryMedia);
+      // API returned only empty/corrupt rows but reels exist (analytics) — show those URLs
+      if (out.length === 0) {
+        try {
+          const ar = await api.get('/owner/reels/analytics');
+          const rows = (ar.data?.data || []).filter((r) => r?.videoUrl);
+          if (rows.length) {
+            out = rows.map((row, i) => ({
+              _id: `v_${i}`,
+              url: row.videoUrl,
+              type: 'video',
+              caption: '',
+              tags: [],
+              inReels: true,
+              reelCategories: row.categories || [],
+            }));
+          }
+        } catch { /* ignore */ }
+      }
+      setPhotos(out);
+      const cover = out.find(p => p.isCover);
       if (cover) setCoverId(cover._id);
     } catch {
       setPhotos([]);
@@ -367,12 +418,11 @@ export default function Gallery() {
     setShowUpload(false);
   };
 
-  /* ── Open lightbox ── */
-  const handleView = (photo) => {
-    // visiblePhotos is computed below — derive same list here for index lookup
-    const list = activeTag ? imagePhotos.filter(p => p.tags?.includes(activeTag)) : photos;
+  /* ── Open lightbox (optional modalList e.g. featured strip = images only) ── */
+  const handleView = (photo, modalList) => {
+    const list = modalList ?? photosForGrid;
     const index = list.findIndex(p => p._id === photo._id);
-    setLightbox({ index: index >= 0 ? index : 0 });
+    setLightbox({ index: index >= 0 ? index : 0, list });
   };
 
   /* ── Delete from grid (quick) ── */
@@ -396,12 +446,22 @@ export default function Gallery() {
     setPhotos(prev => prev.filter(p => p._id !== id));
     if (id === coverId) setCoverId(null);
     toast.success('Photo removed');
-    if (photos.length <= 1) setLightbox(null);
+    setLightbox((prev) => {
+      if (!prev?.list) return null;
+      const nextList = prev.list.filter(p => p._id !== id);
+      if (nextList.length === 0) return null;
+      const nextIdx = Math.min(prev.index, nextList.length - 1);
+      return { index: nextIdx, list: nextList };
+    });
   };
 
   /* ── Lightbox: photo updated (caption/tags) ── */
   const handleLightboxUpdate = (updated) => {
     setPhotos(prev => prev.map(p => p._id === updated._id ? updated : p));
+    setLightbox((prev) => {
+      if (!prev?.list) return prev;
+      return { ...prev, list: prev.list.map(p => p._id === updated._id ? updated : p) };
+    });
   };
 
   /* ── Cover set ── */
@@ -411,21 +471,28 @@ export default function Gallery() {
     toast.success('Cover photo updated!');
   };
 
-  const imagePhotos = photos.filter(p => p.type !== 'video');
-  const videoPhotos = photos.filter(p => p.type === 'video');
+  const validPhotos = photos.filter(hasRenderableGalleryMedia);
 
-  // When a tag is active, show only images with that tag.
-  // When no tag active, show everything (images + videos).
-  const visiblePhotos = activeTag
+  const imagePhotos = validPhotos.filter(p => !isGalleryVideo(p));
+  const videoPhotos = validPhotos.filter(p => isGalleryVideo(p));
+
+  // When a tag is active (posts / all), show only gallery-tagged images — same as before.
+  const taggedImages = activeTag
     ? imagePhotos.filter(p => p.tags?.includes(activeTag))
-    : photos;
+    : imagePhotos;
+
+  const photosForGrid =
+    gridMode === 'reels'
+      ? videoPhotos
+      : gridMode === 'photos'
+        ? (activeTag ? taggedImages : imagePhotos)
+        : (activeTag ? taggedImages : validPhotos);
 
   const tagCount = (tag) => imagePhotos.filter(p => p.tags?.includes(tag)).length;
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
 
           {/* ── Page header ── */}
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
@@ -506,11 +573,39 @@ export default function Gallery() {
 
           {/* ── Featured photos strip ── */}
           {imagePhotos.length > 0 && !loading && (
-            <FeaturedStrip photos={imagePhotos} coverId={coverId} onView={handleView} />
+            <FeaturedStrip
+              photos={imagePhotos}
+              coverId={coverId}
+              onView={(p) => handleView(p, activeTag ? taggedImages : imagePhotos)}
+            />
           )}
 
-          {/* ── Tag filters ── */}
-          {photos.length > 0 && !loading && (
+          {/* ── Instagram-style Posts / Reels tabs ── */}
+          {validPhotos.length > 0 && !loading && (
+            <div className="flex items-center gap-2 p-1 rounded-2xl bg-gray-100/80 dark:bg-gray-800/80 border border-gray-200/80 dark:border-gray-700/80 w-fit">
+              {[
+                { id: 'all', label: 'All' },
+                { id: 'photos', label: 'Photos' },
+                ...(videoPhotos.length > 0 ? [{ id: 'reels', label: 'Reels' }] : []),
+              ].map(({ id, label }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setGridMode(id)}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-150 ${
+                    gridMode === id
+                      ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm border border-gray-200/80 dark:border-gray-700'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* ── Tag filters (gallery tags — photos / all) ── */}
+          {photos.length > 0 && !loading && gridMode !== 'reels' && (
             <div className="flex items-center gap-2 flex-wrap">
               <TagPill label="All" active={!activeTag} onClick={() => setActiveTag(null)} />
               {ALL_TAGS.filter(t => tagCount(t) > 0).map(t => (
@@ -538,13 +633,26 @@ export default function Gallery() {
               <EmptyState onUpload={() => setShowUpload(true)} />
             </div>
 
+          ) : photosForGrid.length === 0 ? (
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 py-16 text-center">
+              <Film className="w-10 h-10 text-violet-400 mx-auto mb-3 opacity-80" />
+              <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">
+                {gridMode === 'reels' ? 'No reels yet' : 'Nothing to show in this view'}
+              </p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 max-w-xs mx-auto">
+                {gridMode === 'reels'
+                  ? 'Upload a video — it appears here and for customers like on Instagram.'
+                  : 'Try another tab or clear filters.'}
+              </p>
+            </div>
           ) : (
             <ImageGrid
-              photos={visiblePhotos}
+              photos={photosForGrid}
               loading={false}
               coverId={coverId}
-              activeTag={activeTag}
-              onView={handleView}
+              activeTag={null}
+              layout={gridMode === 'reels' ? 'reels' : 'square'}
+              onView={(p) => handleView(p)}
               onDelete={handleDeleteFromGrid}
             />
           )}
@@ -564,7 +672,6 @@ export default function Gallery() {
           )}
 
         </div>
-      </div>
 
       {/* ── Upload modal ── */}
       <UploadModal
@@ -574,9 +681,9 @@ export default function Gallery() {
       />
 
       {/* ── Lightbox ── */}
-      {lightbox !== null && (
+      {lightbox !== null && lightbox.list?.length > 0 && (
         <ImageModal
-          photos={activeTag ? imagePhotos.filter(p => p.tags?.includes(activeTag)) : photos}
+          photos={lightbox.list}
           initialIndex={lightbox.index}
           coverId={coverId}
           onClose={() => setLightbox(null)}

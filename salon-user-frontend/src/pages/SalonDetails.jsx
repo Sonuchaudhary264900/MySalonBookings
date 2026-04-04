@@ -1,10 +1,10 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useLayoutEffect } from "react";
 import {
   Scissors, Phone, Star, Check, MessageSquare, Frown, Building2,
   Mail, ShoppingBag, MapPin, Navigation, ChevronDown, ChevronUp,
   Clock, Sparkles, Award, Users, ArrowLeft, Zap, X, Calendar,
-  User, Tag, CreditCard, CheckCircle, Gift, Play, ChevronLeft, ChevronRight,
+  User, Tag, CreditCard, CheckCircle, Gift, Play, ChevronLeft, ChevronRight, Heart,
 } from "lucide-react";
 import API from "../services/api";
 import ServiceCard from "../components/ServiceCard";
@@ -1090,7 +1090,7 @@ function SalonDetails() {
                       : -1;
                     const thumbUrl = item.type === 'video' && item.url.includes('/video/upload/')
                       ? item.url
-                          .replace('/video/upload/', '/video/upload/w_400,h_400,c_fill,q_auto,f_jpg/')
+                          .replace('/video/upload/', '/video/upload/w_400,h_400,c_fill,q_auto,f_jpg,vc_none/')
                           .replace(/\.(mp4|mov|avi|mkv|webm)(\?.*)?$/i, '.jpg')
                       : '';
                     return (
@@ -1101,19 +1101,29 @@ function SalonDetails() {
                       >
                         {item.type === 'video' ? (
                           <>
-                            {thumbUrl ? (
-                              <img src={thumbUrl} alt="Video" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                            ) : (
-                              <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900" />
+                            {/* Gradient base always visible — img renders on top if it loads */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-gray-700 to-gray-900" />
+                            {thumbUrl && (
+                              <img
+                                src={thumbUrl}
+                                alt="Video"
+                                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                onError={e => { e.currentTarget.style.display = 'none'; }}
+                              />
                             )}
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/25 group-hover:bg-black/40 transition-colors">
-                              <div className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center border-2 border-white/60 group-hover:scale-110 transition-transform">
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/45 transition-colors">
+                              <div className="w-12 h-12 rounded-full bg-black/55 flex items-center justify-center border-2 border-white/70 group-hover:scale-110 transition-transform backdrop-blur-sm">
                                 <Play className="w-5 h-5 text-white fill-white ml-0.5" />
                               </div>
                             </div>
                           </>
                         ) : (
-                          <img src={item.url} alt={`Salon photo ${i + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                          <img
+                            src={item.url}
+                            alt={`Salon photo ${i + 1}`}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                            onError={e => { e.currentTarget.style.display = 'none'; }}
+                          />
                         )}
                       </button>
                     );
@@ -1177,16 +1187,7 @@ function SalonDetails() {
                 </div>
               );
             })()}
-            {/* ── Instagram-style video viewer ── */}
-            {videoViewerIdx !== null && salonVideoUrls.length > 0 && (
-              <SalonVideoViewer
-                videos={salonVideoUrls}
-                startIdx={videoViewerIdx}
-                salon={salon}
-                onClose={() => setVideoViewerIdx(null)}
-                onBook={() => { setVideoViewerIdx(null); setShowBooking(true); }}
-              />
-            )}
+            {/* SalonVideoViewer rendered at root level — see below */}
 
             {salon.description && (
               <div className="rounded-2xl p-5" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
@@ -1333,6 +1334,17 @@ function SalonDetails() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ══ VIDEO VIEWER — outside fade-in to avoid stacking-context trap ══ */}
+      {videoViewerIdx !== null && salonVideoUrls.length > 0 && (
+        <SalonVideoViewer
+          videos={salonVideoUrls}
+          startIdx={videoViewerIdx}
+          salon={salon}
+          onClose={() => setVideoViewerIdx(null)}
+          onBook={() => { setVideoViewerIdx(null); setShowBooking(true); }}
+        />
       )}
 
       {/* ══ BOOKING DRAWER ════════════════════════════════════════════════ */}
@@ -1729,23 +1741,190 @@ function SalonDetails() {
 }
 
 /* ────────────────────────────────────────────────────────────────
-   Instagram-style fullscreen video viewer for a salon's videos
+   Helpers + CSS — SalonVideoViewer (mirrors Reels.jsx design)
+────────────────────────────────────────────────────────────────── */
+function svvSessionId() {
+  let id = localStorage.getItem('reelSessionId');
+  if (!id) { id = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('reelSessionId', id); }
+  return id;
+}
+function svvFmt(n) {
+  if (!n) return '0';
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
+  if (n >= 1_000)     return (n / 1_000).toFixed(1).replace(/\.0$/, '') + 'K';
+  return String(n);
+}
+function svvTimeAgo(date) {
+  if (!date) return '';
+  const diff = (Date.now() - new Date(date).getTime()) / 1000;
+  if (diff < 60)    return `${Math.floor(diff)}s ago`;
+  if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+const SVV_CSS = `
+  /* ── layout ── */
+  .svv-outer { position: fixed; inset: 0; z-index: 9999; }
+
+  @media (max-width: 767px) {
+    .svv-outer { background: #000; }
+    .svv-col   { position: absolute; inset: 0; }
+  }
+  @media (min-width: 768px) {
+    .svv-outer {
+      background: #050505;
+      background-image:
+        radial-gradient(ellipse 60% 50% at 30% 20%, rgba(99,102,241,0.07) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 50% at 70% 80%, rgba(139,92,246,0.05) 0%, transparent 70%);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .svv-col {
+      position: relative; width: 390px;
+      height: calc(100vh - 80px); max-height: 820px; min-height: 500px;
+      border-radius: 30px; overflow: hidden;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.07), 0 32px 96px rgba(0,0,0,0.95), 0 0 80px rgba(99,102,241,0.06);
+    }
+  }
+  .svv-feed { position: absolute; inset: 0; overflow: hidden; touch-action: pan-y; background: #000; }
+  .svv-strip { display: flex; flex-direction: column; will-change: transform; }
+
+  /* ── progress bar (identical to Reels) ── */
+  .reel-progress-wrap {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 3px; background: rgba(255,255,255,0.10); z-index: 26;
+  }
+  .reel-progress-bar {
+    height: 100%;
+    background: linear-gradient(to right, #6366f1, #a78bfa, #f0abfc);
+    border-radius: 0 3px 3px 0;
+    box-shadow: 0 0 10px rgba(167,139,250,0.75);
+    transition: width 0.2s linear; will-change: width;
+  }
+
+  /* ── gradient overlay (identical to Reels) ── */
+  .reel-gradient {
+    position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(to bottom,
+      rgba(0,0,0,0.60) 0%, rgba(0,0,0,0.10) 18%,
+      transparent 36%, transparent 48%,
+      rgba(0,0,0,0.55) 72%, rgba(0,0,0,0.93) 100%);
+  }
+
+  /* ── action buttons — identical to Reels ── */
+  .btn-action {
+    background: none; border: none; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-action-icon {
+    width: 54px; height: 54px; border-radius: 50%;
+    background: rgba(10,10,10,0.55);
+    backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(255,255,255,0.14);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 4px 16px rgba(0,0,0,0.4);
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+  }
+  .btn-action:active .btn-action-icon { transform: scale(0.90); }
+  .btn-action-label {
+    color: rgba(255,255,255,0.92); font-size: 11px; font-weight: 800;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.9); letter-spacing: 0.3px;
+    line-height: 1.1; text-align: center; max-width: 58px;
+  }
+  .btn-action-sub {
+    color: rgba(255,255,255,0.40); font-size: 9px; font-weight: 600; margin-top: -3px;
+  }
+
+  /* ── keyframes ── */
+  @keyframes svvHeartPop {
+    0%, 100% { transform: scale(1); }
+    40%       { transform: scale(1.55); }
+  }
+  @keyframes svvHeartBurst {
+    0%   { opacity: 1; transform: scale(0.25); }
+    45%  { opacity: 1; transform: scale(1.75); }
+    100% { opacity: 0; transform: scale(2.4); }
+  }
+  @keyframes svvScaleIn {
+    from { opacity: 0; transform: scale(0.88) translateY(16px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  @keyframes svvSpin { to { transform: rotate(360deg); } }
+  @keyframes svvGlowLike {
+    0%, 100% { box-shadow: 0 0 14px rgba(239,68,68,0.45), inset 0 1px 0 rgba(255,255,255,0.12); }
+    50%       { box-shadow: 0 0 32px rgba(239,68,68,0.80), inset 0 1px 0 rgba(255,255,255,0.12); }
+  }
+
+  .svv-heart-pop   { animation: svvHeartPop   0.35s cubic-bezier(.36,.07,.19,.97); }
+  .svv-heart-burst { animation: svvHeartBurst 0.72s ease forwards; pointer-events: none; }
+  .svv-scale-in    { animation: svvScaleIn    0.42s cubic-bezier(0.22,1,0.36,1) both; }
+  .svv-like-glow   { animation: svvGlowLike   1.6s ease infinite; }
+
+  /* ── comment input ── */
+  .svv-comment-input {
+    flex: 1; background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.10); border-radius: 16px;
+    padding: 12px 16px; color: #fff; font-size: 13px; outline: none;
+    font-family: inherit; transition: border-color 0.2s; resize: none;
+  }
+  .svv-comment-input:focus { border-color: rgba(139,92,246,0.5); }
+  .svv-comment-input::placeholder { color: rgba(255,255,255,0.28); }
+
+  /* ── bottom info slide-up ── */
+  @keyframes svvSlideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .svv-info-in { animation: svvSlideUp 0.42s cubic-bezier(0.22,1,0.36,1) both; }
+`;
+
+/* ────────────────────────────────────────────────────────────────
+   SalonVideoViewer — mirrors Reels.jsx look exactly
 ────────────────────────────────────────────────────────────────── */
 function SalonVideoViewer({ videos, startIdx, salon, onClose, onBook }) {
-  const [idx, setIdx]           = useState(startIdx ?? 0);
-  const [playing, setPlaying]   = useState(true);
-  const [muted, setMuted]       = useState(false);
-  const videoRef                = useRef(null);
-  const feedRef                 = useRef(null);
-  const scrolling               = useRef(false);
-  const currentI                = useRef(idx);
-  const mutedRef                = useRef(muted); // always-fresh for auto-play effect
+  const [idx, setIdx]         = useState(startIdx ?? 0);
+  const [playing, setPlaying] = useState(true);
+  const [muted, setMuted]     = useState(false);
+  const [feedH, setFeedH]     = useState(window.innerHeight);
+  const [progress, setProgress] = useState(0);
 
-  const url     = videos[idx] || '';
-  const total   = videos.length;
+  // Like
+  const [liked, setLiked]               = useState(false);
+  const [likeCount, setLikeCount]       = useState(0);
+  const [heartPop, setHeartPop]         = useState(false);
+  const [doubleTapHeart, setDoubleTapHeart] = useState(false);
+
+  // Comment
+  const [showComments, setShowComments]       = useState(false);
+  const [comments, setComments]               = useState([]);
+  const [commentCount, setCommentCount]       = useState(0);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentText, setCommentText]         = useState('');
+  const [posting, setPosting]                 = useState(false);
+
+  // Share
+  const [copied, setCopied] = useState(false);
+
+  const videoRef    = useRef(null);
+  const feedRef     = useRef(null);
+  const stripRef    = useRef(null);
+  const currentI    = useRef(startIdx ?? 0);
+  const mutedRef    = useRef(false);
+  const scrolling   = useRef(false);
+  const touchStartY = useRef(0);
+  const touchDeltaY = useRef(0);
+  const lastTapRef  = useRef(0);
+
+  const total     = videos.length;
   const salonName = salon?.name || 'Salon';
+  const salonLogo = salon?.logo || null;
   const city      = salon?.city || salon?.address || '';
   const rating    = salon?.averageRating ? parseFloat(salon.averageRating).toFixed(1) : null;
+  const salonId   = salon?._id;
+  const videoUrl  = videos[idx] || '';
+  const initial   = salonName[0]?.toUpperCase() || 'S';
+  const safeBottom = 'env(safe-area-inset-bottom, 0px)';
 
   // Lock body scroll
   useEffect(() => {
@@ -1754,54 +1933,117 @@ function SalonVideoViewer({ videos, startIdx, salon, onClose, onBook }) {
     return () => { document.body.style.overflow = prev; };
   }, []);
 
-  // Keep mutedRef fresh + sync mute to active video
+  // Measure feed height after mount — desktop col is CSS-sized, not 100vh
+  useLayoutEffect(() => {
+    const feed = feedRef.current;
+    if (feed && feed.clientHeight > 0) setFeedH(feed.clientHeight);
+  }, []);
+
+  // Sync muted → DOM ref (React muted attr is ignored by browsers)
   useEffect(() => {
     mutedRef.current = muted;
     if (videoRef.current) videoRef.current.muted = muted;
   }, [muted]);
 
-  // Auto-play on index change — uses mutedRef so muted value is always current
+  // Fetch like/comment counts for current video
   useEffect(() => {
-    currentI.current = idx;
+    setLiked(false); setLikeCount(0); setCommentCount(0); setProgress(0);
+    if (!videoUrl || !salonId) return;
+    const fp = svvSessionId();
+    API.get(`/public/reels?fingerprint=${encodeURIComponent(fp)}`)
+      .then(r => {
+        const reels = r.data.data || r.data.reels || [];
+        const match = reels.find(reel => reel.videoUrl === videoUrl);
+        if (match) {
+          setLikeCount(match.likeCount || 0);
+          setLiked(match.liked || false);
+          setCommentCount(match.commentCount || 0);
+        }
+      })
+      .catch(() => {});
+  }, [idx]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch comments when panel opens
+  useEffect(() => {
+    if (!showComments || !videoUrl) { if (!showComments) setComments([]); return; }
+    setCommentsLoading(true);
+    API.get(`/public/reels/comments?videoUrl=${encodeURIComponent(videoUrl)}`)
+      .then(r => setComments(r.data.data || []))
+      .catch(() => setComments([]))
+      .finally(() => setCommentsLoading(false));
+  }, [showComments, videoUrl]);
+
+  // Progress bar
+  const handleTimeUpdate = useCallback(() => {
+    const v = videoRef.current;
+    if (!v || !v.duration) return;
+    setProgress((v.currentTime / v.duration) * 100);
+  }, []);
+
+  // Like — optimistic with rollback
+  const handleLike = useCallback(async () => {
+    if (!salonId) return;
+    const wasLiked = liked;
+    setLiked(!wasLiked);
+    setLikeCount(c => Math.max(0, c + (wasLiked ? -1 : 1)));
+    setHeartPop(true);
+    setTimeout(() => setHeartPop(false), 400);
+    try {
+      const r = await API.post('/public/reels/like', { videoUrl, salonId });
+      setLiked(r.data.liked);
+      setLikeCount(r.data.count ?? (wasLiked ? likeCount - 1 : likeCount + 1));
+    } catch {
+      setLiked(wasLiked);
+      setLikeCount(c => Math.max(0, c + (wasLiked ? 1 : -1)));
+    }
+  }, [liked, likeCount, videoUrl, salonId]);
+
+  // Share — copies salon page link
+  const handleShare = useCallback(() => {
+    const url = `${window.location.origin}/salon/${salonId}`;
+    navigator.clipboard?.writeText(url).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2200);
+  }, [salonId]);
+
+  // Post comment
+  const postComment = useCallback(async () => {
+    const text = commentText.trim();
+    if (!text || !videoUrl || !salonId || posting) return;
+    setPosting(true);
+    try {
+      const r = await API.post('/public/reels/comments', { videoUrl, salonId, text });
+      setComments(prev => [r.data.data, ...prev]);
+      setCommentCount(c => c + 1);
+      setCommentText('');
+    } catch { /* silent */ }
+    finally { setPosting(false); }
+  }, [commentText, videoUrl, salonId, posting]);
+
+  /* ── Core navigation ── */
+  const goTo = useCallback((i, animated = true) => {
+    const clamped = Math.max(0, Math.min(i, total - 1));
+    currentI.current = clamped;
+    setIdx(clamped);
+    const strip = stripRef.current;
+    const feed  = feedRef.current;
+    if (!strip || !feed) return;
+    strip.style.transition = animated ? 'transform 0.30s cubic-bezier(0.25,0.46,0.45,0.94)' : 'none';
+    strip.style.transform  = `translateY(-${clamped * feed.clientHeight}px)`;
+    setShowComments(false);
+  }, [total]);
+
+  // Swap video src + play when idx changes
+  useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
     v.src = videos[idx] || '';
     v.muted = mutedRef.current;
     v.play().catch(() => {});
     setPlaying(true);
-  }, [idx, videos]); // videos included — mutedRef replaces stale muted closure
+  }, [idx, videos]);
 
-  const goTo = useCallback((i) => {
-    const clamped = Math.max(0, Math.min(i, total - 1));
-    if (clamped === currentI.current) return;
-    videoRef.current?.pause();
-    setIdx(clamped);
-    // Scroll feed to match
-    if (feedRef.current) {
-      feedRef.current.scrollTop = clamped * feedRef.current.clientHeight;
-    }
-  }, [total]);
-
-  // Scroll tracking (for CSS snap scroll on mobile)
-  useEffect(() => {
-    const feed = feedRef.current;
-    if (!feed) return;
-    const onScroll = () => {
-      const h = feed.clientHeight;
-      if (h > 0) {
-        const i = Math.round(feed.scrollTop / h);
-        if (i !== currentI.current) {
-          currentI.current = i;
-          videoRef.current?.pause();
-          setIdx(i);
-        }
-      }
-    };
-    feed.addEventListener('scroll', onScroll, { passive: true });
-    return () => feed.removeEventListener('scroll', onScroll);
-  }, []);
-
-  // Wheel handler (desktop)
+  /* ── Wheel (desktop) ── */
   useEffect(() => {
     const feed = feedRef.current;
     if (!feed) return;
@@ -1812,214 +2054,374 @@ function SalonVideoViewer({ videos, startIdx, salon, onClose, onBook }) {
       scrolling.current = true;
       clearTimeout(t);
       goTo(currentI.current + (e.deltaY > 0 ? 1 : -1));
-      t = setTimeout(() => { scrolling.current = false; }, 600);
+      t = setTimeout(() => { scrolling.current = false; }, 450);
     };
     feed.addEventListener('wheel', onWheel, { passive: false });
     return () => { feed.removeEventListener('wheel', onWheel); clearTimeout(t); };
   }, [goTo]);
 
-  // Keyboard navigation
+  /* ── Touch (mobile) ── */
+  useEffect(() => {
+    const feed = feedRef.current;
+    if (!feed) return;
+    const onTouchStart = (e) => {
+      touchStartY.current = e.touches[0].clientY;
+      touchDeltaY.current = 0;
+      if (stripRef.current) stripRef.current.style.transition = 'none';
+    };
+    const onTouchMove = (e) => {
+      const strip = stripRef.current;
+      if (!strip) return;
+      touchDeltaY.current = e.touches[0].clientY - touchStartY.current;
+      strip.style.transform = `translateY(${-currentI.current * feed.clientHeight + touchDeltaY.current}px)`;
+    };
+    const onTouchEnd = () => {
+      const threshold = feed.clientHeight * 0.22;
+      if      (touchDeltaY.current < -threshold) goTo(currentI.current + 1);
+      else if (touchDeltaY.current >  threshold) goTo(currentI.current - 1);
+      else                                        goTo(currentI.current);
+    };
+    feed.addEventListener('touchstart', onTouchStart, { passive: true });
+    feed.addEventListener('touchmove',  onTouchMove,  { passive: true });
+    feed.addEventListener('touchend',   onTouchEnd,   { passive: true });
+    return () => {
+      feed.removeEventListener('touchstart', onTouchStart);
+      feed.removeEventListener('touchmove',  onTouchMove);
+      feed.removeEventListener('touchend',   onTouchEnd);
+    };
+  }, [goTo]);
+
+  /* ── Keyboard ── */
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === 'Escape')     { onClose(); return; }
-      if (e.key === 'ArrowDown')  goTo(currentI.current + 1);
-      if (e.key === 'ArrowUp')    goTo(currentI.current - 1);
+      if (e.key === 'Escape')    { onClose(); return; }
+      if (e.key === 'ArrowDown') goTo(currentI.current + 1);
+      if (e.key === 'ArrowUp')   goTo(currentI.current - 1);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [goTo, onClose]);
 
+  /* ── Resize ── */
+  useEffect(() => {
+    const onResize = () => {
+      const feed = feedRef.current; const strip = stripRef.current;
+      if (!feed || !strip) return;
+      setFeedH(feed.clientHeight);
+      strip.style.transition = 'none';
+      strip.style.transform  = `translateY(-${currentI.current * feed.clientHeight}px)`;
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   const togglePlay = () => {
     const v = videoRef.current;
     if (!v) return;
     if (v.paused) { v.play().catch(() => {}); setPlaying(true); }
-    else          { v.pause();                setPlaying(false); }
+    else          { v.pause(); setPlaying(false); }
   };
 
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 200,
-      background: '#000',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-    }}>
-      {/* Feed */}
-      <div
-        ref={feedRef}
-        style={{
-          width: '100%', height: '100%',
-          maxWidth: 480,
-          overflowY: 'scroll',
-          scrollSnapType: 'y mandatory',
-          overscrollBehaviorY: 'contain',
-          WebkitOverflowScrolling: 'touch',
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
-          position: 'relative',
-        }}
-      >
-        {videos.map((vUrl, i) => (
-          <div
-            key={i}
-            style={{
-              height: '100%',
-              width: '100%',
-              flexShrink: 0,
-              scrollSnapAlign: 'start',
-              scrollSnapStop: 'always',
-              position: 'relative',
-              background: '#000',
-            }}
-          >
-            {i === idx && (
-              <video
-                ref={videoRef}
-                src={vUrl}
-                loop
-                playsInline
-                muted={muted}
-                autoPlay
-                onClick={togglePlay}
-                style={{
-                  position: 'absolute', inset: 0,
-                  width: '100%', height: '100%',
-                  objectFit: 'contain',
-                  background: '#000',
-                  cursor: 'pointer',
-                }}
-              />
-            )}
-            {/* Gradient overlays */}
-            <div style={{
-              position: 'absolute', inset: 0, pointerEvents: 'none',
-              background: 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 25%, transparent 55%, rgba(0,0,0,0.85) 100%)',
-            }} />
+  /* ── Double-tap to like, single-tap to pause/play ── */
+  const handleTap = useCallback(() => {
+    const now = Date.now();
+    if (now - lastTapRef.current < 320) {
+      if (!liked) handleLike();
+      setDoubleTapHeart(true);
+      setTimeout(() => setDoubleTapHeart(false), 750);
+    } else {
+      togglePlay();
+    }
+    lastTapRef.current = now;
+  }, [liked, handleLike]); // eslint-disable-line react-hooks/exhaustive-deps
 
-            {/* Paused indicator */}
-            {i === idx && !playing && (
+  const isLoggedIn = () => !!localStorage.getItem('customerToken');
+
+  return (
+    <>
+      <style>{SVV_CSS}</style>
+
+      <div className="svv-outer">
+        <div className="svv-col">
+
+          {/* ── Feed ── */}
+          <div ref={feedRef} className="svv-feed">
+            <div ref={stripRef} className="svv-strip">
+              {videos.map((vUrl, i) => (
+                <div key={i} style={{ width: '100%', height: feedH, flexShrink: 0, position: 'relative', background: '#080808', touchAction: 'pan-y' }}>
+                  {i === idx && (
+                    <video
+                      ref={videoRef}
+                      src={vUrl}
+                      loop playsInline autoPlay
+                      onClick={handleTap}
+                      onTimeUpdate={handleTimeUpdate}
+                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer', display: 'block' }}
+                    />
+                  )}
+                  <div className="reel-gradient" />
+                  {/* Paused overlay */}
+                  {i === idx && !playing && (
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 5 }}>
+                      <div style={{ width: 68, height: 68, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Play style={{ width: 30, height: 30, color: '#fff', fill: '#fff', marginLeft: 4 }} />
+                      </div>
+                    </div>
+                  )}
+                  {/* Double-tap heart */}
+                  {i === idx && doubleTapHeart && (
+                    <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', zIndex: 30, pointerEvents: 'none' }}>
+                      <div className="svv-heart-burst">
+                        <svg viewBox="0 0 24 24" width={120} height={120} fill="#ef4444" style={{ filter: 'drop-shadow(0 0 24px rgba(239,68,68,0.9)) drop-shadow(0 0 48px rgba(239,68,68,0.5))' }}>
+                          <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Progress bar ── */}
+          <div className="reel-progress-wrap">
+            <div className="reel-progress-bar" style={{ width: `${progress}%` }} />
+          </div>
+
+          {/* ── Top bar: close + title + mute ── */}
+          <div style={{
+            position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20,
+            padding: 'max(44px,calc(env(safe-area-inset-top,14px) + 14px)) 16px 12px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            background: 'linear-gradient(to bottom, rgba(0,0,0,0.72), transparent)',
+          }}>
+            <button onClick={onClose} style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer' }}>
+              <X style={{ width: 17, height: 17 }} />
+            </button>
+            <div style={{ textAlign: 'center' }}>
+              <p style={{ color: '#fff', fontSize: 13.5, fontWeight: 800, margin: 0, letterSpacing: '-0.1px' }}>{salonName}</p>
+              <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11, margin: 0 }}>{idx + 1} / {total} videos</p>
+            </div>
+            <button onClick={() => setMuted(m => !m)} style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer' }}>
+              {muted
+                ? <svg viewBox="0 0 24 24" width={18} height={18} fill="#fff"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
+                : <svg viewBox="0 0 24 24" width={18} height={18} fill="#fff"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+              }
+            </button>
+          </div>
+
+          {/* ── Right rail: Like · Comment · Share (exact Reels look) ── */}
+          <div style={{
+            position: 'absolute', right: 14,
+            bottom: `calc(${safeBottom} + 120px)`,
+            zIndex: 10,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 22,
+          }}>
+            {/* Like */}
+            <button className="btn-action" onClick={handleLike}>
+              <div className={`btn-action-icon${heartPop ? ' svv-heart-pop' : ''}${liked ? ' svv-like-glow' : ''}`}
+                style={liked ? { borderColor: 'rgba(239,68,68,0.4)', background: 'rgba(239,68,68,0.12)' } : {}}>
+                <svg viewBox="0 0 24 24" width={26} height={26}
+                  fill={liked ? '#ef4444' : 'none'}
+                  stroke={liked ? '#ef4444' : '#fff'} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+              </div>
+              <span className="btn-action-label" style={liked ? { color: '#ef4444' } : {}}>{svvFmt(likeCount)}</span>
+              <span className="btn-action-sub">Like</span>
+            </button>
+
+            {/* Comment */}
+            <button className="btn-action" onClick={() => setShowComments(true)}>
+              <div className="btn-action-icon">
+                <svg viewBox="0 0 24 24" width={24} height={24} fill="none" stroke="#fff" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              </div>
+              <span className="btn-action-label">{svvFmt(commentCount)}</span>
+              <span className="btn-action-sub">Comment</span>
+            </button>
+
+            {/* Share */}
+            <button className="btn-action" onClick={handleShare}>
+              <div className="btn-action-icon">
+                {copied
+                  ? <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="#4ade80" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7" /></svg>
+                  : <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="#fff" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                }
+              </div>
+              <span className="btn-action-label" style={copied ? { color: '#4ade80' } : {}}>{copied ? 'Copied!' : 'Share'}</span>
+            </button>
+
+            {/* Salon avatar */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
               <div style={{
-                position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                pointerEvents: 'none',
+                width: 50, height: 50, borderRadius: '50%', overflow: 'hidden',
+                border: '2px solid rgba(255,255,255,0.8)',
+                background: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.5)',
               }}>
-                <div style={{
-                  width: 64, height: 64, borderRadius: '50%',
-                  background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <Play style={{ width: 28, height: 28, color: '#fff', fill: '#fff', marginLeft: 3 }} />
+                {salonLogo
+                  ? <img src={salonLogo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <span style={{ color: '#fff', fontWeight: 900, fontSize: 17, lineHeight: 1 }}>{initial}</span>
+                }
+              </div>
+              <span style={{ color: 'rgba(255,255,255,0.82)', fontSize: 10, fontWeight: 700, maxWidth: 58, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textShadow: '0 1px 5px rgba(0,0,0,0.9)' }}>
+                {salonName.split(' ')[0]}
+              </span>
+            </div>
+          </div>
+
+          {/* ── Bottom info + Book CTA (exact Reels layout) ── */}
+          <div className="svv-info-in" style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10,
+            padding: `20px 16px calc(${safeBottom} + 20px)`,
+            paddingRight: 82,
+          }}>
+            {/* Salon row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 9 }}>
+              <div style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, overflow: 'hidden', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
+                {salonLogo
+                  ? <img src={salonLogo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <span style={{ color: '#fff', fontWeight: 900, fontSize: 16, lineHeight: 1 }}>{initial}</span>
+                }
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ color: '#fff', fontWeight: 900, fontSize: 14.5, margin: 0, textShadow: '0 2px 10px rgba(0,0,0,0.95)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.1px' }}>
+                  {salonName}
+                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3, flexWrap: 'wrap' }}>
+                  <svg viewBox="0 0 24 24" width={9} height={9} fill="rgba(255,255,255,0.58)"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                  {city && <span style={{ color: 'rgba(255,255,255,0.58)', fontSize: 11, fontWeight: 500 }}>{city}</span>}
+                  {rating && <>
+                    <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 10 }}>•</span>
+                    <span style={{ color: '#fbbf24', fontSize: 11, fontWeight: 800 }}>★ {rating}</span>
+                  </>}
                 </div>
               </div>
-            )}
+            </div>
+
+            {/* Book CTA — same gradient + style as Reels */}
+            <button onClick={onBook} style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              background: 'linear-gradient(135deg, #5b5ef7 0%, #7c3aed 50%, #9333ea 100%)',
+              borderRadius: 18, padding: '13px 20px',
+              color: '#fff', border: '1px solid rgba(139,92,246,0.45)',
+              fontSize: 14, fontWeight: 800, letterSpacing: 0.3, cursor: 'pointer',
+              boxShadow: '0 6px 28px rgba(99,102,241,0.55), inset 0 1px 0 rgba(255,255,255,0.22)',
+            }}>
+              <svg viewBox="0 0 24 24" width={15} height={15} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" />
+                <path d="M20 4H8.12A6 6 0 003 9.6M20 20H8.12A6 6 0 013 14.4" />
+              </svg>
+              Book Appointment
+            </button>
           </div>
-        ))}
-      </div>
 
-      {/* ── Top bar ── */}
-      <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
-        paddingTop: 'max(14px, env(safe-area-inset-top, 14px))',
-        padding: '14px 16px 12px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        background: 'linear-gradient(to bottom, rgba(0,0,0,0.7), transparent)',
-      }}>
-        <button onClick={onClose} style={{
-          width: 40, height: 40, borderRadius: '50%',
-          background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255,255,255,0.15)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#fff', cursor: 'pointer',
-        }}>
-          <X style={{ width: 18, height: 18 }} />
-        </button>
+        </div>{/* end .svv-col */}
 
-        <div style={{ textAlign: 'center' }}>
-          <p style={{ color: '#fff', fontSize: 14, fontWeight: 800, margin: 0, letterSpacing: '-0.2px' }}>
-            {salonName}
-          </p>
-          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, margin: 0 }}>
-            {idx + 1} / {total} videos
-          </p>
-        </div>
+        {/* ── Comment sheet — outside col so it overlays everything on desktop ── */}
+        {showComments && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 10010, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)' }} onClick={() => setShowComments(false)} />
+            <div className="svv-scale-in" style={{
+              position: 'relative', zIndex: 1,
+              background: 'linear-gradient(160deg, #111118, #0d0d14)',
+              border: '1px solid rgba(255,255,255,0.07)', borderBottom: 'none',
+              borderRadius: '26px 26px 0 0',
+              width: '100%', maxWidth: 540,
+              maxHeight: '82vh', display: 'flex', flexDirection: 'column',
+              padding: '0 0 max(24px,env(safe-area-inset-bottom,24px))',
+              boxShadow: '0 -8px 40px rgba(0,0,0,0.6)',
+            }}>
+              {/* Handle + header */}
+              <div style={{ padding: '14px 16px 0', flexShrink: 0 }}>
+                <div style={{ width: 36, height: 4, background: 'linear-gradient(to right,#6366f1,#a78bfa)', borderRadius: 2, margin: '0 auto 16px', boxShadow: '0 0 8px rgba(99,102,241,0.5)' }} />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <div>
+                    <p style={{ color: '#fff', fontWeight: 900, fontSize: 15, margin: 0, letterSpacing: '-0.2px' }}>Comments</p>
+                    <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, margin: '2px 0 0', fontWeight: 600 }}>{salonName}</p>
+                  </div>
+                  <button onClick={() => setShowComments(false)} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: 14 }}>✕</button>
+                </div>
+              </div>
 
-        <button onClick={() => setMuted(m => !m)} style={{
-          width: 40, height: 40, borderRadius: '50%',
-          background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255,255,255,0.15)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#fff', cursor: 'pointer', fontSize: 17,
-        }}>
-          {muted ? '🔇' : '🔊'}
-        </button>
-      </div>
+              {/* Comment list */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px 4px' }}>
+                {commentsLoading ? (
+                  <div style={{ display: 'flex', justifyContent: 'center', padding: '32px 0' }}>
+                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'conic-gradient(from 0deg,#6366f1,#a78bfa,transparent)', animation: 'svvSpin 0.9s linear infinite', padding: 4 }}>
+                      <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: '#111118' }} />
+                    </div>
+                  </div>
+                ) : comments.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '32px 0' }}>
+                    <div style={{ fontSize: 32, marginBottom: 8 }}>💬</div>
+                    <p style={{ color: 'rgba(255,255,255,0.28)', fontSize: 13, margin: 0 }}>No comments yet. Be the first!</p>
+                  </div>
+                ) : comments.map(c => (
+                  <div key={c._id || c.createdAt} style={{ marginBottom: 20 }}>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, color: '#fff' }}>
+                        {c.name?.[0]?.toUpperCase() || '?'}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 4 }}>
+                          <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 800 }}>{c.name}</span>
+                          <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 10 }}>{svvTimeAgo(c.createdAt)}</span>
+                        </div>
+                        <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: 13, margin: 0, lineHeight: 1.5, wordBreak: 'break-word' }}>{c.text}</p>
+                      </div>
+                    </div>
+                    {c.replies?.map((r, ri) => (
+                      <div key={ri} style={{ marginTop: 10, marginLeft: 46, paddingLeft: 12, borderLeft: '2px solid rgba(139,92,246,0.4)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
+                          <span style={{ color: '#a78bfa', fontSize: 12, fontWeight: 800 }}>{r.ownerName}</span>
+                          <span style={{ background: 'linear-gradient(135deg,rgba(99,102,241,0.3),rgba(139,92,246,0.3))', color: '#c4b5fd', fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 5, border: '1px solid rgba(139,92,246,0.2)' }}>OWNER</span>
+                          <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 10 }}>{svvTimeAgo(r.createdAt)}</span>
+                        </div>
+                        <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, margin: 0, lineHeight: 1.5, wordBreak: 'break-word' }}>{r.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
 
-      {/* ── Bottom info + Book CTA ── */}
-      <div style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10,
-        paddingBottom: 'max(24px, env(safe-area-inset-bottom, 24px))',
-        padding: '0 20px 28px',
-        background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)',
-      }}>
-        <p style={{ color: '#fff', fontSize: 18, fontWeight: 900, margin: '0 0 2px', letterSpacing: '-0.3px' }}>
-          {salonName}
-        </p>
-        {(city || rating) && (
-          <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 6 }}>
-            {city && <span>{city}</span>}
-            {city && rating && <span>·</span>}
-            {rating && <span style={{ color: '#fbbf24', fontWeight: 700 }}>★ {rating}</span>}
-          </p>
+              {/* Input */}
+              <div style={{ padding: '12px 16px 0', flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                {isLoggedIn() ? (
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+                    <input
+                      className="svv-comment-input"
+                      value={commentText}
+                      onChange={e => setCommentText(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && !e.shiftKey && postComment()}
+                      placeholder="Add a comment…"
+                      autoFocus
+                    />
+                    <button onClick={postComment} disabled={posting || !commentText.trim()} style={{
+                      flexShrink: 0, height: 48, padding: '0 20px', borderRadius: 14, border: 'none',
+                      background: posting || !commentText.trim() ? 'rgba(99,102,241,0.25)' : 'linear-gradient(135deg,#6366f1,#7c3aed)',
+                      color: '#fff', fontWeight: 800, fontSize: 13, cursor: posting || !commentText.trim() ? 'not-allowed' : 'pointer',
+                      transition: 'background 0.2s',
+                      boxShadow: commentText.trim() && !posting ? '0 4px 16px rgba(99,102,241,0.4)' : 'none',
+                    }}>
+                      {posting ? '…' : 'Post'}
+                    </button>
+                  </div>
+                ) : (
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13, textAlign: 'center', margin: '4px 0 0', padding: '8px 0' }}>
+                    Sign in to leave a comment
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
         )}
-        <button
-          onClick={onBook}
-          style={{
-            width: '100%', padding: '14px 0',
-            background: 'linear-gradient(135deg, #6366f1, #7c3aed)',
-            color: '#fff', border: 'none', borderRadius: 16,
-            fontSize: 15, fontWeight: 800, cursor: 'pointer',
-            letterSpacing: 0.2,
-            boxShadow: '0 6px 28px rgba(99,102,241,0.5)',
-          }}
-        >
-          Book Appointment
-        </button>
-      </div>
 
-      {/* Desktop prev/next arrow buttons */}
-      {idx > 0 && (
-        <button
-          onClick={() => goTo(idx - 1)}
-          style={{
-            position: 'absolute', top: '50%', right: 16,
-            transform: 'translateY(-50%)',
-            zIndex: 15,
-            width: 44, height: 44, borderRadius: '50%',
-            background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255,255,255,0.18)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#fff', cursor: 'pointer',
-          }}
-          title="Previous video"
-        >
-          <ChevronLeft style={{ width: 22, height: 22 }} />
-        </button>
-      )}
-      {idx < total - 1 && (
-        <button
-          onClick={() => goTo(idx + 1)}
-          style={{
-            position: 'absolute', bottom: 110, right: 16,
-            zIndex: 15,
-            width: 44, height: 44, borderRadius: '50%',
-            background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255,255,255,0.18)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#fff', cursor: 'pointer',
-          }}
-          title="Next video"
-        >
-          <ChevronRight style={{ width: 22, height: 22 }} />
-        </button>
-      )}
-    </div>
+      </div>
+    </>
   );
 }
 

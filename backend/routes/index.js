@@ -52,6 +52,46 @@ const multerVideoUpload = multer({
   },
 });
 
+/* Owner gallery / reel URL helpers (analytics route + gallery routes — defined early for clarity) */
+const galleryUrlKey = (u) => {
+  if (!u || typeof u !== 'string') return '';
+  try {
+    const x = new URL(u.trim());
+    const path = x.pathname.replace(/\/+/g, '/');
+    return `${x.hostname.toLowerCase()}${path}`;
+  } catch {
+    return u.trim();
+  }
+};
+const reelEntryUrl = (rv) => {
+  if (typeof rv === 'string') return rv.trim();
+  if (!rv || typeof rv !== 'object') return '';
+  return String(rv.url || rv.videoUrl || rv.secure_url || rv.secureUrl || '').trim();
+};
+const normPhoto = (v) => {
+  if (typeof v === 'string') return { url: v, caption: '', tags: [], isCover: false };
+  const obj = v?.toObject ? v.toObject() : v;
+  const url =
+    obj?.url ||
+    obj?.imageUrl ||
+    obj?.image ||
+    obj?.secure_url ||
+    obj?.secureUrl ||
+    '';
+  return { ...obj, url };
+};
+const normVideo = (v) => {
+  if (typeof v === 'string') return { url: v, caption: '', tags: [] };
+  const obj = v?.toObject ? v.toObject() : v;
+  const url =
+    obj?.url ||
+    obj?.videoUrl ||
+    obj?.secure_url ||
+    obj?.secureUrl ||
+    '';
+  return { ...obj, url };
+};
+
 /* =====================================================
    SAFE CONTROLLER LOADER
 ===================================================== */
@@ -698,12 +738,14 @@ router.get("/owner/reels/analytics", authenticateOwner, asyncHandler(async (req,
   const ReelLike    = require("../models/ReelLike");
   const ReelComment = require("../models/ReelComment");
 
-  const reelEntries = (salon.reelVideos || []).map(rv =>
-    typeof rv === 'string' ? { url: rv, categories: [] } : rv
-  );
+  const reelEntries = (salon.reelVideos || []).map((rv) => {
+    const u = reelEntryUrl(rv);
+    const cats = typeof rv === 'string' ? [] : (rv?.categories || []);
+    return { url: u, categories: cats };
+  }).filter((e) => e.url);
 
   const ReelView = require("../models/ReelView");
-  const videoUrls = reelEntries.map(rv => rv.url).filter(Boolean);
+  const videoUrls = reelEntries.map((rv) => rv.url);
 
   // Batch fetch all counts
   const [likesAgg, viewsAgg, commentsAgg] = await Promise.all([
@@ -1869,10 +1911,6 @@ router.post("/customer/push-token", authenticateCustomer, asyncHandler(async (re
    OWNER GALLERY ROUTES
 ===================================================== */
 
-// Helper: normalise a photo/video entry that may be a legacy plain String
-const normPhoto = (v) => typeof v === 'string' ? { url: v, caption: '', tags: [], isCover: false } : v;
-const normVideo = (v) => typeof v === 'string' ? { url: v, caption: '', tags: [] } : v;
-
 // GET /owner/gallery/upload-signature
 router.get("/owner/gallery/upload-signature", authenticateOwner, asyncHandler(async (req, res) => {
   const { resource_type = 'image' } = req.query;
@@ -1924,7 +1962,7 @@ router.post("/owner/gallery/register-video", authenticateOwner, asyncHandler(asy
   // Auto-add to public reelVideos with the supplied categories
   if (!salon.reelVideos) salon.reelVideos = [];
   const reelCats = Array.isArray(categories) ? categories : [];
-  const existingReelIdx = salon.reelVideos.findIndex(rv => (typeof rv === 'string' ? rv : rv?.url) === url);
+  const existingReelIdx = salon.reelVideos.findIndex((rv) => galleryUrlKey(reelEntryUrl(rv)) === galleryUrlKey(url));
   if (existingReelIdx === -1) {
     salon.reelVideos.push({ url, categories: reelCats, createdAt: new Date() });
   } else {
@@ -1942,21 +1980,68 @@ router.get("/owner/gallery", authenticateOwner, asyncHandler(async (req, res) =>
   const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
 
-  // Build reel map (url → { inReels, reelCategories })
-  const reelMap = new Map();
-  for (const rv of (salon.reelVideos || [])) {
-    if (typeof rv === 'string') reelMap.set(rv, { inReels: true, reelCategories: [] });
-    else if (rv?.url) reelMap.set(rv.url, { inReels: true, reelCategories: rv.categories || [] });
+  // Heal data drift: reels visible to customers must appear in owner gallery even if
+  // salon.videos was never populated, or URLs differ only by http/query (reel vs video row).
+  if (!salon.videos) salon.videos = [];
+  const urlKeysInVideos = new Set(
+    (salon.videos || []).map((v) => galleryUrlKey(normVideo(v).url)).filter(Boolean)
+  );
+  let healedVideos = false;
+  for (const rv of salon.reelVideos || []) {
+    const u = reelEntryUrl(rv);
+    if (!u || !u.startsWith('http')) continue;
+    const k = galleryUrlKey(u);
+    if (!k || urlKeysInVideos.has(k)) continue;
+    salon.videos.push({ url: u, caption: '', tags: [] });
+    urlKeysInVideos.add(k);
+    healedVideos = true;
+  }
+  if (healedVideos) {
+    salon.markModified('videos');
+    await salon.save();
   }
 
-  const photos = (salon.photos || []).map((p, i) => {
+  // Reel metadata by URL key (matches analytics + public reels even if video row URL string differs slightly)
+  const reelMetaByKey = new Map();
+  for (const rv of salon.reelVideos || []) {
+    const u = reelEntryUrl(rv);
+    if (!u) continue;
+    const k = galleryUrlKey(u);
+    const cats = typeof rv === 'string' ? [] : rv.categories || [];
+    const meta = { inReels: true, reelCategories: cats };
+    reelMetaByKey.set(k, meta);
+    reelMetaByKey.set(u, meta);
+  }
+
+  // Omit entries with no usable URL (corrupt subdocs) but keep _id index = Mongo index for DELETE.
+  const photos = (salon.photos || []).flatMap((p, i) => {
     const n = normPhoto(p);
-    return { _id: `p_${i}`, url: n.url, caption: n.caption || '', tags: n.tags || [], isCover: n.isCover || false, type: 'image' };
+    const u = n.url;
+    if (!u || !String(u).startsWith('http')) return [];
+    return [{
+      _id: `p_${i}`,
+      url: u,
+      caption: n.caption || '',
+      tags: n.tags || [],
+      isCover: n.isCover || false,
+      type: 'image',
+    }];
   });
-  const videos = (salon.videos || []).map((v, i) => {
+  const videos = (salon.videos || []).flatMap((v, i) => {
     const n = normVideo(v);
-    const rv = reelMap.get(n.url) || { inReels: false, reelCategories: [] };
-    return { _id: `v_${i}`, url: n.url, caption: n.caption || '', tags: n.tags || [], type: 'video', inReels: rv.inReels, reelCategories: rv.reelCategories };
+    const u = n.url;
+    if (!u || !String(u).startsWith('http')) return [];
+    const k = galleryUrlKey(u);
+    const rv = reelMetaByKey.get(k) || reelMetaByKey.get(u) || { inReels: false, reelCategories: [] };
+    return [{
+      _id: `v_${i}`,
+      url: u,
+      caption: n.caption || '',
+      tags: n.tags || [],
+      type: 'video',
+      inReels: rv.inReels,
+      reelCategories: rv.reelCategories || [],
+    }];
   });
 
   res.json({ success: true, data: [...photos, ...videos] });
@@ -2014,7 +2099,8 @@ router.put("/owner/gallery/reel-toggle", authenticateOwner, asyncHandler(async (
     typeof rv === 'string' ? { url: rv, categories: [] } : rv
   );
 
-  const idx = salon.reelVideos.findIndex(rv => rv.url === videoUrl);
+  const targetKey = galleryUrlKey(videoUrl);
+  const idx = salon.reelVideos.findIndex((rv) => galleryUrlKey(reelEntryUrl(rv)) === targetKey);
   let inReels;
   if (idx === -1) {
     salon.reelVideos.push({ url: videoUrl, categories: categories || [] });
@@ -2028,7 +2114,8 @@ router.put("/owner/gallery/reel-toggle", authenticateOwner, asyncHandler(async (
   }
   salon.markModified('reelVideos');
   await salon.save();
-  res.json({ success: true, inReels, reelCategories: inReels ? (salon.reelVideos.find(rv => rv.url === videoUrl)?.categories || []) : [] });
+  const match = salon.reelVideos.find((rv) => galleryUrlKey(reelEntryUrl(rv)) === targetKey);
+  res.json({ success: true, inReels, reelCategories: inReels ? (match?.categories || []) : [] });
 }));
 
 // POST /owner/gallery — legacy server-side photo upload (kept for fallback)
@@ -2083,9 +2170,11 @@ router.delete("/owner/gallery/:mediaId", authenticateOwner, asyncHandler(async (
     const deletedUrl = normVideo(salon.videos[idx]).url;
     salon.videos.splice(idx, 1);
     // Also remove from reelVideos
-    salon.reelVideos = (salon.reelVideos || []).filter(rv =>
-      (typeof rv === 'string' ? rv : rv?.url) !== deletedUrl
-    );
+    const delKey = galleryUrlKey(deletedUrl);
+    salon.reelVideos = (salon.reelVideos || []).filter((rv) => {
+      const ru = reelEntryUrl(rv);
+      return galleryUrlKey(ru) !== delKey && ru !== deletedUrl;
+    });
     salon.markModified('reelVideos');
   } else {
     const idx = mid.startsWith('p_') ? parseInt(mid.slice(2), 10) : parseInt(mid, 10);

@@ -53,17 +53,25 @@ const getVideoThumbnail = (file) =>
     const video = document.createElement('video');
     video.preload = 'metadata';
     video.muted   = true;
-    video.src     = URL.createObjectURL(file);
-    video.currentTime = 1;
-    video.onloadeddata = () => {
+    const objectUrl = URL.createObjectURL(file);
+    video.src = objectUrl;
+    const cleanup = () => { try { URL.revokeObjectURL(objectUrl); } catch {} };
+    const capture = () => {
       const canvas = document.createElement('canvas');
-      canvas.width  = video.videoWidth;
-      canvas.height = video.videoHeight;
-      canvas.getContext('2d').drawImage(video, 0, 0);
+      canvas.width  = video.videoWidth  || 320;
+      canvas.height = video.videoHeight || 320;
+      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
       resolve(canvas.toDataURL('image/jpeg', 0.6));
-      URL.revokeObjectURL(video.src);
+      cleanup();
     };
-    video.onerror = () => { resolve(null); URL.revokeObjectURL(video.src); };
+    // Wait for metadata → seek to 1s → wait for seek → capture frame
+    video.onloadedmetadata = () => {
+      video.currentTime = Math.min(1, video.duration || 1);
+    };
+    video.onseeked = capture;
+    video.onerror = () => { resolve(null); cleanup(); };
+    // Fallback: if seek never fires in 10s, resolve null
+    setTimeout(() => { resolve(null); cleanup(); }, 10000);
   });
 
 /* ── Single image file row (multi-upload list) ── */

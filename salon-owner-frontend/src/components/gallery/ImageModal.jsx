@@ -5,6 +5,7 @@ import {
   MoreVertical, Heart, Eye, MessageCircle,
 } from 'lucide-react';
 import api from '../../services/api';
+import { getGalleryMediaUrl, isGalleryVideo } from './galleryUtils';
 
 const ALL_TAGS  = ['Haircut', 'Beard', 'Facial', 'Spa', 'Nails', 'Makeup'];
 
@@ -104,9 +105,9 @@ const ImageModal = ({
 
   // ── Derived values (before handlers so handlers can safely reference them) ──
   const photo   = photos[idx];
-  const url     = photo ? (photo.url || photo.imageUrl || photo.image || '') : '';
+  const url     = photo ? getGalleryMediaUrl(photo) : '';
   const isCover = photo ? photo._id === coverId : false;
-  const isVideo = photo ? photo.type === 'video' : false;
+  const isVideo = photo ? isGalleryVideo(photo) : false;
 
   // ── Sync state on item change ──
   useEffect(() => {
@@ -133,7 +134,7 @@ const ImageModal = ({
   useEffect(() => {
     if (!isVideo || !url) return;
     api.get('/owner/reels/analytics').then(res => {
-      const entry = (res.data?.data || []).find(r => r.videoUrl === url);
+      const entry = (res.data?.data || []).find(r => r.videoUrl === url || r.url === url);
       if (entry) {
         setVideoStats({
           likeCount:    entry.likeCount    || 0,

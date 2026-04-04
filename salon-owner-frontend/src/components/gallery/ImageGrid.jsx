@@ -1,14 +1,10 @@
-import { useState } from 'react';
-import { Eye, Trash2, Star, Tag, Play, AlertTriangle } from 'lucide-react';
-
-/* ── Cloudinary video → JPEG thumbnail ── */
-function cloudinaryThumb(url) {
-  if (!url || !url.includes('/video/upload/')) return '';
-  // Use w_400,h_400,c_fill without so_0 — default frame works on all plans
-  return url
-    .replace('/video/upload/', '/video/upload/w_400,h_400,c_fill,q_auto,f_jpg/')
-    .replace(/\.(mp4|mov|avi|mkv|webm)(\?.*)?$/i, '.jpg');
-}
+import { useState, useRef, useCallback } from 'react';
+import { Eye, Trash2, Star, Tag, Play, AlertTriangle, Image as ImageIcon } from 'lucide-react';
+import {
+  cloudinaryVideoPosterUrl,
+  getGalleryMediaUrl,
+  isGalleryVideo,
+} from './galleryUtils';
 
 const TAG_COLORS = {
   Haircut: 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400',
@@ -19,19 +15,76 @@ const TAG_COLORS = {
   Makeup:  'bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400',
 };
 
-/* ── Skeleton card ── */
-const SkeletonCard = () => (
-  <div className="aspect-square rounded-2xl bg-gray-100 dark:bg-gray-800 animate-pulse" />
-);
+/* ── Video thumbnail: tries Cloudinary JPEG first, falls back to actual <video> frame ── */
+const VideoThumb = ({ url }) => {
+  const [cloudFailed, setCloudFailed] = useState(false);
+  const [videoFailed, setVideoFailed] = useState(false);
+  const thumbUrl = cloudinaryVideoPosterUrl(url);
+
+  // Video element ref — seek to first frame after metadata loads
+  // muted must be set via DOM ref, not JSX (browsers ignore JSX muted attribute)
+  const videoRef = useCallback((el) => {
+    if (!el) return;
+    el.muted = true;
+    el.onloadedmetadata = () => {
+      el.currentTime = 0.1;
+    };
+  }, []);
+
+  if (!url) {
+    return (
+      <div className="absolute inset-0 w-full h-full bg-gray-700 flex items-center justify-center">
+        <ImageIcon className="w-8 h-8 text-gray-500" />
+      </div>
+    );
+  }
+
+  if (!cloudFailed && thumbUrl) {
+    return (
+      <img
+        src={thumbUrl}
+        alt=""
+        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+        onError={() => setCloudFailed(true)}
+      />
+    );
+  }
+
+  // Fallback: real <video> element renders its own first frame.
+  // preload="auto" is required — "metadata" downloads no video data so no frame
+  // is ever painted. "auto" lets the browser download enough to render the frame.
+  if (!videoFailed) {
+    return (
+      <video
+        ref={videoRef}
+        src={url}
+        preload="auto"
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+        onError={() => setVideoFailed(true)}
+      />
+    );
+  }
+
+  // All failed — placeholder
+  return (
+    <div className="absolute inset-0 w-full h-full bg-gray-700 flex items-center justify-center">
+      <div className="text-center">
+        <AlertTriangle className="w-6 h-6 text-amber-500 mx-auto mb-1" />
+        <p className="text-[10px] text-gray-400">Failed to load</p>
+      </div>
+    </div>
+  );
+};
 
 /* ── Single image/video card ── */
-const ImageCard = ({ photo, isCover, onView, onDelete }) => {
-  const [confirmOpen,  setConfirmOpen]  = useState(false);
-  const [thumbFailed,  setThumbFailed]  = useState(false);
-  const url     = photo.url || photo.imageUrl || photo.image || '';
-  const tag     = photo.tags?.[0];
-  const isVideo = photo.type === 'video';
-  const thumbUrl = isVideo ? cloudinaryThumb(url) : '';
+const ImageCard = ({ photo, isCover, onView, onDelete, layout = 'square' }) => {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
+  const url     = getGalleryMediaUrl(photo);
+  const tag     = photo?.tags?.[0];
+  const isVideo = isGalleryVideo(photo);
+  const aspectClass = layout === 'reels' ? 'aspect-[9/16]' : 'aspect-square';
 
   const handleDeleteClick = (e) => {
     e.stopPropagation();
@@ -49,43 +102,63 @@ const ImageCard = ({ photo, isCover, onView, onDelete }) => {
     setConfirmOpen(false);
   };
 
+  // No URL and not a video — show error tile
+  if (!url && !isVideo) {
+    return (
+      <div className={`group relative ${aspectClass} rounded-2xl overflow-hidden cursor-pointer
+        bg-gray-800 shadow-sm flex items-center justify-center`}
+      >
+        <div className="text-center">
+          <AlertTriangle className="w-6 h-6 text-amber-500 mx-auto mb-2" />
+          <p className="text-[10px] text-gray-400">No image URL</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       onClick={() => !confirmOpen && onView(photo)}
-      className="group relative aspect-square rounded-2xl overflow-hidden cursor-pointer
-        bg-gray-100 dark:bg-gray-800 shadow-sm hover:shadow-xl hover:shadow-black/10
-        dark:hover:shadow-black/40 transition-all duration-300"
+      className={`group relative ${aspectClass} rounded-2xl overflow-hidden cursor-pointer
+        bg-gray-800 shadow-sm hover:shadow-xl hover:shadow-black/10
+        dark:hover:shadow-black/40 transition-all duration-300`}
     >
-      {/* Media */}
+      {/* ── Media ── */}
       {isVideo ? (
         <>
-          {thumbUrl && !thumbFailed ? (
-            <img
-              src={thumbUrl}
-              alt={photo.caption || 'Video thumbnail'}
-              onError={() => setThumbFailed(true)}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-            />
-          ) : (
-            <div className="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center" />
-          )}
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
-            <div className="w-12 h-12 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center
-              group-hover:scale-110 transition-transform shadow-lg">
+          {/* Dark gradient always behind thumbnail */}
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-700 to-gray-900" />
+          <VideoThumb url={url} />
+          {/* Play button overlay */}
+          <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/45 transition-colors">
+            <div className="w-12 h-12 rounded-full bg-black/55 backdrop-blur-sm flex items-center justify-center
+              border-2 border-white/70 group-hover:scale-110 transition-transform">
               <Play className="w-5 h-5 text-white fill-white ml-0.5" />
             </div>
           </div>
         </>
       ) : (
-        <img
-          src={url}
-          alt={photo.caption || 'Gallery photo'}
-          loading="lazy"
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-        />
+        <>
+          {!imageFailed ? (
+            <img
+              src={url}
+              alt={photo?.caption || 'Gallery photo'}
+              loading="lazy"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+              onError={() => setImageFailed(true)}
+            />
+          ) : (
+            <div className="w-full h-full bg-gray-700 flex items-center justify-center">
+              <div className="text-center">
+                <AlertTriangle className="w-6 h-6 text-amber-500 mx-auto mb-1" />
+                <p className="text-[10px] text-gray-400">Failed to load image</p>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
-      {/* Gradient overlay on hover */}
+      {/* Hover gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent
         opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
@@ -111,13 +184,11 @@ const ImageCard = ({ photo, isCover, onView, onDelete }) => {
         <div className="absolute bottom-0 inset-x-0 p-3 flex items-end justify-between
           translate-y-2 group-hover:translate-y-0 opacity-0 group-hover:opacity-100
           transition-all duration-300">
-
-          {photo.caption && (
+          {photo?.caption && (
             <p className="text-white text-xs font-medium truncate flex-1 mr-2 drop-shadow">
               {photo.caption}
             </p>
           )}
-
           <div className="flex items-center gap-1.5 ml-auto shrink-0">
             <button
               onClick={(e) => { e.stopPropagation(); onView(photo); }}
@@ -127,7 +198,6 @@ const ImageCard = ({ photo, isCover, onView, onDelete }) => {
             >
               <Eye className="w-3.5 h-3.5" />
             </button>
-
             <button
               onClick={handleDeleteClick}
               className="w-8 h-8 flex items-center justify-center rounded-xl bg-red-500/80 backdrop-blur-sm
@@ -140,7 +210,7 @@ const ImageCard = ({ photo, isCover, onView, onDelete }) => {
         </div>
       )}
 
-      {/* ── Delete confirmation overlay ── */}
+      {/* Delete confirmation overlay */}
       {confirmOpen && (
         <div
           className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3
@@ -177,11 +247,14 @@ const ImageCard = ({ photo, isCover, onView, onDelete }) => {
 };
 
 /* ── Main ImageGrid ── */
-const ImageGrid = ({ photos, loading, coverId, activeTag, onView, onDelete }) => {
+const ImageGrid = ({ photos, loading, coverId, activeTag, onView, onDelete, layout = 'square' }) => {
   if (loading) {
+    const skelAspect = layout === 'reels' ? 'aspect-[9/16]' : 'aspect-square';
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-        {[...Array(8)].map((_, i) => <SkeletonCard key={i} />)}
+      <div className={`grid gap-3 sm:gap-4 ${layout === 'reels' ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'}`}>
+        {[...Array(8)].map((_, i) => (
+          <div key={i} className={`${skelAspect} rounded-2xl bg-gray-100 dark:bg-gray-800 animate-pulse`} />
+        ))}
       </div>
     );
   }
@@ -202,15 +275,21 @@ const ImageGrid = ({ photos, loading, coverId, activeTag, onView, onDelete }) =>
     );
   }
 
+  const gridCls =
+    layout === 'reels'
+      ? 'grid grid-cols-3 gap-1.5 sm:gap-2'
+      : 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4';
+
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+    <div className={gridCls}>
       {filtered.map(photo => (
         <ImageCard
-          key={photo._id || photo.url}
+          key={photo?._id || getGalleryMediaUrl(photo) || 'item'}
           photo={photo}
-          isCover={photo._id === coverId}
+          isCover={photo?._id === coverId}
           onView={onView}
           onDelete={onDelete}
+          layout={layout}
         />
       ))}
     </div>
