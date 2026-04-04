@@ -40,10 +40,9 @@ function fmtCount(n) {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Global CSS  (injected once via <style>)
+   Global CSS
 ───────────────────────────────────────────────────────────── */
 const CSS = `
-  /* ── reset ── */
   *, *::before, *::after { box-sizing: border-box; }
 
   /* ── mobile: true fullscreen ── */
@@ -58,6 +57,7 @@ const CSS = `
       width: 100%;
       height: 100dvh;
     }
+    /* FIX: feed and item must match col height exactly */
     .reels-feed { height: 100dvh; }
     .reel-item  { height: 100dvh; }
   }
@@ -78,8 +78,9 @@ const CSS = `
     .reels-col {
       position: relative;
       width: 390px;
-      height: calc(100vh - 80px);
-      max-height: 820px;
+      /* FIX: use a single CSS variable for height so feed/item/strip all agree */
+      --reel-h: min(calc(100vh - 80px), 820px);
+      height: var(--reel-h);
       min-height: 500px;
       border-radius: 30px;
       overflow: hidden;
@@ -88,33 +89,36 @@ const CSS = `
         0 32px 96px rgba(0,0,0,0.95),
         0 0 80px rgba(99,102,241,0.06);
     }
-    .reels-feed { height: 100%; }
-    .reel-item  { height: 100%; }
+    .reels-feed { height: var(--reel-h, calc(100vh - 80px)); min-height: 500px; }
+    .reel-item  { height: var(--reel-h, calc(100vh - 80px)); min-height: 500px; max-height: 820px; }
   }
 
   /* ── feed container ── */
   .reels-feed {
     position: relative;
-    overflow-y: scroll;
-    scroll-snap-type: y mandatory;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+    overflow-y: auto;
     background: #000;
-    overscroll-behavior-y: contain;
-    -webkit-overflow-scrolling: touch;
+    /* FIX: allow touch to propagate correctly */
     touch-action: pan-y;
-    will-change: scroll-position;
   }
-  .reels-feed::-webkit-scrollbar { display: none; }
+
+  /* ── strip ── */
+  .reels-strip {
+    display: flex;
+    flex-direction: column;
+    will-change: transform;
+    /* FIX: strip must NOT have overflow:hidden and must be tall enough */
+  }
 
   /* ── individual reel ── */
   .reel-item {
     position: relative;
     overflow: hidden;
     background: #080808;
+    /* FIX: flex-shrink:0 + width:100% ensures items don't collapse */
     flex-shrink: 0;
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
+    width: 100%;
+    touch-action: pan-y;
   }
 
   /* ── video ── */
@@ -203,12 +207,10 @@ const CSS = `
     40%          { transform: scale(1);   opacity: 1;   }
   }
 
-  /* ── desktop nav arrows ── */
   @media (min-width: 768px) {
     .reels-desktop-nav { display: flex !important; }
   }
 
-  /* ── utility animation classes ── */
   .heart-pop     { animation: heartPop   0.35s cubic-bezier(.36,.07,.19,.97); }
   .heart-burst   { animation: heartBurst 0.72s ease forwards; pointer-events: none; }
   .mute-toast    { animation: muteAnim   1.25s ease forwards; pointer-events: none; }
@@ -217,7 +219,6 @@ const CSS = `
   .scale-in      { animation: scaleIn    0.42s cubic-bezier(0.22,1,0.36,1) both; }
   .like-glow     { animation: glowLike   1.6s ease infinite; }
 
-  /* ── btn-action: glass pill buttons on right rail ── */
   .btn-action {
     background: none; border: none; cursor: pointer;
     display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 0;
@@ -246,7 +247,6 @@ const CSS = `
     margin-top: -3px;
   }
 
-  /* ── comment input ── */
   .comment-input {
     flex: 1;
     background: rgba(255,255,255,0.06);
@@ -262,6 +262,10 @@ const CSS = `
   }
   .comment-input:focus { border-color: rgba(139,92,246,0.5); }
   .comment-input::placeholder { color: rgba(255,255,255,0.28); }
+
+  /* FIX: allow touch-action pan on interactive elements inside the column,
+     but NOT on the feed itself (we handle all scroll ourselves) */
+  .reels-col button, .reels-col a { touch-action: manipulation; }
 `;
 
 /* ─────────────────────────────────────────────────────────────
@@ -340,7 +344,7 @@ function ActionBtn({ onClick, children, label, subLabel, color, liked }) {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Salon avatar (shared between bottom-info and right rail)
+   Salon avatar
 ───────────────────────────────────────────────────────────── */
 function SalonAvatar({ logo, initial, size = 44, ringColor = '#6366f1', fontSize = 16 }) {
   return (
@@ -380,17 +384,14 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
   const lastTapRef    = useRef(0);
   const viewedRef     = useRef(false);
   const viewTimerRef  = useRef(null);
-  /* Phase 2: watch-time tracking */
   const watchStartRef = useRef(null);
   const totalWatchRef = useRef(0);
 
-  /* muted prop → DOM */
   useEffect(() => {
     const v = videoRef.current;
     if (v) v.muted = muted;
   }, [muted]);
 
-  /* register ref with parent IntersectionObserver */
   useEffect(() => {
     const v = videoRef.current;
     if (v) onRegisterRef(v, reel._id);
@@ -398,14 +399,12 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* progress bar */
   const handleTimeUpdate = useCallback(() => {
     const v = videoRef.current;
     if (!v || !v.duration) return;
     setProgress((v.currentTime / v.duration) * 100);
   }, []);
 
-  /* Phase 2: accumulate seconds on play/pause transitions */
   const accumulateWatch = useCallback(() => {
     if (watchStartRef.current !== null) {
       totalWatchRef.current += (Date.now() - watchStartRef.current) / 1000;
@@ -413,7 +412,6 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
     }
   }, []);
 
-  /* view tracking — counts after 3 continuous seconds */
   const startViewTimer = useCallback(() => {
     if (viewedRef.current) return;
     watchStartRef.current = Date.now();
@@ -441,7 +439,6 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
   const stopViewTimer = useCallback(() => {
     clearTimeout(viewTimerRef.current);
     accumulateWatch();
-    /* Phase 2: quick scroll-away = skip signal */
     if (!viewedRef.current && totalWatchRef.current > 0.3) {
       const v = videoRef.current;
       API.post('/public/reels/interaction', {
@@ -470,7 +467,6 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
     };
   }, [startViewTimer, stopViewTimer]);
 
-  /* like — optimistic with rollback */
   const handleLike = useCallback(async () => {
     if (!isLoggedIn()) { onAuthRequired(); return; }
     const wasLiked = liked;
@@ -486,8 +482,9 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
     }
   }, [liked, likeCount, reel.videoUrl, reel.salon._id, onAuthRequired]);
 
-  /* double-tap to like / single-tap to mute */
-  const handleTap = useCallback(() => {
+  const handleTap = useCallback((e) => {
+    // Don't intercept taps on interactive children
+    if (e.target.closest('button') || e.target.closest('a')) return;
     const now = Date.now();
     if (now - lastTapRef.current < 320) {
       if (!liked) handleLike();
@@ -510,12 +507,12 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
   return (
     <div className="reel-item">
 
-      {/* ── Progress bar ── */}
+      {/* Progress bar */}
       <div className="reel-progress-wrap">
         <div className="reel-progress-bar" style={{ width: `${progress}%` }} />
       </div>
 
-      {/* ── Video ── */}
+      {/* Video */}
       <video
         ref={videoRef}
         src={reel.videoUrl}
@@ -526,10 +523,10 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
         onClick={handleTap}
       />
 
-      {/* ── Gradient overlay ── */}
+      {/* Gradient overlay */}
       <div className="reel-gradient" />
 
-      {/* ── Double-tap heart burst ── */}
+      {/* Double-tap heart burst */}
       {doubleTapHeart && (
         <div style={{
           position: 'absolute', top: '50%', left: '50%',
@@ -545,7 +542,7 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
         </div>
       )}
 
-      {/* ── Mute toast ── */}
+      {/* Mute toast */}
       {showMute && (
         <div style={{
           position: 'absolute', top: '50%', left: '50%',
@@ -568,14 +565,13 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
         </div>
       )}
 
-      {/* ── Right rail: action buttons ── */}
+      {/* Right rail: action buttons */}
       <div style={{
         position: 'absolute',
         bottom: `calc(${safeBottom} + 108px)`,
         right: 14, zIndex: 10,
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 22,
       }}>
-        {/* Like */}
         <ActionBtn
           onClick={handleLike}
           label={fmtCount(likeCount)}
@@ -588,12 +584,10 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
           </div>
         </ActionBtn>
 
-        {/* Comment */}
         <ActionBtn onClick={handleComment} label={fmtCount(reel.commentCount || 0)} subLabel="Comment">
           <IcoComment />
         </ActionBtn>
 
-        {/* Share */}
         <ActionBtn
           onClick={() => onShare(reel)}
           label={copied === reel._id ? 'Copied!' : 'Share'}
@@ -602,7 +596,6 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
           {copied === reel._id ? <IcoCheck /> : <IcoShare />}
         </ActionBtn>
 
-        {/* Salon avatar link */}
         <Link to={`/salon/${reel.salon._id}`}
           style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, textDecoration: 'none' }}>
           <SalonAvatar logo={reel.salon.logo} initial={initial} size={50} fontSize={15} />
@@ -617,13 +610,13 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
         </Link>
       </div>
 
-      {/* ── Bottom info overlay ── */}
+      {/* Bottom info overlay */}
       <div className="reel-info-in" style={{
         position: 'absolute',
         bottom: 0, left: 0, right: 0,
         zIndex: 10,
         padding: `20px 16px calc(${safeBottom} + 20px)`,
-        paddingRight: 82,           /* clear the right rail */
+        paddingRight: 82,
       }}>
 
         {/* Salon row */}
@@ -735,90 +728,166 @@ export default function Reels() {
   const [showMute, setShowMute] = useState(false);
   const [copied,   setCopied]  = useState(null);
 
-  /* feed mode + gender */
   const [mode,     setMode]     = useState('nearest');
   const [gender,   setGender]   = useState('all');
   const [coords,   setCoords]   = useState(null);
   const [locLabel, setLocLabel] = useState('Nearby');
 
-  /* auth prompt */
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
-  /* comments */
   const [commentReel,      setCommentReel]      = useState(null);
   const [comments,         setComments]         = useState([]);
   const [commentsLoading,  setCommentsLoading]  = useState(false);
   const [commentText,      setCommentText]      = useState('');
   const [posting,          setPosting]          = useState(false);
 
-  const videoRefs    = useRef({});
-  const observerRef  = useRef(null);
-  const muteTimer    = useRef(null);
-  const feedRef      = useRef(null);
-  const currentIdx   = useRef(0);
-  const scrolling    = useRef(false);
-  const mutedRef     = useRef(muted); // always-fresh muted value for IntersectionObserver callback
+  const videoRefs   = useRef({});
+  const muteTimer   = useRef(null);
+  const feedRef     = useRef(null);
+  const stripRef    = useRef(null);
+  const colRef      = useRef(null);
+  const pageRef     = useRef(null);
+  const currentIdx  = useRef(0);
+  const scrolling   = useRef(false);
+  const mutedRef    = useRef(muted);
+  const reelsRef    = useRef([]);
+  const touchStartY = useRef(0);
+  const touchDeltaY = useRef(0);
+  // FIX: track if a touch is a swipe vs tap so we don't fire mute on swipe
+  const isSwiping   = useRef(false);
 
-  /* ── Scroll to index. smooth=true for buttons, false for wheel (avoids snap conflict) ── */
-  const scrollToIdx = useCallback((idx, total, smooth = true) => {
-    const feed = feedRef.current;
-    if (!feed || total === 0) return;
-    const clamped = Math.max(0, Math.min(idx, total - 1));
-    currentIdx.current = clamped;
-    const itemH = feed.clientHeight;
-    if (smooth) {
-      feed.scrollTo({ top: clamped * itemH, behavior: 'smooth' });
-    } else {
-      // Instant jump — avoids fighting with scroll-snap on wheel events
-      feed.scrollTop = clamped * itemH;
-    }
+  /* ── FIX: get the actual item height from the feed element ── */
+  const getItemHeight = useCallback(() => {
+    return feedRef.current?.clientHeight || window.innerHeight;
   }, []);
 
-  /* ── Track current index on natural scroll (mobile CSS snap + keyboard) ── */
-  useEffect(() => {
-    const feed = feedRef.current;
-    if (!feed) return;
-    const onScroll = () => {
-      const itemH = feed.clientHeight;
-      if (itemH > 0) currentIdx.current = Math.round(feed.scrollTop / itemH);
-    };
-    feed.addEventListener('scroll', onScroll, { passive: true });
-    return () => feed.removeEventListener('scroll', onScroll);
-  }, [reels.length]);
+  /* ── Apply transform + play current video ── */
+  const scrollToIdx = useCallback((idx, total, animated = true) => {
+    if (total === 0) return;
+    const clamped = Math.max(0, Math.min(idx, total - 1));
+    currentIdx.current = clamped;
+    const strip = stripRef.current;
+    if (!strip) return;
 
-  /* ── Wheel handler for desktop — prevent body scroll, jump to next/prev ── */
-  useEffect(() => {
-    const feed = feedRef.current;
-    if (!feed) return;
-    let wheelTimer = null;
+    const itemH = getItemHeight();
 
+    strip.style.transition = animated
+      ? 'transform 0.30s cubic-bezier(0.25,0.46,0.45,0.94)'
+      : 'none';
+    strip.style.transform = `translateY(-${clamped * itemH}px)`;
+
+    // Play current, pause + reset others
+    const currentId = reelsRef.current[clamped]?._id;
+    Object.entries(videoRefs.current).forEach(([id, v]) => {
+      if (!v) return;
+      if (id === currentId) { v.muted = mutedRef.current; v.play().catch(() => {}); }
+      else                  { v.pause(); v.currentTime = 0; }
+    });
+  }, [getItemHeight]);
+
+  /* ── Keep reelsRef in sync ── */
+  useEffect(() => { reelsRef.current = reels; }, [reels]);
+
+  /* ── Wheel — desktop ── */
+  useEffect(() => {
+    const page = pageRef.current;
+    if (!page) return;
+    let t = null;
     const onWheel = (e) => {
       e.preventDefault();
       if (scrolling.current) return;
       scrolling.current = true;
-      clearTimeout(wheelTimer);
-      const dir = e.deltaY > 0 ? 1 : -1;
-      scrollToIdx(currentIdx.current + dir, reels.length, false); // instant — no snap conflict
-      wheelTimer = setTimeout(() => { scrolling.current = false; }, 600);
+      clearTimeout(t);
+      scrollToIdx(currentIdx.current + (e.deltaY > 0 ? 1 : -1), reelsRef.current.length);
+      // FIX: reduced cooldown from 450ms → 300ms for snappier desktop scroll
+      t = setTimeout(() => { scrolling.current = false; }, 300);
+    };
+    page.addEventListener('wheel', onWheel, { passive: false });
+    return () => { page.removeEventListener('wheel', onWheel); clearTimeout(t); };
+  }, [scrollToIdx]);
+
+  /* ── Touch — mobile swipe ── */
+  useEffect(() => {
+    const col  = feedRef.current;
+    const feed = feedRef.current;
+    if (!col || !feed) return;
+
+    const onTouchStart = (e) => {
+      touchStartY.current = e.touches[0].clientY;
+      touchDeltaY.current = 0;
+      isSwiping.current   = false;
+      if (stripRef.current) stripRef.current.style.transition = 'none';
     };
 
-    feed.addEventListener('wheel', onWheel, { passive: false });
+    const onTouchMove = (e) => {
+      const strip = stripRef.current;
+      if (!strip) return;
+      const dy = e.touches[0].clientY - touchStartY.current;
+      touchDeltaY.current = dy;
+
+      // FIX: mark as swipe early so tap handler ignores it
+      if (Math.abs(dy) > 8) {
+        isSwiping.current = true;
+        // FIX: prevent any ancestor scroll while we're swiping reels
+        e.preventDefault();
+      }
+
+      const itemH = getItemHeight();
+      const base  = -currentIdx.current * itemH;
+      // FIX: add rubber-band resistance at the edges
+      const total    = reelsRef.current.length;
+      const atTop    = currentIdx.current === 0 && dy > 0;
+      const atBottom = currentIdx.current === total - 1 && dy < 0;
+      const delta    = (atTop || atBottom) ? dy * 0.25 : dy;
+      strip.style.transform = `translateY(${base + delta}px)`;
+    };
+
+    const onTouchEnd = () => {
+      const total     = reelsRef.current.length;
+      const itemH     = getItemHeight();
+      // FIX: use pixel threshold rather than fraction — feels more natural
+      const threshold = Math.min(itemH * 0.18, 80);
+
+      if      (touchDeltaY.current < -threshold) scrollToIdx(currentIdx.current + 1, total);
+      else if (touchDeltaY.current >  threshold) scrollToIdx(currentIdx.current - 1, total);
+      else                                        scrollToIdx(currentIdx.current,     total);
+    };
+
+    col.addEventListener('touchstart', onTouchStart, { passive: true });
+    // FIX: passive:false on touchmove so we can preventDefault() and block page scroll
+    col.addEventListener('touchmove',  onTouchMove,  { passive: false });
+    col.addEventListener('touchend',   onTouchEnd,   { passive: true });
     return () => {
-      feed.removeEventListener('wheel', onWheel);
-      clearTimeout(wheelTimer);
+      col.removeEventListener('touchstart', onTouchStart);
+      col.removeEventListener('touchmove',  onTouchMove);
+      col.removeEventListener('touchend',   onTouchEnd);
     };
-  }, [reels.length, scrollToIdx]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scrollToIdx, getItemHeight, reels.length]);
 
-  /* ── Keyboard navigation (ArrowUp / ArrowDown) ── */
+  /* ── Keyboard navigation ── */
   useEffect(() => {
     const onKey = (e) => {
       if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
-      if (e.key === 'ArrowDown' || e.key === 'j') scrollToIdx(currentIdx.current + 1, reels.length);
-      if (e.key === 'ArrowUp'   || e.key === 'k') scrollToIdx(currentIdx.current - 1, reels.length);
+      if (e.key === 'ArrowDown' || e.key === 'j') scrollToIdx(currentIdx.current + 1, reelsRef.current.length);
+      if (e.key === 'ArrowUp'   || e.key === 'k') scrollToIdx(currentIdx.current - 1, reelsRef.current.length);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [reels.length, scrollToIdx]);
+  }, [scrollToIdx]);
+
+  /* ── Recalculate transform on resize ── */
+  useEffect(() => {
+    const onResize = () => {
+      const strip = stripRef.current;
+      if (!strip) return;
+      const itemH = getItemHeight();
+      strip.style.transition = 'none';
+      strip.style.transform  = `translateY(-${currentIdx.current * itemH}px)`;
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [getItemHeight]);
 
   /* ── fetch reels ── */
   const fetchReels = useCallback(async (currentMode, currentGender, currentCoords) => {
@@ -856,56 +925,49 @@ export default function Reels() {
       setLocLabel('All Salons'); setMode('all');
       fetchReels('all', 'all', null);
     }
-  }, [fetchReels]); // fetchReels is stable (useCallback with [])
+  }, [fetchReels]);
 
-  /* ── re-fetch on filter change (skip first mount — handled by geolocation) ── */
+  /* ── re-fetch on filter change ── */
   const didMount = useRef(false);
   useEffect(() => {
     if (!didMount.current) { didMount.current = true; return; }
     setLocLabel(mode === 'nearest' && coords ? 'Nearby You' : 'All Salons');
     fetchReels(mode, gender, coords);
-  // coords intentionally excluded: location never changes after mount; re-fetch only on mode/gender
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, gender, fetchReels]);
 
-  /* ── Keep mutedRef fresh + sync muted to all active videos ── */
+  /* ── Keep mutedRef fresh ── */
   useEffect(() => {
     mutedRef.current = muted;
     Object.values(videoRefs.current).forEach(v => { if (v) v.muted = muted; });
   }, [muted]);
 
-  /* ── IntersectionObserver for autoplay / pause ── */
+  /* ── Auto-play first reel when list loads ── */
   useEffect(() => {
     if (!reels.length) return;
-    observerRef.current?.disconnect();
-    observerRef.current = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
-        const v = entry.target;
-        if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
-          v.muted = mutedRef.current; // always fresh — no stale closure
-          v.play().catch(() => {});
-        } else {
-          v.pause();
-          v.currentTime = 0;
-        }
-      });
-    }, { threshold: 0.5 });
-    Object.values(videoRefs.current).forEach(v => { if (v) observerRef.current.observe(v); });
-    const firstKey = reels[0]?._id;
-    if (firstKey && videoRefs.current[firstKey]) {
-      videoRefs.current[firstKey].muted = mutedRef.current;
-      videoRefs.current[firstKey].play().catch(() => {});
-    }
-    return () => observerRef.current?.disconnect();
+    currentIdx.current = 0;
+    // FIX: wait one frame so feed has been laid out and clientHeight is correct
+    requestAnimationFrame(() => {
+      if (stripRef.current) {
+        stripRef.current.style.transition = 'none';
+        stripRef.current.style.transform  = 'translateY(0px)';
+      }
+      const firstId = reels[0]?._id;
+      if (firstId && videoRefs.current[firstId]) {
+        videoRefs.current[firstId].muted = mutedRef.current;
+        videoRefs.current[firstId].play().catch(() => {});
+      }
+    });
   }, [reels]);
 
+  /* ── Register video refs ── */
   const handleRegisterRef = useCallback((el, id) => {
     if (el) {
       el.muted = mutedRef.current;
       videoRefs.current[id] = el;
-      if (observerRef.current) observerRef.current.observe(el);
+      const idx = reelsRef.current.findIndex(r => r._id === id);
+      if (idx === currentIdx.current) { el.play().catch(() => {}); }
     } else {
-      if (observerRef.current && videoRefs.current[id]) observerRef.current.unobserve(videoRefs.current[id]);
       delete videoRefs.current[id];
     }
   }, []);
@@ -953,80 +1015,73 @@ export default function Reels() {
     finally { setPosting(false); }
   }, [commentText, commentReel, posting]);
 
-  /* ─────────────────────────────── Loading ── */
-  if (loading) return (
-    <div style={{
-      background: '#050505', minHeight: '100vh',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20,
-    }}>
-      <style>{CSS}</style>
-      {/* gradient ring spinner */}
-      <div style={{
-        width: 52, height: 52, borderRadius: '50%',
-        background: 'conic-gradient(from 0deg, #6366f1, #a78bfa, #f0abfc, transparent)',
-        animation: 'spin 0.9s linear infinite',
-        padding: 4,
-      }}>
-        <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: '#050505' }} />
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-        <LoadingDots />
-        <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13, margin: 0, letterSpacing: 0.3 }}>
-          Discovering reels…
-        </p>
-      </div>
-    </div>
-  );
-
-  /* ─────────────────────────────── Empty ── */
-  if (!reels.length) return (
-    <div style={{
-      background: '#050505', minHeight: '100vh',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      gap: 0, padding: 32,
-    }}>
-      <style>{CSS}</style>
-      <div style={{
-        width: 90, height: 90, borderRadius: '50%',
-        background: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.15))',
-        border: '1px solid rgba(99,102,241,0.25)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        marginBottom: 20, fontSize: 38,
-        boxShadow: '0 0 40px rgba(99,102,241,0.12)',
-      }}>
-        🎬
-      </div>
-      <p style={{ color: '#fff', fontSize: 20, fontWeight: 900, margin: '0 0 8px', letterSpacing: '-0.3px' }}>
-        No Reels Found
-      </p>
-      <p style={{
-        color: 'rgba(255,255,255,0.4)', fontSize: 13, textAlign: 'center',
-        maxWidth: 260, margin: '0 0 28px', lineHeight: 1.6,
-      }}>
-        No salon videos in your area yet. Try "All Salons" or change your filter.
-      </p>
-      <button onClick={() => navigate('/')} style={{
-        padding: '12px 28px',
-        background: 'linear-gradient(135deg, #6366f1, #7c3aed)',
-        color: '#fff', border: 'none', borderRadius: 16,
-        fontSize: 14, fontWeight: 800, cursor: 'pointer',
-        boxShadow: '0 6px 24px rgba(99,102,241,0.45)',
-        letterSpacing: 0.2,
-      }}>
-        Explore Salons
-      </button>
-    </div>
-  );
-
-  /* ─────────────────────────────── Main render ── */
+  /* ─── Render ─── */
   return (
     <>
       <style>{CSS}</style>
 
-      <div className="reels-page">
-        <div className="reels-col">
+      <div className="reels-page" ref={pageRef}>
 
-          {/* ── Top bar (absolute, above feed) ── */}
+        {/* Loading */}
+        {loading && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+            <div style={{
+              width: 52, height: 52, borderRadius: '50%',
+              background: 'conic-gradient(from 0deg, #6366f1, #a78bfa, #f0abfc, transparent)',
+              animation: 'spin 0.9s linear infinite',
+              padding: 4,
+            }}>
+              <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: '#050505' }} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+              <LoadingDots />
+              <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13, margin: 0, letterSpacing: 0.3 }}>
+                Discovering reels…
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Empty */}
+        {!loading && !reels.length && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 32 }}>
+            <div style={{
+              width: 90, height: 90, borderRadius: '50%',
+              background: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.15))',
+              border: '1px solid rgba(99,102,241,0.25)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              marginBottom: 20, fontSize: 38,
+              boxShadow: '0 0 40px rgba(99,102,241,0.12)',
+            }}>
+              🎬
+            </div>
+            <p style={{ color: '#fff', fontSize: 20, fontWeight: 900, margin: '0 0 8px', letterSpacing: '-0.3px' }}>
+              No Reels Found
+            </p>
+            <p style={{
+              color: 'rgba(255,255,255,0.4)', fontSize: 13, textAlign: 'center',
+              maxWidth: 260, margin: '0 0 28px', lineHeight: 1.6,
+            }}>
+              No salon videos in your area yet. Try "All Salons" or change your filter.
+            </p>
+            <button onClick={() => navigate('/')} style={{
+              padding: '12px 28px',
+              background: 'linear-gradient(135deg, #6366f1, #7c3aed)',
+              color: '#fff', border: 'none', borderRadius: 16,
+              fontSize: 14, fontWeight: 800, cursor: 'pointer',
+              boxShadow: '0 6px 24px rgba(99,102,241,0.45)',
+              letterSpacing: 0.2,
+            }}>
+              Explore Salons
+            </button>
+          </div>
+        )}
+
+        {/* Reels column */}
+        {!loading && reels.length > 0 && (
+        <div className="reels-col" ref={colRef}>
+
+          {/* Top bar */}
           <div style={{
             position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20,
             pointerEvents: 'none',
@@ -1081,7 +1136,6 @@ export default function Reels() {
 
             {/* Row 2: mode + gender filters */}
             <div style={{ padding: '0 14px 6px', display: 'flex', flexDirection: 'column', gap: 7 }}>
-              {/* Mode toggle */}
               <div style={{
                 display: 'flex', gap: 6, pointerEvents: 'all',
                 background: 'rgba(0,0,0,0.38)',
@@ -1106,7 +1160,6 @@ export default function Reels() {
                 ))}
               </div>
 
-              {/* Gender chips */}
               <div style={{ display: 'flex', gap: 6, pointerEvents: 'all' }}>
                 {[['all', 'All'], ['male', 'Men'], ['female', 'Women']].map(([val, label]) => (
                   <button key={val} type="button" onClick={() => setGender(val)} style={{
@@ -1128,25 +1181,27 @@ export default function Reels() {
             </div>
           </div>
 
-          {/* ── Scrollable feed ── */}
+          {/* Scrollable feed (transform-based) */}
           <div className="reels-feed" ref={feedRef}>
-            {reels.map(reel => (
-              <ReelItem
-                key={reel._id}
-                reel={reel}
-                muted={muted}
-                showMute={showMute}
-                onMuteToggle={toggleMute}
-                onComment={setCommentReel}
-                onShare={handleShare}
-                copied={copied}
-                onRegisterRef={handleRegisterRef}
-                onAuthRequired={handleAuthRequired}
-              />
-            ))}
+            <div className="reels-strip" ref={stripRef}>
+              {reels.map(reel => (
+                <ReelItem
+                  key={reel._id}
+                  reel={reel}
+                  muted={muted}
+                  showMute={showMute}
+                  onMuteToggle={toggleMute}
+                  onComment={setCommentReel}
+                  onShare={handleShare}
+                  copied={copied}
+                  onRegisterRef={handleRegisterRef}
+                  onAuthRequired={handleAuthRequired}
+                />
+              ))}
+            </div>
           </div>
 
-          {/* ── Desktop prev/next nav arrows (shown only on md+) ── */}
+          {/* Desktop prev/next nav arrows */}
           <div style={{
             display: 'none',
             position: 'absolute',
@@ -1193,9 +1248,10 @@ export default function Reels() {
             </button>
           </div>
         </div>
+        )}
       </div>
 
-      {/* ── Login prompt modal ── */}
+      {/* Login prompt modal */}
       {showLoginPrompt && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 120,
@@ -1213,7 +1269,6 @@ export default function Reels() {
             width: '100%', maxWidth: 320, textAlign: 'center',
             boxShadow: '0 24px 64px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.05)',
           }}>
-            {/* Accent glow at top */}
             <div style={{
               position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
               width: 120, height: 2,
@@ -1271,19 +1326,16 @@ export default function Reels() {
         </div>
       )}
 
-      {/* ── Comment bottom sheet ── */}
+      {/* Comment bottom sheet */}
       {commentReel && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 110,
           display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center',
         }}>
-          {/* backdrop */}
           <div
             style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)' }}
             onClick={() => setCommentReel(null)}
           />
-
-          {/* sheet */}
           <div className="scale-in" style={{
             position: 'relative',
             background: 'linear-gradient(160deg, #111118, #0d0d14)',
@@ -1295,7 +1347,6 @@ export default function Reels() {
             maxHeight: '82vh', display: 'flex', flexDirection: 'column',
             boxShadow: '0 -8px 40px rgba(0,0,0,0.6)',
           }}>
-            {/* handle */}
             <div style={{ padding: '14px 16px 0', flexShrink: 0 }}>
               <div style={{
                 width: 36, height: 4,
@@ -1303,7 +1354,6 @@ export default function Reels() {
                 borderRadius: 2, margin: '0 auto 16px',
                 boxShadow: '0 0 8px rgba(99,102,241,0.5)',
               }} />
-              {/* Header */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 <div>
                   <p style={{ color: '#fff', fontWeight: 900, fontSize: 15, margin: 0, letterSpacing: '-0.2px' }}>
@@ -1324,7 +1374,6 @@ export default function Reels() {
               </div>
             </div>
 
-            {/* comment list */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px 4px' }}>
               {commentsLoading ? (
                 <div style={{ display: 'flex', justifyContent: 'center', padding: '32px 0' }}>
@@ -1339,7 +1388,6 @@ export default function Reels() {
                 </div>
               ) : comments.map(c => (
                 <div key={c._id} style={{ marginBottom: 20 }}>
-                  {/* user comment */}
                   <div style={{ display: 'flex', gap: 10 }}>
                     <div style={{
                       width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
@@ -1359,7 +1407,6 @@ export default function Reels() {
                       </p>
                     </div>
                   </div>
-                  {/* owner replies */}
                   {c.replies?.map((r, i) => (
                     <div key={i} style={{
                       marginTop: 10, marginLeft: 46,
@@ -1387,7 +1434,6 @@ export default function Reels() {
               ))}
             </div>
 
-            {/* input */}
             <div style={{ padding: '12px 16px 0', flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
               <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
                 <input
