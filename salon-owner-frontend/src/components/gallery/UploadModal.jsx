@@ -577,8 +577,11 @@ const UploadModal = ({ isOpen, onClose, onFilesReady }) => {
     setChecking(true);
     setRejected(null);
 
-    const isVideo = ACCEPT_VIDEO.includes(file.type) ||
-      (file.type === 'application/octet-stream' && /\.(mp4|mov|webm|avi|mkv)$/i.test(file.name));
+    const nameLooksVideo = /\.(mp4|mov|webm|avi|mkv|m4v)$/i.test(file.name || '');
+    const isVideo =
+      ACCEPT_VIDEO.includes(file.type) ||
+      (file.type === 'application/octet-stream' && nameLooksVideo) ||
+      ((!file.type || file.type === '') && nameLooksVideo);
 
     if (!isVideo) {
       setRejected({ name: file.name, reason: 'Unsupported file type' });

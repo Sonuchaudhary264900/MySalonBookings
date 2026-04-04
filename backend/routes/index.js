@@ -1941,7 +1941,7 @@ router.post("/owner/gallery/register-photo", authenticateOwner, asyncHandler(asy
   const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
   salon.photos.push({ url, caption: '', tags: [], isCover: false });
-  await salon.save();
+  await salon.save({ validateModifiedOnly: true });
   const i = salon.photos.length - 1;
   res.status(201).json({ success: true, data: { _id: `p_${i}`, url, caption: '', tags: [], isCover: false, type: 'image' } });
 }));
@@ -1949,7 +1949,11 @@ router.post("/owner/gallery/register-photo", authenticateOwner, asyncHandler(asy
 // POST /owner/gallery/register-video — save a Cloudinary video URL after direct upload.
 // Automatically adds the video to reelVideos (public feed) with the supplied categories.
 router.post("/owner/gallery/register-video", authenticateOwner, asyncHandler(async (req, res) => {
-  const { url, categories } = req.body;
+  const { url: rawUrl, categories } = req.body;
+  const url = String(rawUrl || '')
+    .trim()
+    .split('#')[0]
+    .trim();
   if (!url || !url.startsWith('https://'))
     return res.status(400).json({ success: false, message: "Valid Cloudinary url required" });
   const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
@@ -1961,7 +1965,9 @@ router.post("/owner/gallery/register-video", authenticateOwner, asyncHandler(asy
 
   // Auto-add to public reelVideos with the supplied categories
   if (!salon.reelVideos) salon.reelVideos = [];
-  const reelCats = Array.isArray(categories) ? categories : [];
+  const reelCats = Array.isArray(categories)
+    ? categories.filter((c) => typeof c === 'string' && c.trim().length > 0).map((c) => c.trim())
+    : [];
   const existingReelIdx = salon.reelVideos.findIndex((rv) => galleryUrlKey(reelEntryUrl(rv)) === galleryUrlKey(url));
   if (existingReelIdx === -1) {
     salon.reelVideos.push({ url, categories: reelCats, createdAt: new Date() });
@@ -1970,7 +1976,7 @@ router.post("/owner/gallery/register-video", authenticateOwner, asyncHandler(asy
     salon.markModified('reelVideos');
   }
 
-  await salon.save();
+  await salon.save({ validateModifiedOnly: true });
   const i = salon.videos.length - 1;
   res.status(201).json({ success: true, data: { _id: `v_${i}`, url, caption: '', tags: [], type: 'video', inReels: true, reelCategories: reelCats } });
 }));
@@ -1998,7 +2004,7 @@ router.get("/owner/gallery", authenticateOwner, asyncHandler(async (req, res) =>
   }
   if (healedVideos) {
     salon.markModified('videos');
-    await salon.save();
+    await salon.save({ validateModifiedOnly: true });
   }
 
   // Reel metadata by URL key (matches analytics + public reels even if video row URL string differs slightly)
@@ -2084,7 +2090,7 @@ router.put("/owner/gallery/:mediaId", authenticateOwner, asyncHandler(async (req
     }
   }
 
-  await salon.save();
+  await salon.save({ validateModifiedOnly: true });
   res.json({ success: true, message: "Updated" });
 }));
 
@@ -2102,18 +2108,21 @@ router.put("/owner/gallery/reel-toggle", authenticateOwner, asyncHandler(async (
   const targetKey = galleryUrlKey(videoUrl);
   const idx = salon.reelVideos.findIndex((rv) => galleryUrlKey(reelEntryUrl(rv)) === targetKey);
   let inReels;
+  const catList = Array.isArray(categories)
+    ? categories.filter((c) => typeof c === 'string' && c.trim().length > 0).map((c) => c.trim())
+    : [];
   if (idx === -1) {
-    salon.reelVideos.push({ url: videoUrl, categories: categories || [] });
+    salon.reelVideos.push({ url: videoUrl, categories: catList });
     inReels = true;
   } else if (categories !== undefined) {
-    salon.reelVideos[idx].categories = categories;
+    salon.reelVideos[idx].categories = catList;
     inReels = true;
   } else {
     salon.reelVideos.splice(idx, 1);
     inReels = false;
   }
   salon.markModified('reelVideos');
-  await salon.save();
+  await salon.save({ validateModifiedOnly: true });
   const match = salon.reelVideos.find((rv) => galleryUrlKey(reelEntryUrl(rv)) === targetKey);
   res.json({ success: true, inReels, reelCategories: inReels ? (match?.categories || []) : [] });
 }));
@@ -2132,7 +2141,7 @@ router.post("/owner/gallery", authenticateOwner, multerUpload.single("image"), a
     stream.end(req.file.buffer);
   });
   salon.photos.push({ url, caption: '', tags: [], isCover: false });
-  await salon.save();
+  await salon.save({ validateModifiedOnly: true });
   const i = salon.photos.length - 1;
   res.status(201).json({ success: true, data: { _id: `p_${i}`, url, caption: '', tags: [], isCover: false, type: 'image' } });
 }));
@@ -2152,7 +2161,7 @@ router.post("/owner/gallery/video", authenticateOwner, multerVideoUpload.single(
   });
   if (!salon.videos) salon.videos = [];
   salon.videos.push({ url, caption: '', tags: [] });
-  await salon.save();
+  await salon.save({ validateModifiedOnly: true });
   const i = salon.videos.length - 1;
   res.status(201).json({ success: true, data: { _id: `v_${i}`, url, caption: '', tags: [], type: 'video', inReels: false, reelCategories: [] } });
 }));
@@ -2184,7 +2193,7 @@ router.delete("/owner/gallery/:mediaId", authenticateOwner, asyncHandler(async (
     salon.markModified('photos');
   }
 
-  await salon.save();
+  await salon.save({ validateModifiedOnly: true });
   res.json({ success: true, message: "Media deleted" });
 }));
 

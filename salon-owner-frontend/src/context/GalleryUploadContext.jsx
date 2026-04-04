@@ -11,6 +11,36 @@ const MAX_RETRIES    = 3;          // retry each file up to 3 times
 const RETRY_BASE_MS  = 3000;       // 3s → 6s → 12s exponential backoff
 const CLOUDINARY_TIMEOUT = 20 * 60 * 1000; // 20-min XHR timeout to Cloudinary
 
+/** Cloudinary public_id disallows #, spaces, etc. — safe filename avoids upload/API failures */
+function sanitizeFileForCloudinaryUpload(file) {
+  try {
+    const rawName = file.name || 'upload';
+    const extMatch = rawName.match(/(\.[a-zA-Z0-9]{1,12})$/);
+    const ext = extMatch ? extMatch[1].toLowerCase() : '';
+    const base = ext ? rawName.slice(0, -ext.length) : rawName;
+    const stem = base
+      .replace(/[^a-zA-Z0-9._-]+/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_|_$/g, '')
+      .slice(0, 100) || 'media';
+    const fallbackExt =
+      ext ||
+      (file.type?.startsWith('video/') ? '.mp4' : file.type?.startsWith('image/') ? '.jpg' : '.bin');
+    const safeName = `${stem}${fallbackExt}`;
+    return new File([file], safeName, { type: file.type, lastModified: file.lastModified });
+  } catch {
+    return file;
+  }
+}
+
+function formatUploadError(err) {
+  const payload = err?.data;
+  const list = payload?.errors;
+  if (Array.isArray(list) && list.length) return list.join(' · ');
+  if (typeof list === 'string' && list.trim()) return list;
+  return err?.message || 'Upload failed';
+}
+
 /* ─── Client-side image compression ─────────────────────────── */
 const compressImage = (file, maxW = 1920) =>
   new Promise((resolve) => {
@@ -151,6 +181,7 @@ export function GalleryUploadProvider({ children }) {
           fileToUpload = await compressImage(item.file);
           patchItem(item.id, { progress: 15 });
         }
+        fileToUpload = sanitizeFileForCloudinaryUpload(fileToUpload);
 
         // ── 3. Upload to Cloudinary directly ──
         const cloudinaryUrl = await uploadToCloudinary(
@@ -174,7 +205,7 @@ export function GalleryUploadProvider({ children }) {
         return; // success — exit retry loop
 
       } catch (err) {
-        lastError = err?.message || 'Upload failed';
+        lastError = formatUploadError(err);
 
         if (attempt < MAX_RETRIES) {
           const waitMs = RETRY_BASE_MS * Math.pow(2, attempt - 1); // 3s, 6s, 12s
