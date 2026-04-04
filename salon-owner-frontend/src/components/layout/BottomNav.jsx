@@ -1,14 +1,14 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, CalendarDays, Scissors, MessageSquare, Settings } from 'lucide-react';
+import { LayoutDashboard, BarChart2, Scissors, MessageSquare, Settings } from 'lucide-react';
 import ROUTES from '../../routes';
 import { useNotifications } from '../../context/NotificationContext';
 
 const TABS = [
-  { name: 'dashboard', label: 'Home',     path: ROUTES.DASHBOARD, icon: LayoutDashboard, exact: true },
-  { name: 'bookings',  label: 'Bookings', path: ROUTES.BOOKINGS,  icon: CalendarDays },
-  { name: 'services',  label: 'Services', path: ROUTES.SERVICES,  icon: Scissors     },
-  { name: 'messages',  label: 'Messages', path: ROUTES.MESSAGES,  icon: MessageSquare },
-  { name: 'settings',  label: 'Settings', path: ROUTES.SETTINGS,  icon: Settings     },
+  { name: 'dashboard', label: 'Home',      path: ROUTES.DASHBOARD, icon: LayoutDashboard, exact: true },
+  { name: 'analytics', label: 'Analytics', path: ROUTES.ANALYTICS, icon: BarChart2        },
+  { name: 'services',  label: 'Services',  path: ROUTES.SERVICES,  icon: Scissors         },
+  { name: 'messages',  label: 'Messages',  path: ROUTES.MESSAGES,  icon: MessageSquare    },
+  { name: 'settings',  label: 'Settings',  path: ROUTES.SETTINGS,  icon: Settings         },
 ];
 
 export default function BottomNav() {
