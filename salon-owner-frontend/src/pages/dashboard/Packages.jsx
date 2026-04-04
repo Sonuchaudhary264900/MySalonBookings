@@ -65,7 +65,7 @@ export default function Packages() {
         ...(pkgRes.data.data?.packages || []),
         ...(memRes.data.data?.packages || []),
       ]);
-      const svcs = svcRes.data?.services ?? svcRes.data?.data ?? svcRes.data ?? [];
+      const svcs = svcRes.data?.data?.services ?? svcRes.data?.services ?? [];
       setSalonServices(Array.isArray(svcs) ? svcs : []);
     } catch { toast.error('Failed to load packages'); }
     finally { setLoading(false); }
