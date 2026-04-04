@@ -1,15 +1,10 @@
 import React from 'react';
 
 /**
- * Input Component
- * 
- * Features:
- * - Label support
- * - Error messages
- * - Icon support (left and right)
- * - Validation states
- * - Helper text
- * - Multiple input types
+ * Input — premium form field component.
+ *
+ * Fully supports dark mode, error states, icons, helper text.
+ * Uses a ring-based focus style consistent with the Button component.
  */
 const Input = ({
   label,
@@ -27,73 +22,104 @@ const Input = ({
   icon,
   rightIcon,
   helperText,
+  rows,
   className = '',
 }) => {
+  const isTextarea = type === 'textarea';
+
+  const inputBase = `
+    w-full bg-white dark:bg-gray-900
+    text-gray-900 dark:text-gray-100
+    placeholder:text-gray-400 dark:placeholder:text-gray-500
+    border rounded-xl
+    transition-all duration-200
+    focus:outline-none focus:ring-2
+    disabled:bg-gray-50 dark:disabled:bg-gray-800/60
+    disabled:text-gray-400 dark:disabled:text-gray-500
+    disabled:cursor-not-allowed
+    read-only:bg-gray-50 dark:read-only:bg-gray-800/40
+    read-only:cursor-default
+  `;
+
+  const stateStyles = error
+    ? 'border-red-400 dark:border-red-500 focus:border-red-400 dark:focus:border-red-500 focus:ring-red-400/20 dark:focus:ring-red-500/20'
+    : 'border-gray-200 dark:border-gray-700 focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-indigo-400/20 dark:focus:ring-indigo-500/20';
+
+  const paddingStyles = icon
+    ? 'pl-10 pr-4'
+    : rightIcon
+    ? 'pl-4 pr-10'
+    : 'px-4';
+
+  const sizeStyles = isTextarea ? 'py-3' : 'py-2.5';
+
+  const sharedProps = {
+    name,
+    value,
+    onChange,
+    onBlur,
+    placeholder,
+    disabled,
+    readOnly,
+    className: `${inputBase} ${stateStyles} ${paddingStyles} ${sizeStyles} ${className}`,
+  };
+
   return (
-    <div className="w-full">
+    <div className="w-full space-y-1.5">
       {/* Label */}
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label
+          htmlFor={name}
+          className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+        >
           {label}
-          {required && <span className="text-red-500"> *</span>}
+          {required && <span className="text-red-500 dark:text-red-400 ml-0.5">*</span>}
         </label>
       )}
 
-      {/* Input Wrapper */}
+      {/* Input wrapper */}
       <div className="relative">
-        {/* Left Icon */}
+        {/* Left icon */}
         {icon && (
-          <div className="absolute left-3 top-3 text-gray-500 pointer-events-none">
+          <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">
             {icon}
           </div>
         )}
 
-        {/* Input Field */}
-        <input
-          type={type}
-          name={name}
-          value={value}
-          onChange={onChange}
-          onBlur={onBlur}
-          placeholder={placeholder}
-          disabled={disabled}
-          readOnly={readOnly}
-          className={`
-            w-full
-            ${icon ? 'pl-10' : 'pl-3'} 
-            ${rightIcon ? 'pr-10' : 'pr-3'} 
-            py-2
-            rounded-lg
-            border-2
-            transition
-            focus:outline-none
-            disabled:bg-gray-100
-            disabled:text-gray-700
-            disabled:cursor-not-allowed
-            ${error 
-              ? 'border-red-500 focus:border-red-600 focus:ring-red-200' 
-              : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
-            }
-            ${className}
-          `}
-        />
+        {/* Field */}
+        {isTextarea ? (
+          <textarea
+            id={name}
+            rows={rows || 4}
+            {...sharedProps}
+          />
+        ) : (
+          <input
+            id={name}
+            type={type}
+            {...sharedProps}
+          />
+        )}
 
-        {/* Right Icon */}
+        {/* Right icon */}
         {rightIcon && (
-          <div className="absolute right-3 top-3 text-gray-500 pointer-events-none">
+          <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">
             {rightIcon}
           </div>
         )}
       </div>
 
-      {/* Error Message */}
+      {/* Error message */}
       {error && errorMessage && (
-        <p className="mt-1 text-sm text-red-500">{errorMessage}</p>
+        <p className="flex items-center gap-1.5 text-xs font-medium text-red-600 dark:text-red-400">
+          <span className="inline-block w-1 h-1 rounded-full bg-red-500 shrink-0" />
+          {errorMessage}
+        </p>
       )}
 
-      {/* Helper Text */}
+      {/* Helper text */}
       {helperText && !error && (
-        <p className="mt-1 text-sm text-gray-500">{helperText}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">{helperText}</p>
       )}
     </div>
   );

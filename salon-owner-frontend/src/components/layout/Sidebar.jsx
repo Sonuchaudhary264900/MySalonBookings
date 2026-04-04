@@ -70,8 +70,9 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
       <aside
         className={`
           fixed top-0 inset-y-0 left-0 h-screen flex flex-col z-40
-          bg-white dark:bg-gray-950
-          border-r border-gray-100 dark:border-gray-800/60
+          bg-white dark:bg-[#0d1424]
+          border-r border-gray-100/80 dark:border-gray-800/50
+          shadow-sm dark:shadow-none
           transition-all duration-300 ease-in-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
           ${collapsed ? 'md:w-[68px]' : 'md:w-64'} w-64
@@ -135,8 +136,8 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
                           transition-all duration-150 relative
                           ${collapsed ? 'md:justify-center md:px-2 px-3 py-2.5' : 'px-3 py-2.5'}
                           ${isActive
-                            ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-semibold'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-white'
+                            ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-semibold shadow-sm shadow-indigo-100/50 dark:shadow-none'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/60 hover:text-gray-900 dark:hover:text-white'
                           }
                         `}
                       >

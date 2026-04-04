@@ -117,7 +117,7 @@ const Navbar = ({ onMenuToggle }) => {
   return (
     <>
       {/* ── Navbar ── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-gray-950/90 backdrop-blur-xl border-b border-gray-200/60 dark:border-gray-800/60 shadow-sm">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-[#0a0f1e]/90 backdrop-blur-2xl border-b border-gray-200/50 dark:border-gray-800/40 shadow-sm shadow-gray-100/50 dark:shadow-black/20">
         <div className="px-4 md:px-6 h-16 flex items-center justify-between gap-4">
 
           {/* Left */}

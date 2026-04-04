@@ -52,7 +52,7 @@ const DashboardLayout = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen flex bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
+    <div className="min-h-screen flex bg-[#f5f6fa] dark:bg-[#0a0f1e] transition-colors duration-300">
 
       {/* Access blocked overlay (all pages except billing) */}
       {isRestricted && pathname !== ROUTES.BILLING && <AccessBlockedModal />}
