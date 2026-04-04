@@ -85,6 +85,7 @@ const ImageCard = ({ photo, isCover, onView, onDelete, layout = 'square' }) => {
   const tag     = photo?.tags?.[0];
   const isVideo = isGalleryVideo(photo);
   const aspectClass = layout === 'reels' ? 'aspect-[9/16]' : 'aspect-square';
+  const canDelete = !photo?._galleryOrphan;
 
   const handleDeleteClick = (e) => {
     e.stopPropagation();
@@ -198,14 +199,16 @@ const ImageCard = ({ photo, isCover, onView, onDelete, layout = 'square' }) => {
             >
               <Eye className="w-3.5 h-3.5" />
             </button>
-            <button
-              onClick={handleDeleteClick}
-              className="w-8 h-8 flex items-center justify-center rounded-xl bg-red-500/80 backdrop-blur-sm
-                hover:bg-red-600/90 text-white transition-colors"
-              title={isVideo ? 'Delete video' : 'Delete photo'}
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
+            {canDelete && (
+              <button
+                onClick={handleDeleteClick}
+                className="w-8 h-8 flex items-center justify-center rounded-xl bg-red-500/80 backdrop-blur-sm
+                  hover:bg-red-600/90 text-white transition-colors"
+                title={isVideo ? 'Delete video' : 'Delete photo'}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
       )}

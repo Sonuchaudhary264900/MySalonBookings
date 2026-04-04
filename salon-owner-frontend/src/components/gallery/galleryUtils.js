@@ -2,13 +2,33 @@
  * Shared gallery helpers — keep owner grid / lightbox / stats aligned with customer SalonDetails.
  */
 
-function looksLikeMediaUrl(s) {
-  if (typeof s !== 'string' || !/^https?:\/\//i.test(s)) return false;
-  return (
-    /\.(jpe?g|png|webp|gif|mp4|mov|webm|m4v|avi|mkv)(\?|$)/i.test(s) ||
-    s.includes('cloudinary.com') ||
-    s.includes('res.cloudinary.com')
-  );
+/** Any remote URL that could be a gallery image/video (not only Cloudinary). */
+function isLikelyRemoteUrlString(s) {
+  if (typeof s !== 'string') return false;
+  const t = s.trim();
+  if (t.length < 12) return false;
+  if (t.startsWith('//')) return true;
+  return /^https?:\/\//i.test(t);
+}
+
+export function normalizeClientMediaUrl(u) {
+  if (u == null || typeof u !== 'string') return '';
+  let s = u.trim();
+  if (!s) return '';
+  if (s.startsWith('//')) s = `https:${s}`;
+  return s;
+}
+
+/** Dedupe gallery rows vs reel analytics (host + path, ignores query). */
+export function galleryItemDedupeKey(u) {
+  const s = normalizeClientMediaUrl(u);
+  if (!s) return '';
+  try {
+    const x = new URL(s);
+    return `${x.hostname.toLowerCase()}${x.pathname.replace(/\/+/g, '/')}`;
+  } catch {
+    return s;
+  }
 }
 
 /** Normalise GET /owner/gallery payload (array or { photos, videos }, string URLs). */
@@ -22,26 +42,28 @@ export function normalizeOwnerGalleryPayload(data) {
       ...(Array.isArray(data.images) ? data.images : []),
     ];
   }
-  return list.map((item, i) => {
-    if (typeof item === 'string' && /^https?:\/\//i.test(item)) {
-      const u = item.trim();
-      const vid = /\.(mp4|mov|webm|m4v)(\?|$)/i.test(u) || u.includes('/video/upload/');
-      return {
-        _id: `_raw_${i}`,
-        url: u,
-        type: vid ? 'video' : 'image',
-        caption: '',
-        tags: [],
-        isCover: false,
-      };
-    }
-    return item;
-  });
+  return list
+    .filter((item) => item != null)
+    .map((item, i) => {
+      if (typeof item === 'string' && isLikelyRemoteUrlString(item)) {
+        const u = normalizeClientMediaUrl(item);
+        const vid = /\.(mp4|mov|webm|m4v)(\?|$)/i.test(u) || u.includes('/video/upload/');
+        return {
+          _id: `_raw_${i}`,
+          url: u,
+          type: vid ? 'video' : 'image',
+          caption: '',
+          tags: [],
+          isCover: false,
+        };
+      }
+      return item;
+    });
 }
 
 export function getGalleryMediaUrl(item) {
   if (typeof item === 'string') {
-    return /^https?:\/\//i.test(item) ? item : '';
+    return isLikelyRemoteUrlString(item) ? normalizeClientMediaUrl(item) : '';
   }
   if (!item || typeof item !== 'object') return '';
   const direct =
@@ -53,10 +75,15 @@ export function getGalleryMediaUrl(item) {
     item.secure_url ||
     item.secureUrl ||
     item.href ||
+    item.src ||
+    item.link ||
+    item.photoUrl ||
+    item.path ||
+    item.publicUrl ||
     '';
-  if (direct) return direct;
+  if (direct) return String(direct);
   for (const v of Object.values(item)) {
-    if (looksLikeMediaUrl(v)) return v;
+    if (isLikelyRemoteUrlString(v)) return normalizeClientMediaUrl(v);
   }
   return '';
 }
@@ -75,7 +102,8 @@ export function isGalleryVideo(item) {
 }
 
 export function hasRenderableGalleryMedia(item) {
-  return Boolean(getGalleryMediaUrl(item));
+  const u = normalizeClientMediaUrl(getGalleryMediaUrl(item));
+  return Boolean(u && /^https?:\/\//i.test(u));
 }
 
 /**

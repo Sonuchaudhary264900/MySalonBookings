@@ -53,14 +53,26 @@ const multerVideoUpload = multer({
 });
 
 /* Owner gallery / reel URL helpers (analytics route + gallery routes — defined early for clarity) */
+const normalizeGalleryMediaUrl = (u) => {
+  if (u == null) return '';
+  let s = String(u).trim();
+  if (!s) return '';
+  if (s.startsWith('//')) s = `https:${s}`;
+  return s;
+};
+const isPresentableGalleryUrl = (u) => {
+  const s = normalizeGalleryMediaUrl(u);
+  return /^https?:\/\//i.test(s);
+};
 const galleryUrlKey = (u) => {
-  if (!u || typeof u !== 'string') return '';
+  const s = normalizeGalleryMediaUrl(u);
+  if (!s) return '';
   try {
-    const x = new URL(u.trim());
+    const x = new URL(s);
     const path = x.pathname.replace(/\/+/g, '/');
     return `${x.hostname.toLowerCase()}${path}`;
   } catch {
-    return u.trim();
+    return s;
   }
 };
 const reelEntryUrl = (rv) => {
@@ -77,6 +89,10 @@ const normPhoto = (v) => {
     obj?.image ||
     obj?.secure_url ||
     obj?.secureUrl ||
+    obj?.src ||
+    obj?.link ||
+    obj?.photoUrl ||
+    obj?.path ||
     '';
   return { ...obj, url };
 };
@@ -88,6 +104,9 @@ const normVideo = (v) => {
     obj?.videoUrl ||
     obj?.secure_url ||
     obj?.secureUrl ||
+    obj?.src ||
+    obj?.link ||
+    obj?.path ||
     '';
   return { ...obj, url };
 };
@@ -1994,8 +2013,8 @@ router.get("/owner/gallery", authenticateOwner, asyncHandler(async (req, res) =>
   );
   let healedVideos = false;
   for (const rv of salon.reelVideos || []) {
-    const u = reelEntryUrl(rv);
-    if (!u || !u.startsWith('http')) continue;
+    const u = normalizeGalleryMediaUrl(reelEntryUrl(rv));
+    if (!isPresentableGalleryUrl(u)) continue;
     const k = galleryUrlKey(u);
     if (!k || urlKeysInVideos.has(k)) continue;
     salon.videos.push({ url: u, caption: '', tags: [] });
@@ -2022,8 +2041,8 @@ router.get("/owner/gallery", authenticateOwner, asyncHandler(async (req, res) =>
   // Omit entries with no usable URL (corrupt subdocs) but keep _id index = Mongo index for DELETE.
   const photos = (salon.photos || []).flatMap((p, i) => {
     const n = normPhoto(p);
-    const u = n.url;
-    if (!u || !String(u).startsWith('http')) return [];
+    const u = normalizeGalleryMediaUrl(n.url);
+    if (!isPresentableGalleryUrl(u)) return [];
     return [{
       _id: `p_${i}`,
       url: u,
@@ -2035,8 +2054,8 @@ router.get("/owner/gallery", authenticateOwner, asyncHandler(async (req, res) =>
   });
   const videos = (salon.videos || []).flatMap((v, i) => {
     const n = normVideo(v);
-    const u = n.url;
-    if (!u || !String(u).startsWith('http')) return [];
+    const u = normalizeGalleryMediaUrl(n.url);
+    if (!isPresentableGalleryUrl(u)) return [];
     const k = galleryUrlKey(u);
     const rv = reelMetaByKey.get(k) || reelMetaByKey.get(u) || { inReels: false, reelCategories: [] };
     return [{

@@ -12,9 +12,11 @@ import api from '../../services/api';
 import { useGalleryUpload } from '../../context/GalleryUploadContext';
 import {
   cloudinaryVideoPosterUrl,
+  galleryItemDedupeKey,
   getGalleryMediaUrl,
   hasRenderableGalleryMedia,
   isGalleryVideo,
+  normalizeClientMediaUrl,
   normalizeOwnerGalleryPayload,
 } from '../../components/gallery/galleryUtils';
 
@@ -377,24 +379,32 @@ export default function Gallery() {
       const raw = res.data?.data ?? res.data;
       const parsed = normalizeOwnerGalleryPayload(raw);
       let out = parsed.filter(hasRenderableGalleryMedia);
-      // API returned only empty/corrupt rows but reels exist (analytics) — show those URLs
-      if (out.length === 0) {
-        try {
-          const ar = await api.get('/owner/reels/analytics');
-          const rows = (ar.data?.data || []).filter((r) => r?.videoUrl);
-          if (rows.length) {
-            out = rows.map((row, i) => ({
-              _id: `v_${i}`,
-              url: row.videoUrl,
-              type: 'video',
-              caption: '',
-              tags: [],
-              inReels: true,
-              reelCategories: row.categories || [],
-            }));
-          }
-        } catch { /* ignore */ }
-      }
+      // Add any reel URLs from analytics that are missing from the gallery response (deduped)
+      try {
+        const ar = await api.get('/owner/reels/analytics');
+        const rows = (ar.data?.data || []).filter((r) => r?.videoUrl);
+        const seen = new Set(
+          out.map((p) => galleryItemDedupeKey(getGalleryMediaUrl(p))).filter(Boolean)
+        );
+        let orphanIdx = 0;
+        for (const row of rows) {
+          const u = normalizeClientMediaUrl(row.videoUrl);
+          if (!/^https?:\/\//i.test(u)) continue;
+          const k = galleryItemDedupeKey(u);
+          if (!k || seen.has(k)) continue;
+          seen.add(k);
+          out.push({
+            _id: `v_orphan_${orphanIdx++}`,
+            url: u,
+            type: 'video',
+            caption: '',
+            tags: [],
+            inReels: true,
+            reelCategories: row.categories || [],
+            _galleryOrphan: true,
+          });
+        }
+      } catch { /* ignore */ }
       setPhotos(out);
       const cover = out.find(p => p.isCover);
       if (cover) setCoverId(cover._id);

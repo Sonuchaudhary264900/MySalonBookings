@@ -416,28 +416,63 @@ exports.updateSalonPhotos = async (req, res) => {
     }
 
     if (photos && Array.isArray(photos)) {
-      // Find photos that were removed and delete them from Cloudinary
-      const removedPhotos = (salon.photos || []).filter(url => !photos.includes(url));
-      if (removedPhotos.length > 0) {
+      const MAX_SALON_PHOTOS = 500;
+      const urlOf = (p) => {
+        if (p == null) return '';
+        if (typeof p === 'string') return p.trim();
+        if (typeof p === 'object') return String(p.url || p.imageUrl || '').trim();
+        return '';
+      };
+      const normalizeIncomingPhotos = (arr) =>
+        arr
+          .slice(0, MAX_SALON_PHOTOS)
+          .map((p) => {
+            if (typeof p === 'string') {
+              const url = p.trim();
+              if (!/^https?:\/\//i.test(url)) return null;
+              return { url, caption: '', tags: [], isCover: false };
+            }
+            if (p && typeof p === 'object') {
+              const url = String(p.url || p.imageUrl || '').trim();
+              if (!/^https?:\/\//i.test(url)) return null;
+              return {
+                url,
+                caption: p.caption || '',
+                tags: Array.isArray(p.tags) ? p.tags : [],
+                isCover: Boolean(p.isCover),
+              };
+            }
+            return null;
+          })
+          .filter(Boolean);
+
+      const nextList = normalizeIncomingPhotos(photos);
+      const oldUrls = (salon.photos || []).map(urlOf).filter(Boolean);
+      const newUrlSet = new Set(nextList.map((e) => e.url));
+      const removedUrls = oldUrls.filter((u) => !newUrlSet.has(u));
+      if (removedUrls.length > 0) {
         await Promise.allSettled(
-          removedPhotos.map(url => {
-            // Extract public_id from Cloudinary URL
-            const parts = url.split('/');
-            const fileWithExt = parts[parts.length - 1];
-            const folder = parts[parts.length - 2];
-            const publicId = `${folder}/${fileWithExt.split('.')[0]}`;
-            return cloudinary.uploader.destroy(publicId);
+          removedUrls.map((url) => {
+            try {
+              const parts = url.split('/');
+              const fileWithExt = parts[parts.length - 1];
+              const folder = parts[parts.length - 2];
+              const publicId = `${folder}/${fileWithExt.split('.')[0]}`;
+              return cloudinary.uploader.destroy(publicId);
+            } catch {
+              return Promise.resolve();
+            }
           })
         );
       }
-      salon.photos = photos.slice(0, 10);
+      salon.photos = nextList;
     }
 
     if (logo) salon.logo = logo;
 
     if (coverPhoto) salon.coverPhoto = coverPhoto;
 
-    await salon.save();
+    await salon.save({ validateModifiedOnly: true });
 
     res.json(
       formatSuccessResponse(salon, 'Photos updated successfully')

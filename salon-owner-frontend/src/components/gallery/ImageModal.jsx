@@ -108,6 +108,7 @@ const ImageModal = ({
   const url     = photo ? getGalleryMediaUrl(photo) : '';
   const isCover = photo ? photo._id === coverId : false;
   const isVideo = photo ? isGalleryVideo(photo) : false;
+  const canDelete = photo && !photo._galleryOrphan;
 
   // ── Sync state on item change ──
   useEffect(() => {
@@ -366,12 +367,14 @@ const ImageModal = ({
                   <Download className="w-4 h-4 text-white/60" /> Download
                 </button>
                 <div className="h-px bg-white/10 mx-3" />
-                <button
-                  onClick={() => { setMenuOpen(false); setShowDelete(true); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-400 hover:bg-red-500/15 transition-colors text-left"
-                >
-                  <Trash2 className="w-4 h-4" /> Delete
-                </button>
+                {canDelete && (
+                  <button
+                    onClick={() => { setMenuOpen(false); setShowDelete(true); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-400 hover:bg-red-500/15 transition-colors text-left"
+                  >
+                    <Trash2 className="w-4 h-4" /> Delete
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -844,12 +847,14 @@ const ImageModal = ({
                 </button>
               </>
             ) : (
-              <button onClick={() => setShowDelete(true)}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl
-                  border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400
-                  hover:bg-red-50 dark:hover:bg-red-950/40 text-xs font-semibold transition-colors">
-                <Trash2 className="w-3.5 h-3.5" /> Delete Photo
-              </button>
+              canDelete ? (
+                <button onClick={() => setShowDelete(true)}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl
+                    border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400
+                    hover:bg-red-50 dark:hover:bg-red-950/40 text-xs font-semibold transition-colors">
+                  <Trash2 className="w-3.5 h-3.5" /> Delete Photo
+                </button>
+              ) : null
             )}
           </div>
         </div>

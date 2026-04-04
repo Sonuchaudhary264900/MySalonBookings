@@ -806,19 +806,28 @@ const BookingModeContent = ({ salon, updateSalon }) => {
   );
 };
 
-/* ─── Salon Photos ───────────────────────────────────────────── */
+const MAX_SALON_SETTINGS_PHOTOS = 200;
+
+/* ─── Salon Photos (same `salon.photos` array as Dashboard Gallery) ───────── */
 const SalonPhotosContent = ({ salon, fetchSalon }) => {
-  const [photos, setPhotos]     = useState(salon?.photos || []);
+  const [photos, setPhotos]     = useState([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
 
-  useEffect(() => { setPhotos(salon?.photos || []); }, [salon]);
+  useEffect(() => {
+    const raw = salon?.photos || [];
+    setPhotos(
+      raw
+        .map((p) => (typeof p === 'string' ? p : (p?.url || '')).trim())
+        .filter(Boolean)
+    );
+  }, [salon]);
 
   const handleUpload = async (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
-    if (photos.length + files.length > 10) {
-      toast.error('Maximum 10 photos allowed');
+    if (photos.length + files.length > MAX_SALON_SETTINGS_PHOTOS) {
+      toast.error(`Maximum ${MAX_SALON_SETTINGS_PHOTOS} photos allowed`);
       return;
     }
     setUploading(true);
@@ -864,7 +873,7 @@ const SalonPhotosContent = ({ salon, fetchSalon }) => {
         <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
           {uploading ? 'Uploading…' : 'Click to upload salon photos'}
         </p>
-        <p className="text-xs text-gray-400 dark:text-gray-500">JPG, PNG, WebP · Up to 10 photos total</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500">JPG, PNG, WebP · Up to {MAX_SALON_SETTINGS_PHOTOS} photos total</p>
         <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp"
           multiple className="hidden" onChange={handleUpload} />
       </div>
@@ -886,7 +895,7 @@ const SalonPhotosContent = ({ salon, fetchSalon }) => {
       )}
 
       <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
-        {photos.length}/10 photos · Hover a photo to delete it
+        {photos.length}/{MAX_SALON_SETTINGS_PHOTOS} photos · Hover a photo to delete it
       </p>
     </div>
   );
