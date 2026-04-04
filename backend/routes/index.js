@@ -3213,6 +3213,43 @@ router.get('/owner/messages/unread', authenticateOwner, asyncHandler(async (req,
   res.json({ success: true, data: { messages: enriched, count: enriched.length } });
 }));
 
+// GET /owner/messages/threads — all conversation threads with latest message + unread count
+router.get('/owner/messages/threads', authenticateOwner, asyncHandler(async (req, res) => {
+  const salon = await Salon.findOne({ ownerId: req.owner._id }).select('_id').lean();
+  if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
+
+  const threads = await Message.aggregate([
+    { $match: { salonId: salon._id } },
+    { $sort:  { createdAt: 1 } },
+    { $group: {
+      _id:           '$bookingId',
+      latestMessage: { $last: '$$ROOT' },
+      unreadCount:   { $sum: { $cond: [{ $and: [{ $eq: ['$senderRole', 'customer'] }, { $eq: ['$readAt', null] }] }, 1, 0] } },
+      totalCount:    { $sum: 1 },
+    }},
+    { $sort: { 'latestMessage.createdAt': -1 } },
+    { $limit: 100 },
+  ]);
+
+  const bookingIds = threads.map(t => t._id);
+  const bookings   = await Booking.find({ _id: { $in: bookingIds } })
+    .select('customerName serviceName appointmentDate appointmentTime status').lean();
+  const bookingMap = {};
+  bookings.forEach(b => { bookingMap[b._id.toString()] = b; });
+
+  const result = threads
+    .map(t => ({
+      bookingId:     t._id,
+      booking:       bookingMap[t._id.toString()] || null,
+      latestMessage: t.latestMessage,
+      unreadCount:   t.unreadCount,
+      totalCount:    t.totalCount,
+    }))
+    .filter(t => t.booking);
+
+  res.json({ success: true, data: result });
+}));
+
 // GET /owner/bookings/:bookingId/messages
 router.get('/owner/bookings/:bookingId/messages', authenticateOwner, validateObjectId('bookingId'), asyncHandler(async (req, res) => {
   const Salon = require('../models/Salon');

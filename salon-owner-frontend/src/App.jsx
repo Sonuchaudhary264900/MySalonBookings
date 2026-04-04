@@ -35,6 +35,7 @@ const Customers        = lazy(() => import('./pages/dashboard/Customers'));
 const Coupons          = lazy(() => import('./pages/dashboard/Coupons'));
 const Packages         = lazy(() => import('./pages/dashboard/Packages'));
 const Billing          = lazy(() => import('./pages/dashboard/Billing'));
+const Messages         = lazy(() => import('./pages/dashboard/Messages'));
 const PrivacyPolicy        = lazy(() => import('./pages/PrivacyPolicy'));
 const TermsAndConditions   = lazy(() => import('./pages/TermsAndConditions'));
 const LegalIndex           = lazy(() => import('./pages/legal/LegalIndex'));
@@ -982,6 +983,7 @@ function App() {
                     <Route path={ROUTES.COUPONS}       element={<Coupons />} />
                     <Route path={ROUTES.PACKAGES}      element={<Packages />} />
                     <Route path={ROUTES.BILLING}       element={<Billing />} />
+                    <Route path={ROUTES.MESSAGES}      element={<Messages />} />
                   </Route>
 
                   {/* 404 */}
