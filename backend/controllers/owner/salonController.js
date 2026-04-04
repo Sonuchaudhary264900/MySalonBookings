@@ -118,8 +118,15 @@ exports.createSalon = async (req, res) => {
       offeredCategories: Array.isArray(offeredCategories) ? offeredCategories : [],
       kidsHaircut: kidsHaircut || false,
       atHomeServices: atHomeServices || false,
-      photos: Array.isArray(photos) ? photos : [],
-      coverPhoto: Array.isArray(photos) && photos.length > 0 ? photos[0] : null,
+      photos: Array.isArray(photos)
+        ? photos.map((p) => {
+            if (typeof p === 'string') return { url: p, caption: '', tags: [], isCover: false };
+            return { url: p.url || p.imageUrl || '', caption: p.caption || '', tags: Array.isArray(p.tags) ? p.tags : [], isCover: Boolean(p.isCover) };
+          }).filter((p) => p.url)
+        : [],
+      coverPhoto: Array.isArray(photos) && photos.length > 0
+        ? (typeof photos[0] === 'string' ? photos[0] : photos[0]?.url || null)
+        : null,
 
       workingHours: workingHours || {
         monday: { open: '09:00', close: '18:00', isClosed: false },
