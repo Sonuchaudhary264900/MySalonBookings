@@ -64,7 +64,9 @@ const uploadToCloudinary = (file, sig, onProgress, xhrRef) =>
       if (xhr.status >= 200 && xhr.status < 300) {
         try {
           const data = JSON.parse(xhr.responseText);
-          resolve(data.secure_url);
+          const resultUrl = data.secure_url || data.url;
+          if (!resultUrl) { reject(new Error('Cloudinary did not return a URL')); return; }
+          resolve(resultUrl);
         } catch {
           reject(new Error('Invalid Cloudinary response'));
         }

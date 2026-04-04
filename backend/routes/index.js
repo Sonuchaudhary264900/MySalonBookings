@@ -1898,7 +1898,7 @@ router.get("/owner/gallery/upload-signature", authenticateOwner, asyncHandler(as
 // POST /owner/gallery/register-photo — save a Cloudinary photo URL after direct upload
 router.post("/owner/gallery/register-photo", authenticateOwner, asyncHandler(async (req, res) => {
   const { url } = req.body;
-  if (!url || !url.startsWith('https://res.cloudinary.com/'))
+  if (!url || !url.startsWith('https://'))
     return res.status(400).json({ success: false, message: "Valid Cloudinary url required" });
   const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
@@ -1912,7 +1912,7 @@ router.post("/owner/gallery/register-photo", authenticateOwner, asyncHandler(asy
 // Automatically adds the video to reelVideos (public feed) with the supplied categories.
 router.post("/owner/gallery/register-video", authenticateOwner, asyncHandler(async (req, res) => {
   const { url, categories } = req.body;
-  if (!url || !url.startsWith('https://res.cloudinary.com/'))
+  if (!url || !url.startsWith('https://'))
     return res.status(400).json({ success: false, message: "Valid Cloudinary url required" });
   const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
