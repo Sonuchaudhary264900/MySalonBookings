@@ -116,10 +116,10 @@ const uploadToCloudinary = (file, sig, onProgress, xhrRef) =>
   });
 
 /* ─── Register the Cloudinary URL with our backend ──────────── */
-const registerWithBackend = (url, mediaType, categories) =>
+const registerWithBackend = (url, mediaType, categories, targetGender) =>
   api.post(
     mediaType === 'video' ? '/owner/gallery/register-video' : '/owner/gallery/register-photo',
-    mediaType === 'video' ? { url, categories: categories || [] } : { url }
+    mediaType === 'video' ? { url, categories: categories || [], targetGender: targetGender || 'both' } : { url }
   );
 
 /* ─── Exponential sleep ──────────────────────────────────────── */
@@ -197,7 +197,7 @@ export function GalleryUploadProvider({ children }) {
 
         // ── 4. Register URL with our backend ──
         patchItem(item.id, { progress: 95 });
-        await registerWithBackend(cloudinaryUrl, item.mediaType, item.categories);
+        await registerWithBackend(cloudinaryUrl, item.mediaType, item.categories, item.targetGender);
 
         // ── 5. Done ──
         patchItem(item.id, { status: 'done', progress: 100, error: null });

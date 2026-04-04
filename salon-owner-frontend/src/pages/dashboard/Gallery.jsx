@@ -10,6 +10,7 @@ import UploadModal from '../../components/gallery/UploadModal';
 import ImageModal  from '../../components/gallery/ImageModal';
 import api from '../../services/api';
 import { useGalleryUpload } from '../../context/GalleryUploadContext';
+import { useSalon } from '../../hooks/useSalon';
 import {
   cloudinaryVideoPosterUrl,
   galleryItemDedupeKey,
@@ -370,6 +371,8 @@ export default function Gallery() {
   const [deletingId,   setDeletingId]   = useState(null);
 
   const { enqueueUploads, lastCompletedAt } = useGalleryUpload();
+  const { salon: salonData } = useSalon();
+  const servedGender = salonData?.servedGender || 'unisex';
 
   /* ── Fetch photos ── */
   const fetchPhotos = useCallback(async (silent = false) => {
@@ -688,6 +691,7 @@ export default function Gallery() {
         isOpen={showUpload}
         onClose={() => setShowUpload(false)}
         onFilesReady={handleFilesReady}
+        servedGender={servedGender}
       />
 
       {/* ── Lightbox ── */}
@@ -700,6 +704,7 @@ export default function Gallery() {
           onDeleted={handleLightboxDelete}
           onUpdated={handleLightboxUpdate}
           onCoverSet={handleCoverSet}
+          servedGender={servedGender}
         />
       )}
     </DashboardLayout>

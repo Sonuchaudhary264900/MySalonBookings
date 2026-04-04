@@ -1968,7 +1968,7 @@ router.post("/owner/gallery/register-photo", authenticateOwner, asyncHandler(asy
 // POST /owner/gallery/register-video — save a Cloudinary video URL after direct upload.
 // Automatically adds the video to reelVideos (public feed) with the supplied categories.
 router.post("/owner/gallery/register-video", authenticateOwner, asyncHandler(async (req, res) => {
-  const { url: rawUrl, categories } = req.body;
+  const { url: rawUrl, categories, targetGender } = req.body;
   const url = String(rawUrl || '')
     .trim()
     .split('#')[0]
@@ -1982,22 +1982,23 @@ router.post("/owner/gallery/register-video", authenticateOwner, asyncHandler(asy
   if (!salon.videos) salon.videos = [];
   salon.videos.push({ url, caption: '', tags: [] });
 
-  // Auto-add to public reelVideos with the supplied categories
+  // Auto-add to public reelVideos with the supplied categories and targetGender
   if (!salon.reelVideos) salon.reelVideos = [];
   const reelCats = Array.isArray(categories)
     ? categories.filter((c) => typeof c === 'string' && c.trim().length > 0).map((c) => c.trim())
     : [];
+  const genderVal = ['male', 'female', 'both'].includes(targetGender) ? targetGender : 'both';
   const existingReelIdx = salon.reelVideos.findIndex((rv) => galleryUrlKey(reelEntryUrl(rv)) === galleryUrlKey(url));
   if (existingReelIdx === -1) {
-    salon.reelVideos.push({ url, categories: reelCats, createdAt: new Date() });
+    salon.reelVideos.push({ url, categories: reelCats, targetGender: genderVal, createdAt: new Date() });
   } else {
-    salon.reelVideos[existingReelIdx] = { url, categories: reelCats, createdAt: new Date() };
+    salon.reelVideos[existingReelIdx] = { url, categories: reelCats, targetGender: genderVal, createdAt: new Date() };
     salon.markModified('reelVideos');
   }
 
   await salon.save({ validateModifiedOnly: true });
   const i = salon.videos.length - 1;
-  res.status(201).json({ success: true, data: { _id: `v_${i}`, url, caption: '', tags: [], type: 'video', inReels: true, reelCategories: reelCats } });
+  res.status(201).json({ success: true, data: { _id: `v_${i}`, url, caption: '', tags: [], type: 'video', inReels: true, reelCategories: reelCats, targetGender: genderVal } });
 }));
 
 // GET /owner/gallery — return all photos + videos
@@ -2113,15 +2114,15 @@ router.put("/owner/gallery/:mediaId", authenticateOwner, asyncHandler(async (req
   res.json({ success: true, message: "Updated" });
 }));
 
-// PUT /owner/gallery/reel-toggle — add/remove a video from reelVideos, optionally update categories
+// PUT /owner/gallery/reel-toggle — add/remove a video from reelVideos, optionally update categories/targetGender
 router.put("/owner/gallery/reel-toggle", authenticateOwner, asyncHandler(async (req, res) => {
-  const { videoUrl, categories } = req.body;
+  const { videoUrl, categories, targetGender } = req.body;
   if (!videoUrl) return res.status(400).json({ success: false, message: "videoUrl required" });
   const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
 
   salon.reelVideos = (salon.reelVideos || []).map(rv =>
-    typeof rv === 'string' ? { url: rv, categories: [] } : rv
+    typeof rv === 'string' ? { url: rv, categories: [], targetGender: 'both' } : rv
   );
 
   const targetKey = galleryUrlKey(videoUrl);
@@ -2130,11 +2131,13 @@ router.put("/owner/gallery/reel-toggle", authenticateOwner, asyncHandler(async (
   const catList = Array.isArray(categories)
     ? categories.filter((c) => typeof c === 'string' && c.trim().length > 0).map((c) => c.trim())
     : [];
+  const genderVal = ['male', 'female', 'both'].includes(targetGender) ? targetGender : 'both';
   if (idx === -1) {
-    salon.reelVideos.push({ url: videoUrl, categories: catList });
+    salon.reelVideos.push({ url: videoUrl, categories: catList, targetGender: genderVal });
     inReels = true;
-  } else if (categories !== undefined) {
-    salon.reelVideos[idx].categories = catList;
+  } else if (categories !== undefined || targetGender !== undefined) {
+    if (categories !== undefined) salon.reelVideos[idx].categories = catList;
+    if (targetGender !== undefined) salon.reelVideos[idx].targetGender = genderVal;
     inReels = true;
   } else {
     salon.reelVideos.splice(idx, 1);
@@ -2143,7 +2146,7 @@ router.put("/owner/gallery/reel-toggle", authenticateOwner, asyncHandler(async (
   salon.markModified('reelVideos');
   await salon.save({ validateModifiedOnly: true });
   const match = salon.reelVideos.find((rv) => galleryUrlKey(reelEntryUrl(rv)) === targetKey);
-  res.json({ success: true, inReels, reelCategories: inReels ? (match?.categories || []) : [] });
+  res.json({ success: true, inReels, reelCategories: inReels ? (match?.categories || []) : [], targetGender: inReels ? (match?.targetGender || 'both') : null });
 }));
 
 // POST /owner/gallery — legacy server-side photo upload (kept for fallback)

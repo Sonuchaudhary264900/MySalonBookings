@@ -218,14 +218,24 @@ const VideoPickStep = ({ onVideoPicked, onClose, checking }) => {
 /* ────────────────────────────────────────────────────────────────
    STEP B — Video details (category required + optional caption)
 ────────────────────────────────────────────────────────────────── */
-const VideoDetailsStep = ({ videoItem, onBack, onUpload }) => {
-  const [categories, setCategories] = useState([]);
-  const [caption,    setCaption]    = useState('');
+const GENDER_OPTIONS = [
+  { value: 'male',   label: 'Men',        icon: '♂', color: 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 ring-blue-300 dark:ring-blue-700' },
+  { value: 'female', label: 'Women',      icon: '♀', color: 'bg-pink-100 dark:bg-pink-950/60 text-pink-700 dark:text-pink-400 ring-pink-300 dark:ring-pink-700' },
+  { value: 'both',   label: 'Both',       icon: '⚥', color: 'bg-violet-100 dark:bg-violet-950/60 text-violet-700 dark:text-violet-400 ring-violet-300 dark:ring-violet-700' },
+];
+
+const VideoDetailsStep = ({ videoItem, onBack, onUpload, servedGender }) => {
+  const [categories,    setCategories]    = useState([]);
+  const [caption,       setCaption]       = useState('');
+  const [targetGender,  setTargetGender]  = useState(
+    servedGender === 'male' ? 'male' : servedGender === 'female' ? 'female' : ''
+  );
 
   const toggleCat = (cat) =>
     setCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
 
-  const canUpload = categories.length > 0;
+  const needsGender = servedGender === 'unisex';
+  const canUpload = categories.length > 0 && (!needsGender || targetGender !== '');
 
   return (
     <>
@@ -269,6 +279,38 @@ const VideoDetailsStep = ({ videoItem, onBack, onUpload }) => {
             <span className="text-[10px] font-bold text-violet-600 dark:text-violet-400">Reel</span>
           </div>
         </div>
+
+        {/* Target audience — only for unisex salons */}
+        {needsGender && (
+          <div>
+            <div className="flex items-center gap-1.5 mb-2">
+              <span className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Target Audience</span>
+              <span className="text-[10px] text-red-500 font-semibold">*required</span>
+            </div>
+            <div className="flex gap-2">
+              {GENDER_OPTIONS.map(opt => {
+                const active = targetGender === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    onClick={() => setTargetGender(opt.value)}
+                    className={`flex-1 flex flex-col items-center gap-1 py-3 rounded-xl text-xs font-semibold transition-all active:scale-95
+                      ${active
+                        ? `${opt.color} ring-1`
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                      }`}
+                  >
+                    <span className="text-base">{opt.icon}</span>
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+            {targetGender === '' && (
+              <p className="text-[11px] text-red-400 mt-1.5">Select who this reel is for</p>
+            )}
+          </div>
+        )}
 
         {/* Categories — required */}
         <div>
@@ -330,7 +372,7 @@ const VideoDetailsStep = ({ videoItem, onBack, onUpload }) => {
           Back
         </button>
         <button
-          onClick={() => onUpload({ categories, caption })}
+          onClick={() => onUpload({ categories, caption, targetGender: needsGender ? targetGender : (servedGender === 'male' ? 'male' : servedGender === 'female' ? 'female' : 'both') })}
           disabled={!canUpload}
           className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white
             text-sm font-semibold hover:from-violet-700 hover:to-indigo-700 transition-all
@@ -553,7 +595,7 @@ const ModePicker = ({ onChoose, onClose }) => (
 /* ────────────────────────────────────────────────────────────────
    MAIN UploadModal — orchestrates all steps
 ────────────────────────────────────────────────────────────────── */
-const UploadModal = ({ isOpen, onClose, onFilesReady }) => {
+const UploadModal = ({ isOpen, onClose, onFilesReady, servedGender = 'unisex' }) => {
   // mode: null (picker) | 'photo' | 'video-pick' | 'video-details'
   const [mode,      setMode]      = useState(null);
   const [videoItem, setVideoItem] = useState(null);
@@ -608,8 +650,8 @@ const UploadModal = ({ isOpen, onClose, onFilesReady }) => {
   };
 
   /* ── Video details confirmed → enqueue upload ── */
-  const handleVideoUpload = ({ categories, caption }) => {
-    const item = { ...videoItem, categories, caption };
+  const handleVideoUpload = ({ categories, caption, targetGender }) => {
+    const item = { ...videoItem, categories, caption, targetGender };
     onFilesReady([item]);
     setMode(null);
     setVideoItem(null);
@@ -651,6 +693,7 @@ const UploadModal = ({ isOpen, onClose, onFilesReady }) => {
             videoItem={videoItem}
             onBack={() => { setMode('video-pick'); setVideoItem(null); }}
             onUpload={handleVideoUpload}
+            servedGender={servedGender}
           />
         )}
       </div>

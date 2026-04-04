@@ -75,6 +75,12 @@ const DeleteConfirm = ({ onConfirm, onCancel, loading, isVideo }) => (
 );
 
 /* ── Main ImageModal (Lightbox) ── */
+const GENDER_OPTIONS = [
+  { value: 'male',   label: 'Men',   icon: '♂', cls: 'bg-blue-900/60 text-blue-300 ring-blue-700' },
+  { value: 'female', label: 'Women', icon: '♀', cls: 'bg-pink-900/60 text-pink-300 ring-pink-700' },
+  { value: 'both',   label: 'Both',  icon: '⚥', cls: 'bg-violet-900/60 text-violet-300 ring-violet-700' },
+];
+
 const ImageModal = ({
   photos,
   initialIndex,
@@ -83,6 +89,7 @@ const ImageModal = ({
   onDeleted,
   onUpdated,
   onCoverSet,
+  servedGender = 'unisex',
 }) => {
   const [idx,              setIdx]             = useState(initialIndex ?? 0);
   const [editMode,         setEditMode]        = useState(false);
@@ -95,6 +102,7 @@ const ImageModal = ({
   const [settingCover,     setSettingCover]    = useState(false);
   const [inReels,          setInReels]         = useState(false);
   const [reelCategories,   setReelCategories]  = useState([]);
+  const [targetGender,     setTargetGender]    = useState('both');
   const [togglingReel,     setTogglingReel]    = useState(false);
   // Video-specific
   const [isPlaying,        setIsPlaying]       = useState(true);
@@ -124,6 +132,7 @@ const ImageModal = ({
       setShowDelete(false);
       setInReels(photo.inReels || false);
       setReelCategories(photo.reelCategories || []);
+      setTargetGender(photo.targetGender || (servedGender === 'male' ? 'male' : servedGender === 'female' ? 'female' : 'both'));
       setIsPlaying(true);
       setShowEditPanel(false);
       setMenuOpen(false);
@@ -223,10 +232,10 @@ const ImageModal = ({
     try {
       const body = inReels
         ? { videoUrl: url }
-        : { videoUrl: url, categories: reelCategories };
+        : { videoUrl: url, categories: reelCategories, targetGender };
       const res = await api.put('/owner/gallery/reel-toggle', body);
       setInReels(res.data.inReels);
-      if (res.data.inReels) setReelCategories(res.data.reelCategories || []);
+      if (res.data.inReels) { setReelCategories(res.data.reelCategories || []); setTargetGender(res.data.targetGender || 'both'); }
     } catch { /* silent */ } finally {
       setTogglingReel(false);
     }
@@ -236,8 +245,9 @@ const ImageModal = ({
     if (!inReels) return;
     setTogglingReel(true);
     try {
-      const res = await api.put('/owner/gallery/reel-toggle', { videoUrl: url, categories: reelCategories });
+      const res = await api.put('/owner/gallery/reel-toggle', { videoUrl: url, categories: reelCategories, targetGender });
       setReelCategories(res.data.reelCategories || reelCategories);
+      if (res.data.targetGender) setTargetGender(res.data.targetGender);
     } catch { /* silent */ } finally {
       setTogglingReel(false);
     }
@@ -547,38 +557,68 @@ const ImageModal = ({
                   </div>
                 </div>
 
-                {/* Reel categories (only when in Reels) */}
+                {/* Reel categories + target gender (only when in Reels) */}
                 {inReels && (
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-1.5">
+                  <div className="space-y-4">
+                    {/* Target audience — only for unisex salons */}
+                    {servedGender === 'unisex' && (
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <span className="text-xs font-semibold text-white/50 uppercase tracking-wide">Target Audience</span>
+                        </div>
+                        <div className="flex gap-2">
+                          {GENDER_OPTIONS.map(opt => {
+                            const active = targetGender === opt.value;
+                            return (
+                              <button
+                                key={opt.value}
+                                onClick={() => setTargetGender(opt.value)}
+                                className={`flex-1 flex flex-col items-center gap-1 py-2.5 rounded-xl text-xs font-semibold transition-all active:scale-95
+                                  ${active
+                                    ? `${opt.cls} ring-1`
+                                    : 'bg-white/8 text-white/50 border border-white/10 hover:bg-white/15'
+                                  }`}
+                              >
+                                <span className="text-base">{opt.icon}</span>
+                                {opt.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Reel categories */}
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-2">
                         <Zap className="w-3.5 h-3.5 text-violet-400" />
                         <span className="text-xs font-semibold text-violet-400 uppercase tracking-wide">Reel Categories</span>
                       </div>
+                      <div className="flex flex-wrap gap-2">
+                        {REEL_CATEGORIES.map(cat => {
+                          const active = reelCategories.includes(cat);
+                          const cls = REEL_CAT_CFG[cat] || REEL_CAT_CFG['Other'];
+                          return (
+                            <button
+                              key={cat}
+                              onClick={() => toggleReelCategory(cat)}
+                              className={`px-2.5 py-1.5 rounded-full text-[11px] font-semibold transition-all active:scale-95
+                                ${active
+                                  ? `${cls} ring-1`
+                                  : 'bg-white/8 text-white/50 border border-white/10 hover:bg-white/15'
+                                }`}
+                            >
+                              {active && <span className="mr-0.5">✓</span>}{cat}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {REEL_CATEGORIES.map(cat => {
-                        const active = reelCategories.includes(cat);
-                        const cls = REEL_CAT_CFG[cat] || REEL_CAT_CFG['Other'];
-                        return (
-                          <button
-                            key={cat}
-                            onClick={() => toggleReelCategory(cat)}
-                            className={`px-2.5 py-1.5 rounded-full text-[11px] font-semibold transition-all active:scale-95
-                              ${active
-                                ? `${cls} ring-1`
-                                : 'bg-white/8 text-white/50 border border-white/10 hover:bg-white/15'
-                              }`}
-                          >
-                            {active && <span className="mr-0.5">✓</span>}{cat}
-                          </button>
-                        );
-                      })}
-                    </div>
+
                     <button
                       onClick={handleCategorySave}
                       disabled={togglingReel}
-                      className="mt-3 w-full py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white
+                      className="w-full py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white
                         text-xs font-semibold transition-colors disabled:opacity-60 flex items-center justify-center gap-1.5"
                     >
                       {togglingReel ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}

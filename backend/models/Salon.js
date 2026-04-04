@@ -161,9 +161,10 @@ location: {
     ],
     reelVideos: [
       {
-        url:        { type: String, required: true },
-        categories: [{ type: String }],
-        createdAt:  { type: Date, default: Date.now },
+        url:          { type: String, required: true },
+        categories:   [{ type: String }],
+        targetGender: { type: String, enum: ['male', 'female', 'both'], default: 'both' },
+        createdAt:    { type: Date, default: Date.now },
       },
     ],
     logo: {
