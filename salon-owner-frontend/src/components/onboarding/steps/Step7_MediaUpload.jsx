@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ArrowRight, Video, Image, FileText, X, Star, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useOnboarding } from '../../../context/OnboardingContext';
@@ -86,6 +86,9 @@ export default function Step7_MediaUpload() {
   const [photoProgress, setPhotoProgress] = useState({});   // {id: 0-1}
   const [uploadingIds,  setUploadingIds]  = useState([]);
 
+  // Sync local photos state → OnboardingContext after every change
+  useEffect(() => { update({ photos }); }, [photos]);
+
   const [docsOpen, setDocsOpen]   = useState(false);
   const [licenseUploading, setLicenseUploading] = useState(false);
   const [regUploading,     setRegUploading]     = useState(false);
@@ -129,11 +132,7 @@ export default function Step7_MediaUpload() {
         });
         const isFirst = photos.length === 0 && i === 0;
         const newPhoto = { url, publicId, isCover: isFirst, id };
-        setPhotos(prev => {
-          const updated = [...prev, newPhoto];
-          update({ photos: updated });
-          return updated;
-        });
+        setPhotos(prev => [...prev, newPhoto]);
       } catch (err) {
         toast.error(`Photo ${i + 1} failed: ${err.message}`);
       } finally {
@@ -146,19 +145,13 @@ export default function Step7_MediaUpload() {
   const removePhoto = (id) => {
     setPhotos(prev => {
       const updated = prev.filter(p => p.id !== id);
-      // Ensure cover
       if (updated.length > 0 && !updated.some(p => p.isCover)) updated[0] = { ...updated[0], isCover: true };
-      update({ photos: updated });
       return updated;
     });
   };
 
   const setCover = (id) => {
-    setPhotos(prev => {
-      const updated = prev.map(p => ({ ...p, isCover: p.id === id }));
-      update({ photos: updated });
-      return updated;
-    });
+    setPhotos(prev => prev.map(p => ({ ...p, isCover: p.id === id })));
   };
 
   const handleDoc = async (type, file, setUploading) => {
