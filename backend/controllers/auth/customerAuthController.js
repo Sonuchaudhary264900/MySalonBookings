@@ -795,15 +795,46 @@ exports.deleteAccount = async (req, res) => {
   try {
     const customerId = req.customer._id;
 
-    const Booking     = require('../../models/Booking');
-    const Review      = require('../../models/Review');
-    const UserPackage = require('../../models/UserPackage');
+    const Booking         = require('../../models/Booking');
+    const Review          = require('../../models/Review');
+    const UserPackage     = require('../../models/UserPackage');
+    const Message         = require('../../models/Message');
+    const Transaction     = require('../../models/Transaction');
+    const ReelLike        = require('../../models/ReelLike');
+    const ReelComment     = require('../../models/ReelComment');
+    const ReelInteraction = require('../../models/ReelInteraction');
+    const Queue           = require('../../models/Queue');
+    const OTP             = require('../../models/OTP');
+
+    // Fetch customer now (before deletion) to get phone/email for OTP cleanup
+    const customer = await Customer.findById(customerId).select('phone email');
 
     await Promise.all([
       Booking.deleteMany({ customerId }),
       Review.deleteMany({ customerId }),
       UserPackage.deleteMany({ customerId }),
+      Message.deleteMany({ customerId }),
+      Transaction.deleteMany({ customerId }),
+      // ReelLike/Comment/Interaction store customerId as String
+      ReelLike.deleteMany({ customerId: String(customerId) }),
+      ReelComment.deleteMany({ customerId: String(customerId) }),
+      ReelInteraction.deleteMany({ customerId: String(customerId) }),
+      // Pull customer's entries from all queue documents
+      Queue.updateMany(
+        { 'queue.customerId': customerId },
+        { $pull: { queue: { customerId } } }
+      ),
+      // Clean up OTPs by phone or email
+      customer
+        ? OTP.deleteMany({
+            $or: [
+              ...(customer.phone ? [{ phone: customer.phone }] : []),
+              ...(customer.email ? [{ email: customer.email }] : []),
+            ],
+          })
+        : Promise.resolve(),
     ]);
+
     await Customer.findByIdAndDelete(customerId);
 
     res.json(formatSuccessResponse(null, 'Account deleted successfully'));

@@ -566,16 +566,27 @@ exports.deleteAccount = async (req, res) => {
       );
     }
 
-    const Salon        = require('../../models/Salon');
-    const Service      = require('../../models/Service');
-    const Review       = require('../../models/Review');
-    const Coupon       = require('../../models/Coupon');
-    const Package      = require('../../models/Package');
-    const UserPackage  = require('../../models/UserPackage');
-    const Barber       = require('../../models/Barber');
-    const Booking      = require('../../models/Booking');
-    const Subscription = require('../../models/Subscription');
-    const Message      = require('../../models/Message');
+    const Salon                = require('../../models/Salon');
+    const Service              = require('../../models/Service');
+    const Review               = require('../../models/Review');
+    const Coupon               = require('../../models/Coupon');
+    const Package              = require('../../models/Package');
+    const UserPackage          = require('../../models/UserPackage');
+    const Barber               = require('../../models/Barber');
+    const Booking              = require('../../models/Booking');
+    const Subscription         = require('../../models/Subscription');
+    const SubscriptionLog      = require('../../models/SubscriptionLog');
+    const Message              = require('../../models/Message');
+    const Transaction          = require('../../models/Transaction');
+    const Queue                = require('../../models/Queue');
+    const ReelLike             = require('../../models/ReelLike');
+    const ReelComment          = require('../../models/ReelComment');
+    const ReelView             = require('../../models/ReelView');
+    const ReelInteraction      = require('../../models/ReelInteraction');
+    const NotificationSettings = require('../../models/NotificationSettings');
+    const NotificationCampaign = require('../../models/NotificationCampaign');
+    const Promotion            = require('../../models/Promotion');
+    const OTP                  = require('../../models/OTP');
 
     const salon = await Salon.findOne({ ownerId: owner._id });
     if (salon) {
@@ -589,10 +600,32 @@ exports.deleteAccount = async (req, res) => {
         Barber.deleteMany({ salonId: sid }),
         Booking.deleteMany({ salonId: sid }),
         Subscription.deleteMany({ salonId: sid }),
+        SubscriptionLog.deleteMany({ salonId: sid }),
         Message.deleteMany({ salonId: sid }),
+        Transaction.deleteMany({ salonId: sid }),
+        Queue.deleteMany({ salonId: sid }),
+        ReelLike.deleteMany({ salonId: sid }),
+        ReelComment.deleteMany({ salonId: sid }),
+        ReelView.deleteMany({ salonId: sid }),
+        ReelInteraction.deleteMany({ salonId: sid }),
+        NotificationSettings.deleteMany({ salonId: sid }),
+        NotificationCampaign.deleteMany({ salonId: sid }),
+        Promotion.deleteMany({ salonId: sid }),
       ]);
       await salon.deleteOne();
     }
+
+    // Clean up owner-level data (not tied to a specific salon)
+    await Promise.all([
+      SubscriptionLog.deleteMany({ ownerId: owner._id }),
+      OTP.deleteMany({
+        $or: [
+          ...(owner.phone ? [{ phone: owner.phone }] : []),
+          ...(owner.email ? [{ email: owner.email }] : []),
+        ],
+      }),
+    ]);
+
     await Owner.findByIdAndDelete(owner._id);
 
     res.json(formatSuccessResponse(null, 'Account permanently deleted'));
