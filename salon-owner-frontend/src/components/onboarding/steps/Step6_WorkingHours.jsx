@@ -180,34 +180,71 @@ export default function Step6_WorkingHours() {
           </div>
 
           {/* Lunch break */}
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: lunch ? 16 : 0 }}>
-              <div>
-                <p style={{ fontSize: 13, fontWeight: 700, color: text, margin: 0 }}>Add Lunch Break</p>
-                <p style={{ fontSize: 11, color: sub, margin: '2px 0 0' }}>Block time so customers can't book during lunch</p>
+          <div style={{
+            borderRadius: 16,
+            border: `2px solid ${lunch
+              ? (isDark ? 'rgba(251,146,60,0.45)' : 'rgba(234,88,12,0.3)')
+              : (isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb')}`,
+            background: lunch
+              ? (isDark ? 'rgba(251,146,60,0.07)' : 'rgba(255,237,213,0.5)')
+              : (isDark ? 'rgba(255,255,255,0.02)' : '#fafafa'),
+            transition: 'border-color 0.25s, background 0.25s',
+            overflow: 'hidden',
+          }}>
+            {/* Header row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px' }}>
+              {/* Icon badge */}
+              <div style={{
+                width: 44, height: 44, borderRadius: 13, flexShrink: 0,
+                background: lunch
+                  ? 'linear-gradient(135deg,#f97316,#fb923c)'
+                  : (isDark ? 'rgba(255,255,255,0.08)' : '#f3f4f6'),
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 22,
+                boxShadow: lunch ? '0 4px 14px rgba(249,115,22,0.4)' : 'none',
+                transition: 'all 0.25s',
+              }}>
+                🍽️
               </div>
+
+              {/* Text */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 14, fontWeight: 700, color: lunch ? (isDark ? '#fed7aa' : '#c2410c') : text, margin: 0, transition: 'color 0.2s' }}>
+                  Lunch Break
+                </p>
+                <p style={{ fontSize: 12, color: lunch ? (isDark ? '#fdba74' : '#ea580c') : sub, margin: '2px 0 0', transition: 'color 0.2s' }}>
+                  {lunch
+                    ? `Blocked ${formatTime12(lunchStart)} – ${formatTime12(lunchEnd)}`
+                    : "Block time so customers can't book during lunch"}
+                </p>
+              </div>
+
               {/* Toggle */}
-              <label style={{ cursor: 'pointer', position: 'relative' }}>
-                <input type="checkbox" checked={lunch} onChange={e => setLunch(e.target.checked)} style={{ opacity: 0, width: 0 }} />
+              <label style={{ cursor: 'pointer', position: 'relative', flexShrink: 0 }}>
+                <input type="checkbox" checked={lunch} onChange={e => setLunch(e.target.checked)} style={{ opacity: 0, position: 'absolute', width: 0, height: 0 }} />
                 <div style={{
-                  width: 44, height: 24, borderRadius: 99, transition: 'background 0.2s',
-                  background: lunch ? '#7c3aed' : (isDark ? 'rgba(255,255,255,0.1)' : '#d1d5db'),
+                  width: 48, height: 26, borderRadius: 99, transition: 'background 0.25s',
+                  background: lunch ? '#f97316' : (isDark ? 'rgba(255,255,255,0.12)' : '#d1d5db'),
+                  boxShadow: lunch ? '0 2px 10px rgba(249,115,22,0.4)' : 'none',
+                  position: 'relative',
                 }}>
                   <div style={{
-                    position: 'absolute', top: 4, left: lunch ? 24 : 4,
-                    width: 16, height: 16, borderRadius: '50%', background: '#fff',
-                    transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
+                    position: 'absolute', top: 4, left: lunch ? 26 : 4,
+                    width: 18, height: 18, borderRadius: '50%', background: '#fff',
+                    transition: 'left 0.25s cubic-bezier(0.34,1.56,0.64,1)',
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
                   }} />
                 </div>
               </label>
             </div>
 
+            {/* Time pickers (expanded) */}
             {lunch && (
-              <div style={{ animation: 's6-slide-in 0.3s ease', overflow: 'hidden' }}>
+              <div style={{ animation: 's6-slide-in 0.3s ease', overflow: 'hidden', borderTop: `1px dashed ${isDark ? 'rgba(251,146,60,0.25)' : 'rgba(234,88,12,0.2)'}`, padding: '16px 18px 18px' }}>
                 <div style={{ display: 'flex', gap: 16, alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
-                  <TimePicker label="Lunch from" value={lunchStart} onChange={setLunchStart} isDark={isDark} />
-                  <span style={{ fontSize: 20, color: sub, alignSelf: 'center', marginTop: 20 }}>→</span>
-                  <TimePicker label="Lunch to"   value={lunchEnd}   onChange={setLunchEnd}   isDark={isDark} />
+                  <TimePicker label="From" value={lunchStart} onChange={setLunchStart} isDark={isDark} />
+                  <span style={{ fontSize: 22, alignSelf: 'center', marginTop: 20 }}>☕</span>
+                  <TimePicker label="To"   value={lunchEnd}   onChange={setLunchEnd}   isDark={isDark} />
                 </div>
               </div>
             )}
