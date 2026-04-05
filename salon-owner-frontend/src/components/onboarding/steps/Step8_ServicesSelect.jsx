@@ -45,15 +45,11 @@ export default function Step8_ServicesSelect() {
   const activeCat = categories.find(c => c.key === activeCategory) || categories[0];
 
   const toggleService = (cat, serviceName) => {
-    setSelected(prev => {
-      const next = new Set(prev);
-      if (next.has(serviceName)) next.delete(serviceName);
-      else next.add(serviceName);
-      // Rebuild selectedServices
-      const all = buildSelected(categories, next);
-      update({ selectedServices: all });
-      return next;
-    });
+    const next = new Set(selected);
+    if (next.has(serviceName)) next.delete(serviceName);
+    else next.add(serviceName);
+    setSelected(next);
+    update({ selectedServices: buildSelected(categories, next) });
   };
 
   const buildSelected = (cats, selectedSet) => {
