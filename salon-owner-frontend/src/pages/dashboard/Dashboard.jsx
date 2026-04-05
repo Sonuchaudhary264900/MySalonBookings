@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import CelebrationOverlay from "../../components/onboarding/CelebrationOverlay";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import api from "../../services/api";
@@ -446,6 +447,18 @@ const Dashboard = () => {
   /* Walk-in modal */
   const [walkInOpen, setWalkInOpen] = useState(false);
 
+  /* First-time approval celebration */
+  const celebrationKey = user?._id ? `celebration_shown_${user._id}` : null;
+  const [showCelebration, setShowCelebration] = useState(() => {
+    if (!celebrationKey) return false;
+    return !localStorage.getItem(celebrationKey);
+  });
+
+  const handleCelebrationDone = () => {
+    if (celebrationKey) localStorage.setItem(celebrationKey, '1');
+    setShowCelebration(false);
+  };
+
   /* ── Fetch queue ── */
   const fetchQueue = useCallback(async () => {
     setQueueLoading(true);
@@ -555,6 +568,9 @@ const Dashboard = () => {
   /* ── Render ── */
   return (
     <DashboardLayout>
+      {showCelebration && (
+        <CelebrationOverlay name={user?.name} onDone={handleCelebrationDone} />
+      )}
       <div className="space-y-5">
 
         {/* ══════════════════════════════════════════════════════════

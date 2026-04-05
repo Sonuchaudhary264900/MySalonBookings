@@ -6,7 +6,6 @@ import { useOnboarding } from '../../../context/OnboardingContext';
 import { useAuth } from '../../../hooks/useAuth';
 import { useTheme } from '../../../context/ThemeContext';
 import { useOnboardingSubmit } from '../../../hooks/useOnboardingSubmit';
-import CelebrationOverlay from '../CelebrationOverlay';
 import ROUTES from '../../../routes';
 
 const S10_CSS = `
@@ -40,7 +39,6 @@ export default function Step10_Preview() {
   const { isDark } = useTheme();
   const navigate = useNavigate();
   const { submit, submitting, phase } = useOnboardingSubmit();
-  const [showCelebration, setShowCelebration] = useState(false);
 
   const unpricedCount  = data.selectedServices.filter(s => !data.servicePricing[s.serviceName]?.price).length;
   const coverPhoto     = data.photos.find(p => p.isCover)?.url || data.photos[0]?.url || '';
@@ -59,15 +57,10 @@ export default function Step10_Preview() {
     if (submitting) return;
     const res = await submit();
     if (res.success) {
-      setShowCelebration(true);
+      navigate(ROUTES.APPROVAL_WAITING, { replace: true });
     } else {
       toast.error(res.message || 'Submission failed — please try again');
     }
-  };
-
-  const handleCelebrationDone = () => {
-    setShowCelebration(false);
-    navigate(ROUTES.APPROVAL_WAITING, { replace: true });
   };
 
   const cardBg = isDark ? 'rgba(255,255,255,0.04)' : '#fff';
@@ -78,8 +71,6 @@ export default function Step10_Preview() {
   return (
     <>
       <style>{S10_CSS}</style>
-
-      {showCelebration && <CelebrationOverlay name={user?.name || data.name} onDone={handleCelebrationDone} />}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 

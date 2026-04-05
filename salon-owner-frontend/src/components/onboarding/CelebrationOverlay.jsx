@@ -2,13 +2,13 @@ import React, { useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
 
 export default function CelebrationOverlay({ name, onDone }) {
-  const firedRef = useRef(false);
+  const firedRef   = useRef(false);
+  const intervalRef = useRef(null);
 
   useEffect(() => {
     if (firedRef.current) return;
     firedRef.current = true;
 
-    // Multi-burst confetti
     const burst = (opts = {}) => confetti({
       particleCount: 120,
       spread: 100,
@@ -17,15 +17,28 @@ export default function CelebrationOverlay({ name, onDone }) {
       ...opts,
     });
 
+    // Initial bursts
     burst();
     setTimeout(() => burst({ origin: { x: 0.3, y: 0.6 }, particleCount: 80 }), 300);
     setTimeout(() => burst({ origin: { x: 0.7, y: 0.6 }, particleCount: 80 }), 600);
     setTimeout(() => burst({ particleCount: 60, spread: 120 }), 1000);
 
-    // Auto-advance
-    const t = setTimeout(onDone, 3200);
-    return () => clearTimeout(t);
-  }, [onDone]);
+    // Keep firing until Enter is pressed
+    intervalRef.current = setInterval(() => {
+      burst({ origin: { x: Math.random(), y: Math.random() * 0.5 }, particleCount: 60, spread: 80 });
+    }, 2200);
+
+    return () => {
+      clearInterval(intervalRef.current);
+      confetti.reset();
+    };
+  }, []);
+
+  const handleEnter = () => {
+    clearInterval(intervalRef.current);
+    confetti.reset();
+    onDone();
+  };
 
   return (
     <>
@@ -86,18 +99,30 @@ export default function CelebrationOverlay({ name, onDone }) {
           </p>
         )}
 
-        {/* Loading bar */}
-        <div style={{
-          marginTop: 40, width: 200, height: 3, borderRadius: 99,
-          background: 'rgba(255,255,255,0.1)', overflow: 'hidden',
-        }}>
-          <div style={{
-            height: '100%', borderRadius: 99,
-            background: 'linear-gradient(90deg,#7c3aed,#ec4899)',
-            animation: 'ob-progress-bar 3.2s linear forwards',
-          }} />
-        </div>
-        <style>{`@keyframes ob-progress-bar{from{width:0}to{width:100%}}`}</style>
+        {/* Enter button */}
+        <button
+          onClick={handleEnter}
+          style={{
+            marginTop: 40,
+            padding: '14px 48px',
+            borderRadius: 14,
+            background: 'linear-gradient(135deg,#7c3aed,#ec4899)',
+            border: 'none',
+            color: '#fff',
+            fontSize: 17,
+            fontWeight: 800,
+            cursor: 'pointer',
+            letterSpacing: '-0.2px',
+            boxShadow: '0 6px 32px rgba(124,58,237,0.55)',
+            fontFamily: 'inherit',
+            animation: 'cel-fade-up 0.6s 1.4s ease both',
+            transition: 'transform 0.15s, box-shadow 0.15s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 40px rgba(124,58,237,0.7)'; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 6px 32px rgba(124,58,237,0.55)'; }}
+        >
+          Enter Dashboard →
+        </button>
       </div>
     </>
   );
