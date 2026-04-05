@@ -44,7 +44,7 @@ export default function OnboardingLayout({ children }) {
       <div
         data-ob-light={!isDark ? '1' : undefined}
         style={{
-          minHeight: '100vh', background: bg, position: 'relative',
+          minHeight: '100vh', minHeight: 'calc(var(--vh, 1vh) * 100)', background: bg, position: 'relative',
           fontFamily: "'Inter','Segoe UI',system-ui,sans-serif",
           transition: 'background 0.3s ease', overflowX: 'hidden',
         }}

@@ -77,10 +77,12 @@ const CouponCard = ({
   const isLimitLow = isActive && remaining !== null && remaining <= 10;
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(coupon.code).then(() => {
+    import('../../../utils/clipboard').then(({ copyToClipboard }) =>
+      copyToClipboard(coupon.code)
+    ).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    });
+    }).catch(() => {});
   };
 
   /* Gradient strip color based on status */

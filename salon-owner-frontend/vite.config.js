@@ -25,7 +25,7 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: false,
     minify: 'esbuild',
-    target: 'es2020',
+    target: ['es2015', 'chrome85', 'firefox78', 'safari12', 'edge88'],
     cssCodeSplit: true,
     reportCompressedSize: false,
     chunkSizeWarningLimit: 500,

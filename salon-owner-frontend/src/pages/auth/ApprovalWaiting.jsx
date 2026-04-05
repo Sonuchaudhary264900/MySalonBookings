@@ -145,7 +145,7 @@ const ApprovalWaiting = () => {
       <div
         data-lm={isDark ? undefined : '1'}
         style={{
-          minHeight:'100vh', background:bg, position:'relative', overflow:'hidden',
+          minHeight:'100vh', minHeight:'calc(var(--vh, 1vh) * 100)', background:bg, position:'relative', overflow:'hidden',
           fontFamily:"'Inter','Segoe UI',system-ui,-apple-system,sans-serif",
           display:'flex', alignItems:'center', justifyContent:'center', padding:'32px 16px',
           transition:'background 0.3s ease',

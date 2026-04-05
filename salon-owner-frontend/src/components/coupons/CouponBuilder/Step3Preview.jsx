@@ -6,10 +6,12 @@ export default function Step3Preview({ form }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(form.code).then(() => {
+    import('../../../../utils/clipboard').then(({ copyToClipboard }) =>
+      copyToClipboard(form.code)
+    ).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    });
+    }).catch(() => {});
   };
 
   const discountValue = parseFloat(form.discountValue) || 0;

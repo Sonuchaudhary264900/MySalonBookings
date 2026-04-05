@@ -241,6 +241,18 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Viewport height fix: sets --vh CSS variable so inline styles
+         using calc(var(--vh,1vh)*100) work correctly on mobile Safari -->
+    <script>
+      (function() {
+        function setVH() {
+          document.documentElement.style.setProperty('--vh', (window.innerHeight * 0.01) + 'px');
+        }
+        setVH();
+        window.addEventListener('resize', setVH);
+        window.addEventListener('orientationchange', setVH);
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

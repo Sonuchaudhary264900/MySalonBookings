@@ -10,8 +10,9 @@ const SalonQRModal = ({ salon, onClose }) => {
   const salonUrl = `${CUSTOMER_URL}/salon/${salon._id}`;
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(salonUrl);
-    toast.success('Link copied!');
+    import('../../utils/clipboard').then(({ copyToClipboard }) =>
+      copyToClipboard(salonUrl)
+    ).then(() => toast.success('Link copied!')).catch(() => toast.error('Copy failed'));
   };
 
   const buildCard = () => new Promise((resolve, reject) => {
@@ -28,6 +29,7 @@ const SalonQRModal = ({ salon, onClose }) => {
       const canvas = document.createElement('canvas');
       canvas.width = W * SCALE; canvas.height = H * SCALE;
       const ctx = canvas.getContext('2d');
+      if (!ctx) { URL.revokeObjectURL(url); reject(new Error('Canvas not supported')); return; }
       ctx.scale(SCALE, SCALE);
 
       // Background & card
@@ -36,18 +38,18 @@ const SalonQRModal = ({ salon, onClose }) => {
 
       // Header
       ctx.fillStyle = '#4f46e5'; ctx.fillRect(20, 20, 360, 74);
-      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 17px Arial'; ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffffff'; ctx.font = "bold 17px -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif"; ctx.textAlign = 'center';
       ctx.fillText('\u2702  Salon Booking', 200, 64);
 
       // QR code
       ctx.drawImage(qrImg, 110, 110, 180, 180);
 
       // Salon name
-      ctx.fillStyle = '#111827'; ctx.font = 'bold 20px Arial';
+      ctx.fillStyle = '#111827'; ctx.font = "bold 20px -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif";
       ctx.fillText(salon?.name || 'My Salon', 200, 322);
 
       // Subtitle
-      ctx.fillStyle = '#6b7280'; ctx.font = '13px Arial';
+      ctx.fillStyle = '#6b7280'; ctx.font = "13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif";
       ctx.fillText('Scan to book your appointment', 200, 348);
 
       // Divider
@@ -55,7 +57,7 @@ const SalonQRModal = ({ salon, onClose }) => {
       ctx.beginPath(); ctx.moveTo(60, 368); ctx.lineTo(340, 368); ctx.stroke();
 
       // Full URL with word-wrap
-      ctx.fillStyle = '#9ca3af'; ctx.font = '9px Arial';
+      ctx.fillStyle = '#9ca3af'; ctx.font = "9px -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif";
       const maxUrlW = 320;
       let line = '', lines = [], chars = salonUrl.split('');
       chars.forEach(ch => {
@@ -67,7 +69,7 @@ const SalonQRModal = ({ salon, onClose }) => {
       lines.forEach((l, i) => ctx.fillText(l, 200, 386 + i * 13));
 
       // Footer
-      ctx.fillStyle = '#6b7280'; ctx.font = '11px Arial';
+      ctx.fillStyle = '#6b7280'; ctx.font = "11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif";
       ctx.fillText('Powered by My Salon Bookings', 200, 500);
 
       URL.revokeObjectURL(url);
