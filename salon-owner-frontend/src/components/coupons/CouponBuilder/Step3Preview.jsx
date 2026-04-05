@@ -6,7 +6,7 @@ export default function Step3Preview({ form }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
-    import('../../../../utils/clipboard').then(({ copyToClipboard }) =>
+    import('../../../utils/clipboard').then(({ copyToClipboard }) =>
       copyToClipboard(form.code)
     ).then(() => {
       setCopied(true);
