@@ -87,7 +87,7 @@ export default function OnboardingLayout({ children }) {
                 {/* Brand */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                   <div style={{ width: 26, height: 26, borderRadius: 8, background: 'linear-gradient(135deg,#7c3aed,#ec4899)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, boxShadow: '0 0 14px rgba(124,58,237,0.4)' }}>✂</div>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: textPrimary, letterSpacing: '-0.3px' }}>Glow</span>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: textPrimary, letterSpacing: '-0.3px' }}>GlowSpot</span>
                 </div>
 
                 <div style={{ width: 1, height: 18, background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }} />
