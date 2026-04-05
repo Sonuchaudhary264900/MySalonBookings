@@ -795,11 +795,15 @@ exports.deleteAccount = async (req, res) => {
   try {
     const customerId = req.customer._id;
 
-    const Booking = require('../../models/Booking');
-    const Review  = require('../../models/Review');
+    const Booking     = require('../../models/Booking');
+    const Review      = require('../../models/Review');
+    const UserPackage = require('../../models/UserPackage');
 
-    await Booking.deleteMany({ customerId });
-    await Review.deleteMany({ customerId });
+    await Promise.all([
+      Booking.deleteMany({ customerId }),
+      Review.deleteMany({ customerId }),
+      UserPackage.deleteMany({ customerId }),
+    ]);
     await Customer.findByIdAndDelete(customerId);
 
     res.json(formatSuccessResponse(null, 'Account deleted successfully'));

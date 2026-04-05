@@ -13,7 +13,7 @@ const usageHistorySchema = new mongoose.Schema(
 
 const couponSchema = new mongoose.Schema(
   {
-    code: { type: String, required: true, unique: true, uppercase: true },
+    code: { type: String, required: true, uppercase: true },
     description: String,
     salonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Salon', default: null },
     discountType: { type: String, enum: ['percentage', 'fixed'], required: true },
@@ -34,7 +34,7 @@ const couponSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-couponSchema.index({ code: 1 });
+couponSchema.index({ code: 1, salonId: 1 }, { unique: true }); // unique per salon
 couponSchema.index({ salonId: 1 });
 
 module.exports = mongoose.model('Coupon', couponSchema);

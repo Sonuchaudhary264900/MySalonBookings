@@ -566,14 +566,31 @@ exports.deleteAccount = async (req, res) => {
       );
     }
 
-    const Salon   = require('../../models/Salon');
-    const Service = require('../../models/Service');
-    const Review  = require('../../models/Review');
+    const Salon        = require('../../models/Salon');
+    const Service      = require('../../models/Service');
+    const Review       = require('../../models/Review');
+    const Coupon       = require('../../models/Coupon');
+    const Package      = require('../../models/Package');
+    const UserPackage  = require('../../models/UserPackage');
+    const Barber       = require('../../models/Barber');
+    const Booking      = require('../../models/Booking');
+    const Subscription = require('../../models/Subscription');
+    const Message      = require('../../models/Message');
 
     const salon = await Salon.findOne({ ownerId: owner._id });
     if (salon) {
-      await Service.deleteMany({ salonId: salon._id });
-      await Review.deleteMany({ salonId: salon._id });
+      const sid = salon._id;
+      await Promise.all([
+        Service.deleteMany({ salonId: sid }),
+        Review.deleteMany({ salonId: sid }),
+        Coupon.deleteMany({ salonId: sid }),
+        Package.deleteMany({ salonId: sid }),
+        UserPackage.deleteMany({ salonId: sid }),
+        Barber.deleteMany({ salonId: sid }),
+        Booking.deleteMany({ salonId: sid }),
+        Subscription.deleteMany({ salonId: sid }),
+        Message.deleteMany({ salonId: sid }),
+      ]);
       await salon.deleteOne();
     }
     await Owner.findByIdAndDelete(owner._id);

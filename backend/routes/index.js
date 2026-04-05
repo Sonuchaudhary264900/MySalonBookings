@@ -2257,17 +2257,23 @@ router.post("/owner/coupons", authenticateOwner, asyncHandler(async (req, res) =
   if (!code?.trim()) return res.status(400).json({ success: false, message: "Coupon code is required" });
   if (!discountValue || isNaN(Number(discountValue))) return res.status(400).json({ success: false, message: "Valid discount value is required" });
   const existing = await Coupon.findOne({ code: code.trim().toUpperCase(), salonId: salon._id });
-  if (existing) return res.status(409).json({ success: false, message: "Coupon code already exists" });
-  const coupon = await Coupon.create({
-    code: code.trim().toUpperCase(),
-    salonId: salon._id,
-    discountType: discountType || "percentage",
-    discountValue: Number(discountValue),
-    minAmount: minOrderAmount ? Number(minOrderAmount) : 0,
-    maxUsageCount: maxUses ? Number(maxUses) : null,
-    validUntil: expiryDate ? new Date(expiryDate) : null,
-    isActive: true,
-  });
+  if (existing) return res.status(409).json({ success: false, message: "Coupon code already exists for this salon" });
+  let coupon;
+  try {
+    coupon = await Coupon.create({
+      code: code.trim().toUpperCase(),
+      salonId: salon._id,
+      discountType: discountType || "percentage",
+      discountValue: Number(discountValue),
+      minAmount: minOrderAmount ? Number(minOrderAmount) : 0,
+      maxUsageCount: maxUses ? Number(maxUses) : null,
+      validUntil: expiryDate ? new Date(expiryDate) : null,
+      isActive: true,
+    });
+  } catch (e) {
+    if (e.code === 11000) return res.status(409).json({ success: false, message: "Coupon code already exists for this salon" });
+    throw e;
+  }
   res.status(201).json({ success: true, data: {
     ...coupon.toObject(),
     minOrderAmount: coupon.minAmount || 0,

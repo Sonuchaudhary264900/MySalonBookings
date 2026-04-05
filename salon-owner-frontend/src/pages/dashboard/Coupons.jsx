@@ -2,8 +2,8 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Plus, Tag, RefreshCw, TrendingUp, CheckCircle, XCircle, Clock, Bell, AlertTriangle, BarChart2, X, Loader2, IndianRupee, Phone, User } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
-import CouponCard  from '../../components/coupons/CouponCard';
-import CouponModal from '../../components/coupons/CouponModal';
+import CouponCard    from '../../components/coupons/CouponCard';
+import CouponBuilder from '../../components/coupons/CouponBuilder';
 import api from '../../services/api';
 
 /* ── Stat card ── */
@@ -387,9 +387,9 @@ export default function Coupons() {
         </div>
       </div>
 
-      {/* ── Create/Edit Modal ── */}
+      {/* ── Create/Edit Builder ── */}
       {modal && (
-        <CouponModal
+        <CouponBuilder
           coupon={modal === 'create' ? null : modal}
           onClose={() => setModal(null)}
           onSaved={handleSaved}

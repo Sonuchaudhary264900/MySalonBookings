@@ -22,6 +22,19 @@ const connectDB = async () => {
     console.log(`🌐 Host: ${conn.connection.host}`);
     console.log(`📂 Database: ${conn.connection.name}`);
 
+    // ── One-time migration: drop old global unique index on coupons.code ──
+    // The schema now uses a compound unique index { code, salonId } instead.
+    try {
+      const coupons = conn.connection.db.collection('coupons');
+      const indexes = await coupons.indexes();
+      if (indexes.some(i => i.name === 'code_1')) {
+        await coupons.dropIndex('code_1');
+        console.log('✅ Migration: dropped old global coupon code index');
+      }
+    } catch (migErr) {
+      console.warn('⚠️  Migration (coupon index): ' + migErr.message);
+    }
+
     // Connection events
     mongoose.connection.on("connected", () => {
       console.log("📡 Mongoose connected to DB");
