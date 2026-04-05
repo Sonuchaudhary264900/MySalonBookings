@@ -724,8 +724,31 @@ exports.firebaseRegister = async (req, res) => {
       $or: [{ phone }, { email: email.toLowerCase().trim() }],
     });
     if (existingOwner) {
+      // Phone is Firebase-verified — if the phone matches, auto-login
+      if (existingOwner.phone === phone) {
+        const token = jwt.sign(
+          { _id: existingOwner._id, phone: existingOwner.phone, role: existingOwner.role, salonId: existingOwner.salonId },
+          process.env.JWT_SECRET,
+          { expiresIn: process.env.JWT_EXPIRE || '24h' }
+        );
+        const refreshToken = jwt.sign(
+          { _id: existingOwner._id },
+          process.env.JWT_REFRESH_SECRET,
+          { expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d' }
+        );
+        existingOwner.refreshTokens.push({ token: refreshToken });
+        await existingOwner.save();
+        return res.status(200).json(
+          formatSuccessResponse(
+            { owner: existingOwner.getPublicProfile(), token, refreshToken },
+            'Account already exists. Logged in successfully.',
+            200
+          )
+        );
+      }
+      // Email conflict with a different account
       return res.status(409).json(
-        formatErrorResponse('Email or phone already registered', 409)
+        formatErrorResponse('Email is already registered with another account', 409)
       );
     }
 
