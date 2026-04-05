@@ -12,6 +12,11 @@ const notificationCampaignSchema = new mongoose.Schema(
       enum: ['my_customers', 'radius_5km', 'radius_10km', 'radius_25km'],
       required: true,
     },
+    targetGender: {
+      type: String,
+      enum: ['male', 'female', 'both'],
+      default: 'both',
+    },
 
     title:   { type: String, required: true },
     message: { type: String, required: true },

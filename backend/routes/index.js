@@ -3011,17 +3011,23 @@ const currentMonth = () => {
   return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`;
 };
 
-// Helper: resolve target customers list based on targetType
-async function resolveTargetCustomers(targetType, salon) {
+// Helper: resolve target customers list based on targetType + optional gender filter
+// targetGender: 'male' | 'female' | 'both'
+async function resolveTargetCustomers(targetType, salon, targetGender = 'both') {
   const Customer = require('../models/Customer');
   const Booking  = require('../models/Booking');
+
+  // Build gender filter — 'both' means no restriction
+  const genderFilter = targetGender === 'both'
+    ? {}
+    : { gender: targetGender };
 
   if (targetType === 'my_customers') {
     const bookings = await Booking.find({ salonId: salon._id }).select('customerId').lean();
     const ids = [...new Set(bookings.map(b => b.customerId?.toString()).filter(Boolean))];
     if (!ids.length) return [];
-    return Customer.find({ _id: { $in: ids }, isActive: true, isBanned: { $ne: true } })
-      .select('pushToken').lean();
+    return Customer.find({ _id: { $in: ids }, isActive: true, isBanned: { $ne: true }, ...genderFilter })
+      .select('pushToken _id').lean();
   }
 
   const radiusMap = { radius_5km: 5000, radius_10km: 10000, radius_25km: 25000 };
@@ -3037,7 +3043,8 @@ async function resolveTargetCustomers(targetType, salon) {
     },
     isActive: true,
     isBanned: { $ne: true },
-  }).select('pushToken').lean();
+    ...genderFilter,
+  }).select('pushToken _id').lean();
 }
 
 // Helper: send Expo push + socket to a list of customers
@@ -3094,6 +3101,7 @@ router.get('/owner/notification-settings', authenticateOwner, asyncHandler(async
       broadcastEnabled: settings.broadcastEnabled,
       pricing: settings.pricing,
       freeRadiusRemaining: Math.max(0, 1 - freeUsedThisMonth),
+      salonServedGender: salon.servedGender || 'unisex',
     },
   });
 }));
@@ -3131,11 +3139,20 @@ router.post('/owner/packages/:id/notify', authenticateOwner, validateObjectId('i
   const pkg = await Package.findOne({ _id: req.params.id, salonId: salon._id });
   if (!pkg) return res.status(404).json({ success: false, message: 'Package not found' });
 
-  const { title, message, targetType = 'my_customers', preview = false } = req.body;
+  const { title, message, targetType = 'my_customers', preview = false, targetGender: rawGender } = req.body;
 
   const VALID_TARGETS = ['my_customers', 'radius_5km', 'radius_10km', 'radius_25km'];
   if (!VALID_TARGETS.includes(targetType))
     return res.status(400).json({ success: false, message: 'Invalid targetType' });
+
+  // Auto-determine gender from salon's servedGender; only unisex salons can override
+  let targetGender = 'both';
+  if (salon.servedGender === 'male')   targetGender = 'male';
+  else if (salon.servedGender === 'female') targetGender = 'female';
+  else if (salon.servedGender === 'unisex') {
+    if (['male', 'female', 'both'].includes(rawGender)) targetGender = rawGender;
+    // default 'both' if not provided
+  }
 
   // Load settings
   let settings = await NotificationSettings.findOne({ salonId: salon._id });
@@ -3161,14 +3178,14 @@ router.post('/owner/packages/:id/notify', authenticateOwner, validateObjectId('i
   const isFree = rawAmount === 0 || hasFreeQuota;
   const amount = isFree ? 0 : rawAmount;
 
-  // Estimate target customers
-  const customers = await resolveTargetCustomers(targetType, salon);
+  // Estimate target customers (gender-filtered)
+  const customers = await resolveTargetCustomers(targetType, salon, targetGender);
   const estimatedCount = customers.length;
 
   if (preview) {
     return res.json({
       success: true,
-      data: { estimatedCount, isFree, amount, freeRadiusRemaining: hasFreeQuota ? 1 - freeUsed : 0 },
+      data: { estimatedCount, isFree, amount, freeRadiusRemaining: hasFreeQuota ? 1 - freeUsed : 0, targetGender },
     });
   }
 
@@ -3189,7 +3206,7 @@ router.post('/owner/packages/:id/notify', authenticateOwner, validateObjectId('i
     // Create campaign record
     const campaign = await NotificationCampaign.create({
       salonId: salon._id, packageId: pkg._id, packageName: pkg.name, packageType: pkg.type,
-      targetType, title: title.trim(), message: message.trim(),
+      targetType, targetGender, title: title.trim(), message: message.trim(),
       isFree: true, amount: 0, paymentStatus: 'free', status: 'sent', sentAt: new Date(),
     });
 
@@ -3207,7 +3224,7 @@ router.post('/owner/packages/:id/notify', authenticateOwner, validateObjectId('i
   // ── Paid campaign: create Razorpay order ──
   const campaign = await NotificationCampaign.create({
     salonId: salon._id, packageId: pkg._id, packageName: pkg.name, packageType: pkg.type,
-    targetType, title: title.trim(), message: message.trim(),
+    targetType, targetGender, title: title.trim(), message: message.trim(),
     isFree: false, amount, paymentStatus: 'pending',
     status: 'payment_pending',
   });
@@ -3270,7 +3287,7 @@ router.post('/owner/notification-campaigns/:id/verify-payment', authenticateOwne
     return res.status(404).json({ success: false, message: 'Package not found' });
   }
 
-  const customers = await resolveTargetCustomers(campaign.targetType, salon);
+  const customers = await resolveTargetCustomers(campaign.targetType, salon, campaign.targetGender || 'both');
   const io = req.app.get('io');
   const notifiedCount = await dispatchNotification(
     customers, campaign.title, campaign.message, pkg, io, salon._id

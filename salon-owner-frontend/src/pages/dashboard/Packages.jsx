@@ -582,6 +582,7 @@ function NotifyModal({ pkg, onClose }) {
   const [notifTitle, setNotifTitle]     = useState(`Check out ${pkg.name}!`);
   const [notifMessage, setNotifMessage] = useState('');
   const [targetType, setTargetType]     = useState('my_customers');
+  const [targetGender, setTargetGender] = useState('both'); // 'male' | 'female' | 'both'
   const [settings, setSettings]         = useState(null);
   const [preview, setPreview]           = useState(null); // { estimatedCount, isFree, amount }
   const [loadingPreview, setLoadingPreview] = useState(false);
@@ -592,21 +593,31 @@ function NotifyModal({ pkg, onClose }) {
   // Load notification settings on mount
   useEffect(() => {
     api.get('/owner/notification-settings')
-      .then(r => setSettings(r.data.data))
+      .then(r => {
+        const d = r.data.data;
+        setSettings(d);
+        // Auto-set gender based on salon type
+        if (d.salonServedGender === 'male')   setTargetGender('male');
+        else if (d.salonServedGender === 'female') setTargetGender('female');
+        else setTargetGender('both'); // unisex default
+      })
       .catch(() => {});
     titleRef.current?.focus();
   }, []);
 
-  // Load preview whenever targetType changes (on audience step)
+  const servedGender = settings?.salonServedGender || 'unisex';
+  const isUnisex = servedGender === 'unisex';
+
+  // Load preview whenever targetType or targetGender changes (on audience step)
   useEffect(() => {
     if (step !== 'audience') return;
     setPreview(null);
     setLoadingPreview(true);
-    api.post(`/owner/packages/${pkg._id}/notify`, { targetType, preview: true })
+    api.post(`/owner/packages/${pkg._id}/notify`, { targetType, targetGender, preview: true })
       .then(r => setPreview(r.data.data))
       .catch(() => setPreview({ estimatedCount: 0, isFree: true, amount: 0 }))
       .finally(() => setLoadingPreview(false));
-  }, [targetType, step, pkg._id]);
+  }, [targetType, targetGender, step, pkg._id]);
 
   const priceLabel = (id) => {
     if (!settings) return '';
@@ -623,7 +634,7 @@ function NotifyModal({ pkg, onClose }) {
     setSending(true);
     try {
       const res = await api.post(`/owner/packages/${pkg._id}/notify`, {
-        title: notifTitle.trim(), message: notifMessage.trim(), targetType,
+        title: notifTitle.trim(), message: notifMessage.trim(), targetType, targetGender,
       });
 
       if (res.data.needsPayment) {
@@ -799,6 +810,41 @@ function NotifyModal({ pkg, onClose }) {
                 );
               })}
 
+              {/* Gender targeting */}
+              <div className="pt-1">
+                <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">
+                  Target Gender
+                </p>
+                {!isUnisex ? (
+                  /* Non-unisex salon: auto gender, just show info */
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 text-xs text-indigo-700 dark:text-indigo-400">
+                    <Check className="w-3.5 h-3.5 shrink-0" />
+                    Auto-targeting <strong className="capitalize">{servedGender}</strong> customers only
+                  </div>
+                ) : (
+                  /* Unisex salon: let owner choose */
+                  <div className="flex gap-2">
+                    {[
+                      { id: 'both',   label: 'Both' },
+                      { id: 'male',   label: 'Male' },
+                      { id: 'female', label: 'Female' },
+                    ].map(g => (
+                      <button
+                        key={g.id}
+                        onClick={() => setTargetGender(g.id)}
+                        className={`flex-1 py-2 rounded-xl text-sm font-semibold border-2 transition ${
+                          targetGender === g.id
+                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-400'
+                            : 'border-gray-100 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:border-gray-200 dark:hover:border-gray-700'
+                        }`}
+                      >
+                        {g.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Estimated reach */}
               {targetType && (
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400">
@@ -821,6 +867,7 @@ function NotifyModal({ pkg, onClose }) {
                 {[
                   ['Package', pkg.name],
                   ['Audience', AUDIENCE_OPTIONS.find(o => o.id === targetType)?.label || targetType],
+                  ['Gender', targetGender === 'both' ? 'All (Male + Female)' : targetGender.charAt(0).toUpperCase() + targetGender.slice(1)],
                   ['Estimated Reach', `${preview.estimatedCount} customer${preview.estimatedCount !== 1 ? 's' : ''}`],
                   ['Cost', preview.isFree ? 'Free' : `₹${preview.amount}`],
                 ].map(([label, value]) => (
