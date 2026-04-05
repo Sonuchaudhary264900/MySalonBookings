@@ -9,6 +9,7 @@ const ROUTES = {
   HOME: '/',
   LOGIN: '/login',
   REGISTER: '/register',
+  ONBOARDING: '/onboarding',
 
   // Semi-Protected Routes (after login but before approval)
   SALON_REGISTER: '/salon/register',

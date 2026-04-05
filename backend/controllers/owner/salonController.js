@@ -38,6 +38,7 @@ exports.createSalon = async (req, res) => {
       workingHours, description, photos, category,
       servedGender, offeredCategories, kidsHaircut, atHomeServices,
       location: bodyLocation,
+      videoUrl, businessLicenseUrl, businessRegistrationUrl,
     } = req.body;
 
     const validation = validateSalonData({
@@ -137,6 +138,10 @@ exports.createSalon = async (req, res) => {
         saturday: { open: '09:00', close: '18:00', isClosed: false },
         sunday: { open: '10:00', close: '18:00', isClosed: true },
       },
+
+      ...(videoUrl              ? { videoUrl }              : {}),
+      ...(businessLicenseUrl   ? { businessLicenseUrl }   : {}),
+      ...(businessRegistrationUrl ? { businessRegistrationUrl } : {}),
 
       ownerId: req.owner._id,
       approvalStatus: 'pending',

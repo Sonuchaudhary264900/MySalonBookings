@@ -51,9 +51,9 @@ const ProtectedRoute = () => {
   // Not logged in
   if (!isAuthenticated) return <Navigate to={ROUTES.LOGIN} replace />;
 
-  // Needs salon registration
+  // Needs salon registration — send to new unified onboarding
   if (user?.status === 'mobile_verified') {
-    return <Navigate to={ROUTES.SALON_REGISTER} replace />;
+    return <Navigate to={ROUTES.ONBOARDING} replace />;
   }
 
   // Owner status is pending — wait for salon data before deciding (prevents flash)

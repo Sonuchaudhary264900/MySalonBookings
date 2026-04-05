@@ -1,16 +1,19 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  Images, Upload, Star, Tag, RefreshCw, Loader2, ImagePlus, Film,
-  Heart, MessageCircle, ChevronDown, ChevronUp, Play, Eye, Send, CornerDownRight,
+  Images, Upload, Star, RefreshCw, Loader2, ImagePlus, Film,
+  Heart, MessageCircle, Eye, Send, CornerDownRight, ChevronDown, ChevronUp, Play,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
-import ImageGrid  from '../../components/gallery/ImageGrid';
-import UploadModal from '../../components/gallery/UploadModal';
-import ImageModal  from '../../components/gallery/ImageModal';
+import UploadModal    from '../../components/gallery/UploadModal';
+import ImageModal     from '../../components/gallery/ImageModal';
+import AIInsightsBar  from '../../components/gallery/AIInsightsBar';
+import FilterBar      from '../../components/gallery/FilterBar';
+import MasonryGrid    from '../../components/gallery/MasonryGrid';
+import PreviewModal   from '../../components/gallery/PreviewModal';
 import api from '../../services/api';
 import { useGalleryUpload } from '../../context/GalleryUploadContext';
-import { useSalon } from '../../hooks/useSalon';
+import { useSalon }         from '../../hooks/useSalon';
 import {
   cloudinaryVideoPosterUrl,
   galleryItemDedupeKey,
@@ -23,97 +26,6 @@ import {
 
 const ALL_TAGS = ['Haircut', 'Beard', 'Facial', 'Spa', 'Nails', 'Makeup'];
 
-/* ── Stat pill ── */
-const StatPill = ({ icon: Icon, label, value, color }) => (
-  <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border ${color}`}>
-    <Icon className="w-3.5 h-3.5" />
-    <span className="text-xs font-semibold">{value}</span>
-    <span className="text-xs opacity-70">{label}</span>
-  </div>
-);
-
-/* ── Tag filter pill ── */
-const TagPill = ({ label, active, onClick }) => (
-  <button
-    onClick={onClick}
-    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-150 ${
-      active
-        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30'
-        : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-indigo-300 dark:hover:border-indigo-700 hover:text-indigo-600 dark:hover:text-indigo-400'
-    }`}
-  >
-    {label}
-  </button>
-);
-
-/* ── Empty state ── */
-const EmptyState = ({ onUpload }) => (
-  <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
-    <style>{`
-      @keyframes gallery-glow {
-        0%,100% { opacity:.15; transform:scale(1); }
-        50%      { opacity:.3;  transform:scale(1.08); }
-      }
-    `}</style>
-
-    <div className="relative mb-6">
-      <div className="absolute inset-0 w-24 h-24 rounded-full bg-indigo-400/20 blur-2xl"
-        style={{ animation:'gallery-glow 3s ease-in-out infinite' }} />
-      <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-100 to-violet-100
-        dark:from-indigo-950/60 dark:to-violet-950/60 flex items-center justify-center shadow-lg">
-        <Images className="w-10 h-10 text-indigo-400 dark:text-indigo-500" />
-      </div>
-    </div>
-
-    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">No media uploaded yet</h3>
-    <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mb-6">
-      Upload photos and videos to attract more customers and showcase your salon's best work
-    </p>
-
-    <button
-      onClick={onUpload}
-      className="flex items-center gap-2 px-6 py-2.5 rounded-xl
-        bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-semibold
-        hover:from-indigo-700 hover:to-violet-700 transition-all shadow-lg shadow-indigo-500/25
-        hover:shadow-indigo-500/40 hover:scale-[1.02]"
-    >
-      <ImagePlus className="w-4 h-4" /> Upload Your First Media
-    </button>
-  </div>
-);
-
-/* ── Featured Photos strip ── */
-const FeaturedStrip = ({ photos, coverId, onView }) => {
-  const featured = photos.filter(p => p.tags?.length > 0 || p._id === coverId).slice(0, 6);
-  if (!featured.length) return null;
-
-  return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <Star className="w-4 h-4 text-amber-500" />
-        <h3 className="text-sm font-bold text-gray-900 dark:text-white">Featured Photos</h3>
-        <span className="text-xs text-gray-400 ml-auto">{featured.length} selected</span>
-      </div>
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {featured.map(p => (
-          <button
-            key={p._id}
-            onClick={() => onView(p)}
-            className="shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800
-              hover:ring-2 hover:ring-indigo-400 transition-all duration-150"
-          >
-            <img
-              src={getGalleryMediaUrl(p)}
-              alt=""
-              className="w-full h-full object-cover"
-            />
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-};
-
 /* ── Relative time ── */
 function timeAgo(date) {
   if (!date) return '';
@@ -124,36 +36,24 @@ function timeAgo(date) {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
-/* ── Reel thumbnail: Cloudinary JPEG → video element fallback ── */
+/* ── Reel thumbnail in insights panel ── */
 const ReelThumb = ({ url }) => {
   const [cloudFailed, setCloudFailed] = useState(false);
   const thumbUrl = cloudinaryVideoPosterUrl(url);
-
   const videoRef = useCallback((el) => {
     if (!el) return;
     el.muted = true;
     el.onloadedmetadata = () => { el.currentTime = 0.1; };
   }, []);
-
   return (
-    <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-gray-800 shrink-0">
+    <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-800 shrink-0">
       <div className="absolute inset-0 bg-gradient-to-br from-gray-700 to-gray-900" />
-      {!cloudFailed && thumbUrl ? (
-        <img
-          src={thumbUrl}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover"
-          onError={() => setCloudFailed(true)}
-        />
-      ) : url ? (
-        <video
-          ref={videoRef}
-          src={url}
-          preload="metadata"
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-      ) : null}
+      {!cloudFailed && thumbUrl
+        ? <img src={thumbUrl} alt="" className="absolute inset-0 w-full h-full object-cover" onError={() => setCloudFailed(true)} />
+        : url
+          ? <video ref={videoRef} src={url} preload="metadata" playsInline className="absolute inset-0 w-full h-full object-cover" />
+          : null
+      }
       <div className="absolute inset-0 flex items-center justify-center bg-black/25">
         <Play className="w-4 h-4 text-white fill-white" />
       </div>
@@ -161,14 +61,15 @@ const ReelThumb = ({ url }) => {
   );
 };
 
-/* ── Reel Insights card ── */
+/* ── Single reel insight card ── */
 const ReelInsightCard = ({ reel }) => {
-  const [open, setOpen] = useState(false);
-  const [comments, setComments] = useState(reel.recentComments || []);
-  const [replyingTo, setReplyingTo] = useState(null); // commentId
-  const [replyText, setReplyText]   = useState('');
-  const [posting, setPosting]       = useState(false);
+  const [open,       setOpen]       = useState(false);
+  const [comments,   setComments]   = useState(reel.recentComments || []);
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [replyText,  setReplyText]  = useState('');
+  const [posting,    setPosting]    = useState(false);
   const url = reel.videoUrl || '';
+  const fmt = n => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
 
   const submitReply = async (commentId) => {
     const text = replyText.trim();
@@ -184,20 +85,15 @@ const ReelInsightCard = ({ reel }) => {
       setReplyText('');
       setReplyingTo(null);
       toast.success('Reply posted');
-    } catch {
-      toast.error('Failed to post reply');
-    } finally {
-      setPosting(false);
-    }
+    } catch { toast.error('Failed to post reply'); }
+    finally  { setPosting(false); }
   };
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
-      <div className="flex items-center gap-3 p-3">
-        {/* Thumbnail — Cloudinary JPEG first, then video element fallback */}
+    <div className="bg-white dark:bg-gray-900/60 rounded-2xl border border-gray-100 dark:border-gray-800/80 overflow-hidden
+      hover:border-indigo-200 dark:hover:border-indigo-800/50 transition-colors">
+      <div className="flex items-center gap-3 p-3.5">
         <ReelThumb url={url} />
-
-        {/* Stats */}
         <div className="flex-1 min-w-0">
           {reel.categories?.length > 0 && (
             <div className="flex flex-wrap gap-1 mb-1.5">
@@ -208,18 +104,16 @@ const ReelInsightCard = ({ reel }) => {
           )}
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1 text-sm font-bold text-red-500">
-              <Heart className="w-3.5 h-3.5 fill-red-500" /> {reel.likeCount}
+              <Heart className="w-3.5 h-3.5 fill-red-500" /> {fmt(reel.likeCount)}
             </span>
             <span className="flex items-center gap-1 text-sm font-bold text-indigo-500">
-              <MessageCircle className="w-3.5 h-3.5" /> {reel.commentCount}
+              <MessageCircle className="w-3.5 h-3.5" /> {fmt(reel.commentCount)}
             </span>
             <span className="flex items-center gap-1 text-sm font-bold text-gray-500 dark:text-gray-400">
-              <Eye className="w-3.5 h-3.5" /> {reel.viewCount ?? 0}
+              <Eye className="w-3.5 h-3.5" /> {fmt(reel.viewCount ?? 0)}
             </span>
           </div>
         </div>
-
-        {/* Expand toggle */}
         {comments.length > 0 && (
           <button
             onClick={() => setOpen(o => !o)}
@@ -230,12 +124,10 @@ const ReelInsightCard = ({ reel }) => {
         )}
       </div>
 
-      {/* Comments + reply UI */}
       {open && comments.length > 0 && (
-        <div className="border-t border-gray-100 dark:border-gray-800 px-3 py-2 space-y-3">
-          {comments.map((c) => (
+        <div className="border-t border-gray-100 dark:border-gray-800 px-3.5 py-2.5 space-y-3">
+          {comments.map(c => (
             <div key={c._id}>
-              {/* User comment */}
               <div className="flex gap-2">
                 <div className="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-950/60 flex items-center justify-center shrink-0 mt-0.5">
                   <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">{c.name?.[0]?.toUpperCase()}</span>
@@ -254,8 +146,6 @@ const ReelInsightCard = ({ reel }) => {
                   </button>
                 </div>
               </div>
-
-              {/* Owner replies */}
               {c.replies?.map((r, i) => (
                 <div key={i} className="flex gap-2 mt-2 ml-8 pl-2 border-l-2 border-violet-300/40 dark:border-violet-700/40">
                   <CornerDownRight className="w-3 h-3 text-violet-400 shrink-0 mt-0.5" />
@@ -269,8 +159,6 @@ const ReelInsightCard = ({ reel }) => {
                   </div>
                 </div>
               ))}
-
-              {/* Reply input */}
               {replyingTo === c._id && (
                 <div className="flex gap-2 mt-2 ml-8">
                   <input
@@ -299,16 +187,8 @@ const ReelInsightCard = ({ reel }) => {
 };
 
 /* ── Reel Insights panel ── */
-const ReelInsights = () => {
-  const [analytics, setAnalytics]   = useState([]);
-  const [loading, setLoading]       = useState(true);
-
-  useEffect(() => {
-    api.get('/owner/reels/analytics')
-      .then(r => setAnalytics(r.data.data || []))
-      .catch(() => setAnalytics([]))
-      .finally(() => setLoading(false));
-  }, []);
+const ReelInsightsPanel = ({ analytics, loading }) => {
+  const fmt = n => n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `${(n / 1_000).toFixed(1)}K` : String(n);
 
   if (loading) return (
     <div className="flex items-center justify-center py-10">
@@ -322,15 +202,12 @@ const ReelInsights = () => {
     </div>
   );
 
-  const totalLikes    = analytics.reduce((s, r) => s + r.likeCount, 0);
-  const totalComments = analytics.reduce((s, r) => s + r.commentCount, 0);
-  const totalViews    = analytics.reduce((s, r) => s + (r.viewCount ?? 0), 0);
-
-  const fmt = (n) => n >= 1_000_000 ? (n/1_000_000).toFixed(1)+'M' : n >= 1_000 ? (n/1_000).toFixed(1)+'K' : String(n);
+  const totalLikes    = analytics.reduce((s, r) => s + r.likeCount,          0);
+  const totalComments = analytics.reduce((s, r) => s + r.commentCount,       0);
+  const totalViews    = analytics.reduce((s, r) => s + (r.viewCount ?? 0),   0);
 
   return (
     <div className="space-y-3">
-      {/* Summary */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
           <Eye className="w-3.5 h-3.5 text-gray-500" />
@@ -349,8 +226,6 @@ const ReelInsights = () => {
         </div>
         <span className="text-xs text-gray-400 ml-auto">{analytics.length} reel{analytics.length !== 1 ? 's' : ''}</span>
       </div>
-
-      {/* Per-reel cards */}
       <div className="space-y-2">
         {analytics.map((reel, i) => <ReelInsightCard key={i} reel={reel} />)}
       </div>
@@ -358,37 +233,92 @@ const ReelInsights = () => {
   );
 };
 
-/* ─── Main Gallery page ──────────────────────────────────────── */
+
+/* ── Empty state ── */
+const EmptyState = ({ onUpload }) => (
+  <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+    <style>{`
+      @keyframes gallery-glow {
+        0%,100% { opacity:.15; transform:scale(1); }
+        50%      { opacity:.3;  transform:scale(1.08); }
+      }
+    `}</style>
+    <div className="relative mb-6">
+      <div className="absolute inset-0 w-24 h-24 rounded-full bg-indigo-400/20 blur-2xl"
+        style={{ animation: 'gallery-glow 3s ease-in-out infinite' }} />
+      <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-100 to-violet-100
+        dark:from-indigo-950/60 dark:to-violet-950/60 flex items-center justify-center shadow-lg">
+        <Images className="w-10 h-10 text-indigo-400 dark:text-indigo-500" />
+      </div>
+    </div>
+    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">No media uploaded yet</h3>
+    <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mb-6">
+      Upload photos and videos to attract more customers and showcase your salon's best work
+    </p>
+    <button
+      onClick={onUpload}
+      className="flex items-center gap-2 px-6 py-2.5 rounded-xl
+        bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-semibold
+        hover:from-indigo-700 hover:to-violet-700 transition-all shadow-lg shadow-indigo-500/25
+        hover:shadow-indigo-500/40 hover:scale-[1.02]"
+    >
+      <ImagePlus className="w-4 h-4" /> Upload Your First Media
+    </button>
+  </div>
+);
+
+/* ══════════════════════════════════════════════════
+   Main Gallery page
+   ══════════════════════════════════════════════════ */
 export default function Gallery() {
-  const [photos,       setPhotos]       = useState([]);
-  const [loading,      setLoading]      = useState(true);
-  const [coverId,      setCoverId]      = useState(null);
-  const [activeTag,    setActiveTag]    = useState(null);
-  /** Instagram-style grid: everything | photos only | reels (portrait) */
-  const [gridMode,     setGridMode]     = useState('all'); // 'all' | 'photos' | 'reels'
-  const [showUpload,   setShowUpload]   = useState(false);
-  const [lightbox,     setLightbox]     = useState(null); // { index }
-  const [deletingId,   setDeletingId]   = useState(null);
+  const [photos,        setPhotos]        = useState([]);
+  const [analytics,     setAnalytics]     = useState([]);
+  const [loading,       setLoading]       = useState(true);
+  const [analyticsLoad, setAnalyticsLoad] = useState(true);
+  const [coverId,       setCoverId]       = useState(null);
+  const [activeFilter,  setActiveFilter]  = useState('all');
+  const [activeTag,     setActiveTag]     = useState(null);
+  const [showUpload,    setShowUpload]    = useState(false);
+  const [previewModal,  setPreviewModal]  = useState(null); // { index, list }
+  const [editModal,     setEditModal]     = useState(null); // { index, list }
+  const [deletingId,    setDeletingId]    = useState(null);
 
   const { enqueueUploads, lastCompletedAt } = useGalleryUpload();
-  const { salon: salonData } = useSalon();
+  const { salon: salonData }                = useSalon();
   const servedGender = salonData?.servedGender || 'unisex';
 
-  /* ── Fetch photos ── */
+  /* ── analyticsMap: URL → analytics row ── */
+  const analyticsMap = useMemo(() => {
+    const map = {};
+    analytics.forEach(r => {
+      if (r.videoUrl) {
+        const key = galleryItemDedupeKey(r.videoUrl);
+        if (key) map[key] = r;
+        // also index by normalized URL directly for direct lookup in PreviewModal
+        const norm = normalizeClientMediaUrl(r.videoUrl);
+        if (norm) map[norm] = r;
+      }
+    });
+    return map;
+  }, [analytics]);
+
+  /* ── Fetch gallery + analytics ── */
   const fetchPhotos = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const res = await api.get('/owner/gallery');
-      const raw = res.data?.data ?? res.data;
+      const res  = await api.get('/owner/gallery');
+      const raw  = res.data?.data ?? res.data;
       const parsed = normalizeOwnerGalleryPayload(raw);
       let out = parsed.filter(hasRenderableGalleryMedia);
-      // Add any reel URLs from analytics that are missing from the gallery response (deduped)
+
+      /* fetch analytics and merge orphan reels */
       try {
-        const ar = await api.get('/owner/reels/analytics');
-        const rows = (ar.data?.data || []).filter((r) => r?.videoUrl);
-        const seen = new Set(
-          out.map((p) => galleryItemDedupeKey(getGalleryMediaUrl(p))).filter(Boolean)
-        );
+        setAnalyticsLoad(true);
+        const ar   = await api.get('/owner/reels/analytics');
+        const rows = (ar.data?.data || []).filter(r => r?.videoUrl);
+        setAnalytics(rows);
+
+        const seen = new Set(out.map(p => galleryItemDedupeKey(getGalleryMediaUrl(p))).filter(Boolean));
         let orphanIdx = 0;
         for (const row of rows) {
           const u = normalizeClientMediaUrl(row.videoUrl);
@@ -397,17 +327,19 @@ export default function Gallery() {
           if (!k || seen.has(k)) continue;
           seen.add(k);
           out.push({
-            _id: `v_orphan_${orphanIdx++}`,
-            url: u,
-            type: 'video',
-            caption: '',
-            tags: [],
-            inReels: true,
-            reelCategories: row.categories || [],
-            _galleryOrphan: true,
+            _id:             `v_orphan_${orphanIdx++}`,
+            url:             u,
+            type:            'video',
+            caption:         '',
+            tags:            [],
+            inReels:         true,
+            reelCategories:  row.categories || [],
+            _galleryOrphan:  true,
           });
         }
-      } catch { /* ignore */ }
+      } catch { /* ignore analytics failure */ }
+      finally { setAnalyticsLoad(false); }
+
       setPhotos(out);
       const cover = out.find(p => p.isCover);
       if (cover) setCoverId(cover._id);
@@ -420,271 +352,254 @@ export default function Gallery() {
 
   useEffect(() => { fetchPhotos(); }, [fetchPhotos]);
 
-  /* ── Auto-refresh gallery when a background upload finishes ── */
-  useEffect(() => {
-    if (lastCompletedAt) fetchPhotos(true);
-  }, [lastCompletedAt, fetchPhotos]);
+  /* Auto-refresh when background upload completes */
+  useEffect(() => { if (lastCompletedAt) fetchPhotos(true); }, [lastCompletedAt, fetchPhotos]);
 
-  /* ── Hand files to background context, close modal immediately ── */
+  /* ── Derived photo lists ── */
+  const validPhotos  = useMemo(() => photos.filter(hasRenderableGalleryMedia), [photos]);
+  const imagePhotos  = useMemo(() => validPhotos.filter(p => !isGalleryVideo(p)), [validPhotos]);
+  const videoPhotos  = useMemo(() => validPhotos.filter(p =>  isGalleryVideo(p)), [validPhotos]);
+
+  const tagFilters = useMemo(() =>
+    ALL_TAGS
+      .map(tag => ({ tag, count: imagePhotos.filter(p => p.tags?.includes(tag)).length }))
+      .filter(t => t.count > 0),
+    [imagePhotos]
+  );
+
+  /* Average view count for popular/low filters */
+  const avgViews = useMemo(() => {
+    if (!analytics.length) return 0;
+    return analytics.reduce((s, r) => s + (r.viewCount || 0), 0) / analytics.length;
+  }, [analytics]);
+
+  /* Main filtered + sorted list for the grid */
+  const photosForGrid = useMemo(() => {
+    let base = validPhotos;
+
+    switch (activeFilter) {
+      case 'photos':
+        base = activeTag ? imagePhotos.filter(p => p.tags?.includes(activeTag)) : imagePhotos;
+        break;
+      case 'reels':
+        base = videoPhotos;
+        break;
+      case 'popular':
+        base = videoPhotos.filter(p => {
+          const key  = galleryItemDedupeKey(getGalleryMediaUrl(p));
+          const row  = analyticsMap[key];
+          return (row?.viewCount ?? 0) >= avgViews && (row?.viewCount ?? 0) > 0;
+        });
+        if (!base.length) base = videoPhotos; // fallback to all reels
+        break;
+      case 'low':
+        base = videoPhotos.filter(p => {
+          const key = galleryItemDedupeKey(getGalleryMediaUrl(p));
+          const row = analyticsMap[key];
+          return (row?.viewCount ?? 0) < avgViews;
+        });
+        if (!base.length) base = videoPhotos;
+        break;
+      case 'cover':
+        base = coverId ? validPhotos.filter(p => p._id === coverId) : [];
+        break;
+      default: // 'all'
+        base = activeTag ? validPhotos.filter(p => p.tags?.includes(activeTag)) : validPhotos;
+    }
+
+    return base;
+  }, [validPhotos, imagePhotos, videoPhotos, activeFilter, activeTag, coverId, analyticsMap, avgViews]);
+
+  const gridMode = activeFilter === 'reels' ? 'reels' : 'masonry';
+
+  /* ── Upload ── */
   const handleFilesReady = (fileItems) => {
     enqueueUploads(fileItems);
     setShowUpload(false);
   };
 
-  /* ── Open lightbox (optional modalList e.g. featured strip = images only) ── */
-  const handleView = (photo, modalList) => {
-    const list = modalList ?? photosForGrid;
-    const index = list.findIndex(p => p._id === photo._id);
-    setLightbox({ index: index >= 0 ? index : 0, list });
-  };
+  /* ── Open preview ── */
+  const openPreview = useCallback((photo, list) => {
+    const l   = list ?? photosForGrid;
+    const idx = l.findIndex(p => p._id === photo._id);
+    setPreviewModal({ index: idx >= 0 ? idx : 0, list: l });
+  }, [photosForGrid]);
 
-  /* ── Delete from grid (quick) ── */
-  const handleDeleteFromGrid = async (photo) => {
-    if (deletingId) return;
+  /* ── Delete ── */
+  const handleDelete = useCallback(async (photo) => {
+    if (deletingId || photo._galleryOrphan) return;
     setDeletingId(photo._id);
     try {
       await api.delete(`/owner/gallery/${photo._id}`);
       setPhotos(prev => prev.filter(p => p._id !== photo._id));
       if (photo._id === coverId) setCoverId(null);
-      toast.success('Photo removed');
+      toast.success('Media removed');
     } catch {
-      toast.error('Failed to delete photo');
+      toast.error('Failed to delete');
     } finally {
       setDeletingId(null);
     }
-  };
+  }, [deletingId, coverId]);
 
-  /* ── Lightbox: photo deleted ── */
-  const handleLightboxDelete = (id) => {
+  /* ── Set cover (from card or modal) ── */
+  const handleSetCover = useCallback(async (photo) => {
+    try {
+      await api.put(`/owner/gallery/${photo._id}`, { isCover: true });
+      setCoverId(photo._id);
+      setPhotos(prev => prev.map(p => ({ ...p, isCover: p._id === photo._id })));
+      toast.success('Cover photo updated!');
+    } catch {
+      toast.error('Failed to set cover photo');
+    }
+  }, []);
+
+  /* ── Edit (preview → edit modal) ── */
+  const handleEdit = useCallback((photo, idx, list) => {
+    setPreviewModal(null);
+    setEditModal({ index: idx, list });
+  }, []);
+
+  /* ── EditModal (ImageModal) callbacks ── */
+  const handleEditDeleted = useCallback((id) => {
     setPhotos(prev => prev.filter(p => p._id !== id));
     if (id === coverId) setCoverId(null);
-    toast.success('Photo removed');
-    setLightbox((prev) => {
+    toast.success('Media removed');
+    setEditModal(prev => {
       if (!prev?.list) return null;
       const nextList = prev.list.filter(p => p._id !== id);
-      if (nextList.length === 0) return null;
-      const nextIdx = Math.min(prev.index, nextList.length - 1);
-      return { index: nextIdx, list: nextList };
+      if (!nextList.length) return null;
+      return { index: Math.min(prev.index, nextList.length - 1), list: nextList };
     });
-  };
+  }, [coverId]);
 
-  /* ── Lightbox: photo updated (caption/tags) ── */
-  const handleLightboxUpdate = (updated) => {
+  const handleEditUpdated = useCallback((updated) => {
     setPhotos(prev => prev.map(p => p._id === updated._id ? updated : p));
-    setLightbox((prev) => {
+    setEditModal(prev => {
       if (!prev?.list) return prev;
       return { ...prev, list: prev.list.map(p => p._id === updated._id ? updated : p) };
     });
-  };
+  }, []);
 
-  /* ── Cover set ── */
-  const handleCoverSet = (id) => {
+  const handleEditCoverSet = useCallback((id) => {
     setCoverId(id);
     setPhotos(prev => prev.map(p => ({ ...p, isCover: p._id === id })));
     toast.success('Cover photo updated!');
-  };
+  }, []);
 
-  const validPhotos = photos.filter(hasRenderableGalleryMedia);
-
-  const imagePhotos = validPhotos.filter(p => !isGalleryVideo(p));
-  const videoPhotos = validPhotos.filter(p => isGalleryVideo(p));
-
-  // When a tag is active (posts / all), show only gallery-tagged images — same as before.
-  const taggedImages = activeTag
-    ? imagePhotos.filter(p => p.tags?.includes(activeTag))
-    : imagePhotos;
-
-  const photosForGrid =
-    gridMode === 'reels'
-      ? videoPhotos
-      : gridMode === 'photos'
-        ? (activeTag ? taggedImages : imagePhotos)
-        : (activeTag ? taggedImages : validPhotos);
-
-  const tagCount = (tag) => imagePhotos.filter(p => p.tags?.includes(tag)).length;
-
+  /* ═══════════════════════ RENDER ═══════════════════════ */
   return (
     <DashboardLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
 
-          {/* ── Page header ── */}
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600
-                  flex items-center justify-center shadow-md shadow-indigo-500/30">
-                  <Images className="w-5 h-5 text-white" />
-                </div>
-                Gallery
-              </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 ml-0.5">
-                Showcase your salon's best work
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={() => fetchPhotos()}
-                disabled={loading}
-                className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-gray-700
-                  bg-white dark:bg-gray-900 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200
-                  hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
-                title="Refresh"
-              >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              </button>
-              <button
-                onClick={() => setShowUpload(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl
-                  bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-semibold
-                  hover:from-indigo-700 hover:to-violet-700 transition-all shadow-md shadow-indigo-500/20"
-              >
-                <Upload className="w-4 h-4" /> Upload Media
-              </button>
-            </div>
+        {/* ── Page header ── */}
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600
+                flex items-center justify-center shadow-md shadow-indigo-500/30">
+                <Images className="w-5 h-5 text-white" />
+              </div>
+              Gallery
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 ml-0.5">
+              Showcase your salon's best work
+            </p>
           </div>
 
-          {/* ── Stats row ── */}
-          {photos.length > 0 && !loading && (
-            <div className="flex flex-wrap items-center gap-2">
-              <StatPill
-                icon={Images}
-                label="photos"
-                value={imagePhotos.length}
-                color="border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40"
-              />
-              {videoPhotos.length > 0 && (
-                <StatPill
-                  icon={Film}
-                  label="videos"
-                  value={videoPhotos.length}
-                  color="border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/40"
-                />
-              )}
-              {coverId && (
-                <StatPill
-                  icon={Star}
-                  label="cover set"
-                  value="✓"
-                  color="border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40"
-                />
-              )}
-              {ALL_TAGS.map(t => {
-                const cnt = tagCount(t);
-                return cnt > 0 ? (
-                  <StatPill
-                    key={t}
-                    icon={Tag}
-                    label={t}
-                    value={cnt}
-                    color="border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-900"
-                  />
-                ) : null;
-              })}
-            </div>
-          )}
-
-          {/* ── Featured photos strip ── */}
-          {imagePhotos.length > 0 && !loading && (
-            <FeaturedStrip
-              photos={imagePhotos}
-              coverId={coverId}
-              onView={(p) => handleView(p, activeTag ? taggedImages : imagePhotos)}
-            />
-          )}
-
-          {/* ── Instagram-style Posts / Reels tabs ── */}
-          {validPhotos.length > 0 && !loading && (
-            <div className="flex items-center gap-2 p-1 rounded-2xl bg-gray-100/80 dark:bg-gray-800/80 border border-gray-200/80 dark:border-gray-700/80 w-fit">
-              {[
-                { id: 'all', label: 'All' },
-                { id: 'photos', label: 'Photos' },
-                ...(videoPhotos.length > 0 ? [{ id: 'reels', label: 'Reels' }] : []),
-              ].map(({ id, label }) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setGridMode(id)}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-150 ${
-                    gridMode === id
-                      ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm border border-gray-200/80 dark:border-gray-700'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* ── Tag filters (gallery tags — photos / all) ── */}
-          {photos.length > 0 && !loading && gridMode !== 'reels' && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <TagPill label="All" active={!activeTag} onClick={() => setActiveTag(null)} />
-              {ALL_TAGS.filter(t => tagCount(t) > 0).map(t => (
-                <TagPill
-                  key={t}
-                  label={`${t} (${tagCount(t)})`}
-                  active={activeTag === t}
-                  onClick={() => setActiveTag(prev => prev === t ? null : t)}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* ── Main content ── */}
-          {loading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-              {[...Array(8)].map((_, i) => (
-                <div key={i} className="aspect-square rounded-2xl bg-white dark:bg-gray-900
-                  border border-gray-100 dark:border-gray-800 animate-pulse" />
-              ))}
-            </div>
-
-          ) : photos.length === 0 ? (
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
-              <EmptyState onUpload={() => setShowUpload(true)} />
-            </div>
-
-          ) : photosForGrid.length === 0 ? (
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 py-16 text-center">
-              <Film className="w-10 h-10 text-violet-400 mx-auto mb-3 opacity-80" />
-              <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">
-                {gridMode === 'reels' ? 'No reels yet' : 'Nothing to show in this view'}
-              </p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 max-w-xs mx-auto">
-                {gridMode === 'reels'
-                  ? 'Upload a video — it appears here and for customers like on Instagram.'
-                  : 'Try another tab or clear filters.'}
-              </p>
-            </div>
-          ) : (
-            <ImageGrid
-              photos={photosForGrid}
-              loading={false}
-              coverId={coverId}
-              activeTag={null}
-              layout={gridMode === 'reels' ? 'reels' : 'square'}
-              onView={(p) => handleView(p)}
-              onDelete={handleDeleteFromGrid}
-            />
-          )}
-
-          {/* ── Reel Insights ── */}
-          {!loading && (
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center">
-                  <Heart className="w-3.5 h-3.5 text-white fill-white" />
-                </div>
-                <h3 className="text-sm font-bold text-gray-900 dark:text-white">Reel Insights</h3>
-                <span className="text-xs text-gray-400 dark:text-gray-500 ml-1">Likes &amp; comments on your reel videos</span>
-              </div>
-              <ReelInsights />
-            </div>
-          )}
-
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => fetchPhotos()}
+              disabled={loading}
+              className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-gray-700
+                bg-white dark:bg-gray-900 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200
+                hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+              title="Refresh"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+            <button
+              onClick={() => setShowUpload(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl
+                bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-semibold
+                hover:from-indigo-700 hover:to-violet-700 transition-all shadow-md shadow-indigo-500/20
+                hover:shadow-indigo-500/30 hover:scale-[1.02]"
+            >
+              <Upload className="w-4 h-4" /> Upload Media
+            </button>
+          </div>
         </div>
+
+        {/* ── AI Insights bar ── */}
+        {!loading && <AIInsightsBar photos={validPhotos} analytics={analytics} />}
+
+        {/* ── Sticky filter bar ── */}
+        {!loading && validPhotos.length > 0 && (
+          <FilterBar
+            activeFilter={activeFilter}
+            onFilterChange={f => { setActiveFilter(f); setActiveTag(null); }}
+            tagFilters={tagFilters}
+            activeTag={activeTag}
+            onTagChange={setActiveTag}
+          />
+        )}
+
+        {/* ── Main content ── */}
+        {loading ? (
+          /* Skeleton */
+          <div className="columns-2 sm:columns-3 lg:columns-4 gap-3 sm:gap-4">
+            {[300, 380, 260, 340, 420, 280, 360, 310].map((h, i) => (
+              <div key={i} className="break-inside-avoid mb-3 sm:mb-4">
+                <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 animate-pulse"
+                  style={{ height: h }} />
+              </div>
+            ))}
+          </div>
+
+        ) : photos.length === 0 ? (
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
+            <EmptyState onUpload={() => setShowUpload(true)} />
+          </div>
+
+        ) : photosForGrid.length === 0 ? (
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 py-16 text-center">
+            <Film className="w-10 h-10 text-violet-400 mx-auto mb-3 opacity-80" />
+            <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">
+              {activeFilter === 'reels' ? 'No reels yet' : 'Nothing to show in this view'}
+            </p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 max-w-xs mx-auto">
+              {activeFilter === 'reels'
+                ? 'Upload a video and toggle it as a reel to appear here.'
+                : 'Try a different filter or clear the tag.'}
+            </p>
+          </div>
+
+        ) : (
+          <MasonryGrid
+            photos={photosForGrid}
+            coverId={coverId}
+            analyticsMap={analyticsMap}
+            onView={openPreview}
+            onDelete={handleDelete}
+            onSetCover={handleSetCover}
+            mode={gridMode}
+          />
+        )}
+
+        {/* ── Reel Insights ── */}
+        {!loading && (
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center shadow-sm">
+                <Heart className="w-3.5 h-3.5 text-white fill-white" />
+              </div>
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white">Reel Insights</h3>
+              <span className="text-xs text-gray-400 dark:text-gray-500 ml-1">Likes &amp; comments on your reel videos</span>
+            </div>
+            <ReelInsightsPanel analytics={analytics} loading={analyticsLoad} />
+          </div>
+        )}
+
+      </div>
 
       {/* ── Upload modal ── */}
       <UploadModal
@@ -694,16 +609,30 @@ export default function Gallery() {
         servedGender={servedGender}
       />
 
-      {/* ── Lightbox ── */}
-      {lightbox !== null && lightbox.list?.length > 0 && (
-        <ImageModal
-          photos={lightbox.list}
-          initialIndex={lightbox.index}
+      {/* ── Preview modal (glassmorphism) ── */}
+      {previewModal && previewModal.list?.length > 0 && (
+        <PreviewModal
+          photos={previewModal.list}
+          initialIndex={previewModal.index}
           coverId={coverId}
-          onClose={() => setLightbox(null)}
-          onDeleted={handleLightboxDelete}
-          onUpdated={handleLightboxUpdate}
-          onCoverSet={handleCoverSet}
+          analyticsMap={analyticsMap}
+          onClose={() => setPreviewModal(null)}
+          onDelete={handleDelete}
+          onSetCover={handleSetCover}
+          onEdit={handleEdit}
+        />
+      )}
+
+      {/* ── Edit modal (full ImageModal) ── */}
+      {editModal && editModal.list?.length > 0 && (
+        <ImageModal
+          photos={editModal.list}
+          initialIndex={editModal.index}
+          coverId={coverId}
+          onClose={() => setEditModal(null)}
+          onDeleted={handleEditDeleted}
+          onUpdated={handleEditUpdated}
+          onCoverSet={handleEditCoverSet}
           servedGender={servedGender}
         />
       )}

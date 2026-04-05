@@ -175,6 +175,20 @@ location: {
       type: String, // Cloudinary URL
       default: null,
     },
+    // Onboarding-uploaded salon tour video
+    videoUrl: {
+      type: String,
+      default: '',
+    },
+    // Business verification documents (optional, uploaded during onboarding)
+    businessLicenseUrl: {
+      type: String,
+      default: '',
+    },
+    businessRegistrationUrl: {
+      type: String,
+      default: '',
+    },
 
     // ==========================================
     // WORKING HOURS
