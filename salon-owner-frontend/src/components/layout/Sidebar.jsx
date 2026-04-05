@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Scissors, Calendar, Star, Settings,
   ChevronRight, ChevronLeft, X, Images, Users, Tag,
-  CreditCard, Store, BarChart2, Gift, MessageSquare,
+  CreditCard, Store, BarChart2, Gift, MessageSquare, Megaphone,
 } from 'lucide-react';
 import ROUTES from '../../routes';
 import { useNotifications } from '../../context/NotificationContext';
@@ -34,8 +34,9 @@ const NAV_SECTIONS = [
   {
     label: 'Account',
     items: [
-      { id: 'billing',  label: 'Billing & Plan', path: ROUTES.BILLING,  icon: CreditCard },
-      { id: 'settings', label: 'Settings',       path: ROUTES.SETTINGS, icon: Settings   },
+      { id: 'promotions', label: 'Promote Salon',  path: ROUTES.PROMOTIONS, icon: Megaphone  },
+      { id: 'billing',   label: 'Billing & Plan', path: ROUTES.BILLING,    icon: CreditCard },
+      { id: 'settings',  label: 'Settings',       path: ROUTES.SETTINGS,   icon: Settings   },
     ],
   },
 ];

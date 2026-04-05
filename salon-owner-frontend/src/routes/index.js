@@ -30,6 +30,7 @@ const ROUTES = {
   COUPONS:       '/dashboard/coupons',
   PACKAGES:      '/dashboard/packages',
   BILLING:       '/dashboard/billing',
+  PROMOTIONS:    '/dashboard/promotions',
   MESSAGES:      '/dashboard/messages',
 
   // Legal (public)
