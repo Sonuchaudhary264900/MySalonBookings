@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
+import { SalonContext } from './SalonContext';
 
 const NotificationContext = createContext();
 
@@ -49,6 +50,9 @@ function showBrowserNotif(title, body, tag) {
 }
 
 export const NotificationProvider = ({ children }) => {
+  const salonCtx = useContext(SalonContext);
+  const hasSalon = !!(salonCtx?.salon?._id);
+
   const [notifications, setNotifications] = useState([]);
   const [chatMessages,  setChatMessages]  = useState([]); // unread chat messages
   const [permission, setPermission] = useState(
@@ -91,14 +95,14 @@ export const NotificationProvider = ({ children }) => {
   // ── Load initial unread chat messages ─────────────────────────
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (!token) return;
+    if (!token || !hasSalon) return;
     api.get('/owner/messages/unread')
       .then((res) => {
         const msgs = res.data.data?.messages || [];
         setChatMessages(msgs);
       })
       .catch(() => {});
-  }, []);
+  }, [hasSalon]);
 
   // ── Listen for incoming customer chat messages (via SalonContext window event) ──
   useEffect(() => {
@@ -171,13 +175,13 @@ export const NotificationProvider = ({ children }) => {
   // ── Bootstrap ─────────────────────────────────────────────────
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (!token) return;
+    if (!token || !hasSalon) return;
     requestPermission();
     seenIdsRef.current = null;
     poll();
     timerRef.current = setInterval(poll, POLL_INTERVAL);
     return () => clearInterval(timerRef.current);
-  }, []);
+  }, [hasSalon]);
 
   const unreadCount     = notifications.filter((n) => !n.read).length;
   const chatUnreadCount = chatMessages.length;
