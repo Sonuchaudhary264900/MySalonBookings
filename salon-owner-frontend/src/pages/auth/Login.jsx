@@ -332,7 +332,7 @@ const Login = () => {
       </button>
 
       {/* ── PAGE WRAPPER ─────────────────────────────────────── */}
-      <div data-lm={isDark ? undefined : '1'} style={{ minHeight:'100vh', minHeight:'calc(var(--vh, 1vh) * 100)', background: isDark ? '#06060f' : '#f4f6fb', display:'flex', fontFamily:"'Inter','Segoe UI',system-ui,sans-serif", position:'relative', overflow:'hidden' }}>
+      <div data-lm={isDark ? undefined : '1'} style={{ minHeight:'calc(var(--vh, 1vh) * 100)', background: isDark ? '#06060f' : '#f4f6fb', display:'flex', fontFamily:"'Inter','Segoe UI',system-ui,sans-serif", position:'relative', overflow:'hidden' }}>
 
         {/* Animated background orbs */}
         <div className="lgn-orb1" style={{ position:'absolute', top:'-10%', left:'-5%', width:600, height:600, borderRadius:'50%', background:'radial-gradient(circle,rgba(124,58,237,0.2) 0%,transparent 70%)', pointerEvents:'none' }} />
