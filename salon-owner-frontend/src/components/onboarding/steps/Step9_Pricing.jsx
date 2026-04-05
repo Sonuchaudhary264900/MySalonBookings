@@ -61,11 +61,9 @@ export default function Step9_Pricing() {
   const [flashRow, setFlashRow] = useState(null);
 
   const patch = (name, field, val) => {
-    setPricing(prev => {
-      const next = { ...prev, [name]: { ...prev[name], [field]: val } };
-      update({ servicePricing: next });
-      return next;
-    });
+    const next = { ...pricing, [name]: { ...pricing[name], [field]: val } };
+    setPricing(next);
+    update({ servicePricing: next });
   };
 
   const fillSuggested = () => {
