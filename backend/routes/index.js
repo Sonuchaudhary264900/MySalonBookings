@@ -144,16 +144,19 @@ const adminAuthController = safeRequire("../controllers/admin/adminAuthControlle
 const adminManagementController = safeRequire("../controllers/admin/adminManagementController");
 const subscriptionController = safeRequire("../controllers/payment/subscriptionController");
 const subscriptionAdminController = safeRequire("../controllers/admin/subscriptionAdminController");
+const promotionController = safeRequire("../controllers/promotion/promotionController");
+const promotionAdminController = safeRequire("../controllers/admin/promotionAdminController");
 
 /* =====================================================
    MODELS (for inline public handlers)
 ===================================================== */
-const Salon    = require("../models/Salon");
-const Service  = require("../models/Service");
-const Review   = require("../models/Review");
-const Customer = require("../models/Customer");
-const Coupon   = require("../models/Coupon");
-const Booking  = require("../models/Booking");
+const Salon             = require("../models/Salon");
+const Service           = require("../models/Service");
+const Review            = require("../models/Review");
+const Customer          = require("../models/Customer");
+const Coupon            = require("../models/Coupon");
+const Booking           = require("../models/Booking");
+const Promotion         = require("../models/Promotion");
 
 /* =====================================================
    EXTRA ROUTES (MERGED OWNER ROUTES)
@@ -296,6 +299,32 @@ router.get("/public/salons/nearby", asyncHandler(async (req, res) => {
     salons.forEach(s => {
       const c = couponMap[String(s._id)];
       s.topOffer = c ? { code: c.code, discountType: c.discountType, discountValue: c.discountValue, minAmount: c.minAmount || 0, maxDiscount: c.maxDiscount || null, description: c.description || null } : null;
+    });
+
+    // Attach promotion status — promoted salons float to top
+    const activePromotions = await Promotion.find({
+      salonId: { $in: salonIds },
+      status: 'active',
+      endDate: { $gte: now },
+    }).select('salonId radiusKm endDate').lean();
+
+    const promotionMap = {};
+    for (const p of activePromotions) {
+      promotionMap[String(p.salonId)] = p;
+    }
+
+    // Mark each salon as promoted if the user is within its promotion radius
+    salons.forEach(s => {
+      const promo = promotionMap[String(s._id)];
+      s.isPromoted = !!(promo && s.distance <= promo.radiusKm * 1000);
+      s.promotionEndsAt = s.isPromoted ? promo.endDate : null;
+    });
+
+    // Stable sort: promoted first, preserve original order within each group
+    salons.sort((a, b) => {
+      if (a.isPromoted && !b.isPromoted) return -1;
+      if (!a.isPromoted && b.isPromoted) return 1;
+      return 0;
     });
   }
 
@@ -2901,6 +2930,31 @@ router.post("/owner/subscription/create-order",        authenticateOwner, asyncH
 router.post("/owner/subscription/verify-payment",      authenticateOwner, asyncHandler(subscriptionController.verifyPayment));
 router.get("/owner/subscription/billing-history",      authenticateOwner, asyncHandler(subscriptionController.getBillingHistory));
 router.post("/owner/subscription/webhook",             asyncHandler(subscriptionController.razorpayWebhook));
+
+/* =====================================================
+   PROMOTIONS — PUBLIC
+===================================================== */
+router.get("/public/promotions/pricing", asyncHandler(promotionController.getPricing));
+
+/* =====================================================
+   PROMOTIONS — OWNER ROUTES
+===================================================== */
+router.get( "/owner/promotions/pricing",        authenticateOwner, asyncHandler(promotionController.getPricing));
+router.get( "/owner/promotions/active",         authenticateOwner, asyncHandler(promotionController.getActivePromotion));
+router.get( "/owner/promotions/history",        authenticateOwner, asyncHandler(promotionController.getHistory));
+router.post("/owner/promotions/create-order",   authenticateOwner, asyncHandler(promotionController.createPromotionOrder));
+router.post("/owner/promotions/verify-payment", authenticateOwner, asyncHandler(promotionController.verifyPromotionPayment));
+
+/* =====================================================
+   PROMOTIONS — ADMIN ROUTES
+===================================================== */
+router.get(   "/admin/promotions/stats",         authenticateAdmin, asyncHandler(promotionAdminController.getStats));
+router.get(   "/admin/promotions/all",           authenticateAdmin, asyncHandler(promotionAdminController.getAllPromotions));
+router.get(   "/admin/promotions/pricing",       authenticateAdmin, asyncHandler(promotionAdminController.getPricingTiers));
+router.post(  "/admin/promotions/pricing",       authenticateAdmin, asyncHandler(promotionAdminController.createPricingTier));
+router.put(   "/admin/promotions/pricing/:id",   authenticateAdmin, asyncHandler(promotionAdminController.updatePricingTier));
+router.delete("/admin/promotions/pricing/:id",   authenticateAdmin, asyncHandler(promotionAdminController.deletePricingTier));
+router.put(   "/admin/promotions/:id/cancel",    authenticateAdmin, asyncHandler(promotionAdminController.cancelPromotion));
 
 /* =====================================================
    PACKAGES & MEMBERSHIPS — OWNER ROUTES
