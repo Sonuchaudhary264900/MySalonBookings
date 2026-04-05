@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useMemo, useEffect, useRef } from "react";
-import { Heart, Clock, CheckCircle, Scissors, MapPin, Star } from "lucide-react";
+import { Heart, Clock, CheckCircle, Scissors, MapPin, Star, Megaphone } from "lucide-react";
 import API from "../services/api";
 import { isCustomer } from "../utils/auth";
 
@@ -217,8 +217,22 @@ function SalonCard({ salon, userCoords }) {
           <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.06) 55%, transparent 100%)" }} />
           <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.28) 0%, transparent 38%)" }} />
 
+          {/* Promoted ribbon — spans full card top */}
+          {salon.isPromoted && (
+            <div
+              className="absolute top-0 left-0 right-0 flex items-center justify-center gap-1.5 py-1.5 z-10"
+              style={{
+                background: "linear-gradient(90deg, rgba(124,58,237,0.92), rgba(99,102,241,0.92))",
+                backdropFilter: "blur(6px)",
+              }}
+            >
+              <Megaphone className="w-3 h-3 text-white" />
+              <span className="text-[10px] font-black text-white tracking-wide uppercase">Sponsored</span>
+            </div>
+          )}
+
           {/* Top-left: category + verified + trust badge */}
-          <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1.5">
+          <div className={`absolute left-2.5 flex flex-wrap gap-1.5 ${salon.isPromoted ? "top-8" : "top-2.5"}`}>
             {catLabel.toLowerCase() !== "salon" && (
               <span
                 className="text-[10px] font-bold px-2.5 py-1 rounded-full capitalize text-white"
