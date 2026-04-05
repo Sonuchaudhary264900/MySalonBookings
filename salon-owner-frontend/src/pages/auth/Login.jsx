@@ -244,11 +244,19 @@ const Login = () => {
 
     setLoading(true);
     try {
-      await login(phone, password);
+      const response = await login(phone, password);
       if (rememberMe) localStorage.setItem('rememberPhone', phone);
       else            localStorage.removeItem('rememberPhone');
       toast.success('Welcome back! 🎉');
-      navigate(ROUTES.DASHBOARD);
+
+      const status = response?.data?.owner?.status;
+      if (status === 'mobile_verified') {
+        navigate(ROUTES.ONBOARDING, { replace: true });
+      } else if (status === 'salon_registered' || status === 'pending_approval') {
+        navigate(ROUTES.APPROVAL_WAITING, { replace: true });
+      } else {
+        navigate(ROUTES.DASHBOARD, { replace: true });
+      }
     } catch (err) {
       const msg = err.message || 'Login failed. Please try again.';
       setError(msg);

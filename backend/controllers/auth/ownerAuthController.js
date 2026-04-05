@@ -34,12 +34,22 @@ exports.sendOTP = async (req, res) => {
       );
     }
 
-    // Check if owner already exists
-    const existingOwner = await Owner.findOne({ phone });
-    if (existingOwner) {
+    // Check if phone is already registered
+    const existingByPhone = await Owner.findOne({ phone });
+    if (existingByPhone) {
       return res.status(409).json(
         formatErrorResponse(messages.AUTH.PHONE_ALREADY_EXISTS, 409)
       );
+    }
+
+    // Check if email is already registered (if provided)
+    if (email) {
+      const existingByEmail = await Owner.findOne({ email: email.toLowerCase().trim() });
+      if (existingByEmail) {
+        return res.status(409).json(
+          formatErrorResponse('This email is already registered. Please use a different email or log in.', 409)
+        );
+      }
     }
 
     // Generate OTP
@@ -273,6 +283,12 @@ exports.verifyOTPAndRegister = async (req, res) => {
       )
     );
   } catch (error) {
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyValue || {})[0] || 'field';
+      return res.status(409).json(
+        formatErrorResponse(`${field === 'phone' ? 'Phone number' : 'Email'} is already registered`, 409)
+      );
+    }
     console.error('Error verifying OTP:', error);
     res.status(500).json(
       formatErrorResponse(messages.GENERIC.ERROR, 500)
@@ -759,6 +775,12 @@ exports.firebaseRegister = async (req, res) => {
       )
     );
   } catch (error) {
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyValue || {})[0] || 'field';
+      return res.status(409).json(
+        formatErrorResponse(`${field === 'phone' ? 'Phone number' : 'Email'} is already registered`, 409)
+      );
+    }
     console.error('Error in firebase register:', error);
     res.status(500).json(
       formatErrorResponse(error.message || messages.GENERIC.ERROR, 500)
