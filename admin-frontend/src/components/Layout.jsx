@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Clock, Store, Users, LogOut, Scissors, BookOpen, TrendingUp, UserCheck, CreditCard } from 'lucide-react';
+import { LayoutDashboard, Clock, Store, Users, LogOut, Scissors, BookOpen, TrendingUp, UserCheck, CreditCard, Megaphone } from 'lucide-react';
 
 const nav = [
   { to: '/dashboard',     icon: LayoutDashboard, label: 'Dashboard' },
@@ -10,6 +10,7 @@ const nav = [
   { to: '/owners',        icon: UserCheck,       label: 'Owners' },
   { to: '/customers',     icon: Users,           label: 'Customers' },
   { to: '/subscriptions', icon: CreditCard,      label: 'Subscriptions' },
+  { to: '/promotions',    icon: Megaphone,       label: 'Promotions' },
 ];
 
 export default function Layout() {
