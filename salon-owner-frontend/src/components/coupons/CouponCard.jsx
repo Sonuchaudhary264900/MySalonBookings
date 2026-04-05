@@ -77,7 +77,7 @@ const CouponCard = ({
   const isLimitLow = isActive && remaining !== null && remaining <= 10;
 
   const handleCopy = () => {
-    import('../../../utils/clipboard').then(({ copyToClipboard }) =>
+    import('../../utils/clipboard').then(({ copyToClipboard }) =>
       copyToClipboard(coupon.code)
     ).then(() => {
       setCopied(true);
