@@ -2102,6 +2102,42 @@ router.get("/owner/gallery", authenticateOwner, asyncHandler(async (req, res) =>
   res.json({ success: true, data: [...photos, ...videos] });
 }));
 
+// PUT /owner/gallery/reel-toggle — add/remove a video from reelVideos, optionally update categories/targetGender
+// MUST be before /owner/gallery/:mediaId so Express doesn't swallow "reel-toggle" as a mediaId param
+router.put("/owner/gallery/reel-toggle", authenticateOwner, asyncHandler(async (req, res) => {
+  const { videoUrl, categories, targetGender } = req.body;
+  if (!videoUrl) return res.status(400).json({ success: false, message: "videoUrl required" });
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+
+  salon.reelVideos = (salon.reelVideos || []).map(rv =>
+    typeof rv === 'string' ? { url: rv, categories: [], targetGender: 'both' } : rv
+  );
+
+  const targetKey = galleryUrlKey(videoUrl);
+  const idx = salon.reelVideos.findIndex((rv) => galleryUrlKey(reelEntryUrl(rv)) === targetKey);
+  let inReels;
+  const catList = Array.isArray(categories)
+    ? categories.filter((c) => typeof c === 'string' && c.trim().length > 0).map((c) => c.trim())
+    : [];
+  const genderVal = ['male', 'female', 'both'].includes(targetGender) ? targetGender : 'both';
+  if (idx === -1) {
+    salon.reelVideos.push({ url: videoUrl, categories: catList, targetGender: genderVal });
+    inReels = true;
+  } else if (categories !== undefined || targetGender !== undefined) {
+    if (categories !== undefined) salon.reelVideos[idx].categories = catList;
+    if (targetGender !== undefined) salon.reelVideos[idx].targetGender = genderVal;
+    inReels = true;
+  } else {
+    salon.reelVideos.splice(idx, 1);
+    inReels = false;
+  }
+  salon.markModified('reelVideos');
+  await salon.save({ validateModifiedOnly: true });
+  const match = salon.reelVideos.find((rv) => galleryUrlKey(reelEntryUrl(rv)) === targetKey);
+  res.json({ success: true, inReels, reelCategories: inReels ? (match?.categories || []) : [], targetGender: inReels ? (match?.targetGender || 'both') : null });
+}));
+
 // PUT /owner/gallery/:mediaId — update caption, tags, isCover for a photo or video
 router.put("/owner/gallery/:mediaId", authenticateOwner, asyncHandler(async (req, res) => {
   const mid = req.params.mediaId;
@@ -2141,41 +2177,6 @@ router.put("/owner/gallery/:mediaId", authenticateOwner, asyncHandler(async (req
 
   await salon.save({ validateModifiedOnly: true });
   res.json({ success: true, message: "Updated" });
-}));
-
-// PUT /owner/gallery/reel-toggle — add/remove a video from reelVideos, optionally update categories/targetGender
-router.put("/owner/gallery/reel-toggle", authenticateOwner, asyncHandler(async (req, res) => {
-  const { videoUrl, categories, targetGender } = req.body;
-  if (!videoUrl) return res.status(400).json({ success: false, message: "videoUrl required" });
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
-  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
-
-  salon.reelVideos = (salon.reelVideos || []).map(rv =>
-    typeof rv === 'string' ? { url: rv, categories: [], targetGender: 'both' } : rv
-  );
-
-  const targetKey = galleryUrlKey(videoUrl);
-  const idx = salon.reelVideos.findIndex((rv) => galleryUrlKey(reelEntryUrl(rv)) === targetKey);
-  let inReels;
-  const catList = Array.isArray(categories)
-    ? categories.filter((c) => typeof c === 'string' && c.trim().length > 0).map((c) => c.trim())
-    : [];
-  const genderVal = ['male', 'female', 'both'].includes(targetGender) ? targetGender : 'both';
-  if (idx === -1) {
-    salon.reelVideos.push({ url: videoUrl, categories: catList, targetGender: genderVal });
-    inReels = true;
-  } else if (categories !== undefined || targetGender !== undefined) {
-    if (categories !== undefined) salon.reelVideos[idx].categories = catList;
-    if (targetGender !== undefined) salon.reelVideos[idx].targetGender = genderVal;
-    inReels = true;
-  } else {
-    salon.reelVideos.splice(idx, 1);
-    inReels = false;
-  }
-  salon.markModified('reelVideos');
-  await salon.save({ validateModifiedOnly: true });
-  const match = salon.reelVideos.find((rv) => galleryUrlKey(reelEntryUrl(rv)) === targetKey);
-  res.json({ success: true, inReels, reelCategories: inReels ? (match?.categories || []) : [], targetGender: inReels ? (match?.targetGender || 'both') : null });
 }));
 
 // POST /owner/gallery — legacy server-side photo upload (kept for fallback)
