@@ -6,10 +6,18 @@ export const MALE_CATEGORIES = [
     label: 'Hair Services (Men)',
     icon: '✂️',
     subServices: [
+      // Haircuts
       'Basic Haircut', 'Fade / Taper / Skin Fade', 'Designer Haircut',
-      'Hair Styling', 'Hair Wash', 'Blow Dry', 'Hair Coloring',
-      'Hair Straightening', 'Hair Smoothening', 'Hair Spa',
-      'Dandruff Treatment', 'Hair Fall Treatment',
+      'Undercut', 'Crew Cut', 'Buzz Cut',
+      // Styling & Color
+      'Hair Styling', 'Hair Coloring', 'Global Hair Color',
+      'Highlights / Streaks', 'Root Touch-Up',
+      // Hair Treatments
+      'Hair Spa', 'Hair Smoothening', 'Hair Straightening',
+      'Keratin Treatment', 'Hair Botox', 'Hair Rebonding',
+      // Hair Care & Scalp
+      'Hair Wash', 'Blow Dry', 'Dandruff Treatment',
+      'Hair Fall Treatment', 'Scalp Treatment', 'Deep Conditioning',
     ],
   },
   {
@@ -17,8 +25,17 @@ export const MALE_CATEGORIES = [
     label: 'Beard & Grooming',
     icon: '🧔',
     subServices: [
-      'Beard Trim', 'Clean Shave', 'Beard Styling / Shape',
-      'Designer Beard', 'Beard Coloring', 'Hot Towel Shave',
+      // Basic Grooming
+      'Beard Trim', 'Clean Shave', 'Hot Towel Shave',
+      // Styling & Shaping
+      'Beard Styling / Shape', 'Designer Beard', 'Beard Fade',
+      // Coloring
+      'Beard Coloring', 'Grey Coverage (Beard)',
+      // Premium Treatments
+      'Beard Spa', 'Beard Smoothening',
+      // Care & Maintenance
+      'Beard Wash', 'Beard Conditioning', 'Beard Oil Treatment',
+      'Beard Dandruff Treatment',
     ],
   },
   {
@@ -26,8 +43,17 @@ export const MALE_CATEGORIES = [
     label: 'Spa & Massage',
     icon: '💆',
     subServices: [
-      'Head Massage', 'Neck & Shoulder Massage', 'Full Body Massage',
-      'Foot Massage', 'Deep Tissue Massage', 'Relaxation Massage',
+      // Basic Massage
+      'Head Massage', 'Neck & Shoulder Massage', 'Back Massage',
+      'Foot Massage', 'Hand Massage',
+      // Full Body Massage
+      'Full Body Massage', 'Relaxation Massage', 'Deep Tissue Massage', 'Swedish Massage',
+      // Premium Therapies
+      'Aroma Therapy Massage', 'Hot Stone Massage', 'Thai Massage', 'Balinese Massage',
+      // Spa Treatments
+      'Body Spa', 'Body Polishing', 'Body Scrub', 'Body Wrap',
+      // Wellness & Therapy
+      'Stress Relief Therapy', 'Muscle Recovery Therapy', 'Detox Therapy',
     ],
   },
   {
@@ -35,8 +61,16 @@ export const MALE_CATEGORIES = [
     label: 'Skin & Face (Men Grooming)',
     icon: '🧴',
     subServices: [
-      'Basic Facial', 'Gold Facial', 'Diamond Facial', 'Clean-up',
-      'Detan', 'Face Bleach', 'Anti-Acne Treatment', 'Skin Brightening',
+      // Basic Care
+      'Clean-up', 'Basic Facial', 'Detan', 'Face Bleach',
+      // Premium Facials
+      'Gold Facial', 'Diamond Facial', 'Charcoal Facial', 'Fruit Facial', 'Anti-Aging Facial',
+      // Skin Treatments
+      'Anti-Acne Treatment', 'Skin Brightening', 'Pigmentation Treatment', 'Dark Circle Treatment',
+      // Advanced Care
+      'Face Polishing', 'Skin Hydration Treatment', 'Exfoliation Treatment',
+      // Therapy & Wellness
+      'Oil Control Treatment', 'Sensitive Skin Treatment', 'Deep Cleansing Treatment',
     ],
   },
   {
@@ -44,8 +78,14 @@ export const MALE_CATEGORIES = [
     label: 'Body Grooming',
     icon: '🧍',
     subServices: [
-      'Chest Waxing', 'Back Waxing', 'Full Body Wax',
-      'Threading (optional)', 'Nose Wax', 'Ear Cleaning',
+      // Waxing Services
+      'Chest Waxing', 'Back Waxing', 'Arm Waxing', 'Leg Waxing', 'Full Body Wax',
+      // Precision Grooming
+      'Eyebrow Threading', 'Threading (optional)', 'Nose Wax', 'Ear Wax',
+      // Hygiene & Care
+      'Ear Cleaning', 'Underarm Cleaning', 'Intimate Area Grooming (optional)',
+      // Premium Body Care
+      'Body Polishing', 'Body Scrub', 'Body Detan',
     ],
   },
 ];
@@ -125,9 +165,10 @@ export const UNISEX_CATEGORIES = [
     icon: '✂️',
     maleSubServices: [
       'Basic Haircut', 'Fade / Taper / Skin Fade', 'Designer Haircut',
-      'Hair Styling', 'Hair Wash', 'Blow Dry', 'Hair Coloring',
-      'Hair Straightening', 'Hair Smoothening', 'Hair Spa',
-      'Dandruff Treatment', 'Hair Fall Treatment',
+      'Undercut', 'Crew Cut', 'Buzz Cut',
+      'Hair Styling', 'Hair Coloring', 'Global Hair Color', 'Highlights / Streaks', 'Root Touch-Up',
+      'Hair Spa', 'Hair Smoothening', 'Hair Straightening', 'Keratin Treatment', 'Hair Botox', 'Hair Rebonding',
+      'Hair Wash', 'Blow Dry', 'Dandruff Treatment', 'Hair Fall Treatment', 'Scalp Treatment', 'Deep Conditioning',
     ],
     femaleSubServices: [
       'Haircut (Layer / Step / Trim)', 'Advanced Haircut',
@@ -142,8 +183,11 @@ export const UNISEX_CATEGORIES = [
     label: 'Beard & Grooming',
     icon: '🧔',
     maleSubServices: [
-      'Beard Trim', 'Clean Shave', 'Beard Styling / Shape',
-      'Designer Beard', 'Beard Coloring', 'Hot Towel Shave',
+      'Beard Trim', 'Clean Shave', 'Hot Towel Shave',
+      'Beard Styling / Shape', 'Designer Beard', 'Beard Fade',
+      'Beard Coloring', 'Grey Coverage (Beard)',
+      'Beard Spa', 'Beard Smoothening',
+      'Beard Wash', 'Beard Conditioning', 'Beard Oil Treatment', 'Beard Dandruff Treatment',
     ],
     femaleSubServices: [],
     get subServices() { return this.maleSubServices; },
@@ -166,8 +210,11 @@ export const UNISEX_CATEGORIES = [
     label: 'Skin & Face / Beauty',
     icon: '🧖',
     maleSubServices: [
-      'Basic Facial', 'Gold Facial', 'Diamond Facial', 'Clean-up',
-      'Detan', 'Face Bleach', 'Anti-Acne Treatment', 'Skin Brightening',
+      'Clean-up', 'Basic Facial', 'Detan', 'Face Bleach',
+      'Gold Facial', 'Diamond Facial', 'Charcoal Facial', 'Fruit Facial', 'Anti-Aging Facial',
+      'Anti-Acne Treatment', 'Skin Brightening', 'Pigmentation Treatment', 'Dark Circle Treatment',
+      'Face Polishing', 'Skin Hydration Treatment', 'Exfoliation Treatment',
+      'Oil Control Treatment', 'Sensitive Skin Treatment', 'Deep Cleansing Treatment',
     ],
     femaleSubServices: [
       'Basic Facial', 'Gold Facial', 'Diamond Facial', 'Hydra Facial',
@@ -180,8 +227,11 @@ export const UNISEX_CATEGORIES = [
     label: 'Spa & Massage',
     icon: '💆',
     maleSubServices: [
-      'Head Massage', 'Neck & Shoulder Massage', 'Full Body Massage',
-      'Foot Massage', 'Deep Tissue Massage', 'Relaxation Massage',
+      'Head Massage', 'Neck & Shoulder Massage', 'Back Massage', 'Foot Massage', 'Hand Massage',
+      'Full Body Massage', 'Relaxation Massage', 'Deep Tissue Massage', 'Swedish Massage',
+      'Aroma Therapy Massage', 'Hot Stone Massage', 'Thai Massage', 'Balinese Massage',
+      'Body Spa', 'Body Polishing', 'Body Scrub', 'Body Wrap',
+      'Stress Relief Therapy', 'Muscle Recovery Therapy', 'Detox Therapy',
     ],
     femaleSubServices: [
       'Head Massage', 'Full Body Massage', 'Foot Massage',
@@ -194,8 +244,10 @@ export const UNISEX_CATEGORIES = [
     label: 'Body Grooming',
     icon: '🧴',
     maleSubServices: [
-      'Chest Waxing', 'Back Waxing', 'Full Body Wax',
-      'Threading (optional)', 'Nose Wax', 'Ear Cleaning',
+      'Chest Waxing', 'Back Waxing', 'Arm Waxing', 'Leg Waxing', 'Full Body Wax',
+      'Eyebrow Threading', 'Threading (optional)', 'Nose Wax', 'Ear Wax',
+      'Ear Cleaning', 'Underarm Cleaning', 'Intimate Area Grooming (optional)',
+      'Body Polishing', 'Body Scrub', 'Body Detan',
     ],
     femaleSubServices: [
       'Full Body Wax', 'Half Wax', 'Bikini Wax',
