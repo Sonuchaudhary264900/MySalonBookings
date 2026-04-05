@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Plus, Edit2, Trash2, Gift, CreditCard, Check, X,
-  ChevronDown, ChevronUp, Tag, Zap, RefreshCw, Bell,
+  ChevronDown, ChevronUp, Tag, Zap, RefreshCw, Bell, Send, Users, Settings2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
@@ -55,6 +55,8 @@ export default function Packages() {
   const [saving, setSaving]               = useState(false);
   const [expandedReq, setExpandedReq]     = useState(null);
   const [confirmingId, setConfirmingId]   = useState(null);
+  const [notifyTarget, setNotifyTarget]     = useState(null); // { _id, name, type }
+  const [showNotifSettings, setShowNotifSettings] = useState(false);
 
   /* ── fetch ─────────────────────────────────────────────────── */
   const fetchItems = useCallback(async () => {
@@ -204,6 +206,8 @@ export default function Packages() {
     } finally { setConfirmingId(null); }
   };
 
+  const openNotify = (pkg) => setNotifyTarget(pkg);
+
   const packages    = items.filter(i => i.type === 'package');
   const memberships = items.filter(i => i.type === 'membership');
   const pendingCount = requests.filter(r => r.status === 'pending').length;
@@ -219,7 +223,14 @@ export default function Packages() {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Packages &amp; Memberships</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Create bundles and subscriptions to boost revenue</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <button
+              onClick={() => setShowNotifSettings(true)}
+              title="Notification Settings"
+              className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-amber-600 dark:hover:text-amber-400 hover:border-amber-200 dark:hover:border-amber-800 transition"
+            >
+              <Settings2 className="w-4 h-4" />
+            </button>
             <button
               onClick={() => openCreate('package')}
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-violet-600
@@ -273,7 +284,7 @@ export default function Packages() {
             <Empty icon={Gift} title="No packages yet" sub="Create a service bundle with a discounted price" cta="New Package" onClick={() => openCreate('package')} />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {packages.map(pkg => <PackageCard key={pkg._id} pkg={pkg} onEdit={openEdit} onDelete={handleDelete} onToggle={toggleActive} />)}
+              {packages.map(pkg => <PackageCard key={pkg._id} pkg={pkg} onEdit={openEdit} onDelete={handleDelete} onToggle={toggleActive} onNotify={openNotify} />)}
             </div>
           )
         )}
@@ -284,7 +295,7 @@ export default function Packages() {
             <Empty icon={CreditCard} title="No memberships yet" sub="Create a subscription plan with recurring benefits" cta="New Membership" onClick={() => openCreate('membership')} />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {memberships.map(pkg => <MembershipCard key={pkg._id} pkg={pkg} onEdit={openEdit} onDelete={handleDelete} onToggle={toggleActive} />)}
+              {memberships.map(pkg => <MembershipCard key={pkg._id} pkg={pkg} onEdit={openEdit} onDelete={handleDelete} onToggle={toggleActive} onNotify={openNotify} />)}
             </div>
           )
         )}
@@ -396,6 +407,19 @@ export default function Packages() {
           salonServices={salonServices}
         />
       )}
+
+      {/* ── Notify Modal ─────────────────────────────────────────── */}
+      {notifyTarget && (
+        <NotifyModal
+          pkg={notifyTarget}
+          onClose={() => setNotifyTarget(null)}
+        />
+      )}
+
+      {/* ── Notification Settings Modal ──────────────────────────── */}
+      {showNotifSettings && (
+        <NotifSettingsModal onClose={() => setShowNotifSettings(false)} />
+      )}
     </DashboardLayout>
   );
 }
@@ -403,7 +427,7 @@ export default function Packages() {
 /* ═══════════════════════════════════════════════════════════════
    MEMBERSHIP CARD
 ═══════════════════════════════════════════════════════════════ */
-function MembershipCard({ pkg, onEdit, onDelete, onToggle }) {
+function MembershipCard({ pkg, onEdit, onDelete, onToggle, onNotify }) {
   return (
     <div className={`bg-white dark:bg-gray-900 border rounded-2xl overflow-hidden transition-all ${
       pkg.isActive ? 'border-violet-200 dark:border-violet-800/60' : 'border-gray-200 dark:border-gray-800 opacity-60'
@@ -459,6 +483,9 @@ function MembershipCard({ pkg, onEdit, onDelete, onToggle }) {
             ${pkg.isActive ? 'after:translate-x-4' : 'after:translate-x-0'}`} />
           <span className="ml-2 text-xs font-medium text-gray-500 dark:text-gray-400">{pkg.isActive ? 'Active' : 'Off'}</span>
         </label>
+        <button onClick={() => onNotify(pkg)} title="Notify customers" className="p-2 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-950/30 text-gray-400 hover:text-amber-500 dark:hover:text-amber-400 transition">
+          <Bell className="w-4 h-4" />
+        </button>
         <button onClick={() => onEdit(pkg)} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition">
           <Edit2 className="w-4 h-4" />
         </button>
@@ -492,6 +519,542 @@ function Empty({ icon: IconComp, title, sub, cta, onClick }) {
           <Plus className="w-4 h-4" /> {cta}
         </button>
       )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RAZORPAY LOADER
+═══════════════════════════════════════════════════════════════ */
+const loadRazorpay = () =>
+  new Promise(resolve => {
+    if (window.Razorpay) return resolve(true);
+    const s = document.createElement('script');
+    s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    s.onload  = () => resolve(true);
+    s.onerror = () => resolve(false);
+    document.body.appendChild(s);
+  });
+
+/* ═══════════════════════════════════════════════════════════════
+   NOTIFY MODAL
+═══════════════════════════════════════════════════════════════ */
+const AUDIENCE_OPTIONS = [
+  {
+    id: 'my_customers',
+    label: 'My Customers',
+    desc: 'People who have visited your salon',
+    icon: Users,
+    color: 'indigo',
+    alwaysFree: true,
+  },
+  {
+    id: 'radius_5km',
+    label: '5 km Radius',
+    desc: 'Customers near your salon',
+    icon: null,
+    color: 'emerald',
+    alwaysFree: false,
+    km: 5,
+  },
+  {
+    id: 'radius_10km',
+    label: '10 km Radius',
+    desc: 'Wider reach around your salon',
+    icon: null,
+    color: 'blue',
+    alwaysFree: false,
+    km: 10,
+  },
+  {
+    id: 'radius_25km',
+    label: '25 km Radius',
+    desc: 'City-wide reach',
+    icon: null,
+    color: 'violet',
+    alwaysFree: false,
+    km: 25,
+  },
+];
+
+function NotifyModal({ pkg, onClose }) {
+  const [step, setStep]                 = useState('compose'); // 'compose' | 'audience' | 'confirm' | 'result'
+  const [notifTitle, setNotifTitle]     = useState(`Check out ${pkg.name}!`);
+  const [notifMessage, setNotifMessage] = useState('');
+  const [targetType, setTargetType]     = useState('my_customers');
+  const [settings, setSettings]         = useState(null);
+  const [preview, setPreview]           = useState(null); // { estimatedCount, isFree, amount }
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  const [sending, setSending]           = useState(false);
+  const [result, setResult]             = useState(null); // { notifiedCount }
+  const titleRef = useRef(null);
+
+  // Load notification settings on mount
+  useEffect(() => {
+    api.get('/owner/notification-settings')
+      .then(r => setSettings(r.data.data))
+      .catch(() => {});
+    titleRef.current?.focus();
+  }, []);
+
+  // Load preview whenever targetType changes (on audience step)
+  useEffect(() => {
+    if (step !== 'audience') return;
+    setPreview(null);
+    setLoadingPreview(true);
+    api.post(`/owner/packages/${pkg._id}/notify`, { targetType, preview: true })
+      .then(r => setPreview(r.data.data))
+      .catch(() => setPreview({ estimatedCount: 0, isFree: true, amount: 0 }))
+      .finally(() => setLoadingPreview(false));
+  }, [targetType, step, pkg._id]);
+
+  const priceLabel = (id) => {
+    if (!settings) return '';
+    if (id === 'my_customers') return 'Free';
+    const map = { radius_5km: settings.pricing?.radius5km, radius_10km: settings.pricing?.radius10km, radius_25km: settings.pricing?.radius25km };
+    const p = map[id];
+    if (p === 0) return 'Free';
+    if (settings.freeRadiusRemaining > 0) return `Free (1 left this month)`;
+    return `₹${p}`;
+  };
+
+  const handleSend = async () => {
+    if (!notifTitle.trim() || !notifMessage.trim()) { toast.error('Title and message required'); return; }
+    setSending(true);
+    try {
+      const res = await api.post(`/owner/packages/${pkg._id}/notify`, {
+        title: notifTitle.trim(), message: notifMessage.trim(), targetType,
+      });
+
+      if (res.data.needsPayment) {
+        // Open Razorpay checkout
+        const ok = await loadRazorpay();
+        if (!ok) { toast.error('Payment gateway failed to load'); setSending(false); return; }
+        const { campaignId, orderId, amount, razorpayKeyId, ownerName, ownerEmail, ownerPhone } = res.data.data;
+        new window.Razorpay({
+          key: razorpayKeyId,
+          amount: amount * 100,
+          currency: 'INR',
+          name: 'My Salon Bookings',
+          description: `Broadcast: ${pkg.name}`,
+          order_id: orderId,
+          prefill: { name: ownerName, email: ownerEmail, contact: ownerPhone },
+          theme: { color: '#f59e0b' },
+          handler: async (pd) => {
+            try {
+              const vRes = await api.post(`/owner/notification-campaigns/${campaignId}/verify-payment`, {
+                razorpayOrderId:   pd.razorpay_order_id,
+                razorpayPaymentId: pd.razorpay_payment_id,
+                razorpaySignature: pd.razorpay_signature,
+              });
+              setResult({ notifiedCount: vRes.data.notifiedCount ?? 0 });
+              setStep('result');
+            } catch {
+              toast.error('Payment verified but notification failed. Contact support.');
+            } finally { setSending(false); }
+          },
+          modal: { ondismiss: () => setSending(false) },
+        }).open();
+        return;
+      }
+
+      setResult({ notifiedCount: res.data.notifiedCount ?? 0 });
+      setStep('result');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to send');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const STEP_LABELS = { compose: 'Compose', audience: 'Audience', confirm: 'Confirm' };
+  const STEPS = ['compose', 'audience', 'confirm'];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="w-full max-w-lg bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center shrink-0">
+              <Bell className="w-[18px] h-[18px] text-amber-500" />
+            </div>
+            <div>
+              <h2 className="font-bold text-gray-900 dark:text-white text-sm">Broadcast Notification</h2>
+              <p className="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[220px]">{pkg.name}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 transition">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Step indicator */}
+        {step !== 'result' && (
+          <div className="flex items-center gap-0 px-6 pt-4 shrink-0">
+            {STEPS.map((s, i) => (
+              <React.Fragment key={s}>
+                <div className="flex items-center gap-1.5">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors ${
+                    step === s ? 'bg-amber-500 text-white' :
+                    STEPS.indexOf(step) > i ? 'bg-green-500 text-white' :
+                    'bg-gray-100 dark:bg-gray-800 text-gray-400'
+                  }`}>
+                    {STEPS.indexOf(step) > i ? <Check className="w-3 h-3" /> : i + 1}
+                  </div>
+                  <span className={`text-xs font-semibold ${step === s ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}>
+                    {STEP_LABELS[s]}
+                  </span>
+                </div>
+                {i < STEPS.length - 1 && <div className={`flex-1 mx-2 h-px ${STEPS.indexOf(step) > i ? 'bg-green-400' : 'bg-gray-200 dark:bg-gray-700'}`} />}
+              </React.Fragment>
+            ))}
+          </div>
+        )}
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+
+          {/* ── Step: Compose ── */}
+          {step === 'compose' && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">Notification Title</label>
+                <input
+                  ref={titleRef}
+                  type="text"
+                  value={notifTitle}
+                  onChange={e => setNotifTitle(e.target.value)}
+                  maxLength={60}
+                  placeholder="e.g. Special offer inside!"
+                  className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400 transition"
+                />
+                <p className="text-right text-[10px] text-gray-300 dark:text-gray-600 mt-0.5">{notifTitle.length}/60</p>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">Message</label>
+                <textarea
+                  value={notifMessage}
+                  onChange={e => setNotifMessage(e.target.value)}
+                  maxLength={200}
+                  rows={4}
+                  placeholder="Write your message to customers..."
+                  className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400 transition resize-none"
+                />
+                <p className="text-right text-[10px] text-gray-300 dark:text-gray-600 mt-0.5">{notifMessage.length}/200</p>
+              </div>
+              {/* Preview card */}
+              <div className="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Preview</p>
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+                    <Bell className="w-5 h-5 text-amber-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">{notifTitle || 'Notification title'}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{notifMessage || 'Your message will appear here'}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Step: Audience ── */}
+          {step === 'audience' && (
+            <div className="space-y-3">
+              <p className="text-xs text-gray-400 dark:text-gray-500">Choose who will receive this notification.</p>
+              {AUDIENCE_OPTIONS.map(opt => {
+                const isSelected = targetType === opt.id;
+                const price = priceLabel(opt.id);
+                return (
+                  <button
+                    key={opt.id}
+                    onClick={() => setTargetType(opt.id)}
+                    className={`w-full flex items-center gap-3 p-4 rounded-2xl border-2 text-left transition-all ${
+                      isSelected
+                        ? 'border-amber-400 bg-amber-50 dark:bg-amber-950/20'
+                        : 'border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700'
+                    }`}
+                  >
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-black text-sm ${
+                      isSelected ? 'bg-amber-400 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'
+                    }`}>
+                      {opt.km ? `${opt.km}` : <Users className="w-5 h-5" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">{opt.label}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">{opt.desc}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className={`text-xs font-bold px-2 py-1 rounded-full ${
+                        opt.alwaysFree || (settings?.freeRadiusRemaining > 0 && !opt.alwaysFree)
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                          : 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400'
+                      }`}>
+                        {price || '…'}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+
+              {/* Estimated reach */}
+              {targetType && (
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400">
+                  <Users className="w-3.5 h-3.5 shrink-0" />
+                  {loadingPreview
+                    ? 'Estimating reach…'
+                    : preview
+                      ? `~${preview.estimatedCount} customer${preview.estimatedCount !== 1 ? 's' : ''} will be notified`
+                      : '—'}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Step: Confirm ── */}
+          {step === 'confirm' && preview && (
+            <div className="space-y-4">
+              <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800 space-y-3">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Summary</p>
+                {[
+                  ['Package', pkg.name],
+                  ['Audience', AUDIENCE_OPTIONS.find(o => o.id === targetType)?.label || targetType],
+                  ['Estimated Reach', `${preview.estimatedCount} customer${preview.estimatedCount !== 1 ? 's' : ''}`],
+                  ['Cost', preview.isFree ? 'Free' : `₹${preview.amount}`],
+                ].map(([label, value]) => (
+                  <div key={label} className="flex items-center justify-between text-sm">
+                    <span className="text-gray-400 dark:text-gray-500">{label}</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{value}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Notification preview */}
+              <div className="p-4 rounded-2xl border border-amber-100 dark:border-amber-900/40 bg-amber-50/50 dark:bg-amber-950/10">
+                <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-2">Message Preview</p>
+                <p className="text-sm font-bold text-gray-900 dark:text-white">{notifTitle}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{notifMessage}</p>
+              </div>
+
+              {!preview.isFree && (
+                <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
+                  You will be charged ₹{preview.amount} via Razorpay to send this notification.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* ── Step: Result ── */}
+          {step === 'result' && result && (
+            <div className="py-8 flex flex-col items-center text-center gap-3">
+              <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-950/50 flex items-center justify-center">
+                <Check className="w-8 h-8 text-green-600 dark:text-green-400" />
+              </div>
+              <h3 className="font-bold text-gray-900 dark:text-white text-lg">Sent!</h3>
+              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                <Users className="w-4 h-4" />
+                <span>
+                  {result.notifiedCount > 0
+                    ? `${result.notifiedCount} customer${result.notifiedCount !== 1 ? 's' : ''} notified`
+                    : 'No customers with push notifications enabled'}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer actions */}
+        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800 flex gap-3 shrink-0">
+          {step === 'result' ? (
+            <button onClick={onClose} className="flex-1 py-2.5 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-bold hover:opacity-90 transition">
+              Done
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => {
+                  if (step === 'compose') onClose();
+                  else if (step === 'audience') setStep('compose');
+                  else if (step === 'confirm') setStep('audience');
+                }}
+                className="px-5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+              >
+                {step === 'compose' ? 'Cancel' : 'Back'}
+              </button>
+              <button
+                onClick={() => {
+                  if (step === 'compose') {
+                    if (!notifTitle.trim() || !notifMessage.trim()) { toast.error('Title and message required'); return; }
+                    setStep('audience');
+                  } else if (step === 'audience') {
+                    setStep('confirm');
+                  } else if (step === 'confirm') {
+                    handleSend();
+                  }
+                }}
+                disabled={sending}
+                className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white text-sm font-bold transition flex items-center justify-center gap-2"
+              >
+                {sending ? (
+                  <><RefreshCw className="w-4 h-4 animate-spin" /> Sending…</>
+                ) : step === 'confirm' ? (
+                  preview?.isFree
+                    ? <><Send className="w-4 h-4" /> Send Free</>
+                    : <><Send className="w-4 h-4" /> Pay &amp; Send</>
+                ) : (
+                  'Next →'
+                )}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   NOTIFICATION SETTINGS MODAL
+═══════════════════════════════════════════════════════════════ */
+function NotifSettingsModal({ onClose }) {
+  const [settings, setSettings]   = useState(null);
+  const [saving, setSaving]       = useState(false);
+  const [form, setForm]           = useState({
+    broadcastEnabled: true,
+    radius5km:  19,
+    radius10km: 39,
+    radius25km: 79,
+  });
+
+  useEffect(() => {
+    api.get('/owner/notification-settings').then(r => {
+      const d = r.data.data;
+      setSettings(d);
+      setForm({
+        broadcastEnabled: d.broadcastEnabled,
+        radius5km:  d.pricing?.radius5km  ?? 19,
+        radius10km: d.pricing?.radius10km ?? 39,
+        radius25km: d.pricing?.radius25km ?? 79,
+      });
+    }).catch(() => {});
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await api.put('/owner/notification-settings', {
+        broadcastEnabled: form.broadcastEnabled,
+        pricing: {
+          radius5km:  Number(form.radius5km)  || 0,
+          radius10km: Number(form.radius10km) || 0,
+          radius25km: Number(form.radius25km) || 0,
+        },
+      });
+      toast.success('Notification settings saved');
+      onClose();
+    } catch {
+      toast.error('Failed to save settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center">
+              <Settings2 className="w-[18px] h-[18px] text-amber-500" />
+            </div>
+            <h2 className="font-bold text-gray-900 dark:text-white text-sm">Notification Settings</h2>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 transition">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {!settings ? (
+          <div className="py-12 flex items-center justify-center">
+            <div className="w-7 h-7 border-3 border-amber-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : (
+          <div className="px-6 py-5 space-y-5">
+
+            {/* Enable / Disable toggle */}
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 dark:bg-gray-800">
+              <div>
+                <p className="text-sm font-bold text-gray-900 dark:text-white">Broadcast Notifications</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Allow sending notifications to customers</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.broadcastEnabled}
+                  onChange={e => setForm(f => ({ ...f, broadcastEnabled: e.target.checked }))}
+                  className="sr-only peer"
+                />
+                <div className={`w-11 h-6 rounded-full transition-colors ${form.broadcastEnabled ? 'bg-amber-500' : 'bg-gray-200 dark:bg-gray-700'}
+                  after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-5 after:h-5 after:bg-white after:rounded-full after:shadow after:transition-transform
+                  ${form.broadcastEnabled ? 'after:translate-x-5' : 'after:translate-x-0'}`} />
+              </label>
+            </div>
+
+            {/* Free quota info */}
+            <div className="flex items-center gap-3 p-3 rounded-xl border border-green-100 dark:border-green-900/40 bg-green-50/60 dark:bg-green-950/10 text-xs">
+              <Check className="w-4 h-4 text-green-600 dark:text-green-400 shrink-0" />
+              <span className="text-green-700 dark:text-green-400">
+                <strong>1 free radius campaign per month</strong> — "My Customers" is always free.
+                {settings.freeRadiusRemaining > 0
+                  ? ` You have ${settings.freeRadiusRemaining} free left this month.`
+                  : ' Free quota used this month.'}
+              </span>
+            </div>
+
+            {/* Pricing per radius tier */}
+            <div>
+              <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3">
+                Set Campaign Price (₹ per send)
+              </p>
+              <div className="space-y-3">
+                {[
+                  { key: 'radius5km',  label: '5 km Radius' },
+                  { key: 'radius10km', label: '10 km Radius' },
+                  { key: 'radius25km', label: '25 km Radius' },
+                ].map(({ key, label }) => (
+                  <div key={key} className="flex items-center gap-3">
+                    <span className="text-sm text-gray-700 dark:text-gray-300 w-28 shrink-0">{label}</span>
+                    <div className="relative flex-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">₹</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={form[key]}
+                        onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                        className="w-full pl-7 pr-4 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400 transition"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">Set to 0 to make a tier free.</p>
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                Cancel
+              </button>
+              <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white text-sm font-bold transition flex items-center justify-center gap-2">
+                {saving ? <><RefreshCw className="w-4 h-4 animate-spin" /> Saving…</> : 'Save Settings'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

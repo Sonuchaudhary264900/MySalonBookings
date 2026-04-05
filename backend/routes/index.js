@@ -2997,6 +2997,293 @@ router.delete('/owner/packages/:id', authenticateOwner, validateObjectId('id'), 
   res.json({ success: true, message: 'Deleted' });
 }));
 
+/* =====================================================
+   BROADCAST NOTIFICATIONS — SETTINGS & CAMPAIGNS
+===================================================== */
+
+const NotificationSettings  = require('../models/NotificationSettings');
+const NotificationCampaign  = require('../models/NotificationCampaign');
+const { createOrder: rzpCreateOrder, verifyPaymentSignature } = require('../config/razorpay');
+
+// Helper: current calendar month string 'YYYY-MM'
+const currentMonth = () => {
+  const n = new Date();
+  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`;
+};
+
+// Helper: resolve target customers list based on targetType
+async function resolveTargetCustomers(targetType, salon) {
+  const Customer = require('../models/Customer');
+  const Booking  = require('../models/Booking');
+
+  if (targetType === 'my_customers') {
+    const bookings = await Booking.find({ salonId: salon._id }).select('customerId').lean();
+    const ids = [...new Set(bookings.map(b => b.customerId?.toString()).filter(Boolean))];
+    if (!ids.length) return [];
+    return Customer.find({ _id: { $in: ids }, isActive: true, isBanned: { $ne: true } })
+      .select('pushToken').lean();
+  }
+
+  const radiusMap = { radius_5km: 5000, radius_10km: 10000, radius_25km: 25000 };
+  const maxDistance = radiusMap[targetType];
+  if (!maxDistance) return [];
+
+  return Customer.find({
+    lastLocation: {
+      $near: {
+        $geometry: { type: 'Point', coordinates: salon.location.coordinates },
+        $maxDistance: maxDistance,
+      },
+    },
+    isActive: true,
+    isBanned: { $ne: true },
+  }).select('pushToken').lean();
+}
+
+// Helper: send Expo push + socket to a list of customers
+async function dispatchNotification(customers, title, message, pkg, io, salonId) {
+  const { Expo } = require('expo-server-sdk');
+  const expo = new Expo();
+  const msgs = customers
+    .filter(c => c.pushToken && Expo.isExpoPushToken(c.pushToken))
+    .map(c => ({
+      to: c.pushToken,
+      sound: 'default',
+      title,
+      body: message,
+      data: { type: 'package_notification', packageId: pkg._id.toString(), packageType: pkg.type },
+    }));
+
+  let notifiedCount = 0;
+  if (msgs.length) {
+    try { await expo.sendPushNotificationsAsync(msgs); notifiedCount = msgs.length; }
+    catch { /* non-critical */ }
+  }
+
+  try {
+    if (io) {
+      customers.forEach(c => {
+        io.to(`customer-${c._id}`).emit('package-notification', {
+          packageId: pkg._id.toString(), packageName: pkg.name, title, message,
+        });
+      });
+    }
+  } catch { /* non-critical */ }
+
+  return notifiedCount;
+}
+
+// GET /owner/notification-settings
+router.get('/owner/notification-settings', authenticateOwner, asyncHandler(async (req, res) => {
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
+
+  let settings = await NotificationSettings.findOne({ salonId: salon._id }).lean();
+  if (!settings) {
+    settings = await NotificationSettings.create({ salonId: salon._id });
+    settings = settings.toObject();
+  }
+
+  const month = currentMonth();
+  const freeUsedThisMonth = settings.freeRadiusMonthly?.month === month
+    ? (settings.freeRadiusMonthly.used || 0) : 0;
+
+  res.json({
+    success: true,
+    data: {
+      broadcastEnabled: settings.broadcastEnabled,
+      pricing: settings.pricing,
+      freeRadiusRemaining: Math.max(0, 1 - freeUsedThisMonth),
+    },
+  });
+}));
+
+// PUT /owner/notification-settings — update pricing and enabled state
+router.put('/owner/notification-settings', authenticateOwner, asyncHandler(async (req, res) => {
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
+
+  const { broadcastEnabled, pricing } = req.body;
+  const update = {};
+  if (typeof broadcastEnabled === 'boolean') update.broadcastEnabled = broadcastEnabled;
+  if (pricing) {
+    if (typeof pricing.radius5km  === 'number') update['pricing.radius5km']  = Math.max(0, pricing.radius5km);
+    if (typeof pricing.radius10km === 'number') update['pricing.radius10km'] = Math.max(0, pricing.radius10km);
+    if (typeof pricing.radius25km === 'number') update['pricing.radius25km'] = Math.max(0, pricing.radius25km);
+  }
+
+  const settings = await NotificationSettings.findOneAndUpdate(
+    { salonId: salon._id },
+    { $set: update },
+    { upsert: true, new: true }
+  );
+  res.json({ success: true, data: settings });
+}));
+
+// POST /owner/packages/:id/notify
+// body { title, message, targetType, preview? }
+//   preview=true  → returns { estimatedCount, isFree, amount } without sending
+//   preview=false → if free: sends immediately; if paid: creates Razorpay order
+router.post('/owner/packages/:id/notify', authenticateOwner, validateObjectId('id'), asyncHandler(async (req, res) => {
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
+
+  const pkg = await Package.findOne({ _id: req.params.id, salonId: salon._id });
+  if (!pkg) return res.status(404).json({ success: false, message: 'Package not found' });
+
+  const { title, message, targetType = 'my_customers', preview = false } = req.body;
+
+  const VALID_TARGETS = ['my_customers', 'radius_5km', 'radius_10km', 'radius_25km'];
+  if (!VALID_TARGETS.includes(targetType))
+    return res.status(400).json({ success: false, message: 'Invalid targetType' });
+
+  // Load settings
+  let settings = await NotificationSettings.findOne({ salonId: salon._id });
+  if (!settings) settings = await NotificationSettings.create({ salonId: salon._id });
+
+  if (!settings.broadcastEnabled)
+    return res.status(403).json({ success: false, message: 'Broadcast notifications are disabled for this salon' });
+
+  // Determine cost
+  const priceMap = {
+    my_customers: 0,
+    radius_5km:   settings.pricing.radius5km  || 19,
+    radius_10km:  settings.pricing.radius10km || 39,
+    radius_25km:  settings.pricing.radius25km || 79,
+  };
+  const rawAmount = priceMap[targetType];
+
+  // Check free quota for radius campaigns
+  const month = currentMonth();
+  const freeUsed = settings.freeRadiusMonthly?.month === month
+    ? (settings.freeRadiusMonthly.used || 0) : 0;
+  const hasFreeQuota = rawAmount === 0 || freeUsed < 1; // 1 free radius campaign per month
+  const isFree = rawAmount === 0 || hasFreeQuota;
+  const amount = isFree ? 0 : rawAmount;
+
+  // Estimate target customers
+  const customers = await resolveTargetCustomers(targetType, salon);
+  const estimatedCount = customers.length;
+
+  if (preview) {
+    return res.json({
+      success: true,
+      data: { estimatedCount, isFree, amount, freeRadiusRemaining: hasFreeQuota ? 1 - freeUsed : 0 },
+    });
+  }
+
+  // ── Actual send ──
+  if (!title?.trim() || !message?.trim())
+    return res.status(400).json({ success: false, message: 'title and message are required' });
+
+  if (!estimatedCount)
+    return res.json({ success: true, message: 'No matching customers to notify', notifiedCount: 0 });
+
+  if (isFree) {
+    // Consume free quota if radius-based
+    if (rawAmount > 0) {
+      settings.freeRadiusMonthly = { month, used: freeUsed + 1 };
+      await settings.save();
+    }
+
+    // Create campaign record
+    const campaign = await NotificationCampaign.create({
+      salonId: salon._id, packageId: pkg._id, packageName: pkg.name, packageType: pkg.type,
+      targetType, title: title.trim(), message: message.trim(),
+      isFree: true, amount: 0, paymentStatus: 'free', status: 'sent', sentAt: new Date(),
+    });
+
+    const io = req.app.get('io');
+    const notifiedCount = await dispatchNotification(
+      customers, title.trim(), message.trim(), pkg, io, salon._id
+    );
+
+    campaign.recipientCount = notifiedCount;
+    await campaign.save();
+
+    return res.json({ success: true, notifiedCount, campaignId: campaign._id });
+  }
+
+  // ── Paid campaign: create Razorpay order ──
+  const campaign = await NotificationCampaign.create({
+    salonId: salon._id, packageId: pkg._id, packageName: pkg.name, packageType: pkg.type,
+    targetType, title: title.trim(), message: message.trim(),
+    isFree: false, amount, paymentStatus: 'pending',
+    status: 'payment_pending',
+  });
+
+  const orderResult = await rzpCreateOrder(amount, null, campaign._id.toString(), null, null);
+  if (!orderResult.success) {
+    campaign.status = 'failed';
+    await campaign.save();
+    return res.status(500).json({ success: false, message: 'Failed to create payment order' });
+  }
+
+  campaign.razorpayOrderId = orderResult.orderId;
+  await campaign.save();
+
+  const Owner = require('../models/Owner');
+  const owner = await Owner.findById(req.owner._id).select('name email phone').lean();
+
+  res.json({
+    success: true,
+    needsPayment: true,
+    data: {
+      campaignId: campaign._id,
+      amount,
+      orderId: orderResult.orderId,
+      razorpayKeyId: process.env.RAZORPAY_KEY_ID,
+      ownerName:  owner?.name  || '',
+      ownerEmail: owner?.email || '',
+      ownerPhone: owner?.phone || '',
+    },
+  });
+}));
+
+// POST /owner/notification-campaigns/:id/verify-payment — verify Razorpay payment then send
+router.post('/owner/notification-campaigns/:id/verify-payment', authenticateOwner, validateObjectId('id'), asyncHandler(async (req, res) => {
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
+
+  const campaign = await NotificationCampaign.findOne({ _id: req.params.id, salonId: salon._id });
+  if (!campaign) return res.status(404).json({ success: false, message: 'Campaign not found' });
+  if (campaign.status !== 'payment_pending')
+    return res.status(400).json({ success: false, message: 'Campaign is not awaiting payment' });
+
+  const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
+  if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature)
+    return res.status(400).json({ success: false, message: 'Payment details required' });
+
+  const verified = verifyPaymentSignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
+  if (!verified.success) {
+    return res.status(400).json({ success: false, message: 'Payment verification failed' });
+  }
+
+  campaign.razorpayPaymentId = razorpayPaymentId;
+  campaign.razorpaySignature = razorpaySignature;
+  campaign.paymentStatus = 'paid';
+
+  const pkg = await Package.findById(campaign.packageId);
+  if (!pkg) {
+    campaign.status = 'failed';
+    await campaign.save();
+    return res.status(404).json({ success: false, message: 'Package not found' });
+  }
+
+  const customers = await resolveTargetCustomers(campaign.targetType, salon);
+  const io = req.app.get('io');
+  const notifiedCount = await dispatchNotification(
+    customers, campaign.title, campaign.message, pkg, io, salon._id
+  );
+
+  campaign.recipientCount = notifiedCount;
+  campaign.status = 'sent';
+  campaign.sentAt = new Date();
+  await campaign.save();
+
+  res.json({ success: true, notifiedCount });
+}));
+
 // GET /owner/package-requests — list all purchase requests for this salon
 router.get('/owner/package-requests', authenticateOwner, asyncHandler(async (req, res) => {
   const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });

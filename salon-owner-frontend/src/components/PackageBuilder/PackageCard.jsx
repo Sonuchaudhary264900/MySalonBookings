@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Clock, Edit2, Trash2, Flame, Star, Gem } from 'lucide-react';
+import { Check, Clock, Edit2, Trash2, Flame, Star, Gem, Bell } from 'lucide-react';
 import { PkgIcon } from '../MembershipBuilder/IconSelector';
 
 const TAG_META = {
@@ -8,7 +8,7 @@ const TAG_META = {
   best_value:  { label: 'Best Value',  gradient: 'from-emerald-400 to-teal-500', Icon: Gem   },
 };
 
-export default function PackageCard({ pkg, onEdit, onDelete, onToggle }) {
+export default function PackageCard({ pkg, onEdit, onDelete, onToggle, onNotify }) {
   const savings    = (pkg.originalPrice && pkg.discountedPrice)
     ? pkg.originalPrice - pkg.discountedPrice : 0;
   const tag = TAG_META[pkg.tag];
@@ -140,6 +140,13 @@ export default function PackageCard({ pkg, onEdit, onDelete, onToggle }) {
             {pkg.isActive ? 'Active' : 'Off'}
           </span>
         </label>
+        <button
+          onClick={() => onNotify(pkg)}
+          title="Notify customers"
+          className="p-2 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-950/30 text-gray-400 hover:text-amber-500 dark:hover:text-amber-400 transition-all duration-150"
+        >
+          <Bell className="w-4 h-4" />
+        </button>
         <button
           onClick={() => onEdit(pkg)}
           className="p-2 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-950/30 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-150"
