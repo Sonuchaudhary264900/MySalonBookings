@@ -1431,7 +1431,7 @@ router.delete(
 router.get("/owner/bookings", authenticateOwner, validatePaginationParams, asyncHandler(async (req, res) => {
   const Booking = require("../models/Booking");
   const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
-  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+  if (!salon) return res.json({ success: true, data: { bookings: [], total: 0, page: 1, limit: 20 } });
 
   const { status, date, page = 1, limit = 20 } = req.query;
   const query = { salonId: salon._id };
@@ -3561,8 +3561,8 @@ async function getChatBooking(bookingId, role, callerId) {
 
 // GET /owner/messages/unread — all unread customer messages across all bookings
 router.get('/owner/messages/unread', authenticateOwner, asyncHandler(async (req, res) => {
-  const salon = await Salon.findOne({ ownerId: req.owner._id }).select('_id').lean();
-  if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
+  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] }).select('_id').lean();
+  if (!salon) return res.json({ success: true, data: { messages: [], count: 0 } });
 
   const messages = await Message.find({ salonId: salon._id, senderRole: 'customer', readAt: null })
     .sort({ createdAt: -1 }).limit(50).lean();
