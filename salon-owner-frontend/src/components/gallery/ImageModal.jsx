@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   X, ChevronLeft, ChevronRight, Trash2, Edit2, Star, Tag,
   Check, Loader2, AlertTriangle, Download, Calendar, Zap, Play,
@@ -90,6 +90,7 @@ const ImageModal = ({
   onUpdated,
   onCoverSet,
   servedGender = 'unisex',
+  offeredCategories = [],
 }) => {
   const [idx,              setIdx]             = useState(initialIndex ?? 0);
   const [editMode,         setEditMode]        = useState(false);
@@ -104,6 +105,9 @@ const ImageModal = ({
   const [reelCategories,   setReelCategories]  = useState([]);
   const [targetGender,     setTargetGender]    = useState('both');
   const [togglingReel,     setTogglingReel]    = useState(false);
+  // Hierarchical edit-panel selection
+  const [editSelCat,  setEditSelCat]  = useState(null);
+  const [editSelSubs, setEditSelSubs] = useState([]);
   // Video-specific
   const [isPlaying,        setIsPlaying]       = useState(true);
   const [showEditPanel,    setShowEditPanel]   = useState(false);
@@ -241,12 +245,34 @@ const ImageModal = ({
     }
   };
 
+  const hasOffered = offeredCategories.length > 0;
+
+  // When edit panel opens, initialise hierarchical selection from stored reelCategories
+  useEffect(() => {
+    if (!showEditPanel || !hasOffered) return;
+    const catNames = offeredCategories.map(c => c.name);
+    const storedCat = reelCategories.find(rc => catNames.includes(rc));
+    setEditSelCat(storedCat || null);
+    setEditSelSubs(storedCat ? reelCategories.filter(rc => rc !== storedCat) : []);
+  }, [showEditPanel]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const editActiveCat = useMemo(
+    () => offeredCategories.find(c => c.name === editSelCat) || null,
+    [offeredCategories, editSelCat]
+  );
+
+  const toggleEditSub = (sub) =>
+    setEditSelSubs(prev => prev.includes(sub) ? prev.filter(s => s !== sub) : [...prev, sub]);
+
   const handleCategorySave = async () => {
     if (!inReels) return;
     setTogglingReel(true);
     try {
-      const res = await api.put('/owner/gallery/reel-toggle', { videoUrl: url, categories: reelCategories, targetGender });
-      setReelCategories(res.data.reelCategories || reelCategories);
+      const finalCats = hasOffered
+        ? [editSelCat, ...editSelSubs].filter(Boolean)
+        : reelCategories;
+      const res = await api.put('/owner/gallery/reel-toggle', { videoUrl: url, categories: finalCats, targetGender });
+      setReelCategories(res.data.reelCategories || finalCats);
       if (res.data.targetGender) setTargetGender(res.data.targetGender);
     } catch { /* silent */ } finally {
       setTogglingReel(false);
@@ -588,32 +614,88 @@ const ImageModal = ({
                       </div>
                     )}
 
-                    {/* Reel categories */}
-                    <div>
-                      <div className="flex items-center gap-1.5 mb-2">
-                        <Zap className="w-3.5 h-3.5 text-violet-400" />
-                        <span className="text-xs font-semibold text-violet-400 uppercase tracking-wide">Reel Categories</span>
+                    {/* Reel categories — hierarchical if salon has offeredCategories */}
+                    {hasOffered ? (
+                      <div className="space-y-3">
+                        {/* Category picker */}
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <Zap className="w-3.5 h-3.5 text-violet-400" />
+                            <span className="text-xs font-semibold text-violet-400 uppercase tracking-wide">Service Category</span>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {offeredCategories.map(cat => {
+                              const active = editSelCat === cat.name;
+                              return (
+                                <button
+                                  key={cat.name}
+                                  onClick={() => { setEditSelCat(active ? null : cat.name); setEditSelSubs([]); }}
+                                  className={`px-2.5 py-1.5 rounded-full text-[11px] font-semibold transition-all active:scale-95
+                                    ${active
+                                      ? 'bg-violet-600 text-white ring-1 ring-violet-400'
+                                      : 'bg-white/8 text-white/50 border border-white/10 hover:bg-white/15 hover:text-white'
+                                    }`}
+                                >
+                                  {active && '✓ '}{cat.name}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Sub-service picker */}
+                        {editActiveCat && editActiveCat.subServices?.length > 0 && (
+                          <div>
+                            <span className="text-[11px] font-semibold text-white/40 uppercase tracking-wide">Which service? <span className="font-normal normal-case">optional</span></span>
+                            <div className="flex flex-wrap gap-1.5 mt-1.5">
+                              {editActiveCat.subServices.map(s => {
+                                const name   = typeof s === 'string' ? s : s.name;
+                                const active = editSelSubs.includes(name);
+                                return (
+                                  <button
+                                    key={name}
+                                    onClick={() => toggleEditSub(name)}
+                                    className={`px-2 py-1 rounded-full text-[10px] font-semibold transition-all active:scale-95
+                                      ${active
+                                        ? 'bg-indigo-600 text-white ring-1 ring-indigo-400'
+                                        : 'bg-white/8 text-white/50 border border-white/10 hover:bg-white/15 hover:text-white'
+                                      }`}
+                                  >
+                                    {active && '✓ '}{name}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex flex-wrap gap-2">
-                        {REEL_CATEGORIES.map(cat => {
-                          const active = reelCategories.includes(cat);
-                          const cls = REEL_CAT_CFG[cat] || REEL_CAT_CFG['Other'];
-                          return (
-                            <button
-                              key={cat}
-                              onClick={() => toggleReelCategory(cat)}
-                              className={`px-2.5 py-1.5 rounded-full text-[11px] font-semibold transition-all active:scale-95
-                                ${active
-                                  ? `${cls} ring-1`
-                                  : 'bg-white/8 text-white/50 border border-white/10 hover:bg-white/15'
-                                }`}
-                            >
-                              {active && <span className="mr-0.5">✓</span>}{cat}
-                            </button>
-                          );
-                        })}
+                    ) : (
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <Zap className="w-3.5 h-3.5 text-violet-400" />
+                          <span className="text-xs font-semibold text-violet-400 uppercase tracking-wide">Reel Categories</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {REEL_CATEGORIES.map(cat => {
+                            const active = reelCategories.includes(cat);
+                            const cls = REEL_CAT_CFG[cat] || REEL_CAT_CFG['Other'];
+                            return (
+                              <button
+                                key={cat}
+                                onClick={() => toggleReelCategory(cat)}
+                                className={`px-2.5 py-1.5 rounded-full text-[11px] font-semibold transition-all active:scale-95
+                                  ${active
+                                    ? `${cls} ring-1`
+                                    : 'bg-white/8 text-white/50 border border-white/10 hover:bg-white/15'
+                                  }`}
+                              >
+                                {active && <span className="mr-0.5">✓</span>}{cat}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     <button
                       onClick={handleCategorySave}

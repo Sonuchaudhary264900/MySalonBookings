@@ -139,7 +139,11 @@ exports.createSalon = async (req, res) => {
         sunday: { open: '10:00', close: '18:00', isClosed: true },
       },
 
-      ...(videoUrl              ? { videoUrl }              : {}),
+      ...(videoUrl ? {
+        videoUrl,
+        videos:    [{ url: videoUrl, caption: '', tags: [] }],
+        reelVideos: [{ url: videoUrl, categories: [], targetGender: servedGender === 'male' ? 'male' : servedGender === 'female' ? 'female' : 'both', createdAt: new Date() }],
+      } : {}),
       ...(businessLicenseUrl   ? { businessLicenseUrl }   : {}),
       ...(businessRegistrationUrl ? { businessRegistrationUrl } : {}),
 

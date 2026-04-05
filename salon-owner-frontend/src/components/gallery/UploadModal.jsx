@@ -112,15 +112,12 @@ const RejectedRow = ({ name, reason }) => (
    STEP A — Video picker (single video at a time, like Instagram)
 ────────────────────────────────────────────────────────────────── */
 const VideoPickStep = ({ onVideoPicked, onClose, checking }) => {
-  const inputRef = useRef(null);
-
-  const handleFile = async (file) => {
-    await onVideoPicked(file);
-  };
+  const inputRef  = useRef(null);
+  const cameraRef = useRef(null);
 
   const onInputChange = (e) => {
     const f = e.target.files?.[0];
-    if (f) handleFile(f);
+    if (f) onVideoPicked(f);
     e.target.value = '';
   };
 
@@ -156,37 +153,62 @@ const VideoPickStep = ({ onVideoPicked, onClose, checking }) => {
           </div>
         </div>
 
-        {/* Drop / pick zone */}
-        <button
-          type="button"
-          disabled={checking}
-          onClick={() => inputRef.current?.click()}
-          className="w-full flex flex-col items-center justify-center gap-4 py-16
-            border-2 border-dashed rounded-2xl border-violet-200 dark:border-violet-800
-            hover:border-violet-400 dark:hover:border-violet-600
-            hover:bg-violet-50/50 dark:hover:bg-violet-950/20
-            transition-all duration-200 disabled:opacity-50"
-        >
-          <div className="w-16 h-16 rounded-2xl bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center">
-            {checking
-              ? <div className="w-7 h-7 rounded-full border-2 border-violet-500 border-t-transparent animate-spin" />
-              : <Film className="w-8 h-8 text-violet-500" />
-            }
-          </div>
-          <div className="text-center">
-            <p className="text-sm font-bold text-gray-800 dark:text-gray-200">
-              {checking ? 'Checking video…' : 'Tap to pick a video'}
-            </p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-              {checking ? 'Validating size and duration' : 'MP4, MOV, WebM supported'}
-            </p>
-          </div>
-        </button>
+        {/* Two options: pick from gallery or record with camera */}
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            disabled={checking}
+            onClick={() => inputRef.current?.click()}
+            className="flex flex-col items-center justify-center gap-3 py-10
+              border-2 border-dashed rounded-2xl border-violet-200 dark:border-violet-800
+              hover:border-violet-400 dark:hover:border-violet-600
+              hover:bg-violet-50/50 dark:hover:bg-violet-950/20
+              transition-all duration-200 disabled:opacity-50"
+          >
+            <div className="w-12 h-12 rounded-2xl bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center">
+              {checking
+                ? <div className="w-6 h-6 rounded-full border-2 border-violet-500 border-t-transparent animate-spin" />
+                : <Film className="w-6 h-6 text-violet-500" />
+              }
+            </div>
+            <div className="text-center">
+              <p className="text-xs font-bold text-gray-800 dark:text-gray-200">Choose File</p>
+              <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">MP4, MOV, WebM</p>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            disabled={checking}
+            onClick={() => cameraRef.current?.click()}
+            className="flex flex-col items-center justify-center gap-3 py-10
+              border-2 border-dashed rounded-2xl border-rose-200 dark:border-rose-800
+              hover:border-rose-400 dark:hover:border-rose-600
+              hover:bg-rose-50/50 dark:hover:bg-rose-950/20
+              transition-all duration-200 disabled:opacity-50"
+          >
+            <div className="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center">
+              <span className="text-2xl">📷</span>
+            </div>
+            <div className="text-center">
+              <p className="text-xs font-bold text-gray-800 dark:text-gray-200">Record Video</p>
+              <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">Use camera</p>
+            </div>
+          </button>
+        </div>
 
         <input
           ref={inputRef}
           type="file"
           accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,.mp4,.mov,.webm,.avi"
+          className="hidden"
+          onChange={onInputChange}
+        />
+        <input
+          ref={cameraRef}
+          type="file"
+          accept="video/*"
+          capture="environment"
           className="hidden"
           onChange={onInputChange}
         />
@@ -224,18 +246,37 @@ const GENDER_OPTIONS = [
   { value: 'both',   label: 'Both',       icon: '⚥', color: 'bg-violet-100 dark:bg-violet-950/60 text-violet-700 dark:text-violet-400 ring-violet-300 dark:ring-violet-700' },
 ];
 
-const VideoDetailsStep = ({ videoItem, onBack, onUpload, servedGender }) => {
-  const [categories,    setCategories]    = useState([]);
-  const [caption,       setCaption]       = useState('');
-  const [targetGender,  setTargetGender]  = useState(
+const VideoDetailsStep = ({ videoItem, onBack, onUpload, servedGender, offeredCategories = [] }) => {
+  const [caption,      setCaption]      = useState('');
+  const [targetGender, setTargetGender] = useState(
     servedGender === 'male' ? 'male' : servedGender === 'female' ? 'female' : ''
   );
-
-  const toggleCat = (cat) =>
-    setCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
+  // Hierarchical selection
+  const [selectedCat,  setSelectedCat]  = useState(null); // category name
+  const [selectedSubs, setSelectedSubs] = useState([]);   // sub-service names
+  // Fallback flat selection (when salon has no offeredCategories)
+  const [flatCats, setFlatCats] = useState([]);
 
   const needsGender = servedGender === 'unisex';
-  const canUpload = categories.length > 0 && (!needsGender || targetGender !== '');
+  const hasOffered  = offeredCategories.length > 0;
+  const activeCat   = hasOffered ? offeredCategories.find(c => c.name === selectedCat) : null;
+
+  const toggleSub = (sub) =>
+    setSelectedSubs(prev => prev.includes(sub) ? prev.filter(s => s !== sub) : [...prev, sub]);
+  const toggleFlatCat = (cat) =>
+    setFlatCats(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
+
+  const canUpload = hasOffered
+    ? selectedCat !== null && (!needsGender || targetGender !== '')
+    : flatCats.length > 0 && (!needsGender || targetGender !== '');
+
+  const handleUpload = () => {
+    const finalGender = needsGender ? targetGender : (servedGender === 'male' ? 'male' : servedGender === 'female' ? 'female' : 'both');
+    const finalCats   = hasOffered
+      ? [selectedCat, ...selectedSubs].filter(Boolean)
+      : flatCats;
+    onUpload({ categories: finalCats, caption, targetGender: finalGender });
+  };
 
   return (
     <>
@@ -312,35 +353,92 @@ const VideoDetailsStep = ({ videoItem, onBack, onUpload, servedGender }) => {
           </div>
         )}
 
-        {/* Categories — required */}
-        <div>
-          <div className="flex items-center gap-1.5 mb-2">
-            <span className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Category</span>
-            <span className="text-[10px] text-red-500 font-semibold">*required</span>
+        {/* Categories — hierarchical if offeredCategories available, flat fallback */}
+        {hasOffered ? (
+          <div className="space-y-3">
+            {/* Step 1: Category */}
+            <div>
+              <div className="flex items-center gap-1.5 mb-2">
+                <span className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Service Category</span>
+                <span className="text-[10px] text-red-500 font-semibold">*required</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {offeredCategories.map(cat => {
+                  const active = selectedCat === cat.name;
+                  return (
+                    <button
+                      key={cat.name}
+                      onClick={() => { setSelectedCat(active ? null : cat.name); setSelectedSubs([]); }}
+                      className={`px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all active:scale-95
+                        ${active
+                          ? 'bg-violet-600 text-white ring-1 ring-violet-400'
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                        }`}
+                    >
+                      {active && '✓ '}{cat.name}
+                    </button>
+                  );
+                })}
+              </div>
+              {!selectedCat && <p className="text-[11px] text-red-400 mt-1.5">Select a category to continue</p>}
+            </div>
+
+            {/* Step 2: Sub-services (shown after category is picked) */}
+            {activeCat && activeCat.subServices?.length > 0 && (
+              <div>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Which service? <span className="font-normal normal-case">optional</span></span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {activeCat.subServices.map(s => {
+                    const name   = typeof s === 'string' ? s : s.name;
+                    const active = selectedSubs.includes(name);
+                    return (
+                      <button
+                        key={name}
+                        onClick={() => toggleSub(name)}
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all active:scale-95
+                          ${active
+                            ? 'bg-indigo-600 text-white ring-1 ring-indigo-400'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                          }`}
+                      >
+                        {active && '✓ '}{name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
-          <div className="flex flex-wrap gap-2">
-            {REEL_CATEGORIES.map(cat => {
-              const active = categories.includes(cat);
-              const cls = REEL_CAT_CFG[cat] || REEL_CAT_CFG['Other'];
-              return (
-                <button
-                  key={cat}
-                  onClick={() => toggleCat(cat)}
-                  className={`px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all active:scale-95
-                    ${active
-                      ? `${cls} ring-1`
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-                    }`}
-                >
-                  {active && <span className="mr-0.5">✓</span>}{cat}
-                </button>
-              );
-            })}
+        ) : (
+          <div>
+            <div className="flex items-center gap-1.5 mb-2">
+              <span className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Category</span>
+              <span className="text-[10px] text-red-500 font-semibold">*required</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {REEL_CATEGORIES.map(cat => {
+                const active = flatCats.includes(cat);
+                const cls = REEL_CAT_CFG[cat] || REEL_CAT_CFG['Other'];
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => toggleFlatCat(cat)}
+                    className={`px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all active:scale-95
+                      ${active
+                        ? `${cls} ring-1`
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                      }`}
+                  >
+                    {active && '✓ '}{cat}
+                  </button>
+                );
+              })}
+            </div>
+            {flatCats.length === 0 && <p className="text-[11px] text-red-400 mt-2">Select at least one category to continue</p>}
           </div>
-          {categories.length === 0 && (
-            <p className="text-[11px] text-red-400 mt-2">Select at least one category to continue</p>
-          )}
-        </div>
+        )}
 
         {/* Caption — optional */}
         <div>
@@ -372,7 +470,7 @@ const VideoDetailsStep = ({ videoItem, onBack, onUpload, servedGender }) => {
           Back
         </button>
         <button
-          onClick={() => onUpload({ categories, caption, targetGender: needsGender ? targetGender : (servedGender === 'male' ? 'male' : servedGender === 'female' ? 'female' : 'both') })}
+          onClick={handleUpload}
           disabled={!canUpload}
           className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white
             text-sm font-semibold hover:from-violet-700 hover:to-indigo-700 transition-all
@@ -595,7 +693,7 @@ const ModePicker = ({ onChoose, onClose }) => (
 /* ────────────────────────────────────────────────────────────────
    MAIN UploadModal — orchestrates all steps
 ────────────────────────────────────────────────────────────────── */
-const UploadModal = ({ isOpen, onClose, onFilesReady, servedGender = 'unisex' }) => {
+const UploadModal = ({ isOpen, onClose, onFilesReady, servedGender = 'unisex', offeredCategories = [] }) => {
   // mode: null (picker) | 'photo' | 'video-pick' | 'video-details'
   const [mode,      setMode]      = useState(null);
   const [videoItem, setVideoItem] = useState(null);
@@ -694,6 +792,7 @@ const UploadModal = ({ isOpen, onClose, onFilesReady, servedGender = 'unisex' })
             onBack={() => { setMode('video-pick'); setVideoItem(null); }}
             onUpload={handleVideoUpload}
             servedGender={servedGender}
+            offeredCategories={offeredCategories}
           />
         )}
       </div>

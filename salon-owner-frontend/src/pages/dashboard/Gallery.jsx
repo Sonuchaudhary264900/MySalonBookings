@@ -285,7 +285,8 @@ export default function Gallery() {
 
   const { enqueueUploads, lastCompletedAt } = useGalleryUpload();
   const { salon: salonData }                = useSalon();
-  const servedGender = salonData?.servedGender || 'unisex';
+  const servedGender      = salonData?.servedGender || 'unisex';
+  const offeredCategories = salonData?.offeredCategories || [];
 
   /* ── analyticsMap: URL → analytics row ── */
   const analyticsMap = useMemo(() => {
@@ -607,6 +608,7 @@ export default function Gallery() {
         onClose={() => setShowUpload(false)}
         onFilesReady={handleFilesReady}
         servedGender={servedGender}
+        offeredCategories={offeredCategories}
       />
 
       {/* ── Preview modal (glassmorphism) ── */}
@@ -634,6 +636,7 @@ export default function Gallery() {
           onUpdated={handleEditUpdated}
           onCoverSet={handleEditCoverSet}
           servedGender={servedGender}
+          offeredCategories={offeredCategories}
         />
       )}
     </DashboardLayout>
