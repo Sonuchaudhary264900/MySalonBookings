@@ -587,43 +587,344 @@ export const SALON_TYPES = [
   },
 ];
 
+// ─── Curated service lists per salon type ────────────────────────────────────
+// These keep only the services that make sense for each specific business type.
+
+export const BARBERSHOP_CATEGORIES = [
+  {
+    key: 'hair_services',
+    label: 'Hair Services',
+    icon: '✂️',
+    subServices: [
+      // Core cuts
+      'Basic Haircut', 'Fade / Taper / Skin Fade', 'Designer Haircut',
+      'Undercut', 'Crew Cut', 'Buzz Cut',
+      // Styling & wash
+      'Hair Styling', 'Blow Dry', 'Hair Wash',
+      // Color
+      'Hair Coloring', 'Global Hair Color', 'Highlights / Streaks',
+      'Root Touch-Up', 'Grey Coverage',
+      // Basic care
+      'Dandruff Treatment', 'Hair Fall Treatment', 'Scalp Treatment', 'Deep Conditioning',
+    ],
+  },
+  {
+    key: 'beard_grooming',
+    label: 'Beard & Grooming',
+    icon: '🧔',
+    subServices: [
+      'Beard Trim', 'Clean Shave', 'Hot Towel Shave',
+      'Beard Styling / Shape', 'Designer Beard', 'Beard Fade',
+      'Beard Coloring', 'Grey Coverage (Beard)',
+      'Beard Spa', 'Beard Smoothening',
+      'Beard Wash', 'Beard Conditioning', 'Beard Oil Treatment',
+      'Beard Dandruff Treatment',
+    ],
+  },
+  {
+    key: 'skin_face',
+    label: 'Skin & Face',
+    icon: '🧴',
+    subServices: [
+      'Clean-up', 'Basic Facial', 'Detan', 'Face Bleach',
+      'Charcoal Facial', 'Fruit Facial', 'Anti-Aging Facial',
+      'Anti-Acne Treatment', 'Skin Brightening', 'Dark Circle Treatment',
+      'Oil Control Treatment', 'Deep Cleansing Treatment', 'Face Polishing',
+    ],
+  },
+];
+
+export const MAKEUP_BRIDAL_CATEGORIES = [
+  {
+    key: 'bridal_events',
+    label: 'Bridal & Makeup',
+    icon: '👰',
+    subServices: [
+      'Bridal Makeup', 'HD Bridal Makeup', 'Airbrush Bridal Makeup',
+      'Engagement Makeup', 'Party Makeup', 'Reception Makeup', 'Cocktail Makeup',
+      'Trial Makeup', 'Makeup Consultation', 'On-Location Makeup Service', 'Photoshoot Makeup',
+      'Bridal Hairstyling', 'Party Hairstyling', 'Engagement Hairstyling', 'Reception Hairstyling',
+      'Saree Draping', 'Lehenga Draping', 'Dupatta Draping', 'Bridal Dressing Assistance',
+      'Pre-Bridal Skin Care', 'Pre-Bridal Hair Care', 'Full Pre-Bridal Package', 'Bridal Consultation',
+      'False Eyelashes', 'Lens Application', 'Touch-Up Services (Hourly / Event)',
+    ],
+  },
+  {
+    key: 'nail_services',
+    label: 'Nail Services',
+    icon: '💅',
+    subServices: [
+      'Manicure', 'Pedicure', 'Express Manicure', 'Express Pedicure',
+      'Nail Art', 'French Nails', 'Chrome Nails', 'Matte Finish Nails',
+      'Glitter Nails', 'Bridal Nail Art', '3D Nail Art',
+      'Gel Nails', 'Acrylic Nails', 'Nail Extensions', 'Gel Extensions',
+      'Nail Repair', 'Cuticle Care', 'Nail Shaping',
+      'Spa Manicure', 'Spa Pedicure', 'Paraffin Treatment',
+      'Gel Removal', 'Acrylic Removal', 'Refill / Touch-Up',
+    ],
+  },
+  {
+    key: 'skin_beauty',
+    label: 'Skin Prep & Beauty',
+    icon: '🧖',
+    subServices: [
+      'Clean-up', 'Basic Facial', 'Detan', 'Bleach', 'Face Cleanup (Advanced)',
+      'Gold Facial', 'Diamond Facial', 'Hydra Facial', 'Oxygen Facial', 'Vitamin C Facial',
+      'Anti-Acne Treatment', 'Skin Brightening', 'Pigmentation Treatment',
+      'Tan Removal Treatment', 'Dark Circle Treatment',
+      'Face Massage', 'Neck Treatment', 'Under Eye Care', 'Lip Care Treatment',
+    ],
+  },
+  {
+    key: 'hair_services_women',
+    label: 'Hair Styling',
+    icon: '💇',
+    subServices: [
+      'Haircut (Layer / Step / Trim)', 'Fringe / Bangs Cut', 'Blunt Cut',
+      'Hair Styling (Straight / Curl / Party)', 'Blow Dry', 'Hair Ironing', 'Hair Curling',
+      'Party Hairstyle', 'Bridal Hairstyle', 'Engagement Hairstyle', 'Reception Hairstyle',
+      'Hair Coloring', 'Global Hair Color', 'Highlights', 'Balayage', 'Ombre', 'Root Touch-Up',
+      'Hair Extensions Styling',
+    ],
+  },
+];
+
+export const SPA_WELLNESS_MALE_CATEGORIES = [
+  {
+    key: 'spa_massage',
+    label: 'Spa & Massage',
+    icon: '💆',
+    subServices: [
+      'Head Massage', 'Neck & Shoulder Massage', 'Back Massage', 'Foot Massage', 'Hand Massage',
+      'Full Body Massage', 'Relaxation Massage', 'Deep Tissue Massage', 'Swedish Massage',
+      'Aroma Therapy Massage', 'Hot Stone Massage', 'Thai Massage', 'Balinese Massage',
+      'Body Spa', 'Body Polishing', 'Body Scrub', 'Body Wrap',
+      'Stress Relief Therapy', 'Muscle Recovery Therapy', 'Detox Therapy',
+    ],
+  },
+  {
+    key: 'skin_face',
+    label: 'Skin & Face',
+    icon: '🧴',
+    subServices: [
+      'Clean-up', 'Basic Facial', 'Detan',
+      'Charcoal Facial', 'Anti-Aging Facial',
+      'Anti-Acne Treatment', 'Skin Brightening', 'Skin Hydration Treatment',
+      'Exfoliation Treatment', 'Deep Cleansing Treatment',
+    ],
+  },
+  {
+    key: 'body_grooming',
+    label: 'Body Care',
+    icon: '🧍',
+    subServices: [
+      'Body Polishing', 'Body Scrub', 'Body Detan', 'Full Body Wax',
+      'Ear Cleaning', 'Eyebrow Threading',
+    ],
+  },
+];
+
+export const SPA_WELLNESS_FEMALE_CATEGORIES = [
+  {
+    key: 'spa_relaxation',
+    label: 'Spa & Massage',
+    icon: '💆',
+    subServices: [
+      'Head Massage', 'Neck & Shoulder Massage', 'Back Massage', 'Foot Massage', 'Hand Massage',
+      'Full Body Massage', 'Relaxation Massage', 'Deep Tissue Massage', 'Swedish Massage',
+      'Aromatherapy Massage', 'Hot Stone Massage', 'Thai Massage', 'Balinese Massage', 'Signature Spa Therapy',
+      'Body Spa', 'Body Polishing', 'Body Scrub', 'Body Wrap',
+      'Stress Relief Therapy', 'Muscle Relaxation Therapy', 'Detox Therapy', 'Sleep Therapy',
+      'Pre-Bridal Spa', 'Post-Bridal Relaxation', 'Pregnancy Safe Massage',
+    ],
+  },
+  {
+    key: 'skin_beauty',
+    label: 'Skin & Beauty',
+    icon: '🧖',
+    subServices: [
+      'Clean-up', 'Basic Facial', 'Detan', 'Bleach',
+      'Hydra Facial', 'Anti-Aging Facial', 'Oxygen Facial', 'Vitamin C Facial',
+      'Anti-Acne Treatment', 'Skin Brightening', 'Skin Hydration Treatment',
+      'Exfoliation Treatment', 'Deep Cleansing Treatment', 'Face Massage',
+    ],
+  },
+  {
+    key: 'body_grooming_women',
+    label: 'Body Care',
+    icon: '🧴',
+    subServices: [
+      'Full Body Wax', 'Half Body Wax', 'Full Arms Wax', 'Half Arms Wax',
+      'Full Legs Wax', 'Half Legs Wax', 'Underarms Wax',
+      'Eyebrow Threading', 'Upper Lip Threading', 'Full Face Threading',
+      'Body Polish', 'Body Scrub', 'Body Detan', 'Full Body Polishing', 'Full Body Spa',
+    ],
+  },
+];
+
+export const SPA_WELLNESS_UNISEX_CATEGORIES = [
+  {
+    key: 'spa_massage_unisex',
+    label: 'Spa & Massage',
+    icon: '💆',
+    subServices: [
+      'Head Massage', 'Neck & Shoulder Massage', 'Back Massage', 'Foot Massage', 'Hand Massage',
+      'Full Body Massage', 'Relaxation Massage', 'Deep Tissue Massage', 'Swedish Massage',
+      'Aromatherapy Massage', 'Hot Stone Massage', 'Thai Massage', 'Balinese Massage',
+      'Body Spa', 'Body Polishing', 'Body Scrub', 'Body Wrap',
+      'Stress Relief Therapy', 'Muscle Recovery Therapy', 'Detox Therapy', 'Sleep Therapy',
+    ],
+  },
+  {
+    key: 'skin_beauty_unisex',
+    label: 'Skin & Face',
+    icon: '🧴',
+    subServices: [
+      'Clean-up', 'Basic Facial', 'Detan',
+      'Hydra Facial', 'Anti-Aging Facial', 'Charcoal Facial',
+      'Anti-Acne Treatment', 'Skin Brightening', 'Skin Hydration Treatment',
+      'Exfoliation Treatment', 'Deep Cleansing Treatment',
+    ],
+  },
+  {
+    key: 'body_grooming_unisex',
+    label: 'Body Care',
+    icon: '🧍',
+    subServices: [
+      'Full Body Wax', 'Body Polishing', 'Body Scrub', 'Body Detan',
+      'Eyebrow Threading', 'Full Face Threading',
+    ],
+  },
+];
+
+export const SKIN_DERMA_MALE_CATEGORIES = [
+  {
+    key: 'men_dermatology',
+    label: 'Dermatology',
+    icon: '🏥',
+    subServices: [
+      'Alopecia Treatment', 'Hair Fall Consultation', 'Hair Regrowth Therapy',
+      'Male Pattern Baldness Treatment', 'PRP Hair Therapy', 'Scalp Infection Treatment',
+      'Acne Scar Treatment', 'Acne Treatment', 'Detan Treatment', 'Open Pores Treatment',
+      'Skin Brightening Treatment', 'Beard Growth Therapy', 'Beard Patch Treatment',
+      'Ingrown Hair Treatment', 'Razor Bumps Treatment', 'Skin Irritation Treatment (After Shaving)',
+      'Anti-Aging Treatment', 'Chemical Peel', 'Laser Treatment',
+      'Scar Reduction Treatment', 'Skin Tightening',
+      'Back Acne Treatment', 'Body Acne Treatment', 'Skin Allergy Treatment', 'Stretch Marks Treatment',
+      'General Skin Consultation', 'Hair Specialist Consultation',
+      'Follow-up Consultation', 'Online Dermatologist Consultation',
+    ],
+  },
+  {
+    key: 'skin_face',
+    label: 'Skin Treatments',
+    icon: '🧴',
+    subServices: [
+      'Basic Facial', 'Clean-up', 'Detan',
+      'Charcoal Facial', 'Anti-Aging Facial',
+      'Anti-Acne Treatment', 'Skin Brightening', 'Pigmentation Treatment',
+      'Skin Hydration Treatment', 'Exfoliation Treatment', 'Deep Cleansing Treatment',
+    ],
+  },
+];
+
+export const SKIN_DERMA_FEMALE_CATEGORIES = [
+  {
+    key: 'women_dermatology',
+    label: 'Dermatology',
+    icon: '🏥',
+    subServices: [
+      'Alopecia Treatment', 'Dandruff Treatment', 'Hair Fall Treatment',
+      'Hair Thinning Treatment', 'Hormonal Hair Loss Treatment',
+      'PRP Hair Therapy', 'Scalp Infection Treatment',
+      'Acne Scar Treatment', 'Acne Treatment', 'Dark Circles Treatment',
+      'Detan Treatment', 'Open Pores Treatment', 'Pigmentation Treatment',
+      'Skin Brightening Treatment', 'Uneven Skin Tone Treatment',
+      'Chemical Peel', 'Hydrafacial (Medical Grade)', 'Laser Skin Treatment',
+      'Skin Rejuvenation', 'Skin Tightening',
+      'Anti-Aging Treatment', 'Collagen Boost Therapy',
+      'Fine Line Treatment', 'Skin Lifting Treatment', 'Wrinkle Reduction',
+      'Back Acne Treatment', 'Body Acne Treatment', 'Skin Allergy Treatment',
+      'Stretch Marks Treatment', 'Underarm Pigmentation Treatment',
+      'General Skin Consultation', 'Hair Specialist Consultation',
+      'Follow-up Consultation', 'Online Dermatologist Consultation',
+    ],
+  },
+  {
+    key: 'skin_beauty',
+    label: 'Skin Treatments',
+    icon: '🧴',
+    subServices: [
+      'Basic Facial', 'Clean-up', 'Detan', 'Bleach',
+      'Hydra Facial', 'Anti-Aging Facial', 'Oxygen Facial', 'Vitamin C Facial',
+      'Anti-Acne Treatment', 'Skin Brightening', 'Pigmentation Treatment',
+      'Tan Removal Treatment', 'Open Pores Treatment',
+      'Skin Hydration Treatment', 'Exfoliation Treatment', 'Collagen Boost Treatment',
+    ],
+  },
+];
+
+export const SKIN_DERMA_UNISEX_CATEGORIES = [
+  {
+    key: 'men_dermatology_unisex',
+    label: 'Men Dermatology',
+    icon: '🏥',
+    subServices: [
+      'Alopecia Treatment', 'Hair Fall Consultation', 'Hair Regrowth Therapy',
+      'Male Pattern Baldness Treatment', 'PRP Hair Therapy', 'Scalp Infection Treatment',
+      'Acne Scar Treatment', 'Acne Treatment', 'Open Pores Treatment', 'Skin Brightening Treatment',
+      'Beard Growth Therapy', 'Ingrown Hair Treatment', 'Razor Bumps Treatment',
+      'Anti-Aging Treatment', 'Chemical Peel', 'Laser Treatment', 'Skin Tightening',
+      'General Skin Consultation', 'Hair Specialist Consultation', 'Follow-up Consultation',
+    ],
+  },
+  {
+    key: 'women_dermatology_unisex',
+    label: 'Women Dermatology',
+    icon: '🏥',
+    subServices: [
+      'Alopecia Treatment', 'Hair Fall Treatment', 'Hair Thinning Treatment',
+      'Hormonal Hair Loss Treatment', 'PRP Hair Therapy',
+      'Acne Scar Treatment', 'Acne Treatment', 'Pigmentation Treatment',
+      'Skin Brightening Treatment', 'Chemical Peel', 'Laser Skin Treatment',
+      'Skin Tightening', 'Anti-Aging Treatment', 'Collagen Boost Therapy',
+      'Back Acne Treatment', 'Stretch Marks Treatment', 'Underarm Pigmentation Treatment',
+      'General Skin Consultation', 'Hair Specialist Consultation', 'Follow-up Consultation',
+    ],
+  },
+  {
+    key: 'skin_beauty_unisex',
+    label: 'Skin Treatments',
+    icon: '🧴',
+    subServices: [
+      'Basic Facial', 'Clean-up', 'Detan',
+      'Hydra Facial', 'Anti-Aging Facial', 'Vitamin C Facial',
+      'Anti-Acne Treatment', 'Skin Brightening', 'Pigmentation Treatment',
+      'Skin Hydration Treatment', 'Exfoliation Treatment',
+    ],
+  },
+];
+
 // ─── Returns tailored categories based on salon type + served gender ──────────
 export function getCategoriesForSalonType(salonType, servedGender) {
   if (salonType === 'barbershop') {
-    // Barbershop: only the 3 core barber categories
-    return MALE_CATEGORIES.filter(c =>
-      ['hair_services', 'beard_grooming', 'skin_face'].includes(c.key)
-    );
+    return BARBERSHOP_CATEGORIES;
   }
 
   if (salonType === 'makeup_bridal') {
-    // Makeup & Bridal: core 4 — makeup/draping, nails, skin prep, hair styling
-    const KEYS = ['bridal_events', 'nail_services', 'skin_beauty', 'hair_services_women'];
-    return FEMALE_CATEGORIES.filter(c => KEYS.includes(c.key));
+    return MAKEUP_BRIDAL_CATEGORIES;
   }
 
   if (salonType === 'spa_wellness') {
-    if (servedGender === 'male') {
-      return MALE_CATEGORIES.filter(c => ['spa_massage', 'skin_face', 'body_grooming'].includes(c.key));
-    }
-    if (servedGender === 'female') {
-      return FEMALE_CATEGORIES.filter(c => ['spa_relaxation', 'skin_beauty', 'body_grooming_women'].includes(c.key));
-    }
-    return UNISEX_CATEGORIES.filter(c =>
-      ['spa_massage_unisex', 'skin_beauty_unisex', 'body_grooming_unisex'].includes(c.key)
-    );
+    if (servedGender === 'male')   return SPA_WELLNESS_MALE_CATEGORIES;
+    if (servedGender === 'female') return SPA_WELLNESS_FEMALE_CATEGORIES;
+    return SPA_WELLNESS_UNISEX_CATEGORIES;
   }
 
   if (salonType === 'skin_derma') {
-    if (servedGender === 'male') {
-      return MALE_CATEGORIES.filter(c => ['men_dermatology', 'skin_face'].includes(c.key));
-    }
-    if (servedGender === 'female') {
-      return FEMALE_CATEGORIES.filter(c => ['women_dermatology', 'skin_beauty'].includes(c.key));
-    }
-    return UNISEX_CATEGORIES.filter(c =>
-      ['men_dermatology_unisex', 'women_dermatology_unisex', 'skin_beauty_unisex'].includes(c.key)
-    );
+    if (servedGender === 'male')   return SKIN_DERMA_MALE_CATEGORIES;
+    if (servedGender === 'female') return SKIN_DERMA_FEMALE_CATEGORIES;
+    return SKIN_DERMA_UNISEX_CATEGORIES;
   }
 
   // 'salon' or unset → standard gender-based categories

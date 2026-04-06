@@ -56,32 +56,41 @@ export default function Step8_ServicesSelect() {
     [data.salonType, data.servedGender]
   );
 
-  const [activeCategory,    setActiveCategory]    = useState(categories[0]?.key || '');
-  const [selected,          setSelected]          = useState(() => new Set(data.selectedServices.map(s => s.serviceName)));
-  const [customInput,       setCustomInput]       = useState('');
-  const [showCustom,        setShowCustom]        = useState(false);
-  const [suggestionBanner,  setSuggestionBanner]  = useState(!data.quickSetup ? false : true);
+  const [activeCategory,   setActiveCategory]   = useState(categories[0]?.key || '');
+  const [selected,         setSelected]         = useState(() => new Set(
+    data.selectedServices.filter(s => s.categoryKey !== 'custom').map(s => s.serviceName)
+  ));
+  const [customServices,   setCustomServices]   = useState(() =>
+    data.selectedServices.filter(s => s.categoryKey === 'custom').map(s => s.serviceName)
+  );
+  const [customInput,      setCustomInput]      = useState('');
+  const [showCustom,       setShowCustom]       = useState(false);
+  const [suggestionBanner, setSuggestionBanner] = useState(!data.quickSetup ? false : true);
 
   const activeCat     = categories.find(c => c.key === activeCategory) || categories[0];
-  const selectedCount = selected.size;
+  const selectedCount = selected.size + customServices.length;
   const typeConf      = SALON_TYPE_CONFIG[data.salonType] || SALON_TYPE_CONFIG.salon;
 
-  /* ── Toggle service ──────────────────────────────────────── */
-  const toggleService = (cat, serviceName) => {
-    const next = new Set(selected);
-    next.has(serviceName) ? next.delete(serviceName) : next.add(serviceName);
-    setSelected(next);
-    update({ selectedServices: buildSelected(categories, next) });
-  };
-
-  const buildSelected = (cats, sel) => {
+  /* ── Build the full selectedServices array (standard + custom) ── */
+  const buildSelected = (cats, sel, customs) => {
     const result = [];
     cats.forEach(cat =>
       (cat.subServices || []).forEach(s => {
         if (sel.has(s)) result.push({ categoryKey: cat.key, categoryLabel: cat.label, categoryIcon: cat.icon, serviceName: s });
       })
     );
+    customs.forEach(name =>
+      result.push({ categoryKey: 'custom', categoryLabel: 'Custom', categoryIcon: '✏️', serviceName: name })
+    );
     return result;
+  };
+
+  /* ── Toggle service ──────────────────────────────────────── */
+  const toggleService = (cat, serviceName) => {
+    const next = new Set(selected);
+    next.has(serviceName) ? next.delete(serviceName) : next.add(serviceName);
+    setSelected(next);
+    update({ selectedServices: buildSelected(categories, next, customServices) });
   };
 
   /* ── Quick suggestions ───────────────────────────────────── */
@@ -89,22 +98,29 @@ export default function Step8_ServicesSelect() {
     const picks = QUICK_PICKS[data.salonType] || QUICK_PICKS[data.servedGender] || QUICK_PICKS.unisex;
     const next  = new Set([...selected, ...picks]);
     setSelected(next);
-    update({ selectedServices: buildSelected(categories, next) });
+    update({ selectedServices: buildSelected(categories, next, customServices) });
     setSuggestionBanner(false);
     toast.success('Suggested services applied!');
   };
 
-  /* ── Custom service ──────────────────────────────────────── */
+  /* ── Custom service: add ─────────────────────────────────── */
   const addCustomService = () => {
     if (!customInput.trim()) return;
     const name = customInput.trim();
-    if (selected.has(name)) { toast.error('Already added'); return; }
-    const next = new Set([...selected, name]);
-    setSelected(next);
-    update({ selectedServices: [...data.selectedServices, { categoryKey: 'custom', categoryLabel: 'Custom', categoryIcon: '✏️', serviceName: name }] });
+    if (selected.has(name) || customServices.includes(name)) { toast.error('Already added'); return; }
+    const newCustoms = [...customServices, name];
+    setCustomServices(newCustoms);
+    update({ selectedServices: buildSelected(categories, selected, newCustoms) });
     setCustomInput('');
     setShowCustom(false);
     toast.success(`"${name}" added!`);
+  };
+
+  /* ── Custom service: remove ──────────────────────────────── */
+  const removeCustomService = (name) => {
+    const newCustoms = customServices.filter(s => s !== name);
+    setCustomServices(newCustoms);
+    update({ selectedServices: buildSelected(categories, selected, newCustoms) });
   };
 
   /* ── Continue ────────────────────────────────────────────── */
@@ -347,6 +363,36 @@ export default function Step8_ServicesSelect() {
               </div>
             )}
           </div>
+
+          {/* Custom services chip list */}
+          {customServices.length > 0 && (
+            <div style={{
+              padding: '10px 14px',
+              borderTop: `1px dashed ${border}`,
+              display: 'flex', flexWrap: 'wrap', gap: 7, alignItems: 'center',
+            }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: textSub, marginRight: 2 }}>✏️ Custom:</span>
+              {customServices.map(name => (
+                <span key={name} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: '4px 10px', borderRadius: 99,
+                  background: isDark ? `${typeConf.color}22` : `${typeConf.color}12`,
+                  border: `1px solid ${typeConf.color}44`,
+                  fontSize: 11.5, fontWeight: 600, color: typeConf.color,
+                }}>
+                  {name}
+                  <button
+                    onClick={() => removeCustomService(name)}
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                      display: 'flex', alignItems: 'center', color: typeConf.color, opacity: 0.7,
+                    }}>
+                    <X size={11} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
 
           {/* Status bar */}
           <div style={{
