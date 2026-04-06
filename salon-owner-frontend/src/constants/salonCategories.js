@@ -88,6 +88,31 @@ export const MALE_CATEGORIES = [
       'Body Polishing', 'Body Scrub', 'Body Detan',
     ],
   },
+  {
+    key: 'men_dermatology',
+    label: 'Men Dermatology',
+    icon: '🧴',
+    subServices: [
+      // Hair & Scalp Treatments
+      'Hair Fall Consultation', 'Male Pattern Baldness Treatment', 'PRP Hair Therapy',
+      'Scalp Infection Treatment', 'Hair Regrowth Therapy', 'Alopecia Treatment',
+      // Skin Treatments (Face)
+      'Acne Treatment', 'Acne Scar Treatment', 'Open Pores Treatment',
+      'Skin Brightening Treatment', 'Detan Treatment',
+      // Beard & Face Issues
+      'Beard Patch Treatment', 'Ingrown Hair Treatment', 'Razor Bumps Treatment',
+      'Beard Growth Therapy', 'Skin Irritation Treatment (After Shaving)',
+      // Advanced Dermatology Treatments
+      'Chemical Peel', 'Laser Treatment', 'Skin Tightening',
+      'Anti-Aging Treatment', 'Scar Reduction Treatment',
+      // Body Skin Treatments
+      'Body Acne Treatment', 'Back Acne Treatment',
+      'Stretch Marks Treatment', 'Skin Allergy Treatment',
+      // Consultation
+      'General Skin Consultation', 'Hair Specialist Consultation',
+      'Online Dermatologist Consultation', 'Follow-up Consultation',
+    ],
+  },
 ];
 
 export const MALE_OPTIONALS = [
@@ -399,6 +424,33 @@ export const UNISEX_CATEGORIES = [
       "Kids' Haircut (Girls)", "Kids' Hair Styling (Girls)", "Kids' Hair Wash", "Kids' Braiding",
     ],
     get subServices() { return [...new Set([...this.maleSubServices, ...this.femaleSubServices])]; },
+  },
+  {
+    key: 'men_dermatology_unisex',
+    label: 'Men Dermatology',
+    icon: '🧴',
+    maleSubServices: [
+      // Hair & Scalp Treatments
+      'Hair Fall Consultation', 'Male Pattern Baldness Treatment', 'PRP Hair Therapy',
+      'Scalp Infection Treatment', 'Hair Regrowth Therapy', 'Alopecia Treatment',
+      // Skin Treatments (Face)
+      'Acne Treatment', 'Acne Scar Treatment', 'Open Pores Treatment',
+      'Skin Brightening Treatment', 'Detan Treatment',
+      // Beard & Face Issues
+      'Beard Patch Treatment', 'Ingrown Hair Treatment', 'Razor Bumps Treatment',
+      'Beard Growth Therapy', 'Skin Irritation Treatment (After Shaving)',
+      // Advanced Dermatology Treatments
+      'Chemical Peel', 'Laser Treatment', 'Skin Tightening',
+      'Anti-Aging Treatment', 'Scar Reduction Treatment',
+      // Body Skin Treatments
+      'Body Acne Treatment', 'Back Acne Treatment',
+      'Stretch Marks Treatment', 'Skin Allergy Treatment',
+      // Consultation
+      'General Skin Consultation', 'Hair Specialist Consultation',
+      'Online Dermatologist Consultation', 'Follow-up Consultation',
+    ],
+    femaleSubServices: [],
+    get subServices() { return this.maleSubServices; },
   },
   {
     key: 'at_home_services_unisex',
