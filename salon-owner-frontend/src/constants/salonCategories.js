@@ -541,3 +541,89 @@ export const ALL_CATEGORY_ORDER = [
 // (used to hide/show category groups in gender-filtered views)
 export const MALE_ONLY_CAT_LABELS  = new Set(['Beard & Grooming', 'Men Dermatology']);
 export const FEMALE_ONLY_CAT_LABELS = new Set(['Bridal & Events',  'Women Dermatology']);
+
+// ─── Salon type definitions ───────────────────────────────────────────────────
+// autoGender: pre-selects served gender (null = owner chooses)
+export const SALON_TYPES = [
+  {
+    key:         'barbershop',
+    label:       'Barbershop',
+    icon:        '✂️',
+    description: 'Expert cuts, shaves & beard grooming',
+    autoGender:  'male',
+    color:       '#3b82f6',
+  },
+  {
+    key:         'salon',
+    label:       'Salon',
+    icon:        '💇',
+    description: 'Hair, beauty & grooming for everyone',
+    autoGender:  null,
+    color:       '#8b5cf6',
+  },
+  {
+    key:         'spa_wellness',
+    label:       'Spa & Wellness',
+    icon:        '🧘',
+    description: 'Relaxation, massage & holistic care',
+    autoGender:  null,
+    color:       '#10b981',
+  },
+  {
+    key:         'makeup_bridal',
+    label:       'Makeup & Bridal',
+    icon:        '💄',
+    description: 'Bridal, party makeup & beauty services',
+    autoGender:  'female',
+    color:       '#ec4899',
+  },
+  {
+    key:         'skin_derma',
+    label:       'Skin & Derma Clinic',
+    icon:        '🏥',
+    description: 'Advanced skin treatments & dermatology',
+    autoGender:  null,
+    color:       '#f59e0b',
+  },
+];
+
+// ─── Returns tailored categories based on salon type + served gender ──────────
+export function getCategoriesForSalonType(salonType, servedGender) {
+  if (salonType === 'barbershop') {
+    return MALE_CATEGORIES;
+  }
+
+  if (salonType === 'makeup_bridal') {
+    const KEYS = ['bridal_events', 'hair_services_women', 'nail_services', 'skin_beauty', 'spa_relaxation', 'body_grooming_women'];
+    return FEMALE_CATEGORIES.filter(c => KEYS.includes(c.key));
+  }
+
+  if (salonType === 'spa_wellness') {
+    if (servedGender === 'male') {
+      return MALE_CATEGORIES.filter(c => ['spa_massage', 'skin_face', 'body_grooming'].includes(c.key));
+    }
+    if (servedGender === 'female') {
+      return FEMALE_CATEGORIES.filter(c => ['spa_relaxation', 'skin_beauty', 'body_grooming_women'].includes(c.key));
+    }
+    return UNISEX_CATEGORIES.filter(c =>
+      ['spa_massage_unisex', 'skin_beauty_unisex', 'body_grooming_unisex'].includes(c.key)
+    );
+  }
+
+  if (salonType === 'skin_derma') {
+    if (servedGender === 'male') {
+      return MALE_CATEGORIES.filter(c => ['men_dermatology', 'skin_face'].includes(c.key));
+    }
+    if (servedGender === 'female') {
+      return FEMALE_CATEGORIES.filter(c => ['women_dermatology', 'skin_beauty'].includes(c.key));
+    }
+    return UNISEX_CATEGORIES.filter(c =>
+      ['men_dermatology_unisex', 'women_dermatology_unisex', 'skin_beauty_unisex'].includes(c.key)
+    );
+  }
+
+  // 'salon' or unset → standard gender-based categories
+  if (servedGender === 'male')   return MALE_CATEGORIES;
+  if (servedGender === 'female') return FEMALE_CATEGORIES;
+  return UNISEX_CATEGORIES;
+}

@@ -93,7 +93,7 @@ export default function OnboardingLayout({ children }) {
                 <div style={{ width: 1, height: 18, background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }} />
 
                 <span style={{ fontSize: 12, color: textMuted, fontWeight: 500 }}>
-                  Step <span style={{ fontWeight: 700, color: textPrimary }}>{currentStep}</span> of 10
+                  Step <span style={{ fontWeight: 700, color: textPrimary }}>{currentStep}</span> of 11
                 </span>
 
                 <span style={{

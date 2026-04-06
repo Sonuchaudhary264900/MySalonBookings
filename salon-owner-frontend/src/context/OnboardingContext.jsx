@@ -7,8 +7,8 @@ export const useOnboarding = () => {
   return ctx;
 };
 
-// Step → progress % mapping
-const STEP_PROGRESS = { 1:10, 2:20, 3:30, 4:40, 5:50, 6:60, 7:70, 8:78, 9:88, 10:98 };
+// Step → progress % mapping (11 steps)
+const STEP_PROGRESS = { 1:9, 2:18, 3:27, 4:36, 5:45, 6:55, 7:64, 8:73, 9:82, 10:91, 11:98 };
 
 const getProgressMessage = (pct) => {
   if (pct <= 20)  return "Let's get started!";
@@ -38,7 +38,10 @@ export function OnboardingProvider({ children }) {
     gender:     '',   // 'male' | 'female' | 'other'
     referralCode: '',
 
-    // Step 4 — salon identity
+    // Step 4 — salon type
+    salonType: '',  // 'barbershop' | 'salon' | 'spa_wellness' | 'makeup_bridal' | 'skin_derma'
+
+    // Step 5 — salon identity
     salonName:    '',
     servedGender: '',  // 'male' | 'female' | 'unisex'
     description:  '',
@@ -84,7 +87,7 @@ export function OnboardingProvider({ children }) {
   const nextStep = useCallback(() => {
     setDirection(1);
     setCompletedSteps(prev => [...new Set([...prev, currentStep])]);
-    setCurrentStep(prev => Math.min(prev + 1, 10));
+    setCurrentStep(prev => Math.min(prev + 1, 11));
   }, [currentStep]);
 
   const prevStep = useCallback(() => {

@@ -68,6 +68,7 @@ export function useOnboardingSubmit() {
         state:            data.state,
         pincode:          data.pincode,
         description:      data.description,
+        salonType:        data.salonType || 'salon',
         servedGender:     data.servedGender,
         workingHours,
         offeredCategories,

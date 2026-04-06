@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight, Sparkles, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import { useTheme } from '../../../context/ThemeContext';
+import { SALON_TYPES } from '../../../constants/salonCategories';
 
 const S4_CSS = `
   @keyframes s4-fadeup{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
@@ -43,6 +44,10 @@ export default function Step4_SalonIdentity() {
   const [typewriting, setTypewriting] = useState(false);
   const [errors, setErrors]       = useState({});
 
+  // If a salon type with autoGender was selected in the previous step, lock gender
+  const salonTypeDef  = SALON_TYPES.find(t => t.key === data.salonType);
+  const lockedGender  = salonTypeDef?.autoGender || null;  // 'male' | 'female' | null
+
   const suggestions = AI_NAMES_BY_GENDER[gender] || AI_NAMES_BY_GENDER[''];
 
   const typewrite = (text, setter) => {
@@ -68,13 +73,14 @@ export default function Step4_SalonIdentity() {
   };
 
   const handleNext = () => {
+    const effectiveGender = lockedGender || gender;
     const e = {};
-    if (!name.trim())   e.name   = 'Salon name is required';
-    if (!gender)        e.gender = 'Please select who you serve';
-    if (!desc.trim())   e.desc   = 'Add a short description';
+    if (!name.trim())        e.name   = 'Salon name is required';
+    if (!effectiveGender)    e.gender = 'Please select who you serve';
+    if (!desc.trim())        e.desc   = 'Add a short description';
     setErrors(e);
     if (Object.keys(e).length) return;
-    update({ salonName: name.trim(), servedGender: gender, description: desc.trim() });
+    update({ salonName: name.trim(), servedGender: effectiveGender, description: desc.trim() });
     toast.success("Your salon has a name — it's real now! 🏷️");
     nextStep();
   };
@@ -146,34 +152,72 @@ export default function Step4_SalonIdentity() {
 
           {/* Gender */}
           <div>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: sub, marginBottom: 10 }}>
-              Who do you serve? *
-            </label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-              {[
-                { v: 'male',   icon: '✂️', label: 'Men Only' },
-                { v: 'female', icon: '💅', label: 'Women Only' },
-                { v: 'unisex', icon: '✨', label: 'Unisex' },
-              ].map(({ v, icon, label }) => (
-                <button key={v} className="s4-gender-card"
-                  onClick={() => { setGender(v); setErrors(er => ({ ...er, gender: '' })); }}
-                  style={{
-                    padding: '18px 8px', borderRadius: 16, textAlign: 'center',
-                    border: `2px solid ${gender === v ? '#7c3aed' : border}`,
-                    background: gender === v ? (isDark ? 'rgba(124,58,237,0.12)' : 'rgba(124,58,237,0.07)') : (isDark ? 'rgba(255,255,255,0.03)' : '#f9fafb'),
-                    cursor: 'pointer', fontFamily: 'inherit',
-                    boxShadow: gender === v ? '0 0 0 3px rgba(124,58,237,0.2), 0 4px 20px rgba(124,58,237,0.15)' : 'none',
-                    transform: gender === v ? 'scale(1.04)' : 'scale(1)',
-                    position: 'relative',
-                  }}>
-                  {gender === v && (
-                    <div style={{ position: 'absolute', top: 8, right: 8, width: 16, height: 16, borderRadius: '50%', background: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#fff', fontWeight: 700 }}>✓</div>
-                  )}
-                  <div style={{ fontSize: 26, marginBottom: 6 }}>{icon}</div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: gender === v ? '#a855f7' : sub }}>{label}</div>
-                </button>
-              ))}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: sub }}>
+                Who do you serve? *
+              </label>
+              {lockedGender && (
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  padding: '2px 8px', borderRadius: 99, fontSize: 10, fontWeight: 700,
+                  background: isDark ? 'rgba(139,92,246,0.15)' : 'rgba(124,58,237,0.08)',
+                  color: '#a855f7', border: '1px solid rgba(124,58,237,0.25)',
+                }}>
+                  <Lock size={9} /> Auto-set by {salonTypeDef?.label}
+                </span>
+              )}
             </div>
+
+            {lockedGender ? (
+              /* Locked gender display */
+              <div style={{
+                padding: '14px 18px', borderRadius: 16,
+                border: '2px solid #7c3aed',
+                background: isDark ? 'rgba(124,58,237,0.12)' : 'rgba(124,58,237,0.07)',
+                display: 'flex', alignItems: 'center', gap: 14,
+                boxShadow: '0 0 0 3px rgba(124,58,237,0.15)',
+              }}>
+                <div style={{ fontSize: 28 }}>
+                  {lockedGender === 'male' ? '✂️' : lockedGender === 'female' ? '💅' : '✨'}
+                </div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#a855f7' }}>
+                    {lockedGender === 'male' ? 'Men Only' : lockedGender === 'female' ? 'Women Only' : 'Unisex'}
+                  </div>
+                  <div style={{ fontSize: 11, color: sub, marginTop: 2 }}>
+                    Pre-selected based on your salon type. Change salon type in the previous step to update.
+                  </div>
+                </div>
+                <div style={{ marginLeft: 'auto', width: 20, height: 20, borderRadius: '50%', background: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#fff', fontWeight: 700 }}>✓</div>
+              </div>
+            ) : (
+              /* Normal gender picker */
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                {[
+                  { v: 'male',   icon: '✂️', label: 'Men Only' },
+                  { v: 'female', icon: '💅', label: 'Women Only' },
+                  { v: 'unisex', icon: '✨', label: 'Unisex' },
+                ].map(({ v, icon, label }) => (
+                  <button key={v} className="s4-gender-card"
+                    onClick={() => { setGender(v); setErrors(er => ({ ...er, gender: '' })); }}
+                    style={{
+                      padding: '18px 8px', borderRadius: 16, textAlign: 'center',
+                      border: `2px solid ${gender === v ? '#7c3aed' : border}`,
+                      background: gender === v ? (isDark ? 'rgba(124,58,237,0.12)' : 'rgba(124,58,237,0.07)') : (isDark ? 'rgba(255,255,255,0.03)' : '#f9fafb'),
+                      cursor: 'pointer', fontFamily: 'inherit',
+                      boxShadow: gender === v ? '0 0 0 3px rgba(124,58,237,0.2), 0 4px 20px rgba(124,58,237,0.15)' : 'none',
+                      transform: gender === v ? 'scale(1.04)' : 'scale(1)',
+                      position: 'relative',
+                    }}>
+                    {gender === v && (
+                      <div style={{ position: 'absolute', top: 8, right: 8, width: 16, height: 16, borderRadius: '50%', background: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#fff', fontWeight: 700 }}>✓</div>
+                    )}
+                    <div style={{ fontSize: 26, marginBottom: 6 }}>{icon}</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: gender === v ? '#a855f7' : sub }}>{label}</div>
+                  </button>
+                ))}
+              </div>
+            )}
             {errors.gender && <p style={{ color: '#f87171', fontSize: 11, marginTop: 6 }}>{errors.gender}</p>}
           </div>
 

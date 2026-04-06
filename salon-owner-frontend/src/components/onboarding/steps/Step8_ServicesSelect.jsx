@@ -3,7 +3,7 @@ import { ArrowRight, Sparkles, Plus, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import { useTheme } from '../../../context/ThemeContext';
-import { MALE_CATEGORIES, FEMALE_CATEGORIES, UNISEX_CATEGORIES } from '../../../constants/salonCategories';
+import { getCategoriesForSalonType } from '../../../constants/salonCategories';
 
 const S8_CSS = `
   @keyframes s8-fadeup{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
@@ -19,11 +19,17 @@ const S8_CSS = `
   .s8-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 30px rgba(124,58,237,0.5)!important;}
 `;
 
-/* ─── Recommended sets by salon type ─────────────────────────── */
+/* ─── Recommended sets by salon type / gender ─────────────────── */
 const QUICK_PICKS = {
-  male:   ['Basic Haircut', 'Beard Trim', 'Clean Shave', 'Hair Wash', 'Basic Facial', 'Head Massage'],
-  female: ['Haircut (Layer / Step / Trim)', 'Hair Styling (Straight / Curl / Party)', 'Basic Facial', 'Manicure', 'Pedicure', 'Waxing'],
-  unisex: ['Basic Haircut', 'Haircut (Layer / Step / Trim)', 'Hair Wash', 'Basic Facial', 'Beard Trim', 'Manicure'],
+  // By salon type (takes priority when salonType is set)
+  barbershop:    ['Basic Haircut', 'Fade / Taper / Skin Fade', 'Beard Trim', 'Clean Shave', 'Hot Towel Shave', 'Hair Styling'],
+  makeup_bridal: ['Bridal Makeup', 'Party Makeup', 'Saree Draping', 'Trial Makeup', 'Manicure', 'Nail Art'],
+  spa_wellness:  ['Head Massage', 'Full Body Massage', 'Body Scrub', 'Foot Massage', 'Aromatherapy Massage', 'Body Spa'],
+  skin_derma:    ['Basic Facial', 'Clean-up', 'Anti-Acne Treatment', 'Skin Brightening', 'General Skin Consultation', 'Acne Scar Treatment'],
+  // Fallback by served gender
+  male:          ['Basic Haircut', 'Beard Trim', 'Clean Shave', 'Hair Wash', 'Basic Facial', 'Head Massage'],
+  female:        ['Haircut (Layer / Step / Trim)', 'Hair Styling (Straight / Curl / Party)', 'Basic Facial', 'Manicure', 'Pedicure', 'Waxing'],
+  unisex:        ['Basic Haircut', 'Haircut (Layer / Step / Trim)', 'Hair Wash', 'Basic Facial', 'Beard Trim', 'Manicure'],
 };
 
 export default function Step8_ServicesSelect() {
@@ -31,10 +37,8 @@ export default function Step8_ServicesSelect() {
   const { isDark } = useTheme();
 
   const categories = useMemo(() => {
-    if (data.servedGender === 'male')   return MALE_CATEGORIES;
-    if (data.servedGender === 'female') return FEMALE_CATEGORIES;
-    return UNISEX_CATEGORIES;
-  }, [data.servedGender]);
+    return getCategoriesForSalonType(data.salonType, data.servedGender);
+  }, [data.salonType, data.servedGender]);
 
   const [activeCategory, setActiveCategory] = useState(categories[0]?.key || '');
   const [selected, setSelected]             = useState(() => new Set(data.selectedServices.map(s => s.serviceName)));
@@ -65,7 +69,7 @@ export default function Step8_ServicesSelect() {
   };
 
   const applyQuickSuggestions = () => {
-    const picks = QUICK_PICKS[data.servedGender] || QUICK_PICKS.unisex;
+    const picks = QUICK_PICKS[data.salonType] || QUICK_PICKS[data.servedGender] || QUICK_PICKS.unisex;
     const next  = new Set([...selected, ...picks]);
     setSelected(next);
     const all = buildSelected(categories, next);
@@ -132,10 +136,10 @@ export default function Step8_ServicesSelect() {
               <span style={{ fontSize: 20 }}>✨</span>
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: 13, fontWeight: 700, color: isDark ? '#c4b5fd' : '#6d28d9', margin: '0 0 4px' }}>
-                  We suggest these for a {data.servedGender || 'unisex'} salon
+                  We suggest these for your {data.salonType ? data.salonType.replace('_', ' ') : (data.servedGender || 'unisex') + ' salon'}
                 </p>
                 <p style={{ fontSize: 12, color: sub, margin: '0 0 10px', lineHeight: 1.4 }}>
-                  {(QUICK_PICKS[data.servedGender] || QUICK_PICKS.unisex).join(', ')}
+                  {(QUICK_PICKS[data.salonType] || QUICK_PICKS[data.servedGender] || QUICK_PICKS.unisex).join(', ')}
                 </p>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button onClick={applyQuickSuggestions} style={{ padding: '6px 14px', borderRadius: 10, background: 'linear-gradient(135deg,#7c3aed,#a855f7)', color: '#fff', fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>

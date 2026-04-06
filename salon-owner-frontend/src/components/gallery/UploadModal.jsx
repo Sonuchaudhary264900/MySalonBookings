@@ -11,7 +11,7 @@ export const MAX_VIDEO_SECONDS = 90;
 const REEL_CATEGORIES = [
   'Hair Styling', 'Hair Colouring', 'Hair Treatment', 'Haircut',
   'Beard & Shave', 'Facial', 'Skin Care', 'Nail Art',
-  'Makeup', 'Spa & Massage', 'Bridal', 'Other',
+  'Makeup', 'Spa & Massage', 'Bridal', 'Specialist', 'Other',
 ];
 
 const REEL_CAT_CFG = {
@@ -26,6 +26,7 @@ const REEL_CAT_CFG = {
   'Makeup':         'bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-400 ring-orange-300 dark:ring-orange-700',
   'Spa & Massage':  'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 ring-emerald-300 dark:ring-emerald-700',
   'Bridal':         'bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400 ring-red-300 dark:ring-red-700',
+  'Specialist':     'bg-violet-100 dark:bg-violet-950/60 text-violet-700 dark:text-violet-400 ring-violet-300 dark:ring-violet-700',
   'Other':          'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 ring-gray-300 dark:ring-gray-600',
 };
 
