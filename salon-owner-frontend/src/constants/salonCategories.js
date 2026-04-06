@@ -522,3 +522,22 @@ export const UNISEX_CATEGORIES = [
     get subServices() { return [...new Set([...this.maleSubServices, ...this.femaleSubServices])]; },
   },
 ];
+
+// ─── Shared helpers — import these instead of hardcoding in components ────────
+export const CATEGORY_ICON_MAP = Object.fromEntries(
+  [...MALE_CATEGORIES, ...FEMALE_CATEGORIES, ...UNISEX_CATEGORIES].map(c => [c.label, c.icon])
+);
+
+export const ALL_CATEGORY_ORDER = [
+  'Hair Services', 'Hair Services (Men)', 'Hair Services (Women)',
+  'Beard & Grooming', 'Nail Services',
+  'Skin & Face / Beauty', 'Skin & Face (Men Grooming)', 'Skin & Beauty',
+  'Spa & Massage', 'Spa & Relaxation', 'Body Grooming',
+  'Men Dermatology', 'Women Dermatology',
+  'Bridal & Events', 'Kids Services', 'At-Home Services',
+];
+
+// Category labels that belong exclusively to one gender
+// (used to hide/show category groups in gender-filtered views)
+export const MALE_ONLY_CAT_LABELS  = new Set(['Beard & Grooming', 'Men Dermatology']);
+export const FEMALE_ONLY_CAT_LABELS = new Set(['Bridal & Events',  'Women Dermatology']);

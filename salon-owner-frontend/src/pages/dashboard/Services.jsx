@@ -9,24 +9,13 @@ import ServiceCard from '../../components/Services/ServiceCard';
 import ServiceModal from '../../components/Services/ServiceModal';
 import EditCategoriesDrawer from '../../components/salon/EditCategoriesDrawer';
 import { useSalon } from '../../hooks/useSalon';
-import { UNISEX_CATEGORIES } from '../../constants/salonCategories';
-
-/* ─── Constants ──────────────────────────────────────────────── */
-const CATEGORY_ICON = {
-  'Hair Services': '✂️', 'Hair Services (Men)': '✂️', 'Hair Services (Women)': '✂️',
-  'Beard & Grooming': '🧔', 'Nail Services': '💅',
-  'Skin & Face / Beauty': '🧖', 'Skin & Face (Men Grooming)': '🧴', 'Skin & Beauty': '🧖',
-  'Spa & Massage': '💆', 'Spa & Relaxation': '💆', 'Body Grooming': '🧴',
-  'Bridal & Events': '👰', 'Kids Services': '👶', 'At-Home Services': '🏠',
-};
-
-const CATEGORY_ORDER = [
-  'Hair Services', 'Hair Services (Men)', 'Hair Services (Women)',
-  'Beard & Grooming', 'Nail Services',
-  'Skin & Face / Beauty', 'Skin & Face (Men Grooming)', 'Skin & Beauty',
-  'Spa & Massage', 'Spa & Relaxation', 'Body Grooming',
-  'Bridal & Events', 'Kids Services', 'At-Home Services',
-];
+import {
+  UNISEX_CATEGORIES,
+  CATEGORY_ICON_MAP,
+  ALL_CATEGORY_ORDER,
+  MALE_ONLY_CAT_LABELS,
+  FEMALE_ONLY_CAT_LABELS,
+} from '../../constants/salonCategories';
 
 /* ─── Skeleton card ──────────────────────────────────────────── */
 const SkeletonCard = () => (
@@ -102,11 +91,9 @@ const ServiceMenuSection = ({ salon }) => {
   if (!salon?.offeredCategories?.length) return null;
 
   const isUnisex = salon.servedGender === 'unisex';
-  const MALE_ONLY   = ['Beard & Grooming', 'Body Grooming'];
-  const FEMALE_ONLY = ['Bridal & Events'];
 
   const sortedCategories = [...salon.offeredCategories].sort((a, b) => {
-    const ai = CATEGORY_ORDER.indexOf(a.name), bi = CATEGORY_ORDER.indexOf(b.name);
+    const ai = ALL_CATEGORY_ORDER.indexOf(a.name), bi = ALL_CATEGORY_ORDER.indexOf(b.name);
     if (ai === -1 && bi === -1) return 0;
     if (ai === -1) return 1; if (bi === -1) return -1;
     return ai - bi;
@@ -157,8 +144,8 @@ const ServiceMenuSection = ({ salon }) => {
         {sortedCategories.map((cat, idx) => {
           const subs = cat.subServices || [];
           const isOpen = expanded === idx;
-          const isMaleOnly   = MALE_ONLY.includes(cat.name);
-          const isFemaleOnly = FEMALE_ONLY.includes(cat.name);
+          const isMaleOnly   = MALE_ONLY_CAT_LABELS.has(cat.name);
+          const isFemaleOnly = FEMALE_ONLY_CAT_LABELS.has(cat.name);
           const showSplit = isUnisex && !isMaleOnly && !isFemaleOnly;
           const uniCat       = UNISEX_CATEGORIES.find(u => u.label === cat.name);
           const uniMaleSet   = uniCat ? new Set(uniCat.maleSubServices)   : new Set();
@@ -181,7 +168,7 @@ const ServiceMenuSection = ({ salon }) => {
               <button type="button" onClick={() => setExpanded(isOpen ? null : idx)}
                 className="w-full flex items-center gap-3 px-5 py-3.5 text-left
                   hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                <span className="text-base shrink-0">{CATEGORY_ICON[cat.name] || '✨'}</span>
+                <span className="text-base shrink-0">{CATEGORY_ICON_MAP[cat.name] || '✨'}</span>
                 <span className="flex-1 text-sm font-semibold text-gray-800 dark:text-gray-200">{cat.name}</span>
                 {isUnisex && isMaleOnly   && <span className="text-xs text-blue-500 font-medium">👨 Men</span>}
                 {isUnisex && isFemaleOnly && <span className="text-xs text-pink-500 font-medium">👩 Women</span>}
@@ -342,7 +329,7 @@ const Services = () => {
       return acc;
     }, {});
     return Object.entries(g).sort(([a],[b]) => {
-      const ai = CATEGORY_ORDER.indexOf(a), bi = CATEGORY_ORDER.indexOf(b);
+      const ai = ALL_CATEGORY_ORDER.indexOf(a), bi = ALL_CATEGORY_ORDER.indexOf(b);
       if (ai === -1 && bi === -1) return a.localeCompare(b);
       if (ai === -1) return 1; if (bi === -1) return -1;
       return ai - bi;
@@ -365,8 +352,6 @@ const Services = () => {
   };
 
   const isUnisex = salon?.servedGender === 'unisex';
-  const MALE_ONLY_CATS   = ['Beard & Grooming', 'Body Grooming'];
-  const FEMALE_ONLY_CATS = ['Bridal & Events'];
 
   return (
     <DashboardLayout>
@@ -483,8 +468,8 @@ const Services = () => {
           <div className="space-y-4">
             {grouped.map(([cat, svcs]) => {
               const isOpen = expandedCat === cat;
-              const isMaleOnly   = MALE_ONLY_CATS.includes(cat);
-              const isFemaleOnly = FEMALE_ONLY_CATS.includes(cat);
+              const isMaleOnly   = MALE_ONLY_CAT_LABELS.has(cat);
+              const isFemaleOnly = FEMALE_ONLY_CAT_LABELS.has(cat);
               const showSplit = isUnisex && !isMaleOnly && !isFemaleOnly;
 
               const menSvcs   = showSplit ? svcs.filter(s => svcGenders(s, cat).includes('male'))   : [];
@@ -514,7 +499,7 @@ const Services = () => {
                     className="w-full flex items-center gap-3 px-5 py-4
                       hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-left"
                   >
-                    <span className="text-lg shrink-0">{CATEGORY_ICON[cat] || '✨'}</span>
+                    <span className="text-lg shrink-0">{CATEGORY_ICON_MAP[cat] || '✨'}</span>
                     <span className="flex-1 text-sm font-bold text-gray-800 dark:text-gray-200">{cat}</span>
                     {isUnisex && isMaleOnly   && <span className="text-xs font-medium text-blue-500">👨 Men</span>}
                     {isUnisex && isFemaleOnly && <span className="text-xs font-medium text-pink-500">👩 Women</span>}
