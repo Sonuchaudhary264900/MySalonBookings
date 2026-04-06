@@ -590,11 +590,15 @@ export const SALON_TYPES = [
 // ─── Returns tailored categories based on salon type + served gender ──────────
 export function getCategoriesForSalonType(salonType, servedGender) {
   if (salonType === 'barbershop') {
-    return MALE_CATEGORIES;
+    // Barbershop: only the 3 core barber categories
+    return MALE_CATEGORIES.filter(c =>
+      ['hair_services', 'beard_grooming', 'skin_face'].includes(c.key)
+    );
   }
 
   if (salonType === 'makeup_bridal') {
-    const KEYS = ['bridal_events', 'hair_services_women', 'nail_services', 'skin_beauty', 'spa_relaxation', 'body_grooming_women'];
+    // Makeup & Bridal: core 4 — makeup/draping, nails, skin prep, hair styling
+    const KEYS = ['bridal_events', 'nail_services', 'skin_beauty', 'hair_services_women'];
     return FEMALE_CATEGORIES.filter(c => KEYS.includes(c.key));
   }
 
