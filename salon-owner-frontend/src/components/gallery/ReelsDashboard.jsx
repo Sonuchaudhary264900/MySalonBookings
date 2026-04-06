@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  Heart, MessageCircle, Eye, Share2, ChevronLeft, ChevronRight,
-  Rocket, Pencil, Trash2, TrendingUp, Play, Pause, Volume2, VolumeX,
-  Search, Zap, Sparkles, Calendar, Clock,
+  Heart, MessageCircle, Share2, ChevronLeft, ChevronRight,
+  Play, Pause, Volume2, VolumeX, X, Send, Loader2,
+  MoreHorizontal, Bookmark, Smile, Search, Plus, Bell, Zap,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
@@ -11,8 +11,11 @@ import {
   galleryItemDedupeKey,
   normalizeClientMediaUrl,
 } from './galleryUtils';
+import { useAuth } from '../../hooks/useAuth';
+import { useSalon } from '../../hooks/useSalon';
+import api from '../../services/api';
 
-/* ─────────────────────────────────────────────────── helpers ── */
+/* ─────────────────────── helpers ─────────────────────── */
 const fmt = (n) => {
   const num = Number(n) || 0;
   if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M`;
@@ -23,10 +26,10 @@ const fmt = (n) => {
 function timeAgo(date) {
   if (!date) return '';
   const diff = (Date.now() - new Date(date).getTime()) / 1000;
-  if (diff < 60)    return `${Math.floor(diff)}s ago`;
-  if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
+  if (diff < 60)    return `${Math.floor(diff)}s`;
+  if (diff < 3600)  return `${Math.floor(diff / 60)}m`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+  return `${Math.floor(diff / 86400)}d`;
 }
 
 function fmtDuration(s) {
@@ -36,65 +39,118 @@ function fmtDuration(s) {
   return `${m}:${sec.toString().padStart(2, '0')}`;
 }
 
-/* ══════════════════════════════════════════════════════════════
-   ReelsDashboard — premium Instagram × Stripe reels viewer
-   ══════════════════════════════════════════════════════════════ */
-export default function ReelsDashboard({
-  videos     = [],
-  analyticsMap = {},
-  onDelete,
-  onEdit,
-  onUpload,
-}) {
-  const [currentIdx, setCurrentIdx] = useState(0);
-  const [query,      setQuery]      = useState('');
-  const [playing,    setPlaying]    = useState(true);
-  const [muted,      setMuted]      = useState(true);
-  const [progress,   setProgress]   = useState(0);
-  const [duration,   setDuration]   = useState(0);
-  const [deleting,   setDeleting]   = useState(false);
+/* ─────────────────────── ReelGridCard ─────────────────────── */
+function ReelGridCard({ video, analyticsMap, onClick }) {
+  const url      = getGalleryMediaUrl(video);
+  const thumbUrl = cloudinaryVideoPosterUrl(url);
+  const dedupeKey = galleryItemDedupeKey(url);
+  const normUrl   = normalizeClientMediaUrl(url);
+  const analytics = analyticsMap[dedupeKey] ?? analyticsMap[normUrl] ?? null;
+  const likes     = analytics?.likeCount    ?? 0;
+  const comments  = analytics?.commentCount ?? 0;
+  const [dur, setDur] = useState(null);
 
-  const videoRef = useRef(null);
+  return (
+    <button
+      onClick={onClick}
+      className="relative group block w-full bg-black overflow-hidden cursor-pointer"
+      style={{ aspectRatio: '9/16' }}
+    >
+      {/* Thumbnail */}
+      {thumbUrl ? (
+        <img
+          src={thumbUrl}
+          alt=""
+          className="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
+        />
+      ) : (
+        <div className="w-full h-full bg-neutral-900 flex items-center justify-center">
+          <Play className="w-8 h-8 text-white/30" />
+        </div>
+      )}
 
-  /* ── Filtered list ── */
-  const filtered = query.trim()
-    ? videos.filter((v) => {
-        const cats = v.reelCategories || v.categories || [];
-        return (
-          cats.some((c) => c.toLowerCase().includes(query.toLowerCase())) ||
-          (v.caption || '').toLowerCase().includes(query.toLowerCase())
-        );
-      })
-    : videos;
+      {/* Hidden video to read duration */}
+      <video
+        src={url}
+        preload="metadata"
+        className="hidden"
+        onLoadedMetadata={(e) => setDur(e.target.duration)}
+      />
 
-  const total   = filtered.length;
-  const current = filtered[currentIdx] ?? null;
+      {/* Play icon top-right */}
+      <div className="absolute top-2 right-2 pointer-events-none">
+        <Play className="w-4 h-4 text-white fill-white drop-shadow-lg" />
+      </div>
 
-  /* ── Analytics lookup ── */
-  const getAnalytics = (video) => {
-    if (!video) return null;
-    const url  = getGalleryMediaUrl(video);
-    const key  = galleryItemDedupeKey(url);
-    const norm = normalizeClientMediaUrl(url);
-    return analyticsMap[key] ?? analyticsMap[norm] ?? null;
-  };
+      {/* Duration bottom-right */}
+      {dur && (
+        <div className="absolute bottom-2 right-2 pointer-events-none">
+          <span className="text-white text-[11px] font-semibold drop-shadow-lg tabular-nums">
+            {fmtDuration(dur)}
+          </span>
+        </div>
+      )}
 
-  const analytics     = getAnalytics(current);
-  const views         = analytics?.viewCount   ?? 0;
-  const likes         = analytics?.likeCount   ?? 0;
-  const comments      = analytics?.commentCount ?? 0;
-  const engRate       = views > 0 ? Math.min(((likes + comments) / views) * 100, 100) : 0;
-  const isTopPerform  = engRate > 5 || views > 1000;
+      {/* Hover overlay */}
+      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center pointer-events-none">
+        <div className="flex items-center gap-5">
+          <div className="flex items-center gap-1.5">
+            <Heart className="w-5 h-5 text-white fill-white drop-shadow" />
+            <span className="text-white font-bold text-sm drop-shadow">{fmt(likes)}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <MessageCircle className="w-5 h-5 text-white fill-white drop-shadow" />
+            <span className="text-white font-bold text-sm drop-shadow">{fmt(comments)}</span>
+          </div>
+        </div>
+      </div>
+    </button>
+  );
+}
 
-  /* ── Navigation ── */
-  const goTo = (idx) => {
-    setCurrentIdx(idx);
-    setProgress(0);
-  };
-  const prev = () => goTo(Math.max(0, currentIdx - 1));
-  const next = () => goTo(Math.min(total - 1, currentIdx + 1));
+/* ─────────────────────── ReelViewerModal ─────────────────────── */
+function ReelViewerModal({ videos, initialIndex, analyticsMap, onClose, onDelete, onEdit }) {
+  const [idx,      setIdx]      = useState(initialIndex);
+  const [playing,  setPlaying]  = useState(true);
+  const [muted,    setMuted]    = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [comment,  setComment]  = useState('');
+  const [posting,  setPosting]  = useState(false);
+  const [comments, setComments] = useState([]);
+  const [localLiked, setLocalLiked] = useState(false);
 
-  /* ── Reset player on index change ── */
+  const videoRef      = useRef(null);
+  const commentsEndRef = useRef(null);
+
+  const current    = videos[idx] ?? null;
+  const url        = current ? getGalleryMediaUrl(current) : '';
+  const thumbUrl   = cloudinaryVideoPosterUrl(url);
+  const dedupeKey  = galleryItemDedupeKey(url);
+  const normUrl    = normalizeClientMediaUrl(url);
+  const analytics  = analyticsMap[dedupeKey] ?? analyticsMap[normUrl] ?? null;
+  const likes      = (analytics?.likeCount ?? 0) + (localLiked ? 1 : 0);
+  const cats       = current ? (current.reelCategories || current.categories || []) : [];
+
+  const { user }        = useAuth();
+  const { salon }       = useSalon();
+  const salonName       = salon?.name || user?.name || 'My Salon';
+  const salonInitial    = salonName[0]?.toUpperCase() || 'S';
+  const salonAvatar     = salon?.profileImage || salon?.coverImage || null;
+
+  /* Load comments from analytics */
+  useEffect(() => {
+    const raw = analytics?.recentComments || [];
+    setComments(raw);
+    setLocalLiked(false);
+  }, [idx]);
+
+  /* Scroll comments to bottom when new comment added */
+  useEffect(() => {
+    commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [comments.length]);
+
+  /* Reset video on index change */
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
@@ -102,21 +158,26 @@ export default function ReelsDashboard({
     v.play().catch(() => {});
     setPlaying(true);
     setProgress(0);
-  }, [currentIdx]);
+    setDuration(0);
+  }, [idx]);
 
-  /* ── Reset index when search changes ── */
-  useEffect(() => { setCurrentIdx(0); }, [query]);
-
-  /* ── Keyboard navigation ── */
+  /* Keyboard nav */
   useEffect(() => {
     const handler = (e) => {
-      if (e.key === 'ArrowLeft')  prev();
-      if (e.key === 'ArrowRight') next();
-      if (e.key === ' ')          { e.preventDefault(); togglePlay(); }
+      if (e.key === 'Escape')      onClose();
+      if (e.key === 'ArrowLeft')   setIdx(i => Math.max(0, i - 1));
+      if (e.key === 'ArrowRight')  setIdx(i => Math.min(videos.length - 1, i + 1));
+      if (e.key === ' ')           { e.preventDefault(); togglePlay(); }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   });
+
+  /* Lock scroll on mount */
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
 
   const togglePlay = () => {
     const v = videoRef.current;
@@ -138,426 +199,479 @@ export default function ReelsDashboard({
     v.currentTime = ((e.clientX - rect.left) / rect.width) * v.duration;
   };
 
-  const handleDelete = async () => {
-    if (!current || deleting || current._galleryOrphan) return;
-    setDeleting(true);
-    try   { await onDelete(current); }
-    finally { setDeleting(false); }
+  const submitComment = async () => {
+    const text = comment.trim();
+    if (!text || posting || !analytics?._id) return;
+    setPosting(true);
+    try {
+      /* optimistic add */
+      const optimistic = {
+        _id:       `opt_${Date.now()}`,
+        name:      salonName,
+        text,
+        createdAt: new Date().toISOString(),
+        isOwner:   true,
+      };
+      setComments(prev => [...prev, optimistic]);
+      setComment('');
+    } catch {
+      toast.error('Failed to post comment');
+    } finally {
+      setPosting(false);
+    }
   };
 
-  /* ── Derived media ── */
-  const url      = current ? getGalleryMediaUrl(current) : '';
-  const thumbUrl = cloudinaryVideoPosterUrl(url);
-  const cats     = current ? (current.reelCategories || current.categories || []) : [];
+  if (!current) return null;
 
-  /* ── Empty / no-current guards ── */
-  if (!total) {
-    return (
-      <div className="rounded-2xl bg-gray-950 border border-gray-800/60 flex flex-col items-center justify-center py-24 text-center">
-        <div className="w-20 h-20 rounded-2xl bg-violet-950/40 flex items-center justify-center mb-4 border border-violet-800/30">
-          <Zap className="w-8 h-8 text-violet-400" />
-        </div>
-        <p className="text-white font-semibold mb-1">
-          {query ? 'No reels match your search' : 'No reels yet'}
-        </p>
-        <p className="text-gray-500 text-sm mb-5">
-          {query ? 'Try different keywords' : 'Upload a video to get started'}
-        </p>
-        {!query && (
-          <button
-            onClick={onUpload}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-sm font-semibold hover:from-violet-700 hover:to-indigo-700 transition-all shadow-lg shadow-violet-500/25"
+  return (
+    <div className="fixed inset-0 z-[100] bg-black flex">
+      {/* ── Close ── */}
+      <button
+        onClick={onClose}
+        className="absolute top-4 left-4 z-20 w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm transition-all"
+      >
+        <X className="w-5 h-5" />
+      </button>
+
+      {/* ── LEFT: Video player (70%) ── */}
+      <div className="relative flex-1 flex items-center justify-center bg-black overflow-hidden">
+        {/* Blurred bg */}
+        {thumbUrl && (
+          <img
+            src={thumbUrl}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover scale-110 blur-3xl opacity-30 pointer-events-none"
+          />
+        )}
+
+        {/* 9:16 video */}
+        <div
+          className="relative z-10 flex items-center justify-center h-full w-full"
+          style={{ maxWidth: 420, margin: '0 auto' }}
+        >
+          <div
+            className="relative w-full rounded-2xl overflow-hidden shadow-2xl cursor-pointer"
+            style={{ aspectRatio: '9/16', maxHeight: 'calc(100vh - 40px)' }}
+            onClick={togglePlay}
           >
-            Upload Reel
+            <video
+              key={url}
+              ref={videoRef}
+              src={url}
+              muted={muted}
+              loop
+              playsInline
+              autoPlay
+              preload="auto"
+              onTimeUpdate={handleTimeUpdate}
+              onLoadedMetadata={(e) => setDuration(e.target.duration)}
+              className="w-full h-full object-cover"
+            />
+
+            {/* Play/pause overlay */}
+            {!playing && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                <div className="w-16 h-16 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+                  <Play className="w-7 h-7 text-white fill-white ml-1" />
+                </div>
+              </div>
+            )}
+
+            {/* Mute button */}
+            <button
+              onClick={(e) => { e.stopPropagation(); setMuted(m => !m); }}
+              className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-sm border border-white/10 text-white hover:bg-black/60 transition-all"
+            >
+              {muted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+            </button>
+
+            {/* Caption + categories */}
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pt-16 pb-3 px-3 pointer-events-none">
+              {cats.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-1.5">
+                  {cats.map((c) => (
+                    <span key={c} className="text-white/80 text-[11px] font-medium">#{c}</span>
+                  ))}
+                </div>
+              )}
+              {current.caption && (
+                <p className="text-white text-sm leading-snug line-clamp-2">{current.caption}</p>
+              )}
+              {/* Progress bar */}
+              <div
+                className="mt-3 h-[3px] bg-white/25 rounded-full overflow-hidden pointer-events-auto cursor-pointer"
+                onClick={(e) => { e.stopPropagation(); handleSeek(e); }}
+              >
+                <div
+                  className="h-full rounded-full bg-white transition-[width] duration-100"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <div className="flex justify-between mt-1 pointer-events-none">
+                <span className="text-[10px] text-white/50 tabular-nums">
+                  {fmtDuration((progress / 100) * duration)}
+                </span>
+                <span className="text-[10px] text-white/50 tabular-nums">{fmtDuration(duration)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Prev arrow */}
+        {idx > 0 && (
+          <button
+            onClick={() => setIdx(i => i - 1)}
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-sm border border-white/10 text-white hover:bg-black/60 transition-all"
+          >
+            <ChevronLeft className="w-5 h-5" />
           </button>
         )}
+
+        {/* Next arrow */}
+        {idx < videos.length - 1 && (
+          <button
+            onClick={() => setIdx(i => i + 1)}
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-sm border border-white/10 text-white hover:bg-black/60 transition-all"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        )}
+      </div>
+
+      {/* ── RIGHT: Comments panel (30%) ── */}
+      <div
+        className="flex flex-col bg-black border-l border-neutral-800"
+        style={{ width: '30%', minWidth: 320, maxWidth: 420 }}
+      >
+        {/* Header: profile */}
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-neutral-800">
+          <div className="w-9 h-9 rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shrink-0 ring-2 ring-transparent hover:ring-purple-500 transition-all cursor-pointer">
+            {salonAvatar
+              ? <img src={salonAvatar} alt="" className="w-full h-full object-cover" />
+              : <span className="text-white font-bold text-sm">{salonInitial}</span>
+            }
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-white text-sm font-semibold leading-none">{salonName}</p>
+            {cats.length > 0 && (
+              <p className="text-neutral-400 text-xs mt-0.5 truncate">{cats[0]}</p>
+            )}
+          </div>
+          <button className="text-neutral-400 hover:text-white transition-colors">
+            <MoreHorizontal className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Caption */}
+        {current.caption && (
+          <div className="px-4 py-3 border-b border-neutral-800">
+            <div className="flex gap-3">
+              <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shrink-0">
+                {salonAvatar
+                  ? <img src={salonAvatar} alt="" className="w-full h-full object-cover" />
+                  : <span className="text-white font-bold text-xs">{salonInitial}</span>
+                }
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-white text-sm font-semibold mr-2">{salonName}</span>
+                <span className="text-neutral-200 text-sm">{current.caption}</span>
+                {cats.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {cats.map(c => (
+                      <span key={c} className="text-sky-400 text-sm">#{c}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Analytics row */}
+        <div className="px-4 py-2.5 border-b border-neutral-800 flex items-center gap-4 text-neutral-400 text-xs">
+          <span>{fmt(analytics?.viewCount ?? 0)} views</span>
+          {analytics?.viewCount > 0 && (
+            <span className="text-neutral-600">·</span>
+          )}
+          {current.createdAt && (
+            <span>{timeAgo(current.createdAt)} ago</span>
+          )}
+        </div>
+
+        {/* Comments list */}
+        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4" style={{ scrollbarWidth: 'none' }}>
+          <style>{`.reel-comments::-webkit-scrollbar{display:none}`}</style>
+          {comments.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full gap-2 py-10">
+              <MessageCircle className="w-10 h-10 text-neutral-700" />
+              <p className="text-white font-semibold text-sm">No comments yet</p>
+              <p className="text-neutral-500 text-xs text-center">Start the conversation.</p>
+            </div>
+          ) : (
+            comments.map((c, i) => (
+              <div key={c._id || i} className="flex gap-3">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold
+                  ${c.isOwner ? 'bg-gradient-to-br from-purple-500 to-pink-500 text-white' : 'bg-neutral-700 text-neutral-300'}`}>
+                  {c.isOwner ? salonInitial : (c.name?.[0]?.toUpperCase() || '?')}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-2 mb-0.5">
+                    <span className="text-white text-sm font-semibold">{c.isOwner ? salonName : c.name}</span>
+                    {c.isOwner && (
+                      <span className="text-[9px] font-bold bg-neutral-700 text-neutral-400 px-1.5 py-0.5 rounded">Owner</span>
+                    )}
+                    {c.createdAt && (
+                      <span className="text-neutral-500 text-[11px] ml-auto">{timeAgo(c.createdAt)}</span>
+                    )}
+                  </div>
+                  <p className="text-neutral-200 text-sm break-words leading-relaxed">{c.text}</p>
+                  <div className="flex items-center gap-3 mt-1.5">
+                    <button className="text-neutral-500 hover:text-neutral-300 text-xs transition-colors">Like</button>
+                    <button className="text-neutral-500 hover:text-neutral-300 text-xs transition-colors">Reply</button>
+                  </div>
+                </div>
+                <button className="shrink-0 mt-0.5">
+                  <Heart className="w-3.5 h-3.5 text-neutral-600 hover:text-neutral-400 transition-colors" />
+                </button>
+              </div>
+            ))
+          )}
+          <div ref={commentsEndRef} />
+        </div>
+
+        {/* Action bar */}
+        <div className="border-t border-neutral-800 px-4 pt-3 pb-2">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setLocalLiked(l => !l)}
+                className="transition-transform active:scale-90"
+              >
+                <Heart className={`w-6 h-6 transition-colors ${localLiked ? 'text-red-500 fill-red-500' : 'text-white hover:text-neutral-300'}`} />
+              </button>
+              <button>
+                <MessageCircle className="w-6 h-6 text-white hover:text-neutral-300 transition-colors" />
+              </button>
+              <button onClick={() => toast('Share link copied!', { icon: '🔗' })}>
+                <Share2 className="w-6 h-6 text-white hover:text-neutral-300 transition-colors" />
+              </button>
+            </div>
+            <button>
+              <Bookmark className="w-6 h-6 text-white hover:text-neutral-300 transition-colors" />
+            </button>
+          </div>
+
+          {/* Likes count */}
+          <p className="text-white text-sm font-semibold mb-1">{fmt(likes)} likes</p>
+
+          {/* Timestamp */}
+          {current.createdAt && (
+            <p className="text-neutral-500 text-[10px] uppercase tracking-wider mb-3">{timeAgo(current.createdAt)} ago</p>
+          )}
+        </div>
+
+        {/* Comment input */}
+        <div className="border-t border-neutral-800 px-4 py-3 flex items-center gap-3">
+          <div className="w-7 h-7 rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shrink-0">
+            {salonAvatar
+              ? <img src={salonAvatar} alt="" className="w-full h-full object-cover" />
+              : <span className="text-white font-bold text-xs">{salonInitial}</span>
+            }
+          </div>
+          <div className="flex-1 flex items-center gap-2 bg-transparent border border-neutral-700 rounded-full px-4 py-2">
+            <input
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && submitComment()}
+              placeholder="Add a comment…"
+              className="flex-1 bg-transparent text-white text-sm placeholder-neutral-500 outline-none min-w-0"
+            />
+            <button>
+              <Smile className="w-4 h-4 text-neutral-500 hover:text-neutral-300 transition-colors shrink-0" />
+            </button>
+          </div>
+          {comment.trim() && (
+            <button
+              onClick={submitComment}
+              disabled={posting}
+              className="text-sky-400 hover:text-sky-300 font-semibold text-sm transition-colors disabled:opacity-50 shrink-0"
+            >
+              {posting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Post'}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ReelsDashboard — Instagram-like grid + viewer
+   ═══════════════════════════════════════════════════════════════ */
+export default function ReelsDashboard({
+  videos       = [],
+  analyticsMap = {},
+  onDelete,
+  onEdit,
+  onUpload,
+}) {
+  const [query,       setQuery]       = useState('');
+  const [viewerIdx,   setViewerIdx]   = useState(null); // null = closed
+  const [searchFocus, setSearchFocus] = useState(false);
+
+  const { user }     = useAuth();
+  const { salon }    = useSalon();
+  const salonName    = salon?.name || user?.name || 'My Salon';
+  const salonInitial = salonName[0]?.toUpperCase() || 'S';
+  const salonAvatar  = salon?.profileImage || salon?.coverImage || null;
+
+  /* Filtered list */
+  const filtered = query.trim()
+    ? videos.filter((v) => {
+        const cats = v.reelCategories || v.categories || [];
+        return (
+          cats.some((c) => c.toLowerCase().includes(query.toLowerCase())) ||
+          (v.caption || '').toLowerCase().includes(query.toLowerCase())
+        );
+      })
+    : videos;
+
+  /* Reset viewer index if filtered list shrinks */
+  useEffect(() => {
+    if (viewerIdx !== null && viewerIdx >= filtered.length) {
+      setViewerIdx(Math.max(0, filtered.length - 1));
+    }
+  }, [filtered.length]);
+
+  /* ─── Empty state ─── */
+  if (!videos.length) {
+    return (
+      <div className="bg-black min-h-[60vh] flex flex-col items-center justify-center gap-4 rounded-2xl">
+        <div className="w-20 h-20 rounded-full border-2 border-neutral-700 flex items-center justify-center">
+          <Play className="w-8 h-8 text-neutral-600" />
+        </div>
+        <div className="text-center">
+          <p className="text-white font-bold text-xl mb-1">Share reels</p>
+          <p className="text-neutral-400 text-sm">Upload videos to show your best work</p>
+        </div>
+        <button
+          onClick={onUpload}
+          className="mt-2 flex items-center gap-2 px-5 py-2.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-white font-semibold text-sm transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          Upload Reel
+        </button>
       </div>
     );
   }
 
-  if (!current) return null;
-
-  /* ═════════════════════════════════════════════════════════════
-     RENDER
-     ═════════════════════════════════════════════════════════════ */
   return (
     <>
-      {/* Scrollbar hide util */}
-      <style>{`.reel-filmstrip::-webkit-scrollbar{display:none}.reel-filmstrip{-ms-overflow-style:none;scrollbar-width:none}`}</style>
+      {/* Inject global CSS for hiding scrollbars */}
+      <style>{`
+        .ig-hide-scroll::-webkit-scrollbar { display: none; }
+        .ig-hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
 
-      <div className="rounded-2xl overflow-hidden bg-gray-950 border border-gray-800/60 shadow-2xl">
+      <div className="bg-black rounded-2xl overflow-hidden">
 
-        {/* ══ TOP BAR ══ */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-800/60 bg-gray-950/90 backdrop-blur-sm">
-          {/* Search */}
-          <div className="relative flex-1 max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" />
+        {/* ══ INSTAGRAM-STYLE TOP NAV ══ */}
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-neutral-800 bg-black sticky top-0 z-10">
+
+          {/* Logo / brand */}
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 flex items-center justify-center shadow-lg">
+              <Zap className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-white font-bold text-lg tracking-tight hidden sm:block">Reels</span>
+          </div>
+
+          {/* Search bar */}
+          <div className={`relative flex-1 max-w-sm transition-all duration-200 ${searchFocus ? 'max-w-md' : ''}`}>
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 pointer-events-none" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search reels by category…"
-              className="w-full pl-8 pr-3 py-2 rounded-xl bg-gray-800/60 border border-gray-700/50
-                text-sm text-gray-200 placeholder-gray-500 outline-none
-                focus:border-violet-500/60 focus:bg-gray-800 transition-all"
+              onFocus={() => setSearchFocus(true)}
+              onBlur={() => setSearchFocus(false)}
+              placeholder="Search reels…"
+              className="w-full pl-9 pr-4 py-2 rounded-lg bg-neutral-900 border border-neutral-700 text-white text-sm placeholder-neutral-500 outline-none focus:border-neutral-500 transition-colors"
             />
           </div>
 
-          {/* Counter */}
-          <div className="flex items-center gap-1 text-xs text-gray-500">
-            <span className="font-bold text-gray-200">{currentIdx + 1}</span>
-            <span>/</span>
-            <span>{total}</span>
-          </div>
-
-          {/* Arrows + upload */}
-          <div className="flex items-center gap-1.5 ml-auto">
-            <button onClick={prev} disabled={currentIdx === 0}
-              className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-800/60 border border-gray-700/50 text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-30 transition-all">
-              <ChevronLeft className="w-4 h-4" />
+          {/* Right icons */}
+          <div className="flex items-center gap-2 ml-auto shrink-0">
+            {/* Upload */}
+            <button
+              onClick={onUpload}
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-neutral-900 border border-neutral-700 text-white hover:bg-neutral-800 transition-colors"
+              title="Upload Reel"
+            >
+              <Plus className="w-5 h-5" />
             </button>
-            <button onClick={next} disabled={currentIdx >= total - 1}
-              className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-800/60 border border-gray-700/50 text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-30 transition-all">
-              <ChevronRight className="w-4 h-4" />
+
+            {/* Notifications */}
+            <button
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-neutral-900 border border-neutral-700 text-white hover:bg-neutral-800 transition-colors"
+              title="Notifications"
+            >
+              <Heart className="w-5 h-5" />
             </button>
-            <button onClick={onUpload}
-              className="ml-2 flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-xs font-semibold hover:from-violet-700 hover:to-indigo-700 transition-all shadow-md shadow-violet-500/20">
-              + Upload
-            </button>
-          </div>
-        </div>
 
-        {/* ══ BODY ══ */}
-        <div className="flex flex-col lg:flex-row">
-
-          {/* ── LEFT: Video player (70%) ── */}
-          <div className="relative flex-1 lg:w-[70%] flex items-center justify-center bg-black overflow-hidden"
-            style={{ minHeight: 540 }}>
-
-            {/* Blurred background */}
-            {thumbUrl && (
-              <img src={thumbUrl} alt=""
-                className="absolute inset-0 w-full h-full object-cover scale-125 blur-2xl opacity-35 pointer-events-none" />
-            )}
-            {/* gradient vignette over blur */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/60 pointer-events-none" />
-
-            {/* 9:16 reel */}
-            <div className="relative z-10 flex items-center justify-center w-full h-full py-6 px-12">
-              <div
-                className="relative rounded-2xl overflow-hidden shadow-[0_0_60px_rgba(139,92,246,0.25)] cursor-pointer"
-                style={{ aspectRatio: '9/16', maxHeight: 520, height: '100%' }}
-                onClick={togglePlay}
-              >
-                <video
-                  key={url}
-                  ref={videoRef}
-                  src={url}
-                  muted={muted}
-                  loop
-                  playsInline
-                  autoPlay
-                  preload="auto"
-                  onTimeUpdate={handleTimeUpdate}
-                  onLoadedMetadata={(e) => setDuration(e.target.duration)}
-                  onEnded={() => setPlaying(false)}
-                  className="w-full h-full object-cover"
-                />
-
-                {/* ── Play overlay ── */}
-                {!playing && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-[1px]">
-                    <div className="w-16 h-16 rounded-full bg-white/15 backdrop-blur-sm border border-white/25 flex items-center justify-center shadow-xl">
-                      <Play className="w-7 h-7 text-white fill-white ml-1" />
-                    </div>
-                  </div>
-                )}
-
-                {/* ── Top badges ── */}
-                <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
-                  {isTopPerform ? (
-                    <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/90 backdrop-blur-sm border border-amber-300/30 shadow-lg">
-                      <Sparkles className="w-3 h-3 text-white" />
-                      <span className="text-[10px] font-bold text-white tracking-wide">Top Performing</span>
-                    </div>
-                  ) : <span />}
-
-                  {/* Mute — pointer-events restored */}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setMuted((m) => !m); }}
-                    className="pointer-events-auto w-8 h-8 flex items-center justify-center rounded-full
-                      bg-black/40 backdrop-blur-sm border border-white/10 text-white hover:bg-black/60 transition-all"
-                  >
-                    {muted
-                      ? <VolumeX className="w-3.5 h-3.5" />
-                      : <Volume2 className="w-3.5 h-3.5" />}
-                  </button>
-                </div>
-
-                {/* ── Bottom overlay: title, cats, vertical stats ── */}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent pt-12 pb-3 px-3">
-                  <div className="flex items-end gap-3">
-
-                    {/* Left: title + category pills */}
-                    <div className="flex-1 min-w-0 mb-1">
-                      {current.caption && (
-                        <p className="text-white font-semibold text-sm mb-2 line-clamp-2 leading-snug drop-shadow">
-                          {current.caption}
-                        </p>
-                      )}
-                      {cats.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {cats.map((c) => (
-                            <span key={c}
-                              className="px-2.5 py-0.5 rounded-full bg-violet-600/75 backdrop-blur-sm text-white text-[10px] font-semibold border border-violet-400/25">
-                              {c}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Right: vertical icons (Instagram style) */}
-                    <div className="flex flex-col items-center gap-4 shrink-0 pb-1 pointer-events-auto">
-                      {[
-                        { icon: Heart, val: fmt(likes),    fill: true,  color: 'hover:bg-red-500/20',     label: null },
-                        { icon: MessageCircle, val: fmt(comments), fill: false, color: 'hover:bg-indigo-500/20', label: null },
-                        { icon: Eye,  val: fmt(views),    fill: false, color: '',                         label: null },
-                        { icon: Share2, val: 'Share',      fill: false, color: 'hover:bg-emerald-500/20', label: null },
-                      ].map(({ icon: Icon, val, fill, color }) => (
-                        <button key={val + Icon.displayName}
-                          onClick={(e) => e.stopPropagation()}
-                          className="flex flex-col items-center gap-1 group">
-                          <div className={`w-9 h-9 rounded-full bg-black/35 backdrop-blur-sm border border-white/10 flex items-center justify-center transition-colors ${color}`}>
-                            <Icon className={`w-[18px] h-[18px] text-white ${fill ? 'fill-white' : ''}`} />
-                          </div>
-                          <span className="text-white text-[10px] font-bold drop-shadow">{val}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Progress bar */}
-                  <div
-                    className="mt-3 h-[3px] bg-white/20 rounded-full overflow-hidden cursor-pointer pointer-events-auto"
-                    onClick={(e) => { e.stopPropagation(); handleSeek(e); }}
-                  >
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-violet-500 to-indigo-400 transition-[width] duration-100"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between mt-1 pointer-events-none">
-                    <span className="text-[10px] text-white/50">
-                      {fmtDuration((progress / 100) * duration)}
-                    </span>
-                    <span className="text-[10px] text-white/50">{fmtDuration(duration)}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* ── Side navigation arrows ── */}
-            {currentIdx > 0 && (
-              <button onClick={prev}
-                className="absolute left-3 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-black/45 backdrop-blur-sm border border-white/10 text-white hover:bg-black/65 transition-all shadow-lg">
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-            )}
-            {currentIdx < total - 1 && (
-              <button onClick={next}
-                className="absolute right-3 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-black/45 backdrop-blur-sm border border-white/10 text-white hover:bg-black/65 transition-all shadow-lg">
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            )}
-
-            {/* Pause hint */}
-            {playing && (
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10 pointer-events-none opacity-60">
-                <Pause className="w-3 h-3 text-white" />
-                <span className="text-white text-[10px]">tap to pause</span>
-              </div>
-            )}
-          </div>
-
-          {/* ── RIGHT: Analytics glass panel (30%) ── */}
-          <div className="lg:w-[30%] border-t lg:border-t-0 lg:border-l border-gray-800/60
-            bg-gradient-to-b from-gray-900/70 to-gray-950/90 backdrop-blur-xl
-            p-5 flex flex-col gap-5">
-
-            {/* Panel header */}
-            <div>
-              <div className="flex items-center gap-2 mb-1.5">
-                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-md shadow-violet-500/30">
-                  <TrendingUp className="w-3.5 h-3.5 text-white" />
-                </div>
-                <h3 className="text-sm font-bold text-white tracking-tight">Reel Analytics</h3>
-                {isTopPerform && (
-                  <span className="ml-auto px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 text-[10px] font-bold">
-                    🔥 Hot
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-[11px] text-gray-500">Published · Live</span>
-              </div>
-            </div>
-
-            {/* Stat cards */}
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { label: 'Views',    value: fmt(views),    icon: Eye,           color: 'text-sky-400',    bg: 'from-sky-950/50 to-sky-900/20 border-sky-800/30' },
-                { label: 'Likes',    value: fmt(likes),    icon: Heart,         color: 'text-red-400',    bg: 'from-red-950/50 to-red-900/20 border-red-800/30' },
-                { label: 'Comments', value: fmt(comments), icon: MessageCircle, color: 'text-violet-400', bg: 'from-violet-950/50 to-violet-900/20 border-violet-800/30' },
-              ].map(({ label, value, icon: Icon, color, bg }) => (
-                <div key={label}
-                  className={`rounded-xl border p-3 bg-gradient-to-b ${bg} backdrop-blur-sm`}>
-                  <Icon className={`w-3.5 h-3.5 ${color} mb-2 ${label === 'Likes' ? 'fill-current' : ''}`} />
-                  <p className="text-base font-bold text-white leading-none">{value}</p>
-                  <p className="text-[10px] text-gray-500 mt-1">{label}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Engagement rate */}
-            <div className="rounded-xl border border-gray-700/40 bg-gray-800/25 p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-1.5">
-                  <Zap className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="text-xs font-semibold text-gray-300">Engagement Rate</span>
-                </div>
-                <span className={`text-sm font-bold ${engRate > 5 ? 'text-emerald-400' : 'text-gray-300'}`}>
-                  {engRate.toFixed(1)}%
-                </span>
-              </div>
-              <div className="h-1.5 bg-gray-700/50 rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-violet-500 via-indigo-500 to-sky-400 transition-all duration-700"
-                  style={{ width: `${Math.min(engRate * 10, 100)}%` }}
-                />
-              </div>
-              <p className="text-[10px] text-gray-500 mt-2">
-                {engRate > 8
-                  ? 'Excellent — top 10% of reels'
-                  : engRate > 4
-                    ? 'Good engagement · keep it up'
-                    : views > 0
-                      ? 'Keep posting to grow reach'
-                      : 'No views yet · share your reel'}
-              </p>
-            </div>
-
-            {/* Category tags */}
-            {cats.length > 0 && (
-              <div>
-                <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest mb-2.5">Categories</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {cats.map((c) => (
-                    <span key={c}
-                      className="px-2.5 py-1 rounded-full text-[11px] font-semibold
-                        bg-gradient-to-r from-violet-950/70 to-indigo-950/70
-                        border border-violet-700/30 text-violet-300">
-                      {c}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Meta details */}
-            <div className="space-y-2">
-              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest">Details</p>
-              <div className="flex items-center gap-2">
-                <Clock className="w-3.5 h-3.5 text-gray-600 shrink-0" />
-                <span className="text-xs text-gray-400">{fmtDuration(duration)} duration</span>
-              </div>
-              {current.createdAt && (
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-3.5 h-3.5 text-gray-600 shrink-0" />
-                  <span className="text-xs text-gray-400">Uploaded {timeAgo(current.createdAt)}</span>
-                </div>
-              )}
-              <div className="flex items-center gap-2">
-                <div className="w-3.5 h-3.5 flex items-center justify-center shrink-0">
-                  <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                </div>
-                <span className="text-xs text-emerald-400 font-medium">Published</span>
-              </div>
-            </div>
-
-            {/* ── Action buttons ── */}
-            <div className="mt-auto space-y-2.5">
-              {/* Boost Reel — glow CTA */}
-              <button
-                onClick={() => toast('Boost feature coming soon! 🚀', { icon: '🚀' })}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold text-sm
-                  bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-600
-                  hover:from-violet-500 hover:via-indigo-500 hover:to-blue-500
-                  transition-all relative overflow-hidden group"
-                style={{ boxShadow: '0 0 24px rgba(139,92,246,0.35), 0 4px 20px rgba(79,70,229,0.3)' }}
-              >
-                {/* shimmer sweep */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 pointer-events-none" />
-                <Rocket className="w-4 h-4 shrink-0" />
-                Boost Reel
-              </button>
-
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => onEdit(current, currentIdx, filtered)}
-                  className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-medium
-                    bg-gray-800/50 border border-gray-700/50 text-gray-300
-                    hover:bg-gray-700/60 hover:text-white hover:border-gray-600 transition-all"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                  Edit
-                </button>
-                <button
-                  onClick={handleDelete}
-                  disabled={deleting || Boolean(current._galleryOrphan)}
-                  className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-medium
-                    bg-red-950/40 border border-red-900/40 text-red-400
-                    hover:bg-red-900/50 hover:text-red-300 hover:border-red-700/50 transition-all
-                    disabled:opacity-40"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  {deleting ? 'Deleting…' : 'Delete'}
-                </button>
-              </div>
+            {/* Profile avatar */}
+            <div className="w-9 h-9 rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center ring-2 ring-transparent hover:ring-purple-500 transition-all cursor-pointer shrink-0">
+              {salonAvatar
+                ? <img src={salonAvatar} alt="" className="w-full h-full object-cover" />
+                : <span className="text-white font-bold text-sm">{salonInitial}</span>
+              }
             </div>
           </div>
         </div>
 
-        {/* ══ FILMSTRIP: reel thumbnails ══ */}
-        {total > 1 && (
-          <div className="border-t border-gray-800/60 bg-gray-950/90 px-4 py-3">
-            <div className="reel-filmstrip flex gap-2 overflow-x-auto pb-0.5">
-              {filtered.map((video, i) => {
-                const vUrl   = getGalleryMediaUrl(video);
-                const vThumb = cloudinaryVideoPosterUrl(vUrl);
-                const isActive = i === currentIdx;
-                return (
-                  <button
-                    key={video._id || i}
-                    onClick={() => goTo(i)}
-                    className={`relative shrink-0 w-10 h-[60px] rounded-lg overflow-hidden transition-all duration-200
-                      ${isActive
-                        ? 'ring-2 ring-violet-500 ring-offset-1 ring-offset-gray-950 scale-105'
-                        : 'opacity-45 hover:opacity-70 hover:scale-105'}`}
-                  >
-                    {vThumb
-                      ? <img src={vThumb} alt="" className="w-full h-full object-cover" />
-                      : <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-                          <Play className="w-3 h-3 text-gray-500" />
-                        </div>
-                    }
-                  </button>
-                );
-              })}
-            </div>
+        {/* ══ 3-COLUMN REELS GRID ══ */}
+        {filtered.length === 0 ? (
+          <div className="py-20 text-center">
+            <p className="text-neutral-400 text-sm">No reels match your search</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-3" style={{ gap: '2px' }}>
+            {filtered.map((video, i) => (
+              <ReelGridCard
+                key={video._id || i}
+                video={video}
+                analyticsMap={analyticsMap}
+                onClick={() => setViewerIdx(i)}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Small counter at bottom */}
+        {filtered.length > 0 && (
+          <div className="px-4 py-3 border-t border-neutral-800 flex items-center justify-between">
+            <span className="text-neutral-500 text-xs">{filtered.length} reel{filtered.length !== 1 ? 's' : ''}</span>
+            <button
+              onClick={onUpload}
+              className="flex items-center gap-1.5 text-sky-400 hover:text-sky-300 text-xs font-semibold transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Upload
+            </button>
           </div>
         )}
       </div>
+
+      {/* ══ FULL-SCREEN VIEWER MODAL ══ */}
+      {viewerIdx !== null && filtered.length > 0 && (
+        <ReelViewerModal
+          videos={filtered}
+          initialIndex={viewerIdx}
+          analyticsMap={analyticsMap}
+          onClose={() => setViewerIdx(null)}
+          onDelete={onDelete}
+          onEdit={onEdit}
+        />
+      )}
     </>
   );
 }
