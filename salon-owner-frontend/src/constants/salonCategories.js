@@ -94,23 +94,23 @@ export const MALE_CATEGORIES = [
     icon: '🧴',
     subServices: [
       // Hair & Scalp Treatments
-      'Hair Fall Consultation', 'Male Pattern Baldness Treatment', 'PRP Hair Therapy',
-      'Scalp Infection Treatment', 'Hair Regrowth Therapy', 'Alopecia Treatment',
+      'Alopecia Treatment', 'Hair Fall Consultation', 'Hair Regrowth Therapy',
+      'Male Pattern Baldness Treatment', 'PRP Hair Therapy', 'Scalp Infection Treatment',
       // Skin Treatments (Face)
-      'Acne Treatment', 'Acne Scar Treatment', 'Open Pores Treatment',
-      'Skin Brightening Treatment', 'Detan Treatment',
+      'Acne Scar Treatment', 'Acne Treatment', 'Detan Treatment',
+      'Open Pores Treatment', 'Skin Brightening Treatment',
       // Beard & Face Issues
-      'Beard Patch Treatment', 'Ingrown Hair Treatment', 'Razor Bumps Treatment',
-      'Beard Growth Therapy', 'Skin Irritation Treatment (After Shaving)',
+      'Beard Growth Therapy', 'Beard Patch Treatment', 'Ingrown Hair Treatment',
+      'Razor Bumps Treatment', 'Skin Irritation Treatment (After Shaving)',
       // Advanced Dermatology Treatments
-      'Chemical Peel', 'Laser Treatment', 'Skin Tightening',
-      'Anti-Aging Treatment', 'Scar Reduction Treatment',
+      'Anti-Aging Treatment', 'Chemical Peel', 'Laser Treatment',
+      'Scar Reduction Treatment', 'Skin Tightening',
       // Body Skin Treatments
-      'Body Acne Treatment', 'Back Acne Treatment',
-      'Stretch Marks Treatment', 'Skin Allergy Treatment',
+      'Back Acne Treatment', 'Body Acne Treatment',
+      'Skin Allergy Treatment', 'Stretch Marks Treatment',
       // Consultation
-      'General Skin Consultation', 'Hair Specialist Consultation',
-      'Online Dermatologist Consultation', 'Follow-up Consultation',
+      'Follow-up Consultation', 'General Skin Consultation',
+      'Hair Specialist Consultation', 'Online Dermatologist Consultation',
     ],
   },
 ];
@@ -458,23 +458,23 @@ export const UNISEX_CATEGORIES = [
     icon: '🧴',
     maleSubServices: [
       // Hair & Scalp Treatments
-      'Hair Fall Consultation', 'Male Pattern Baldness Treatment', 'PRP Hair Therapy',
-      'Scalp Infection Treatment', 'Hair Regrowth Therapy', 'Alopecia Treatment',
+      'Alopecia Treatment', 'Hair Fall Consultation', 'Hair Regrowth Therapy',
+      'Male Pattern Baldness Treatment', 'PRP Hair Therapy', 'Scalp Infection Treatment',
       // Skin Treatments (Face)
-      'Acne Treatment', 'Acne Scar Treatment', 'Open Pores Treatment',
-      'Skin Brightening Treatment', 'Detan Treatment',
+      'Acne Scar Treatment', 'Acne Treatment', 'Detan Treatment',
+      'Open Pores Treatment', 'Skin Brightening Treatment',
       // Beard & Face Issues
-      'Beard Patch Treatment', 'Ingrown Hair Treatment', 'Razor Bumps Treatment',
-      'Beard Growth Therapy', 'Skin Irritation Treatment (After Shaving)',
+      'Beard Growth Therapy', 'Beard Patch Treatment', 'Ingrown Hair Treatment',
+      'Razor Bumps Treatment', 'Skin Irritation Treatment (After Shaving)',
       // Advanced Dermatology Treatments
-      'Chemical Peel', 'Laser Treatment', 'Skin Tightening',
-      'Anti-Aging Treatment', 'Scar Reduction Treatment',
+      'Anti-Aging Treatment', 'Chemical Peel', 'Laser Treatment',
+      'Scar Reduction Treatment', 'Skin Tightening',
       // Body Skin Treatments
-      'Body Acne Treatment', 'Back Acne Treatment',
-      'Stretch Marks Treatment', 'Skin Allergy Treatment',
+      'Back Acne Treatment', 'Body Acne Treatment',
+      'Skin Allergy Treatment', 'Stretch Marks Treatment',
       // Consultation
-      'General Skin Consultation', 'Hair Specialist Consultation',
-      'Online Dermatologist Consultation', 'Follow-up Consultation',
+      'Follow-up Consultation', 'General Skin Consultation',
+      'Hair Specialist Consultation', 'Online Dermatologist Consultation',
     ],
     femaleSubServices: [],
     get subServices() { return this.maleSubServices; },
