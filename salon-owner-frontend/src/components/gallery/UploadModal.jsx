@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { X, Upload, ImagePlus, Film, Trash2, AlertTriangle, Clock, HardDrive, ChevronLeft, Check } from 'lucide-react';
 
 const ACCEPT_IMAGE = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
-const ACCEPT_VIDEO = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/x-matroska'];
+const ACCEPT_VIDEO = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/x-matroska', 'video/3gpp', 'video/3gpp2', 'video/mpeg', 'video/ogg'];
 
 export const MAX_IMAGE_MB      = 10;
 export const MAX_VIDEO_MB      = 100;
@@ -200,7 +200,7 @@ const VideoPickStep = ({ onVideoPicked, onClose, checking }) => {
         <input
           ref={inputRef}
           type="file"
-          accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,.mp4,.mov,.webm,.avi"
+          accept="video/*"
           className="hidden"
           onChange={onInputChange}
         />
@@ -493,8 +493,9 @@ const PhotoUploadStep = ({ onFilesReady, onClose }) => {
   const [rejected, setRejected] = useState([]);
   const [dragging, setDragging] = useState(false);
   const [checking, setChecking] = useState(false);
-  const inputRef = useRef(null);
-  const nextId   = useRef(0);
+  const inputRef  = useRef(null);
+  const cameraRef = useRef(null);
+  const nextId    = useRef(0);
 
   const addFiles = useCallback(async (raw) => {
     setChecking(true);
@@ -502,7 +503,7 @@ const PhotoUploadStep = ({ onFilesReady, onClose }) => {
     const declined = [];
     for (const f of Array.from(raw)) {
       if (!ACCEPT_IMAGE.includes(f.type)) {
-        declined.push({ name: f.name, reason: 'Not an image — use the Video option for videos' });
+        declined.push({ name: f.name, reason: `Unsupported format — use JPEG, PNG, or WebP` });
         continue;
       }
       if (f.size > MAX_IMAGE_MB * 1024 * 1024) {
@@ -564,14 +565,23 @@ const PhotoUploadStep = ({ onFilesReady, onClose }) => {
             <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
               {checking ? 'Checking files…' : dragging ? 'Drop photos here' : 'Drag & drop photos'}
             </p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">or browse</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">or choose below</p>
           </div>
-          <button type="button" disabled={checking} onClick={() => inputRef.current?.click()}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold
-              bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-50">
-            <ImagePlus className="w-3.5 h-3.5" /> Choose Photos
-          </button>
-          <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden"
+          <div className="flex gap-2 flex-wrap justify-center">
+            <button type="button" disabled={checking} onClick={() => inputRef.current?.click()}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold
+                bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-50">
+              <ImagePlus className="w-3.5 h-3.5" /> Photo Library
+            </button>
+            <button type="button" disabled={checking} onClick={() => cameraRef.current?.click()}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold
+                bg-gray-700 hover:bg-gray-600 text-white transition-colors disabled:opacity-50">
+              📷 Take Photo
+            </button>
+          </div>
+          <input ref={inputRef} type="file" accept="image/*" multiple className="hidden"
+            onChange={e => { addFiles(e.target.files); e.target.value = ''; }} />
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden"
             onChange={e => { addFiles(e.target.files); e.target.value = ''; }} />
         </div>
 
@@ -717,9 +727,10 @@ const UploadModal = ({ isOpen, onClose, onFilesReady, servedGender = 'unisex', o
     setChecking(true);
     setRejected(null);
 
-    const nameLooksVideo = /\.(mp4|mov|webm|avi|mkv|m4v)$/i.test(file.name || '');
+    const nameLooksVideo = /\.(mp4|mov|webm|avi|mkv|m4v|3gp|mpeg|ogv)$/i.test(file.name || '');
     const isVideo =
       ACCEPT_VIDEO.includes(file.type) ||
+      file.type.startsWith('video/') ||
       (file.type === 'application/octet-stream' && nameLooksVideo) ||
       ((!file.type || file.type === '') && nameLooksVideo);
 
