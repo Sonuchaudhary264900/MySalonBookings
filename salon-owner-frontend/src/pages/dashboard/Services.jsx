@@ -302,13 +302,36 @@ const Services = () => {
   const inactiveCount = allServices.length - activeCount;
 
   const filteredServices = useMemo(() => {
-    if (!search.trim()) return allServices;
+    const gender = salon?.servedGender; // 'male' | 'female' | 'unisex'
+    let base = allServices;
+
+    // Gender filter — only when salon is male-only or female-only
+    if (gender === 'male' || gender === 'female') {
+      base = base.filter(s => {
+        const af = s.applicableFor || [];
+        // Explicit applicableFor wins
+        if (af.includes('male') || af.includes('female')) {
+          return af.includes(gender);
+        }
+        // Fallback: look up in UNISEX_CATEGORIES name lists
+        const uniCatDef = UNISEX_CATEGORIES.find(u => u.label === s.category);
+        if (uniCatDef) {
+          const maleSet   = new Set(uniCatDef.maleSubServices   || []);
+          const femaleSet = new Set(uniCatDef.femaleSubServices || []);
+          if (gender === 'male'   && femaleSet.has(s.name) && !maleSet.has(s.name)) return false;
+          if (gender === 'female' && maleSet.has(s.name)   && !femaleSet.has(s.name)) return false;
+        }
+        return true;
+      });
+    }
+
+    if (!search.trim()) return base;
     const q = search.toLowerCase();
-    return allServices.filter(s =>
+    return base.filter(s =>
       s.name?.toLowerCase().includes(q) ||
       s.category?.toLowerCase().includes(q)
     );
-  }, [allServices, search]);
+  }, [allServices, search, salon?.servedGender]);
 
   /* Group by category */
   const grouped = useMemo(() => {
