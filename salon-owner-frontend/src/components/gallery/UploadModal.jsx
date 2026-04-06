@@ -111,6 +111,8 @@ const RejectedRow = ({ name, reason }) => (
 /* ────────────────────────────────────────────────────────────────
    STEP A — Video picker (single video at a time, like Instagram)
 ────────────────────────────────────────────────────────────────── */
+const isTouchDevice = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+
 const VideoPickStep = ({ onVideoPicked, onClose, checking }) => {
   const onInputChange = (e) => {
     const f = e.target.files?.[0];
@@ -150,10 +152,9 @@ const VideoPickStep = ({ onVideoPicked, onClose, checking }) => {
           </div>
         </div>
 
-        {/* Two options: pick from gallery or record with camera */}
         {/* Input overlaid directly on each card so user gesture hits it — avoids
             mobile browsers ignoring capture when triggered via programmatic .click() */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className={`grid gap-3 ${isTouchDevice ? 'grid-cols-2' : 'grid-cols-1'}`}>
           {/* Gallery picker */}
           <label
             className={`relative flex flex-col items-center justify-center gap-3 py-10
@@ -180,29 +181,31 @@ const VideoPickStep = ({ onVideoPicked, onClose, checking }) => {
             />
           </label>
 
-          {/* Camera recorder */}
-          <label
-            className={`relative flex flex-col items-center justify-center gap-3 py-10
-              border-2 border-dashed rounded-2xl border-rose-200 dark:border-rose-800
-              hover:border-rose-400 dark:hover:border-rose-600
-              hover:bg-rose-50/50 dark:hover:bg-rose-950/20
-              transition-all duration-200 cursor-pointer ${checking ? 'opacity-50 pointer-events-none' : ''}`}
-          >
-            <div className="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center">
-              <span className="text-2xl">📷</span>
-            </div>
-            <div className="text-center">
-              <p className="text-xs font-bold text-gray-800 dark:text-gray-200">Record Video</p>
-              <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">Use camera</p>
-            </div>
-            <input
-              type="file"
-              accept="video/*"
-              capture="environment"
-              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-              onChange={onInputChange}
-            />
-          </label>
+          {/* Camera recorder — only shown on touch devices; capture is ignored on desktop */}
+          {isTouchDevice && (
+            <label
+              className={`relative flex flex-col items-center justify-center gap-3 py-10
+                border-2 border-dashed rounded-2xl border-rose-200 dark:border-rose-800
+                hover:border-rose-400 dark:hover:border-rose-600
+                hover:bg-rose-50/50 dark:hover:bg-rose-950/20
+                transition-all duration-200 cursor-pointer ${checking ? 'opacity-50 pointer-events-none' : ''}`}
+            >
+              <div className="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center">
+                <span className="text-2xl">📷</span>
+              </div>
+              <div className="text-center">
+                <p className="text-xs font-bold text-gray-800 dark:text-gray-200">Record Video</p>
+                <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">Use camera</p>
+              </div>
+              <input
+                type="file"
+                accept="video/*"
+                capture="environment"
+                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                onChange={onInputChange}
+              />
+            </label>
+          )}
         </div>
 
         <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl
@@ -284,7 +287,7 @@ const VideoDetailsStep = ({ videoItem, onBack, onUpload, servedGender, offeredCa
         <div className="flex-1">
           <h2 className="text-base font-bold text-gray-900 dark:text-white">Reel Details</h2>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-            Choose at least one category for your Reel
+            Pick a category · sub-services are optional
           </p>
         </div>
       </div>
@@ -624,9 +627,9 @@ const PhotoUploadStep = ({ onFilesReady, onClose }) => {
   );
 };
 
-/* ────────────────────────���───────────────────────────────────────
+/* ────────────────────────�����─────────────────────────────���─────────
    MODE PICKER — Photo vs Video choice screen
-──────────────────��─────────────────────────────────────────────── */
+────────��─────────��───────────────────────────────���─────────────── */
 const ModePicker = ({ onChoose, onClose }) => (
   <>
     <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800 shrink-0">
