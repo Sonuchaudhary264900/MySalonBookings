@@ -9,8 +9,9 @@ import UploadModal    from '../../components/gallery/UploadModal';
 import ImageModal     from '../../components/gallery/ImageModal';
 import AIInsightsBar  from '../../components/gallery/AIInsightsBar';
 import FilterBar      from '../../components/gallery/FilterBar';
-import MasonryGrid    from '../../components/gallery/MasonryGrid';
-import PreviewModal   from '../../components/gallery/PreviewModal';
+import MasonryGrid      from '../../components/gallery/MasonryGrid';
+import PreviewModal     from '../../components/gallery/PreviewModal';
+import ReelsDashboard   from '../../components/gallery/ReelsDashboard';
 import api from '../../services/api';
 import { useGalleryUpload } from '../../context/GalleryUploadContext';
 import { useSalon }         from '../../hooks/useSalon';
@@ -574,6 +575,14 @@ export default function Gallery() {
             </p>
           </div>
 
+        ) : activeFilter === 'reels' ? (
+          <ReelsDashboard
+            videos={videoPhotos}
+            analyticsMap={analyticsMap}
+            onDelete={handleDelete}
+            onEdit={(photo, idx, list) => setEditModal({ index: idx, list })}
+            onUpload={() => setShowUpload(true)}
+          />
         ) : (
           <MasonryGrid
             photos={photosForGrid}
