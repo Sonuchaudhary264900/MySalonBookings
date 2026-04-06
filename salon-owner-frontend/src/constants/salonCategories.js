@@ -261,6 +261,33 @@ export const FEMALE_CATEGORIES = [
       'High-End Product Upgrade', 'Touch-Up Services (Hourly / Event)',
     ],
   },
+  {
+    key: 'women_dermatology',
+    label: 'Women Dermatology',
+    icon: '🧴',
+    subServices: [
+      // Hair & Scalp Treatments
+      'Alopecia Treatment', 'Dandruff Treatment', 'Hair Fall Treatment',
+      'Hair Thinning Treatment', 'Hormonal Hair Loss Treatment',
+      'PRP Hair Therapy', 'Scalp Infection Treatment',
+      // Skin Treatments (Face)
+      'Acne Scar Treatment', 'Acne Treatment', 'Dark Circles Treatment',
+      'Detan Treatment', 'Open Pores Treatment', 'Pigmentation Treatment',
+      'Skin Brightening Treatment', 'Uneven Skin Tone Treatment',
+      // Advanced Skin Treatments
+      'Chemical Peel', 'Hydrafacial (Medical Grade)', 'Laser Skin Treatment',
+      'Skin Rejuvenation', 'Skin Tightening',
+      // Anti-Aging & Beauty
+      'Anti-Aging Treatment', 'Botox / Fillers (Future Option)', 'Collagen Boost Therapy',
+      'Fine Line Treatment', 'Skin Lifting Treatment', 'Wrinkle Reduction',
+      // Body Skin Treatments
+      'Back Acne Treatment', 'Body Acne Treatment', 'Skin Allergy Treatment',
+      'Stretch Marks Treatment', 'Underarm Pigmentation Treatment',
+      // Consultation
+      'Follow-up Consultation', 'General Skin Consultation',
+      'Hair Specialist Consultation', 'Online Dermatologist Consultation',
+    ],
+  },
 ];
 
 export const FEMALE_OPTIONALS = [
@@ -451,6 +478,35 @@ export const UNISEX_CATEGORIES = [
     ],
     femaleSubServices: [],
     get subServices() { return this.maleSubServices; },
+  },
+  {
+    key: 'women_dermatology_unisex',
+    label: 'Women Dermatology',
+    icon: '🧴',
+    maleSubServices: [],
+    femaleSubServices: [
+      // Hair & Scalp Treatments
+      'Alopecia Treatment', 'Dandruff Treatment', 'Hair Fall Treatment',
+      'Hair Thinning Treatment', 'Hormonal Hair Loss Treatment',
+      'PRP Hair Therapy', 'Scalp Infection Treatment',
+      // Skin Treatments (Face)
+      'Acne Scar Treatment', 'Acne Treatment', 'Dark Circles Treatment',
+      'Detan Treatment', 'Open Pores Treatment', 'Pigmentation Treatment',
+      'Skin Brightening Treatment', 'Uneven Skin Tone Treatment',
+      // Advanced Skin Treatments
+      'Chemical Peel', 'Hydrafacial (Medical Grade)', 'Laser Skin Treatment',
+      'Skin Rejuvenation', 'Skin Tightening',
+      // Anti-Aging & Beauty
+      'Anti-Aging Treatment', 'Botox / Fillers (Future Option)', 'Collagen Boost Therapy',
+      'Fine Line Treatment', 'Skin Lifting Treatment', 'Wrinkle Reduction',
+      // Body Skin Treatments
+      'Back Acne Treatment', 'Body Acne Treatment', 'Skin Allergy Treatment',
+      'Stretch Marks Treatment', 'Underarm Pigmentation Treatment',
+      // Consultation
+      'Follow-up Consultation', 'General Skin Consultation',
+      'Hair Specialist Consultation', 'Online Dermatologist Consultation',
+    ],
+    get subServices() { return this.femaleSubServices; },
   },
   {
     key: 'at_home_services_unisex',
