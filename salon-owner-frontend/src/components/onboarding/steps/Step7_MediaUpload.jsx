@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowRight, Video, Image, FileText, X, Star, Upload } from 'lucide-react';
+import { ArrowRight, Video, Image, FileText, X, Upload, Store, Scissors } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import { useTheme } from '../../../context/ThemeContext';
@@ -9,14 +9,38 @@ const S7_CSS = `
   @keyframes s7-fadeup{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
   @keyframes s7-spin{to{transform:rotate(360deg)}}
   @keyframes s7-photo-in{from{opacity:0;transform:scale(0.8)}to{opacity:1;transform:scale(1)}}
-  @keyframes s7-ring{from{stroke-dashoffset:100}to{stroke-dashoffset:0}}
-  @keyframes s7-pulse-border{0%,100%{border-color:rgba(124,58,237,0.3)}50%{border-color:rgba(124,58,237,0.7)}}
+  @keyframes s7-pulse-glow{0%,100%{box-shadow:0 0 0 3px rgba(124,58,237,0.15)}50%{box-shadow:0 0 0 5px rgba(124,58,237,0.3)}}
   .s7-fu1{animation:s7-fadeup 0.45s 0s ease both}
   .s7-fu2{animation:s7-fadeup 0.45s 0.1s ease both}
-  .s7-uploading{animation:s7-pulse-border 1.5s ease-in-out infinite}
   .s7-photo{animation:s7-photo-in 0.3s cubic-bezier(0.34,1.56,0.64,1) both}
+  .s7-photo-card{transition:transform 0.18s ease,box-shadow 0.18s ease;}
+  .s7-photo-card:hover{transform:scale(1.04);box-shadow:0 6px 20px rgba(0,0,0,0.3);}
+  .s7-remove-btn{opacity:0;transition:opacity 0.15s ease,background 0.15s ease;}
+  .s7-photo-card:hover .s7-remove-btn{opacity:1;}
+  .s7-remove-btn:hover{background:rgba(239,68,68,0.5)!important;box-shadow:0 0 8px rgba(239,68,68,0.4);}
+
+  /* Upload zone */
+  .s7-zone{transition:border-color 0.2s,background 0.2s,box-shadow 0.2s,transform 0.15s;cursor:pointer;}
+  .s7-zone:hover{
+    border-color:rgba(124,58,237,0.55)!important;
+    background:rgba(124,58,237,0.03)!important;
+    box-shadow:0 0 0 4px rgba(124,58,237,0.08),inset 0 0 20px rgba(124,58,237,0.03)!important;
+    transform:scale(1.005);
+  }
+  .s7-zone:active{transform:scale(0.99)!important;}
+  .s7-zone.drag-over{
+    border-color:#7c3aed!important;
+    background:rgba(124,58,237,0.07)!important;
+    box-shadow:0 0 0 5px rgba(124,58,237,0.15),inset 0 0 30px rgba(124,58,237,0.06)!important;
+    transform:scale(1.01)!important;
+  }
+
+  /* Video upload indicator */
+  .s7-uploading-video{animation:s7-pulse-glow 1.5s ease-in-out infinite;}
+
   .s7-btn{transition:transform 0.15s,box-shadow 0.15s;}
   .s7-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 30px rgba(124,58,237,0.5)!important;}
+  .s7-btn:active:not(:disabled){transform:scale(0.97)!important;transition:transform 0.1s ease!important;}
 `;
 
 /* ─── Cloudinary direct upload via backend signature ─────────── */
@@ -89,6 +113,7 @@ export default function Step7_MediaUpload() {
   // Sync local photos state → OnboardingContext after every change
   useEffect(() => { update({ photos }); }, [photos]);
 
+  const [isDragOver, setIsDragOver] = useState(false);
   const [docsOpen, setDocsOpen]   = useState(false);
   const [licenseUploading, setLicenseUploading] = useState(false);
   const [regUploading,     setRegUploading]     = useState(false);
@@ -180,10 +205,10 @@ export default function Step7_MediaUpload() {
   const zoneBorder = isDark ? 'rgba(255,255,255,0.1)' : '#e0d7ff';
 
   const uploadZoneStyle = (uploading) => ({
-    border: `2px dashed ${uploading ? '#7c3aed' : zoneBorder}`,
+    border: `1.5px solid ${uploading ? '#7c3aed' : 'rgba(124,58,237,0.22)'}`,
     borderRadius: 16, padding: '28px 16px', textAlign: 'center',
-    background: zoneBg, cursor: 'pointer', transition: 'all 0.2s',
-    ...(uploading ? { animation: 's7-pulse-border 1.5s ease-in-out infinite' } : {}),
+    background: zoneBg,
+    boxShadow: uploading ? '0 0 0 4px rgba(124,58,237,0.1), inset 0 0 20px rgba(124,58,237,0.04)' : 'none',
   });
 
   return (
@@ -201,7 +226,7 @@ export default function Step7_MediaUpload() {
           </p>
         </div>
 
-        <div className="s7-fu2" style={{ background: cardBg, border: `1px solid ${border}`, borderRadius: 24, padding: '24px 22px', display: 'flex', flexDirection: 'column', gap: 24, boxShadow: isDark ? 'none' : '0 8px 40px rgba(124,58,237,0.07)' }}>
+        <div className="s7-fu2" style={{ background: cardBg, border: `1px solid ${border}`, borderRadius: 24, padding: '24px 22px', display: 'flex', flexDirection: 'column', gap: 30, boxShadow: isDark ? 'none' : '0 8px 40px rgba(124,58,237,0.07)' }}>
 
           {/* ── Video (mandatory) ── */}
           <div>
@@ -210,19 +235,54 @@ export default function Step7_MediaUpload() {
               <label style={{ fontSize: 13, fontWeight: 700, color: text }}>Salon Tour Video <span style={{ color: '#f87171', fontSize: 11, fontWeight: 500 }}>(Required)</span></label>
             </div>
             <p style={{ fontSize: 12, color: sub, margin: '0 0 12px', lineHeight: 1.5 }}>
-              Admin will watch this to verify your salon is real before approving. Even a 30-second phone video works perfectly!
+              This helps us verify your business and build customer trust. Even a 15–30 sec phone walkthrough works perfectly!
             </p>
 
             {videoPreview ? (
-              <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', background: '#000' }}>
-                <video src={videoPreview.url} controls style={{ width: '100%', maxHeight: 200, display: 'block' }} />
-                <button onClick={() => { setVideoPreview(null); update({ videoUrl: '' }); }}
-                  style={{ position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderRadius: '50%', background: 'rgba(0,0,0,0.7)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
-                  <X size={14} />
-                </button>
+              /* ── Video player — dark neutral bg, 16:9 ratio, themed border glow ── */
+              <div style={{
+                borderRadius: 16, overflow: 'hidden',
+                background: '#06060f',
+                border: '1.5px solid rgba(124,58,237,0.28)',
+                boxShadow: '0 0 0 3px rgba(124,58,237,0.07), 0 8px 28px rgba(0,0,0,0.35)',
+              }}>
+                {/* Slim status bar */}
+                <div style={{
+                  padding: '5px 12px', background: 'rgba(124,58,237,0.08)',
+                  borderBottom: '1px solid rgba(124,58,237,0.15)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <Video size={11} color="#a855f7" strokeWidth={1.5} />
+                    <span style={{ fontSize: 10, color: '#a855f7', fontWeight: 600 }}>Salon Tour · Uploaded ✓</span>
+                  </div>
+                  {/* X inside status bar — less intrusive */}
+                  <button onClick={() => { setVideoPreview(null); update({ videoUrl: '' }); }}
+                    style={{
+                      width: 20, height: 20, borderRadius: '50%',
+                      background: 'rgba(255,255,255,0.07)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: 'rgba(255,255,255,0.55)', opacity: 0.8,
+                      transition: 'opacity 0.15s, background 0.15s',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.background = 'rgba(239,68,68,0.3)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.opacity = '0.8'; e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; }}
+                  >
+                    <X size={10} />
+                  </button>
+                </div>
+
+                {/* 16:9 video wrapper */}
+                <div style={{ position: 'relative', paddingBottom: '56.25%', background: '#000' }}>
+                  <video
+                    src={videoPreview.url} controls
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }}
+                  />
+                </div>
               </div>
             ) : (
-              <div style={uploadZoneStyle(videoUploading)} onClick={() => !videoUploading && videoInputRef.current?.click()}>
+              <div className="s7-zone" style={uploadZoneStyle(videoUploading)} onClick={() => !videoUploading && videoInputRef.current?.click()}>
                 <input ref={videoInputRef} type="file" accept="video/mp4,video/mov,video/avi,video/quicktime" style={{ display: 'none' }} onChange={e => handleVideoFile(e.target.files[0])} />
                 {videoUploading ? (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
@@ -231,16 +291,15 @@ export default function Step7_MediaUpload() {
                   </div>
                 ) : (
                   <>
-                    <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(124,58,237,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-                      <Video size={24} color="#7c3aed" />
+                    <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(124,58,237,0.12)', border: '1.5px solid rgba(124,58,237,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                      <Video size={26} color="#7c3aed" strokeWidth={1.5} />
                     </div>
-                    <p style={{ fontSize: 14, fontWeight: 700, color: text, margin: '0 0 4px' }}>Upload Salon Video</p>
-                    <p style={{ fontSize: 12, color: sub, margin: '0 0 12px' }}>MP4, MOV, AVI · Max 100MB</p>
-                    <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-                      <span style={{ padding: '7px 16px', borderRadius: 10, background: 'linear-gradient(135deg,#7c3aed,#a855f7)', color: '#fff', fontSize: 12, fontWeight: 700 }}>
-                        ⬆️ Upload Video
-                      </span>
-                    </div>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: text, margin: '0 0 3px' }}>Upload a short salon video</p>
+                    <p style={{ fontSize: 11, color: sub, margin: '0 0 4px' }}>15–30 sec walkthrough of your salon</p>
+                    <p style={{ fontSize: 11, color: sub, margin: '0 0 14px' }}>MP4, MOV, AVI · Max 100MB</p>
+                    <span style={{ padding: '7px 18px', borderRadius: 10, background: 'linear-gradient(135deg,#7c3aed,#a855f7)', color: '#fff', fontSize: 12, fontWeight: 700 }}>
+                      Choose Video
+                    </span>
                   </>
                 )}
               </div>
@@ -257,20 +316,59 @@ export default function Step7_MediaUpload() {
               <span style={{ fontSize: 12, color: sub, fontWeight: 500 }}>{photos.length} / 10</span>
             </div>
 
-            {/* Photo grid */}
+            {/* Photo grid with label */}
             {photos.length > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(80px,1fr))', gap: 8, marginBottom: 12 }}>
+              <>
+                <p style={{ fontSize: 11, fontWeight: 700, color: sub, letterSpacing: 0.8, textTransform: 'uppercase', margin: '0 0 8px' }}>
+                  Your photos
+                </p>
+              </>
+            )}
+            {photos.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(84px,1fr))', gap: 8, marginBottom: 12 }}>
                 {photos.map(p => (
-                  <div key={p.id} className="s7-photo" style={{ position: 'relative', paddingBottom: '100%', borderRadius: 10, overflow: 'hidden', border: `2px solid ${p.isCover ? '#7c3aed' : border}` }}>
+                  <div key={p.id} className="s7-photo s7-photo-card" style={{
+                    position: 'relative', paddingBottom: '100%', borderRadius: 12, overflow: 'hidden',
+                    border: `2px solid ${p.isCover ? '#7c3aed' : border}`,
+                    boxShadow: p.isCover ? '0 0 0 3px rgba(124,58,237,0.2)' : 'none',
+                  }}>
                     <img src={p.url} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-                    {p.isCover && <div style={{ position: 'absolute', bottom: 4, left: '50%', transform: 'translateX(-50%)', background: '#7c3aed', borderRadius: 99, padding: '1px 6px', fontSize: 9, color: '#fff', fontWeight: 700, whiteSpace: 'nowrap' }}>⭐ Cover</div>}
-                    <button onClick={() => removePhoto(p.id)} style={{ position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: '50%', background: 'rgba(0,0,0,0.7)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}><X size={10} /></button>
-                    {!p.isCover && <button onClick={() => setCover(p.id)} style={{ position: 'absolute', bottom: 4, left: 4, background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: 99, padding: '2px 6px', cursor: 'pointer', fontSize: 9, color: '#fbbf24' }}>⭐</button>}
+
+                    {/* Cover pill badge */}
+                    {p.isCover && (
+                      <div style={{
+                        position: 'absolute', bottom: 5, left: '50%', transform: 'translateX(-50%)',
+                        background: 'linear-gradient(135deg,#7c3aed,#a855f7)',
+                        borderRadius: 99, padding: '2px 8px', fontSize: 9,
+                        color: '#fff', fontWeight: 700, whiteSpace: 'nowrap',
+                        boxShadow: '0 2px 8px rgba(124,58,237,0.5)',
+                      }}>★ Cover</div>
+                    )}
+
+                    {/* Remove button — appears on hover */}
+                    <button className="s7-remove-btn" onClick={() => removePhoto(p.id)} style={{
+                      position: 'absolute', top: 5, right: 5,
+                      width: 22, height: 22, borderRadius: '50%',
+                      background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
+                    }}><X size={11} /></button>
+
+                    {/* Set as cover star */}
+                    {!p.isCover && (
+                      <button onClick={() => setCover(p.id)} style={{
+                        position: 'absolute', bottom: 5, left: 5,
+                        background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
+                        border: '1px solid rgba(255,255,255,0.15)',
+                        borderRadius: 99, padding: '2px 6px', cursor: 'pointer', fontSize: 9, color: '#fbbf24',
+                      }}>★</button>
+                    )}
                   </div>
                 ))}
+
                 {/* Uploading placeholders */}
                 {Object.entries(photoProgress).map(([id, pct]) => (
-                  <div key={id} style={{ position: 'relative', paddingBottom: '100%', borderRadius: 10, background: isDark ? 'rgba(255,255,255,0.05)' : '#f3f0ff', border: `2px solid rgba(124,58,237,0.3)` }}>
+                  <div key={id} style={{ position: 'relative', paddingBottom: '100%', borderRadius: 12, background: isDark ? 'rgba(255,255,255,0.05)' : '#f3f0ff', border: `2px solid rgba(124,58,237,0.3)` }}>
                     <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <ProgressRing pct={pct} size={36} stroke={3} />
                     </div>
@@ -280,13 +378,44 @@ export default function Step7_MediaUpload() {
             )}
 
             {photos.length < 10 && (
-              <div style={uploadZoneStyle(uploadingIds.length > 0)} onClick={() => photoInputRef.current?.click()}>
+              <div
+                className={`s7-zone${isDragOver ? ' drag-over' : ''}`}
+                style={uploadZoneStyle(uploadingIds.length > 0)}
+                onClick={() => photoInputRef.current?.click()}
+                onDragEnter={e => { e.preventDefault(); setIsDragOver(true); }}
+                onDragOver={e => { e.preventDefault(); setIsDragOver(true); }}
+                onDragLeave={() => setIsDragOver(false)}
+                onDrop={e => { e.preventDefault(); setIsDragOver(false); handlePhotoFiles(e.dataTransfer.files); }}
+              >
                 <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple style={{ display: 'none' }} onChange={e => handlePhotoFiles(e.target.files)} />
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(124,58,237,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px' }}>
-                  <Upload size={20} color="#7c3aed" />
+
+                {/* Guided icon row — consistent lucide outline style */}
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 14 }}>
+                  {[
+                    { Icon: Store,    label: 'Shop' },
+                    { Icon: Image,    label: 'Interior' },
+                    { Icon: Scissors, label: 'Work' },
+                  ].map(({ Icon, label }) => (
+                    <div key={label} style={{
+                      width: 44, height: 44, borderRadius: 12,
+                      background: isDark ? 'rgba(124,58,237,0.1)' : 'rgba(124,58,237,0.06)',
+                      border: `1.5px solid ${isDark ? 'rgba(124,58,237,0.2)' : 'rgba(124,58,237,0.15)'}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <Icon size={20} strokeWidth={1.5} color={isDark ? '#8b5cf6' : '#9d65f3'} />
+                    </div>
+                  ))}
                 </div>
-                <p style={{ fontSize: 13, fontWeight: 700, color: text, margin: '0 0 4px' }}>Add Salon Photos</p>
-                <p style={{ fontSize: 12, color: sub, margin: 0 }}>JPEG, PNG, WebP · Max 10MB each</p>
+
+                <div style={{ width: 42, height: 42, borderRadius: 13, background: 'rgba(124,58,237,0.12)', border: '1.5px solid rgba(124,58,237,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                  <Upload size={21} color="#7c3aed" strokeWidth={1.5} />
+                </div>
+
+                <p style={{ fontSize: 15, fontWeight: 700, color: text, margin: '0 0 5px' }}>
+                  {isDragOver ? 'Drop photos here' : 'Add salon photos'}
+                </p>
+                <p style={{ fontSize: 11, color: sub, margin: '0 0 2px', opacity: 0.8 }}>Shop front · Interior · Your work samples</p>
+                <p style={{ fontSize: 10, color: sub, margin: 0, opacity: 0.65 }}>JPEG, PNG, WebP · Max 10MB each · Up to 10 photos</p>
               </div>
             )}
           </div>

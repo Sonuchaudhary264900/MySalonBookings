@@ -54,6 +54,10 @@ export default function LivePreviewPanel() {
         @keyframes ob-fade-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
         .ob-fade-in{animation:ob-fade-in 0.4s ease both}
         @keyframes ob-glow-pulse{0%,100%{box-shadow:0 0 30px rgba(124,58,237,0.35)}50%{box-shadow:0 0 60px rgba(124,58,237,0.6)}}
+        @keyframes ob-book-pulse{0%,100%{box-shadow:0 2px 12px rgba(124,58,237,0.45)}50%{box-shadow:0 4px 24px rgba(124,58,237,0.75),0 0 0 3px rgba(124,58,237,0.15)}}
+        @keyframes ob-book-shine{0%{left:-80%}60%,100%{left:120%}}
+        .ob-book-btn{animation:ob-book-pulse 2.4s ease-in-out infinite; position:relative; overflow:hidden;}
+        .ob-book-btn::after{content:'';position:absolute;top:0;left:-80%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.25),transparent);animation:ob-book-shine 2.4s ease-in-out infinite;}
       `}</style>
 
       <div style={{
@@ -204,26 +208,27 @@ export default function LivePreviewPanel() {
                   <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: 1, marginBottom: 5, textTransform: 'uppercase' }}>
                     Gallery
                   </div>
-                  <div style={{ display: 'flex', gap: 4, overflowX: 'auto' }}>
+                  <div style={{ display: 'flex', gap: 5, overflowX: 'auto' }}>
                     {data.photos.slice(0, 4).map((p, i) => (
                       <div key={i} style={{
-                        width: 48, height: 36, borderRadius: 6, flexShrink: 0,
+                        width: 58, height: 44, borderRadius: 8, flexShrink: 0,
                         background: `url(${p.url}) center/cover`,
-                        border: p.isCover ? '1.5px solid #a855f7' : '1px solid rgba(255,255,255,0.1)',
+                        border: p.isCover ? '2px solid #a855f7' : '1px solid rgba(255,255,255,0.1)',
+                        boxShadow: p.isCover ? '0 0 8px rgba(168,85,247,0.4)' : 'none',
                       }} />
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Book now button */}
-              <div style={{
+              {/* Book Now — animated pulse + shine sweep */}
+              <div className="ob-book-btn" style={{
                 background: 'linear-gradient(135deg,#7c3aed,#ec4899)',
-                borderRadius: 10, padding: '8px 0',
-                textAlign: 'center', fontSize: 11, fontWeight: 700, color: '#fff',
-                marginTop: 4, opacity: 0.8,
+                borderRadius: 10, padding: '9px 0',
+                textAlign: 'center', fontSize: 11, fontWeight: 800, color: '#fff',
+                marginTop: 4, letterSpacing: 0.4,
               }}>
-                Book Now
+                Book Now →
               </div>
 
               {/* Watermark */}
