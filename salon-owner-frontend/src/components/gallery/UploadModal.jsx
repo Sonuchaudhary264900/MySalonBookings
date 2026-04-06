@@ -1,5 +1,5 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { X, Upload, ImagePlus, Film, Trash2, AlertTriangle, Clock, HardDrive, ChevronLeft, Check } from 'lucide-react';
+import { useState, useRef, useCallback } from 'react';
+import { X, Upload, ImagePlus, Film, Trash2, AlertTriangle, Clock, HardDrive, ChevronLeft } from 'lucide-react';
 
 const ACCEPT_IMAGE = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
 const ACCEPT_VIDEO = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/x-matroska', 'video/3gpp', 'video/3gpp2', 'video/mpeg', 'video/ogg'];
@@ -112,9 +112,6 @@ const RejectedRow = ({ name, reason }) => (
    STEP A — Video picker (single video at a time, like Instagram)
 ────────────────────────────────────────────────────────────────── */
 const VideoPickStep = ({ onVideoPicked, onClose, checking }) => {
-  const inputRef  = useRef(null);
-  const cameraRef = useRef(null);
-
   const onInputChange = (e) => {
     const f = e.target.files?.[0];
     if (f) onVideoPicked(f);
@@ -154,16 +151,16 @@ const VideoPickStep = ({ onVideoPicked, onClose, checking }) => {
         </div>
 
         {/* Two options: pick from gallery or record with camera */}
+        {/* Input overlaid directly on each card so user gesture hits it — avoids
+            mobile browsers ignoring capture when triggered via programmatic .click() */}
         <div className="grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            disabled={checking}
-            onClick={() => inputRef.current?.click()}
-            className="flex flex-col items-center justify-center gap-3 py-10
+          {/* Gallery picker */}
+          <label
+            className={`relative flex flex-col items-center justify-center gap-3 py-10
               border-2 border-dashed rounded-2xl border-violet-200 dark:border-violet-800
               hover:border-violet-400 dark:hover:border-violet-600
               hover:bg-violet-50/50 dark:hover:bg-violet-950/20
-              transition-all duration-200 disabled:opacity-50"
+              transition-all duration-200 cursor-pointer ${checking ? 'opacity-50 pointer-events-none' : ''}`}
           >
             <div className="w-12 h-12 rounded-2xl bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center">
               {checking
@@ -175,17 +172,21 @@ const VideoPickStep = ({ onVideoPicked, onClose, checking }) => {
               <p className="text-xs font-bold text-gray-800 dark:text-gray-200">Choose File</p>
               <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">MP4, MOV, WebM</p>
             </div>
-          </button>
+            <input
+              type="file"
+              accept="video/*"
+              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+              onChange={onInputChange}
+            />
+          </label>
 
-          <button
-            type="button"
-            disabled={checking}
-            onClick={() => cameraRef.current?.click()}
-            className="flex flex-col items-center justify-center gap-3 py-10
+          {/* Camera recorder */}
+          <label
+            className={`relative flex flex-col items-center justify-center gap-3 py-10
               border-2 border-dashed rounded-2xl border-rose-200 dark:border-rose-800
               hover:border-rose-400 dark:hover:border-rose-600
               hover:bg-rose-50/50 dark:hover:bg-rose-950/20
-              transition-all duration-200 disabled:opacity-50"
+              transition-all duration-200 cursor-pointer ${checking ? 'opacity-50 pointer-events-none' : ''}`}
           >
             <div className="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center">
               <span className="text-2xl">📷</span>
@@ -194,24 +195,15 @@ const VideoPickStep = ({ onVideoPicked, onClose, checking }) => {
               <p className="text-xs font-bold text-gray-800 dark:text-gray-200">Record Video</p>
               <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">Use camera</p>
             </div>
-          </button>
+            <input
+              type="file"
+              accept="video/*"
+              capture="environment"
+              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+              onChange={onInputChange}
+            />
+          </label>
         </div>
-
-        <input
-          ref={inputRef}
-          type="file"
-          accept="video/*"
-          className="hidden"
-          onChange={onInputChange}
-        />
-        <input
-          ref={cameraRef}
-          type="file"
-          accept="video/*"
-          capture="environment"
-          className="hidden"
-          onChange={onInputChange}
-        />
 
         <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl
           bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800">
@@ -493,9 +485,7 @@ const PhotoUploadStep = ({ onFilesReady, onClose }) => {
   const [rejected, setRejected] = useState([]);
   const [dragging, setDragging] = useState(false);
   const [checking, setChecking] = useState(false);
-  const inputRef  = useRef(null);
-  const cameraRef = useRef(null);
-  const nextId    = useRef(0);
+  const nextId = useRef(0);
 
   const addFiles = useCallback(async (raw) => {
     setChecking(true);
@@ -567,22 +557,26 @@ const PhotoUploadStep = ({ onFilesReady, onClose }) => {
             </p>
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">or choose below</p>
           </div>
+          {/* Inputs overlaid directly on labels — ensures user gesture reaches
+              capture attribute without going through programmatic .click() */}
           <div className="flex gap-2 flex-wrap justify-center">
-            <button type="button" disabled={checking} onClick={() => inputRef.current?.click()}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold
-                bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-50">
+            <label className={`relative flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold
+              bg-indigo-600 hover:bg-indigo-700 text-white transition-colors cursor-pointer
+              ${checking ? 'opacity-50 pointer-events-none' : ''}`}>
               <ImagePlus className="w-3.5 h-3.5" /> Photo Library
-            </button>
-            <button type="button" disabled={checking} onClick={() => cameraRef.current?.click()}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold
-                bg-gray-700 hover:bg-gray-600 text-white transition-colors disabled:opacity-50">
+              <input type="file" accept="image/*" multiple
+                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                onChange={e => { addFiles(e.target.files); e.target.value = ''; }} />
+            </label>
+            <label className={`relative flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold
+              bg-gray-700 hover:bg-gray-600 text-white transition-colors cursor-pointer
+              ${checking ? 'opacity-50 pointer-events-none' : ''}`}>
               📷 Take Photo
-            </button>
+              <input type="file" accept="image/*" capture="environment"
+                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                onChange={e => { addFiles(e.target.files); e.target.value = ''; }} />
+            </label>
           </div>
-          <input ref={inputRef} type="file" accept="image/*" multiple className="hidden"
-            onChange={e => { addFiles(e.target.files); e.target.value = ''; }} />
-          <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden"
-            onChange={e => { addFiles(e.target.files); e.target.value = ''; }} />
         </div>
 
         {rejected.length > 0 && (
@@ -630,9 +624,9 @@ const PhotoUploadStep = ({ onFilesReady, onClose }) => {
   );
 };
 
-/* ────────────────────────────────────────────────────────────────
+/* ────────────────────────���───────────────────────────────────────
    MODE PICKER — Photo vs Video choice screen
-────────────────────────────────────────────────────────────────── */
+──────────────────��─────────────────────────────────────────────── */
 const ModePicker = ({ onChoose, onClose }) => (
   <>
     <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800 shrink-0">
