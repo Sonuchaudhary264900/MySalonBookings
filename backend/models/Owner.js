@@ -81,7 +81,7 @@ const ownerSchema = new mongoose.Schema(
     },
     businessType: {
       type: String,
-      enum: ['barbershop', 'salon', 'spa_wellness', 'makeup_bridal', 'skin_derma'],
+      enum: ['barbershop', 'salon', 'spa_wellness', 'makeup_bridal', 'skin_derma', null],
       default: null,
     },
     businessName: {
