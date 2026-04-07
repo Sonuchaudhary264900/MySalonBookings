@@ -63,7 +63,7 @@ const Navbar = ({ onMenuToggle }) => {
       ctx.fillStyle = '#ffffff'; ctx.fillRect(20, 20, 360, 520);
       ctx.fillStyle = '#4f46e5'; ctx.fillRect(20, 20, 360, 74);
       ctx.fillStyle = '#ffffff'; ctx.font = 'bold 17px Arial'; ctx.textAlign = 'center';
-      ctx.fillText('\u2702  Salon Booking', 200, 64);
+      ctx.fillText(`\u2702  ${bizName} Booking`, 200, 64);
       ctx.drawImage(qrImg, 110, 110, 180, 180);
       ctx.fillStyle = '#111827'; ctx.font = 'bold 20px Arial';
       ctx.fillText(salon?.name || 'My Salon', 200, 322);
@@ -82,7 +82,7 @@ const Navbar = ({ onMenuToggle }) => {
       if (line) lines.push(line);
       lines.forEach((l, i) => ctx.fillText(l, 200, 386 + i * 13));
       ctx.fillStyle = '#6b7280'; ctx.font = '11px Arial';
-      ctx.fillText('Powered by My Salon Bookings', 200, 500);
+      ctx.fillText(`Powered by My ${bizName} Bookings`, 200, 500);
       URL.revokeObjectURL(url);
       resolve(canvas);
     };
@@ -94,7 +94,7 @@ const Navbar = ({ onMenuToggle }) => {
     try {
       const canvas = await buildCard();
       const link = document.createElement('a');
-      link.download = `${salon?.name || 'salon'}-booking-qr.png`;
+      link.download = `${salon?.name || bizName.toLowerCase()}-booking-qr.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
       toast.success('QR card downloaded!');
@@ -279,7 +279,7 @@ const Navbar = ({ onMenuToggle }) => {
           >
             <div className="flex items-center justify-between w-full">
               <div>
-                <h3 className="font-bold text-gray-900 dark:text-white">Salon QR Code</h3>
+                <h3 className="font-bold text-gray-900 dark:text-white">{bizName} QR Code</h3>
                 <p className="text-xs text-gray-400">Share to let customers book</p>
               </div>
               <button onClick={() => setShowQR(false)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors">
