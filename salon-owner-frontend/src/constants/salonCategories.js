@@ -1147,22 +1147,22 @@ export const SKIN_DERMA_UNISEX_CATEGORIES = [
 ];
 
 // ─── Returns tailored categories based on salon type + served gender ──────────
-export function getCategoriesForSalonType(salonType, servedGender) {
-  if (salonType === 'barbershop') {
+export function getCategoriesForSalonType(businessType, servedGender) {
+  if (businessType === 'barbershop') {
     return BARBERSHOP_CATEGORIES;
   }
 
-  if (salonType === 'makeup_bridal') {
+  if (businessType === 'makeup_bridal') {
     return MAKEUP_BRIDAL_CATEGORIES;
   }
 
-  if (salonType === 'spa_wellness') {
+  if (businessType === 'spa_wellness') {
     if (servedGender === 'male')   return SPA_WELLNESS_MALE_CATEGORIES;
     if (servedGender === 'female') return SPA_WELLNESS_FEMALE_CATEGORIES;
     return SPA_WELLNESS_UNISEX_CATEGORIES;
   }
 
-  if (salonType === 'skin_derma') {
+  if (businessType === 'skin_derma') {
     if (servedGender === 'male')   return SKIN_DERMA_MALE_CATEGORIES;
     if (servedGender === 'female') return SKIN_DERMA_FEMALE_CATEGORIES;
     return SKIN_DERMA_UNISEX_CATEGORIES;
