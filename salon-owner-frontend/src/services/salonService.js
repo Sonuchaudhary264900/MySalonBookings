@@ -5,26 +5,27 @@ export const createSalon = async (salonData) => {
   const isFormData = salonData instanceof FormData;
   const get = (key) => isFormData ? salonData.get(key) : salonData[key];
 
-  const name     = get('name');
-  const email    = get('email');
-  const phone    = get('phone');
-  const address  = get('address');
-  const city     = get('city');
-  const state    = get('state');
-  const pincode  = get('pincode');
-  const description      = get('description');
-  const category         = get('category');
-  const workingHours     = get('workingHours');
-  const photos           = get('photos');
-  const servedGender     = get('servedGender');
-  const offeredCategories = get('offeredCategories');
-  const kidsHaircut      = get('kidsHaircut');
-  const atHomeServices   = get('atHomeServices');
-  const locationData              = get('location');
-  const businessType              = get('businessType');
-  const videoUrl                  = get('videoUrl');
-  const businessLicenseUrl        = get('businessLicenseUrl');
-  const businessRegistrationUrl   = get('businessRegistrationUrl');
+  const name                    = get('name');
+  const email                   = get('email');
+  const phone                   = get('phone');
+  const address                 = get('address');
+  const city                    = get('city');
+  const district                = get('district');
+  const state                   = get('state');
+  const pincode                 = get('pincode');
+  const description             = get('description');
+  const workingHours            = get('workingHours');
+  const photos                  = get('photos');
+  const servedGender            = get('servedGender');
+  const offeredCategories       = get('offeredCategories');
+  const kidsHaircut             = get('kidsHaircut');
+  const atHomeServices          = get('atHomeServices');
+  const locationData            = get('location');
+  const businessType            = get('businessType');
+  const videoUrl                = get('videoUrl');
+  const videoPublicId           = get('videoPublicId');
+  const businessLicenseUrl      = get('businessLicenseUrl');
+  const businessRegistrationUrl = get('businessRegistrationUrl');
 
   if (!name)    throw new Error('Salon name is required');
   if (!phone)   throw new Error('Phone is required');
@@ -40,22 +41,28 @@ export const createSalon = async (salonData) => {
     phone:   normalizedPhone,
     address: typeof address === 'string' ? address.trim() : address,
   };
-  if (email)        body.email        = typeof email === 'string' ? email.trim().toLowerCase() : email;
-  if (city)         body.city         = typeof city  === 'string' ? city.trim()  : city;
-  if (state)        body.state        = state;
-  if (pincode)      body.pincode      = pincode;
-  console.log('[salonService.createSalon] businessType extracted:', businessType);
-  if (businessType) body.businessType = businessType;
-  if (description) body.description = typeof description === 'string' ? description.trim() : description;
-  if (category)    body.category    = category;
-  if (workingHours) body.workingHours = typeof workingHours === 'string' ? JSON.parse(workingHours) : workingHours;
-  if (photos && photos.length > 0) body.photos = photos;
-  if (servedGender) body.servedGender = servedGender;
+
+  if (email)         body.email         = typeof email === 'string' ? email.trim().toLowerCase() : email;
+  if (city)          body.city          = typeof city  === 'string' ? city.trim()  : city;
+  if (district)      body.district      = typeof district === 'string' ? district.trim() : district;
+  if (state)         body.state         = state;
+  if (pincode)       body.pincode       = pincode;
+  if (businessType)  body.businessType  = businessType;
+  if (servedGender)  body.servedGender  = servedGender;
+  if (description)   body.description   = typeof description === 'string' ? description.trim() : description;
+
+  if (workingHours)     body.workingHours     = typeof workingHours === 'string' ? JSON.parse(workingHours) : workingHours;
   if (offeredCategories) body.offeredCategories = typeof offeredCategories === 'string' ? JSON.parse(offeredCategories) : offeredCategories;
-  if (kidsHaircut !== undefined && kidsHaircut !== null) body.kidsHaircut = kidsHaircut;
+
+  // Always send photos as full objects (with publicId + isCover) when available
+  if (Array.isArray(photos) && photos.length > 0) body.photos = photos;
+
+  if (kidsHaircut    !== undefined && kidsHaircut    !== null) body.kidsHaircut    = kidsHaircut;
   if (atHomeServices !== undefined && atHomeServices !== null) body.atHomeServices = atHomeServices;
-  if (locationData) body.location = typeof locationData === 'string' ? JSON.parse(locationData) : locationData;
+  if (locationData)  body.location = typeof locationData === 'string' ? JSON.parse(locationData) : locationData;
+
   if (videoUrl)                body.videoUrl                = videoUrl;
+  if (videoPublicId)           body.videoPublicId           = videoPublicId;
   if (businessLicenseUrl)      body.businessLicenseUrl      = businessLicenseUrl;
   if (businessRegistrationUrl) body.businessRegistrationUrl = businessRegistrationUrl;
 

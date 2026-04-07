@@ -72,6 +72,12 @@ city: {
   trim: true,
 },
 
+district: {
+  type: String,
+  trim: true,
+  default: '',
+},
+
 state: {
   type: String,
   trim: true,
@@ -155,10 +161,11 @@ location: {
     // ==========================================
     photos: [
       {
-        url:     { type: String, required: true },
-        caption: { type: String, default: '' },
-        tags:    [{ type: String }],
-        isCover: { type: Boolean, default: false },
+        url:       { type: String, required: true },
+        publicId:  { type: String, default: '' },   // Cloudinary public_id for deletion/transforms
+        caption:   { type: String, default: '' },
+        tags:      [{ type: String }],
+        isCover:   { type: Boolean, default: false },
       },
     ],
     videos: [
@@ -189,6 +196,10 @@ location: {
       type: String,
       default: '',
     },
+    videoPublicId: {
+      type: String,
+      default: '',
+    },
     // Business verification documents (optional, uploaded during onboarding)
     businessLicenseUrl: {
       type: String,
@@ -204,39 +215,60 @@ location: {
     // ==========================================
     workingHours: {
       monday: {
-        open: { type: String, default: '09:00' },
-        close: { type: String, default: '18:00' },
-        isClosed: { type: Boolean, default: false },
+        open:        { type: String, default: '09:00' },
+        close:       { type: String, default: '18:00' },
+        isClosed:    { type: Boolean, default: false },
+        hasLunchBreak: { type: Boolean, default: false },
+        lunchStart:  { type: String, default: null },
+        lunchEnd:    { type: String, default: null },
       },
       tuesday: {
-        open: { type: String, default: '09:00' },
-        close: { type: String, default: '18:00' },
-        isClosed: { type: Boolean, default: false },
+        open:        { type: String, default: '09:00' },
+        close:       { type: String, default: '18:00' },
+        isClosed:    { type: Boolean, default: false },
+        hasLunchBreak: { type: Boolean, default: false },
+        lunchStart:  { type: String, default: null },
+        lunchEnd:    { type: String, default: null },
       },
       wednesday: {
-        open: { type: String, default: '09:00' },
-        close: { type: String, default: '18:00' },
-        isClosed: { type: Boolean, default: false },
+        open:        { type: String, default: '09:00' },
+        close:       { type: String, default: '18:00' },
+        isClosed:    { type: Boolean, default: false },
+        hasLunchBreak: { type: Boolean, default: false },
+        lunchStart:  { type: String, default: null },
+        lunchEnd:    { type: String, default: null },
       },
       thursday: {
-        open: { type: String, default: '09:00' },
-        close: { type: String, default: '18:00' },
-        isClosed: { type: Boolean, default: false },
+        open:        { type: String, default: '09:00' },
+        close:       { type: String, default: '18:00' },
+        isClosed:    { type: Boolean, default: false },
+        hasLunchBreak: { type: Boolean, default: false },
+        lunchStart:  { type: String, default: null },
+        lunchEnd:    { type: String, default: null },
       },
       friday: {
-        open: { type: String, default: '09:00' },
-        close: { type: String, default: '18:00' },
-        isClosed: { type: Boolean, default: false },
+        open:        { type: String, default: '09:00' },
+        close:       { type: String, default: '18:00' },
+        isClosed:    { type: Boolean, default: false },
+        hasLunchBreak: { type: Boolean, default: false },
+        lunchStart:  { type: String, default: null },
+        lunchEnd:    { type: String, default: null },
       },
       saturday: {
-        open: { type: String, default: '09:00' },
-        close: { type: String, default: '18:00' },
-        isClosed: { type: Boolean, default: false },
+        open:        { type: String, default: '09:00' },
+        close:       { type: String, default: '18:00' },
+        isClosed:    { type: Boolean, default: false },
+        hasLunchBreak: { type: Boolean, default: false },
+        lunchStart:  { type: String, default: null },
+        lunchEnd:    { type: String, default: null },
       },
       sunday: {
-        open: { type: String, default: '10:00' },
-        close: { type: String, default: '18:00' },
-        isClosed: { type: Boolean, default: true },
+        open:        { type: String, default: '10:00' },
+        close:       { type: String, default: '18:00' },
+        isClosed:    { type: Boolean, default: true },
+        hasLunchBreak: { type: Boolean, default: false },
+        lunchStart:  { type: String, default: null },
+        lunchEnd:    { type: String, default: null },
       },
       holidays: [
         {
@@ -496,9 +528,11 @@ location: {
 salonSchema.index({ location: '2dsphere' });                              // geospatial nearby queries
 salonSchema.index({ ownerId: 1 }, { unique: true });                     // one salon per owner lookup
 salonSchema.index({ isApproved: 1, isActive: 1, averageRating: -1 });   // main public listing (approved + sorted)
-salonSchema.index({ isApproved: 1, isActive: 1, city: 1 });             // city filter
-salonSchema.index({ isApproved: 1, isActive: 1, category: 1 });         // category filter
-salonSchema.index({ name: 'text', description: 'text', city: 'text' }); // full-text search
+salonSchema.index({ isApproved: 1, isActive: 1, city: 1 });                          // city filter
+salonSchema.index({ isApproved: 1, isActive: 1, category: 1 });                      // category filter
+salonSchema.index({ isApproved: 1, isActive: 1, businessType: 1 });                  // businessType filter
+salonSchema.index({ isApproved: 1, isActive: 1, district: 1 });                      // district filter
+salonSchema.index({ name: 'text', description: 'text', city: 'text', district: 'text' }); // full-text search
 
 // ===================================================
 // STATIC METHOD - FIND NEARBY SALONS

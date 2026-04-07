@@ -12,13 +12,14 @@ function buildWorkingHours(data) {
   const wh = {};
   DAY_KEYS.forEach((key, i) => {
     const isClosed = !data.workingDays.includes(DAY_LABELS[i]);
+    const hasLunch = data.hasLunchBreak && !isClosed;
     wh[key] = {
-      open:     isClosed ? '09:00' : data.openTime,
-      close:    isClosed ? '21:00' : data.closeTime,
+      open:           isClosed ? '09:00' : data.openTime,
+      close:          isClosed ? '21:00' : data.closeTime,
       isClosed,
-      ...(data.hasLunchBreak && !isClosed
-        ? { lunchStart: data.lunchStart, lunchEnd: data.lunchEnd }
-        : {}),
+      hasLunchBreak:  hasLunch,
+      lunchStart:     hasLunch ? data.lunchStart : null,
+      lunchEnd:       hasLunch ? data.lunchEnd   : null,
     };
   });
   return wh;
@@ -54,38 +55,44 @@ export function useOnboardingSubmit() {
       const workingHours      = buildWorkingHours(data);
       const offeredCategories = buildOfferedCategories(data.selectedServices, data.servicePricing);
 
-      const photoUrls  = data.photos.map(p => p.url);
-      const coverPhoto = data.photos.find(p => p.isCover)?.url || photoUrls[0] || '';
+      // Send full photo objects so backend can store publicId for Cloudinary management
+      const photos = data.photos.map(p => ({
+        url:      p.url,
+        publicId: p.publicId || '',
+        isCover:  Boolean(p.isCover),
+      }));
 
       const phone = user?.phone || data.phone;
 
       const payload = {
         name:             data.salonName,
-        phone:            phone,
+        phone,
         email:            user?.email || data.email || '',
-        address:          data.address || `${data.district}, ${data.state}`,
-        city:             data.district || data.city,
+        address:          data.address,
+        city:             data.city,
+        district:         data.district,
         state:            data.state,
         pincode:          data.pincode,
         description:      data.description,
-        businessType:        data.businessType || 'salon',
+        businessType:     data.businessType || 'salon',
         servedGender:     data.servedGender,
         workingHours,
         offeredCategories,
-        photos:           photoUrls,
-        coverPhoto,
+        photos,
         kidsHaircut:      false,
         atHomeServices:   false,
       };
 
-      if (data.videoUrl)  payload.videoUrl  = data.videoUrl;
+      if (data.videoUrl) {
+        payload.videoUrl      = data.videoUrl;
+        payload.videoPublicId = data.videoPublicId || '';
+      }
       if (data.businessLicenseUrl)      payload.businessLicenseUrl      = data.businessLicenseUrl;
       if (data.businessRegistrationUrl) payload.businessRegistrationUrl = data.businessRegistrationUrl;
       if (data.lat && data.lng) {
         payload.location = { latitude: data.lat, longitude: data.lng };
       }
 
-      console.log('[onboarding submit] payload.businessType:', payload.businessType, '| data.businessType:', data.businessType);
       await createSalon(payload);
       await refreshUser();
       setPhase('done');

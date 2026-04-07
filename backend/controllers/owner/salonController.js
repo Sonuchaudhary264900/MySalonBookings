@@ -34,14 +34,12 @@ exports.createSalon = async (req, res) => {
     }
 
     const {
-      name, phone, email, address, city, state, pincode,
-      workingHours, description, photos, category,
+      name, phone, email, address, city, district, state, pincode,
+      workingHours, description, photos, videoPublicId,
       businessType, servedGender, offeredCategories, kidsHaircut, atHomeServices,
       location: bodyLocation,
       videoUrl, businessLicenseUrl, businessRegistrationUrl,
     } = req.body;
-
-    console.log('[createSalon] received businessType:', businessType, '| servedGender:', servedGender, '| name:', name);
 
     const validation = validateSalonData({
       name,
@@ -58,11 +56,22 @@ exports.createSalon = async (req, res) => {
       );
     }
 
+    // Derive category from businessType for backward-compat fields
+    const BUSINESS_TYPE_TO_CATEGORY = {
+      barbershop:    'barber',
+      salon:         'hair_salon',
+      spa_wellness:  'spa',
+      makeup_bridal: 'other',
+      skin_derma:    'other',
+    };
+    const resolvedBusinessType = businessType || 'salon';
+    const resolvedCategory     = BUSINESS_TYPE_TO_CATEGORY[resolvedBusinessType] || 'hair_salon';
+
     let latitude;
     let longitude;
     let googlePlaceId;
 
-    // 1. Use coordinates sent by the frontend (from map pin in step 2)
+    // 1. Use coordinates sent by the frontend (from map pin)
     if (bodyLocation && bodyLocation.latitude && bodyLocation.longitude) {
       latitude  = Number(bodyLocation.latitude);
       longitude = Number(bodyLocation.longitude);
@@ -70,19 +79,17 @@ exports.createSalon = async (req, res) => {
       // 2. Geocode from address via Google Maps
       try {
         const locationData = await getCoordinatesFromAddress(address);
-        latitude     = locationData.latitude;
-        longitude    = locationData.longitude;
+        latitude      = locationData.latitude;
+        longitude     = locationData.longitude;
         googlePlaceId = locationData.placeId;
       } catch (error) {
-        console.error("Google Maps Error:", error.message);
-        // 3. Fallback — save salon without precise coords (owner can update later)
+        console.error('[createSalon] Google Maps geocode failed:', error.message);
         latitude  = 0;
         longitude = 0;
       }
     }
 
     const existingSalon = await Salon.findOne({ ownerId: req.owner._id });
-
     if (existingSalon) {
       return res.status(409).json(
         formatErrorResponse('You already have a salon registered', 409)
@@ -96,74 +103,99 @@ exports.createSalon = async (req, res) => {
       );
     }
 
-    console.log('[createSalon] saving businessType to DB:', businessType || 'salon');
+    // Normalize photos: accept both plain URL strings and full objects with publicId/isCover
+    const normalizedPhotos = Array.isArray(photos)
+      ? photos
+          .map((p) => {
+            if (typeof p === 'string') return { url: p, publicId: '', caption: '', tags: [], isCover: false };
+            return {
+              url:      p.url || p.imageUrl || '',
+              publicId: p.publicId || '',
+              caption:  p.caption  || '',
+              tags:     Array.isArray(p.tags) ? p.tags : [],
+              isCover:  Boolean(p.isCover),
+            };
+          })
+          .filter((p) => p.url)
+      : [];
+
+    // Pick the cover photo — prefer explicitly flagged isCover, else first photo
+    const coverPhoto = normalizedPhotos.find(p => p.isCover)?.url
+      || normalizedPhotos[0]?.url
+      || null;
+
+    const targetGender = servedGender === 'male' ? 'male' : servedGender === 'female' ? 'female' : 'both';
 
     const salon = await Salon.create({
-
       name,
       phone,
       email,
       address,
-      city,
-      state: state || '',
-      pincode: pincode || '',
+      city:     city     || district || '',
+      district: district || '',
+      state:    state    || '',
+      pincode:  pincode  || '',
 
       latitude,
       longitude,
       googlePlaceId: googlePlaceId || '',
-
       location: {
         type: 'Point',
         coordinates: [Number(longitude), Number(latitude)],
       },
 
-      description: description || '',
-      category: category || 'barber',
-      businessType: businessType || 'salon',
-      servedGender: servedGender || 'unisex',
+      description:   description || '',
+      category:      resolvedCategory,
+      businessType:  resolvedBusinessType,
+      servedGender:  servedGender || 'unisex',
+
       offeredCategories: Array.isArray(offeredCategories) ? offeredCategories : [],
-      kidsHaircut: kidsHaircut || false,
-      atHomeServices: atHomeServices || false,
-      photos: Array.isArray(photos)
-        ? photos.map((p) => {
-            if (typeof p === 'string') return { url: p, caption: '', tags: [], isCover: false };
-            return { url: p.url || p.imageUrl || '', caption: p.caption || '', tags: Array.isArray(p.tags) ? p.tags : [], isCover: Boolean(p.isCover) };
-          }).filter((p) => p.url)
-        : [],
-      coverPhoto: Array.isArray(photos) && photos.length > 0
-        ? (typeof photos[0] === 'string' ? photos[0] : photos[0]?.url || null)
-        : null,
+      kidsHaircut:       Boolean(kidsHaircut),
+      atHomeServices:    Boolean(atHomeServices),
+      homeServiceAvailable: Boolean(atHomeServices),
+
+      photos:     normalizedPhotos,
+      coverPhoto,
 
       workingHours: workingHours || {
-        monday: { open: '09:00', close: '18:00', isClosed: false },
-        tuesday: { open: '09:00', close: '18:00', isClosed: false },
+        monday:    { open: '09:00', close: '18:00', isClosed: false },
+        tuesday:   { open: '09:00', close: '18:00', isClosed: false },
         wednesday: { open: '09:00', close: '18:00', isClosed: false },
-        thursday: { open: '09:00', close: '18:00', isClosed: false },
-        friday: { open: '09:00', close: '18:00', isClosed: false },
-        saturday: { open: '09:00', close: '18:00', isClosed: false },
-        sunday: { open: '10:00', close: '18:00', isClosed: true },
+        thursday:  { open: '09:00', close: '18:00', isClosed: false },
+        friday:    { open: '09:00', close: '18:00', isClosed: false },
+        saturday:  { open: '09:00', close: '18:00', isClosed: false },
+        sunday:    { open: '10:00', close: '18:00', isClosed: true  },
       },
 
       ...(videoUrl ? {
         videoUrl,
-        videos:    [{ url: videoUrl, caption: '', tags: [] }],
-        reelVideos: [{ url: videoUrl, categories: [], targetGender: servedGender === 'male' ? 'male' : servedGender === 'female' ? 'female' : 'both', createdAt: new Date() }],
+        videoPublicId: videoPublicId || '',
+        videos:     [{ url: videoUrl, caption: '', tags: [] }],
+        reelVideos: [{ url: videoUrl, categories: [], targetGender, createdAt: new Date() }],
       } : {}),
-      ...(businessLicenseUrl   ? { businessLicenseUrl }   : {}),
-      ...(businessRegistrationUrl ? { businessRegistrationUrl } : {}),
+      ...(businessLicenseUrl        ? { businessLicenseUrl }        : {}),
+      ...(businessRegistrationUrl   ? { businessRegistrationUrl }   : {}),
 
-      ownerId: req.owner._id,
+      ownerId:        req.owner._id,
       approvalStatus: 'pending',
-      isApproved: false,
+      isApproved:     false,
     });
+
+    // Pull owner's current gender from DB (set during account creation)
+    const ownerRecord = await Owner.findById(req.owner._id).select('gender');
 
     await Owner.findByIdAndUpdate(
       req.owner._id,
       {
-        salonId: salon._id,
-        status: 'salon_registered',
+        salonId:      salon._id,
+        status:       'salon_registered',
         businessName: salon.name,
-        businessType: businessType || 'salon',
+        businessType: resolvedBusinessType,
+        // Mirror salon location to owner for admin filtering
+        address: address || '',
+        city:    city || district || '',
+        state:   state || '',
+        pincode: pincode || '',
       }
     );
 
