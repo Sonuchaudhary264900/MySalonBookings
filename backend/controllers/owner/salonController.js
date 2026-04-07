@@ -41,6 +41,8 @@ exports.createSalon = async (req, res) => {
       videoUrl, businessLicenseUrl, businessRegistrationUrl,
     } = req.body;
 
+    console.log('[createSalon] received businessType:', businessType, '| servedGender:', servedGender, '| name:', name);
+
     const validation = validateSalonData({
       name,
       phone,
@@ -93,6 +95,8 @@ exports.createSalon = async (req, res) => {
         formatErrorResponse('This phone number is already registered to another salon. Please use a different number.', 409)
       );
     }
+
+    console.log('[createSalon] saving businessType to DB:', businessType || 'salon');
 
     const salon = await Salon.create({
 

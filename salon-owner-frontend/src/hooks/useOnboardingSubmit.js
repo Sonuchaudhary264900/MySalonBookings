@@ -85,6 +85,7 @@ export function useOnboardingSubmit() {
         payload.location = { latitude: data.lat, longitude: data.lng };
       }
 
+      console.log('[onboarding submit] payload.businessType:', payload.businessType, '| data.businessType:', data.businessType);
       await createSalon(payload);
       await refreshUser();
       setPhase('done');

@@ -44,6 +44,7 @@ export const createSalon = async (salonData) => {
   if (city)         body.city         = typeof city  === 'string' ? city.trim()  : city;
   if (state)        body.state        = state;
   if (pincode)      body.pincode      = pincode;
+  console.log('[salonService.createSalon] businessType extracted:', businessType);
   if (businessType) body.businessType = businessType;
   if (description) body.description = typeof description === 'string' ? description.trim() : description;
   if (category)    body.category    = category;
