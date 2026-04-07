@@ -900,11 +900,18 @@ exports.forgotPasswordSendOTP = async (req, res) => {
       userType: 'owner',
       expiresAt: new Date(Date.now() + 10 * 60 * 1000),
     });
+    let emailSent = false;
     if (owner.email) {
-      try { await sendOTPEmail(owner.email, otp, 'owner'); } catch (e) { /* silent */ }
+      try {
+        await sendOTPEmail(owner.email, otp, 'owner');
+        emailSent = true;
+      } catch (e) {
+        console.error('Failed to send OTP email:', e.message);
+      }
     }
-    if (process.env.NODE_ENV !== 'production') console.log(`🔑 Password reset OTP for ${phone}: ${otp}`);
-    res.json(formatSuccessResponse({ phone }, 'OTP sent successfully'));
+    // Always log OTP so it's visible in server logs (Render dashboard) during debugging
+    console.log(`🔑 Password reset OTP for ${phone}: ${otp} | email_sent=${emailSent}`);
+    res.json(formatSuccessResponse({ phone, emailSent }, 'OTP sent successfully'));
   } catch (error) {
     console.error('Error sending forgot-password OTP:', error);
     res.status(500).json(formatErrorResponse(messages.GENERIC.ERROR, 500));
