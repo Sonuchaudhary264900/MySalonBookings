@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Lock, Info, Mail, Phone, MapPin, Building, ChevronDown, ChevronUp, Camera, QrCode, Sparkles, Scissors, Wand2, Waves, FlaskConical, ShieldCheck, KeyRound, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
+import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
+import { auth } from '../../config/firebase';
 import { SALON_TYPES } from '../../constants/salonCategories';
 import API from '../../services/api';
 
@@ -127,17 +129,19 @@ const Profile = () => {
     }
   };
 
-  // ── OTP Password Reset state ──
-  const [secPhase, setSecPhase]         = useState('idle'); // 'idle' | 'sent' | 'success'
-  const [secOtp, setSecOtp]             = useState(['', '', '', '', '', '']);
-  const [secNewPw, setSecNewPw]         = useState('');
-  const [secConfirmPw, setSecConfirmPw] = useState('');
-  const [showNewPw, setShowNewPw]       = useState(false);
-  const [showConfirmPw, setShowConfirmPw] = useState(false);
-  const [secErrors, setSecErrors]       = useState({});
-  const [secLoading, setSecLoading]     = useState(false);
-  const [otpTimer, setOtpTimer]         = useState(0);
-  const otpRefs = useRef([]);
+  // ── Firebase SMS OTP Password Reset ──
+  const [secPhase, setSecPhase]             = useState('idle'); // 'idle' | 'sent' | 'success'
+  const [secOtp, setSecOtp]                 = useState(['', '', '', '', '', '']);
+  const [secNewPw, setSecNewPw]             = useState('');
+  const [secConfirmPw, setSecConfirmPw]     = useState('');
+  const [showNewPw, setShowNewPw]           = useState(false);
+  const [showConfirmPw, setShowConfirmPw]   = useState(false);
+  const [secErrors, setSecErrors]           = useState({});
+  const [secLoading, setSecLoading]         = useState(false);
+  const [otpTimer, setOtpTimer]             = useState(0);
+  const [confirmResult, setConfirmResult]   = useState(null);
+  const otpRefs       = useRef([]);
+  const recaptchaRef  = useRef(null);
 
   useEffect(() => {
     if (otpTimer <= 0) return;
@@ -145,20 +149,37 @@ const Profile = () => {
     return () => clearTimeout(t);
   }, [otpTimer]);
 
+  // Clean up recaptcha on unmount
+  useEffect(() => {
+    return () => { try { recaptchaRef.current?.clear(); } catch {} };
+  }, []);
+
+  const setupRecaptcha = () => {
+    if (recaptchaRef.current) return recaptchaRef.current;
+    const verifier = new RecaptchaVerifier(auth, 'pw-reset-recaptcha', {
+      size: 'invisible',
+      callback: () => {},
+    });
+    recaptchaRef.current = verifier;
+    return verifier;
+  };
+
   const handleSendOtp = async () => {
-    if (!user?.phone) { toast.error('No phone number found'); return; }
+    if (!user?.phone) { toast.error('No phone number found on your account'); return; }
     setSecLoading(true);
     try {
-      await API.post('/owner/auth/forgot-password/send-otp', { phone: user.phone });
+      const verifier = setupRecaptcha();
+      const result   = await signInWithPhoneNumber(auth, user.phone, verifier);
+      setConfirmResult(result);
       setSecPhase('sent');
-      setOtpTimer(30);
+      setOtpTimer(60);
       setSecOtp(['', '', '', '', '', '']);
       setSecErrors({});
       setTimeout(() => otpRefs.current[0]?.focus(), 100);
-      const dest = user?.email ? `email (${user.email})` : 'your registered email';
-      toast.success(`OTP sent to ${dest}`);
+      toast.success(`OTP sent to ${user.phone}`);
     } catch (err) {
-      toast.error(err.message || 'Failed to send OTP');
+      toast.error('Failed to send OTP. Try again.');
+      try { recaptchaRef.current?.clear(); recaptchaRef.current = null; } catch {}
     } finally {
       setSecLoading(false);
     }
@@ -171,6 +192,10 @@ const Profile = () => {
     setSecOtp(next);
     if (secErrors.otp) setSecErrors(p => ({ ...p, otp: '' }));
     if (val && idx < 5) otpRefs.current[idx + 1]?.focus();
+    // Auto-submit when all 6 digits entered
+    if (val && idx === 5 && next.every(d => d)) {
+      verifyAndReset(next.join(''));
+    }
   };
 
   const handleOtpPaste = (e) => {
@@ -181,33 +206,34 @@ const Profile = () => {
     pasted.split('').forEach((ch, i) => { next[i] = ch; });
     setSecOtp(next);
     if (secErrors.otp) setSecErrors(p => ({ ...p, otp: '' }));
-    const focusIdx = Math.min(pasted.length, 5);
-    otpRefs.current[focusIdx]?.focus();
+    otpRefs.current[Math.min(pasted.length, 5)]?.focus();
+    if (pasted.length === 6) verifyAndReset(pasted);
   };
 
   const handleOtpKeyDown = (idx, e) => {
-    if (e.key === 'Backspace' && !secOtp[idx] && idx > 0) {
-      otpRefs.current[idx - 1]?.focus();
-    }
-    if (e.key === 'ArrowLeft' && idx > 0) otpRefs.current[idx - 1]?.focus();
+    if (e.key === 'Backspace' && !secOtp[idx] && idx > 0) otpRefs.current[idx - 1]?.focus();
+    if (e.key === 'ArrowLeft'  && idx > 0) otpRefs.current[idx - 1]?.focus();
     if (e.key === 'ArrowRight' && idx < 5) otpRefs.current[idx + 1]?.focus();
   };
 
-  const handleResetPassword = async (e) => {
-    e.preventDefault();
+  // Step 1: verify Firebase OTP → store idToken, move to password entry
+  const [firebaseIdToken, setFirebaseIdToken] = useState(null);
+
+  const verifyAndReset = async (code) => {
+    if (!confirmResult || secLoading) return;
+    // If passwords aren't set yet, just verify the OTP and show password fields
     const errs = {};
-    const otpStr = secOtp.join('');
-    if (otpStr.length < 6) errs.otp = 'Enter all 6 digits';
-    if (!secNewPw)               errs.newPw = 'New password required';
+    if (!secNewPw)                errs.newPw = 'Enter your new password';
     else if (secNewPw.length < 8) errs.newPw = 'Minimum 8 characters';
     if (secNewPw !== secConfirmPw) errs.confirmPw = 'Passwords do not match';
     if (Object.keys(errs).length) { setSecErrors(errs); return; }
 
     setSecLoading(true);
     try {
-      await API.post('/owner/auth/forgot-password/reset', {
-        phone: user.phone,
-        otp: otpStr,
+      const result  = await confirmResult.confirm(code);
+      const idToken = await result.user.getIdToken();
+      await API.post('/owner/auth/firebase-reset-password', {
+        firebaseToken: idToken,
         newPassword: secNewPw,
       });
       setSecPhase('success');
@@ -216,10 +242,24 @@ const Profile = () => {
       setSecConfirmPw('');
       toast.success('Password updated successfully!');
     } catch (err) {
-      toast.error(err.message || 'Failed to reset password');
+      const msg = err?.message || err?.response?.data?.message || '';
+      if (msg.toLowerCase().includes('invalid') || msg.toLowerCase().includes('code')) {
+        setSecErrors(p => ({ ...p, otp: 'Incorrect OTP — try again' }));
+        setSecOtp(['', '', '', '', '', '']);
+        otpRefs.current[0]?.focus();
+      } else {
+        toast.error(msg || 'Failed to reset password');
+      }
     } finally {
       setSecLoading(false);
     }
+  };
+
+  const handleResetPassword = (e) => {
+    e.preventDefault();
+    const code = secOtp.join('');
+    if (code.length < 6) { setSecErrors(p => ({ ...p, otp: 'Enter all 6 digits' })); return; }
+    verifyAndReset(code);
   };
 
   const memberSince = user?.createdAt
@@ -460,6 +500,9 @@ const Profile = () => {
               </span>
             </div>
 
+            {/* Invisible recaptcha container */}
+            <div id="pw-reset-recaptcha" />
+
             {/* ── PHASE: idle ── */}
             {secPhase === 'idle' && (
               <button
@@ -470,8 +513,8 @@ const Profile = () => {
               >
                 {secLoading
                   ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  : <KeyRound className="w-4 h-4" />}
-                Send OTP to Reset Password
+                  : <Phone className="w-4 h-4" />}
+                Send OTP to My Mobile
               </button>
             )}
 
@@ -479,21 +522,16 @@ const Profile = () => {
             {secPhase === 'sent' && (
               <form onSubmit={handleResetPassword} className="space-y-5">
 
-                {/* Delivery hint */}
+                {/* Phone hint */}
                 <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-violet-50 border border-violet-200">
                   <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center shrink-0">
-                    <Mail className="w-4 h-4 text-violet-600" />
+                    <Phone className="w-4 h-4 text-violet-600" />
                   </div>
                   <div>
-                    <p className="text-xs text-violet-500 font-medium">OTP sent to your email</p>
+                    <p className="text-xs text-violet-500 font-medium">SMS OTP sent to</p>
                     <p className="text-sm font-bold text-violet-800">
-                      {user?.email
-                        ? user.email.replace(/(.{2})(.*)(@.*)/, '$1***$3')
-                        : 'Check your inbox'}
+                      {user?.phone?.replace(/(\+\d{2})(\d{4})(\d+)(\d{3})/, '$1 $2 XXXX $4')}
                     </p>
-                    {import.meta.env.DEV && (
-                      <p className="text-[10px] text-amber-600 mt-0.5">Dev: Check server terminal for OTP</p>
-                    )}
                   </div>
                 </div>
 
