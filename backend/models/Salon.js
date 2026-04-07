@@ -135,7 +135,7 @@ location: {
     // ==========================================
     // SALON TYPE
     // ==========================================
-    salonType: {
+    businessType: {
       type: String,
       enum: ['barbershop', 'salon', 'spa_wellness', 'makeup_bridal', 'skin_derma'],
       default: 'salon',
