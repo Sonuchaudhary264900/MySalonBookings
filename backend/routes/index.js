@@ -2038,10 +2038,27 @@ router.get("/owner/gallery", authenticateOwner, asyncHandler(async (req, res) =>
   // Heal data drift: reels visible to customers must appear in owner gallery even if
   // salon.videos was never populated, or URLs differ only by http/query (reel vs video row).
   if (!salon.videos) salon.videos = [];
+  if (!salon.reelVideos) salon.reelVideos = [];
   const urlKeysInVideos = new Set(
     (salon.videos || []).map((v) => galleryUrlKey(normVideo(v).url)).filter(Boolean)
   );
   let healedVideos = false;
+
+  // Heal: registration video (salon.videoUrl) missing from videos[] and reelVideos[]
+  if (salon.videoUrl && isPresentableGalleryUrl(salon.videoUrl)) {
+    const vk = galleryUrlKey(salon.videoUrl);
+    if (vk && !urlKeysInVideos.has(vk)) {
+      salon.videos.push({ url: salon.videoUrl, caption: '', tags: [] });
+      urlKeysInVideos.add(vk);
+      healedVideos = true;
+    }
+    const reelKeys = new Set((salon.reelVideos || []).map(rv => galleryUrlKey(reelEntryUrl(rv))).filter(Boolean));
+    if (vk && !reelKeys.has(vk)) {
+      salon.reelVideos.push({ url: salon.videoUrl, categories: [], targetGender: salon.servedGender === 'male' ? 'male' : salon.servedGender === 'female' ? 'female' : 'both', createdAt: new Date() });
+      healedVideos = true;
+    }
+  }
+
   for (const rv of salon.reelVideos || []) {
     const u = normalizeGalleryMediaUrl(reelEntryUrl(rv));
     if (!isPresentableGalleryUrl(u)) continue;
@@ -2053,6 +2070,7 @@ router.get("/owner/gallery", authenticateOwner, asyncHandler(async (req, res) =>
   }
   if (healedVideos) {
     salon.markModified('videos');
+    salon.markModified('reelVideos');
     await salon.save({ validateModifiedOnly: true });
   }
 
