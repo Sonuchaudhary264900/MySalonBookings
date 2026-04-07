@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Lock, Info, Mail, Phone, MapPin, Building, ChevronDown, ChevronUp, Camera, QrCode } from 'lucide-react';
+import { User, Lock, Info, Mail, Phone, MapPin, Building, ChevronDown, ChevronUp, Camera, QrCode, Sparkles } from 'lucide-react';
+import { SALON_TYPES } from '../../constants/salonCategories';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Input from '../../components/common/Input';
@@ -185,7 +186,17 @@ const Profile = () => {
           <div className="flex-1 min-w-0">
             <p className="font-bold text-gray-900 text-lg">{user?.name || '—'}</p>
             <p className="text-sm text-gray-500">Member since {memberSince}</p>
-            <p className="text-xs text-blue-500 mt-0.5">Click photo to update</p>
+            {(() => {
+              const st = salon?.salonType || user?.salonType;
+              const typeDef = SALON_TYPES.find(t => t.key === st);
+              return typeDef ? (
+                <span className="inline-flex items-center gap-1.5 mt-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold"
+                  style={{ background: `${typeDef.color}15`, color: typeDef.color, border: `1px solid ${typeDef.color}33` }}>
+                  <span>{typeDef.icon}</span>
+                  {typeDef.label}
+                </span>
+              ) : null;
+            })()}
           </div>
 
           {/* QR Code button — only shown when salon exists */}
@@ -218,6 +229,7 @@ const Profile = () => {
                 { icon: Phone, color: 'text-green-500', label: 'Phone',  value: user?.phone },
                 { icon: User,  color: 'text-indigo-500', label: 'Gender', value: user?.gender ? ({ male: 'Male', female: 'Female', other: 'Other' }[user.gender]) : null },
                 salon && { icon: Building, color: 'text-purple-500', label: 'Salon', value: salon.name },
+                (() => { const st = salon?.salonType || user?.salonType; const td = SALON_TYPES.find(t => t.key === st); return td ? { icon: Sparkles, color: 'text-indigo-500', label: 'Business Type', value: `${td.icon} ${td.label}` } : null; })(),
                 salon && { icon: MapPin,   color: 'text-red-500',    label: 'Address', value: salon.address },
               ].filter(Boolean).map(({ icon: Icon, color, label, value }) => (
                 <div key={label} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
