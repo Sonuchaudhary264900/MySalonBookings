@@ -735,55 +735,132 @@ export const BARBERSHOP_CATEGORIES = [
 
 export const MAKEUP_BRIDAL_CATEGORIES = [
   {
-    key: 'bridal_events',
-    label: 'Bridal & Makeup',
-    icon: '👰',
+    key: 'mb_makeup',
+    label: 'Makeup Services',
+    icon: '💄',
+    tabIcon: 'makeup',
+    sections: [
+      {
+        label: 'Bridal Makeup',
+        services: [
+          'Bridal Makeup', 'HD Bridal Makeup', 'Airbrush Bridal Makeup',
+        ],
+      },
+      {
+        label: 'Event Makeup',
+        services: [
+          'Engagement Makeup', 'Party Makeup', 'Reception Makeup', 'Cocktail Makeup',
+        ],
+      },
+      {
+        label: 'Special Services',
+        services: [
+          'Trial Makeup', 'Makeup Consultation', 'On-Location Makeup Service', 'Photoshoot Makeup',
+        ],
+      },
+    ],
     subServices: [
       'Bridal Makeup', 'HD Bridal Makeup', 'Airbrush Bridal Makeup',
       'Engagement Makeup', 'Party Makeup', 'Reception Makeup', 'Cocktail Makeup',
       'Trial Makeup', 'Makeup Consultation', 'On-Location Makeup Service', 'Photoshoot Makeup',
-      'Bridal Hairstyling', 'Party Hairstyling', 'Engagement Hairstyling', 'Reception Hairstyling',
-      'Saree Draping', 'Lehenga Draping', 'Dupatta Draping', 'Bridal Dressing Assistance',
-      'Pre-Bridal Skin Care', 'Pre-Bridal Hair Care', 'Full Pre-Bridal Package', 'Bridal Consultation',
-      'False Eyelashes', 'Lens Application', 'Touch-Up Services (Hourly / Event)',
     ],
   },
   {
-    key: 'nail_services',
-    label: 'Nail Services',
-    icon: '💅',
-    subServices: [
-      'Manicure', 'Pedicure', 'Express Manicure', 'Express Pedicure',
-      'Nail Art', 'French Nails', 'Chrome Nails', 'Matte Finish Nails',
-      'Glitter Nails', 'Bridal Nail Art', '3D Nail Art',
-      'Gel Nails', 'Acrylic Nails', 'Nail Extensions', 'Gel Extensions',
-      'Nail Repair', 'Cuticle Care', 'Nail Shaping',
-      'Spa Manicure', 'Spa Pedicure', 'Paraffin Treatment',
-      'Gel Removal', 'Acrylic Removal', 'Refill / Touch-Up',
+    key: 'mb_hairstyling',
+    label: 'Hairstyling',
+    icon: '💇‍♀️',
+    tabIcon: 'scissors',
+    sections: [
+      {
+        label: 'Bridal & Events',
+        services: [
+          'Bridal Hairstyling', 'Engagement Hairstyling', 'Reception Hairstyling', 'Party Hairstyling',
+        ],
+      },
+      {
+        label: 'Styling',
+        services: ['Hair Extensions Styling'],
+      },
     ],
-  },
-  {
-    key: 'skin_beauty',
-    label: 'Skin Prep & Beauty',
-    icon: '🧖',
     subServices: [
-      'Clean-up', 'Basic Facial', 'Detan', 'Bleach', 'Face Cleanup (Advanced)',
-      'Gold Facial', 'Diamond Facial', 'Hydra Facial', 'Oxygen Facial', 'Vitamin C Facial',
-      'Anti-Acne Treatment', 'Skin Brightening', 'Pigmentation Treatment',
-      'Tan Removal Treatment', 'Dark Circle Treatment',
-      'Face Massage', 'Neck Treatment', 'Under Eye Care', 'Lip Care Treatment',
-    ],
-  },
-  {
-    key: 'hair_services_women',
-    label: 'Hair Styling',
-    icon: '💇',
-    subServices: [
-      'Haircut (Layer / Step / Trim)', 'Fringe / Bangs Cut', 'Blunt Cut',
-      'Hair Styling (Straight / Curl / Party)', 'Blow Dry', 'Hair Ironing', 'Hair Curling',
-      'Party Hairstyle', 'Bridal Hairstyle', 'Engagement Hairstyle', 'Reception Hairstyle',
-      'Hair Coloring', 'Global Hair Color', 'Highlights', 'Balayage', 'Ombre', 'Root Touch-Up',
+      'Bridal Hairstyling', 'Engagement Hairstyling', 'Reception Hairstyling', 'Party Hairstyling',
       'Hair Extensions Styling',
+    ],
+  },
+  {
+    key: 'mb_draping',
+    label: 'Draping & Dressing',
+    icon: '👘',
+    tabIcon: 'draping',
+    sections: [
+      {
+        label: 'Draping',
+        services: ['Saree Draping', 'Lehenga Draping', 'Dupatta Draping'],
+      },
+      {
+        label: 'Assistance',
+        services: ['Bridal Dressing Assistance'],
+      },
+    ],
+    subServices: [
+      'Saree Draping', 'Lehenga Draping', 'Dupatta Draping', 'Bridal Dressing Assistance',
+    ],
+  },
+  {
+    key: 'mb_prebridal',
+    label: 'Pre-Bridal',
+    icon: '✨',
+    tabIcon: 'prebridal',
+    sections: [
+      {
+        label: 'Skin & Hair Care',
+        services: ['Pre-Bridal Skin Care', 'Pre-Bridal Hair Care'],
+      },
+      {
+        label: 'Packages & Consultation',
+        services: ['Full Pre-Bridal Package', 'Bridal Consultation'],
+      },
+    ],
+    subServices: [
+      'Pre-Bridal Skin Care', 'Pre-Bridal Hair Care', 'Full Pre-Bridal Package', 'Bridal Consultation',
+    ],
+  },
+  {
+    key: 'mb_grooming',
+    label: 'Grooming Add-ons',
+    icon: '💆‍♀️',
+    tabIcon: 'grooming',
+    sections: [
+      {
+        label: 'Grooming',
+        services: [
+          'Eyebrow Shaping', 'Upper Lip / Face Cleanup',
+          'Manicure & Pedicure (Bridal)', 'Full Body Wax (Bridal Prep)',
+        ],
+      },
+    ],
+    subServices: [
+      'Eyebrow Shaping', 'Upper Lip / Face Cleanup',
+      'Manicure & Pedicure (Bridal)', 'Full Body Wax (Bridal Prep)',
+    ],
+  },
+  {
+    key: 'mb_premium',
+    label: 'Premium Add-ons',
+    icon: '⭐',
+    tabIcon: 'premium',
+    sections: [
+      {
+        label: 'Premium',
+        services: [
+          'False Eyelashes', 'Lens Application',
+          'High-End Product Upgrade', 'Touch-Up Services (Hourly / Event)',
+        ],
+      },
+    ],
+    subServices: [
+      'False Eyelashes', 'Lens Application',
+      'High-End Product Upgrade', 'Touch-Up Services (Hourly / Event)',
     ],
   },
 ];
@@ -883,7 +960,7 @@ export const SPA_WELLNESS_UNISEX_CATEGORIES = [
         services: ['Head Massage', 'Neck & Shoulder Massage', 'Back Massage', 'Foot Massage', 'Hand Massage'],
       },
       {
-        label: 'Women',
+        label: 'Female',
         services: ['Head Massage', 'Neck & Shoulder Massage', 'Back Massage', 'Foot Massage', 'Hand Massage'],
       },
     ],
@@ -900,7 +977,7 @@ export const SPA_WELLNESS_UNISEX_CATEGORIES = [
         services: ['Full Body Massage', 'Relaxation Massage', 'Deep Tissue Massage', 'Swedish Massage'],
       },
       {
-        label: 'Women',
+        label: 'Female',
         services: ['Full Body Massage', 'Relaxation Massage', 'Deep Tissue Massage', 'Swedish Massage'],
       },
     ],
@@ -917,7 +994,7 @@ export const SPA_WELLNESS_UNISEX_CATEGORIES = [
         services: ['Aroma Therapy Massage', 'Hot Stone Massage', 'Thai Massage', 'Balinese Massage'],
       },
       {
-        label: 'Women',
+        label: 'Female',
         services: ['Aromatherapy Massage', 'Hot Stone Massage', 'Thai Massage', 'Balinese Massage', 'Signature Spa Therapy'],
       },
     ],
@@ -937,7 +1014,7 @@ export const SPA_WELLNESS_UNISEX_CATEGORIES = [
         services: ['Body Spa', 'Body Polishing', 'Body Scrub', 'Body Wrap'],
       },
       {
-        label: 'Women',
+        label: 'Female',
         services: ['Body Spa', 'Body Polishing', 'Body Scrub', 'Body Wrap'],
       },
     ],
@@ -954,7 +1031,7 @@ export const SPA_WELLNESS_UNISEX_CATEGORIES = [
         services: ['Stress Relief Therapy', 'Muscle Recovery Therapy', 'Detox Therapy'],
       },
       {
-        label: 'Women',
+        label: 'Female',
         services: ['Stress Relief Therapy', 'Muscle Relaxation Therapy', 'Detox Therapy', 'Sleep Therapy'],
       },
     ],
@@ -970,7 +1047,7 @@ export const SPA_WELLNESS_UNISEX_CATEGORIES = [
     tabIcon: 'care',
     sections: [
       {
-        label: 'Women',
+        label: 'Female',
         services: ['Pre-Bridal Spa', 'Post-Bridal Relaxation', 'Pregnancy Safe Massage'],
       },
     ],
@@ -1117,7 +1194,7 @@ export const SKIN_DERMA_UNISEX_CATEGORIES = [
         ],
       },
       {
-        label: 'Women',
+        label: 'Female',
         services: [
           'Hair Fall Treatment', 'Hair Thinning Treatment', 'Hormonal Hair Loss Treatment',
           'Alopecia Treatment', 'PRP Hair Therapy', 'Scalp Infection Treatment', 'Dandruff Treatment',
@@ -1144,7 +1221,7 @@ export const SKIN_DERMA_UNISEX_CATEGORIES = [
         ],
       },
       {
-        label: 'Women',
+        label: 'Female',
         services: [
           'Acne Treatment', 'Acne Scar Treatment', 'Dark Circles Treatment',
           'Detan Treatment', 'Open Pores Treatment', 'Pigmentation Treatment',
@@ -1169,7 +1246,7 @@ export const SKIN_DERMA_UNISEX_CATEGORIES = [
         services: ['Chemical Peel', 'Laser Treatment', 'Skin Tightening'],
       },
       {
-        label: 'Women',
+        label: 'Female',
         services: [
           'Chemical Peel', 'Hydrafacial (Medical Grade)', 'Laser Skin Treatment',
           'Skin Rejuvenation', 'Skin Tightening',
@@ -1188,7 +1265,7 @@ export const SKIN_DERMA_UNISEX_CATEGORIES = [
     tabIcon: 'antiaging',
     sections: [
       {
-        label: 'Women',
+        label: 'Female',
         services: [
           'Anti-Aging Treatment', 'Collagen Boost Therapy', 'Fine Line Treatment',
           'Skin Lifting Treatment', 'Wrinkle Reduction',
@@ -1214,7 +1291,7 @@ export const SKIN_DERMA_UNISEX_CATEGORIES = [
         ],
       },
       {
-        label: 'Women',
+        label: 'Female',
         services: [
           'Back Acne Treatment', 'Body Acne Treatment', 'Skin Allergy Treatment',
           'Stretch Marks Treatment', 'Underarm Pigmentation Treatment',
@@ -1259,7 +1336,7 @@ export const SKIN_DERMA_UNISEX_CATEGORIES = [
         ],
       },
       {
-        label: 'Women',
+        label: 'Female',
         services: [
           'General Skin Consultation', 'Follow-up Consultation',
           'Hair Specialist Consultation', 'Online Dermatologist Consultation',
@@ -1615,7 +1692,7 @@ export const SALON_UNISEX_CATEGORIES = [
         ],
       },
       {
-        label: 'Women',
+        label: 'Female',
         services: [
           'Haircut (Layer / Step / Trim)', 'Advanced Haircut', 'Fringe / Bangs Cut', 'U-Cut', 'V-Cut', 'Feather Cut', 'Blunt Cut', 'Kids Haircut',
           'Hair Styling (Straight / Curl / Party)', 'Blow Dry', 'Hair Ironing', 'Hair Curling', 'Party Hairstyle', 'Bridal Hairstyle', 'Engagement Hairstyle', 'Reception Hairstyle',
@@ -1649,7 +1726,7 @@ export const SALON_UNISEX_CATEGORIES = [
         ],
       },
       {
-        label: 'Women',
+        label: 'Female',
         services: [
           'Clean-up', 'Basic Facial', 'Detan', 'Bleach', 'Face Cleanup (Advanced)', 'Express Cleanup', 'Premium Cleanup',
           'Gold Facial', 'Diamond Facial', 'Charcoal Facial', 'Hydra Facial', 'Anti-Aging Facial', 'Oxygen Facial', 'Vitamin C Facial',
@@ -1676,7 +1753,7 @@ export const SALON_UNISEX_CATEGORIES = [
         services: ['Eyebrow Threading', 'Nose Wax', 'Ear Wax', 'Ear Cleaning', 'Chest Waxing', 'Back Waxing', 'Arm Waxing', 'Leg Waxing'],
       },
       {
-        label: 'Women',
+        label: 'Female',
         services: [
           'Eyebrow Threading', 'Upper Lip Threading', 'Forehead Threading', 'Chin Threading', 'Full Face Threading',
           'Full Body Wax', 'Half Body Wax', 'Full Arms Wax', 'Half Arms Wax', 'Full Legs Wax', 'Half Legs Wax',
@@ -1702,7 +1779,7 @@ export const SALON_UNISEX_CATEGORIES = [
         services: ['Underarm Cleaning'],
       },
       {
-        label: 'Women',
+        label: 'Female',
         services: ['Body Polish', 'Body Scrub', 'Body Detan', 'Underarm Lightening', 'Back Cleanup'],
       },
     ],
@@ -1717,7 +1794,7 @@ export const SALON_UNISEX_CATEGORIES = [
     tabIcon: 'nails',
     sections: [
       {
-        label: 'Women',
+        label: 'Female',
         services: [
           'Manicure', 'Pedicure', 'Express Manicure', 'Express Pedicure', 'Spa Manicure', 'Spa Pedicure',
           'Paraffin Treatment', 'Detox Pedicure', 'Callus Removal', 'Cuticle Care', 'Nail Buffing', 'Nail Shaping',
@@ -1745,7 +1822,7 @@ export const SALON_UNISEX_CATEGORIES = [
         services: ['Grooming Package'],
       },
       {
-        label: 'Women',
+        label: 'Female',
         services: ['Pre-Bridal Package', 'Grooming Package'],
       },
     ],
