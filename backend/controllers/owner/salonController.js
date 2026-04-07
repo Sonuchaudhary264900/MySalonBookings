@@ -36,7 +36,7 @@ exports.createSalon = async (req, res) => {
     const {
       name, phone, email, address, city, state, pincode,
       workingHours, description, photos, category,
-      salonType, servedGender, offeredCategories, kidsHaircut, atHomeServices,
+      businessType, servedGender, offeredCategories, kidsHaircut, atHomeServices,
       location: bodyLocation,
       videoUrl, businessLicenseUrl, businessRegistrationUrl,
     } = req.body;
@@ -115,7 +115,7 @@ exports.createSalon = async (req, res) => {
 
       description: description || '',
       category: category || 'barber',
-      salonType: salonType || 'salon',
+      businessType: businessType || 'salon',
       servedGender: servedGender || 'unisex',
       offeredCategories: Array.isArray(offeredCategories) ? offeredCategories : [],
       kidsHaircut: kidsHaircut || false,
@@ -159,7 +159,7 @@ exports.createSalon = async (req, res) => {
         salonId: salon._id,
         status: 'salon_registered',
         businessName: salon.name,
-        salonType: salonType || 'salon',
+        businessType: businessType || 'salon',
       }
     );
 
@@ -250,7 +250,7 @@ exports.updateSalon = async (req, res) => {
     const {
       name, phone, email, address, city, state, pincode,
       location, workingHours, description,
-      salonType, servedGender, offeredCategories, kidsHaircut, atHomeServices,
+      businessType, servedGender, offeredCategories, kidsHaircut, atHomeServices,
     } = req.body;
 
     const salon = await Salon.findOne({ ownerId: req.owner._id });
@@ -277,7 +277,10 @@ exports.updateSalon = async (req, res) => {
     if (state) salon.state = state;
     if (pincode) salon.pincode = pincode;
     if (description) salon.description = description;
-    if (salonType) salon.salonType = salonType;
+    if (businessType) {
+      salon.businessType = businessType;
+      await Owner.findByIdAndUpdate(req.owner._id, { businessType });
+    }
     if (servedGender) salon.servedGender = servedGender;
     if (Array.isArray(offeredCategories)) {
       salon.offeredCategories = offeredCategories;
