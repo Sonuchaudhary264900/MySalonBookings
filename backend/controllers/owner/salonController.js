@@ -223,16 +223,19 @@ exports.getMySalon = async (req, res) => {
       );
     }
 
-    // Backward compat: migrate salonType → businessType for salons created before rename
-    const correctType = salon.businessType || salon.salonType;
+    // Backward compat: salonType was the old field name, businessType is new.
+    // If salonType exists, it is the explicit user selection — trust it over businessType
+    // which may have been saved as a wrong default ('salon') by old code.
+    const correctType = salon.salonType || salon.businessType;
     if (correctType) {
-      if (!salon.businessType) {
-        salon.businessType = correctType;
-        Salon.updateOne({ _id: salon._id }, { $set: { businessType: correctType }, $unset: { salonType: '' } }).catch(() => {});
+      if (salon.salonType && salon.businessType !== salon.salonType) {
+        // Migrate: overwrite wrong businessType with the real salonType value
+        salon.businessType = salon.salonType;
+        Salon.updateOne({ _id: salon._id }, { $set: { businessType: salon.salonType }, $unset: { salonType: '' } }).catch(() => {});
       }
-      // Also fix Owner.businessType if it was saved as default 'salon' but the salon has a real type
+      // Sync correct value to Owner document
       Owner.findById(req.owner._id).lean().then(owner => {
-        if (owner && (owner.businessType !== correctType)) {
+        if (owner && owner.businessType !== correctType) {
           Owner.updateOne({ _id: owner._id }, { businessType: correctType }).catch(() => {});
         }
       }).catch(() => {});
