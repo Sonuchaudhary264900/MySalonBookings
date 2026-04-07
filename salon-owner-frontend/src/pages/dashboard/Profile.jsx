@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Lock, Info, Mail, Phone, MapPin, Building, ChevronDown, ChevronUp, Camera, QrCode, Sparkles, Scissors, Wand2, Waves, FlaskConical } from 'lucide-react';
+import { User, Lock, Info, Mail, Phone, MapPin, Building, ChevronDown, ChevronUp, Camera, QrCode, Sparkles, Scissors, Wand2, Waves, FlaskConical, ShieldCheck, KeyRound, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { SALON_TYPES } from '../../constants/salonCategories';
+import API from '../../services/api';
 
 const MakeupBrushIcon = ({ size = 24, color = 'currentColor', strokeWidth = 1.5 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
@@ -60,7 +61,7 @@ const Section = ({ id, activeId, onToggle, icon: Icon, iconColor, title, subtitl
 
 // ── Main Profile Page ──────────────────────────────────────────
 const Profile = () => {
-  const { user, updateProfile, changePassword } = useAuth();
+  const { user, updateProfile } = useAuth();
   const { salon, fetchSalon } = useSalon();
   const [activeSection, setActiveSection] = useState(null);
   const [showQR, setShowQR] = useState(false);
@@ -126,35 +127,98 @@ const Profile = () => {
     }
   };
 
-  // ── Password form state ──
-  const [pw, setPw]           = useState({ current: '', next: '', confirm: '' });
-  const [pwErrors, setPwErrors] = useState({});
-  const [pwLoading, setPwLoading] = useState(false);
+  // ── OTP Password Reset state ──
+  const [secPhase, setSecPhase]         = useState('idle'); // 'idle' | 'sent' | 'success'
+  const [secOtp, setSecOtp]             = useState(['', '', '', '', '', '']);
+  const [secNewPw, setSecNewPw]         = useState('');
+  const [secConfirmPw, setSecConfirmPw] = useState('');
+  const [showNewPw, setShowNewPw]       = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
+  const [secErrors, setSecErrors]       = useState({});
+  const [secLoading, setSecLoading]     = useState(false);
+  const [otpTimer, setOtpTimer]         = useState(0);
+  const otpRefs = useRef([]);
 
-  const handlePwChange = (e) => {
-    const { name, value } = e.target;
-    setPw(p => ({ ...p, [name]: value }));
-    if (pwErrors[name]) setPwErrors(p => ({ ...p, [name]: '' }));
+  useEffect(() => {
+    if (otpTimer <= 0) return;
+    const t = setTimeout(() => setOtpTimer(p => p - 1), 1000);
+    return () => clearTimeout(t);
+  }, [otpTimer]);
+
+  const handleSendOtp = async () => {
+    if (!user?.phone) { toast.error('No phone number found'); return; }
+    setSecLoading(true);
+    try {
+      await API.post('/owner/auth/forgot-password/send-otp', { phone: user.phone });
+      setSecPhase('sent');
+      setOtpTimer(30);
+      setSecOtp(['', '', '', '', '', '']);
+      setSecErrors({});
+      setTimeout(() => otpRefs.current[0]?.focus(), 100);
+      const dest = user?.email ? `email (${user.email})` : 'your registered email';
+      toast.success(`OTP sent to ${dest}`);
+    } catch (err) {
+      toast.error(err.message || 'Failed to send OTP');
+    } finally {
+      setSecLoading(false);
+    }
   };
 
-  const handleChangePassword = async (e) => {
+  const handleOtpChange = (idx, val) => {
+    if (!/^\d?$/.test(val)) return;
+    const next = [...secOtp];
+    next[idx] = val;
+    setSecOtp(next);
+    if (secErrors.otp) setSecErrors(p => ({ ...p, otp: '' }));
+    if (val && idx < 5) otpRefs.current[idx + 1]?.focus();
+  };
+
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!pasted) return;
+    const next = ['', '', '', '', '', ''];
+    pasted.split('').forEach((ch, i) => { next[i] = ch; });
+    setSecOtp(next);
+    if (secErrors.otp) setSecErrors(p => ({ ...p, otp: '' }));
+    const focusIdx = Math.min(pasted.length, 5);
+    otpRefs.current[focusIdx]?.focus();
+  };
+
+  const handleOtpKeyDown = (idx, e) => {
+    if (e.key === 'Backspace' && !secOtp[idx] && idx > 0) {
+      otpRefs.current[idx - 1]?.focus();
+    }
+    if (e.key === 'ArrowLeft' && idx > 0) otpRefs.current[idx - 1]?.focus();
+    if (e.key === 'ArrowRight' && idx < 5) otpRefs.current[idx + 1]?.focus();
+  };
+
+  const handleResetPassword = async (e) => {
     e.preventDefault();
     const errs = {};
-    if (!pw.current)             errs.current = 'Current password required';
-    if (!pw.next)                errs.next    = 'New password required';
-    else if (pw.next.length < 8) errs.next    = 'Min 8 characters';
-    if (pw.next !== pw.confirm)  errs.confirm = 'Passwords do not match';
-    if (Object.keys(errs).length) { setPwErrors(errs); return; }
+    const otpStr = secOtp.join('');
+    if (otpStr.length < 6) errs.otp = 'Enter all 6 digits';
+    if (!secNewPw)               errs.newPw = 'New password required';
+    else if (secNewPw.length < 8) errs.newPw = 'Minimum 8 characters';
+    if (secNewPw !== secConfirmPw) errs.confirmPw = 'Passwords do not match';
+    if (Object.keys(errs).length) { setSecErrors(errs); return; }
 
-    setPwLoading(true);
+    setSecLoading(true);
     try {
-      await changePassword(pw.current, pw.next);
-      toast.success('Password changed!');
-      setPw({ current: '', next: '', confirm: '' });
+      await API.post('/owner/auth/forgot-password/reset', {
+        phone: user.phone,
+        otp: otpStr,
+        newPassword: secNewPw,
+      });
+      setSecPhase('success');
+      setSecOtp(['', '', '', '', '', '']);
+      setSecNewPw('');
+      setSecConfirmPw('');
+      toast.success('Password updated successfully!');
     } catch (err) {
-      toast.error(err.message || 'Failed to change password');
+      toast.error(err.message || 'Failed to reset password');
     } finally {
-      setPwLoading(false);
+      setSecLoading(false);
     }
   };
 
@@ -363,44 +427,196 @@ const Profile = () => {
           title="Security"
           subtitle="Password and login security"
         >
-          <div className="space-y-3 pt-2">
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <div className="w-2.5 h-2.5 bg-green-500 rounded-full shrink-0" />
-              <div>
-                <p className="text-xs text-gray-500">Account Status</p>
-                <p className="text-sm font-medium text-gray-900">Active & Verified</p>
-              </div>
-            </div>
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <p className="text-xs text-gray-500 mb-0.5">Login Method</p>
-              <p className="text-sm font-medium text-gray-900">Phone Number + Password</p>
-            </div>
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <p className="text-xs text-gray-500 mb-0.5">Last Password Changed</p>
-              <p className="text-sm font-medium text-gray-900">
-                {user?.lastPasswordChange
-                  ? new Date(user.lastPasswordChange).toLocaleDateString('en-IN')
-                  : 'Never'}
-              </p>
+          <div className="pt-3 space-y-4">
+
+            {/* Status pills */}
+            <div className="flex flex-wrap gap-2">
+              {[
+                { icon: ShieldCheck, label: 'Active & Verified', color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200' },
+                { icon: Phone,       label: 'Phone Auth',        color: 'text-blue-600',    bg: 'bg-blue-50 border-blue-200' },
+                { icon: KeyRound,    label: 'Password Protected', color: 'text-violet-600',  bg: 'bg-violet-50 border-violet-200' },
+              ].map(({ icon: Ic, label, color, bg }) => (
+                <span key={label} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold ${bg} ${color}`}>
+                  <Ic className="w-3.5 h-3.5" />
+                  {label}
+                </span>
+              ))}
             </div>
 
-            <div className="border-t border-gray-100 pt-3">
-              <p className="text-sm font-semibold text-gray-800 mb-3">Change Password</p>
-              <form onSubmit={handleChangePassword} className="space-y-3">
-                <Input label="Current Password" name="current" type="password" value={pw.current}
-                  onChange={handlePwChange} placeholder="Current password"
-                  error={!!pwErrors.current} errorMessage={pwErrors.current} disabled={pwLoading} required />
-                <Input label="New Password" name="next" type="password" value={pw.next}
-                  onChange={handlePwChange} placeholder="Min 8 characters"
-                  error={!!pwErrors.next} errorMessage={pwErrors.next} disabled={pwLoading} required />
-                <Input label="Confirm New Password" name="confirm" type="password" value={pw.confirm}
-                  onChange={handlePwChange} placeholder="Confirm new password"
-                  error={!!pwErrors.confirm} errorMessage={pwErrors.confirm} disabled={pwLoading} required />
-                <Button type="submit" variant="primary" loading={pwLoading} disabled={pwLoading} fullWidth>
-                  Update Password
-                </Button>
-              </form>
+            {/* Last changed */}
+            <div className="flex items-center justify-between py-1">
+              <span className="text-xs text-gray-400 flex items-center gap-1.5">
+                <KeyRound className="w-3.5 h-3.5" />
+                Last password changed
+              </span>
+              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                user?.lastPasswordChange
+                  ? 'bg-blue-50 text-blue-600'
+                  : 'bg-gray-100 text-gray-400'
+              }`}>
+                {user?.lastPasswordChange
+                  ? new Date(user.lastPasswordChange).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                  : 'Never'}
+              </span>
             </div>
+
+            {/* ── PHASE: idle ── */}
+            {secPhase === 'idle' && (
+              <button
+                onClick={handleSendOtp}
+                disabled={secLoading}
+                className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl font-semibold text-sm text-white transition-all disabled:opacity-60"
+                style={{ background: 'linear-gradient(135deg,#7c3aed,#db2777)', boxShadow: '0 4px 20px rgba(124,58,237,0.35)' }}
+              >
+                {secLoading
+                  ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  : <KeyRound className="w-4 h-4" />}
+                Send OTP to Reset Password
+              </button>
+            )}
+
+            {/* ── PHASE: otp sent ── */}
+            {secPhase === 'sent' && (
+              <form onSubmit={handleResetPassword} className="space-y-5">
+
+                {/* Delivery hint */}
+                <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-violet-50 border border-violet-200">
+                  <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center shrink-0">
+                    <Mail className="w-4 h-4 text-violet-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-violet-500 font-medium">OTP sent to your email</p>
+                    <p className="text-sm font-bold text-violet-800">
+                      {user?.email
+                        ? user.email.replace(/(.{2})(.*)(@.*)/, '$1***$3')
+                        : 'Check your inbox'}
+                    </p>
+                    {import.meta.env.DEV && (
+                      <p className="text-[10px] text-amber-600 mt-0.5">Dev: Check server terminal for OTP</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* 6-digit OTP boxes */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-600 mb-2.5 uppercase tracking-wider">Enter OTP</p>
+                  <div className="flex gap-2 justify-center">
+                    {secOtp.map((digit, idx) => (
+                      <input
+                        key={idx}
+                        ref={el => otpRefs.current[idx] = el}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={1}
+                        autoComplete={idx === 0 ? 'one-time-code' : 'off'}
+                        value={digit}
+                        onChange={e => handleOtpChange(idx, e.target.value)}
+                        onKeyDown={e => handleOtpKeyDown(idx, e)}
+                        onPaste={handleOtpPaste}
+                        className={`w-11 text-center text-xl font-bold rounded-xl border-2 transition-all outline-none
+                          ${digit ? 'border-violet-500 bg-violet-50 text-violet-700' : 'border-gray-200 bg-gray-50 text-gray-800'}
+                          focus:border-violet-500 focus:bg-white focus:shadow-[0_0_0_3px_rgba(124,58,237,0.12)]`}
+                        style={{ height: 52 }}
+                      />
+                    ))}
+                  </div>
+                  {secErrors.otp && <p className="text-xs text-red-500 mt-1.5 text-center">{secErrors.otp}</p>}
+                </div>
+
+                {/* Resend */}
+                <div className="text-center">
+                  {otpTimer > 0 ? (
+                    <p className="text-xs text-gray-400">Resend OTP in <span className="font-semibold text-violet-600">{otpTimer}s</span></p>
+                  ) : (
+                    <button type="button" onClick={handleSendOtp} className="text-xs font-semibold text-violet-600 hover:text-violet-800 transition">
+                      Resend OTP
+                    </button>
+                  )}
+                </div>
+
+                {/* New password */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">New Password</label>
+                  <div className="relative">
+                    <input
+                      type={showNewPw ? 'text' : 'password'}
+                      value={secNewPw}
+                      onChange={e => { setSecNewPw(e.target.value); if (secErrors.newPw) setSecErrors(p => ({...p, newPw:''})); }}
+                      placeholder="Min 8 characters"
+                      className={`w-full px-4 py-3 pr-11 rounded-xl border-2 text-sm transition-all outline-none bg-gray-50
+                        ${secErrors.newPw ? 'border-red-400 bg-red-50' : 'border-gray-200 focus:border-violet-500 focus:bg-white focus:shadow-[0_0_0_3px_rgba(124,58,237,0.1)]'}`}
+                    />
+                    <button type="button" onClick={() => setShowNewPw(p => !p)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                      {showNewPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {secErrors.newPw && <p className="text-xs text-red-500">{secErrors.newPw}</p>}
+                </div>
+
+                {/* Confirm password */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Confirm Password</label>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPw ? 'text' : 'password'}
+                      value={secConfirmPw}
+                      onChange={e => { setSecConfirmPw(e.target.value); if (secErrors.confirmPw) setSecErrors(p => ({...p, confirmPw:''})); }}
+                      placeholder="Re-enter new password"
+                      className={`w-full px-4 py-3 pr-11 rounded-xl border-2 text-sm transition-all outline-none bg-gray-50
+                        ${secErrors.confirmPw ? 'border-red-400 bg-red-50' : 'border-gray-200 focus:border-violet-500 focus:bg-white focus:shadow-[0_0_0_3px_rgba(124,58,237,0.1)]'}`}
+                    />
+                    <button type="button" onClick={() => setShowConfirmPw(p => !p)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                      {showConfirmPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {secErrors.confirmPw && <p className="text-xs text-red-500">{secErrors.confirmPw}</p>}
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="submit"
+                    disabled={secLoading}
+                    className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold text-sm text-white transition-all disabled:opacity-60"
+                    style={{ background: 'linear-gradient(135deg,#7c3aed,#db2777)', boxShadow: '0 4px 16px rgba(124,58,237,0.3)' }}
+                  >
+                    {secLoading
+                      ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      : <ShieldCheck className="w-4 h-4" />}
+                    Update Password
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setSecPhase('idle'); setSecErrors({}); }}
+                    className="px-5 py-3.5 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* ── PHASE: success ── */}
+            {secPhase === 'success' && (
+              <div className="flex flex-col items-center gap-3 py-6 text-center">
+                <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center">
+                  <CheckCircle2 className="w-7 h-7 text-emerald-600" />
+                </div>
+                <div>
+                  <p className="font-bold text-gray-900 text-base">Password Updated</p>
+                  <p className="text-sm text-gray-500 mt-0.5">Your account is secured with the new password.</p>
+                </div>
+                <button
+                  onClick={() => setSecPhase('idle')}
+                  className="mt-1 text-sm font-semibold text-violet-600 hover:text-violet-800 transition"
+                >
+                  Back to Security
+                </button>
+              </div>
+            )}
+
           </div>
         </Section>
 
