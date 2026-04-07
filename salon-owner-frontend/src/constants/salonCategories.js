@@ -595,6 +595,7 @@ export const BARBERSHOP_CATEGORIES = [
     key: 'hair_services',
     label: 'Hair Services',
     icon: '✂️',
+    tabIcon: 'scissors',
     sections: [
       {
         label: 'Haircuts',
@@ -636,6 +637,7 @@ export const BARBERSHOP_CATEGORIES = [
     key: 'beard_grooming',
     label: 'Beard & Grooming',
     icon: '🧔',
+    tabIcon: 'beard',
     sections: [
       {
         label: 'Basic Grooming',
@@ -668,8 +670,9 @@ export const BARBERSHOP_CATEGORIES = [
   },
   {
     key: 'skin_face',
-    label: 'Skin & Face',
+    label: 'Face & Skin',
     icon: '🧴',
+    tabIcon: 'face',
     sections: [
       {
         label: 'Facials',
@@ -702,6 +705,7 @@ export const BARBERSHOP_CATEGORIES = [
     key: 'body_grooming',
     label: 'Body Grooming',
     icon: '🧍',
+    tabIcon: 'body',
     sections: [
       {
         label: 'Hair Removal',
@@ -789,6 +793,29 @@ export const SPA_WELLNESS_MALE_CATEGORIES = [
     key: 'spa_massage',
     label: 'Spa & Massage',
     icon: '💆',
+    tabIcon: 'massage',
+    sections: [
+      {
+        label: 'Basic Massage',
+        services: ['Head Massage', 'Neck & Shoulder Massage', 'Back Massage', 'Foot Massage', 'Hand Massage'],
+      },
+      {
+        label: 'Full Body Massage',
+        services: ['Full Body Massage', 'Relaxation Massage', 'Deep Tissue Massage', 'Swedish Massage'],
+      },
+      {
+        label: 'Premium Therapies',
+        services: ['Aroma Therapy Massage', 'Hot Stone Massage', 'Thai Massage', 'Balinese Massage'],
+      },
+      {
+        label: 'Body Spa',
+        services: ['Body Spa', 'Body Polishing', 'Body Scrub', 'Body Wrap'],
+      },
+      {
+        label: 'Wellness Therapy',
+        services: ['Stress Relief Therapy', 'Muscle Recovery Therapy', 'Detox Therapy'],
+      },
+    ],
     subServices: [
       'Head Massage', 'Neck & Shoulder Massage', 'Back Massage', 'Foot Massage', 'Hand Massage',
       'Full Body Massage', 'Relaxation Massage', 'Deep Tissue Massage', 'Swedish Massage',
@@ -799,11 +826,21 @@ export const SPA_WELLNESS_MALE_CATEGORIES = [
   },
   {
     key: 'skin_face',
-    label: 'Skin & Face',
+    label: 'Face & Skin',
     icon: '🧴',
+    tabIcon: 'face',
+    sections: [
+      {
+        label: 'Facials',
+        services: ['Clean-up', 'Basic Facial', 'Detan', 'Charcoal Facial', 'Anti-Aging Facial'],
+      },
+      {
+        label: 'Skin Treatments',
+        services: ['Anti-Acne Treatment', 'Skin Brightening', 'Skin Hydration Treatment', 'Exfoliation Treatment', 'Deep Cleansing Treatment'],
+      },
+    ],
     subServices: [
-      'Clean-up', 'Basic Facial', 'Detan',
-      'Charcoal Facial', 'Anti-Aging Facial',
+      'Clean-up', 'Basic Facial', 'Detan', 'Charcoal Facial', 'Anti-Aging Facial',
       'Anti-Acne Treatment', 'Skin Brightening', 'Skin Hydration Treatment',
       'Exfoliation Treatment', 'Deep Cleansing Treatment',
     ],
@@ -812,6 +849,17 @@ export const SPA_WELLNESS_MALE_CATEGORIES = [
     key: 'body_grooming',
     label: 'Body Care',
     icon: '🧍',
+    tabIcon: 'body',
+    sections: [
+      {
+        label: 'Hair Removal',
+        services: ['Full Body Wax', 'Eyebrow Threading'],
+      },
+      {
+        label: 'Body Care',
+        services: ['Body Polishing', 'Body Scrub', 'Body Detan', 'Ear Cleaning'],
+      },
+    ],
     subServices: [
       'Body Polishing', 'Body Scrub', 'Body Detan', 'Full Body Wax',
       'Ear Cleaning', 'Eyebrow Threading',
@@ -824,6 +872,33 @@ export const SPA_WELLNESS_FEMALE_CATEGORIES = [
     key: 'spa_relaxation',
     label: 'Spa & Massage',
     icon: '💆',
+    tabIcon: 'massage',
+    sections: [
+      {
+        label: 'Basic Massage',
+        services: ['Head Massage', 'Neck & Shoulder Massage', 'Back Massage', 'Foot Massage', 'Hand Massage'],
+      },
+      {
+        label: 'Full Body Massage',
+        services: ['Full Body Massage', 'Relaxation Massage', 'Deep Tissue Massage', 'Swedish Massage'],
+      },
+      {
+        label: 'Premium Therapies',
+        services: ['Aromatherapy Massage', 'Hot Stone Massage', 'Thai Massage', 'Balinese Massage', 'Signature Spa Therapy'],
+      },
+      {
+        label: 'Body Spa',
+        services: ['Body Spa', 'Body Polishing', 'Body Scrub', 'Body Wrap'],
+      },
+      {
+        label: 'Wellness Therapy',
+        services: ['Stress Relief Therapy', 'Muscle Relaxation Therapy', 'Detox Therapy', 'Sleep Therapy'],
+      },
+      {
+        label: 'Special Care',
+        services: ['Pre-Bridal Spa', 'Post-Bridal Relaxation', 'Pregnancy Safe Massage'],
+      },
+    ],
     subServices: [
       'Head Massage', 'Neck & Shoulder Massage', 'Back Massage', 'Foot Massage', 'Hand Massage',
       'Full Body Massage', 'Relaxation Massage', 'Deep Tissue Massage', 'Swedish Massage',
@@ -835,8 +910,19 @@ export const SPA_WELLNESS_FEMALE_CATEGORIES = [
   },
   {
     key: 'skin_beauty',
-    label: 'Skin & Beauty',
+    label: 'Face & Skin',
     icon: '🧖',
+    tabIcon: 'face',
+    sections: [
+      {
+        label: 'Facials',
+        services: ['Clean-up', 'Basic Facial', 'Detan', 'Bleach', 'Hydra Facial', 'Anti-Aging Facial', 'Oxygen Facial', 'Vitamin C Facial'],
+      },
+      {
+        label: 'Skin Treatments',
+        services: ['Anti-Acne Treatment', 'Skin Brightening', 'Skin Hydration Treatment', 'Exfoliation Treatment', 'Deep Cleansing Treatment', 'Face Massage'],
+      },
+    ],
     subServices: [
       'Clean-up', 'Basic Facial', 'Detan', 'Bleach',
       'Hydra Facial', 'Anti-Aging Facial', 'Oxygen Facial', 'Vitamin C Facial',
@@ -848,6 +934,21 @@ export const SPA_WELLNESS_FEMALE_CATEGORIES = [
     key: 'body_grooming_women',
     label: 'Body Care',
     icon: '🧴',
+    tabIcon: 'body',
+    sections: [
+      {
+        label: 'Hair Removal',
+        services: ['Full Body Wax', 'Half Body Wax', 'Full Arms Wax', 'Half Arms Wax', 'Full Legs Wax', 'Half Legs Wax', 'Underarms Wax'],
+      },
+      {
+        label: 'Threading',
+        services: ['Eyebrow Threading', 'Upper Lip Threading', 'Full Face Threading'],
+      },
+      {
+        label: 'Body Care',
+        services: ['Body Polish', 'Body Scrub', 'Body Detan', 'Full Body Polishing', 'Full Body Spa'],
+      },
+    ],
     subServices: [
       'Full Body Wax', 'Half Body Wax', 'Full Arms Wax', 'Half Arms Wax',
       'Full Legs Wax', 'Half Legs Wax', 'Underarms Wax',
@@ -862,6 +963,29 @@ export const SPA_WELLNESS_UNISEX_CATEGORIES = [
     key: 'spa_massage_unisex',
     label: 'Spa & Massage',
     icon: '💆',
+    tabIcon: 'massage',
+    sections: [
+      {
+        label: 'Basic Massage',
+        services: ['Head Massage', 'Neck & Shoulder Massage', 'Back Massage', 'Foot Massage', 'Hand Massage'],
+      },
+      {
+        label: 'Full Body Massage',
+        services: ['Full Body Massage', 'Relaxation Massage', 'Deep Tissue Massage', 'Swedish Massage'],
+      },
+      {
+        label: 'Premium Therapies',
+        services: ['Aromatherapy Massage', 'Hot Stone Massage', 'Thai Massage', 'Balinese Massage'],
+      },
+      {
+        label: 'Body Spa',
+        services: ['Body Spa', 'Body Polishing', 'Body Scrub', 'Body Wrap'],
+      },
+      {
+        label: 'Wellness Therapy',
+        services: ['Stress Relief Therapy', 'Muscle Recovery Therapy', 'Detox Therapy', 'Sleep Therapy'],
+      },
+    ],
     subServices: [
       'Head Massage', 'Neck & Shoulder Massage', 'Back Massage', 'Foot Massage', 'Hand Massage',
       'Full Body Massage', 'Relaxation Massage', 'Deep Tissue Massage', 'Swedish Massage',
@@ -872,8 +996,19 @@ export const SPA_WELLNESS_UNISEX_CATEGORIES = [
   },
   {
     key: 'skin_beauty_unisex',
-    label: 'Skin & Face',
+    label: 'Face & Skin',
     icon: '🧴',
+    tabIcon: 'face',
+    sections: [
+      {
+        label: 'Facials',
+        services: ['Clean-up', 'Basic Facial', 'Detan', 'Hydra Facial', 'Anti-Aging Facial', 'Charcoal Facial'],
+      },
+      {
+        label: 'Skin Treatments',
+        services: ['Anti-Acne Treatment', 'Skin Brightening', 'Skin Hydration Treatment', 'Exfoliation Treatment', 'Deep Cleansing Treatment'],
+      },
+    ],
     subServices: [
       'Clean-up', 'Basic Facial', 'Detan',
       'Hydra Facial', 'Anti-Aging Facial', 'Charcoal Facial',
@@ -885,6 +1020,17 @@ export const SPA_WELLNESS_UNISEX_CATEGORIES = [
     key: 'body_grooming_unisex',
     label: 'Body Care',
     icon: '🧍',
+    tabIcon: 'body',
+    sections: [
+      {
+        label: 'Hair Removal',
+        services: ['Full Body Wax', 'Eyebrow Threading', 'Full Face Threading'],
+      },
+      {
+        label: 'Body Care',
+        services: ['Body Polishing', 'Body Scrub', 'Body Detan'],
+      },
+    ],
     subServices: [
       'Full Body Wax', 'Body Polishing', 'Body Scrub', 'Body Detan',
       'Eyebrow Threading', 'Full Face Threading',
