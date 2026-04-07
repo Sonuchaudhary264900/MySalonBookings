@@ -159,6 +159,7 @@ exports.createSalon = async (req, res) => {
         salonId: salon._id,
         status: 'salon_registered',
         businessName: salon.name,
+        salonType: salonType || 'salon',
       }
     );
 
