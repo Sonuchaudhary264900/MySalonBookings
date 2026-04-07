@@ -223,22 +223,21 @@ exports.getMySalon = async (req, res) => {
       );
     }
 
-    // Backward compat: salonType was the old field name, businessType is new.
-    // If salonType exists, it is the explicit user selection — trust it over businessType
-    // which may have been saved as a wrong default ('salon') by old code.
-    const correctType = salon.salonType || salon.businessType;
-    if (correctType) {
-      if (salon.salonType && salon.businessType !== salon.salonType) {
-        // Migrate: overwrite wrong businessType with the real salonType value
-        salon.businessType = salon.salonType;
-        Salon.updateOne({ _id: salon._id }, { $set: { businessType: salon.salonType }, $unset: { salonType: '' } }).catch(() => {});
-      }
-      // Sync correct value to Owner document
-      Owner.findById(req.owner._id).lean().then(owner => {
-        if (owner && owner.businessType !== correctType) {
-          Owner.updateOne({ _id: owner._id }, { businessType: correctType }).catch(() => {});
-        }
-      }).catch(() => {});
+    // Log raw DB values so we can see what's actually stored (check Render logs)
+    console.log(`[getMySalon] salonId=${salon._id} salonType=${salon.salonType} businessType=${salon.businessType}`);
+
+    // salonType = old field name (explicit user selection, reliable)
+    // businessType = new field name (may have been incorrectly defaulted to 'salon')
+    // If salonType exists it overrides businessType (it was explicitly set by user)
+    if (salon.salonType) {
+      const correct = salon.salonType;
+      salon.businessType = correct;
+      // Permanently fix DB: write correct value and remove old field
+      Salon.updateOne({ _id: salon._id }, { $set: { businessType: correct }, $unset: { salonType: 1 } })
+        .then(() => console.log(`[getMySalon] Migrated salonType → businessType: ${correct}`))
+        .catch(e => console.error('[getMySalon] Migration failed:', e.message));
+      Owner.updateOne({ _id: req.owner._id }, { $set: { businessType: correct } })
+        .catch(() => {});
     }
 
     res.json(
