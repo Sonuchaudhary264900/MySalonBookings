@@ -223,6 +223,13 @@ exports.getMySalon = async (req, res) => {
       );
     }
 
+    // Backward compat: migrate salonType → businessType for salons created before rename
+    if (!salon.businessType && salon.salonType) {
+      salon.businessType = salon.salonType;
+      Salon.updateOne({ _id: salon._id }, { $set: { businessType: salon.salonType }, $unset: { salonType: '' } }).catch(() => {});
+      Owner.findByIdAndUpdate(req.owner._id, { businessType: salon.salonType }).catch(() => {});
+    }
+
     res.json(
       formatSuccessResponse(salon, messages.GENERIC.RETRIEVED)
     );
