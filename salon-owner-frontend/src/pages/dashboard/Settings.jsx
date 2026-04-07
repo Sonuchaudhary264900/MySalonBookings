@@ -15,6 +15,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useNotifications } from '../../context/NotificationContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { uploadSalonPhotos } from '../../services/salonService';
+import { SALON_TYPES } from '../../constants/salonCategories';
 import api from '../../services/api';
 
 /* ─── Shared input class ─────────────────────────────────────── */
@@ -316,15 +317,16 @@ const SalonContent = ({ salon, updateSalon }) => {
   const [loading, setLoading] = useState(false);
   const [errors,  setErrors]  = useState({});
   const [form, setForm] = useState({
-    name: '', description: '', category: 'barber',
+    name: '', description: '',
     phone: '', email: '', address: '', city: '', state: '',
   });
+
+  const salonTypeDef = SALON_TYPES.find(t => t.key === salon?.salonType);
 
   useEffect(() => {
     if (salon) setForm({
       name:        salon.name        || '',
       description: salon.description || '',
-      category:    salon.category    || 'barber',
       phone:       salon.phone       || '',
       email:       salon.email       || '',
       address:     salon.address     || '',
@@ -357,7 +359,7 @@ const SalonContent = ({ salon, updateSalon }) => {
 
   const handleCancel = () => {
     if (salon) setForm({
-      name: salon.name||'', description: salon.description||'', category: salon.category||'barber',
+      name: salon.name||'', description: salon.description||'',
       phone: salon.phone||'', email: salon.email||'',
       address: salon.address||'', city: salon.city||'', state: salon.state||'',
     });
@@ -391,14 +393,14 @@ const SalonContent = ({ salon, updateSalon }) => {
       ) : null}
 
       {[
-        { label: 'Salon Name',  value: form.name },
-        { label: 'Description', value: form.description },
-        { label: 'Category',    value: form.category },
-        { label: 'Phone',       value: form.phone },
-        { label: 'Email',       value: form.email },
-        { label: 'Address',     value: form.address },
-        { label: 'City',        value: form.city },
-        { label: 'State',       value: form.state },
+        { label: 'Salon Name',    value: form.name },
+        { label: 'Description',   value: form.description },
+        { label: 'Business Type', value: salonTypeDef ? `${salonTypeDef.icon} ${salonTypeDef.label}` : '—' },
+        { label: 'Phone',         value: form.phone },
+        { label: 'Email',         value: form.email },
+        { label: 'Address',       value: form.address },
+        { label: 'City',          value: form.city },
+        { label: 'State',         value: form.state },
       ].map(({ label, value }) => <FieldRow key={label} label={label} value={value} />)}
 
       {/* Map preview */}
@@ -440,17 +442,16 @@ const SalonContent = ({ salon, updateSalon }) => {
           placeholder="Describe your salon…"
           className={`${INP} resize-none`} />
       </div>
-      <div className="space-y-1.5">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
-        <select name="category" value={form.category} onChange={handleChange} disabled={loading} className={SEL}>
-          <option value="barber">Men's Salon</option>
-          <option value="hair_salon">Hair Salon</option>
-          <option value="spa">Spa</option>
-          <option value="massage">Massage</option>
-          <option value="multi_service">Multi-Service</option>
-          <option value="other">Other</option>
-        </select>
-      </div>
+      {salonTypeDef && (
+        <div className="space-y-1.5">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Business Type</label>
+          <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 text-sm text-gray-700 dark:text-gray-300">
+            <span>{salonTypeDef.icon}</span>
+            <span className="font-medium">{salonTypeDef.label}</span>
+            <span className="ml-auto text-xs text-gray-400">Set during registration</span>
+          </div>
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <LabelInput label="Phone" name="phone" type="tel" placeholder="+91 98765 43210" required error={errors.phone} />
         <LabelInput label="Email" name="email" type="email" placeholder="salon@email.com" />
