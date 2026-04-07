@@ -530,7 +530,7 @@ const Profile = () => {
                   <div>
                     <p className="text-xs text-violet-500 font-medium">SMS OTP sent to</p>
                     <p className="text-sm font-bold text-violet-800">
-                      {user?.phone?.replace(/(\+\d{2})(\d{4})(\d+)(\d{3})/, '$1 $2 XXXX $4')}
+                      {user?.phone?.replace(/(\+\d{2})(\d{4})(\d+)(\d{4})/, '$1 $2 XXXX $4')}
                     </p>
                   </div>
                 </div>
