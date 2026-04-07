@@ -212,6 +212,39 @@ const Profile = () => {
           )}
         </div>
 
+        {/* ── Business Type Card ── */}
+        {(() => {
+          const st = salon?.salonType || user?.salonType;
+          const typeDef = SALON_TYPES.find(t => t.key === st);
+          if (!typeDef) return null;
+          return (
+            <div
+              className="rounded-xl border-2 p-4 flex items-center gap-4"
+              style={{ borderColor: `${typeDef.color}40`, background: `${typeDef.color}08` }}
+            >
+              <div
+                className="w-14 h-14 rounded-xl flex items-center justify-center text-3xl shrink-0"
+                style={{ background: `${typeDef.color}18` }}
+              >
+                {typeDef.icon}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: typeDef.color }}>
+                  Your Business Type
+                </p>
+                <p className="font-bold text-gray-900 text-base">{typeDef.label}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{typeDef.description}</p>
+              </div>
+              <span
+                className="shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full"
+                style={{ background: `${typeDef.color}18`, color: typeDef.color }}
+              >
+                Selected
+              </span>
+            </div>
+          );
+        })()}
+
         {/* ── Section 1: My Profile ── */}
         <Section
           id="profile"
