@@ -790,251 +790,191 @@ export const MAKEUP_BRIDAL_CATEGORIES = [
 
 export const SPA_WELLNESS_MALE_CATEGORIES = [
   {
-    key: 'spa_massage',
-    label: 'Spa & Massage',
+    key: 'spa_basic_massage_men',
+    label: 'Basic Massage',
     icon: '💆',
     tabIcon: 'massage',
-    sections: [
-      {
-        label: 'Basic Massage',
-        services: ['Head Massage', 'Neck & Shoulder Massage', 'Back Massage', 'Foot Massage', 'Hand Massage'],
-      },
-      {
-        label: 'Full Body Massage',
-        services: ['Full Body Massage', 'Relaxation Massage', 'Deep Tissue Massage', 'Swedish Massage'],
-      },
-      {
-        label: 'Premium Therapies',
-        services: ['Aroma Therapy Massage', 'Hot Stone Massage', 'Thai Massage', 'Balinese Massage'],
-      },
-      {
-        label: 'Body Spa',
-        services: ['Body Spa', 'Body Polishing', 'Body Scrub', 'Body Wrap'],
-      },
-      {
-        label: 'Wellness Therapy',
-        services: ['Stress Relief Therapy', 'Muscle Recovery Therapy', 'Detox Therapy'],
-      },
-    ],
-    subServices: [
-      'Head Massage', 'Neck & Shoulder Massage', 'Back Massage', 'Foot Massage', 'Hand Massage',
-      'Full Body Massage', 'Relaxation Massage', 'Deep Tissue Massage', 'Swedish Massage',
-      'Aroma Therapy Massage', 'Hot Stone Massage', 'Thai Massage', 'Balinese Massage',
-      'Body Spa', 'Body Polishing', 'Body Scrub', 'Body Wrap',
-      'Stress Relief Therapy', 'Muscle Recovery Therapy', 'Detox Therapy',
-    ],
+    subServices: ['Head Massage', 'Neck & Shoulder Massage', 'Back Massage', 'Foot Massage', 'Hand Massage'],
   },
   {
-    key: 'skin_face',
-    label: 'Face & Skin',
-    icon: '🧴',
-    tabIcon: 'face',
-    sections: [
-      {
-        label: 'Facials',
-        services: ['Clean-up', 'Basic Facial', 'Detan', 'Charcoal Facial', 'Anti-Aging Facial'],
-      },
-      {
-        label: 'Skin Treatments',
-        services: ['Anti-Acne Treatment', 'Skin Brightening', 'Skin Hydration Treatment', 'Exfoliation Treatment', 'Deep Cleansing Treatment'],
-      },
-    ],
-    subServices: [
-      'Clean-up', 'Basic Facial', 'Detan', 'Charcoal Facial', 'Anti-Aging Facial',
-      'Anti-Acne Treatment', 'Skin Brightening', 'Skin Hydration Treatment',
-      'Exfoliation Treatment', 'Deep Cleansing Treatment',
-    ],
+    key: 'spa_full_body_massage_men',
+    label: 'Full Body Massage',
+    icon: '🛌',
+    tabIcon: 'massage',
+    subServices: ['Full Body Massage', 'Relaxation Massage', 'Deep Tissue Massage', 'Swedish Massage'],
   },
   {
-    key: 'body_grooming',
-    label: 'Body Care',
-    icon: '🧍',
-    tabIcon: 'body',
-    sections: [
-      {
-        label: 'Hair Removal',
-        services: ['Full Body Wax', 'Eyebrow Threading'],
-      },
-      {
-        label: 'Body Care',
-        services: ['Body Polishing', 'Body Scrub', 'Body Detan', 'Ear Cleaning'],
-      },
-    ],
-    subServices: [
-      'Body Polishing', 'Body Scrub', 'Body Detan', 'Full Body Wax',
-      'Ear Cleaning', 'Eyebrow Threading',
-    ],
+    key: 'spa_premium_therapies_men',
+    label: 'Premium Therapies',
+    icon: '✨',
+    tabIcon: 'therapy',
+    subServices: ['Aroma Therapy Massage', 'Hot Stone Massage', 'Thai Massage', 'Balinese Massage'],
+  },
+  {
+    key: 'spa_body_spa_men',
+    label: 'Body Spa',
+    icon: '🛁',
+    tabIcon: 'spa',
+    subServices: ['Body Spa', 'Body Polishing', 'Body Scrub', 'Body Wrap'],
+  },
+  {
+    key: 'spa_wellness_therapy_men',
+    label: 'Wellness Therapy',
+    icon: '🧘',
+    tabIcon: 'wellness',
+    subServices: ['Stress Relief Therapy', 'Muscle Recovery Therapy', 'Detox Therapy'],
   },
 ];
 
 export const SPA_WELLNESS_FEMALE_CATEGORIES = [
   {
-    key: 'spa_relaxation',
-    label: 'Spa & Massage',
+    key: 'spa_basic_massage_women',
+    label: 'Basic Massage',
     icon: '💆',
     tabIcon: 'massage',
-    sections: [
-      {
-        label: 'Basic Massage',
-        services: ['Head Massage', 'Neck & Shoulder Massage', 'Back Massage', 'Foot Massage', 'Hand Massage'],
-      },
-      {
-        label: 'Full Body Massage',
-        services: ['Full Body Massage', 'Relaxation Massage', 'Deep Tissue Massage', 'Swedish Massage'],
-      },
-      {
-        label: 'Premium Therapies',
-        services: ['Aromatherapy Massage', 'Hot Stone Massage', 'Thai Massage', 'Balinese Massage', 'Signature Spa Therapy'],
-      },
-      {
-        label: 'Body Spa',
-        services: ['Body Spa', 'Body Polishing', 'Body Scrub', 'Body Wrap'],
-      },
-      {
-        label: 'Wellness Therapy',
-        services: ['Stress Relief Therapy', 'Muscle Relaxation Therapy', 'Detox Therapy', 'Sleep Therapy'],
-      },
-      {
-        label: 'Special Care',
-        services: ['Pre-Bridal Spa', 'Post-Bridal Relaxation', 'Pregnancy Safe Massage'],
-      },
-    ],
-    subServices: [
-      'Head Massage', 'Neck & Shoulder Massage', 'Back Massage', 'Foot Massage', 'Hand Massage',
-      'Full Body Massage', 'Relaxation Massage', 'Deep Tissue Massage', 'Swedish Massage',
-      'Aromatherapy Massage', 'Hot Stone Massage', 'Thai Massage', 'Balinese Massage', 'Signature Spa Therapy',
-      'Body Spa', 'Body Polishing', 'Body Scrub', 'Body Wrap',
-      'Stress Relief Therapy', 'Muscle Relaxation Therapy', 'Detox Therapy', 'Sleep Therapy',
-      'Pre-Bridal Spa', 'Post-Bridal Relaxation', 'Pregnancy Safe Massage',
-    ],
+    subServices: ['Head Massage', 'Neck & Shoulder Massage', 'Back Massage', 'Foot Massage', 'Hand Massage'],
   },
   {
-    key: 'skin_beauty',
-    label: 'Face & Skin',
-    icon: '🧖',
-    tabIcon: 'face',
-    sections: [
-      {
-        label: 'Facials',
-        services: ['Clean-up', 'Basic Facial', 'Detan', 'Bleach', 'Hydra Facial', 'Anti-Aging Facial', 'Oxygen Facial', 'Vitamin C Facial'],
-      },
-      {
-        label: 'Skin Treatments',
-        services: ['Anti-Acne Treatment', 'Skin Brightening', 'Skin Hydration Treatment', 'Exfoliation Treatment', 'Deep Cleansing Treatment', 'Face Massage'],
-      },
-    ],
-    subServices: [
-      'Clean-up', 'Basic Facial', 'Detan', 'Bleach',
-      'Hydra Facial', 'Anti-Aging Facial', 'Oxygen Facial', 'Vitamin C Facial',
-      'Anti-Acne Treatment', 'Skin Brightening', 'Skin Hydration Treatment',
-      'Exfoliation Treatment', 'Deep Cleansing Treatment', 'Face Massage',
-    ],
+    key: 'spa_full_body_massage_women',
+    label: 'Full Body Massage',
+    icon: '🛌',
+    tabIcon: 'massage',
+    subServices: ['Full Body Massage', 'Relaxation Massage', 'Deep Tissue Massage', 'Swedish Massage'],
   },
   {
-    key: 'body_grooming_women',
-    label: 'Body Care',
-    icon: '🧴',
-    tabIcon: 'body',
-    sections: [
-      {
-        label: 'Hair Removal',
-        services: ['Full Body Wax', 'Half Body Wax', 'Full Arms Wax', 'Half Arms Wax', 'Full Legs Wax', 'Half Legs Wax', 'Underarms Wax'],
-      },
-      {
-        label: 'Threading',
-        services: ['Eyebrow Threading', 'Upper Lip Threading', 'Full Face Threading'],
-      },
-      {
-        label: 'Body Care',
-        services: ['Body Polish', 'Body Scrub', 'Body Detan', 'Full Body Polishing', 'Full Body Spa'],
-      },
-    ],
-    subServices: [
-      'Full Body Wax', 'Half Body Wax', 'Full Arms Wax', 'Half Arms Wax',
-      'Full Legs Wax', 'Half Legs Wax', 'Underarms Wax',
-      'Eyebrow Threading', 'Upper Lip Threading', 'Full Face Threading',
-      'Body Polish', 'Body Scrub', 'Body Detan', 'Full Body Polishing', 'Full Body Spa',
-    ],
+    key: 'spa_premium_therapies_women',
+    label: 'Premium Therapies',
+    icon: '✨',
+    tabIcon: 'therapy',
+    subServices: ['Aromatherapy Massage', 'Hot Stone Massage', 'Thai Massage', 'Balinese Massage', 'Signature Spa Therapy'],
+  },
+  {
+    key: 'spa_body_spa_women',
+    label: 'Body Spa',
+    icon: '🛁',
+    tabIcon: 'spa',
+    subServices: ['Body Spa', 'Body Polishing', 'Body Scrub', 'Body Wrap'],
+  },
+  {
+    key: 'spa_wellness_therapy_women',
+    label: 'Wellness Therapy',
+    icon: '🧘',
+    tabIcon: 'wellness',
+    subServices: ['Stress Relief Therapy', 'Muscle Relaxation Therapy', 'Detox Therapy', 'Sleep Therapy'],
+  },
+  {
+    key: 'spa_special_care_women',
+    label: 'Special Care',
+    icon: '🌸',
+    tabIcon: 'care',
+    subServices: ['Pre-Bridal Spa', 'Post-Bridal Relaxation', 'Pregnancy Safe Massage'],
   },
 ];
 
 export const SPA_WELLNESS_UNISEX_CATEGORIES = [
   {
-    key: 'spa_massage_unisex',
-    label: 'Spa & Massage',
+    key: 'spa_basic_massage_unisex',
+    label: 'Basic Massage',
     icon: '💆',
     tabIcon: 'massage',
     sections: [
       {
-        label: 'Basic Massage',
+        label: 'Men',
         services: ['Head Massage', 'Neck & Shoulder Massage', 'Back Massage', 'Foot Massage', 'Hand Massage'],
       },
       {
-        label: 'Full Body Massage',
+        label: 'Women',
+        services: ['Head Massage', 'Neck & Shoulder Massage', 'Back Massage', 'Foot Massage', 'Hand Massage'],
+      },
+    ],
+    subServices: ['Head Massage', 'Neck & Shoulder Massage', 'Back Massage', 'Foot Massage', 'Hand Massage'],
+  },
+  {
+    key: 'spa_full_body_massage_unisex',
+    label: 'Full Body Massage',
+    icon: '🛌',
+    tabIcon: 'massage',
+    sections: [
+      {
+        label: 'Men',
         services: ['Full Body Massage', 'Relaxation Massage', 'Deep Tissue Massage', 'Swedish Massage'],
       },
       {
-        label: 'Premium Therapies',
-        services: ['Aromatherapy Massage', 'Hot Stone Massage', 'Thai Massage', 'Balinese Massage'],
+        label: 'Women',
+        services: ['Full Body Massage', 'Relaxation Massage', 'Deep Tissue Massage', 'Swedish Massage'],
+      },
+    ],
+    subServices: ['Full Body Massage', 'Relaxation Massage', 'Deep Tissue Massage', 'Swedish Massage'],
+  },
+  {
+    key: 'spa_premium_therapies_unisex',
+    label: 'Premium Therapies',
+    icon: '✨',
+    tabIcon: 'therapy',
+    sections: [
+      {
+        label: 'Men',
+        services: ['Aroma Therapy Massage', 'Hot Stone Massage', 'Thai Massage', 'Balinese Massage'],
       },
       {
-        label: 'Body Spa',
+        label: 'Women',
+        services: ['Aromatherapy Massage', 'Hot Stone Massage', 'Thai Massage', 'Balinese Massage', 'Signature Spa Therapy'],
+      },
+    ],
+    subServices: [
+      'Aroma Therapy Massage', 'Aromatherapy Massage', 'Hot Stone Massage',
+      'Thai Massage', 'Balinese Massage', 'Signature Spa Therapy',
+    ],
+  },
+  {
+    key: 'spa_body_spa_unisex',
+    label: 'Body Spa',
+    icon: '🛁',
+    tabIcon: 'spa',
+    sections: [
+      {
+        label: 'Men',
         services: ['Body Spa', 'Body Polishing', 'Body Scrub', 'Body Wrap'],
       },
       {
-        label: 'Wellness Therapy',
-        services: ['Stress Relief Therapy', 'Muscle Recovery Therapy', 'Detox Therapy', 'Sleep Therapy'],
+        label: 'Women',
+        services: ['Body Spa', 'Body Polishing', 'Body Scrub', 'Body Wrap'],
+      },
+    ],
+    subServices: ['Body Spa', 'Body Polishing', 'Body Scrub', 'Body Wrap'],
+  },
+  {
+    key: 'spa_wellness_therapy_unisex',
+    label: 'Wellness Therapy',
+    icon: '🧘',
+    tabIcon: 'wellness',
+    sections: [
+      {
+        label: 'Men',
+        services: ['Stress Relief Therapy', 'Muscle Recovery Therapy', 'Detox Therapy'],
+      },
+      {
+        label: 'Women',
+        services: ['Stress Relief Therapy', 'Muscle Relaxation Therapy', 'Detox Therapy', 'Sleep Therapy'],
       },
     ],
     subServices: [
-      'Head Massage', 'Neck & Shoulder Massage', 'Back Massage', 'Foot Massage', 'Hand Massage',
-      'Full Body Massage', 'Relaxation Massage', 'Deep Tissue Massage', 'Swedish Massage',
-      'Aromatherapy Massage', 'Hot Stone Massage', 'Thai Massage', 'Balinese Massage',
-      'Body Spa', 'Body Polishing', 'Body Scrub', 'Body Wrap',
-      'Stress Relief Therapy', 'Muscle Recovery Therapy', 'Detox Therapy', 'Sleep Therapy',
+      'Stress Relief Therapy', 'Muscle Recovery Therapy',
+      'Muscle Relaxation Therapy', 'Detox Therapy', 'Sleep Therapy',
     ],
   },
   {
-    key: 'skin_beauty_unisex',
-    label: 'Face & Skin',
-    icon: '🧴',
-    tabIcon: 'face',
+    key: 'spa_special_care_unisex',
+    label: 'Special Care',
+    icon: '🌸',
+    tabIcon: 'care',
     sections: [
       {
-        label: 'Facials',
-        services: ['Clean-up', 'Basic Facial', 'Detan', 'Hydra Facial', 'Anti-Aging Facial', 'Charcoal Facial'],
-      },
-      {
-        label: 'Skin Treatments',
-        services: ['Anti-Acne Treatment', 'Skin Brightening', 'Skin Hydration Treatment', 'Exfoliation Treatment', 'Deep Cleansing Treatment'],
+        label: 'Women',
+        services: ['Pre-Bridal Spa', 'Post-Bridal Relaxation', 'Pregnancy Safe Massage'],
       },
     ],
-    subServices: [
-      'Clean-up', 'Basic Facial', 'Detan',
-      'Hydra Facial', 'Anti-Aging Facial', 'Charcoal Facial',
-      'Anti-Acne Treatment', 'Skin Brightening', 'Skin Hydration Treatment',
-      'Exfoliation Treatment', 'Deep Cleansing Treatment',
-    ],
-  },
-  {
-    key: 'body_grooming_unisex',
-    label: 'Body Care',
-    icon: '🧍',
-    tabIcon: 'body',
-    sections: [
-      {
-        label: 'Hair Removal',
-        services: ['Full Body Wax', 'Eyebrow Threading', 'Full Face Threading'],
-      },
-      {
-        label: 'Body Care',
-        services: ['Body Polishing', 'Body Scrub', 'Body Detan'],
-      },
-    ],
-    subServices: [
-      'Full Body Wax', 'Body Polishing', 'Body Scrub', 'Body Detan',
-      'Eyebrow Threading', 'Full Face Threading',
-    ],
+    subServices: ['Pre-Bridal Spa', 'Post-Bridal Relaxation', 'Pregnancy Safe Massage'],
   },
 ];
 
