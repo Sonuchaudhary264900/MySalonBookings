@@ -1,6 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Lock, Info, Mail, Phone, MapPin, Building, ChevronDown, ChevronUp, Camera, QrCode, Sparkles } from 'lucide-react';
+import { User, Lock, Info, Mail, Phone, MapPin, Building, ChevronDown, ChevronUp, Camera, QrCode, Sparkles, Scissors, Wand2, Waves, FlaskConical } from 'lucide-react';
 import { SALON_TYPES } from '../../constants/salonCategories';
+
+const MakeupBrushIcon = ({ size = 24, color = 'currentColor', strokeWidth = 1.5 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+    stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="2" x2="12" y2="13" />
+    <rect x="10.2" y="13" width="3.6" height="2.5" rx="0.6" />
+    <path d="M9.5 15.5 C8.5 17 8.5 20 12 21.5 C15.5 20 15.5 17 14.5 15.5" />
+  </svg>
+);
+
+const SALON_TYPE_ICONS = {
+  barbershop:    Scissors,
+  salon:         Wand2,
+  spa_wellness:  Waves,
+  makeup_bridal: MakeupBrushIcon,
+  skin_derma:    FlaskConical,
+};
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Input from '../../components/common/Input';
@@ -187,7 +204,7 @@ const Profile = () => {
             <p className="font-bold text-gray-900 text-lg">{user?.name || '—'}</p>
             <p className="text-sm text-gray-500">Member since {memberSince}</p>
             {(() => {
-              const st = salon?.salonType || user?.salonType;
+              const st = salon?.businessType || user?.businessType;
               const typeDef = SALON_TYPES.find(t => t.key === st);
               return typeDef ? (
                 <span className="inline-flex items-center gap-1.5 mt-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold"
@@ -214,19 +231,20 @@ const Profile = () => {
 
         {/* ── Business Type Card ── */}
         {(() => {
-          const st = salon?.salonType || user?.salonType;
+          const st = salon?.businessType || user?.businessType;
           const typeDef = SALON_TYPES.find(t => t.key === st);
           if (!typeDef) return null;
+          const TypeIcon = SALON_TYPE_ICONS[typeDef.key];
           return (
             <div
               className="rounded-xl border-2 p-4 flex items-center gap-4"
               style={{ borderColor: `${typeDef.color}40`, background: `${typeDef.color}08` }}
             >
               <div
-                className="w-14 h-14 rounded-xl flex items-center justify-center text-3xl shrink-0"
+                className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0"
                 style={{ background: `${typeDef.color}18` }}
               >
-                {typeDef.icon}
+                {TypeIcon && <TypeIcon size={26} strokeWidth={1.5} color={typeDef.color} />}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[11px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: typeDef.color }}>
@@ -262,7 +280,7 @@ const Profile = () => {
                 { icon: Phone, color: 'text-green-500', label: 'Phone',  value: user?.phone },
                 { icon: User,  color: 'text-indigo-500', label: 'Gender', value: user?.gender ? ({ male: 'Male', female: 'Female', other: 'Other' }[user.gender]) : null },
                 salon && { icon: Building, color: 'text-purple-500', label: 'Salon', value: salon.name },
-                (() => { const st = salon?.salonType || user?.salonType; const td = SALON_TYPES.find(t => t.key === st); return td ? { icon: Sparkles, color: 'text-indigo-500', label: 'Business Type', value: `${td.icon} ${td.label}` } : null; })(),
+                (() => { const st = salon?.businessType || user?.businessType; const td = SALON_TYPES.find(t => t.key === st); return td ? { icon: Sparkles, color: 'text-indigo-500', label: 'Business Type', value: td.label } : null; })(),
                 salon && { icon: MapPin,   color: 'text-red-500',    label: 'Address', value: salon.address },
               ].filter(Boolean).map(({ icon: Icon, color, label, value }) => (
                 <div key={label} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
@@ -399,7 +417,7 @@ const Profile = () => {
           <div className="space-y-3 pt-2">
             {[
               { label: 'User ID',       value: user?._id ? `${String(user._id).substring(0, 16)}…` : '—' },
-              { label: 'Account Type',  value: 'Salon Owner' },
+              { label: 'Account Type',  value: (() => { const st = salon?.businessType || user?.businessType; const td = SALON_TYPES.find(t => t.key === st); return td ? `${td.label} Owner` : 'Salon Owner'; })() },
               { label: 'Member Since',  value: memberSince },
             ].map(({ label, value }) => (
               <div key={label} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
