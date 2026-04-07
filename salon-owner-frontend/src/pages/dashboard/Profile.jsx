@@ -308,7 +308,7 @@ const Profile = () => {
             <p className="font-bold text-gray-900 text-lg">{user?.name || '—'}</p>
             <p className="text-sm text-gray-500">Member since {memberSince}</p>
             {(() => {
-              const st = salon?.businessType || user?.businessType;
+              const st = salon?.businessType || salon?.salonType || user?.businessType || user?.salonType;
               const typeDef = SALON_TYPES.find(t => t.key === st);
               return typeDef ? (
                 <span className="inline-flex items-center gap-1.5 mt-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold"
@@ -335,7 +335,7 @@ const Profile = () => {
 
         {/* ── Business Type Card ── */}
         {(() => {
-          const st = salon?.businessType || user?.businessType;
+          const st = salon?.businessType || salon?.salonType || user?.businessType || user?.salonType;
           const typeDef = SALON_TYPES.find(t => t.key === st);
           if (!typeDef) return null;
           const TypeIcon = SALON_TYPE_ICONS[typeDef.key];
@@ -383,7 +383,7 @@ const Profile = () => {
                 { icon: Mail,  color: 'text-blue-500',  label: 'Email',  value: user?.email },
                 { icon: Phone, color: 'text-green-500', label: 'Phone',  value: user?.phone },
                 { icon: User,  color: 'text-indigo-500', label: 'Gender', value: user?.gender ? ({ male: 'Male', female: 'Female', other: 'Other' }[user.gender]) : null },
-                (() => { const st = salon?.businessType || user?.businessType; const td = SALON_TYPES.find(t => t.key === st); return td ? { icon: Sparkles, color: 'text-indigo-500', label: 'Business Type', value: td.label } : null; })(),
+                (() => { const st = salon?.businessType || salon?.salonType || user?.businessType || user?.salonType; const td = SALON_TYPES.find(t => t.key === st); return td ? { icon: Sparkles, color: 'text-indigo-500', label: 'Business Type', value: td.label } : null; })(),
                 salon && { icon: MapPin,   color: 'text-red-500',    label: 'Address', value: salon.address },
               ].filter(Boolean).map(({ icon: Icon, color, label, value }) => (
                 <div key={label} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
@@ -670,7 +670,7 @@ const Profile = () => {
           <div className="space-y-3 pt-2">
             {[
               { label: 'User ID',       value: user?._id ? `${String(user._id).substring(0, 16)}…` : '—' },
-              { label: 'Account Type',  value: (() => { const st = salon?.businessType || user?.businessType; const td = SALON_TYPES.find(t => t.key === st); return td ? `${td.label} Owner` : 'Salon Owner'; })() },
+              { label: 'Account Type',  value: (() => { const st = salon?.businessType || salon?.salonType || user?.businessType || user?.salonType; const td = SALON_TYPES.find(t => t.key === st); return td ? `${td.label} Owner` : 'Salon Owner'; })() },
               { label: 'Member Since',  value: memberSince },
             ].map(({ label, value }) => (
               <div key={label} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
