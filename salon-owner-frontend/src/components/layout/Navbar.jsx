@@ -11,10 +11,19 @@ import ROUTES from '../../routes';
 
 const CUSTOMER_APP_URL = import.meta.env.VITE_CUSTOMER_APP_URL || 'https://mysalonbookings.com';
 
+const BIZ_NAME_MAP = {
+  barbershop:    'Barbershop',
+  salon:         'Salon',
+  spa_wellness:  'Spa',
+  makeup_bridal: 'Studio',
+  skin_derma:    'Clinic',
+};
+
 const Navbar = ({ onMenuToggle }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { salon } = useSalon();
+  const bizName = BIZ_NAME_MAP[salon?.businessType] || 'Salon';
   const { isDark, toggleTheme } = useTheme();
   const { unreadCount } = useNotifications();
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -135,7 +144,7 @@ const Navbar = ({ onMenuToggle }) => {
                 <span className="text-white text-sm">✂</span>
               </div>
               <div className="hidden sm:block">
-                <span className="text-[15px] font-bold text-gray-900 dark:text-white tracking-tight">My Salon Bookings</span>
+                <span className="text-[15px] font-bold text-gray-900 dark:text-white tracking-tight">My {bizName} Bookings</span>
               </div>
             </div>
           </div>

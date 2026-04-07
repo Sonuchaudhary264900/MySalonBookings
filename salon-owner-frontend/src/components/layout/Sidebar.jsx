@@ -8,6 +8,15 @@ import {
 import ROUTES from '../../routes';
 import { useNotifications } from '../../context/NotificationContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useSalon } from '../../hooks/useSalon';
+
+const BIZ_NAME_MAP = {
+  barbershop:    'Barbershop',
+  salon:         'Salon',
+  spa_wellness:  'Spa',
+  makeup_bridal: 'Studio',
+  skin_derma:    'Clinic',
+};
 
 /* ─── Nav structure ────────────────────────────────────────────────────── */
 const NAV_SECTIONS = [
@@ -46,7 +55,8 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { chatUnreadCount } = useNotifications();
-  const { t } = useLanguage();
+  const { salon } = useSalon();
+  const bizName = BIZ_NAME_MAP[salon?.businessType] || 'Salon';
 
   const handleNavigation = (path) => {
     navigate(path);
@@ -86,7 +96,7 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
               <Store className="w-4 h-4 text-white" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-bold text-gray-900 dark:text-white leading-tight">My Salon Bookings</p>
+              <p className="text-sm font-bold text-gray-900 dark:text-white leading-tight">My {bizName} Bookings</p>
               <p className="text-[11px] text-gray-400 leading-tight">Owner Panel</p>
             </div>
           </div>
