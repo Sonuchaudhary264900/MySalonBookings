@@ -20,7 +20,11 @@ export const createSalon = async (salonData) => {
   const offeredCategories = get('offeredCategories');
   const kidsHaircut      = get('kidsHaircut');
   const atHomeServices   = get('atHomeServices');
-  const locationData     = get('location');
+  const locationData              = get('location');
+  const businessType              = get('businessType');
+  const videoUrl                  = get('videoUrl');
+  const businessLicenseUrl        = get('businessLicenseUrl');
+  const businessRegistrationUrl   = get('businessRegistrationUrl');
 
   if (!name)    throw new Error('Salon name is required');
   if (!phone)   throw new Error('Phone is required');
@@ -36,10 +40,11 @@ export const createSalon = async (salonData) => {
     phone:   normalizedPhone,
     address: typeof address === 'string' ? address.trim() : address,
   };
-  if (email)       body.email       = typeof email === 'string' ? email.trim().toLowerCase() : email;
-  if (city)        body.city        = typeof city  === 'string' ? city.trim()  : city;
-  if (state)       body.state       = state;
-  if (pincode)     body.pincode     = pincode;
+  if (email)        body.email        = typeof email === 'string' ? email.trim().toLowerCase() : email;
+  if (city)         body.city         = typeof city  === 'string' ? city.trim()  : city;
+  if (state)        body.state        = state;
+  if (pincode)      body.pincode      = pincode;
+  if (businessType) body.businessType = businessType;
   if (description) body.description = typeof description === 'string' ? description.trim() : description;
   if (category)    body.category    = category;
   if (workingHours) body.workingHours = typeof workingHours === 'string' ? JSON.parse(workingHours) : workingHours;
@@ -49,6 +54,9 @@ export const createSalon = async (salonData) => {
   if (kidsHaircut !== undefined && kidsHaircut !== null) body.kidsHaircut = kidsHaircut;
   if (atHomeServices !== undefined && atHomeServices !== null) body.atHomeServices = atHomeServices;
   if (locationData) body.location = typeof locationData === 'string' ? JSON.parse(locationData) : locationData;
+  if (videoUrl)                body.videoUrl                = videoUrl;
+  if (businessLicenseUrl)      body.businessLicenseUrl      = businessLicenseUrl;
+  if (businessRegistrationUrl) body.businessRegistrationUrl = businessRegistrationUrl;
 
   const response = await api.post('/owner/salon', body);
   return { success: true, message: 'Salon created successfully', data: response.data.data };
