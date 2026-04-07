@@ -112,8 +112,8 @@ export default function Step8_ServicesSelect() {
   const { isDark } = useTheme();
 
   const categories = useMemo(
-    () => getCategoriesForSalonType(data.salonType, data.servedGender),
-    [data.salonType, data.servedGender]
+    () => getCategoriesForSalonType(data.businessType, data.servedGender),
+    [data.businessType, data.servedGender]
   );
 
   const [activeCategory,   setActiveCategory]   = useState(categories[0]?.key || '');
@@ -129,7 +129,7 @@ export default function Step8_ServicesSelect() {
 
   const activeCat     = categories.find(c => c.key === activeCategory) || categories[0];
   const selectedCount = selected.size + customServices.length;
-  const typeConf      = SALON_TYPE_CONFIG[data.salonType] || SALON_TYPE_CONFIG.salon;
+  const typeConf      = SALON_TYPE_CONFIG[data.businessType] || SALON_TYPE_CONFIG.salon;
 
   /* ── Build the full selectedServices array (standard + custom) ── */
   const buildSelected = (cats, sel, customs) => {
@@ -155,7 +155,7 @@ export default function Step8_ServicesSelect() {
 
   /* ── Quick suggestions ───────────────────────────────────── */
   const applyQuickSuggestions = () => {
-    const picks = QUICK_PICKS[data.salonType] || QUICK_PICKS[data.servedGender] || QUICK_PICKS.unisex;
+    const picks = QUICK_PICKS[data.businessType] || QUICK_PICKS[data.servedGender] || QUICK_PICKS.unisex;
     const next  = new Set([...selected, ...picks]);
     setSelected(next);
     update({ selectedServices: buildSelected(categories, next, customServices) });
@@ -246,7 +246,7 @@ export default function Step8_ServicesSelect() {
                   Popular picks for {typeConf.icon} {typeConf.label}
                 </p>
                 <p style={{ fontSize: 11.5, color: textSub, margin: '0 0 12px', lineHeight: 1.5 }}>
-                  {(QUICK_PICKS[data.salonType] || QUICK_PICKS[data.servedGender] || QUICK_PICKS.unisex).join(' · ')}
+                  {(QUICK_PICKS[data.businessType] || QUICK_PICKS[data.servedGender] || QUICK_PICKS.unisex).join(' · ')}
                 </p>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   <button onClick={applyQuickSuggestions} style={{

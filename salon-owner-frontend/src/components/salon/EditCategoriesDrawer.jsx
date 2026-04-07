@@ -376,15 +376,15 @@ const CategoryCard = ({
 
 /* ─── Main Drawer ────────────────────────────────────────────── */
 const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) => {
-  // Read salonType from salon record, fallback to owner profile (for legacy salons registered before salonType field was added)
+  // Read businessType from salon record, fallback to owner profile (for legacy salons registered before businessType field was added)
   const { user } = useContext(AuthContext);
-  const salonType    = salon?.salonType || user?.salonType || 'salon';
-  const isBarberShop = salonType === 'barbershop';
+  const businessType    = salon?.businessType || user?.businessType || 'salon';
+  const isBarberShop = businessType === 'barbershop';
 
-  // Build per-gender cat lists based on salonType
-  const maleCatList   = getCategoriesForSalonType(salonType, 'male');
-  const femaleCatList = getCategoriesForSalonType(salonType, 'female');
-  const unisexCatList = getCategoriesForSalonType(salonType, 'unisex');
+  // Build per-gender cat lists based on businessType
+  const maleCatList   = getCategoriesForSalonType(businessType, 'male');
+  const femaleCatList = getCategoriesForSalonType(businessType, 'female');
+  const unisexCatList = getCategoriesForSalonType(businessType, 'unisex');
 
   const [gender,          setGender]          = useState(isBarberShop ? 'male' : (salon?.servedGender || ''));
   const [pendingGender,   setPendingGender]   = useState(null);
@@ -405,7 +405,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
 
   useEffect(() => {
     if (!isOpen || !salon) return;
-    const type     = salon.salonType || user?.salonType || 'salon';
+    const type     = salon.businessType || user?.businessType || 'salon';
     const isBarber = type === 'barbershop';
     setGender(isBarber ? 'male' : (salon.servedGender || ''));
     setMaleSelections(buildSelections(getCategoriesForSalonType(type, 'male'),   salon.offeredCategories));
@@ -508,7 +508,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
     if (!offeredCategories.length) { toast.error('Please select at least one category'); return; }
     setLoading(true);
     try {
-      await updateSalon({ salonType, servedGender: gender, offeredCategories, kidsHaircut, atHomeServices });
+      await updateSalon({ businessType, servedGender: gender, offeredCategories, kidsHaircut, atHomeServices });
       toast.success('Service menu saved!');
       onClose();
     } catch (err) {
@@ -516,7 +516,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
     } finally { setLoading(false); }
   };
 
-  const currentCats = gender ? getCategoriesForSalonType(salonType, gender) : [];
+  const currentCats = gender ? getCategoriesForSalonType(businessType, gender) : [];
   const currentSels = getSels();
 
   const totalSelected = useMemo(() =>

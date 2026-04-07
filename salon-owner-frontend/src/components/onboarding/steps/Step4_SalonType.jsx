@@ -82,16 +82,16 @@ export default function Step4_SalonType() {
   const { data, update, nextStep } = useOnboarding();
   const { isDark } = useTheme();
 
-  const [selected, setSelected] = useState(data.salonType || '');
+  const [selected, setSelected] = useState(data.businessType || '');
   const [error, setError]       = useState('');
 
   const handleSelect = (type) => {
     setSelected(type.key);
     setError('');
     if (type.autoGender) {
-      update({ salonType: type.key, servedGender: type.autoGender });
+      update({ businessType: type.key, servedGender: type.autoGender });
     } else {
-      update({ salonType: type.key, servedGender: '' });
+      update({ businessType: type.key, servedGender: '' });
     }
   };
 

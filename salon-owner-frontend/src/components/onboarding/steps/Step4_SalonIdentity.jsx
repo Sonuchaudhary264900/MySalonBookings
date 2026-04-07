@@ -45,8 +45,8 @@ export default function Step4_SalonIdentity() {
   const [errors, setErrors]       = useState({});
 
   // If a salon type with autoGender was selected in the previous step, lock gender
-  const salonTypeDef  = SALON_TYPES.find(t => t.key === data.salonType);
-  const lockedGender  = salonTypeDef?.autoGender || null;  // 'male' | 'female' | null
+  const businessTypeDef  = SALON_TYPES.find(t => t.key === data.businessType);
+  const lockedGender  = businessTypeDef?.autoGender || null;  // 'male' | 'female' | null
 
   const suggestions = AI_NAMES_BY_GENDER[gender] || AI_NAMES_BY_GENDER[''];
 
@@ -67,7 +67,7 @@ export default function Step4_SalonIdentity() {
   };
 
   const handleAiDesc = () => {
-    const city = data.city || data.district || '';
+    const city = data.city || data.district || undefined;
     const desc = AI_DESCRIPTIONS[gender] ? AI_DESCRIPTIONS[gender](city) : AI_DESCRIPTIONS[''](city);
     typewrite(desc, setDesc);
   };
@@ -163,7 +163,7 @@ export default function Step4_SalonIdentity() {
                   background: isDark ? 'rgba(139,92,246,0.15)' : 'rgba(124,58,237,0.08)',
                   color: '#a855f7', border: '1px solid rgba(124,58,237,0.25)',
                 }}>
-                  <Lock size={9} /> Auto-set by {salonTypeDef?.label}
+                  <Lock size={9} /> Auto-set by {businessTypeDef?.label}
                 </span>
               )}
             </div>
