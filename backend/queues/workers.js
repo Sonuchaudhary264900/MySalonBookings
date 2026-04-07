@@ -24,6 +24,16 @@ const isTLS = REDIS_URL.startsWith('rediss://');
 const workerConnection = () => new IORedis(REDIS_URL, {
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
+  // Exponential backoff — prevents flooding Redis/Upstash on rate-limit errors
+  retryStrategy(times) {
+    if (times > 10) return null; // stop retrying after 10 attempts
+    return Math.min(times * 500, 30000); // 500ms → 30s cap
+  },
+  reconnectOnError(err) {
+    // Don't reconnect on Upstash rate-limit errors — they are temporary
+    if (err.message && err.message.includes('ERR max requests limit exceeded')) return false;
+    return true;
+  },
   ...(isTLS && { tls: { rejectUnauthorized: false } }),
 });
 
@@ -135,6 +145,9 @@ const allWorkers = [
   { worker: refundWorker,         name: 'refunds' },
 ];
 
+// Throttle repeated error logs — one log per worker per 60s to prevent flooding
+const lastErrorLog = {};
+
 allWorkers.forEach(({ worker, name }) => {
   worker.on('failed', (job, err) => {
     metrics.queueJobsTotal.inc({ queue: name, status: 'failed' });
@@ -147,7 +160,19 @@ allWorkers.forEach(({ worker, name }) => {
   });
 
   worker.on('error', (err) => {
-    logger.error(`Worker error [${name}]`, { error: err.message });
+    const isRateLimit = err.message?.includes('ERR max requests limit exceeded');
+    const now = Date.now();
+    const last = lastErrorLog[name] || 0;
+    // Log at most once per 60s for rate-limit errors, 5s for others
+    const throttle = isRateLimit ? 60000 : 5000;
+    if (now - last > throttle) {
+      lastErrorLog[name] = now;
+      if (isRateLimit) {
+        logger.warn(`Worker [${name}] Redis rate limit exceeded — Upstash free plan quota reached. Backing off.`);
+      } else {
+        logger.error(`Worker error [${name}]`, { error: err.message });
+      }
+    }
   });
 
   workers.push(worker);
