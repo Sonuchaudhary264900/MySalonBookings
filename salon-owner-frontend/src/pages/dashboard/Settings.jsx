@@ -16,7 +16,25 @@ import { useNotifications } from '../../context/NotificationContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { uploadSalonPhotos } from '../../services/salonService';
 import { SALON_TYPES } from '../../constants/salonCategories';
+import { Scissors, Wand2, Waves, FlaskConical } from 'lucide-react';
 import api from '../../services/api';
+
+const MakeupBrushIcon = ({ size = 24, color = 'currentColor', strokeWidth = 1.5 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+    stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="2" x2="12" y2="13" />
+    <rect x="10.2" y="13" width="3.6" height="2.5" rx="0.6" />
+    <path d="M9.5 15.5 C8.5 17 8.5 20 12 21.5 C15.5 20 15.5 17 14.5 15.5" />
+  </svg>
+);
+
+const SALON_TYPE_ICONS = {
+  barbershop:    Scissors,
+  salon:         Wand2,
+  spa_wellness:  Waves,
+  makeup_bridal: MakeupBrushIcon,
+  skin_derma:    FlaskConical,
+};
 
 /* ─── Shared input class ─────────────────────────────────────── */
 const INP = `w-full px-4 py-2.5 rounded-xl border
@@ -321,7 +339,7 @@ const SalonContent = ({ salon, updateSalon }) => {
     phone: '', email: '', address: '', city: '', state: '',
   });
 
-  const salonTypeDef = SALON_TYPES.find(t => t.key === salon?.salonType);
+  const businessTypeDef = SALON_TYPES.find(t => t.key === salon?.businessType);
 
   useEffect(() => {
     if (salon) setForm({
@@ -393,15 +411,32 @@ const SalonContent = ({ salon, updateSalon }) => {
       ) : null}
 
       {[
-        { label: 'Salon Name',    value: form.name },
-        { label: 'Description',   value: form.description },
-        { label: 'Business Type', value: salonTypeDef ? `${salonTypeDef.icon} ${salonTypeDef.label}` : '—' },
-        { label: 'Phone',         value: form.phone },
-        { label: 'Email',         value: form.email },
-        { label: 'Address',       value: form.address },
-        { label: 'City',          value: form.city },
-        { label: 'State',         value: form.state },
+        { label: 'Salon Name',  value: form.name },
+        { label: 'Description', value: form.description },
+        { label: 'Phone',       value: form.phone },
+        { label: 'Email',       value: form.email },
+        { label: 'Address',     value: form.address },
+        { label: 'City',        value: form.city },
+        { label: 'State',       value: form.state },
       ].map(({ label, value }) => <FieldRow key={label} label={label} value={value} />)}
+
+      {/* Business Type row — with lucide icon */}
+      {(() => {
+        const TypeIcon = businessTypeDef ? SALON_TYPE_ICONS[businessTypeDef.key] : null;
+        return (
+          <div className="flex items-start gap-4 py-2.5 border-b border-gray-100 dark:border-gray-800 last:border-0">
+            <span className="w-32 shrink-0 text-sm text-gray-500 dark:text-gray-400">Business Type</span>
+            {businessTypeDef ? (
+              <span className="flex items-center gap-1.5 text-sm font-medium text-gray-900 dark:text-white">
+                {TypeIcon && <TypeIcon size={15} strokeWidth={1.5} color={businessTypeDef.color} />}
+                {businessTypeDef.label}
+              </span>
+            ) : (
+              <span className="text-sm font-medium text-gray-400">—</span>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Map preview */}
       <div className="mt-4">
@@ -442,12 +477,12 @@ const SalonContent = ({ salon, updateSalon }) => {
           placeholder="Describe your salon…"
           className={`${INP} resize-none`} />
       </div>
-      {salonTypeDef && (
+      {businessTypeDef && (
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Business Type</label>
-          <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 text-sm text-gray-700 dark:text-gray-300">
-            <span>{salonTypeDef.icon}</span>
-            <span className="font-medium">{salonTypeDef.label}</span>
+          <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 text-sm">
+            <span className="text-lg">{businessTypeDef.icon}</span>
+            <span className="font-medium text-gray-800 dark:text-gray-200">{businessTypeDef.label}</span>
             <span className="ml-auto text-xs text-gray-400">Set during registration</span>
           </div>
         </div>
