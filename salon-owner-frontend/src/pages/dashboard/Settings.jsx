@@ -339,8 +339,8 @@ const SalonContent = ({ salon, updateSalon }) => {
     phone: '', email: '', address: '', city: '', state: '',
   });
 
-  const businessTypeDef = SALON_TYPES.find(t => t.key === salon?.businessType || salon?.salonType);
-  const bizName = { barbershop: 'Barbershop', salon: 'Salon', spa_wellness: 'Spa', makeup_bridal: 'Studio', skin_derma: 'Clinic' }[salon?.businessType || salon?.salonType] || 'Salon';
+  const businessTypeDef = SALON_TYPES.find(t => t.key === salon?.salonType || salon?.businessType);
+  const bizName = { barbershop: 'Barbershop', salon: 'Salon', spa_wellness: 'Spa', makeup_bridal: 'Studio', skin_derma: 'Clinic' }[salon?.salonType || salon?.businessType] || 'Salon';
 
   useEffect(() => {
     if (salon) setForm({
@@ -1312,7 +1312,7 @@ const SettingsPage = () => {
 
   const toggle = (id) => setActiveId(prev => prev === id ? null : id);
 
-  const pageBizName = { barbershop: 'Barbershop', salon: 'Salon', spa_wellness: 'Spa', makeup_bridal: 'Studio', skin_derma: 'Clinic' }[salon?.businessType || salon?.salonType] || 'Business';
+  const pageBizName = { barbershop: 'Barbershop', salon: 'Salon', spa_wellness: 'Spa', makeup_bridal: 'Studio', skin_derma: 'Clinic' }[salon?.salonType || salon?.businessType] || 'Business';
 
   const SECTIONS = [
     {
