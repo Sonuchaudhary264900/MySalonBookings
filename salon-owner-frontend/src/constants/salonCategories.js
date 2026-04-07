@@ -1273,6 +1273,486 @@ export const SKIN_DERMA_UNISEX_CATEGORIES = [
   },
 ];
 
+// ─── Salon → Men ─────────────────────────────────────────────────────────────
+export const SALON_MALE_CATEGORIES = [
+  {
+    key: 'salon_m_hair',
+    label: 'Hair Services',
+    icon: '💇',
+    tabIcon: 'scissors',
+    sections: [
+      {
+        label: 'Haircuts',
+        services: [
+          'Basic Haircut', 'Fade / Taper / Skin Fade', 'Designer Haircut',
+          'Undercut', 'Crew Cut', 'Buzz Cut',
+        ],
+      },
+      {
+        label: 'Hair Styling & Color',
+        services: [
+          'Hair Styling', 'Hair Coloring', 'Global Hair Color',
+          'Highlights / Streaks', 'Root Touch-Up', 'Grey Coverage',
+        ],
+      },
+      {
+        label: 'Hair Treatments',
+        services: [
+          'Hair Spa', 'Hair Smoothening', 'Hair Straightening',
+          'Keratin Treatment', 'Hair Botox', 'Hair Rebonding',
+        ],
+      },
+      {
+        label: 'Hair Care',
+        services: [
+          'Hair Wash', 'Blow Dry', 'Head Massage', 'Dandruff Treatment',
+          'Hair Fall Treatment', 'Scalp Treatment', 'Deep Conditioning',
+        ],
+      },
+    ],
+    subServices: [
+      'Basic Haircut', 'Fade / Taper / Skin Fade', 'Designer Haircut', 'Undercut', 'Crew Cut', 'Buzz Cut',
+      'Hair Styling', 'Hair Coloring', 'Global Hair Color', 'Highlights / Streaks', 'Root Touch-Up', 'Grey Coverage',
+      'Hair Spa', 'Hair Smoothening', 'Hair Straightening', 'Keratin Treatment', 'Hair Botox', 'Hair Rebonding',
+      'Hair Wash', 'Blow Dry', 'Head Massage', 'Dandruff Treatment', 'Hair Fall Treatment', 'Scalp Treatment', 'Deep Conditioning',
+    ],
+  },
+  {
+    key: 'salon_m_skin',
+    label: 'Skin & Face',
+    icon: '🧴',
+    tabIcon: 'face',
+    sections: [
+      {
+        label: 'Basic Care',
+        services: [
+          'Clean-up', 'Basic Facial', 'Detan', 'Face Bleach',
+          'Express Cleanup', 'Premium Cleanup',
+        ],
+      },
+      {
+        label: 'Premium Facials',
+        services: ['Gold Facial', 'Charcoal Facial'],
+      },
+      {
+        label: 'Skin Treatments',
+        services: ['Anti-Acne Treatment', 'Skin Brightening', 'Oil Control Treatment'],
+      },
+    ],
+    subServices: [
+      'Clean-up', 'Basic Facial', 'Detan', 'Face Bleach', 'Express Cleanup', 'Premium Cleanup',
+      'Gold Facial', 'Charcoal Facial',
+      'Anti-Acne Treatment', 'Skin Brightening', 'Oil Control Treatment',
+    ],
+  },
+  {
+    key: 'salon_m_grooming',
+    label: 'Grooming & Hair Removal',
+    icon: '✂️',
+    tabIcon: 'grooming',
+    sections: [
+      {
+        label: 'Body Waxing',
+        services: ['Chest Waxing', 'Back Waxing', 'Arm Waxing', 'Leg Waxing'],
+      },
+      {
+        label: 'Face & Ear',
+        services: ['Eyebrow Threading', 'Nose Wax', 'Ear Wax', 'Ear Cleaning'],
+      },
+      {
+        label: 'Body Care',
+        services: ['Underarm Cleaning'],
+      },
+    ],
+    subServices: [
+      'Chest Waxing', 'Back Waxing', 'Arm Waxing', 'Leg Waxing',
+      'Eyebrow Threading', 'Nose Wax', 'Ear Wax', 'Ear Cleaning',
+      'Underarm Cleaning',
+    ],
+  },
+  {
+    key: 'salon_m_packages',
+    label: 'Packages',
+    icon: '🎁',
+    tabIcon: 'package',
+    sections: [
+      {
+        label: 'Special Services',
+        services: ['Grooming Package'],
+      },
+    ],
+    subServices: ['Grooming Package'],
+  },
+];
+
+// ─── Salon → Women ────────────────────────────────────────────────────────────
+export const SALON_FEMALE_CATEGORIES = [
+  {
+    key: 'salon_f_hair',
+    label: 'Hair Services',
+    icon: '💇‍♀️',
+    tabIcon: 'scissors',
+    sections: [
+      {
+        label: 'Haircuts',
+        services: [
+          'Haircut (Layer / Step / Trim)', 'Advanced Haircut', 'Fringe / Bangs Cut',
+          'U-Cut', 'V-Cut', 'Feather Cut', 'Blunt Cut', 'Kids Haircut',
+        ],
+      },
+      {
+        label: 'Hair Styling',
+        services: [
+          'Hair Styling (Straight / Curl / Party)', 'Blow Dry', 'Hair Ironing',
+          'Hair Curling', 'Party Hairstyle', 'Bridal Hairstyle',
+          'Engagement Hairstyle', 'Reception Hairstyle',
+        ],
+      },
+      {
+        label: 'Hair Color',
+        services: [
+          'Hair Coloring', 'Global Hair Color', 'Highlights', 'Balayage',
+          'Ombre', 'Root Touch-Up', 'Fashion Color', 'Grey Coverage',
+          'Hair Extension Installation',
+        ],
+      },
+      {
+        label: 'Hair Treatments',
+        services: [
+          'Hair Spa', 'Hair Smoothening', 'Hair Straightening', 'Keratin Treatment',
+          'Hair Botox', 'Rebonding', 'Cysteine Treatment', 'Nanoplastia',
+        ],
+      },
+      {
+        label: 'Hair Care',
+        services: [
+          'Hair Wash', 'Deep Conditioning', 'Head Massage', 'Scalp Treatment',
+          'Dandruff Treatment', 'Hair Fall Treatment', 'Oil Treatment',
+          'Protein Treatment', 'Split Ends Treatment',
+        ],
+      },
+    ],
+    subServices: [
+      'Haircut (Layer / Step / Trim)', 'Advanced Haircut', 'Fringe / Bangs Cut', 'U-Cut', 'V-Cut', 'Feather Cut', 'Blunt Cut', 'Kids Haircut',
+      'Hair Styling (Straight / Curl / Party)', 'Blow Dry', 'Hair Ironing', 'Hair Curling', 'Party Hairstyle', 'Bridal Hairstyle', 'Engagement Hairstyle', 'Reception Hairstyle',
+      'Hair Coloring', 'Global Hair Color', 'Highlights', 'Balayage', 'Ombre', 'Root Touch-Up', 'Fashion Color', 'Grey Coverage', 'Hair Extension Installation',
+      'Hair Spa', 'Hair Smoothening', 'Hair Straightening', 'Keratin Treatment', 'Hair Botox', 'Rebonding', 'Cysteine Treatment', 'Nanoplastia',
+      'Hair Wash', 'Deep Conditioning', 'Head Massage', 'Scalp Treatment', 'Dandruff Treatment', 'Hair Fall Treatment', 'Oil Treatment', 'Protein Treatment', 'Split Ends Treatment',
+    ],
+  },
+  {
+    key: 'salon_f_skin',
+    label: 'Skin & Face',
+    icon: '🧴',
+    tabIcon: 'face',
+    sections: [
+      {
+        label: 'Basic Care',
+        services: [
+          'Clean-up', 'Basic Facial', 'Detan', 'Bleach',
+          'Face Cleanup (Advanced)', 'Express Cleanup', 'Premium Cleanup',
+        ],
+      },
+      {
+        label: 'Premium Facials',
+        services: [
+          'Gold Facial', 'Diamond Facial', 'Charcoal Facial', 'Hydra Facial',
+          'Anti-Aging Facial', 'Oxygen Facial', 'Vitamin C Facial',
+        ],
+      },
+      {
+        label: 'Skin Treatments',
+        services: [
+          'Anti-Acne Treatment', 'Skin Brightening', 'Pigmentation Treatment',
+          'Dark Circle Treatment', 'Tan Removal Treatment', 'Open Pores Treatment',
+        ],
+      },
+      {
+        label: 'Advanced Skin Care',
+        services: [
+          'Face Polishing', 'Skin Hydration Treatment', 'Exfoliation Treatment',
+          'Skin Tightening', 'Collagen Boost Treatment',
+        ],
+      },
+    ],
+    subServices: [
+      'Clean-up', 'Basic Facial', 'Detan', 'Bleach', 'Face Cleanup (Advanced)', 'Express Cleanup', 'Premium Cleanup',
+      'Gold Facial', 'Diamond Facial', 'Charcoal Facial', 'Hydra Facial', 'Anti-Aging Facial', 'Oxygen Facial', 'Vitamin C Facial',
+      'Anti-Acne Treatment', 'Skin Brightening', 'Pigmentation Treatment', 'Dark Circle Treatment', 'Tan Removal Treatment', 'Open Pores Treatment',
+      'Face Polishing', 'Skin Hydration Treatment', 'Exfoliation Treatment', 'Skin Tightening', 'Collagen Boost Treatment',
+    ],
+  },
+  {
+    key: 'salon_f_threading',
+    label: 'Threading',
+    icon: '🧵',
+    tabIcon: 'threading',
+    sections: [
+      {
+        label: 'Threading',
+        services: [
+          'Eyebrow Threading', 'Upper Lip Threading', 'Forehead Threading',
+          'Chin Threading', 'Full Face Threading',
+        ],
+      },
+    ],
+    subServices: [
+      'Eyebrow Threading', 'Upper Lip Threading', 'Forehead Threading',
+      'Chin Threading', 'Full Face Threading',
+    ],
+  },
+  {
+    key: 'salon_f_waxing',
+    label: 'Waxing',
+    icon: '🪒',
+    tabIcon: 'waxing',
+    sections: [
+      {
+        label: 'Body Waxing',
+        services: [
+          'Full Body Wax', 'Half Body Wax', 'Full Arms Wax', 'Half Arms Wax',
+          'Full Legs Wax', 'Half Legs Wax', 'Underarms Wax',
+          'Bikini Wax', 'Brazilian Wax', 'Face Wax',
+        ],
+      },
+    ],
+    subServices: [
+      'Full Body Wax', 'Half Body Wax', 'Full Arms Wax', 'Half Arms Wax',
+      'Full Legs Wax', 'Half Legs Wax', 'Underarms Wax',
+      'Bikini Wax', 'Brazilian Wax', 'Face Wax',
+    ],
+  },
+  {
+    key: 'salon_f_body',
+    label: 'Body Care',
+    icon: '🧍‍♀️',
+    tabIcon: 'body',
+    sections: [
+      {
+        label: 'Body Care',
+        services: [
+          'Body Polish', 'Body Scrub', 'Body Detan',
+          'Underarm Lightening', 'Back Cleanup',
+        ],
+      },
+    ],
+    subServices: ['Body Polish', 'Body Scrub', 'Body Detan', 'Underarm Lightening', 'Back Cleanup'],
+  },
+  {
+    key: 'salon_f_nails',
+    label: 'Nail Services',
+    icon: '💅',
+    tabIcon: 'nails',
+    sections: [
+      {
+        label: 'Basic Nail Care',
+        services: [
+          'Manicure', 'Pedicure', 'Express Manicure', 'Express Pedicure',
+          'Spa Manicure', 'Spa Pedicure', 'Paraffin Treatment',
+          'Detox Pedicure', 'Callus Removal',
+          'Cuticle Care', 'Nail Buffing', 'Nail Shaping',
+        ],
+      },
+      {
+        label: 'Nail Art',
+        services: [
+          'Nail Art', 'French Nails', 'Chrome Nails', 'Matte Finish Nails',
+          '3D Nail Art', 'Glitter Nails', 'Bridal Nail Art',
+        ],
+      },
+      {
+        label: 'Gel & Acrylic',
+        services: [
+          'Gel Nails', 'Acrylic Nails', 'Polygel Nails',
+          'Nail Extensions', 'Gel Extensions', 'Acrylic Extensions',
+        ],
+      },
+      {
+        label: 'Nail Repair & Removal',
+        services: [
+          'Nail Repair', 'Nail Strengthening',
+          'Gel Removal', 'Acrylic Removal', 'Extension Removal', 'Refill / Touch-Up',
+        ],
+      },
+    ],
+    subServices: [
+      'Manicure', 'Pedicure', 'Express Manicure', 'Express Pedicure', 'Spa Manicure', 'Spa Pedicure', 'Paraffin Treatment', 'Detox Pedicure', 'Callus Removal', 'Cuticle Care', 'Nail Buffing', 'Nail Shaping',
+      'Nail Art', 'French Nails', 'Chrome Nails', 'Matte Finish Nails', '3D Nail Art', 'Glitter Nails', 'Bridal Nail Art',
+      'Gel Nails', 'Acrylic Nails', 'Polygel Nails', 'Nail Extensions', 'Gel Extensions', 'Acrylic Extensions',
+      'Nail Repair', 'Nail Strengthening', 'Gel Removal', 'Acrylic Removal', 'Extension Removal', 'Refill / Touch-Up',
+    ],
+  },
+  {
+    key: 'salon_f_packages',
+    label: 'Packages',
+    icon: '🎁',
+    tabIcon: 'package',
+    sections: [
+      {
+        label: 'Special Services',
+        services: ['Pre-Bridal Package', 'Grooming Package'],
+      },
+    ],
+    subServices: ['Pre-Bridal Package', 'Grooming Package'],
+  },
+];
+
+// ─── Salon → Unisex ───────────────────────────────────────────────────────────
+export const SALON_UNISEX_CATEGORIES = [
+  {
+    key: 'salon_u_hair',
+    label: 'Hair Services',
+    icon: '💇',
+    tabIcon: 'scissors',
+    sections: [
+      {
+        label: 'Men',
+        services: [
+          'Basic Haircut', 'Fade / Taper / Skin Fade', 'Designer Haircut', 'Undercut', 'Crew Cut', 'Buzz Cut',
+          'Hair Styling', 'Hair Coloring', 'Global Hair Color', 'Highlights / Streaks', 'Root Touch-Up', 'Grey Coverage',
+          'Hair Spa', 'Hair Smoothening', 'Hair Straightening', 'Keratin Treatment', 'Hair Botox', 'Hair Rebonding',
+          'Hair Wash', 'Blow Dry', 'Head Massage', 'Dandruff Treatment', 'Hair Fall Treatment', 'Scalp Treatment', 'Deep Conditioning',
+        ],
+      },
+      {
+        label: 'Women',
+        services: [
+          'Haircut (Layer / Step / Trim)', 'Advanced Haircut', 'Fringe / Bangs Cut', 'U-Cut', 'V-Cut', 'Feather Cut', 'Blunt Cut', 'Kids Haircut',
+          'Hair Styling (Straight / Curl / Party)', 'Blow Dry', 'Hair Ironing', 'Hair Curling', 'Party Hairstyle', 'Bridal Hairstyle', 'Engagement Hairstyle', 'Reception Hairstyle',
+          'Hair Coloring', 'Global Hair Color', 'Highlights', 'Balayage', 'Ombre', 'Root Touch-Up', 'Fashion Color', 'Grey Coverage', 'Hair Extension Installation',
+          'Hair Spa', 'Hair Smoothening', 'Hair Straightening', 'Keratin Treatment', 'Hair Botox', 'Rebonding', 'Cysteine Treatment', 'Nanoplastia',
+          'Hair Wash', 'Deep Conditioning', 'Head Massage', 'Scalp Treatment', 'Dandruff Treatment', 'Hair Fall Treatment', 'Oil Treatment', 'Protein Treatment', 'Split Ends Treatment',
+        ],
+      },
+    ],
+    subServices: [
+      'Basic Haircut', 'Fade / Taper / Skin Fade', 'Designer Haircut', 'Undercut', 'Crew Cut', 'Buzz Cut',
+      'Haircut (Layer / Step / Trim)', 'Advanced Haircut', 'Fringe / Bangs Cut', 'U-Cut', 'V-Cut', 'Feather Cut', 'Blunt Cut', 'Kids Haircut',
+      'Hair Styling', 'Hair Styling (Straight / Curl / Party)', 'Blow Dry', 'Hair Ironing', 'Hair Curling', 'Party Hairstyle', 'Bridal Hairstyle',
+      'Hair Coloring', 'Global Hair Color', 'Highlights', 'Balayage', 'Ombre', 'Root Touch-Up', 'Fashion Color', 'Grey Coverage', 'Hair Extension Installation',
+      'Hair Spa', 'Hair Smoothening', 'Hair Straightening', 'Keratin Treatment', 'Hair Botox', 'Hair Rebonding', 'Rebonding', 'Cysteine Treatment', 'Nanoplastia',
+      'Hair Wash', 'Deep Conditioning', 'Head Massage', 'Scalp Treatment', 'Dandruff Treatment', 'Hair Fall Treatment', 'Oil Treatment', 'Protein Treatment', 'Split Ends Treatment',
+    ],
+  },
+  {
+    key: 'salon_u_skin',
+    label: 'Skin & Face',
+    icon: '🧴',
+    tabIcon: 'face',
+    sections: [
+      {
+        label: 'Men',
+        services: [
+          'Clean-up', 'Basic Facial', 'Detan', 'Face Bleach', 'Express Cleanup', 'Premium Cleanup',
+          'Gold Facial', 'Charcoal Facial',
+          'Anti-Acne Treatment', 'Skin Brightening', 'Oil Control Treatment',
+        ],
+      },
+      {
+        label: 'Women',
+        services: [
+          'Clean-up', 'Basic Facial', 'Detan', 'Bleach', 'Face Cleanup (Advanced)', 'Express Cleanup', 'Premium Cleanup',
+          'Gold Facial', 'Diamond Facial', 'Charcoal Facial', 'Hydra Facial', 'Anti-Aging Facial', 'Oxygen Facial', 'Vitamin C Facial',
+          'Anti-Acne Treatment', 'Skin Brightening', 'Pigmentation Treatment', 'Dark Circle Treatment', 'Tan Removal Treatment', 'Open Pores Treatment',
+          'Face Polishing', 'Skin Hydration Treatment', 'Exfoliation Treatment', 'Skin Tightening', 'Collagen Boost Treatment',
+        ],
+      },
+    ],
+    subServices: [
+      'Clean-up', 'Basic Facial', 'Detan', 'Face Bleach', 'Bleach', 'Face Cleanup (Advanced)', 'Express Cleanup', 'Premium Cleanup',
+      'Gold Facial', 'Diamond Facial', 'Charcoal Facial', 'Hydra Facial', 'Anti-Aging Facial', 'Oxygen Facial', 'Vitamin C Facial',
+      'Anti-Acne Treatment', 'Skin Brightening', 'Pigmentation Treatment', 'Dark Circle Treatment', 'Tan Removal Treatment', 'Open Pores Treatment', 'Oil Control Treatment',
+      'Face Polishing', 'Skin Hydration Treatment', 'Exfoliation Treatment', 'Skin Tightening', 'Collagen Boost Treatment',
+    ],
+  },
+  {
+    key: 'salon_u_threading_waxing',
+    label: 'Threading & Waxing',
+    icon: '🪒',
+    tabIcon: 'waxing',
+    sections: [
+      {
+        label: 'Men',
+        services: ['Eyebrow Threading', 'Nose Wax', 'Ear Wax', 'Ear Cleaning', 'Chest Waxing', 'Back Waxing', 'Arm Waxing', 'Leg Waxing'],
+      },
+      {
+        label: 'Women',
+        services: [
+          'Eyebrow Threading', 'Upper Lip Threading', 'Forehead Threading', 'Chin Threading', 'Full Face Threading',
+          'Full Body Wax', 'Half Body Wax', 'Full Arms Wax', 'Half Arms Wax', 'Full Legs Wax', 'Half Legs Wax',
+          'Underarms Wax', 'Bikini Wax', 'Brazilian Wax', 'Face Wax',
+        ],
+      },
+    ],
+    subServices: [
+      'Eyebrow Threading', 'Upper Lip Threading', 'Forehead Threading', 'Chin Threading', 'Full Face Threading',
+      'Nose Wax', 'Ear Wax', 'Ear Cleaning', 'Chest Waxing', 'Back Waxing', 'Arm Waxing', 'Leg Waxing',
+      'Full Body Wax', 'Half Body Wax', 'Full Arms Wax', 'Half Arms Wax', 'Full Legs Wax', 'Half Legs Wax',
+      'Underarms Wax', 'Bikini Wax', 'Brazilian Wax', 'Face Wax',
+    ],
+  },
+  {
+    key: 'salon_u_body',
+    label: 'Body Care',
+    icon: '🧍',
+    tabIcon: 'body',
+    sections: [
+      {
+        label: 'Men',
+        services: ['Underarm Cleaning'],
+      },
+      {
+        label: 'Women',
+        services: ['Body Polish', 'Body Scrub', 'Body Detan', 'Underarm Lightening', 'Back Cleanup'],
+      },
+    ],
+    subServices: [
+      'Underarm Cleaning', 'Body Polish', 'Body Scrub', 'Body Detan', 'Underarm Lightening', 'Back Cleanup',
+    ],
+  },
+  {
+    key: 'salon_u_nails',
+    label: 'Nail Services',
+    icon: '💅',
+    tabIcon: 'nails',
+    sections: [
+      {
+        label: 'Women',
+        services: [
+          'Manicure', 'Pedicure', 'Express Manicure', 'Express Pedicure', 'Spa Manicure', 'Spa Pedicure',
+          'Paraffin Treatment', 'Detox Pedicure', 'Callus Removal', 'Cuticle Care', 'Nail Buffing', 'Nail Shaping',
+          'Nail Art', 'French Nails', 'Chrome Nails', 'Matte Finish Nails', '3D Nail Art', 'Glitter Nails', 'Bridal Nail Art',
+          'Gel Nails', 'Acrylic Nails', 'Polygel Nails', 'Nail Extensions', 'Gel Extensions', 'Acrylic Extensions',
+          'Nail Repair', 'Nail Strengthening', 'Gel Removal', 'Acrylic Removal', 'Extension Removal', 'Refill / Touch-Up',
+        ],
+      },
+    ],
+    subServices: [
+      'Manicure', 'Pedicure', 'Express Manicure', 'Express Pedicure', 'Spa Manicure', 'Spa Pedicure', 'Paraffin Treatment', 'Detox Pedicure', 'Callus Removal', 'Cuticle Care', 'Nail Buffing', 'Nail Shaping',
+      'Nail Art', 'French Nails', 'Chrome Nails', 'Matte Finish Nails', '3D Nail Art', 'Glitter Nails', 'Bridal Nail Art',
+      'Gel Nails', 'Acrylic Nails', 'Polygel Nails', 'Nail Extensions', 'Gel Extensions', 'Acrylic Extensions',
+      'Nail Repair', 'Nail Strengthening', 'Gel Removal', 'Acrylic Removal', 'Extension Removal', 'Refill / Touch-Up',
+    ],
+  },
+  {
+    key: 'salon_u_packages',
+    label: 'Packages',
+    icon: '🎁',
+    tabIcon: 'package',
+    sections: [
+      {
+        label: 'Men',
+        services: ['Grooming Package'],
+      },
+      {
+        label: 'Women',
+        services: ['Pre-Bridal Package', 'Grooming Package'],
+      },
+    ],
+    subServices: ['Grooming Package', 'Pre-Bridal Package'],
+  },
+];
+
 // ─── Returns tailored categories based on salon type + served gender ──────────
 export function getCategoriesForSalonType(businessType, servedGender) {
   if (businessType === 'barbershop') {
@@ -1295,7 +1775,13 @@ export function getCategoriesForSalonType(businessType, servedGender) {
     return SKIN_DERMA_UNISEX_CATEGORIES;
   }
 
-  // 'salon' or unset → standard gender-based categories
+  if (businessType === 'salon') {
+    if (servedGender === 'male')   return SALON_MALE_CATEGORIES;
+    if (servedGender === 'female') return SALON_FEMALE_CATEGORIES;
+    return SALON_UNISEX_CATEGORIES;
+  }
+
+  // fallback
   if (servedGender === 'male')   return MALE_CATEGORIES;
   if (servedGender === 'female') return FEMALE_CATEGORIES;
   return UNISEX_CATEGORIES;
