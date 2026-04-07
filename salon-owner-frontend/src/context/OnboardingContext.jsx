@@ -39,7 +39,7 @@ export function OnboardingProvider({ children }) {
     referralCode: '',
 
     // Step 4 — salon type
-    salonType: '',  // 'barbershop' | 'salon' | 'spa_wellness' | 'makeup_bridal' | 'skin_derma'
+    businessType: '',  // 'barbershop' | 'salon' | 'spa_wellness' | 'makeup_bridal' | 'skin_derma'
 
     // Step 5 — salon identity
     salonName:    '',
