@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ArrowRight, Plus, X, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, Plus, X, CheckCircle2, Scissors, Sparkles, Zap, Layers } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import { useTheme } from '../../../context/ThemeContext';
@@ -30,14 +30,20 @@ const S8_CSS = `
   @keyframes s8-fadeup  { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
   @keyframes s8-pop     { 0%{transform:scale(0.88)} 60%{transform:scale(1.07)} 100%{transform:scale(1)} }
   @keyframes s8-shimmer { 0%{background-position:200% center} 100%{background-position:-200% center} }
+  @keyframes s8-tabglow { 0%,100%{opacity:0.7} 50%{opacity:1} }
   .s8-fu1 { animation: s8-fadeup 0.4s 0.00s ease both }
   .s8-fu2 { animation: s8-fadeup 0.4s 0.08s ease both }
   .s8-fu3 { animation: s8-fadeup 0.4s 0.16s ease both }
   .s8-card { transition: all 0.18s cubic-bezier(0.34,1.56,0.64,1); cursor:pointer; }
   .s8-card:hover { transform:translateY(-3px) scale(1.03) !important; }
   .s8-card.sel { animation: s8-pop 0.25s ease; }
-  .s8-tab { transition: all 0.15s; cursor:pointer; white-space:nowrap; }
-  .s8-tab:hover { opacity:0.85; }
+  .s8-tab {
+    transition: all 0.22s cubic-bezier(0.34,1.56,0.64,1);
+    cursor:pointer; white-space:nowrap; position:relative; outline:none;
+  }
+  .s8-tab:hover { transform:translateY(-1px) scale(1.03); }
+  .s8-tab:active { transform:scale(0.97); }
+  .s8-tab-active { animation: s8-pop 0.22s cubic-bezier(0.34,1.56,0.64,1); }
   .s8-cta { transition: transform 0.15s, box-shadow 0.15s; }
   .s8-cta:hover:not(:disabled) { transform:translateY(-2px); }
   .s8-badge-shimmer {
@@ -45,7 +51,61 @@ const S8_CSS = `
     background-size: 200% auto;
     animation: s8-shimmer 2.4s linear infinite;
   }
+  .s8-tab-glow { animation: s8-tabglow 2s ease infinite; }
+  .s8-tabs-scroll::-webkit-scrollbar { display:none; }
+  .s8-tabs-scroll { -ms-overflow-style:none; scrollbar-width:none; }
 `;
+
+/* ─── Tab icon renderer ─────────────────────────────────────────── */
+const TabIcon = ({ tabIcon, color, active, size = 14 }) => {
+  const stroke = active ? '#fff' : color;
+  const s = size;
+  if (tabIcon === 'scissors') return (
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
+      <line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/>
+      <line x1="8.12" y1="8.12" x2="12" y2="12"/>
+    </svg>
+  );
+  if (tabIcon === 'beard') return (
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 11c0-4.97 4.03-9 9-9s9 4.03 9 9"/>
+      <path d="M3 11c0 5 3 8 5 9l4-4 4 4c2-1 5-4 5-9"/>
+      <path d="M9 15c0 1.1.9 2 2 2h2a2 2 0 0 0 0-4h-2a2 2 0 0 0-2 2z"/>
+    </svg>
+  );
+  if (tabIcon === 'face') return (
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9"/>
+      <path d="M9 9h.01M15 9h.01"/>
+      <path d="M9 13c.5 1.5 5.5 1.5 6 0"/>
+    </svg>
+  );
+  if (tabIcon === 'body') return (
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="5" r="2"/>
+      <path d="M12 7v6M9 10H7l1 7h8l1-7h-2"/>
+      <path d="M9 17l-1 4M15 17l1 4"/>
+    </svg>
+  );
+  if (tabIcon === 'massage') return (
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 12c0-4.97 4.03-9 9-9"/>
+      <path d="M21 12c0 4.97-4.03 9-9 9"/>
+      <path d="M6 17c1-2 3-4 6-4s5 2 6 4"/>
+      <circle cx="12" cy="8" r="2"/>
+      <path d="M9 11c-.5 1 0 3 1.5 3.5"/>
+    </svg>
+  );
+  // fallback — dot grid
+  return (
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="8" cy="8" r="1" fill={stroke}/><circle cx="12" cy="8" r="1" fill={stroke}/><circle cx="16" cy="8" r="1" fill={stroke}/>
+      <circle cx="8" cy="12" r="1" fill={stroke}/><circle cx="12" cy="12" r="1" fill={stroke}/><circle cx="16" cy="12" r="1" fill={stroke}/>
+      <circle cx="8" cy="16" r="1" fill={stroke}/><circle cx="12" cy="16" r="1" fill={stroke}/><circle cx="16" cy="16" r="1" fill={stroke}/>
+    </svg>
+  );
+};
 
 export default function Step8_ServicesSelect() {
   const { data, update, nextStep } = useOnboarding();
@@ -219,124 +279,243 @@ export default function Step8_ServicesSelect() {
           boxShadow: isDark ? `0 0 0 1px ${border}` : `0 8px 40px rgba(0,0,0,0.08)`,
         }}>
 
-          {/* Category tabs */}
+          {/* ── Premium Category Tabs ── */}
           <div style={{
-            padding: '12px 14px',
-            borderBottom: `1px solid ${border}`,
-            display: 'flex', gap: 8, overflowX: 'auto',
-            background: isDark ? 'rgba(255,255,255,0.02)' : '#fafafa',
+            padding: '10px 12px',
+            borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
+            background: isDark
+              ? 'linear-gradient(180deg,rgba(255,255,255,0.03) 0%,rgba(255,255,255,0.01) 100%)'
+              : 'linear-gradient(180deg,#fafbff 0%,#f4f6ff 100%)',
+            backdropFilter: 'blur(12px)',
           }}>
-            {categories.map(cat => {
-              const isActive = activeCategory === cat.key;
-              const catCount = (cat.subServices || []).filter(s => selected.has(s)).length;
-              return (
-                <button key={cat.key} className="s8-tab"
-                  onClick={() => setActiveCategory(cat.key)}
-                  style={{
-                    padding: '7px 16px', borderRadius: 99, flexShrink: 0,
-                    fontWeight: 700, fontSize: 12.5, fontFamily: 'inherit',
-                    border: `2px solid ${isActive ? typeConf.color : 'transparent'}`,
-                    background: isActive
-                      ? `linear-gradient(135deg,${typeConf.color},${typeConf.color}cc)`
-                      : (isDark ? 'rgba(255,255,255,0.06)' : '#f0f0f8'),
-                    color: isActive ? '#fff' : textSub,
-                    cursor: 'pointer',
-                    boxShadow: isActive ? `0 3px 14px ${typeConf.glow}` : 'none',
-                    display: 'flex', alignItems: 'center', gap: 5,
-                  }}>
-                  <span>{cat.icon}</span>
-                  <span>{cat.label.split(' ')[0]}</span>
-                  {catCount > 0 && (
-                    <span style={{
-                      background: isActive ? 'rgba(255,255,255,0.3)' : '#10b981',
-                      borderRadius: 99, padding: '1px 7px',
-                      fontSize: 10, fontWeight: 800, color: '#fff',
+            {/* Track container — hides scrollbar, shows all tabs */}
+            <div className="s8-tabs-scroll" style={{
+              display: 'flex', gap: 6, overflowX: 'auto',
+              padding: '2px 2px 4px',
+            }}>
+              {categories.map(cat => {
+                const isActive  = activeCategory === cat.key;
+                const catCount  = (cat.subServices || []).filter(s => selected.has(s)).length;
+                const totalSubs = (cat.subServices || []).length;
+                return (
+                  <button key={cat.key}
+                    className={`s8-tab${isActive ? ' s8-tab-active' : ''}`}
+                    onClick={() => setActiveCategory(cat.key)}
+                    style={{
+                      flexShrink: 0,
+                      padding: '9px 18px 9px 14px',
+                      borderRadius: 14,
+                      fontFamily: 'inherit',
+                      fontSize: 12.5,
+                      fontWeight: isActive ? 700 : 500,
+                      letterSpacing: isActive ? '0.01em' : '0',
+                      border: isActive
+                        ? `1.5px solid ${typeConf.color}55`
+                        : `1.5px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'}`,
+                      background: isActive
+                        ? `linear-gradient(135deg, ${typeConf.color}ee 0%, ${typeConf.color}bb 100%)`
+                        : (isDark ? 'rgba(255,255,255,0.055)' : 'rgba(255,255,255,0.9)'),
+                      color: isActive ? '#fff' : (isDark ? 'rgba(255,255,255,0.55)' : '#6b7280'),
+                      boxShadow: isActive
+                        ? `0 4px 18px ${typeConf.glow}, 0 1px 0 rgba(255,255,255,0.18) inset`
+                        : `0 1px 3px rgba(0,0,0,0.06)`,
+                      transform: isActive ? 'scale(1.04) translateY(-1px)' : 'scale(1)',
+                      display: 'flex', alignItems: 'center', gap: 7,
                     }}>
-                      {catCount}
+
+                    {/* Icon bubble */}
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      width: 26, height: 26, borderRadius: 8, flexShrink: 0,
+                      background: isActive ? 'rgba(255,255,255,0.18)' : (isDark ? 'rgba(255,255,255,0.08)' : `${typeConf.color}12`),
+                      transition: 'all 0.2s',
+                    }}>
+                      {cat.tabIcon
+                        ? <TabIcon tabIcon={cat.tabIcon} color={typeConf.color} active={isActive} size={13} />
+                        : <span style={{ fontSize: 12 }}>{cat.icon}</span>
+                      }
                     </span>
-                  )}
-                </button>
-              );
-            })}
+
+                    {/* Label */}
+                    <span>{cat.label.split(' ')[0]}</span>
+
+                    {/* Count badge */}
+                    {catCount > 0 ? (
+                      <span style={{
+                        background: isActive ? 'rgba(255,255,255,0.28)' : `${typeConf.color}cc`,
+                        borderRadius: 99, padding: '1px 7px',
+                        fontSize: 9.5, fontWeight: 800, color: '#fff',
+                        letterSpacing: '0.02em',
+                        boxShadow: isActive ? 'none' : `0 2px 6px ${typeConf.glow}`,
+                      }}>
+                        {catCount}
+                      </span>
+                    ) : totalSubs > 0 && !isActive ? (
+                      <span style={{
+                        background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)',
+                        borderRadius: 99, padding: '1px 6px',
+                        fontSize: 9, fontWeight: 600,
+                        color: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)',
+                      }}>
+                        {totalSubs}
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Category label row */}
           <div style={{
-            padding: '10px 16px 0',
+            padding: '10px 16px 6px',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            gap: 8,
           }}>
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: textSub }}>
-              {activeCat?.icon} {activeCat?.label}
-            </p>
-            <p style={{ margin: 0, fontSize: 11, color: textSub }}>
-              {(activeCat?.subServices || []).filter(s => selected.has(s)).length} / {(activeCat?.subServices || []).length} selected
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                width: 28, height: 28, borderRadius: 9,
+                background: `${typeConf.color}18`,
+              }}>
+                {activeCat?.tabIcon
+                  ? <TabIcon tabIcon={activeCat.tabIcon} color={typeConf.color} active={false} size={15} />
+                  : <span style={{ fontSize: 15 }}>{activeCat?.icon}</span>
+                }
+              </span>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: textMain, letterSpacing: '-0.2px' }}>
+                {activeCat?.label}
+              </p>
+            </div>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              padding: '3px 10px', borderRadius: 99,
+              background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+              fontSize: 10.5, fontWeight: 700,
+              color: (activeCat?.subServices || []).filter(s => selected.has(s)).length > 0 ? typeConf.color : textSub,
+            }}>
+              {(activeCat?.subServices || []).filter(s => selected.has(s)).length}
+              <span style={{ opacity: 0.5, fontWeight: 400 }}>/{(activeCat?.subServices || []).length}</span>
+            </div>
           </div>
 
-          {/* Service grid */}
-          <div style={{
-            padding: '12px 14px 14px',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-            gap: 9,
-            maxHeight: 320,
-            overflowY: 'auto',
-          }}>
-            {(activeCat?.subServices || []).map(serviceName => {
-              const on = selected.has(serviceName);
-              return (
-                <button key={serviceName}
-                  className={`s8-card${on ? ' sel' : ''}`}
-                  onClick={() => toggleService(activeCat, serviceName)}
-                  style={{
-                    padding: '11px 8px 10px',
-                    borderRadius: 14,
-                    textAlign: 'center',
-                    border: `2px solid ${on ? typeConf.color : (isDark ? 'rgba(255,255,255,0.09)' : '#e5e7eb')}`,
-                    background: on
-                      ? (isDark ? `${typeConf.color}1a` : `${typeConf.color}0d`)
-                      : (isDark ? 'rgba(255,255,255,0.03)' : '#f9f9fc'),
-                    color: on ? typeConf.color : textSub,
-                    fontWeight: on ? 700 : 500,
-                    fontSize: 11.5,
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                    boxShadow: on ? `0 0 0 3px ${typeConf.glow}` : 'none',
-                    position: 'relative',
-                    lineHeight: 1.35,
-                  }}>
-                  {/* Checkmark badge */}
-                  {on && (
+          {/* Service grid — sectioned if sections exist, flat otherwise */}
+          <div style={{ padding: '10px 14px 14px', maxHeight: 340, overflowY: 'auto' }}>
+            {activeCat?.sections ? (
+              /* ── Sectioned layout (barbershop etc.) ── */
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {activeCat.sections.map(section => (
+                  <div key={section.label}>
+                    {/* Section divider */}
                     <div style={{
-                      position: 'absolute', top: 5, right: 5,
-                      width: 15, height: 15, borderRadius: '50%',
-                      background: typeConf.color,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 8, color: '#fff', fontWeight: 800,
-                    }}>✓</div>
-                  )}
-                  <div style={{ fontSize: 17, marginBottom: 5, filter: on ? 'none' : (isDark ? 'grayscale(0.3)' : 'grayscale(0.2)') }}>
-                    {activeCat?.icon || '✂️'}
+                      display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8,
+                    }}>
+                      <div style={{ flex: 1, height: 1, background: isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb' }} />
+                      <span style={{
+                        fontSize: 9, fontWeight: 900, letterSpacing: '0.16em',
+                        textTransform: 'uppercase',
+                        color: isDark ? 'rgba(255,255,255,0.3)' : '#9ca3af',
+                        padding: '0 4px', whiteSpace: 'nowrap',
+                      }}>{section.label}</span>
+                      <div style={{ flex: 1, height: 1, background: isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb' }} />
+                    </div>
+                    {/* Service chips */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                      {section.services.map(serviceName => {
+                        const on = selected.has(serviceName);
+                        return (
+                          <button key={serviceName}
+                            className={`s8-card${on ? ' sel' : ''}`}
+                            onClick={() => toggleService(activeCat, serviceName)}
+                            style={{
+                              padding: '7px 13px',
+                              borderRadius: 99,
+                              border: `2px solid ${on ? typeConf.color : (isDark ? 'rgba(255,255,255,0.12)' : '#e5e7eb')}`,
+                              background: on
+                                ? (isDark ? `${typeConf.color}22` : `${typeConf.color}12`)
+                                : (isDark ? 'rgba(255,255,255,0.04)' : '#f9f9fc'),
+                              color: on ? typeConf.color : textSub,
+                              fontWeight: on ? 700 : 500,
+                              fontSize: 12,
+                              cursor: 'pointer',
+                              fontFamily: 'inherit',
+                              boxShadow: on ? `0 0 0 3px ${typeConf.glow}` : 'none',
+                              display: 'inline-flex', alignItems: 'center', gap: 5,
+                              lineHeight: 1.2,
+                            }}>
+                            {on && <span style={{ fontSize: 10, fontWeight: 900 }}>✓</span>}
+                            {serviceName}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                  {serviceName}
-                </button>
-              );
-            })}
+                ))}
+              </div>
+            ) : (
+              /* ── Flat grid layout ── */
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+                gap: 9,
+              }}>
+                {(activeCat?.subServices || []).map(serviceName => {
+                  const on = selected.has(serviceName);
+                  return (
+                    <button key={serviceName}
+                      className={`s8-card${on ? ' sel' : ''}`}
+                      onClick={() => toggleService(activeCat, serviceName)}
+                      style={{
+                        padding: '11px 8px 10px',
+                        borderRadius: 14,
+                        textAlign: 'center',
+                        border: `2px solid ${on ? typeConf.color : (isDark ? 'rgba(255,255,255,0.09)' : '#e5e7eb')}`,
+                        background: on
+                          ? (isDark ? `${typeConf.color}1a` : `${typeConf.color}0d`)
+                          : (isDark ? 'rgba(255,255,255,0.03)' : '#f9f9fc'),
+                        color: on ? typeConf.color : textSub,
+                        fontWeight: on ? 700 : 500,
+                        fontSize: 11.5,
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                        boxShadow: on ? `0 0 0 3px ${typeConf.glow}` : 'none',
+                        position: 'relative',
+                        lineHeight: 1.35,
+                      }}>
+                      {on && (
+                        <div style={{
+                          position: 'absolute', top: 5, right: 5,
+                          width: 15, height: 15, borderRadius: '50%',
+                          background: typeConf.color,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 8, color: '#fff', fontWeight: 800,
+                        }}>✓</div>
+                      )}
+                      <div style={{ fontSize: 17, marginBottom: 5, filter: on ? 'none' : (isDark ? 'grayscale(0.3)' : 'grayscale(0.2)') }}>
+                        {activeCat?.icon || '✂️'}
+                      </div>
+                      {serviceName}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             {/* Add custom */}
             {!showCustom ? (
               <button onClick={() => setShowCustom(true)} style={{
-                padding: '11px 8px', borderRadius: 14, textAlign: 'center',
-                border: `2px dashed ${isDark ? 'rgba(255,255,255,0.14)' : '#d1d5db'}`,
+                marginTop: 10,
+                padding: '8px 16px', borderRadius: 99, textAlign: 'center',
+                border: `1.5px dashed ${isDark ? 'rgba(255,255,255,0.18)' : '#d1d5db'}`,
                 background: 'transparent', color: textSub,
-                fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+                fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                display: 'inline-flex', alignItems: 'center', gap: 6,
               }}>
-                <Plus size={18} />
-                Add Custom
+                <Plus size={14} />
+                Add Custom Service
               </button>
             ) : (
-              <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 8, padding: '4px 0' }}>
+              <div style={{ marginTop: 10, display: 'flex', gap: 8, padding: '4px 0' }}>
                 <input
                   autoFocus
                   placeholder="Service name…"
