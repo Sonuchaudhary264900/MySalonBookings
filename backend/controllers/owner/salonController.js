@@ -224,10 +224,18 @@ exports.getMySalon = async (req, res) => {
     }
 
     // Backward compat: migrate salonType → businessType for salons created before rename
-    if (!salon.businessType && salon.salonType) {
-      salon.businessType = salon.salonType;
-      Salon.updateOne({ _id: salon._id }, { $set: { businessType: salon.salonType }, $unset: { salonType: '' } }).catch(() => {});
-      Owner.findByIdAndUpdate(req.owner._id, { businessType: salon.salonType }).catch(() => {});
+    const correctType = salon.businessType || salon.salonType;
+    if (correctType) {
+      if (!salon.businessType) {
+        salon.businessType = correctType;
+        Salon.updateOne({ _id: salon._id }, { $set: { businessType: correctType }, $unset: { salonType: '' } }).catch(() => {});
+      }
+      // Also fix Owner.businessType if it was saved as default 'salon' but the salon has a real type
+      Owner.findById(req.owner._id).lean().then(owner => {
+        if (owner && (owner.businessType !== correctType)) {
+          Owner.updateOne({ _id: owner._id }, { businessType: correctType }).catch(() => {});
+        }
+      }).catch(() => {});
     }
 
     res.json(
