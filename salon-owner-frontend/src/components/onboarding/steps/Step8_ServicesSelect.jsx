@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ArrowRight, Plus, X, CheckCircle2, Scissors, Sparkles, Zap, Layers } from 'lucide-react';
+import { ArrowRight, Plus, X, CheckCircle2, Scissors, Sparkles, Zap, Layers, SkipForward } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import { useTheme } from '../../../context/ThemeContext';
@@ -187,6 +187,11 @@ export default function Step8_ServicesSelect() {
   const handleNext = () => {
     if (selected.size === 0) { toast.error('Pick at least one service to continue'); return; }
     toast.success('Service menu locked in!');
+    nextStep();
+  };
+
+  const handleSkip = () => {
+    toast('You can add services anytime from the Services section.', { icon: '💡' });
     nextStep();
   };
 
@@ -605,6 +610,18 @@ export default function Step8_ServicesSelect() {
             boxShadow: selected.size > 0 ? `0 6px 22px ${typeConf.glow}` : 'none',
           }}>
           Continue — Set Prices <ArrowRight size={18} />
+        </button>
+
+        <button className="s8-cta" onClick={handleSkip}
+          style={{
+            width: '100%', padding: '15px 24px', borderRadius: 14,
+            background: isDark ? 'rgba(255,255,255,0.07)' : '#f1f5f9',
+            border: `1.5px solid ${isDark ? 'rgba(255,255,255,0.12)' : '#e2e8f0'}`,
+            color: textSub, fontWeight: 700, fontSize: 14, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            fontFamily: 'inherit',
+          }}>
+          <SkipForward size={16} /> Add services later from Services — Skip for now
         </button>
 
       </div>
