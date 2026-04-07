@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import { useSalon } from '../../hooks/useSalon';
 
 /* ── Razorpay loader ─────────────────────────────────────────── */
 const loadRazorpay = () =>
@@ -45,7 +46,7 @@ function useCountdown(endDate) {
 }
 
 /* ── Active Promotion Banner ────────────────────────────────────── */
-function ActivePromotionBanner({ promotion }) {
+function ActivePromotionBanner({ promotion, bizName }) {
   const left = useCountdown(promotion?.endDate);
   if (!promotion) return null;
 
@@ -67,10 +68,10 @@ function ActivePromotionBanner({ promotion }) {
             </span>
           </div>
           <h3 className="text-base font-bold text-gray-900 dark:text-white leading-tight">
-            Your salon is promoted within {promotion.radiusKm} km
+            Your {bizName} is promoted within {promotion.radiusKm} km
           </h3>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-            Customers near your salon see you first in search results
+            Customers near your {bizName} see you first in search results
           </p>
           {left && (
             <div className="flex items-center gap-3 mt-3">
@@ -137,7 +138,7 @@ function TierCard({ tier, selected, onSelect, disabled }) {
 }
 
 /* ── Payment Modal ─────────────────────────────────────────────── */
-function PayModal({ tier, onClose, onSuccess, ownerInfo }) {
+function PayModal({ tier, onClose, onSuccess, ownerInfo, bizName }) {
   const [method,  setMethod]  = useState('upi');
   const [loading, setLoading] = useState(false);
   const [step,    setStep]    = useState('method'); // method | processing | success
@@ -235,7 +236,7 @@ function PayModal({ tier, onClose, onSuccess, ownerInfo }) {
             </div>
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Promotion Activated!</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Your salon is now promoted within <strong>{tier.radiusKm} km</strong> for 1 week.
+              Your {bizName} is now promoted within <strong>{tier.radiusKm} km</strong> for 1 week.
             </p>
           </div>
         )}
@@ -260,7 +261,7 @@ function PayModal({ tier, onClose, onSuccess, ownerInfo }) {
                   <Megaphone className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-gray-900 dark:text-white">Promote Your Salon</h2>
+                  <h2 className="text-sm font-bold text-gray-900 dark:text-white">Promote Your Business</h2>
                   <p className="text-[11px] text-gray-400 dark:text-gray-500">Secured by Razorpay</p>
                 </div>
               </div>
@@ -277,7 +278,7 @@ function PayModal({ tier, onClose, onSuccess, ownerInfo }) {
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-bold text-gray-900 dark:text-white">{tier.radiusKm} km Promotion — 1 Week</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Appears at top within {tier.radiusKm} km of your salon</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Appears at top within {tier.radiusKm} km of your {bizName}</p>
                 </div>
                 <p className="text-lg font-black text-violet-600 dark:text-violet-400">₹{tier.pricePerWeek}</p>
               </div>
@@ -371,7 +372,17 @@ function HistoryRow({ p }) {
 }
 
 /* ── Main Page ──────────────────────────────────────────────────── */
+const BIZ_NAME_MAP = {
+  barbershop:    'Barbershop',
+  salon:         'Salon',
+  spa_wellness:  'Spa',
+  makeup_bridal: 'Studio',
+  skin_derma:    'Clinic',
+};
+
 export default function Promotions() {
+  const { salon } = useSalon();
+
   const [tiers,           setTiers]           = useState([]);
   const [activePromotion, setActivePromotion] = useState(null);
   const [history,         setHistory]         = useState([]);
@@ -380,6 +391,9 @@ export default function Promotions() {
   const [loading,         setLoading]         = useState(true);
   const [showHistory,     setShowHistory]     = useState(false);
   const [ownerInfo,       setOwnerInfo]       = useState(null);
+
+  const bizType = salon?.businessType || ownerInfo?.businessType || '';
+  const bizName = BIZ_NAME_MAP[bizType] || 'Salon';
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -403,7 +417,13 @@ export default function Promotions() {
     fetchAll();
     // Load owner info for Razorpay prefill
     api.get('/owner/auth/me').then(r => {
-      setOwnerInfo({ name: r.data.owner?.name, email: r.data.owner?.email, phone: r.data.owner?.phone });
+      const owner = r.data.data;
+      setOwnerInfo({
+        name:         owner?.name,
+        email:        owner?.email,
+        phone:        owner?.phone,
+        businessType: owner?.salonId?.businessType || owner?.businessType || '',
+      });
     }).catch(() => {});
   }, [fetchAll]);
 
@@ -420,7 +440,7 @@ export default function Promotions() {
 
   const handlePaySuccess = () => {
     setPayModalOpen(false);
-    toast.success('Promotion activated! Your salon now appears at the top.');
+    toast.success(`Promotion activated! Your ${bizName} now appears at the top.`);
     fetchAll();
   };
 
@@ -444,7 +464,7 @@ export default function Promotions() {
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-md shadow-violet-500/25">
             <Megaphone className="w-4 h-4 text-white" />
           </div>
-          <h1 className="text-xl font-black text-gray-900 dark:text-white">Promote Your Salon</h1>
+          <h1 className="text-xl font-black text-gray-900 dark:text-white">Promote Your Business</h1>
         </div>
         <p className="text-sm text-gray-500 dark:text-gray-400 ml-12">
           Pay to appear at the top of search results for customers near you.
@@ -469,7 +489,7 @@ export default function Promotions() {
       </div>
 
       {/* ── Active Promotion ── */}
-      {hasActivePromotion && <ActivePromotionBanner promotion={activePromotion} />}
+      {hasActivePromotion && <ActivePromotionBanner promotion={activePromotion} bizName={bizName} />}
 
       {/* ── Tier Selection ── */}
       <div>
@@ -552,8 +572,8 @@ export default function Promotions() {
 
       {/* ── Disclaimer ── */}
       <p className="text-[11px] text-gray-400 dark:text-gray-600 text-center leading-relaxed pb-4">
-        Promotions are non-refundable. Your salon appears at the top for customers within the selected radius for exactly 7 days after payment.
-        Only one active promotion per salon at a time.
+        Promotions are non-refundable. Your {bizName} appears at the top for customers within the selected radius for exactly 7 days after payment.
+        Only one active promotion per {bizName} at a time.
       </p>
 
       {/* ── Payment Modal ── */}
@@ -561,6 +581,7 @@ export default function Promotions() {
         <PayModal
           tier={selectedTier}
           ownerInfo={ownerInfo}
+          bizName={bizName}
           onClose={() => setPayModalOpen(false)}
           onSuccess={handlePaySuccess}
         />
