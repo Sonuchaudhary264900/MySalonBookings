@@ -340,6 +340,7 @@ const SalonContent = ({ salon, updateSalon }) => {
   });
 
   const businessTypeDef = SALON_TYPES.find(t => t.key === salon?.businessType);
+  const bizName = { barbershop: 'Barbershop', salon: 'Salon', spa_wellness: 'Spa', makeup_bridal: 'Studio', skin_derma: 'Clinic' }[salon?.businessType] || 'Salon';
 
   useEffect(() => {
     if (salon) setForm({
@@ -362,13 +363,13 @@ const SalonContent = ({ salon, updateSalon }) => {
   const handleSave = async (e) => {
     e.preventDefault();
     const errs = {};
-    if (!form.name.trim())  errs.name  = 'Salon name is required';
+    if (!form.name.trim())  errs.name  = `${bizName} name is required`;
     if (!form.phone.trim()) errs.phone = 'Phone is required';
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setLoading(true);
     try {
       await updateSalon(form);
-      toast.success('Salon information updated!');
+      toast.success('Business information updated!');
       setEditing(false);
     } catch (err) {
       toast.error(err.message || 'Failed to update salon');
@@ -411,7 +412,7 @@ const SalonContent = ({ salon, updateSalon }) => {
       ) : null}
 
       {[
-        { label: 'Salon Name',  value: form.name },
+        { label: `${bizName} Name`,  value: form.name },
         { label: 'Description', value: form.description },
         { label: 'Phone',       value: form.phone },
         { label: 'Email',       value: form.email },
@@ -465,12 +466,12 @@ const SalonContent = ({ salon, updateSalon }) => {
         className="mt-4 flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700
           text-sm font-medium text-gray-700 dark:text-gray-300
           hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-        <Edit2 className="w-4 h-4" /> Edit Salon Info
+        <Edit2 className="w-4 h-4" /> Edit Business Info
       </button>
     </div>
   ) : (
     <form onSubmit={handleSave} className="space-y-4 mt-3">
-      <LabelInput label="Salon Name" name="name" placeholder="Your salon name" required error={errors.name} />
+      <LabelInput label={`${bizName} Name`} name="name" placeholder={`Your ${bizName.toLowerCase()} name`} required error={errors.name} />
       <div className="space-y-1.5">
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
         <textarea name="description" value={form.description} onChange={handleChange} rows={3} disabled={loading}
@@ -1311,6 +1312,8 @@ const SettingsPage = () => {
 
   const toggle = (id) => setActiveId(prev => prev === id ? null : id);
 
+  const pageBizName = { barbershop: 'Barbershop', salon: 'Salon', spa_wellness: 'Spa', makeup_bridal: 'Studio', skin_derma: 'Clinic' }[salon?.businessType] || 'Business';
+
   const SECTIONS = [
     {
       id: 'profile',
@@ -1326,8 +1329,8 @@ const SettingsPage = () => {
       icon: Globe,
       iconBg: 'bg-emerald-100 dark:bg-emerald-950',
       iconColor: 'text-emerald-600 dark:text-emerald-400',
-      title: 'Salon Information',
-      subtitle: 'Salon name, category and contact details',
+      title: `${pageBizName} Information`,
+      subtitle: `${pageBizName} name, category and contact details`,
       content: <SalonContent salon={salon} updateSalon={updateSalon} />,
     },
     {
