@@ -36,7 +36,7 @@ exports.createSalon = async (req, res) => {
     const {
       name, phone, email, address, city, state, pincode,
       workingHours, description, photos, category,
-      servedGender, offeredCategories, kidsHaircut, atHomeServices,
+      salonType, servedGender, offeredCategories, kidsHaircut, atHomeServices,
       location: bodyLocation,
       videoUrl, businessLicenseUrl, businessRegistrationUrl,
     } = req.body;
@@ -115,6 +115,7 @@ exports.createSalon = async (req, res) => {
 
       description: description || '',
       category: category || 'barber',
+      salonType: salonType || 'salon',
       servedGender: servedGender || 'unisex',
       offeredCategories: Array.isArray(offeredCategories) ? offeredCategories : [],
       kidsHaircut: kidsHaircut || false,
@@ -248,7 +249,7 @@ exports.updateSalon = async (req, res) => {
     const {
       name, phone, email, address, city, state, pincode,
       location, workingHours, description,
-      servedGender, offeredCategories, kidsHaircut, atHomeServices,
+      salonType, servedGender, offeredCategories, kidsHaircut, atHomeServices,
     } = req.body;
 
     const salon = await Salon.findOne({ ownerId: req.owner._id });
@@ -275,6 +276,7 @@ exports.updateSalon = async (req, res) => {
     if (state) salon.state = state;
     if (pincode) salon.pincode = pincode;
     if (description) salon.description = description;
+    if (salonType) salon.salonType = salonType;
     if (servedGender) salon.servedGender = servedGender;
     if (Array.isArray(offeredCategories)) {
       salon.offeredCategories = offeredCategories;

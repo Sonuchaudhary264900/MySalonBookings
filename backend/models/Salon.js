@@ -133,6 +133,15 @@ location: {
     },
 
     // ==========================================
+    // SALON TYPE
+    // ==========================================
+    salonType: {
+      type: String,
+      enum: ['barbershop', 'salon', 'spa_wellness', 'makeup_bridal', 'skin_derma'],
+      default: 'salon',
+    },
+
+    // ==========================================
     // SERVED GENDER
     // ==========================================
     servedGender: {

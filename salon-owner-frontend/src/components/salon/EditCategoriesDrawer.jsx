@@ -8,6 +8,7 @@ import {
   MALE_CATEGORIES, MALE_OPTIONALS,
   FEMALE_CATEGORIES, FEMALE_OPTIONALS,
   UNISEX_CATEGORIES,
+  getCategoriesForSalonType,
 } from '../../constants/salonCategories';
 
 /* ─── Helpers ────────────────────────────────────────────────── */
@@ -57,26 +58,27 @@ const Toggle = ({ checked, onChange }) => (
 
 /* ─── Service chip ───────────────────────────────────────────── */
 const ServiceChip = ({ sub, active, onClick, genderCtx }) => {
+  const name = typeof sub === 'string' ? sub : sub.name;
   const genderColor = genderCtx === 'male'
-    ? active ? 'bg-blue-600 text-white border-blue-600 shadow-blue-500/25'   : 'border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40'
+    ? active ? 'bg-blue-600 text-white border-blue-600 shadow-blue-500/30'   : 'border-blue-200 dark:border-blue-800/60 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:border-blue-400 dark:hover:border-blue-600'
     : genderCtx === 'female'
-    ? active ? 'bg-pink-500 text-white border-pink-500 shadow-pink-500/25'   : 'border-pink-200 dark:border-pink-800 text-pink-600 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-950/40'
-    : active ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white border-transparent shadow-indigo-500/25' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-indigo-300 dark:hover:border-indigo-700 hover:text-indigo-600 dark:hover:text-indigo-400';
+    ? active ? 'bg-pink-500 text-white border-pink-500 shadow-pink-500/30'   : 'border-pink-200 dark:border-pink-800/60 text-pink-600 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-950/40 hover:border-pink-400 dark:hover:border-pink-600'
+    : active ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white border-transparent shadow-indigo-500/30' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-indigo-300 dark:hover:border-indigo-600 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50/60 dark:hover:bg-indigo-950/20';
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold
-        transition-all duration-150 shadow-sm ${genderColor}
-        ${active ? 'shadow-md scale-[1.02]' : 'hover:scale-[1.01]'}`}
+      className={`group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold
+        transition-all duration-150 ${genderColor}
+        ${active ? 'shadow-md scale-[1.02]' : 'hover:scale-[1.015] hover:shadow-sm'}`}
     >
       {active
         ? <Check className="w-3 h-3 shrink-0" />
-        : <span className="w-3 h-3 shrink-0 flex items-center justify-center text-[10px] font-bold opacity-60">+</span>}
-      <span>{typeof sub === 'string' ? sub : sub.name}</span>
+        : <span className="w-3 h-3 shrink-0 flex items-center justify-center text-[10px] font-bold opacity-50 group-hover:opacity-80 transition-opacity">+</span>}
+      <span>{name}</span>
       {active && active.price > 0 && (
-        <span className="opacity-80 font-bold">₹{active.price}</span>
+        <span className="opacity-75 font-bold text-[10px]">₹{active.price}</span>
       )}
     </button>
   );
@@ -193,13 +195,27 @@ const PriceModal = ({ modal, onChange, onConfirm, onClose, priceRef, durationRef
   </div>
 );
 
+/* ─── Section divider label ──────────────────────────────────── */
+const SectionLabel = ({ label }) => (
+  <div className="flex items-center gap-2.5 py-0.5">
+    <span className="h-px flex-1 bg-gradient-to-r from-transparent via-gray-200 dark:via-gray-700 to-transparent" />
+    <span className="text-[9px] font-black uppercase tracking-[0.18em] text-gray-400 dark:text-gray-600 shrink-0 px-1">
+      {label}
+    </span>
+    <span className="h-px flex-1 bg-gradient-to-l from-transparent via-gray-200 dark:via-gray-700 to-transparent" />
+  </div>
+);
+
 /* ─── Category card ──────────────────────────────────────────── */
 const CategoryCard = ({
   cat, sel, isExpanded, gender,
   onToggle, onExpand, onToggleSub,
 }) => {
-  const count      = sel.subServices.length;
-  const isActive   = sel.enabled;
+  const count    = sel.subServices.length;
+  const isActive = sel.enabled;
+  const totalServices = cat.sections
+    ? cat.sections.reduce((n, s) => n + s.services.length, 0)
+    : (cat.subServices || []).length;
 
   const renderChips = (subs, genderCtx = null) =>
     subs.map(sub => {
@@ -221,43 +237,60 @@ const CategoryCard = ({
   return (
     <div className={`rounded-2xl border transition-all duration-200 overflow-hidden
       ${isActive
-        ? 'border-indigo-200 dark:border-indigo-800/60 shadow-sm shadow-indigo-100/60 dark:shadow-indigo-900/20'
-        : 'border-gray-200 dark:border-gray-800'
+        ? 'border-indigo-200 dark:border-indigo-800/60 shadow-md shadow-indigo-100/50 dark:shadow-indigo-900/30'
+        : 'border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700'
       }
       bg-white dark:bg-gray-900`}>
 
       {/* Card header */}
-      <div className={`flex items-center gap-3 px-4 py-3.5 transition-colors
-        ${isActive ? 'bg-indigo-50/60 dark:bg-indigo-950/20' : 'bg-white dark:bg-gray-900'}
-        ${isActive && isExpanded ? 'border-b border-indigo-100 dark:border-indigo-900/40' : ''}`}>
+      <div className={`flex items-center gap-3 px-4 py-3.5 transition-colors cursor-pointer
+        ${isActive ? 'bg-gradient-to-r from-indigo-50/80 to-violet-50/40 dark:from-indigo-950/25 dark:to-violet-950/10' : 'bg-white dark:bg-gray-900'}
+        ${isActive && isExpanded ? 'border-b border-indigo-100 dark:border-indigo-900/40' : ''}`}
+        onClick={() => isActive && onExpand(isExpanded ? null : cat.key)}>
 
-        <span className="text-xl shrink-0">{cat.icon || '✨'}</span>
+        <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg shrink-0 transition-all
+          ${isActive
+            ? 'bg-gradient-to-br from-indigo-500 to-violet-600 shadow-md shadow-indigo-500/25'
+            : 'bg-gray-100 dark:bg-gray-800'
+          }`}>
+          <span className={isActive ? 'filter drop-shadow-sm' : ''}>{cat.icon || '✨'}</span>
+        </div>
 
         <div className="flex-1 min-w-0">
-          <p className={`text-sm font-bold truncate ${isActive ? 'text-indigo-800 dark:text-indigo-200' : 'text-gray-700 dark:text-gray-300'}`}>
+          <p className={`text-sm font-bold truncate ${isActive ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>
             {cat.label}
           </p>
-          {count > 0 && (
-            <p className="text-xs text-indigo-500 dark:text-indigo-400 font-medium">{count} selected</p>
+          {isActive ? (
+            <div className="flex items-center gap-1.5 mt-0.5">
+              {count > 0 ? (
+                <>
+                  <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">{count} selected</span>
+                  <span className="text-[10px] text-gray-400 dark:text-gray-600">/ {totalServices}</span>
+                </>
+              ) : (
+                <span className="text-xs text-gray-400 dark:text-gray-500">{totalServices} services available</span>
+              )}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400 dark:text-gray-600 mt-0.5">{totalServices} services</p>
           )}
         </div>
 
-        {/* Expand toggle */}
+        {/* Expand chevron */}
         {isActive && (
-          <button type="button" onClick={() => onExpand(isExpanded ? null : cat.key)}
-            className="p-1.5 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors">
-            <ChevronDown className={`w-4 h-4 text-indigo-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
-          </button>
+          <ChevronDown className={`w-4 h-4 text-indigo-400 transition-transform duration-200 shrink-0 ${isExpanded ? 'rotate-180' : ''}`} />
         )}
 
-        <Toggle checked={isActive} onChange={() => onToggle(cat.key)} />
+        <div onClick={e => e.stopPropagation()}>
+          <Toggle checked={isActive} onChange={() => onToggle(cat.key)} />
+        </div>
       </div>
 
       {/* Expanded body */}
       {isActive && isExpanded && (
-        <div className="px-4 py-4 space-y-4 bg-gray-50/50 dark:bg-gray-800/30">
-          <p className="text-xs text-gray-400 dark:text-gray-600">
-            Tap a service to select it → enter price & duration
+        <div className="px-4 pt-3 pb-4 space-y-3 bg-gray-50/60 dark:bg-gray-800/20">
+          <p className="text-[10px] text-gray-400 dark:text-gray-600 font-medium tracking-wide">
+            Tap to select · enter price & duration
           </p>
 
           {/* Unisex gender split */}
@@ -284,6 +317,19 @@ const CategoryCard = ({
                 </div>
               )}
             </div>
+          ) : cat.sections ? (
+            /* ── Sectioned layout ── */
+            <div className="space-y-3">
+              {cat.sections.map((section, idx) => (
+                <div key={section.label}>
+                  {idx > 0 && <div className="pt-1" />}
+                  <SectionLabel label={section.label} />
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {renderChips(section.services)}
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
             <div className="flex flex-wrap gap-1.5">
               {renderChips(cat.subServices || [])}
@@ -292,27 +338,28 @@ const CategoryCard = ({
 
           {/* Selected summary */}
           {sel.subServices.length > 0 && (
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1.5">
-                <Check className="w-3 h-3" /> Selected Services
+            <div className="border-t border-gray-200 dark:border-gray-700/60 pt-3 mt-1">
+              <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <Check className="w-3 h-3" /> {sel.subServices.length} Service{sel.subServices.length !== 1 ? 's' : ''} Added
               </p>
               <div className="space-y-1.5">
                 {sel.subServices.map((s, i) => (
-                  <div key={i} className="flex items-center gap-2 p-2 rounded-xl
-                    bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
+                  <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-xl
+                    bg-white dark:bg-gray-900 border border-indigo-100/80 dark:border-indigo-900/30
+                    shadow-sm">
                     {s.genderContext && (
                       <span className="text-xs shrink-0">{s.genderContext === 'male' ? '👨' : '👩'}</span>
                     )}
-                    <span className="flex-1 text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{s.name}</span>
+                    <span className="flex-1 text-xs font-semibold text-gray-700 dark:text-gray-300 truncate">{s.name}</span>
                     <span className="flex items-center gap-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
                       <IndianRupee className="w-3 h-3" />{s.price}
                     </span>
-                    <span className="flex items-center gap-0.5 text-xs text-gray-400 dark:text-gray-500 shrink-0">
+                    <span className="flex items-center gap-0.5 text-xs text-gray-400 dark:text-gray-500 shrink-0 ml-1">
                       <Clock className="w-3 h-3" />{s.duration}m
                     </span>
                     <button type="button"
                       onClick={() => onToggleSub(cat.key, s.name, s.genderContext || null)}
-                      className="text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 transition-colors shrink-0 ml-1">
+                      className="text-gray-300 dark:text-gray-700 hover:text-red-500 dark:hover:text-red-400 transition-colors shrink-0 ml-1 p-0.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30">
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -328,7 +375,10 @@ const CategoryCard = ({
 
 /* ─── Main Drawer ────────────────────────────────────────────── */
 const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) => {
-  const [gender,          setGender]          = useState(salon?.servedGender || '');
+  const salonType      = salon?.salonType || 'salon';
+  const isBarberShop   = salonType === 'barbershop';
+
+  const [gender,          setGender]          = useState(isBarberShop ? 'male' : (salon?.servedGender || ''));
   const [pendingGender,   setPendingGender]   = useState(null);
   const [genderModalOpen, setGenderModalOpen] = useState(false);
   const [loading,       setLoading]      = useState(false);
@@ -337,7 +387,9 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
   const priceRef    = useRef(null);
   const durationRef = useRef(null);
 
-  const [maleSelections,   setMaleSelections]   = useState(() => buildSelections(MALE_CATEGORIES,   salon?.offeredCategories));
+  const maleCatList = getCategoriesForSalonType(salonType, 'male');
+
+  const [maleSelections,   setMaleSelections]   = useState(() => buildSelections(maleCatList,       salon?.offeredCategories));
   const [femaleSelections, setFemaleSelections] = useState(() => buildSelections(FEMALE_CATEGORIES, salon?.offeredCategories));
   const [unisexSelections, setUnisexSelections] = useState(() => buildSelections(UNISEX_CATEGORIES, salon?.offeredCategories));
   const [maleOptionals,    setMaleOptionals]    = useState({ kidsHaircut: salon?.kidsHaircut || false, atHomeServices: salon?.atHomeServices || false });
@@ -347,8 +399,11 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
 
   useEffect(() => {
     if (!isOpen || !salon) return;
-    setGender(salon.servedGender || '');
-    setMaleSelections(buildSelections(MALE_CATEGORIES,   salon.offeredCategories));
+    const type     = salon.salonType || 'salon';
+    const isBarber = type === 'barbershop';
+    setGender(isBarber ? 'male' : (salon.servedGender || ''));
+    const mCatList = getCategoriesForSalonType(type, 'male');
+    setMaleSelections(buildSelections(mCatList,         salon.offeredCategories));
     setFemaleSelections(buildSelections(FEMALE_CATEGORIES, salon.offeredCategories));
     setUnisexSelections(buildSelections(UNISEX_CATEGORIES, salon.offeredCategories));
     setMaleOptionals({ kidsHaircut: salon.kidsHaircut || false, atHomeServices: salon.atHomeServices || false });
@@ -456,7 +511,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
     } finally { setLoading(false); }
   };
 
-  const currentCats = gender === 'male' ? MALE_CATEGORIES : gender === 'female' ? FEMALE_CATEGORIES : gender === 'unisex' ? UNISEX_CATEGORIES : [];
+  const currentCats = gender ? getCategoriesForSalonType(salonType, gender) : [];
   const currentSels = getSels();
 
   const totalSelected = useMemo(() =>
@@ -495,13 +550,19 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
             bg-white dark:bg-gray-950">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600
-                  flex items-center justify-center shadow-md shrink-0">
-                  <Sparkles className="w-4 h-4 text-white" />
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shadow-md shrink-0 text-base
+                  ${isBarberShop
+                    ? 'bg-gradient-to-br from-blue-500 to-indigo-600'
+                    : 'bg-gradient-to-br from-indigo-500 to-violet-600'}`}>
+                  {isBarberShop ? '💈' : <Sparkles className="w-4 h-4 text-white" />}
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-gray-900 dark:text-white">Service Menu</h2>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Configure categories, services & pricing</p>
+                  <h2 className="text-base font-bold text-gray-900 dark:text-white">
+                    {isBarberShop ? 'Barbershop Menu' : 'Service Menu'}
+                  </h2>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    {isBarberShop ? 'Full men\'s services & pricing' : 'Configure categories, services & pricing'}
+                  </p>
                 </div>
               </div>
               <button type="button" onClick={onClose}
@@ -528,36 +589,54 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
           <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5
             scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800">
 
-            {/* ── Who Do You Serve — button row ── */}
-            <button
-              type="button"
-              onClick={() => setGenderModalOpen(true)}
-              className="w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-2xl border-2
-                transition-all duration-200 text-left
-                border-indigo-200 dark:border-indigo-800
-                bg-indigo-50 dark:bg-indigo-950/40
-                hover:border-indigo-400 dark:hover:border-indigo-600
-                hover:bg-indigo-100 dark:hover:bg-indigo-950/70
-                focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0">
-                  <Users className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
+            {/* ── Who Do You Serve / Barbershop badge ── */}
+            {isBarberShop ? (
+              <div className="flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2
+                border-blue-200 dark:border-blue-800/70
+                bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/20">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600
+                  flex items-center justify-center shadow-md shadow-blue-500/25 shrink-0 text-lg">
+                  💈
                 </div>
-                <div>
-                  <p className="text-xs font-semibold text-indigo-500 dark:text-indigo-400 uppercase tracking-wider leading-none mb-0.5">Who do you serve?</p>
-                  {gender ? (
-                    <p className="text-sm font-bold text-gray-900 dark:text-white capitalize">
-                      {GENDER_OPTS.find(g => g.val === gender)?.emoji}{' '}
-                      {GENDER_OPTS.find(g => g.val === gender)?.label} customers
-                    </p>
-                  ) : (
-                    <p className="text-sm font-medium text-gray-400 dark:text-gray-500">Tap to select…</p>
-                  )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-bold text-blue-500 dark:text-blue-400 uppercase tracking-widest leading-none mb-0.5">Barbershop</p>
+                  <p className="text-sm font-bold text-gray-900 dark:text-white">Full Men's Services</p>
+                </div>
+                <div className="px-2.5 py-1 rounded-full bg-blue-600 text-white text-[10px] font-bold tracking-wide shrink-0">
+                  MEN
                 </div>
               </div>
-              <ChevronRight className="w-4 h-4 text-indigo-400 dark:text-indigo-500 shrink-0" />
-            </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setGenderModalOpen(true)}
+                className="w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-2xl border-2
+                  transition-all duration-200 text-left
+                  border-indigo-200 dark:border-indigo-800
+                  bg-indigo-50 dark:bg-indigo-950/40
+                  hover:border-indigo-400 dark:hover:border-indigo-600
+                  hover:bg-indigo-100 dark:hover:bg-indigo-950/70
+                  focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0">
+                    <Users className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-indigo-500 dark:text-indigo-400 uppercase tracking-wider leading-none mb-0.5">Who do you serve?</p>
+                    {gender ? (
+                      <p className="text-sm font-bold text-gray-900 dark:text-white capitalize">
+                        {GENDER_OPTS.find(g => g.val === gender)?.emoji}{' '}
+                        {GENDER_OPTS.find(g => g.val === gender)?.label} customers
+                      </p>
+                    ) : (
+                      <p className="text-sm font-medium text-gray-400 dark:text-gray-500">Tap to select…</p>
+                    )}
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-indigo-400 dark:text-indigo-500 shrink-0" />
+              </button>
+            )}
 
             {/* ── Search bar ── */}
             {/* ── Category cards ── */}
@@ -622,13 +701,14 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
           <div className="shrink-0 px-5 py-4 border-t border-gray-100 dark:border-gray-800
             bg-white dark:bg-gray-950">
             <button type="button" onClick={handleSave} disabled={loading || !gender}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl
+              className={`w-full flex items-center justify-center gap-2 py-3 rounded-2xl
                 font-semibold text-sm text-white transition-all duration-200
-                bg-gradient-to-r from-indigo-600 to-violet-600
-                hover:from-indigo-500 hover:to-violet-500
-                shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40
+                ${isBarberShop
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40'
+                  : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40'
+                }
                 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none
-                hover:scale-[1.01]">
+                hover:scale-[1.01]`}>
               {loading
                 ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving…</>
                 : <><Save className="w-4 h-4" /> Save Service Menu</>}

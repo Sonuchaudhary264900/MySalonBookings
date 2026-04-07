@@ -9,7 +9,7 @@ export const MALE_CATEGORIES = [
       // Haircuts
       'Basic Haircut', 'Fade / Taper / Skin Fade', 'Designer Haircut',
       'Undercut', 'Crew Cut', 'Buzz Cut',
-      // Styling & Color
+      // Styling & ColorFFF
       'Hair Styling', 'Hair Coloring', 'Global Hair Color',
       'Highlights / Streaks', 'Root Touch-Up',
       // Hair Treatments
@@ -595,41 +595,136 @@ export const BARBERSHOP_CATEGORIES = [
     key: 'hair_services',
     label: 'Hair Services',
     icon: '✂️',
+    sections: [
+      {
+        label: 'Haircuts',
+        services: [
+          'Basic Haircut', 'Fade / Taper / Skin Fade', 'Designer Haircut',
+          'Undercut', 'Crew Cut', 'Buzz Cut',
+        ],
+      },
+      {
+        label: 'Hair Styling & Color',
+        services: [
+          'Hair Styling', 'Hair Coloring', 'Global Hair Color',
+          'Highlights / Streaks', 'Root Touch-Up', 'Grey Coverage',
+        ],
+      },
+      {
+        label: 'Hair Treatments',
+        services: [
+          'Hair Spa', 'Hair Smoothening', 'Hair Straightening',
+          'Keratin Treatment', 'Hair Botox', 'Hair Rebonding',
+        ],
+      },
+      {
+        label: 'Hair Care & Scalp',
+        services: [
+          'Hair Wash', 'Blow Dry', 'Dandruff Treatment',
+          'Hair Fall Treatment', 'Scalp Treatment', 'Deep Conditioning',
+        ],
+      },
+    ],
     subServices: [
-      // Core cuts
-      'Basic Haircut', 'Fade / Taper / Skin Fade', 'Designer Haircut',
-      'Undercut', 'Crew Cut', 'Buzz Cut',
-      // Styling & wash
-      'Hair Styling', 'Blow Dry', 'Hair Wash',
-      // Color
-      'Hair Coloring', 'Global Hair Color', 'Highlights / Streaks',
-      'Root Touch-Up', 'Grey Coverage',
-      // Basic care
-      'Dandruff Treatment', 'Hair Fall Treatment', 'Scalp Treatment', 'Deep Conditioning',
+      'Basic Haircut', 'Fade / Taper / Skin Fade', 'Designer Haircut', 'Undercut', 'Crew Cut', 'Buzz Cut',
+      'Hair Styling', 'Hair Coloring', 'Global Hair Color', 'Highlights / Streaks', 'Root Touch-Up', 'Grey Coverage',
+      'Hair Spa', 'Hair Smoothening', 'Hair Straightening', 'Keratin Treatment', 'Hair Botox', 'Hair Rebonding',
+      'Hair Wash', 'Blow Dry', 'Dandruff Treatment', 'Hair Fall Treatment', 'Scalp Treatment', 'Deep Conditioning',
     ],
   },
   {
     key: 'beard_grooming',
     label: 'Beard & Grooming',
     icon: '🧔',
+    sections: [
+      {
+        label: 'Basic Grooming',
+        services: ['Beard Trim', 'Clean Shave', 'Hot Towel Shave'],
+      },
+      {
+        label: 'Styling & Shaping',
+        services: ['Beard Styling / Shape', 'Designer Beard', 'Beard Fade'],
+      },
+      {
+        label: 'Coloring',
+        services: ['Beard Coloring', 'Grey Coverage (Beard)'],
+      },
+      {
+        label: 'Treatments',
+        services: ['Beard Spa', 'Beard Smoothening'],
+      },
+      {
+        label: 'Care & Maintenance',
+        services: ['Beard Wash', 'Beard Conditioning', 'Beard Oil Treatment', 'Beard Dandruff Treatment'],
+      },
+    ],
     subServices: [
       'Beard Trim', 'Clean Shave', 'Hot Towel Shave',
       'Beard Styling / Shape', 'Designer Beard', 'Beard Fade',
       'Beard Coloring', 'Grey Coverage (Beard)',
       'Beard Spa', 'Beard Smoothening',
-      'Beard Wash', 'Beard Conditioning', 'Beard Oil Treatment',
-      'Beard Dandruff Treatment',
+      'Beard Wash', 'Beard Conditioning', 'Beard Oil Treatment', 'Beard Dandruff Treatment',
     ],
   },
   {
     key: 'skin_face',
     label: 'Skin & Face',
     icon: '🧴',
+    sections: [
+      {
+        label: 'Facials',
+        services: [
+          'Clean-up', 'Basic Facial', 'Detan', 'Face Bleach',
+          'Gold Facial', 'Diamond Facial', 'Charcoal Facial', 'Fruit Facial', 'Anti-Aging Facial',
+        ],
+      },
+      {
+        label: 'Skin Treatments',
+        services: [
+          'Anti-Acne Treatment', 'Skin Brightening', 'Pigmentation Treatment',
+          'Dark Circle Treatment', 'Oil Control Treatment', 'Sensitive Skin Treatment', 'Deep Cleansing Treatment',
+        ],
+      },
+      {
+        label: 'Advanced Skin Care',
+        services: ['Face Polishing', 'Skin Hydration Treatment', 'Exfoliation Treatment'],
+      },
+    ],
     subServices: [
       'Clean-up', 'Basic Facial', 'Detan', 'Face Bleach',
-      'Charcoal Facial', 'Fruit Facial', 'Anti-Aging Facial',
-      'Anti-Acne Treatment', 'Skin Brightening', 'Dark Circle Treatment',
-      'Oil Control Treatment', 'Deep Cleansing Treatment', 'Face Polishing',
+      'Gold Facial', 'Diamond Facial', 'Charcoal Facial', 'Fruit Facial', 'Anti-Aging Facial',
+      'Anti-Acne Treatment', 'Skin Brightening', 'Pigmentation Treatment',
+      'Dark Circle Treatment', 'Oil Control Treatment', 'Sensitive Skin Treatment', 'Deep Cleansing Treatment',
+      'Face Polishing', 'Skin Hydration Treatment', 'Exfoliation Treatment',
+    ],
+  },
+  {
+    key: 'body_grooming',
+    label: 'Body Grooming',
+    icon: '🧍',
+    sections: [
+      {
+        label: 'Hair Removal',
+        services: ['Chest Waxing', 'Back Waxing', 'Arm Waxing', 'Leg Waxing', 'Full Body Wax'],
+      },
+      {
+        label: 'Threading & Precision',
+        services: ['Eyebrow Threading', 'Threading (optional)', 'Nose Wax', 'Ear Wax'],
+      },
+      {
+        label: 'Hygiene & Care',
+        services: ['Ear Cleaning', 'Underarm Cleaning', 'Intimate Area Grooming (optional)'],
+      },
+      {
+        label: 'Body Care',
+        services: ['Body Polishing', 'Body Scrub', 'Body Detan'],
+      },
+    ],
+    subServices: [
+      'Chest Waxing', 'Back Waxing', 'Arm Waxing', 'Leg Waxing', 'Full Body Wax',
+      'Eyebrow Threading', 'Threading (optional)', 'Nose Wax', 'Ear Wax',
+      'Ear Cleaning', 'Underarm Cleaning', 'Intimate Area Grooming (optional)',
+      'Body Polishing', 'Body Scrub', 'Body Detan',
     ],
   },
 ];
