@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useContext } from 'react';
+import { AuthContext } from '../../context/AuthContext';
 import {
   X, Save, AlertTriangle, Check,
   IndianRupee, Clock, ChevronDown, Sparkles, Zap, Users, ChevronRight,
@@ -375,8 +376,15 @@ const CategoryCard = ({
 
 /* ─── Main Drawer ────────────────────────────────────────────── */
 const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) => {
-  const salonType      = salon?.salonType || 'salon';
-  const isBarberShop   = salonType === 'barbershop';
+  // Read salonType from salon record, fallback to owner profile (for legacy salons registered before salonType field was added)
+  const { user } = useContext(AuthContext);
+  const salonType    = salon?.salonType || user?.salonType || 'salon';
+  const isBarberShop = salonType === 'barbershop';
+
+  // Build per-gender cat lists based on salonType
+  const maleCatList   = getCategoriesForSalonType(salonType, 'male');
+  const femaleCatList = getCategoriesForSalonType(salonType, 'female');
+  const unisexCatList = getCategoriesForSalonType(salonType, 'unisex');
 
   const [gender,          setGender]          = useState(isBarberShop ? 'male' : (salon?.servedGender || ''));
   const [pendingGender,   setPendingGender]   = useState(null);
@@ -387,11 +395,9 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
   const priceRef    = useRef(null);
   const durationRef = useRef(null);
 
-  const maleCatList = getCategoriesForSalonType(salonType, 'male');
-
-  const [maleSelections,   setMaleSelections]   = useState(() => buildSelections(maleCatList,       salon?.offeredCategories));
-  const [femaleSelections, setFemaleSelections] = useState(() => buildSelections(FEMALE_CATEGORIES, salon?.offeredCategories));
-  const [unisexSelections, setUnisexSelections] = useState(() => buildSelections(UNISEX_CATEGORIES, salon?.offeredCategories));
+  const [maleSelections,   setMaleSelections]   = useState(() => buildSelections(maleCatList,   salon?.offeredCategories));
+  const [femaleSelections, setFemaleSelections] = useState(() => buildSelections(femaleCatList, salon?.offeredCategories));
+  const [unisexSelections, setUnisexSelections] = useState(() => buildSelections(unisexCatList, salon?.offeredCategories));
   const [maleOptionals,    setMaleOptionals]    = useState({ kidsHaircut: salon?.kidsHaircut || false, atHomeServices: salon?.atHomeServices || false });
   const [femaleOptionals,  setFemaleOptionals]  = useState({ kidsServices: salon?.kidsHaircut || false, atHomeServices: salon?.atHomeServices || false });
 
@@ -399,13 +405,12 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
 
   useEffect(() => {
     if (!isOpen || !salon) return;
-    const type     = salon.salonType || 'salon';
+    const type     = salon.salonType || user?.salonType || 'salon';
     const isBarber = type === 'barbershop';
     setGender(isBarber ? 'male' : (salon.servedGender || ''));
-    const mCatList = getCategoriesForSalonType(type, 'male');
-    setMaleSelections(buildSelections(mCatList,         salon.offeredCategories));
-    setFemaleSelections(buildSelections(FEMALE_CATEGORIES, salon.offeredCategories));
-    setUnisexSelections(buildSelections(UNISEX_CATEGORIES, salon.offeredCategories));
+    setMaleSelections(buildSelections(getCategoriesForSalonType(type, 'male'),   salon.offeredCategories));
+    setFemaleSelections(buildSelections(getCategoriesForSalonType(type, 'female'), salon.offeredCategories));
+    setUnisexSelections(buildSelections(getCategoriesForSalonType(type, 'unisex'), salon.offeredCategories));
     setMaleOptionals({ kidsHaircut: salon.kidsHaircut || false, atHomeServices: salon.atHomeServices || false });
     setFemaleOptionals({ kidsServices: salon.kidsHaircut || false, atHomeServices: salon.atHomeServices || false });
     setExpandedKey(null);
@@ -487,15 +492,15 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
       ...(s.applicableFor ? { applicableFor: s.applicableFor } : {}),
     }));
     if (gender === 'male') {
-      offeredCategories = MALE_CATEGORIES.filter(c => maleSelections[c.key].enabled)
+      offeredCategories = maleCatList.filter(c => maleSelections[c.key]?.enabled)
         .map(c => ({ name: c.label, subServices: toPayload(maleSelections[c.key].subServices) }));
       kidsHaircut = maleOptionals.kidsHaircut; atHomeServices = maleOptionals.atHomeServices;
     } else if (gender === 'female') {
-      offeredCategories = FEMALE_CATEGORIES.filter(c => femaleSelections[c.key].enabled)
+      offeredCategories = femaleCatList.filter(c => femaleSelections[c.key]?.enabled)
         .map(c => ({ name: c.label, subServices: toPayload(femaleSelections[c.key].subServices) }));
       kidsHaircut = femaleOptionals.kidsServices; atHomeServices = femaleOptionals.atHomeServices;
     } else {
-      offeredCategories = UNISEX_CATEGORIES.filter(c => unisexSelections[c.key].enabled)
+      offeredCategories = unisexCatList.filter(c => unisexSelections[c.key]?.enabled)
         .map(c => ({ name: c.label, subServices: toPayload(unisexSelections[c.key].subServices) }));
       kidsHaircut = unisexSelections['kids_services_unisex']?.enabled || false;
       atHomeServices = unisexSelections['at_home_services_unisex']?.enabled || false;
@@ -503,7 +508,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
     if (!offeredCategories.length) { toast.error('Please select at least one category'); return; }
     setLoading(true);
     try {
-      await updateSalon({ servedGender: gender, offeredCategories, kidsHaircut, atHomeServices });
+      await updateSalon({ salonType, servedGender: gender, offeredCategories, kidsHaircut, atHomeServices });
       toast.success('Service menu saved!');
       onClose();
     } catch (err) {
