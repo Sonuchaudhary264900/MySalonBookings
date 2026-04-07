@@ -79,6 +79,11 @@ const ownerSchema = new mongoose.Schema(
       ref: 'Salon',
       default: null,
     },
+    salonType: {
+      type: String,
+      enum: ['barbershop', 'salon', 'spa_wellness', 'makeup_bridal', 'skin_derma'],
+      default: null,
+    },
     businessName: {
       type: String,
       trim: true,
