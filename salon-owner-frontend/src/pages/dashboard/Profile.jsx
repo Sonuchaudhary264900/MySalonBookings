@@ -383,7 +383,6 @@ const Profile = () => {
                 { icon: Mail,  color: 'text-blue-500',  label: 'Email',  value: user?.email },
                 { icon: Phone, color: 'text-green-500', label: 'Phone',  value: user?.phone },
                 { icon: User,  color: 'text-indigo-500', label: 'Gender', value: user?.gender ? ({ male: 'Male', female: 'Female', other: 'Other' }[user.gender]) : null },
-                salon && { icon: Building, color: 'text-purple-500', label: 'Salon', value: salon.name },
                 (() => { const st = salon?.businessType || user?.businessType; const td = SALON_TYPES.find(t => t.key === st); return td ? { icon: Sparkles, color: 'text-indigo-500', label: 'Business Type', value: td.label } : null; })(),
                 salon && { icon: MapPin,   color: 'text-red-500',    label: 'Address', value: salon.address },
               ].filter(Boolean).map(({ icon: Icon, color, label, value }) => (
