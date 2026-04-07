@@ -339,7 +339,7 @@ const SalonContent = ({ salon, updateSalon }) => {
     phone: '', email: '', address: '', city: '', state: '',
   });
 
-  const businessTypeDef = SALON_TYPES.find(t => t.key === salon?.salonType || salon?.businessType);
+  const businessTypeDef = SALON_TYPES.find(t => t.key === salon?.businessType);
   const bizName = { barbershop: 'Barbershop', salon: 'Salon', spa_wellness: 'Spa', makeup_bridal: 'Studio', skin_derma: 'Clinic' }[businessTypeDef?.key] || 'Salon';
 
   useEffect(() => {
@@ -1312,7 +1312,7 @@ const SettingsPage = () => {
 
   const toggle = (id) => setActiveId(prev => prev === id ? null : id);
 
-  const pageBizTypeDef = SALON_TYPES.find(t => t.key === salon?.salonType || salon?.businessType);
+  const pageBizTypeDef = SALON_TYPES.find(t => t.key === salon?.businessType);
   const pageBizName = { barbershop: 'Barbershop', salon: 'Salon', spa_wellness: 'Spa', makeup_bridal: 'Studio', skin_derma: 'Clinic' }[pageBizTypeDef?.key] || 'Business';
 
   const SECTIONS = [
