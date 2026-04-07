@@ -27,6 +27,14 @@ const AI_NAMES_BY_GENDER = {
   '':     ['Glamour Studio', 'Radiance Salon', 'The Glow Room', 'Luxe Cuts', 'Style & Co.'],
 };
 
+const AI_NAMES_BY_BUSINESS_TYPE = {
+  barbershop:    ['King\'s Cuts', 'The Barber Lab', 'Sharp & Clean', 'The Gents Room', 'Studio Cuts'],
+  salon:         ['The Glow Room', 'Glamour Studio', 'Luxe Cuts', 'Style & Co.', 'Radiance Salon'],
+  spa_wellness:  ['Serenity Spa', 'The Zen Garden', 'Bliss & Beyond', 'Tranquil Touch', 'Aura Wellness'],
+  makeup_bridal: ['The Bridal Canvas', 'Glamour Bride Studio', 'Luxe Bridal', 'The Glow Studio', 'Radiance Bridal'],
+  skin_derma:    ['ClearSkin Clinic', 'DermaCare Studio', 'Glow Derma Clinic', 'Skin & Soul Clinic', 'The Derma Lab'],
+};
+
 const AI_DESCRIPTIONS = {
   male:   (city = 'your city') => `A premium men's grooming studio offering expert haircuts, beard styling, and skin care services in the heart of ${city}. Designed for the modern man who demands the best.`,
   female: (city = 'your city') => `An exclusive women's beauty salon providing expert hair styling, skin care, and beauty treatments in ${city}. Where every visit is a luxurious self-care experience.`,
@@ -46,18 +54,26 @@ export default function Step4_SalonIdentity() {
 
   // If a salon type with autoGender was selected in the previous step, lock gender
   const businessTypeDef  = SALON_TYPES.find(t => t.key === data.businessType);
-  const lockedGender  = businessTypeDef?.autoGender || null;  // 'male' | 'female' | null
+  const lockedGender  = businessTypeDef?.autoGender || null;  // 'male' | 'female' | 'unisex' | null
 
-  const suggestions = AI_NAMES_BY_GENDER[gender] || AI_NAMES_BY_GENDER[''];
+  const NAME_CONFIG = {
+    barbershop:    { label: 'Barbershop Name', placeholder: 'e.g. The Classic Cuts',       title: "What's your barbershop called? ✂️" },
+    salon:         { label: 'Salon Name',       placeholder: 'e.g. The Glow Room',          title: "What's your salon called? ✂️" },
+    spa_wellness:  { label: 'Spa Name',         placeholder: 'e.g. Serene Bliss Spa',       title: "What's your spa called? 🧘" },
+    makeup_bridal: { label: 'Studio Name',      placeholder: 'e.g. The Bridal Glow Studio', title: "What's your studio called? 💄" },
+    skin_derma:    { label: 'Clinic Name',      placeholder: 'e.g. ClearSkin Derma Clinic', title: "What's your clinic called? 🏥" },
+  };
+  const nameConfig = NAME_CONFIG[data.businessType] || NAME_CONFIG.salon;
+
+  const suggestions = AI_NAMES_BY_BUSINESS_TYPE[data.businessType] || AI_NAMES_BY_GENDER[gender] || AI_NAMES_BY_GENDER[''];
 
   const typewrite = (text, setter) => {
     setTypewriting(true);
-    setter('');
     let i = 0;
     const tick = () => {
       if (i < text.length) {
-        setter(t => t + text[i]);
         i++;
+        setter(text.slice(0, i));
         setTimeout(tick, 22);
       } else {
         setTypewriting(false);
@@ -107,7 +123,7 @@ export default function Step4_SalonIdentity() {
         {/* Header */}
         <div className="s4-fu1">
           <h1 style={{ fontSize: 'clamp(1.5rem,3vw,2rem)', fontWeight: 900, color: text, margin: '0 0 6px', letterSpacing: '-0.5px' }}>
-            What's your salon called? ✂️
+            {nameConfig.title}
           </h1>
           <p style={{ color: sub, fontSize: 14, margin: 0, lineHeight: 1.5 }}>
             This is your brand. Make it memorable.
@@ -120,10 +136,10 @@ export default function Step4_SalonIdentity() {
           {/* Salon name */}
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: sub, marginBottom: 8 }}>
-              Salon Name *
+              {nameConfig.label} *
             </label>
             <input
-              placeholder="e.g. The Glow Room"
+              placeholder={nameConfig.placeholder}
               value={name}
               onChange={e => { setName(e.target.value); setErrors(er => ({ ...er, name: '' })); }}
               style={{ ...inpStyle(errors.name), fontSize: 18, fontWeight: 700 }}
@@ -185,7 +201,7 @@ export default function Step4_SalonIdentity() {
                     {lockedGender === 'male' ? 'Men Only' : lockedGender === 'female' ? 'Women Only' : 'Unisex'}
                   </div>
                   <div style={{ fontSize: 11, color: sub, marginTop: 2 }}>
-                    Pre-selected based on your salon type. Change salon type in the previous step to update.
+                    Pre-selected based on your business type. Change business type in the previous step to update.
                   </div>
                 </div>
                 <div style={{ marginLeft: 'auto', width: 20, height: 20, borderRadius: '50%', background: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#fff', fontWeight: 700 }}>✓</div>

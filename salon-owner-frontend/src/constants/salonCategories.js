@@ -582,7 +582,7 @@ export const SALON_TYPES = [
     label:       'Skin & Derma Clinic',
     icon:        '🏥',
     description: 'Advanced skin treatments & dermatology',
-    autoGender:  null,
+    autoGender:  'unisex',
     color:       '#f59e0b',
   },
 ];
@@ -980,108 +980,295 @@ export const SPA_WELLNESS_UNISEX_CATEGORIES = [
 
 export const SKIN_DERMA_MALE_CATEGORIES = [
   {
-    key: 'men_dermatology',
-    label: 'Dermatology',
-    icon: '🏥',
+    key: 'derma_hair_scalp_men',
+    label: 'Hair & Scalp',
+    icon: '🧬',
+    tabIcon: 'hair',
     subServices: [
-      'Alopecia Treatment', 'Hair Fall Consultation', 'Hair Regrowth Therapy',
-      'Male Pattern Baldness Treatment', 'PRP Hair Therapy', 'Scalp Infection Treatment',
-      'Acne Scar Treatment', 'Acne Treatment', 'Detan Treatment', 'Open Pores Treatment',
-      'Skin Brightening Treatment', 'Beard Growth Therapy', 'Beard Patch Treatment',
-      'Ingrown Hair Treatment', 'Razor Bumps Treatment', 'Skin Irritation Treatment (After Shaving)',
-      'Anti-Aging Treatment', 'Chemical Peel', 'Laser Treatment',
-      'Scar Reduction Treatment', 'Skin Tightening',
-      'Back Acne Treatment', 'Body Acne Treatment', 'Skin Allergy Treatment', 'Stretch Marks Treatment',
-      'General Skin Consultation', 'Hair Specialist Consultation',
-      'Follow-up Consultation', 'Online Dermatologist Consultation',
+      'Hair Fall Consultation', 'Hair Regrowth Therapy', 'Male Pattern Baldness Treatment',
+      'Alopecia Treatment', 'PRP Hair Therapy', 'Scalp Infection Treatment',
     ],
   },
   {
-    key: 'skin_face',
-    label: 'Skin Treatments',
+    key: 'derma_skin_face_men',
+    label: 'Skin (Face)',
     icon: '🧴',
+    tabIcon: 'face',
     subServices: [
-      'Basic Facial', 'Clean-up', 'Detan',
-      'Charcoal Facial', 'Anti-Aging Facial',
-      'Anti-Acne Treatment', 'Skin Brightening', 'Pigmentation Treatment',
-      'Skin Hydration Treatment', 'Exfoliation Treatment', 'Deep Cleansing Treatment',
+      'Acne Treatment', 'Acne Scar Treatment', 'Detan Treatment',
+      'Open Pores Treatment', 'Skin Brightening Treatment',
+    ],
+  },
+  {
+    key: 'derma_advanced_men',
+    label: 'Advanced Treatments',
+    icon: '✨',
+    tabIcon: 'advanced',
+    subServices: ['Chemical Peel', 'Laser Treatment', 'Skin Tightening'],
+  },
+  {
+    key: 'derma_body_skin_men',
+    label: 'Body Skin',
+    icon: '🧍',
+    tabIcon: 'body',
+    subServices: [
+      'Back Acne Treatment', 'Body Acne Treatment',
+      'Skin Allergy Treatment', 'Stretch Marks Treatment',
+    ],
+  },
+  {
+    key: 'derma_beard_face_men',
+    label: 'Beard & Face Issues',
+    icon: '🧔',
+    tabIcon: 'beard',
+    subServices: [
+      'Beard Growth Therapy', 'Beard Patch Treatment', 'Ingrown Hair Treatment',
+      'Razor Bumps Treatment', 'Skin Irritation Treatment (After Shaving)',
+    ],
+  },
+  {
+    key: 'derma_consultation_men',
+    label: 'Consultation',
+    icon: '🩺',
+    tabIcon: 'consult',
+    subServices: [
+      'General Skin Consultation', 'Follow-up Consultation',
+      'Hair Specialist Consultation', 'Online Dermatologist Consultation',
     ],
   },
 ];
 
 export const SKIN_DERMA_FEMALE_CATEGORIES = [
   {
-    key: 'women_dermatology',
-    label: 'Dermatology',
-    icon: '🏥',
+    key: 'derma_hair_scalp_women',
+    label: 'Hair & Scalp',
+    icon: '🧬',
+    tabIcon: 'hair',
     subServices: [
-      'Alopecia Treatment', 'Dandruff Treatment', 'Hair Fall Treatment',
-      'Hair Thinning Treatment', 'Hormonal Hair Loss Treatment',
-      'PRP Hair Therapy', 'Scalp Infection Treatment',
-      'Acne Scar Treatment', 'Acne Treatment', 'Dark Circles Treatment',
-      'Detan Treatment', 'Open Pores Treatment', 'Pigmentation Treatment',
-      'Skin Brightening Treatment', 'Uneven Skin Tone Treatment',
-      'Chemical Peel', 'Hydrafacial (Medical Grade)', 'Laser Skin Treatment',
-      'Skin Rejuvenation', 'Skin Tightening',
-      'Anti-Aging Treatment', 'Collagen Boost Therapy',
-      'Fine Line Treatment', 'Skin Lifting Treatment', 'Wrinkle Reduction',
-      'Back Acne Treatment', 'Body Acne Treatment', 'Skin Allergy Treatment',
-      'Stretch Marks Treatment', 'Underarm Pigmentation Treatment',
-      'General Skin Consultation', 'Hair Specialist Consultation',
-      'Follow-up Consultation', 'Online Dermatologist Consultation',
+      'Hair Fall Treatment', 'Hair Thinning Treatment', 'Hormonal Hair Loss Treatment',
+      'Alopecia Treatment', 'PRP Hair Therapy', 'Scalp Infection Treatment', 'Dandruff Treatment',
     ],
   },
   {
-    key: 'skin_beauty',
-    label: 'Skin Treatments',
+    key: 'derma_skin_face_women',
+    label: 'Skin (Face)',
     icon: '🧴',
+    tabIcon: 'face',
     subServices: [
-      'Basic Facial', 'Clean-up', 'Detan', 'Bleach',
-      'Hydra Facial', 'Anti-Aging Facial', 'Oxygen Facial', 'Vitamin C Facial',
-      'Anti-Acne Treatment', 'Skin Brightening', 'Pigmentation Treatment',
-      'Tan Removal Treatment', 'Open Pores Treatment',
-      'Skin Hydration Treatment', 'Exfoliation Treatment', 'Collagen Boost Treatment',
+      'Acne Treatment', 'Acne Scar Treatment', 'Dark Circles Treatment',
+      'Detan Treatment', 'Open Pores Treatment', 'Pigmentation Treatment',
+      'Skin Brightening Treatment', 'Uneven Skin Tone Treatment',
+    ],
+  },
+  {
+    key: 'derma_advanced_women',
+    label: 'Advanced Treatments',
+    icon: '✨',
+    tabIcon: 'advanced',
+    subServices: [
+      'Chemical Peel', 'Hydrafacial (Medical Grade)', 'Laser Skin Treatment',
+      'Skin Rejuvenation', 'Skin Tightening',
+    ],
+  },
+  {
+    key: 'derma_anti_aging_women',
+    label: 'Anti-Aging',
+    icon: '🕰️',
+    tabIcon: 'antiaging',
+    subServices: [
+      'Anti-Aging Treatment', 'Collagen Boost Therapy', 'Fine Line Treatment',
+      'Skin Lifting Treatment', 'Wrinkle Reduction',
+    ],
+  },
+  {
+    key: 'derma_body_skin_women',
+    label: 'Body Skin',
+    icon: '🧍',
+    tabIcon: 'body',
+    subServices: [
+      'Back Acne Treatment', 'Body Acne Treatment', 'Skin Allergy Treatment',
+      'Stretch Marks Treatment', 'Underarm Pigmentation Treatment',
+    ],
+  },
+  {
+    key: 'derma_consultation_women',
+    label: 'Consultation',
+    icon: '🩺',
+    tabIcon: 'consult',
+    subServices: [
+      'General Skin Consultation', 'Follow-up Consultation',
+      'Hair Specialist Consultation', 'Online Dermatologist Consultation',
     ],
   },
 ];
 
 export const SKIN_DERMA_UNISEX_CATEGORIES = [
   {
-    key: 'men_dermatology_unisex',
-    label: 'Men Dermatology',
-    icon: '🏥',
+    key: 'derma_hair_scalp_unisex',
+    label: 'Hair & Scalp',
+    icon: '🧬',
+    tabIcon: 'hair',
+    sections: [
+      {
+        label: 'Men',
+        services: [
+          'Hair Fall Consultation', 'Hair Regrowth Therapy', 'Male Pattern Baldness Treatment',
+          'Alopecia Treatment', 'PRP Hair Therapy', 'Scalp Infection Treatment',
+        ],
+      },
+      {
+        label: 'Women',
+        services: [
+          'Hair Fall Treatment', 'Hair Thinning Treatment', 'Hormonal Hair Loss Treatment',
+          'Alopecia Treatment', 'PRP Hair Therapy', 'Scalp Infection Treatment', 'Dandruff Treatment',
+        ],
+      },
+    ],
     subServices: [
-      'Alopecia Treatment', 'Hair Fall Consultation', 'Hair Regrowth Therapy',
-      'Male Pattern Baldness Treatment', 'PRP Hair Therapy', 'Scalp Infection Treatment',
-      'Acne Scar Treatment', 'Acne Treatment', 'Open Pores Treatment', 'Skin Brightening Treatment',
-      'Beard Growth Therapy', 'Ingrown Hair Treatment', 'Razor Bumps Treatment',
-      'Anti-Aging Treatment', 'Chemical Peel', 'Laser Treatment', 'Skin Tightening',
-      'General Skin Consultation', 'Hair Specialist Consultation', 'Follow-up Consultation',
+      'Hair Fall Consultation', 'Hair Regrowth Therapy', 'Male Pattern Baldness Treatment',
+      'Alopecia Treatment', 'PRP Hair Therapy', 'Scalp Infection Treatment',
+      'Hair Fall Treatment', 'Hair Thinning Treatment', 'Hormonal Hair Loss Treatment', 'Dandruff Treatment',
     ],
   },
   {
-    key: 'women_dermatology_unisex',
-    label: 'Women Dermatology',
-    icon: '🏥',
-    subServices: [
-      'Alopecia Treatment', 'Hair Fall Treatment', 'Hair Thinning Treatment',
-      'Hormonal Hair Loss Treatment', 'PRP Hair Therapy',
-      'Acne Scar Treatment', 'Acne Treatment', 'Pigmentation Treatment',
-      'Skin Brightening Treatment', 'Chemical Peel', 'Laser Skin Treatment',
-      'Skin Tightening', 'Anti-Aging Treatment', 'Collagen Boost Therapy',
-      'Back Acne Treatment', 'Stretch Marks Treatment', 'Underarm Pigmentation Treatment',
-      'General Skin Consultation', 'Hair Specialist Consultation', 'Follow-up Consultation',
-    ],
-  },
-  {
-    key: 'skin_beauty_unisex',
-    label: 'Skin Treatments',
+    key: 'derma_skin_face_unisex',
+    label: 'Skin (Face)',
     icon: '🧴',
+    tabIcon: 'face',
+    sections: [
+      {
+        label: 'Men',
+        services: [
+          'Acne Treatment', 'Acne Scar Treatment', 'Detan Treatment',
+          'Open Pores Treatment', 'Skin Brightening Treatment',
+        ],
+      },
+      {
+        label: 'Women',
+        services: [
+          'Acne Treatment', 'Acne Scar Treatment', 'Dark Circles Treatment',
+          'Detan Treatment', 'Open Pores Treatment', 'Pigmentation Treatment',
+          'Skin Brightening Treatment', 'Uneven Skin Tone Treatment',
+        ],
+      },
+    ],
     subServices: [
-      'Basic Facial', 'Clean-up', 'Detan',
-      'Hydra Facial', 'Anti-Aging Facial', 'Vitamin C Facial',
-      'Anti-Acne Treatment', 'Skin Brightening', 'Pigmentation Treatment',
-      'Skin Hydration Treatment', 'Exfoliation Treatment',
+      'Acne Treatment', 'Acne Scar Treatment', 'Detan Treatment',
+      'Open Pores Treatment', 'Skin Brightening Treatment',
+      'Dark Circles Treatment', 'Pigmentation Treatment', 'Uneven Skin Tone Treatment',
+    ],
+  },
+  {
+    key: 'derma_advanced_unisex',
+    label: 'Advanced Treatments',
+    icon: '✨',
+    tabIcon: 'advanced',
+    sections: [
+      {
+        label: 'Men',
+        services: ['Chemical Peel', 'Laser Treatment', 'Skin Tightening'],
+      },
+      {
+        label: 'Women',
+        services: [
+          'Chemical Peel', 'Hydrafacial (Medical Grade)', 'Laser Skin Treatment',
+          'Skin Rejuvenation', 'Skin Tightening',
+        ],
+      },
+    ],
+    subServices: [
+      'Chemical Peel', 'Laser Treatment', 'Skin Tightening',
+      'Hydrafacial (Medical Grade)', 'Laser Skin Treatment', 'Skin Rejuvenation',
+    ],
+  },
+  {
+    key: 'derma_anti_aging_unisex',
+    label: 'Anti-Aging',
+    icon: '🕰️',
+    tabIcon: 'antiaging',
+    sections: [
+      {
+        label: 'Women',
+        services: [
+          'Anti-Aging Treatment', 'Collagen Boost Therapy', 'Fine Line Treatment',
+          'Skin Lifting Treatment', 'Wrinkle Reduction',
+        ],
+      },
+    ],
+    subServices: [
+      'Anti-Aging Treatment', 'Collagen Boost Therapy', 'Fine Line Treatment',
+      'Skin Lifting Treatment', 'Wrinkle Reduction',
+    ],
+  },
+  {
+    key: 'derma_body_skin_unisex',
+    label: 'Body Skin',
+    icon: '🧍',
+    tabIcon: 'body',
+    sections: [
+      {
+        label: 'Men',
+        services: [
+          'Back Acne Treatment', 'Body Acne Treatment',
+          'Skin Allergy Treatment', 'Stretch Marks Treatment',
+        ],
+      },
+      {
+        label: 'Women',
+        services: [
+          'Back Acne Treatment', 'Body Acne Treatment', 'Skin Allergy Treatment',
+          'Stretch Marks Treatment', 'Underarm Pigmentation Treatment',
+        ],
+      },
+    ],
+    subServices: [
+      'Back Acne Treatment', 'Body Acne Treatment',
+      'Skin Allergy Treatment', 'Stretch Marks Treatment', 'Underarm Pigmentation Treatment',
+    ],
+  },
+  {
+    key: 'derma_beard_face_unisex',
+    label: 'Beard & Face Issues',
+    icon: '🧔',
+    tabIcon: 'beard',
+    sections: [
+      {
+        label: 'Men',
+        services: [
+          'Beard Growth Therapy', 'Beard Patch Treatment', 'Ingrown Hair Treatment',
+          'Razor Bumps Treatment', 'Skin Irritation Treatment (After Shaving)',
+        ],
+      },
+    ],
+    subServices: [
+      'Beard Growth Therapy', 'Beard Patch Treatment', 'Ingrown Hair Treatment',
+      'Razor Bumps Treatment', 'Skin Irritation Treatment (After Shaving)',
+    ],
+  },
+  {
+    key: 'derma_consultation_unisex',
+    label: 'Consultation',
+    icon: '🩺',
+    tabIcon: 'consult',
+    sections: [
+      {
+        label: 'Men',
+        services: [
+          'General Skin Consultation', 'Follow-up Consultation',
+          'Hair Specialist Consultation', 'Online Dermatologist Consultation',
+        ],
+      },
+      {
+        label: 'Women',
+        services: [
+          'General Skin Consultation', 'Follow-up Consultation',
+          'Hair Specialist Consultation', 'Online Dermatologist Consultation',
+        ],
+      },
+    ],
+    subServices: [
+      'General Skin Consultation', 'Follow-up Consultation',
+      'Hair Specialist Consultation', 'Online Dermatologist Consultation',
     ],
   },
 ];
