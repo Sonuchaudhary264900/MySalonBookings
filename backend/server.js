@@ -249,10 +249,16 @@ const testExternalServices = async () => {
     { name: "Google Maps",fn: testGoogleMapsConnection },
     { name: "Firebase",   fn: testFirebaseConnection   },
   ];
-  for (const { name, fn } of tests) {
-    try { await fn(); logger.info(`✅ ${name} connected`); }
-    catch (e) { logger.warn(`⚠️  ${name} test failed`, { error: e.message }); }
-  }
+  const timeout = (ms) => new Promise((_, reject) =>
+    setTimeout(() => reject(new Error("timeout")), ms)
+  );
+  await Promise.allSettled(
+    tests.map(({ name, fn }) =>
+      Promise.race([fn(), timeout(8000)])
+        .then(() => logger.info(`✅ ${name} connected`))
+        .catch((e) => logger.warn(`⚠️  ${name} test failed`, { error: e.message }))
+    )
+  );
 };
 
 /* ============================================================
