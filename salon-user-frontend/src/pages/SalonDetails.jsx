@@ -24,9 +24,7 @@ import {
 
 const BASE_TABS = ["Gallery", "Services", "Packages", "Reviews", "Info"];
 
-// ── Working hours helpers (shared with SalonCard) ─────────────────────────────
 const WH_DAYS = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
-
 const isOpenNow = (wh) => {
   if (!wh) return null;
   const h = wh[WH_DAYS[new Date().getDay()]];
@@ -68,64 +66,40 @@ const getNextSlot = (wh, intervalMins = 30) => {
   }
   return null;
 };
-// ─────────────────────────────────────────────────────────────────────────────
 
-// ── Booking helpers ──────────────────────────────────────────────────────────
 const localDate = (offset = 0) => {
   const d = new Date();
   d.setDate(d.getDate() + offset);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 };
 const todayStr = localDate(0);
-
 const addMinutes = (t, m) => {
   const [h, min] = t.split(":").map(Number);
   const total = h * 60 + min + m;
   return `${String(Math.floor(total / 60)).padStart(2,"0")}:${String(total % 60).padStart(2,"0")}`;
 };
-
 const timeToMinutes = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
-
 const isPastSlot = (date, s) => {
   if (date !== todayStr) return false;
   const now = new Date();
   return timeToMinutes(s) <= now.getHours() * 60 + now.getMinutes();
 };
-
 const formatDay = (dateStr) => {
   const d = new Date(dateStr + "T12:00:00");
   return ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d.getDay()];
 };
-// ────────────────────────────────────────────────────────────────────────────
 
-// ── Animated counter hook ────────────────────────────────────────────────────
-function useCountUp(target, duration = 1400, start = false) {
-  const [count, setCount] = useState(0);
-  useEffect(() => {
-    if (!start || !target) return;
-    let cur = 0;
-    const steps = 60;
-    const inc = target / steps;
-    const delay = duration / steps;
-    const timer = setInterval(() => {
-      cur += inc;
-      if (cur >= target) { setCount(target); clearInterval(timer); }
-      else setCount(Math.round(cur));
-    }, delay);
-    return () => clearInterval(timer);
-  }, [target, duration, start]);
-  return count;
-}
-
-// ── Category theming ─────────────────────────────────────────────────────────
 const CAT_THEMES = {
-  barbershop:    { p: '#e94560', g: 'from-gray-950 via-slate-900 to-red-950',    hero: 'from-gray-950/95', ring: 'rgba(233,69,96,0.6)' },
-  salon:         { p: '#8b5cf6', g: 'from-indigo-950 via-violet-950 to-purple-950', hero: 'from-indigo-950/95', ring: 'rgba(139,92,246,0.6)' },
-  spa_wellness:  { p: '#10b981', g: 'from-emerald-950 via-teal-950 to-green-950', hero: 'from-emerald-950/95', ring: 'rgba(16,185,129,0.6)' },
-  makeup_bridal: { p: '#f59e0b', g: 'from-rose-950 via-pink-950 to-amber-950',   hero: 'from-rose-950/95',   ring: 'rgba(245,158,11,0.6)' },
-  skin_derma:    { p: '#38bdf8', g: 'from-blue-950 via-sky-950 to-cyan-950',     hero: 'from-blue-950/95',  ring: 'rgba(56,189,248,0.6)' },
+  barbershop:    { p: '#e94560', ring: 'rgba(233,69,96,0.6)' },
+  salon:         { p: '#8b5cf6', ring: 'rgba(139,92,246,0.6)' },
+  spa_wellness:  { p: '#10b981', ring: 'rgba(16,185,129,0.6)' },
+  makeup_bridal: { p: '#f59e0b', ring: 'rgba(245,158,11,0.6)' },
+  skin_derma:    { p: '#38bdf8', ring: 'rgba(56,189,248,0.6)' },
 };
 const DEFAULT_THEME = CAT_THEMES.salon;
+
+const BIZ_LABELS    = { barbershop:'barbershop visit', salon:'salon visit', spa_wellness:'spa session', makeup_bridal:'makeover', skin_derma:'skin treatment' };
+const BIZ_SUBTITLES = { barbershop:'Precision cuts. Defined character.', salon:'Luxury grooming experience.', spa_wellness:'Wellness & beauty elevated.', makeup_bridal:'Bridal beauty artistry.', skin_derma:'Advanced skin science.' };
 
 function SalonDetails() {
   const { id } = useParams();
@@ -133,34 +107,24 @@ function SalonDetails() {
   const { addToast, addNotification } = useNotifications();
   const token = localStorage.getItem("customerToken");
 
-  // ── Salon details state ──────────────────────────────────────────────────
   const [salon, setSalon]           = useState(null);
   const [services, setServices]     = useState([]);
   const [reviews, setReviews]       = useState([]);
   const [offers, setOffers]         = useState([]);
   const [packages, setPackages]     = useState([]);
-  const [tab, setTab]               = useState("Services");
   const [loading, setLoading]       = useState(true);
-
-  // Package request modal state
-  const [pkgReqModal, setPkgReqModal]   = useState(null); // the pkg being requested
-  const [pkgNote, setPkgNote]           = useState('');
+  const [pkgReqModal, setPkgReqModal]     = useState(null);
+  const [pkgNote, setPkgNote]             = useState('');
   const [pkgReqLoading, setPkgReqLoading] = useState(false);
   const [selectedServices, setSelectedServices] = useState([]);
   const [serviceGenderFilter, setServiceGenderFilter] = useState("all");
   const [expandedCat, setExpandedCat] = useState(null);
-
-  const TABS = BASE_TABS;
-  const activeTab = TABS.includes(tab) ? tab : "Gallery";
-  const [heroMuted, setHeroMuted] = useState(true);
-  const [statsVisible, setStatsVisible] = useState(false);
+  const [heroMuted, setHeroMuted]   = useState(true);
+  const [darkMode, setDarkMode]     = useState(true);
   const heroVideoRef2 = useRef(null);
-  const statsRef = useRef(null);
-
-  // ── Booking state ────────────────────────────────────────────────────────
-  const [galleryLightbox, setGalleryLightbox] = useState(null); // index into galleryItems
+  const [galleryLightbox, setGalleryLightbox] = useState(null);
   const galleryVideoRef = useRef(null);
-  const [videoViewerIdx, setVideoViewerIdx] = useState(null); // index into salonVideoUrls
+  const [videoViewerIdx, setVideoViewerIdx] = useState(null);
   const [showBooking, setShowBooking]     = useState(false);
   const [barbers, setBarbers]             = useState([]);
   const [barberId, setBarberId]           = useState("");
@@ -182,108 +146,62 @@ function SalonDetails() {
   const [bookingStatus, setBookingStatus] = useState("confirmed");
   const [bookError, setBookError]         = useState("");
 
-  // ── Computed booking values ──────────────────────────────────────────────
   const totalPrice    = selectedServices.reduce((s, x) => s + (x.basePrice || x.price || 0), 0);
   const totalDuration = selectedServices.reduce((s, x) => s + (x.duration || 0), 0);
   const finalPrice    = Math.max(0, totalPrice - couponDiscount);
   const advanceDays   = salon?.advanceBookingDays ?? 7;
-  const maxDateStr    = localDate(advanceDays);
   const dateDays      = Array.from({ length: Math.max(advanceDays + 1, 8) }, (_, i) => localDate(i));
 
-  // ── Auto-set gender filter from profile ─────────────────────────────────
   useEffect(() => {
     if (!token) return;
-    API.get("/customer/auth/me")
-      .then((res) => {
-        const gender = res.data?.data?.gender || res.data?.gender;
-        if (gender === "male" || gender === "female") setServiceGenderFilter(gender);
-      })
-      .catch(() => {});
+    API.get("/customer/auth/me").then(res => {
+      const gender = res.data?.data?.gender || res.data?.gender;
+      if (gender === "male" || gender === "female") setServiceGenderFilter(gender);
+    }).catch(() => {});
   }, [token]);
 
-  // ── Initial load ─────────────────────────────────────────────────────────
   useEffect(() => {
     Promise.all([loadSalon(), loadServices(), loadReviews(), loadBarbers(), loadOffers(), loadPackages()]).finally(() => setLoading(false));
   }, [id]);
 
-  const loadSalon = async () => {
-    try {
-      const r = await API.get(`/public/salons/${id}`);
-      const data = r.data.data || r.data.salon;
-      setSalon(data);
-      // Immediately seed offers from topOffer — guarantees something shows even if /offers call fails
-      if (data?.topOffer) setOffers(prev => prev.length > 0 ? prev : [data.topOffer]);
-    } catch {}
-  };
+  const loadSalon    = async () => { try { const r = await API.get(`/public/salons/${id}`); const data = r.data.data || r.data.salon; setSalon(data); if (data?.topOffer) setOffers(prev => prev.length > 0 ? prev : [data.topOffer]); } catch {} };
   const loadServices = async () => { try { const r = await API.get(`/public/salons/${id}/services`); setServices(r.data.data?.services || r.data.data || []); } catch {} };
-  const loadReviews  = async () => { try { const r = await API.get(`/public/salons/${id}/reviews`);  setReviews(r.data.data?.reviews || r.data.data || []); } catch {} };
+  const loadReviews  = async () => { try { const r = await API.get(`/public/salons/${id}/reviews`);  setReviews(r.data.data?.reviews  || r.data.data || []); } catch {} };
   const loadBarbers  = async () => { try { const r = await API.get(`/public/salons/${id}/barbers`).catch(() => ({ data: { data: { barbers: [] } } })); setBarbers(r.data.data?.barbers || []); } catch {} };
-  const loadOffers   = async () => { try { const r = await API.get(`/public/salons/${id}/offers`); const list = r.data.data?.offers || []; if (list.length > 0) setOffers(list); } catch {} };
+  const loadOffers   = async () => { try { const r = await API.get(`/public/salons/${id}/offers`);  const list = r.data.data?.offers || []; if (list.length > 0) setOffers(list); } catch {} };
   const loadPackages = async () => { try { const r = await API.get(`/public/salons/${id}/packages`); setPackages(r.data.data?.packages || []); } catch {} };
 
-  // ── Stats counter visibility ─────────────────────────────────────────────
-  useEffect(() => {
-    if (!statsRef.current) return;
-    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setStatsVisible(true); }, { threshold: 0.3 });
-    obs.observe(statsRef.current);
-    return () => obs.disconnect();
-  }, []);
-
-  // ── Slot fetch when booking modal open + date/duration changes ───────────
   useEffect(() => {
     if (!showBooking || !totalDuration || !id) return;
-    setSlot("");
-    setSlots([]);
-    setBlockedSlots([]);
-    setClosedDay(false);
+    setSlot(""); setSlots([]); setBlockedSlots([]); setClosedDay(false);
     const fetchSlots = async () => {
       setSlotsLoading(true);
       try {
         const res = await API.get(`/public/salons/${id}/booked-slots?date=${bookDate}&duration=${totalDuration}`);
         const data = res.data.data || {};
         const mode = data.bookingMode || "sequential";
-        setBookingMode(mode);
-        setSlots(data.slots || []);
-        setBlockedSlots(data.blockedSlots || []);
-        setClosedDay(data.closedDay || false);
+        setBookingMode(mode); setSlots(data.slots || []); setBlockedSlots(data.blockedSlots || []); setClosedDay(data.closedDay || false);
         if (mode === "sequential" && data.slots?.length === 1) setSlot(data.slots[0]);
       } catch { setSlots([]); } finally { setSlotsLoading(false); }
     };
     fetchSlots();
   }, [bookDate, id, totalDuration, showBooking]);
 
-  // ── Service selection ────────────────────────────────────────────────────
   const toggleService = (service) => {
     setSelectedServices(prev =>
-      prev.find(s => s._id === service._id)
-        ? prev.filter(s => s._id !== service._id)
-        : [...prev, service]
+      prev.find(s => s._id === service._id) ? prev.filter(s => s._id !== service._id) : [...prev, service]
     );
   };
 
-  // ── Open booking drawer ──────────────────────────────────────────────────
   const openBooking = () => {
-    if (!isCustomer()) {
-      clearCustomerAuth();
-      navigate("/login", { state: { from: `/salons/${id}` } });
-      return;
-    }
-    setBookDate(todayStr);
-    setSlot("");
-    setBarberId("");
-    setAppliedCoupon(null);
-    setCouponDiscount(0);
-    setCouponInput("");
-    setCouponError("");
-    setBookingSuccess(false);
-    setBookError("");
-    setShowBooking(true);
+    if (!isCustomer()) { clearCustomerAuth(); navigate("/login", { state: { from: `/salons/${id}` } }); return; }
+    setBookDate(todayStr); setSlot(""); setBarberId(""); setAppliedCoupon(null);
+    setCouponDiscount(0); setCouponInput(""); setCouponError(""); setBookingSuccess(false); setBookError(""); setShowBooking(true);
   };
 
   const handleBookNow      = () => { if (selectedServices.length === 0) { addToast("error", "Please select at least one service."); return; } openBooking(); };
   const handleBookNowEmpty = () => openBooking();
 
-  // ── Coupon ───────────────────────────────────────────────────────────────
   const applyCoupon = async () => {
     if (!couponInput.trim()) return;
     setCouponError(""); setCouponLoading(true);
@@ -296,10 +214,8 @@ function SalonDetails() {
       setAppliedCoupon(null); setCouponDiscount(0);
     } finally { setCouponLoading(false); }
   };
-
   const removeCoupon = () => { setAppliedCoupon(null); setCouponDiscount(0); setCouponInput(""); setCouponError(""); };
 
-  // ── Package request ──────────────────────────────────────────────────────
   const handlePackageRequest = async () => {
     if (!isCustomer()) { navigate('/login'); return; }
     if (!pkgReqModal) return;
@@ -313,19 +229,14 @@ function SalonDetails() {
     } finally { setPkgReqLoading(false); }
   };
 
-  // ── Confirm booking ──────────────────────────────────────────────────────
   const handleConfirm = async (e) => {
     if (e?.preventDefault) e.preventDefault();
     if (!slot) { setBookError("Please select a time slot."); return; }
     setBookError(""); setBookingLoading(true);
     try {
       const res = await API.post("/customer/bookings", {
-        salonId: id,
-        serviceIds: selectedServices.map(s => s._id),
-        barberId: barberId || undefined,
-        appointmentDate: bookDate,
-        appointmentTime: slot,
-        paymentMethod: "cash",
+        salonId: id, serviceIds: selectedServices.map(s => s._id), barberId: barberId || undefined,
+        appointmentDate: bookDate, appointmentTime: slot, paymentMethod: "cash",
         couponCode: appliedCoupon?.code || undefined,
       });
       const status = res.data.data?.booking?.status || res.data.data?.status || "confirmed";
@@ -344,30 +255,12 @@ function SalonDetails() {
     } finally { setBookingLoading(false); }
   };
 
-  /* ── Loading skeleton ── */
   if (loading) {
     return (
-      <div className="t-page min-h-screen" style={{ background: 'var(--t-bg)' }}>
-        <div className="h-[55vh] skeleton" style={{ borderRadius: 0 }} />
-        <div className="max-w-2xl mx-auto px-4 pt-5 space-y-4">
-          <div className="flex items-center gap-4">
-            <div className="w-20 h-20 rounded-full skeleton shrink-0" />
-            <div className="flex-1 flex gap-6 justify-around">
-              {[1,2,3].map(i => <div key={i} className="flex flex-col items-center gap-1">
-                <div className="h-5 w-10 skeleton rounded" />
-                <div className="h-3 w-14 skeleton rounded" />
-              </div>)}
-            </div>
-          </div>
-          <div className="h-5 skeleton rounded w-1/2" />
-          <div className="h-3 skeleton rounded w-3/4" />
-          <div className="h-10 skeleton rounded-xl" />
-          <div className="grid grid-cols-4 gap-2">
-            {[1,2,3,4].map(i => <div key={i} className="h-20 skeleton rounded-2xl" />)}
-          </div>
-          <div className="grid grid-cols-3 gap-[2px] mt-2">
-            {[1,2,3,4,5,6].map(i => <div key={i} className="aspect-square skeleton" />)}
-          </div>
+      <div style={{ background: '#050505', minHeight: '100vh' }}>
+        <div style={{ height: '100vh', background: 'linear-gradient(135deg,#0a0a0a,#111)' }} />
+        <div style={{ maxWidth: 800, margin: '0 auto', padding: '48px 24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {[1,2,3].map(i => <div key={i} style={{ height: 20, background: 'rgba(255,255,255,.06)', borderRadius: 2 }} />)}
         </div>
       </div>
     );
@@ -375,1021 +268,702 @@ function SalonDetails() {
 
   if (!salon) {
     return (
-      <div className="t-page min-h-screen flex items-center justify-center">
+      <div style={{ background: '#050505', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div className="text-center">
-          <div className="flex justify-center mb-4"><Frown className="w-12 h-12" style={{ color: 'var(--t-text-3)' }} /></div>
-          <p className="mb-4" style={{ color: 'var(--t-text-2)' }}>Salon not found.</p>
-          <button onClick={() => navigate("/")} className="btn-primary">Go Home</button>
+          <Frown className="w-12 h-12 mx-auto mb-4" style={{ color: 'rgba(255,255,255,.2)' }} />
+          <p className="mb-4" style={{ color: 'rgba(255,255,255,.4)' }}>Salon not found.</p>
+          <button onClick={() => navigate("/")} style={{ background: '#8b5cf6', color: '#fff', padding: '12px 32px', borderRadius: 2, border: 'none', cursor: 'pointer', fontWeight: 700 }}>Go Home</button>
         </div>
       </div>
     );
   }
 
-  const avgRating = salon.averageRating || salon.rating
-    ? parseFloat(salon.averageRating || salon.rating).toFixed(1)
-    : null;
-
+  const avgRating      = salon.averageRating || salon.rating ? parseFloat(salon.averageRating || salon.rating).toFixed(1) : null;
   const salonPhotoUrls = (salon.photos || []).map(p => (typeof p === 'string' ? p : p?.url)).filter(Boolean);
   const salonVideoUrls = (salon.videos || []).map(v => (typeof v === 'string' ? v : v?.url)).filter(Boolean);
-  const galleryItems = [
-    ...salonPhotoUrls.map(url => ({ url, type: 'image' })),
-    ...salonVideoUrls.map(url => ({ url, type: 'video' })),
-  ];
-
-  const openStatus   = isOpenNow(salon.workingHours);
-  const todayHours   = getTodayHours(salon.workingHours);
-  const opensAt      = getOpensAt(salon.workingHours);
-  const nextSlot     = getNextSlot(salon.workingHours);
-  const totalBookings = salon.totalBookings || 0;
-  const dayOrder = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
-  const theme = CAT_THEMES[salon.businessType] || DEFAULT_THEME;
-
-  const highlightCats = (() => {
-    const cats = {};
-    for (const s of services) {
-      const cat = s.category || "Other";
-      if (!cats[cat]) cats[cat] = { name: cat, icon: CATEGORY_ICON_MAP[cat] || "✨", count: 0 };
-      cats[cat].count++;
-    }
-    return Object.values(cats).slice(0, 10);
-  })();
-
-  const heroMedia = salonVideoUrls[0] || salonPhotoUrls[0] || salon.coverPhoto || null;
-  const heroIsVideo = !!salonVideoUrls[0];
-  const allOffers = offers.length > 0 ? offers : salon.topOffer ? [salon.topOffer] : [];
-
-  const TAB_ICONS = {
-    Gallery:  <Play className="w-[18px] h-[18px]" />,
-    Services: <Scissors className="w-[18px] h-[18px]" />,
-    Packages: <Gift className="w-[18px] h-[18px]" />,
-    Reviews:  <Star className="w-[18px] h-[18px]" />,
-    Info:     <Building2 className="w-[18px] h-[18px]" />,
+  const galleryItems   = [...salonPhotoUrls.map(url => ({ url, type: 'image' })), ...salonVideoUrls.map(url => ({ url, type: 'video' }))];
+  const openStatus     = isOpenNow(salon.workingHours);
+  const todayHours     = getTodayHours(salon.workingHours);
+  const opensAt        = getOpensAt(salon.workingHours);
+  const nextSlot       = getNextSlot(salon.workingHours);
+  const totalBookings  = salon.totalBookings || 0;
+  const dayOrder       = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
+  const theme          = CAT_THEMES[salon.businessType] || DEFAULT_THEME;
+  const dm = {
+    bg:  darkMode ? '#050505' : '#fafaf8',
+    fg:  darkMode ? '#f5f5f0' : '#0f0f0d',
+    fg75: darkMode ? 'rgba(245,245,240,.75)' : 'rgba(10,10,10,.82)',
+    fg65: darkMode ? 'rgba(245,245,240,.65)' : 'rgba(10,10,10,.72)',
+    fg55: darkMode ? 'rgba(245,245,240,.55)' : 'rgba(10,10,10,.65)',
+    fg50: darkMode ? 'rgba(245,245,240,.50)' : 'rgba(10,10,10,.58)',
+    fg48: darkMode ? 'rgba(245,245,240,.48)' : 'rgba(10,10,10,.58)',
+    fg45: darkMode ? 'rgba(245,245,240,.45)' : 'rgba(10,10,10,.56)',
+    fg42: darkMode ? 'rgba(245,245,240,.42)' : 'rgba(10,10,10,.52)',
+    fg40: darkMode ? 'rgba(245,245,240,.40)' : 'rgba(10,10,10,.50)',
+    fg38: darkMode ? 'rgba(245,245,240,.38)' : 'rgba(10,10,10,.48)',
+    fg35: darkMode ? 'rgba(245,245,240,.35)' : 'rgba(10,10,10,.45)',
+    fg32: darkMode ? 'rgba(245,245,240,.32)' : 'rgba(10,10,10,.40)',
+    fg30: darkMode ? 'rgba(245,245,240,.30)' : 'rgba(10,10,10,.38)',
+    fg28: darkMode ? 'rgba(245,245,240,.28)' : 'rgba(10,10,10,.34)',
+    fg25: darkMode ? 'rgba(245,245,240,.25)' : 'rgba(10,10,10,.30)',
+    b28:  darkMode ? 'rgba(255,255,255,.28)' : 'rgba(0,0,0,.20)',
+    b20:  darkMode ? 'rgba(255,255,255,.20)' : 'rgba(0,0,0,.16)',
+    b14:  darkMode ? 'rgba(255,255,255,.14)' : 'rgba(0,0,0,.12)',
+    b12:  darkMode ? 'rgba(255,255,255,.12)' : 'rgba(0,0,0,.10)',
+    b10:  darkMode ? 'rgba(255,255,255,.10)' : 'rgba(0,0,0,.08)',
+    b07:  darkMode ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.06)',
+    b05:  darkMode ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.05)',
+    b04:  darkMode ? 'rgba(255,255,255,.04)' : 'rgba(0,0,0,.05)',
+    b03:  darkMode ? 'rgba(255,255,255,.03)' : 'rgba(0,0,0,.04)',
+    card:     darkMode ? 'rgba(255,255,255,.015)' : 'rgba(0,0,0,.025)',
+    cardBrd:  darkMode ? 'rgba(255,255,255,.05)'  : 'rgba(0,0,0,.07)',
+    barBg:    darkMode ? '#0e0e0e' : '#f0f0ee',
+    ownerOvr: darkMode ? 'linear-gradient(to right,transparent 55%,#050505 100%)' : 'linear-gradient(to right,transparent 55%,#fafaf8 100%)',
+    heroOvr1: darkMode ? 'linear-gradient(to top,rgba(5,5,5,1) 0%,rgba(5,5,5,.75) 35%,rgba(5,5,5,.1) 70%,rgba(5,5,5,0) 100%)' : 'linear-gradient(to top,rgba(250,250,248,1) 0%,rgba(250,250,248,.75) 35%,rgba(250,250,248,.1) 70%,rgba(250,250,248,0) 100%)',
+    heroOvr2: darkMode ? 'linear-gradient(to right,rgba(5,5,5,.6) 0%,transparent 60%)' : 'linear-gradient(to right,rgba(250,250,248,.6) 0%,transparent 60%)',
+    ctaOvr:   darkMode ? 'rgba(5,5,5,.5)' : 'rgba(250,250,248,.5)',
+    formInp:  darkMode ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.04)',
+    formBrd:  darkMode ? 'rgba(255,255,255,.1)'  : 'rgba(0,0,0,.10)',
   };
+  const heroMedia      = salonVideoUrls[0] || salonPhotoUrls[0] || salon.coverPhoto || null;
+  const heroIsVideo    = !!salonVideoUrls[0];
+  const allOffers      = offers.length > 0 ? offers : salon.topOffer ? [salon.topOffer] : [];
 
   return (
-    <div className="t-page" style={{ background: 'var(--t-bg)' }}>
+    <div style={{ background: dm.bg, color: dm.fg, minHeight: '100vh', overflowX: 'hidden', transition: 'background .3s,color .3s' }}>
 
-      {/* ══ PAGE-LEVEL CSS ═════════════════════════════════════════════════ */}
+      {/* ════ PAGE CSS ════ */}
       <style>{`
-        .sd-hero-video { position:absolute;inset:0;width:100%;height:100%;object-fit:cover; }
-        .sd-hero-img   { position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:sdKenBurns 12s ease-in-out infinite alternate; }
-        @keyframes sdKenBurns { from{transform:scale(1)} to{transform:scale(1.08)} }
-        .sd-stat-card  { transition:transform .2s,box-shadow .2s; }
-        .sd-stat-card:hover { transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,.18); }
-        .sd-svc-card   { transition:transform .18s,box-shadow .18s; }
-        .sd-svc-card:hover { transform:translateY(-2px); }
-        .sd-gallery-item:hover img,.sd-gallery-item:hover video { transform:scale(1.06); }
-        .sd-review-track { display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;scroll-snap-type:x mandatory;padding-bottom:4px; }
-        .sd-review-track::-webkit-scrollbar { display:none; }
-        .sd-tab-indicator { position:absolute;bottom:0;left:0;right:0;height:2px;border-radius:2px; }
-        .sd-offer-pill:hover { filter:brightness(1.08); }
-        @keyframes sdFadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
-        .sd-fade-up { animation:sdFadeUp .5s ease both; }
-        .sd-fade-up-1 { animation-delay:.05s }
-        .sd-fade-up-2 { animation-delay:.12s }
-        .sd-fade-up-3 { animation-delay:.2s }
+        .lux-hero{position:relative;height:100vh;min-height:580px;overflow:hidden}
+        .lux-media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+        @keyframes luxKB{from{transform:scale(1)}to{transform:scale(1.06)}}
+        .lux-media-img{animation:luxKB 18s ease-in-out infinite alternate}
+        .lux-section{padding:clamp(80px,10vw,140px) clamp(24px,6vw,96px)}
+        .lux-title{font-size:clamp(36px,5vw,72px);font-weight:900;line-height:1.05;letter-spacing:-.025em}
+        .lux-hero-title{font-size:clamp(44px,7vw,104px);font-weight:900;line-height:.92;letter-spacing:-.035em}
+        .lux-overline{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase}
+        .lux-body{font-size:clamp(16px,1.4vw,19px);line-height:1.75}
+        .lux-divider{width:36px;height:1px;margin:20px 0}
+        .lux-btn-p{display:inline-flex;align-items:center;gap:10px;padding:14px 32px;font-weight:700;font-size:12px;letter-spacing:.15em;text-transform:uppercase;color:#fff;border-radius:2px;transition:all .25s ease;cursor:pointer;border:none;outline:none}
+        .lux-btn-o{display:inline-flex;align-items:center;gap:10px;padding:14px 32px;font-weight:700;font-size:12px;letter-spacing:.15em;text-transform:uppercase;border-radius:2px;transition:all .25s ease;cursor:pointer;background:transparent;text-decoration:none}
+        .lux-btn-p:hover,.lux-btn-o:hover{opacity:.8;transform:translateY(-2px)}
+        .lux-gallery-track{display:flex;gap:16px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;scroll-snap-type:x mandatory}
+        .lux-gallery-track::-webkit-scrollbar{display:none}
+        .lux-gc{position:relative;flex-shrink:0;overflow:hidden;scroll-snap-align:start;cursor:pointer;border-radius:2px}
+        .lux-gc .gcm{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .7s ease}
+        .lux-gc:hover .gcm{transform:scale(1.06)}
+        .lux-svc-cat{border-bottom:1px solid ${dm.b05}}
+        .lux-svc-row{padding:18px 0;display:flex;align-items:center;gap:16px;border-bottom:1px solid ${dm.b03};cursor:pointer;transition:padding-left .2s}
+        .lux-svc-row:hover{padding-left:12px}
+        .lux-rev-track{display:flex;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;scroll-snap-type:x mandatory}
+        .lux-rev-track::-webkit-scrollbar{display:none}
+        .lux-info-row{display:flex;align-items:flex-start;gap:16px;padding:16px 0;border-bottom:1px solid ${dm.b04}}
+        .lux-split{display:grid;grid-template-columns:1fr 1fr}
+        @media(max-width:767px){.lux-split{grid-template-columns:1fr}}
+        .lux-pkg-card{border:1px solid ${dm.b07};padding:32px;border-radius:2px;transition:border-color .2s,transform .2s;display:flex;flex-direction:column}
+        .lux-pkg-card:hover{border-color:${dm.b20};transform:translateY(-4px)}
       `}</style>
 
-      {/* ══ HERO ════════════════════════════════════════════════════════════ */}
-      <motion.div
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: .6 }}
-        className="relative overflow-hidden"
-        style={{ height: 'min(62vh, 520px)', minHeight: 280 }}
-      >
-        {/* Media */}
-        {heroIsVideo ? (
-          <video
-            ref={heroVideoRef2}
-            src={heroMedia}
-            autoPlay muted={heroMuted} loop playsInline
-            className="sd-hero-video"
-          />
-        ) : heroMedia ? (
-          <img src={heroMedia} alt={salon.name} className="sd-hero-img" />
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-br" style={{ background: `linear-gradient(135deg,${theme.p}22,${theme.p}44,#000)` }} />
-        )}
+      {/* ════ 1. HERO ════ */}
+      <motion.section className="lux-hero"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>
+        {heroIsVideo
+          ? <video ref={heroVideoRef2} src={heroMedia} autoPlay muted={heroMuted} loop playsInline className="lux-media" />
+          : heroMedia
+            ? <img src={heroMedia} alt={salon.name} className="lux-media lux-media-img" />
+            : <div className="lux-media" style={{ background: `linear-gradient(135deg,#0a0a0a,${theme.p}22,#050505)` }} />
+        }
+        <div className="absolute inset-0" style={{ background: dm.heroOvr1 }} />
+        <div className="absolute inset-0" style={{ background: dm.heroOvr2 }} />
+        <div className="absolute inset-0" style={{ background: `linear-gradient(135deg,${theme.p}14 0%,transparent 55%)` }} />
 
-        {/* Gradient overlays */}
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.35) 45%, rgba(0,0,0,0.1) 100%)' }} />
-        <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${theme.p}18 0%, transparent 60%)` }} />
-
-        {/* Back + mute controls */}
-        <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => navigate(-1)}
-            className="w-10 h-10 rounded-full flex items-center justify-center text-white"
-            style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.15)' }}
-          >
-            <ArrowLeft className="w-5 h-5" />
+        <div className="absolute top-6 left-6 right-6 flex items-center justify-between z-10">
+          <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate(-1)}
+            className="w-11 h-11 rounded-full flex items-center justify-center"
+            style={{ background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,.12)' }}>
+            <ArrowLeft className="w-5 h-5 text-white" />
           </motion.button>
           <div className="flex items-center gap-2">
+            {/* Theme toggle */}
+            <button onClick={() => setDarkMode(m => !m)}
+              className="w-10 h-10 rounded-full flex items-center justify-center"
+              style={{ background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,.12)', color: '#fff', cursor: 'pointer' }}
+              title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}>
+              {darkMode
+                ? <svg viewBox="0 0 24 24" width={16} height={16} fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+                : <svg viewBox="0 0 24 24" width={16} height={16} fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+              }
+            </button>
             {heroIsVideo && (
-              <button
-                onClick={() => { setHeroMuted(m => !m); heroVideoRef2.current && (heroVideoRef2.current.muted = !heroMuted); }}
-                className="w-9 h-9 rounded-full flex items-center justify-center text-white"
-                style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.15)' }}
-              >
+              <button onClick={() => { setHeroMuted(m => !m); heroVideoRef2.current && (heroVideoRef2.current.muted = !heroMuted); }}
+                className="w-10 h-10 rounded-full flex items-center justify-center text-white"
+                style={{ background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,.12)' }}>
                 {heroMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
               </button>
             )}
             {salon.isApproved && (
-              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold text-white"
-                style={{ background: 'rgba(16,185,129,0.25)', backdropFilter: 'blur(8px)', border: '1px solid rgba(16,185,129,0.4)' }}>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white"
+                style={{ background: 'rgba(16,185,129,.2)', backdropFilter: 'blur(8px)', border: '1px solid rgba(16,185,129,.35)' }}>
                 <BadgeCheck className="w-3.5 h-3.5" /> Verified
               </div>
             )}
           </div>
         </div>
 
-        {/* Hero content — bottom overlay */}
-        <div className="absolute bottom-0 left-0 right-0 px-5 pb-5">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .25, duration: .5 }}>
-            {avgRating && parseFloat(avgRating) >= 4.2 && (
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold text-amber-300 mb-2"
-                style={{ background: 'rgba(251,191,36,0.18)', border: '1px solid rgba(251,191,36,0.35)' }}>
-                <TrendingUp className="w-3 h-3" /> Top Rated
-              </div>
-            )}
-            <h1 className="text-[26px] sm:text-3xl font-extrabold text-white leading-tight tracking-tight mb-1">{salon.name}</h1>
-            <div className="flex items-center gap-3 flex-wrap mb-4">
-              {(salon.address || salon.city) && (
-                <span className="flex items-center gap-1 text-xs text-white/70">
-                  <MapPin className="w-3 h-3" />{salon.city || salon.address}
-                </span>
-              )}
+        <div className="absolute bottom-0 left-0 right-0 z-10" style={{ padding: 'clamp(32px,5vw,80px)', paddingBottom: 'clamp(88px,9vh,130px)' }}>
+          <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .2, duration: .9, ease: [.22,1,.36,1] }}>
+            <p className="lux-overline mb-4" style={{ color: theme.p }}>
+              {BIZ_SUBTITLES[salon.businessType] || 'Premium grooming experience'}
+            </p>
+            <h1 className="lux-hero-title text-white mb-5" style={{ maxWidth: 780 }}>
+              {salon.name.toUpperCase()}
+            </h1>
+            <div className="flex items-center flex-wrap mb-8" style={{ gap: 'clamp(12px,2vw,28px)' }}>
               {avgRating && (
-                <span className="flex items-center gap-1 text-xs font-bold text-amber-300">
-                  <Star className="w-3 h-3 fill-current" />{avgRating}
-                  {(salon.totalReviews || reviews.length) > 0 && <span className="font-normal text-white/50">({salon.totalReviews || reviews.length})</span>}
-                </span>
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-0.5">
+                    {[1,2,3,4,5].map(s => (
+                      <Star key={s} className="w-3.5 h-3.5"
+                        style={{ color: s <= Math.round(parseFloat(avgRating)) ? '#fbbf24' : 'rgba(255,255,255,.2)',
+                                 fill:  s <= Math.round(parseFloat(avgRating)) ? '#fbbf24' : 'none' }} />
+                    ))}
+                  </div>
+                  <span className="font-bold text-sm text-white">{avgRating}</span>
+                  {(salon.totalReviews || reviews.length) > 0 && (
+                    <span className="text-sm" style={{ color: 'rgba(255,255,255,.45)' }}>({salon.totalReviews || reviews.length})</span>
+                  )}
+                </div>
+              )}
+              {(salon.address || salon.city) && (
+                <div className="flex items-center gap-1.5 text-sm" style={{ color: 'rgba(255,255,255,.55)' }}>
+                  <MapPin className="w-3.5 h-3.5" />{salon.city || salon.address}
+                </div>
               )}
               {openStatus !== null && (
-                <span className="flex items-center gap-1 text-xs font-semibold"
-                  style={{ color: openStatus ? '#4ade80' : '#f87171' }}>
-                  <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: openStatus ? '#4ade80' : '#f87171' }} />
-                  {openStatus ? (todayHours ? `Open · ${todayHours}` : 'Open') : (opensAt ? `Opens ${opensAt}` : 'Closed')}
-                </span>
+                <div className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: openStatus ? '#4ade80' : '#f87171' }}>
+                  <span className="w-2 h-2 rounded-full inline-block" style={{ background: openStatus ? '#4ade80' : '#f87171' }} />
+                  {openStatus ? (todayHours ? `Open · ${todayHours}` : 'Open Now') : (opensAt ? `Opens ${opensAt}` : 'Closed Today')}
+                </div>
               )}
             </div>
-            <div className="flex gap-2">
-              <motion.button
-                whileTap={{ scale: 0.96 }} whileHover={{ scale: 1.02 }}
-                onClick={handleBookNowEmpty}
-                className="flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold text-white"
-                style={{ background: `linear-gradient(135deg,${theme.p},${theme.p}cc)`, boxShadow: `0 6px 24px ${theme.p}50` }}
-              >
-                <Zap className="w-4 h-4" /> Book Now
+            <div className="flex flex-wrap gap-3">
+              <motion.button whileTap={{ scale: .97 }} whileHover={{ scale: 1.02 }} onClick={handleBookNowEmpty}
+                className="lux-btn-p" style={{ background: theme.p, boxShadow: `0 8px 32px ${theme.p}55` }}>
+                <Zap className="w-4 h-4" /> Book Appointment
               </motion.button>
-              {nextSlot && (
-                <div className="flex items-center gap-1.5 px-4 py-3 rounded-2xl text-xs font-semibold text-white/80"
-                  style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.18)' }}>
-                  <Clock className="w-3.5 h-3.5" /> Next: {nextSlot}
-                </div>
-              )}
+              <motion.button whileTap={{ scale: .97 }} whileHover={{ scale: 1.02 }}
+                onClick={() => document.getElementById('lux-services')?.scrollIntoView({ behavior: 'smooth' })}
+                className="lux-btn-o" style={{ color: '#fff', border: '1px solid rgba(255,255,255,.28)' }}>
+                View Services
+              </motion.button>
             </div>
           </motion.div>
         </div>
-      </motion.div>
 
-      {/* ══ PROFILE STRIP (below hero) ══════════════════════════════════════ */}
-      <div className="max-w-2xl mx-auto px-4">
+        <motion.div className="absolute right-6 bottom-8 flex flex-col items-center gap-2"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2 }}>
+          <span className="lux-overline" style={{ color: 'rgba(255,255,255,.3)', fontSize: 9 }}>SCROLL</span>
+          <div style={{ width: 1, height: 44, background: 'linear-gradient(to bottom,rgba(255,255,255,.35),transparent)' }} />
+        </motion.div>
+      </motion.section>
 
-        {/* Avatar + Stats */}
-        <div className="flex items-center gap-4 -mt-8 mb-4 relative z-10">
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: .35, type: 'spring', stiffness: 200 }}
-            className="shrink-0 rounded-full p-[3px]"
-            style={{ background: `linear-gradient(135deg,${theme.p},${theme.p}88,#fff2)`, boxShadow: `0 4px 20px ${theme.p}40` }}
-          >
-            <div className="w-[72px] h-[72px] rounded-full overflow-hidden border-2"
-              style={{ borderColor: 'var(--t-bg)' }}>
-              {salon.logo ? (
-                <img src={salon.logo} alt={salon.name} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center"
-                  style={{ background: `linear-gradient(135deg,${theme.p}33,${theme.p}66)` }}>
-                  <Scissors className="w-7 h-7" style={{ color: theme.p }} />
-                </div>
-              )}
-            </div>
-          </motion.div>
-
-          <div className="flex flex-1 items-end justify-around pb-1 pt-10">
-            {[
-              { val: galleryItems.length, label: 'posts' },
-              { val: totalBookings, label: 'clients' },
-              { val: services.length,   label: 'services' },
-            ].map(({ val, label }, i) => (
-              <motion.div key={label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .4 + i * .08 }}
-                className="text-center">
-                <p className="text-lg font-extrabold leading-none mb-0.5" style={{ color: 'var(--t-text)' }}>
-                  {val >= 1000 ? `${(val/1000).toFixed(1)}k` : val}
-                </p>
-                <p className="text-[11px]" style={{ color: 'var(--t-text-3)' }}>{label}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-
-        {/* Name + bio + categories */}
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .45 }} className="mb-3">
-          <div className="flex items-center gap-1.5 mb-1">
-            <span className="font-bold text-[15px]" style={{ color: 'var(--t-text)' }}>{salon.name}</span>
-            {salon.isApproved && <BadgeCheck className="w-4 h-4" style={{ color: theme.p }} />}
-            {salon.servedGender && (
-              <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold ml-1"
-                style={{ background: `${theme.p}18`, color: theme.p, border: `1px solid ${theme.p}30` }}>
-                {salon.servedGender === 'male' ? '👨 Men' : salon.servedGender === 'female' ? '👩 Women' : '👥 Unisex'}
-              </span>
-            )}
-          </div>
-          {(salon.offeredCategoryNames || []).length > 0 && (
-            <p className="text-xs font-semibold mb-1" style={{ color: theme.p }}>
-              {salon.offeredCategoryNames.join(' · ')}
-            </p>
-          )}
+      {/* ════ 2. STORY ════ */}
+      <section className="lux-section" style={{ borderBottom: `1px solid ${dm.b04}` }}>
+        <div style={{ maxWidth: 900 }}>
+          <motion.p className="lux-overline mb-8" style={{ color: theme.p }}
+            initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: .6 }}>
+            {salon.name}
+          </motion.p>
+          <motion.h2 className="lux-title" style={{ marginBottom: 32, color: dm.fg }}
+            initial={{ opacity: 0, y: 32 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            transition={{ duration: .85, ease: [.22,1,.36,1] }}>
+            More than a {BIZ_LABELS[salon.businessType] || 'visit'}.<br />
+            <span style={{ color: dm.fg38 }}>A transformation.</span>
+          </motion.h2>
           {salon.description && (
-            <p className="text-[13px] leading-relaxed" style={{ color: 'var(--t-text-2)' }}>{salon.description}</p>
+            <motion.p className="lux-body" style={{ color: dm.fg48, maxWidth: 560 }}
+              initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+              transition={{ delay: .15, duration: .7 }}>
+              {salon.description}
+            </motion.p>
           )}
-        </motion.div>
-
-        {/* Action buttons */}
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .5 }}
-          className="flex gap-2 mb-5">
-          <motion.button whileTap={{ scale: 0.97 }} whileHover={{ scale: 1.02 }}
-            onClick={handleBookNowEmpty}
-            className="flex-1 py-2.5 text-sm font-bold text-white rounded-xl flex items-center justify-center gap-1.5"
-            style={{ background: `linear-gradient(135deg,${theme.p},${theme.p}bb)`, boxShadow: `0 4px 16px ${theme.p}40` }}>
-            <Zap className="w-4 h-4" /> Book Appointment
-          </motion.button>
-          {salon.phone && (
-            <motion.a whileTap={{ scale: 0.97 }} href={`tel:${salon.phone}`}
-              className="px-4 py-2.5 text-sm font-semibold rounded-xl flex items-center justify-center gap-1.5"
-              style={{ background: 'var(--t-bg-2)', color: 'var(--t-text)', border: '1px solid var(--t-border)' }}>
-              <Phone className="w-4 h-4" /> Call
-            </motion.a>
-          )}
-          {(salon.address || salon.city) && (
-            <motion.a whileTap={{ scale: 0.97 }}
-              href={`https://maps.google.com/?q=${encodeURIComponent(salon.address || salon.city)}`}
-              target="_blank" rel="noreferrer"
-              className="w-11 flex items-center justify-center rounded-xl"
-              style={{ background: 'var(--t-bg-2)', color: 'var(--t-text)', border: '1px solid var(--t-border)' }}>
-              <Navigation className="w-4 h-4" />
-            </motion.a>
-          )}
-        </motion.div>
-
-        {/* Highlights — category circles */}
-        {highlightCats.length > 0 && (
-          <div className="flex gap-5 overflow-x-auto scrollbar-hide pb-3 -mx-1 px-1">
-            {highlightCats.map((cat, i) => (
-              <motion.button key={cat.name}
-                initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: .55 + i * .04 }}
-                whileTap={{ scale: 0.93 }}
-                onClick={() => { setTab('Services'); setExpandedCat(cat.name); }}
-                className="flex flex-col items-center gap-1.5 shrink-0">
-                <div className="p-[2.5px] rounded-full"
-                  style={{ background: activeTab === 'Services' && expandedCat === cat.name
-                    ? `linear-gradient(135deg,${theme.p},${theme.p}88)`
-                    : 'linear-gradient(135deg,#f09433,#dc2743,#bc1888)' }}>
-                  <div className="w-[58px] h-[58px] rounded-full flex items-center justify-center text-[22px]"
-                    style={{ background: 'var(--t-card)', border: '2.5px solid var(--t-bg)' }}>
-                    {cat.icon}
-                  </div>
-                </div>
-                <span className="text-[10px] font-semibold text-center max-w-[60px] truncate"
-                  style={{ color: 'var(--t-text-2)' }}>
-                  {cat.name.split(/[\s/]/)[0]}
-                </span>
-              </motion.button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ══ ANIMATED STATS STRIP ════════════════════════════════════════════ */}
-      <div ref={statsRef} className="max-w-2xl mx-auto px-4 mb-1">
-        <div className="grid grid-cols-4 gap-2">
-          {[
-            { icon: '⭐', label: 'Rating',      val: avgRating || '—',   sub: `${salon.totalReviews || reviews.length} reviews` },
-            { icon: '👥', label: 'Total Clients', val: totalBookings >= 1000 ? `${(totalBookings/1000).toFixed(1)}k` : String(totalBookings), sub: 'served' },
-            { icon: '✂️', label: 'Services',    val: String(services.length), sub: 'available' },
-            { icon: '🏆', label: 'Experience',  val: salon.experience ? `${salon.experience}yr` : '—', sub: 'expertise' },
-          ].map(({ icon, label, val, sub }, i) => (
-            <motion.div key={label}
-              initial={{ opacity: 0, y: 12 }} animate={statsVisible ? { opacity: 1, y: 0 } : {}} transition={{ delay: i * .08, duration: .4 }}
-              className="sd-stat-card rounded-2xl p-3 text-center"
-              style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)', boxShadow: '0 2px 12px rgba(0,0,0,.06)' }}>
-              <div className="text-xl mb-0.5">{icon}</div>
-              <div className="text-base font-extrabold leading-none mb-0.5" style={{ color: theme.p }}>{val}</div>
-              <div className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: 'var(--t-text-3)' }}>{sub}</div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-
-      {/* ══ OWNER CARD ══════════════════════════════════════════════════════ */}
-      {(salon.ownerName || salon.ownerPhoto) && (
-        <div className="max-w-2xl mx-auto px-4 mt-4">
-          <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: .3 }}
-            className="flex items-center gap-4 p-4 rounded-2xl"
-            style={{ background: 'var(--t-card)', border: `1px solid ${theme.p}25`, boxShadow: `0 4px 20px ${theme.p}12` }}>
-            <div className="w-14 h-14 rounded-full overflow-hidden shrink-0 border-2"
-              style={{ borderColor: `${theme.p}50` }}>
-              {salon.ownerPhoto
-                ? <img src={salon.ownerPhoto} alt={salon.ownerName} className="w-full h-full object-cover" />
-                : <div className="w-full h-full flex items-center justify-center text-2xl" style={{ background: `${theme.p}22` }}>🧑‍🎨</div>}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold text-sm" style={{ color: 'var(--t-text)' }}>{salon.ownerName || 'Owner'}</span>
-                {salon.ownerGender && <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: `${theme.p}15`, color: theme.p }}>{salon.ownerGender === 'male' ? '👨' : '👩'}</span>}
+          <motion.div className="flex flex-wrap" style={{ gap: 'clamp(32px,6vw,80px)', marginTop: 64 }}
+            initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            transition={{ delay: .25, duration: .7 }}>
+            {[
+              { val: avgRating || '—',  label: 'Rating' },
+              { val: totalBookings >= 1000 ? `${(totalBookings/1000).toFixed(1)}k` : String(totalBookings), label: 'Happy Clients' },
+              { val: String(services.length), label: 'Services' },
+              { val: salon.experience ? `${salon.experience}+` : '—', label: 'Years' },
+            ].map(({ val, label }) => (
+              <div key={label}>
+                <p style={{ fontSize: 'clamp(36px,4.5vw,60px)', fontWeight: 900, color: dm.fg, lineHeight: 1, letterSpacing: '-.04em' }}>{val}</p>
+                <p className="lux-overline mt-2" style={{ color: dm.fg35 }}>{label}</p>
               </div>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--t-text-3)' }}>Founder & Head Stylist</p>
-              <p className="text-xs mt-1" style={{ color: 'var(--t-text-2)' }}>Passionate about transformations ✨</p>
-            </div>
+            ))}
           </motion.div>
         </div>
-      )}
+      </section>
 
-      {/* ══ OFFERS BANNER ═══════════════════════════════════════════════════ */}
-      {allOffers.length > 0 && (
-        <div className="max-w-2xl mx-auto px-4 mt-4">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-sm font-bold" style={{ color: 'var(--t-text)' }}>🏷️ Active Offers</span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold" style={{ background: 'rgba(16,185,129,0.15)', color: '#059669' }}>{allOffers.length} deals</span>
+      {/* ════ 3. GALLERY ════ */}
+      {galleryItems.length > 0 && (
+        <section style={{ paddingTop: 'clamp(64px,8vw,112px)', paddingBottom: 'clamp(64px,8vw,112px)', borderBottom: `1px solid ${dm.b04}` }}>
+          <div style={{ padding: '0 clamp(24px,6vw,96px)', marginBottom: 40 }}>
+            <motion.p className="lux-overline mb-3" style={{ color: theme.p }}
+              initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>Our Work</motion.p>
+            <motion.h2 className="lux-title" style={{ color: dm.fg }}
+              initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: .7 }}>
+              Transformations
+            </motion.h2>
           </div>
-          <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-1">
-            {allOffers.map((offer) => {
-              const lbl = offer.discountType === 'percentage'
-                ? `${offer.discountValue}% OFF`
-                : `₹${offer.discountValue} OFF`;
-              const clr = offer.isExpiringSoon ? '#d97706' : offer.isLimited ? '#dc2626' : '#059669';
-              const bg  = offer.isExpiringSoon ? 'rgba(245,158,11,0.1)' : offer.isLimited ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)';
-              const br  = offer.isExpiringSoon ? 'rgba(245,158,11,0.3)' : offer.isLimited ? 'rgba(239,68,68,0.25)' : 'rgba(16,185,129,0.22)';
+          <div className="lux-gallery-track" style={{ paddingLeft: 'clamp(24px,6vw,96px)', paddingRight: 'clamp(24px,6vw,96px)' }}>
+            {galleryItems.map((item, i) => {
+              const videoIdx = item.type === 'video' ? salonVideoUrls.indexOf(item.url) : -1;
+              const thumbUrl = item.type === 'video' && item.url.includes('/video/upload/')
+                ? item.url.replace('/video/upload/', '/video/upload/w_800,h_560,c_fill,q_auto,f_jpg,vc_none/').replace(/\.(mp4|mov|avi|mkv|webm)(\?.*)?$/i, '.jpg')
+                : '';
               return (
-                <motion.button key={offer.code} whileTap={{ scale: 0.97 }}
-                  onClick={() => { setCouponInput(offer.code); if (!showBooking) openBooking(); }}
-                  className="sd-offer-pill shrink-0 flex flex-col items-start px-4 py-3 rounded-2xl text-left"
-                  style={{ background: bg, border: `1px solid ${br}`, minWidth: 140 }}>
-                  <span className="text-lg font-extrabold" style={{ color: clr }}>{lbl}</span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 mb-1" style={{ background: bg, color: clr, border: `1px solid ${br}` }}>
-                    {offer.code}
-                  </span>
-                  {offer.minAmount > 0 && <span className="text-[10px]" style={{ color: 'var(--t-text-3)' }}>on ₹{offer.minAmount}+</span>}
-                </motion.button>
+                <motion.div key={i} className="lux-gc"
+                  style={{ width: 'clamp(260px,38vw,440px)', height: 'clamp(340px,48vw,520px)' }}
+                  initial={{ opacity: 0, scale: .96 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}
+                  transition={{ delay: Math.min(i * .07, .35), duration: .6 }}
+                  onClick={() => item.type === 'video' ? setVideoViewerIdx(videoIdx) : setGalleryLightbox(i)}>
+                  {item.type === 'video' ? (
+                    <>
+                      <div className="gcm" style={{ background: '#0a0a0a' }} />
+                      {thumbUrl && <img src={thumbUrl} alt="" className="gcm" onError={e => { e.currentTarget.style.display='none'; }} />}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-16 h-16 rounded-full flex items-center justify-center"
+                          style={{ background: 'rgba(255,255,255,.1)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,.2)' }}>
+                          <Play className="w-7 h-7 text-white" fill="white" />
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <img src={item.url} alt="" className="gcm" onError={e => { e.currentTarget.style.display='none'; }} />
+                  )}
+                  <div className="absolute bottom-0 left-0 right-0 p-4" style={{ background: 'linear-gradient(to top,rgba(0,0,0,.7),transparent)' }}>
+                    <span className="lux-overline" style={{ color: 'rgba(255,255,255,.5)', fontSize: 9 }}>{item.type === 'video' ? '▶ VIDEO' : `PHOTO ${i + 1}`}</span>
+                  </div>
+                </motion.div>
               );
             })}
           </div>
-        </div>
+        </section>
       )}
 
-      {/* ══ CONTENT ═════════════════════════════════════════════════════════ */}
-      <div className="max-w-2xl mx-auto mt-4 pb-28">
-
-        {/* ── TABS ── */}
-        <div className="flex relative border-b sticky top-0 z-20"
-          style={{ background: 'var(--t-bg)', borderColor: 'var(--t-border)' }}>
-          {TABS.map((t) => (
-            <button key={t} onClick={() => setTab(t)}
-              className="flex-1 py-3 flex flex-col items-center gap-0.5 relative transition-colors"
-              style={{ color: activeTab === t ? theme.p : 'var(--t-text-3)' }}>
-              {activeTab === t && (
-                <motion.span layoutId="sd-tab-ind" className="sd-tab-indicator" style={{ background: theme.p }} />
-              )}
-              <span style={{ opacity: activeTab === t ? 1 : 0.5 }}>{TAB_ICONS[t]}</span>
-              <span className="text-[9px] font-semibold uppercase tracking-wide hidden sm:block">{t}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* ══ GALLERY TAB ════════════════════════════════════════════════ */}
-        {activeTab === "Gallery" && (
-          <AnimatePresence mode="wait">
-            <motion.div key="gallery" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: .25 }}>
-              {galleryItems.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-24 gap-4">
-                  <div className="w-20 h-20 rounded-full flex items-center justify-center" style={{ background: 'var(--t-bg-2)' }}>
-                    <Play className="w-8 h-8" style={{ color: 'var(--t-text-3)' }} />
-                  </div>
-                  <div className="text-center">
-                    <p className="font-bold text-base" style={{ color: 'var(--t-text-2)' }}>No transformations yet</p>
-                    <p className="text-sm mt-1" style={{ color: 'var(--t-text-3)' }}>Be the first to book — your result could be first!</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-3 gap-[2px]">
-                  {galleryItems.map((item, i) => {
-                    const videoIdx = item.type === 'video' ? salonVideoUrls.indexOf(item.url) : -1;
-                    const thumbUrl = item.type === 'video' && item.url.includes('/video/upload/')
-                      ? item.url.replace('/video/upload/', '/video/upload/w_400,h_400,c_fill,q_auto,f_jpg,vc_none/').replace(/\.(mp4|mov|avi|mkv|webm)(\?.*)?$/i, '.jpg')
-                      : '';
-                    return (
-                      <motion.button key={i} whileTap={{ opacity: 0.85 }}
-                        onClick={() => item.type === 'video' ? setVideoViewerIdx(videoIdx) : setGalleryLightbox(i)}
-                        className="sd-gallery-item relative aspect-square overflow-hidden focus:outline-none group">
-                        <div className="w-full h-full overflow-hidden">
-                          {item.type === 'video' ? (
-                            <>
-                              <div className="absolute inset-0" style={{ background: '#111' }} />
-                              {thumbUrl && <img src={thumbUrl} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-400" onError={e => { e.currentTarget.style.display='none'; }} />}
-                              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
-                              <div className="absolute top-2 right-2"><Play className="w-4 h-4 text-white drop-shadow-lg" fill="white" /></div>
-                            </>
-                          ) : (
-                            <img src={item.url} alt="" className="w-full h-full object-cover transition-transform duration-400" onError={e => { e.currentTarget.style.display='none'; }} />
-                          )}
-                        </div>
-                      </motion.button>
-                    );
-                  })}
-                </div>
-              )}
-
-              {galleryLightbox !== null && galleryItems[galleryLightbox] && (() => {
-                const lbItem = galleryItems[galleryLightbox];
-                const isVideo = lbItem.type === 'video';
-                const goPrev = () => { galleryVideoRef.current?.pause(); setGalleryLightbox(i => i - 1); };
-                const goNext = () => { galleryVideoRef.current?.pause(); setGalleryLightbox(i => i + 1); };
-                const closeGallery = () => { galleryVideoRef.current?.pause(); setGalleryLightbox(null); };
-                return (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/96 p-4" onClick={closeGallery}>
-                    <button onClick={closeGallery} className="absolute top-5 right-5 z-10 w-11 h-11 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white"><X className="w-5 h-5" /></button>
-                    <div className="absolute top-5 left-1/2 -translate-x-1/2 z-10">
-                      <span className="text-white text-sm font-semibold bg-white/10 px-3 py-1 rounded-full">{galleryLightbox + 1} / {galleryItems.length}</span>
-                    </div>
-                    <div className="max-w-4xl w-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
-                      {isVideo
-                        ? <video ref={galleryVideoRef} src={lbItem.url} controls autoPlay className="max-h-[80vh] max-w-full rounded-2xl" />
-                        : <img src={lbItem.url} alt="" className="max-h-[80vh] max-w-full rounded-2xl object-contain" />}
-                    </div>
-                    {galleryLightbox > 0 && <button onClick={e => { e.stopPropagation(); goPrev(); }} className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white"><ChevronLeft className="w-6 h-6" /></button>}
-                    {galleryLightbox < galleryItems.length - 1 && <button onClick={e => { e.stopPropagation(); goNext(); }} className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white"><ChevronRight className="w-6 h-6" /></button>}
-                  </motion.div>
-                );
-              })()}
-            </motion.div>
-          </AnimatePresence>
-        )}
-
-        {/* ══ SERVICES TAB ═══════════════════════════════════════════════ */}
-        {activeTab === "Services" && (() => {
-          const isUnisex = salon.servedGender === "unisex";
-
-          const classifySvc = (s) => {
-            const af = s.applicableFor || [];
-            if (af.length > 0 && af.includes("male")   && !af.includes("female")) return "male";
-            if (af.length > 0 && af.includes("female") && !af.includes("male"))   return "female";
-            const uniCat = UNISEX_CATEGORIES.find(u => u.label === (s.category || ""));
-            if (uniCat) {
-              const inM = new Set(uniCat.maleSubServices).has(s.name);
-              const inF = new Set(uniCat.femaleSubServices).has(s.name);
-              if (inM && !inF) return "male";
-              if (inF && !inM) return "female";
-            }
-            return "both";
-          };
-
-          const visibleServices = !isUnisex || serviceGenderFilter === "all"
-            ? services
-            : services.filter((s) => {
-                const cat = s.category || "";
-                if (serviceGenderFilter === "female" && MALE_ONLY_CAT_LABELS.has(cat))   return false;
-                if (serviceGenderFilter === "male"   && FEMALE_ONLY_CAT_LABELS.has(cat)) return false;
-                const gender = classifySvc(s);
-                return gender === "both" || gender === serviceGenderFilter;
-              });
-
-          const grouped = visibleServices.reduce((acc, svc) => {
-            const cat = svc.category || "Other";
-            if (!acc[cat]) acc[cat] = [];
-            acc[cat].push(svc);
-            return acc;
-          }, {});
-
-          const sortedGroupEntries = Object.entries(grouped).sort(([a], [b]) => {
-            const ai = ALL_CATEGORY_ORDER.indexOf(a), bi = ALL_CATEGORY_ORDER.indexOf(b);
-            if (ai === -1 && bi === -1) return a.localeCompare(b);
-            if (ai === -1) return 1; if (bi === -1) return -1;
-            return ai - bi;
-          });
-
-          return (
-            <div className="fade-in px-4 pt-4">
-              {isUnisex && services.length > 0 && (
-                <div className="flex gap-2 mb-5">
-                  {[
-                    { key: "all",    label: "All",       emoji: "👥" },
-                    { key: "male",   label: "For Men",   emoji: "👨" },
-                    { key: "female", label: "For Women", emoji: "👩" },
-                  ].map(({ key, label, emoji }) => (
-                    <button
-                      key={key}
-                      onClick={() => setServiceGenderFilter(key)}
-                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold transition-all duration-200 hover:scale-105"
-                      style={
-                        serviceGenderFilter === key
-                          ? { background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', boxShadow: '0 4px 12px rgba(99,102,241,0.3)' }
-                          : { background: 'var(--t-bg-2)', color: 'var(--t-text-2)', border: '1px solid var(--t-border)' }
-                      }
-                    >
-                      <span>{emoji}</span> {label}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {visibleServices.length === 0 ? (
-                <div className="text-center py-16">
-                  <div className="flex justify-center mb-3"><Scissors className="w-10 h-10" style={{ color: 'var(--t-border)' }} /></div>
-                  <p style={{ color: 'var(--t-text-2)' }}>No services listed yet.</p>
-                </div>
-              ) : (
-                <div className="space-y-2.5 pb-32">
-                  {sortedGroupEntries.map(([cat, catServices]) => {
-                    const isOpen = expandedCat === cat;
-                    const showGenderSplit = isUnisex && serviceGenderFilter === "all";
-                    const maleOnly   = showGenderSplit ? catServices.filter(s => classifySvc(s) === "male")   : [];
-                    const femaleOnly = showGenderSplit ? catServices.filter(s => classifySvc(s) === "female") : [];
-                    const both       = showGenderSplit ? catServices.filter(s => classifySvc(s) === "both")   : catServices;
-                    const hasSplit   = showGenderSplit && (maleOnly.length > 0 || femaleOnly.length > 0);
-
-                    return (
-                      <div key={cat} className="rounded-2xl overflow-hidden transition-all duration-200"
-                        style={{
-                          background: 'var(--t-card)',
-                          border: isOpen ? '1px solid rgba(99,102,241,0.3)' : '1px solid var(--t-border)',
-                          boxShadow: isOpen ? '0 4px 24px rgba(99,102,241,0.08)' : 'none',
-                        }}>
-                        <button
-                          type="button"
-                          onClick={() => setExpandedCat(isOpen ? null : cat)}
-                          className="w-full flex items-center gap-3 px-4 py-3.5 transition-all text-left"
-                          style={{ color: 'var(--t-text)' }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'var(--t-bg-2)'}
-                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                        >
-                          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0"
-                            style={{ background: isOpen ? 'rgba(99,102,241,0.15)' : 'var(--t-bg-2)' }}>
-                            {CATEGORY_ICON_MAP[cat] || "✨"}
-                          </div>
-                          <span className="text-sm font-semibold flex-1" style={{ color: 'var(--t-text)' }}>{cat}</span>
-                          <span className="text-xs px-2 py-0.5 rounded-full mr-1 font-medium"
-                            style={{ background: isOpen ? 'rgba(99,102,241,0.12)' : 'var(--t-bg-2)', color: isOpen ? '#818cf8' : 'var(--t-text-3)' }}>
-                            {catServices.length}
-                          </span>
-                          {isOpen
-                            ? <ChevronUp className="w-4 h-4 shrink-0" style={{ color: '#818cf8' }} />
-                            : <ChevronDown className="w-4 h-4 shrink-0" style={{ color: 'var(--t-text-3)' }} />}
-                        </button>
-
-                        {isOpen && (
-                          <div className="px-4 pb-4 space-y-3" style={{ borderTop: '1px solid var(--t-border)' }}>
-                            <div className="pt-3">
-                              {hasSplit ? (
-                                <>
-                                  {maleOnly.length > 0 && (
-                                    <div className="mb-3">
-                                      <p className="text-xs font-bold mb-2 flex items-center gap-1" style={{ color: '#60a5fa' }}>👨 Men's Services</p>
-                                      <div className="space-y-2">
-                                        {maleOnly.map(s => (
-                                          <ServiceCard key={s._id} service={s} isSelected={selectedServices.some(x => x._id === s._id)} onToggle={() => toggleService(s)} showGenderBadge={false} />
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                  {femaleOnly.length > 0 && (
-                                    <div className="mb-3">
-                                      <p className="text-xs font-bold mb-2 flex items-center gap-1" style={{ color: '#f472b6' }}>👩 Women's Services</p>
-                                      <div className="space-y-2">
-                                        {femaleOnly.map(s => (
-                                          <ServiceCard key={s._id} service={s} isSelected={selectedServices.some(x => x._id === s._id)} onToggle={() => toggleService(s)} showGenderBadge={false} />
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                  {both.length > 0 && (
-                                    <div className="space-y-2">
-                                      {both.map(s => (
-                                        <ServiceCard key={s._id} service={s} isSelected={selectedServices.some(x => x._id === s._id)} onToggle={() => toggleService(s)} showGenderBadge={false} />
-                                      ))}
-                                    </div>
-                                  )}
-                                </>
-                              ) : (
-                                <div className="space-y-2">
-                                  {catServices.map(s => (
-                                    <ServiceCard key={s._id} service={s} isSelected={selectedServices.some(x => x._id === s._id)} onToggle={() => toggleService(s)} showGenderBadge={false} />
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })()}
-
-        {/* ══ PACKAGES TAB ═══════════════════════════════════════════════ */}
-        {activeTab === "Packages" && (
-          <div className="fade-in pb-8 space-y-4 px-4 pt-4">
-            {packages.length === 0 ? (
-              <div className="text-center py-14">
-                <div className="flex justify-center mb-3"><Gift className="w-10 h-10" style={{ color: 'var(--t-border)' }} /></div>
-                <p className="font-semibold" style={{ color: 'var(--t-text-2)' }}>No packages or memberships yet</p>
-                <p className="text-sm mt-1" style={{ color: 'var(--t-text-3)' }}>This salon hasn't added any packages.</p>
-              </div>
-            ) : (
-              <>
-                {/* Packages */}
-                {packages.filter(p => p.type === 'package').length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--t-text)' }}>
-                      <Gift className="w-4 h-4" style={{ color: '#6366f1' }} /> Service Packages
-                    </h3>
-                    <div className="space-y-3">
-                      {packages.filter(p => p.type === 'package').map(pkg => (
-                        <div key={pkg._id} className="rounded-2xl p-4" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
-                          <div className="flex items-start gap-3 mb-3">
-                            <span className="text-2xl shrink-0">{pkg.icon || '🎁'}</span>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-bold text-sm" style={{ color: 'var(--t-text)' }}>{pkg.name}</span>
-                                {pkg.tag && pkg.tag !== '' && (
-                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                                    style={{ background: 'rgba(99,102,241,0.12)', color: '#818cf8' }}>
-                                    {pkg.tag === 'popular' ? '🔥 Popular' : pkg.tag === 'recommended' ? '⭐ Recommended' : '💰 Best Value'}
-                                  </span>
-                                )}
-                              </div>
-                              {pkg.description && <p className="text-xs mt-0.5" style={{ color: 'var(--t-text-3)' }}>{pkg.description}</p>}
-                            </div>
-                          </div>
-                          {pkg.services?.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 mb-3">
-                              {pkg.services.map((s, i) => (
-                                <span key={i} className="text-xs px-2.5 py-1 rounded-full" style={{ background: 'var(--t-bg-2)', color: 'var(--t-text-2)' }}>
-                                  {s.serviceName}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-baseline gap-2">
-                              <span className="text-xl font-extrabold" style={{ color: '#6366f1' }}>₹{pkg.discountedPrice}</span>
-                              {pkg.originalPrice > 0 && pkg.originalPrice !== pkg.discountedPrice && (
-                                <>
-                                  <span className="text-xs line-through" style={{ color: 'var(--t-text-3)' }}>₹{pkg.originalPrice}</span>
-                                  <span className="text-xs font-bold" style={{ color: '#22c55e' }}>{pkg.discountPercent}% OFF</span>
-                                </>
-                              )}
-                            </div>
-                            <button
-                              onClick={() => { if (!isCustomer()) { navigate('/login'); return; } setPkgReqModal(pkg); setPkgNote(''); }}
-                              className="text-sm font-semibold px-4 py-2 rounded-xl transition-all"
-                              style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff' }}
-                            >
-                              Buy Now
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Memberships */}
-                {packages.filter(p => p.type === 'membership').length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--t-text)' }}>
-                      <CreditCard className="w-4 h-4" style={{ color: '#8b5cf6' }} /> Membership Plans
-                    </h3>
-                    <div className="space-y-3">
-                      {packages.filter(p => p.type === 'membership').map(pkg => (
-                        <div key={pkg._id} className="rounded-2xl p-4" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
-                          <div className="flex items-start gap-3 mb-3">
-                            <span className="text-2xl shrink-0">{pkg.icon || '💳'}</span>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-bold text-sm" style={{ color: 'var(--t-text)' }}>{pkg.name}</span>
-                                {pkg.tag && pkg.tag !== '' && (
-                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                                    style={{ background: 'rgba(139,92,246,0.12)', color: '#a78bfa' }}>
-                                    {pkg.tag === 'popular' ? '🔥 Popular' : pkg.tag === 'recommended' ? '⭐ Recommended' : '💰 Best Value'}
-                                  </span>
-                                )}
-                              </div>
-                              {pkg.description && <p className="text-xs mt-0.5" style={{ color: 'var(--t-text-3)' }}>{pkg.description}</p>}
-                            </div>
-                          </div>
-                          <div className="space-y-1.5 mb-3">
-                            {pkg.benefits?.discountPercent > 0 && (
-                              <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--t-text-2)' }}>
-                                <Tag className="w-3.5 h-3.5 shrink-0" style={{ color: '#8b5cf6' }} />
-                                {pkg.benefits.discountPercent}% off all services
-                              </div>
-                            )}
-                            {pkg.benefits?.priorityBooking && (
-                              <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--t-text-2)' }}>
-                                <Zap className="w-3.5 h-3.5 shrink-0" style={{ color: '#fbbf24' }} />
-                                Priority booking
-                              </div>
-                            )}
-                            {(pkg.benefits?.freeServices || []).map((fs, i) => (
-                              <div key={i} className="flex items-center gap-2 text-xs" style={{ color: 'var(--t-text-2)' }}>
-                                <Check className="w-3.5 h-3.5 shrink-0" style={{ color: '#22c55e' }} />
-                                {fs.serviceName} × {fs.usageLimit}
-                              </div>
-                            ))}
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="flex items-baseline gap-1.5">
-                                <span className="text-xl font-extrabold" style={{ color: '#8b5cf6' }}>₹{pkg.price}</span>
-                                <span className="text-xs" style={{ color: 'var(--t-text-3)' }}>
-                                  /{pkg.billingCycle === 'monthly' ? 'month' : pkg.billingCycle === 'quarterly' ? 'quarter' : 'year'}
-                                </span>
-                              </div>
-                              <p className="text-xs" style={{ color: 'var(--t-text-3)' }}>Valid {pkg.durationDays} days</p>
-                            </div>
-                            <button
-                              onClick={() => { if (!isCustomer()) { navigate('/login'); return; } setPkgReqModal(pkg); setPkgNote(''); }}
-                              className="text-sm font-semibold px-4 py-2 rounded-xl transition-all"
-                              style={{ background: 'linear-gradient(135deg,#7c3aed,#a855f7)', color: '#fff' }}
-                            >
-                              Subscribe
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
+      {/* ════ 4. SERVICES ════ */}
+      <section id="lux-services" className="lux-section" style={{ borderBottom: `1px solid ${dm.b04}` }}>
+        <motion.p className="lux-overline mb-4" style={{ color: theme.p }}
+          initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>Menu</motion.p>
+        <motion.h2 className="lux-title mb-10" style={{ color: dm.fg }}
+          initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: .7 }}>
+          Our Services
+        </motion.h2>
+        {salon.servedGender === 'unisex' && services.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-12">
+            {[{ key: 'all', label: 'All' }, { key: 'male', label: 'For Men' }, { key: 'female', label: 'For Women' }].map(({ key, label }) => (
+              <button key={key} onClick={() => setServiceGenderFilter(key)} className="lux-overline transition-all"
+                style={serviceGenderFilter === key
+                  ? { background: theme.p, color: '#fff', border: `1px solid ${theme.p}`, padding: '10px 24px', borderRadius: 2 }
+                  : { color: dm.fg40, border: `1px solid ${dm.b12}`, background: 'transparent', padding: '10px 24px', borderRadius: 2 }}>
+                {label}
+              </button>
+            ))}
           </div>
         )}
-
-        {/* ══ REVIEWS TAB ════════════════════════════════════════════════ */}
-        {activeTab === "Reviews" && (
-          <div className="fade-in pb-8 pt-4">
-            {/* Rating summary card */}
-            {reviews.length > 0 && avgRating && (
-              <div className="mx-4 rounded-2xl p-5 mb-5 flex items-center gap-5"
-                style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
-                <div className="text-center shrink-0">
-                  <div className="text-4xl font-extrabold" style={{ color: theme.p }}>{avgRating}</div>
-                  <div className="flex items-center gap-0.5 justify-center my-1">
-                    {[1,2,3,4,5].map(s => (
-                      <span key={s} style={{ color: s <= Math.round(parseFloat(avgRating)) ? '#fbbf24' : 'var(--t-border)' }}>★</span>
-                    ))}
-                  </div>
-                  <p className="text-xs" style={{ color: 'var(--t-text-3)' }}>{reviews.length} reviews</p>
-                </div>
-                <div className="flex-1">
-                  {[5,4,3,2,1].map(star => {
-                    const count = reviews.filter(r => Math.round(r.salonRating || r.rating || 5) === star).length;
-                    const pct = reviews.length ? (count / reviews.length) * 100 : 0;
+        {services.length === 0
+          ? <p style={{ color: dm.fg30 }}>No services listed yet.</p>
+          : (() => {
+              const isUnisex = salon.servedGender === 'unisex';
+              const classifySvc = (s) => {
+                const af = s.applicableFor || [];
+                if (af.length > 0 && af.includes('male') && !af.includes('female')) return 'male';
+                if (af.length > 0 && af.includes('female') && !af.includes('male')) return 'female';
+                const uniCat = UNISEX_CATEGORIES.find(u => u.label === (s.category || ''));
+                if (uniCat) {
+                  const inM = new Set(uniCat.maleSubServices).has(s.name);
+                  const inF = new Set(uniCat.femaleSubServices).has(s.name);
+                  if (inM && !inF) return 'male';
+                  if (inF && !inM) return 'female';
+                }
+                return 'both';
+              };
+              const visibleServices = !isUnisex || serviceGenderFilter === 'all'
+                ? services
+                : services.filter(s => {
+                    const cat = s.category || '';
+                    if (serviceGenderFilter === 'female' && MALE_ONLY_CAT_LABELS.has(cat)) return false;
+                    if (serviceGenderFilter === 'male' && FEMALE_ONLY_CAT_LABELS.has(cat)) return false;
+                    const g = classifySvc(s);
+                    return g === 'both' || g === serviceGenderFilter;
+                  });
+              const grouped = visibleServices.reduce((acc, svc) => {
+                const cat = svc.category || 'Other';
+                if (!acc[cat]) acc[cat] = [];
+                acc[cat].push(svc);
+                return acc;
+              }, {});
+              const sortedEntries = Object.entries(grouped).sort(([a], [b]) => {
+                const ai = ALL_CATEGORY_ORDER.indexOf(a), bi = ALL_CATEGORY_ORDER.indexOf(b);
+                if (ai === -1 && bi === -1) return a.localeCompare(b);
+                if (ai === -1) return 1; if (bi === -1) return -1;
+                return ai - bi;
+              });
+              return (
+                <div>
+                  {sortedEntries.map(([cat, catServices], ci) => {
+                    const isOpen = expandedCat === cat;
+                    const minPrice = Math.min(...catServices.map(s => s.basePrice || s.price || 0));
                     return (
-                      <div key={star} className="flex items-center gap-2 mb-1">
-                        <span className="text-xs w-2 shrink-0" style={{ color: 'var(--t-text-3)' }}>{star}</span>
-                        <span style={{ color: '#fbbf24', fontSize: 10 }}>★</span>
-                        <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--t-bg-2)' }}>
-                          <div className="h-full rounded-full transition-all duration-500"
-                            style={{ width: `${pct}%`, background: pct > 60 ? '#fbbf24' : pct > 30 ? '#fb923c' : '#f87171' }} />
-                        </div>
-                        <span className="text-xs w-4 shrink-0 text-right" style={{ color: 'var(--t-text-3)' }}>{count}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Info note */}
-            <div className="mx-4 rounded-2xl p-4 mb-5 flex items-start gap-3"
-              style={{ background: `${theme.p}10`, border: `1px solid ${theme.p}28` }}>
-              <Star className="w-4 h-4 mt-0.5 shrink-0" style={{ color: theme.p }} />
-              <p className="text-sm" style={{ color: theme.p }}>
-                Reviews can be submitted after completing a booking.
-              </p>
-            </div>
-
-            {reviews.length === 0 ? (
-              <div className="text-center py-12 px-4">
-                <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--t-bg-2)' }}>
-                  <MessageSquare className="w-8 h-8" style={{ color: 'var(--t-text-3)' }} />
-                </div>
-                <p className="font-bold text-base mb-1" style={{ color: 'var(--t-text-2)' }}>No reviews yet</p>
-                <p className="text-sm" style={{ color: 'var(--t-text-3)' }}>Be the first to share your experience!</p>
-              </div>
-            ) : (
-              <>
-                {/* Horizontal carousel */}
-                <div className="sd-review-track px-4">
-                  {reviews.map((r, i) => {
-                    const starRating = Math.round(r.salonRating || r.rating || 5);
-                    const name = r.customerId?.name || r.customerName || 'Anonymous';
-                    const initial = name.charAt(0).toUpperCase();
-                    const avatarColors = ['#e94560','#8b5cf6','#10b981','#f59e0b','#38bdf8'];
-                    const avatarBg = avatarColors[i % avatarColors.length];
-                    return (
-                      <motion.div key={r._id}
-                        initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * .05 }}
-                        className="shrink-0 rounded-2xl p-4 flex flex-col gap-3"
-                        style={{ width: 260, background: 'var(--t-card)', border: '1px solid var(--t-border)', scrollSnapAlign: 'start' }}>
-                        {/* Stars */}
-                        <div className="flex items-center gap-0.5">
-                          {[1,2,3,4,5].map(s => (
-                            <span key={s} className="text-sm" style={{ color: s <= starRating ? '#fbbf24' : 'var(--t-border)' }}>★</span>
-                          ))}
-                          <span className="text-xs ml-auto font-semibold" style={{ color: 'var(--t-text-3)' }}>
-                            {r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : ''}
-                          </span>
-                        </div>
-                        {/* Comment */}
-                        {r.comment && (
-                          <p className="text-sm leading-relaxed flex-1" style={{ color: 'var(--t-text-2)', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                            "{r.comment}"
-                          </p>
-                        )}
-                        {/* Author */}
-                        <div className="flex items-center gap-2.5 mt-auto pt-1" style={{ borderTop: '1px solid var(--t-border)' }}>
-                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
-                            style={{ background: avatarBg }}>
-                            {initial}
+                      <motion.div key={cat} className="lux-svc-cat"
+                        initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+                        transition={{ delay: Math.min(ci * .05, .3), duration: .5 }}>
+                        <button onClick={() => setExpandedCat(isOpen ? null : cat)} className="w-full text-left"
+                          style={{ padding: '22px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, transition: 'opacity .2s' }}
+                          onMouseEnter={e => e.currentTarget.style.opacity = '.7'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+                          <div className="flex items-center gap-5">
+                            <span style={{ fontSize: 28 }}>{CATEGORY_ICON_MAP[cat] || '✨'}</span>
+                            <div>
+                              <p style={{ fontSize: 'clamp(18px,2.2vw,24px)', fontWeight: 800, color: dm.fg, letterSpacing: '-.015em' }}>{cat}</p>
+                              <p className="lux-overline mt-1" style={{ color: dm.fg28 }}>{catServices.length} service{catServices.length !== 1 ? 's' : ''}</p>
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-semibold truncate" style={{ color: 'var(--t-text)' }}>{name}</p>
-                            {r.serviceId?.name && <p className="text-[10px] truncate" style={{ color: 'var(--t-text-3)' }}>{r.serviceId.name}</p>}
+                          <div className="flex items-center gap-6 shrink-0">
+                            <span style={{ fontSize: 15, fontWeight: 700, color: theme.p }}>from ₹{minPrice}</span>
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center"
+                              style={{ border: `1px solid ${dm.b12}`, color: dm.fg45 }}>
+                              {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                            </div>
                           </div>
-                        </div>
+                        </button>
+                        <AnimatePresence>
+                          {isOpen && (
+                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }} transition={{ duration: .32 }}
+                              style={{ overflow: 'hidden', paddingBottom: 16 }}>
+                              {catServices.map(s => {
+                                const isSel = selectedServices.some(x => x._id === s._id);
+                                return (
+                                  <div key={s._id} className="lux-svc-row" onClick={() => toggleService(s)}>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-3 flex-wrap">
+                                        <span style={{ fontSize: 'clamp(14px,1.6vw,17px)', fontWeight: 700, color: dm.fg }}>{s.name}</span>
+                                        {isSel && <span className="lux-overline px-2 py-0.5" style={{ background: theme.p, color: '#fff', fontSize: 9, borderRadius: 2 }}>ADDED</span>}
+                                      </div>
+                                      {s.description && <p style={{ fontSize: 12, color: dm.fg38, marginTop: 4, lineHeight: 1.5 }}>{s.description}</p>}
+                                      <p style={{ fontSize: 11, color: dm.fg25, marginTop: 4 }}>
+                                        {s.duration ? `${s.duration} min` : ''}
+                                        {s.applicableFor?.length === 1 && ` · ${s.applicableFor[0] === 'male' ? 'Men' : 'Women'}`}
+                                      </p>
+                                    </div>
+                                    <div className="flex items-center gap-4 shrink-0">
+                                      <span style={{ fontSize: 'clamp(16px,2vw,21px)', fontWeight: 900, color: dm.fg, letterSpacing: '-.025em' }}>₹{s.basePrice || s.price || 0}</span>
+                                      <motion.button whileTap={{ scale: .88 }}
+                                        className="w-9 h-9 rounded-full flex items-center justify-center"
+                                        style={isSel ? { background: theme.p, border: `1px solid ${theme.p}`, color: '#fff' } : { background: 'transparent', border: `1px solid ${dm.b20}`, color: dm.fg55 }}>
+                                        {isSel ? <Check className="w-4 h-4" /> : <span style={{ fontSize: 20, lineHeight: 1 }}>+</span>}
+                                      </motion.button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </motion.div>
                     );
                   })}
                 </div>
-              </>
-            )}
-          </div>
-        )}
+              );
+            })()
+        }
+      </section>
 
-        {/* ══ INFO TAB ═══════════════════════════════════════════════════ */}
-        {activeTab === "Info" && (
-          <div className="fade-in space-y-4 pb-8 px-4 pt-4">
-            {salon.description && (
-              <div className="rounded-2xl p-5" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
-                <h3 className="font-bold mb-2" style={{ color: 'var(--t-text)' }}>About</h3>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--t-text-2)' }}>{salon.description}</p>
-              </div>
-            )}
-            <div className="rounded-2xl p-5" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
-              <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--t-text)' }}>
-                <MapPin className="w-4 h-4" style={{ color: '#818cf8' }} />
-                Contact & Location
-              </h3>
-              <ul className="space-y-3 text-sm">
-                {salon.address && (
-                  <li className="flex gap-3 items-start">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ background: 'rgba(99,102,241,0.1)' }}>
-                      <MapPin className="w-4 h-4" style={{ color: '#818cf8' }} />
-                    </div>
-                    <span style={{ color: 'var(--t-text-2)' }}>{salon.address}</span>
-                  </li>
+      {/* ════ 5. OFFERS ════ */}
+      {allOffers.length > 0 && (
+        <section className="lux-section" style={{ paddingTop: 'clamp(60px,7vw,100px)', paddingBottom: 'clamp(60px,7vw,100px)', borderBottom: `1px solid ${dm.b04}` }}>
+          <motion.p className="lux-overline mb-6" style={{ color: theme.p }}
+            initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>Exclusive Offers</motion.p>
+          <div className="flex flex-wrap gap-4">
+            {allOffers.map((offer, i) => {
+              const lbl = offer.discountType === 'percentage' ? `${offer.discountValue}% OFF` : `₹${offer.discountValue} OFF`;
+              return (
+                <motion.button key={offer.code}
+                  initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * .08 }}
+                  whileTap={{ scale: .97 }} whileHover={{ y: -2 }}
+                  onClick={() => { setCouponInput(offer.code); if (!showBooking) openBooking(); }}
+                  className="flex items-center gap-5 px-7 py-5 text-left"
+                  style={{ border: `1px solid ${theme.p}35`, background: `${theme.p}08`, borderRadius: 2, minWidth: 200 }}>
+                  <div>
+                    <p style={{ fontSize: 'clamp(22px,3vw,32px)', fontWeight: 900, color: theme.p, letterSpacing: '-.025em', lineHeight: 1 }}>{lbl}</p>
+                    <p className="lux-overline mt-2" style={{ color: dm.fg45 }}>{offer.code}</p>
+                    {offer.minAmount > 0 && <p style={{ fontSize: 12, color: dm.fg28, marginTop: 4 }}>On orders ₹{offer.minAmount}+</p>}
+                  </div>
+                  <ChevronRight className="w-5 h-5 ml-auto shrink-0" style={{ color: dm.fg25 }} />
+                </motion.button>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* ════ 6. PACKAGES ════ */}
+      {packages.length > 0 && (
+        <section className="lux-section" style={{ borderBottom: `1px solid ${dm.b04}` }}>
+          <motion.p className="lux-overline mb-4" style={{ color: theme.p }}
+            initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>Packages & Memberships</motion.p>
+          <motion.h2 className="lux-title mb-12" style={{ color: dm.fg }}
+            initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: .7 }}>
+            Curated Packages
+          </motion.h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {packages.map((pkg, i) => (
+              <motion.div key={pkg._id} className="lux-pkg-card"
+                initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+                transition={{ delay: Math.min(i * .08, .4), duration: .6 }}>
+                <div className="flex items-start gap-3 mb-6">
+                  <span style={{ fontSize: 32 }}>{pkg.icon || (pkg.type === 'package' ? '🎁' : '💳')}</span>
+                  <div className="flex-1">
+                    {pkg.tag && <p className="lux-overline mb-2" style={{ color: theme.p }}>{pkg.tag === 'popular' ? 'Most Popular' : pkg.tag === 'recommended' ? 'Recommended' : 'Best Value'}</p>}
+                    <h3 style={{ fontSize: 'clamp(17px,1.8vw,21px)', fontWeight: 800, color: dm.fg, letterSpacing: '-.015em' }}>{pkg.name}</h3>
+                    {pkg.description && <p style={{ fontSize: 13, color: dm.fg38, marginTop: 5, lineHeight: 1.55 }}>{pkg.description}</p>}
+                  </div>
+                </div>
+                {pkg.services?.length > 0 && (
+                  <div className="mb-6" style={{ borderTop: `1px solid ${dm.b05}`, paddingTop: 16 }}>
+                    {pkg.services.map((s, j) => (
+                      <div key={j} className="flex items-center gap-2.5 py-2" style={{ borderBottom: `1px solid ${dm.b03}` }}>
+                        <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: theme.p }} />
+                        <span style={{ fontSize: 13, color: dm.fg55 }}>{s.serviceName}</span>
+                      </div>
+                    ))}
+                  </div>
                 )}
-                {salon.city && (
-                  <li className="flex gap-3 items-center">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(99,102,241,0.1)' }}>
-                      <Building2 className="w-4 h-4" style={{ color: '#818cf8' }} />
-                    </div>
-                    <span style={{ color: 'var(--t-text-2)' }}>{salon.city}</span>
-                  </li>
+                {pkg.benefits && (
+                  <div className="mb-6 space-y-2">
+                    {pkg.benefits.discountPercent > 0 && <div className="flex items-center gap-2 text-sm" style={{ color: dm.fg45 }}><Check className="w-3.5 h-3.5 shrink-0" style={{ color: theme.p }} />{pkg.benefits.discountPercent}% off all services</div>}
+                    {pkg.benefits.priorityBooking && <div className="flex items-center gap-2 text-sm" style={{ color: dm.fg45 }}><Zap className="w-3.5 h-3.5 shrink-0" style={{ color: theme.p }} />Priority booking</div>}
+                    {(pkg.benefits.freeServices || []).map((fs, j) => (
+                      <div key={j} className="flex items-center gap-2 text-sm" style={{ color: dm.fg45 }}><Check className="w-3.5 h-3.5 shrink-0" style={{ color: theme.p }} />{fs.serviceName} × {fs.usageLimit}</div>
+                    ))}
+                  </div>
                 )}
-                {salon.phone && (
-                  <li className="flex gap-3 items-center">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(99,102,241,0.1)' }}>
-                      <Phone className="w-4 h-4" style={{ color: '#818cf8' }} />
-                    </div>
-                    <a href={`tel:${salon.phone}`} className="font-medium hover:underline" style={{ color: 'var(--t-accent)' }}>{salon.phone}</a>
-                  </li>
-                )}
-                {salon.email && (
-                  <li className="flex gap-3 items-center">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(99,102,241,0.1)' }}>
-                      <Mail className="w-4 h-4" style={{ color: '#818cf8' }} />
-                    </div>
-                    <a href={`mailto:${salon.email}`} className="font-medium hover:underline" style={{ color: 'var(--t-accent)' }}>{salon.email}</a>
-                  </li>
-                )}
-              </ul>
-              {(salon.address || salon.city) && (
-                <a
-                  href={`https://maps.google.com/?q=${encodeURIComponent(salon.address || salon.city)}`}
-                  target="_blank" rel="noreferrer"
-                  className="mt-4 flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
-                  style={{ background: 'rgba(99,102,241,0.1)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.2)' }}
-                >
-                  <Navigation className="w-4 h-4" /> Get Directions
-                </a>
+                <div className="flex items-end justify-between mt-auto pt-5" style={{ borderTop: `1px solid ${dm.b05}` }}>
+                  <div>
+                    <p style={{ fontSize: 'clamp(26px,3vw,36px)', fontWeight: 900, color: dm.fg, letterSpacing: '-.04em', lineHeight: 1 }}>₹{pkg.discountedPrice || pkg.price}</p>
+                    {pkg.type === 'membership' && <p style={{ fontSize: 12, color: dm.fg32, marginTop: 3 }}>/{pkg.billingCycle === 'monthly' ? 'month' : pkg.billingCycle === 'quarterly' ? 'quarter' : 'year'}</p>}
+                    {pkg.originalPrice > 0 && pkg.originalPrice !== pkg.discountedPrice && <p style={{ fontSize: 12, color: dm.fg28, marginTop: 2 }}><span className="line-through">₹{pkg.originalPrice}</span> · {pkg.discountPercent}% off</p>}
+                  </div>
+                  <motion.button whileTap={{ scale: .96 }} whileHover={{ scale: 1.02 }}
+                    onClick={() => { if (!isCustomer()) { navigate('/login'); return; } setPkgReqModal(pkg); setPkgNote(''); }}
+                    className="lux-btn-p" style={{ background: theme.p, boxShadow: `0 4px 20px ${theme.p}40`, fontSize: 11, padding: '12px 24px' }}>
+                    {pkg.type === 'package' ? 'Buy Now' : 'Subscribe'}
+                  </motion.button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ════ 7. OWNER ════ */}
+      {(salon.ownerName || salon.ownerPhoto) && (
+        <section style={{ borderBottom: `1px solid ${dm.b04}` }}>
+          <div className="lux-split">
+            <div className="relative overflow-hidden" style={{ minHeight: 480 }}>
+              {salon.ownerPhoto
+                ? <img src={salon.ownerPhoto} alt={salon.ownerName} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: 'top' }} />
+                : <div className="absolute inset-0 flex items-center justify-center text-8xl" style={{ background: `linear-gradient(135deg,${theme.p}18,${theme.p}33)` }}>🧑‍🎨</div>}
+              <div className="absolute inset-0" style={{ background: dm.ownerOvr }} />
+            </div>
+            <div className="lux-section flex flex-col justify-center">
+              <motion.p className="lux-overline mb-4" style={{ color: theme.p }}
+                initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>Meet the founder</motion.p>
+              <motion.h2 style={{ fontSize: 'clamp(30px,4vw,52px)', fontWeight: 900, color: dm.fg, lineHeight: 1.1, letterSpacing: '-.025em', marginBottom: 16 }}
+                initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: .7 }}>
+                {salon.ownerName || 'Our Owner'}
+              </motion.h2>
+              <div className="lux-divider" style={{ background: theme.p }} />
+              <motion.p className="lux-body" style={{ color: dm.fg45, maxWidth: 440 }}
+                initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: .15, duration: .7 }}>
+                Founder &amp; Head Stylist. Passionate about creating transformative experiences that leave every client feeling their absolute best.
+              </motion.p>
+              {salon.experience > 0 && (
+                <div style={{ marginTop: 40 }}>
+                  <p style={{ fontSize: 'clamp(44px,5.5vw,72px)', fontWeight: 900, color: dm.fg, lineHeight: 1, letterSpacing: '-.045em' }}>{salon.experience}+</p>
+                  <p className="lux-overline mt-2" style={{ color: dm.fg35 }}>Years of mastery</p>
+                </div>
               )}
             </div>
-            {salon.workingHours && (
-              <div className="rounded-2xl p-5" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
-                <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--t-text)' }}>
-                  <Clock className="w-4 h-4" style={{ color: '#818cf8' }} />
-                  Working Hours
-                </h3>
-                <div className="space-y-2.5">
-                  {dayOrder.map((day) => {
-                    const h = salon.workingHours[day];
-                    if (!h) return null;
-                    const isToday = new Date().toLocaleDateString("en-US",{weekday:"long"}).toLowerCase() === day;
-                    return (
-                      <div key={day}
-                        className="flex justify-between items-center text-sm px-3 py-2 rounded-lg"
-                        style={{ background: isToday ? 'rgba(99,102,241,0.07)' : 'transparent', border: isToday ? '1px solid rgba(99,102,241,0.15)' : '1px solid transparent' }}>
-                        <span className="capitalize font-medium flex items-center gap-2" style={{ color: isToday ? 'var(--t-accent)' : 'var(--t-text-2)' }}>
-                          {isToday && <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 inline-block" />}
-                          {day}
-                          {isToday && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(99,102,241,0.15)', color: 'var(--t-accent)' }}>Today</span>}
-                        </span>
-                        {h.isClosed ? (
-                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: 'var(--t-error-bg)', color: 'var(--t-error-text)' }}>Closed</span>
-                        ) : (
-                          <span className="font-medium" style={{ color: 'var(--t-text)' }}>{h.open} – {h.close}</span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-            <div className="rounded-2xl p-5" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
-              <h3 className="font-bold mb-4" style={{ color: 'var(--t-text)' }}>Why Book Here?</h3>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { icon: <Check className="w-4 h-4" />, label: "Verified Salon", color: '#4ade80', bg: 'rgba(34,197,94,0.1)' },
-                  { icon: <Zap className="w-4 h-4" />,   label: "Instant Booking", color: '#fbbf24', bg: 'rgba(251,191,36,0.1)' },
-                  { icon: <Star className="w-4 h-4" />,  label: "Trusted Reviews", color: '#f472b6', bg: 'rgba(236,72,153,0.1)' },
-                  { icon: <Clock className="w-4 h-4" />, label: "No Wait Time",    color: '#818cf8', bg: 'rgba(99,102,241,0.1)' },
-                ].map(({ icon, label, color, bg }) => (
-                  <div key={label} className="flex items-center gap-2.5 p-3 rounded-xl"
-                    style={{ background: bg, border: `1px solid ${color}25` }}>
-                    <div style={{ color }}>{icon}</div>
-                    <span className="text-xs font-semibold" style={{ color: 'var(--t-text-2)' }}>{label}</span>
-                  </div>
-                ))}
-              </div>
+          </div>
+        </section>
+      )}
+
+      {/* ════ 8. REVIEWS ════ */}
+      {reviews.length > 0 && (
+        <section style={{ paddingTop: 'clamp(80px,10vw,140px)', paddingBottom: 'clamp(80px,10vw,140px)', borderBottom: `1px solid ${dm.b04}` }}>
+          <div style={{ padding: '0 clamp(24px,6vw,96px)', marginBottom: 48 }}>
+            <motion.p className="lux-overline mb-3" style={{ color: theme.p }}
+              initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>Client Love</motion.p>
+            <div className="flex items-end justify-between flex-wrap gap-4">
+              <motion.h2 className="lux-title" style={{ color: dm.fg }}
+                initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: .7 }}>
+                {avgRating ? <><span style={{ color: theme.p }}>{avgRating}</span> out of 5</> : 'What clients say'}
+              </motion.h2>
+              <p style={{ fontSize: 14, color: dm.fg35 }}>{reviews.length} verified review{reviews.length !== 1 ? 's' : ''}</p>
             </div>
           </div>
-        )}
-      </div>
+          <div className="lux-rev-track" style={{ gap: 1 }}>
+            {reviews.map((r, i) => {
+              const starRating = Math.round(r.salonRating || r.rating || 5);
+              const name = r.customerId?.name || r.customerName || 'Guest';
+              const avatarColors = ['#e94560','#8b5cf6','#10b981','#f59e0b','#38bdf8'];
+              return (
+                <motion.div key={r._id}
+                  initial={{ opacity: 0, x: 24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
+                  transition={{ delay: Math.min(i * .06, .35), duration: .6 }}
+                  style={{ flexShrink: 0, width: 'clamp(290px,38vw,460px)', padding: 'clamp(28px,3vw,44px)', background: dm.card, border: `1px solid ${dm.cardBrd}`, scrollSnapAlign: 'start' }}>
+                  <div className="flex mb-5">
+                    {[1,2,3,4,5].map(s => <span key={s} style={{ fontSize: 16, color: s <= starRating ? '#fbbf24' : dm.b10 }}>★</span>)}
+                  </div>
+                  {r.comment && (
+                    <p style={{ fontSize: 'clamp(14px,1.5vw,17px)', lineHeight: 1.8, color: dm.fg75, marginBottom: 28, display: '-webkit-box', WebkitLineClamp: 5, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                      &ldquo;{r.comment}&rdquo;
+                    </p>
+                  )}
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shrink-0"
+                      style={{ background: avatarColors[i % avatarColors.length], fontSize: 15 }}>
+                      {name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p style={{ fontSize: 14, fontWeight: 700, color: dm.fg }}>{name}</p>
+                      <p style={{ fontSize: 11, color: dm.fg30, letterSpacing: '.04em' }}>
+                        {r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-IN',{ day:'2-digit',month:'short',year:'numeric' }) : ''}
+                        {r.serviceId?.name && ` · ${r.serviceId.name}`}
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
-      {/* ══ STICKY BOOKING BAR (always visible) ══════════════════════════ */}
+      {/* ════ 9. INFO ════ */}
+      <section className="lux-section" style={{ borderBottom: `1px solid ${dm.b04}` }}>
+        <div className="lux-split" style={{ gap: 'clamp(40px,6vw,100px)' }}>
+          <div>
+            <motion.p className="lux-overline mb-5" style={{ color: theme.p }}
+              initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>Find Us</motion.p>
+            {[
+              salon.address && { icon: <MapPin className="w-4 h-4" />, text: salon.address },
+              salon.city    && { icon: <Building2 className="w-4 h-4" />, text: salon.city },
+              salon.phone   && { icon: <Phone className="w-4 h-4" />, text: salon.phone, href: `tel:${salon.phone}` },
+              salon.email   && { icon: <Mail className="w-4 h-4" />, text: salon.email, href: `mailto:${salon.email}` },
+            ].filter(Boolean).map(({ icon, text, href }, i) => (
+              <div key={i} className="lux-info-row">
+                <div style={{ color: theme.p, marginTop: 1 }}>{icon}</div>
+                {href
+                  ? <a href={href} style={{ fontSize: 15, color: dm.fg65, textDecoration: 'none' }}
+                      onMouseEnter={e => { e.currentTarget.style.color=dm.fg; }} onMouseLeave={e => { e.currentTarget.style.color=dm.fg65; }}>
+                      {text}
+                    </a>
+                  : <p style={{ fontSize: 15, color: dm.fg65 }}>{text}</p>
+                }
+              </div>
+            ))}
+            {(salon.address || salon.city) && (
+              <a href={`https://maps.google.com/?q=${encodeURIComponent(salon.address || salon.city)}`}
+                target="_blank" rel="noreferrer" className="lux-btn-o inline-flex mt-7"
+                style={{ fontSize: 11, padding: '11px 22px', color: dm.fg, border: `1px solid ${dm.b28}` }}>
+                <Navigation className="w-3.5 h-3.5" /> Get Directions
+              </a>
+            )}
+          </div>
+          {salon.workingHours && (
+            <div>
+              <motion.p className="lux-overline mb-5" style={{ color: theme.p }}
+                initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>Hours</motion.p>
+              {["monday","tuesday","wednesday","thursday","friday","saturday","sunday"].map(day => {
+                const h = salon.workingHours[day];
+                if (!h) return null;
+                const isToday = new Date().toLocaleDateString('en-US',{ weekday:'long' }).toLowerCase() === day;
+                return (
+                  <div key={day} className="lux-info-row"
+                    style={{ background: isToday ? `${theme.p}08` : 'transparent', paddingLeft: isToday ? 12 : 0, paddingRight: isToday ? 12 : 0 }}>
+                    <span className="capitalize flex-1" style={{ fontSize: 14, fontWeight: isToday ? 700 : 400, color: isToday ? dm.fg : dm.fg42 }}>
+                      {isToday && <span style={{ color: theme.p }}>→ </span>}{day}
+                    </span>
+                    {h.isClosed
+                      ? <span style={{ fontSize: 12, color: '#f87171', fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' }}>Closed</span>
+                      : <span style={{ fontSize: 14, color: isToday ? dm.fg : dm.fg50, fontWeight: isToday ? 700 : 400 }}>{h.open} – {h.close}</span>
+                    }
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ════ 10. FINAL CTA ════ */}
+      <section className="relative overflow-hidden flex items-center" style={{ minHeight: '65vh' }}>
+        {salonPhotoUrls[1] || salonPhotoUrls[0]
+          ? <img src={salonPhotoUrls[1] || salonPhotoUrls[0]} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ filter: 'brightness(.2) saturate(.6)' }} />
+          : <div className="absolute inset-0" style={{ background: `linear-gradient(135deg,${theme.p}1a,#050505)` }} />
+        }
+        <div className="absolute inset-0" style={{ background: dm.ctaOvr }} />
+        <div className="absolute inset-0" style={{ background: `linear-gradient(135deg,${theme.p}12 0%,transparent 55%)` }} />
+        <div className="relative z-10 lux-section">
+          <motion.p className="lux-overline mb-6" style={{ color: theme.p }}
+            initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>{salon.name}</motion.p>
+          <motion.h2 style={{ fontSize: 'clamp(40px,6vw,88px)', fontWeight: 900, lineHeight: 1, letterSpacing: '-.04em', marginBottom: 36, maxWidth: 680, color: dm.fg }}
+            initial={{ opacity: 0, y: 32 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            transition={{ duration: .85, ease: [.22,1,.36,1] }}>
+            Ready for your<br />transformation?
+          </motion.h2>
+          <motion.div className="flex flex-wrap gap-4"
+            initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: .2, duration: .7 }}>
+            <motion.button whileTap={{ scale: .97 }} whileHover={{ scale: 1.02 }} onClick={handleBookNowEmpty}
+              className="lux-btn-p" style={{ background: theme.p, boxShadow: `0 12px 40px ${theme.p}50`, fontSize: 13, padding: '17px 42px' }}>
+              <Zap className="w-4 h-4" /> Book Now
+            </motion.button>
+            {salon.phone && (
+              <motion.a whileTap={{ scale: .97 }} href={`tel:${salon.phone}`}
+                className="lux-btn-o" style={{ fontSize: 13, padding: '17px 42px', color: dm.fg, border: `1px solid ${dm.b28}` }}>
+                <Phone className="w-4 h-4" /> Call Us
+              </motion.a>
+            )}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ════ STICKY BOOKING BAR ════ */}
       <AnimatePresence mode="wait">
         {selectedServices.length > 0 ? (
           <motion.div key="selected"
             initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 340, damping: 30 }}
-            className="fixed bottom-0 left-0 right-0 z-40 px-4 py-3 md:bottom-4 md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-2xl md:rounded-2xl md:shadow-2xl"
-            style={{ background: 'var(--t-card)', borderTop: '1px solid var(--t-border)', boxShadow: '0 -8px 32px rgba(0,0,0,0.18)' }}>
+            className="fixed bottom-0 left-0 right-0 z-40 px-5 py-3.5 md:bottom-4 md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-2xl md:rounded-xl"
+            style={{ background: dm.barBg, borderTop: `1px solid ${theme.p}30`, boxShadow: `0 -8px 40px rgba(0,0,0,.45),0 0 0 1px ${theme.p}15`, transition: 'background .3s' }}>
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: `${theme.p}1a` }}>
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${theme.p}18` }}>
                   <ShoppingBag className="w-5 h-5" style={{ color: theme.p }} />
                 </div>
                 <div className="min-w-0">
-                  <p className="font-bold text-sm" style={{ color: 'var(--t-text)' }}>
-                    {selectedServices.length} service{selectedServices.length > 1 ? "s" : ""} selected
-                  </p>
-                  <p className="text-xs font-semibold truncate" style={{ color: theme.p }}>
-                    ₹{totalPrice} · {totalDuration} min
-                  </p>
+                  <p className="font-bold text-sm" style={{ color: dm.fg }}>{selectedServices.length} service{selectedServices.length > 1 ? 's' : ''} selected</p>
+                  <p className="text-xs font-semibold" style={{ color: theme.p }}>₹{totalPrice} · {totalDuration} min</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => setSelectedServices([])}
-                  className="text-sm px-3 py-2 rounded-lg"
-                  style={{ color: 'var(--t-text-3)' }}
-                >
-                  Clear
-                </button>
-                <motion.button whileTap={{ scale: 0.96 }} whileHover={{ scale: 1.03 }}
-                  onClick={handleBookNow}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white"
-                  style={{ background: `linear-gradient(135deg,${theme.p},${theme.p}cc)`, boxShadow: `0 4px 16px ${theme.p}45` }}
-                >
-                  <Zap className="w-4 h-4" /> Book Now →
+                <button onClick={() => setSelectedServices([])} className="text-sm px-3 py-2" style={{ color: dm.fg40 }}>Clear</button>
+                <motion.button whileTap={{ scale: .96 }} whileHover={{ scale: 1.03 }} onClick={handleBookNow}
+                  className="lux-btn-p" style={{ background: theme.p, boxShadow: `0 4px 20px ${theme.p}45`, fontSize: 11, padding: '11px 22px' }}>
+                  <Zap className="w-3.5 h-3.5" /> Book Now →
                 </motion.button>
               </div>
             </div>
@@ -1398,265 +972,218 @@ function SalonDetails() {
           <motion.div key="idle"
             initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 340, damping: 30 }}
-            className="fixed bottom-0 left-0 right-0 z-40 px-4 py-3 md:bottom-4 md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-2xl md:rounded-2xl md:shadow-2xl"
-            style={{ background: 'var(--t-card)', borderTop: '1px solid var(--t-border)', boxShadow: '0 -8px 32px rgba(0,0,0,0.18)' }}>
+            className="fixed bottom-0 left-0 right-0 z-40 px-5 py-3.5 md:bottom-4 md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-2xl md:rounded-xl"
+            style={{ background: dm.barBg, borderTop: `1px solid ${theme.p}25`, boxShadow: `0 -8px 40px rgba(0,0,0,.45),0 0 0 1px ${theme.p}12`, transition: 'background .3s' }}>
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="font-bold text-sm" style={{ color: 'var(--t-text)' }}>{salon.name}</p>
-                <p className="text-xs truncate" style={{ color: 'var(--t-text-3)' }}>
-                  {nextSlot ? `Next slot: ${nextSlot}` : openStatus === false ? (opensAt ? `Opens at ${opensAt}` : 'Closed today') : 'Select a service to book'}
+                <p className="font-bold text-sm" style={{ color: dm.fg }}>{salon.name}</p>
+                <p className="text-xs" style={{ color: dm.fg35 }}>
+                  {nextSlot ? `Next slot: ${nextSlot}` : openStatus === false ? (opensAt ? `Opens at ${opensAt}` : 'Closed today') : 'Select a service above'}
                 </p>
               </div>
-              <motion.button whileTap={{ scale: 0.96 }} whileHover={{ scale: 1.03 }}
-                onClick={handleBookNowEmpty}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white shrink-0"
-                style={{ background: `linear-gradient(135deg,${theme.p},${theme.p}cc)`, boxShadow: `0 4px 16px ${theme.p}45` }}
-              >
-                <Zap className="w-4 h-4" /> Book Now
+              <motion.button whileTap={{ scale: .96 }} whileHover={{ scale: 1.03 }} onClick={handleBookNowEmpty}
+                className="lux-btn-p shrink-0" style={{ background: theme.p, boxShadow: `0 4px 20px ${theme.p}45`, fontSize: 11, padding: '11px 22px' }}>
+                <Zap className="w-3.5 h-3.5" /> Book Now
               </motion.button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ══ VIDEO VIEWER — outside fade-in to avoid stacking-context trap ══ */}
+      {/* ════ VIDEO VIEWER ════ */}
       {videoViewerIdx !== null && salonVideoUrls.length > 0 && (
-        <SalonVideoViewer
-          videos={salonVideoUrls}
-          startIdx={videoViewerIdx}
-          salon={salon}
+        <SalonVideoViewer videos={salonVideoUrls} startIdx={videoViewerIdx} salon={salon}
           onClose={() => setVideoViewerIdx(null)}
-          onBook={() => { setVideoViewerIdx(null); setShowBooking(true); }}
-        />
+          onBook={() => { setVideoViewerIdx(null); setShowBooking(true); }} />
       )}
 
-      {/* ══ BOOKING DRAWER ════════════════════════════════════════════════ */}
-      {showBooking && (
-        <div className="fixed inset-0 z-50 flex flex-col md:items-center md:justify-center" style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
-          onClick={(e) => { if (e.target === e.currentTarget && !bookingSuccess) setShowBooking(false); }}>
+      {/* ════ GALLERY LIGHTBOX ════ */}
+      <AnimatePresence>
+        {galleryLightbox !== null && galleryItems[galleryLightbox] && (() => {
+          const lbItem = galleryItems[galleryLightbox];
+          const isVideo = lbItem.type === 'video';
+          const goPrev  = () => { galleryVideoRef.current?.pause(); setGalleryLightbox(n => n - 1); };
+          const goNext  = () => { galleryVideoRef.current?.pause(); setGalleryLightbox(n => n + 1); };
+          const closeLb = () => { galleryVideoRef.current?.pause(); setGalleryLightbox(null); };
+          return (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-4" onClick={closeLb}>
+              <button onClick={closeLb} className="absolute top-5 right-5 z-10 w-11 h-11 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white"><X className="w-5 h-5" /></button>
+              <div className="absolute top-5 left-1/2 -translate-x-1/2 z-10">
+                <span className="text-white text-sm font-semibold bg-white/10 px-3 py-1 rounded-full">{galleryLightbox + 1} / {galleryItems.length}</span>
+              </div>
+              <div className="max-w-4xl w-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
+                {isVideo
+                  ? <video ref={galleryVideoRef} src={lbItem.url} controls autoPlay className="max-h-[80vh] max-w-full rounded-xl" />
+                  : <img src={lbItem.url} alt="" className="max-h-[80vh] max-w-full rounded-xl object-contain" />
+                }
+              </div>
+              {galleryLightbox > 0 && <button onClick={e => { e.stopPropagation(); goPrev(); }} className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white"><ChevronLeft className="w-6 h-6" /></button>}
+              {galleryLightbox < galleryItems.length - 1 && <button onClick={e => { e.stopPropagation(); goNext(); }} className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white"><ChevronRight className="w-6 h-6" /></button>}
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
 
-          <div
-            className="mt-auto w-full max-h-[92vh] rounded-t-3xl flex flex-col md:mt-0 md:rounded-3xl md:max-w-xl md:max-h-[88vh]"
-            style={{ background: 'var(--t-bg)', boxShadow: '0 -20px 60px rgba(0,0,0,0.3)' }}
-          >
+      {/* ════ BOOKING DRAWER ════ */}
+      {showBooking && (
+        <div className="fixed inset-0 z-50 flex flex-col md:items-center md:justify-center"
+          style={{ background: 'rgba(0,0,0,.75)', backdropFilter: 'blur(6px)' }}
+          onClick={e => { if (e.target === e.currentTarget && !bookingSuccess) setShowBooking(false); }}>
+          <div className="mt-auto w-full max-h-[92vh] rounded-t-3xl flex flex-col md:mt-0 md:rounded-3xl md:max-w-xl md:max-h-[88vh]"
+            style={{ background: '#0e0e0e', boxShadow: '0 -20px 80px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.06)' }}>
             {bookingSuccess ? (
-              /* ── Success view ────────────────────────────────────────── */
               <div className="flex flex-col items-center justify-center px-6 py-10 text-center">
                 <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4"
-                  style={{ background: bookingStatus === "pending" ? 'var(--t-warn-bg)' : '#dcfce7' }}>
-                  {bookingStatus === "pending"
-                    ? <span className="text-4xl">⏳</span>
-                    : <CheckCircle className="w-10 h-10 text-green-500" />}
+                  style={{ background: bookingStatus === 'pending' ? 'rgba(251,191,36,.15)' : 'rgba(34,197,94,.15)' }}>
+                  {bookingStatus === 'pending' ? <span className="text-4xl">⏳</span> : <CheckCircle className="w-10 h-10" style={{ color: '#4ade80' }} />}
                 </div>
-                <h2 className="text-xl font-extrabold mb-1" style={{ color: 'var(--t-text)' }}>
-                  {bookingStatus === "pending" ? "Booking Received!" : "Booking Confirmed!"}
-                </h2>
-                {bookingStatus === "pending" && (
-                  <div className="rounded-xl px-4 py-2.5 mb-3 text-sm" style={{ background: 'var(--t-warn-bg)', color: 'var(--t-warn-text)' }}>
+                <h2 className="text-xl font-extrabold mb-1 text-white">{bookingStatus === 'pending' ? 'Booking Received!' : 'Booking Confirmed!'}</h2>
+                {bookingStatus === 'pending' && (
+                  <div className="rounded-xl px-4 py-2.5 mb-3 text-sm" style={{ background: 'rgba(251,191,36,.1)', color: '#fbbf24' }}>
                     Awaiting salon confirmation. You'll be notified once approved.
                   </div>
                 )}
-                <div className="rounded-2xl p-4 w-full mb-5 text-sm space-y-1.5" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
-                  <p className="font-bold" style={{ color: 'var(--t-text)' }}>{salon.name}</p>
-                  <p style={{ color: 'var(--t-text-2)' }}>{selectedServices.map(s => s.name).join(" + ")}</p>
-                  <p style={{ color: 'var(--t-text-3)' }}>{formatDate(bookDate + "T12:00:00")} · {slot}</p>
-                  <p style={{ color: 'var(--t-accent)' }}>₹{finalPrice} · Pay at salon</p>
+                <div className="rounded-2xl p-4 w-full mb-5 text-sm space-y-1.5" style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)' }}>
+                  <p className="font-bold text-white">{salon.name}</p>
+                  <p style={{ color: 'rgba(255,255,255,.55)' }}>{selectedServices.map(s => s.name).join(' + ')}</p>
+                  <p style={{ color: 'rgba(255,255,255,.35)' }}>{formatDate(bookDate + 'T12:00:00')} · {slot}</p>
+                  <p style={{ color: theme.p }}>₹{finalPrice} · Pay at salon</p>
                 </div>
                 <div className="flex flex-col gap-2 w-full">
-                  <button
-                    onClick={() => { setShowBooking(false); navigate("/dashboard"); }}
-                    className="btn-primary w-full py-3"
-                  >
-                    View My Bookings
-                  </button>
-                  <button
-                    onClick={() => { setShowBooking(false); navigate("/"); }}
-                    className="btn-outline w-full py-3"
-                  >
+                  <button onClick={() => { setShowBooking(false); navigate('/dashboard'); }}
+                    className="w-full py-3 font-bold text-white rounded-2xl" style={{ background: theme.p }}>View My Bookings</button>
+                  <button onClick={() => { setShowBooking(false); navigate('/'); }}
+                    className="w-full py-3 font-semibold rounded-2xl"
+                    style={{ background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.6)', border: '1px solid rgba(255,255,255,.1)' }}>
                     Browse More Salons
                   </button>
                 </div>
               </div>
             ) : (
-              /* ── Booking form ─────────────────────────────────────────── */
               <>
-                {/* Drawer handle + header */}
                 <div className="rounded-t-3xl pt-3 pb-4 px-5 relative overflow-hidden shrink-0"
-                  style={{ background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', boxShadow: '0 4px 20px rgba(79,70,229,0.3)' }}>
-                  {/* Decorative circles like app */}
-                  <div style={{ position: 'absolute', top: -50, right: -30, width: 150, height: 150, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
-                  <div style={{ position: 'absolute', top: -15, right: 70, width: 90, height: 90, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
+                  style={{ background: `linear-gradient(135deg,${theme.p}dd,${theme.p}aa)`, boxShadow: `0 4px 24px ${theme.p}40` }}>
+                  <div style={{ position:'absolute',top:-50,right:-30,width:150,height:150,borderRadius:'50%',background:'rgba(255,255,255,.07)',pointerEvents:'none' }} />
+                  <div style={{ position:'absolute',top:-15,right:70,width:90,height:90,borderRadius:'50%',background:'rgba(255,255,255,.04)',pointerEvents:'none' }} />
                   <div className="w-10 h-1 rounded-full bg-white/30 mx-auto mb-4" />
                   <div className="flex items-center justify-between">
                     <div>
                       <h2 className="text-lg font-extrabold text-white">Book Appointment</h2>
                       <p className="text-xs text-white/70 mt-0.5 truncate max-w-[220px]">
-                        {salon.name}
-                        {selectedServices.length > 0 && ` · ${selectedServices.map(s => s.name).join(", ")}`}
+                        {salon.name}{selectedServices.length > 0 && ` · ${selectedServices.map(s => s.name).join(', ')}`}
                       </p>
                     </div>
-                    <button
-                      onClick={() => setShowBooking(false)}
-                      className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110"
-                      style={{ background: 'rgba(255,255,255,0.15)' }}
-                    >
+                    <button onClick={() => setShowBooking(false)} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,.15)' }}>
                       <X className="w-5 h-5 text-white" />
                     </button>
                   </div>
                   {selectedServices.length > 0 && (
-                    <div className="mt-3 flex items-center gap-3 px-3 py-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.12)' }}>
+                    <div className="mt-3 flex items-center gap-3 px-3 py-2 rounded-xl" style={{ background: 'rgba(255,255,255,.12)' }}>
                       <Scissors className="w-4 h-4 text-white/70 shrink-0" />
-                      <span className="text-xs text-white/80 font-semibold flex-1 truncate">
-                        {totalDuration} min · ₹{totalPrice}
-                      </span>
+                      <span className="text-xs text-white/80 font-semibold flex-1 truncate">{totalDuration} min · ₹{totalPrice}</span>
                     </div>
                   )}
                 </div>
 
                 <form onSubmit={handleConfirm} className="px-5 py-5 space-y-6 overflow-y-auto flex-1 min-h-0 pb-4">
-                  {/* ── Date ── */}
                   <div>
-                    <label className="flex items-center gap-2 text-sm font-bold mb-3" style={{ color: 'var(--t-text)' }}>
-                      <Calendar className="w-4 h-4" style={{ color: '#818cf8' }} /> Select Date
+                    <label className="flex items-center gap-2 text-sm font-bold mb-3 text-white">
+                      <Calendar className="w-4 h-4" style={{ color: theme.p }} /> Select Date
                     </label>
                     <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
                       {dateDays.map(d => {
                         const active = bookDate === d;
-                        const dateObj = new Date(d + "T12:00:00");
+                        const dateObj = new Date(d + 'T12:00:00');
                         return (
-                          <button
-                            key={d}
-                            type="button"
-                            onClick={() => setBookDate(d)}
+                          <button key={d} type="button" onClick={() => setBookDate(d)}
                             className="flex flex-col items-center justify-center rounded-2xl shrink-0 transition-all hover:scale-105"
-                            style={{
-                              width: 52, height: 62, borderWidth: 1.5,
-                              background: active ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : 'var(--t-card)',
-                              borderColor: active ? '#6366f1' : 'var(--t-border)',
-                              boxShadow: active ? '0 4px 12px rgba(99,102,241,0.35)' : 'none',
-                            }}
-                          >
-                            <span className="text-[10px] font-bold" style={{ color: active ? 'rgba(255,255,255,0.8)' : 'var(--t-text-3)' }}>
-                              {formatDay(d)}
-                            </span>
-                            <span className="text-lg font-extrabold" style={{ color: active ? '#fff' : 'var(--t-text)' }}>
-                              {dateObj.getDate()}
-                            </span>
+                            style={{ width:52, height:62, borderWidth:1.5,
+                              background: active ? theme.p : 'rgba(255,255,255,.05)',
+                              borderColor: active ? theme.p : 'rgba(255,255,255,.1)',
+                              boxShadow: active ? `0 4px 12px ${theme.p}50` : 'none' }}>
+                            <span className="text-[10px] font-bold" style={{ color: active ? 'rgba(255,255,255,.8)' : 'rgba(255,255,255,.35)' }}>{formatDay(d)}</span>
+                            <span className="text-lg font-extrabold" style={{ color: active ? '#fff' : 'rgba(255,255,255,.75)' }}>{dateObj.getDate()}</span>
                           </button>
                         );
                       })}
                     </div>
                   </div>
 
-                  {/* ── Stylist ── */}
                   {barbers.length > 0 && (
                     <div>
-                      <label className="flex items-center gap-2 text-sm font-bold mb-3" style={{ color: 'var(--t-text)' }}>
-                        <User className="w-4 h-4" style={{ color: '#818cf8' }} />
-                        Select Stylist <span className="font-normal text-xs" style={{ color: 'var(--t-text-3)' }}>(optional)</span>
+                      <label className="flex items-center gap-2 text-sm font-bold mb-3 text-white">
+                        <User className="w-4 h-4" style={{ color: theme.p }} />
+                        Select Stylist <span className="font-normal text-xs" style={{ color: 'rgba(255,255,255,.35)' }}>(optional)</span>
                       </label>
                       <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-                        {/* Any / No preference */}
-                        <button type="button" onClick={() => setBarberId("")}
-                          className="flex flex-col items-center gap-1.5 shrink-0 transition-all hover:scale-105">
-                          <div
-                            className="w-14 h-14 rounded-full flex items-center justify-center text-sm font-bold"
-                            style={barberId === ""
-                              ? { background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', boxShadow: '0 4px 12px rgba(99,102,241,0.4)' }
-                              : { background: 'var(--t-bg-2)', color: 'var(--t-text-2)', border: '2px solid var(--t-border)' }}
-                          >
+                        <button type="button" onClick={() => setBarberId('')} className="flex flex-col items-center gap-1.5 shrink-0 transition-all hover:scale-105">
+                          <div className="w-14 h-14 rounded-full flex items-center justify-center text-sm font-bold"
+                            style={barberId === '' ? { background: theme.p, color: '#fff', boxShadow: `0 4px 12px ${theme.p}50` } : { background: 'rgba(255,255,255,.07)', color: 'rgba(255,255,255,.55)', border: '2px solid rgba(255,255,255,.1)' }}>
                             Any
                           </div>
-                          <span className="text-xs font-medium" style={{ color: barberId === "" ? '#6366f1' : 'var(--t-text-2)' }}>No Pref</span>
+                          <span className="text-xs font-medium" style={{ color: barberId === '' ? theme.p : 'rgba(255,255,255,.45)' }}>No Pref</span>
                         </button>
                         {barbers.map(b => (
-                          <button key={b._id} type="button" onClick={() => setBarberId(b._id)}
-                            className="flex flex-col items-center gap-1.5 shrink-0 transition-all hover:scale-105">
-                            <div
-                              className="w-14 h-14 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden"
-                              style={barberId === b._id
-                                ? { border: '3px solid #6366f1', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', boxShadow: '0 4px 12px rgba(99,102,241,0.4)' }
-                                : { background: 'var(--t-bg-2)', color: 'var(--t-text-2)', border: '2px solid var(--t-border)' }}
-                            >
-                              {b.photo
-                                ? <img src={b.photo} alt={b.name} className="w-full h-full object-cover" />
-                                : (b.name?.charAt(0)?.toUpperCase() || "?")}
+                          <button key={b._id} type="button" onClick={() => setBarberId(b._id)} className="flex flex-col items-center gap-1.5 shrink-0 transition-all hover:scale-105">
+                            <div className="w-14 h-14 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden"
+                              style={barberId === b._id ? { border: `3px solid ${theme.p}`, background: theme.p, color: '#fff', boxShadow: `0 4px 12px ${theme.p}50` } : { background: 'rgba(255,255,255,.07)', color: 'rgba(255,255,255,.55)', border: '2px solid rgba(255,255,255,.1)' }}>
+                              {b.photo ? <img src={b.photo} alt={b.name} className="w-full h-full object-cover" /> : (b.name?.charAt(0)?.toUpperCase() || '?')}
                             </div>
-                            <span className="text-xs font-medium text-center max-w-[60px] truncate"
-                              style={{ color: barberId === b._id ? '#6366f1' : 'var(--t-text-2)' }}>
-                              {b.name}
-                            </span>
-                            {b.experience > 0 && (
-                              <span className="text-[10px]" style={{ color: 'var(--t-text-3)', marginTop: -4 }}>
-                                {b.experience}yr
-                              </span>
-                            )}
+                            <span className="text-xs font-medium text-center max-w-[60px] truncate" style={{ color: barberId === b._id ? theme.p : 'rgba(255,255,255,.45)' }}>{b.name}</span>
+                            {b.experience > 0 && <span className="text-[10px]" style={{ color: 'rgba(255,255,255,.25)', marginTop: -4 }}>{b.experience}yr</span>}
                           </button>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  {/* ── Time slots ── */}
                   <div>
-                    <label className="flex items-center gap-2 text-sm font-bold mb-3" style={{ color: 'var(--t-text)' }}>
-                      <Clock className="w-4 h-4" style={{ color: '#818cf8' }} />
-                      Select Time
-                      {totalDuration > 0 && <span className="font-normal text-xs" style={{ color: 'var(--t-text-3)' }}>({totalDuration} min)</span>}
+                    <label className="flex items-center gap-2 text-sm font-bold mb-3 text-white">
+                      <Clock className="w-4 h-4" style={{ color: theme.p }} />
+                      Select Time {totalDuration > 0 && <span className="font-normal text-xs" style={{ color: 'rgba(255,255,255,.35)' }}>({totalDuration} min)</span>}
                     </label>
-
                     {slotsLoading ? (
-                      <div className="flex items-center gap-2 py-4 text-sm" style={{ color: 'var(--t-text-3)' }}>
-                        <div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
-                        Loading available slots…
+                      <div className="flex items-center gap-2 py-4 text-sm" style={{ color: 'rgba(255,255,255,.4)' }}>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white/80 rounded-full animate-spin" /> Loading available slots…
                       </div>
                     ) : closedDay ? (
-                      <div className="p-4 rounded-xl text-sm text-center" style={{ background: '#fef3c7', color: '#92400e' }}>
-                        🔒 Salon is closed on this date. Please try another day.
+                      <div className="p-4 rounded-xl text-sm text-center" style={{ background: 'rgba(251,191,36,.08)', color: '#fbbf24', border: '1px solid rgba(251,191,36,.2)' }}>
+                        🔒 Salon is closed on this date.
                       </div>
                     ) : slots.length === 0 ? (
-                      <div className="p-4 rounded-xl text-sm text-center" style={{ background: 'var(--t-bg-2)', color: 'var(--t-text-2)' }}>
+                      <div className="p-4 rounded-xl text-sm text-center" style={{ background: 'rgba(255,255,255,.05)', color: 'rgba(255,255,255,.4)' }}>
                         No available slots for this date.
                       </div>
-                    ) : bookingMode === "sequential" ? (
-                      <div className="flex items-center gap-3 p-3 rounded-xl text-sm"
-                        style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)' }}>
-                        <Zap className="w-4 h-4 shrink-0" style={{ color: '#818cf8' }} />
-                        <span style={{ color: '#818cf8' }}>Auto-assigned: <strong>{slots[0]} – {addMinutes(slots[0], totalDuration)}</strong></span>
+                    ) : bookingMode === 'sequential' ? (
+                      <div className="flex items-center gap-3 p-3 rounded-xl text-sm" style={{ background: `${theme.p}12`, border: `1px solid ${theme.p}30` }}>
+                        <Zap className="w-4 h-4 shrink-0" style={{ color: theme.p }} />
+                        <span style={{ color: theme.p }}>Auto-assigned: <strong>{slots[0]} – {addMinutes(slots[0], totalDuration)}</strong></span>
                       </div>
                     ) : (
                       <>
-                        <div className="flex items-center gap-4 mb-3 text-xs flex-wrap" style={{ color: 'var(--t-text-3)' }}>
-                          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded" style={{ background: 'var(--t-border)' }} /> Past</span>
-                          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-red-400" /> Booked</span>
-                          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-indigo-600" /> Selected</span>
-                          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded" style={{ border: '1px solid var(--t-border)', background: 'var(--t-input-bg)' }} /> Available</span>
+                        <div className="flex items-center gap-4 mb-3 text-xs flex-wrap" style={{ color: 'rgba(255,255,255,.3)' }}>
+                          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded" style={{ background: 'rgba(255,255,255,.1)' }} /> Past</span>
+                          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-red-500/40" /> Booked</span>
+                          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded" style={{ background: theme.p }} /> Selected</span>
+                          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded" style={{ border: '1px solid rgba(255,255,255,.15)' }} /> Available</span>
                         </div>
                         <div className="grid grid-cols-3 gap-2">
-                          {slots.map((s) => {
+                          {slots.map(s => {
                             const past    = isPastSlot(bookDate, s);
                             const blocked = !past && blockedSlots.includes(s);
                             const selected = slot === s;
                             const endTime = addMinutes(s, totalDuration);
                             return (
-                              <button
-                                key={s}
-                                type="button"
-                                onClick={() => {
-                                  if (past)    { setSlotPopup("past");   return; }
-                                  if (blocked) { setSlotPopup("booked"); return; }
-                                  setSlot(s);
-                                }}
+                              <button key={s} type="button"
+                                onClick={() => { if (past) { setSlotPopup('past'); return; } if (blocked) { setSlotPopup('booked'); return; } setSlot(s); }}
                                 className="py-2 px-1 text-xs rounded-xl border transition-all font-medium text-center leading-tight hover:scale-[1.03]"
-                                style={
-                                  past    ? { background: 'var(--t-bg-2)', color: 'var(--t-text-3)', borderColor: 'var(--t-border)', cursor: 'not-allowed' } :
-                                  blocked ? { background: 'var(--t-error-bg)', color: 'var(--t-error-text)', borderColor: 'var(--t-error-border)', cursor: 'not-allowed' } :
-                                  selected? { background: 'var(--t-accent)', color: '#fff', borderColor: 'var(--t-accent)', boxShadow: '0 4px 12px rgba(99,102,241,0.35)' } :
-                                            { background: 'var(--t-input-bg)', color: 'var(--t-text-2)', borderColor: 'var(--t-border)' }
-                                }
-                              >
+                                style={past    ? { background:'rgba(255,255,255,.05)',color:'rgba(255,255,255,.2)',borderColor:'rgba(255,255,255,.08)',cursor:'not-allowed' }
+                                      :blocked ? { background:'rgba(239,68,68,.08)',color:'#f87171',borderColor:'rgba(239,68,68,.2)',cursor:'not-allowed' }
+                                      :selected? { background:theme.p,color:'#fff',borderColor:theme.p,boxShadow:`0 4px 12px ${theme.p}40` }
+                                               : { background:'rgba(255,255,255,.04)',color:'rgba(255,255,255,.65)',borderColor:'rgba(255,255,255,.1)' }}>
                                 <span className="block">{s}</span>
-                                <span className="block opacity-75">– {endTime}</span>
+                                <span className="block opacity-60">– {endTime}</span>
                               </button>
                             );
                           })}
@@ -1665,154 +1192,122 @@ function SalonDetails() {
                     )}
                   </div>
 
-                  {/* ── Coupon ── */}
                   {slot && salon?.hasCoupons && (
                     <div>
-                      <label className="flex items-center gap-2 text-sm font-bold mb-3" style={{ color: 'var(--t-text)' }}>
-                        <Tag className="w-4 h-4" style={{ color: '#818cf8' }} /> Have a coupon?
+                      <label className="flex items-center gap-2 text-sm font-bold mb-3 text-white">
+                        <Tag className="w-4 h-4" style={{ color: theme.p }} /> Have a coupon?
                       </label>
                       {appliedCoupon ? (
-                        <div className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm"
-                          style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
-                          <span className="font-medium" style={{ color: '#16a34a' }}>✓ {appliedCoupon.code} — ₹{couponDiscount} off</span>
-                          <button type="button" onClick={removeCoupon} className="text-xs ml-2" style={{ color: '#ef4444' }}>Remove</button>
+                        <div className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm" style={{ background: 'rgba(34,197,94,.08)', border: '1px solid rgba(34,197,94,.2)' }}>
+                          <span className="font-medium" style={{ color: '#4ade80' }}>✓ {appliedCoupon.code} — ₹{couponDiscount} off</span>
+                          <button type="button" onClick={removeCoupon} className="text-xs ml-2" style={{ color: '#f87171' }}>Remove</button>
                         </div>
                       ) : (
                         <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={couponInput}
-                            onChange={e => { setCouponInput(e.target.value.toUpperCase()); setCouponError(""); }}
-                            placeholder="Enter coupon code"
-                            className="input-field flex-1"
-                          />
-                          <button
-                            type="button"
-                            onClick={applyCoupon}
-                            disabled={couponLoading || !couponInput.trim()}
-                            className="px-4 py-2 text-white rounded-xl text-sm font-semibold disabled:opacity-50 transition"
-                            style={{ background: 'var(--t-accent)' }}
-                          >
-                            {couponLoading ? "…" : "Apply"}
-                          </button>
+                          <input type="text" value={couponInput}
+                            onChange={e => { setCouponInput(e.target.value.toUpperCase()); setCouponError(''); }}
+                            placeholder="Enter coupon code" className="flex-1 px-4 py-2.5 rounded-xl text-sm outline-none"
+                            style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', color: '#f5f5f0' }} />
+                          <button type="button" onClick={applyCoupon} disabled={couponLoading || !couponInput.trim()}
+                            className="px-4 py-2 text-white rounded-xl text-sm font-semibold disabled:opacity-40"
+                            style={{ background: theme.p }}>{couponLoading ? '…' : 'Apply'}</button>
                         </div>
                       )}
-                      {couponError && <p className="text-xs mt-1" style={{ color: '#ef4444' }}>{couponError}</p>}
+                      {couponError && <p className="text-xs mt-1" style={{ color: '#f87171' }}>{couponError}</p>}
                     </div>
                   )}
 
-                  {/* ── Price summary ── */}
                   {slot && (
-                    <div className="rounded-2xl p-4 text-sm" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
-                      <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide mb-3" style={{ color: 'var(--t-accent)' }}>
+                    <div className="rounded-2xl p-4 text-sm" style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)' }}>
+                      <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide mb-3" style={{ color: theme.p }}>
                         <CreditCard className="w-3.5 h-3.5" /> Booking Summary
                       </p>
                       <div className="space-y-2">
                         {selectedServices.map(s => (
                           <div key={s._id} className="flex justify-between">
-                            <span style={{ color: 'var(--t-text-2)' }}>{s.name}</span>
-                            <span className="font-semibold" style={{ color: 'var(--t-text)' }}>₹{s.basePrice || s.price}</span>
+                            <span style={{ color: 'rgba(255,255,255,.55)' }}>{s.name}</span>
+                            <span className="font-semibold text-white">₹{s.basePrice || s.price}</span>
                           </div>
                         ))}
                         <div className="flex justify-between">
-                          <span style={{ color: 'var(--t-text-3)' }}>Date & Time</span>
-                          <span className="font-medium" style={{ color: 'var(--t-text-2)' }}>{formatDate(bookDate + "T12:00:00")} · {slot}</span>
+                          <span style={{ color: 'rgba(255,255,255,.3)' }}>Date & Time</span>
+                          <span className="font-medium" style={{ color: 'rgba(255,255,255,.55)' }}>{formatDate(bookDate + 'T12:00:00')} · {slot}</span>
                         </div>
                         {couponDiscount > 0 && (
-                          <div className="flex justify-between" style={{ color: '#16a34a' }}>
+                          <div className="flex justify-between" style={{ color: '#4ade80' }}>
                             <span>Discount ({appliedCoupon?.code})</span>
                             <span className="font-medium">−₹{couponDiscount}</span>
                           </div>
                         )}
-                        <div className="flex justify-between pt-2 mt-1" style={{ borderTop: '1px solid var(--t-border)' }}>
-                          <span className="font-bold" style={{ color: 'var(--t-text)' }}>Total (Pay at salon)</span>
-                          <span className="font-bold text-base" style={{ color: 'var(--t-accent)' }}>₹{finalPrice}</span>
+                        <div className="flex justify-between pt-2 mt-1" style={{ borderTop: '1px solid rgba(255,255,255,.08)' }}>
+                          <span className="font-bold text-white">Total (Pay at salon)</span>
+                          <span className="font-bold text-base" style={{ color: theme.p }}>₹{finalPrice}</span>
                         </div>
                       </div>
                     </div>
                   )}
-
                 </form>
 
-                {/* ── Sticky footer confirm button ── */}
-                <div className="shrink-0 px-5 py-4"
-                  style={{ borderTop: '1px solid var(--t-border)', background: 'var(--t-bg)' }}>
-                  {bookError && (
-                    <div className="mb-3 p-3 rounded-xl text-sm" style={{ background: 'var(--t-error-bg)', color: 'var(--t-error-text)' }}>{bookError}</div>
-                  )}
-                  <button
-                    onClick={handleConfirm}
-                    disabled={bookingLoading || !slot}
-                    className="w-full py-3.5 text-base font-bold text-white rounded-2xl transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                    style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', boxShadow: slot ? '0 4px 20px rgba(99,102,241,0.4)' : 'none' }}
-                  >
-                    {bookingLoading ? "Confirming…" : !slot ? "Select a time slot" : "Confirm Booking"}
+                <div className="shrink-0 px-5 py-4" style={{ borderTop: '1px solid rgba(255,255,255,.07)', background: '#0e0e0e' }}>
+                  {bookError && <div className="mb-3 p-3 rounded-xl text-sm" style={{ background: 'rgba(239,68,68,.08)', color: '#f87171', border: '1px solid rgba(239,68,68,.2)' }}>{bookError}</div>}
+                  <button onClick={handleConfirm} disabled={bookingLoading || !slot}
+                    className="w-full py-3.5 text-base font-bold text-white rounded-2xl transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+                    style={{ background: `linear-gradient(135deg,${theme.p},${theme.p}cc)`, boxShadow: slot ? `0 4px 20px ${theme.p}45` : 'none' }}>
+                    {bookingLoading ? 'Confirming…' : !slot ? 'Select a time slot' : 'Confirm Booking'}
                   </button>
                 </div>
               </>
             )}
           </div>
 
-          {/* Slot popup */}
           {slotPopup && (
-            <div className="absolute inset-0 flex items-center justify-center px-6 z-20" style={{ background: 'rgba(0,0,0,0.5)' }}>
-              <div className="rounded-2xl p-6 max-w-sm w-full text-center" style={{ background: 'var(--t-card)' }}>
+            <div className="absolute inset-0 flex items-center justify-center px-6 z-20" style={{ background: 'rgba(0,0,0,.7)' }}>
+              <div className="rounded-2xl p-6 max-w-sm w-full text-center" style={{ background: '#141414', border: '1px solid rgba(255,255,255,.1)' }}>
                 <div className="w-14 h-14 rounded-full flex items-center justify-center text-3xl mx-auto mb-3"
-                  style={{ background: slotPopup === "past" ? 'var(--t-bg-2)' : 'var(--t-error-bg)' }}>
-                  {slotPopup === "past" ? "⏰" : "🚫"}
+                  style={{ background: slotPopup === 'past' ? 'rgba(255,255,255,.06)' : 'rgba(239,68,68,.1)' }}>
+                  {slotPopup === 'past' ? '⏰' : '🚫'}
                 </div>
-                <h3 className="text-lg font-bold mb-2" style={{ color: 'var(--t-text)' }}>
-                  {slotPopup === "past" ? "Time Has Passed" : "Slot Already Booked"}
-                </h3>
-                <p className="text-sm mb-5" style={{ color: 'var(--t-text-2)' }}>
-                  {slotPopup === "past" ? "This time slot has already passed. Please choose an upcoming slot." : "This slot is taken. Please choose another available slot."}
+                <h3 className="text-lg font-bold mb-2 text-white">{slotPopup === 'past' ? 'Time Has Passed' : 'Slot Already Booked'}</h3>
+                <p className="text-sm mb-5" style={{ color: 'rgba(255,255,255,.45)' }}>
+                  {slotPopup === 'past' ? 'This time slot has already passed.' : 'This slot is taken. Please choose another.'}
                 </p>
-                <button onClick={() => setSlotPopup(null)} className="btn-primary w-full">Choose Another Slot</button>
+                <button onClick={() => setSlotPopup(null)} className="w-full py-2.5 font-bold text-white rounded-2xl" style={{ background: theme.p }}>
+                  Choose Another Slot
+                </button>
               </div>
             </div>
           )}
         </div>
       )}
 
-      {/* ══ PACKAGE REQUEST MODAL ══════════════════════════════════════ */}
+      {/* ════ PACKAGE REQUEST MODAL ════ */}
       {pkgReqModal && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.6)' }}>
-          <div className="rounded-2xl w-full max-w-sm p-6" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
+        <div className="fixed inset-0 z-[80] flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,.75)', backdropFilter: 'blur(8px)' }}>
+          <div className="rounded-2xl w-full max-w-sm p-6" style={{ background: '#111', border: '1px solid rgba(255,255,255,.1)' }}>
             <div className="flex items-center gap-3 mb-4">
               <span className="text-3xl">{pkgReqModal.icon || (pkgReqModal.type === 'package' ? '🎁' : '💳')}</span>
               <div>
-                <p className="font-bold text-sm" style={{ color: 'var(--t-text)' }}>{pkgReqModal.name}</p>
-                <p className="text-xs" style={{ color: 'var(--t-text-3)' }}>
+                <p className="font-bold text-sm text-white">{pkgReqModal.name}</p>
+                <p className="text-xs" style={{ color: 'rgba(255,255,255,.4)' }}>
                   {pkgReqModal.type === 'package' ? `₹${pkgReqModal.discountedPrice}` : `₹${pkgReqModal.price}/${pkgReqModal.billingCycle === 'monthly' ? 'month' : pkgReqModal.billingCycle === 'quarterly' ? 'quarter' : 'year'}`}
                 </p>
               </div>
             </div>
-            <div className="rounded-xl p-3 mb-4 text-xs" style={{ background: 'rgba(99,102,241,0.08)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.2)' }}>
+            <div className="rounded-xl p-3 mb-4 text-xs" style={{ background: `${theme.p}10`, color: theme.p, border: `1px solid ${theme.p}25` }}>
               Pay directly at the salon. The owner will confirm after receiving your payment.
             </div>
-            <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--t-text-2)' }}>Note (optional)</label>
-            <textarea
-              value={pkgNote}
-              onChange={e => setPkgNote(e.target.value)}
-              rows={2}
+            <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,.45)' }}>Note (optional)</label>
+            <textarea value={pkgNote} onChange={e => setPkgNote(e.target.value)} rows={2}
               placeholder="Any message to the salon owner..."
               className="w-full px-3 py-2 rounded-xl text-sm resize-none mb-4"
-              style={{ background: 'var(--t-bg-2)', border: '1px solid var(--t-border)', color: 'var(--t-text)', outline: 'none' }}
-            />
+              style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', color: '#f5f5f0', outline: 'none' }} />
             <div className="flex gap-3">
-              <button
-                onClick={() => { setPkgReqModal(null); setPkgNote(''); }}
+              <button onClick={() => { setPkgReqModal(null); setPkgNote(''); }}
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                style={{ border: '1px solid var(--t-border)', color: 'var(--t-text-2)' }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handlePackageRequest}
-                disabled={pkgReqLoading}
-                className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 disabled:opacity-50"
-                style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
-              >
+                style={{ border: '1px solid rgba(255,255,255,.12)', color: 'rgba(255,255,255,.5)' }}>Cancel</button>
+              <button onClick={handlePackageRequest} disabled={pkgReqLoading}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 disabled:opacity-40"
+                style={{ background: `linear-gradient(135deg,${theme.p},${theme.p}cc)` }}>
                 {pkgReqLoading ? 'Sending…' : 'Send Request'}
               </button>
             </div>
