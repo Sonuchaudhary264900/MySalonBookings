@@ -29,7 +29,7 @@ const Input = ({
 
   const inputBase = `
     w-full bg-white dark:bg-gray-900
-    text-gray-900 dark:text-gray-100
+    text-base text-gray-900 dark:text-gray-100
     placeholder:text-gray-400 dark:placeholder:text-gray-500
     border rounded-xl
     transition-all duration-200

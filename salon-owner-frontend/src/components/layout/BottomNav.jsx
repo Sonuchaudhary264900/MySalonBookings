@@ -22,12 +22,14 @@ export default function BottomNav() {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden
-      bg-white/90 dark:bg-[#0d1424]/95 backdrop-blur-2xl
-      border-t border-gray-200/60 dark:border-gray-800/50
-      flex items-stretch h-16
-      shadow-[0_-8px_32px_rgba(0,0,0,0.06)] dark:shadow-[0_-8px_32px_rgba(0,0,0,0.5)]
-      transition-colors duration-300">
+    <nav
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      className="fixed bottom-0 left-0 right-0 z-40 md:hidden
+        bg-white/90 dark:bg-[#0d1424]/95 backdrop-blur-2xl
+        border-t border-gray-200/60 dark:border-gray-800/50
+        shadow-[0_-8px_32px_rgba(0,0,0,0.06)] dark:shadow-[0_-8px_32px_rgba(0,0,0,0.5)]
+        transition-colors duration-300">
+      <div className="flex items-stretch h-16">
       {TABS.map((tab) => {
         const { name, label, icon: Icon } = tab;
         const active = isActive(tab);
@@ -75,6 +77,7 @@ export default function BottomNav() {
           </button>
         );
       })}
+      </div>
     </nav>
   );
 }

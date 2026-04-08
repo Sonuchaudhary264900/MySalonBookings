@@ -82,7 +82,7 @@ const DashboardLayout = ({ children }) => {
 
         {/* Page content */}
         <main className="flex-1 w-full">
-          <div className="p-4 md:p-6 lg:p-8 pb-24 md:pb-8 max-w-[1600px] mx-auto">
+          <div className="p-4 md:p-6 lg:p-8 pb-[calc(7rem+env(safe-area-inset-bottom,0px))] md:pb-8 max-w-[1600px] mx-auto">
             {children}
           </div>
         </main>

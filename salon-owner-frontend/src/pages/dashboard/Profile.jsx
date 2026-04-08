@@ -271,8 +271,8 @@ const Profile = () => {
       <div className="max-w-2xl space-y-4">
         {/* Page header */}
         <div className="mb-2">
-          <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
-          <p className="text-gray-500 text-sm mt-1">Tap a section to view or edit your details</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">My Profile</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Tap a section to view or edit your details</p>
         </div>
 
         {/* Avatar strip */}
