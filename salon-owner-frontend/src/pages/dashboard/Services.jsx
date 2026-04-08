@@ -16,6 +16,8 @@ import {
   MALE_ONLY_CAT_LABELS,
   FEMALE_ONLY_CAT_LABELS,
   getCategoriesForSalonType,
+  SALON_MALE_CATEGORIES,
+  SALON_FEMALE_CATEGORIES,
 } from '../../constants/salonCategories';
 
 /* ─── Skeleton card ──────────────────────────────────────────── */
@@ -89,6 +91,7 @@ const StatsBar = ({ total, active, inactive }) => (
 const ServiceMenuSection = ({ salon }) => {
   const [expanded, setExpanded] = useState(null);
   const [expandedSection, setExpandedSection] = useState({});
+  const [expandedSubSection, setExpandedSubSection] = useState({});
   const isSalon = salon?.businessType === 'salon';
   const catDefs = isSalon
     ? getCategoriesForSalonType(salon.businessType, salon.servedGender)
@@ -217,6 +220,18 @@ const ServiceMenuSection = ({ salon }) => {
                             : 'text-indigo-600 dark:text-indigo-400';
                           const chevCls = isMaleSec ? 'text-blue-400' : isFemaleSec ? 'text-pink-400' : 'text-indigo-400';
                           const displayLabel = isMaleSec ? '👨 Male' : isFemaleSec ? '👩 Female' : sec.label;
+                          // For Male/Female sections in unisex salon, look up sub-sections
+                          const genderCatDefs = isMaleSec ? SALON_MALE_CATEGORIES : isFemaleSec ? SALON_FEMALE_CATEGORIES : null;
+                          const genderCatDef  = genderCatDefs ? genderCatDefs.find(d => d.label === cat.name) : null;
+                          const subSectionDefs = genderCatDef?.sections || [];
+                          const subSectionSubs = subSectionDefs.map(subSec => ({
+                            label: subSec.label,
+                            subs: sec.subs.filter(s => {
+                              const name = typeof s === 'string' ? s : s.name;
+                              return subSec.services.includes(name);
+                            }),
+                          })).filter(ss => ss.subs.length > 0);
+
                           return (
                             <div key={si}>
                               <button
@@ -228,8 +243,33 @@ const ServiceMenuSection = ({ salon }) => {
                                 <ChevronDown className={`w-3 h-3 ${chevCls} ml-auto transition-transform duration-200 ${isSecOpen ? 'rotate-180' : ''}`} />
                               </button>
                               {isSecOpen && (
-                                <div className="flex flex-wrap gap-1.5 mt-2 px-1 pb-1">
-                                  {sec.subs.map((s,i) => <Chip key={i} sub={s} />)}
+                                <div className="mt-1.5 pl-2 space-y-1">
+                                  {subSectionSubs.length > 0 ? subSectionSubs.map((subSec, ssi) => {
+                                    const subKey = `${secKey}-${ssi}`;
+                                    const isSubOpen = !!expandedSubSection[subKey];
+                                    return (
+                                      <div key={ssi}>
+                                        <button
+                                          type="button"
+                                          onClick={() => setExpandedSubSection(prev => ({ ...prev, [subKey]: !prev[subKey] }))}
+                                          className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-left transition-colors
+                                            bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50">
+                                          <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">{subSec.label}</span>
+                                          <span className="text-xs text-indigo-400 ml-1">({subSec.subs.length})</span>
+                                          <ChevronDown className={`w-3 h-3 text-indigo-400 ml-auto transition-transform duration-200 ${isSubOpen ? 'rotate-180' : ''}`} />
+                                        </button>
+                                        {isSubOpen && (
+                                          <div className="flex flex-wrap gap-1.5 mt-1.5 px-1 pb-1">
+                                            {subSec.subs.map((s,i) => <Chip key={i} sub={s} />)}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  }) : (
+                                    <div className="flex flex-wrap gap-1.5 px-1 pb-1">
+                                      {sec.subs.map((s,i) => <Chip key={i} sub={s} />)}
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
