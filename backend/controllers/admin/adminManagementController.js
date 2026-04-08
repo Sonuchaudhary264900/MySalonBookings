@@ -26,10 +26,10 @@ const getDashboardStats = async (req, res) => {
   }
 };
 
-// GET /admin/owners?page=1&limit=10&search=
+// GET /admin/owners?page=1&limit=10&search=&businessType=
 const getAllOwners = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search = '' } = req.query;
+    const { page = 1, limit = 10, search = '', businessType = '' } = req.query;
     const query = search
       ? { $or: [
           { name: { $regex: escapeRegex(search), $options: 'i' } },
@@ -37,9 +37,18 @@ const getAllOwners = async (req, res) => {
           { phone: { $regex: escapeRegex(search), $options: 'i' } },
         ] }
       : {};
+
+    // If filtering by businessType, first find matching salon IDs
+    if (businessType) {
+      const matchingSalons = await Salon.find({ businessType }).select('_id').lean();
+      const salonIds = matchingSalons.map(s => s._id);
+      query.salonId = { $in: salonIds };
+    }
+
     const [owners, total] = await Promise.all([
       Owner.find(query)
         .select('name email phone status approvalStatus createdAt salonId')
+        .populate('salonId', 'businessType name')
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(parseInt(limit))
