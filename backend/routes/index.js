@@ -151,6 +151,7 @@ const promotionAdminController = safeRequire("../controllers/admin/promotionAdmi
    MODELS (for inline public handlers)
 ===================================================== */
 const Business          = require("../models/Business");
+const BusinessMedia     = require("../models/BusinessMedia");
 const Service           = require("../models/Service");
 const Review            = require("../models/Review");
 const Customer          = require("../models/Customer");
@@ -207,6 +208,20 @@ router.get("/public/salons", asyncHandler(async (req, res) => {
   if (salons.length > 0) {
     const now = new Date();
     const salonIds = salons.map(s => s._id);
+
+    // Attach first photo from BusinessMedia for salons missing a coverPhoto
+    const mediaPhotos = await BusinessMedia.find({ businessId: { $in: salonIds }, type: 'photo' })
+      .select('businessId url isCover').sort({ isCover: -1, createdAt: 1 }).lean();
+    const mediaPhotoMap = {};
+    for (const m of mediaPhotos) {
+      const k = String(m.businessId);
+      if (!mediaPhotoMap[k]) mediaPhotoMap[k] = m.url;
+    }
+    for (const s of salons) {
+      if (!s.coverPhoto) s.coverPhoto = mediaPhotoMap[String(s._id)] || null;
+      s.photos = mediaPhotoMap[String(s._id)] ? [mediaPhotoMap[String(s._id)]] : [];
+    }
+
     const coupons = await Coupon.find({
       salonId: { $in: salonIds }, isActive: true,
       $or: [{ validUntil: null }, { validUntil: { $gte: now } }],
@@ -286,6 +301,20 @@ router.get("/public/salons/nearby", asyncHandler(async (req, res) => {
   if (salons.length > 0) {
     const now = new Date();
     const salonIds = salons.map(s => s._id);
+
+    // Attach first photo from BusinessMedia for salons missing a coverPhoto
+    const nearbyMediaPhotos = await BusinessMedia.find({ businessId: { $in: salonIds }, type: 'photo' })
+      .select('businessId url isCover').sort({ isCover: -1, createdAt: 1 }).lean();
+    const nearbyMediaPhotoMap = {};
+    for (const m of nearbyMediaPhotos) {
+      const k = String(m.businessId);
+      if (!nearbyMediaPhotoMap[k]) nearbyMediaPhotoMap[k] = m.url;
+    }
+    for (const s of salons) {
+      if (!s.coverPhoto) s.coverPhoto = nearbyMediaPhotoMap[String(s._id)] || null;
+      s.photos = nearbyMediaPhotoMap[String(s._id)] ? [nearbyMediaPhotoMap[String(s._id)]] : [];
+    }
+
     const coupons = await Coupon.find({
       salonId: { $in: salonIds }, isActive: true,
       $or: [{ validUntil: null }, { validUntil: { $gte: now } }],
@@ -338,13 +367,19 @@ router.get("/public/salons/:salonId", validateObjectId("salonId"), asyncHandler(
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
   if (!salon.isApproved) return res.status(403).json({ success: false, message: "Salon not approved" });
   const now = new Date();
-  const [topCoupon, barberCount] = await Promise.all([
+  const [topCoupon, barberCount, mediaItems] = await Promise.all([
     Coupon.findOne({ salonId: salon._id, isActive: true, $or: [{ validUntil: null }, { validUntil: { $gte: now } }] })
       .sort({ discountValue: -1 })
       .select("code discountType discountValue minAmount maxDiscount description validUntil maxUsageCount usageCount")
       .lean(),
     Barber.countDocuments({ salonId: salon._id, isActive: true }),
+    BusinessMedia.find({ businessId: salon._id, type: { $in: ['photo', 'video'] } })
+      .select('type url isCover').sort({ isCover: -1, createdAt: 1 }).lean(),
   ]);
+  const photos = mediaItems.filter(m => m.type === 'photo').map(m => m.url);
+  const videos = mediaItems.filter(m => m.type === 'video').map(m => m.url);
+  if (!salon.coverPhoto && photos.length > 0) salon.coverPhoto = photos[0];
+
   const ownerPhoto = salon.ownerId?.profilePhoto || null;
   const ownerGender = salon.ownerId?.gender || null;
   const ownerName = salon.ownerId?.name || null;
@@ -368,7 +403,7 @@ router.get("/public/salons/:salonId", validateObjectId("salonId"), asyncHandler(
   };
 
   const topOffer = buildOfferMeta(topCoupon);
-  res.json({ success: true, data: { ...salon, ownerPhoto, ownerGender, ownerName, ownerId: undefined, hasCoupons: !!topOffer, topOffer, hasBarbers: barberCount > 0 } });
+  res.json({ success: true, data: { ...salon, photos, videos, ownerPhoto, ownerGender, ownerName, ownerId: undefined, hasCoupons: !!topOffer, topOffer, hasBarbers: barberCount > 0 } });
 }));
 
 // GET /public/salons/:salonId/services
