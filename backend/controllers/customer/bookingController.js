@@ -299,7 +299,7 @@ const getMyBookings = async (req, res) => {
     const query = { customerId: req.customer._id };
 
     const bookings = await Booking.find(query)
-      .populate('salonId', 'name location address city phone')
+      .populate('salonId', 'name location address city phone businessType')
       .sort({ createdAt: -1 })
       .skip((p - 1) * l)
       .limit(l);

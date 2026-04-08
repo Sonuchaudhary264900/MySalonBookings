@@ -492,12 +492,12 @@ router.get("/public/reels", asyncHandler(async (req, res) => {
         },
       },
     })
-      .select("name city logo coverPhoto averageRating reelVideos isBoostEnabled")
+      .select("name city logo coverPhoto averageRating reelVideos isBoostEnabled businessType")
       .limit(100)
       .lean();
   } else {
     salons = await Business.find(baseQuery)
-      .select("name city logo coverPhoto averageRating reelVideos isBoostEnabled")
+      .select("name city logo coverPhoto averageRating reelVideos isBoostEnabled businessType")
       .limit(100)
       .lean();
   }
@@ -517,7 +517,7 @@ router.get("/public/reels", asyncHandler(async (req, res) => {
         categories,
         _createdAt:      createdAt,
         _isBoostEnabled: s.isBoostEnabled || false,
-        salon: { _id: s._id, name: s.name, city: s.city, logo: s.logo || null, averageRating: s.averageRating || 0 },
+        salon: { _id: s._id, name: s.name, city: s.city, logo: s.logo || null, averageRating: s.averageRating || 0, businessType: s.businessType || 'salon' },
       });
     }
   }

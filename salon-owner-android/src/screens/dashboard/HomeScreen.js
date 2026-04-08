@@ -18,7 +18,7 @@ import TrialBanner from '../../components/TrialBanner';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { showSuccess, showError } from '../../utils/toast';
-import { localDate, formatDate, formatTime, STATUS_COLORS } from '../../utils/helpers';
+import { localDate, formatDate, formatTime, STATUS_COLORS, salonBookingUrl } from '../../utils/helpers';
 
 const today   = localDate(0);
 const maxDate = localDate(30);
@@ -139,9 +139,7 @@ export default function HomeScreen() {
   const queueRef = useRef([]);
   queueRef.current = queue;
 
-  const qrValue = salon?._id
-    ? `https://mysalonbookings.com/salon/${salon._id}`
-    : 'https://mysalonbookings.com';
+  const qrValue = salonBookingUrl(salon);
 
   const getGreeting = () => {
     const h = new Date().getHours();

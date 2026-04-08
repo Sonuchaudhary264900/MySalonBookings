@@ -18,6 +18,22 @@ export const formatDate = (date) => {
   }
 };
 
+const BUSINESS_TYPE_SLUG = {
+  barbershop:    'barbershop',
+  salon:         'salon',
+  spa_wellness:  'spa-wellness',
+  makeup_bridal: 'makeup-bridal',
+  skin_derma:    'skin-derma',
+};
+
+/**
+ * Returns the URL path for a salon based on its businessType, e.g. "/barbershop/<id>"
+ */
+export const salonPath = (salon) => {
+  const slug = BUSINESS_TYPE_SLUG[salon?.businessType] || 'salon';
+  return `/${slug}/${salon._id}`;
+};
+
 /**
  * Format a time string "HH:MM" respecting user's timeFormat preference
  */

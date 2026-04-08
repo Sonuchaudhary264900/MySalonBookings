@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { Heart, Clock, CheckCircle, Scissors, MapPin, Star, Megaphone } from "lucide-react";
 import API from "../services/api";
 import { isCustomer } from "../utils/auth";
+import { salonPath } from "../utils/formatters";
 
 function getFavIds() {
   try { return JSON.parse(localStorage.getItem("customerFavorites") || "[]"); }
@@ -182,7 +183,7 @@ function SalonCard({ salon, userCoords }) {
     : null;
 
   return (
-    <Link to={`/salon/${salon._id}`} className="group block">
+    <Link to={salonPath(salon)} className="group block">
       <div
         className="glass-card overflow-hidden"
         onMouseEnter={() => setHovered(true)}

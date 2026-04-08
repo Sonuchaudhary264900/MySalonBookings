@@ -15,6 +15,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useSalon } from '../../context/SalonContext';
 import { showSuccess, showError } from '../../utils/toast';
 import api from '../../services/api';
+import { salonBookingUrl } from '../../utils/helpers';
 
 function InfoRow({ icon, label, value }) {
   const { theme } = useTheme();
@@ -167,9 +168,7 @@ export default function ProfileScreen() {
     ? new Date(user.createdAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })
     : 'Recently';
 
-  const qrValue = salon?._id
-    ? `https://mysalonbookings.com/salon/${salon._id}`
-    : `mysalonbookings:owner:${user?._id}`;
+  const qrValue = salon?._id ? salonBookingUrl(salon) : `mysalonbookings:owner:${user?._id}`;
 
   const getCardHtml = () => {
     const safeData = JSON.stringify({ salonName: salon?.name || 'My Salon', bookingUrl: qrValue });

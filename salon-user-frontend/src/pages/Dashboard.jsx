@@ -4,6 +4,7 @@ import { io } from 'socket.io-client';
 import API from "../services/api";
 import { getCustomerToken } from "../utils/auth";
 import { useNotifications } from "../context/NotificationContext";
+import { salonPath } from "../utils/formatters";
 
 function getUserName() {
   try {
@@ -1074,7 +1075,7 @@ export default function Dashboard() {
             Book New
           </button>
           {lastCompleted && (
-            <button className="bk-action-btn" onClick={() => navigate(`/salon/${lastCompleted.salonId?._id || lastCompleted.salonId}`)}
+            <button className="bk-action-btn" onClick={() => navigate(lastCompleted.salonId?._id ? salonPath(lastCompleted.salonId) : `/salon/${lastCompleted.salonId}`)}
               style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 16px', background: 'var(--t-bg-2)', border: '1px solid var(--t-border)', borderRadius: 12, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--t-text-2)', whiteSpace: 'nowrap', flexShrink: 0 }}>
               <IcRepeat /> Rebook Last
             </button>

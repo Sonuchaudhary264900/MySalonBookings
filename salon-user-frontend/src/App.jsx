@@ -98,6 +98,10 @@ function AppLayout({ notifOpen, setNotifOpen }) {
             <Route path="/login"                       element={<Login />} />
             <Route path="/register"                    element={<Register />} />
             <Route path="/salon/:id"                   element={<SalonDetails />} />
+            <Route path="/barbershop/:id"              element={<SalonDetails />} />
+            <Route path="/spa-wellness/:id"            element={<SalonDetails />} />
+            <Route path="/makeup-bridal/:id"           element={<SalonDetails />} />
+            <Route path="/skin-derma/:id"              element={<SalonDetails />} />
             <Route path="/booking/:salonId/:serviceId" element={<Booking />} />
             <Route path="/booking/:salonId"            element={<Booking />} />
             <Route path="/dashboard"                   element={<Dashboard />} />

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import API from "../services/api";
+import { salonPath } from "../utils/formatters";
 
 /* ─────────────────────────────────────────────────────────────
    Helpers
@@ -596,7 +597,7 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
           {copied === reel._id ? <IcoCheck /> : <IcoShare />}
         </ActionBtn>
 
-        <Link to={`/salon/${reel.salon._id}`}
+        <Link to={salonPath(reel.salon)}
           style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, textDecoration: 'none' }}>
           <SalonAvatar logo={reel.salon.logo} initial={initial} size={50} fontSize={15} />
           <span style={{
@@ -678,7 +679,7 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
         )}
 
         {/* Book Now CTA */}
-        <Link to={`/salon/${reel.salon._id}`} style={{
+        <Link to={salonPath(reel.salon)} style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
           background: 'linear-gradient(135deg, #5b5ef7 0%, #7c3aed 50%, #9333ea 100%)',
           backgroundSize: '200% auto',
@@ -980,7 +981,7 @@ export default function Reels() {
   }, []);
 
   const handleShare = useCallback(async (reel) => {
-    const url = `${window.location.origin}/salon/${reel.salon._id}`;
+    const url = `${window.location.origin}${salonPath(reel.salon)}`;
     if (navigator.share) {
       try { await navigator.share({ title: reel.salon.name, text: `Book at ${reel.salon.name}!`, url }); return; } catch {}
     }

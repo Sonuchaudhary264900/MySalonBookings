@@ -10,7 +10,7 @@ import API from "../services/api";
 import ServiceCard from "../components/ServiceCard";
 import ReviewCard from "../components/ReviewCard";
 import { isCustomer, clearCustomerAuth } from "../utils/auth";
-import { formatDate } from "../utils/formatters";
+import { formatDate, salonPath } from "../utils/formatters";
 import { useNotifications } from "../context/NotificationContext";
 import {
   UNISEX_CATEGORIES,
@@ -1980,11 +1980,11 @@ function SalonVideoViewer({ videos, startIdx, salon, onClose, onBook }) {
 
   // Share — copies salon page link
   const handleShare = useCallback(() => {
-    const url = `${window.location.origin}/salon/${salonId}`;
+    const url = `${window.location.origin}${salonPath(salon)}`;
     navigator.clipboard?.writeText(url).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2200);
-  }, [salonId]);
+  }, [salon]);
 
   // Post comment
   const postComment = useCallback(async () => {

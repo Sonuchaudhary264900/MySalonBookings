@@ -19,6 +19,20 @@ export const formatTime = (timeStr) => {
   return `${displayHour}:${m} ${ampm}`;
 };
 
+const BUSINESS_TYPE_SLUG = {
+  barbershop:    'barbershop',
+  salon:         'salon',
+  spa_wellness:  'spa-wellness',
+  makeup_bridal: 'makeup-bridal',
+  skin_derma:    'skin-derma',
+};
+
+export const salonBookingUrl = (salon) => {
+  if (!salon?._id) return 'https://mysalonbookings.com';
+  const slug = BUSINESS_TYPE_SLUG[salon.businessType] || 'salon';
+  return `https://mysalonbookings.com/${slug}/${salon._id}`;
+};
+
 export const STATUS_COLORS = {
   confirmed:   { bg: '#dcfce7', text: '#16a34a' },
   pending:     { bg: '#fef9c3', text: '#ca8a04' },
