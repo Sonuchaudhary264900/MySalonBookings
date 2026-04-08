@@ -121,6 +121,8 @@ function SalonDetails() {
   const [expandedCat, setExpandedCat] = useState(null);
   const [heroMuted, setHeroMuted]   = useState(true);
   const [darkMode, setDarkMode]     = useState(true);
+  const [colorTheme, setColorTheme] = useState(null);
+  const [showPalette, setShowPalette] = useState(false);
   const heroVideoRef2 = useRef(null);
   const [galleryLightbox, setGalleryLightbox] = useState(null);
   const galleryVideoRef = useRef(null);
@@ -288,7 +290,8 @@ function SalonDetails() {
   const nextSlot       = getNextSlot(salon.workingHours);
   const totalBookings  = salon.totalBookings || 0;
   const dayOrder       = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
-  const theme          = CAT_THEMES[salon.businessType] || DEFAULT_THEME;
+  const baseTheme      = CAT_THEMES[salon.businessType] || DEFAULT_THEME;
+  const theme          = colorTheme ? { p: colorTheme, ring: colorTheme + '99' } : baseTheme;
   const dm = {
     bg:  darkMode ? '#050505' : '#fafaf8',
     fg:  darkMode ? '#f5f5f0' : '#0f0f0d',
@@ -386,7 +389,79 @@ function SalonDetails() {
             style={{ background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,.12)' }}>
             <ArrowLeft className="w-5 h-5 text-white" />
           </motion.button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" style={{ position: 'relative' }}>
+            {/* Color palette picker */}
+            {(() => {
+              const COLORS = [
+                { c: null,      label: 'Auto' },
+                { c: '#e94560', label: 'Rose' },
+                { c: '#8b5cf6', label: 'Violet' },
+                { c: '#10b981', label: 'Emerald' },
+                { c: '#f59e0b', label: 'Amber' },
+                { c: '#38bdf8', label: 'Sky' },
+                { c: '#ec4899', label: 'Pink' },
+              ];
+              const activeDot = colorTheme || (CAT_THEMES[salon.businessType]?.p || DEFAULT_THEME.p);
+              return (
+                <div style={{ position: 'relative' }}>
+                  {/* Palette toggle button — shows active color dot */}
+                  <button
+                    onClick={() => setShowPalette(v => !v)}
+                    title="Change accent color"
+                    style={{
+                      width: 40, height: 40, borderRadius: '50%',
+                      background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(12px)',
+                      border: '1px solid rgba(255,255,255,.12)',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      position: 'relative', padding: 0,
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" width={16} height={16} fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="13.5" cy="6.5" r=".5" fill="#fff"/><circle cx="17.5" cy="10.5" r=".5" fill="#fff"/><circle cx="8.5" cy="7.5" r=".5" fill="#fff"/><circle cx="6.5" cy="12.5" r=".5" fill="#fff"/>
+                      <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+                    </svg>
+                    {/* Active color indicator */}
+                    <span style={{
+                      position: 'absolute', bottom: 4, right: 4,
+                      width: 8, height: 8, borderRadius: '50%',
+                      background: activeDot, border: '1.5px solid rgba(0,0,0,.5)',
+                    }} />
+                  </button>
+                  {/* Swatch flyout */}
+                  {showPalette && <div
+                    style={{
+                      display: 'flex', position: 'absolute', top: 48, right: 0,
+                      flexDirection: 'row', gap: 8, padding: '10px 12px',
+                      background: 'rgba(10,10,10,.82)', backdropFilter: 'blur(20px)',
+                      border: '1px solid rgba(255,255,255,.14)', borderRadius: 12,
+                      boxShadow: '0 8px 32px rgba(0,0,0,.6)', zIndex: 50,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {COLORS.map(({ c, label }) => {
+                      const dot = c || (CAT_THEMES[salon.businessType]?.p || DEFAULT_THEME.p);
+                      const isSel = c === colorTheme;
+                      return (
+                        <button
+                          key={label}
+                          title={label}
+                          onClick={() => { setColorTheme(c); setShowPalette(false); }}
+                          style={{
+                            width: 24, height: 24, borderRadius: '50%',
+                            background: dot,
+                            border: isSel ? '2.5px solid #fff' : '2px solid rgba(255,255,255,.25)',
+                            boxShadow: isSel ? `0 0 0 2px ${dot}` : 'none',
+                            cursor: 'pointer', padding: 0, flexShrink: 0,
+                            transition: 'border .15s, box-shadow .15s, transform .15s',
+                            transform: isSel ? 'scale(1.18)' : 'scale(1)',
+                          }}
+                        />
+                      );
+                    })}
+                  </div>}
+                </div>
+              );
+            })()}
             {/* Theme toggle */}
             <button onClick={() => setDarkMode(m => !m)}
               className="w-10 h-10 rounded-full flex items-center justify-center"
