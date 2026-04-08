@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
+import SEOHead from "../components/SEOHead";
 import { useEffect, useState, useRef, useCallback, useLayoutEffect } from "react";
 import {
   Scissors, Phone, Star, Check, MessageSquare, Frown, Building2,
@@ -355,7 +356,26 @@ function SalonDetails() {
   const dayOrder = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
   const TAB_ICONS = { Services: <Scissors className="w-4 h-4" />, Packages: <Gift className="w-4 h-4" />, Reviews: <Star className="w-4 h-4" />, Info: <Building2 className="w-4 h-4" /> };
 
+  const salonCity = salon.city || salon.address?.city || '';
+  const salonSchema = {
+    '@type': 'LocalBusiness',
+    name: salon.name,
+    url: `https://mysalonbookings.com/salon/${id}`,
+    image: salon.coverPhoto || salon.image || salon.photos?.[0] || 'https://mysalonbookings.com/icon.png',
+    description: salon.description || `Book appointments at ${salon.name}${salonCity ? ` in ${salonCity}` : ''} — verified salon on MySalonBookings.`,
+    telephone: salon.phone || salon.ownerPhone || undefined,
+    address: salonCity ? { '@type': 'PostalAddress', addressLocality: salonCity, addressCountry: 'IN' } : undefined,
+    ...(salon.rating ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: salon.rating, reviewCount: salon.reviewCount || 1, bestRating: 5 } } : {}),
+  };
+
   return (
+    <>
+      <SEOHead
+        title={`${salon.name}${salonCity ? ` in ${salonCity}` : ''} — Book Online | MySalonBookings`}
+        description={`Book appointments at ${salon.name}${salonCity ? ` in ${salonCity}` : ''}. View services, prices, reviews and available slots. Instant online booking — no calls needed.`}
+        canonical={`https://mysalonbookings.com/salon/${id}`}
+        schema={salonSchema}
+      />
     <div className="t-page">
 
       {/* ══ HERO ══════════════════════════════════════════════════════════ */}
@@ -1717,6 +1737,7 @@ function SalonDetails() {
         </div>
       )}
     </div>
+    </>
   );
 }
 

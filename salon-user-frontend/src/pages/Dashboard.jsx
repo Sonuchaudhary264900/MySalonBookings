@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import SEOHead from "../components/SEOHead";
 import { io } from 'socket.io-client';
 import API from "../services/api";
 import { getCustomerToken } from "../utils/auth";
@@ -982,6 +983,13 @@ export default function Dashboard() {
   );
 
   return (
+    <>
+      <SEOHead
+        title="My Bookings | MySalonBookings Dashboard"
+        description="View and manage your salon appointments on MySalonBookings."
+        canonical="https://mysalonbookings.com/dashboard"
+        noindex={true}
+      />
     <div style={{ background: 'var(--t-bg)', minHeight: '100vh' }}>
       <style>{`
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
@@ -1251,5 +1259,6 @@ export default function Dashboard() {
 
       </div>
     </div>
+    </>
   );
 }

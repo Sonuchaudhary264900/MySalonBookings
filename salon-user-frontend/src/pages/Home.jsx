@@ -4,6 +4,7 @@ import { LocateFixed, Search, X, SearchX } from "lucide-react";
 import API from "../services/api";
 import SalonCard from "../components/SalonCard";
 import LandingPage from "./LandingPage";
+import SEOHead from "../components/SEOHead";
 
 // ── Helpers ──────────────────────────────────────────────────────
 function getUserName() {
@@ -436,7 +437,25 @@ export default function Home() {
   }
 
   // ── Logged-in view ───────────────────────────────────────────
+  const homeFaqSchema = {
+    '@type': 'FAQPage',
+    mainEntity: [
+      { '@type': 'Question', name: 'How do I book a salon appointment online in India?', acceptedAnswer: { '@type': 'Answer', text: 'Search for salons near you on MySalonBookings, choose your preferred salon, select a service and available time slot, and confirm your booking instantly — no phone calls needed.' } },
+      { '@type': 'Question', name: 'Is MySalonBookings free to use?', acceptedAnswer: { '@type': 'Answer', text: 'Yes — booking a salon appointment on MySalonBookings is completely free for customers. No registration fees or hidden charges.' } },
+      { '@type': 'Question', name: 'Which cities in India is MySalonBookings available in?', acceptedAnswer: { '@type': 'Answer', text: 'MySalonBookings is available across 25+ cities and towns in India, including both metros and Tier 2/3 cities. We are expanding to every city, town, and village in India.' } },
+      { '@type': 'Question', name: 'Can I book a salon for home service?', acceptedAnswer: { '@type': 'Answer', text: 'Yes — many salons on MySalonBookings offer at-home services. Filter by "At-Home Services" to find salons that come to you.' } },
+      { '@type': 'Question', name: 'How can I list my salon on MySalonBookings?', acceptedAnswer: { '@type': 'Answer', text: 'Visit mysalonbookings.com/for-salon-owners and register your salon for free. Your listing goes live the same day after verification.' } },
+    ],
+  };
+
   return (
+    <>
+      <SEOHead
+        title="Book Salons Near You | MySalonBookings — 500+ Verified Salons Across India"
+        description="Find and book top-rated salons near you instantly. Hair, spa, beard, nails, bridal & more — 500+ verified salons across India. Free, fast, no phone calls needed."
+        canonical="https://mysalonbookings.com"
+        schema={homeFaqSchema}
+      />
     <div className="t-page" style={{ minHeight: "100vh", overflowX: "hidden" }}>
 
       {/* ══ STICKY SEARCH ══════════════════════════════════════════════ */}
@@ -637,5 +656,6 @@ export default function Home() {
       )}
 
     </div>
+    </>
   );
 }

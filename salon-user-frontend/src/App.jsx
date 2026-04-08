@@ -36,6 +36,8 @@ const CustomerTerms           = lazy(() => import("./pages/legal/CustomerTerms")
 const OwnerPrivacyPolicy      = lazy(() => import("./pages/legal/OwnerPrivacyPolicy"));
 const OwnerTerms              = lazy(() => import("./pages/legal/OwnerTerms"));
 const Reels                   = lazy(() => import("./pages/Reels"));
+const ForSalonOwners          = lazy(() => import("./pages/ForSalonOwners"));
+const Pricing                 = lazy(() => import("./pages/Pricing"));
 
 // ── Page loading fallback ──────────────────────────────────────
 function PageLoader() {
@@ -110,6 +112,8 @@ function AppLayout({ notifOpen, setNotifOpen }) {
             <Route path="/legal/owner-privacy"         element={<OwnerPrivacyPolicy />} />
             <Route path="/legal/owner-terms"           element={<OwnerTerms />} />
             <Route path="/reels"                       element={<Reels />} />
+            <Route path="/for-salon-owners"            element={<ForSalonOwners />} />
+            <Route path="/pricing"                     element={<Pricing />} />
 
             {/* 404 */}
             <Route path="*" element={
