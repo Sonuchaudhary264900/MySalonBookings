@@ -14,7 +14,7 @@ const freeServiceSchema = new mongoose.Schema({
 }, { _id: false });
 
 const packageSchema = new mongoose.Schema({
-  salonId:     { type: mongoose.Schema.Types.ObjectId, ref: 'Salon', required: true, index: true },
+  salonId:     { type: mongoose.Schema.Types.ObjectId, ref: 'Business', required: true, index: true },
   type:        { type: String, enum: ['package', 'membership'], required: true },
   name:        { type: String, required: true, trim: true, maxlength: 100 },
   description: { type: String, trim: true, maxlength: 300 },

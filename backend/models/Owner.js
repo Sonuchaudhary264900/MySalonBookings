@@ -72,21 +72,17 @@ const ownerSchema = new mongoose.Schema(
     },
 
     // ==========================================
-    // SALON REFERENCE
+    // BUSINESS REFERENCE
     // ==========================================
-    salonId: {
+    businessId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Salon',
+      ref: 'Business',
       default: null,
     },
-    businessType: {
+    ownerType: {
       type: String,
-      enum: ['barbershop', 'salon', 'spa_wellness', 'makeup_bridal', 'skin_derma', null],
+      enum: ['BARBERSHOP_OWNER', 'SALON_OWNER', 'SPA_WELLNESS_OWNER', 'MAKEUP_BRIDAL_OWNER', 'SKIN_DERMA_OWNER', null],
       default: null,
-    },
-    businessName: {
-      type: String,
-      trim: true,
     },
 
     // ==========================================
@@ -394,7 +390,7 @@ const ownerSchema = new mongoose.Schema(
 // ===================================================
 ownerSchema.index({ phone: 1 });
 ownerSchema.index({ email: 1 });
-ownerSchema.index({ salonId: 1 });
+ownerSchema.index({ businessId: 1 });
 ownerSchema.index({ city: 1 });
 ownerSchema.index({ status: 1 });
 ownerSchema.index({ approvalStatus: 1 });
@@ -447,32 +443,32 @@ ownerSchema.methods.getPublicProfile = function () {
 // ===================================================
 ownerSchema.methods.updateStats = async function () {
   try {
-    const Salon = mongoose.model('Salon');
+    const Business = mongoose.model('Business');
     const Booking = mongoose.model('Booking');
     const Review = mongoose.model('Review');
 
-    // Get salon
-    const salon = await Salon.findById(this.salonId);
-    if (!salon) return;
+    // Get business
+    const business = await Business.findById(this.businessId);
+    if (!business) return;
 
     // Count services
-    const serviceCount = await mongoose.model('Service').countDocuments({ salonId: this.salonId });
+    const serviceCount = await mongoose.model('Service').countDocuments({ salonId: this.businessId });
     this.totalServices = serviceCount;
 
     // Count barbers
-    const barberCount = await mongoose.model('Barber').countDocuments({ salonId: this.salonId });
+    const barberCount = await mongoose.model('Barber').countDocuments({ salonId: this.businessId });
     this.totalBarbers = barberCount;
 
     // Count bookings
-    const bookingCount = await Booking.countDocuments({ salonId: this.salonId });
+    const bookingCount = await Booking.countDocuments({ salonId: this.businessId });
     this.totalBookings = bookingCount;
 
     // Calculate revenue
-    const bookings = await Booking.find({ salonId: this.salonId, status: 'completed' });
+    const bookings = await Booking.find({ salonId: this.businessId, status: 'completed' });
     this.totalRevenue = bookings.reduce((sum, booking) => sum + booking.totalAmount, 0);
 
     // Get average rating
-    const reviews = await Review.find({ salonId: this.salonId });
+    const reviews = await Review.find({ salonId: this.businessId });
     if (reviews.length > 0) {
       const avgRating = reviews.reduce((sum, review) => sum + review.salonRating, 0) / reviews.length;
       this.averageRating = Math.round(avgRating * 10) / 10;
@@ -486,9 +482,9 @@ ownerSchema.methods.updateStats = async function () {
 };
 
 // ===================================================
-// VIRTUAL - IS SALON APPROVED
+// VIRTUAL - IS BUSINESS APPROVED
 // ===================================================
-ownerSchema.virtual('isSalonApproved').get(function () {
+ownerSchema.virtual('isBusinessApproved').get(function () {
   return this.approvalStatus === 'approved';
 });
 
@@ -496,7 +492,7 @@ ownerSchema.virtual('isSalonApproved').get(function () {
 // VIRTUAL - CAN ADD SERVICES
 // ===================================================
 ownerSchema.virtual('canAddServices').get(function () {
-  return this.status === 'approved' && this.isSalonApproved;
+  return this.status === 'approved' && this.isBusinessApproved;
 });
 
 module.exports = mongoose.model('Owner', ownerSchema);

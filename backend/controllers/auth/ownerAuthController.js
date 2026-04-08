@@ -247,7 +247,7 @@ exports.verifyOTPAndRegister = async (req, res) => {
         _id: owner._id,
         phone: owner.phone,
         role: owner.role,
-        salonId: owner.salonId,
+        businessId: owner.businessId,
       },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRE || '24h' }
@@ -383,7 +383,7 @@ exports.login = async (req, res) => {
         _id: owner._id,
         phone: owner.phone,
         role: owner.role,
-        salonId: owner.salonId,
+        businessId: owner.businessId,
       },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRE || "24h" }
@@ -432,7 +432,7 @@ exports.login = async (req, res) => {
 exports.getCurrentOwner = async (req, res) => {
   try {
     const owner = await Owner.findById(req.owner._id)
-      .populate('salonId')
+      .populate('businessId')
       .lean();
 
     if (!owner) {
@@ -582,7 +582,7 @@ exports.deleteAccount = async (req, res) => {
       );
     }
 
-    const Salon                = require('../../models/Salon');
+    const Business             = require('../../models/Business');
     const Service              = require('../../models/Service');
     const Review               = require('../../models/Review');
     const Coupon               = require('../../models/Coupon');
@@ -604,7 +604,7 @@ exports.deleteAccount = async (req, res) => {
     const Promotion            = require('../../models/Promotion');
     const OTP                  = require('../../models/OTP');
 
-    const salon = await Salon.findOne({ ownerId: owner._id });
+    const salon = await Business.findOne({ ownerId: owner._id });
     if (salon) {
       const sid = salon._id;
       await Promise.all([
@@ -770,7 +770,7 @@ exports.firebaseRegister = async (req, res) => {
         _id: owner._id,
         phone: owner.phone,
         role: owner.role,
-        salonId: owner.salonId,
+        businessId: owner.businessId,
       },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRE || '24h' }
@@ -852,7 +852,7 @@ exports.refreshToken = async (req, res) => {
         _id: owner._id,
         phone: owner.phone,
         role: owner.role,
-        salonId: owner.salonId,
+        businessId: owner.businessId,
       },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRE || '24h' }

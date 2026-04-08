@@ -11,7 +11,7 @@
 
 const Queue = require('../models/Queue');
 const Booking = require('../models/Booking');
-const Salon = require('../models/Salon');
+const Business = require('../models/Business');
 const Message = require('../models/Message');
 
 module.exports = (socket, io) => {
@@ -79,7 +79,7 @@ module.exports = (socket, io) => {
       socket.salonId = salonId;
 
       // Mark salon as online in DB
-      await Salon.findByIdAndUpdate(salonId, {
+      await Business.findByIdAndUpdate(salonId, {
         isOnline: true,
         lastOnlineAt: new Date(),
       });
@@ -105,7 +105,7 @@ module.exports = (socket, io) => {
   socket.on('disconnect', async () => {
     try {
       if (socket.salonId) {
-        await Salon.findByIdAndUpdate(socket.salonId, { isOnline: false });
+        await Business.findByIdAndUpdate(socket.salonId, { isOnline: false });
         // Broadcast to user frontend that this salon is now offline
         io.emit('salon-offline', { salonId: socket.salonId });
         console.log(`📴 Salon ${socket.salonId} marked OFFLINE (owner disconnected)`);

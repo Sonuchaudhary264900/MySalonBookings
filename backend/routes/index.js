@@ -150,7 +150,7 @@ const promotionAdminController = safeRequire("../controllers/admin/promotionAdmi
 /* =====================================================
    MODELS (for inline public handlers)
 ===================================================== */
-const Salon             = require("../models/Salon");
+const Business          = require("../models/Business");
 const Service           = require("../models/Service");
 const Review            = require("../models/Review");
 const Customer          = require("../models/Customer");
@@ -194,7 +194,7 @@ router.get("/public/salons", asyncHandler(async (req, res) => {
     ? { averageRating: -1, totalReviews: -1 }
     : { totalBookings: -1, averageRating: -1 }; // default: booked
   const skip = (Number(page) - 1) * Number(limit);
-  const rawSalons = await Salon.find(query)
+  const rawSalons = await Business.find(query)
     .select("name address city phone photos logo coverPhoto averageRating totalReviews totalBookings workingHours category servedGender offeredCategories isApproved isOnline lastOnlineAt location ownerId")
     .sort(sortOrder)
     .skip(skip)
@@ -223,7 +223,7 @@ router.get("/public/salons", asyncHandler(async (req, res) => {
     });
   }
 
-  const total = await Salon.countDocuments(query);
+  const total = await Business.countDocuments(query);
   res.json({ success: true, data: { salons, total } });
 }));
 
@@ -244,7 +244,7 @@ router.get("/public/salons/nearby", asyncHandler(async (req, res) => {
   };
   const sortOrder = sortMap[sort] || sortMap.booked;
 
-  const salons = await Salon.aggregate([
+  const salons = await Business.aggregate([
     {
       $geoNear: {
         near: { type: "Point", coordinates: [lng, lat] },
@@ -334,7 +334,7 @@ router.get("/public/salons/nearby", asyncHandler(async (req, res) => {
 // GET /public/salons/:salonId
 router.get("/public/salons/:salonId", validateObjectId("salonId"), asyncHandler(async (req, res) => {
   const Barber = require("../models/Barber");
-  const salon = await Salon.findById(req.params.salonId).populate("ownerId", "profilePhoto gender name").lean();
+  const salon = await Business.findById(req.params.salonId).populate("ownerId", "profilePhoto gender name").lean();
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
   if (!salon.isApproved) return res.status(403).json({ success: false, message: "Salon not approved" });
   const now = new Date();
@@ -483,7 +483,7 @@ router.get("/public/reels", asyncHandler(async (req, res) => {
 
   let salons;
   if (useNearest) {
-    salons = await Salon.find({
+    salons = await Business.find({
       ...baseQuery,
       location: {
         $nearSphere: {
@@ -496,7 +496,7 @@ router.get("/public/reels", asyncHandler(async (req, res) => {
       .limit(100)
       .lean();
   } else {
-    salons = await Salon.find(baseQuery)
+    salons = await Business.find(baseQuery)
       .select("name city logo coverPhoto averageRating reelVideos isBoostEnabled")
       .limit(100)
       .lean();
@@ -779,7 +779,7 @@ router.get("/public/reels/likes", asyncHandler(async (req, res) => {
 
 // GET /owner/reels/analytics — owner sees likes + comments per reel video
 router.get("/owner/reels/analytics", authenticateOwner, asyncHandler(async (req, res) => {
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] })
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] })
     .select('reelVideos name').lean();
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
 
@@ -842,7 +842,7 @@ router.post("/owner/reels/comments/:commentId/reply", authenticateOwner, asyncHa
   const { text } = req.body;
   if (!text?.trim()) return res.status(400).json({ success: false, message: "text is required" });
 
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] })
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] })
     .select('name').lean();
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
 
@@ -871,7 +871,7 @@ router.get("/public/salons/:salonId/booked-slots", validateObjectId("salonId"), 
   const minutesToTime = (m) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 
   // Get salon working hours for the selected day
-  const salon = await Salon.findById(req.params.salonId).select("workingHours bookingMode").lean();
+  const salon = await Business.findById(req.params.salonId).select("workingHours bookingMode").lean();
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
 
   const DAY_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
@@ -1225,7 +1225,7 @@ router.post("/customer/reviews", authenticateCustomer, asyncHandler(async (req, 
   // Update salon's average rating
   const allReviews = await Review.find({ salonId: booking.salonId, isPublished: true });
   const avg = allReviews.reduce((s, r) => s + r.salonRating, 0) / allReviews.length;
-  await Salon.findByIdAndUpdate(booking.salonId, { averageRating: Math.round(avg * 10) / 10, totalReviews: allReviews.length });
+  await Business.findByIdAndUpdate(booking.salonId, { averageRating: Math.round(avg * 10) / 10, totalReviews: allReviews.length });
 
   res.status(201).json({ success: true, data: review });
 }));
@@ -1430,7 +1430,7 @@ router.delete(
 
 router.get("/owner/bookings", authenticateOwner, validatePaginationParams, asyncHandler(async (req, res) => {
   const Booking = require("../models/Booking");
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.json({ success: true, data: { bookings: [], total: 0, page: 1, limit: 20 } });
 
   const { status, date, page = 1, limit = 20 } = req.query;
@@ -1453,7 +1453,7 @@ router.get("/owner/bookings", authenticateOwner, validatePaginationParams, async
 
 router.post("/owner/bookings", authenticateOwner, checkSubscription, asyncHandler(async (req, res) => {
   const Booking = require("../models/Booking");
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
 
   const { customerName, customerPhone, serviceId, appointmentDate, appointmentTime } = req.body;
@@ -1536,7 +1536,7 @@ router.post("/owner/bookings", authenticateOwner, checkSubscription, asyncHandle
 
 router.put("/owner/bookings/:bookingId", authenticateOwner, validateObjectId("bookingId"), asyncHandler(async (req, res) => {
   const Booking = require("../models/Booking");
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
 
   const booking = await Booking.findOne({ _id: req.params.bookingId, salonId: salon._id });
@@ -1618,7 +1618,7 @@ router.put("/owner/bookings/:bookingId", authenticateOwner, validateObjectId("bo
 
 // GET /owner/reviews — get all published reviews for this owner's salon
 router.get("/owner/reviews", authenticateOwner, asyncHandler(async (req, res) => {
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
   const reviews = await Review.find({ salonId: salon._id, isPublished: true, isHidden: false })
     .sort({ createdAt: -1 }).limit(100).lean();
@@ -1627,7 +1627,7 @@ router.get("/owner/reviews", authenticateOwner, asyncHandler(async (req, res) =>
 
 // PUT /owner/reviews/:reviewId/reply — add/update owner reply on a review
 router.put("/owner/reviews/:reviewId/reply", authenticateOwner, validateObjectId("reviewId"), asyncHandler(async (req, res) => {
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
   const { reply } = req.body;
   if (!reply?.trim()) return res.status(400).json({ success: false, message: "Reply text is required" });
@@ -1737,7 +1737,7 @@ router.post(
 
 // POST /owner/customers/:customerId/block — block a customer from booking at this salon
 router.post("/owner/customers/:customerId/block", authenticateOwner, validateObjectId("customerId"), asyncHandler(async (req, res) => {
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
 
   const { reason = "" } = req.body;
@@ -1753,7 +1753,7 @@ router.post("/owner/customers/:customerId/block", authenticateOwner, validateObj
 
 // DELETE /owner/customers/:customerId/block — unblock a customer
 router.delete("/owner/customers/:customerId/block", authenticateOwner, validateObjectId("customerId"), asyncHandler(async (req, res) => {
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
 
   const customerId = req.params.customerId;
@@ -1768,7 +1768,7 @@ router.delete("/owner/customers/:customerId/block", authenticateOwner, validateO
 
 // GET /owner/blocked-customers — list all blocked customers
 router.get("/owner/blocked-customers", authenticateOwner, asyncHandler(async (req, res) => {
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] })
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] })
     .populate("blockedCustomers.customerId", "name phone profilePhoto")
     .lean();
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
@@ -1781,7 +1781,7 @@ router.get("/owner/blocked-customers", authenticateOwner, asyncHandler(async (re
 
 // POST /owner/salon/holidays — add a closed date
 router.post("/owner/salon/holidays", authenticateOwner, asyncHandler(async (req, res) => {
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
 
   const { date, reason = "" } = req.body;
@@ -1803,7 +1803,7 @@ router.post("/owner/salon/holidays", authenticateOwner, asyncHandler(async (req,
 
 // DELETE /owner/salon/holidays/:holidayId — remove a closed date
 router.delete("/owner/salon/holidays/:holidayId", authenticateOwner, validateObjectId("holidayId"), asyncHandler(async (req, res) => {
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
 
   const before = salon.workingHours.holidays.length;
@@ -1848,7 +1848,7 @@ router.get("/public/services/search", asyncHandler(async (req, res) => {
   }
 
   const salonIds = Object.keys(salonIdMap);
-  const rawSalons = await Salon.find({
+  const rawSalons = await Business.find({
     _id: { $in: salonIds },
     isApproved: true,
     isActive: true,
@@ -1986,7 +1986,7 @@ router.post("/owner/gallery/register-photo", authenticateOwner, asyncHandler(asy
   const { url } = req.body;
   if (!url || !url.startsWith('https://'))
     return res.status(400).json({ success: false, message: "Valid Cloudinary url required" });
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
   salon.photos.push({ url, caption: '', tags: [], isCover: false });
   await salon.save({ validateModifiedOnly: true });
@@ -2004,7 +2004,7 @@ router.post("/owner/gallery/register-video", authenticateOwner, asyncHandler(asy
     .trim();
   if (!url || !url.startsWith('https://'))
     return res.status(400).json({ success: false, message: "Valid Cloudinary url required" });
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
 
   // Save to gallery videos
@@ -2032,7 +2032,7 @@ router.post("/owner/gallery/register-video", authenticateOwner, asyncHandler(asy
 
 // GET /owner/gallery — return all photos + videos
 router.get("/owner/gallery", authenticateOwner, asyncHandler(async (req, res) => {
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
 
   // Heal data drift: reels visible to customers must appear in owner gallery even if
@@ -2125,7 +2125,7 @@ router.get("/owner/gallery", authenticateOwner, asyncHandler(async (req, res) =>
 router.put("/owner/gallery/reel-toggle", authenticateOwner, asyncHandler(async (req, res) => {
   const { videoUrl, categories, targetGender } = req.body;
   if (!videoUrl) return res.status(400).json({ success: false, message: "videoUrl required" });
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
 
   salon.reelVideos = (salon.reelVideos || []).map(rv =>
@@ -2160,7 +2160,7 @@ router.put("/owner/gallery/reel-toggle", authenticateOwner, asyncHandler(async (
 router.put("/owner/gallery/:mediaId", authenticateOwner, asyncHandler(async (req, res) => {
   const mid = req.params.mediaId;
   const { caption, tags, isCover } = req.body;
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
 
   if (mid.startsWith('v_')) {
@@ -2200,7 +2200,7 @@ router.put("/owner/gallery/:mediaId", authenticateOwner, asyncHandler(async (req
 // POST /owner/gallery — legacy server-side photo upload (kept for fallback)
 router.post("/owner/gallery", authenticateOwner, multerUpload.single("image"), asyncHandler(async (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: "No image uploaded" });
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
   const { cloudinary: cloudinaryClient } = require("../config/cloudinary");
   const url = await new Promise((resolve, reject) => {
@@ -2219,7 +2219,7 @@ router.post("/owner/gallery", authenticateOwner, multerUpload.single("image"), a
 // POST /owner/gallery/video — legacy server-side video upload (kept for fallback)
 router.post("/owner/gallery/video", authenticateOwner, multerVideoUpload.single("video"), asyncHandler(async (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: "No video uploaded" });
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
   const { cloudinary: cloudinaryClient } = require("../config/cloudinary");
   const url = await new Promise((resolve, reject) => {
@@ -2238,7 +2238,7 @@ router.post("/owner/gallery/video", authenticateOwner, multerVideoUpload.single(
 
 // DELETE /owner/gallery/:mediaId — remove photo or video, also clean up reelVideos
 router.delete("/owner/gallery/:mediaId", authenticateOwner, asyncHandler(async (req, res) => {
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
   const mid = req.params.mediaId;
 
@@ -2274,7 +2274,7 @@ router.delete("/owner/gallery/:mediaId", authenticateOwner, asyncHandler(async (
 // GET /owner/coupons
 router.get("/owner/coupons", authenticateOwner, asyncHandler(async (req, res) => {
   const Coupon = require("../models/Coupon");
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
   const coupons = await Coupon.find({ salonId: salon._id }).sort({ createdAt: -1 }).lean();
   const nowTs = new Date();
@@ -2299,7 +2299,7 @@ router.get("/owner/coupons", authenticateOwner, asyncHandler(async (req, res) =>
 // POST /owner/coupons
 router.post("/owner/coupons", authenticateOwner, asyncHandler(async (req, res) => {
   const Coupon = require("../models/Coupon");
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
   const { code, discountType, discountValue, minOrderAmount, maxUses, expiryDate } = req.body;
   if (!code?.trim()) return res.status(400).json({ success: false, message: "Coupon code is required" });
@@ -2334,7 +2334,7 @@ router.post("/owner/coupons", authenticateOwner, asyncHandler(async (req, res) =
 // PUT /owner/coupons/:id
 router.put("/owner/coupons/:id", authenticateOwner, validateObjectId("id"), asyncHandler(async (req, res) => {
   const Coupon = require("../models/Coupon");
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
   const coupon = await Coupon.findOne({ _id: req.params.id, salonId: salon._id });
   if (!coupon) return res.status(404).json({ success: false, message: "Coupon not found" });
@@ -2357,7 +2357,7 @@ router.put("/owner/coupons/:id", authenticateOwner, validateObjectId("id"), asyn
 // DELETE /owner/coupons/:id
 router.delete("/owner/coupons/:id", authenticateOwner, validateObjectId("id"), asyncHandler(async (req, res) => {
   const Coupon = require("../models/Coupon");
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
   const coupon = await Coupon.findOneAndDelete({ _id: req.params.id, salonId: salon._id });
   if (!coupon) return res.status(404).json({ success: false, message: "Coupon not found" });
@@ -2367,7 +2367,7 @@ router.delete("/owner/coupons/:id", authenticateOwner, validateObjectId("id"), a
 // GET /owner/coupons/:id/analytics — usage history for a coupon
 router.get("/owner/coupons/:id/analytics", authenticateOwner, validateObjectId("id"), asyncHandler(async (req, res) => {
   const Coupon = require("../models/Coupon");
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
   const coupon = await Coupon.findOne({ _id: req.params.id, salonId: salon._id })
     .populate("usageHistory.customerId", "name phone")
@@ -2393,7 +2393,7 @@ router.post("/owner/coupons/broadcast", authenticateOwner, asyncHandler(async (r
   const Coupon   = require("../models/Coupon");
   const Booking  = require("../models/Booking");
   const Customer = require("../models/Customer");
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] })
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] })
     .select("name location");
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
 
@@ -2465,7 +2465,7 @@ router.post("/owner/coupons/broadcast", authenticateOwner, asyncHandler(async (r
 
 // GET /owner/working-hours
 router.get("/owner/working-hours", authenticateOwner, asyncHandler(async (req, res) => {
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] })
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] })
     .select("workingHours").lean();
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
   res.json({ success: true, data: { workingHours: salon.workingHours } });
@@ -2473,7 +2473,7 @@ router.get("/owner/working-hours", authenticateOwner, asyncHandler(async (req, r
 
 // PUT /owner/working-hours
 router.put("/owner/working-hours", authenticateOwner, asyncHandler(async (req, res) => {
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
   const { workingHours } = req.body;
   if (!workingHours) return res.status(400).json({ success: false, message: "workingHours is required" });
@@ -2499,7 +2499,7 @@ router.put("/owner/working-hours", authenticateOwner, asyncHandler(async (req, r
 router.get("/owner/customers", authenticateOwner, asyncHandler(async (req, res) => {
   const Booking = require("../models/Booking");
   const Customer = require("../models/Customer");
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
   const { q } = req.query;
 
@@ -2633,7 +2633,7 @@ router.delete("/owner/customers/:customerId", authenticateOwner, asyncHandler(as
 // GET /owner/customers/:customerId/bookings — booking history (registered or walk-in by phone)
 router.get("/owner/customers/:customerId/bookings", authenticateOwner, asyncHandler(async (req, res) => {
   const Booking = require("../models/Booking");
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
 
   const { customerId } = req.params;
@@ -2801,7 +2801,7 @@ router.post("/test/subscription/force-pay", authenticateOwner, asyncHandler(asyn
   let invoice = await Subscription.findOne({ ownerId: owner._id, billingMonth, paymentStatus: { $in: ['pending', 'paid'] } });
   if (!invoice) {
     invoice = await Subscription.create({
-      ownerId: owner._id, salonId: owner.salonId, planType,
+      ownerId: owner._id, salonId: owner.businessId, planType,
       billingMonth, bookingCount, amount,
       razorpayOrderId: fakeOrderId, razorpayPaymentId: fakePayId,
       paymentStatus: 'paid', paidAt: now,
@@ -2877,7 +2877,7 @@ router.post("/test/subscription/run-monthly-reset", authenticateOwner, asyncHand
     const existing = await Subscription.findOne({ ownerId: owner._id, billingMonth });
     if (!existing) {
       await Subscription.create({
-        ownerId: owner._id, salonId: owner.salonId, planType: 'per_booking',
+        ownerId: owner._id, salonId: owner.businessId, planType: 'per_booking',
         billingMonth, bookingCount, amount, paymentStatus: 'pending',
       });
     }
@@ -2993,7 +2993,7 @@ router.get('/public/salons/:salonId/packages', validateObjectId('salonId'), asyn
 
 // POST /owner/packages — create a package or membership
 router.post('/owner/packages', authenticateOwner, asyncHandler(async (req, res) => {
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
 
   const {
@@ -3035,7 +3035,7 @@ router.post('/owner/packages', authenticateOwner, asyncHandler(async (req, res) 
 
 // GET /owner/packages — list all packages/memberships for the salon
 router.get('/owner/packages', authenticateOwner, asyncHandler(async (req, res) => {
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
   const { type } = req.query;
   const query = { salonId: salon._id };
@@ -3046,7 +3046,7 @@ router.get('/owner/packages', authenticateOwner, asyncHandler(async (req, res) =
 
 // PUT /owner/packages/:id — update or toggle active
 router.put('/owner/packages/:id', authenticateOwner, validateObjectId('id'), asyncHandler(async (req, res) => {
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
   const pkg = await Package.findOne({ _id: req.params.id, salonId: salon._id });
   if (!pkg) return res.status(404).json({ success: false, message: 'Package not found' });
@@ -3063,7 +3063,7 @@ router.put('/owner/packages/:id', authenticateOwner, validateObjectId('id'), asy
 
 // DELETE /owner/packages/:id
 router.delete('/owner/packages/:id', authenticateOwner, validateObjectId('id'), asyncHandler(async (req, res) => {
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
   const pkg = await Package.findOneAndDelete({ _id: req.params.id, salonId: salon._id });
   if (!pkg) return res.status(404).json({ success: false, message: 'Package not found' });
@@ -3155,7 +3155,7 @@ async function dispatchNotification(customers, title, message, pkg, io, salonId)
 
 // GET /owner/notification-settings
 router.get('/owner/notification-settings', authenticateOwner, asyncHandler(async (req, res) => {
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
 
   let settings = await NotificationSettings.findOne({ salonId: salon._id }).lean();
@@ -3181,7 +3181,7 @@ router.get('/owner/notification-settings', authenticateOwner, asyncHandler(async
 
 // PUT /owner/notification-settings — update pricing and enabled state
 router.put('/owner/notification-settings', authenticateOwner, asyncHandler(async (req, res) => {
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
 
   const { broadcastEnabled, pricing } = req.body;
@@ -3206,7 +3206,7 @@ router.put('/owner/notification-settings', authenticateOwner, asyncHandler(async
 //   preview=true  → returns { estimatedCount, isFree, amount } without sending
 //   preview=false → if free: sends immediately; if paid: creates Razorpay order
 router.post('/owner/packages/:id/notify', authenticateOwner, validateObjectId('id'), asyncHandler(async (req, res) => {
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
 
   const pkg = await Package.findOne({ _id: req.params.id, salonId: salon._id });
@@ -3332,7 +3332,7 @@ router.post('/owner/packages/:id/notify', authenticateOwner, validateObjectId('i
 
 // POST /owner/notification-campaigns/:id/verify-payment — verify Razorpay payment then send
 router.post('/owner/notification-campaigns/:id/verify-payment', authenticateOwner, validateObjectId('id'), asyncHandler(async (req, res) => {
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
 
   const campaign = await NotificationCampaign.findOne({ _id: req.params.id, salonId: salon._id });
@@ -3376,7 +3376,7 @@ router.post('/owner/notification-campaigns/:id/verify-payment', authenticateOwne
 
 // GET /owner/package-requests — list all purchase requests for this salon
 router.get('/owner/package-requests', authenticateOwner, asyncHandler(async (req, res) => {
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
   const { status } = req.query;
   const query = { salonId: salon._id };
@@ -3387,7 +3387,7 @@ router.get('/owner/package-requests', authenticateOwner, asyncHandler(async (req
 
 // PUT /owner/package-requests/:id — confirm (activate) or reject a request
 router.put('/owner/package-requests/:id', authenticateOwner, validateObjectId('id'), asyncHandler(async (req, res) => {
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
   const request = await UserPackage.findOne({ _id: req.params.id, salonId: salon._id });
   if (!request) return res.status(404).json({ success: false, message: 'Request not found' });
@@ -3478,7 +3478,7 @@ router.post('/customer/package-request', authenticateCustomer, asyncHandler(asyn
   if (!pkg || !pkg.isActive)
     return res.status(404).json({ success: false, message: 'Package not found or inactive' });
 
-  const salon = await Salon.findById(pkg.salonId).select('name ownerId').lean();
+  const salon = await Business.findById(pkg.salonId).select('name ownerId').lean();
   if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
 
   const customer = await Customer.findById(req.customer._id).select('name phone').lean();
@@ -3571,8 +3571,8 @@ async function getChatBooking(bookingId, role, callerId) {
   if (['completed', 'cancelled'].includes(booking.status)) return null; // chat closed
   if (role === 'customer' && booking.customerId.toString() !== callerId.toString()) return null;
   if (role === 'owner') {
-    const Salon = require('../models/Salon');
-    const salon = await Salon.findOne({ ownerId: callerId }).select('_id').lean();
+    const Business = require('../models/Business');
+    const salon = await Business.findOne({ ownerId: callerId }).select('_id').lean();
     if (!salon || salon._id.toString() !== booking.salonId.toString()) return null;
   }
   return booking;
@@ -3580,7 +3580,7 @@ async function getChatBooking(bookingId, role, callerId) {
 
 // GET /owner/messages/unread — all unread customer messages across all bookings
 router.get('/owner/messages/unread', authenticateOwner, asyncHandler(async (req, res) => {
-  const salon = await Salon.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] }).select('_id').lean();
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] }).select('_id').lean();
   if (!salon) return res.json({ success: true, data: { messages: [], count: 0 } });
 
   const messages = await Message.find({ salonId: salon._id, senderRole: 'customer', readAt: null })
@@ -3598,7 +3598,7 @@ router.get('/owner/messages/unread', authenticateOwner, asyncHandler(async (req,
 
 // GET /owner/messages/threads — all conversation threads with latest message + unread count
 router.get('/owner/messages/threads', authenticateOwner, asyncHandler(async (req, res) => {
-  const salon = await Salon.findOne({ ownerId: req.owner._id }).select('_id').lean();
+  const salon = await Business.findOne({ ownerId: req.owner._id }).select('_id').lean();
   if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
 
   const threads = await Message.aggregate([
@@ -3635,8 +3635,8 @@ router.get('/owner/messages/threads', authenticateOwner, asyncHandler(async (req
 
 // GET /owner/bookings/:bookingId/messages
 router.get('/owner/bookings/:bookingId/messages', authenticateOwner, validateObjectId('bookingId'), asyncHandler(async (req, res) => {
-  const Salon = require('../models/Salon');
-  const salon = await Salon.findOne({ ownerId: req.owner._id }).select('_id').lean();
+  const Business = require('../models/Business');
+  const salon = await Business.findOne({ ownerId: req.owner._id }).select('_id').lean();
   if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
 
   const booking = await Booking.findOne({ _id: req.params.bookingId, salonId: salon._id }).select('_id customerId salonId').lean();
@@ -3658,8 +3658,8 @@ router.post('/owner/bookings/:bookingId/messages', authenticateOwner, validateOb
   const { text } = req.body;
   if (!text?.trim()) return res.status(400).json({ success: false, message: 'Message text is required' });
 
-  const Salon = require('../models/Salon');
-  const salon = await Salon.findOne({ ownerId: req.owner._id }).select('_id').lean();
+  const Business = require('../models/Business');
+  const salon = await Business.findOne({ ownerId: req.owner._id }).select('_id').lean();
   if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
 
   const booking = await Booking.findOne({ _id: req.params.bookingId, salonId: salon._id }).select('_id customerId salonId status serviceName appointmentDate appointmentTime customerName').lean();
@@ -3711,8 +3711,8 @@ router.post('/owner/bookings/:bookingId/messages', authenticateOwner, validateOb
 
 // PUT /owner/bookings/:bookingId/messages/read — mark owner's unread messages as read
 router.put('/owner/bookings/:bookingId/messages/read', authenticateOwner, validateObjectId('bookingId'), asyncHandler(async (req, res) => {
-  const Salon = require('../models/Salon');
-  const salon = await Salon.findOne({ ownerId: req.owner._id }).select('_id').lean();
+  const Business = require('../models/Business');
+  const salon = await Business.findOne({ ownerId: req.owner._id }).select('_id').lean();
   if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
 
   await Message.updateMany(
@@ -3770,7 +3770,7 @@ router.post('/customer/bookings/:bookingId/messages', authenticateCustomer, vali
   try {
     const { sendExpoPush } = require('../utils/pushNotification');
     const Owner = require('../models/Owner');
-    const salonDoc = await Salon.findById(booking.salonId).select('ownerId').lean();
+    const salonDoc = await Business.findById(booking.salonId).select('ownerId').lean();
     if (salonDoc?.ownerId) {
       const owner = await Owner.findById(salonDoc.ownerId).select('pushToken').lean();
       if (owner?.pushToken) {

@@ -15,7 +15,7 @@ const couponSchema = new mongoose.Schema(
   {
     code: { type: String, required: true, uppercase: true },
     description: String,
-    salonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Salon', default: null },
+    salonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Business', default: null },
     discountType: { type: String, enum: ['percentage', 'fixed'], required: true },
     discountValue: { type: Number, required: true },
     maxDiscount: Number,

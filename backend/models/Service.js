@@ -5,7 +5,7 @@ const serviceSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     description: { type: String, default: '' },
-    salonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Salon', required: true },
+    salonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Business', required: true },
     category: { type: String, default: '' },
     basePrice: { type: Number, required: true, min: 0 },
     duration: { type: Number, required: true, min: 1 },

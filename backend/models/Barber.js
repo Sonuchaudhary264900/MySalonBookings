@@ -8,7 +8,7 @@ const barberSchema = new mongoose.Schema(
     email: String,
     gender: { type: String, enum: ['male', 'female'] },
     profilePhoto: String,
-    salonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Salon', required: true },
+    salonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Business', required: true },
     experience: { type: Number, default: 0 },
     specializations: [String],
     bio: String,

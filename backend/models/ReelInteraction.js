@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 const reelInteractionSchema = new mongoose.Schema(
   {
     videoUrl:      { type: String, required: true, index: true },
-    salonId:       { type: mongoose.Schema.Types.ObjectId, ref: 'Salon', required: true },
+    salonId:       { type: mongoose.Schema.Types.ObjectId, ref: 'Business', required: true },
     // Identity: prefer customerId when logged in, fall back to fingerprint
     customerId:    { type: String, index: true },
     fingerprint:   { type: String, index: true },

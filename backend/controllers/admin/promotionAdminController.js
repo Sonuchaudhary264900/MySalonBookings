@@ -2,7 +2,7 @@
 
 const Promotion        = require('../../models/Promotion');
 const PromotionPricing = require('../../models/PromotionPricing');
-const Salon            = require('../../models/Salon');
+const Business         = require('../../models/Business');
 
 // ── GET /admin/promotions/pricing ─────────────────────────────────────────
 const getPricingTiers = async (req, res) => {

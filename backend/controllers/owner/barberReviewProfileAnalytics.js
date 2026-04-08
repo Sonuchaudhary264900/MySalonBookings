@@ -1,4 +1,4 @@
-const Salon = require('../../models/Salon');
+const Business = require('../../models/Business');
 const Booking = require('../../models/Booking');
 
 const { formatSuccessResponse, formatErrorResponse } = require('../../utils/formatters');
@@ -6,7 +6,7 @@ const messages = require('../../utils/messages');
 
 // Helper: fetch the owner's salon
 const getOwnerSalon = async (ownerId) => {
-  return Salon.findOne({ $or: [{ ownerId }, { owner: ownerId }] });
+  return Business.findOne({ $or: [{ ownerId }, { owner: ownerId }] });
 };
 
 // ===================================================

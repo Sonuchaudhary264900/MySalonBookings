@@ -86,7 +86,7 @@ const getSubscriptionUsers = async (req, res) => {
     const l = Math.min(100, Math.max(1, parseInt(limit)));
 
     const owners = await Owner.find({})
-      .select('name email phone subscription createdAt salonId')
+      .select('name email phone subscription createdAt businessId')
       .lean();
 
     const mapped = owners.map((owner) => {
@@ -106,7 +106,7 @@ const getSubscriptionUsers = async (req, res) => {
         name: owner.name,
         email: owner.email,
         phone: owner.phone,
-        salonId: owner.salonId,
+        businessId: owner.businessId,
         planType: sub.planType || 'free_trial',
         paymentStatus: sub.paymentStatus || 'trial',
         accessStatus,

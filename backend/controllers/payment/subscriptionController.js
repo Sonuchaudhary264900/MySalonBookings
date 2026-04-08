@@ -405,7 +405,7 @@ const createPaymentOrder = async (req, res) => {
     if (!invoice) {
       invoice = await Subscription.create({
         ownerId:      owner._id,
-        salonId:      owner.salonId,
+        salonId:      owner.businessId,
         planType,
         billingMonth: currentBillingMonth(),
         bookingCount: owner.subscription.monthlyBookingCount || 0,

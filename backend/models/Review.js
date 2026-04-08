@@ -5,7 +5,7 @@ const reviewSchema = new mongoose.Schema(
   {
     bookingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking', required: true },
     customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer', required: true },
-    salonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Salon', required: true },
+    salonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Business', required: true },
     barberId: { type: mongoose.Schema.Types.ObjectId, ref: 'Barber' },
     salonRating: { type: Number, min: 1, max: 5, required: true },
     barberRating: { type: Number, min: 1, max: 5 },

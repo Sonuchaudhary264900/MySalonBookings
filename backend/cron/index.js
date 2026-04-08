@@ -23,7 +23,7 @@ const https = require('https');
 const Queue = require('../models/Queue');
 const OTP = require('../models/OTP');
 const Booking = require('../models/Booking');
-const Salon = require('../models/Salon');
+const Business = require('../models/Business');
 const Service = require('../models/Service');
 const Owner = require('../models/Owner');
 const Customer = require('../models/Customer');
@@ -251,7 +251,7 @@ const autoApproveSalons = cron.schedule('0 3 * * *', async () => {
     const dayAgo = new Date();
     dayAgo.setHours(dayAgo.getHours()-24);
 
-    const salons = await Salon.find({
+    const salons = await Business.find({
 
       approvalStatus:'pending',
       createdAt:{ $lt:dayAgo }
@@ -486,7 +486,7 @@ const generateWeeklyReport = cron.schedule('0 6 * * 1', async () => {
 
     const revenue = bookings.reduce((sum,b)=>sum+(b.totalAmount||0),0);
 
-    const activeSalons = await Salon.countDocuments({
+    const activeSalons = await Business.countDocuments({
 
       isApproved:true,
       isActive:true
@@ -575,7 +575,7 @@ const send30MinReminders = cron.schedule('*/5 * * * *', async () => {
         }
 
         // Push to owner — upcoming customer alert
-        const owner = await Owner.findOne({ salonId: booking.salonId }).select('pushToken').lean();
+        const owner = await Owner.findOne({ businessId: booking.salonId }).select('pushToken').lean();
         if (owner?.pushToken) {
           await sendExpoPush(
             owner.pushToken,
@@ -642,7 +642,7 @@ const ownerDailySummary = cron.schedule('30 16 * * *', async () => {
     let sent = 0;
     for (const row of todaysBookings) {
       try {
-        const owner = await Owner.findOne({ salonId: row._id }).select('pushToken name').lean();
+        const owner = await Owner.findOne({ businessId: row._id }).select('pushToken name').lean();
         if (!owner?.pushToken) continue;
 
         await sendExpoPush(
@@ -803,7 +803,7 @@ const monthlyBillingReset = cron.schedule('0 0 1 * *', async () => {
     const paidOwners = await Owner.find({
       'subscription.planType': 'per_booking',
       'subscription.paymentStatus': 'paid',
-    }).select('_id salonId subscription').lean();
+    }).select('_id businessId subscription').lean();
 
     let invoicesCreated = 0;
     for (const owner of paidOwners) {
@@ -818,7 +818,7 @@ const monthlyBillingReset = cron.schedule('0 0 1 * *', async () => {
         if (!existing) {
           await Subscription.create({
             ownerId: owner._id,
-            salonId: owner.salonId,
+            salonId: owner.businessId,
             planType: 'per_booking',
             billingMonth,
             bookingCount,
@@ -861,7 +861,7 @@ const monthlyBillingReset = cron.schedule('0 0 1 * *', async () => {
     const { logSubscriptionEvent } = require('../utils/subscriptionLogger');
     const changeOwners = await Owner.find({
       'subscription.planChangeRequested': true,
-    }).select('_id salonId subscription').lean();
+    }).select('_id businessId subscription').lean();
 
     let planSwitches = 0;
     for (const owner of changeOwners) {

@@ -13,7 +13,7 @@ const subscriptionLogSchema = new mongoose.Schema(
     },
     salonId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Salon',
+      ref: 'Business',
       default: null,
     },
     event: {

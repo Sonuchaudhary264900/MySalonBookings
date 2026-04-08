@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const promotionSchema = new mongoose.Schema(
   {
-    salonId:           { type: mongoose.Schema.Types.ObjectId, ref: 'Salon',  required: true },
+    salonId:           { type: mongoose.Schema.Types.ObjectId, ref: 'Business',  required: true },
     ownerId:           { type: mongoose.Schema.Types.ObjectId, ref: 'Owner',  required: true },
     pricingTierId:     { type: mongoose.Schema.Types.ObjectId, ref: 'PromotionPricing' },
     radiusKm:          { type: Number, required: true },

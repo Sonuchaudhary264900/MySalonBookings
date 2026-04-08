@@ -12,7 +12,7 @@ const subscriptionSchema = new mongoose.Schema(
     },
     salonId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Salon',
+      ref: 'Business',
       required: true,
     },
     planType: {

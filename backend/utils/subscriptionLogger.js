@@ -27,7 +27,7 @@ const logSubscriptionEvent = (event, owner, extras = {}) => {
 
     SubscriptionLog.create({
       ownerId:           owner._id,
-      salonId:           owner.salonId || null,
+      salonId:           owner.businessId || null,
       event,
       planType:          sub.planType   || extras.planType   || null,
       paymentStatus:     sub.paymentStatus || extras.paymentStatus || null,

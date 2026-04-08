@@ -7,7 +7,7 @@ const transactionSchema = new mongoose.Schema(
     razorpayId: String,
     bookingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' },
     customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer' },
-    salonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Salon' },
+    salonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Business' },
     amount: Number,
     currency: { type: String, default: 'INR' },
     discount: Number,

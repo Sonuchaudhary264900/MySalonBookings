@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const notificationCampaignSchema = new mongoose.Schema(
   {
-    salonId:     { type: mongoose.Schema.Types.ObjectId, ref: 'Salon',   required: true },
+    salonId:     { type: mongoose.Schema.Types.ObjectId, ref: 'Business',   required: true },
     packageId:   { type: mongoose.Schema.Types.ObjectId, ref: 'Package' },
     packageName: String,
     packageType: String,

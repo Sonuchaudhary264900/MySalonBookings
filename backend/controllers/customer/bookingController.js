@@ -1,7 +1,7 @@
 const Booking = require('../../models/Booking');
 const Queue = require('../../models/Queue');
 const Service = require('../../models/Service');
-const Salon = require('../../models/Salon');
+const Business = require('../../models/Business');
 const Barber = require('../../models/Barber');
 const Customer = require('../../models/Customer');
 
@@ -40,7 +40,7 @@ const createBooking = async (req, res) => {
       );
     }
 
-    const salon = await Salon.findById(salonId);
+    const salon = await Business.findById(salonId);
     if (!salon || !salon.isApproved) {
       return res.status(404).json(
         formatErrorResponse(messages.SALON.SALON_NOT_APPROVED, 404)

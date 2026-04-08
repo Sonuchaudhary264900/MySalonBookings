@@ -53,7 +53,7 @@ const createPromotionOrder = async (req, res) => {
 
   // Owner must have an approved salon
   const owner = req.owner;
-  if (!owner.salonId) {
+  if (!owner.businessId) {
     return res.status(400).json({ success: false, message: 'No salon found for this owner' });
   }
 
@@ -78,7 +78,7 @@ const createPromotionOrder = async (req, res) => {
     order = await createOrder(
       tier.pricePerWeek,
       owner._id.toString(),
-      `promo_${owner.salonId}_${Date.now()}`,
+      `promo_${owner.businessId}_${Date.now()}`,
       owner.email || '',
       owner.phone || ''
     );
@@ -93,7 +93,7 @@ const createPromotionOrder = async (req, res) => {
 
   // Create pending Promotion record
   const promotion = await Promotion.create({
-    salonId:       owner.salonId,
+    salonId:       owner.businessId,
     ownerId:       owner._id,
     pricingTierId: tier._id,
     radiusKm:      tier.radiusKm,

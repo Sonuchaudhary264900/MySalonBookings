@@ -11,7 +11,7 @@ const userPackageSchema = new mongoose.Schema({
   customerId:     { type: mongoose.Schema.Types.ObjectId, ref: 'Customer', required: true },
   customerName:   { type: String, required: true, trim: true },
   customerPhone:  { type: String, trim: true },
-  salonId:        { type: mongoose.Schema.Types.ObjectId, ref: 'Salon', required: true },
+  salonId:        { type: mongoose.Schema.Types.ObjectId, ref: 'Business', required: true },
   packageId:      { type: mongoose.Schema.Types.ObjectId, ref: 'Package', required: true },
   type:           { type: String, enum: ['package', 'membership'], required: true },
   packageName:    { type: String, required: true, trim: true },

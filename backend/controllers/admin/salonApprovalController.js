@@ -7,7 +7,7 @@
   - Get approved salons
 */
 
-const Salon = require('../../models/Salon');
+const Business = require('../../models/Business');
 const Owner = require('../../models/Owner');
 
 const { formatSuccessResponse, formatErrorResponse } = require('../../utils/formatters');
@@ -22,14 +22,14 @@ const getPendingSalons = async (req, res) => {
 
     const { page = 1, limit = 10 } = req.query;
 
-    const salons = await Salon.find({ approvalStatus: "pending" })
+    const salons = await Business.find({ approvalStatus: "pending" })
       .populate("ownerId", "name phone email")
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(parseInt(limit))
       .lean();
 
-    const total = await Salon.countDocuments({ approvalStatus: "pending" });
+    const total = await Business.countDocuments({ approvalStatus: "pending" });
 
     res.json(
       formatSuccessResponse({
@@ -65,7 +65,7 @@ const approveSalon = async (req, res) => {
     const { salonId } = req.params;
     const { notes } = req.body;
 
-    const salon = await Salon.findById(salonId);
+    const salon = await Business.findById(salonId);
 
     if (!salon) {
       return res.status(404).json(
@@ -127,7 +127,7 @@ const rejectSalon = async (req, res) => {
       );
     }
 
-    const salon = await Salon.findById(salonId);
+    const salon = await Business.findById(salonId);
 
     if (!salon) {
       return res.status(404).json(
@@ -177,7 +177,7 @@ const getApprovedSalons = async (req, res) => {
 
     const { page = 1, limit = 10 } = req.query;
 
-    const salons = await Salon.find({
+    const salons = await Business.find({
       approvalStatus: "approved",
       isApproved: true
     })
@@ -187,7 +187,7 @@ const getApprovedSalons = async (req, res) => {
       .limit(parseInt(limit))
       .lean();
 
-    const total = await Salon.countDocuments({
+    const total = await Business.countDocuments({
       approvalStatus: "approved"
     });
 

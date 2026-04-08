@@ -15,7 +15,7 @@ dotenv.config();
 // Import models
 const Owner = require('../models/Owner');
 const Customer = require('../models/Customer');
-const Salon = require('../models/Salon');
+const Business = require('../models/Business');
 const Service = require('../models/Service');
 const Barber = require('../models/Barber');
 const Admin = require('../models/Admin');
@@ -27,7 +27,6 @@ const TEST_DATA = {
       email: 'owner1@salon.com',
       password: 'Password@123',
       name: 'Raj Kumar',
-      businessName: 'Premium Hair Studio',
       status: 'approved',
       approvalStatus: 'approved',
     },
@@ -36,7 +35,6 @@ const TEST_DATA = {
       email: 'owner2@salon.com',
       password: 'Password@123',
       name: 'Priya Singh',
-      businessName: 'Elegant Looks Salon',
       status: 'approved',
       approvalStatus: 'approved',
     },
@@ -190,7 +188,7 @@ async function seedDatabase() {
     await Promise.all([
       Owner.deleteMany({}),
       Customer.deleteMany({}),
-      Salon.deleteMany({}),
+      Business.deleteMany({}),
       Service.deleteMany({}),
       Barber.deleteMany({}),
       Admin.deleteMany({}),
@@ -221,7 +219,7 @@ async function seedDatabase() {
 
     // Seed Salons
     console.log('🏪 Seeding salons...');
-    const salons = await Salon.create(
+    const salons = await Business.create(
       TEST_DATA.salons.map((salon, index) => ({
         ...salon,
         ownerId: owners[index]._id,
@@ -251,7 +249,7 @@ async function seedDatabase() {
     console.log(`✅ Created ${barbers.length} barbers`);
 
     // Update salons with services and barbers
-    await Salon.findByIdAndUpdate(salons[0]._id, {
+    await Business.findByIdAndUpdate(salons[0]._id, {
       services: services.map((s) => s._id),
       barbers: barbers.map((b) => b._id),
       totalBarbers: barbers.length,
@@ -264,7 +262,7 @@ async function seedDatabase() {
 
     // Update owners with salon IDs
     await Owner.findByIdAndUpdate(owners[0]._id, {
-      salonId: salons[0]._id,
+      businessId: salons[0]._id,
       status: 'approved',
     });
 

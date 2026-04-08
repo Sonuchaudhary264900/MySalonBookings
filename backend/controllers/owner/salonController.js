@@ -10,7 +10,7 @@
   - Get salon by ID with services
 */
 
-const Salon = require('../../models/Salon');
+const Business = require('../../models/Business');
 const Owner = require('../../models/Owner');
 const Service = require('../../models/Service');
 const Barber = require('../../models/Barber');
@@ -89,14 +89,14 @@ exports.createSalon = async (req, res) => {
       }
     }
 
-    const existingSalon = await Salon.findOne({ ownerId: req.owner._id });
+    const existingSalon = await Business.findOne({ ownerId: req.owner._id });
     if (existingSalon) {
       return res.status(409).json(
         formatErrorResponse('You already have a salon registered', 409)
       );
     }
 
-    const phoneInUse = await Salon.findOne({ phone: phone.trim() });
+    const phoneInUse = await Business.findOne({ phone: phone.trim() });
     if (phoneInUse) {
       return res.status(409).json(
         formatErrorResponse('This phone number is already registered to another salon. Please use a different number.', 409)
@@ -126,7 +126,7 @@ exports.createSalon = async (req, res) => {
 
     const targetGender = servedGender === 'male' ? 'male' : servedGender === 'female' ? 'female' : 'both';
 
-    const salon = await Salon.create({
+    const salon = await Business.create({
       name,
       phone,
       email,
@@ -187,10 +187,8 @@ exports.createSalon = async (req, res) => {
     await Owner.findByIdAndUpdate(
       req.owner._id,
       {
-        salonId:      salon._id,
+        businessId:   salon._id,
         status:       'salon_registered',
-        businessName: salon.name,
-        businessType: resolvedBusinessType,
         // Mirror salon location to owner for admin filtering
         address: address || '',
         city:    city || district || '',
@@ -248,7 +246,7 @@ exports.getMySalon = async (req, res) => {
       );
     }
 
-    const salon = await Salon.findOne({ ownerId: req.owner._id })
+    const salon = await Business.findOne({ ownerId: req.owner._id })
       .populate('services')
       .populate('barbers')
       .lean();
@@ -269,11 +267,9 @@ exports.getMySalon = async (req, res) => {
       const correct = salon.salonType;
       salon.businessType = correct;
       // Permanently fix DB: write correct value and remove old field
-      Salon.updateOne({ _id: salon._id }, { $set: { businessType: correct }, $unset: { salonType: 1 } })
+      Business.updateOne({ _id: salon._id }, { $set: { businessType: correct }, $unset: { salonType: 1 } })
         .then(() => console.log(`[getMySalon] Migrated salonType → businessType: ${correct}`))
         .catch(e => console.error('[getMySalon] Migration failed:', e.message));
-      Owner.updateOne({ _id: req.owner._id }, { $set: { businessType: correct } })
-        .catch(() => {});
     }
 
     res.json(
@@ -306,7 +302,7 @@ exports.updateSalon = async (req, res) => {
       businessType, servedGender, offeredCategories, kidsHaircut, atHomeServices,
     } = req.body;
 
-    const salon = await Salon.findOne({ ownerId: req.owner._id });
+    const salon = await Business.findOne({ ownerId: req.owner._id });
 
     if (!salon) {
       return res.status(404).json(
@@ -316,7 +312,7 @@ exports.updateSalon = async (req, res) => {
 
     if (name) salon.name = name;
     if (phone && phone.trim() !== salon.phone) {
-      const phoneInUse = await Salon.findOne({ phone: phone.trim(), _id: { $ne: salon._id } });
+      const phoneInUse = await Business.findOne({ phone: phone.trim(), _id: { $ne: salon._id } });
       if (phoneInUse) {
         return res.status(409).json(
           formatErrorResponse('This phone number is already registered to another salon.', 409)
@@ -332,7 +328,6 @@ exports.updateSalon = async (req, res) => {
     if (description) salon.description = description;
     if (businessType) {
       salon.businessType = businessType;
-      await Owner.findByIdAndUpdate(req.owner._id, { businessType });
     }
     if (servedGender) salon.servedGender = servedGender;
     if (Array.isArray(offeredCategories)) {
@@ -436,7 +431,7 @@ exports.updateSalon = async (req, res) => {
 
       // Ensure all synced services are referenced in salon.services[]
       if (upsertedIds.length > 0) {
-        await Salon.findByIdAndUpdate(salon._id, {
+        await Business.findByIdAndUpdate(salon._id, {
           $addToSet: { services: { $each: upsertedIds } },
         });
       }
@@ -499,7 +494,7 @@ exports.updateSalonPhotos = async (req, res) => {
 
     const { photos, logo, coverPhoto } = req.body;
 
-    const salon = await Salon.findOne({ ownerId: req.owner._id });
+    const salon = await Business.findOne({ ownerId: req.owner._id });
 
     if (!salon) {
       return res.status(404).json(
@@ -590,7 +585,7 @@ exports.getApprovalStatus = async (req, res) => {
 
   try {
 
-    const salon = await Salon.findOne({ ownerId: req.owner._id }).select(
+    const salon = await Business.findOne({ ownerId: req.owner._id }).select(
       'approvalStatus isApproved rejectionReason approvedDate'
     );
 

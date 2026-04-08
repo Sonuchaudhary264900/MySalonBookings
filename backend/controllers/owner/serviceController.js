@@ -1,6 +1,6 @@
 // controllers/owner/serviceController.js
 const Service = require('../../models/Service');
-const Salon = require('../../models/Salon');
+const Business = require('../../models/Business');
 const { formatSuccessResponse, formatErrorResponse } = require('../../utils/formatters');
 const { validateServiceData } = require('../../utils/validators');
 const messages = require('../../utils/messages');
@@ -39,7 +39,7 @@ exports.createService = async (req, res) => {
       );
     }
 
-    const salon = await Salon.findOne({ ownerId: req.owner._id });
+    const salon = await Business.findOne({ ownerId: req.owner._id });
     if (!salon) {
       return res.status(404).json(formatErrorResponse(messages.SALON.SALON_NOT_FOUND, 404));
     }
@@ -77,7 +77,7 @@ exports.createService = async (req, res) => {
 // ===================================================
 exports.getSalonServices = async (req, res) => {
   try {
-    const salon = await Salon.findOne({ ownerId: req.owner._id });
+    const salon = await Business.findOne({ ownerId: req.owner._id });
     if (!salon) {
       return res.status(404).json(formatErrorResponse(messages.SALON.SALON_NOT_FOUND, 404));
     }
@@ -110,7 +110,7 @@ exports.updateService = async (req, res) => {
       return res.status(404).json(formatErrorResponse(messages.SERVICE.SERVICE_NOT_FOUND, 404));
     }
 
-    const salon = await Salon.findById(service.salonId);
+    const salon = await Business.findById(service.salonId);
     if (!salon || salon.ownerId.toString() !== req.owner._id.toString()) {
       return res.status(403).json(formatErrorResponse(messages.GENERIC.FORBIDDEN, 403));
     }
@@ -148,12 +148,12 @@ exports.deleteService = async (req, res) => {
       return res.status(404).json(formatErrorResponse(messages.SERVICE.SERVICE_NOT_FOUND, 404));
     }
 
-    const salon = await Salon.findById(service.salonId);
+    const salon = await Business.findById(service.salonId);
     if (!salon || salon.ownerId.toString() !== req.owner._id.toString()) {
       return res.status(403).json(formatErrorResponse(messages.GENERIC.FORBIDDEN, 403));
     }
 
-    await Salon.findByIdAndUpdate(service.salonId, { $pull: { services: serviceId } });
+    await Business.findByIdAndUpdate(service.salonId, { $pull: { services: serviceId } });
     await Service.findByIdAndDelete(serviceId);
 
     res.json(formatSuccessResponse(null, messages.SERVICE.SERVICE_DELETED));

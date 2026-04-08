@@ -155,7 +155,7 @@ const customerSchema = new mongoose.Schema(
     preferredSalons: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Salon',
+        ref: 'Business',
       },
     ],
     preferredBarbers: [

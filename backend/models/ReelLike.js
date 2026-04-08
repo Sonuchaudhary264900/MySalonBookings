@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const reelLikeSchema = new mongoose.Schema(
   {
     videoUrl:   { type: String, required: true, index: true },
-    salonId:    { type: mongoose.Schema.Types.ObjectId, ref: 'Salon', required: true },
+    salonId:    { type: mongoose.Schema.Types.ObjectId, ref: 'Business', required: true },
     // customerId — set when the user is authenticated (required for new likes)
     customerId: { type: String, required: true },
     // fingerprint kept for backward compat with legacy anonymous likes

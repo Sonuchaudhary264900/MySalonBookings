@@ -1,5 +1,5 @@
 const Owner = require('../../models/Owner');
-const Salon = require('../../models/Salon');
+const Business = require('../../models/Business');
 const Booking = require('../../models/Booking');
 const Customer = require('../../models/Customer');
 const { formatSuccessResponse, formatErrorResponse } = require('../../utils/formatters');
@@ -14,10 +14,10 @@ const getDashboardStats = async (req, res) => {
       totalOwners, totalSalons, pendingSalons, approvedSalons, rejectedSalons
     ] = await Promise.all([
       Owner.countDocuments(),
-      Salon.countDocuments(),
-      Salon.countDocuments({ approvalStatus: 'pending' }),
-      Salon.countDocuments({ approvalStatus: 'approved' }),
-      Salon.countDocuments({ approvalStatus: 'rejected' }),
+      Business.countDocuments(),
+      Business.countDocuments({ approvalStatus: 'pending' }),
+      Business.countDocuments({ approvalStatus: 'approved' }),
+      Business.countDocuments({ approvalStatus: 'rejected' }),
     ]);
     res.json(formatSuccessResponse({ totalOwners, totalSalons, pendingSalons, approvedSalons, rejectedSalons }, 'Stats fetched'));
   } catch (error) {
@@ -40,15 +40,15 @@ const getAllOwners = async (req, res) => {
 
     // If filtering by businessType, first find matching salon IDs
     if (businessType) {
-      const matchingSalons = await Salon.find({ businessType }).select('_id').lean();
-      const salonIds = matchingSalons.map(s => s._id);
-      query.salonId = { $in: salonIds };
+      const matchingBusinesses = await Business.find({ businessType }).select('_id').lean();
+      const businessIds = matchingBusinesses.map(s => s._id);
+      query.businessId = { $in: businessIds };
     }
 
     const [owners, total] = await Promise.all([
       Owner.find(query)
-        .select('name email phone status approvalStatus createdAt salonId')
-        .populate('salonId', 'businessType name')
+        .select('name email phone status approvalStatus createdAt businessId')
+        .populate('businessId', 'businessType name')
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(parseInt(limit))
@@ -81,14 +81,14 @@ const getAllSalons = async (req, res) => {
       ];
     }
     const [salons, total] = await Promise.all([
-      Salon.find(query)
+      Business.find(query)
         .populate('ownerId', 'name phone email')
         .select('name city state address approvalStatus isActive isApproved createdAt photos logo totalBookings averageRating ownerId')
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(parseInt(limit))
         .lean(),
-      Salon.countDocuments(query),
+      Business.countDocuments(query),
     ]);
     res.json(formatSuccessResponse({
       salons,
@@ -106,8 +106,8 @@ const getFilterOptions = async (req, res) => {
     const { state = '' } = req.query;
     const stateQuery = state ? { state: { $regex: `^${state}$`, $options: 'i' } } : {};
     const [states, cities] = await Promise.all([
-      Salon.distinct('state', { state: { $ne: null, $ne: '' } }),
-      Salon.distinct('city', { ...stateQuery, city: { $ne: null, $ne: '' } }),
+      Business.distinct('state', { state: { $ne: null, $ne: '' } }),
+      Business.distinct('city', { ...stateQuery, city: { $ne: null, $ne: '' } }),
     ]);
     res.json(formatSuccessResponse({
       states: states.filter(Boolean).sort(),
@@ -121,7 +121,7 @@ const getFilterOptions = async (req, res) => {
 // PUT /admin/salons/:salonId/toggle
 const toggleSalonActive = async (req, res) => {
   try {
-    const salon = await Salon.findById(req.params.salonId);
+    const salon = await Business.findById(req.params.salonId);
     if (!salon) return res.status(404).json(formatErrorResponse('Salon not found', 404));
     salon.isActive = !salon.isActive;
     await salon.save();
@@ -134,7 +134,7 @@ const toggleSalonActive = async (req, res) => {
 // GET /admin/salons/:salonId/detail
 const getSalonDetail = async (req, res) => {
   try {
-    const salon = await Salon.findById(req.params.salonId).populate('ownerId', 'name phone email status approvalStatus createdAt').lean();
+    const salon = await Business.findById(req.params.salonId).populate('ownerId', 'name phone email status approvalStatus createdAt').lean();
     if (!salon) return res.status(404).json(formatErrorResponse('Salon not found', 404));
     res.json(formatSuccessResponse({ salon }, 'Success'));
   } catch (error) {
@@ -236,7 +236,7 @@ const getAnalytics = async (req, res) => {
       Booking.countDocuments(),
       Customer.countDocuments(),
       Owner.countDocuments(),
-      Salon.countDocuments({ approvalStatus: 'approved' }),
+      Business.countDocuments({ approvalStatus: 'approved' }),
 
       // bookings grouped by status
       Booking.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),

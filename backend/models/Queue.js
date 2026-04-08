@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 
 const queueSchema = new mongoose.Schema(
   {
-    salonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Salon', required: true },
+    salonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Business', required: true },
     date: Date,
     queue: [
       {
