@@ -324,6 +324,9 @@ function SalonDetails() {
     ctaOvr:   darkMode ? 'rgba(5,5,5,.5)' : 'rgba(250,250,248,.5)',
     formInp:  darkMode ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.04)',
     formBrd:  darkMode ? 'rgba(255,255,255,.1)'  : 'rgba(0,0,0,.10)',
+    modal:    darkMode ? '#111'    : '#ffffff',
+    drawer:   darkMode ? '#0d0d0d' : '#f8f8f6',
+    drawerBrd: darkMode ? '0 -20px 80px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.06)' : '0 -20px 80px rgba(0,0,0,.12),0 0 0 1px rgba(0,0,0,.08)',
   };
   const heroMedia      = salonVideoUrls[0] || salonPhotoUrls[0] || salon.coverPhoto || null;
   const heroIsVideo    = !!salonVideoUrls[0];
@@ -1031,23 +1034,23 @@ function SalonDetails() {
           style={{ background: 'rgba(0,0,0,.75)', backdropFilter: 'blur(6px)' }}
           onClick={e => { if (e.target === e.currentTarget && !bookingSuccess) setShowBooking(false); }}>
           <div className="mt-auto w-full max-h-[92vh] rounded-t-3xl flex flex-col md:mt-0 md:rounded-3xl md:max-w-xl md:max-h-[88vh]"
-            style={{ background: '#0e0e0e', boxShadow: '0 -20px 80px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.06)' }}>
+            style={{ background: dm.drawer, boxShadow: dm.drawerBrd, transition: 'background .3s' }}>
             {bookingSuccess ? (
               <div className="flex flex-col items-center justify-center px-6 py-10 text-center">
                 <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4"
                   style={{ background: bookingStatus === 'pending' ? 'rgba(251,191,36,.15)' : 'rgba(34,197,94,.15)' }}>
                   {bookingStatus === 'pending' ? <span className="text-4xl">⏳</span> : <CheckCircle className="w-10 h-10" style={{ color: '#4ade80' }} />}
                 </div>
-                <h2 className="text-xl font-extrabold mb-1 text-white">{bookingStatus === 'pending' ? 'Booking Received!' : 'Booking Confirmed!'}</h2>
+                <h2 className="text-xl font-extrabold mb-1" style={{ color: dm.fg }}>{bookingStatus === 'pending' ? 'Booking Received!' : 'Booking Confirmed!'}</h2>
                 {bookingStatus === 'pending' && (
                   <div className="rounded-xl px-4 py-2.5 mb-3 text-sm" style={{ background: 'rgba(251,191,36,.1)', color: '#fbbf24' }}>
                     Awaiting salon confirmation. You'll be notified once approved.
                   </div>
                 )}
-                <div className="rounded-2xl p-4 w-full mb-5 text-sm space-y-1.5" style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)' }}>
-                  <p className="font-bold text-white">{salon.name}</p>
-                  <p style={{ color: 'rgba(255,255,255,.55)' }}>{selectedServices.map(s => s.name).join(' + ')}</p>
-                  <p style={{ color: 'rgba(255,255,255,.35)' }}>{formatDate(bookDate + 'T12:00:00')} · {slot}</p>
+                <div className="rounded-2xl p-4 w-full mb-5 text-sm space-y-1.5" style={{ background: dm.card, border: `1px solid ${dm.b07}` }}>
+                  <p className="font-bold" style={{ color: dm.fg }}>{salon.name}</p>
+                  <p style={{ color: dm.fg55 }}>{selectedServices.map(s => s.name).join(' + ')}</p>
+                  <p style={{ color: dm.fg35 }}>{formatDate(bookDate + 'T12:00:00')} · {slot}</p>
                   <p style={{ color: theme.p }}>₹{finalPrice} · Pay at salon</p>
                 </div>
                 <div className="flex flex-col gap-2 w-full">
@@ -1055,7 +1058,7 @@ function SalonDetails() {
                     className="w-full py-3 font-bold text-white rounded-2xl" style={{ background: theme.p }}>View My Bookings</button>
                   <button onClick={() => { setShowBooking(false); navigate('/'); }}
                     className="w-full py-3 font-semibold rounded-2xl"
-                    style={{ background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.6)', border: '1px solid rgba(255,255,255,.1)' }}>
+                    style={{ background: dm.formInp, color: dm.fg55, border: `1px solid ${dm.b10}` }}>
                     Browse More Salons
                   </button>
                 </div>
@@ -1088,7 +1091,7 @@ function SalonDetails() {
 
                 <form onSubmit={handleConfirm} className="px-5 py-5 space-y-6 overflow-y-auto flex-1 min-h-0 pb-4">
                   <div>
-                    <label className="flex items-center gap-2 text-sm font-bold mb-3 text-white">
+                    <label className="flex items-center gap-2 text-sm font-bold mb-3" style={{ color: dm.fg }}>
                       <Calendar className="w-4 h-4" style={{ color: theme.p }} /> Select Date
                     </label>
                     <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
@@ -1099,11 +1102,11 @@ function SalonDetails() {
                           <button key={d} type="button" onClick={() => setBookDate(d)}
                             className="flex flex-col items-center justify-center rounded-2xl shrink-0 transition-all hover:scale-105"
                             style={{ width:52, height:62, borderWidth:1.5,
-                              background: active ? theme.p : 'rgba(255,255,255,.05)',
-                              borderColor: active ? theme.p : 'rgba(255,255,255,.1)',
+                              background: active ? theme.p : dm.formInp,
+                              borderColor: active ? theme.p : dm.b10,
                               boxShadow: active ? `0 4px 12px ${theme.p}50` : 'none' }}>
-                            <span className="text-[10px] font-bold" style={{ color: active ? 'rgba(255,255,255,.8)' : 'rgba(255,255,255,.35)' }}>{formatDay(d)}</span>
-                            <span className="text-lg font-extrabold" style={{ color: active ? '#fff' : 'rgba(255,255,255,.75)' }}>{dateObj.getDate()}</span>
+                            <span className="text-[10px] font-bold" style={{ color: active ? 'rgba(255,255,255,.8)' : dm.fg35 }}>{formatDay(d)}</span>
+                            <span className="text-lg font-extrabold" style={{ color: active ? '#fff' : dm.fg75 }}>{dateObj.getDate()}</span>
                           </button>
                         );
                       })}
@@ -1112,26 +1115,26 @@ function SalonDetails() {
 
                   {barbers.length > 0 && (
                     <div>
-                      <label className="flex items-center gap-2 text-sm font-bold mb-3 text-white">
+                      <label className="flex items-center gap-2 text-sm font-bold mb-3" style={{ color: dm.fg }}>
                         <User className="w-4 h-4" style={{ color: theme.p }} />
-                        Select Stylist <span className="font-normal text-xs" style={{ color: 'rgba(255,255,255,.35)' }}>(optional)</span>
+                        Select Stylist <span className="font-normal text-xs" style={{ color: dm.fg35 }}>(optional)</span>
                       </label>
                       <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
                         <button type="button" onClick={() => setBarberId('')} className="flex flex-col items-center gap-1.5 shrink-0 transition-all hover:scale-105">
                           <div className="w-14 h-14 rounded-full flex items-center justify-center text-sm font-bold"
-                            style={barberId === '' ? { background: theme.p, color: '#fff', boxShadow: `0 4px 12px ${theme.p}50` } : { background: 'rgba(255,255,255,.07)', color: 'rgba(255,255,255,.55)', border: '2px solid rgba(255,255,255,.1)' }}>
+                            style={barberId === '' ? { background: theme.p, color: '#fff', boxShadow: `0 4px 12px ${theme.p}50` } : { background: dm.formInp, color: dm.fg55, border: `2px solid ${dm.b10}` }}>
                             Any
                           </div>
-                          <span className="text-xs font-medium" style={{ color: barberId === '' ? theme.p : 'rgba(255,255,255,.45)' }}>No Pref</span>
+                          <span className="text-xs font-medium" style={{ color: barberId === '' ? theme.p : dm.fg45 }}>No Pref</span>
                         </button>
                         {barbers.map(b => (
                           <button key={b._id} type="button" onClick={() => setBarberId(b._id)} className="flex flex-col items-center gap-1.5 shrink-0 transition-all hover:scale-105">
                             <div className="w-14 h-14 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden"
-                              style={barberId === b._id ? { border: `3px solid ${theme.p}`, background: theme.p, color: '#fff', boxShadow: `0 4px 12px ${theme.p}50` } : { background: 'rgba(255,255,255,.07)', color: 'rgba(255,255,255,.55)', border: '2px solid rgba(255,255,255,.1)' }}>
+                              style={barberId === b._id ? { border: `3px solid ${theme.p}`, background: theme.p, color: '#fff', boxShadow: `0 4px 12px ${theme.p}50` } : { background: dm.formInp, color: dm.fg55, border: `2px solid ${dm.b10}` }}>
                               {b.photo ? <img src={b.photo} alt={b.name} className="w-full h-full object-cover" /> : (b.name?.charAt(0)?.toUpperCase() || '?')}
                             </div>
-                            <span className="text-xs font-medium text-center max-w-[60px] truncate" style={{ color: barberId === b._id ? theme.p : 'rgba(255,255,255,.45)' }}>{b.name}</span>
-                            {b.experience > 0 && <span className="text-[10px]" style={{ color: 'rgba(255,255,255,.25)', marginTop: -4 }}>{b.experience}yr</span>}
+                            <span className="text-xs font-medium text-center max-w-[60px] truncate" style={{ color: barberId === b._id ? theme.p : dm.fg45 }}>{b.name}</span>
+                            {b.experience > 0 && <span className="text-[10px]" style={{ color: dm.fg25, marginTop: -4 }}>{b.experience}yr</span>}
                           </button>
                         ))}
                       </div>
@@ -1139,20 +1142,20 @@ function SalonDetails() {
                   )}
 
                   <div>
-                    <label className="flex items-center gap-2 text-sm font-bold mb-3 text-white">
+                    <label className="flex items-center gap-2 text-sm font-bold mb-3" style={{ color: dm.fg }}>
                       <Clock className="w-4 h-4" style={{ color: theme.p }} />
-                      Select Time {totalDuration > 0 && <span className="font-normal text-xs" style={{ color: 'rgba(255,255,255,.35)' }}>({totalDuration} min)</span>}
+                      Select Time {totalDuration > 0 && <span className="font-normal text-xs" style={{ color: dm.fg35 }}>({totalDuration} min)</span>}
                     </label>
                     {slotsLoading ? (
-                      <div className="flex items-center gap-2 py-4 text-sm" style={{ color: 'rgba(255,255,255,.4)' }}>
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white/80 rounded-full animate-spin" /> Loading available slots…
+                      <div className="flex items-center gap-2 py-4 text-sm" style={{ color: dm.fg40 }}>
+                        <div className="w-4 h-4 rounded-full animate-spin" style={{ border: `2px solid ${dm.b10}`, borderTopColor: dm.fg80 }} /> Loading available slots…
                       </div>
                     ) : closedDay ? (
                       <div className="p-4 rounded-xl text-sm text-center" style={{ background: 'rgba(251,191,36,.08)', color: '#fbbf24', border: '1px solid rgba(251,191,36,.2)' }}>
                         🔒 Salon is closed on this date.
                       </div>
                     ) : slots.length === 0 ? (
-                      <div className="p-4 rounded-xl text-sm text-center" style={{ background: 'rgba(255,255,255,.05)', color: 'rgba(255,255,255,.4)' }}>
+                      <div className="p-4 rounded-xl text-sm text-center" style={{ background: dm.formInp, color: dm.fg40 }}>
                         No available slots for this date.
                       </div>
                     ) : bookingMode === 'sequential' ? (
@@ -1162,11 +1165,11 @@ function SalonDetails() {
                       </div>
                     ) : (
                       <>
-                        <div className="flex items-center gap-4 mb-3 text-xs flex-wrap" style={{ color: 'rgba(255,255,255,.3)' }}>
-                          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded" style={{ background: 'rgba(255,255,255,.1)' }} /> Past</span>
+                        <div className="flex items-center gap-4 mb-3 text-xs flex-wrap" style={{ color: dm.fg30 }}>
+                          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded" style={{ background: dm.b10 }} /> Past</span>
                           <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-red-500/40" /> Booked</span>
                           <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded" style={{ background: theme.p }} /> Selected</span>
-                          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded" style={{ border: '1px solid rgba(255,255,255,.15)' }} /> Available</span>
+                          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded" style={{ border: `1px solid ${dm.b14}` }} /> Available</span>
                         </div>
                         <div className="grid grid-cols-3 gap-2">
                           {slots.map(s => {
@@ -1178,10 +1181,10 @@ function SalonDetails() {
                               <button key={s} type="button"
                                 onClick={() => { if (past) { setSlotPopup('past'); return; } if (blocked) { setSlotPopup('booked'); return; } setSlot(s); }}
                                 className="py-2 px-1 text-xs rounded-xl border transition-all font-medium text-center leading-tight hover:scale-[1.03]"
-                                style={past    ? { background:'rgba(255,255,255,.05)',color:'rgba(255,255,255,.2)',borderColor:'rgba(255,255,255,.08)',cursor:'not-allowed' }
+                                style={past    ? { background:dm.formInp,color:dm.fg28,borderColor:dm.b07,cursor:'not-allowed' }
                                       :blocked ? { background:'rgba(239,68,68,.08)',color:'#f87171',borderColor:'rgba(239,68,68,.2)',cursor:'not-allowed' }
                                       :selected? { background:theme.p,color:'#fff',borderColor:theme.p,boxShadow:`0 4px 12px ${theme.p}40` }
-                                               : { background:'rgba(255,255,255,.04)',color:'rgba(255,255,255,.65)',borderColor:'rgba(255,255,255,.1)' }}>
+                                               : { background:dm.formInp,color:dm.fg65,borderColor:dm.b10 }}>
                                 <span className="block">{s}</span>
                                 <span className="block opacity-60">– {endTime}</span>
                               </button>
@@ -1194,7 +1197,7 @@ function SalonDetails() {
 
                   {slot && salon?.hasCoupons && (
                     <div>
-                      <label className="flex items-center gap-2 text-sm font-bold mb-3 text-white">
+                      <label className="flex items-center gap-2 text-sm font-bold mb-3" style={{ color: dm.fg }}>
                         <Tag className="w-4 h-4" style={{ color: theme.p }} /> Have a coupon?
                       </label>
                       {appliedCoupon ? (
@@ -1207,7 +1210,7 @@ function SalonDetails() {
                           <input type="text" value={couponInput}
                             onChange={e => { setCouponInput(e.target.value.toUpperCase()); setCouponError(''); }}
                             placeholder="Enter coupon code" className="flex-1 px-4 py-2.5 rounded-xl text-sm outline-none"
-                            style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', color: '#f5f5f0' }} />
+                            style={{ background: dm.formInp, border: `1px solid ${dm.formBrd}`, color: dm.fg }} />
                           <button type="button" onClick={applyCoupon} disabled={couponLoading || !couponInput.trim()}
                             className="px-4 py-2 text-white rounded-xl text-sm font-semibold disabled:opacity-40"
                             style={{ background: theme.p }}>{couponLoading ? '…' : 'Apply'}</button>
@@ -1218,20 +1221,20 @@ function SalonDetails() {
                   )}
 
                   {slot && (
-                    <div className="rounded-2xl p-4 text-sm" style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)' }}>
+                    <div className="rounded-2xl p-4 text-sm" style={{ background: dm.card, border: `1px solid ${dm.b07}` }}>
                       <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide mb-3" style={{ color: theme.p }}>
                         <CreditCard className="w-3.5 h-3.5" /> Booking Summary
                       </p>
                       <div className="space-y-2">
                         {selectedServices.map(s => (
                           <div key={s._id} className="flex justify-between">
-                            <span style={{ color: 'rgba(255,255,255,.55)' }}>{s.name}</span>
-                            <span className="font-semibold text-white">₹{s.basePrice || s.price}</span>
+                            <span style={{ color: dm.fg55 }}>{s.name}</span>
+                            <span className="font-semibold" style={{ color: dm.fg }}>₹{s.basePrice || s.price}</span>
                           </div>
                         ))}
                         <div className="flex justify-between">
-                          <span style={{ color: 'rgba(255,255,255,.3)' }}>Date & Time</span>
-                          <span className="font-medium" style={{ color: 'rgba(255,255,255,.55)' }}>{formatDate(bookDate + 'T12:00:00')} · {slot}</span>
+                          <span style={{ color: dm.fg30 }}>Date & Time</span>
+                          <span className="font-medium" style={{ color: dm.fg55 }}>{formatDate(bookDate + 'T12:00:00')} · {slot}</span>
                         </div>
                         {couponDiscount > 0 && (
                           <div className="flex justify-between" style={{ color: '#4ade80' }}>
@@ -1239,8 +1242,8 @@ function SalonDetails() {
                             <span className="font-medium">−₹{couponDiscount}</span>
                           </div>
                         )}
-                        <div className="flex justify-between pt-2 mt-1" style={{ borderTop: '1px solid rgba(255,255,255,.08)' }}>
-                          <span className="font-bold text-white">Total (Pay at salon)</span>
+                        <div className="flex justify-between pt-2 mt-1" style={{ borderTop: `1px solid ${dm.b07}` }}>
+                          <span className="font-bold" style={{ color: dm.fg }}>Total (Pay at salon)</span>
                           <span className="font-bold text-base" style={{ color: theme.p }}>₹{finalPrice}</span>
                         </div>
                       </div>
@@ -1248,7 +1251,7 @@ function SalonDetails() {
                   )}
                 </form>
 
-                <div className="shrink-0 px-5 py-4" style={{ borderTop: '1px solid rgba(255,255,255,.07)', background: '#0e0e0e' }}>
+                <div className="shrink-0 px-5 py-4" style={{ borderTop: `1px solid ${dm.b07}`, background: dm.drawer, transition: 'background .3s' }}>
                   {bookError && <div className="mb-3 p-3 rounded-xl text-sm" style={{ background: 'rgba(239,68,68,.08)', color: '#f87171', border: '1px solid rgba(239,68,68,.2)' }}>{bookError}</div>}
                   <button onClick={handleConfirm} disabled={bookingLoading || !slot}
                     className="w-full py-3.5 text-base font-bold text-white rounded-2xl transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
@@ -1262,13 +1265,13 @@ function SalonDetails() {
 
           {slotPopup && (
             <div className="absolute inset-0 flex items-center justify-center px-6 z-20" style={{ background: 'rgba(0,0,0,.7)' }}>
-              <div className="rounded-2xl p-6 max-w-sm w-full text-center" style={{ background: '#141414', border: '1px solid rgba(255,255,255,.1)' }}>
+              <div className="rounded-2xl p-6 max-w-sm w-full text-center" style={{ background: dm.modal, border: `1px solid ${dm.b10}` }}>
                 <div className="w-14 h-14 rounded-full flex items-center justify-center text-3xl mx-auto mb-3"
-                  style={{ background: slotPopup === 'past' ? 'rgba(255,255,255,.06)' : 'rgba(239,68,68,.1)' }}>
+                  style={{ background: slotPopup === 'past' ? dm.formInp : 'rgba(239,68,68,.1)' }}>
                   {slotPopup === 'past' ? '⏰' : '🚫'}
                 </div>
-                <h3 className="text-lg font-bold mb-2 text-white">{slotPopup === 'past' ? 'Time Has Passed' : 'Slot Already Booked'}</h3>
-                <p className="text-sm mb-5" style={{ color: 'rgba(255,255,255,.45)' }}>
+                <h3 className="text-lg font-bold mb-2" style={{ color: dm.fg }}>{slotPopup === 'past' ? 'Time Has Passed' : 'Slot Already Booked'}</h3>
+                <p className="text-sm mb-5" style={{ color: dm.fg45 }}>
                   {slotPopup === 'past' ? 'This time slot has already passed.' : 'This slot is taken. Please choose another.'}
                 </p>
                 <button onClick={() => setSlotPopup(null)} className="w-full py-2.5 font-bold text-white rounded-2xl" style={{ background: theme.p }}>
@@ -1283,12 +1286,12 @@ function SalonDetails() {
       {/* ════ PACKAGE REQUEST MODAL ════ */}
       {pkgReqModal && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,.75)', backdropFilter: 'blur(8px)' }}>
-          <div className="rounded-2xl w-full max-w-sm p-6" style={{ background: '#111', border: '1px solid rgba(255,255,255,.1)' }}>
+          <div className="rounded-2xl w-full max-w-sm p-6" style={{ background: dm.modal, border: `1px solid ${dm.b10}`, transition: 'background .3s' }}>
             <div className="flex items-center gap-3 mb-4">
               <span className="text-3xl">{pkgReqModal.icon || (pkgReqModal.type === 'package' ? '🎁' : '💳')}</span>
               <div>
-                <p className="font-bold text-sm text-white">{pkgReqModal.name}</p>
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,.4)' }}>
+                <p className="font-bold text-sm" style={{ color: dm.fg }}>{pkgReqModal.name}</p>
+                <p className="text-xs" style={{ color: dm.fg40 }}>
                   {pkgReqModal.type === 'package' ? `₹${pkgReqModal.discountedPrice}` : `₹${pkgReqModal.price}/${pkgReqModal.billingCycle === 'monthly' ? 'month' : pkgReqModal.billingCycle === 'quarterly' ? 'quarter' : 'year'}`}
                 </p>
               </div>
@@ -1296,15 +1299,15 @@ function SalonDetails() {
             <div className="rounded-xl p-3 mb-4 text-xs" style={{ background: `${theme.p}10`, color: theme.p, border: `1px solid ${theme.p}25` }}>
               Pay directly at the salon. The owner will confirm after receiving your payment.
             </div>
-            <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,.45)' }}>Note (optional)</label>
+            <label className="block text-xs font-semibold mb-1" style={{ color: dm.fg45 }}>Note (optional)</label>
             <textarea value={pkgNote} onChange={e => setPkgNote(e.target.value)} rows={2}
               placeholder="Any message to the salon owner..."
               className="w-full px-3 py-2 rounded-xl text-sm resize-none mb-4"
-              style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', color: '#f5f5f0', outline: 'none' }} />
+              style={{ background: dm.formInp, border: `1px solid ${dm.formBrd}`, color: dm.fg, outline: 'none' }} />
             <div className="flex gap-3">
               <button onClick={() => { setPkgReqModal(null); setPkgNote(''); }}
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                style={{ border: '1px solid rgba(255,255,255,.12)', color: 'rgba(255,255,255,.5)' }}>Cancel</button>
+                style={{ border: `1px solid ${dm.b12}`, color: dm.fg50 }}>Cancel</button>
               <button onClick={handlePackageRequest} disabled={pkgReqLoading}
                 className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 disabled:opacity-40"
                 style={{ background: `linear-gradient(135deg,${theme.p},${theme.p}cc)` }}>
