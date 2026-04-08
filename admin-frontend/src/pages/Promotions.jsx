@@ -6,10 +6,31 @@ const BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1'
 const auth = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem('admin_token')}` } });
 
 const STATUS_BADGE = {
-  active:          { label: 'Active',   cls: 'bg-emerald-100 text-emerald-700' },
-  expired:         { label: 'Expired',  cls: 'bg-gray-100 text-gray-500' },
-  cancelled:       { label: 'Cancelled',cls: 'bg-red-100 text-red-600' },
-  pending_payment: { label: 'Pending',  cls: 'bg-amber-100 text-amber-600' },
+  active:          { label: 'Active',   color: '#10b981' },
+  expired:         { label: 'Expired',  color: '#94a3b8' },
+  cancelled:       { label: 'Cancelled',color: '#ef4444' },
+  pending_payment: { label: 'Pending',  color: '#f59e0b' },
+};
+
+const inputStyle = {
+  width: '100%',
+  padding: '9px 12px',
+  background: 'var(--input-bg)',
+  border: '1.5px solid var(--border)',
+  borderRadius: 10,
+  fontSize: 14,
+  outline: 'none',
+  color: 'var(--text)',
+  fontFamily: 'Inter, sans-serif',
+  transition: 'border-color 0.2s ease',
+};
+
+const labelStyle = {
+  display: 'block',
+  fontSize: 12,
+  fontWeight: 600,
+  color: 'var(--text2)',
+  marginBottom: 5,
 };
 
 /* ── Pricing Tier Form ─────────────────────────────────────────── */
@@ -33,64 +54,64 @@ function TierForm({ initial, onSave, onCancel }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
-      <div className="grid grid-cols-2 gap-3">
+    <form onSubmit={handleSubmit} style={{ padding: 20, background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
         <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Radius (km) *</label>
+          <label style={labelStyle}>Radius (km) *</label>
           <input
             type="number" min="1" required
             value={radiusKm}
             onChange={e => setRadiusKm(e.target.value)}
             disabled={!!initial}
             placeholder="e.g. 5"
-            className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-indigo-400 disabled:bg-gray-100"
+            style={{ ...inputStyle, opacity: initial ? 0.6 : 1 }}
           />
-          {initial && <p className="text-[11px] text-gray-400 mt-0.5">Radius cannot be changed after creation</p>}
+          {initial && <p style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>Radius cannot be changed after creation</p>}
         </div>
         <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Price / Week (₹) *</label>
+          <label style={labelStyle}>Price / Week (₹) *</label>
           <input
             type="number" min="0" required
             value={pricePerWeek}
             onChange={e => setPricePerWeek(e.target.value)}
             placeholder="e.g. 299"
-            className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-indigo-400"
+            style={inputStyle}
           />
         </div>
       </div>
-      <div>
-        <label className="block text-xs font-semibold text-gray-600 mb-1">Label (optional)</label>
+      <div style={{ marginBottom: 12 }}>
+        <label style={labelStyle}>Label (optional)</label>
         <input
           type="text"
           value={label}
           onChange={e => setLabel(e.target.value)}
           placeholder={`e.g. ${radiusKm || 5} km – ₹${pricePerWeek || 299}/week`}
-          className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-indigo-400"
+          style={inputStyle}
         />
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
         <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Sort Order</label>
+          <label style={labelStyle}>Sort Order</label>
           <input
             type="number"
             value={sortOrder}
             onChange={e => setSortOrder(e.target.value)}
             placeholder="0"
-            className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-indigo-400"
+            style={inputStyle}
           />
         </div>
-        <div className="flex items-end gap-2 pb-0.5">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={isActive} onChange={e => setIsActive(e.target.checked)} className="w-4 h-4 accent-indigo-600" />
-            <span className="text-sm text-gray-700">Active (visible to owners)</span>
+        <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 2 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--text2)', fontWeight: 500 }}>
+            <input type="checkbox" checked={isActive} onChange={e => setIsActive(e.target.checked)} style={{ width: 16, height: 16, accentColor: '#6366f1' }} />
+            Active (visible to owners)
           </label>
         </div>
       </div>
-      <div className="flex gap-2 pt-1">
-        <button type="button" onClick={onCancel} className="flex-1 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors">
+      <div style={{ display: 'flex', gap: 10 }}>
+        <button type="button" onClick={onCancel} style={{ flex: 1, padding: '9px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 13, fontWeight: 600, color: 'var(--text2)', cursor: 'pointer', transition: 'all 0.2s ease' }}>
           Cancel
         </button>
-        <button type="submit" disabled={saving} className="flex-1 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-60">
+        <button type="submit" disabled={saving} style={{ flex: 1, padding: '9px', borderRadius: 10, border: 'none', background: saving ? 'rgba(99,102,241,0.5)' : 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', transition: 'all 0.2s ease' }}>
           {saving ? 'Saving…' : initial ? 'Update Tier' : 'Create Tier'}
         </button>
       </div>
@@ -100,14 +121,14 @@ function TierForm({ initial, onSave, onCancel }) {
 
 /* ── Main Page ─────────────────────────────────────────────────── */
 export default function Promotions() {
-  const [tab,        setTab]        = useState('promotions'); // promotions | pricing
-  const [tiers,      setTiers]      = useState([]);
-  const [promotions, setPromotions] = useState([]);
-  const [stats,      setStats]      = useState(null);
+  const [tab,          setTab]          = useState('promotions');
+  const [tiers,        setTiers]        = useState([]);
+  const [promotions,   setPromotions]   = useState([]);
+  const [stats,        setStats]        = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
-  const [loading,    setLoading]    = useState(true);
-  const [showForm,   setShowForm]   = useState(false);
-  const [editTier,   setEditTier]   = useState(null); // null = new, object = editing
+  const [loading,      setLoading]      = useState(true);
+  const [showForm,     setShowForm]     = useState(false);
+  const [editTier,     setEditTier]     = useState(null);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -120,7 +141,7 @@ export default function Promotions() {
       setTiers(tiersRes.data.data?.tiers || []);
       setPromotions(promoRes.data.data?.promotions || []);
       setStats(statsRes.data.data || null);
-    } catch (err) {
+    } catch {
       toast.error('Failed to load promotion data');
     } finally {
       setLoading(false);
@@ -174,18 +195,18 @@ export default function Promotions() {
   };
 
   return (
-    <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
+    <div style={{ padding: '32px 36px', maxWidth: 1100 }}>
       <Toaster position="top-right" />
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', margin: 0 }}>Promotions</h1>
-        <p style={{ fontSize: 13, color: '#64748b', margin: '4px 0 0' }}>
+        <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text)', margin: 0 }}>Promotions</h1>
+        <p style={{ fontSize: 13, color: 'var(--text2)', margin: '4px 0 0' }}>
           Manage salon promotion pricing and view all active/past promotions.
         </p>
       </div>
 
-      {/* ── Stats ── */}
+      {/* Stats */}
       {stats && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
           {[
@@ -193,25 +214,25 @@ export default function Promotions() {
             { label: 'Total Promotions',  value: stats.totalPromotions,  color: '#6366f1' },
             { label: 'Total Revenue',     value: `₹${(stats.totalRevenue || 0).toLocaleString('en-IN')}`, color: '#f59e0b' },
           ].map(({ label, value, color }) => (
-            <div key={label} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: '16px 20px' }}>
-              <p style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600, margin: 0 }}>{label}</p>
+            <div key={label} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '16px 20px', boxShadow: 'var(--shadow-sm)' }}>
+              <p style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 600, margin: 0 }}>{label}</p>
               <p style={{ fontSize: 26, fontWeight: 900, color, margin: '4px 0 0' }}>{value}</p>
             </div>
           ))}
         </div>
       )}
 
-      {/* ── Tabs ── */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: '#f1f5f9', borderRadius: 10, padding: 4, width: 'fit-content' }}>
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: 'var(--surface2)', borderRadius: 12, padding: 4, width: 'fit-content', border: '1px solid var(--border)' }}>
         {[['promotions', 'All Promotions'], ['pricing', 'Pricing Settings']].map(([key, label]) => (
           <button
             key={key}
             onClick={() => setTab(key)}
             style={{
-              padding: '7px 18px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
-              background: tab === key ? '#fff' : 'transparent',
-              color: tab === key ? '#4f46e5' : '#64748b',
-              boxShadow: tab === key ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+              padding: '7px 18px', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+              background: tab === key ? 'var(--surface)' : 'transparent',
+              color: tab === key ? 'var(--accent)' : 'var(--text2)',
+              boxShadow: tab === key ? 'var(--shadow-sm)' : 'none',
               transition: 'all 0.15s',
             }}
           >
@@ -220,57 +241,75 @@ export default function Promotions() {
         ))}
       </div>
 
-      {/* ════════════ PROMOTIONS TAB ════════════ */}
+      {/* PROMOTIONS TAB */}
       {tab === 'promotions' && (
         <div>
           {/* Filter row */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-            {[['all', 'All'], ['active', 'Active'], ['expired', 'Expired'], ['cancelled', 'Cancelled']].map(([val, label]) => (
-              <button
-                key={val}
-                onClick={() => setStatusFilter(val)}
-                style={{
-                  padding: '6px 14px', borderRadius: 20, border: '1.5px solid', cursor: 'pointer', fontSize: 12, fontWeight: 600,
-                  borderColor: statusFilter === val ? '#6366f1' : '#e2e8f0',
-                  background:  statusFilter === val ? '#eef2ff' : '#fff',
-                  color:       statusFilter === val ? '#4f46e5' : '#64748b',
-                }}
-              >
-                {label}
-              </button>
-            ))}
+            {[['all', 'All'], ['active', 'Active'], ['expired', 'Expired'], ['cancelled', 'Cancelled']].map(([val, label]) => {
+              const active = statusFilter === val;
+              const color = STATUS_BADGE[val]?.color || 'var(--accent)';
+              return (
+                <button
+                  key={val}
+                  onClick={() => setStatusFilter(val)}
+                  style={{
+                    padding: '6px 14px', borderRadius: 20, border: '1.5px solid', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                    borderColor: active ? (val === 'all' ? 'var(--accent)' : color) : 'var(--border)',
+                    background:  active ? `${val === 'all' ? '#6366f1' : color}22` : 'var(--surface)',
+                    color:       active ? (val === 'all' ? 'var(--accent)' : color) : 'var(--text2)',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
 
           {loading ? (
-            <p style={{ color: '#94a3b8', textAlign: 'center', padding: 40 }}>Loading…</p>
+            <div style={{ textAlign: 'center', padding: 60 }}>
+              <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid var(--border)', borderTopColor: 'var(--accent)', margin: '0 auto 12px', animation: 'spin 0.8s linear infinite' }} />
+              <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+              <span style={{ color: 'var(--text2)' }}>Loading…</span>
+            </div>
           ) : promotions.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 60, color: '#94a3b8', background: '#f8fafc', borderRadius: 16, border: '1px dashed #e2e8f0' }}>
-              <p style={{ fontSize: 15, fontWeight: 600 }}>No promotions found</p>
+            <div style={{ textAlign: 'center', padding: 60, color: 'var(--text3)', background: 'var(--surface)', borderRadius: 16, border: '1px dashed var(--border)' }}>
+              <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text2)' }}>No promotions found</p>
               <p style={{ fontSize: 13, marginTop: 4 }}>When salon owners purchase promotions, they'll appear here.</p>
             </div>
           ) : (
-            <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
-                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                  <tr style={{ background: 'var(--surface2)', borderBottom: '1px solid var(--border)' }}>
                     {['Salon', 'Owner', 'Radius', 'Price', 'Start', 'End', 'Status', 'Actions'].map(h => (
-                      <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: '#64748b', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</th>
+                      <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--text3)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {promotions.map((p, i) => {
-                    const badge = STATUS_BADGE[p.status] || { label: p.status, cls: 'bg-gray-100 text-gray-500' };
+                    const badge = STATUS_BADGE[p.status] || { label: p.status, color: 'var(--text3)' };
                     return (
-                      <tr key={p._id} style={{ borderBottom: i < promotions.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
-                        <td style={{ padding: '10px 14px', fontWeight: 600, color: '#1e293b' }}>{p.salonId?.name || '—'}<br /><span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 400 }}>{p.salonId?.city}</span></td>
-                        <td style={{ padding: '10px 14px', color: '#475569' }}>{p.ownerId?.name || '—'}<br /><span style={{ fontSize: 11, color: '#94a3b8' }}>{p.ownerId?.phone}</span></td>
-                        <td style={{ padding: '10px 14px', fontWeight: 700, color: '#6366f1' }}>{p.radiusKm} km</td>
-                        <td style={{ padding: '10px 14px', fontWeight: 700, color: '#0f172a' }}>₹{p.pricePaid}</td>
-                        <td style={{ padding: '10px 14px', color: '#64748b' }}>{p.startDate ? new Date(p.startDate).toLocaleDateString('en-IN') : '—'}</td>
-                        <td style={{ padding: '10px 14px', color: '#64748b' }}>{p.endDate   ? new Date(p.endDate).toLocaleDateString('en-IN')   : '—'}</td>
+                      <tr key={p._id} style={{ borderBottom: i < promotions.length - 1 ? '1px solid var(--border2)' : 'none', transition: 'background 0.15s' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'var(--surface2)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--text)' }}>
+                          {p.salonId?.name || '—'}
+                          <br /><span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 400 }}>{p.salonId?.city}</span>
+                        </td>
+                        <td style={{ padding: '10px 14px', color: 'var(--text2)' }}>
+                          {p.ownerId?.name || '—'}
+                          <br /><span style={{ fontSize: 11, color: 'var(--text3)' }}>{p.ownerId?.phone}</span>
+                        </td>
+                        <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--accent)' }}>{p.radiusKm} km</td>
+                        <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text)' }}>₹{p.pricePaid}</td>
+                        <td style={{ padding: '10px 14px', color: 'var(--text2)' }}>{p.startDate ? new Date(p.startDate).toLocaleDateString('en-IN') : '—'}</td>
+                        <td style={{ padding: '10px 14px', color: 'var(--text2)' }}>{p.endDate   ? new Date(p.endDate).toLocaleDateString('en-IN')   : '—'}</td>
                         <td style={{ padding: '10px 14px' }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 20 }} className={badge.cls}>
+                          <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 20, background: `${badge.color}22`, color: badge.color, border: `1px solid ${badge.color}44` }}>
                             {badge.label}
                           </span>
                         </td>
@@ -278,7 +317,7 @@ export default function Promotions() {
                           {p.status === 'active' && (
                             <button
                               onClick={() => handleCancelPromotion(p._id)}
-                              style={{ fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 8, border: '1px solid #fca5a5', background: '#fff', color: '#ef4444', cursor: 'pointer' }}
+                              style={{ fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.1)', color: 'var(--red)', cursor: 'pointer', transition: 'all 0.2s ease' }}
                             >
                               Cancel
                             </button>
@@ -294,19 +333,17 @@ export default function Promotions() {
         </div>
       )}
 
-      {/* ════════════ PRICING TAB ════════════ */}
+      {/* PRICING TAB */}
       {tab === 'pricing' && (
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <div>
-              <p style={{ fontSize: 14, color: '#475569', margin: 0 }}>
-                Set prices for each promotion radius. Owners see these when purchasing a promotion.
-              </p>
-            </div>
+            <p style={{ fontSize: 14, color: 'var(--text2)', margin: 0 }}>
+              Set prices for each promotion radius. Owners see these when purchasing a promotion.
+            </p>
             {!showForm && !editTier && (
               <button
                 onClick={() => setShowForm(true)}
-                style={{ padding: '8px 18px', borderRadius: 10, background: '#6366f1', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13 }}
+                style={{ padding: '8px 18px', borderRadius: 10, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13, boxShadow: '0 0 16px rgba(99,102,241,0.3)', transition: 'all 0.2s ease' }}
               >
                 + Add Tier
               </button>
@@ -324,34 +361,45 @@ export default function Promotions() {
           )}
 
           {loading ? (
-            <p style={{ color: '#94a3b8', textAlign: 'center', padding: 40 }}>Loading…</p>
+            <div style={{ textAlign: 'center', padding: 60 }}>
+              <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid var(--border)', borderTopColor: 'var(--accent)', margin: '0 auto 12px', animation: 'spin 0.8s linear infinite' }} />
+              <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+              <span style={{ color: 'var(--text2)' }}>Loading…</span>
+            </div>
           ) : tiers.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 60, color: '#94a3b8', background: '#f8fafc', borderRadius: 16, border: '1px dashed #e2e8f0' }}>
-              <p style={{ fontSize: 15, fontWeight: 600 }}>No pricing tiers yet</p>
+            <div style={{ textAlign: 'center', padding: 60, color: 'var(--text3)', background: 'var(--surface)', borderRadius: 16, border: '1px dashed var(--border)' }}>
+              <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text2)' }}>No pricing tiers yet</p>
               <p style={{ fontSize: 13, marginTop: 4 }}>Click "+ Add Tier" to create the first one.</p>
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
               {tiers.map(tier => (
-                <div key={tier._id} style={{ background: '#fff', border: `2px solid ${tier.isActive ? '#e0e7ff' : '#f1f5f9'}`, borderRadius: 16, padding: 18, position: 'relative' }}>
+                <div key={tier._id} style={{
+                  background: 'var(--surface)',
+                  border: `2px solid ${tier.isActive ? 'rgba(99,102,241,0.3)' : 'var(--border)'}`,
+                  borderRadius: 16,
+                  padding: 18,
+                  position: 'relative',
+                  boxShadow: tier.isActive ? '0 0 20px rgba(99,102,241,0.1)' : 'var(--shadow-sm)',
+                  transition: 'all 0.2s ease',
+                }}>
                   {!tier.isActive && (
-                    <span style={{ position: 'absolute', top: 10, right: 10, fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#f1f5f9', color: '#94a3b8' }}>INACTIVE</span>
+                    <span style={{ position: 'absolute', top: 10, right: 10, fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: 'var(--surface2)', color: 'var(--text3)', border: '1px solid var(--border)' }}>INACTIVE</span>
                   )}
-                  <p style={{ fontSize: 28, fontWeight: 900, color: '#4f46e5', margin: 0 }}>{tier.radiusKm} km</p>
-                  <p style={{ fontSize: 22, fontWeight: 900, color: '#0f172a', margin: '2px 0' }}>₹{tier.pricePerWeek}<span style={{ fontSize: 13, fontWeight: 500, color: '#94a3b8' }}>/week</span></p>
-                  {tier.label && <p style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>{tier.label}</p>}
-                  <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>Sort: {tier.sortOrder}</p>
-
+                  <p style={{ fontSize: 28, fontWeight: 900, color: 'var(--accent)', margin: 0 }}>{tier.radiusKm} km</p>
+                  <p style={{ fontSize: 22, fontWeight: 900, color: 'var(--text)', margin: '2px 0' }}>₹{tier.pricePerWeek}<span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text3)' }}>/week</span></p>
+                  {tier.label && <p style={{ fontSize: 12, color: 'var(--text2)', marginTop: 4 }}>{tier.label}</p>}
+                  <p style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>Sort: {tier.sortOrder}</p>
                   <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
                     <button
                       onClick={() => { setEditTier(tier); setShowForm(false); }}
-                      style={{ flex: 1, padding: '6px', borderRadius: 8, border: '1.5px solid #e0e7ff', background: '#fff', color: '#4f46e5', cursor: 'pointer', fontWeight: 600, fontSize: 12 }}
+                      style={{ flex: 1, padding: '6px', borderRadius: 8, border: '1px solid rgba(99,102,241,0.3)', background: 'rgba(99,102,241,0.1)', color: 'var(--accent)', cursor: 'pointer', fontWeight: 600, fontSize: 12, transition: 'all 0.2s ease' }}
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => handleDeleteTier(tier._id)}
-                      style={{ flex: 1, padding: '6px', borderRadius: 8, border: '1.5px solid #fca5a5', background: '#fff', color: '#ef4444', cursor: 'pointer', fontWeight: 600, fontSize: 12 }}
+                      style={{ flex: 1, padding: '6px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.1)', color: 'var(--red)', cursor: 'pointer', fontWeight: 600, fontSize: 12, transition: 'all 0.2s ease' }}
                     >
                       Delete
                     </button>

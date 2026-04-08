@@ -1688,6 +1688,7 @@ router.get("/admin/owners", authenticateAdmin, asyncHandler(adminManagementContr
 router.get("/admin/salons/all", authenticateAdmin, asyncHandler(adminManagementController.getAllSalons));
 router.get("/admin/salons/filter-options", authenticateAdmin, asyncHandler(adminManagementController.getFilterOptions));
 router.get("/admin/salons/:salonId/detail", authenticateAdmin, asyncHandler(adminManagementController.getSalonDetail));
+router.get("/admin/salons/:salonId/media", authenticateAdmin, asyncHandler(adminManagementController.getBusinessMedia));
 router.put("/admin/salons/:salonId/toggle", authenticateAdmin, asyncHandler(adminManagementController.toggleSalonActive));
 router.get("/admin/bookings", authenticateAdmin, asyncHandler(adminManagementController.getAllBookings));
 router.get("/admin/customers", authenticateAdmin, asyncHandler(adminManagementController.getAllCustomers));

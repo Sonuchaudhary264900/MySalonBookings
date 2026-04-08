@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Toaster } from 'react-hot-toast';
+import { ThemeProvider } from './context/ThemeContext';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Analytics from './pages/Analytics';
@@ -19,25 +20,27 @@ const PrivateRoute = ({ children }) => isAuth() ? children : <Navigate to="/logi
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Toaster position="top-right" />
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="analytics" element={<Analytics />} />
-          <Route path="pending"   element={<PendingSalons />} />
-          <Route path="bookings"  element={<Bookings />} />
-          <Route path="salons"    element={<AllSalons />} />
-          <Route path="owners"    element={<Owners />} />
-          <Route path="customers"      element={<Customers />} />
-          <Route path="subscriptions"  element={<Subscriptions />} />
-          <Route path="promotions"     element={<Promotions />} />
-        </Route>
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
-      <SpeedInsights />
-    </BrowserRouter>
+    <ThemeProvider>
+      <BrowserRouter>
+        <Toaster position="top-right" />
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="analytics" element={<Analytics />} />
+            <Route path="pending"   element={<PendingSalons />} />
+            <Route path="bookings"  element={<Bookings />} />
+            <Route path="salons"    element={<AllSalons />} />
+            <Route path="owners"    element={<Owners />} />
+            <Route path="customers"      element={<Customers />} />
+            <Route path="subscriptions"  element={<Subscriptions />} />
+            <Route path="promotions"     element={<Promotions />} />
+          </Route>
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+        <SpeedInsights />
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }

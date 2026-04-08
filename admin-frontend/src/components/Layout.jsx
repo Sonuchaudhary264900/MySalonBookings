@@ -1,30 +1,30 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Clock, Store, Users, LogOut, Scissors, BookOpen, TrendingUp, UserCheck, CreditCard, Megaphone } from 'lucide-react';
+import { LayoutDashboard, Clock, Store, Users, LogOut, Scissors, BookOpen, TrendingUp, UserCheck, CreditCard, Megaphone, Moon, Sun } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 const nav = [
   { to: '/dashboard',     icon: LayoutDashboard, label: 'Dashboard'        },
   { to: '/analytics',     icon: TrendingUp,      label: 'Analytics'        },
   { to: '/pending',       icon: Clock,           label: 'Pending Approvals'},
   { to: '/bookings',      icon: BookOpen,        label: 'Bookings'         },
-  { to: '/salons',        icon: Store,           label: 'All Salons'       },
+  { to: '/salons',        icon: Store,           label: 'All Business'     },
   { to: '/owners',        icon: UserCheck,       label: 'Owners'           },
   { to: '/customers',     icon: Users,           label: 'Customers'        },
   { to: '/subscriptions', icon: CreditCard,      label: 'Subscriptions'    },
   { to: '/promotions',    icon: Megaphone,       label: 'Promotions'       },
 ];
 
-const sidebarBg = 'linear-gradient(180deg, #0d0d2b 0%, #0a0a1e 100%)';
-
 export default function Layout() {
   const navigate = useNavigate();
+  const { dark, toggle } = useTheme();
   const logout = () => { localStorage.removeItem('admin_token'); navigate('/login'); };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'linear-gradient(135deg, #06061a 0%, #0d0d2e 50%, #06061a 100%)' }}>
-      {/* Sidebar */}
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
+      {/* Sidebar — always dark */}
       <aside style={{
         width: 248,
-        background: sidebarBg,
+        background: 'linear-gradient(180deg, #0d0d2b 0%, #0a0a1e 100%)',
         borderRight: '1px solid rgba(99,102,241,0.15)',
         display: 'flex',
         flexDirection: 'column',
@@ -32,7 +32,6 @@ export default function Layout() {
         position: 'sticky',
         top: 0,
         height: '100vh',
-        backdropFilter: 'blur(20px)',
       }}>
         {/* Logo */}
         <div style={{ padding: '24px 20px 22px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
@@ -83,8 +82,22 @@ export default function Layout() {
           ))}
         </nav>
 
-        {/* Logout */}
-        <div style={{ padding: '12px 10px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        {/* Theme toggle + Logout */}
+        <div style={{ padding: '12px 10px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <button
+            onClick={toggle}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+              padding: '10px 13px', borderRadius: 10,
+              border: '1px solid rgba(255,255,255,0.08)',
+              background: 'rgba(255,255,255,0.04)', color: '#94a3b8',
+              cursor: 'pointer', fontSize: 13, fontWeight: 500,
+              transition: 'all 0.15s',
+            }}
+          >
+            {dark ? <Sun size={16} color="#f59e0b" /> : <Moon size={16} color="#818cf8" />}
+            {dark ? 'Light Mode' : 'Dark Mode'}
+          </button>
           <button
             onClick={logout}
             style={{
@@ -102,7 +115,7 @@ export default function Layout() {
       </aside>
 
       {/* Main */}
-      <main style={{ flex: 1, overflow: 'auto', minHeight: '100vh' }}>
+      <main style={{ flex: 1, overflow: 'auto', minHeight: '100vh', background: 'var(--bg)' }}>
         <Outlet />
       </main>
     </div>

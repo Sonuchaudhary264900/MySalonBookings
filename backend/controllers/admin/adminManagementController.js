@@ -1,5 +1,6 @@
 const Owner = require('../../models/Owner');
 const Business = require('../../models/Business');
+const BusinessMedia = require('../../models/BusinessMedia');
 const Booking = require('../../models/Booking');
 const Customer = require('../../models/Customer');
 const { formatSuccessResponse, formatErrorResponse } = require('../../utils/formatters');
@@ -34,10 +35,10 @@ const BIZ_TYPE_TO_OWNER_TYPE = {
   skin_derma:    'SKIN_DERMA_OWNER',
 };
 
-// GET /admin/owners?page=1&limit=10&search=&businessType=
+// GET /admin/owners?page=1&limit=10&search=&businessType=&status=
 const getAllOwners = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search = '', businessType = '' } = req.query;
+    const { page = 1, limit = 10, search = '', businessType = '', status = '' } = req.query;
     const query = search
       ? { $or: [
           { name: { $regex: escapeRegex(search), $options: 'i' } },
@@ -46,16 +47,18 @@ const getAllOwners = async (req, res) => {
         ] }
       : {};
 
-    // Filter by businessType — check both ownerType (direct) and businessId join (legacy)
+    // Filter by businessType — check ownerType (direct) and businessId join (includes salonType legacy field)
     if (businessType) {
       const ownerType = BIZ_TYPE_TO_OWNER_TYPE[businessType];
-      const matchingBusinesses = await Business.find({ businessType }).select('_id').lean();
+      // Also match salonType (legacy field before rename) in case businessType was not migrated yet
+      const matchingBusinesses = await Business.find({
+        $or: [{ businessType }, { salonType: businessType }],
+      }).select('_id').lean();
       const businessIds = matchingBusinesses.map(s => s._id);
       const typeConditions = [];
       if (ownerType) typeConditions.push({ ownerType });
       if (businessIds.length > 0) typeConditions.push({ businessId: { $in: businessIds } });
       if (typeConditions.length > 0) {
-        query.$or = search ? undefined : typeConditions; // if search, merge carefully
         if (search) {
           // search already has $or — wrap both in $and
           const searchOr = query.$or;
@@ -66,6 +69,9 @@ const getAllOwners = async (req, res) => {
         }
       }
     }
+
+    // Filter by status (e.g. mobile_verified = phone only, no business)
+    if (status) query.status = status;
 
     const [owners, total] = await Promise.all([
       Owner.find(query)
@@ -105,7 +111,7 @@ const getAllSalons = async (req, res) => {
     const [salons, total] = await Promise.all([
       Business.find(query)
         .populate('ownerId', 'name phone email')
-        .select('name city state address approvalStatus isActive isApproved createdAt photos logo totalBookings averageRating ownerId')
+        .select('name city state address approvalStatus isActive isApproved createdAt photos logo videoUrl businessLicenseUrl businessRegistrationUrl totalBookings averageRating ownerId businessType description')
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(parseInt(limit))
@@ -324,4 +330,16 @@ const getAnalytics = async (req, res) => {
   }
 };
 
-module.exports = { getDashboardStats, getAllOwners, getAllSalons, toggleSalonActive, getSalonDetail, getFilterOptions, getAllBookings, getAllCustomers, getAnalytics };
+// GET /admin/salons/:salonId/media — returns all BusinessMedia for a business
+const getBusinessMedia = async (req, res) => {
+  try {
+    const media = await BusinessMedia.find({ businessId: req.params.salonId })
+      .sort({ createdAt: -1 })
+      .lean();
+    res.json(formatSuccessResponse({ media }, 'Media fetched'));
+  } catch (error) {
+    res.status(500).json(formatErrorResponse('Server error', 500));
+  }
+};
+
+module.exports = { getDashboardStats, getAllOwners, getAllSalons, toggleSalonActive, getSalonDetail, getFilterOptions, getAllBookings, getAllCustomers, getAnalytics, getBusinessMedia };

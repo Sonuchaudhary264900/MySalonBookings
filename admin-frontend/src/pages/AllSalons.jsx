@@ -1,26 +1,128 @@
 import { useEffect, useState, useCallback } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
-import { Search, ToggleLeft, ToggleRight, MapPin, Star, ChevronDown } from 'lucide-react';
+import { Search, ToggleLeft, ToggleRight, MapPin, Star, ChevronDown, X, Play, FileText, Image, Loader } from 'lucide-react';
 
 const STATUS_COLORS = {
-  approved: { bg: '#d1fae5', color: '#065f46' },
-  pending: { bg: '#fef3c7', color: '#92400e' },
-  rejected: { bg: '#fee2e2', color: '#991b1b' },
+  approved: { color: '#10b981' },
+  pending:  { color: '#f59e0b' },
+  rejected: { color: '#ef4444' },
 };
 
-const selectStyle = {
-  padding: '9px 32px 9px 12px',
-  border: '1.5px solid #e2e8f0',
-  borderRadius: 8,
-  fontSize: 14,
-  outline: 'none',
-  background: '#fff',
-  color: '#374151',
-  cursor: 'pointer',
-  appearance: 'none',
-  minWidth: 140,
-};
+function MediaModal({ salon, onClose }) {
+  const [media, setMedia] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get(`/admin/salons/${salon._id}/media`)
+      .then(r => setMedia(r.data.data.media || []))
+      .catch(() => toast.error('Failed to load media'))
+      .finally(() => setLoading(false));
+  }, [salon._id]);
+
+  const photos = media.filter(m => m.type === 'photo');
+  const videos = media.filter(m => m.type === 'video' || m.type === 'reel');
+  // Also check direct fields on the salon
+  const directVideoUrl = salon.videoUrl;
+  const licenseUrl = salon.businessLicenseUrl;
+  const regUrl = salon.businessRegistrationUrl;
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}
+      onClick={onClose}>
+      <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 20, padding: 28, width: '100%', maxWidth: 660, maxHeight: '85vh', overflowY: 'auto', boxShadow: 'var(--shadow)' }}
+        onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>{salon.name} — Media</h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text2)' }}><X size={20} /></button>
+        </div>
+
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: 40 }}>
+            <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid var(--border)', borderTopColor: 'var(--accent)', margin: '0 auto 10px', animation: 'spin 0.8s linear infinite' }} />
+            <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+            <span style={{ color: 'var(--text2)', fontSize: 13 }}>Loading media...</span>
+          </div>
+        ) : (
+          <>
+            {/* Photos */}
+            {photos.length > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                  <Image size={14} color="var(--accent)" />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text2)' }}>Photos ({photos.length})</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
+                  {photos.map((m, i) => (
+                    <a key={m._id || i} href={m.url} target="_blank" rel="noopener noreferrer">
+                      <img src={m.url} alt={m.caption || `Photo ${i + 1}`} style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--border)', cursor: 'pointer' }} />
+                      {m.caption && <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 3, textAlign: 'center' }}>{m.caption}</div>}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Videos from BusinessMedia */}
+            {videos.length > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                  <Play size={14} color="var(--accent)" />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text2)' }}>Videos ({videos.length})</span>
+                </div>
+                {videos.map((m, i) => (
+                  <div key={m._id || i} style={{ marginBottom: 10 }}>
+                    <video src={m.url} controls style={{ width: '100%', borderRadius: 12, border: '1px solid var(--border)', maxHeight: 240 }} />
+                    {m.caption && <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>{m.caption}</div>}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Direct videoUrl from business registration */}
+            {directVideoUrl && videos.length === 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                  <Play size={14} color="var(--accent)" />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text2)' }}>Business Tour Video</span>
+                </div>
+                <video src={directVideoUrl} controls style={{ width: '100%', borderRadius: 12, border: '1px solid var(--border)', maxHeight: 240 }} />
+              </div>
+            )}
+
+            {/* Documents */}
+            {(licenseUrl || regUrl) && (
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                  <FileText size={14} color="var(--accent)" />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text2)' }}>Documents</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {licenseUrl && (
+                    <a href={licenseUrl} target="_blank" rel="noopener noreferrer"
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--accent)', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+                      <FileText size={14} /> Business License
+                    </a>
+                  )}
+                  {regUrl && (
+                    <a href={regUrl} target="_blank" rel="noopener noreferrer"
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--accent)', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+                      <FileText size={14} /> Business Registration
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {photos.length === 0 && videos.length === 0 && !directVideoUrl && !licenseUrl && !regUrl && (
+              <p style={{ textAlign: 'center', color: 'var(--text3)', fontSize: 14, padding: '20px 0' }}>No media uploaded yet.</p>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function AllSalons() {
   const [salons, setSalons] = useState([]);
@@ -34,15 +136,14 @@ export default function AllSalons() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [mediaModal, setMediaModal] = useState(null);
 
-  // Load distinct states on mount
   useEffect(() => {
     api.get('/admin/salons/filter-options')
       .then(r => setStates(r.data.data.states || []))
       .catch(() => {});
   }, []);
 
-  // Load cities when state changes
   useEffect(() => {
     const params = state ? `?state=${encodeURIComponent(state)}` : '';
     api.get(`/admin/salons/filter-options${params}`)
@@ -78,33 +179,15 @@ export default function AllSalons() {
     load(1, s, st, stateVal, cityVal);
   };
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    applyFilters();
-  };
-
-  const handleStatusChange = (st) => {
-    setStatus(st);
-    applyFilters({ status: st });
-  };
-
-  const handleStateChange = (e) => {
-    const val = e.target.value;
-    setState(val);
-    setCity('');
-    applyFilters({ state: val, city: '' });
-  };
-
-  const handleCityChange = (e) => {
-    const val = e.target.value;
-    setCity(val);
-    applyFilters({ city: val });
-  };
+  const handleSearch = (e) => { e.preventDefault(); applyFilters(); };
+  const handleStatusChange = (st) => { setStatus(st); applyFilters({ status: st }); };
+  const handleStateChange = (e) => { const val = e.target.value; setState(val); setCity(''); applyFilters({ state: val, city: '' }); };
+  const handleCityChange = (e) => { const val = e.target.value; setCity(val); applyFilters({ city: val }); };
 
   const toggleActive = async (salon) => {
     try {
       await api.put(`/admin/salons/${salon._id}/toggle`);
-      toast.success(salon.isActive ? 'Salon deactivated' : 'Salon activated');
+      toast.success(salon.isActive ? 'Business deactivated' : 'Business activated');
       load(page, search, status, state, city);
     } catch { toast.error('Failed'); }
   };
@@ -117,60 +200,95 @@ export default function AllSalons() {
 
   const hasFilters = search || status || state || city;
 
+  const inputStyle = {
+    padding: '9px 14px',
+    background: 'var(--input-bg)',
+    border: '1.5px solid var(--border)',
+    borderRadius: 10,
+    fontSize: 14,
+    outline: 'none',
+    color: 'var(--text)',
+    transition: 'border-color 0.2s ease',
+  };
+
+  const selectStyle = {
+    padding: '9px 32px 9px 12px',
+    border: '1.5px solid var(--border)',
+    borderRadius: 10,
+    fontSize: 14,
+    outline: 'none',
+    background: 'var(--input-bg)',
+    color: 'var(--text)',
+    cursor: 'pointer',
+    appearance: 'none',
+    minWidth: 140,
+  };
+
   return (
-    <div style={{ padding: 32 }}>
+    <div style={{ padding: '32px 36px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#1e293b' }}>All Salons</h1>
-          <p style={{ color: '#64748b', fontSize: 14, marginTop: 4 }}>{total} salons found</p>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text)' }}>All Business</h1>
+          <p style={{ color: 'var(--text2)', fontSize: 14, marginTop: 4 }}>{total} businesses found</p>
         </div>
         {hasFilters && (
-          <button onClick={clearFilters} style={{ fontSize: 13, color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+          <button onClick={clearFilters} style={{ fontSize: 13, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
             Clear all filters
           </button>
         )}
       </div>
 
-      {/* Filters row 1 — search + status */}
+      {/* Filters row 1 */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
         <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, flex: 1, minWidth: 200 }}>
           <input
             value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search salons..."
-            style={{ flex: 1, padding: '9px 14px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 14, outline: 'none' }}
+            placeholder="Search businesses..."
+            style={{ ...inputStyle, flex: 1 }}
           />
-          <button type="submit" style={{ padding: '9px 16px', background: '#6366f1', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+          <button type="submit" style={{ padding: '9px 16px', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: '#fff', border: 'none', borderRadius: 10, cursor: 'pointer' }}>
             <Search size={16} />
           </button>
         </form>
         <div style={{ display: 'flex', gap: 6 }}>
-          {['', 'pending', 'approved', 'rejected'].map(s => (
-            <button key={s} onClick={() => handleStatusChange(s)}
-              style={{ padding: '8px 14px', border: '1.5px solid', borderColor: status === s ? '#6366f1' : '#e2e8f0', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 500, background: status === s ? '#eef2ff' : '#fff', color: status === s ? '#6366f1' : '#64748b' }}>
-              {s === '' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
-            </button>
-          ))}
+          {['', 'pending', 'approved', 'rejected'].map(s => {
+            const active = status === s;
+            const color = STATUS_COLORS[s]?.color || 'var(--accent)';
+            return (
+              <button key={s} onClick={() => handleStatusChange(s)}
+                style={{
+                  padding: '8px 14px', border: '1.5px solid',
+                  borderColor: active ? color : 'var(--border)',
+                  borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 500,
+                  background: active ? `${color}22` : 'var(--surface)',
+                  color: active ? color : 'var(--text2)',
+                  transition: 'all 0.15s',
+                }}>
+                {s === '' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Filters row 2 — state + district */}
+      {/* Filters row 2 */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
         <div style={{ position: 'relative' }}>
           <select value={state} onChange={handleStateChange} style={selectStyle}>
             <option value="">All States</option>
             {states.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
-          <ChevronDown size={14} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} />
+          <ChevronDown size={14} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)', pointerEvents: 'none' }} />
         </div>
         <div style={{ position: 'relative' }}>
-          <select value={city} onChange={handleCityChange} style={{ ...selectStyle, color: !state && !cities.length ? '#94a3b8' : '#374151' }} disabled={!cities.length && !state}>
+          <select value={city} onChange={handleCityChange} style={selectStyle} disabled={!cities.length && !state}>
             <option value="">All Districts</option>
             {cities.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
-          <ChevronDown size={14} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} />
+          <ChevronDown size={14} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)', pointerEvents: 'none' }} />
         </div>
         {(state || city) && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#64748b' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text2)' }}>
             <MapPin size={13} />
             {[state, city].filter(Boolean).join(' → ')}
           </div>
@@ -178,53 +296,75 @@ export default function AllSalons() {
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 60, color: '#64748b' }}>Loading...</div>
+        <div style={{ textAlign: 'center', padding: 60 }}>
+          <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid var(--border)', borderTopColor: 'var(--accent)', margin: '0 auto 12px', animation: 'spin 0.8s linear infinite' }} />
+          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+          <span style={{ color: 'var(--text2)' }}>Loading...</span>
+        </div>
       ) : (
-        <div style={{ background: '#fff', borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                {['Salon', 'Owner', 'State', 'District', 'Status', 'Rating', 'Active', 'Bookings'].map(h => (
-                  <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
+              <tr style={{ background: 'var(--surface2)', borderBottom: '1px solid var(--border)' }}>
+                {['Business', 'Owner', 'State', 'District', 'Status', 'Rating', 'Media', 'Active', 'Bookings'].map(h => (
+                  <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {salons.length === 0 ? (
-                <tr><td colSpan={8} style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>No salons found</td></tr>
+                <tr><td colSpan={9} style={{ padding: 40, textAlign: 'center', color: 'var(--text3)' }}>No businesses found</td></tr>
               ) : salons.map(salon => {
                 const sc = STATUS_COLORS[salon.approvalStatus] || STATUS_COLORS.pending;
                 return (
-                  <tr key={salon._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <tr key={salon._id} style={{ borderBottom: '1px solid var(--border2)', transition: 'background 0.15s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--surface2)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
                     <td style={{ padding: '14px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         {salon.logo || (salon.photos && salon.photos[0]) ? (
-                          <img src={salon.logo || salon.photos[0]} alt="" style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover' }} />
+                          <img src={salon.logo || salon.photos[0]} alt="" style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
                         ) : (
-                          <div style={{ width: 36, height: 36, borderRadius: 8, background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✂</div>
+                          <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(99,102,241,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>✂</div>
                         )}
-                        <span style={{ fontWeight: 600, fontSize: 14, color: '#1e293b' }}>{salon.name}</span>
+                        <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{salon.name}</span>
                       </div>
                     </td>
-                    <td style={{ padding: '14px 16px', fontSize: 13, color: '#64748b' }}>{salon.ownerId?.name || '—'}</td>
-                    <td style={{ padding: '14px 16px', fontSize: 13, color: '#64748b' }}>{salon.state || '—'}</td>
-                    <td style={{ padding: '14px 16px', fontSize: 13, color: '#64748b' }}>
+                    <td style={{ padding: '14px 16px', fontSize: 13, color: 'var(--text2)' }}>{salon.ownerId?.name || '—'}</td>
+                    <td style={{ padding: '14px 16px', fontSize: 13, color: 'var(--text2)' }}>{salon.state || '—'}</td>
+                    <td style={{ padding: '14px 16px', fontSize: 13, color: 'var(--text2)' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><MapPin size={12} />{salon.city || '—'}</span>
                     </td>
                     <td style={{ padding: '14px 16px' }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: sc.bg, color: sc.color }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: `${sc.color}22`, color: sc.color, border: `1px solid ${sc.color}44` }}>
                         {salon.approvalStatus?.toUpperCase()}
                       </span>
                     </td>
-                    <td style={{ padding: '14px 16px', fontSize: 13, color: '#64748b' }}>
+                    <td style={{ padding: '14px 16px', fontSize: 13, color: 'var(--text2)' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Star size={12} color="#f59e0b" />{salon.averageRating?.toFixed(1) || '—'}</span>
                     </td>
                     <td style={{ padding: '14px 16px' }}>
-                      <button onClick={() => toggleActive(salon)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: salon.isActive ? '#10b981' : '#cbd5e1' }}>
+                      <button
+                        onClick={() => setMediaModal(salon)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 5,
+                          padding: '5px 10px', borderRadius: 8, border: '1px solid rgba(99,102,241,0.3)',
+                          background: 'rgba(99,102,241,0.1)',
+                          color: 'var(--accent)',
+                          cursor: 'pointer', fontSize: 11, fontWeight: 600,
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        <Image size={12} /> View
+                      </button>
+                    </td>
+                    <td style={{ padding: '14px 16px' }}>
+                      <button onClick={() => toggleActive(salon)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: salon.isActive ? '#10b981' : 'var(--text4)' }}>
                         {salon.isActive ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
                       </button>
                     </td>
-                    <td style={{ padding: '14px 16px', fontSize: 13, color: '#64748b' }}>{salon.totalBookings || 0}</td>
+                    <td style={{ padding: '14px 16px', fontSize: 13, color: 'var(--text2)' }}>{salon.totalBookings || 0}</td>
                   </tr>
                 );
               })}
@@ -235,11 +375,14 @@ export default function AllSalons() {
 
       {totalPages > 1 && (
         <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 20 }}>
-          <button disabled={page === 1} onClick={() => setPage(p => p - 1)} style={{ padding: '8px 16px', border: '1px solid #e2e8f0', borderRadius: 8, cursor: page === 1 ? 'not-allowed' : 'pointer', background: '#fff' }}>Prev</button>
-          <span style={{ padding: '8px 16px', fontSize: 14 }}>{page} / {totalPages}</span>
-          <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)} style={{ padding: '8px 16px', border: '1px solid #e2e8f0', borderRadius: 8, cursor: page === totalPages ? 'not-allowed' : 'pointer', background: '#fff' }}>Next</button>
+          <button disabled={page === 1} onClick={() => setPage(p => p - 1)} style={{ padding: '8px 16px', border: '1px solid var(--border)', borderRadius: 10, cursor: page === 1 ? 'not-allowed' : 'pointer', background: 'var(--surface)', color: 'var(--text2)', opacity: page === 1 ? 0.5 : 1 }}>Prev</button>
+          <span style={{ padding: '8px 16px', fontSize: 14, color: 'var(--text2)' }}>{page} / {totalPages}</span>
+          <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)} style={{ padding: '8px 16px', border: '1px solid var(--border)', borderRadius: 10, cursor: page === totalPages ? 'not-allowed' : 'pointer', background: 'var(--surface)', color: 'var(--text2)', opacity: page === totalPages ? 0.5 : 1 }}>Next</button>
         </div>
       )}
+
+      {/* Media Modal */}
+      {mediaModal && <MediaModal salon={mediaModal} onClose={() => setMediaModal(null)} />}
     </div>
   );
 }
