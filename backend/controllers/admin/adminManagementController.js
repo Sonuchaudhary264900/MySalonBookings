@@ -71,7 +71,13 @@ const getAllOwners = async (req, res) => {
     }
 
     // Filter by status (e.g. mobile_verified = phone only, no business)
-    if (status) query.status = status;
+    if (status) {
+      query.status = status;
+      // For mobile_verified, exclude anyone who has already registered/approved a business
+      if (status === 'mobile_verified') {
+        query.businessId = { $exists: false };
+      }
+    }
 
     const [owners, total] = await Promise.all([
       Owner.find(query)
