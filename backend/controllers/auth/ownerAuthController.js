@@ -727,7 +727,7 @@ exports.firebaseRegister = async (req, res) => {
       // Phone is Firebase-verified — if the phone matches, auto-login
       if (existingOwner.phone === phone) {
         const token = jwt.sign(
-          { _id: existingOwner._id, phone: existingOwner.phone, role: existingOwner.role, salonId: existingOwner.salonId },
+          { _id: existingOwner._id, phone: existingOwner.phone, role: existingOwner.role, businessId: existingOwner.businessId },
           process.env.JWT_SECRET,
           { expiresIn: process.env.JWT_EXPIRE || '24h' }
         );

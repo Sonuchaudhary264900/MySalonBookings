@@ -154,7 +154,7 @@ export default function Owners() {
                 <tr><td colSpan={5} style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>No owners found</td></tr>
               ) : owners.map(owner => {
                 const sc  = STATUS_COLORS[owner.status] || STATUS_COLORS.pending_approval;
-                const biz = BIZ_TYPES.find(b => b.key === owner.salonId?.businessType);
+                const biz = BIZ_TYPES.find(b => b.key === owner.businessId?.businessType);
                 return (
                   <tr key={owner._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '14px 16px' }}>
@@ -177,7 +177,7 @@ export default function Owners() {
                       </span>
                     </td>
                     <td style={{ padding: '14px 16px', fontSize: 13 }}>
-                      {owner.salonId ? (
+                      {owner.businessId ? (
                         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           {biz ? (
                             <span style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: biz.color + '18', color: biz.color }}>

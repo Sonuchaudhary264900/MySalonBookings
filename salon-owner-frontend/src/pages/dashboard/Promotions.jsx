@@ -392,7 +392,7 @@ export default function Promotions() {
   const [showHistory,     setShowHistory]     = useState(false);
   const [ownerInfo,       setOwnerInfo]       = useState(null);
 
-  const bizType = salon?.businessType || ownerInfo?.businessType || '';
+  const bizType = salon?.businessType || '';
   const bizName = BIZ_NAME_MAP[bizType] || 'Salon';
 
   const fetchAll = useCallback(async () => {
@@ -422,7 +422,7 @@ export default function Promotions() {
         name:         owner?.name,
         email:        owner?.email,
         phone:        owner?.phone,
-        businessType: owner?.salonId?.businessType || owner?.businessType || '',
+        businessType: salon?.businessType || '',
       });
     }).catch(() => {});
   }, [fetchAll]);

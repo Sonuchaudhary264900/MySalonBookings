@@ -378,7 +378,7 @@ const CategoryCard = ({
 const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) => {
   // Read businessType from salon record, fallback to owner profile (for legacy salons registered before businessType field was added)
   const { user } = useContext(AuthContext);
-  const businessType    = salon?.businessType || user?.businessType || 'salon';
+  const businessType    = salon?.businessType || 'salon';
   const isBarberShop = businessType === 'barbershop';
 
   // Build per-gender cat lists based on businessType
@@ -405,7 +405,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
 
   useEffect(() => {
     if (!isOpen || !salon) return;
-    const type     = salon.businessType || user?.businessType || 'salon';
+    const type     = salon.businessType || 'salon';
     const isBarber = type === 'barbershop';
     setGender(isBarber ? 'male' : (salon.servedGender || ''));
     setMaleSelections(buildSelections(getCategoriesForSalonType(type, 'male'),   salon.offeredCategories));
