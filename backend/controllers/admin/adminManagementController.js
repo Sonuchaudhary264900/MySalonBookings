@@ -26,6 +26,14 @@ const getDashboardStats = async (req, res) => {
   }
 };
 
+const BIZ_TYPE_TO_OWNER_TYPE = {
+  barbershop:    'BARBERSHOP_OWNER',
+  salon:         'SALON_OWNER',
+  spa_wellness:  'SPA_WELLNESS_OWNER',
+  makeup_bridal: 'MAKEUP_BRIDAL_OWNER',
+  skin_derma:    'SKIN_DERMA_OWNER',
+};
+
 // GET /admin/owners?page=1&limit=10&search=&businessType=
 const getAllOwners = async (req, res) => {
   try {
@@ -38,11 +46,25 @@ const getAllOwners = async (req, res) => {
         ] }
       : {};
 
-    // If filtering by businessType, first find matching salon IDs
+    // Filter by businessType — check both ownerType (direct) and businessId join (legacy)
     if (businessType) {
+      const ownerType = BIZ_TYPE_TO_OWNER_TYPE[businessType];
       const matchingBusinesses = await Business.find({ businessType }).select('_id').lean();
       const businessIds = matchingBusinesses.map(s => s._id);
-      query.businessId = { $in: businessIds };
+      const typeConditions = [];
+      if (ownerType) typeConditions.push({ ownerType });
+      if (businessIds.length > 0) typeConditions.push({ businessId: { $in: businessIds } });
+      if (typeConditions.length > 0) {
+        query.$or = search ? undefined : typeConditions; // if search, merge carefully
+        if (search) {
+          // search already has $or — wrap both in $and
+          const searchOr = query.$or;
+          delete query.$or;
+          query.$and = [{ $or: searchOr }, { $or: typeConditions }];
+        } else {
+          query.$or = typeConditions;
+        }
+      }
     }
 
     const [owners, total] = await Promise.all([

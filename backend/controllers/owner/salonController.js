@@ -184,10 +184,19 @@ exports.createSalon = async (req, res) => {
     // Pull owner's current gender from DB (set during account creation)
     const ownerRecord = await Owner.findById(req.owner._id).select('gender');
 
+    const BIZ_TYPE_TO_OWNER_TYPE = {
+      barbershop:    'BARBERSHOP_OWNER',
+      salon:         'SALON_OWNER',
+      spa_wellness:  'SPA_WELLNESS_OWNER',
+      makeup_bridal: 'MAKEUP_BRIDAL_OWNER',
+      skin_derma:    'SKIN_DERMA_OWNER',
+    };
+
     await Owner.findByIdAndUpdate(
       req.owner._id,
       {
         businessId:   salon._id,
+        ownerType:    BIZ_TYPE_TO_OWNER_TYPE[resolvedBusinessType] || 'SALON_OWNER',
         status:       'salon_registered',
         // Mirror salon location to owner for admin filtering
         address: address || '',
@@ -328,6 +337,12 @@ exports.updateSalon = async (req, res) => {
     if (description) salon.description = description;
     if (businessType) {
       salon.businessType = businessType;
+      const BIZ_TYPE_TO_OWNER_TYPE = {
+        barbershop: 'BARBERSHOP_OWNER', salon: 'SALON_OWNER',
+        spa_wellness: 'SPA_WELLNESS_OWNER', makeup_bridal: 'MAKEUP_BRIDAL_OWNER',
+        skin_derma: 'SKIN_DERMA_OWNER',
+      };
+      await Owner.findByIdAndUpdate(req.owner._id, { ownerType: BIZ_TYPE_TO_OWNER_TYPE[businessType] || 'SALON_OWNER' });
     }
     if (servedGender) salon.servedGender = servedGender;
     if (Array.isArray(offeredCategories)) {
