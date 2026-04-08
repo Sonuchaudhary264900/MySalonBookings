@@ -75,7 +75,7 @@ const getAllOwners = async (req, res) => {
       query.status = status;
       // For mobile_verified, exclude anyone who has already registered/approved a business
       if (status === 'mobile_verified') {
-        query.businessId = { $exists: false };
+        query.businessId = null; // matches both missing and explicitly null fields
       }
     }
 
