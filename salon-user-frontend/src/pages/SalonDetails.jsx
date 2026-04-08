@@ -1,10 +1,12 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef, useCallback, useLayoutEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Scissors, Phone, Star, Check, MessageSquare, Frown, Building2,
   Mail, ShoppingBag, MapPin, Navigation, ChevronDown, ChevronUp,
   Clock, Sparkles, Award, Users, ArrowLeft, Zap, X, Calendar,
   User, Tag, CreditCard, CheckCircle, Gift, Play, ChevronLeft, ChevronRight, Heart,
+  TrendingUp, BadgeCheck, Share2, Volume2, VolumeX,
 } from "lucide-react";
 import API from "../services/api";
 import ServiceCard from "../components/ServiceCard";
@@ -96,6 +98,35 @@ const formatDay = (dateStr) => {
 };
 // ────────────────────────────────────────────────────────────────────────────
 
+// ── Animated counter hook ────────────────────────────────────────────────────
+function useCountUp(target, duration = 1400, start = false) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!start || !target) return;
+    let cur = 0;
+    const steps = 60;
+    const inc = target / steps;
+    const delay = duration / steps;
+    const timer = setInterval(() => {
+      cur += inc;
+      if (cur >= target) { setCount(target); clearInterval(timer); }
+      else setCount(Math.round(cur));
+    }, delay);
+    return () => clearInterval(timer);
+  }, [target, duration, start]);
+  return count;
+}
+
+// ── Category theming ─────────────────────────────────────────────────────────
+const CAT_THEMES = {
+  barbershop:    { p: '#e94560', g: 'from-gray-950 via-slate-900 to-red-950',    hero: 'from-gray-950/95', ring: 'rgba(233,69,96,0.6)' },
+  salon:         { p: '#8b5cf6', g: 'from-indigo-950 via-violet-950 to-purple-950', hero: 'from-indigo-950/95', ring: 'rgba(139,92,246,0.6)' },
+  spa_wellness:  { p: '#10b981', g: 'from-emerald-950 via-teal-950 to-green-950', hero: 'from-emerald-950/95', ring: 'rgba(16,185,129,0.6)' },
+  makeup_bridal: { p: '#f59e0b', g: 'from-rose-950 via-pink-950 to-amber-950',   hero: 'from-rose-950/95',   ring: 'rgba(245,158,11,0.6)' },
+  skin_derma:    { p: '#38bdf8', g: 'from-blue-950 via-sky-950 to-cyan-950',     hero: 'from-blue-950/95',  ring: 'rgba(56,189,248,0.6)' },
+};
+const DEFAULT_THEME = CAT_THEMES.salon;
+
 function SalonDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -121,6 +152,10 @@ function SalonDetails() {
 
   const TABS = BASE_TABS;
   const activeTab = TABS.includes(tab) ? tab : "Gallery";
+  const [heroMuted, setHeroMuted] = useState(true);
+  const [statsVisible, setStatsVisible] = useState(false);
+  const heroVideoRef2 = useRef(null);
+  const statsRef = useRef(null);
 
   // ── Booking state ────────────────────────────────────────────────────────
   const [galleryLightbox, setGalleryLightbox] = useState(null); // index into galleryItems
@@ -185,6 +220,14 @@ function SalonDetails() {
   const loadBarbers  = async () => { try { const r = await API.get(`/public/salons/${id}/barbers`).catch(() => ({ data: { data: { barbers: [] } } })); setBarbers(r.data.data?.barbers || []); } catch {} };
   const loadOffers   = async () => { try { const r = await API.get(`/public/salons/${id}/offers`); const list = r.data.data?.offers || []; if (list.length > 0) setOffers(list); } catch {} };
   const loadPackages = async () => { try { const r = await API.get(`/public/salons/${id}/packages`); setPackages(r.data.data?.packages || []); } catch {} };
+
+  // ── Stats counter visibility ─────────────────────────────────────────────
+  useEffect(() => {
+    if (!statsRef.current) return;
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setStatsVisible(true); }, { threshold: 0.3 });
+    obs.observe(statsRef.current);
+    return () => obs.disconnect();
+  }, []);
 
   // ── Slot fetch when booking modal open + date/duration changes ───────────
   useEffect(() => {
@@ -304,16 +347,27 @@ function SalonDetails() {
   /* ── Loading skeleton ── */
   if (loading) {
     return (
-      <div className="t-page">
-        <div className="h-80 skeleton" />
-        <div className="max-w-4xl mx-auto px-4 py-6 space-y-4">
-          <div className="h-8 skeleton rounded-xl w-2/3" />
-          <div className="h-4 skeleton rounded w-1/2" />
-          <div className="flex gap-2 mt-3">
-            {[1,2,3].map(i => <div key={i} className="h-8 skeleton rounded-full w-24" />)}
+      <div className="t-page min-h-screen" style={{ background: 'var(--t-bg)' }}>
+        <div className="h-[55vh] skeleton" style={{ borderRadius: 0 }} />
+        <div className="max-w-2xl mx-auto px-4 pt-5 space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="w-20 h-20 rounded-full skeleton shrink-0" />
+            <div className="flex-1 flex gap-6 justify-around">
+              {[1,2,3].map(i => <div key={i} className="flex flex-col items-center gap-1">
+                <div className="h-5 w-10 skeleton rounded" />
+                <div className="h-3 w-14 skeleton rounded" />
+              </div>)}
+            </div>
           </div>
-          <div className="h-12 skeleton rounded-xl mt-4" />
-          {[1,2,3].map(i => <div key={i} className="h-24 skeleton rounded-xl" />)}
+          <div className="h-5 skeleton rounded w-1/2" />
+          <div className="h-3 skeleton rounded w-3/4" />
+          <div className="h-10 skeleton rounded-xl" />
+          <div className="grid grid-cols-4 gap-2">
+            {[1,2,3,4].map(i => <div key={i} className="h-20 skeleton rounded-2xl" />)}
+          </div>
+          <div className="grid grid-cols-3 gap-[2px] mt-2">
+            {[1,2,3,4,5,6].map(i => <div key={i} className="aspect-square skeleton" />)}
+          </div>
         </div>
       </div>
     );
@@ -335,27 +389,21 @@ function SalonDetails() {
     ? parseFloat(salon.averageRating || salon.rating).toFixed(1)
     : null;
 
-  // Normalize — DB may return plain strings or objects {url,...}
-  const salonPhotoUrls = (salon.photos || [])
-    .map(p => (typeof p === 'string' ? p : p?.url)).filter(Boolean);
-  const salonVideoUrls = (salon.videos || [])
-    .map(v => (typeof v === 'string' ? v : v?.url)).filter(Boolean);
+  const salonPhotoUrls = (salon.photos || []).map(p => (typeof p === 'string' ? p : p?.url)).filter(Boolean);
+  const salonVideoUrls = (salon.videos || []).map(v => (typeof v === 'string' ? v : v?.url)).filter(Boolean);
   const galleryItems = [
     ...salonPhotoUrls.map(url => ({ url, type: 'image' })),
     ...salonVideoUrls.map(url => ({ url, type: 'video' })),
   ];
 
-  const openStatus = isOpenNow(salon.workingHours);
-  const todayHours = getTodayHours(salon.workingHours);
-  const opensAt    = getOpensAt(salon.workingHours);
-  const nextSlot   = getNextSlot(salon.workingHours);
+  const openStatus   = isOpenNow(salon.workingHours);
+  const todayHours   = getTodayHours(salon.workingHours);
+  const opensAt      = getOpensAt(salon.workingHours);
+  const nextSlot     = getNextSlot(salon.workingHours);
   const totalBookings = salon.totalBookings || 0;
-
-
   const dayOrder = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
-  const TAB_ICONS = { Gallery: <Play className="w-4 h-4" />, Services: <Scissors className="w-4 h-4" />, Packages: <Gift className="w-4 h-4" />, Reviews: <Star className="w-4 h-4" />, Info: <Building2 className="w-4 h-4" /> };
+  const theme = CAT_THEMES[salon.businessType] || DEFAULT_THEME;
 
-  // ── Highlight categories for the stories-style row ─────────────────────
   const highlightCats = (() => {
     const cats = {};
     for (const s of services) {
@@ -366,311 +414,426 @@ function SalonDetails() {
     return Object.values(cats).slice(0, 10);
   })();
 
-  const igHandle = salon.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_.]/g, '');
+  const heroMedia = salonVideoUrls[0] || salonPhotoUrls[0] || salon.coverPhoto || null;
+  const heroIsVideo = !!salonVideoUrls[0];
+  const allOffers = offers.length > 0 ? offers : salon.topOffer ? [salon.topOffer] : [];
+
+  const TAB_ICONS = {
+    Gallery:  <Play className="w-[18px] h-[18px]" />,
+    Services: <Scissors className="w-[18px] h-[18px]" />,
+    Packages: <Gift className="w-[18px] h-[18px]" />,
+    Reviews:  <Star className="w-[18px] h-[18px]" />,
+    Info:     <Building2 className="w-[18px] h-[18px]" />,
+  };
 
   return (
     <div className="t-page" style={{ background: 'var(--t-bg)' }}>
 
-      {/* ══ TOP BAR ══════════════════════════════════════════════════════════ */}
-      <div className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b"
-        style={{ background: 'var(--t-bg)', borderColor: 'var(--t-border)' }}>
-        <button onClick={() => navigate(-1)} className="w-8 h-8 flex items-center justify-center rounded-full transition"
-          style={{ color: 'var(--t-text)' }}>
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <span className="text-sm font-bold truncate mx-2" style={{ color: 'var(--t-text)' }}>{igHandle}</span>
-        <div className="w-8" />
-      </div>
+      {/* ══ PAGE-LEVEL CSS ═════════════════════════════════════════════════ */}
+      <style>{`
+        .sd-hero-video { position:absolute;inset:0;width:100%;height:100%;object-fit:cover; }
+        .sd-hero-img   { position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:sdKenBurns 12s ease-in-out infinite alternate; }
+        @keyframes sdKenBurns { from{transform:scale(1)} to{transform:scale(1.08)} }
+        .sd-stat-card  { transition:transform .2s,box-shadow .2s; }
+        .sd-stat-card:hover { transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,.18); }
+        .sd-svc-card   { transition:transform .18s,box-shadow .18s; }
+        .sd-svc-card:hover { transform:translateY(-2px); }
+        .sd-gallery-item:hover img,.sd-gallery-item:hover video { transform:scale(1.06); }
+        .sd-review-track { display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;scroll-snap-type:x mandatory;padding-bottom:4px; }
+        .sd-review-track::-webkit-scrollbar { display:none; }
+        .sd-tab-indicator { position:absolute;bottom:0;left:0;right:0;height:2px;border-radius:2px; }
+        .sd-offer-pill:hover { filter:brightness(1.08); }
+        @keyframes sdFadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+        .sd-fade-up { animation:sdFadeUp .5s ease both; }
+        .sd-fade-up-1 { animation-delay:.05s }
+        .sd-fade-up-2 { animation-delay:.12s }
+        .sd-fade-up-3 { animation-delay:.2s }
+      `}</style>
 
-      {/* ══ PROFILE HEADER ═══════════════════════════════════════════════════ */}
-      <div className="px-4 pt-4 pb-3 max-w-2xl mx-auto">
+      {/* ══ HERO ════════════════════════════════════════════════════════════ */}
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: .6 }}
+        className="relative overflow-hidden"
+        style={{ height: 'min(62vh, 520px)', minHeight: 280 }}
+      >
+        {/* Media */}
+        {heroIsVideo ? (
+          <video
+            ref={heroVideoRef2}
+            src={heroMedia}
+            autoPlay muted={heroMuted} loop playsInline
+            className="sd-hero-video"
+          />
+        ) : heroMedia ? (
+          <img src={heroMedia} alt={salon.name} className="sd-hero-img" />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br" style={{ background: `linear-gradient(135deg,${theme.p}22,${theme.p}44,#000)` }} />
+        )}
 
-        {/* Avatar + Stats row */}
-        <div className="flex items-center gap-4 mb-4">
-          {/* Avatar with gradient ring */}
-          <div className="shrink-0" style={{ padding: 2, borderRadius: '50%', background: 'linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)' }}>
-            <div className="w-[78px] h-[78px] rounded-full overflow-hidden flex items-center justify-center"
-              style={{ background: 'var(--t-bg)', padding: 2 }}>
-              {salon.logo ? (
-                <img src={salon.logo} alt={salon.name} className="w-full h-full rounded-full object-cover" />
-              ) : (
-                <div className="w-full h-full rounded-full flex items-center justify-center"
-                  style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
-                  <Scissors className="w-8 h-8 text-white/80" />
+        {/* Gradient overlays */}
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.35) 45%, rgba(0,0,0,0.1) 100%)' }} />
+        <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${theme.p}18 0%, transparent 60%)` }} />
+
+        {/* Back + mute controls */}
+        <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => navigate(-1)}
+            className="w-10 h-10 rounded-full flex items-center justify-center text-white"
+            style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.15)' }}
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </motion.button>
+          <div className="flex items-center gap-2">
+            {heroIsVideo && (
+              <button
+                onClick={() => { setHeroMuted(m => !m); heroVideoRef2.current && (heroVideoRef2.current.muted = !heroMuted); }}
+                className="w-9 h-9 rounded-full flex items-center justify-center text-white"
+                style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.15)' }}
+              >
+                {heroMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              </button>
+            )}
+            {salon.isApproved && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold text-white"
+                style={{ background: 'rgba(16,185,129,0.25)', backdropFilter: 'blur(8px)', border: '1px solid rgba(16,185,129,0.4)' }}>
+                <BadgeCheck className="w-3.5 h-3.5" /> Verified
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Hero content — bottom overlay */}
+        <div className="absolute bottom-0 left-0 right-0 px-5 pb-5">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .25, duration: .5 }}>
+            {avgRating && parseFloat(avgRating) >= 4.2 && (
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold text-amber-300 mb-2"
+                style={{ background: 'rgba(251,191,36,0.18)', border: '1px solid rgba(251,191,36,0.35)' }}>
+                <TrendingUp className="w-3 h-3" /> Top Rated
+              </div>
+            )}
+            <h1 className="text-[26px] sm:text-3xl font-extrabold text-white leading-tight tracking-tight mb-1">{salon.name}</h1>
+            <div className="flex items-center gap-3 flex-wrap mb-4">
+              {(salon.address || salon.city) && (
+                <span className="flex items-center gap-1 text-xs text-white/70">
+                  <MapPin className="w-3 h-3" />{salon.city || salon.address}
+                </span>
+              )}
+              {avgRating && (
+                <span className="flex items-center gap-1 text-xs font-bold text-amber-300">
+                  <Star className="w-3 h-3 fill-current" />{avgRating}
+                  {(salon.totalReviews || reviews.length) > 0 && <span className="font-normal text-white/50">({salon.totalReviews || reviews.length})</span>}
+                </span>
+              )}
+              {openStatus !== null && (
+                <span className="flex items-center gap-1 text-xs font-semibold"
+                  style={{ color: openStatus ? '#4ade80' : '#f87171' }}>
+                  <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: openStatus ? '#4ade80' : '#f87171' }} />
+                  {openStatus ? (todayHours ? `Open · ${todayHours}` : 'Open') : (opensAt ? `Opens ${opensAt}` : 'Closed')}
+                </span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <motion.button
+                whileTap={{ scale: 0.96 }} whileHover={{ scale: 1.02 }}
+                onClick={handleBookNowEmpty}
+                className="flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold text-white"
+                style={{ background: `linear-gradient(135deg,${theme.p},${theme.p}cc)`, boxShadow: `0 6px 24px ${theme.p}50` }}
+              >
+                <Zap className="w-4 h-4" /> Book Now
+              </motion.button>
+              {nextSlot && (
+                <div className="flex items-center gap-1.5 px-4 py-3 rounded-2xl text-xs font-semibold text-white/80"
+                  style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.18)' }}>
+                  <Clock className="w-3.5 h-3.5" /> Next: {nextSlot}
                 </div>
               )}
             </div>
-          </div>
+          </motion.div>
+        </div>
+      </motion.div>
 
-          {/* Stats */}
-          <div className="flex flex-1 items-center justify-around text-center">
-            <div>
-              <p className="text-base font-bold" style={{ color: 'var(--t-text)' }}>{galleryItems.length}</p>
-              <p className="text-xs" style={{ color: 'var(--t-text-2)' }}>posts</p>
+      {/* ══ PROFILE STRIP (below hero) ══════════════════════════════════════ */}
+      <div className="max-w-2xl mx-auto px-4">
+
+        {/* Avatar + Stats */}
+        <div className="flex items-center gap-4 -mt-8 mb-4 relative z-10">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: .35, type: 'spring', stiffness: 200 }}
+            className="shrink-0 rounded-full p-[3px]"
+            style={{ background: `linear-gradient(135deg,${theme.p},${theme.p}88,#fff2)`, boxShadow: `0 4px 20px ${theme.p}40` }}
+          >
+            <div className="w-[72px] h-[72px] rounded-full overflow-hidden border-2"
+              style={{ borderColor: 'var(--t-bg)' }}>
+              {salon.logo ? (
+                <img src={salon.logo} alt={salon.name} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center"
+                  style={{ background: `linear-gradient(135deg,${theme.p}33,${theme.p}66)` }}>
+                  <Scissors className="w-7 h-7" style={{ color: theme.p }} />
+                </div>
+              )}
             </div>
-            <div>
-              <p className="text-base font-bold" style={{ color: 'var(--t-text)' }}>
-                {totalBookings >= 1000 ? `${(totalBookings/1000).toFixed(1)}k` : totalBookings}
-              </p>
-              <p className="text-xs" style={{ color: 'var(--t-text-2)' }}>bookings</p>
-            </div>
-            <div>
-              <p className="text-base font-bold" style={{ color: 'var(--t-text)' }}>{services.length}</p>
-              <p className="text-xs" style={{ color: 'var(--t-text-2)' }}>services</p>
-            </div>
+          </motion.div>
+
+          <div className="flex flex-1 items-end justify-around pb-1 pt-10">
+            {[
+              { val: galleryItems.length, label: 'posts' },
+              { val: totalBookings, label: 'clients' },
+              { val: services.length,   label: 'services' },
+            ].map(({ val, label }, i) => (
+              <motion.div key={label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .4 + i * .08 }}
+                className="text-center">
+                <p className="text-lg font-extrabold leading-none mb-0.5" style={{ color: 'var(--t-text)' }}>
+                  {val >= 1000 ? `${(val/1000).toFixed(1)}k` : val}
+                </p>
+                <p className="text-[11px]" style={{ color: 'var(--t-text-3)' }}>{label}</p>
+              </motion.div>
+            ))}
           </div>
         </div>
 
-        {/* Name + verified + categories + bio */}
-        <div className="mb-3">
-          <div className="flex items-center gap-2 mb-0.5">
-            <span className="text-sm font-bold" style={{ color: 'var(--t-text)' }}>{salon.name}</span>
-            {salon.isApproved && <Check className="w-3.5 h-3.5" style={{ color: '#3b82f6' }} />}
+        {/* Name + bio + categories */}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .45 }} className="mb-3">
+          <div className="flex items-center gap-1.5 mb-1">
+            <span className="font-bold text-[15px]" style={{ color: 'var(--t-text)' }}>{salon.name}</span>
+            {salon.isApproved && <BadgeCheck className="w-4 h-4" style={{ color: theme.p }} />}
+            {salon.servedGender && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold ml-1"
+                style={{ background: `${theme.p}18`, color: theme.p, border: `1px solid ${theme.p}30` }}>
+                {salon.servedGender === 'male' ? '👨 Men' : salon.servedGender === 'female' ? '👩 Women' : '👥 Unisex'}
+              </span>
+            )}
           </div>
-
-          {/* Category tags — IG style colored text */}
           {(salon.offeredCategoryNames || []).length > 0 && (
-            <p className="text-xs font-semibold mb-1" style={{ color: '#3b82f6' }}>
-              {(salon.offeredCategoryNames || []).join(' | ')}
+            <p className="text-xs font-semibold mb-1" style={{ color: theme.p }}>
+              {salon.offeredCategoryNames.join(' · ')}
             </p>
           )}
-
-          {/* Bio / description */}
           {salon.description && (
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--t-text-2)' }}>{salon.description}</p>
+            <p className="text-[13px] leading-relaxed" style={{ color: 'var(--t-text-2)' }}>{salon.description}</p>
           )}
-
-          {/* Location + status */}
-          <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-            {(salon.address || salon.city) && (
-              <a href={`https://maps.google.com/?q=${encodeURIComponent(salon.address || salon.city)}`}
-                target="_blank" rel="noreferrer"
-                className="flex items-center gap-1 text-xs font-medium" style={{ color: '#3b82f6' }}>
-                <MapPin className="w-3 h-3" />{salon.city || salon.address}
-              </a>
-            )}
-            {openStatus !== null && (
-              <span className="flex items-center gap-1 text-xs font-semibold"
-                style={{ color: openStatus ? '#10b981' : '#ef4444' }}>
-                <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: openStatus ? '#10b981' : '#ef4444' }} />
-                {openStatus ? (todayHours ? `Open · ${todayHours}` : 'Open Now') : (opensAt ? `Closed · Opens ${opensAt}` : 'Closed')}
-              </span>
-            )}
-            {avgRating && (
-              <span className="flex items-center gap-1 text-xs font-semibold" style={{ color: '#f59e0b' }}>
-                <Star className="w-3 h-3 fill-current" />{avgRating}
-                {(salon.totalReviews || reviews.length) > 0 && <span className="font-normal" style={{ color: 'var(--t-text-3)' }}>({salon.totalReviews || reviews.length})</span>}
-              </span>
-            )}
-          </div>
-        </div>
+        </motion.div>
 
         {/* Action buttons */}
-        <div className="flex gap-2 mb-4">
-          <button
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .5 }}
+          className="flex gap-2 mb-5">
+          <motion.button whileTap={{ scale: 0.97 }} whileHover={{ scale: 1.02 }}
             onClick={handleBookNowEmpty}
-            className="flex-1 py-2 text-sm font-bold text-white rounded-lg transition-all hover:opacity-90 active:scale-95 flex items-center justify-center gap-1.5"
-            style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
-          >
-            <Zap className="w-4 h-4" /> Book Now
-          </button>
+            className="flex-1 py-2.5 text-sm font-bold text-white rounded-xl flex items-center justify-center gap-1.5"
+            style={{ background: `linear-gradient(135deg,${theme.p},${theme.p}bb)`, boxShadow: `0 4px 16px ${theme.p}40` }}>
+            <Zap className="w-4 h-4" /> Book Appointment
+          </motion.button>
           {salon.phone && (
-            <a href={`tel:${salon.phone}`}
-              className="flex-1 py-2 text-sm font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all hover:opacity-80 active:scale-95"
+            <motion.a whileTap={{ scale: 0.97 }} href={`tel:${salon.phone}`}
+              className="px-4 py-2.5 text-sm font-semibold rounded-xl flex items-center justify-center gap-1.5"
               style={{ background: 'var(--t-bg-2)', color: 'var(--t-text)', border: '1px solid var(--t-border)' }}>
               <Phone className="w-4 h-4" /> Call
-            </a>
+            </motion.a>
           )}
           {(salon.address || salon.city) && (
-            <a href={`https://maps.google.com/?q=${encodeURIComponent(salon.address || salon.city)}`}
+            <motion.a whileTap={{ scale: 0.97 }}
+              href={`https://maps.google.com/?q=${encodeURIComponent(salon.address || salon.city)}`}
               target="_blank" rel="noreferrer"
-              className="w-10 h-9 flex items-center justify-center rounded-lg transition-all hover:opacity-80 active:scale-95"
+              className="w-11 flex items-center justify-center rounded-xl"
               style={{ background: 'var(--t-bg-2)', color: 'var(--t-text)', border: '1px solid var(--t-border)' }}>
               <Navigation className="w-4 h-4" />
-            </a>
+            </motion.a>
           )}
-        </div>
+        </motion.div>
 
-        {/* Highlights — service category circles (Stories style) */}
+        {/* Highlights — category circles */}
         {highlightCats.length > 0 && (
-          <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1">
-            {highlightCats.map((cat) => (
-              <button key={cat.name} onClick={() => { setTab('Services'); setExpandedCat(cat.name); }}
-                className="flex flex-col items-center gap-1.5 shrink-0 transition-all active:scale-95">
-                <div style={{
-                  padding: 2, borderRadius: '50%',
-                  background: activeTab === 'Services' && expandedCat === cat.name
-                    ? 'linear-gradient(45deg,#6366f1,#8b5cf6)'
-                    : 'linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)',
-                }}>
-                  <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl"
-                    style={{ background: 'var(--t-card)', border: '2px solid var(--t-bg)' }}>
+          <div className="flex gap-5 overflow-x-auto scrollbar-hide pb-3 -mx-1 px-1">
+            {highlightCats.map((cat, i) => (
+              <motion.button key={cat.name}
+                initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: .55 + i * .04 }}
+                whileTap={{ scale: 0.93 }}
+                onClick={() => { setTab('Services'); setExpandedCat(cat.name); }}
+                className="flex flex-col items-center gap-1.5 shrink-0">
+                <div className="p-[2.5px] rounded-full"
+                  style={{ background: activeTab === 'Services' && expandedCat === cat.name
+                    ? `linear-gradient(135deg,${theme.p},${theme.p}88)`
+                    : 'linear-gradient(135deg,#f09433,#dc2743,#bc1888)' }}>
+                  <div className="w-[58px] h-[58px] rounded-full flex items-center justify-center text-[22px]"
+                    style={{ background: 'var(--t-card)', border: '2.5px solid var(--t-bg)' }}>
                     {cat.icon}
                   </div>
                 </div>
-                <span className="text-[10px] font-medium text-center max-w-[60px] truncate"
+                <span className="text-[10px] font-semibold text-center max-w-[60px] truncate"
                   style={{ color: 'var(--t-text-2)' }}>
                   {cat.name.split(/[\s/]/)[0]}
                 </span>
-              </button>
+              </motion.button>
             ))}
           </div>
         )}
       </div>
 
-      {/* ══ CONTENT ════════════════════════════════════════════════════════ */}
-      <div className="max-w-2xl mx-auto pb-2">
+      {/* ══ ANIMATED STATS STRIP ════════════════════════════════════════════ */}
+      <div ref={statsRef} className="max-w-2xl mx-auto px-4 mb-1">
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            { icon: '⭐', label: 'Rating',      val: avgRating || '—',   sub: `${salon.totalReviews || reviews.length} reviews` },
+            { icon: '👥', label: 'Total Clients', val: totalBookings >= 1000 ? `${(totalBookings/1000).toFixed(1)}k` : String(totalBookings), sub: 'served' },
+            { icon: '✂️', label: 'Services',    val: String(services.length), sub: 'available' },
+            { icon: '🏆', label: 'Experience',  val: salon.experience ? `${salon.experience}yr` : '—', sub: 'expertise' },
+          ].map(({ icon, label, val, sub }, i) => (
+            <motion.div key={label}
+              initial={{ opacity: 0, y: 12 }} animate={statsVisible ? { opacity: 1, y: 0 } : {}} transition={{ delay: i * .08, duration: .4 }}
+              className="sd-stat-card rounded-2xl p-3 text-center"
+              style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)', boxShadow: '0 2px 12px rgba(0,0,0,.06)' }}>
+              <div className="text-xl mb-0.5">{icon}</div>
+              <div className="text-base font-extrabold leading-none mb-0.5" style={{ color: theme.p }}>{val}</div>
+              <div className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: 'var(--t-text-3)' }}>{sub}</div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
 
-        {/* Offers / promo section — uses /offers API list or falls back to salon.topOffer */}
-        {(() => {
-          const allOffers = offers.length > 0 ? offers : salon.topOffer ? [salon.topOffer] : [];
-          if (allOffers.length === 0) return null;
-          return (
-          <div className="mb-5 px-4 pt-3">
-            <div className="flex items-center gap-2 mb-2.5">
-              <span className="text-sm font-bold" style={{ color: 'var(--t-text)' }}>🏷️ Offers & Coupons</span>
-              <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: 'rgba(16,185,129,0.12)', color: '#059669' }}>{allOffers.length}</span>
+      {/* ══ OWNER CARD ══════════════════════════════════════════════════════ */}
+      {(salon.ownerName || salon.ownerPhoto) && (
+        <div className="max-w-2xl mx-auto px-4 mt-4">
+          <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: .3 }}
+            className="flex items-center gap-4 p-4 rounded-2xl"
+            style={{ background: 'var(--t-card)', border: `1px solid ${theme.p}25`, boxShadow: `0 4px 20px ${theme.p}12` }}>
+            <div className="w-14 h-14 rounded-full overflow-hidden shrink-0 border-2"
+              style={{ borderColor: `${theme.p}50` }}>
+              {salon.ownerPhoto
+                ? <img src={salon.ownerPhoto} alt={salon.ownerName} className="w-full h-full object-cover" />
+                : <div className="w-full h-full flex items-center justify-center text-2xl" style={{ background: `${theme.p}22` }}>🧑‍🎨</div>}
             </div>
-            <div className="space-y-2">
-              {allOffers.map((offer) => {
-                const offerLabel = offer.discountType === "percentage"
-                  ? `${offer.discountValue}% OFF${offer.minAmount > 0 ? ` on ₹${offer.minAmount}+` : ""}`
-                  : `₹${offer.discountValue} OFF${offer.minAmount > 0 ? ` on ₹${offer.minAmount}+` : ""}`;
-                const isFire     = !offer.isExpiringSoon && !offer.isLimited;
-                const borderClr  = offer.isExpiringSoon ? 'rgba(245,158,11,0.35)' : offer.isLimited ? 'rgba(239,68,68,0.28)' : 'rgba(16,185,129,0.25)';
-                const bgClr      = offer.isExpiringSoon ? 'rgba(245,158,11,0.07)' : offer.isLimited ? 'rgba(239,68,68,0.06)' : 'rgba(16,185,129,0.07)';
-                const textClr    = offer.isExpiringSoon ? '#d97706' : offer.isLimited ? '#dc2626' : '#059669';
-                return (
-                  <div key={offer.code}
-                    className="flex items-center gap-3 px-4 py-3 rounded-xl"
-                    style={{ background: bgClr, border: `1px solid ${borderClr}` }}
-                  >
-                    <span style={{ fontSize: 20 }}>{offer.isExpiringSoon ? '⏰' : offer.isLimited ? '🔥' : '🏷️'}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-bold" style={{ color: textClr }}>{offerLabel}</span>
-                        {offer.isExpiringSoon && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(245,158,11,0.15)', color: '#d97706', border: '1px solid rgba(245,158,11,0.3)' }}>
-                            ⏰ Expiring Soon
-                          </span>
-                        )}
-                        {offer.isLimited && !offer.isExpiringSoon && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(239,68,68,0.12)', color: '#dc2626', border: '1px solid rgba(239,68,68,0.25)' }}>
-                            ⚡ Limited Offer
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                        {offer.expiresLabel && (
-                          <span className="text-[11px]" style={{ color: offer.isExpiringSoon ? '#d97706' : 'var(--t-text-3)' }}>
-                            {offer.daysLeft === 0 ? '🔴' : offer.daysLeft === 1 ? '🟡' : '🟢'} {offer.expiresLabel}
-                          </span>
-                        )}
-                        {offer.remaining !== null && (
-                          <span className="text-[11px] font-semibold" style={{ color: offer.isLimited ? '#dc2626' : 'var(--t-text-3)' }}>
-                            {offer.remaining <= 5 ? `🔴 Only ${offer.remaining} left!` : offer.remaining <= 10 ? `🟡 Only ${offer.remaining} left` : `${offer.remaining} uses left`}
-                          </span>
-                        )}
-                        {offer.description && (
-                          <span className="text-[11px]" style={{ color: 'var(--t-text-3)' }}>{offer.description}</span>
-                        )}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => { setCouponInput(offer.code); if (!showBooking) openBooking(); }}
-                      className="text-xs font-bold px-3 py-1.5 rounded-xl shrink-0 transition-all hover:scale-105"
-                      style={{ background: `rgba(${offer.isExpiringSoon ? '245,158,11' : offer.isLimited ? '239,68,68' : '5,150,105'},0.15)`, color: textClr, border: `1px solid ${borderClr}`, letterSpacing: '0.5px' }}
-                    >
-                      {offer.code}
-                    </button>
-                  </div>
-                );
-              })}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="font-bold text-sm" style={{ color: 'var(--t-text)' }}>{salon.ownerName || 'Owner'}</span>
+                {salon.ownerGender && <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: `${theme.p}15`, color: theme.p }}>{salon.ownerGender === 'male' ? '👨' : '👩'}</span>}
+              </div>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--t-text-3)' }}>Founder & Head Stylist</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--t-text-2)' }}>Passionate about transformations ✨</p>
             </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* ══ OFFERS BANNER ═══════════════════════════════════════════════════ */}
+      {allOffers.length > 0 && (
+        <div className="max-w-2xl mx-auto px-4 mt-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-sm font-bold" style={{ color: 'var(--t-text)' }}>🏷️ Active Offers</span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold" style={{ background: 'rgba(16,185,129,0.15)', color: '#059669' }}>{allOffers.length} deals</span>
           </div>
-          );
-        })()}
+          <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-1">
+            {allOffers.map((offer) => {
+              const lbl = offer.discountType === 'percentage'
+                ? `${offer.discountValue}% OFF`
+                : `₹${offer.discountValue} OFF`;
+              const clr = offer.isExpiringSoon ? '#d97706' : offer.isLimited ? '#dc2626' : '#059669';
+              const bg  = offer.isExpiringSoon ? 'rgba(245,158,11,0.1)' : offer.isLimited ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)';
+              const br  = offer.isExpiringSoon ? 'rgba(245,158,11,0.3)' : offer.isLimited ? 'rgba(239,68,68,0.25)' : 'rgba(16,185,129,0.22)';
+              return (
+                <motion.button key={offer.code} whileTap={{ scale: 0.97 }}
+                  onClick={() => { setCouponInput(offer.code); if (!showBooking) openBooking(); }}
+                  className="sd-offer-pill shrink-0 flex flex-col items-start px-4 py-3 rounded-2xl text-left"
+                  style={{ background: bg, border: `1px solid ${br}`, minWidth: 140 }}>
+                  <span className="text-lg font-extrabold" style={{ color: clr }}>{lbl}</span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 mb-1" style={{ background: bg, color: clr, border: `1px solid ${br}` }}>
+                    {offer.code}
+                  </span>
+                  {offer.minAmount > 0 && <span className="text-[10px]" style={{ color: 'var(--t-text-3)' }}>on ₹{offer.minAmount}+</span>}
+                </motion.button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
-        {/* ── TABS — Instagram-style icon bar ── */}
-        <div className="flex border-t border-b" style={{ borderColor: 'var(--t-border)' }}>
+      {/* ══ CONTENT ═════════════════════════════════════════════════════════ */}
+      <div className="max-w-2xl mx-auto mt-4 pb-28">
+
+        {/* ── TABS ── */}
+        <div className="flex relative border-b sticky top-0 z-20"
+          style={{ background: 'var(--t-bg)', borderColor: 'var(--t-border)' }}>
           {TABS.map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className="flex-1 py-3 flex flex-col items-center justify-center gap-0.5 transition-all relative"
-              style={{ color: activeTab === t ? 'var(--t-text)' : 'var(--t-text-3)' }}
-            >
+            <button key={t} onClick={() => setTab(t)}
+              className="flex-1 py-3 flex flex-col items-center gap-0.5 relative transition-colors"
+              style={{ color: activeTab === t ? theme.p : 'var(--t-text-3)' }}>
               {activeTab === t && (
-                <span className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: 'var(--t-text)' }} />
+                <motion.span layoutId="sd-tab-ind" className="sd-tab-indicator" style={{ background: theme.p }} />
               )}
-              <span style={{ opacity: activeTab === t ? 1 : 0.45 }}>{TAB_ICONS[t]}</span>
+              <span style={{ opacity: activeTab === t ? 1 : 0.5 }}>{TAB_ICONS[t]}</span>
               <span className="text-[9px] font-semibold uppercase tracking-wide hidden sm:block">{t}</span>
             </button>
           ))}
         </div>
 
-        {/* ══ GALLERY TAB — Instagram 3-col grid ════════════════════════ */}
+        {/* ══ GALLERY TAB ════════════════════════════════════════════════ */}
         {activeTab === "Gallery" && (
-          <div className="fade-in">
-            {galleryItems.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 gap-3">
-                <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: 'var(--t-bg-2)' }}>
-                  <Play className="w-7 h-7" style={{ color: 'var(--t-text-3)' }} />
+          <AnimatePresence mode="wait">
+            <motion.div key="gallery" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: .25 }}>
+              {galleryItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-24 gap-4">
+                  <div className="w-20 h-20 rounded-full flex items-center justify-center" style={{ background: 'var(--t-bg-2)' }}>
+                    <Play className="w-8 h-8" style={{ color: 'var(--t-text-3)' }} />
+                  </div>
+                  <div className="text-center">
+                    <p className="font-bold text-base" style={{ color: 'var(--t-text-2)' }}>No transformations yet</p>
+                    <p className="text-sm mt-1" style={{ color: 'var(--t-text-3)' }}>Be the first to book — your result could be first!</p>
+                  </div>
                 </div>
-                <p className="text-sm font-semibold" style={{ color: 'var(--t-text-2)' }}>No posts yet</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-[2px]">
-                {galleryItems.map((item, i) => {
-                  const videoIdx = item.type === 'video' ? salonVideoUrls.indexOf(item.url) : -1;
-                  const thumbUrl = item.type === 'video' && item.url.includes('/video/upload/')
-                    ? item.url.replace('/video/upload/', '/video/upload/w_400,h_400,c_fill,q_auto,f_jpg,vc_none/').replace(/\.(mp4|mov|avi|mkv|webm)(\?.*)?$/i, '.jpg')
-                    : '';
-                  return (
-                    <button key={i}
-                      onClick={() => item.type === 'video' ? setVideoViewerIdx(videoIdx) : setGalleryLightbox(i)}
-                      className="relative aspect-square overflow-hidden focus:outline-none group">
-                      {item.type === 'video' ? (
-                        <>
-                          <div className="absolute inset-0" style={{ background: 'var(--t-bg-2)' }} />
-                          {thumbUrl && <img src={thumbUrl} alt="Video" className="absolute inset-0 w-full h-full object-cover" onError={e => { e.currentTarget.style.display='none'; }} />}
-                          <div className="absolute top-1.5 right-1.5">
-                            <Play className="w-4 h-4 text-white drop-shadow" fill="white" />
-                          </div>
-                        </>
-                      ) : (
-                        <img src={item.url} alt="" className="w-full h-full object-cover group-hover:brightness-90 transition-all" onError={e => { e.currentTarget.style.display='none'; }} />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+              ) : (
+                <div className="grid grid-cols-3 gap-[2px]">
+                  {galleryItems.map((item, i) => {
+                    const videoIdx = item.type === 'video' ? salonVideoUrls.indexOf(item.url) : -1;
+                    const thumbUrl = item.type === 'video' && item.url.includes('/video/upload/')
+                      ? item.url.replace('/video/upload/', '/video/upload/w_400,h_400,c_fill,q_auto,f_jpg,vc_none/').replace(/\.(mp4|mov|avi|mkv|webm)(\?.*)?$/i, '.jpg')
+                      : '';
+                    return (
+                      <motion.button key={i} whileTap={{ opacity: 0.85 }}
+                        onClick={() => item.type === 'video' ? setVideoViewerIdx(videoIdx) : setGalleryLightbox(i)}
+                        className="sd-gallery-item relative aspect-square overflow-hidden focus:outline-none group">
+                        <div className="w-full h-full overflow-hidden">
+                          {item.type === 'video' ? (
+                            <>
+                              <div className="absolute inset-0" style={{ background: '#111' }} />
+                              {thumbUrl && <img src={thumbUrl} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-400" onError={e => { e.currentTarget.style.display='none'; }} />}
+                              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+                              <div className="absolute top-2 right-2"><Play className="w-4 h-4 text-white drop-shadow-lg" fill="white" /></div>
+                            </>
+                          ) : (
+                            <img src={item.url} alt="" className="w-full h-full object-cover transition-transform duration-400" onError={e => { e.currentTarget.style.display='none'; }} />
+                          )}
+                        </div>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              )}
 
-            {/* Lightbox */}
-            {galleryLightbox !== null && galleryItems[galleryLightbox] && (() => {
-              const lbItem = galleryItems[galleryLightbox];
-              const isVideo = lbItem.type === 'video';
-              const goPrev = () => { galleryVideoRef.current?.pause(); setGalleryLightbox(i => i - 1); };
-              const goNext = () => { galleryVideoRef.current?.pause(); setGalleryLightbox(i => i + 1); };
-              const closeGallery = () => { galleryVideoRef.current?.pause(); setGalleryLightbox(null); };
-              return (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-4" onClick={closeGallery}>
-                  <button onClick={closeGallery} className="absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition"><X className="w-5 h-5" /></button>
-                  <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
-                    <span className="text-white text-sm font-semibold bg-black/40 px-3 py-1 rounded-full">{galleryLightbox + 1} / {galleryItems.length}</span>
-                  </div>
-                  <div className="max-w-4xl w-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
-                    {isVideo
-                      ? <video ref={galleryVideoRef} src={lbItem.url} controls autoPlay className="max-h-[80vh] max-w-full rounded-xl" />
-                      : <img src={lbItem.url} alt="" className="max-h-[80vh] max-w-full rounded-xl object-contain" />}
-                  </div>
-                  {galleryLightbox > 0 && <button onClick={e => { e.stopPropagation(); goPrev(); }} className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 text-white transition"><ChevronLeft className="w-6 h-6" /></button>}
-                  {galleryLightbox < galleryItems.length - 1 && <button onClick={e => { e.stopPropagation(); goNext(); }} className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 text-white transition"><ChevronRight className="w-6 h-6" /></button>}
-                </div>
-              );
-            })()}
-          </div>
+              {galleryLightbox !== null && galleryItems[galleryLightbox] && (() => {
+                const lbItem = galleryItems[galleryLightbox];
+                const isVideo = lbItem.type === 'video';
+                const goPrev = () => { galleryVideoRef.current?.pause(); setGalleryLightbox(i => i - 1); };
+                const goNext = () => { galleryVideoRef.current?.pause(); setGalleryLightbox(i => i + 1); };
+                const closeGallery = () => { galleryVideoRef.current?.pause(); setGalleryLightbox(null); };
+                return (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/96 p-4" onClick={closeGallery}>
+                    <button onClick={closeGallery} className="absolute top-5 right-5 z-10 w-11 h-11 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white"><X className="w-5 h-5" /></button>
+                    <div className="absolute top-5 left-1/2 -translate-x-1/2 z-10">
+                      <span className="text-white text-sm font-semibold bg-white/10 px-3 py-1 rounded-full">{galleryLightbox + 1} / {galleryItems.length}</span>
+                    </div>
+                    <div className="max-w-4xl w-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
+                      {isVideo
+                        ? <video ref={galleryVideoRef} src={lbItem.url} controls autoPlay className="max-h-[80vh] max-w-full rounded-2xl" />
+                        : <img src={lbItem.url} alt="" className="max-h-[80vh] max-w-full rounded-2xl object-contain" />}
+                    </div>
+                    {galleryLightbox > 0 && <button onClick={e => { e.stopPropagation(); goPrev(); }} className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white"><ChevronLeft className="w-6 h-6" /></button>}
+                    {galleryLightbox < galleryItems.length - 1 && <button onClick={e => { e.stopPropagation(); goNext(); }} className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white"><ChevronRight className="w-6 h-6" /></button>}
+                  </motion.div>
+                );
+              })()}
+            </motion.div>
+          </AnimatePresence>
         )}
 
         {/* ══ SERVICES TAB ═══════════════════════════════════════════════ */}
@@ -978,12 +1141,13 @@ function SalonDetails() {
 
         {/* ══ REVIEWS TAB ════════════════════════════════════════════════ */}
         {activeTab === "Reviews" && (
-          <div className="fade-in pb-8 px-4 pt-4">
+          <div className="fade-in pb-8 pt-4">
+            {/* Rating summary card */}
             {reviews.length > 0 && avgRating && (
-              <div className="rounded-2xl p-5 mb-5 flex items-center gap-5"
+              <div className="mx-4 rounded-2xl p-5 mb-5 flex items-center gap-5"
                 style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
                 <div className="text-center shrink-0">
-                  <div className="text-4xl font-extrabold" style={{ color: 'var(--t-text)' }}>{avgRating}</div>
+                  <div className="text-4xl font-extrabold" style={{ color: theme.p }}>{avgRating}</div>
                   <div className="flex items-center gap-0.5 justify-center my-1">
                     {[1,2,3,4,5].map(s => (
                       <span key={s} style={{ color: s <= Math.round(parseFloat(avgRating)) ? '#fbbf24' : 'var(--t-border)' }}>★</span>
@@ -1010,20 +1174,70 @@ function SalonDetails() {
                 </div>
               </div>
             )}
-            <div className="rounded-2xl p-4 mb-5 flex items-start gap-3"
-              style={{ background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.18)' }}>
-              <Star className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#818cf8' }} />
-              <p className="text-sm" style={{ color: '#818cf8' }}>
+
+            {/* Info note */}
+            <div className="mx-4 rounded-2xl p-4 mb-5 flex items-start gap-3"
+              style={{ background: `${theme.p}10`, border: `1px solid ${theme.p}28` }}>
+              <Star className="w-4 h-4 mt-0.5 shrink-0" style={{ color: theme.p }} />
+              <p className="text-sm" style={{ color: theme.p }}>
                 Reviews can be submitted after completing a booking.
               </p>
             </div>
+
             {reviews.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="flex justify-center mb-3"><MessageSquare className="w-10 h-10" style={{ color: 'var(--t-border)' }} /></div>
-                <p style={{ color: 'var(--t-text-2)' }}>No reviews yet. Be the first!</p>
+              <div className="text-center py-12 px-4">
+                <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--t-bg-2)' }}>
+                  <MessageSquare className="w-8 h-8" style={{ color: 'var(--t-text-3)' }} />
+                </div>
+                <p className="font-bold text-base mb-1" style={{ color: 'var(--t-text-2)' }}>No reviews yet</p>
+                <p className="text-sm" style={{ color: 'var(--t-text-3)' }}>Be the first to share your experience!</p>
               </div>
             ) : (
-              <div className="space-y-3">{reviews.map((r) => <ReviewCard key={r._id} review={r} />)}</div>
+              <>
+                {/* Horizontal carousel */}
+                <div className="sd-review-track px-4">
+                  {reviews.map((r, i) => {
+                    const starRating = Math.round(r.salonRating || r.rating || 5);
+                    const name = r.customerId?.name || r.customerName || 'Anonymous';
+                    const initial = name.charAt(0).toUpperCase();
+                    const avatarColors = ['#e94560','#8b5cf6','#10b981','#f59e0b','#38bdf8'];
+                    const avatarBg = avatarColors[i % avatarColors.length];
+                    return (
+                      <motion.div key={r._id}
+                        initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * .05 }}
+                        className="shrink-0 rounded-2xl p-4 flex flex-col gap-3"
+                        style={{ width: 260, background: 'var(--t-card)', border: '1px solid var(--t-border)', scrollSnapAlign: 'start' }}>
+                        {/* Stars */}
+                        <div className="flex items-center gap-0.5">
+                          {[1,2,3,4,5].map(s => (
+                            <span key={s} className="text-sm" style={{ color: s <= starRating ? '#fbbf24' : 'var(--t-border)' }}>★</span>
+                          ))}
+                          <span className="text-xs ml-auto font-semibold" style={{ color: 'var(--t-text-3)' }}>
+                            {r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : ''}
+                          </span>
+                        </div>
+                        {/* Comment */}
+                        {r.comment && (
+                          <p className="text-sm leading-relaxed flex-1" style={{ color: 'var(--t-text-2)', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                            "{r.comment}"
+                          </p>
+                        )}
+                        {/* Author */}
+                        <div className="flex items-center gap-2.5 mt-auto pt-1" style={{ borderTop: '1px solid var(--t-border)' }}>
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+                            style={{ background: avatarBg }}>
+                            {initial}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold truncate" style={{ color: 'var(--t-text)' }}>{name}</p>
+                            {r.serviceId?.name && <p className="text-[10px] truncate" style={{ color: 'var(--t-text-3)' }}>{r.serviceId.name}</p>}
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </>
             )}
           </div>
         )}
@@ -1139,44 +1353,71 @@ function SalonDetails() {
         )}
       </div>
 
-      {/* ══ STICKY BOOKING BAR ════════════════════════════════════════════ */}
-      {selectedServices.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 px-4 py-3 fade-in md:bottom-4 md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-2xl md:rounded-2xl md:shadow-2xl"
-          style={{ background: 'var(--t-card)', borderTop: '1px solid var(--t-border)', boxShadow: '0 -8px 32px rgba(0,0,0,0.15)' }}>
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: 'rgba(99,102,241,0.15)' }}>
-                <ShoppingBag className="w-5 h-5" style={{ color: '#818cf8' }} />
+      {/* ══ STICKY BOOKING BAR (always visible) ══════════════════════════ */}
+      <AnimatePresence mode="wait">
+        {selectedServices.length > 0 ? (
+          <motion.div key="selected"
+            initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 340, damping: 30 }}
+            className="fixed bottom-0 left-0 right-0 z-40 px-4 py-3 md:bottom-4 md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-2xl md:rounded-2xl md:shadow-2xl"
+            style={{ background: 'var(--t-card)', borderTop: '1px solid var(--t-border)', boxShadow: '0 -8px 32px rgba(0,0,0,0.18)' }}>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ background: `${theme.p}1a` }}>
+                  <ShoppingBag className="w-5 h-5" style={{ color: theme.p }} />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-bold text-sm" style={{ color: 'var(--t-text)' }}>
+                    {selectedServices.length} service{selectedServices.length > 1 ? "s" : ""} selected
+                  </p>
+                  <p className="text-xs font-semibold truncate" style={{ color: theme.p }}>
+                    ₹{totalPrice} · {totalDuration} min
+                  </p>
+                </div>
               </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => setSelectedServices([])}
+                  className="text-sm px-3 py-2 rounded-lg"
+                  style={{ color: 'var(--t-text-3)' }}
+                >
+                  Clear
+                </button>
+                <motion.button whileTap={{ scale: 0.96 }} whileHover={{ scale: 1.03 }}
+                  onClick={handleBookNow}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white"
+                  style={{ background: `linear-gradient(135deg,${theme.p},${theme.p}cc)`, boxShadow: `0 4px 16px ${theme.p}45` }}
+                >
+                  <Zap className="w-4 h-4" /> Book Now →
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div key="idle"
+            initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 340, damping: 30 }}
+            className="fixed bottom-0 left-0 right-0 z-40 px-4 py-3 md:bottom-4 md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-2xl md:rounded-2xl md:shadow-2xl"
+            style={{ background: 'var(--t-card)', borderTop: '1px solid var(--t-border)', boxShadow: '0 -8px 32px rgba(0,0,0,0.18)' }}>
+            <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="font-bold text-sm" style={{ color: 'var(--t-text)' }}>
-                  {selectedServices.length} service{selectedServices.length > 1 ? "s" : ""} selected
-                </p>
-                <p className="text-xs font-semibold truncate" style={{ color: '#818cf8' }}>
-                  ₹{totalPrice} · {totalDuration} min
+                <p className="font-bold text-sm" style={{ color: 'var(--t-text)' }}>{salon.name}</p>
+                <p className="text-xs truncate" style={{ color: 'var(--t-text-3)' }}>
+                  {nextSlot ? `Next slot: ${nextSlot}` : openStatus === false ? (opensAt ? `Opens at ${opensAt}` : 'Closed today') : 'Select a service to book'}
                 </p>
               </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={() => setSelectedServices([])}
-                className="text-sm px-3 py-2 rounded-lg transition-all"
-                style={{ color: 'var(--t-text-3)' }}
+              <motion.button whileTap={{ scale: 0.96 }} whileHover={{ scale: 1.03 }}
+                onClick={handleBookNowEmpty}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white shrink-0"
+                style={{ background: `linear-gradient(135deg,${theme.p},${theme.p}cc)`, boxShadow: `0 4px 16px ${theme.p}45` }}
               >
-                Clear
-              </button>
-              <button
-                onClick={handleBookNow}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:scale-105"
-                style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', boxShadow: '0 4px 16px rgba(99,102,241,0.35)' }}
-              >
-                <Zap className="w-4 h-4" /> Book Now →
-              </button>
+                <Zap className="w-4 h-4" /> Book Now
+              </motion.button>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ══ VIDEO VIEWER — outside fade-in to avoid stacking-context trap ══ */}
       {videoViewerIdx !== null && salonVideoUrls.length > 0 && (
