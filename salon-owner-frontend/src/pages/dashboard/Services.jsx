@@ -15,6 +15,7 @@ import {
   ALL_CATEGORY_ORDER,
   MALE_ONLY_CAT_LABELS,
   FEMALE_ONLY_CAT_LABELS,
+  getCategoriesForSalonType,
 } from '../../constants/salonCategories';
 
 /* ─── Skeleton card ──────────────────────────────────────────── */
@@ -87,6 +88,11 @@ const StatsBar = ({ total, active, inactive }) => (
 /* ─── Service Menu (offeredCategories view) ──────────────────── */
 const ServiceMenuSection = ({ salon }) => {
   const [expanded, setExpanded] = useState(null);
+  const [expandedSection, setExpandedSection] = useState({});
+  const isSalon = salon?.businessType === 'salon';
+  const catDefs = isSalon
+    ? getCategoriesForSalonType(salon.businessType, salon.servedGender)
+    : [];
 
   if (!salon?.offeredCategories?.length) return null;
 
@@ -170,8 +176,8 @@ const ServiceMenuSection = ({ salon }) => {
                   hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                 <span className="text-base shrink-0">{CATEGORY_ICON_MAP[cat.name] || '✨'}</span>
                 <span className="flex-1 text-sm font-semibold text-gray-800 dark:text-gray-200">{cat.name}</span>
-                {isUnisex && isMaleOnly   && <span className="text-xs text-blue-500 font-medium">👨 Men</span>}
-                {isUnisex && isFemaleOnly && <span className="text-xs text-pink-500 font-medium">👩 Women</span>}
+                {isUnisex && isMaleOnly   && <span className="text-xs text-blue-500 font-medium">👨 Male</span>}
+                {isUnisex && isFemaleOnly && <span className="text-xs text-pink-500 font-medium">👩 Female</span>}
                 <span className="text-xs text-gray-400 dark:text-gray-600 font-medium">{subs.length}</span>
                 <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
               </button>
@@ -179,17 +185,69 @@ const ServiceMenuSection = ({ salon }) => {
                 <div className="px-5 pb-4 bg-gray-50/50 dark:bg-gray-800/30">
                   {subs.length === 0 ? (
                     <p className="text-xs text-gray-400 dark:text-gray-600 py-2">No sub-services selected</p>
-                  ) : showSplit ? (
+                  ) : isSalon ? (() => {
+                    const catDef = catDefs.find(d => d.label === cat.name);
+                    const sectionDefs = catDef?.sections || [];
+                    const sectionSubs = sectionDefs.map(sec => ({
+                      label: sec.label,
+                      subs: subs.filter(s => {
+                        const name = typeof s === 'string' ? s : s.name;
+                        return sec.services.includes(name);
+                      }),
+                    })).filter(sec => sec.subs.length > 0);
+                    if (!sectionSubs.length) {
+                      return <div className="flex flex-wrap gap-1.5">{subs.map((s,i)=><Chip key={i} sub={s}/>)}</div>;
+                    }
+                    return (
+                      <div className="space-y-1.5">
+                        {sectionSubs.map((sec, si) => {
+                          const secKey = `${idx}-${si}`;
+                          const isSecOpen = !!expandedSection[secKey];
+                          const isMaleSec   = sec.label === 'Men';
+                          const isFemaleSec = sec.label === 'Female';
+                          const btnCls = isMaleSec
+                            ? 'bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/30'
+                            : isFemaleSec
+                            ? 'bg-pink-50 dark:bg-pink-950/30 hover:bg-pink-100 dark:hover:bg-pink-900/30'
+                            : 'bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50';
+                          const labelCls = isMaleSec
+                            ? 'text-blue-600 dark:text-blue-400'
+                            : isFemaleSec
+                            ? 'text-pink-600 dark:text-pink-400'
+                            : 'text-indigo-600 dark:text-indigo-400';
+                          const chevCls = isMaleSec ? 'text-blue-400' : isFemaleSec ? 'text-pink-400' : 'text-indigo-400';
+                          const displayLabel = isMaleSec ? '👨 Male' : isFemaleSec ? '👩 Female' : sec.label;
+                          return (
+                            <div key={si}>
+                              <button
+                                type="button"
+                                onClick={() => setExpandedSection(prev => ({ ...prev, [secKey]: !prev[secKey] }))}
+                                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors ${btnCls}`}>
+                                <span className={`text-xs font-semibold ${labelCls}`}>{displayLabel}</span>
+                                <span className={`text-xs ${chevCls} ml-1`}>({sec.subs.length})</span>
+                                <ChevronDown className={`w-3 h-3 ${chevCls} ml-auto transition-transform duration-200 ${isSecOpen ? 'rotate-180' : ''}`} />
+                              </button>
+                              {isSecOpen && (
+                                <div className="flex flex-wrap gap-1.5 mt-2 px-1 pb-1">
+                                  {sec.subs.map((s,i) => <Chip key={i} sub={s} />)}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })() : showSplit ? (
                     <div className="space-y-3">
                       {menSubs.length > 0 && (
                         <div>
-                          <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1.5">👨 Men</p>
+                          <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1.5">👨 Male</p>
                           <div className="flex flex-wrap gap-1.5">{menSubs.map((s,i)=><Chip key={i} sub={s}/>)}</div>
                         </div>
                       )}
                       {womenSubs.length > 0 && (
                         <div>
-                          <p className="text-xs font-semibold text-pink-600 dark:text-pink-400 mb-1.5">👩 Women</p>
+                          <p className="text-xs font-semibold text-pink-600 dark:text-pink-400 mb-1.5">👩 Female</p>
                           <div className="flex flex-wrap gap-1.5">{womenSubs.map((s,i)=><Chip key={i} sub={s}/>)}</div>
                         </div>
                       )}
@@ -218,6 +276,7 @@ const Services = () => {
   const [expandedCat,       setExpandedCat]        = useState(null);
   const [search,            setSearch]             = useState('');
   const [showMenuSection,   setShowMenuSection]    = useState(false);
+  const [expandedGender,    setExpandedGender]     = useState({});
 
   useEffect(() => {
     const load = async () => {
@@ -352,6 +411,7 @@ const Services = () => {
   };
 
   const isUnisex = salon?.servedGender === 'unisex';
+  const isSalon  = salon?.businessType === 'salon';
 
   return (
     <DashboardLayout>
@@ -501,8 +561,8 @@ const Services = () => {
                   >
                     <span className="text-lg shrink-0">{CATEGORY_ICON_MAP[cat] || '✨'}</span>
                     <span className="flex-1 text-sm font-bold text-gray-800 dark:text-gray-200">{cat}</span>
-                    {isUnisex && isMaleOnly   && <span className="text-xs font-medium text-blue-500">👨 Men</span>}
-                    {isUnisex && isFemaleOnly && <span className="text-xs font-medium text-pink-500">👩 Women</span>}
+                    {isUnisex && isMaleOnly   && <span className="text-xs font-medium text-blue-500">👨 Male</span>}
+                    {isUnisex && isFemaleOnly && <span className="text-xs font-medium text-pink-500">👩 Female</span>}
                     <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800">
                       {svcs.length}
                     </span>
@@ -514,13 +574,50 @@ const Services = () => {
                     <div className="border-t border-gray-100 dark:border-gray-800 p-4">
                       {!showSplit ? (
                         renderCards(svcs)
+                      ) : isSalon ? (
+                        <div className="space-y-2">
+                          {menSvcs.length > 0 && (
+                            <div>
+                              <button
+                                type="button"
+                                onClick={() => setExpandedGender(prev => ({ ...prev, [cat]: prev[cat] === 'male' ? null : 'male' }))}
+                                className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-left
+                                  bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/30
+                                  border border-blue-100 dark:border-blue-900/40 transition-colors">
+                                <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">👨 Male</span>
+                                <span className="text-xs text-blue-400 ml-1">({menSvcs.length})</span>
+                                <ChevronDown className={`w-4 h-4 text-blue-400 ml-auto transition-transform duration-200 ${expandedGender[cat] === 'male' ? 'rotate-180' : ''}`} />
+                              </button>
+                              {expandedGender[cat] === 'male' && (
+                                <div className="pt-3">{renderCards(menSvcs)}</div>
+                              )}
+                            </div>
+                          )}
+                          {womenSvcs.length > 0 && (
+                            <div>
+                              <button
+                                type="button"
+                                onClick={() => setExpandedGender(prev => ({ ...prev, [cat]: prev[cat] === 'female' ? null : 'female' }))}
+                                className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-left
+                                  bg-pink-50 dark:bg-pink-950/30 hover:bg-pink-100 dark:hover:bg-pink-900/30
+                                  border border-pink-100 dark:border-pink-900/40 transition-colors">
+                                <span className="text-sm font-semibold text-pink-600 dark:text-pink-400">👩 Female</span>
+                                <span className="text-xs text-pink-400 ml-1">({womenSvcs.length})</span>
+                                <ChevronDown className={`w-4 h-4 text-pink-400 ml-auto transition-transform duration-200 ${expandedGender[cat] === 'female' ? 'rotate-180' : ''}`} />
+                              </button>
+                              {expandedGender[cat] === 'female' && (
+                                <div className="pt-3">{renderCards(womenSvcs)}</div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       ) : (
                         <div className="space-y-5">
                           {menSvcs.length > 0 && (
                             <div>
                               <div className="flex items-center gap-2 mb-3 px-1">
                                 <div className="h-px flex-1 bg-blue-100 dark:bg-blue-900/40" />
-                                <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">👨 Men</span>
+                                <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">👨 Male</span>
                                 <div className="h-px flex-1 bg-blue-100 dark:bg-blue-900/40" />
                               </div>
                               {renderCards(menSvcs)}
@@ -530,7 +627,7 @@ const Services = () => {
                             <div>
                               <div className="flex items-center gap-2 mb-3 px-1">
                                 <div className="h-px flex-1 bg-pink-100 dark:bg-pink-900/40" />
-                                <span className="text-xs font-semibold text-pink-600 dark:text-pink-400">👩 Women</span>
+                                <span className="text-xs font-semibold text-pink-600 dark:text-pink-400">👩 Female</span>
                                 <div className="h-px flex-1 bg-pink-100 dark:bg-pink-900/40" />
                               </div>
                               {renderCards(womenSvcs)}
