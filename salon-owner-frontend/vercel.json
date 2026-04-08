@@ -1,5 +1,5 @@
 {
   "rewrites": [
-    { "source": "/((?!assets/).*)", "destination": "/index.html" }
+    { "source": "/((?!assets/|favicon_io/).*)", "destination": "/index.html" }
   ]
 }
