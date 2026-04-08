@@ -188,7 +188,7 @@ export default function PendingSalons() {
             }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
                 {salon.logo || (salon.photos && salon.photos[0]) ? (
-                  <img src={salon.logo || salon.photos[0]} alt="" style={{ width: 64, height: 64, borderRadius: 12, objectFit: 'cover', flexShrink: 0 }} />
+                  <img src={salon.logo || salon.photos[0]?.url || salon.photos[0]} alt="" style={{ width: 64, height: 64, borderRadius: 12, objectFit: 'cover', flexShrink: 0 }} />
                 ) : (
                   <div style={{ width: 64, height: 64, borderRadius: 12, background: 'rgba(99,102,241,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <span style={{ fontSize: 24 }}>✂</span>

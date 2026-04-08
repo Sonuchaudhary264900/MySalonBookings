@@ -324,7 +324,7 @@ export default function AllSalons() {
                     <td style={{ padding: '14px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         {salon.logo || (salon.photos && salon.photos[0]) ? (
-                          <img src={salon.logo || salon.photos[0]} alt="" style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+                          <img src={salon.logo || salon.photos[0]?.url || salon.photos[0]} alt="" style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
                         ) : (
                           <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(99,102,241,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>✂</div>
                         )}

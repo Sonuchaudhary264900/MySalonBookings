@@ -20,6 +20,14 @@ const MakeupBrushIcon = ({ size = 15, color = 'currentColor' }) => (
   </svg>
 );
 
+const OWNER_TYPE_TO_BIZ_KEY = {
+  BARBERSHOP_OWNER:    'barbershop',
+  SALON_OWNER:         'salon',
+  SPA_WELLNESS_OWNER:  'spa_wellness',
+  MAKEUP_BRIDAL_OWNER: 'makeup_bridal',
+  SKIN_DERMA_OWNER:    'skin_derma',
+};
+
 const BIZ_TYPES = [
   { key: '',              label: 'All Owners',     Icon: Users,           color: '#6366f1', grad: 'linear-gradient(135deg,#6366f1,#8b5cf6)' },
   { key: 'barbershop',    label: 'Barbershop',      Icon: Scissors,        color: '#0ea5e9', grad: 'linear-gradient(135deg,#0ea5e9,#6366f1)' },
@@ -237,7 +245,8 @@ export default function Owners() {
                 </tr>
               ) : owners.map((owner, i) => {
                 const sc  = STATUS_META[owner.status] || STATUS_META.pending_approval;
-                const biz = BIZ_TYPES.find(b => b.key === owner.businessId?.businessType);
+                const bizKey = owner.businessId?.businessType || OWNER_TYPE_TO_BIZ_KEY[owner.ownerType];
+                const biz = BIZ_TYPES.find(b => b.key === bizKey);
                 const avatarGrads = ['linear-gradient(135deg,#6366f1,#8b5cf6)', 'linear-gradient(135deg,#0ea5e9,#6366f1)', 'linear-gradient(135deg,#10b981,#0ea5e9)', 'linear-gradient(135deg,#ec4899,#f59e0b)'];
                 const avatarGrad = avatarGrads[i % 4];
                 return (

@@ -4,7 +4,7 @@ import {
   Globe, Bell, Settings, Lock, User, Calendar, CalendarX,
   Save, Edit2, X, ChevronDown, Plus,
   CheckCircle2, BellOff, Camera, Trash2, ImagePlus, GitBranch,
-  Eye, EyeOff, Info, Clock,
+  Eye, EyeOff, Info, Clock, Video,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -330,6 +330,37 @@ const ProfileContent = () => {
 };
 
 /* ─── Salon Information ───────────────────────────────────────── */
+async function uploadVideoToCloudinary(file, onProgress) {
+  const sigRes = await api.get('/owner/gallery/upload-signature?resource_type=video');
+  const sig = sigRes.data.data;
+  const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const clean = new File([file], safe, { type: file.type });
+  const fd = new FormData();
+  fd.append('file', clean);
+  fd.append('api_key', sig.api_key);
+  fd.append('timestamp', sig.timestamp);
+  fd.append('signature', sig.signature);
+  fd.append('folder', sig.folder);
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.upload.addEventListener('progress', e => { if (e.lengthComputable) onProgress(e.loaded / e.total); });
+    xhr.addEventListener('load', () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        const d = JSON.parse(xhr.responseText);
+        resolve({ url: d.secure_url, publicId: d.public_id });
+      } else {
+        let msg = `Upload error (${xhr.status})`;
+        try { msg = JSON.parse(xhr.responseText)?.error?.message || msg; } catch {}
+        reject(new Error(msg));
+      }
+    });
+    xhr.addEventListener('error', () => reject(new Error('Network error')));
+    xhr.timeout = 20 * 60 * 1000;
+    xhr.open('POST', `https://api.cloudinary.com/v1_1/${sig.cloud_name}/video/upload`);
+    xhr.send(fd);
+  });
+}
+
 const SalonContent = ({ salon, updateSalon }) => {
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -338,6 +369,9 @@ const SalonContent = ({ salon, updateSalon }) => {
     name: '', description: '',
     phone: '', email: '', address: '', city: '', state: '',
   });
+  const [videoUploading, setVideoUploading] = useState(false);
+  const [videoProgress,  setVideoProgress]  = useState(0);
+  const videoInputRef = useRef(null);
 
   const businessTypeDef = SALON_TYPES.find(t => t.key === salon?.businessType);
   const bizName = { barbershop: 'Barbershop', salon: 'Salon', spa_wellness: 'Spa', makeup_bridal: 'Studio', skin_derma: 'Clinic' }[businessTypeDef?.key] || 'Salon';
@@ -403,13 +437,50 @@ const SalonContent = ({ salon, updateSalon }) => {
     </div>
   );
 
+  const handleVideoUpload = async (file) => {
+    if (!file) return;
+    if (file.size > 100 * 1024 * 1024) { toast.error('Video must be under 100MB'); return; }
+    setVideoUploading(true); setVideoProgress(0);
+    try {
+      const { url } = await uploadVideoToCloudinary(file, p => setVideoProgress(p));
+      await updateSalon({ videoUrl: url });
+      toast.success('Business video updated!');
+    } catch (err) {
+      toast.error(err.message || 'Video upload failed');
+    } finally { setVideoUploading(false); }
+  };
+
   return !editing ? (
     <div className="space-y-1 mt-3">
       {salon?.coverPhoto || salon?.photos?.[0] ? (
         <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 mb-4">
-          <img src={salon.coverPhoto || salon.photos[0]} alt="Salon" className="w-full h-40 object-cover" />
+          <img src={salon.coverPhoto || salon.photos[0]?.url || salon.photos[0]} alt="Salon" className="w-full h-40 object-cover" />
         </div>
       ) : null}
+
+      {/* Business Tour Video */}
+      <div className="py-3 border-b border-gray-100 dark:border-gray-800">
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1.5">
+          <Video className="w-4 h-4" /> Business Tour Video
+        </p>
+        {salon?.videoUrl ? (
+          <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 mb-2">
+            <video src={salon.videoUrl} controls className="w-full max-h-48 bg-black" />
+          </div>
+        ) : (
+          <p className="text-sm text-gray-400 dark:text-gray-500 mb-2">No video uploaded yet</p>
+        )}
+        <input ref={videoInputRef} type="file" accept="video/mp4,video/mov,video/avi,video/quicktime" style={{ display: 'none' }}
+          onChange={e => handleVideoUpload(e.target.files[0])} />
+        <button type="button" onClick={() => videoInputRef.current?.click()} disabled={videoUploading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-indigo-200 dark:border-indigo-700
+            text-indigo-600 dark:text-indigo-400 text-xs font-semibold
+            hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors disabled:opacity-60">
+          {videoUploading
+            ? <><span className="w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" /> Uploading {Math.round(videoProgress * 100)}%</>
+            : <><Video className="w-3 h-3" /> {salon?.videoUrl ? 'Replace Video' : 'Upload Video'}</>}
+        </button>
+      </div>
 
       {[
         { label: `${bizName} Name`,  value: form.name },

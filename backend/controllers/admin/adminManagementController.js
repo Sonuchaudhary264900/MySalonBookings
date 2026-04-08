@@ -81,7 +81,7 @@ const getAllOwners = async (req, res) => {
 
     const [owners, total] = await Promise.all([
       Owner.find(query)
-        .select('name email phone status approvalStatus createdAt businessId')
+        .select('name email phone status ownerType approvalStatus createdAt businessId')
         .populate('businessId', 'businessType name')
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
