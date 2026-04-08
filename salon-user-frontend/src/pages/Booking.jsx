@@ -189,8 +189,26 @@ function Booking() {
       }
       setSuccess(true);
     } catch (err) {
-      addToast("error", err.message || "Booking failed. Please try again.");
-      setError(err.message || "Booking failed. Please try again.");
+      const status  = err.response?.status;
+      const message = err.response?.data?.message || "Booking failed. Please try again.";
+
+      if (status === 409) {
+        // Slot was taken between the UI check and the server write — show conflict popup,
+        // clear the selected slot, and re-fetch so the blocked slot is reflected in the UI.
+        setSlot("");
+        setSlotPopup("booked");
+        try {
+          const res = await API.get(
+            `/public/salons/${salonId}/booked-slots?date=${date}&duration=${totalDuration}`
+          );
+          const data = res.data.data || {};
+          setSlots(data.slots || []);
+          setBlockedSlots(data.blockedSlots || []);
+        } catch { /* silent */ }
+      } else {
+        addToast("error", message);
+        setError(message);
+      }
     } finally {
       setLoading(false);
     }

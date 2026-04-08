@@ -70,6 +70,15 @@ bookingSchema.index({ customerId: 1, createdAt: -1 });               // customer
 bookingSchema.index({ salonId: 1, createdAt: -1 });                  // owner booking list (analytics)
 bookingSchema.index({ bookingId: 1 }, { unique: true, sparse: true });
 
+// DB-level race condition guard — prevents double booking even under concurrent requests
+bookingSchema.index(
+  { salonId: 1, appointmentDate: 1, appointmentTime: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { status: { $in: ['pending', 'confirmed', 'in_progress'] } },
+  }
+);
+
 bookingSchema.pre('save', function (next) {
   if (!this.bookingId) {
     // No DB round-trip: timestamp + random suffix is unique enough at this scale

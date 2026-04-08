@@ -273,6 +273,12 @@ const createBooking = async (req, res) => {
 
     console.error("Create booking error:", error);
 
+    if (error.code === 11000) {
+      return res.status(409).json(
+        formatErrorResponse('This time slot is already booked. Please choose another time.', 409)
+      );
+    }
+
     res.status(500).json(
       formatErrorResponse(messages.GENERIC.ERROR, 500)
     );
