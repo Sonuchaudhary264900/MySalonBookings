@@ -56,10 +56,32 @@ const salonSchema = new mongoose.Schema(
       required: true,
     },
 
-   // ==========================================
-// MEDIA (separate BusinessMedia collection)
-// ==========================================
-// Photos/videos stored in BusinessMedia model (businessId → Business._id)
+    // ==========================================
+    // GALLERY (embedded arrays + mirrored to BusinessMedia)
+    // ==========================================
+    photos: [
+      {
+        url:     { type: String, default: '' },
+        caption: { type: String, default: '' },
+        tags:    [{ type: String }],
+        isCover: { type: Boolean, default: false },
+      },
+    ],
+    videos: [
+      {
+        url:     { type: String, default: '' },
+        caption: { type: String, default: '' },
+        tags:    [{ type: String }],
+      },
+    ],
+    reelVideos: [
+      {
+        url:          { type: String, default: '' },
+        categories:   [{ type: String }],
+        targetGender: { type: String, enum: ['male', 'female', 'both'], default: 'both' },
+        createdAt:    { type: Date, default: Date.now },
+      },
+    ],
 
    // ==========================================
 // ADDRESS & LOCATION (Google Maps Integration)
