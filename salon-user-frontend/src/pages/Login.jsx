@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import SEOHead from "../components/SEOHead";
 import API from "../services/api";
 import { useTheme } from "../context/ThemeContext";
 
@@ -185,12 +184,6 @@ export default function Login() {
 
   return (
     <>
-      <SEOHead
-        title="Login | MySalonBookings — Your Salon Booking Account"
-        description="Log in to MySalonBookings to manage your appointments, view booking history, and discover top-rated salons near you across India."
-        canonical="https://mysalonbookings.com/login"
-        noindex={true}
-      />
       <style>{CSS}</style>
       <div style={{ minHeight:"100vh", display:"flex", background:c.bg, fontFamily:"'Inter','Segoe UI',system-ui,sans-serif" }}>
 

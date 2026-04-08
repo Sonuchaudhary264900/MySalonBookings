@@ -32,37 +32,21 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@graph": [
-        {
-          "@type": "WebSite",
-          "name": "MySalonBookings",
-          "url": "https://mysalonbookings.com",
-          "description": "Book salon appointments online from anywhere in India — every city, town and village. Find top-rated salons near you instantly.",
-          "potentialAction": {
-            "@type": "SearchAction",
-            "target": {
-              "@type": "EntryPoint",
-              "urlTemplate": "https://mysalonbookings.com/?search={search_term_string}"
-            },
-            "query-input": "required name=search_term_string"
-          }
-        },
-        {
-          "@type": "Organization",
-          "name": "MySalonBookings",
-          "url": "https://mysalonbookings.com",
-          "logo": "https://mysalonbookings.com/icon.png",
-          "description": "India's salon booking platform connecting customers with 500+ verified salons across every city, town and village.",
-          "contactPoint": {
-            "@type": "ContactPoint",
-            "telephone": "+91-7973270642",
-            "email": "support@mysalonbookings.com",
-            "contactType": "customer support",
-            "areaServed": "IN",
-            "availableLanguage": ["English", "Hindi"]
-          }
-        }
-      ]
+      "@type": "WebSite",
+      "name": "Salon Bookings",
+      "url": "https://mysalonbookings.vercel.app",
+      "description": "Book salon appointments online from anywhere in India — every city, town and village. Find top-rated salons near you instantly.",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://mysalonbookings.vercel.app/?search={search_term_string}",
+        "query-input": "required name=search_term_string"
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": "+91-7973270642",
+        "email": "support@mysalonbookings.com",
+        "contactType": "customer support"
+      }
     }
     </script>
 

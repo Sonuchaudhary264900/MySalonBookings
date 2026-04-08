@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import SEOHead from "../components/SEOHead";
 import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import { auth } from "../config/firebase";
 import API from "../services/api";
@@ -229,11 +228,6 @@ export default function Register() {
 
   return (
     <>
-      <SEOHead
-        title="Register Your Salon Free | MySalonBookings — Grow Your Business Online"
-        description="Join 500+ verified salons on MySalonBookings. Register free and start accepting online bookings from customers across India today."
-        canonical="https://mysalonbookings.com/register"
-      />
       <style>{CSS}</style>
       <div style={{ minHeight:"100vh", display:"flex", background:c.bg, fontFamily:"'Inter','Segoe UI',system-ui,sans-serif" }}>
 
