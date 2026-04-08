@@ -20,7 +20,7 @@ import {
   FEMALE_ONLY_CAT_LABELS,
 } from "../constants/salonCategories";
 
-const BASE_TABS = ["Services", "Packages", "Reviews", "Info"];
+const BASE_TABS = ["Gallery", "Services", "Packages", "Reviews", "Info"];
 
 // ── Working hours helpers (shared with SalonCard) ─────────────────────────────
 const WH_DAYS = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
@@ -120,7 +120,7 @@ function SalonDetails() {
   const [expandedCat, setExpandedCat] = useState(null);
 
   const TABS = BASE_TABS;
-  const activeTab = TABS.includes(tab) ? tab : "Services";
+  const activeTab = TABS.includes(tab) ? tab : "Gallery";
 
   // ── Booking state ────────────────────────────────────────────────────────
   const [galleryLightbox, setGalleryLightbox] = useState(null); // index into galleryItems
@@ -353,258 +353,180 @@ function SalonDetails() {
 
 
   const dayOrder = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
-  const TAB_ICONS = { Services: <Scissors className="w-4 h-4" />, Packages: <Gift className="w-4 h-4" />, Reviews: <Star className="w-4 h-4" />, Info: <Building2 className="w-4 h-4" /> };
+  const TAB_ICONS = { Gallery: <Play className="w-4 h-4" />, Services: <Scissors className="w-4 h-4" />, Packages: <Gift className="w-4 h-4" />, Reviews: <Star className="w-4 h-4" />, Info: <Building2 className="w-4 h-4" /> };
+
+  // ── Highlight categories for the stories-style row ─────────────────────
+  const highlightCats = (() => {
+    const cats = {};
+    for (const s of services) {
+      const cat = s.category || "Other";
+      if (!cats[cat]) cats[cat] = { name: cat, icon: CATEGORY_ICON_MAP[cat] || "✨", count: 0 };
+      cats[cat].count++;
+    }
+    return Object.values(cats).slice(0, 10);
+  })();
+
+  const igHandle = salon.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_.]/g, '');
 
   return (
-    <div className="t-page">
+    <div className="t-page" style={{ background: 'var(--t-bg)' }}>
 
-      {/* ══ HERO ══════════════════════════════════════════════════════════ */}
-      <div className="relative h-72 sm:h-96 overflow-hidden" style={{ background: 'linear-gradient(135deg,#312e81 0%,#4c1d95 50%,#1e1b4b 100%)' }}>
-        {(salon.coverPhoto || salon.image || salon.photos?.[0] || salon.ownerPhoto) ? (
-          <img
-            src={salon.coverPhoto || salon.image || salon.photos?.[0] || salon.ownerPhoto}
-            alt={salon.name}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Scissors className="w-20 h-20 text-white/10" />
-          </div>
-        )}
-
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.15) 100%)' }} />
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.25) 0%, transparent 60%)' }} />
-
-        <button
-          onClick={() => navigate(-1)}
-          className="absolute top-4 left-4 w-10 h-10 rounded-full flex items-center justify-center text-white transition-all duration-200 hover:scale-110"
-          style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.15)' }}
-        >
+      {/* ══ TOP BAR ══════════════════════════════════════════════════════════ */}
+      <div className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b"
+        style={{ background: 'var(--t-bg)', borderColor: 'var(--t-border)' }}>
+        <button onClick={() => navigate(-1)} className="w-8 h-8 flex items-center justify-center rounded-full transition"
+          style={{ color: 'var(--t-text)' }}>
           <ArrowLeft className="w-5 h-5" />
         </button>
+        <span className="text-sm font-bold truncate mx-2" style={{ color: 'var(--t-text)' }}>{igHandle}</span>
+        <div className="w-8" />
+      </div>
 
-        {salon.isApproved && (
-          <div
-            className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
-            style={{ background: 'rgba(34,197,94,0.2)', backdropFilter: 'blur(8px)', border: '1px solid rgba(34,197,94,0.4)', color: '#4ade80' }}
-          >
-            <Check className="w-3 h-3" /> Verified
-          </div>
-        )}
+      {/* ══ PROFILE HEADER ═══════════════════════════════════════════════════ */}
+      <div className="px-4 pt-4 pb-3 max-w-2xl mx-auto">
 
-        <div className="absolute bottom-0 left-0 right-0 px-5 pb-5 pt-8">
-          {avgRating && parseFloat(avgRating) >= 4.0 && (
-            <div className="flex items-center gap-1.5 mb-2">
-              <div
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold"
-                style={{ background: 'rgba(251,191,36,0.2)', border: '1px solid rgba(251,191,36,0.4)', color: '#fbbf24' }}
-              >
-                <Award className="w-3 h-3" /> Top Rated in Your Area
-              </div>
+        {/* Avatar + Stats row */}
+        <div className="flex items-center gap-4 mb-4">
+          {/* Avatar with gradient ring */}
+          <div className="shrink-0" style={{ padding: 2, borderRadius: '50%', background: 'linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)' }}>
+            <div className="w-[78px] h-[78px] rounded-full overflow-hidden flex items-center justify-center"
+              style={{ background: 'var(--t-bg)', padding: 2 }}>
+              {salon.logo ? (
+                <img src={salon.logo} alt={salon.name} className="w-full h-full rounded-full object-cover" />
+              ) : (
+                <div className="w-full h-full rounded-full flex items-center justify-center"
+                  style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
+                  <Scissors className="w-8 h-8 text-white/80" />
+                </div>
+              )}
             </div>
-          )}
+          </div>
 
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight mb-1">{salon.name}</h1>
+          {/* Stats */}
+          <div className="flex flex-1 items-center justify-around text-center">
+            <div>
+              <p className="text-base font-bold" style={{ color: 'var(--t-text)' }}>{galleryItems.length}</p>
+              <p className="text-xs" style={{ color: 'var(--t-text-2)' }}>posts</p>
+            </div>
+            <div>
+              <p className="text-base font-bold" style={{ color: 'var(--t-text)' }}>
+                {totalBookings >= 1000 ? `${(totalBookings/1000).toFixed(1)}k` : totalBookings}
+              </p>
+              <p className="text-xs" style={{ color: 'var(--t-text-2)' }}>bookings</p>
+            </div>
+            <div>
+              <p className="text-base font-bold" style={{ color: 'var(--t-text)' }}>{services.length}</p>
+              <p className="text-xs" style={{ color: 'var(--t-text-2)' }}>services</p>
+            </div>
+          </div>
+        </div>
 
-          {(salon.address || salon.city) && (
-            <p className="flex items-center gap-1.5 text-sm text-white/75 mb-3">
-              <MapPin className="w-3.5 h-3.5 shrink-0" />
-              {salon.address || salon.city}
+        {/* Name + verified + categories + bio */}
+        <div className="mb-3">
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="text-sm font-bold" style={{ color: 'var(--t-text)' }}>{salon.name}</span>
+            {salon.isApproved && <Check className="w-3.5 h-3.5" style={{ color: '#3b82f6' }} />}
+          </div>
+
+          {/* Category tags — IG style colored text */}
+          {(salon.offeredCategoryNames || []).length > 0 && (
+            <p className="text-xs font-semibold mb-1" style={{ color: '#3b82f6' }}>
+              {(salon.offeredCategoryNames || []).join(' | ')}
             </p>
           )}
 
-          <div className="flex items-center gap-3 mb-4 flex-wrap">
-            {avgRating && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold"
-                style={{ background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.35)', color: '#fbbf24' }}>
-                <Star className="w-3.5 h-3.5 fill-current" /> {avgRating}
-                {(salon.totalReviews || salon.reviewCount || reviews.length) > 0 && <span className="font-normal text-white/60 text-xs">({salon.totalReviews || salon.reviewCount || reviews.length})</span>}
-              </div>
-            )}
-            {services.length > 0 && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-white/75"
-                style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)' }}>
-                <Scissors className="w-3 h-3" /> {services.length} Services
-              </div>
-            )}
-          </div>
+          {/* Bio / description */}
+          {salon.description && (
+            <p className="text-xs leading-relaxed" style={{ color: 'var(--t-text-2)' }}>{salon.description}</p>
+          )}
 
-          <div className="flex gap-2.5 flex-wrap">
-            <button
-              onClick={handleBookNowEmpty}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all duration-200 hover:scale-105 hover:shadow-lg"
-              style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', boxShadow: '0 4px 20px rgba(99,102,241,0.4)' }}
-            >
-              <Zap className="w-4 h-4" /> Book Now
-            </button>
-            {salon.phone && (
-              <a
-                href={`tel:${salon.phone}`}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:scale-105"
-                style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.2)' }}
-              >
-                <Phone className="w-4 h-4" /> Call
-              </a>
-            )}
+          {/* Location + status */}
+          <div className="flex items-center gap-3 mt-1.5 flex-wrap">
             {(salon.address || salon.city) && (
-              <a
-                href={`https://maps.google.com/?q=${encodeURIComponent(salon.address || salon.city)}`}
+              <a href={`https://maps.google.com/?q=${encodeURIComponent(salon.address || salon.city)}`}
                 target="_blank" rel="noreferrer"
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:scale-105"
-                style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.2)' }}
-              >
-                <Navigation className="w-4 h-4" /> Directions
+                className="flex items-center gap-1 text-xs font-medium" style={{ color: '#3b82f6' }}>
+                <MapPin className="w-3 h-3" />{salon.city || salon.address}
               </a>
             )}
-          </div>
-        </div>
-      </div>
-
-      {/* ══ TRUST STRIP ═══════════════════════════════════════════════════ */}
-      <div className="border-b" style={{ borderColor: 'var(--t-border)', background: 'linear-gradient(135deg, rgba(99,102,241,0.06) 0%, var(--t-card) 60%)' }}>
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3 overflow-x-auto scrollbar-hide text-xs font-semibold whitespace-nowrap">
-          {/* Open / Closed status */}
-          {openStatus !== null && (
-            <div
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-              style={{
-                background: openStatus ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.1)',
-                color: openStatus ? '#10b981' : '#ef4444',
-                border: `1px solid ${openStatus ? 'rgba(16,185,129,0.28)' : 'rgba(239,68,68,0.22)'}`,
-              }}
-            >
-              <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: openStatus ? '#10b981' : '#ef4444' }} />
-              {openStatus ? 'Open Now' : opensAt ? `Opens ${opensAt}` : 'Closed'}
-            </div>
-          )}
-          {todayHours && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.15)', color: '#818cf8' }}>
-              <Clock className="w-3.5 h-3.5" />
-              <span>{todayHours}</span>
-            </div>
-          )}
-          {avgRating && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)', color: '#f59e0b' }}>
-              <Star className="w-3.5 h-3.5 fill-current" />
-              <span>{avgRating} Rating</span>
-            </div>
-          )}
-          {(() => {
-            const rc = salon.totalReviews || salon.reviewCount || reviews.length;
-            return (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.15)', color: rc > 0 ? '#818cf8' : 'var(--t-text-3)' }}>
-                <Users className="w-3.5 h-3.5" />
-                <span>{rc > 0 ? `${rc} ${rc === 1 ? "Review" : "Reviews"}` : "No reviews yet"}</span>
-              </div>
-            );
-          })()}
-          {salon.isApproved && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', color: '#10b981' }}>
-              <Check className="w-3.5 h-3.5" />
-              <span>Verified</span>
-            </div>
-          )}
-          {services.length > 0 && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.15)', color: '#818cf8' }}>
-              <Scissors className="w-3.5 h-3.5" />
-              <span>{services.length} Services</span>
-            </div>
-          )}
-          {totalBookings >= 10 && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.18)', color: '#f87171' }}>
-              <span>🔥</span>
-              <span>{totalBookings >= 1000 ? `${(totalBookings/1000).toFixed(1)}k` : `${totalBookings}+`} booked</span>
-            </div>
-          )}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.18)', color: '#a78bfa' }}>
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Instant Booking</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ══ QUICK INFO ROW ═════════════════════════════════════════════════ */}
-      {(nextSlot || salon.minPrice || salon.kidsHaircut || salon.atHomeServices) && (
-        <div className="border-b" style={{ borderColor: 'var(--t-border)', background: 'linear-gradient(135deg, rgba(99,102,241,0.04) 0%, var(--t-bg-2) 60%)' }}>
-          <div className="max-w-4xl mx-auto px-4 py-2.5 flex items-center gap-3 overflow-x-auto scrollbar-hide whitespace-nowrap">
-            {nextSlot && (
-              <span
-                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full"
-                style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.18)', color: 'var(--t-accent)' }}
-              >
-                ⏱ Next slot: {nextSlot}
+            {openStatus !== null && (
+              <span className="flex items-center gap-1 text-xs font-semibold"
+                style={{ color: openStatus ? '#10b981' : '#ef4444' }}>
+                <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: openStatus ? '#10b981' : '#ef4444' }} />
+                {openStatus ? (todayHours ? `Open · ${todayHours}` : 'Open Now') : (opensAt ? `Closed · Opens ${opensAt}` : 'Closed')}
               </span>
             )}
-            {salon.minPrice && (
-              <span
-                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full"
-                style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.15)', color: 'var(--t-accent)' }}
-              >
-                💰 From ₹{salon.minPrice}
-              </span>
-            )}
-            {salon.kidsHaircut && (
-              <span
-                className="text-xs font-semibold px-3 py-1.5 rounded-full"
-                style={{ background: 'rgba(234,179,8,0.12)', color: '#f59e0b', border: '1px solid rgba(234,179,8,0.2)' }}
-              >
-                👶 Kids Haircut
-              </span>
-            )}
-            {salon.atHomeServices && (
-              <span
-                className="text-xs font-semibold px-3 py-1.5 rounded-full"
-                style={{ background: 'rgba(16,185,129,0.12)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)' }}
-              >
-                🏠 At-Home Service
+            {avgRating && (
+              <span className="flex items-center gap-1 text-xs font-semibold" style={{ color: '#f59e0b' }}>
+                <Star className="w-3 h-3 fill-current" />{avgRating}
+                {(salon.totalReviews || reviews.length) > 0 && <span className="font-normal" style={{ color: 'var(--t-text-3)' }}>({salon.totalReviews || reviews.length})</span>}
               </span>
             )}
           </div>
         </div>
-      )}
 
-      {/* ══ CONTENT ════════════════════════════════════════════════════════ */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-5 pb-2">
-
-        {/* Info chips */}
-        <div className="flex flex-wrap gap-2 mb-5">
-          {salon.servedGender && (
-            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold capitalize transition-all hover:scale-105"
-              style={
-                salon.servedGender === 'male'   ? { background: 'rgba(59,130,246,0.12)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.2)' } :
-                salon.servedGender === 'female' ? { background: 'rgba(236,72,153,0.12)', color: '#f472b6', border: '1px solid rgba(236,72,153,0.2)' } :
-                                                  { background: 'rgba(139,92,246,0.12)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.2)' }
-              }>
-              {salon.servedGender === 'male' ? '👨' : salon.servedGender === 'female' ? '👩' : '👥'}
-              {' '}{salon.servedGender === 'male' ? 'Men' : salon.servedGender === 'female' ? 'Women' : 'Unisex'}
-            </span>
-          )}
-          {salon.ownerGender && (
-            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all hover:scale-105"
-              style={
-                salon.ownerGender === 'male'   ? { background: 'rgba(59,130,246,0.12)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.2)' } :
-                salon.ownerGender === 'female' ? { background: 'rgba(236,72,153,0.12)', color: '#f472b6', border: '1px solid rgba(236,72,153,0.2)' } :
-                                                 { background: 'rgba(148,163,184,0.1)', color: 'var(--t-text-2)', border: '1px solid var(--t-border)' }
-              }>
-              {salon.ownerGender === 'male' ? '👨' : salon.ownerGender === 'female' ? '👩' : '🧑'}
-              {' Owner: '}{salon.ownerGender.charAt(0).toUpperCase() + salon.ownerGender.slice(1)}
-            </span>
-          )}
+        {/* Action buttons */}
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={handleBookNowEmpty}
+            className="flex-1 py-2 text-sm font-bold text-white rounded-lg transition-all hover:opacity-90 active:scale-95 flex items-center justify-center gap-1.5"
+            style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
+          >
+            <Zap className="w-4 h-4" /> Book Now
+          </button>
           {salon.phone && (
             <a href={`tel:${salon.phone}`}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all hover:scale-105"
-              style={{ background: 'var(--t-bg-2)', color: 'var(--t-text-2)', border: '1px solid var(--t-border)' }}>
-              <Phone className="w-3 h-3" /> {salon.phone}
+              className="flex-1 py-2 text-sm font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all hover:opacity-80 active:scale-95"
+              style={{ background: 'var(--t-bg-2)', color: 'var(--t-text)', border: '1px solid var(--t-border)' }}>
+              <Phone className="w-4 h-4" /> Call
+            </a>
+          )}
+          {(salon.address || salon.city) && (
+            <a href={`https://maps.google.com/?q=${encodeURIComponent(salon.address || salon.city)}`}
+              target="_blank" rel="noreferrer"
+              className="w-10 h-9 flex items-center justify-center rounded-lg transition-all hover:opacity-80 active:scale-95"
+              style={{ background: 'var(--t-bg-2)', color: 'var(--t-text)', border: '1px solid var(--t-border)' }}>
+              <Navigation className="w-4 h-4" />
             </a>
           )}
         </div>
+
+        {/* Highlights — service category circles (Stories style) */}
+        {highlightCats.length > 0 && (
+          <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1">
+            {highlightCats.map((cat) => (
+              <button key={cat.name} onClick={() => { setTab('Services'); setExpandedCat(cat.name); }}
+                className="flex flex-col items-center gap-1.5 shrink-0 transition-all active:scale-95">
+                <div style={{
+                  padding: 2, borderRadius: '50%',
+                  background: activeTab === 'Services' && expandedCat === cat.name
+                    ? 'linear-gradient(45deg,#6366f1,#8b5cf6)'
+                    : 'linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)',
+                }}>
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl"
+                    style={{ background: 'var(--t-card)', border: '2px solid var(--t-bg)' }}>
+                    {cat.icon}
+                  </div>
+                </div>
+                <span className="text-[10px] font-medium text-center max-w-[60px] truncate"
+                  style={{ color: 'var(--t-text-2)' }}>
+                  {cat.name.split(/[\s/]/)[0]}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ══ CONTENT ════════════════════════════════════════════════════════ */}
+      <div className="max-w-2xl mx-auto pb-2">
 
         {/* Offers / promo section — uses /offers API list or falls back to salon.topOffer */}
         {(() => {
           const allOffers = offers.length > 0 ? offers : salon.topOffer ? [salon.topOffer] : [];
           if (allOffers.length === 0) return null;
           return (
-          <div className="mb-5">
+          <div className="mb-5 px-4 pt-3">
             <div className="flex items-center gap-2 mb-2.5">
               <span className="text-sm font-bold" style={{ color: 'var(--t-text)' }}>🏷️ Offers & Coupons</span>
               <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: 'rgba(16,185,129,0.12)', color: '#059669' }}>{allOffers.length}</span>
@@ -669,35 +591,87 @@ function SalonDetails() {
           );
         })()}
 
-        {/* ── TABS ── */}
-        <div
-          className="flex gap-1 rounded-xl p-1 mb-6"
-          style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}
-        >
+        {/* ── TABS — Instagram-style icon bar ── */}
+        <div className="flex border-t border-b" style={{ borderColor: 'var(--t-border)' }}>
           {TABS.map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className="flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5"
-              style={
-                activeTab === t
-                  ? { background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', boxShadow: '0 2px 12px rgba(99,102,241,0.3)' }
-                  : { color: 'var(--t-text-2)' }
-              }
+              className="flex-1 py-3 flex flex-col items-center justify-center gap-0.5 transition-all relative"
+              style={{ color: activeTab === t ? 'var(--t-text)' : 'var(--t-text-3)' }}
             >
-              {TAB_ICONS[t]}
-              {t}
-              {(t === "Services" && services.length > 0) || (t === "Packages" && packages.length > 0) || (t === "Reviews" && reviews.length > 0) ? (
-                <span
-                  className="text-[10px] px-1.5 py-0.5 rounded-full font-bold"
-                  style={{ background: activeTab === t ? 'rgba(255,255,255,0.25)' : 'var(--t-bg-2)' }}
-                >
-                  {t === "Services" ? services.length : t === "Packages" ? packages.length : reviews.length}
-                </span>
-              ) : null}
+              {activeTab === t && (
+                <span className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: 'var(--t-text)' }} />
+              )}
+              <span style={{ opacity: activeTab === t ? 1 : 0.45 }}>{TAB_ICONS[t]}</span>
+              <span className="text-[9px] font-semibold uppercase tracking-wide hidden sm:block">{t}</span>
             </button>
           ))}
         </div>
+
+        {/* ══ GALLERY TAB — Instagram 3-col grid ════════════════════════ */}
+        {activeTab === "Gallery" && (
+          <div className="fade-in">
+            {galleryItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-3">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: 'var(--t-bg-2)' }}>
+                  <Play className="w-7 h-7" style={{ color: 'var(--t-text-3)' }} />
+                </div>
+                <p className="text-sm font-semibold" style={{ color: 'var(--t-text-2)' }}>No posts yet</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-[2px]">
+                {galleryItems.map((item, i) => {
+                  const videoIdx = item.type === 'video' ? salonVideoUrls.indexOf(item.url) : -1;
+                  const thumbUrl = item.type === 'video' && item.url.includes('/video/upload/')
+                    ? item.url.replace('/video/upload/', '/video/upload/w_400,h_400,c_fill,q_auto,f_jpg,vc_none/').replace(/\.(mp4|mov|avi|mkv|webm)(\?.*)?$/i, '.jpg')
+                    : '';
+                  return (
+                    <button key={i}
+                      onClick={() => item.type === 'video' ? setVideoViewerIdx(videoIdx) : setGalleryLightbox(i)}
+                      className="relative aspect-square overflow-hidden focus:outline-none group">
+                      {item.type === 'video' ? (
+                        <>
+                          <div className="absolute inset-0" style={{ background: 'var(--t-bg-2)' }} />
+                          {thumbUrl && <img src={thumbUrl} alt="Video" className="absolute inset-0 w-full h-full object-cover" onError={e => { e.currentTarget.style.display='none'; }} />}
+                          <div className="absolute top-1.5 right-1.5">
+                            <Play className="w-4 h-4 text-white drop-shadow" fill="white" />
+                          </div>
+                        </>
+                      ) : (
+                        <img src={item.url} alt="" className="w-full h-full object-cover group-hover:brightness-90 transition-all" onError={e => { e.currentTarget.style.display='none'; }} />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Lightbox */}
+            {galleryLightbox !== null && galleryItems[galleryLightbox] && (() => {
+              const lbItem = galleryItems[galleryLightbox];
+              const isVideo = lbItem.type === 'video';
+              const goPrev = () => { galleryVideoRef.current?.pause(); setGalleryLightbox(i => i - 1); };
+              const goNext = () => { galleryVideoRef.current?.pause(); setGalleryLightbox(i => i + 1); };
+              const closeGallery = () => { galleryVideoRef.current?.pause(); setGalleryLightbox(null); };
+              return (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-4" onClick={closeGallery}>
+                  <button onClick={closeGallery} className="absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition"><X className="w-5 h-5" /></button>
+                  <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
+                    <span className="text-white text-sm font-semibold bg-black/40 px-3 py-1 rounded-full">{galleryLightbox + 1} / {galleryItems.length}</span>
+                  </div>
+                  <div className="max-w-4xl w-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
+                    {isVideo
+                      ? <video ref={galleryVideoRef} src={lbItem.url} controls autoPlay className="max-h-[80vh] max-w-full rounded-xl" />
+                      : <img src={lbItem.url} alt="" className="max-h-[80vh] max-w-full rounded-xl object-contain" />}
+                  </div>
+                  {galleryLightbox > 0 && <button onClick={e => { e.stopPropagation(); goPrev(); }} className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 text-white transition"><ChevronLeft className="w-6 h-6" /></button>}
+                  {galleryLightbox < galleryItems.length - 1 && <button onClick={e => { e.stopPropagation(); goNext(); }} className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 text-white transition"><ChevronRight className="w-6 h-6" /></button>}
+                </div>
+              );
+            })()}
+          </div>
+        )}
 
         {/* ══ SERVICES TAB ═══════════════════════════════════════════════ */}
         {activeTab === "Services" && (() => {
@@ -742,7 +716,7 @@ function SalonDetails() {
           });
 
           return (
-            <div className="fade-in">
+            <div className="fade-in px-4 pt-4">
               {isUnisex && services.length > 0 && (
                 <div className="flex gap-2 mb-5">
                   {[
@@ -864,7 +838,7 @@ function SalonDetails() {
 
         {/* ══ PACKAGES TAB ═══════════════════════════════════════════════ */}
         {activeTab === "Packages" && (
-          <div className="fade-in pb-8 space-y-4">
+          <div className="fade-in pb-8 space-y-4 px-4 pt-4">
             {packages.length === 0 ? (
               <div className="text-center py-14">
                 <div className="flex justify-center mb-3"><Gift className="w-10 h-10" style={{ color: 'var(--t-border)' }} /></div>
@@ -1004,7 +978,7 @@ function SalonDetails() {
 
         {/* ══ REVIEWS TAB ════════════════════════════════════════════════ */}
         {activeTab === "Reviews" && (
-          <div className="fade-in pb-8">
+          <div className="fade-in pb-8 px-4 pt-4">
             {reviews.length > 0 && avgRating && (
               <div className="rounded-2xl p-5 mb-5 flex items-center gap-5"
                 style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
@@ -1056,119 +1030,7 @@ function SalonDetails() {
 
         {/* ══ INFO TAB ═══════════════════════════════════════════════════ */}
         {activeTab === "Info" && (
-          <div className="fade-in space-y-4 pb-8">
-            {galleryItems.length > 0 && (
-              <div className="rounded-2xl p-5" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
-                <h3 className="font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--t-text)' }}>
-                  <Sparkles className="w-4 h-4" style={{ color: '#818cf8' }} />
-                  Gallery ({salonPhotoUrls.length > 0 && `${salonPhotoUrls.length} photo${salonPhotoUrls.length !== 1 ? 's' : ''}`}{salonPhotoUrls.length > 0 && salonVideoUrls.length > 0 && ' · '}{salonVideoUrls.length > 0 && `${salonVideoUrls.length} video${salonVideoUrls.length !== 1 ? 's' : ''}`})
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {galleryItems.map((item, i) => {
-                    const videoIdx = item.type === 'video'
-                      ? salonVideoUrls.indexOf(item.url)
-                      : -1;
-                    const thumbUrl = item.type === 'video' && item.url.includes('/video/upload/')
-                      ? item.url
-                          .replace('/video/upload/', '/video/upload/w_400,h_400,c_fill,q_auto,f_jpg,vc_none/')
-                          .replace(/\.(mp4|mov|avi|mkv|webm)(\?.*)?$/i, '.jpg')
-                      : '';
-                    return (
-                      <button
-                        key={i}
-                        onClick={() => item.type === 'video' ? setVideoViewerIdx(videoIdx) : setGalleryLightbox(i)}
-                        className="relative block aspect-square rounded-xl overflow-hidden group focus:outline-none"
-                      >
-                        {item.type === 'video' ? (
-                          <>
-                            {/* Gradient base always visible — img renders on top if it loads */}
-                            <div className="absolute inset-0 bg-gradient-to-br from-gray-700 to-gray-900" />
-                            {thumbUrl && (
-                              <img
-                                src={thumbUrl}
-                                alt="Video"
-                                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                onError={e => { e.currentTarget.style.display = 'none'; }}
-                              />
-                            )}
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/45 transition-colors">
-                              <div className="w-12 h-12 rounded-full bg-black/55 flex items-center justify-center border-2 border-white/70 group-hover:scale-110 transition-transform backdrop-blur-sm">
-                                <Play className="w-5 h-5 text-white fill-white ml-0.5" />
-                              </div>
-                            </div>
-                          </>
-                        ) : (
-                          <img
-                            src={item.url}
-                            alt={`Salon photo ${i + 1}`}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                            onError={e => { e.currentTarget.style.display = 'none'; }}
-                          />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Gallery Lightbox */}
-            {galleryLightbox !== null && galleryItems[galleryLightbox] && (() => {
-              const lbItem = galleryItems[galleryLightbox];
-              const isVideo = lbItem.type === 'video';
-              const goPrev = () => { galleryVideoRef.current?.pause(); setGalleryLightbox(i => i - 1); };
-              const goNext = () => { galleryVideoRef.current?.pause(); setGalleryLightbox(i => i + 1); };
-              const closeGallery = () => { galleryVideoRef.current?.pause(); setGalleryLightbox(null); };
-              return (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-4" onClick={closeGallery}>
-                  {/* Close */}
-                  <button onClick={closeGallery} className="absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition">
-                    <X className="w-5 h-5" />
-                  </button>
-
-                  {/* Counter + type badge */}
-                  <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10">
-                    <span className="text-white text-sm font-semibold bg-black/40 px-3 py-1 rounded-full">
-                      {galleryLightbox + 1} / {galleryItems.length}
-                    </span>
-                    {isVideo && <span className="text-xs text-violet-300 bg-violet-900/60 px-2 py-1 rounded-full font-semibold">Video</span>}
-                  </div>
-
-                  {/* Media */}
-                  <div className="max-w-4xl w-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
-                    {isVideo ? (
-                      <video
-                        ref={galleryVideoRef}
-                        src={lbItem.url}
-                        controls
-                        autoPlay
-                        className="max-h-[80vh] max-w-full rounded-xl"
-                        style={{ minHeight: 200 }}
-                      />
-                    ) : (
-                      <img src={lbItem.url} alt="" className="max-h-[80vh] max-w-full rounded-xl object-contain" />
-                    )}
-                  </div>
-
-                  {/* Prev */}
-                  {galleryLightbox > 0 && (
-                    <button onClick={e => { e.stopPropagation(); goPrev(); }}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 text-white transition">
-                      <ChevronLeft className="w-6 h-6" />
-                    </button>
-                  )}
-                  {/* Next */}
-                  {galleryLightbox < galleryItems.length - 1 && (
-                    <button onClick={e => { e.stopPropagation(); goNext(); }}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 text-white transition">
-                      <ChevronRight className="w-6 h-6" />
-                    </button>
-                  )}
-                </div>
-              );
-            })()}
-            {/* SalonVideoViewer rendered at root level — see below */}
-
+          <div className="fade-in space-y-4 pb-8 px-4 pt-4">
             {salon.description && (
               <div className="rounded-2xl p-5" style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)' }}>
                 <h3 className="font-bold mb-2" style={{ color: 'var(--t-text)' }}>About</h3>
