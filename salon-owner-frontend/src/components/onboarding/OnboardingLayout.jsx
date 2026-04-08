@@ -13,6 +13,10 @@ const OB_CSS = `
   .ob-layout-scrollbar::-webkit-scrollbar{width:4px}
   .ob-layout-scrollbar::-webkit-scrollbar-track{background:transparent}
   .ob-layout-scrollbar::-webkit-scrollbar-thumb{background:rgba(139,92,246,0.3);border-radius:99px}
+  @media(max-width:480px){
+    .ob-progress-badge{display:none!important;}
+    .ob-brand-name{display:none!important;}
+  }
 
   /* Light-mode input overrides */
   [data-ob-light] .ob-inp{
@@ -87,7 +91,7 @@ export default function OnboardingLayout({ children }) {
                 {/* Brand */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                   <div style={{ width: 26, height: 26, borderRadius: 8, background: 'linear-gradient(135deg,#7c3aed,#ec4899)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, boxShadow: '0 0 14px rgba(124,58,237,0.4)' }}>✂</div>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: textPrimary, letterSpacing: '-0.3px' }}>GlowSpot</span>
+                  <span className="ob-brand-name" style={{ fontSize: 13, fontWeight: 800, color: textPrimary, letterSpacing: '-0.3px' }}>GlowSpot</span>
                 </div>
 
                 <div style={{ width: 1, height: 18, background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }} />
@@ -96,7 +100,7 @@ export default function OnboardingLayout({ children }) {
                   Step <span style={{ fontWeight: 700, color: textPrimary }}>{currentStep}</span> of 11
                 </span>
 
-                <span style={{
+                <span className="ob-progress-badge" style={{
                   fontSize: 10, fontWeight: 700, padding: '3px 10px',
                   borderRadius: 99, background: 'rgba(124,58,237,0.12)',
                   color: '#a855f7', border: '1px solid rgba(124,58,237,0.25)',
@@ -126,20 +130,19 @@ export default function OnboardingLayout({ children }) {
         </div>
 
         {/* ── Content ── */}
-        <div style={{
-          maxWidth: isSplitLayout ? 1100 : 560,
-          margin: '0 auto',
-          padding: isSplitLayout ? '32px 20px' : '40px 20px 60px',
-          position: 'relative', zIndex: 1,
-          display: isSplitLayout ? 'grid' : 'block',
-          gridTemplateColumns: isSplitLayout ? '1fr 280px' : undefined,
-          gap: isSplitLayout ? 40 : undefined,
-          alignItems: isSplitLayout ? 'start' : undefined,
-        }}>
+        <div
+          style={{
+            maxWidth: isSplitLayout ? 1100 : 560,
+            margin: '0 auto',
+            padding: isSplitLayout ? '32px 20px' : '40px 20px 60px',
+            position: 'relative', zIndex: 1,
+          }}
+          className={isSplitLayout ? 'lg:grid lg:grid-cols-[1fr_280px] lg:gap-10 lg:items-start' : ''}
+        >
           {/* Left / center content */}
           <div>{children}</div>
 
-          {/* Right preview panel */}
+          {/* Right preview panel — desktop only */}
           {isSplitLayout && (
             <div className="hidden lg:block">
               <LivePreviewPanel />

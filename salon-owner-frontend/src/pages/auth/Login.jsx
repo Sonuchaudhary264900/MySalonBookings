@@ -65,7 +65,7 @@ const LOGIN_CSS = `
     border-radius:12px;
     padding:13px 16px 13px 44px;
     color:#f1f5f9;
-    font-size:14px;
+    font-size:16px;
     outline:none;
     transition:border-color .2s ease,background .2s ease,box-shadow .2s ease;
     font-family:inherit;
@@ -140,10 +140,14 @@ const LOGIN_CSS = `
     border-radius:11px;
     padding:12px 16px;
     color:#f1f5f9;
-    font-size:14px;
+    font-size:16px;
     outline:none;
     transition:border-color .2s ease,box-shadow .2s ease;
     font-family:inherit;
+  }
+  @media(max-width:480px){
+    .lgn-card{padding:24px 20px 20px!important;}
+    .lgn-form-panel{padding:20px 14px!important;}
   }
   .lgn-modal-input::placeholder{color:#475569;}
   .lgn-modal-input:focus{border-color:rgba(139,92,246,0.6);box-shadow:0 0 0 3px rgba(139,92,246,0.12);}
@@ -381,7 +385,7 @@ const Login = () => {
         </div>
 
         {/* ── RIGHT FORM PANEL ─────────────────────────────────── */}
-        <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:'32px 24px', position:'relative', zIndex:1 }}>
+        <div className="lgn-form-panel" style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:'32px 24px', position:'relative', zIndex:1 }}>
           <div style={{ width:'100%', maxWidth:440 }}>
 
             {/* Mobile logo */}
@@ -394,7 +398,7 @@ const Login = () => {
             </div>
 
             {/* ── GLASS CARD ─────────────────────────────────── */}
-            <div className="lgn-fu2" style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', backdropFilter:'blur(24px)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'}`, borderRadius:24, padding:'36px 36px 32px', boxShadow: isDark ? '0 32px 80px rgba(0,0,0,0.5), 0 0 60px rgba(124,58,237,0.08)' : '0 32px 80px rgba(0,0,0,0.1)' }}>
+            <div className="lgn-fu2 lgn-card" style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', backdropFilter:'blur(24px)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'}`, borderRadius:24, padding:'36px 36px 32px', boxShadow: isDark ? '0 32px 80px rgba(0,0,0,0.5), 0 0 60px rgba(124,58,237,0.08)' : '0 32px 80px rgba(0,0,0,0.1)' }}>
 
               {/* Card header */}
               <div style={{ marginBottom:28 }}>

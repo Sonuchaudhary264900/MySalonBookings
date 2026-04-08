@@ -10,7 +10,7 @@ const S9_CSS = `
   @keyframes s9-flash{0%{background:rgba(124,58,237,0.2)}100%{background:transparent}}
   .s9-fu1{animation:s9-fadeup 0.45s 0s ease both}
   .s9-fu2{animation:s9-fadeup 0.45s 0.1s ease both}
-  .s9-inp{border-radius:10px;padding:9px 12px;font-size:14px;outline:none;transition:border-color 0.2s,box-shadow 0.2s;box-sizing:border-box;font-family:inherit;font-weight:700;}
+  .s9-inp{border-radius:10px;padding:9px 12px;font-size:16px;outline:none;transition:border-color 0.2s,box-shadow 0.2s;box-sizing:border-box;font-family:inherit;font-weight:700;}
   .s9-inp:focus{border-color:#7c3aed!important;box-shadow:0 0 0 2px rgba(124,58,237,0.15)!important;}
   .s9-btn{transition:transform 0.15s,box-shadow 0.15s;}
   .s9-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 30px rgba(124,58,237,0.5)!important;}

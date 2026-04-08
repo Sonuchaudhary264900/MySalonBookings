@@ -14,7 +14,7 @@ const S3_CSS = `
   .s3-fu2{animation:s3-fadeup 0.45s 0.1s ease both}
   .s3-fu3{animation:s3-fadeup 0.45s 0.2s ease both}
   .s3-inp{
-    width:100%;border-radius:12px;padding:12px 14px 12px 40px;font-size:14px;
+    width:100%;border-radius:12px;padding:12px 14px 12px 40px;font-size:16px;
     outline:none;transition:border-color 0.2s,box-shadow 0.2s;box-sizing:border-box;font-family:inherit;
   }
   .s3-btn{transition:transform 0.15s,box-shadow 0.15s;}
