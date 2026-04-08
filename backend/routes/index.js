@@ -378,6 +378,17 @@ router.get("/public/salons/:salonId", validateObjectId("salonId"), asyncHandler(
   ]);
   const photos = mediaItems.filter(m => m.type === 'photo').map(m => m.url);
   const videos = mediaItems.filter(m => m.type === 'video').map(m => m.url);
+  // Also include photos/videos stored in Business model arrays (fallback for data pre-dating BusinessMedia)
+  const photoUrlSet = new Set(photos);
+  for (const p of (salon.photos || [])) {
+    const u = typeof p === 'string' ? p : p?.url;
+    if (u && !photoUrlSet.has(u)) { photos.push(u); photoUrlSet.add(u); }
+  }
+  const videoUrlSet = new Set(videos);
+  for (const v of (salon.videos || [])) {
+    const u = typeof v === 'string' ? v : v?.url;
+    if (u && !videoUrlSet.has(u)) { videos.push(u); videoUrlSet.add(u); }
+  }
   if (!salon.coverPhoto && photos.length > 0) salon.coverPhoto = photos[0];
 
   const ownerPhoto = salon.ownerId?.profilePhoto || null;
@@ -2026,6 +2037,7 @@ router.post("/owner/gallery/register-photo", authenticateOwner, asyncHandler(asy
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
   salon.photos.push({ url, caption: '', tags: [], isCover: false });
   await salon.save({ validateModifiedOnly: true });
+  await BusinessMedia.create({ businessId: salon._id, type: 'photo', url, publicId: '' });
   const i = salon.photos.length - 1;
   res.status(201).json({ success: true, data: { _id: `p_${i}`, url, caption: '', tags: [], isCover: false, type: 'image' } });
 }));
@@ -2062,6 +2074,11 @@ router.post("/owner/gallery/register-video", authenticateOwner, asyncHandler(asy
   }
 
   await salon.save({ validateModifiedOnly: true });
+  await BusinessMedia.updateOne(
+    { businessId: salon._id, url },
+    { $setOnInsert: { businessId: salon._id, type: 'video', url, publicId: '' } },
+    { upsert: true }
+  );
   const i = salon.videos.length - 1;
   res.status(201).json({ success: true, data: { _id: `v_${i}`, url, caption: '', tags: [], type: 'video', inReels: true, reelCategories: reelCats, targetGender: genderVal } });
 }));
@@ -2248,6 +2265,7 @@ router.post("/owner/gallery", authenticateOwner, multerUpload.single("image"), a
   });
   salon.photos.push({ url, caption: '', tags: [], isCover: false });
   await salon.save({ validateModifiedOnly: true });
+  await BusinessMedia.create({ businessId: salon._id, type: 'photo', url, publicId: '' });
   const i = salon.photos.length - 1;
   res.status(201).json({ success: true, data: { _id: `p_${i}`, url, caption: '', tags: [], isCover: false, type: 'image' } });
 }));
@@ -2268,6 +2286,7 @@ router.post("/owner/gallery/video", authenticateOwner, multerVideoUpload.single(
   if (!salon.videos) salon.videos = [];
   salon.videos.push({ url, caption: '', tags: [] });
   await salon.save({ validateModifiedOnly: true });
+  await BusinessMedia.create({ businessId: salon._id, type: 'video', url, publicId: '' });
   const i = salon.videos.length - 1;
   res.status(201).json({ success: true, data: { _id: `v_${i}`, url, caption: '', tags: [], type: 'video', inReels: false, reelCategories: [] } });
 }));
