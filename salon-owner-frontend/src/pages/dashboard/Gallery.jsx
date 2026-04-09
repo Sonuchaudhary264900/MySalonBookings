@@ -277,6 +277,7 @@ export default function Gallery() {
   const [loading,       setLoading]       = useState(true);
   const [analyticsLoad, setAnalyticsLoad] = useState(true);
   const [coverId,       setCoverId]       = useState(null);
+  const [ctaPhotoUrl,   setCtaPhotoUrl]   = useState(null);
   const [activeFilter,  setActiveFilter]  = useState('all');
   const [activeTag,     setActiveTag]     = useState(null);
   const [showUpload,    setShowUpload]    = useState(false);
