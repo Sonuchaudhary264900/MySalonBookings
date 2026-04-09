@@ -73,7 +73,7 @@ export default function MediaCard({ photo, isCover, analytics, onView, onDelete,
   const rootStyle = fillContainer ? undefined : { height };
   const rootBase  = fillContainer ? 'absolute inset-0' : '';
 
-  return (
+  const card = (
     <div
       className={`group relative overflow-hidden rounded-2xl cursor-pointer transition-all duration-300
         hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/20 dark:hover:shadow-black/50
@@ -224,6 +224,29 @@ export default function MediaCard({ photo, isCover, analytics, onView, onDelete,
             </button>
           </div>
         </div>
+      )}
+    </div>
+  );
+
+  // In fill-container (reels) mode, just return the card
+  if (fillContainer) return card;
+
+  // In normal masonry mode, wrap with a "Set as Hero" button below
+  return (
+    <div className="flex flex-col gap-1.5">
+      {card}
+      {!isVideo && onSetCover && (
+        <button
+          onClick={e => { e.stopPropagation(); if (!isCover) onSetCover(photo); }}
+          className={`w-full py-1.5 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1.5
+            ${isCover
+              ? 'bg-amber-500/15 text-amber-500 border border-amber-500/40 cursor-default'
+              : 'bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-white/40 border border-gray-200 dark:border-white/8 hover:bg-amber-500/10 hover:text-amber-500 hover:border-amber-500/30'
+            }`}
+        >
+          <Star className={`w-3 h-3 ${isCover ? 'fill-amber-500' : ''}`} />
+          {isCover ? 'Hero Photo' : 'Set as Hero'}
+        </button>
       )}
     </div>
   );
