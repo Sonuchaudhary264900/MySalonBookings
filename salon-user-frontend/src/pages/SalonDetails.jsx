@@ -446,29 +446,30 @@ function SalonDetails() {
         .lux-media-img{animation:luxKB 12s ease-in-out infinite alternate}
         @keyframes heroFadeIn{from{opacity:0}to{opacity:1}}
         .lux-hero-slide{position:absolute;inset:0;animation:heroFadeIn 1.1s ease both}
-        .lux-section{padding:clamp(80px,10vw,140px) clamp(24px,6vw,96px)}
-        .lux-title{font-size:clamp(36px,5vw,72px);font-weight:900;line-height:1.05;letter-spacing:-.025em}
-        .lux-hero-title{font-size:clamp(44px,7vw,104px);font-weight:900;line-height:.92;letter-spacing:-.035em}
+        .lux-section{padding:clamp(56px,10vw,140px) clamp(20px,6vw,96px)}
+        .lux-title{font-size:clamp(28px,5vw,72px);font-weight:900;line-height:1.05;letter-spacing:-.025em}
+        .lux-hero-title{font-size:clamp(28px,7vw,104px);font-weight:900;line-height:.95;letter-spacing:-.03em}
         .lux-overline{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase}
-        .lux-body{font-size:clamp(16px,1.4vw,19px);line-height:1.75}
+        .lux-body{font-size:clamp(15px,1.4vw,19px);line-height:1.75}
         .lux-divider{width:36px;height:1px;margin:20px 0}
-        .lux-btn-p{display:inline-flex;align-items:center;gap:10px;padding:14px 32px;font-weight:700;font-size:12px;letter-spacing:.15em;text-transform:uppercase;color:#fff;border-radius:2px;transition:all .25s ease;cursor:pointer;border:none;outline:none}
-        .lux-btn-o{display:inline-flex;align-items:center;gap:10px;padding:14px 32px;font-weight:700;font-size:12px;letter-spacing:.15em;text-transform:uppercase;border-radius:2px;transition:all .25s ease;cursor:pointer;background:transparent;text-decoration:none}
+        .lux-btn-p{display:inline-flex;align-items:center;gap:8px;padding:13px 24px;font-weight:700;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#fff;border-radius:2px;transition:all .25s ease;cursor:pointer;border:none;outline:none}
+        .lux-btn-o{display:inline-flex;align-items:center;gap:8px;padding:13px 24px;font-weight:700;font-size:12px;letter-spacing:.12em;text-transform:uppercase;border-radius:2px;transition:all .25s ease;cursor:pointer;background:transparent;text-decoration:none}
         .lux-btn-p:hover,.lux-btn-o:hover{opacity:.8;transform:translateY(-2px)}
-        .lux-gallery-track{display:flex;gap:16px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;scroll-snap-type:x mandatory}
+        @media(max-width:479px){.lux-btn-p,.lux-btn-o{padding:11px 18px;font-size:11px;letter-spacing:.08em}}
+        .lux-gallery-track{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
         .lux-gallery-track::-webkit-scrollbar{display:none}
         .lux-gc{position:relative;flex-shrink:0;overflow:hidden;scroll-snap-align:start;cursor:pointer;border-radius:2px}
         .lux-gc .gcm{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .7s ease}
         .lux-gc:hover .gcm{transform:scale(1.06)}
         .lux-svc-cat{border-bottom:1px solid ${dm.b05}}
-        .lux-svc-row{padding:18px 0;display:flex;align-items:center;gap:16px;border-bottom:1px solid ${dm.b03};cursor:pointer;transition:padding-left .2s}
-        .lux-svc-row:hover{padding-left:12px}
-        .lux-rev-track{display:flex;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;scroll-snap-type:x mandatory}
+        .lux-svc-row{padding:16px 0;display:flex;align-items:center;gap:12px;border-bottom:1px solid ${dm.b03};cursor:pointer;transition:padding-left .2s}
+        .lux-svc-row:hover{padding-left:8px}
+        .lux-rev-track{display:flex;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding:0 clamp(20px,6vw,96px)}
         .lux-rev-track::-webkit-scrollbar{display:none}
-        .lux-info-row{display:flex;align-items:flex-start;gap:16px;padding:16px 0;border-bottom:1px solid ${dm.b04}}
+        .lux-info-row{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid ${dm.b04}}
         .lux-split{display:grid;grid-template-columns:1fr 1fr}
         @media(max-width:767px){.lux-split{grid-template-columns:1fr}}
-        .lux-pkg-card{border:1px solid ${dm.b07};padding:32px;border-radius:2px;transition:border-color .2s,transform .2s;display:flex;flex-direction:column}
+        .lux-pkg-card{border:1px solid ${dm.b07};padding:clamp(20px,3vw,32px);border-radius:2px;transition:border-color .2s,transform .2s;display:flex;flex-direction:column}
         .lux-pkg-card:hover{border-color:${dm.b20};transform:translateY(-4px)}
       `}</style>
 
@@ -513,7 +514,7 @@ function SalonDetails() {
           </div>
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 z-10" style={{ padding: 'clamp(32px,5vw,80px)', paddingBottom: 'clamp(88px,9vh,130px)' }}>
+        <div className="absolute bottom-0 left-0 right-0 z-10" style={{ padding: 'clamp(20px,5vw,80px)', paddingBottom: 'clamp(72px,9vh,130px)' }}>
           <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .2, duration: .9, ease: [.22,1,.36,1] }}>
             <p className="lux-overline mb-4" style={{ color: theme.p }}>
               {BIZ_SUBTITLES[salon.businessType] || 'Premium grooming experience'}
@@ -607,7 +608,7 @@ function SalonDetails() {
               {salon.description}
             </motion.p>
           )}
-          <motion.div className="flex flex-wrap" style={{ gap: 'clamp(32px,6vw,80px)', marginTop: 64 }}
+          <motion.div className="flex flex-wrap" style={{ gap: 'clamp(24px,6vw,80px)', marginTop: 'clamp(36px,6vw,64px)' }}
             initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
             transition={{ delay: .25, duration: .7 }}>
             {[
@@ -628,7 +629,7 @@ function SalonDetails() {
       {/* ════ 3. REELS ════ */}
       {salonVideoUrls.length > 0 && (
         <section style={{ paddingTop: 'clamp(64px,8vw,112px)', paddingBottom: 'clamp(64px,8vw,112px)', borderBottom: `1px solid ${dm.b04}` }}>
-          <div style={{ padding: '0 clamp(24px,6vw,96px)', marginBottom: 40 }}>
+          <div style={{ padding: '0 clamp(20px,6vw,96px)', marginBottom: 'clamp(24px,4vw,40px)' }}>
             <motion.p className="lux-overline mb-3" style={{ color: theme.p }}
               initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>Our Reels</motion.p>
             <motion.h2 className="lux-title" style={{ color: dm.fg }}
@@ -636,14 +637,14 @@ function SalonDetails() {
               Watch &amp; Explore
             </motion.h2>
           </div>
-          <div ref={galleryTrackRef} className="lux-gallery-track" style={{ paddingLeft: 'clamp(24px,6vw,96px)', paddingRight: 'clamp(24px,6vw,96px)' }}>
+          <div ref={galleryTrackRef} className="lux-gallery-track" style={{ paddingLeft: 'clamp(20px,6vw,96px)', paddingRight: 'clamp(20px,6vw,96px)' }}>
             {salonVideoUrls.map((url, i) => {
               const thumbUrl = url.includes('/video/upload/')
                 ? url.replace('/video/upload/', '/video/upload/w_800,h_560,c_fill,q_auto,f_jpg,vc_none/').replace(/\.(mp4|mov|avi|mkv|webm)(\?.*)?$/i, '.jpg')
                 : '';
               return (
                 <motion.div key={i} className="lux-gc"
-                  style={{ width: 'clamp(220px,30vw,360px)', height: 'clamp(380px,52vw,560px)' }}
+                  style={{ width: 'clamp(180px,42vw,360px)', height: 'clamp(260px,60vw,560px)' }}
                   initial={{ opacity: 0, scale: .96 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}
                   transition={{ delay: Math.min(i * .07, .35), duration: .6 }}
                   onClick={() => setVideoViewerIdx(i)}>
@@ -885,7 +886,7 @@ function SalonDetails() {
         <section style={{ borderBottom: `1px solid ${dm.b04}` }}>
           <div className="lux-split">
             {/* Left: auto-sliding business photos */}
-            <div className="relative overflow-hidden" style={{ minHeight: 480 }}>
+            <div className="relative overflow-hidden" style={{ minHeight: 'clamp(260px,55vw,480px)' }}>
               {salonPhotoUrls.length > 0 ? (
                 <>
                   {salonPhotoUrls.map((url, i) => (
@@ -939,7 +940,7 @@ function SalonDetails() {
       {/* ════ 8. REVIEWS ════ */}
       {reviews.length > 0 && (
         <section style={{ paddingTop: 'clamp(80px,10vw,140px)', paddingBottom: 'clamp(80px,10vw,140px)', borderBottom: `1px solid ${dm.b04}` }}>
-          <div style={{ padding: '0 clamp(24px,6vw,96px)', marginBottom: 48 }}>
+          <div style={{ padding: '0 clamp(20px,6vw,96px)', marginBottom: 'clamp(28px,4vw,48px)' }}>
             <motion.p className="lux-overline mb-3" style={{ color: theme.p }}
               initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>Client Love</motion.p>
             <div className="flex items-end justify-between flex-wrap gap-4">
@@ -1052,7 +1053,7 @@ function SalonDetails() {
       </section>
 
       {/* ════ 10. FINAL CTA ════ */}
-      <section className="relative overflow-hidden flex items-center" style={{ minHeight: '65vh' }}>
+      <section className="relative overflow-hidden flex items-center" style={{ minHeight: 'clamp(340px,65vh,900px)' }}>
         {salon.ctaPhoto || salonPhotoUrls[1] || salonPhotoUrls[0]
           ? <img src={salon.ctaPhoto || salonPhotoUrls[1] || salonPhotoUrls[0]} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ filter: 'brightness(.2) saturate(.6)' }} />
           : <div className="absolute inset-0" style={{ background: `linear-gradient(135deg,${theme.p}22,#0d0d18)` }} />
@@ -1062,7 +1063,7 @@ function SalonDetails() {
         <div className="relative z-10 lux-section">
           <motion.p className="lux-overline mb-6" style={{ color: theme.p }}
             initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>{salon.name}</motion.p>
-          <motion.h2 style={{ fontSize: 'clamp(40px,6vw,88px)', fontWeight: 900, lineHeight: 1, letterSpacing: '-.04em', marginBottom: 36, maxWidth: 680, color: dm.fg }}
+          <motion.h2 style={{ fontSize: 'clamp(28px,6vw,88px)', fontWeight: 900, lineHeight: 1, letterSpacing: '-.04em', marginBottom: 'clamp(24px,4vw,36px)', maxWidth: 680, color: dm.fg }}
             initial={{ opacity: 0, y: 32 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
             transition={{ duration: .85, ease: [.22,1,.36,1] }}>
             Ready for your<br />transformation?
