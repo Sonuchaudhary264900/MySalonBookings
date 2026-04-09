@@ -36,6 +36,7 @@ const CustomerTerms           = lazy(() => import("./pages/legal/CustomerTerms")
 const OwnerPrivacyPolicy      = lazy(() => import("./pages/legal/OwnerPrivacyPolicy"));
 const OwnerTerms              = lazy(() => import("./pages/legal/OwnerTerms"));
 const Reels                   = lazy(() => import("./pages/Reels"));
+const SalonReviews            = lazy(() => import("./pages/SalonReviews"));
 
 // ── Page loading fallback ──────────────────────────────────────
 function PageLoader() {
@@ -99,10 +100,15 @@ function AppLayout({ notifOpen, setNotifOpen }) {
             <Route path="/login"                       element={<Login />} />
             <Route path="/register"                    element={<Register />} />
             <Route path="/salon/:id"                   element={<SalonDetails />} />
+            <Route path="/salon/:id/reviews"           element={<SalonReviews />} />
             <Route path="/barbershop/:id"              element={<SalonDetails />} />
+            <Route path="/barbershop/:id/reviews"      element={<SalonReviews />} />
             <Route path="/spa-wellness/:id"            element={<SalonDetails />} />
+            <Route path="/spa-wellness/:id/reviews"    element={<SalonReviews />} />
             <Route path="/makeup-bridal/:id"           element={<SalonDetails />} />
+            <Route path="/makeup-bridal/:id/reviews"   element={<SalonReviews />} />
             <Route path="/skin-derma/:id"              element={<SalonDetails />} />
+            <Route path="/skin-derma/:id/reviews"      element={<SalonReviews />} />
             <Route path="/booking/:salonId/:serviceId" element={<Booking />} />
             <Route path="/booking/:salonId"            element={<Booking />} />
             <Route path="/dashboard"                   element={<Dashboard />} />

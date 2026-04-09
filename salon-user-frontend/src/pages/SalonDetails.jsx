@@ -947,7 +947,13 @@ function SalonDetails() {
                 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: .7 }}>
                 {avgRating ? <><span style={{ color: theme.p }}>{avgRating}</span> out of 5</> : 'What clients say'}
               </motion.h2>
-              <p style={{ fontSize: 14, color: dm.fg35 }}>{reviews.length} verified review{reviews.length !== 1 ? 's' : ''}</p>
+              <div className="flex items-center gap-4">
+                <p style={{ fontSize: 14, color: dm.fg35 }}>{reviews.length} verified review{reviews.length !== 1 ? 's' : ''}</p>
+                <button onClick={() => navigate(`${salonPath(salon)}/reviews`)}
+                  style={{ fontSize: 13, fontWeight: 600, color: theme.p, background: 'none', border: `1px solid ${theme.p}55`, borderRadius: 999, padding: '5px 16px', cursor: 'pointer' }}>
+                  See All
+                </button>
+              </div>
             </div>
           </div>
           <div ref={reviewTrackRef} className="lux-rev-track" style={{ gap: 1 }}>
