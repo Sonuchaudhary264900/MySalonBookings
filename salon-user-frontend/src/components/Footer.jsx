@@ -7,13 +7,23 @@ const SOCIAL = [
   { icon: "✓",  label: "WhatsApp", glow: "rgba(34,197,94,0.6)",   href: "https://wa.me/917973270642" },
 ];
 
-export default function Footer() {
+const DARK_VARS = {
+  '--t-card':   '#0f1117',
+  '--t-border': 'rgba(255,255,255,0.07)',
+  '--t-text':   '#f1f5f9',
+  '--t-text-2': 'rgba(241,245,249,0.6)',
+  '--t-text-3': 'rgba(241,245,249,0.35)',
+  '--t-bg-2':   'rgba(255,255,255,0.05)',
+};
+
+export default function Footer({ dark = false }) {
   return (
     <footer
       className="relative overflow-hidden"
       style={{
         background: "var(--t-card)",
         borderTop: "1px solid var(--t-border)",
+        ...(dark ? DARK_VARS : {}),
       }}
     >
       {/* Top glow line */}
