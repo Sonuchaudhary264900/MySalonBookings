@@ -91,11 +91,11 @@ const formatDay = (dateStr) => {
 };
 
 const CAT_THEMES = {
-  barbershop:    { p: '#e94560', ring: 'rgba(233,69,96,0.6)' },
-  salon:         { p: '#8b5cf6', ring: 'rgba(139,92,246,0.6)' },
-  spa_wellness:  { p: '#10b981', ring: 'rgba(16,185,129,0.6)' },
-  makeup_bridal: { p: '#f59e0b', ring: 'rgba(245,158,11,0.6)' },
-  skin_derma:    { p: '#38bdf8', ring: 'rgba(56,189,248,0.6)' },
+  barbershop:    { p: '#6366f1', ring: 'rgba(99,102,241,0.55)' },
+  salon:         { p: '#8b5cf6', ring: 'rgba(139,92,246,0.55)' },
+  spa_wellness:  { p: '#06b6d4', ring: 'rgba(6,182,212,0.55)' },
+  makeup_bridal: { p: '#a78bfa', ring: 'rgba(167,139,250,0.55)' },
+  skin_derma:    { p: '#818cf8', ring: 'rgba(129,140,248,0.55)' },
 };
 const DEFAULT_THEME = CAT_THEMES.salon;
 
@@ -258,8 +258,8 @@ function SalonDetails() {
 
   if (loading) {
     return (
-      <div style={{ background: '#050505', minHeight: '100vh' }}>
-        <div style={{ height: '100vh', background: 'linear-gradient(135deg,#0a0a0a,#111)' }} />
+      <div style={{ background: '#050509', minHeight: '100vh' }}>
+        <div style={{ height: '100vh', background: 'linear-gradient(135deg,#080812,#0d0d18)' }} />
         <div style={{ maxWidth: 800, margin: '0 auto', padding: '48px 24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
           {[1,2,3].map(i => <div key={i} style={{ height: 20, background: 'rgba(255,255,255,.06)', borderRadius: 2 }} />)}
         </div>
@@ -269,7 +269,7 @@ function SalonDetails() {
 
   if (!salon) {
     return (
-      <div style={{ background: '#050505', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: '#050509', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div className="text-center">
           <Frown className="w-12 h-12 mx-auto mb-4" style={{ color: 'rgba(255,255,255,.2)' }} />
           <p className="mb-4" style={{ color: 'rgba(255,255,255,.4)' }}>Salon not found.</p>
@@ -291,43 +291,43 @@ function SalonDetails() {
   const dayOrder       = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
   const theme          = CAT_THEMES[salon.businessType] || DEFAULT_THEME;
   const dm = {
-    bg:  darkMode ? '#050505' : '#fafaf8',
-    fg:  darkMode ? '#f5f5f0' : '#0f0f0d',
-    fg75: darkMode ? 'rgba(245,245,240,.75)' : 'rgba(10,10,10,.82)',
-    fg65: darkMode ? 'rgba(245,245,240,.65)' : 'rgba(10,10,10,.72)',
-    fg55: darkMode ? 'rgba(245,245,240,.55)' : 'rgba(10,10,10,.65)',
-    fg50: darkMode ? 'rgba(245,245,240,.50)' : 'rgba(10,10,10,.58)',
-    fg48: darkMode ? 'rgba(245,245,240,.48)' : 'rgba(10,10,10,.58)',
-    fg45: darkMode ? 'rgba(245,245,240,.45)' : 'rgba(10,10,10,.56)',
-    fg42: darkMode ? 'rgba(245,245,240,.42)' : 'rgba(10,10,10,.52)',
-    fg40: darkMode ? 'rgba(245,245,240,.40)' : 'rgba(10,10,10,.50)',
-    fg38: darkMode ? 'rgba(245,245,240,.38)' : 'rgba(10,10,10,.48)',
-    fg35: darkMode ? 'rgba(245,245,240,.35)' : 'rgba(10,10,10,.45)',
-    fg32: darkMode ? 'rgba(245,245,240,.32)' : 'rgba(10,10,10,.40)',
-    fg30: darkMode ? 'rgba(245,245,240,.30)' : 'rgba(10,10,10,.38)',
-    fg28: darkMode ? 'rgba(245,245,240,.28)' : 'rgba(10,10,10,.34)',
-    fg25: darkMode ? 'rgba(245,245,240,.25)' : 'rgba(10,10,10,.30)',
-    b28:  darkMode ? 'rgba(255,255,255,.28)' : 'rgba(0,0,0,.20)',
-    b20:  darkMode ? 'rgba(255,255,255,.20)' : 'rgba(0,0,0,.16)',
-    b14:  darkMode ? 'rgba(255,255,255,.14)' : 'rgba(0,0,0,.12)',
-    b12:  darkMode ? 'rgba(255,255,255,.12)' : 'rgba(0,0,0,.10)',
-    b10:  darkMode ? 'rgba(255,255,255,.10)' : 'rgba(0,0,0,.08)',
-    b07:  darkMode ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.06)',
-    b05:  darkMode ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.05)',
-    b04:  darkMode ? 'rgba(255,255,255,.04)' : 'rgba(0,0,0,.05)',
-    b03:  darkMode ? 'rgba(255,255,255,.03)' : 'rgba(0,0,0,.04)',
-    card:     darkMode ? 'rgba(255,255,255,.015)' : 'rgba(0,0,0,.025)',
-    cardBrd:  darkMode ? 'rgba(255,255,255,.05)'  : 'rgba(0,0,0,.07)',
-    barBg:    darkMode ? '#0e0e0e' : '#f0f0ee',
-    ownerOvr: darkMode ? 'linear-gradient(to right,transparent 55%,#050505 100%)' : 'linear-gradient(to right,transparent 55%,#fafaf8 100%)',
-    heroOvr1: darkMode ? 'linear-gradient(to top,rgba(5,5,5,1) 0%,rgba(5,5,5,.75) 35%,rgba(5,5,5,.1) 70%,rgba(5,5,5,0) 100%)' : 'linear-gradient(to top,rgba(250,250,248,1) 0%,rgba(250,250,248,.75) 35%,rgba(250,250,248,.1) 70%,rgba(250,250,248,0) 100%)',
-    heroOvr2: darkMode ? 'linear-gradient(to right,rgba(5,5,5,.6) 0%,transparent 60%)' : 'linear-gradient(to right,rgba(250,250,248,.6) 0%,transparent 60%)',
-    ctaOvr:   darkMode ? 'rgba(5,5,5,.5)' : 'rgba(250,250,248,.5)',
-    formInp:  darkMode ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.04)',
-    formBrd:  darkMode ? 'rgba(255,255,255,.1)'  : 'rgba(0,0,0,.10)',
-    modal:    darkMode ? '#111'    : '#ffffff',
-    drawer:   darkMode ? '#0d0d0d' : '#f8f8f6',
-    drawerBrd: darkMode ? '0 -20px 80px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.06)' : '0 -20px 80px rgba(0,0,0,.12),0 0 0 1px rgba(0,0,0,.08)',
+    bg:  darkMode ? '#050509' : '#f8fafc',
+    fg:  darkMode ? '#f8fafc' : '#0f172a',
+    fg75: darkMode ? 'rgba(248,250,252,.75)' : 'rgba(15,23,42,.82)',
+    fg65: darkMode ? 'rgba(248,250,252,.65)' : 'rgba(15,23,42,.72)',
+    fg55: darkMode ? 'rgba(248,250,252,.55)' : 'rgba(15,23,42,.65)',
+    fg50: darkMode ? 'rgba(248,250,252,.50)' : 'rgba(15,23,42,.58)',
+    fg48: darkMode ? 'rgba(248,250,252,.48)' : 'rgba(15,23,42,.58)',
+    fg45: darkMode ? 'rgba(248,250,252,.45)' : 'rgba(15,23,42,.56)',
+    fg42: darkMode ? 'rgba(248,250,252,.42)' : 'rgba(15,23,42,.52)',
+    fg40: darkMode ? 'rgba(248,250,252,.40)' : 'rgba(15,23,42,.50)',
+    fg38: darkMode ? 'rgba(248,250,252,.38)' : 'rgba(15,23,42,.48)',
+    fg35: darkMode ? 'rgba(248,250,252,.35)' : 'rgba(15,23,42,.45)',
+    fg32: darkMode ? 'rgba(248,250,252,.32)' : 'rgba(15,23,42,.40)',
+    fg30: darkMode ? 'rgba(248,250,252,.30)' : 'rgba(15,23,42,.38)',
+    fg28: darkMode ? 'rgba(248,250,252,.28)' : 'rgba(15,23,42,.34)',
+    fg25: darkMode ? 'rgba(248,250,252,.25)' : 'rgba(15,23,42,.30)',
+    b28:  darkMode ? 'rgba(255,255,255,.28)' : 'rgba(0,0,0,.18)',
+    b20:  darkMode ? 'rgba(255,255,255,.20)' : 'rgba(0,0,0,.14)',
+    b14:  darkMode ? 'rgba(255,255,255,.14)' : 'rgba(0,0,0,.10)',
+    b12:  darkMode ? 'rgba(255,255,255,.12)' : 'rgba(0,0,0,.08)',
+    b10:  darkMode ? 'rgba(255,255,255,.10)' : 'rgba(0,0,0,.07)',
+    b07:  darkMode ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.05)',
+    b05:  darkMode ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.04)',
+    b04:  darkMode ? 'rgba(255,255,255,.04)' : 'rgba(0,0,0,.04)',
+    b03:  darkMode ? 'rgba(255,255,255,.03)' : 'rgba(0,0,0,.03)',
+    card:     darkMode ? '#0d0d18' : '#ffffff',
+    cardBrd:  darkMode ? 'rgba(255,255,255,.08)' : '#e2e8f0',
+    barBg:    darkMode ? '#080812' : '#f1f5f9',
+    ownerOvr: darkMode ? 'linear-gradient(to right,transparent 55%,#050509 100%)' : 'linear-gradient(to right,transparent 55%,#f8fafc 100%)',
+    heroOvr1: darkMode ? 'linear-gradient(to top,rgba(5,5,9,1) 0%,rgba(5,5,9,.75) 35%,rgba(5,5,9,.1) 70%,rgba(5,5,9,0) 100%)' : 'linear-gradient(to top,rgba(248,250,252,1) 0%,rgba(248,250,252,.75) 35%,rgba(248,250,252,.1) 70%,rgba(248,250,252,0) 100%)',
+    heroOvr2: darkMode ? 'linear-gradient(to right,rgba(5,5,9,.6) 0%,transparent 60%)' : 'linear-gradient(to right,rgba(248,250,252,.6) 0%,transparent 60%)',
+    ctaOvr:   darkMode ? 'rgba(5,5,9,.5)' : 'rgba(248,250,252,.5)',
+    formInp:  darkMode ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.03)',
+    formBrd:  darkMode ? 'rgba(255,255,255,.10)' : '#e2e8f0',
+    modal:    darkMode ? '#0d0d18' : '#ffffff',
+    drawer:   darkMode ? '#0d0d18' : '#f8fafc',
+    drawerBrd: darkMode ? '0 -20px 80px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.08)' : '0 -20px 80px rgba(0,0,0,.10),0 0 0 1px rgba(0,0,0,.07)',
   };
   const heroMedia      = salonVideoUrls[0] || salonPhotoUrls[0] || salon.coverPhoto || null;
   const heroIsVideo    = !!salonVideoUrls[0];
@@ -375,7 +375,7 @@ function SalonDetails() {
           ? <video ref={heroVideoRef2} src={heroMedia} autoPlay muted={heroMuted} loop playsInline className="lux-media" />
           : heroMedia
             ? <img src={heroMedia} alt={salon.name} className="lux-media lux-media-img" />
-            : <div className="lux-media" style={{ background: `linear-gradient(135deg,#0a0a0a,${theme.p}22,#050505)` }} />
+            : <div className="lux-media" style={{ background: `linear-gradient(135deg,#080812,${theme.p}33,#0d0d18)` }} />
         }
         <div className="absolute inset-0" style={{ background: dm.heroOvr1 }} />
         <div className="absolute inset-0" style={{ background: dm.heroOvr2 }} />
@@ -524,7 +524,7 @@ function SalonDetails() {
                   onClick={() => item.type === 'video' ? setVideoViewerIdx(videoIdx) : setGalleryLightbox(i)}>
                   {item.type === 'video' ? (
                     <>
-                      <div className="gcm" style={{ background: '#0a0a0a' }} />
+                      <div className="gcm" style={{ background: '#0d0d18' }} />
                       {thumbUrl && <img src={thumbUrl} alt="" className="gcm" onError={e => { e.currentTarget.style.display='none'; }} />}
                       <div className="absolute inset-0 flex items-center justify-center">
                         <div className="w-16 h-16 rounded-full flex items-center justify-center"
@@ -907,7 +907,7 @@ function SalonDetails() {
       <section className="relative overflow-hidden flex items-center" style={{ minHeight: '65vh' }}>
         {salonPhotoUrls[1] || salonPhotoUrls[0]
           ? <img src={salonPhotoUrls[1] || salonPhotoUrls[0]} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ filter: 'brightness(.2) saturate(.6)' }} />
-          : <div className="absolute inset-0" style={{ background: `linear-gradient(135deg,${theme.p}1a,#050505)` }} />
+          : <div className="absolute inset-0" style={{ background: `linear-gradient(135deg,${theme.p}22,#0d0d18)` }} />
         }
         <div className="absolute inset-0" style={{ background: dm.ctaOvr }} />
         <div className="absolute inset-0" style={{ background: `linear-gradient(135deg,${theme.p}12 0%,transparent 55%)` }} />
@@ -1345,10 +1345,10 @@ const SVV_CSS = `
   }
   @media (min-width: 768px) {
     .svv-outer {
-      background: #050505;
+      background: #050509;
       background-image:
-        radial-gradient(ellipse 60% 50% at 30% 20%, rgba(99,102,241,0.07) 0%, transparent 70%),
-        radial-gradient(ellipse 60% 50% at 70% 80%, rgba(139,92,246,0.05) 0%, transparent 70%);
+        radial-gradient(ellipse 60% 50% at 30% 20%, rgba(99,102,241,0.10) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 50% at 70% 80%, rgba(139,92,246,0.07) 0%, transparent 70%);
       display: flex; align-items: center; justify-content: center;
     }
     .svv-col {
