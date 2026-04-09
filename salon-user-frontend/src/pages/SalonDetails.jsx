@@ -362,8 +362,8 @@ function SalonDetails() {
 
   if (loading) {
     return (
-      <div style={{ background: '#050509', minHeight: '100vh' }}>
-        <div style={{ height: '100vh', background: 'linear-gradient(135deg,#080812,#0d0d18)' }} />
+      <div style={{ background: 'var(--t-bg)', minHeight: '100vh' }}>
+        <div style={{ height: '100vh', background: 'linear-gradient(135deg,var(--t-bg),var(--t-bg-2))' }} />
         <div style={{ maxWidth: 800, margin: '0 auto', padding: '48px 24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
           {[1,2,3].map(i => <div key={i} style={{ height: 20, background: 'rgba(255,255,255,.06)', borderRadius: 2 }} />)}
         </div>
@@ -373,7 +373,7 @@ function SalonDetails() {
 
   if (!salon) {
     return (
-      <div style={{ background: '#050509', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: 'var(--t-bg)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div className="text-center">
           <Frown className="w-12 h-12 mx-auto mb-4" style={{ color: 'rgba(255,255,255,.2)' }} />
           <p className="mb-4" style={{ color: 'rgba(255,255,255,.4)' }}>Salon not found.</p>
@@ -395,22 +395,22 @@ function SalonDetails() {
   const dayOrder       = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
   const theme          = CAT_THEMES[salon.businessType] || DEFAULT_THEME;
   const dm = {
-    bg:  darkMode ? '#050509' : '#f8fafc',
-    fg:  darkMode ? '#f8fafc' : '#0f172a',
-    fg75: darkMode ? 'rgba(248,250,252,.75)' : 'rgba(15,23,42,.82)',
-    fg65: darkMode ? 'rgba(248,250,252,.65)' : 'rgba(15,23,42,.72)',
-    fg55: darkMode ? 'rgba(248,250,252,.55)' : 'rgba(15,23,42,.65)',
-    fg50: darkMode ? 'rgba(248,250,252,.50)' : 'rgba(15,23,42,.58)',
-    fg48: darkMode ? 'rgba(248,250,252,.48)' : 'rgba(15,23,42,.58)',
-    fg45: darkMode ? 'rgba(248,250,252,.45)' : 'rgba(15,23,42,.56)',
-    fg42: darkMode ? 'rgba(248,250,252,.42)' : 'rgba(15,23,42,.52)',
-    fg40: darkMode ? 'rgba(248,250,252,.40)' : 'rgba(15,23,42,.50)',
-    fg38: darkMode ? 'rgba(248,250,252,.38)' : 'rgba(15,23,42,.48)',
-    fg35: darkMode ? 'rgba(248,250,252,.35)' : 'rgba(15,23,42,.45)',
-    fg32: darkMode ? 'rgba(248,250,252,.32)' : 'rgba(15,23,42,.40)',
-    fg30: darkMode ? 'rgba(248,250,252,.30)' : 'rgba(15,23,42,.38)',
-    fg28: darkMode ? 'rgba(248,250,252,.28)' : 'rgba(15,23,42,.34)',
-    fg25: darkMode ? 'rgba(248,250,252,.25)' : 'rgba(15,23,42,.30)',
+    bg:  darkMode ? '#111827' : '#f9fafb',
+    fg:  darkMode ? '#ffffff' : '#111827',
+    fg75: darkMode ? 'rgba(255,255,255,.75)' : 'rgba(17,24,39,.82)',
+    fg65: darkMode ? 'rgba(255,255,255,.65)' : 'rgba(17,24,39,.72)',
+    fg55: darkMode ? 'rgba(255,255,255,.55)' : 'rgba(17,24,39,.65)',
+    fg50: darkMode ? 'rgba(255,255,255,.50)' : 'rgba(17,24,39,.58)',
+    fg48: darkMode ? 'rgba(255,255,255,.48)' : 'rgba(17,24,39,.58)',
+    fg45: darkMode ? 'rgba(255,255,255,.45)' : 'rgba(17,24,39,.56)',
+    fg42: darkMode ? 'rgba(255,255,255,.42)' : 'rgba(17,24,39,.52)',
+    fg40: darkMode ? 'rgba(255,255,255,.40)' : 'rgba(17,24,39,.50)',
+    fg38: darkMode ? 'rgba(255,255,255,.38)' : 'rgba(17,24,39,.48)',
+    fg35: darkMode ? 'rgba(255,255,255,.35)' : 'rgba(17,24,39,.45)',
+    fg32: darkMode ? 'rgba(255,255,255,.32)' : 'rgba(17,24,39,.40)',
+    fg30: darkMode ? 'rgba(255,255,255,.30)' : 'rgba(17,24,39,.38)',
+    fg28: darkMode ? 'rgba(255,255,255,.28)' : 'rgba(17,24,39,.34)',
+    fg25: darkMode ? 'rgba(255,255,255,.25)' : 'rgba(17,24,39,.30)',
     b28:  darkMode ? 'rgba(255,255,255,.28)' : 'rgba(0,0,0,.18)',
     b20:  darkMode ? 'rgba(255,255,255,.20)' : 'rgba(0,0,0,.14)',
     b14:  darkMode ? 'rgba(255,255,255,.14)' : 'rgba(0,0,0,.10)',
@@ -420,18 +420,18 @@ function SalonDetails() {
     b05:  darkMode ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.04)',
     b04:  darkMode ? 'rgba(255,255,255,.04)' : 'rgba(0,0,0,.04)',
     b03:  darkMode ? 'rgba(255,255,255,.03)' : 'rgba(0,0,0,.03)',
-    card:     darkMode ? '#0d0d18' : '#ffffff',
-    cardBrd:  darkMode ? 'rgba(255,255,255,.08)' : '#e2e8f0',
-    barBg:    darkMode ? '#080812' : '#f1f5f9',
-    ownerOvr: darkMode ? 'linear-gradient(to right,transparent 55%,#050509 100%)' : 'linear-gradient(to right,transparent 55%,#f8fafc 100%)',
-    heroOvr1: darkMode ? 'linear-gradient(to top,rgba(5,5,9,1) 0%,rgba(5,5,9,.75) 35%,rgba(5,5,9,.1) 70%,rgba(5,5,9,0) 100%)' : 'linear-gradient(to top,rgba(248,250,252,1) 0%,rgba(248,250,252,.75) 35%,rgba(248,250,252,.1) 70%,rgba(248,250,252,0) 100%)',
-    heroOvr2: darkMode ? 'linear-gradient(to right,rgba(5,5,9,.6) 0%,transparent 60%)' : 'linear-gradient(to right,rgba(248,250,252,.6) 0%,transparent 60%)',
-    ctaOvr:   darkMode ? 'rgba(5,5,9,.5)' : 'rgba(248,250,252,.5)',
+    card:     darkMode ? '#111827' : '#ffffff',
+    cardBrd:  darkMode ? '#1f2937' : '#e5e7eb',
+    barBg:    darkMode ? '#1f2937' : '#f3f4f6',
+    ownerOvr: darkMode ? 'linear-gradient(to right,transparent 35%,rgba(17,24,39,.25) 55%,rgba(17,24,39,.72) 75%,#111827 100%)' : 'linear-gradient(to right,transparent 65%,rgba(0,0,0,.12) 100%)',
+    heroOvr1: 'linear-gradient(to top,rgba(0,0,0,.88) 0%,rgba(0,0,0,.60) 18%,rgba(0,0,0,.28) 42%,rgba(0,0,0,.08) 65%,transparent 100%)',
+    heroOvr2: 'linear-gradient(to right,rgba(0,0,0,.50) 0%,rgba(0,0,0,.28) 30%,rgba(0,0,0,.10) 55%,transparent 78%)',
+    ctaOvr:   darkMode ? 'linear-gradient(to bottom,rgba(0,0,0,.30) 0%,rgba(0,0,0,.55) 100%)' : 'linear-gradient(to bottom,rgba(0,0,0,.25) 0%,rgba(0,0,0,.50) 100%)',
     formInp:  darkMode ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.03)',
-    formBrd:  darkMode ? 'rgba(255,255,255,.10)' : '#e2e8f0',
-    modal:    darkMode ? '#0d0d18' : '#ffffff',
-    drawer:   darkMode ? '#0d0d18' : '#f8fafc',
-    drawerBrd: darkMode ? '0 -20px 80px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.08)' : '0 -20px 80px rgba(0,0,0,.10),0 0 0 1px rgba(0,0,0,.07)',
+    formBrd:  darkMode ? '#374151' : '#e5e7eb',
+    modal:    darkMode ? '#111827' : '#ffffff',
+    drawer:   darkMode ? '#111827' : '#f9fafb',
+    drawerBrd: darkMode ? '0 -20px 80px rgba(0,0,0,.5),0 0 0 1px #1f2937' : '0 -20px 80px rgba(0,0,0,.10),0 0 0 1px rgba(0,0,0,.07)',
   };
   const currentHeroSlide = heroSlides[heroSlideIdx] || null;
   const allOffers        = offers.length > 0 ? offers : salon.topOffer ? [salon.topOffer] : [];
@@ -486,11 +486,13 @@ function SalonDetails() {
             }
           </div>
         ) : (
-          <div className="lux-media" style={{ background: `linear-gradient(135deg,#080812,${theme.p}33,#0d0d18)` }} />
+          <div className="lux-media" style={{ background: `radial-gradient(ellipse 70% 60% at 20% 40%, ${theme.p}28 0%, transparent 55%), radial-gradient(ellipse 55% 65% at 80% 60%, rgba(139,92,246,0.18) 0%, transparent 50%), linear-gradient(135deg, var(--t-bg) 0%, var(--t-bg-2) 100%)` }} />
         )}
         <div className="absolute inset-0" style={{ background: dm.heroOvr1 }} />
         <div className="absolute inset-0" style={{ background: dm.heroOvr2 }} />
         <div className="absolute inset-0" style={{ background: `linear-gradient(135deg,${theme.p}14 0%,transparent 55%)` }} />
+        {/* Noise texture to eliminate gradient banding */}
+        <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.04, backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E\")", backgroundRepeat: 'repeat', backgroundSize: '200px 200px', mixBlendMode: 'overlay' }} />
 
         <div className="absolute top-6 left-6 right-6 flex items-center justify-between z-10">
           <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate(-1)}
@@ -517,48 +519,49 @@ function SalonDetails() {
 
         <div className="absolute bottom-0 left-0 right-0 z-10" style={{ padding: 'clamp(20px,5vw,80px)', paddingBottom: 'clamp(72px,9vh,130px)' }}>
           <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .2, duration: .9, ease: [.22,1,.36,1] }}>
-            <p className="lux-overline mb-4" style={{ color: theme.p }}>
+            <p className="lux-overline mb-4" style={{ color: 'rgba(255,255,255,.72)', textShadow: '0 1px 8px rgba(0,0,0,.65)' }}>
               {BIZ_SUBTITLES[salon.businessType] || 'Premium grooming experience'}
             </p>
-            <h1 className="lux-hero-title text-white mb-5" style={{ maxWidth: 780 }}>
+            <h1 className="lux-hero-title text-white mb-5" style={{ maxWidth: 780, textShadow: '0 2px 16px rgba(0,0,0,.55), 0 0 40px rgba(0,0,0,.25)' }}>
               {salon.name.toUpperCase()}
             </h1>
             <div className="flex items-center flex-wrap mb-8" style={{ gap: 'clamp(12px,2vw,28px)' }}>
               {avgRating && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2" style={{ textShadow: '0 1px 6px rgba(0,0,0,.55)' }}>
                   <div className="flex gap-0.5">
                     {[1,2,3,4,5].map(s => (
                       <Star key={s} className="w-3.5 h-3.5"
-                        style={{ color: s <= Math.round(parseFloat(avgRating)) ? '#fbbf24' : 'rgba(255,255,255,.2)',
-                                 fill:  s <= Math.round(parseFloat(avgRating)) ? '#fbbf24' : 'none' }} />
+                        style={{ color: s <= Math.round(parseFloat(avgRating)) ? '#fbbf24' : 'rgba(255,255,255,.25)',
+                                 fill:  s <= Math.round(parseFloat(avgRating)) ? '#fbbf24' : 'none',
+                                 filter: 'drop-shadow(0 1px 4px rgba(0,0,0,.5))' }} />
                     ))}
                   </div>
                   <span className="font-bold text-sm text-white">{avgRating}</span>
                   {(salon.totalReviews || reviews.length) > 0 && (
-                    <span className="text-sm" style={{ color: 'rgba(255,255,255,.45)' }}>({salon.totalReviews || reviews.length})</span>
+                    <span className="text-sm" style={{ color: 'rgba(255,255,255,.55)' }}>({salon.totalReviews || reviews.length})</span>
                   )}
                 </div>
               )}
               {(salon.address || salon.city) && (
-                <div className="flex items-center gap-1.5 text-sm" style={{ color: 'rgba(255,255,255,.55)' }}>
+                <div className="flex items-center gap-1.5 text-sm" style={{ color: 'rgba(255,255,255,.70)', textShadow: '0 1px 6px rgba(0,0,0,.6)' }}>
                   <MapPin className="w-3.5 h-3.5" />{salon.city || salon.address}
                 </div>
               )}
               {openStatus !== null && (
-                <div className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: openStatus ? '#4ade80' : '#f87171' }}>
-                  <span className="w-2 h-2 rounded-full inline-block" style={{ background: openStatus ? '#4ade80' : '#f87171' }} />
+                <div className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: openStatus ? '#4ade80' : '#f87171', textShadow: '0 1px 6px rgba(0,0,0,.6)' }}>
+                  <span className="w-2 h-2 rounded-full inline-block" style={{ background: openStatus ? '#4ade80' : '#f87171', boxShadow: openStatus ? '0 0 8px rgba(74,222,128,.6)' : '0 0 8px rgba(248,113,113,.6)' }} />
                   {openStatus ? (todayHours ? `Open · ${todayHours}` : 'Open Now') : (opensAt ? `Opens ${opensAt}` : 'Closed Today')}
                 </div>
               )}
             </div>
             <div className="flex flex-wrap gap-3">
               <motion.button whileTap={{ scale: .97 }} whileHover={{ scale: 1.02 }} onClick={handleSmartBook}
-                className="lux-btn-p" style={{ background: theme.p, boxShadow: `0 8px 32px ${theme.p}55` }}>
+                className="lux-btn-p" style={{ background: theme.p, boxShadow: `0 8px 32px ${theme.p}66, 0 2px 8px rgba(0,0,0,.35)` }}>
                 <Zap className="w-4 h-4" /> Book Appointment
               </motion.button>
               <motion.button whileTap={{ scale: .97 }} whileHover={{ scale: 1.02 }}
                 onClick={() => document.getElementById('lux-services')?.scrollIntoView({ behavior: 'smooth' })}
-                className="lux-btn-o" style={{ color: '#fff', border: '1px solid rgba(255,255,255,.28)' }}>
+                className="lux-btn-o" style={{ color: '#fff', border: '1px solid rgba(255,255,255,.35)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', background: 'rgba(255,255,255,.08)' }}>
                 View Services
               </motion.button>
             </div>
@@ -649,7 +652,7 @@ function SalonDetails() {
                   initial={{ opacity: 0, scale: .96 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}
                   transition={{ delay: Math.min(i * .07, .35), duration: .6 }}
                   onClick={() => setVideoViewerIdx(i)}>
-                  <div className="gcm" style={{ background: '#0d0d18' }} />
+                  <div className="gcm" style={{ background: 'var(--t-bg-2)' }} />
                   {thumbUrl && <img src={thumbUrl} alt="" className="gcm" onError={e => { e.currentTarget.style.display='none'; }} />}
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="w-14 h-14 rounded-full flex items-center justify-center"
@@ -657,7 +660,7 @@ function SalonDetails() {
                       <Play className="w-6 h-6 text-white" fill="white" />
                     </div>
                   </div>
-                  <div className="absolute bottom-0 left-0 right-0 p-4" style={{ background: 'linear-gradient(to top,rgba(0,0,0,.75),transparent)' }}>
+                  <div className="absolute bottom-0 left-0 right-0 p-4" style={{ background: 'linear-gradient(to top,rgba(0,0,0,.82) 0%,rgba(0,0,0,.50) 40%,rgba(0,0,0,.15) 70%,transparent 100%)' }}>
                     <span className="lux-overline" style={{ color: 'rgba(255,255,255,.55)', fontSize: 9 }}>▶ REEL {i + 1}</span>
                   </div>
                 </motion.div>
@@ -897,7 +900,7 @@ function SalonDetails() {
                       transition: 'opacity 1.1s ease',
                       pointerEvents: 'none',
                     }}>
-                      <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'contrast(1.06) saturate(1.08)', transition: 'transform 8s ease' }} />
                     </div>
                   ))}
                   {/* dot indicators */}
@@ -1056,11 +1059,12 @@ function SalonDetails() {
       {/* ════ 10. FINAL CTA ════ */}
       <section className="relative overflow-hidden flex items-center" style={{ minHeight: 'clamp(340px,65vh,900px)' }}>
         {salon.ctaPhoto || salonPhotoUrls[1] || salonPhotoUrls[0]
-          ? <img src={salon.ctaPhoto || salonPhotoUrls[1] || salonPhotoUrls[0]} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ filter: 'brightness(.2) saturate(.6)' }} />
-          : <div className="absolute inset-0" style={{ background: `linear-gradient(135deg,${theme.p}22,#0d0d18)` }} />
+          ? <img src={salon.ctaPhoto || salonPhotoUrls[1] || salonPhotoUrls[0]} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ filter: 'brightness(.35) saturate(.70) contrast(1.1)' }} />
+          : <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse 65% 55% at 30% 50%, ${theme.p}30 0%, transparent 60%), radial-gradient(ellipse 50% 60% at 75% 50%, rgba(139,92,246,0.20) 0%, transparent 55%), var(--t-bg)` }} />
         }
         <div className="absolute inset-0" style={{ background: dm.ctaOvr }} />
-        <div className="absolute inset-0" style={{ background: `linear-gradient(135deg,${theme.p}12 0%,transparent 55%)` }} />
+        <div className="absolute inset-0" style={{ background: `linear-gradient(135deg,${theme.p}14 0%,transparent 55%)` }} />
+        <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.035, backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E\")", backgroundRepeat: 'repeat', backgroundSize: '200px 200px', mixBlendMode: 'overlay' }} />
         <div className="relative z-10 lux-section">
           <motion.p className="lux-overline mb-6" style={{ color: theme.p }}
             initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>{salon.name}</motion.p>
@@ -1495,7 +1499,7 @@ const SVV_CSS = `
   }
   @media (min-width: 768px) {
     .svv-outer {
-      background: #050509;
+      background: var(--t-bg);
       background-image:
         radial-gradient(ellipse 60% 50% at 30% 20%, rgba(99,102,241,0.10) 0%, transparent 70%),
         radial-gradient(ellipse 60% 50% at 70% 80%, rgba(139,92,246,0.07) 0%, transparent 70%);
@@ -1528,9 +1532,10 @@ const SVV_CSS = `
   .reel-gradient {
     position: absolute; inset: 0; pointer-events: none;
     background: linear-gradient(to bottom,
-      rgba(0,0,0,0.60) 0%, rgba(0,0,0,0.10) 18%,
-      transparent 36%, transparent 48%,
-      rgba(0,0,0,0.55) 72%, rgba(0,0,0,0.93) 100%);
+      rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.30) 12%,
+      rgba(0,0,0,0.08) 25%, transparent 38%,
+      transparent 50%, rgba(0,0,0,0.12) 60%,
+      rgba(0,0,0,0.48) 75%, rgba(0,0,0,0.88) 100%);
   }
 
   /* ── action buttons — identical to Reels ── */

@@ -138,7 +138,7 @@ function AppLayout({ notifOpen, setNotifOpen }) {
           </Routes>
         </Suspense>
       </main>
-      {!isReels && <Footer dark={isSalonPage} />}
+      {!isReels && <Footer />}
       {!isReels && <BottomNav />}
     </div>
   );
