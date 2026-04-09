@@ -303,8 +303,8 @@ function SalonDetails() {
     setCouponDiscount(0); setCouponInput(""); setCouponError(""); setBookingSuccess(false); setBookError(""); setShowBooking(true);
   };
 
-  const handleBookNow      = () => { if (selectedServices.length === 0) { addToast("error", "Please select at least one service."); return; } openBooking(); };
-  const handleBookNowEmpty = () => openBooking();
+  const handleBookNow   = () => { if (selectedServices.length === 0) { document.getElementById('lux-services')?.scrollIntoView({ behavior: 'smooth' }); return; } openBooking(); };
+  const handleSmartBook = () => { if (selectedServices.length === 0) { document.getElementById('lux-services')?.scrollIntoView({ behavior: 'smooth' }); } else { openBooking(); } };
 
   const applyCoupon = async () => {
     if (!couponInput.trim()) return;
@@ -550,7 +550,7 @@ function SalonDetails() {
               )}
             </div>
             <div className="flex flex-wrap gap-3">
-              <motion.button whileTap={{ scale: .97 }} whileHover={{ scale: 1.02 }} onClick={handleBookNowEmpty}
+              <motion.button whileTap={{ scale: .97 }} whileHover={{ scale: 1.02 }} onClick={handleSmartBook}
                 className="lux-btn-p" style={{ background: theme.p, boxShadow: `0 8px 32px ${theme.p}55` }}>
                 <Zap className="w-4 h-4" /> Book Appointment
               </motion.button>
@@ -1069,7 +1069,7 @@ function SalonDetails() {
           </motion.h2>
           <motion.div className="flex flex-wrap gap-4"
             initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: .2, duration: .7 }}>
-            <motion.button whileTap={{ scale: .97 }} whileHover={{ scale: 1.02 }} onClick={handleBookNowEmpty}
+            <motion.button whileTap={{ scale: .97 }} whileHover={{ scale: 1.02 }} onClick={handleSmartBook}
               className="lux-btn-p" style={{ background: theme.p, boxShadow: `0 12px 40px ${theme.p}50`, fontSize: 13, padding: '17px 42px' }}>
               <Zap className="w-4 h-4" /> Book Now
             </motion.button>
@@ -1123,7 +1123,7 @@ function SalonDetails() {
                   {nextSlot ? `Next slot: ${nextSlot}` : openStatus === false ? (opensAt ? `Opens at ${opensAt}` : 'Closed today') : 'Select a service above'}
                 </p>
               </div>
-              <motion.button whileTap={{ scale: .96 }} whileHover={{ scale: 1.03 }} onClick={handleBookNowEmpty}
+              <motion.button whileTap={{ scale: .96 }} whileHover={{ scale: 1.03 }} onClick={handleSmartBook}
                 className="lux-btn-p shrink-0" style={{ background: theme.p, boxShadow: `0 4px 20px ${theme.p}45`, fontSize: 11, padding: '11px 22px' }}>
                 <Zap className="w-3.5 h-3.5" /> Book Now
               </motion.button>
