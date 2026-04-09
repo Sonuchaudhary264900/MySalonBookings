@@ -125,6 +125,8 @@ function SalonDetails() {
   const { isDark: darkMode } = useTheme();
   const heroVideoRef2 = useRef(null);
   const galleryTrackRef = useRef(null);
+  const heroTouchStartX = useRef(null);
+  const heroTouchStartY = useRef(null);
   const [galleryLightbox, setGalleryLightbox] = useState(null);
   const galleryVideoRef = useRef(null);
   const [videoViewerIdx, setVideoViewerIdx] = useState(null);
@@ -412,7 +414,27 @@ function SalonDetails() {
 
       {/* ════ 1. HERO ════ */}
       <motion.section className="lux-hero"
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}
+        onTouchStart={e => { heroTouchStartX.current = e.touches[0].clientX; heroTouchStartY.current = e.touches[0].clientY; }}
+        onTouchEnd={e => {
+          if (heroTouchStartX.current === null || heroSlides.length <= 1) return;
+          const dx = e.changedTouches[0].clientX - heroTouchStartX.current;
+          const dy = Math.abs(e.changedTouches[0].clientY - heroTouchStartY.current);
+          if (Math.abs(dx) > 40 && Math.abs(dx) > dy) {
+            setHeroSlideIdx(i => dx < 0 ? (i + 1) % heroSlides.length : (i - 1 + heroSlides.length) % heroSlides.length);
+          }
+          heroTouchStartX.current = null;
+        }}
+        onMouseDown={e => { heroTouchStartX.current = e.clientX; heroTouchStartY.current = e.clientY; }}
+        onMouseUp={e => {
+          if (heroTouchStartX.current === null || heroSlides.length <= 1) return;
+          const dx = e.clientX - heroTouchStartX.current;
+          const dy = Math.abs(e.clientY - heroTouchStartY.current);
+          if (Math.abs(dx) > 60 && Math.abs(dx) > dy) {
+            setHeroSlideIdx(i => dx < 0 ? (i + 1) % heroSlides.length : (i - 1 + heroSlides.length) % heroSlides.length);
+          }
+          heroTouchStartX.current = null;
+        }}>
         {currentHeroSlide ? (
           <div key={heroSlideIdx} className="lux-hero-slide">
             {currentHeroSlide.type === 'video'
