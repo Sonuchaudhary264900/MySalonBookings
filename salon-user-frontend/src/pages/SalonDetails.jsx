@@ -125,6 +125,7 @@ function SalonDetails() {
   const darkMode = true; // SalonDetails is always dark
   const heroVideoRef2 = useRef(null);
   const galleryTrackRef = useRef(null);
+  const reviewTrackRef  = useRef(null);
   const heroSectionRef = useRef(null);
   const [galleryLightbox, setGalleryLightbox] = useState(null);
   const galleryVideoRef = useRef(null);
@@ -228,6 +229,22 @@ function SalonDetails() {
         track.scrollBy({ left: 310, behavior: 'smooth' });
       }
     }, 2200);
+    return () => clearInterval(interval);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reviews auto-scroll
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const track = reviewTrackRef.current;
+      if (!track) return;
+      const max = track.scrollWidth - track.clientWidth;
+      if (!max) return;
+      if (track.scrollLeft >= max - 20) {
+        track.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        track.scrollBy({ left: 340, behavior: 'smooth' });
+      }
+    }, 3200);
     return () => clearInterval(interval);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -933,7 +950,7 @@ function SalonDetails() {
               <p style={{ fontSize: 14, color: dm.fg35 }}>{reviews.length} verified review{reviews.length !== 1 ? 's' : ''}</p>
             </div>
           </div>
-          <div className="lux-rev-track" style={{ gap: 1 }}>
+          <div ref={reviewTrackRef} className="lux-rev-track" style={{ gap: 1 }}>
             {reviews.map((r, i) => {
               const starRating = Math.round(r.salonRating || r.rating || 5);
               const name = r.customerId?.name || r.customerName || 'Guest';
