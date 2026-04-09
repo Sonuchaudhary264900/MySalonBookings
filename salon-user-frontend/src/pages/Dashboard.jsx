@@ -577,22 +577,20 @@ function RescheduleModal({ booking, onClose, onRescheduled }) {
 // ── SkeletonCard ──────────────────────────────────────────────
 function SkeletonCard() {
   return (
-    <div style={{ background: 'var(--t-card)', border: '1px solid var(--t-border)', borderRadius: 20, padding: 20, overflow: 'hidden', position: 'relative' }}>
-      <style>{`.sk-shimmer{background:linear-gradient(90deg,var(--t-border) 25%,var(--t-bg-2) 50%,var(--t-border) 75%);backgroundSize:200% 100%;animation:sk-shine 1.4s infinite}.@keyframes sk-shine{0%{backgroundPosition:200% 0}100%{backgroundPosition:-200% 0}}`}</style>
-      <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
-        <div className="sk-shimmer" style={{ width: 48, height: 48, borderRadius: 14, flexShrink: 0 }} />
-        <div style={{ flex: 1 }}>
-          <div className="sk-shimmer" style={{ height: 14, borderRadius: 7, width: '70%', marginBottom: 8 }} />
-          <div className="sk-shimmer" style={{ height: 12, borderRadius: 6, width: '45%' }} />
-        </div>
+    <div style={{ padding: '28px 0', borderBottom: '1px solid var(--t-border)' }}>
+      <style>{`
+        @keyframes sk-shine { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+        .sk-shimmer { background:linear-gradient(90deg,var(--t-border) 25%,var(--t-bg-2) 50%,var(--t-border) 75%);background-size:200% 100%;animation:sk-shine 1.4s infinite; }
+      `}</style>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <div className="sk-shimmer" style={{ height: 22, borderRadius: 6, width: '55%' }} />
         <div className="sk-shimmer" style={{ width: 72, height: 22, borderRadius: 99 }} />
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 14 }}>
-        {[1,2,3].map(i => <div key={i} className="sk-shimmer" style={{ height: 56, borderRadius: 10 }} />)}
-      </div>
-      <div style={{ display: 'flex', gap: 8 }}>
-        <div className="sk-shimmer" style={{ height: 38, borderRadius: 10, flex: 1 }} />
-        <div className="sk-shimmer" style={{ height: 38, borderRadius: 10, flex: 1 }} />
+      <div className="sk-shimmer" style={{ height: 14, borderRadius: 6, width: '38%', marginBottom: 18 }} />
+      <div style={{ display: 'flex', gap: 20 }}>
+        <div className="sk-shimmer" style={{ height: 12, borderRadius: 6, width: 80 }} />
+        <div className="sk-shimmer" style={{ height: 12, borderRadius: 6, width: 60 }} />
+        <div className="sk-shimmer" style={{ height: 12, borderRadius: 6, width: 50 }} />
       </div>
     </div>
   );
@@ -665,196 +663,135 @@ function BookingCard({ booking: initialBooking, userCoords, onCancelled, isNext 
   return (
     <>
       <style>{`
-        @keyframes sk-shine { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-        .sk-shimmer { background:linear-gradient(90deg,var(--t-border) 25%,var(--t-bg-2) 50%,var(--t-border) 75%);background-size:200% 100%;animation:sk-shine 1.4s infinite; }
-        .bk-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
-        .bk-card:hover { transform: translateY(-2px); }
-        .bk-btn { transition: all 0.18s ease; }
-        .bk-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+        @keyframes bk-pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.85)} }
+        .bk-row { transition: background 0.2s ease; border-radius: 20px; }
+        .bk-row:hover { background: var(--t-bg-2); }
+        .bk-action { transition: all 0.2s ease; opacity: 0.7; }
+        .bk-action:hover { opacity: 1; transform: translateY(-1px); }
+        .bk-row:hover .bk-actions-reveal { opacity: 1; }
+        .bk-actions-reveal { opacity: 0; transition: opacity 0.2s ease; }
+        @media (max-width: 640px) { .bk-actions-reveal { opacity: 1; } }
       `}</style>
 
-      <div className="bk-card" style={{
-        background: 'var(--t-card)',
-        border: `1px solid ${hovered ? cfg.border : 'var(--t-border)'}`,
-        borderLeft: `3px solid ${cfg.color}`,
-        borderRadius: 18,
-        overflow: 'hidden',
-        boxShadow: isNext ? `0 0 0 2px ${cfg.glow}, 0 8px 32px rgba(0,0,0,0.12)` : hovered ? '0 8px 32px rgba(0,0,0,0.12)' : 'var(--t-shadow)',
-        transition: 'all 0.2s ease',
-      }}
+      {/* ── "Next" spotlight pill above the row ── */}
+      {isNext && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, paddingLeft: 4 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--t-accent)' }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--t-accent)', display: 'inline-block', animation: 'bk-pulse-dot 2s infinite' }} />
+            Up next
+          </span>
+          {countdown && (
+            <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--t-text-3)' }}>{countdown}</span>
+          )}
+        </div>
+      )}
+
+      <div className="bk-row" style={{ padding: '20px 16px', cursor: 'default' }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >
+        {/* ── Top row: name + status ── */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <p style={{ fontSize: 18, fontWeight: 800, color: 'var(--t-text)', letterSpacing: '-0.4px', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 4 }}>
+              {salonName}
+            </p>
+            <p style={{ fontSize: 13, color: 'var(--t-text-2)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {serviceName}
+            </p>
+          </div>
+          <StatusBadge status={status} />
+        </div>
 
-        {/* "Next Appointment" ribbon */}
-        {isNext && (
-          <div style={{ background: 'linear-gradient(90deg,#6366f1,#8b5cf6)', padding: '6px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-              ⚡ Next Appointment
-            </span>
-            {countdown && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'rgba(255,255,255,0.9)', fontWeight: 600 }}>
-                <IcTimer /> {countdown}
+        {/* ── Meta row: date · time · amount · duration ── */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0, marginTop: 10, marginBottom: 0 }}>
+          {[
+            formatDateLabel(booking.appointmentDate),
+            formatTimeLabel(booking.appointmentTime),
+            booking.totalAmount != null ? `₹${booking.totalAmount}` : null,
+            durLabel,
+            distanceLabel,
+            !!salonCity ? salonCity : null,
+          ].filter(Boolean).map((item, i, arr) => (
+            <span key={i} style={{ display: 'flex', alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: i === 2 ? 'var(--t-accent)' : 'var(--t-text-3)', fontWeight: i === 2 ? 700 : 500 }}>
+                {item}
               </span>
-            )}
+              {i < arr.length - 1 && (
+                <span style={{ margin: '0 8px', color: 'var(--t-border)', fontSize: 14, fontWeight: 300, userSelect: 'none' }}>·</span>
+              )}
+            </span>
+          ))}
+          <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--t-text-3)', fontFamily: 'monospace', opacity: 0.6 }}>
+            #{booking.bookingId || booking._id?.slice(-6) || '—'}
+          </span>
+        </div>
+
+        {/* ── Status microcopy ── */}
+        {microcopy && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10 }}>
+            <span style={{ width: 5, height: 5, borderRadius: '50%', background: microcopy.color, flexShrink: 0, animation: 'bk-pulse-dot 2s infinite' }} />
+            <p style={{ fontSize: 11, color: microcopy.color, fontWeight: 600 }}>{microcopy.text}</p>
           </div>
         )}
 
-        <div style={{ padding: '16px 16px 14px' }}>
-
-          {/* ── Header ── */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
-            {/* Salon avatar */}
-            <div style={{
-              width: 48, height: 48, borderRadius: 14, flexShrink: 0,
-              background: `linear-gradient(135deg,#6366f1,#8b5cf6)`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 20, fontWeight: 800, color: '#fff',
-              boxShadow: '0 0 16px rgba(99,102,241,0.3)',
-            }}>
-              {salonInitial}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 15, fontWeight: 800, color: 'var(--t-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2, letterSpacing: '-0.2px' }}>
-                {salonName}
-              </p>
-              <p style={{ fontSize: 13, color: 'var(--t-text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {serviceName}
-              </p>
-              {!!salonCity && (
-                <p style={{ fontSize: 11, color: 'var(--t-text-3)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 3 }}>
-                  <IcPin /> {salonCity}
-                </p>
-              )}
-            </div>
-            <StatusBadge status={status} />
+        {/* ── Payment pending banner ── */}
+        {booking.paymentStatus === 'pending' && booking.paymentMethod && booking.paymentMethod !== 'cash' && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, padding: '8px 12px', background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: 10 }}>
+            <p style={{ fontSize: 12, color: '#fbbf24', fontWeight: 600 }}>Payment pending · ₹{booking.totalAmount}</p>
+            <button style={{ padding: '3px 11px', background: '#fbbf24', border: 'none', borderRadius: 6, fontSize: 11, fontWeight: 700, color: '#000', cursor: 'pointer' }}>Pay Now</button>
           </div>
+        )}
 
-          {/* ── Info grid ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 12 }}>
-            {/* Date */}
-            <div style={{ background: 'var(--t-bg-2)', border: '1px solid var(--t-border)', borderRadius: 10, padding: '9px 10px' }}>
-              <p style={{ fontSize: 10, color: 'var(--t-text-3)', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 3, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
-                <IcCalendar /> Date
-              </p>
-              <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--t-text)', lineHeight: 1.3 }}>{formatDateLabel(booking.appointmentDate)}</p>
-            </div>
-            {/* Time */}
-            <div style={{ background: 'var(--t-bg-2)', border: '1px solid var(--t-border)', borderRadius: 10, padding: '9px 10px' }}>
-              <p style={{ fontSize: 10, color: 'var(--t-text-3)', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 3, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
-                <IcClock /> Time
-              </p>
-              <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--t-text)' }}>{formatTimeLabel(booking.appointmentTime)}</p>
-            </div>
-            {/* Amount */}
-            <div style={{ background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 10, padding: '9px 10px' }}>
-              <p style={{ fontSize: 10, color: 'var(--t-accent)', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 3, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
-                <IcRupee /> Amount
-              </p>
-              <p style={{ fontSize: 12, fontWeight: 800, color: 'var(--t-accent)' }}>
-                {booking.totalAmount != null ? `₹${booking.totalAmount}` : '—'}
-              </p>
-            </div>
+        {/* ── Review prompt ── */}
+        {canReview && <ReviewPrompt bookingId={booking._id} onReviewed={() => setReviewed(true)} />}
+        {reviewed && (
+          <div style={{ marginTop: 10, padding: '8px 12px', background: 'var(--t-success-bg)', border: '1px solid var(--t-success-border)', borderRadius: 10 }}>
+            <p style={{ fontSize: 12, color: 'var(--t-success-text)', fontWeight: 600 }}>Thank you for your review! ✨</p>
           </div>
+        )}
 
-          {/* ── Secondary info row ── */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 12, alignItems: 'center' }}>
-            {durLabel && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--t-text-3)' }}>
-                <IcTimer /> {durLabel}
-              </span>
+        {/* ── Action row ── */}
+        {(isUpcoming || !!salonPhone || !!mapsUrl || status === 'completed') && (
+          <div className="bk-actions-reveal" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 14 }}>
+            {CHAT_OPEN_SET.has(status) && (
+              <button className="bk-action" onClick={() => setChatOpen(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 13px', background: 'transparent', border: `1px solid var(--t-border)`, borderRadius: 9, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--t-accent)' }}>
+                💬 Chat
+              </button>
             )}
-            {distanceLabel && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--t-text-3)' }}>
-                <IcPin /> {distanceLabel}
-              </span>
+            {canReschedule && (
+              <button className="bk-action" onClick={() => setRescheduleOpen(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 13px', background: 'transparent', border: `1px solid var(--t-border)`, borderRadius: 9, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--t-text-2)' }}>
+                <IcCalendar /> Reschedule
+              </button>
             )}
-            {booking.paymentMethod && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--t-text-3)' }}>
-                <IcRupee />
-                {booking.paymentMethod.charAt(0).toUpperCase() + booking.paymentMethod.slice(1)}
-                {booking.paymentStatus && (
-                  <span style={{ marginLeft: 2, padding: '1px 7px', borderRadius: 99, fontSize: 10, fontWeight: 700,
-                    background: booking.paymentStatus === 'paid' ? 'rgba(52,211,153,0.12)' : 'rgba(251,191,36,0.12)',
-                    color: booking.paymentStatus === 'paid' ? '#34d399' : '#fbbf24',
-                    border: `1px solid ${booking.paymentStatus === 'paid' ? 'rgba(52,211,153,0.3)' : 'rgba(251,191,36,0.3)'}`,
-                  }}>
-                    {booking.paymentStatus === 'paid' ? 'Paid' : 'Pending'}
-                  </span>
-                )}
-              </span>
+            {!!salonPhone && (
+              <a href={`tel:${salonPhone}`} className="bk-action"
+                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 13px', background: 'transparent', border: `1px solid var(--t-border)`, borderRadius: 9, fontSize: 12, fontWeight: 600, color: 'var(--t-text-2)', textDecoration: 'none' }}>
+                <IcPhone /> Call
+              </a>
             )}
-            <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--t-text-3)', fontFamily: 'monospace' }}>
-              #{booking.bookingId || booking._id?.slice(-6) || '—'}
-            </span>
+            {!!mapsUrl && (
+              <a href={mapsUrl} target="_blank" rel="noreferrer" className="bk-action"
+                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 13px', background: 'transparent', border: `1px solid var(--t-border)`, borderRadius: 9, fontSize: 12, fontWeight: 600, color: 'var(--t-text-2)', textDecoration: 'none' }}>
+                <IcNavigate /> Directions
+              </a>
+            )}
+            {status === 'completed' && (
+              <Link to="/" className="bk-action"
+                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 13px', background: 'var(--t-gradient)', border: 'none', borderRadius: 9, fontSize: 12, fontWeight: 700, color: '#fff', textDecoration: 'none' }}>
+                <IcRepeat /> Rebook
+              </Link>
+            )}
+            {canCancel && (
+              <button className="bk-action" onClick={handleCancel} disabled={cancelling}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 13px', background: 'transparent', border: `1px solid var(--t-border)`, borderRadius: 9, cursor: cancelling ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--t-text-3)', opacity: cancelling ? 0.4 : 0.7 }}>
+                {cancelling ? '…' : 'Cancel'}
+              </button>
+            )}
           </div>
-
-          {/* ── Microcopy ── */}
-          {microcopy && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', background: `${microcopy.color}18`, border: `1px solid ${microcopy.color}33`, borderRadius: 9, marginBottom: 12 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: microcopy.color, flexShrink: 0, animation: 'pulse 2s infinite' }} />
-              <p style={{ fontSize: 12, color: microcopy.color, fontWeight: 600 }}>{microcopy.text}</p>
-            </div>
-          )}
-
-          {/* ── Pay Now banner ── */}
-          {booking.paymentStatus === 'pending' && booking.paymentMethod && booking.paymentMethod !== 'cash' && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 12px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 9, marginBottom: 12 }}>
-              <p style={{ fontSize: 12, color: '#fbbf24', fontWeight: 600 }}>Payment pending · ₹{booking.totalAmount}</p>
-              <button style={{ padding: '4px 12px', background: '#fbbf24', border: 'none', borderRadius: 7, fontSize: 11, fontWeight: 700, color: '#000', cursor: 'pointer' }}>Pay Now</button>
-            </div>
-          )}
-
-          {/* ── Review prompt ── */}
-          {canReview && <ReviewPrompt bookingId={booking._id} onReviewed={() => setReviewed(true)} />}
-          {reviewed && (
-            <div style={{ marginTop: 10, marginBottom: 10, padding: '10px 14px', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: 10 }}>
-              <p style={{ fontSize: 12, color: '#34d399' }}>Thank you for your review! ✨</p>
-            </div>
-          )}
-
-          {/* ── Action buttons ── */}
-          {(isUpcoming || !!salonPhone || !!mapsUrl) && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, paddingTop: 12, borderTop: '1px solid var(--t-border)', marginTop: 4 }}>
-              {CHAT_OPEN_SET.has(status) && (
-                <button className="bk-btn" onClick={() => setChatOpen(true)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 9, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--t-accent)' }}>
-                  💬 Chat
-                </button>
-              )}
-              {canReschedule && (
-                <button className="bk-btn" onClick={() => setRescheduleOpen(true)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 9, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--t-accent)' }}>
-                  <IcCalendar /> Reschedule
-                </button>
-              )}
-              {canCancel && (
-                <button className="bk-btn" onClick={handleCancel} disabled={cancelling}
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', background: 'rgba(248,113,113,0.07)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 9, cursor: cancelling ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 600, color: '#f87171', opacity: cancelling ? 0.5 : 1 }}>
-                  {cancelling ? '…' : 'Cancel'}
-                </button>
-              )}
-              {!!salonPhone && (
-                <a href={`tel:${salonPhone}`} className="bk-btn"
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', background: 'rgba(52,211,153,0.07)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: 9, fontSize: 12, fontWeight: 600, color: '#34d399', textDecoration: 'none' }}>
-                  <IcPhone /> Call
-                </a>
-              )}
-              {!!mapsUrl && (
-                <a href={mapsUrl} target="_blank" rel="noreferrer" className="bk-btn"
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', background: 'rgba(96,165,250,0.07)', border: '1px solid rgba(96,165,250,0.2)', borderRadius: 9, fontSize: 12, fontWeight: 600, color: '#60a5fa', textDecoration: 'none' }}>
-                  <IcNavigate /> Directions
-                </a>
-              )}
-              {status === 'completed' && (
-                <Link to="/" className="bk-btn"
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', background: 'linear-gradient(135deg,rgba(99,102,241,0.12),rgba(139,92,246,0.12))', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 9, fontSize: 12, fontWeight: 600, color: 'var(--t-accent)', textDecoration: 'none' }}>
-                  <IcRepeat /> Rebook
-                </Link>
-              )}
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
       {rescheduleOpen && <RescheduleModal booking={booking} onClose={() => setRescheduleOpen(false)} onRescheduled={handleRescheduled} />}
@@ -974,12 +911,17 @@ export default function Dashboard() {
 
   // ── Not authenticated ───────────────────────────────────────
   if (!isAuth) return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px', background: 'var(--t-bg)' }}>
-      <div style={{ width: 80, height: 80, borderRadius: 24, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, marginBottom: 20, boxShadow: '0 0 40px rgba(99,102,241,0.35)' }}>📅</div>
-      <p style={{ fontSize: 22, fontWeight: 900, color: 'var(--t-text)', marginBottom: 8, letterSpacing: '-0.5px' }}>Your bookings, one place</p>
-      <p style={{ fontSize: 14, color: 'var(--t-text-3)', textAlign: 'center', lineHeight: 1.7, marginBottom: 28, maxWidth: 280 }}>Track all your salon appointments, rebook favourites, and never miss a slot.</p>
-      <Link to="/login" style={{ padding: '14px 36px', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', fontWeight: 700, borderRadius: 14, textDecoration: 'none', boxShadow: '0 0 32px rgba(99,102,241,0.45)', fontSize: 15, letterSpacing: '0.01em' }}>
-        Sign In →
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 24px', background: 'var(--t-bg)' }}>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--t-accent)', marginBottom: 20, textTransform: 'uppercase', letterSpacing: '0.12em' }}>My Bookings</p>
+      <h1 style={{ fontSize: 36, fontWeight: 900, color: 'var(--t-text)', marginBottom: 12, letterSpacing: '-1px', textAlign: 'center', lineHeight: 1.15, maxWidth: 320 }}>
+        Your salon story,<br/>one place.
+      </h1>
+      <p style={{ fontSize: 15, color: 'var(--t-text-3)', textAlign: 'center', lineHeight: 1.7, marginBottom: 36, maxWidth: 300 }}>
+        Track appointments, rebook favourites, chat with your salon.
+      </p>
+      <Link to="/login" style={{ padding: '14px 40px', background: 'var(--t-gradient)', color: '#fff', fontWeight: 700, borderRadius: 9999, textDecoration: 'none', fontSize: 15, boxShadow: '0 4px 20px rgba(124,58,237,0.35)' }}>
+        Sign in to continue →
       </Link>
     </div>
   );
@@ -987,77 +929,66 @@ export default function Dashboard() {
   return (
     <div style={{ background: 'var(--t-bg)', minHeight: '100vh' }}>
       <style>{`
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-        @keyframes spin  { to{transform:rotate(360deg)} }
-        @keyframes fadeUp{ from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
-        .bk-action-btn { transition: all 0.18s ease; }
-        .bk-action-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
-        .filter-btn { transition: all 0.2s ease; }
-        .filter-btn:hover { background: rgba(99,102,241,0.08) !important; }
+        @keyframes pulse  { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        @keyframes spin   { to{transform:rotate(360deg)} }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes heroIn { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
       `}</style>
 
-      {/* ══ HERO ══════════════════════════════════════════════ */}
-      <div className="dashboard-hero">
-        {/* Decorative orbs */}
-        <div className="dashboard-hero-orb-1" style={{ position:'absolute', top:-100, right:-60, width:320, height:320, borderRadius:'50%', pointerEvents:'none' }} />
-        <div className="dashboard-hero-orb-2" style={{ position:'absolute', bottom:-60, left:-40, width:240, height:240, borderRadius:'50%', pointerEvents:'none' }} />
-        <div className="dashboard-hero-grid" style={{ position:'absolute', inset:0, backgroundSize:'44px 44px', pointerEvents:'none' }} />
+      {/* ══════════════════════════════════════════════════════
+          HERO — full-viewport storytelling section
+      ══════════════════════════════════════════════════════ */}
+      <div className="dashboard-hero" style={{ minHeight: '56vh', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+        <div className="dashboard-hero-orb-1" style={{ position:'absolute', top:-80, right:-80, width:400, height:400, borderRadius:'50%', pointerEvents:'none' }} />
+        <div className="dashboard-hero-orb-2" style={{ position:'absolute', bottom:-60, left:-40, width:280, height:280, borderRadius:'50%', pointerEvents:'none' }} />
+        <div className="dashboard-hero-grid" style={{ position:'absolute', inset:0, backgroundSize:'52px 52px', pointerEvents:'none', opacity: isDark ? 1 : 0.6 }} />
 
-        <div style={{ maxWidth: 640, margin: '0 auto', position: 'relative' }}>
+        {/* Notification bell — top right */}
+        <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 10 }}>
+          <Link to="/notifications" style={{ position:'relative', width:42, height:42, borderRadius:'50%', background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.75)', border: isDark ? '1px solid rgba(255,255,255,0.18)' : '1px solid rgba(124,58,237,0.15)', display:'flex', alignItems:'center', justifyContent:'center', color: isDark ? '#fff' : '#7C3AED', textDecoration:'none', backdropFilter:'blur(12px)' }}>
+            <svg style={{ width:18, height:18 }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+            {unreadCount > 0 && <span style={{ position:'absolute', top:1, right:1, minWidth:16, height:16, background:'#ef4444', color:'#fff', fontSize:9, fontWeight:700, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', padding:'0 3px', border: isDark ? '2px solid #4c1d95' : '2px solid #fff' }}>{unreadCount > 9 ? '9+' : unreadCount}</span>}
+          </Link>
+        </div>
 
-          {/* Top row */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 22 }}>
-            <div>
-              <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--t-hero-muted)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                My Bookings
-              </p>
-              <h1 style={{ fontSize: 24, fontWeight: 900, color: 'var(--t-hero-text)', lineHeight: 1.15, marginBottom: 4, letterSpacing: '-0.5px' }}>
-                Welcome back, {firstName} 👋
-              </h1>
-              <p style={{ fontSize: 13, color: 'var(--t-hero-sub)' }}>Ready for your next look?</p>
+        {/* Hero content */}
+        <div style={{ maxWidth: 640, margin: '0 auto', padding: '80px 24px 40px', position: 'relative', width: '100%', animation: 'heroIn 0.6s cubic-bezier(0.16,1,0.3,1) both' }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--t-hero-muted)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.14em' }}>
+            My Bookings
+          </p>
+          <h1 style={{ fontSize: 'clamp(32px,8vw,52px)', fontWeight: 900, color: 'var(--t-hero-text)', lineHeight: 1.08, letterSpacing: '-1.5px', marginBottom: 14 }}>
+            Hey {firstName},<br/>
+            <span style={{ opacity: 0.55, fontWeight: 800 }}>ready for your<br/>next look?</span>
+          </h1>
+
+          {/* Minimal inline stats */}
+          {!loading && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginTop: 28 }}>
+              {[
+                { value: stats.upcoming,  label: 'upcoming' },
+                { value: stats.completed, label: 'completed' },
+                { value: stats.totalSpent > 0 ? `₹${stats.totalSpent}` : '₹0', label: 'spent' },
+              ].map(({ value, label }, i, arr) => (
+                <span key={label} style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                  <span style={{ fontSize: 22, fontWeight: 900, color: 'var(--t-hero-text)', letterSpacing: '-0.5px', lineHeight: 1 }}>{value}</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--t-hero-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</span>
+                  {i < arr.length - 1 && <span style={{ margin: '0 16px', color: 'var(--t-hero-muted)', opacity: 0.4, fontSize: 18 }}>·</span>}
+                </span>
+              ))}
             </div>
-            <Link to="/notifications" style={{ position:'relative', width:42, height:42, borderRadius:'50%', background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.8)', border: isDark ? '1px solid rgba(255,255,255,0.18)' : '1px solid rgba(124,58,237,0.15)', display:'flex', alignItems:'center', justifyContent:'center', color: isDark ? '#fff' : '#7C3AED', flexShrink:0, textDecoration:'none', backdropFilter:'blur(8px)', boxShadow: isDark ? 'none' : '0 2px 8px rgba(0,0,0,0.06)' }}>
-              <svg style={{ width:18, height:18 }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-              {unreadCount > 0 && <span style={{ position:'absolute', top:1, right:1, minWidth:16, height:16, background:'#ef4444', color:'#fff', fontSize:9, fontWeight:700, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', padding:'0 3px', border: isDark ? '2px solid #4c1d95' : '2px solid #fff' }}>{unreadCount > 9 ? '9+' : unreadCount}</span>}
-            </Link>
-          </div>
+          )}
 
-          {/* ── 4 Stat cards ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 16 }}>
-            {[
-              { label: 'Upcoming',  value: loading ? '—' : stats.upcoming,  icon: '📅', accent: false },
-              { label: 'Completed', value: loading ? '—' : stats.completed, icon: '✅', accent: false },
-              { label: 'Total',     value: loading ? '—' : stats.total,     icon: '📋', accent: false },
-              { label: 'Spent',     value: loading ? '—' : stats.totalSpent > 0 ? `₹${stats.totalSpent}` : '₹0', icon: '💰', accent: true },
-            ].map(({ label, value, icon, accent }) => (
-              <div key={label} className="dashboard-stat-card" style={{
-                ...(accent ? {
-                  background: isDark ? 'rgba(251,191,36,0.15)' : 'rgba(250,204,21,0.1)',
-                  border: isDark ? '1px solid rgba(251,191,36,0.3)' : '1px solid rgba(250,204,21,0.25)',
-                } : {}),
-              }}>
-                <p style={{ fontSize: 16, marginBottom: 3 }}>{icon}</p>
-                <p style={{ fontSize: label === 'Spent' ? 13 : 18, fontWeight: 900, color: accent ? (isDark ? '#fde68a' : '#D97706') : 'var(--t-hero-text)', lineHeight: 1, marginBottom: 3 }}>{value}</p>
-                <p style={{ fontSize: 10, color: accent ? (isDark ? 'rgba(253,230,138,0.7)' : 'rgba(146,64,14,0.6)') : 'var(--t-hero-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* ── Next upcoming banner ── */}
+          {/* Next appointment callout */}
           {!loading && nextUpcoming && (
-            <div className="dashboard-next-banner">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                <div style={{ width: 36, height: 36, background: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(124,58,237,0.1)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: isDark ? '#fff' : '#7C3AED', flexShrink: 0 }}>
-                  <IcScissors />
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--t-hero-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {nextUpcoming.serviceName || (Array.isArray(nextUpcoming.serviceIds) ? nextUpcoming.serviceIds.map(s => s?.name || s).filter(Boolean).join(' + ') : '') || 'Service'}
-                  </p>
-                  <p style={{ fontSize: 11, color: 'var(--t-hero-sub)', marginTop: 1 }}>
-                    {nextUpcoming.salonName || nextUpcoming.salonId?.name} · {formatDateLabel(nextUpcoming.appointmentDate)}{nextUpcoming.appointmentTime ? ` · ${formatTimeLabel(nextUpcoming.appointmentTime)}` : ''}
-                  </p>
-                </div>
+            <div style={{ marginTop: 24, display: 'inline-flex', alignItems: 'center', gap: 10, padding: '10px 16px', background: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.7)', border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(124,58,237,0.12)', borderRadius: 12, backdropFilter: 'blur(12px)', maxWidth: '100%' }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#34d399', flexShrink: 0, animation: 'pulse 2s infinite' }} />
+              <div style={{ minWidth: 0 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t-hero-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
+                  {nextUpcoming.serviceName || (Array.isArray(nextUpcoming.serviceIds) ? nextUpcoming.serviceIds.map(s => s?.name || s).filter(Boolean).join(' + ') : '') || 'Service'}
+                </span>
+                <span style={{ fontSize: 11, color: 'var(--t-hero-sub)' }}>
+                  {nextUpcoming.salonName || nextUpcoming.salonId?.name} · {formatDateLabel(nextUpcoming.appointmentDate)}{nextUpcoming.appointmentTime ? ` · ${formatTimeLabel(nextUpcoming.appointmentTime)}` : ''}
+                </span>
               </div>
               <StatusBadge status={nextUpcoming.status} />
             </div>
@@ -1065,115 +996,95 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ══ QUICK ACTIONS ══════════════════════════════════════ */}
-      <div style={{ background: 'var(--t-card)', borderBottom: '1px solid var(--t-border)', padding: '14px 16px' }}>
-        <div style={{ maxWidth: 640, margin: '0 auto', display: 'flex', gap: 10, overflowX: 'auto' }} className="scrollbar-hide">
-          <button className="bk-action-btn" onClick={() => navigate('/')}
-            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 16px', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', border: 'none', borderRadius: 12, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', flexShrink: 0, boxShadow: '0 4px 16px rgba(99,102,241,0.35)' }}>
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Book New
-          </button>
-          {lastCompleted && (
-            <button className="bk-action-btn" onClick={() => navigate(lastCompleted.salonId?._id ? salonPath(lastCompleted.salonId) : `/salon/${lastCompleted.salonId}`)}
-              style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 16px', background: 'var(--t-bg-2)', border: '1px solid var(--t-border)', borderRadius: 12, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--t-text-2)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-              <IcRepeat /> Rebook Last
-            </button>
-          )}
-          <button className="bk-action-btn" onClick={() => navigate('/')}
-            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 16px', background: 'var(--t-bg-2)', border: '1px solid var(--t-border)', borderRadius: 12, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--t-text-2)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-            <IcPin /> Explore Salons
-          </button>
-        </div>
-      </div>
-
-      {/* ══ CONTENT ════════════════════════════════════════════ */}
-      <div style={{ maxWidth: 640, margin: '0 auto', padding: '16px 16px 80px' }}>
+      {/* ══════════════════════════════════════════════════════
+          CONTENT
+      ══════════════════════════════════════════════════════ */}
+      <div style={{ maxWidth: 640, margin: '0 auto', padding: '0 20px 100px' }}>
 
         {/* ── Confirmed toasts ── */}
-        {confirmedToasts.map(id => {
-          const b = bookings.find(x => x._id === id);
-          if (!b) return null;
-          return (
-            <div key={id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 14px', background:'rgba(52,211,153,0.1)', border:'1px solid rgba(52,211,153,0.3)', borderRadius:14, gap:8, marginBottom:12, animation:'fadeUp 0.3s ease' }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8, flex:1, minWidth:0 }}>
-                <span style={{ fontSize:18, flexShrink:0 }}>✅</span>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <p style={{ fontSize:13, fontWeight:700, color:'#34d399' }}>Booking Confirmed!</p>
-                  <p style={{ fontSize:11, color:'rgba(52,211,153,0.8)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginTop:1 }}>{b.serviceName} at {b.salonName || b.salonId?.name} — {b.appointmentTime}</p>
+        {confirmedToasts.length > 0 && (
+          <div style={{ paddingTop: 20 }}>
+            {confirmedToasts.map(id => {
+              const b = bookings.find(x => x._id === id);
+              if (!b) return null;
+              return (
+                <div key={id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', background:'var(--t-success-bg)', border:'1px solid var(--t-success-border)', borderRadius:14, gap:8, marginBottom:10, animation:'fadeUp 0.3s ease' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:10, flex:1, minWidth:0 }}>
+                    <span style={{ fontSize:16, flexShrink:0 }}>✅</span>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <p style={{ fontSize:13, fontWeight:700, color:'var(--t-success-text)' }}>Booking Confirmed!</p>
+                      <p style={{ fontSize:11, color:'var(--t-success-text)', opacity:0.8, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginTop:1 }}>{b.serviceName} at {b.salonName || b.salonId?.name} — {b.appointmentTime}</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setConfirmedToasts(prev => prev.filter(t => t !== id))} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--t-success-text)', flexShrink:0, opacity:0.7, fontSize:16 }}>✕</button>
                 </div>
-              </div>
-              <button onClick={() => setConfirmedToasts(prev => prev.filter(t => t !== id))} style={{ background:'none', border:'none', cursor:'pointer', color:'#34d399', flexShrink:0, fontSize:14 }}>✕</button>
-            </div>
-          );
-        })}
+              );
+            })}
+          </div>
+        )}
 
-        {/* ── Filter tabs ── */}
-        <div style={{ display:'flex', background:'var(--t-card)', border:'1px solid var(--t-border)', borderRadius:14, padding:4, gap:3, marginBottom:10 }}>
-          {FILTERS.map(f => {
-            const count = filterCounts[f] || 0;
-            const active = filter === f;
-            return (
-              <button key={f} className="filter-btn" onClick={() => { setFilter(f); setVisibleCount(PAGE_SIZE); }}
-                style={{ flex:1, padding:'9px 4px', borderRadius:10, fontSize:12, fontWeight:700, cursor:'pointer', border:'none', transition:'all 0.2s', position:'relative',
-                  background: active ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : 'transparent',
-                  color: active ? '#fff' : 'var(--t-text-3)',
-                  boxShadow: active ? '0 0 14px rgba(99,102,241,0.35)' : 'none',
-                }}>
-                {f}
-                {count > 0 && (
-                  <span style={{ marginLeft:4, padding:'1px 5px', borderRadius:99, fontSize:9, fontWeight:800,
-                    background: active ? 'rgba(255,255,255,0.25)' : 'rgba(99,102,241,0.12)',
-                    color: active ? '#fff' : 'var(--t-accent)',
-                  }}>
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Refresh */}
-        <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:12 }}>
+        {/* ── Filter + Refresh row ── */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 36, paddingBottom: 4 }}>
+          {/* Tab strip — underline style */}
+          <div style={{ display: 'flex', gap: 0 }}>
+            {FILTERS.map(f => {
+              const count = filterCounts[f] || 0;
+              const active = filter === f;
+              return (
+                <button key={f} onClick={() => { setFilter(f); setVisibleCount(PAGE_SIZE); }}
+                  style={{ padding: '8px 14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: active ? 700 : 500, color: active ? 'var(--t-text)' : 'var(--t-text-3)', borderBottom: active ? '2px solid var(--t-accent)' : '2px solid transparent', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  {f}
+                  {count > 0 && (
+                    <span style={{ fontSize: 10, fontWeight: 700, color: active ? 'var(--t-accent)' : 'var(--t-text-3)', opacity: active ? 1 : 0.6 }}>{count}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          {/* Refresh */}
           <button onClick={handleRefresh} disabled={refreshing}
-            style={{ display:'flex', alignItems:'center', gap:5, background:'none', border:'none', cursor:refreshing?'not-allowed':'pointer', fontSize:12, fontWeight:600, color:'var(--t-accent)', opacity:refreshing?0.5:1 }}>
+            style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', cursor:refreshing?'not-allowed':'pointer', fontSize:12, fontWeight:600, color:'var(--t-text-3)', opacity:refreshing?0.4:0.7, transition:'opacity 0.2s' }}>
             <span style={{ animation: refreshing ? 'spin 0.7s linear infinite' : 'none', display:'flex' }}><IcRefresh /></span>
-            {refreshing ? 'Refreshing…' : 'Refresh'}
           </button>
         </div>
+
+        {/* Divider */}
+        <div style={{ height: 1, background: 'var(--t-border)', marginBottom: 8 }} />
 
         {/* ── Skeleton loading ── */}
         {loading && (
-          <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+          <div>
             {[1,2,3].map(i => <SkeletonCard key={i} />)}
           </div>
         )}
 
         {/* ── Empty state ── */}
         {!loading && filtered.length === 0 && (
-          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'52px 20px', textAlign:'center', gap:14, animation:'fadeUp 0.3s ease' }}>
-            <div style={{ width:80, height:80, borderRadius:'50%', background:'rgba(99,102,241,0.08)', border:'1px solid rgba(99,102,241,0.15)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:36 }}>
-              {filter === 'Completed' ? '✅' : filter === 'Cancelled' ? '🚫' : '📅'}
-            </div>
-            <p style={{ fontSize:20, fontWeight:900, color:'var(--t-text)', letterSpacing:'-0.3px' }}>
-              {filter === 'All' ? 'No bookings yet' : `No ${filter.toLowerCase()} bookings`}
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'72px 20px', textAlign:'center', animation:'fadeUp 0.4s ease' }}>
+            <p style={{ fontSize: 40, marginBottom: 16, opacity: 0.4 }}>
+              {filter === 'Completed' ? '✅' : filter === 'Cancelled' ? '🚫' : '✂️'}
             </p>
-            <p style={{ fontSize:14, color:'var(--t-text-3)', lineHeight:1.7, maxWidth:260 }}>
-              {filter === 'All' ? "Find top-rated salons near you and book your first appointment!" : `Nothing here right now — check another tab.`}
+            <h2 style={{ fontSize: 24, fontWeight: 900, color: 'var(--t-text)', letterSpacing: '-0.5px', marginBottom: 10 }}>
+              {filter === 'All' ? 'No bookings yet' : `No ${filter.toLowerCase()} bookings`}
+            </h2>
+            <p style={{ fontSize: 14, color: 'var(--t-text-3)', lineHeight: 1.8, maxWidth: 260, marginBottom: 32 }}>
+              {filter === 'All' || filter === 'Upcoming'
+                ? 'Find top-rated salons near you and book your first appointment.'
+                : 'Nothing here right now — check another tab.'}
             </p>
             {(filter === 'All' || filter === 'Upcoming') && (
-              <Link to="/" style={{ marginTop:4, display:'inline-flex', alignItems:'center', gap:8, padding:'13px 28px', background:'linear-gradient(135deg,#6366f1,#8b5cf6)', color:'#fff', fontWeight:700, borderRadius:14, textDecoration:'none', fontSize:14, boxShadow:'0 0 28px rgba(99,102,241,0.4)' }}>
+              <Link to="/" style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'13px 32px', background:'var(--t-gradient)', color:'#fff', fontWeight:700, borderRadius:9999, textDecoration:'none', fontSize:14, boxShadow:'0 4px 20px rgba(124,58,237,0.3)' }}>
                 Explore Salons →
               </Link>
             )}
           </div>
         )}
 
-        {/* ── Booking cards ── */}
+        {/* ── Booking rows ── */}
         {!loading && visible.length > 0 && (
-          <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+          <div>
             {visible.map((b, idx) => (
-              <div key={b._id} style={{ animation:`fadeUp 0.3s ease ${idx * 0.04}s both` }}>
+              <div key={b._id} style={{ animation:`fadeUp 0.35s ease ${idx * 0.05}s both`, borderBottom: idx < visible.length - 1 ? '1px solid var(--t-border)' : 'none' }}>
                 <BookingCard
                   booking={b}
                   userCoords={userCoords}
@@ -1185,66 +1096,88 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Load more */}
+        {/* ── Load more ── */}
         {!loading && hasMore && (
           <button onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
-            style={{ width:'100%', marginTop:14, padding:14, background:'var(--t-card)', border:'1px solid var(--t-border)', borderRadius:14, cursor:'pointer', fontSize:13, fontWeight:700, color:'var(--t-accent)', display:'flex', alignItems:'center', justifyContent:'center', gap:6, transition:'all 0.2s' }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.07)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'var(--t-card)'}
+            style={{ width:'100%', marginTop: 32, padding: '14px', background:'none', border:'1px solid var(--t-border)', borderRadius: 14, cursor:'pointer', fontSize:13, fontWeight:600, color:'var(--t-text-3)', display:'flex', alignItems:'center', justifyContent:'center', gap:6, transition:'all 0.2s' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--t-accent)'; e.currentTarget.style.color = 'var(--t-accent)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--t-border)'; e.currentTarget.style.color = 'var(--t-text-3)'; }}
           >
-            Load More <IcChevDown />
+            Show more <IcChevDown />
           </button>
         )}
         {!loading && !hasMore && filtered.length > PAGE_SIZE && (
-          <p style={{ textAlign:'center', fontSize:12, color:'var(--t-text-3)', marginTop:14 }}>All {filtered.length} bookings shown</p>
+          <p style={{ textAlign:'center', fontSize:11, color:'var(--t-text-3)', marginTop:28, letterSpacing:'0.04em', textTransform:'uppercase', fontWeight:600 }}>
+            All {filtered.length} bookings
+          </p>
         )}
 
-        {/* ══ INSIGHTS SECTION ══════════════════════════════════ */}
-        {!loading && bookings.length > 0 && (
-          <div style={{ marginTop: 32, padding: '18px 16px', background: 'var(--t-card)', border: '1px solid var(--t-border)', borderRadius: 20, boxShadow: 'var(--t-shadow)' }}>
-            <p style={{ fontSize: 13, fontWeight: 800, color: 'var(--t-text)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <IcTrend /> Your Insights
+        {/* ══════════════════════════════════════════════════════
+            INSIGHTS — minimal editorial strip
+        ══════════════════════════════════════════════════════ */}
+        {!loading && bookings.length > 1 && (
+          <div style={{ marginTop: 64, paddingTop: 32, borderTop: '1px solid var(--t-border)' }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--t-text-3)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 24 }}>
+              Your story so far
             </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
-              <div style={{ background: isDark ? 'rgba(124,58,237,0.08)' : 'linear-gradient(135deg,#F5F3FF,#EEF2FF)', border: isDark ? '1px solid rgba(124,58,237,0.2)' : '1px solid rgba(124,58,237,0.1)', borderRadius: 12, padding: '12px 10px', textAlign: 'center' }}>
-                <p style={{ fontSize: 22, fontWeight: 900, color: 'var(--t-accent)', marginBottom: 3 }}>{thisMonthVisits}</p>
-                <p style={{ fontSize: 10, color: 'var(--t-text-3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>This Month</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32 }}>
+              <div>
+                <p style={{ fontSize: 36, fontWeight: 900, color: 'var(--t-text)', letterSpacing: '-1px', lineHeight: 1, marginBottom: 4 }}>{thisMonthVisits}</p>
+                <p style={{ fontSize: 12, color: 'var(--t-text-3)', fontWeight: 500 }}>visits this month</p>
               </div>
-              <div style={{ background: 'var(--t-bg-2)', border: '1px solid var(--t-border)', borderRadius: 12, padding: '12px 10px', textAlign: 'center' }}>
-                <p style={{ fontSize: 10, color: 'var(--t-text-3)', marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  <IcHeart /> Fav Salon
-                </p>
-                <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--t-text)', lineHeight: 1.3, wordBreak: 'break-word' }}>{favSalon || '—'}</p>
-              </div>
-              <div style={{ background: 'var(--t-bg-2)', border: '1px solid var(--t-border)', borderRadius: 12, padding: '12px 10px', textAlign: 'center' }}>
-                <p style={{ fontSize: 10, color: 'var(--t-text-3)', marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  <IcScissors /> Top Service
-                </p>
-                <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--t-text)', lineHeight: 1.3, wordBreak: 'break-word' }}>{favService || '—'}</p>
-              </div>
+              {favSalon && (
+                <div>
+                  <p style={{ fontSize: 18, fontWeight: 800, color: 'var(--t-text)', letterSpacing: '-0.3px', lineHeight: 1.2, marginBottom: 4, maxWidth: 180 }}>{favSalon}</p>
+                  <p style={{ fontSize: 12, color: 'var(--t-text-3)', fontWeight: 500 }}>favourite salon</p>
+                </div>
+              )}
+              {favService && (
+                <div>
+                  <p style={{ fontSize: 18, fontWeight: 800, color: 'var(--t-text)', letterSpacing: '-0.3px', lineHeight: 1.2, marginBottom: 4, maxWidth: 180 }}>{favService}</p>
+                  <p style={{ fontSize: 12, color: 'var(--t-text-3)', fontWeight: 500 }}>go-to service</p>
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* ══ FINAL CTA ═════════════════════════════════════════ */}
+        {/* ══════════════════════════════════════════════════════
+            BOTTOM CTA — editorial, emotional
+        ══════════════════════════════════════════════════════ */}
         {!loading && (
-          <div className="dashboard-cta">
-            <div style={{ position:'absolute', top:-40, right:-30, width:160, height:160, borderRadius:'50%', background: isDark ? 'radial-gradient(circle,rgba(255,255,255,0.1) 0%,transparent 65%)' : 'radial-gradient(circle,rgba(124,58,237,0.15) 0%,transparent 65%)', pointerEvents:'none' }} />
-            <p style={{ fontSize: 17, fontWeight: 900, color: isDark ? '#fff' : '#1E1B4B', marginBottom: 6, lineHeight: 1.3, position: 'relative' }}>
-              Book your next appointment now
-            </p>
-            <p style={{ fontSize: 12, color: isDark ? 'rgba(255,255,255,0.65)' : '#6B7280', marginBottom: 16, position: 'relative' }}>
-              No waiting, no hassle — instant confirmation
-            </p>
-            <div style={{ display: 'flex', gap: 10, position: 'relative' }}>
-              <button onClick={() => navigate('/')}
-                style={{ padding: '10px 20px', background: isDark ? '#fff' : 'linear-gradient(135deg,#7C3AED,#06B6D4)', border: 'none', borderRadius: 11, fontSize: 13, fontWeight: 700, color: isDark ? '#4f46e5' : '#fff', cursor: 'pointer', boxShadow: isDark ? 'none' : '0 4px 14px rgba(124,58,237,0.3)', transition: 'all 0.2s' }}>
-                Book Now
-              </button>
-              <button onClick={() => navigate('/')}
-                style={{ padding: '10px 18px', background: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(124,58,237,0.08)', border: isDark ? '1px solid rgba(255,255,255,0.25)' : '1px solid rgba(124,58,237,0.2)', borderRadius: 11, fontSize: 13, fontWeight: 600, color: isDark ? '#fff' : '#7C3AED', cursor: 'pointer', transition: 'all 0.2s' }}>
-                Explore Salons
-              </button>
+          <div style={{ marginTop: 72, paddingBottom: 16 }}>
+            <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 28, padding: '48px 32px' }} className="dashboard-cta">
+              {/* Decorative orb */}
+              <div style={{ position:'absolute', top:-60, right:-40, width:200, height:200, borderRadius:'50%', background: isDark ? 'radial-gradient(circle,rgba(167,139,250,0.2) 0%,transparent 65%)' : 'radial-gradient(circle,rgba(124,58,237,0.12) 0%,transparent 65%)', pointerEvents:'none' }} />
+              <div style={{ position:'absolute', bottom:-40, left:-20, width:150, height:150, borderRadius:'50%', background: isDark ? 'radial-gradient(circle,rgba(6,182,212,0.15) 0%,transparent 65%)' : 'radial-gradient(circle,rgba(6,182,212,0.08) 0%,transparent 65%)', pointerEvents:'none' }} />
+
+              <p style={{ fontSize: 11, fontWeight: 700, color: isDark ? 'rgba(167,139,250,0.8)' : 'var(--t-accent)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 14, position: 'relative' }}>
+                What's next?
+              </p>
+              <h2 style={{ fontSize: 'clamp(24px,6vw,36px)', fontWeight: 900, color: isDark ? '#fff' : '#1E1B4B', letterSpacing: '-0.8px', lineHeight: 1.15, marginBottom: 10, position: 'relative' }}>
+                Book your next<br/>appointment now.
+              </h2>
+              <p style={{ fontSize: 14, color: isDark ? 'rgba(255,255,255,0.55)' : '#6B7280', marginBottom: 28, lineHeight: 1.7, position: 'relative' }}>
+                No waiting. No hassle.<br/>Instant confirmation.
+              </p>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', position: 'relative' }}>
+                <button onClick={() => navigate('/')}
+                  style={{ padding: '13px 28px', background: isDark ? 'linear-gradient(135deg,#7C3AED,#06B6D4)' : 'linear-gradient(135deg,#7C3AED,#06B6D4)', border: 'none', borderRadius: 9999, fontSize: 14, fontWeight: 700, color: '#fff', cursor: 'pointer', boxShadow: '0 4px 20px rgba(124,58,237,0.35)', transition: 'all 0.2s' }}
+                  onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                >
+                  Book Now
+                </button>
+                {lastCompleted && (
+                  <button onClick={() => navigate(lastCompleted.salonId?._id ? salonPath(lastCompleted.salonId) : `/salon/${lastCompleted.salonId}`)}
+                    style={{ padding: '13px 24px', background: 'transparent', border: isDark ? '1.5px solid rgba(255,255,255,0.2)' : '1.5px solid rgba(124,58,237,0.25)', borderRadius: 9999, fontSize: 14, fontWeight: 600, color: isDark ? 'rgba(255,255,255,0.8)' : '#7C3AED', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, transition: 'all 0.2s' }}
+                    onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                    onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                  >
+                    <IcRepeat /> Rebook Last Visit
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}
