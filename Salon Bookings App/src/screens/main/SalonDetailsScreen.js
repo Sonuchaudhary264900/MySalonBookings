@@ -471,7 +471,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
               </View>
             )}
             {/* Name */}
-            <Text style={{ fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 4, lineHeight: 32 }} numberOfLines={2}>{salon.name}</Text>
+            <Text style={{ fontSize: 26, fontWeight: '900', color: '#fff', marginBottom: 4, lineHeight: 32, textShadowColor: 'rgba(0,0,0,0.55)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8 }} numberOfLines={2}>{salon.name}</Text>
             {/* Address */}
             {(salon.address || salon.city) && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 12 }}>
