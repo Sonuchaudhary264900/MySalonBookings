@@ -81,7 +81,8 @@ class ErrorBoundary extends React.Component {
 // ── Layout wrapper — hides chrome on Reels page ───────────────
 function AppLayout({ notifOpen, setNotifOpen }) {
   const { pathname } = useLocation();
-  const isReels = pathname === '/reels';
+  const isReels  = pathname === '/reels';
+  const isSalon  = /^\/salons\/[^/]+$/.test(pathname);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -89,7 +90,7 @@ function AppLayout({ notifOpen, setNotifOpen }) {
       <ScrollToTop />
       {!isReels && <Navbar notifOpen={notifOpen} setNotifOpen={setNotifOpen} />}
       <ToastContainer />
-      <main className={isReels ? 'flex-grow min-w-0' : 'flex-grow pb-20 md:pb-0 pt-16 min-w-0'}>
+      <main className={isReels ? 'flex-grow min-w-0' : isSalon ? 'flex-grow pb-20 md:pb-0 min-w-0' : 'flex-grow pb-20 md:pb-0 pt-16 min-w-0'}>
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/"                            element={<Home />} />

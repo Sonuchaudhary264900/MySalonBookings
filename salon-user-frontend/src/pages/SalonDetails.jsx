@@ -14,7 +14,6 @@ import ReviewCard from "../components/ReviewCard";
 import { isCustomer, clearCustomerAuth } from "../utils/auth";
 import { formatDate, salonPath } from "../utils/formatters";
 import { useNotifications } from "../context/NotificationContext";
-import { useTheme } from "../context/ThemeContext";
 import {
   UNISEX_CATEGORIES,
   CATEGORY_ICON_MAP,
@@ -122,11 +121,10 @@ function SalonDetails() {
   const [expandedCat, setExpandedCat] = useState(null);
   const [heroMuted, setHeroMuted]   = useState(true);
   const [heroSlideIdx, setHeroSlideIdx] = useState(0);
-  const { isDark: darkMode } = useTheme();
+  const darkMode = true; // SalonDetails is always dark
   const heroVideoRef2 = useRef(null);
   const galleryTrackRef = useRef(null);
-  const heroTouchStartX = useRef(null);
-  const heroTouchStartY = useRef(null);
+  const heroSectionRef = useRef(null);
   const [galleryLightbox, setGalleryLightbox] = useState(null);
   const galleryVideoRef = useRef(null);
   const [videoViewerIdx, setVideoViewerIdx] = useState(null);
@@ -210,6 +208,7 @@ function SalonDetails() {
 
   // Auto-advance hero
   useEffect(() => {
+    if (heroSectionRef.current) heroSectionRef.current._slideLen = heroSlides.length;
     if (heroSlides.length <= 1) return;
     const t = setInterval(() => setHeroSlideIdx(i => (i + 1) % heroSlides.length), 5500);
     return () => clearInterval(t);
@@ -229,6 +228,40 @@ function SalonDetails() {
       }
     }, 2200);
     return () => clearInterval(interval);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Hero swipe — passive listeners so vertical scroll is never blocked
+  useEffect(() => {
+    const el = heroSectionRef.current;
+    if (!el) return;
+    let startX = null, startY = null;
+    const onStart = (e) => {
+      const t = e.touches ? e.touches[0] : e;
+      startX = t.clientX; startY = t.clientY;
+    };
+    const onEnd = (e) => {
+      if (startX === null) return;
+      const t = e.changedTouches ? e.changedTouches[0] : e;
+      const dx = t.clientX - startX;
+      const dy = Math.abs(t.clientY - startY);
+      if (Math.abs(dx) > 40 && Math.abs(dx) > dy) {
+        setHeroSlideIdx(i => {
+          const len = heroSectionRef.current?._slideLen || 1;
+          return dx < 0 ? (i + 1) % len : (i - 1 + len) % len;
+        });
+      }
+      startX = null;
+    };
+    el.addEventListener('touchstart', onStart, { passive: true });
+    el.addEventListener('touchend',   onEnd,   { passive: true });
+    el.addEventListener('mousedown',  onStart);
+    el.addEventListener('mouseup',    onEnd);
+    return () => {
+      el.removeEventListener('touchstart', onStart);
+      el.removeEventListener('touchend',   onEnd);
+      el.removeEventListener('mousedown',  onStart);
+      el.removeEventListener('mouseup',    onEnd);
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleService = (service) => {
@@ -413,28 +446,9 @@ function SalonDetails() {
       `}</style>
 
       {/* ════ 1. HERO ════ */}
-      <motion.section className="lux-hero"
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}
-        onTouchStart={e => { heroTouchStartX.current = e.touches[0].clientX; heroTouchStartY.current = e.touches[0].clientY; }}
-        onTouchEnd={e => {
-          if (heroTouchStartX.current === null || heroSlides.length <= 1) return;
-          const dx = e.changedTouches[0].clientX - heroTouchStartX.current;
-          const dy = Math.abs(e.changedTouches[0].clientY - heroTouchStartY.current);
-          if (Math.abs(dx) > 40 && Math.abs(dx) > dy) {
-            setHeroSlideIdx(i => dx < 0 ? (i + 1) % heroSlides.length : (i - 1 + heroSlides.length) % heroSlides.length);
-          }
-          heroTouchStartX.current = null;
-        }}
-        onMouseDown={e => { heroTouchStartX.current = e.clientX; heroTouchStartY.current = e.clientY; }}
-        onMouseUp={e => {
-          if (heroTouchStartX.current === null || heroSlides.length <= 1) return;
-          const dx = e.clientX - heroTouchStartX.current;
-          const dy = Math.abs(e.clientY - heroTouchStartY.current);
-          if (Math.abs(dx) > 60 && Math.abs(dx) > dy) {
-            setHeroSlideIdx(i => dx < 0 ? (i + 1) % heroSlides.length : (i - 1 + heroSlides.length) % heroSlides.length);
-          }
-          heroTouchStartX.current = null;
-        }}>
+      <motion.section ref={el => { heroSectionRef.current = el; if (el) el._slideLen = heroSlides.length; }}
+        className="lux-hero"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>
         {currentHeroSlide ? (
           <div key={heroSlideIdx} className="lux-hero-slide">
             {currentHeroSlide.type === 'video'
