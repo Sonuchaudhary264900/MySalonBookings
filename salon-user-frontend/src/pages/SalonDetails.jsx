@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState, useRef, useCallback, useLayoutEffect } from "react";
+import { useEffect, useState, useRef, useCallback, useLayoutEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Scissors, Phone, Star, Check, MessageSquare, Frown, Building2,
@@ -121,8 +121,10 @@ function SalonDetails() {
   const [serviceGenderFilter, setServiceGenderFilter] = useState("all");
   const [expandedCat, setExpandedCat] = useState(null);
   const [heroMuted, setHeroMuted]   = useState(true);
+  const [heroSlideIdx, setHeroSlideIdx] = useState(0);
   const { isDark: darkMode } = useTheme();
   const heroVideoRef2 = useRef(null);
+  const galleryTrackRef = useRef(null);
   const [galleryLightbox, setGalleryLightbox] = useState(null);
   const galleryVideoRef = useRef(null);
   const [videoViewerIdx, setVideoViewerIdx] = useState(null);
@@ -187,6 +189,45 @@ function SalonDetails() {
     };
     fetchSlots();
   }, [bookDate, id, totalDuration, showBooking]);
+
+  // ── Hero slides: coverPhoto first, then remaining photos, then videos ──
+  const heroSlides = useMemo(() => {
+    if (!salon) return [];
+    const photos = (salon.photos || []).map(p => (typeof p === 'string' ? p : p?.url)).filter(Boolean);
+    const videos = (salon.videos || []).map(v => (typeof v === 'string' ? v : v?.url)).filter(Boolean);
+    const cover  = salon.coverPhoto || null;
+    const result = [];
+    if (cover) result.push({ url: cover, type: 'image' });
+    photos.filter(u => u !== cover).forEach(u => result.push({ url: u, type: 'image' }));
+    videos.forEach(u => result.push({ url: u, type: 'video' }));
+    return result;
+  }, [salon]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reset slide index when salon changes
+  useEffect(() => { setHeroSlideIdx(0); }, [salon?._id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-advance hero
+  useEffect(() => {
+    if (heroSlides.length <= 1) return;
+    const t = setInterval(() => setHeroSlideIdx(i => (i + 1) % heroSlides.length), 5500);
+    return () => clearInterval(t);
+  }, [heroSlides.length]);
+
+  // Gallery auto-scroll
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const track = galleryTrackRef.current;
+      if (!track) return;
+      const max = track.scrollWidth - track.clientWidth;
+      if (!max) return;
+      if (track.scrollLeft >= max - 20) {
+        track.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        track.scrollBy({ left: 310, behavior: 'smooth' });
+      }
+    }, 2200);
+    return () => clearInterval(interval);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleService = (service) => {
     setSelectedServices(prev =>
@@ -329,9 +370,8 @@ function SalonDetails() {
     drawer:   darkMode ? '#0d0d18' : '#f8fafc',
     drawerBrd: darkMode ? '0 -20px 80px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.08)' : '0 -20px 80px rgba(0,0,0,.10),0 0 0 1px rgba(0,0,0,.07)',
   };
-  const heroMedia      = salonVideoUrls[0] || salonPhotoUrls[0] || salon.coverPhoto || null;
-  const heroIsVideo    = !!salonVideoUrls[0];
-  const allOffers      = offers.length > 0 ? offers : salon.topOffer ? [salon.topOffer] : [];
+  const currentHeroSlide = heroSlides[heroSlideIdx] || null;
+  const allOffers        = offers.length > 0 ? offers : salon.topOffer ? [salon.topOffer] : [];
 
   return (
     <div style={{ background: dm.bg, color: dm.fg, minHeight: '100vh', overflowX: 'hidden', transition: 'background .3s,color .3s' }}>
@@ -341,7 +381,9 @@ function SalonDetails() {
         .lux-hero{position:relative;height:100vh;min-height:580px;overflow:hidden}
         .lux-media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
         @keyframes luxKB{from{transform:scale(1)}to{transform:scale(1.06)}}
-        .lux-media-img{animation:luxKB 18s ease-in-out infinite alternate}
+        .lux-media-img{animation:luxKB 12s ease-in-out infinite alternate}
+        @keyframes heroFadeIn{from{opacity:0}to{opacity:1}}
+        .lux-hero-slide{position:absolute;inset:0;animation:heroFadeIn 1.1s ease both}
         .lux-section{padding:clamp(80px,10vw,140px) clamp(24px,6vw,96px)}
         .lux-title{font-size:clamp(36px,5vw,72px);font-weight:900;line-height:1.05;letter-spacing:-.025em}
         .lux-hero-title{font-size:clamp(44px,7vw,104px);font-weight:900;line-height:.92;letter-spacing:-.035em}
@@ -371,12 +413,16 @@ function SalonDetails() {
       {/* ════ 1. HERO ════ */}
       <motion.section className="lux-hero"
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>
-        {heroIsVideo
-          ? <video ref={heroVideoRef2} src={heroMedia} autoPlay muted={heroMuted} loop playsInline className="lux-media" />
-          : heroMedia
-            ? <img src={heroMedia} alt={salon.name} className="lux-media lux-media-img" />
-            : <div className="lux-media" style={{ background: `linear-gradient(135deg,#080812,${theme.p}33,#0d0d18)` }} />
-        }
+        {currentHeroSlide ? (
+          <div key={heroSlideIdx} className="lux-hero-slide">
+            {currentHeroSlide.type === 'video'
+              ? <video ref={heroVideoRef2} src={currentHeroSlide.url} autoPlay muted={heroMuted} loop playsInline className="lux-media" />
+              : <img src={currentHeroSlide.url} alt={salon.name} className="lux-media lux-media-img" />
+            }
+          </div>
+        ) : (
+          <div className="lux-media" style={{ background: `linear-gradient(135deg,#080812,${theme.p}33,#0d0d18)` }} />
+        )}
         <div className="absolute inset-0" style={{ background: dm.heroOvr1 }} />
         <div className="absolute inset-0" style={{ background: dm.heroOvr2 }} />
         <div className="absolute inset-0" style={{ background: `linear-gradient(135deg,${theme.p}14 0%,transparent 55%)` }} />
@@ -388,7 +434,7 @@ function SalonDetails() {
             <ArrowLeft className="w-5 h-5 text-white" />
           </motion.button>
           <div className="flex items-center gap-2">
-            {heroIsVideo && (
+            {currentHeroSlide?.type === 'video' && (
               <button onClick={() => { setHeroMuted(m => !m); heroVideoRef2.current && (heroVideoRef2.current.muted = !heroMuted); }}
                 className="w-10 h-10 rounded-full flex items-center justify-center text-white"
                 style={{ background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,.12)' }}>
@@ -454,6 +500,23 @@ function SalonDetails() {
           </motion.div>
         </div>
 
+        {/* Slide dot indicators */}
+        {heroSlides.length > 1 && (
+          <div className="absolute z-10 flex items-center gap-1.5"
+            style={{ bottom: 'clamp(76px,8vh,110px)', left: 'clamp(24px,6vw,96px)' }}>
+            {heroSlides.map((_, i) => (
+              <button key={i} onClick={() => setHeroSlideIdx(i)}
+                style={{
+                  width: i === heroSlideIdx ? 22 : 5, height: 5, borderRadius: 3, padding: 0, border: 'none', cursor: 'pointer',
+                  background: i === heroSlideIdx ? '#fff' : 'rgba(255,255,255,.35)',
+                  transition: 'all 0.35s ease',
+                  boxShadow: i === heroSlideIdx ? '0 0 8px rgba(255,255,255,.5)' : 'none',
+                }}
+              />
+            ))}
+          </div>
+        )}
+
         <motion.div className="absolute right-6 bottom-8 flex flex-col items-center gap-2"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2 }}>
           <span className="lux-overline" style={{ color: 'rgba(255,255,255,.3)', fontSize: 9 }}>SCROLL</span>
@@ -510,7 +573,7 @@ function SalonDetails() {
               Transformations
             </motion.h2>
           </div>
-          <div className="lux-gallery-track" style={{ paddingLeft: 'clamp(24px,6vw,96px)', paddingRight: 'clamp(24px,6vw,96px)' }}>
+          <div ref={galleryTrackRef} className="lux-gallery-track" style={{ paddingLeft: 'clamp(24px,6vw,96px)', paddingRight: 'clamp(24px,6vw,96px)' }}>
             {galleryItems.map((item, i) => {
               const videoIdx = item.type === 'video' ? salonVideoUrls.indexOf(item.url) : -1;
               const thumbUrl = item.type === 'video' && item.url.includes('/video/upload/')

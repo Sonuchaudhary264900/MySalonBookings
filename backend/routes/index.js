@@ -2233,12 +2233,13 @@ router.put("/owner/gallery/:mediaId", authenticateOwner, asyncHandler(async (req
     if (caption  !== undefined) entry.caption  = caption;
     if (tags     !== undefined) entry.tags     = tags;
     if (isCover  === true) {
-      // clear isCover on all other photos, then set this one
+      // clear isCover on all other photos, then set this one + update coverPhoto
       salon.photos = salon.photos.map((p, i) => {
         const n = normPhoto(p);
         n.isCover = (i === idx);
         return n;
       });
+      salon.coverPhoto = salon.photos[idx]?.url || entry.url;
       salon.markModified('photos');
     } else {
       salon.photos[idx] = entry;
