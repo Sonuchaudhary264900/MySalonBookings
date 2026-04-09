@@ -414,7 +414,7 @@ router.get("/public/salons/:salonId", validateObjectId("salonId"), asyncHandler(
   };
 
   const topOffer = buildOfferMeta(topCoupon);
-  res.json({ success: true, data: { ...salon, photos, videos, ownerPhoto, ownerGender, ownerName, ownerId: undefined, hasCoupons: !!topOffer, topOffer, hasBarbers: barberCount > 0 } });
+  res.json({ success: true, data: { ...salon, photos, videos, ownerPhoto, ownerGender, ownerName, ownerId: undefined, hasCoupons: !!topOffer, topOffer, hasBarbers: barberCount > 0, ctaPhoto: salon.ctaPhoto || null } });
 }));
 
 // GET /public/salons/:salonId/services
@@ -2212,7 +2212,7 @@ router.put("/owner/gallery/reel-toggle", authenticateOwner, asyncHandler(async (
 // PUT /owner/gallery/:mediaId — update caption, tags, isCover for a photo or video
 router.put("/owner/gallery/:mediaId", authenticateOwner, asyncHandler(async (req, res) => {
   const mid = req.params.mediaId;
-  const { caption, tags, isCover } = req.body;
+  const { caption, tags, isCover, isCtaPhoto } = req.body;
   const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
 
@@ -2232,7 +2232,7 @@ router.put("/owner/gallery/:mediaId", authenticateOwner, asyncHandler(async (req
     const entry = normPhoto(salon.photos[idx]);
     if (caption  !== undefined) entry.caption  = caption;
     if (tags     !== undefined) entry.tags     = tags;
-    if (isCover  === true) {
+    if (isCover === true) {
       // clear isCover on all other photos, then set this one + update coverPhoto
       salon.photos = salon.photos.map((p, i) => {
         const n = normPhoto(p);
@@ -2240,6 +2240,10 @@ router.put("/owner/gallery/:mediaId", authenticateOwner, asyncHandler(async (req
         return n;
       });
       salon.coverPhoto = salon.photos[idx]?.url || entry.url;
+      salon.markModified('photos');
+    } else if (isCtaPhoto === true) {
+      salon.ctaPhoto = entry.url;
+      salon.photos[idx] = entry;
       salon.markModified('photos');
     } else {
       salon.photos[idx] = entry;

@@ -22,7 +22,7 @@ const HEIGHTS = [300, 380, 260, 340, 420, 280, 360, 310, 240, 390, 330, 270];
  * @param {function}  onSetCover
  * @param {string}    mode          - 'masonry' | 'reels'
  */
-export default function MasonryGrid({ photos, coverId, analyticsMap = {}, onView, onDelete, onSetCover, mode = 'masonry' }) {
+export default function MasonryGrid({ photos, coverId, ctaPhotoUrl, analyticsMap = {}, onView, onDelete, onSetCover, onSetCta, mode = 'masonry' }) {
 
   if (!photos.length) return null;
 
@@ -38,10 +38,12 @@ export default function MasonryGrid({ photos, coverId, analyticsMap = {}, onView
               <MediaCard
                 photo={photo}
                 isCover={photo._id === coverId}
+                isCtaPhoto={url === ctaPhotoUrl}
                 analytics={analyticsMap[url] ?? null}
                 onView={onView}
                 onDelete={onDelete}
                 onSetCover={onSetCover}
+                onSetCta={onSetCta}
                 fillContainer
               />
             </div>
@@ -62,10 +64,12 @@ export default function MasonryGrid({ photos, coverId, analyticsMap = {}, onView
             <MediaCard
               photo={photo}
               isCover={photo._id === coverId}
+              isCtaPhoto={url === ctaPhotoUrl}
               analytics={analyticsMap[url] ?? null}
               onView={onView}
               onDelete={onDelete}
               onSetCover={onSetCover}
+              onSetCta={onSetCta}
               height={HEIGHTS[i % HEIGHTS.length]}
             />
           </div>

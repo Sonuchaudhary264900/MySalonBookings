@@ -119,8 +119,9 @@ function SalonDetails() {
   const [selectedServices, setSelectedServices] = useState([]);
   const [serviceGenderFilter, setServiceGenderFilter] = useState("all");
   const [expandedCat, setExpandedCat] = useState(null);
-  const [heroMuted, setHeroMuted]   = useState(true);
+  const [heroMuted, setHeroMuted]       = useState(true);
   const [heroSlideIdx, setHeroSlideIdx] = useState(0);
+  const [photoSlideIdx, setPhotoSlideIdx] = useState(0);
   const darkMode = true; // SalonDetails is always dark
   const heroVideoRef2 = useRef(null);
   const galleryTrackRef = useRef(null);
@@ -229,6 +230,15 @@ function SalonDetails() {
     }, 2200);
     return () => clearInterval(interval);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Owner section photo slideshow
+  useEffect(() => {
+    if (!salon) return;
+    const photos = (salon.photos || []).map(p => (typeof p === 'string' ? p : p?.url)).filter(Boolean);
+    if (photos.length <= 1) return;
+    const t = setInterval(() => setPhotoSlideIdx(i => (i + 1) % photos.length), 3800);
+    return () => clearInterval(t);
+  }, [salon?._id, salon?.photos?.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Hero swipe — passive listeners so vertical scroll is never blocked
   useEffect(() => {
@@ -598,45 +608,38 @@ function SalonDetails() {
         </div>
       </section>
 
-      {/* ════ 3. GALLERY ════ */}
-      {galleryItems.length > 0 && (
+      {/* ════ 3. REELS ════ */}
+      {salonVideoUrls.length > 0 && (
         <section style={{ paddingTop: 'clamp(64px,8vw,112px)', paddingBottom: 'clamp(64px,8vw,112px)', borderBottom: `1px solid ${dm.b04}` }}>
           <div style={{ padding: '0 clamp(24px,6vw,96px)', marginBottom: 40 }}>
             <motion.p className="lux-overline mb-3" style={{ color: theme.p }}
-              initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>Our Work</motion.p>
+              initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>Our Reels</motion.p>
             <motion.h2 className="lux-title" style={{ color: dm.fg }}
               initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: .7 }}>
-              Transformations
+              Watch &amp; Explore
             </motion.h2>
           </div>
           <div ref={galleryTrackRef} className="lux-gallery-track" style={{ paddingLeft: 'clamp(24px,6vw,96px)', paddingRight: 'clamp(24px,6vw,96px)' }}>
-            {galleryItems.map((item, i) => {
-              const videoIdx = item.type === 'video' ? salonVideoUrls.indexOf(item.url) : -1;
-              const thumbUrl = item.type === 'video' && item.url.includes('/video/upload/')
-                ? item.url.replace('/video/upload/', '/video/upload/w_800,h_560,c_fill,q_auto,f_jpg,vc_none/').replace(/\.(mp4|mov|avi|mkv|webm)(\?.*)?$/i, '.jpg')
+            {salonVideoUrls.map((url, i) => {
+              const thumbUrl = url.includes('/video/upload/')
+                ? url.replace('/video/upload/', '/video/upload/w_800,h_560,c_fill,q_auto,f_jpg,vc_none/').replace(/\.(mp4|mov|avi|mkv|webm)(\?.*)?$/i, '.jpg')
                 : '';
               return (
                 <motion.div key={i} className="lux-gc"
-                  style={{ width: 'clamp(260px,38vw,440px)', height: 'clamp(340px,48vw,520px)' }}
+                  style={{ width: 'clamp(220px,30vw,360px)', height: 'clamp(380px,52vw,560px)' }}
                   initial={{ opacity: 0, scale: .96 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}
                   transition={{ delay: Math.min(i * .07, .35), duration: .6 }}
-                  onClick={() => item.type === 'video' ? setVideoViewerIdx(videoIdx) : setGalleryLightbox(i)}>
-                  {item.type === 'video' ? (
-                    <>
-                      <div className="gcm" style={{ background: '#0d0d18' }} />
-                      {thumbUrl && <img src={thumbUrl} alt="" className="gcm" onError={e => { e.currentTarget.style.display='none'; }} />}
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-16 h-16 rounded-full flex items-center justify-center"
-                          style={{ background: 'rgba(255,255,255,.1)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,.2)' }}>
-                          <Play className="w-7 h-7 text-white" fill="white" />
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <img src={item.url} alt="" className="gcm" onError={e => { e.currentTarget.style.display='none'; }} />
-                  )}
-                  <div className="absolute bottom-0 left-0 right-0 p-4" style={{ background: 'linear-gradient(to top,rgba(0,0,0,.7),transparent)' }}>
-                    <span className="lux-overline" style={{ color: 'rgba(255,255,255,.5)', fontSize: 9 }}>{item.type === 'video' ? '▶ VIDEO' : `PHOTO ${i + 1}`}</span>
+                  onClick={() => setVideoViewerIdx(i)}>
+                  <div className="gcm" style={{ background: '#0d0d18' }} />
+                  {thumbUrl && <img src={thumbUrl} alt="" className="gcm" onError={e => { e.currentTarget.style.display='none'; }} />}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-14 h-14 rounded-full flex items-center justify-center"
+                      style={{ background: 'rgba(255,255,255,.12)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,.25)' }}>
+                      <Play className="w-6 h-6 text-white" fill="white" />
+                    </div>
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 p-4" style={{ background: 'linear-gradient(to top,rgba(0,0,0,.75),transparent)' }}>
+                    <span className="lux-overline" style={{ color: 'rgba(255,255,255,.55)', fontSize: 9 }}>▶ REEL {i + 1}</span>
                   </div>
                 </motion.div>
               );
@@ -864,10 +867,33 @@ function SalonDetails() {
       {(salon.ownerName || salon.ownerPhoto) && (
         <section style={{ borderBottom: `1px solid ${dm.b04}` }}>
           <div className="lux-split">
+            {/* Left: auto-sliding business photos */}
             <div className="relative overflow-hidden" style={{ minHeight: 480 }}>
-              {salon.ownerPhoto
-                ? <img src={salon.ownerPhoto} alt={salon.ownerName} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: 'top' }} />
-                : <div className="absolute inset-0 flex items-center justify-center text-8xl" style={{ background: `linear-gradient(135deg,${theme.p}18,${theme.p}33)` }}>🧑‍🎨</div>}
+              {salonPhotoUrls.length > 0 ? (
+                <>
+                  {salonPhotoUrls.map((url, i) => (
+                    <div key={i} style={{
+                      position: 'absolute', inset: 0,
+                      opacity: i === photoSlideIdx % salonPhotoUrls.length ? 1 : 0,
+                      transition: 'opacity 1.1s ease',
+                      pointerEvents: 'none',
+                    }}>
+                      <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                  ))}
+                  {/* dot indicators */}
+                  {salonPhotoUrls.length > 1 && (
+                    <div style={{ position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 5, zIndex: 5 }}>
+                      {salonPhotoUrls.map((_, i) => (
+                        <button key={i} onClick={() => setPhotoSlideIdx(i)}
+                          style={{ width: i === photoSlideIdx % salonPhotoUrls.length ? 18 : 5, height: 5, borderRadius: 3, border: 'none', cursor: 'pointer', padding: 0, transition: 'all 0.3s ease', background: i === photoSlideIdx % salonPhotoUrls.length ? '#fff' : 'rgba(255,255,255,.35)' }} />
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center text-8xl" style={{ background: `linear-gradient(135deg,${theme.p}18,${theme.p}33)` }}>🧑‍🎨</div>
+              )}
               <div className="absolute inset-0" style={{ background: dm.ownerOvr }} />
             </div>
             <div className="lux-section flex flex-col justify-center">
@@ -1004,8 +1030,8 @@ function SalonDetails() {
 
       {/* ════ 10. FINAL CTA ════ */}
       <section className="relative overflow-hidden flex items-center" style={{ minHeight: '65vh' }}>
-        {salonPhotoUrls[1] || salonPhotoUrls[0]
-          ? <img src={salonPhotoUrls[1] || salonPhotoUrls[0]} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ filter: 'brightness(.2) saturate(.6)' }} />
+        {salon.ctaPhoto || salonPhotoUrls[1] || salonPhotoUrls[0]
+          ? <img src={salon.ctaPhoto || salonPhotoUrls[1] || salonPhotoUrls[0]} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ filter: 'brightness(.2) saturate(.6)' }} />
           : <div className="absolute inset-0" style={{ background: `linear-gradient(135deg,${theme.p}22,#0d0d18)` }} />
         }
         <div className="absolute inset-0" style={{ background: dm.ctaOvr }} />

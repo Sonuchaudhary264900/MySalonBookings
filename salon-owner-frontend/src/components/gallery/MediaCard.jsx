@@ -59,7 +59,7 @@ const VideoThumb = ({ url }) => {
  * @param {number}   height         - card pixel height (masonry mode)
  * @param {boolean}  fillContainer  - use absolute positioning to fill parent (reels mode)
  */
-export default function MediaCard({ photo, isCover, analytics, onView, onDelete, onSetCover, height = 300, fillContainer = false }) {
+export default function MediaCard({ photo, isCover, isCtaPhoto, analytics, onView, onDelete, onSetCover, onSetCta, height = 300, fillContainer = false }) {
   const [imageFailed,    setImageFailed]    = useState(false);
   const [confirmDelete,  setConfirmDelete]  = useState(false);
 
@@ -231,22 +231,41 @@ export default function MediaCard({ photo, isCover, analytics, onView, onDelete,
   // In fill-container (reels) mode, just return the card
   if (fillContainer) return card;
 
-  // In normal masonry mode, wrap with a "Set as Hero" button below
+  // In normal masonry mode, wrap with action buttons below
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-1">
       {card}
-      {!isVideo && onSetCover && (
-        <button
-          onClick={e => { e.stopPropagation(); if (!isCover) onSetCover(photo); }}
-          className={`w-full py-1.5 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1.5
-            ${isCover
-              ? 'bg-amber-500/15 text-amber-500 border border-amber-500/40 cursor-default'
-              : 'bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-white/40 border border-gray-200 dark:border-white/8 hover:bg-amber-500/10 hover:text-amber-500 hover:border-amber-500/30'
-            }`}
-        >
-          <Star className={`w-3 h-3 ${isCover ? 'fill-amber-500' : ''}`} />
-          {isCover ? 'Hero Photo' : 'Set as Hero'}
-        </button>
+      {!isVideo && (onSetCover || onSetCta) && (
+        <div className="flex gap-1">
+          {onSetCover && (
+            <button
+              onClick={e => { e.stopPropagation(); if (!isCover) onSetCover(photo); }}
+              className={`flex-1 py-1.5 rounded-xl text-[10px] font-bold transition-all flex items-center justify-center gap-1
+                ${isCover
+                  ? 'bg-amber-500/15 text-amber-500 border border-amber-500/40 cursor-default'
+                  : 'bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-white/40 border border-gray-200 dark:border-white/8 hover:bg-amber-500/10 hover:text-amber-500 hover:border-amber-500/30'
+                }`}
+            >
+              <Star className={`w-2.5 h-2.5 ${isCover ? 'fill-amber-500' : ''}`} />
+              {isCover ? 'Hero' : 'Set Hero'}
+            </button>
+          )}
+          {onSetCta && (
+            <button
+              onClick={e => { e.stopPropagation(); if (!isCtaPhoto) onSetCta(photo); }}
+              className={`flex-1 py-1.5 rounded-xl text-[10px] font-bold transition-all flex items-center justify-center gap-1
+                ${isCtaPhoto
+                  ? 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/40 cursor-default'
+                  : 'bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-white/40 border border-gray-200 dark:border-white/8 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30'
+                }`}
+            >
+              <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/>
+              </svg>
+              {isCtaPhoto ? 'Banner' : 'Set Banner'}
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
