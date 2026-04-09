@@ -5,6 +5,7 @@ import API from "../services/api";
 import { getCustomerToken } from "../utils/auth";
 import { useNotifications } from "../context/NotificationContext";
 import { salonPath } from "../utils/formatters";
+import { useTheme } from "../context/ThemeContext";
 
 function getUserName() {
   try {
@@ -866,6 +867,7 @@ function BookingCard({ booking: initialBooking, userCoords, onCancelled, isNext 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { unreadCount } = useNotifications();
+  const { isDark } = useTheme();
 
   const [filter, setFilter]               = useState('Upcoming');
   const [bookings, setBookings]           = useState([]);
@@ -995,31 +997,28 @@ export default function Dashboard() {
       `}</style>
 
       {/* ══ HERO ══════════════════════════════════════════════ */}
-      <div style={{
-        background: 'linear-gradient(145deg,#1e1b4b 0%,#312e81 25%,#4c1d95 55%,#3730a3 80%,#1e3a5f 100%)',
-        padding: '28px 16px 32px', position: 'relative', overflow: 'hidden',
-      }}>
-        {/* Decorative glows */}
-        <div style={{ position:'absolute', top:-100, right:-60, width:320, height:320, borderRadius:'50%', background:'radial-gradient(circle,rgba(139,92,246,0.25) 0%,transparent 65%)', pointerEvents:'none' }} />
-        <div style={{ position:'absolute', bottom:-60, left:-40, width:240, height:240, borderRadius:'50%', background:'radial-gradient(circle,rgba(99,102,241,0.2) 0%,transparent 65%)', pointerEvents:'none' }} />
-        <div style={{ position:'absolute', inset:0, backgroundImage:'linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px)', backgroundSize:'44px 44px', pointerEvents:'none' }} />
+      <div className="dashboard-hero">
+        {/* Decorative orbs */}
+        <div className="dashboard-hero-orb-1" style={{ position:'absolute', top:-100, right:-60, width:320, height:320, borderRadius:'50%', pointerEvents:'none' }} />
+        <div className="dashboard-hero-orb-2" style={{ position:'absolute', bottom:-60, left:-40, width:240, height:240, borderRadius:'50%', pointerEvents:'none' }} />
+        <div className="dashboard-hero-grid" style={{ position:'absolute', inset:0, backgroundSize:'44px 44px', pointerEvents:'none' }} />
 
         <div style={{ maxWidth: 640, margin: '0 auto', position: 'relative' }}>
 
           {/* Top row */}
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 22 }}>
             <div>
-              <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--t-hero-muted)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                 My Bookings
               </p>
-              <h1 style={{ fontSize: 24, fontWeight: 900, color: '#fff', lineHeight: 1.15, marginBottom: 4, letterSpacing: '-0.5px' }}>
+              <h1 style={{ fontSize: 24, fontWeight: 900, color: 'var(--t-hero-text)', lineHeight: 1.15, marginBottom: 4, letterSpacing: '-0.5px' }}>
                 Welcome back, {firstName} 👋
               </h1>
-              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>Ready for your next look?</p>
+              <p style={{ fontSize: 13, color: 'var(--t-hero-sub)' }}>Ready for your next look?</p>
             </div>
-            <Link to="/notifications" style={{ position:'relative', width:42, height:42, borderRadius:'50%', background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.18)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', flexShrink:0, textDecoration:'none', backdropFilter:'blur(8px)' }}>
+            <Link to="/notifications" style={{ position:'relative', width:42, height:42, borderRadius:'50%', background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.8)', border: isDark ? '1px solid rgba(255,255,255,0.18)' : '1px solid rgba(124,58,237,0.15)', display:'flex', alignItems:'center', justifyContent:'center', color: isDark ? '#fff' : '#7C3AED', flexShrink:0, textDecoration:'none', backdropFilter:'blur(8px)', boxShadow: isDark ? 'none' : '0 2px 8px rgba(0,0,0,0.06)' }}>
               <svg style={{ width:18, height:18 }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-              {unreadCount > 0 && <span style={{ position:'absolute', top:1, right:1, minWidth:16, height:16, background:'#ef4444', color:'#fff', fontSize:9, fontWeight:700, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', padding:'0 3px', border:'2px solid #4c1d95' }}>{unreadCount > 9 ? '9+' : unreadCount}</span>}
+              {unreadCount > 0 && <span style={{ position:'absolute', top:1, right:1, minWidth:16, height:16, background:'#ef4444', color:'#fff', fontSize:9, fontWeight:700, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', padding:'0 3px', border: isDark ? '2px solid #4c1d95' : '2px solid #fff' }}>{unreadCount > 9 ? '9+' : unreadCount}</span>}
             </Link>
           </div>
 
@@ -1031,31 +1030,31 @@ export default function Dashboard() {
               { label: 'Total',     value: loading ? '—' : stats.total,     icon: '📋', accent: false },
               { label: 'Spent',     value: loading ? '—' : stats.totalSpent > 0 ? `₹${stats.totalSpent}` : '₹0', icon: '💰', accent: true },
             ].map(({ label, value, icon, accent }) => (
-              <div key={label} style={{
-                background: accent ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.09)',
-                border: `1px solid ${accent ? 'rgba(251,191,36,0.3)' : 'rgba(255,255,255,0.14)'}`,
-                borderRadius: 14, padding: '11px 6px', textAlign: 'center',
-                backdropFilter: 'blur(12px)',
+              <div key={label} className="dashboard-stat-card" style={{
+                ...(accent ? {
+                  background: isDark ? 'rgba(251,191,36,0.15)' : 'rgba(250,204,21,0.1)',
+                  border: isDark ? '1px solid rgba(251,191,36,0.3)' : '1px solid rgba(250,204,21,0.25)',
+                } : {}),
               }}>
                 <p style={{ fontSize: 16, marginBottom: 3 }}>{icon}</p>
-                <p style={{ fontSize: label === 'Spent' ? 13 : 18, fontWeight: 900, color: accent ? '#fde68a' : '#fff', lineHeight: 1, marginBottom: 3 }}>{value}</p>
-                <p style={{ fontSize: 10, color: accent ? 'rgba(253,230,138,0.7)' : 'rgba(255,255,255,0.55)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</p>
+                <p style={{ fontSize: label === 'Spent' ? 13 : 18, fontWeight: 900, color: accent ? (isDark ? '#fde68a' : '#D97706') : 'var(--t-hero-text)', lineHeight: 1, marginBottom: 3 }}>{value}</p>
+                <p style={{ fontSize: 10, color: accent ? (isDark ? 'rgba(253,230,138,0.7)' : 'rgba(146,64,14,0.6)') : 'var(--t-hero-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</p>
               </div>
             ))}
           </div>
 
           {/* ── Next upcoming banner ── */}
           {!loading && nextUpcoming && (
-            <div style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.16)', borderRadius: 14, padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, backdropFilter: 'blur(12px)' }}>
+            <div className="dashboard-next-banner">
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                <div style={{ width: 36, height: 36, background: 'rgba(255,255,255,0.12)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
+                <div style={{ width: 36, height: 36, background: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(124,58,237,0.1)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: isDark ? '#fff' : '#7C3AED', flexShrink: 0 }}>
                   <IcScissors />
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--t-hero-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {nextUpcoming.serviceName || (Array.isArray(nextUpcoming.serviceIds) ? nextUpcoming.serviceIds.map(s => s?.name || s).filter(Boolean).join(' + ') : '') || 'Service'}
                   </p>
-                  <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 1 }}>
+                  <p style={{ fontSize: 11, color: 'var(--t-hero-sub)', marginTop: 1 }}>
                     {nextUpcoming.salonName || nextUpcoming.salonId?.name} · {formatDateLabel(nextUpcoming.appointmentDate)}{nextUpcoming.appointmentTime ? ` · ${formatTimeLabel(nextUpcoming.appointmentTime)}` : ''}
                   </p>
                 </div>
@@ -1202,12 +1201,12 @@ export default function Dashboard() {
 
         {/* ══ INSIGHTS SECTION ══════════════════════════════════ */}
         {!loading && bookings.length > 0 && (
-          <div style={{ marginTop: 32, padding: '18px 16px', background: 'var(--t-card)', border: '1px solid var(--t-border)', borderRadius: 20 }}>
+          <div style={{ marginTop: 32, padding: '18px 16px', background: 'var(--t-card)', border: '1px solid var(--t-border)', borderRadius: 20, boxShadow: 'var(--t-shadow)' }}>
             <p style={{ fontSize: 13, fontWeight: 800, color: 'var(--t-text)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
               <IcTrend /> Your Insights
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
-              <div style={{ background: 'var(--t-bg-2)', border: '1px solid var(--t-border)', borderRadius: 12, padding: '12px 10px', textAlign: 'center' }}>
+              <div style={{ background: isDark ? 'rgba(124,58,237,0.08)' : 'linear-gradient(135deg,#F5F3FF,#EEF2FF)', border: isDark ? '1px solid rgba(124,58,237,0.2)' : '1px solid rgba(124,58,237,0.1)', borderRadius: 12, padding: '12px 10px', textAlign: 'center' }}>
                 <p style={{ fontSize: 22, fontWeight: 900, color: 'var(--t-accent)', marginBottom: 3 }}>{thisMonthVisits}</p>
                 <p style={{ fontSize: 10, color: 'var(--t-text-3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>This Month</p>
               </div>
@@ -1229,21 +1228,21 @@ export default function Dashboard() {
 
         {/* ══ FINAL CTA ═════════════════════════════════════════ */}
         {!loading && (
-          <div style={{ marginTop: 24, borderRadius: 20, overflow: 'hidden', background: 'linear-gradient(135deg,#3730a3 0%,#4f46e5 40%,#7c3aed 100%)', padding: '24px 20px', position: 'relative' }}>
-            <div style={{ position:'absolute', top:-40, right:-30, width:160, height:160, borderRadius:'50%', background:'radial-gradient(circle,rgba(255,255,255,0.1) 0%,transparent 65%)', pointerEvents:'none' }} />
-            <p style={{ fontSize: 17, fontWeight: 900, color: '#fff', marginBottom: 6, lineHeight: 1.3, position: 'relative' }}>
+          <div className="dashboard-cta">
+            <div style={{ position:'absolute', top:-40, right:-30, width:160, height:160, borderRadius:'50%', background: isDark ? 'radial-gradient(circle,rgba(255,255,255,0.1) 0%,transparent 65%)' : 'radial-gradient(circle,rgba(124,58,237,0.15) 0%,transparent 65%)', pointerEvents:'none' }} />
+            <p style={{ fontSize: 17, fontWeight: 900, color: isDark ? '#fff' : '#1E1B4B', marginBottom: 6, lineHeight: 1.3, position: 'relative' }}>
               Book your next appointment now
             </p>
-            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginBottom: 16, position: 'relative' }}>
+            <p style={{ fontSize: 12, color: isDark ? 'rgba(255,255,255,0.65)' : '#6B7280', marginBottom: 16, position: 'relative' }}>
               No waiting, no hassle — instant confirmation
             </p>
             <div style={{ display: 'flex', gap: 10, position: 'relative' }}>
               <button onClick={() => navigate('/')}
-                style={{ padding: '10px 20px', background: '#fff', border: 'none', borderRadius: 11, fontSize: 13, fontWeight: 700, color: '#4f46e5', cursor: 'pointer' }}>
+                style={{ padding: '10px 20px', background: isDark ? '#fff' : 'linear-gradient(135deg,#7C3AED,#06B6D4)', border: 'none', borderRadius: 11, fontSize: 13, fontWeight: 700, color: isDark ? '#4f46e5' : '#fff', cursor: 'pointer', boxShadow: isDark ? 'none' : '0 4px 14px rgba(124,58,237,0.3)', transition: 'all 0.2s' }}>
                 Book Now
               </button>
               <button onClick={() => navigate('/')}
-                style={{ padding: '10px 18px', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 11, fontSize: 13, fontWeight: 600, color: '#fff', cursor: 'pointer' }}>
+                style={{ padding: '10px 18px', background: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(124,58,237,0.08)', border: isDark ? '1px solid rgba(255,255,255,0.25)' : '1px solid rgba(124,58,237,0.2)', borderRadius: 11, fontSize: 13, fontWeight: 600, color: isDark ? '#fff' : '#7C3AED', cursor: 'pointer', transition: 'all 0.2s' }}>
                 Explore Salons
               </button>
             </div>

@@ -4,12 +4,14 @@ import API from "../services/api";
 import { isCustomer, clearCustomerAuth } from "../utils/auth";
 import { formatDate } from "../utils/formatters";
 import { useNotifications } from "../context/NotificationContext";
+import { useTheme } from "../context/ThemeContext";
 
 function Booking() {
   const { salonId, serviceId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const { addToast, addNotification } = useNotifications();
+  const { isDark } = useTheme();
 
   // Support multi-service: serviceIds from state, fallback to single serviceId in URL
   const serviceIdsFromState = location.state?.serviceIds;
@@ -219,12 +221,22 @@ function Booking() {
     const isPending = bookingStatus === "pending";
     return (
       <div className="t-page flex items-center justify-center px-4">
-        <div className="t-card rounded-2xl p-8 max-w-sm w-full text-center fade-in">
+        <div className="t-card rounded-2xl p-8 max-w-sm w-full text-center fade-in" style={{ boxShadow: isDark ? '0 0 40px rgba(124,58,237,0.15), 0 8px 40px rgba(0,0,0,0.4)' : '0 4px 32px rgba(124,58,237,0.1), 0 2px 12px rgba(0,0,0,0.06)' }}>
           <div
-            className="w-16 h-16 rounded-full flex items-center justify-center text-3xl mx-auto mb-4"
-            style={{ background: isPending ? 'var(--t-warn-bg)' : 'var(--t-success-bg)' }}
+            className="w-20 h-20 rounded-full flex items-center justify-center text-4xl mx-auto mb-5"
+            style={{
+              background: isPending
+                ? (isDark ? 'rgba(245,158,11,0.15)' : '#FFFBEB')
+                : (isDark ? 'rgba(16,185,129,0.15)' : '#F0FDF4'),
+              border: isPending
+                ? (isDark ? '1px solid rgba(245,158,11,0.3)' : '1px solid #FDE68A')
+                : (isDark ? '1px solid rgba(16,185,129,0.3)' : '1px solid #BBF7D0'),
+              boxShadow: isPending
+                ? (isDark ? '0 0 24px rgba(245,158,11,0.2)' : 'none')
+                : (isDark ? '0 0 24px rgba(16,185,129,0.2)' : 'none'),
+            }}
           >
-            {isPending ? "⏳" : "✓"}
+            {isPending ? "⏳" : "✅"}
           </div>
           <h2 className="text-xl font-bold mb-2" style={{ color: 'var(--t-text)' }}>
             {isPending ? "Booking Received!" : "Booking Confirmed!"}
@@ -294,7 +306,7 @@ function Booking() {
 
         <div className="t-card rounded-2xl p-6">
           <form onSubmit={handleBooking} className="space-y-5">
-            {error && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm">{error}</div>}
+            {error && <div className="p-3 rounded-xl text-sm" style={{ background: 'var(--t-error-bg)', color: 'var(--t-error-text)', border: '1px solid var(--t-error-border)' }}>{error}</div>}
 
             {/* Date picker */}
             <div>
@@ -368,7 +380,7 @@ function Booking() {
                   Loading available slots…
                 </div>
               ) : closedDay ? (
-                <div className="p-4 bg-amber-50 rounded-xl text-amber-700 text-sm text-center">
+                <div className="p-4 rounded-xl text-sm text-center" style={{ background: 'var(--t-warn-bg)', color: 'var(--t-warn-text)', border: '1px solid var(--t-warn-border)' }}>
                   🔒 Bookings are not available on this date. Please choose another date.
                 </div>
               ) : slots.length === 0 ? (
@@ -378,7 +390,7 @@ function Booking() {
               ) : bookingMode === "sequential" ? (
                 /* Sequential mode — show the auto-assigned slot */
                 <div className="space-y-2">
-                  <div className="p-3 bg-indigo-50 rounded-xl text-indigo-700 text-xs">
+                  <div className="p-3 rounded-xl text-xs" style={{ background: isDark ? 'rgba(124,58,237,0.1)' : '#F5F3FF', color: isDark ? '#C4B5FD' : '#6D28D9', border: `1px solid ${isDark ? 'rgba(124,58,237,0.25)' : '#DDD6FE'}` }}>
                     ⏩ This salon assigns slots in order. Your slot is auto-assigned below.
                   </div>
                   {(() => {
@@ -387,9 +399,9 @@ function Booking() {
                     const endMin = h * 60 + m + totalDuration;
                     const endTime = `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
                     return (
-                      <div className="flex items-center justify-between px-4 py-3 bg-indigo-600 text-white rounded-xl font-semibold text-sm">
+                      <div className="flex items-center justify-between px-4 py-3 rounded-xl font-semibold text-sm text-white" style={{ background: 'linear-gradient(135deg,#7C3AED,#06B6D4)', boxShadow: isDark ? '0 0 20px rgba(124,58,237,0.4)' : '0 4px 14px rgba(124,58,237,0.25)' }}>
                         <span>{s} – {endTime}</span>
-                        <span className="text-indigo-200 text-xs">{totalDuration} min</span>
+                        <span style={{ opacity: 0.75, fontSize: 11 }}>{totalDuration} min</span>
                       </div>
                     );
                   })()}
@@ -469,9 +481,9 @@ function Booking() {
               <div>
                 <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--t-text-2)' }}>Have a coupon?</label>
                 {appliedCoupon ? (
-                  <div className="flex items-center justify-between px-3 py-2.5 bg-green-50 border border-green-200 rounded-xl text-sm">
-                    <span className="text-green-700 font-medium">✓ {appliedCoupon.code} — ₹{couponDiscount} off</span>
-                    <button type="button" onClick={removeCoupon} className="text-xs text-red-500 hover:underline ml-2">Remove</button>
+                  <div className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm" style={{ background: 'var(--t-success-bg)', border: '1px solid var(--t-success-border)' }}>
+                    <span className="font-medium" style={{ color: 'var(--t-success-text)' }}>✓ {appliedCoupon.code} — ₹{couponDiscount} off</span>
+                    <button type="button" onClick={removeCoupon} className="text-xs ml-2 hover:underline" style={{ color: 'var(--t-error-text)' }}>Remove</button>
                   </div>
                 ) : (
                   <div className="flex gap-2">
@@ -486,7 +498,8 @@ function Booking() {
                       type="button"
                       onClick={applyCoupon}
                       disabled={couponLoading || !couponInput.trim()}
-                      className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 transition"
+                      className="px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-50 transition text-white"
+                      style={{ background: 'linear-gradient(135deg,#7C3AED,#06B6D4)', boxShadow: isDark ? '0 0 16px rgba(124,58,237,0.35)' : '0 2px 10px rgba(124,58,237,0.2)' }}
                     >
                       {couponLoading ? "…" : "Apply"}
                     </button>
