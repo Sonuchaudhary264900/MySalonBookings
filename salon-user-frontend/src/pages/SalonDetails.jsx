@@ -14,6 +14,7 @@ import ReviewCard from "../components/ReviewCard";
 import { isCustomer, clearCustomerAuth } from "../utils/auth";
 import { formatDate, salonPath } from "../utils/formatters";
 import { useNotifications } from "../context/NotificationContext";
+import { useTheme } from "../context/ThemeContext";
 import {
   UNISEX_CATEGORIES,
   CATEGORY_ICON_MAP,
@@ -120,7 +121,7 @@ function SalonDetails() {
   const [serviceGenderFilter, setServiceGenderFilter] = useState("all");
   const [expandedCat, setExpandedCat] = useState(null);
   const [heroMuted, setHeroMuted]   = useState(true);
-  const [darkMode, setDarkMode]     = useState(true);
+  const { isDark: darkMode } = useTheme();
   const heroVideoRef2 = useRef(null);
   const [galleryLightbox, setGalleryLightbox] = useState(null);
   const galleryVideoRef = useRef(null);
@@ -387,16 +388,6 @@ function SalonDetails() {
             <ArrowLeft className="w-5 h-5 text-white" />
           </motion.button>
           <div className="flex items-center gap-2">
-            {/* Theme toggle */}
-            <button onClick={() => setDarkMode(m => !m)}
-              className="w-10 h-10 rounded-full flex items-center justify-center"
-              style={{ background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,.12)', color: '#fff', cursor: 'pointer' }}
-              title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}>
-              {darkMode
-                ? <svg viewBox="0 0 24 24" width={16} height={16} fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-                : <svg viewBox="0 0 24 24" width={16} height={16} fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-              }
-            </button>
             {heroIsVideo && (
               <button onClick={() => { setHeroMuted(m => !m); heroVideoRef2.current && (heroVideoRef2.current.muted = !heroMuted); }}
                 className="w-10 h-10 rounded-full flex items-center justify-center text-white"
