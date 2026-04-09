@@ -14,6 +14,7 @@ import ReviewCard from "../components/ReviewCard";
 import { isCustomer, clearCustomerAuth } from "../utils/auth";
 import { formatDate, salonPath } from "../utils/formatters";
 import { useNotifications } from "../context/NotificationContext";
+import { useTheme } from "../context/ThemeContext";
 import {
   UNISEX_CATEGORIES,
   CATEGORY_ICON_MAP,
@@ -91,10 +92,10 @@ const formatDay = (dateStr) => {
 
 const CAT_THEMES = {
   barbershop:    { p: '#6366f1', ring: 'rgba(99,102,241,0.55)' },
-  salon:         { p: '#8b5cf6', ring: 'rgba(139,92,246,0.55)' },
-  spa_wellness:  { p: '#06b6d4', ring: 'rgba(6,182,212,0.55)' },
+  salon:         { p: '#818cf8', ring: 'rgba(129,140,248,0.55)' },
+  spa_wellness:  { p: '#8b5cf6', ring: 'rgba(139,92,246,0.55)' },
   makeup_bridal: { p: '#a78bfa', ring: 'rgba(167,139,250,0.55)' },
-  skin_derma:    { p: '#818cf8', ring: 'rgba(129,140,248,0.55)' },
+  skin_derma:    { p: '#6366f1', ring: 'rgba(99,102,241,0.55)' },
 };
 const DEFAULT_THEME = CAT_THEMES.salon;
 
@@ -122,7 +123,7 @@ function SalonDetails() {
   const [heroMuted, setHeroMuted]       = useState(true);
   const [heroSlideIdx, setHeroSlideIdx] = useState(0);
   const [photoSlideIdx, setPhotoSlideIdx] = useState(0);
-  const darkMode = true; // SalonDetails is always dark
+  const { isDark: darkMode } = useTheme();
   const heroVideoRef2 = useRef(null);
   const galleryTrackRef = useRef(null);
   const reviewTrackRef  = useRef(null);
@@ -2026,7 +2027,7 @@ function SalonVideoViewer({ videos, startIdx, salon, onClose, onBook }) {
             {/* Book CTA — same gradient + style as Reels */}
             <button onClick={onBook} style={{
               width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              background: 'linear-gradient(135deg, #5b5ef7 0%, #7c3aed 50%, #9333ea 100%)',
+              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%)',
               borderRadius: 18, padding: '13px 20px',
               color: '#fff', border: '1px solid rgba(139,92,246,0.45)',
               fontSize: 14, fontWeight: 800, letterSpacing: 0.3, cursor: 'pointer',
@@ -2123,7 +2124,7 @@ function SalonVideoViewer({ videos, startIdx, salon, onClose, onBook }) {
                     />
                     <button onClick={postComment} disabled={posting || !commentText.trim()} style={{
                       flexShrink: 0, height: 48, padding: '0 20px', borderRadius: 14, border: 'none',
-                      background: posting || !commentText.trim() ? 'rgba(99,102,241,0.25)' : 'linear-gradient(135deg,#6366f1,#7c3aed)',
+                      background: posting || !commentText.trim() ? 'rgba(99,102,241,0.25)' : 'linear-gradient(135deg,#6366f1,#8b5cf6)',
                       color: '#fff', fontWeight: 800, fontSize: 13, cursor: posting || !commentText.trim() ? 'not-allowed' : 'pointer',
                       transition: 'background 0.2s',
                       boxShadow: commentText.trim() && !posting ? '0 4px 16px rgba(99,102,241,0.4)' : 'none',

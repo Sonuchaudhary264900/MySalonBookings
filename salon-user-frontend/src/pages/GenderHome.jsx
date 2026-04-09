@@ -403,7 +403,7 @@ export default function GenderHome({ gender }) {
 
         {/* ── Guest CTA ── */}
         {!localStorage.getItem("customerToken") && (
-          <div style={{ marginTop: 40, background: isDark ? "rgba(255,255,255,0.04)" : cfg.accent + "08", border: `1px solid ${cfg.accent}25`, borderRadius: 20, padding: "28px 24px", textAlign: "center" }}>
+          <div style={{ marginTop: 40, background: isDark ? "rgba(30,41,59,0.5)" : cfg.accent + "08", border: `1px solid ${cfg.accent}25`, borderRadius: 20, padding: "28px 24px", textAlign: "center" }}>
             <div style={{ fontSize: 36, marginBottom: 12 }}>{cfg.emoji}</div>
             <h3 style={{ fontSize: 17, fontWeight: 800, color: "var(--t-text)", margin: "0 0 8px" }}>Ready to book?</h3>
             <p style={{ fontSize: 13, color: "var(--t-text-2)", margin: "0 0 20px", lineHeight: 1.6 }}>Create a free account to book appointments, save favorites and track your visits.</p>

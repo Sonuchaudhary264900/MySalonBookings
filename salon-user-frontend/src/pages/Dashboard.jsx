@@ -227,7 +227,7 @@ function ChatDrawer({ booking, onClose }) {
       <div style={S.drawer} onClick={e => e.stopPropagation()}>
 
         {/* ── Header ── */}
-        <div style={{ flexShrink:0, background:'linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%)', padding:'14px 16px 14px', display:'flex', alignItems:'center', gap:12 }}>
+        <div style={{ flexShrink:0, background:'linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%)', padding:'14px 16px 14px', display:'flex', alignItems:'center', gap:12 }}>
           {/* Avatar */}
           <div style={{ width:42, height:42, borderRadius:'50%', background:'rgba(255,255,255,0.2)', border:'2px solid rgba(255,255,255,0.35)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, fontWeight:800, color:'#fff', flexShrink:0, backdropFilter:'blur(4px)' }}>
             {salonInitial}
@@ -945,9 +945,9 @@ export default function Dashboard() {
 
         {/* Notification bell — top right */}
         <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 10 }}>
-          <Link to="/notifications" style={{ position:'relative', width:42, height:42, borderRadius:'50%', background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.75)', border: isDark ? '1px solid rgba(255,255,255,0.18)' : '1px solid rgba(124,58,237,0.15)', display:'flex', alignItems:'center', justifyContent:'center', color: isDark ? '#fff' : '#7C3AED', textDecoration:'none', backdropFilter:'blur(12px)' }}>
+          <Link to="/notifications" style={{ position:'relative', width:42, height:42, borderRadius:'50%', background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.75)', border: isDark ? '1px solid rgba(255,255,255,0.18)' : '1px solid rgba(99,102,241,0.15)', display:'flex', alignItems:'center', justifyContent:'center', color: isDark ? '#fff' : 'var(--t-accent)', textDecoration:'none', backdropFilter:'blur(12px)' }}>
             <svg style={{ width:18, height:18 }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-            {unreadCount > 0 && <span style={{ position:'absolute', top:1, right:1, minWidth:16, height:16, background:'#ef4444', color:'#fff', fontSize:9, fontWeight:700, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', padding:'0 3px', border: isDark ? '2px solid #4c1d95' : '2px solid #fff' }}>{unreadCount > 9 ? '9+' : unreadCount}</span>}
+            {unreadCount > 0 && <span style={{ position:'absolute', top:1, right:1, minWidth:16, height:16, background:'#ef4444', color:'#fff', fontSize:9, fontWeight:700, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', padding:'0 3px', border: isDark ? '2px solid #1e293b' : '2px solid #fff' }}>{unreadCount > 9 ? '9+' : unreadCount}</span>}
           </Link>
         </div>
 
@@ -980,7 +980,7 @@ export default function Dashboard() {
 
           {/* Next appointment callout */}
           {!loading && nextUpcoming && (
-            <div style={{ marginTop: 24, display: 'inline-flex', alignItems: 'center', gap: 10, padding: '10px 16px', background: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.7)', border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(124,58,237,0.12)', borderRadius: 12, backdropFilter: 'blur(12px)', maxWidth: '100%' }}>
+            <div style={{ marginTop: 24, display: 'inline-flex', alignItems: 'center', gap: 10, padding: '10px 16px', background: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.7)', border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(99,102,241,0.12)', borderRadius: 12, backdropFilter: 'blur(12px)', maxWidth: '100%' }}>
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#34d399', flexShrink: 0, animation: 'pulse 2s infinite' }} />
               <div style={{ minWidth: 0 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t-hero-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
@@ -1148,21 +1148,21 @@ export default function Dashboard() {
           <div style={{ marginTop: 72, paddingBottom: 16 }}>
             <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 28, padding: '48px 32px' }} className="dashboard-cta">
               {/* Decorative orb */}
-              <div style={{ position:'absolute', top:-60, right:-40, width:200, height:200, borderRadius:'50%', background: isDark ? 'radial-gradient(circle,rgba(167,139,250,0.2) 0%,transparent 65%)' : 'radial-gradient(circle,rgba(124,58,237,0.12) 0%,transparent 65%)', pointerEvents:'none' }} />
-              <div style={{ position:'absolute', bottom:-40, left:-20, width:150, height:150, borderRadius:'50%', background: isDark ? 'radial-gradient(circle,rgba(6,182,212,0.15) 0%,transparent 65%)' : 'radial-gradient(circle,rgba(6,182,212,0.08) 0%,transparent 65%)', pointerEvents:'none' }} />
+              <div style={{ position:'absolute', top:-60, right:-40, width:200, height:200, borderRadius:'50%', background: isDark ? 'radial-gradient(circle,rgba(129,140,248,0.2) 0%,transparent 65%)' : 'radial-gradient(circle,rgba(99,102,241,0.12) 0%,transparent 65%)', pointerEvents:'none' }} />
+              <div style={{ position:'absolute', bottom:-40, left:-20, width:150, height:150, borderRadius:'50%', background: isDark ? 'radial-gradient(circle,rgba(139,92,246,0.15) 0%,transparent 65%)' : 'radial-gradient(circle,rgba(139,92,246,0.08) 0%,transparent 65%)', pointerEvents:'none' }} />
 
-              <p style={{ fontSize: 11, fontWeight: 700, color: isDark ? 'rgba(167,139,250,0.8)' : 'var(--t-accent)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 14, position: 'relative' }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: isDark ? 'rgba(129,140,248,0.8)' : 'var(--t-accent)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 14, position: 'relative' }}>
                 What's next?
               </p>
-              <h2 style={{ fontSize: 'clamp(24px,6vw,36px)', fontWeight: 900, color: isDark ? '#fff' : '#1E1B4B', letterSpacing: '-0.8px', lineHeight: 1.15, marginBottom: 10, position: 'relative' }}>
+              <h2 style={{ fontSize: 'clamp(24px,6vw,36px)', fontWeight: 900, color: isDark ? '#f1f5f9' : '#1E1B4B', letterSpacing: '-0.8px', lineHeight: 1.15, marginBottom: 10, position: 'relative' }}>
                 Book your next<br/>appointment now.
               </h2>
-              <p style={{ fontSize: 14, color: isDark ? 'rgba(255,255,255,0.55)' : '#6B7280', marginBottom: 28, lineHeight: 1.7, position: 'relative' }}>
+              <p style={{ fontSize: 14, color: isDark ? '#94a3b8' : '#6b7280', marginBottom: 28, lineHeight: 1.7, position: 'relative' }}>
                 No waiting. No hassle.<br/>Instant confirmation.
               </p>
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', position: 'relative' }}>
                 <button onClick={() => navigate('/')}
-                  style={{ padding: '13px 28px', background: isDark ? 'linear-gradient(135deg,#7C3AED,#06B6D4)' : 'linear-gradient(135deg,#7C3AED,#06B6D4)', border: 'none', borderRadius: 9999, fontSize: 14, fontWeight: 700, color: '#fff', cursor: 'pointer', boxShadow: '0 4px 20px rgba(124,58,237,0.35)', transition: 'all 0.2s' }}
+                  style={{ padding: '13px 28px', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', border: 'none', borderRadius: 9999, fontSize: 14, fontWeight: 700, color: '#fff', cursor: 'pointer', boxShadow: '0 4px 20px rgba(99,102,241,0.35)', transition: 'all 0.2s' }}
                   onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
                   onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
                 >

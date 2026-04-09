@@ -55,8 +55,8 @@ const CSS = `
     position: relative;
   }
   .bnav-btn.active {
-    background: rgba(99,102,241,0.16);
-    box-shadow: 0 0 14px rgba(99,102,241,0.18);
+    background: rgba(99,102,241,0.14);
+    box-shadow: 0 0 12px rgba(99,102,241,0.16);
   }
   .bnav-btn svg {
     width: 20px;
@@ -73,8 +73,8 @@ const CSS = `
     width: 4px;
     height: 4px;
     border-radius: 50%;
-    background: #818cf8;
-    box-shadow: 0 0 6px rgba(129,140,248,0.9);
+    background: var(--t-accent);
+    box-shadow: 0 0 6px rgba(99,102,241,0.8);
   }
   .bnav-label {
     font-size: 10px;
@@ -144,10 +144,10 @@ export default function BottomNav() {
               aria-label={tab.label}
             >
               {active && <span className="bnav-dot" />}
-              <span style={{ color: active ? "#818cf8" : "var(--t-text-3)" }}>
+              <span style={{ color: active ? "var(--t-accent)" : "var(--t-text-3)" }}>
                 <tab.Icon active={active} />
               </span>
-              <span className="bnav-label" style={{ color: active ? "#818cf8" : "var(--t-text-3)" }}>
+              <span className="bnav-label" style={{ color: active ? "var(--t-accent)" : "var(--t-text-3)" }}>
                 {tab.label}
               </span>
             </button>

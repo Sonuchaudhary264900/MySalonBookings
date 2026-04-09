@@ -83,7 +83,7 @@ const EyeIcon = ({ open, color }) => open ? (
 export default function Register() {
   const navigate     = useNavigate();
   const location     = useLocation();
-  const { isDark, toggleTheme } = useTheme();
+  const { isDark, theme, toggleTheme } = useTheme();
   const from         = location.state?.from;
   const bookingState = location.state?.bookingState;
 
@@ -197,25 +197,15 @@ export default function Register() {
     if (i === 5 && digit && [...next].join("").length === 6) setTimeout(() => handleVerifyOtp(), 80);
   };
 
-  /* theme palette */
-  const c = {
-    bg:         isDark ? '#080812'               : '#f8fafc',
-    text:       isDark ? '#f1f5f9'               : '#0f172a',
-    text2:      isDark ? '#94a3b8'               : '#475569',
-    text3:      isDark ? '#475569'               : '#94a3b8',
-    inpBg:      isDark ? 'rgba(255,255,255,0.06)': 'rgba(0,0,0,0.04)',
-    inpBgFocus: isDark ? 'rgba(99,102,241,0.1)' : 'rgba(99,102,241,0.05)',
-    inpBorder:  isDark ? 'rgba(255,255,255,0.1)': 'rgba(0,0,0,0.12)',
-    icon:       isDark ? '#475569'               : '#94a3b8',
-  };
+  const inpBgFocus = isDark ? 'rgba(129,140,248,0.1)' : 'rgba(99,102,241,0.05)';
 
   const inp = (field, withIcon=false) => ({
     width:"100%", height:52, borderRadius:14,
     padding: withIcon ? "0 16px 0 44px" : "0 16px",
     fontSize:15, outline:"none", boxSizing:"border-box",
-    background: focusedField===field ? c.inpBgFocus : c.inpBg,
-    border: focusedField===field ? "1.5px solid rgba(99,102,241,0.6)" : `1.5px solid ${c.inpBorder}`,
-    color: c.text,
+    background: focusedField===field ? inpBgFocus : theme.input,
+    border: focusedField===field ? `1.5px solid ${theme.accent}` : `1.5px solid ${theme.inputBorder}`,
+    color: theme.text,
     boxShadow: focusedField===field ? "0 0 0 4px rgba(99,102,241,0.12)" : "none",
     transition:"all 0.22s ease",
     fontFamily:"inherit",
@@ -223,20 +213,20 @@ export default function Register() {
 
   const strength = pwStrength(password);
   const leftBg = isDark
-    ? "linear-gradient(145deg,#0a0a1f 0%,#12083a 40%,#1a0a4a 70%,#0e0828 100%)"
-    : "linear-gradient(135deg,#312e81 0%,#4f46e5 35%,#7c3aed 65%,#6d28d9 100%)";
+    ? "linear-gradient(145deg,#0f172a 0%,#1e293b 40%,#162032 70%,#0f172a 100%)"
+    : "linear-gradient(135deg,#312e81 0%,#4f46e5 35%,#8b5cf6 65%,#6d28d9 100%)";
 
   return (
     <>
       <style>{CSS}</style>
-      <div style={{ minHeight:"100vh", display:"flex", background:c.bg, fontFamily:"'Inter','Segoe UI',system-ui,sans-serif" }}>
+      <div style={{ minHeight:"100vh", display:"flex", background:theme.bg, fontFamily:"'Inter','Segoe UI',system-ui,sans-serif" }}>
 
         {/* ── LEFT BRAND PANEL ── */}
         <div className="hidden lg:flex lg:w-[52%]"
           style={{ position:"relative", overflow:"hidden", background:leftBg, flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"60px 56px" }}>
 
-          <div className="rg-pulse" style={{ position:"absolute", top:-100, right:-60, width:420, height:420, borderRadius:"50%", background: isDark ? "radial-gradient(circle,rgba(99,102,241,0.4) 0%,transparent 65%)" : "radial-gradient(circle,rgba(139,92,246,0.5) 0%,transparent 65%)", pointerEvents:"none" }} />
-          <div className="rg-pulse" style={{ position:"absolute", bottom:-60, left:-80, width:340, height:340, borderRadius:"50%", background: isDark ? "radial-gradient(circle,rgba(139,92,246,0.3) 0%,transparent 65%)" : "radial-gradient(circle,rgba(99,102,241,0.4) 0%,transparent 65%)", pointerEvents:"none", animationDelay:"1.8s" }} />
+          <div className="rg-pulse" style={{ position:"absolute", top:-100, right:-60, width:420, height:420, borderRadius:"50%", background: isDark ? "radial-gradient(circle,rgba(99,102,241,0.2) 0%,transparent 65%)" : "radial-gradient(circle,rgba(139,92,246,0.5) 0%,transparent 65%)", pointerEvents:"none" }} />
+          <div className="rg-pulse" style={{ position:"absolute", bottom:-60, left:-80, width:340, height:340, borderRadius:"50%", background: isDark ? "radial-gradient(circle,rgba(129,140,248,0.15) 0%,transparent 65%)" : "radial-gradient(circle,rgba(99,102,241,0.4) 0%,transparent 65%)", pointerEvents:"none", animationDelay:"1.8s" }} />
           <div style={{ position:"absolute", inset:0, backgroundImage:"linear-gradient(rgba(255,255,255,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.04) 1px,transparent 1px)", backgroundSize:"48px 48px", pointerEvents:"none" }} />
 
           <div style={{ position:"relative", zIndex:1, width:"100%", maxWidth:440 }}>
@@ -283,15 +273,15 @@ export default function Register() {
         </div>
 
         {/* ── RIGHT FORM PANEL ── */}
-        <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"32px 24px", position:"relative", minHeight:"100vh", background:c.bg }}>
+        <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"32px 24px", position:"relative", minHeight:"100vh", background:theme.bg }}>
 
           {/* Theme toggle */}
           <button onClick={toggleTheme} title={isDark ? "Light mode" : "Dark mode"}
-            style={{ position:"absolute", top:20, right:20, width:36, height:36, borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center", background:isDark?"rgba(255,255,255,0.07)":"rgba(0,0,0,0.06)", border:`1px solid ${c.inpBorder}`, cursor:"pointer" }}>
+            style={{ position:"absolute", top:20, right:20, width:36, height:36, borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center", background:theme.navBtn, border:`1px solid ${theme.navBtnBorder}`, cursor:"pointer" }}>
             {isDark ? (
-              <svg width={16} height={16} fill="none" viewBox="0 0 24 24" stroke={c.text2} strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" /></svg>
+              <svg width={16} height={16} fill="none" viewBox="0 0 24 24" stroke={theme.subText} strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" /></svg>
             ) : (
-              <svg width={16} height={16} fill="none" viewBox="0 0 24 24" stroke={c.text2} strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" /></svg>
+              <svg width={16} height={16} fill="none" viewBox="0 0 24 24" stroke={theme.subText} strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" /></svg>
             )}
           </button>
 
@@ -300,13 +290,13 @@ export default function Register() {
             {/* Mobile logo */}
             <div className="lg:hidden" style={{ display:"flex", alignItems:"center", gap:10, marginBottom:28, justifyContent:"center" }}>
               <div style={{ width:40, height:40, borderRadius:12, background:"linear-gradient(135deg,#6366f1,#8b5cf6)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, boxShadow:"0 0 20px rgba(99,102,241,0.4)" }}>✂</div>
-              <span style={{ fontSize:17, fontWeight:800, color:c.text }}>My Salon Bookings</span>
+              <span style={{ fontSize:17, fontWeight:800, color:theme.text }}>My Salon Bookings</span>
             </div>
 
             {/* Heading */}
             <div style={{ marginBottom:24 }}>
-              <h2 style={{ fontSize:26, fontWeight:900, color:c.text, letterSpacing:"-0.8px", marginBottom:4 }}>Create Account</h2>
-              <p style={{ fontSize:14, color:c.text3 }}>Free forever · Takes less than 2 minutes</p>
+              <h2 style={{ fontSize:26, fontWeight:900, color:theme.text, letterSpacing:"-0.8px", marginBottom:4 }}>Create Account</h2>
+              <p style={{ fontSize:14, color:theme.placeholder }}>Free forever · Takes less than 2 minutes</p>
             </div>
 
             {/* Step indicator */}
@@ -315,17 +305,17 @@ export default function Register() {
                 <div key={num} style={{ display:"flex", alignItems:"center", flex:1 }}>
                   <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
                     <div style={{ width:34, height:34, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, transition:"all 0.3s ease",
-                      background: step>num ? "linear-gradient(135deg,#22c55e,#16a34a)" : step===num ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : c.inpBg,
-                      border: step>=num ? "none" : `1.5px solid ${c.inpBorder}`,
-                      color: step>=num ? "#fff" : c.text3,
+                      background: step>num ? "linear-gradient(135deg,#22c55e,#16a34a)" : step===num ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : theme.input,
+                      border: step>=num ? "none" : `1.5px solid ${theme.inputBorder}`,
+                      color: step>=num ? "#fff" : theme.placeholder,
                       boxShadow: step===num ? "0 0 16px rgba(99,102,241,0.4)" : step>num ? "0 0 12px rgba(34,197,94,0.3)" : "none",
                     }}>
                       {step>num ? "✓" : num}
                     </div>
-                    <span style={{ fontSize:10, fontWeight:600, color:step>=num?c.text2:c.text3, whiteSpace:"nowrap" }}>{label}</span>
+                    <span style={{ fontSize:10, fontWeight:600, color:step>=num?theme.subText:theme.placeholder, whiteSpace:"nowrap" }}>{label}</span>
                   </div>
                   {i < 2 && (
-                    <div style={{ flex:1, height:2, margin:"0 6px", marginBottom:16, borderRadius:99, background:step>num?"linear-gradient(90deg,#22c55e,#16a34a)":c.inpBorder, transition:"all 0.4s ease" }} />
+                    <div style={{ flex:1, height:2, margin:"0 6px", marginBottom:16, borderRadius:99, background:step>num?"linear-gradient(90deg,#22c55e,#16a34a)":theme.inputBorder, transition:"all 0.4s ease" }} />
                   )}
                 </div>
               ))}
@@ -343,34 +333,34 @@ export default function Register() {
               <form key="step1" className="rg-slide" onSubmit={handleSendOtp} style={{ display:"flex", flexDirection:"column", gap:18 }}>
 
                 <div>
-                  <label style={{ display:"block", fontSize:13, fontWeight:600, color:c.text2, marginBottom:8 }}>Full Name</label>
+                  <label style={{ display:"block", fontSize:13, fontWeight:600, color:theme.subText, marginBottom:8 }}>Full Name</label>
                   <div className="rg-inp-wrap">
-                    <span className="rg-inp-icon"><UserIcon color={focusedField==="name"?"#818cf8":c.icon} /></span>
+                    <span className="rg-inp-icon"><UserIcon color={focusedField==="name"?theme.accent:theme.placeholder} /></span>
                     <input type="text" placeholder="John Doe" value={name} onChange={e => setName(e.target.value)}
                       style={inp("name",true)} onFocus={() => setFocusedField("name")} onBlur={() => setFocusedField(null)} required />
                   </div>
                 </div>
 
                 <div>
-                  <label style={{ display:"block", fontSize:13, fontWeight:600, color:c.text2, marginBottom:8 }}>Phone Number</label>
+                  <label style={{ display:"block", fontSize:13, fontWeight:600, color:theme.subText, marginBottom:8 }}>Phone Number</label>
                   <div className="rg-inp-wrap">
-                    <span className="rg-inp-icon"><PhoneIcon color={focusedField==="phone"?"#818cf8":c.icon} /></span>
+                    <span className="rg-inp-icon"><PhoneIcon color={focusedField==="phone"?theme.accent:theme.placeholder} /></span>
                     <input type="tel" placeholder="9876543210" value={phone} onChange={e => setPhone(e.target.value)}
                       style={inp("phone",true)} onFocus={() => setFocusedField("phone")} onBlur={() => setFocusedField(null)} required />
                   </div>
                 </div>
 
                 <div>
-                  <label style={{ display:"block", fontSize:13, fontWeight:600, color:c.text2, marginBottom:10 }}>Gender</label>
+                  <label style={{ display:"block", fontSize:13, fontWeight:600, color:theme.subText, marginBottom:10 }}>Gender</label>
                   <div style={{ display:"flex", gap:10 }}>
                     {[{key:"male",icon:"👨",label:"Male"},{key:"female",icon:"👩",label:"Female"}].map(({ key, icon, label }) => {
                       const active = gender===key;
                       return (
                         <button key={key} type="button" onClick={() => setGender(key)}
                           style={{ flex:1, height:52, borderRadius:14, display:"flex", alignItems:"center", justifyContent:"center", gap:8, fontSize:14, fontWeight:700, cursor:"pointer", transition:"all 0.22s ease",
-                            background: active ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : c.inpBg,
-                            border: active ? "1.5px solid rgba(99,102,241,0.5)" : `1.5px solid ${c.inpBorder}`,
-                            color: active ? "#fff" : c.text2,
+                            background: active ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : theme.input,
+                            border: active ? `1.5px solid ${theme.accent}` : `1.5px solid ${theme.inputBorder}`,
+                            color: active ? "#fff" : theme.subText,
                             boxShadow: active ? "0 0 20px rgba(99,102,241,0.35)" : "none",
                           }}>
                           <span style={{ fontSize:18 }}>{icon}</span>{label}
@@ -383,18 +373,18 @@ export default function Register() {
                 <div style={{ display:"flex", alignItems:"flex-start", gap:12 }}>
                   <button type="button" onClick={() => setAgreedToTerms(v=>!v)}
                     style={{ width:22, height:22, borderRadius:7, flexShrink:0, marginTop:1, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center",
-                      background: agreedToTerms ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : c.inpBg,
-                      border: agreedToTerms ? "none" : `1.5px solid ${c.inpBorder}`,
+                      background: agreedToTerms ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : theme.input,
+                      border: agreedToTerms ? "none" : `1.5px solid ${theme.inputBorder}`,
                       transition:"all 0.2s ease",
                       boxShadow: agreedToTerms ? "0 0 10px rgba(99,102,241,0.4)" : "none",
                     }}>
                     {agreedToTerms && <span style={{ color:"#fff", fontSize:12, lineHeight:1 }}>✓</span>}
                   </button>
-                  <p style={{ fontSize:13, color:c.text3, lineHeight:1.6 }}>
+                  <p style={{ fontSize:13, color:theme.placeholder, lineHeight:1.6 }}>
                     I agree to the{" "}
-                    <Link to="/legal/customer-terms" target="_blank" style={{ color:"#818cf8", textDecoration:"none", fontWeight:600 }}>Terms & Conditions</Link>
+                    <Link to="/legal/customer-terms" target="_blank" style={{ color:theme.accent, textDecoration:"none", fontWeight:600 }}>Terms & Conditions</Link>
                     {" "}and{" "}
-                    <Link to="/legal/customer-privacy" target="_blank" style={{ color:"#818cf8", textDecoration:"none", fontWeight:600 }}>Privacy Policy</Link>
+                    <Link to="/legal/customer-privacy" target="_blank" style={{ color:theme.accent, textDecoration:"none", fontWeight:600 }}>Privacy Policy</Link>
                   </p>
                 </div>
 
@@ -418,8 +408,8 @@ export default function Register() {
               <form key="step2" className="rg-slide" onSubmit={handleVerifyOtp} style={{ display:"flex", flexDirection:"column", gap:20 }}>
                 <div style={{ textAlign:"center", padding:"8px 0 4px" }}>
                   <div style={{ fontSize:42, marginBottom:10 }}>📱</div>
-                  <p style={{ fontSize:14, color:c.text2, lineHeight:1.6 }}>
-                    OTP sent to <span style={{ fontWeight:700, color:c.text }}>{phone}</span>
+                  <p style={{ fontSize:14, color:theme.subText, lineHeight:1.6 }}>
+                    OTP sent to <span style={{ fontWeight:700, color:theme.text }}>{phone}</span>
                   </p>
                 </div>
 
@@ -431,9 +421,9 @@ export default function Register() {
                       onKeyDown={e => handleOtpKey(i, e)}
                       onFocus={() => setFocusedField(`otp-${i}`)} onBlur={() => setFocusedField(null)}
                       style={{ width:50, height:58, borderRadius:14, textAlign:"center", fontSize:22, fontWeight:800, outline:"none",
-                        background: focusedField===`otp-${i}` ? c.inpBgFocus : digit ? (isDark?"rgba(99,102,241,0.08)":"rgba(99,102,241,0.05)") : c.inpBg,
-                        border: focusedField===`otp-${i}` ? "1.5px solid rgba(99,102,241,0.6)" : digit ? "1.5px solid rgba(99,102,241,0.35)" : `1.5px solid ${c.inpBorder}`,
-                        color: c.text,
+                        background: focusedField===`otp-${i}` ? inpBgFocus : digit ? (isDark?"rgba(99,102,241,0.08)":"rgba(99,102,241,0.05)") : theme.input,
+                        border: focusedField===`otp-${i}` ? `1.5px solid ${theme.accent}` : digit ? `1.5px solid rgba(99,102,241,0.35)` : `1.5px solid ${theme.inputBorder}`,
+                        color: theme.text,
                         boxShadow: focusedField===`otp-${i}` ? "0 0 0 4px rgba(99,102,241,0.12)" : "none",
                         transition:"all 0.2s ease", fontFamily:"inherit",
                       }}
@@ -454,15 +444,15 @@ export default function Register() {
 
                 <div style={{ display:"flex", flexDirection:"column", gap:10, alignItems:"center" }}>
                   {otpTimer > 0 ? (
-                    <p style={{ fontSize:13, color:c.text3 }}>Resend in <span style={{ fontWeight:700, color:c.text2 }}>{otpTimer}s</span></p>
+                    <p style={{ fontSize:13, color:theme.placeholder }}>Resend in <span style={{ fontWeight:700, color:theme.subText }}>{otpTimer}s</span></p>
                   ) : (
                     <button type="button" onClick={handleSendOtp} disabled={loading}
-                      style={{ background:"none", border:"none", cursor:"pointer", fontSize:13.5, color:"#818cf8", fontWeight:600 }}>
+                      style={{ background:"none", border:"none", cursor:"pointer", fontSize:13.5, color:theme.accent, fontWeight:600 }}>
                       Resend OTP
                     </button>
                   )}
                   <button type="button" onClick={() => { setStep(1); setOtp(["","","","","",""]); setError(""); }}
-                    style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:c.text3, textDecoration:"underline" }}>
+                    style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:theme.placeholder, textDecoration:"underline" }}>
                     Change phone number
                   </button>
                 </div>
@@ -474,26 +464,26 @@ export default function Register() {
               <form key="step3" className="rg-slide" onSubmit={handleRegister} style={{ display:"flex", flexDirection:"column", gap:20 }}>
                 <div style={{ textAlign:"center", padding:"8px 0 4px" }}>
                   <div style={{ fontSize:42, marginBottom:10 }}>🔐</div>
-                  <p style={{ fontSize:14, color:c.text2 }}>Almost done! Set a secure password.</p>
+                  <p style={{ fontSize:14, color:theme.subText }}>Almost done! Set a secure password.</p>
                 </div>
 
                 <div>
-                  <label style={{ display:"block", fontSize:13, fontWeight:600, color:c.text2, marginBottom:8 }}>Create Password</label>
+                  <label style={{ display:"block", fontSize:13, fontWeight:600, color:theme.subText, marginBottom:8 }}>Create Password</label>
                   <div className="rg-inp-wrap">
-                    <span className="rg-inp-icon"><LockIcon color={focusedField==="password"?"#818cf8":c.icon} /></span>
+                    <span className="rg-inp-icon"><LockIcon color={focusedField==="password"?theme.accent:theme.placeholder} /></span>
                     <input type={showPass?"text":"password"} placeholder="Min 6 chars with letters & numbers"
                       value={password} onChange={e => setPassword(e.target.value)}
                       style={{ ...inp("password",true), paddingRight:44 }}
                       onFocus={() => setFocusedField("password")} onBlur={() => setFocusedField(null)} required />
                     <button type="button" className="rg-inp-eye" onClick={() => setShowPass(!showPass)}>
-                      <EyeIcon open={showPass} color={c.icon} />
+                      <EyeIcon open={showPass} color={theme.placeholder} />
                     </button>
                   </div>
                   {password && (
                     <div style={{ marginTop:10 }}>
                       <div style={{ display:"flex", gap:5, marginBottom:6 }}>
                         {[1,2,3,4].map(n => (
-                          <div key={n} style={{ flex:1, height:4, borderRadius:99, transition:"all 0.3s ease", background:strength>=n?STRENGTH_COLOR[strength]:c.inpBorder }} />
+                          <div key={n} style={{ flex:1, height:4, borderRadius:99, transition:"all 0.3s ease", background:strength>=n?STRENGTH_COLOR[strength]:theme.inputBorder }} />
                         ))}
                       </div>
                       <p style={{ fontSize:12, fontWeight:600, color:STRENGTH_COLOR[strength] }}>{STRENGTH_LABEL[strength]}</p>
@@ -516,9 +506,9 @@ export default function Register() {
               </form>
             )}
 
-            <p style={{ marginTop:24, textAlign:"center", fontSize:13.5, color:c.text3 }}>
+            <p style={{ marginTop:24, textAlign:"center", fontSize:13.5, color:theme.placeholder }}>
               Already have an account?{" "}
-              <Link to="/login" style={{ color:"#818cf8", fontWeight:700, textDecoration:"none" }}>Sign In →</Link>
+              <Link to="/login" style={{ color:theme.accent, fontWeight:700, textDecoration:"none" }}>Sign In →</Link>
             </p>
 
           </div>

@@ -221,7 +221,7 @@ function Booking() {
     const isPending = bookingStatus === "pending";
     return (
       <div className="t-page flex items-center justify-center px-4">
-        <div className="t-card rounded-2xl p-8 max-w-sm w-full text-center fade-in" style={{ boxShadow: isDark ? '0 0 40px rgba(124,58,237,0.15), 0 8px 40px rgba(0,0,0,0.4)' : '0 4px 32px rgba(124,58,237,0.1), 0 2px 12px rgba(0,0,0,0.06)' }}>
+        <div className="t-card rounded-2xl p-8 max-w-sm w-full text-center fade-in" style={{ boxShadow: isDark ? '0 0 40px rgba(99,102,241,0.15), 0 8px 40px rgba(0,0,0,0.4)' : '0 4px 32px rgba(99,102,241,0.1), 0 2px 12px rgba(0,0,0,0.06)' }}>
           <div
             className="w-20 h-20 rounded-full flex items-center justify-center text-4xl mx-auto mb-5"
             style={{
@@ -390,7 +390,7 @@ function Booking() {
               ) : bookingMode === "sequential" ? (
                 /* Sequential mode — show the auto-assigned slot */
                 <div className="space-y-2">
-                  <div className="p-3 rounded-xl text-xs" style={{ background: isDark ? 'rgba(124,58,237,0.1)' : '#F5F3FF', color: isDark ? '#C4B5FD' : '#6D28D9', border: `1px solid ${isDark ? 'rgba(124,58,237,0.25)' : '#DDD6FE'}` }}>
+                  <div className="p-3 rounded-xl text-xs" style={{ background: isDark ? 'rgba(99,102,241,0.1)' : '#eef2ff', color: isDark ? '#a78bfa' : '#4338ca', border: `1px solid ${isDark ? 'rgba(99,102,241,0.25)' : '#c7d2fe'}` }}>
                     ⏩ This salon assigns slots in order. Your slot is auto-assigned below.
                   </div>
                   {(() => {
@@ -399,7 +399,7 @@ function Booking() {
                     const endMin = h * 60 + m + totalDuration;
                     const endTime = `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
                     return (
-                      <div className="flex items-center justify-between px-4 py-3 rounded-xl font-semibold text-sm text-white" style={{ background: 'linear-gradient(135deg,#7C3AED,#06B6D4)', boxShadow: isDark ? '0 0 20px rgba(124,58,237,0.4)' : '0 4px 14px rgba(124,58,237,0.25)' }}>
+                      <div className="flex items-center justify-between px-4 py-3 rounded-xl font-semibold text-sm text-white" style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', boxShadow: isDark ? '0 0 20px rgba(99,102,241,0.4)' : '0 4px 14px rgba(99,102,241,0.25)' }}>
                         <span>{s} – {endTime}</span>
                         <span style={{ opacity: 0.75, fontSize: 11 }}>{totalDuration} min</span>
                       </div>
@@ -499,7 +499,7 @@ function Booking() {
                       onClick={applyCoupon}
                       disabled={couponLoading || !couponInput.trim()}
                       className="px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-50 transition text-white"
-                      style={{ background: 'linear-gradient(135deg,#7C3AED,#06B6D4)', boxShadow: isDark ? '0 0 16px rgba(124,58,237,0.35)' : '0 2px 10px rgba(124,58,237,0.2)' }}
+                      style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', boxShadow: isDark ? '0 0 16px rgba(99,102,241,0.35)' : '0 2px 10px rgba(99,102,241,0.2)' }}
                     >
                       {couponLoading ? "…" : "Apply"}
                     </button>
