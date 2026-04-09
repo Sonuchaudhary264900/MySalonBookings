@@ -1137,7 +1137,7 @@ function SalonDetails() {
       {videoViewerIdx !== null && salonVideoUrls.length > 0 && (
         <SalonVideoViewer videos={salonVideoUrls} startIdx={videoViewerIdx} salon={salon}
           onClose={() => setVideoViewerIdx(null)}
-          onBook={() => { setVideoViewerIdx(null); setShowBooking(true); }} />
+          onBook={() => { setVideoViewerIdx(null); setTimeout(() => document.getElementById('lux-services')?.scrollIntoView({ behavior: 'smooth' }), 80); }} />
       )}
 
       {/* ════ GALLERY LIGHTBOX ════ */}
