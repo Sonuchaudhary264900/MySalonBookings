@@ -93,7 +93,7 @@ function AppLayout({ notifOpen, setNotifOpen }) {
       <ScrollToTop />
       {!isReels && <Navbar notifOpen={notifOpen} setNotifOpen={setNotifOpen} />}
       <ToastContainer />
-      <main className={isReels ? 'flex-grow min-w-0' : isSalon ? 'flex-grow pb-20 md:pb-0 min-w-0' : 'flex-grow pb-20 md:pb-0 pt-16 min-w-0'}>
+      <main className={isReels ? 'flex-grow min-w-0' : isSalon ? 'flex-grow pb-20 md:pb-0 min-w-0 page-root' : 'flex-grow pb-20 md:pb-0 pt-16 min-w-0 page-root'}>
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/"                            element={<Home />} />

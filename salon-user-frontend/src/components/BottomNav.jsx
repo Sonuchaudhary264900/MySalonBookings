@@ -4,30 +4,24 @@ import { useLocation, useNavigate } from "react-router-dom";
 const CSS = `
   .bnav-wrap {
     position: fixed;
-    bottom: 16px;
-    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-    left: 50%;
-    transform: translateX(-50%);
-    -webkit-transform: translateX(-50%);
-    z-index: 40;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 100;
     display: flex;
     align-items: center;
     padding: 6px 8px;
-    border-radius: 24px;
-    width: calc(100vw - 32px);
-    max-width: 360px;
-    /* Fallback for browsers without backdrop-filter (Firefox) */
+    padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+    border-radius: 0;
     background: var(--t-nav-bg-solid);
-    border: 1px solid var(--t-border);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.22), 0 0 0 1px rgba(99,102,241,0.08);
-    -webkit-box-shadow: 0 8px 32px rgba(0,0,0,0.22), 0 0 0 1px rgba(99,102,241,0.08);
+    border-top: 1px solid var(--t-border);
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.08);
   }
-  /* Backdrop blur where supported */
   @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
     .bnav-wrap {
       background: var(--t-nav-bg);
-      -webkit-backdrop-filter: blur(24px) saturate(180%);
-      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(160%);
+      backdrop-filter: blur(20px) saturate(160%);
     }
   }
   @media (min-width: 768px) {
@@ -48,21 +42,27 @@ const CSS = `
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
+    gap: 4px;
     padding: 8px 4px;
     border-radius: 18px;
-    transition: background 0.2s ease, box-shadow 0.2s ease;
+    transition: all 0.2s ease;
     position: relative;
   }
   .bnav-btn.active {
     background: rgba(99,102,241,0.14);
     box-shadow: 0 0 12px rgba(99,102,241,0.16);
+    transform: scale(1.05);
   }
   .bnav-btn svg {
     width: 20px;
     height: 20px;
     display: block;
     flex-shrink: 0;
+    transition: color 0.2s ease, transform 0.2s ease;
+  }
+  .bnav-btn.active svg {
+    color: var(--t-accent);
+    transform: translateY(-1px);
   }
   .bnav-dot {
     position: absolute;

@@ -347,6 +347,7 @@ export default function Home() {
   const [showSticky, setShowSticky]     = useState(false);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [showSortPanel, setShowSortPanel]     = useState(false);
+  const [showAllChips, setShowAllChips]       = useState(false);
   const heroSearchRef = useRef(null);
 
   useEffect(() => {
@@ -536,7 +537,7 @@ export default function Home() {
   }, [allSalons]);
 
   const heroOverlayLight = "linear-gradient(90deg,#f9fafb 0%,rgba(249,250,251,0.97) 32%,rgba(249,250,251,0.88) 65%,transparent 100%)";
-  const heroOverlayDark  = "linear-gradient(90deg,#111827 0%,rgba(17,24,39,0.97) 32%,rgba(17,24,39,0.88) 65%,transparent 100%)";
+  const heroOverlayDark  = "linear-gradient(90deg,rgba(10,15,30,0.97) 0%,rgba(10,15,30,0.92) 35%,rgba(10,15,30,0.75) 65%,transparent 100%)";
   const heroOverlay = isDark ? heroOverlayDark : heroOverlayLight;
 
   return (
@@ -655,16 +656,21 @@ export default function Home() {
 
             {/* Quick chips */}
             <div style={{ display:"flex", flexWrap:"wrap", gap:10, marginBottom:28 }}>
-              {HERO_CHIPS.map(({ label, cat, Icon }) => {
+              {(showAllChips ? HERO_CHIPS : HERO_CHIPS.slice(0, 3)).map(({ label, cat, Icon }) => {
                 const active = selectedCats.includes(cat);
                 return (
                   <button
                     key={label} onClick={() => handleCategory(cat)}
+                    onMouseDown={e => { e.currentTarget.style.transform = "scale(0.95)"; }}
+                    onMouseUp={e => { e.currentTarget.style.transform = active ? "scale(0.97)" : "scale(1)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = active ? "scale(0.97)" : "scale(1)"; }}
+                    onTouchStart={e => { e.currentTarget.style.transform = "scale(0.95)"; }}
+                    onTouchEnd={e => { e.currentTarget.style.transform = active ? "scale(0.97)" : "scale(1)"; }}
                     style={{
                       display:"flex", alignItems:"center", gap:8,
                       padding:"10px 20px", borderRadius:999,
                       fontSize:13, fontWeight:700, cursor:"pointer",
-                      transition:"all 0.2s ease",
+                      transition:"all 0.25s ease",
                       background: active
                         ? "linear-gradient(135deg,#6366f1,#8b5cf6)"
                         : "var(--t-hero-card)",
@@ -682,6 +688,52 @@ export default function Home() {
                   </button>
                 );
               })}
+              {!showAllChips && HERO_CHIPS.length > 3 && (
+                <button
+                  onClick={() => setShowAllChips(true)}
+                  onMouseDown={e => { e.currentTarget.style.transform = "scale(0.95)"; }}
+                  onMouseUp={e => { e.currentTarget.style.transform = "scale(1)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}
+                  onTouchStart={e => { e.currentTarget.style.transform = "scale(0.95)"; }}
+                  onTouchEnd={e => { e.currentTarget.style.transform = "scale(1)"; }}
+                  style={{
+                    display:"flex", alignItems:"center", gap:8,
+                    padding:"10px 16px", borderRadius:999,
+                    fontSize:13, fontWeight:700, cursor:"pointer",
+                    transition:"all 0.25s ease",
+                    background:"rgba(255,255,255,0.05)",
+                    backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
+                    border:"1px solid rgba(255,255,255,0.1)",
+                    color:"var(--t-hero-text)",
+                    boxShadow:"0 2px 16px rgba(0,0,0,0.08)",
+                  }}
+                >
+                  +{HERO_CHIPS.length - 3} More
+                </button>
+              )}
+              {showAllChips && (
+                <button
+                  onClick={() => setShowAllChips(false)}
+                  onMouseDown={e => { e.currentTarget.style.transform = "scale(0.95)"; }}
+                  onMouseUp={e => { e.currentTarget.style.transform = "scale(1)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}
+                  onTouchStart={e => { e.currentTarget.style.transform = "scale(0.95)"; }}
+                  onTouchEnd={e => { e.currentTarget.style.transform = "scale(1)"; }}
+                  style={{
+                    display:"flex", alignItems:"center", gap:8,
+                    padding:"10px 16px", borderRadius:999,
+                    fontSize:13, fontWeight:700, cursor:"pointer",
+                    transition:"all 0.25s ease",
+                    background:"rgba(255,255,255,0.05)",
+                    backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
+                    border:"1px solid rgba(255,255,255,0.1)",
+                    color:"var(--t-hero-text)",
+                    boxShadow:"0 2px 16px rgba(0,0,0,0.08)",
+                  }}
+                >
+                  Show Less
+                </button>
+              )}
             </div>
 
             {/* Search bar */}

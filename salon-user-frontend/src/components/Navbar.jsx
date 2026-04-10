@@ -235,7 +235,7 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
       <div style={{
         maxWidth: 1280, margin: "0 auto",
         padding: "0 14px",
-        height: 62,
+        height: 58,
         display: "flex",
         alignItems: "center",
         gap: 8,

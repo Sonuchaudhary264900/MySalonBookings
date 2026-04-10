@@ -44,6 +44,9 @@ const CSS = `
   .lp-btn-p:hover{transform:scale(1.04);}
   .lp-btn-s{transition:all .18s ease;}
   .lp-btn-s:hover{transform:scale(1.02);}
+  .lp-cta-main{transition:transform .15s ease,box-shadow .15s ease;}
+  .lp-cta-main:active{transform:scale(0.96);}
+  @media(min-width:640px){.lp-cta-main:hover{box-shadow:0 0 48px rgba(99,102,241,0.6),0 8px 24px rgba(0,0,0,0.15)!important;}}
   .lp-benefit{transition:transform .28s ease,border-color .28s ease,box-shadow .28s ease;}
   .lp-benefit:hover{transform:translateY(-6px);border-color:rgba(99,102,241,0.4)!important;box-shadow:0 20px 50px rgba(99,102,241,0.12);}
   .lp-pain{transition:transform .25s ease,border-color .25s ease;}
@@ -156,14 +159,14 @@ export default function LandingPage({
   return (
     <>
       <style>{CSS}</style>
-      <div style={{ background: "var(--t-bg)", color: "var(--t-text)", fontFamily: "'Inter','Segoe UI',system-ui,sans-serif", overflowX: "hidden" }}>
+      <div style={{ background: "var(--t-bg)", color: "var(--t-text)", fontFamily: "'Inter','Segoe UI',system-ui,sans-serif", overflowX: "hidden", paddingBottom: "calc(90px + env(safe-area-inset-bottom, 0px))" }}>
 
         {/* ══════════════════════════════════════════
             HERO
         ══════════════════════════════════════════ */}
         <section
           className="lp-hero-pad"
-          style={{ position: "relative", overflow: "hidden", paddingTop: "calc(clamp(82px,9vh,108px) + env(safe-area-inset-top, 0px))", paddingBottom: "clamp(48px,6vh,80px)", paddingLeft: 20, paddingRight: 20, textAlign: "center" }}
+          style={{ position: "relative", overflow: "hidden", paddingTop: "calc(clamp(82px,9vh,108px) + env(safe-area-inset-top, 0px))", paddingBottom: "clamp(48px,6vh,80px)", paddingInline: "clamp(16px,6vw,24px)", textAlign: "center" }}
         >
           {/* Background orbs — dark only */}
           {isDark && <>
@@ -201,20 +204,41 @@ export default function LandingPage({
             </div>
 
             {/* Headline */}
-            <h1 className="lp-u2" style={{ fontSize: "clamp(1.75rem,6vw,4.8rem)", fontWeight: 900, lineHeight: 1.06, letterSpacing: "-0.04em", marginBottom: 20 }}>
+            <h1 className="lp-u2" style={{ fontSize: "clamp(1.75rem,6vw,4.8rem)", fontWeight: 900, lineHeight: 1.06, letterSpacing: "-0.04em", marginBottom: 16 }}>
               Book smart, save time,<br />
               <span className="lp-shimmer">avoid waiting.</span>
             </h1>
 
             {/* Sub */}
-            <p className="lp-u3" style={{ fontSize: "clamp(0.95rem,2.2vw,1.15rem)", color: "var(--t-text-2)", lineHeight: 1.8, width: "100%", maxWidth: "min(460px, 90%)", margin: "0 auto 36px" }}>
+            <p className="lp-u3" style={{ fontSize: "clamp(0.95rem,2.2vw,1.15rem)", color: "var(--t-text-2)", lineHeight: 1.8, width: "100%", maxWidth: "min(460px, 90%)", margin: "0 auto 20px" }}>
               Enjoy a seamless salon experience —<br className="hidden sm:block" />
               browse real reviews, pick your slot, confirm instantly.
             </p>
 
+            {/* Primary CTA */}
+            <div className="lp-u4" style={{ marginBottom: 24 }}>
+              <button
+                onClick={scrollToSalons}
+                className="lp-cta-main"
+                style={{
+                  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10,
+                  padding: "13px clamp(20px,6vw,36px)",
+                  borderRadius: 16,
+                  background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
+                  color: "#fff", fontWeight: 700, fontSize: "clamp(13px,3.5vw,15px)",
+                  border: "none", cursor: "pointer",
+                  boxShadow: "0 0 32px rgba(99,102,241,0.45), 0 4px 16px rgba(0,0,0,0.12)",
+                  minHeight: 50, width: "100%", maxWidth: "min(90%,480px)",
+                }}
+              >
+                <MapPin size={16} />
+                Find Services Near You
+              </button>
+            </div>
+
             {/* Gender Entry Tiles */}
             <div
-              className="lp-u4 lp-gender-grid"
+              className="lp-u5 lp-gender-grid"
               style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, maxWidth: 620, margin: "0 auto 28px", textAlign: "left" }}
             >
               {/* Male tile */}
@@ -287,7 +311,7 @@ export default function LandingPage({
         {/* ══════════════════════════════════════════
             STATS
         ══════════════════════════════════════════ */}
-        <section style={{ borderTop: "1px solid var(--t-border)", borderBottom: "1px solid var(--t-border)", padding: "clamp(36px,5vh,56px) 20px" }}>
+        <section style={{ borderTop: "1px solid var(--t-border)", borderBottom: "1px solid var(--t-border)", padding: "clamp(36px,5vh,56px) clamp(16px,5vw,20px)" }}>
           <div className="max-w-5xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-4">
             {STATS.map(({ value, label, color }) => (
               <div
@@ -307,7 +331,7 @@ export default function LandingPage({
         {/* ══════════════════════════════════════════
             WHY BOOK ONLINE — PAIN POINTS
         ══════════════════════════════════════════ */}
-        <section style={{ background: "var(--t-bg-2)", borderTop: "1px solid var(--t-border)", padding: "clamp(56px,8vh,88px) 20px" }}>
+        <section style={{ background: "var(--t-bg-2)", borderTop: "1px solid var(--t-border)", padding: "clamp(56px,8vh,88px) clamp(16px,5vw,20px)" }}>
           <div className="max-w-5xl mx-auto">
             <div style={{ textAlign: "center", marginBottom: 52 }}>
               <div style={{ display: "inline-block", background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 99, padding: "4px 16px", fontSize: 11, color: "#f87171", fontWeight: 700, letterSpacing: 1.5, marginBottom: 16 }}>
@@ -346,7 +370,7 @@ export default function LandingPage({
         {/* ══════════════════════════════════════════
             HOW IT WORKS
         ══════════════════════════════════════════ */}
-        <section style={{ padding: "clamp(56px,8vh,88px) 20px" }}>
+        <section style={{ padding: "clamp(56px,8vh,88px) clamp(16px,5vw,20px)" }}>
           <div className="max-w-5xl mx-auto">
             <div style={{ textAlign: "center", marginBottom: 52 }}>
               <div style={{ display: "inline-block", background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.22)", borderRadius: 99, padding: "4px 16px", fontSize: 11, color: "var(--t-accent)", fontWeight: 700, letterSpacing: 1.5, marginBottom: 16 }}>
@@ -379,7 +403,7 @@ export default function LandingPage({
         {/* ══════════════════════════════════════════
             FEATURES
         ══════════════════════════════════════════ */}
-        <section style={{ background: "var(--t-bg-2)", borderTop: "1px solid var(--t-border)", borderBottom: "1px solid var(--t-border)", padding: "clamp(56px,8vh,88px) 20px" }}>
+        <section style={{ background: "var(--t-bg-2)", borderTop: "1px solid var(--t-border)", borderBottom: "1px solid var(--t-border)", padding: "clamp(56px,8vh,88px) clamp(16px,5vw,20px)" }}>
           <div className="max-w-6xl mx-auto">
             <div style={{ textAlign: "center", marginBottom: 52 }}>
               <div style={{ display: "inline-block", background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.22)", borderRadius: 99, padding: "4px 16px", fontSize: 11, color: "#a78bfa", fontWeight: 700, letterSpacing: 1.5, marginBottom: 16 }}>
@@ -415,7 +439,7 @@ export default function LandingPage({
         {/* ══════════════════════════════════════════
             BENEFITS — 3 PILLARS
         ══════════════════════════════════════════ */}
-        <section style={{ padding: "clamp(56px,8vh,88px) 20px" }}>
+        <section style={{ padding: "clamp(56px,8vh,88px) clamp(16px,5vw,20px)" }}>
           <div className="max-w-5xl mx-auto">
             <div style={{ textAlign: "center", marginBottom: 52 }}>
               <div style={{ display: "inline-block", background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.22)", borderRadius: 99, padding: "4px 16px", fontSize: 11, color: "var(--t-accent)", fontWeight: 700, letterSpacing: 1.5, marginBottom: 16 }}>
@@ -456,7 +480,7 @@ export default function LandingPage({
         {/* ══════════════════════════════════════════
             REVIEWS
         ══════════════════════════════════════════ */}
-        <section style={{ padding: "clamp(56px,8vh,88px) 20px" }}>
+        <section style={{ padding: "clamp(56px,8vh,88px) clamp(16px,5vw,20px)" }}>
           <div className="max-w-5xl mx-auto">
             <div style={{ textAlign: "center", marginBottom: 48 }}>
               <div style={{ display: "inline-block", background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.22)", borderRadius: 99, padding: "4px 16px", fontSize: 11, color: "var(--t-accent)", fontWeight: 700, letterSpacing: 1.5, marginBottom: 16 }}>
@@ -503,7 +527,7 @@ export default function LandingPage({
         {/* ══════════════════════════════════════════
             FINAL CTA
         ══════════════════════════════════════════ */}
-        <section style={{ position: "relative", overflow: "hidden", borderTop: "1px solid var(--t-border)", padding: "clamp(64px,9vh,96px) 20px" }}>
+        <section style={{ position: "relative", overflow: "hidden", borderTop: "1px solid var(--t-border)", padding: "clamp(64px,9vh,96px) clamp(16px,5vw,20px)" }}>
           <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 70% 70% at 50% 50%,rgba(99,102,241,0.08) 0%,transparent 70%)", pointerEvents: "none" }} />
           <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: "60%", height: 1, background: "linear-gradient(90deg,transparent,rgba(99,102,241,0.4),transparent)", pointerEvents: "none" }} />
 

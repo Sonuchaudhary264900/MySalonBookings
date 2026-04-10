@@ -575,3 +575,10 @@ html:not(.dark) .glass-card:hover {
   opacity: 1;
   transform: translateY(0);
 }
+
+/* Prevent content overlap with bottom nav on mobile */
+@media (max-width: 767px) {
+  .page-root {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  }
+}
