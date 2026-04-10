@@ -190,6 +190,7 @@ const I = {
 // ─────────────────────────────────────────────────────────────
 export default function Profile() {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
 
   const [user, setUser]       = useState(null);
   const [loading, setLoading] = useState(true);
@@ -410,29 +411,29 @@ export default function Profile() {
                   {initials}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.95)', lineHeight: 1.2 }}>
+                  <p style={{ fontSize: 18, fontWeight: 700, color: isDark ? 'rgba(255,255,255,0.95)' : '#1e1b4b', lineHeight: 1.2 }}>
                     {user?.name || 'Guest User'}
                   </p>
-                  <p style={{ fontSize: 13, marginTop: 3, color: 'rgba(255,255,255,0.5)' }}>
+                  <p style={{ fontSize: 13, marginTop: 3, color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(30,27,75,0.6)' }}>
                     {user?.phone || ''}
                   </p>
                   {user?.email && (
-                    <p style={{ fontSize: 12, marginTop: 1, color: 'rgba(255,255,255,0.35)' }} className="truncate">
+                    <p style={{ fontSize: 12, marginTop: 1, color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(30,27,75,0.45)' }} className="truncate">
                       {user.email}
                     </p>
                   )}
                 </div>
               </div>
               {/* Member badge */}
-              <div className="flex items-center gap-2 mt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 12 }}>
-                <span style={{ color: 'rgba(255,255,255,0.35)', display: 'flex' }}>{I.calendar}</span>
-                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Member since {memberSince}</p>
+              <div className="flex items-center gap-2 mt-4" style={{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(30,27,75,0.1)'}`, paddingTop: 12 }}>
+                <span style={{ color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(30,27,75,0.45)', display: 'flex' }}>{I.calendar}</span>
+                <p style={{ fontSize: 12, color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(30,27,75,0.45)' }}>Member since {memberSince}</p>
                 <span
                   style={{
                     marginLeft: 'auto', fontSize: 10, fontWeight: 600,
                     letterSpacing: '0.06em', padding: '2px 8px', borderRadius: 20,
                     background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.35)',
-                    color: '#c4b5fd',
+                    color: isDark ? '#c4b5fd' : '#4f46e5',
                   }}
                 >
                   Customer
