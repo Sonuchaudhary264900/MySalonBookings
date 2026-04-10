@@ -7,7 +7,35 @@ import {
   Clock, Sparkles, Award, Users, ArrowLeft, Zap, X, Calendar,
   User, Tag, CreditCard, CheckCircle, Gift, Play, ChevronLeft, ChevronRight, Heart,
   TrendingUp, BadgeCheck, Share2, Volume2, VolumeX,
+  Smile, Paintbrush, Waves, Wind, Activity, Crown, Baby, Home, Palette, Shirt, Plus,
 } from "lucide-react";
+
+// Map category label → Lucide component (for service category headers)
+const CAT_ICON_COMPONENTS = {
+  'Hair Services':               Scissors,
+  'Hair Services (Men)':         Scissors,
+  'Hair Services (Women)':       Scissors,
+  'Beard & Grooming':            Smile,
+  'Nail Services':               Paintbrush,
+  'Skin & Face / Beauty':        Sparkles,
+  'Skin & Face (Men Grooming)':  Sparkles,
+  'Skin & Beauty':               Sparkles,
+  'Face & Skin':                 Sparkles,
+  'Spa & Massage':               Waves,
+  'Spa & Relaxation':            Waves,
+  'Body Grooming':               Wind,
+  'Men Dermatology':             Activity,
+  'Women Dermatology':           Activity,
+  'Bridal & Events':             Crown,
+  'Kids Services':               Baby,
+  'At-Home Services':            Home,
+  'Makeup Services':             Palette,
+  'Hairstyling':                 Scissors,
+  'Draping & Dressing':          Shirt,
+  'Pre-Bridal':                  Heart,
+  'Grooming Add-ons':            Plus,
+  'Premium Add-ons':             Star,
+};
 import API from "../services/api";
 import ServiceCard from "../components/ServiceCard";
 import ReviewCard from "../components/ReviewCard";
@@ -21,6 +49,7 @@ import {
   ALL_CATEGORY_ORDER,
   MALE_ONLY_CAT_LABELS,
   FEMALE_ONLY_CAT_LABELS,
+  getCategoryOrderForBusinessType,
 } from "../constants/salonCategories";
 
 const BASE_TABS = ["Gallery", "Services", "Packages", "Reviews", "Info"];
@@ -119,7 +148,7 @@ function SalonDetails() {
   const [pkgReqLoading, setPkgReqLoading] = useState(false);
   const [selectedServices, setSelectedServices] = useState([]);
   const [serviceGenderFilter, setServiceGenderFilter] = useState("all");
-  const [expandedCat, setExpandedCat] = useState(null);
+  const [expandedCats, setExpandedCats] = useState(() => new Set('__all__'));
   const [heroMuted, setHeroMuted]       = useState(true);
   const [heroSlideIdx, setHeroSlideIdx] = useState(0);
   const [photoSlideIdx, setPhotoSlideIdx] = useState(0);
@@ -722,8 +751,11 @@ function SalonDetails() {
                 acc[cat].push(svc);
                 return acc;
               }, {});
+              const bizCategoryOrder = getCategoryOrderForBusinessType(
+                salon.businessType, salon.servedGender
+              );
               const sortedEntries = Object.entries(grouped).sort(([a], [b]) => {
-                const ai = ALL_CATEGORY_ORDER.indexOf(a), bi = ALL_CATEGORY_ORDER.indexOf(b);
+                const ai = bizCategoryOrder.indexOf(a), bi = bizCategoryOrder.indexOf(b);
                 if (ai === -1 && bi === -1) return a.localeCompare(b);
                 if (ai === -1) return 1; if (bi === -1) return -1;
                 return ai - bi;
@@ -731,17 +763,31 @@ function SalonDetails() {
               return (
                 <div>
                   {sortedEntries.map(([cat, catServices], ci) => {
-                    const isOpen = expandedCat === cat;
+                    const isOpen = expandedCats.has('__all__') || expandedCats.has(cat);
+                    const CatIcon = CAT_ICON_COMPONENTS[cat] || Sparkles;
                     const minPrice = Math.min(...catServices.map(s => s.basePrice || s.price || 0));
+                    const toggleCat = () => setExpandedCats(prev => {
+                      const next = new Set(prev);
+                      next.delete('__all__');
+                      if (next.has(cat)) next.delete(cat); else next.add(cat);
+                      return next;
+                    });
                     return (
                       <motion.div key={cat} className="lux-svc-cat"
                         initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
                         transition={{ delay: Math.min(ci * .05, .3), duration: .5 }}>
-                        <button onClick={() => setExpandedCat(isOpen ? null : cat)} className="w-full text-left"
+                        <button onClick={toggleCat} className="w-full text-left"
                           style={{ padding: '22px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, transition: 'opacity .2s' }}
                           onMouseEnter={e => e.currentTarget.style.opacity = '.7'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
                           <div className="flex items-center gap-5">
-                            <span style={{ fontSize: 28 }}>{CATEGORY_ICON_MAP[cat] || '✨'}</span>
+                            <div style={{
+                              width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+                              background: `${theme.p}18`,
+                              border: `1px solid ${theme.p}30`,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                              <CatIcon style={{ width: 20, height: 20, color: theme.p, strokeWidth: 1.8 }} />
+                            </div>
                             <div>
                               <p style={{ fontSize: 'clamp(18px,2.2vw,24px)', fontWeight: 800, color: dm.fg, letterSpacing: '-.015em' }}>{cat}</p>
                               <p className="lux-overline mt-1" style={{ color: dm.fg28 }}>{catServices.length} service{catServices.length !== 1 ? 's' : ''}</p>
