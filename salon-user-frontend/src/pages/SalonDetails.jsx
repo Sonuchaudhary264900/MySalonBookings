@@ -1514,10 +1514,10 @@ function SalonDetails() {
         )}
       </AnimatePresence>
 
-      {/* ════ STICKY BOOKING BAR ════ */}
-      <AnimatePresence mode="wait">
-        {selectedServices.length > 0 ? (
-          <motion.div key="selected"
+      {/* ════ STICKY BOOKING BAR (only when services selected) ════ */}
+      <AnimatePresence>
+        {selectedServices.length > 0 && (
+          <motion.div
             initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 340, damping: 30 }}
             className="fixed bottom-0 left-0 right-0 z-40 px-5 py-3.5 md:bottom-4 md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-2xl md:rounded-xl"
@@ -1545,25 +1545,6 @@ function SalonDetails() {
                   <Zap className="w-3.5 h-3.5" /> Book Now →
                 </motion.button>
               </div>
-            </div>
-          </motion.div>
-        ) : (
-          <motion.div key="idle"
-            initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 340, damping: 30 }}
-            className="fixed bottom-0 left-0 right-0 z-40 px-5 py-3.5 md:bottom-4 md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-2xl md:rounded-xl"
-            style={{ background: dm.barBg, borderTop: `1px solid ${theme.p}25`, boxShadow: `0 -8px 40px rgba(0,0,0,.45),0 0 0 1px ${theme.p}12`, transition: 'background .3s' }}>
-            <div className="flex items-center justify-between gap-4">
-              <div className="min-w-0">
-                <p className="font-bold text-sm" style={{ color: dm.fg }}>{salon.name}</p>
-                <p className="text-xs" style={{ color: dm.fg35 }}>
-                  {nextSlot ? `Next slot: ${nextSlot}` : openStatus === false ? (opensAt ? `Opens at ${opensAt}` : 'Closed today') : 'Select a service above'}
-                </p>
-              </div>
-              <motion.button whileTap={{ scale: .96 }} whileHover={{ scale: 1.03 }} onClick={handleSmartBook}
-                className="lux-btn-p shrink-0" style={{ background: theme.p, boxShadow: `0 4px 20px ${theme.p}45`, fontSize: 11, padding: '11px 22px' }}>
-                <Zap className="w-3.5 h-3.5" /> Book Now
-              </motion.button>
             </div>
           </motion.div>
         )}
