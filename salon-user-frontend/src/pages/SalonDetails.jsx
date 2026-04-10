@@ -1493,38 +1493,41 @@ function SalonDetails() {
         </div>
       </section>
 
-      {/* ════ [H] COMBO STRIP (above sticky bar) ════ */}
-      <AnimatePresence>
-        {selectedServices.length > 0 && comboSuggestions.length > 0 && (
-          <motion.div
-            initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-            className="fixed left-0 right-0 z-39 px-4 py-2.5 md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-2xl"
-            style={{ bottom: 70, background: dm.barBg, borderTop: `1px solid ${dm.b07}`, boxShadow: `0 -4px 20px rgba(0,0,0,.3)` }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: dm.fg45, marginBottom: 7 }}>Complete your visit ✨</p>
-            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
-              {comboSuggestions.map(s => (
-                <button key={s._id} onClick={() => toggleService(s)}
-                  style={{ flexShrink: 0, padding: '5px 12px', borderRadius: 999, border: `1px solid ${theme.p}40`, background: `${theme.p}10`, color: theme.p, fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                  + {s.name} · ₹{s.basePrice || s.price || 0}
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ════ STICKY BOOKING BAR (only when services selected) ════ */}
+      {/* ════ STICKY BOOKING BAR (unified — combo suggestions inside) ════ */}
       <AnimatePresence>
         {selectedServices.length > 0 && (
           <motion.div
-            initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 340, damping: 30 }}
-            className="fixed bottom-0 left-0 right-0 z-40 px-5 py-3.5 md:bottom-4 md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-2xl md:rounded-xl"
-            style={{ background: dm.barBg, borderTop: `1px solid ${theme.p}30`, boxShadow: `0 -8px 40px rgba(0,0,0,.45),0 0 0 1px ${theme.p}15`, transition: 'background .3s' }}>
-            <div className="flex items-center justify-between gap-4">
+            initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 340, damping: 32 }}
+            className="fixed bottom-0 left-0 right-0 z-40 md:bottom-4 md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-2xl md:rounded-2xl overflow-hidden"
+            style={{ background: dm.barBg, borderTop: `1px solid ${theme.p}22`, boxShadow: `0 -12px 48px rgba(0,0,0,.55),0 0 0 1px ${theme.p}12`, transition: 'background .3s' }}>
+
+            {/* Combo suggestions row — only when present */}
+            <AnimatePresence>
+              {comboSuggestions.length > 0 && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.22, ease: 'easeOut' }}
+                  style={{ borderBottom: `1px solid ${dm.b07}`, overflow: 'hidden' }}>
+                  <div className="px-4 pt-2.5 pb-2">
+                    <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: dm.fg35, marginBottom: 6 }}>Complete your visit</p>
+                    <div style={{ display: 'flex', gap: 7, overflowX: 'auto', scrollbarWidth: 'none' }}>
+                      {comboSuggestions.map(s => (
+                        <button key={s._id} onClick={() => toggleService(s)}
+                          style={{ flexShrink: 0, padding: '4px 11px', borderRadius: 999, border: `1px solid ${theme.p}35`, background: `${theme.p}0d`, color: theme.p, fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', letterSpacing: '0.01em' }}>
+                          + {s.name} · ₹{s.basePrice || s.price || 0}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Main booking row */}
+            <div className="flex items-center justify-between gap-4 px-5 py-3.5">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${theme.p}18` }}>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${theme.p}18` }}>
                   <ShoppingBag className="w-5 h-5" style={{ color: theme.p }} />
                 </div>
                 <div className="min-w-0">
