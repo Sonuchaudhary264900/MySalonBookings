@@ -173,6 +173,7 @@ function SalonDetails() {
   const [closedDay, setClosedDay]         = useState(false);
   const [bookingMode, setBookingMode]     = useState("sequential");
   const [slotsLoading, setSlotsLoading]   = useState(false);
+  const [slotsKey, setSlotsKey]           = useState(0);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [couponInput, setCouponInput]     = useState("");
   const [couponDiscount, setCouponDiscount] = useState(0);
@@ -230,11 +231,11 @@ function SalonDetails() {
         const data = res.data.data || {};
         const mode = data.bookingMode || "sequential";
         setBookingMode(mode); setSlots(data.slots || []); setBlockedSlots(data.blockedSlots || []); setClosedDay(data.closedDay || false);
-        if (mode === "sequential" && data.slots?.length === 1) setSlot(data.slots[0]);
+        if (mode === "sequential" && data.slots?.length === 1 && !isPastSlot(bookDate, data.slots[0])) setSlot(data.slots[0]);
       } catch { setSlots([]); } finally { setSlotsLoading(false); }
     };
     fetchSlots();
-  }, [bookDate, id, totalDuration, showBooking]);
+  }, [bookDate, id, totalDuration, showBooking, slotsKey]);
 
   // ── Hero slides: coverPhoto first, then remaining photos, then videos ──
   const heroSlides = useMemo(() => {
@@ -1726,18 +1727,28 @@ function SalonDetails() {
                         No available slots for this date.
                       </div>
                     ) : bookingMode === 'sequential' ? (
-                      <>
-                        <motion.div
-                          animate={{ boxShadow: [`0 0 0px ${theme.p}00`, `0 0 14px ${theme.p}40`, `0 0 0px ${theme.p}00`] }}
-                          transition={{ repeat: Infinity, duration: 2.4, ease: 'easeInOut' }}
-                          className="rounded-xl p-4" style={{ background: `${theme.p}10`, border: `1px solid ${theme.p}30` }}>
-                          <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: dm.fg40, marginBottom: 6 }}>✨ Best available slot for you</p>
-                          <p className="font-extrabold text-xl" style={{ color: theme.p, marginBottom: 4 }}>{slots[0]} – {addMinutes(slots[0], totalDuration)}</p>
-                          <p style={{ fontSize: 11, color: dm.fg45, fontWeight: 500 }}>Perfectly fits your selected services</p>
-                          <p style={{ fontSize: 10, color: dm.fg30, marginTop: 2 }}>No overlap • No waiting</p>
-                        </motion.div>
-                        <p style={{ fontSize: 10, fontWeight: 600, color: '#fbbf24', textAlign: 'center', marginTop: 6 }}>High demand — slots fill quickly today</p>
-                      </>
+                      isPastSlot(bookDate, slots[0]) ? (
+                        <div className="rounded-xl p-4 text-center" style={{ background: 'rgba(251,191,36,.08)', border: '1px solid rgba(251,191,36,.25)' }}>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: '#fbbf24', marginBottom: 6 }}>⏰ Slot expired</p>
+                          <p style={{ fontSize: 11, color: dm.fg40, marginBottom: 12 }}>This slot has passed. Tap below to find the next one.</p>
+                          <button type="button" onClick={() => { setSlot(''); setSlotsKey(k => k + 1); }}
+                            className="px-4 py-2 rounded-xl text-sm font-bold text-white"
+                            style={{ background: theme.p }}>Find Next Slot</button>
+                        </div>
+                      ) : (
+                        <>
+                          <motion.div
+                            animate={{ boxShadow: [`0 0 0px ${theme.p}00`, `0 0 14px ${theme.p}40`, `0 0 0px ${theme.p}00`] }}
+                            transition={{ repeat: Infinity, duration: 2.4, ease: 'easeInOut' }}
+                            className="rounded-xl p-4" style={{ background: `${theme.p}10`, border: `1px solid ${theme.p}30` }}>
+                            <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: dm.fg40, marginBottom: 6 }}>✨ Best available slot for you</p>
+                            <p className="font-extrabold text-xl" style={{ color: theme.p, marginBottom: 4 }}>{slots[0]} – {addMinutes(slots[0], totalDuration)}</p>
+                            <p style={{ fontSize: 11, color: dm.fg45, fontWeight: 500 }}>Perfectly fits your selected services</p>
+                            <p style={{ fontSize: 10, color: dm.fg30, marginTop: 2 }}>No overlap • No waiting</p>
+                          </motion.div>
+                          <p style={{ fontSize: 10, fontWeight: 600, color: '#fbbf24', textAlign: 'center', marginTop: 6 }}>High demand — slots fill quickly today</p>
+                        </>
+                      )
                     ) : (
                       <>
                         <div className="flex items-center gap-4 mb-3 text-xs flex-wrap" style={{ color: dm.fg30 }}>

@@ -986,8 +986,8 @@ router.get("/public/salons/:salonId/booked-slots", validateObjectId("salonId"), 
       if (isToday && bookEnd <= nowMinutes) continue;
       if (bookEnd > nextSlotMin) nextSlotMin = bookEnd;
     }
-    // For today, the next slot can't be in the past
-    if (isToday) nextSlotMin = Math.max(nextSlotMin, nowMinutes);
+    // For today, the next slot must be at least 5 min in the future
+    if (isToday) nextSlotMin = Math.max(nextSlotMin, nowMinutes + 5);
 
     // Check if next slot fits before closing
     if (nextSlotMin + serviceDuration > closeMin) {
