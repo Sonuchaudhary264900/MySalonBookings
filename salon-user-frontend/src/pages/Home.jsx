@@ -33,8 +33,6 @@ const LP_CSS = `
   .lp-pain{transition:transform .25s ease,border-color .25s ease;}
   .lp-pain:hover{transform:translateY(-3px);}
 `;
-
-// ── Landing section static data ───────────────────────────────────
 const LP_FEATURES = [
   { Icon: MapPin,     color: "#6366f1", title: "Salons Near You",       desc: "Instantly see 500+ verified salons within 5 km. Browse ratings, services, and prices — no sign-up needed." },
   { Icon: Zap,        color: "#8b5cf6", title: "Book in 30 Seconds",    desc: "Pick a service, choose your slot, confirm instantly. No phone calls, no back-and-forth, no waiting." },
@@ -71,9 +69,9 @@ const LP_STATS = [
   { value: "30s",  label: "Avg Booking Time",color: "#8b5cf6" },
 ];
 const LP_BENEFITS = [
-  { Icon: Zap,    color: "#6366f1", title: "Save Time",     headline: "Book in under 30 seconds.",   points: ["No phone calls or DMs","Real-time slot availability","Instant booking confirmation","One-tap rebooking for regulars"] },
-  { Icon: Wallet, color: "#10b981", title: "Save Money",    headline: "Always the best price.",      points: ["Transparent upfront pricing","Exclusive app-only offers","Festival & weekend deals","No hidden charges ever"] },
-  { Icon: Target, color: "#8b5cf6", title: "Total Control", headline: "Your schedule, your rules.",  points: ["Choose your exact time slot","Auto reminders before visit","Easy reschedule or cancel","Full booking history always"] },
+  { Icon: Zap,    color: "#6366f1", title: "Save Time",     headline: "Book in under 30 seconds.",  points: ["No phone calls or DMs","Real-time slot availability","Instant booking confirmation","One-tap rebooking for regulars"] },
+  { Icon: Wallet, color: "#10b981", title: "Save Money",    headline: "Always the best price.",     points: ["Transparent upfront pricing","Exclusive app-only offers","Festival & weekend deals","No hidden charges ever"] },
+  { Icon: Target, color: "#8b5cf6", title: "Total Control", headline: "Your schedule, your rules.", points: ["Choose your exact time slot","Auto reminders before visit","Easy reschedule or cancel","Full booking history always"] },
 ];
 
 // ── Helpers ──────────────────────────────────────────────────────
@@ -1043,191 +1041,193 @@ export default function Home() {
       )}
 
       {/* ══════════════════════════════════════════════════════════
-          LANDING SECTIONS — below salon grid
+          GUEST-ONLY: landing sections (stats, pain points, etc.)
       ══════════════════════════════════════════════════════════ */}
-      <style>{LP_CSS}</style>
+      {!isLoggedIn && <>
+        <style>{LP_CSS}</style>
 
-      {/* STATS */}
-      <section style={{ borderTop:"1px solid var(--t-border)", borderBottom:"1px solid var(--t-border)", padding:"clamp(36px,5vh,56px) 20px" }}>
-        <div className="max-w-5xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {LP_STATS.map(({ value, label, color }) => (
-            <div key={label} className="lp-step" style={{ background:"var(--t-card)", border:"1px solid var(--t-border)", borderRadius:20, padding:"22px 18px", textAlign:"center" }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = color + "50"; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--t-border)"; }}
-            >
-              <div style={{ fontSize:28, fontWeight:900, letterSpacing:"-1.5px", color, marginBottom:6 }}>{value}</div>
-              <div style={{ fontSize:12, color:"var(--t-text-2)", fontWeight:600 }}>{label}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* PAIN POINTS */}
-      <section style={{ background:"var(--t-bg-2)", borderTop:"1px solid var(--t-border)", padding:"clamp(56px,8vh,88px) 20px" }}>
-        <div className="max-w-5xl mx-auto">
-          <div style={{ textAlign:"center", marginBottom:52 }}>
-            <div style={{ display:"inline-block", background:"rgba(239,68,68,0.07)", border:"1px solid rgba(239,68,68,0.2)", borderRadius:99, padding:"4px 16px", fontSize:11, color:"#f87171", fontWeight:700, letterSpacing:1.5, marginBottom:16 }}>SOUND FAMILIAR?</div>
-            <h2 style={{ fontSize:"clamp(1.6rem,4vw,2.8rem)", fontWeight:900, color:"var(--t-text)", letterSpacing:"-1px", marginBottom:12 }}>The old way of booking is broken</h2>
-            <p style={{ color:"var(--t-text-2)", fontSize:15, maxWidth:440, margin:"0 auto", lineHeight:1.7 }}>You've been putting up with this for too long. There's a better way.</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {LP_PAIN_POINTS.map(({ Icon, pain, fix, color }) => (
-              <div key={pain} className="lp-pain" style={{ background:"var(--t-card)", border:"1px solid var(--t-border)", borderRadius:20, padding:"22px 20px" }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = color + "40"; }}
+        {/* STATS */}
+        <section style={{ borderTop:"1px solid var(--t-border)", borderBottom:"1px solid var(--t-border)", padding:"clamp(36px,5vh,56px) 20px" }}>
+          <div className="max-w-5xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {LP_STATS.map(({ value, label, color }) => (
+              <div key={label} className="lp-step" style={{ background:"var(--t-card)", border:"1px solid var(--t-border)", borderRadius:20, padding:"22px 18px", textAlign:"center" }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = color + "50"; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--t-border)"; }}
               >
-                <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
-                  <div style={{ width:36, height:36, borderRadius:10, background:color+"12", border:`1px solid ${color}25`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                    <Icon size={16} color={color} />
+                <div style={{ fontSize:28, fontWeight:900, letterSpacing:"-1.5px", color, marginBottom:6 }}>{value}</div>
+                <div style={{ fontSize:12, color:"var(--t-text-2)", fontWeight:600 }}>{label}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* PAIN POINTS */}
+        <section style={{ background:"var(--t-bg-2)", borderTop:"1px solid var(--t-border)", padding:"clamp(56px,8vh,88px) 20px" }}>
+          <div className="max-w-5xl mx-auto">
+            <div style={{ textAlign:"center", marginBottom:52 }}>
+              <div style={{ display:"inline-block", background:"rgba(239,68,68,0.07)", border:"1px solid rgba(239,68,68,0.2)", borderRadius:99, padding:"4px 16px", fontSize:11, color:"#f87171", fontWeight:700, letterSpacing:1.5, marginBottom:16 }}>SOUND FAMILIAR?</div>
+              <h2 style={{ fontSize:"clamp(1.6rem,4vw,2.8rem)", fontWeight:900, color:"var(--t-text)", letterSpacing:"-1px", marginBottom:12 }}>The old way of booking is broken</h2>
+              <p style={{ color:"var(--t-text-2)", fontSize:15, maxWidth:440, margin:"0 auto", lineHeight:1.7 }}>You've been putting up with this for too long. There's a better way.</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {LP_PAIN_POINTS.map(({ Icon, pain, fix, color }) => (
+                <div key={pain} className="lp-pain" style={{ background:"var(--t-card)", border:"1px solid var(--t-border)", borderRadius:20, padding:"22px 20px" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = color + "40"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--t-border)"; }}
+                >
+                  <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
+                    <div style={{ width:36, height:36, borderRadius:10, background:color+"12", border:`1px solid ${color}25`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                      <Icon size={16} color={color} />
+                    </div>
+                    <p style={{ fontSize:14, fontWeight:700, color }}>{pain}</p>
                   </div>
-                  <p style={{ fontSize:14, fontWeight:700, color }}>{pain}</p>
+                  <div style={{ width:28, height:2, background:"linear-gradient(90deg,#6366f1,#8b5cf6)", borderRadius:99, marginBottom:10 }} />
+                  <p style={{ fontSize:13.5, color:"var(--t-text-2)", lineHeight:1.7 }}>&#10003; {fix}</p>
                 </div>
-                <div style={{ width:28, height:2, background:"linear-gradient(90deg,#6366f1,#8b5cf6)", borderRadius:99, marginBottom:10 }} />
-                <p style={{ fontSize:13.5, color:"var(--t-text-2)", lineHeight:1.7 }}>&#10003; {fix}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* HOW IT WORKS */}
-      <section style={{ padding:"clamp(56px,8vh,88px) 20px" }}>
-        <div className="max-w-5xl mx-auto">
-          <div style={{ textAlign:"center", marginBottom:52 }}>
-            <div style={{ display:"inline-block", background:"rgba(99,102,241,0.08)", border:"1px solid rgba(99,102,241,0.22)", borderRadius:99, padding:"4px 16px", fontSize:11, color:"var(--t-accent)", fontWeight:700, letterSpacing:1.5, marginBottom:16 }}>HOW IT WORKS</div>
-            <h2 style={{ fontSize:"clamp(1.6rem,4vw,2.8rem)", fontWeight:900, color:"var(--t-text)", letterSpacing:"-1px", marginBottom:12 }}>Book a salon in 3 steps</h2>
-            <p style={{ color:"var(--t-text-2)", fontSize:15, lineHeight:1.7 }}>No calls, no waiting — just tap, pick, and confirm.</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            {LP_STEPS.map(({ n, Icon, title, desc, color }) => (
-              <div key={n} className="lp-step" style={{ background:"var(--t-card)", border:"1px solid var(--t-border)", borderRadius:22, padding:"28px 24px", position:"relative", overflow:"hidden" }}>
-                <div style={{ position:"absolute", top:14, right:18, fontSize:52, fontWeight:900, color:color+"0e", lineHeight:1, userSelect:"none", pointerEvents:"none" }}>{n}</div>
-                <div style={{ width:52, height:52, borderRadius:16, background:color+"15", border:`1px solid ${color}28`, display:"flex", alignItems:"center", justifyContent:"center", marginBottom:20 }}>
-                  <Icon size={22} color={color} />
-                </div>
-                <h3 style={{ fontSize:16, fontWeight:700, color:"var(--t-text)", marginBottom:10 }}>{title}</h3>
-                <p style={{ fontSize:13.5, color:"var(--t-text-2)", lineHeight:1.75 }}>{desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* FEATURES */}
-      <section style={{ background:"var(--t-bg-2)", borderTop:"1px solid var(--t-border)", borderBottom:"1px solid var(--t-border)", padding:"clamp(56px,8vh,88px) 20px" }}>
-        <div className="max-w-6xl mx-auto">
-          <div style={{ textAlign:"center", marginBottom:52 }}>
-            <div style={{ display:"inline-block", background:"rgba(139,92,246,0.08)", border:"1px solid rgba(139,92,246,0.22)", borderRadius:99, padding:"4px 16px", fontSize:11, color:"#a78bfa", fontWeight:700, letterSpacing:1.5, marginBottom:16 }}>FEATURES</div>
-            <h2 style={{ fontSize:"clamp(1.6rem,4vw,2.8rem)", fontWeight:900, color:"var(--t-text)", letterSpacing:"-1px", marginBottom:12 }}>Everything you need to look great</h2>
-            <p style={{ color:"var(--t-text-2)", fontSize:15, maxWidth:440, margin:"0 auto", lineHeight:1.7 }}>One app for discovering, booking, and managing all your salon visits.</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {LP_FEATURES.map(({ Icon, color, title, desc }) => (
-              <div key={title} className="lp-card" style={{ background:"var(--t-card)", border:"1px solid var(--t-border)", borderRadius:22, padding:"26px 22px", cursor:"default" }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = color+"40"; e.currentTarget.style.boxShadow = `0 16px 40px ${color}15`; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--t-border)"; e.currentTarget.style.boxShadow = "none"; }}
-              >
-                <div style={{ width:50, height:50, borderRadius:15, background:color+"12", border:`1px solid ${color}25`, display:"flex", alignItems:"center", justifyContent:"center", marginBottom:18 }}>
-                  <Icon size={22} color={color} />
-                </div>
-                <h3 style={{ fontSize:16, fontWeight:700, color:"var(--t-text)", marginBottom:8 }}>{title}</h3>
-                <p style={{ fontSize:13.5, color:"var(--t-text-2)", lineHeight:1.75 }}>{desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* BENEFITS */}
-      <section style={{ padding:"clamp(56px,8vh,88px) 20px" }}>
-        <div className="max-w-5xl mx-auto">
-          <div style={{ textAlign:"center", marginBottom:52 }}>
-            <div style={{ display:"inline-block", background:"rgba(99,102,241,0.08)", border:"1px solid rgba(99,102,241,0.22)", borderRadius:99, padding:"4px 16px", fontSize:11, color:"var(--t-accent)", fontWeight:700, letterSpacing:1.5, marginBottom:16 }}>WHY CUSTOMERS LOVE IT</div>
-            <h2 style={{ fontSize:"clamp(1.6rem,4vw,2.8rem)", fontWeight:900, color:"var(--t-text)", letterSpacing:"-1px", marginBottom:12 }}>Three things you get. Every time.</h2>
-            <p style={{ color:"var(--t-text-2)", fontSize:15, maxWidth:400, margin:"0 auto", lineHeight:1.7 }}>Not a promise — a guarantee built into every booking.</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            {LP_BENEFITS.map(({ Icon, color, title, headline, points }) => (
-              <div key={title} className="lp-benefit" style={{ background:"var(--t-card)", border:"1px solid var(--t-border)", borderRadius:24, padding:"30px 26px" }}>
-                <div style={{ width:54, height:54, borderRadius:18, background:color+"14", border:`1px solid ${color}28`, display:"flex", alignItems:"center", justifyContent:"center", marginBottom:20 }}>
-                  <Icon size={24} color={color} />
-                </div>
-                <p style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.1em", color, marginBottom:8 }}>{title}</p>
-                <h3 style={{ fontSize:18, fontWeight:800, color:"var(--t-text)", marginBottom:18, letterSpacing:"-0.3px" }}>{headline}</h3>
-                <ul style={{ listStyle:"none", padding:0, margin:0, display:"flex", flexDirection:"column", gap:10 }}>
-                  {points.map(p => (
-                    <li key={p} style={{ display:"flex", alignItems:"flex-start", gap:9, fontSize:13.5, color:"var(--t-text-2)", lineHeight:1.5 }}>
-                      <span style={{ color, fontWeight:700, flexShrink:0, marginTop:1 }}>&#10003;</span>{p}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* REVIEWS */}
-      <section style={{ padding:"clamp(56px,8vh,88px) 20px" }}>
-        <div className="max-w-5xl mx-auto">
-          <div style={{ textAlign:"center", marginBottom:48 }}>
-            <div style={{ display:"inline-block", background:"rgba(99,102,241,0.08)", border:"1px solid rgba(99,102,241,0.22)", borderRadius:99, padding:"4px 16px", fontSize:11, color:"var(--t-accent)", fontWeight:700, letterSpacing:1.5, marginBottom:16 }}>REVIEWS</div>
-            <h2 style={{ fontSize:"clamp(1.6rem,4vw,2.8rem)", fontWeight:900, color:"var(--t-text)", letterSpacing:"-1px", marginBottom:10 }}>Loved by customers across India</h2>
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:6 }}>
-              <div style={{ display:"flex", gap:2 }}>{[1,2,3,4,5].map(i => <Star key={i} size={14} color="#f59e0b" fill="#f59e0b" />)}</div>
-              <span style={{ color:"var(--t-text-2)", fontSize:14, fontWeight:600 }}>4.9 / 5 · 1,000+ reviews</span>
+              ))}
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            {LP_REVIEWS.map(({ name, city, rating, text }) => (
-              <div key={name} className="lp-review" style={{ background:"var(--t-card)", border:"1px solid var(--t-border)", borderRadius:20, padding:"22px 20px" }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(99,102,241,0.35)"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--t-border)"; }}
-              >
-                <div style={{ display:"flex", gap:2, marginBottom:14 }}>
-                  {Array.from({ length: rating }).map((_, i) => <Star key={i} size={13} color="#f59e0b" fill="#f59e0b" />)}
-                </div>
-                <p style={{ fontSize:13.5, color:"var(--t-text-2)", lineHeight:1.75, marginBottom:18, fontStyle:"italic" }}>"{text}"</p>
-                <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                  <div style={{ width:36, height:36, borderRadius:"50%", background:"linear-gradient(135deg,#6366f1,#8b5cf6)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, fontWeight:700, color:"#fff", flexShrink:0 }}>{name[0]}</div>
-                  <div>
-                    <div style={{ fontSize:13, fontWeight:700, color:"var(--t-text)" }}>{name}</div>
-                    <div style={{ fontSize:11, color:"var(--t-text-3)" }}>{city}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
 
-      {/* FINAL CTA */}
-      <section style={{ position:"relative", overflow:"hidden", borderTop:"1px solid var(--t-border)", padding:"clamp(64px,9vh,96px) 20px" }}>
-        <div style={{ position:"absolute", inset:0, background:"radial-gradient(ellipse 70% 70% at 50% 50%,rgba(99,102,241,0.08) 0%,transparent 70%)", pointerEvents:"none" }} />
-        <div style={{ position:"absolute", top:0, left:"50%", transform:"translateX(-50%)", width:"60%", height:1, background:"linear-gradient(90deg,transparent,rgba(99,102,241,0.4),transparent)", pointerEvents:"none" }} />
-        <div className="max-w-2xl mx-auto text-center" style={{ position:"relative", zIndex:1 }}>
-          <div style={{ display:"flex", justifyContent:"center", marginBottom:18 }}>
-            <div style={{ width:64, height:64, borderRadius:20, background:"rgba(99,102,241,0.1)", border:"1px solid rgba(99,102,241,0.25)", display:"flex", alignItems:"center", justifyContent:"center" }}>
-              <Scissors size={28} color="#6366f1" />
+        {/* HOW IT WORKS */}
+        <section style={{ padding:"clamp(56px,8vh,88px) 20px" }}>
+          <div className="max-w-5xl mx-auto">
+            <div style={{ textAlign:"center", marginBottom:52 }}>
+              <div style={{ display:"inline-block", background:"rgba(99,102,241,0.08)", border:"1px solid rgba(99,102,241,0.22)", borderRadius:99, padding:"4px 16px", fontSize:11, color:"var(--t-accent)", fontWeight:700, letterSpacing:1.5, marginBottom:16 }}>HOW IT WORKS</div>
+              <h2 style={{ fontSize:"clamp(1.6rem,4vw,2.8rem)", fontWeight:900, color:"var(--t-text)", letterSpacing:"-1px", marginBottom:12 }}>Book a salon in 3 steps</h2>
+              <p style={{ color:"var(--t-text-2)", fontSize:15, lineHeight:1.7 }}>No calls, no waiting — just tap, pick, and confirm.</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+              {LP_STEPS.map(({ n, Icon, title, desc, color }) => (
+                <div key={n} className="lp-step" style={{ background:"var(--t-card)", border:"1px solid var(--t-border)", borderRadius:22, padding:"28px 24px", position:"relative", overflow:"hidden" }}>
+                  <div style={{ position:"absolute", top:14, right:18, fontSize:52, fontWeight:900, color:color+"0e", lineHeight:1, userSelect:"none", pointerEvents:"none" }}>{n}</div>
+                  <div style={{ width:52, height:52, borderRadius:16, background:color+"15", border:`1px solid ${color}28`, display:"flex", alignItems:"center", justifyContent:"center", marginBottom:20 }}>
+                    <Icon size={22} color={color} />
+                  </div>
+                  <h3 style={{ fontSize:16, fontWeight:700, color:"var(--t-text)", marginBottom:10 }}>{title}</h3>
+                  <p style={{ fontSize:13.5, color:"var(--t-text-2)", lineHeight:1.75 }}>{desc}</p>
+                </div>
+              ))}
             </div>
           </div>
-          <h2 style={{ fontSize:"clamp(1.6rem,4.5vw,3rem)", fontWeight:900, color:"var(--t-text)", letterSpacing:"-1.2px", marginBottom:14, lineHeight:1.15 }}>
-            Avoid Long Queue.<br />Save time.<br /><span className="lp-shimmer">Look amazing.</span>
-          </h2>
-          <p style={{ color:"var(--t-text-2)", fontSize:15.5, lineHeight:1.75, maxWidth:440, margin:"0 auto 36px" }}>
-            Join 50,000+ customers who stopped calling salons and started booking smarter — instantly, for free.
-          </p>
-          <div style={{ display:"flex", flexWrap:"wrap", gap:12, justifyContent:"center" }}>
-            <a href="/register" className="lp-btn-p" style={{ display:"inline-flex", alignItems:"center", gap:10, padding:"15px 34px", borderRadius:16, background:"linear-gradient(135deg,#6366f1,#8b5cf6)", color:"#fff", boxShadow:"0 0 52px rgba(99,102,241,0.45)", fontSize:15, fontWeight:700, textDecoration:"none", minHeight:52 }}>
-              <Zap size={16} /> Create Free Account
-            </a>
-            <a href="/login" className="lp-btn-s" style={{ display:"inline-flex", alignItems:"center", gap:10, padding:"15px 34px", borderRadius:16, background:"var(--t-card)", border:"1px solid var(--t-border)", color:"var(--t-text-2)", fontSize:15, fontWeight:600, textDecoration:"none", minHeight:52 }}>
-              Sign In <ArrowRight size={15} />
-            </a>
+        </section>
+
+        {/* FEATURES */}
+        <section style={{ background:"var(--t-bg-2)", borderTop:"1px solid var(--t-border)", borderBottom:"1px solid var(--t-border)", padding:"clamp(56px,8vh,88px) 20px" }}>
+          <div className="max-w-6xl mx-auto">
+            <div style={{ textAlign:"center", marginBottom:52 }}>
+              <div style={{ display:"inline-block", background:"rgba(139,92,246,0.08)", border:"1px solid rgba(139,92,246,0.22)", borderRadius:99, padding:"4px 16px", fontSize:11, color:"#a78bfa", fontWeight:700, letterSpacing:1.5, marginBottom:16 }}>FEATURES</div>
+              <h2 style={{ fontSize:"clamp(1.6rem,4vw,2.8rem)", fontWeight:900, color:"var(--t-text)", letterSpacing:"-1px", marginBottom:12 }}>Everything you need to look great</h2>
+              <p style={{ color:"var(--t-text-2)", fontSize:15, maxWidth:440, margin:"0 auto", lineHeight:1.7 }}>One app for discovering, booking, and managing all your salon visits.</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {LP_FEATURES.map(({ Icon, color, title, desc }) => (
+                <div key={title} className="lp-card" style={{ background:"var(--t-card)", border:"1px solid var(--t-border)", borderRadius:22, padding:"26px 22px", cursor:"default" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = color+"40"; e.currentTarget.style.boxShadow = `0 16px 40px ${color}15`; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--t-border)"; e.currentTarget.style.boxShadow = "none"; }}
+                >
+                  <div style={{ width:50, height:50, borderRadius:15, background:color+"12", border:`1px solid ${color}25`, display:"flex", alignItems:"center", justifyContent:"center", marginBottom:18 }}>
+                    <Icon size={22} color={color} />
+                  </div>
+                  <h3 style={{ fontSize:16, fontWeight:700, color:"var(--t-text)", marginBottom:8 }}>{title}</h3>
+                  <p style={{ fontSize:13.5, color:"var(--t-text-2)", lineHeight:1.75 }}>{desc}</p>
+                </div>
+              ))}
+            </div>
           </div>
-          <p style={{ fontSize:12, color:"var(--t-text-3)", marginTop:18 }}>Free to use &nbsp;·&nbsp; No hidden charges &nbsp;·&nbsp; Book in seconds</p>
-        </div>
-      </section>
+        </section>
+
+        {/* BENEFITS */}
+        <section style={{ padding:"clamp(56px,8vh,88px) 20px" }}>
+          <div className="max-w-5xl mx-auto">
+            <div style={{ textAlign:"center", marginBottom:52 }}>
+              <div style={{ display:"inline-block", background:"rgba(99,102,241,0.08)", border:"1px solid rgba(99,102,241,0.22)", borderRadius:99, padding:"4px 16px", fontSize:11, color:"var(--t-accent)", fontWeight:700, letterSpacing:1.5, marginBottom:16 }}>WHY CUSTOMERS LOVE IT</div>
+              <h2 style={{ fontSize:"clamp(1.6rem,4vw,2.8rem)", fontWeight:900, color:"var(--t-text)", letterSpacing:"-1px", marginBottom:12 }}>Three things you get. Every time.</h2>
+              <p style={{ color:"var(--t-text-2)", fontSize:15, maxWidth:400, margin:"0 auto", lineHeight:1.7 }}>Not a promise — a guarantee built into every booking.</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              {LP_BENEFITS.map(({ Icon, color, title, headline, points }) => (
+                <div key={title} className="lp-benefit" style={{ background:"var(--t-card)", border:"1px solid var(--t-border)", borderRadius:24, padding:"30px 26px" }}>
+                  <div style={{ width:54, height:54, borderRadius:18, background:color+"14", border:`1px solid ${color}28`, display:"flex", alignItems:"center", justifyContent:"center", marginBottom:20 }}>
+                    <Icon size={24} color={color} />
+                  </div>
+                  <p style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.1em", color, marginBottom:8 }}>{title}</p>
+                  <h3 style={{ fontSize:18, fontWeight:800, color:"var(--t-text)", marginBottom:18, letterSpacing:"-0.3px" }}>{headline}</h3>
+                  <ul style={{ listStyle:"none", padding:0, margin:0, display:"flex", flexDirection:"column", gap:10 }}>
+                    {points.map(p => (
+                      <li key={p} style={{ display:"flex", alignItems:"flex-start", gap:9, fontSize:13.5, color:"var(--t-text-2)", lineHeight:1.5 }}>
+                        <span style={{ color, fontWeight:700, flexShrink:0, marginTop:1 }}>&#10003;</span>{p}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* REVIEWS */}
+        <section style={{ padding:"clamp(56px,8vh,88px) 20px" }}>
+          <div className="max-w-5xl mx-auto">
+            <div style={{ textAlign:"center", marginBottom:48 }}>
+              <div style={{ display:"inline-block", background:"rgba(99,102,241,0.08)", border:"1px solid rgba(99,102,241,0.22)", borderRadius:99, padding:"4px 16px", fontSize:11, color:"var(--t-accent)", fontWeight:700, letterSpacing:1.5, marginBottom:16 }}>REVIEWS</div>
+              <h2 style={{ fontSize:"clamp(1.6rem,4vw,2.8rem)", fontWeight:900, color:"var(--t-text)", letterSpacing:"-1px", marginBottom:10 }}>Loved by customers across India</h2>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:6 }}>
+                <div style={{ display:"flex", gap:2 }}>{[1,2,3,4,5].map(i => <Star key={i} size={14} color="#f59e0b" fill="#f59e0b" />)}</div>
+                <span style={{ color:"var(--t-text-2)", fontSize:14, fontWeight:600 }}>4.9 / 5 · 1,000+ reviews</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+              {LP_REVIEWS.map(({ name, city, rating, text }) => (
+                <div key={name} className="lp-review" style={{ background:"var(--t-card)", border:"1px solid var(--t-border)", borderRadius:20, padding:"22px 20px" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(99,102,241,0.35)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--t-border)"; }}
+                >
+                  <div style={{ display:"flex", gap:2, marginBottom:14 }}>
+                    {Array.from({ length: rating }).map((_, i) => <Star key={i} size={13} color="#f59e0b" fill="#f59e0b" />)}
+                  </div>
+                  <p style={{ fontSize:13.5, color:"var(--t-text-2)", lineHeight:1.75, marginBottom:18, fontStyle:"italic" }}>"{text}"</p>
+                  <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                    <div style={{ width:36, height:36, borderRadius:"50%", background:"linear-gradient(135deg,#6366f1,#8b5cf6)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, fontWeight:700, color:"#fff", flexShrink:0 }}>{name[0]}</div>
+                    <div>
+                      <div style={{ fontSize:13, fontWeight:700, color:"var(--t-text)" }}>{name}</div>
+                      <div style={{ fontSize:11, color:"var(--t-text-3)" }}>{city}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* FINAL CTA */}
+        <section style={{ position:"relative", overflow:"hidden", borderTop:"1px solid var(--t-border)", padding:"clamp(64px,9vh,96px) 20px" }}>
+          <div style={{ position:"absolute", inset:0, background:"radial-gradient(ellipse 70% 70% at 50% 50%,rgba(99,102,241,0.08) 0%,transparent 70%)", pointerEvents:"none" }} />
+          <div style={{ position:"absolute", top:0, left:"50%", transform:"translateX(-50%)", width:"60%", height:1, background:"linear-gradient(90deg,transparent,rgba(99,102,241,0.4),transparent)", pointerEvents:"none" }} />
+          <div className="max-w-2xl mx-auto text-center" style={{ position:"relative", zIndex:1 }}>
+            <div style={{ display:"flex", justifyContent:"center", marginBottom:18 }}>
+              <div style={{ width:64, height:64, borderRadius:20, background:"rgba(99,102,241,0.1)", border:"1px solid rgba(99,102,241,0.25)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                <Scissors size={28} color="#6366f1" />
+              </div>
+            </div>
+            <h2 style={{ fontSize:"clamp(1.6rem,4.5vw,3rem)", fontWeight:900, color:"var(--t-text)", letterSpacing:"-1.2px", marginBottom:14, lineHeight:1.15 }}>
+              Avoid Long Queue.<br />Save time.<br /><span className="lp-shimmer">Look amazing.</span>
+            </h2>
+            <p style={{ color:"var(--t-text-2)", fontSize:15.5, lineHeight:1.75, maxWidth:440, margin:"0 auto 36px" }}>
+              Join 50,000+ customers who stopped calling salons and started booking smarter — instantly, for free.
+            </p>
+            <div style={{ display:"flex", flexWrap:"wrap", gap:12, justifyContent:"center" }}>
+              <a href="/register" className="lp-btn-p" style={{ display:"inline-flex", alignItems:"center", gap:10, padding:"15px 34px", borderRadius:16, background:"linear-gradient(135deg,#6366f1,#8b5cf6)", color:"#fff", boxShadow:"0 0 52px rgba(99,102,241,0.45)", fontSize:15, fontWeight:700, textDecoration:"none", minHeight:52 }}>
+                <Zap size={16} /> Create Free Account
+              </a>
+              <a href="/login" className="lp-btn-s" style={{ display:"inline-flex", alignItems:"center", gap:10, padding:"15px 34px", borderRadius:16, background:"var(--t-card)", border:"1px solid var(--t-border)", color:"var(--t-text-2)", fontSize:15, fontWeight:600, textDecoration:"none", minHeight:52 }}>
+                Sign In <ArrowRight size={15} />
+              </a>
+            </div>
+            <p style={{ fontSize:12, color:"var(--t-text-3)", marginTop:18 }}>Free to use &nbsp;·&nbsp; No hidden charges &nbsp;·&nbsp; Book in seconds</p>
+          </div>
+        </section>
+      </>}
 
     </div>
   );
