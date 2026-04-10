@@ -99,6 +99,7 @@ export default function Register() {
   const [otpTimer, setOtpTimer]   = useState(0);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [focusedField, setFocusedField]   = useState(null);
+  const [genderSaving, setGenderSaving]   = useState(false);
 
   const otpRefs         = useRef([]);
   const recaptchaRef    = useRef(null);
@@ -136,7 +137,7 @@ export default function Register() {
 
   const handleSendOtp = async e => {
     e?.preventDefault();
-    if (!name.trim() || !phone.trim() || !gender) { setError("Please fill all required fields."); return; }
+    if (!name.trim() || !phone.trim()) { setError("Please fill all required fields."); return; }
     if (!validatePhone(phone)) { setError("Enter a valid 10-digit Indian mobile number."); return; }
     if (!agreedToTerms) { setError("Please accept the Terms & Conditions to continue."); return; }
     setError(""); setLoading(true);
@@ -174,14 +175,26 @@ export default function Register() {
     setError(""); setLoading(true);
     try {
       const res = await API.post("/customer/auth/firebase-register", {
-        firebaseToken: firebaseTokenRef.current, name, password, gender,
+        firebaseToken: firebaseTokenRef.current, name, password,
       });
       const token = res.data.data?.token || res.data.token;
       if (token) localStorage.setItem("customerToken", token);
-      from ? navigate(from, { state: bookingState, replace: true }) : navigate("/dashboard");
+      setStep(4);
     } catch (err) {
       setError(err.response?.data?.message || err.message || "Registration failed.");
     } finally { setLoading(false); }
+  };
+
+  const handleGenderContinue = async () => {
+    if (gender) {
+      setGenderSaving(true);
+      try {
+        await API.put('/customer/auth/me', { name, gender });
+        localStorage.setItem("customerGender", gender);
+      } catch { /* silent — non-critical */ }
+      finally { setGenderSaving(false); }
+    }
+    from ? navigate(from, { state: bookingState, replace: true }) : navigate("/dashboard");
   };
 
   const handleOtpKey = (i, e) => {
@@ -350,26 +363,6 @@ export default function Register() {
                   </div>
                 </div>
 
-                <div>
-                  <label style={{ display:"block", fontSize:13, fontWeight:600, color:theme.subText, marginBottom:10 }}>Gender</label>
-                  <div style={{ display:"flex", gap:10 }}>
-                    {[{key:"male",icon:"👨",label:"Male"},{key:"female",icon:"👩",label:"Female"}].map(({ key, icon, label }) => {
-                      const active = gender===key;
-                      return (
-                        <button key={key} type="button" onClick={() => setGender(key)}
-                          style={{ flex:1, height:52, borderRadius:14, display:"flex", alignItems:"center", justifyContent:"center", gap:8, fontSize:14, fontWeight:700, cursor:"pointer", transition:"all 0.22s ease",
-                            background: active ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : theme.input,
-                            border: active ? `1.5px solid ${theme.accent}` : `1.5px solid ${theme.inputBorder}`,
-                            color: active ? "#fff" : theme.subText,
-                            boxShadow: active ? "0 0 20px rgba(99,102,241,0.35)" : "none",
-                          }}>
-                          <span style={{ fontSize:18 }}>{icon}</span>{label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
                 <div style={{ display:"flex", alignItems:"flex-start", gap:12 }}>
                   <button type="button" onClick={() => setAgreedToTerms(v=>!v)}
                     style={{ width:22, height:22, borderRadius:7, flexShrink:0, marginTop:1, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center",
@@ -506,10 +499,102 @@ export default function Register() {
               </form>
             )}
 
+            {/* ── STEP 4 — Gender Onboarding ── */}
+            {step === 4 && (
+              <div key="step4" className="rg-slide" style={{ display:"flex", flexDirection:"column", alignItems:"center", textAlign:"center", padding:"0 8px" }}>
+
+                <div className="rg-u0" style={{ fontSize:48, marginBottom:20 }}>✨</div>
+
+                <div className="rg-u1" style={{ marginBottom:8 }}>
+                  <h2 style={{ fontSize:26, fontWeight:900, color:theme.text, letterSpacing:"-0.6px", lineHeight:1.2 }}>
+                    Personalize your experience
+                  </h2>
+                </div>
+
+                <div className="rg-u2" style={{ marginBottom:36 }}>
+                  <p style={{ fontSize:14, color:theme.placeholder, lineHeight:1.6, maxWidth:280 }}>
+                    We use this to show you the most relevant salons and services near you.
+                  </p>
+                </div>
+
+                <div className="rg-u3" style={{ display:"flex", gap:16, marginBottom:36, width:"100%" }}>
+                  {[
+                    { key:"male",   emoji:"👨", label:"Male",   sub:"Men's salons & barbershops" },
+                    { key:"female", emoji:"👩", label:"Female",  sub:"Ladies' salons & spas"     },
+                  ].map(({ key, emoji, label, sub }) => {
+                    const active = gender === key;
+                    return (
+                      <button key={key} type="button"
+                        onClick={() => setGender(g => g === key ? "" : key)}
+                        style={{
+                          flex:1, borderRadius:20, padding:"28px 12px", cursor:"pointer",
+                          display:"flex", flexDirection:"column", alignItems:"center", gap:12,
+                          background: active
+                            ? (isDark ? "linear-gradient(135deg,rgba(99,102,241,0.18),rgba(139,92,246,0.18))" : "linear-gradient(135deg,rgba(99,102,241,0.10),rgba(139,92,246,0.10))")
+                            : theme.input,
+                          border: active ? "2px solid #8b5cf6" : `2px solid ${theme.inputBorder}`,
+                          boxShadow: active ? "0 0 0 4px rgba(139,92,246,0.15),0 8px 32px rgba(99,102,241,0.2)" : "none",
+                          transform: active ? "scale(1.03)" : "scale(1)",
+                          transition: "all 0.22s cubic-bezier(.4,0,.2,1)",
+                          outline: "none",
+                        }}>
+                        <div style={{
+                          width:80, height:80, borderRadius:"50%",
+                          background: active ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : (isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"),
+                          border: active ? "none" : `2px solid ${theme.inputBorder}`,
+                          display:"flex", alignItems:"center", justifyContent:"center",
+                          fontSize:36,
+                          boxShadow: active ? "0 8px 24px rgba(99,102,241,0.35)" : "none",
+                          transition:"all 0.22s ease",
+                        }}>
+                          {emoji}
+                        </div>
+                        <div>
+                          <p style={{ fontSize:16, fontWeight:800, color: active ? "#8b5cf6" : theme.text, marginBottom:4, transition:"color 0.22s" }}>{label}</p>
+                          <p style={{ fontSize:11, color:theme.placeholder, lineHeight:1.4 }}>{sub}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="rg-u4" style={{ width:"100%" }}>
+                  <button type="button"
+                    onClick={handleGenderContinue}
+                    disabled={genderSaving}
+                    style={{
+                      width:"100%", height:52, borderRadius:14, border:"none",
+                      background: gender ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"),
+                      color: gender ? "#fff" : theme.placeholder,
+                      fontSize:15, fontWeight:700, cursor: gender && !genderSaving ? "pointer" : "default",
+                      boxShadow: gender ? "0 0 32px rgba(99,102,241,0.4)" : "none",
+                      transition:"all 0.3s ease",
+                      display:"flex", alignItems:"center", justifyContent:"center", gap:8,
+                    }}>
+                    {genderSaving
+                      ? <><span className="rg-spin" style={{ width:18,height:18,border:"2.5px solid rgba(255,255,255,0.3)",borderTopColor:"#fff",borderRadius:"50%",display:"block" }}/> Saving…</>
+                      : "Continue →"}
+                  </button>
+                </div>
+
+                <div className="rg-u5" style={{ marginTop:16 }}>
+                  <button type="button"
+                    onClick={handleGenderContinue}
+                    disabled={genderSaving}
+                    style={{ background:"none", border:"none", cursor:"pointer", fontSize:13.5, color:theme.placeholder, fontWeight:500 }}>
+                    Skip for now
+                  </button>
+                </div>
+
+              </div>
+            )}
+
+            {step < 4 && (
             <p style={{ marginTop:24, textAlign:"center", fontSize:13.5, color:theme.placeholder }}>
               Already have an account?{" "}
               <Link to="/login" style={{ color:theme.accent, fontWeight:700, textDecoration:"none" }}>Sign In →</Link>
             </p>
+            )}
 
           </div>
         </div>
