@@ -166,7 +166,7 @@ export default function Login() {
 
   /* left panel */
   const leftBg = isDark
-    ? "linear-gradient(145deg,#0f172a 0%,#1e293b 40%,#162032 70%,#0f172a 100%)"
+    ? "linear-gradient(145deg,#111827 0%,#1f2937 40%,#1f2937 70%,#111827 100%)"
     : "linear-gradient(135deg,#3730a3 0%,#6366f1 40%,#8b5cf6 70%,#4f46e5 100%)";
 
   return (
@@ -204,7 +204,7 @@ export default function Login() {
             <div className="lg-u2" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginTop:40 }}>
               {FEATURES.map(({ icon, label, sub }, i) => (
                 <div key={label} className={i % 2 === 0 ? "lg-f1" : "lg-f2"}
-                  style={{ background: isDark ? "rgba(30,41,59,0.6)" : "rgba(255,255,255,0.1)", backdropFilter:"blur(12px)", border: isDark ? `1px solid #334155` : "1px solid rgba(255,255,255,0.18)", borderRadius:16, padding:"16px 18px", animationDelay:`${i * 0.4}s` }}>
+                  style={{ background: isDark ? "rgba(31,41,55,0.6)" : "rgba(255,255,255,0.1)", backdropFilter:"blur(12px)", border: isDark ? `1px solid #374151` : "1px solid rgba(255,255,255,0.18)", borderRadius:16, padding:"16px 18px", animationDelay:`${i * 0.4}s` }}>
                   <div style={{ fontSize:22, marginBottom:6 }}>{icon}</div>
                   <div style={{ fontSize:13, fontWeight:700, color: isDark ? theme.text : "#fff", marginBottom:2 }}>{label}</div>
                   <div style={{ fontSize:11, color: isDark ? theme.subText : "rgba(255,255,255,0.55)" }}>{sub}</div>
