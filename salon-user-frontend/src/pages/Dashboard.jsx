@@ -20,11 +20,11 @@ const FILTERS   = ['Upcoming', 'Completed', 'Cancelled', 'All'];
 const PAGE_SIZE = 5;
 
 const STATUS_CONFIG = {
-  pending:     { label: 'Pending',     color: '#fbbf24', bg: 'rgba(251,191,36,0.12)',  border: 'rgba(251,191,36,0.3)',  glow: 'rgba(251,191,36,0.2)'  },
-  confirmed:   { label: 'Confirmed',   color: '#34d399', bg: 'rgba(52,211,153,0.12)',  border: 'rgba(52,211,153,0.3)',   glow: 'rgba(52,211,153,0.2)'  },
-  in_progress: { label: 'In Progress', color: '#a78bfa', bg: 'rgba(167,139,250,0.12)', border: 'rgba(167,139,250,0.3)', glow: 'rgba(167,139,250,0.2)' },
-  completed:   { label: 'Completed',   color: '#60a5fa', bg: 'rgba(96,165,250,0.12)',  border: 'rgba(96,165,250,0.3)',   glow: 'rgba(96,165,250,0.2)'  },
-  cancelled:   { label: 'Cancelled',   color: '#f87171', bg: 'rgba(248,113,113,0.12)', border: 'rgba(248,113,113,0.3)', glow: 'rgba(248,113,113,0.2)' },
+  pending:     { label: 'Pending',     cls: 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400',   color: '#d97706' },
+  confirmed:   { label: 'Confirmed',   cls: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400', color: '#059669' },
+  in_progress: { label: 'In Progress', cls: 'bg-purple-50 text-purple-700 dark:bg-purple-950/50 dark:text-purple-400', color: '#7c3aed' },
+  completed:   { label: 'Completed',   cls: 'bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400',     color: '#2563eb' },
+  cancelled:   { label: 'Cancelled',   cls: 'bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-400',         color: '#dc2626' },
 };
 
 function haversineKm(lat1, lng1, lat2, lng2) {
@@ -299,9 +299,9 @@ function ChatDrawer({ booking, onClose }) {
                       {mine && (
                         <svg width="20" height="11" viewBox="0 0 20 11" fill="none">
                           {/* First tick (left) */}
-                          <path d="M1 5.5L4 8.5L9.5 1.5" stroke={msg.readAt ? '#25D366' : '#94a3b8'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M1 5.5L4 8.5L9.5 1.5" stroke={msg.readAt ? '#25D366' : '#9ca3af'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                           {/* Second tick (right, offset) */}
-                          <path d="M6 5.5L9 8.5L14.5 1.5" stroke={msg.readAt ? '#25D366' : '#94a3b8'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M6 5.5L9 8.5L14.5 1.5" stroke={msg.readAt ? '#25D366' : '#9ca3af'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                       )}
                     </div>
@@ -376,13 +376,9 @@ function ChatDrawer({ booking, onClose }) {
 
 // ── StatusBadge ───────────────────────────────────────────────
 function StatusBadge({ status }) {
-  const cfg = STATUS_CONFIG[status] || { label: status, color: 'var(--t-text-3)', bg: 'var(--t-input-bg)', border: 'var(--t-border)' };
+  const cfg = STATUS_CONFIG[status] || { label: status, cls: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400' };
   return (
-    <span style={{
-      color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}`,
-      padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700,
-      whiteSpace: 'nowrap', flexShrink: 0, letterSpacing: '0.02em',
-    }}>
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap shrink-0 ${cfg.cls}`}>
       {cfg.label}
     </span>
   );
@@ -653,11 +649,11 @@ function BookingCard({ booking: initialBooking, userCoords, onCancelled, isNext 
   const isUpcoming    = ['pending', 'confirmed', 'in_progress'].includes(status);
 
   const microcopy = status === 'confirmed'
-    ? { text: 'Arrive 5 mins early · Slot reserved for you', color: '#34d399' }
+    ? { text: 'Arrive 5 mins early · Slot reserved for you', color: '#059669' }
     : status === 'pending'
-    ? { text: 'Awaiting confirmation from salon', color: '#fbbf24' }
+    ? { text: 'Awaiting confirmation from salon', color: '#d97706' }
     : status === 'in_progress'
-    ? { text: 'Your appointment is in progress right now', color: '#a78bfa' }
+    ? { text: 'Your appointment is in progress right now', color: '#7c3aed' }
     : null;
 
   return (
@@ -945,9 +941,9 @@ export default function Dashboard() {
 
         {/* Notification bell — top right */}
         <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 10 }}>
-          <Link to="/notifications" style={{ position:'relative', width:42, height:42, borderRadius:'50%', background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.75)', border: isDark ? '1px solid rgba(255,255,255,0.18)' : '1px solid rgba(99,102,241,0.15)', display:'flex', alignItems:'center', justifyContent:'center', color: isDark ? '#fff' : 'var(--t-accent)', textDecoration:'none', backdropFilter:'blur(12px)' }}>
+          <Link to="/notifications" style={{ position:'relative', width:42, height:42, borderRadius:'50%', background: 'var(--t-hero-card)', border: '1px solid var(--t-hero-border)', display:'flex', alignItems:'center', justifyContent:'center', color: 'var(--t-hero-text)', textDecoration:'none', backdropFilter:'blur(12px)' }}>
             <svg style={{ width:18, height:18 }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-            {unreadCount > 0 && <span style={{ position:'absolute', top:1, right:1, minWidth:16, height:16, background:'#ef4444', color:'#fff', fontSize:9, fontWeight:700, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', padding:'0 3px', border: isDark ? '2px solid #1e293b' : '2px solid #fff' }}>{unreadCount > 9 ? '9+' : unreadCount}</span>}
+            {unreadCount > 0 && <span style={{ position:'absolute', top:1, right:1, minWidth:16, height:16, background:'#ef4444', color:'#fff', fontSize:9, fontWeight:700, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', padding:'0 3px', border: '2px solid var(--t-bg)' }}>{unreadCount > 9 ? '9+' : unreadCount}</span>}
           </Link>
         </div>
 
@@ -980,7 +976,7 @@ export default function Dashboard() {
 
           {/* Next appointment callout */}
           {!loading && nextUpcoming && (
-            <div style={{ marginTop: 24, display: 'inline-flex', alignItems: 'center', gap: 10, padding: '10px 16px', background: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.7)', border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(99,102,241,0.12)', borderRadius: 12, backdropFilter: 'blur(12px)', maxWidth: '100%' }}>
+            <div style={{ marginTop: 24, display: 'inline-flex', alignItems: 'center', gap: 10, padding: '10px 16px', background: 'var(--t-hero-card)', border: '1px solid var(--t-hero-border)', borderRadius: 12, backdropFilter: 'blur(12px)', maxWidth: '100%' }}>
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#34d399', flexShrink: 0, animation: 'pulse 2s infinite' }} />
               <div style={{ minWidth: 0 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t-hero-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
@@ -1148,16 +1144,16 @@ export default function Dashboard() {
           <div style={{ marginTop: 72, paddingBottom: 16 }}>
             <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 28, padding: '48px 32px' }} className="dashboard-cta">
               {/* Decorative orb */}
-              <div style={{ position:'absolute', top:-60, right:-40, width:200, height:200, borderRadius:'50%', background: isDark ? 'radial-gradient(circle,rgba(129,140,248,0.2) 0%,transparent 65%)' : 'radial-gradient(circle,rgba(99,102,241,0.12) 0%,transparent 65%)', pointerEvents:'none' }} />
-              <div style={{ position:'absolute', bottom:-40, left:-20, width:150, height:150, borderRadius:'50%', background: isDark ? 'radial-gradient(circle,rgba(139,92,246,0.15) 0%,transparent 65%)' : 'radial-gradient(circle,rgba(139,92,246,0.08) 0%,transparent 65%)', pointerEvents:'none' }} />
+              <div style={{ position:'absolute', top:-60, right:-40, width:200, height:200, borderRadius:'50%', background: 'radial-gradient(circle,rgba(99,102,241,0.18) 0%,transparent 65%)', pointerEvents:'none' }} />
+              <div style={{ position:'absolute', bottom:-40, left:-20, width:150, height:150, borderRadius:'50%', background: 'radial-gradient(circle,rgba(139,92,246,0.12) 0%,transparent 65%)', pointerEvents:'none' }} />
 
-              <p style={{ fontSize: 11, fontWeight: 700, color: isDark ? 'rgba(129,140,248,0.8)' : 'var(--t-accent)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 14, position: 'relative' }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--t-accent)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 14, position: 'relative' }}>
                 What's next?
               </p>
-              <h2 style={{ fontSize: 'clamp(24px,6vw,36px)', fontWeight: 900, color: isDark ? '#f1f5f9' : '#1E1B4B', letterSpacing: '-0.8px', lineHeight: 1.15, marginBottom: 10, position: 'relative' }}>
+              <h2 style={{ fontSize: 'clamp(24px,6vw,36px)', fontWeight: 900, color: 'var(--t-hero-text)', letterSpacing: '-0.8px', lineHeight: 1.15, marginBottom: 10, position: 'relative' }}>
                 Book your next<br/>appointment now.
               </h2>
-              <p style={{ fontSize: 14, color: isDark ? '#94a3b8' : '#6b7280', marginBottom: 28, lineHeight: 1.7, position: 'relative' }}>
+              <p style={{ fontSize: 14, color: 'var(--t-text-2)', marginBottom: 28, lineHeight: 1.7, position: 'relative' }}>
                 No waiting. No hassle.<br/>Instant confirmation.
               </p>
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', position: 'relative' }}>
@@ -1170,7 +1166,7 @@ export default function Dashboard() {
                 </button>
                 {lastCompleted && (
                   <button onClick={() => navigate(lastCompleted.salonId?._id ? salonPath(lastCompleted.salonId) : `/salon/${lastCompleted.salonId}`)}
-                    style={{ padding: '13px 24px', background: 'transparent', border: isDark ? '1.5px solid rgba(255,255,255,0.2)' : '1.5px solid rgba(124,58,237,0.25)', borderRadius: 9999, fontSize: 14, fontWeight: 600, color: isDark ? 'rgba(255,255,255,0.8)' : '#7C3AED', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, transition: 'all 0.2s' }}
+                    style={{ padding: '13px 24px', background: 'transparent', border: '1.5px solid var(--t-border)', borderRadius: 9999, fontSize: 14, fontWeight: 600, color: 'var(--t-accent)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, transition: 'all 0.2s' }}
                     onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
                     onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
                   >
