@@ -191,8 +191,8 @@ function SearchInput({ value, onChange, onSearch, onFocus, onBlur, focused, onCl
   );
 }
 
-// ── Editorial Card ────────────────────────────────────────────────
-function EditorialCard({ salon }) {
+// ── (EditorialCard removed — using SalonCard grid) ───────────────
+function _EditorialCard({ salon }) {
   const [hovered, setHovered] = useState(false);
   const hasPhoto  = salon.photos?.[0] || salon.coverPhoto || salon.image;
   const rating    = parseFloat(salon.averageRating || salon.rating || 0);
@@ -299,8 +299,7 @@ function EditorialCard({ salon }) {
   );
 }
 
-// ── Editorial skeleton ────────────────────────────────────────────
-function EditorialSkeleton() {
+function _EditorialSkeleton() {
   return (
     <div>
       <div style={{ paddingBottom:"125%",position:"relative",borderRadius:18,overflow:"hidden",marginBottom:22 }}>
@@ -530,11 +529,6 @@ export default function Home() {
     : "GlowSpots Near You");
 
   const heroBgImage = adminHeroImage || "/pngtree-salon-service-salon-design-hd-image_2512958.jpg";
-
-  const bentoSalons = useMemo(() => {
-    if (!allSalons.length) return [];
-    return [...allSalons].sort((a, b) => parseFloat(b.averageRating || 0) - parseFloat(a.averageRating || 0)).slice(0, 2);
-  }, [allSalons]);
 
   const heroOverlayLight = "linear-gradient(90deg,rgba(248,250,252,0.90) 0%,rgba(248,250,252,0.82) 35%,rgba(248,250,252,0.55) 62%,transparent 90%)";
   const heroOverlayDark  = "linear-gradient(90deg,rgba(10,15,30,0.97) 0%,rgba(10,15,30,0.92) 35%,rgba(10,15,30,0.75) 65%,transparent 100%)";
@@ -937,124 +931,13 @@ export default function Home() {
       )}
 
       {/* ══════════════════════════════════════════════════════════
-          CURATED BENTO SECTION
-      ══════════════════════════════════════════════════════════ */}
-      {!locDenied && (loading || bentoSalons.length >= 2) && (
-        <section style={{ maxWidth:1280, margin:"0 auto", padding:"52px 24px 0" }}>
-          {/* Section label */}
-          <div style={{ display:"flex", alignItems:"center", gap:16, marginBottom:28 }}>
-            <div>
-              <p style={{ fontSize:11,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"var(--t-accent)",marginBottom:4 }}>
-                Handpicked for You
-              </p>
-              <h2 style={{ fontSize:"clamp(20px,3vw,26px)",fontWeight:800,color:"var(--t-text)",letterSpacing:"-0.025em",margin:0 }}>
-                Curated Picks
-              </h2>
-            </div>
-          </div>
-
-          {/* Bento grid — responsive */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-
-            {/* Large card — lg: span 2 */}
-            <div className="lg:col-span-2" style={{ position:"relative",borderRadius:20,overflow:"hidden",minHeight:360,background:"var(--t-card)" }}>
-              {loading ? (
-                <div className="skeleton" style={{ position:"absolute",inset:0 }} />
-              ) : (() => {
-                const s = bentoSalons[0]; if (!s) return null;
-                const hp = s.photos?.[0] || s.coverPhoto;
-                const rt = parseFloat(s.averageRating || 0);
-                return (
-                  <Link to={salonPath(s)} style={{ textDecoration:"none",display:"block",position:"relative",height:"100%",minHeight:360 }}>
-                    {hp ? (
-                      <img src={hp} alt={s.name} style={{ position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover" }} />
-                    ) : (
-                      <div style={{ position:"absolute",inset:0,background:"linear-gradient(135deg,#4338ca,#7c3aed)" }} />
-                    )}
-                    <div style={{ position:"absolute",inset:0,background:"linear-gradient(to top,rgba(0,0,0,0.88) 0%,rgba(0,0,0,0.15) 50%,transparent 100%)" }} />
-                    <div style={{ position:"absolute",bottom:0,left:0,padding:"28px 28px 28px" }}>
-                      <span style={{ background:"#6366f1",color:"#fff",fontSize:10,fontWeight:800,padding:"5px 14px",borderRadius:999,textTransform:"uppercase",letterSpacing:"0.12em",display:"inline-block",marginBottom:12 }}>
-                        Top Pick
-                      </span>
-                      <h3 style={{ fontSize:28,fontWeight:900,color:"#fff",marginBottom:7,letterSpacing:"-0.03em",lineHeight:1.1,textShadow:"0 2px 12px rgba(0,0,0,0.4)" }}>
-                        {s.name}
-                      </h3>
-                      <p style={{ color:"rgba(255,255,255,0.7)",fontSize:13,marginBottom:20,maxWidth:300,lineHeight:1.65 }}>
-                        {s.description || s.tagline || s.offeredCategoryNames?.slice(0,2).join(", ") || "Premium salon experience"}
-                      </p>
-                      <span style={{ display:"inline-flex",alignItems:"center",gap:7,background:"#fff",color:"#0f172a",border:"none",borderRadius:10,padding:"11px 22px",fontSize:13,fontWeight:800,cursor:"pointer" }}>
-                        Book Session <ArrowRight style={{ width:13,height:13 }} />
-                      </span>
-                    </div>
-                    {rt > 0 && (
-                      <div style={{ position:"absolute",top:20,right:20,background:"rgba(255,255,255,0.18)",backdropFilter:"blur(10px)",padding:"6px 11px",borderRadius:999,display:"flex",alignItems:"center",gap:5,border:"1px solid rgba(255,255,255,0.22)" }}>
-                        <Star style={{ width:12,height:12,color:"#fcd34d",fill:"#fcd34d" }} />
-                        <span style={{ color:"#fff",fontSize:12,fontWeight:800 }}>{rt.toFixed(1)}</span>
-                      </div>
-                    )}
-                  </Link>
-                );
-              })()}
-            </div>
-
-            {/* Verified card */}
-            <div style={{ borderRadius:20,background:"var(--t-card)",border:"1px solid var(--t-border)",padding:28,display:"flex",flexDirection:"column",justifyContent:"space-between",minHeight:280 }}>
-              <div style={{ display:"flex",flexDirection:"column",alignItems:"center",textAlign:"center",flex:1,justifyContent:"center",paddingTop:8 }}>
-                <div style={{ width:64,height:64,borderRadius:"50%",background:"rgba(99,102,241,0.1)",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:18 }}>
-                  <CheckCircle2 style={{ width:28,height:28,color:"var(--t-accent)" }} />
-                </div>
-                <h4 style={{ fontSize:19,fontWeight:800,color:"var(--t-text)",marginBottom:10,letterSpacing:"-0.025em" }}>Verified Only</h4>
-                <p style={{ color:"var(--t-text-2)",fontSize:13,lineHeight:1.7 }}>
-                  Every salon is hand-picked and verified for quality, safety, and standards.
-                </p>
-              </div>
-              <button style={{ width:"100%",marginTop:22,background:"var(--t-input-bg)",border:"1px solid var(--t-border)",borderRadius:11,padding:"11px 0",fontSize:13,fontWeight:700,color:"var(--t-text)",cursor:"pointer" }}>
-                Learn More
-              </button>
-            </div>
-
-            {/* 2nd salon */}
-            <div style={{ borderRadius:20,overflow:"hidden",position:"relative",background:"var(--t-card)",minHeight:280 }}>
-              {loading ? (
-                <div className="skeleton" style={{ position:"absolute",inset:0 }} />
-              ) : (() => {
-                const s = bentoSalons[1]; if (!s) return null;
-                const hp = s.photos?.[0] || s.coverPhoto;
-                return (
-                  <Link to={salonPath(s)} style={{ textDecoration:"none",display:"block",position:"relative",height:"100%",minHeight:280 }}>
-                    {hp ? (
-                      <img src={hp} alt={s.name} style={{ position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover" }} />
-                    ) : (
-                      <div style={{ position:"absolute",inset:0,background:"linear-gradient(135deg,#7c3aed,#4338ca)" }} />
-                    )}
-                    <div style={{ position:"absolute",inset:0,background:"linear-gradient(to top,rgba(0,0,0,0.82) 0%,transparent 55%)" }} />
-                    <div style={{ position:"absolute",bottom:22,left:22,right:22 }}>
-                      <h4 style={{ color:"#fff",fontWeight:900,fontSize:19,marginBottom:5,textShadow:"0 1px 6px rgba(0,0,0,0.5)",letterSpacing:"-0.025em",lineHeight:1.2 }}>
-                        {s.name}
-                      </h4>
-                      {(s.city || s.minPrice) && (
-                        <span style={{ color:"rgba(255,255,255,0.8)",fontSize:12,fontWeight:600 }}>
-                          {[s.city, s.minPrice ? `from \u20b9${s.minPrice}` : null].filter(Boolean).join(" \u00b7 ")}
-                        </span>
-                      )}
-                    </div>
-                  </Link>
-                );
-              })()}
-            </div>
-
-          </div>
-        </section>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════
-          EDITORIAL GRID
+          SALON GRID
       ══════════════════════════════════════════════════════════ */}
       {(!locDenied || isSearchActive) && (
-        <section id="salon-grid" style={{ maxWidth:1440, margin:"0 auto", padding:"64px 24px 128px" }}>
+        <section id="salon-grid" style={{ maxWidth:1280, margin:"0 auto", padding:"40px 20px 80px" }}>
 
           {/* Section header */}
-          <div style={{ display:"flex", alignItems:"flex-end", justifyContent:"space-between", marginBottom:48, gap:8, flexWrap:"wrap" }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:28, gap:8, flexWrap:"wrap" }}>
             <div>
               <p style={{ fontSize:11,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"var(--t-accent)",marginBottom:6 }}>
                 {sort === "rated" ? "Best in Class" : sort === "booked" ? "Most Popular" : "Near You"}
@@ -1077,7 +960,7 @@ export default function Home() {
 
           {/* Skeleton */}
           {loading && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               {Array(10).fill(0).map((_,i) => (
                 <div key={i} className="overflow-hidden" style={{ borderRadius:18, background:"var(--t-card)", border:"1px solid var(--t-border)" }}>
                   <div className="skeleton" style={{ height:180 }} />
@@ -1104,7 +987,7 @@ export default function Home() {
 
           {/* Salon cards */}
           {!loading && salons.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               {salons.map(s => <SalonCard key={s._id} salon={s} userCoords={userCoords} />)}
             </div>
           )}

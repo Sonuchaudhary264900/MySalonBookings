@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 import { getCustomerToken, clearCustomerAuth } from "../utils/auth";
+import { useTheme } from "../context/ThemeContext";
 
 // ── localStorage keys ─────────────────────────────────────────
 const NOTIF_KEY = 'notifPrefs';
@@ -15,6 +16,7 @@ const DEFAULT_NOTIF = {
 
 // ── Toggle switch ─────────────────────────────────────────────
 function Toggle({ checked, onChange }) {
+  const { isDark } = useTheme();
   return (
     <button
       type="button"
@@ -25,8 +27,8 @@ function Toggle({ checked, onChange }) {
       style={{
         width: 46, height: 26,
         borderRadius: 13,
-        background: checked ? '#8b5cf6' : 'rgba(255,255,255,0.08)',
-        border: '1px solid ' + (checked ? '#7c3aed' : 'rgba(255,255,255,0.1)'),
+        background: checked ? '#8b5cf6' : 'var(--t-input-bg)',
+        border: '1px solid ' + (checked ? '#7c3aed' : 'var(--t-border)'),
         transition: 'background 0.25s, border-color 0.25s',
       }}
     >
@@ -36,7 +38,7 @@ function Toggle({ checked, onChange }) {
           top: 3, left: 3,
           width: 18, height: 18,
           borderRadius: '50%',
-          background: checked ? '#fff' : 'rgba(255,255,255,0.35)',
+          background: checked ? '#fff' : (isDark ? 'rgba(255,255,255,0.35)' : '#94a3b8'),
           boxShadow: checked ? '0 1px 4px rgba(0,0,0,0.3)' : 'none',
           transform: checked ? 'translateX(20px)' : 'translateX(0)',
           transition: 'transform 0.25s cubic-bezier(.4,0,.2,1), background 0.25s',
@@ -63,7 +65,7 @@ function IconWrap({ children, danger = false }) {
 
 // ── Thin divider ───────────────────────────────────────────────
 function Divider() {
-  return <div className="ml-[62px] mr-4" style={{ height: 1, background: 'rgba(255,255,255,0.05)' }} />;
+  return <div className="ml-[62px] mr-4" style={{ height: 1, background: 'var(--t-border)' }} />;
 }
 
 // ── Section label ──────────────────────────────────────────────
@@ -71,7 +73,7 @@ function SectionLabel({ children }) {
   return (
     <p
       className="px-1 pt-6 pb-2"
-      style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)' }}
+      style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--t-text-3)' }}
     >
       {children}
     </p>
@@ -84,16 +86,16 @@ function SettingRow({ icon, label, sublabel, rightEl, onClick, chevron = false, 
   const inner = (
     <div
       className="flex items-center gap-3.5 px-4 py-3.5"
-      style={{ background: hov && onClick ? 'rgba(255,255,255,0.025)' : 'transparent', transition: 'background 0.15s' }}
+      style={{ background: hov && onClick ? 'var(--t-input-bg)' : 'transparent', transition: 'background 0.15s' }}
     >
       <IconWrap danger={danger}>{icon}</IconWrap>
       <div className="flex-1 min-w-0">
-        <p style={{ fontSize: 14, fontWeight: 500, color: danger ? '#f87171' : 'rgba(255,255,255,0.88)', lineHeight: 1.3 }}>{label}</p>
-        {sublabel && <p style={{ fontSize: 12, marginTop: 2, color: 'rgba(255,255,255,0.32)' }}>{sublabel}</p>}
+        <p style={{ fontSize: 14, fontWeight: 500, color: danger ? '#f87171' : 'var(--t-text)', lineHeight: 1.3 }}>{label}</p>
+        {sublabel && <p style={{ fontSize: 12, marginTop: 2, color: 'var(--t-text-3)' }}>{sublabel}</p>}
       </div>
       {rightEl}
       {chevron && (
-        <svg style={{ color: 'rgba(255,255,255,0.2)', flexShrink: 0 }} width={16} height={16} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg style={{ color: 'var(--t-text-3)', flexShrink: 0 }} width={16} height={16} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
         </svg>
       )}
@@ -113,10 +115,10 @@ function AccordionCard({ id, expanded, onToggle, icon, title, sublabel, titleCol
       className="overflow-hidden"
       style={{
         borderRadius: 16,
-        background: 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.07)',
+        background: 'var(--t-card)',
+        border: '1px solid var(--t-border)',
         transition: 'border-color 0.2s',
-        ...(open ? { borderColor: 'rgba(139,92,246,0.25)' } : {}),
+        ...(open ? { borderColor: 'rgba(139,92,246,0.35)' } : {}),
       }}
     >
       <button
@@ -125,24 +127,24 @@ function AccordionCard({ id, expanded, onToggle, icon, title, sublabel, titleCol
         onMouseEnter={() => setHov(true)}
         onMouseLeave={() => setHov(false)}
         className="w-full text-left flex items-center justify-between px-4 py-3.5"
-        style={{ background: hov ? 'rgba(255,255,255,0.025)' : 'transparent', transition: 'background 0.15s' }}
+        style={{ background: hov ? 'var(--t-input-bg)' : 'transparent', transition: 'background 0.15s' }}
       >
         <div className="flex items-center gap-3.5">
           <IconWrap>{icon}</IconWrap>
           <div>
-            <p style={{ fontSize: 14, fontWeight: 500, color: titleColor || 'rgba(255,255,255,0.88)' }}>{title}</p>
-            {sublabel && <p style={{ fontSize: 12, marginTop: 2, color: 'rgba(255,255,255,0.32)' }}>{sublabel}</p>}
+            <p style={{ fontSize: 14, fontWeight: 500, color: titleColor || 'var(--t-text)' }}>{title}</p>
+            {sublabel && <p style={{ fontSize: 12, marginTop: 2, color: 'var(--t-text-3)' }}>{sublabel}</p>}
           </div>
         </div>
         <svg
-          style={{ color: 'rgba(255,255,255,0.22)', transform: open ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.28s cubic-bezier(.4,0,.2,1)', flexShrink: 0 }}
+          style={{ color: 'var(--t-text-3)', transform: open ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.28s cubic-bezier(.4,0,.2,1)', flexShrink: 0 }}
           width={16} height={16} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </svg>
       </button>
       {open && (
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ borderTop: '1px solid var(--t-border)' }}>
           {children}
         </div>
       )}
@@ -327,20 +329,20 @@ export default function Profile() {
   const inputStyle = {
     display: 'flex', alignItems: 'center', gap: 10,
     borderRadius: 12, padding: '0 14px', height: 46,
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.1)',
+    background: 'var(--t-input-bg)',
+    border: '1px solid var(--t-border)',
     transition: 'border-color 0.2s',
   };
   const inputFieldStyle = {
     flex: 1, fontSize: 14, background: 'transparent', outline: 'none',
-    color: 'rgba(255,255,255,0.88)',
+    color: 'var(--t-text)',
   };
 
   // ── Shared section card style ────────────────────────────────
   const sectionCard = {
     borderRadius: 16,
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.07)',
+    background: 'var(--t-card)',
+    border: '1px solid var(--t-border)',
     overflow: 'hidden',
   };
 
@@ -350,11 +352,11 @@ export default function Profile() {
       {/* ── HEADER ──────────────────────────────────────────── */}
       <div
         className="px-4 sm:px-6 pt-5 pb-4"
-        style={{ background: 'var(--t-card)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ background: 'var(--t-card)', borderBottom: '1px solid var(--t-border)' }}
       >
         <div className="max-w-xl mx-auto">
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: 'rgba(255,255,255,0.95)', lineHeight: 1.2 }}>Settings</h1>
-          <p style={{ fontSize: 13, marginTop: 2, color: 'rgba(255,255,255,0.32)' }}>Manage your account & preferences</p>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--t-text)', lineHeight: 1.2 }}>Settings</h1>
+          <p style={{ fontSize: 13, marginTop: 2, color: 'var(--t-text-3)' }}>Manage your account & preferences</p>
         </div>
       </div>
 
@@ -371,7 +373,7 @@ export default function Profile() {
                 animation: 'spin 0.8s linear infinite',
               }}
             />
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Loading…</p>
+            <p style={{ fontSize: 13, color: 'var(--t-text-3)' }}>Loading…</p>
           </div>
         ) : (
           <>
@@ -453,10 +455,10 @@ export default function Profile() {
                   <div className="flex items-center gap-3.5 px-4 py-3.5">
                     <IconWrap>{row.icon}</IconWrap>
                     <div className="flex-1 min-w-0">
-                      <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 2 }}>{row.label}</p>
+                      <p style={{ fontSize: 11, color: 'var(--t-text-3)', marginBottom: 2 }}>{row.label}</p>
                       <p
                         className={row.mono ? 'font-mono tracking-widest' : ''}
-                        style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.85)' }}
+                        style={{ fontSize: 14, fontWeight: 500, color: 'var(--t-text)' }}
                       >
                         {row.value}
                       </p>
@@ -472,8 +474,8 @@ export default function Profile() {
               <div className="flex items-center gap-3.5 px-4 py-3.5">
                 <IconWrap>{I.gender}</IconWrap>
                 <div className="flex-1 min-w-0">
-                  <p style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.88)' }}>Gender</p>
-                  <p style={{ fontSize: 12, marginTop: 2, color: 'rgba(255,255,255,0.32)' }}>Used to show relevant services</p>
+                  <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--t-text)' }}>Gender</p>
+                  <p style={{ fontSize: 12, marginTop: 2, color: 'var(--t-text-3)' }}>Used to show relevant services</p>
                 </div>
                 <div className="flex gap-2">
                   {[{ key: 'male', label: 'Male' }, { key: 'female', label: 'Female' }].map(({ key, label }) => {
@@ -482,9 +484,9 @@ export default function Profile() {
                       <button key={key} type="button" onClick={() => handleGenderChange(key)} disabled={genderSaving}
                         style={{
                           padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-                          background: active ? '#8b5cf6' : 'rgba(255,255,255,0.06)',
-                          color: active ? '#fff' : 'rgba(255,255,255,0.45)',
-                          border: active ? '1px solid #7c3aed' : '1px solid rgba(255,255,255,0.1)',
+                          background: active ? '#8b5cf6' : 'var(--t-input-bg)',
+                          color: active ? '#fff' : 'var(--t-text-2)',
+                          border: active ? '1px solid #7c3aed' : '1px solid var(--t-border)',
                           transition: 'all 0.2s',
                           opacity: genderSaving ? 0.5 : 1,
                         }}
@@ -529,7 +531,7 @@ export default function Profile() {
                 <SettingRow icon={I.language} label="Language"
                   rightEl={
                     <select value={language} onChange={e => { setLanguage(e.target.value); saveAppPref('language', e.target.value); }}
-                      style={{ fontSize: 13, fontWeight: 500, background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer', textAlign: 'right', color: 'rgba(255,255,255,0.45)', maxWidth: 110 }}>
+                      style={{ fontSize: 13, fontWeight: 500, background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer', textAlign: 'right', color: 'var(--t-text-2)', maxWidth: 110 }}>
                       {['English', 'हिंदी'].map(l => <option key={l} value={l}>{l}</option>)}
                     </select>
                   } />
@@ -537,7 +539,7 @@ export default function Profile() {
                 <SettingRow icon={I.clock} label="Time Format"
                   rightEl={
                     <select value={timeFormat} onChange={e => { setTimeFormat(e.target.value); saveAppPref('timeFormat', e.target.value); }}
-                      style={{ fontSize: 13, fontWeight: 500, background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer', textAlign: 'right', color: 'rgba(255,255,255,0.45)', maxWidth: 110 }}>
+                      style={{ fontSize: 13, fontWeight: 500, background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer', textAlign: 'right', color: 'var(--t-text-2)', maxWidth: 110 }}>
                       {['12-hour', '24-hour'].map(f => <option key={f} value={f}>{f}</option>)}
                     </select>
                   } />
@@ -545,7 +547,7 @@ export default function Profile() {
                 <SettingRow icon={I.calendar} label="Date Format"
                   rightEl={
                     <select value={dateFormat} onChange={e => { setDateFormat(e.target.value); saveAppPref('dateFormat', e.target.value); }}
-                      style={{ fontSize: 13, fontWeight: 500, background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer', textAlign: 'right', color: 'rgba(255,255,255,0.45)', maxWidth: 110 }}>
+                      style={{ fontSize: 13, fontWeight: 500, background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer', textAlign: 'right', color: 'var(--t-text-2)', maxWidth: 110 }}>
                       {['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'].map(f => <option key={f} value={f}>{f}</option>)}
                     </select>
                   } />
@@ -566,7 +568,7 @@ export default function Profile() {
                 )}
                 {cpStep === 1 ? (
                   <>
-                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.32)' }}>An OTP will be sent to your registered phone number.</p>
+                    <p style={{ fontSize: 12, color: 'var(--t-text-3)' }}>An OTP will be sent to your registered phone number.</p>
                     <button onClick={handleCpSendOtp} disabled={cpLoading}
                       className="w-full flex items-center justify-center"
                       style={{
@@ -582,25 +584,25 @@ export default function Profile() {
                   </>
                 ) : (
                   <>
-                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.32)' }}>OTP sent to {user?.phone}</p>
+                    <p style={{ fontSize: 12, color: 'var(--t-text-3)' }}>OTP sent to {user?.phone}</p>
                     <div style={inputStyle}>
-                      <span style={{ color: 'rgba(255,255,255,0.3)', display: 'flex' }}>{I.key}</span>
+                      <span style={{ color: 'var(--t-text-3)', display: 'flex' }}>{I.key}</span>
                       <input type="text" value={cpOtp} onChange={e => setCpOtp(e.target.value)}
                         placeholder="Enter OTP" maxLength={6} inputMode="numeric" disabled={cpLoading}
                         style={{ ...inputFieldStyle }} className="placeholder-style" />
                     </div>
                     <div style={inputStyle}>
-                      <span style={{ color: 'rgba(255,255,255,0.3)', display: 'flex' }}>{I.lock}</span>
+                      <span style={{ color: 'var(--t-text-3)', display: 'flex' }}>{I.lock}</span>
                       <input type={cpShowPw ? 'text' : 'password'} value={cpNewPw} onChange={e => setCpNewPw(e.target.value)}
                         placeholder="New password" disabled={cpLoading}
                         style={{ ...inputFieldStyle }} />
                       <button type="button" onClick={() => setCpShowPw(v => !v)}
-                        style={{ color: 'rgba(255,255,255,0.3)', display: 'flex', flexShrink: 0 }}>
+                        style={{ color: 'var(--t-text-3)', display: 'flex', flexShrink: 0 }}>
                         {cpShowPw ? I.eyeOff : I.eye}
                       </button>
                     </div>
                     <div style={inputStyle}>
-                      <span style={{ color: 'rgba(255,255,255,0.3)', display: 'flex' }}>{I.lock}</span>
+                      <span style={{ color: 'var(--t-text-3)', display: 'flex' }}>{I.lock}</span>
                       <input type="password" value={cpConfirm} onChange={e => setCpConfirm(e.target.value)}
                         placeholder="Confirm password" disabled={cpLoading}
                         style={{ ...inputFieldStyle }} />
@@ -618,7 +620,7 @@ export default function Profile() {
                         : 'Reset Password'}
                     </button>
                     <button onClick={cpTimer === 0 ? handleCpSendOtp : undefined} disabled={cpTimer > 0 || cpLoading}
-                      style={{ width: '100%', textAlign: 'center', fontSize: 13, color: cpTimer > 0 ? 'rgba(255,255,255,0.25)' : '#a78bfa', background: 'none', border: 'none', cursor: cpTimer > 0 ? 'default' : 'pointer' }}>
+                      style={{ width: '100%', textAlign: 'center', fontSize: 13, color: cpTimer > 0 ? 'var(--t-text-3)' : '#a78bfa', background: 'none', border: 'none', cursor: cpTimer > 0 ? 'default' : 'pointer' }}>
                       {cpTimer > 0 ? `Resend OTP in ${cpTimer}s` : 'Resend OTP'}
                     </button>
                   </>
@@ -629,18 +631,18 @@ export default function Profile() {
             <div className="mt-2">
               <AccordionCard id="privacy" expanded={expandedSection} onToggle={toggleSection}
                 icon={I.shield} title="Privacy & Security">
-                <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--t-border)' }}>
                   <div className="flex gap-3 items-start">
                     <span style={{ color: '#a78bfa', display: 'flex', flexShrink: 0, marginTop: 1 }}>{I.shield}</span>
-                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
+                    <p style={{ fontSize: 13, color: 'var(--t-text-3)', lineHeight: 1.6 }}>
                       Your data is stored securely and never shared with third parties without your consent.
                     </p>
                   </div>
                 </div>
-                <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--t-border)' }}>
                   <div className="flex gap-3 items-start">
                     <span style={{ color: '#a78bfa', display: 'flex', flexShrink: 0, marginTop: 1 }}>{I.lock}</span>
-                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
+                    <p style={{ fontSize: 13, color: 'var(--t-text-3)', lineHeight: 1.6 }}>
                       All communication with our servers is encrypted using HTTPS.
                     </p>
                   </div>
@@ -668,14 +670,14 @@ export default function Profile() {
                   background: 'rgba(139,92,246,0.08)',
                   border: '1px solid rgba(139,92,246,0.2)',
                 }}>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>Earn ₹50 for every salon you refer</p>
-                  <p style={{ fontSize: 12, marginTop: 4, color: 'rgba(255,255,255,0.38)', lineHeight: 1.6 }}>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--t-text)' }}>Earn ₹50 for every salon you refer</p>
+                  <p style={{ fontSize: 12, marginTop: 4, color: 'var(--t-text-3)', lineHeight: 1.6 }}>
                     Invite salon owners to join MySalonBookings and earn rewards when they get started.
                   </p>
                 </div>
                 {/* How it works */}
                 <div className="space-y-3">
-                  <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)' }}>How it works</p>
+                  <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--t-text-3)' }}>How it works</p>
                   {[
                     { icon: I.share, step: '1', text: 'Share your referral code with a salon owner' },
                     { icon: I.store, step: '2', text: 'They sign up on the MySalonBookings owner app' },
@@ -689,27 +691,27 @@ export default function Profile() {
                         fontSize: 11, fontWeight: 700, color: '#a78bfa',
                       }}>{item.step}</div>
                       <span style={{ color: '#a78bfa', display: 'flex', flexShrink: 0 }}>{item.icon}</span>
-                      <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)' }}>{item.text}</p>
+                      <p style={{ fontSize: 13, color: 'var(--t-text-2)' }}>{item.text}</p>
                     </div>
                   ))}
                 </div>
                 {/* Terms */}
                 <button
                   onClick={() => alert('Terms & Conditions\n\n• The referred salon owner must register using your referral code.\n\n• The salon owner must actively use the MySalonBookings owner app for a minimum of 30 consecutive days.\n\n• ₹50 will be credited to your account once the 30-day qualifying period is complete.\n\n• Each referral code can be used once per salon.\n\n• MySalonBookings reserves the right to modify or cancel the referral program at any time.')}
-                  style={{ width: '100%', textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.25)', background: 'none', border: 'none', cursor: 'pointer' }}
+                  style={{ width: '100%', textAlign: 'center', fontSize: 12, color: 'var(--t-text-3)', background: 'none', border: 'none', cursor: 'pointer' }}
                 >
                   View Terms & Conditions
                 </button>
                 {/* Referral code */}
                 <div style={{
                   borderRadius: 14, padding: '14px 16px',
-                  background: 'rgba(255,255,255,0.03)',
+                  background: 'var(--t-input-bg)',
                   border: '1px dashed rgba(139,92,246,0.35)',
                   display: 'flex', alignItems: 'center', gap: 12,
                 }}>
                   <div style={{ flex: 1 }}>
                     <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', color: '#a78bfa', textTransform: 'uppercase', marginBottom: 4 }}>Your Code</p>
-                    <p style={{ fontSize: 24, fontWeight: 800, color: '#fff', letterSpacing: '0.12em', fontFamily: 'monospace' }}>{referralCode}</p>
+                    <p style={{ fontSize: 24, fontWeight: 800, color: 'var(--t-text)', letterSpacing: '0.12em', fontFamily: 'monospace' }}>{referralCode}</p>
                   </div>
                   <button onClick={handleCopyCode}
                     style={{
@@ -739,9 +741,9 @@ export default function Profile() {
             <SectionLabel>About</SectionLabel>
 
             <div style={sectionCard}>
-              <SettingRow icon={I.code}  label="App Version" rightEl={<span style={{ fontSize: 13, color: 'rgba(255,255,255,0.28)', fontWeight: 500 }}>v1.0.0</span>} />
+              <SettingRow icon={I.code}  label="App Version" rightEl={<span style={{ fontSize: 13, color: 'var(--t-text-2)', fontWeight: 500 }}>v1.0.0</span>} />
               <Divider />
-              <SettingRow icon={I.globe} label="Website" rightEl={<span style={{ fontSize: 12, color: 'rgba(255,255,255,0.28)' }}>mysalonbookings.com</span>} />
+              <SettingRow icon={I.globe} label="Website" rightEl={<span style={{ fontSize: 12, color: 'var(--t-text-2)' }}>mysalonbookings.com</span>} />
               <Divider />
               <SettingRow icon={I.document} label="Terms & Conditions" chevron
                 onClick={() => alert('Terms & Conditions\n\nBy using MySalonBookings, you agree to our terms of service. Please visit mysalonbookings.com for full details.')} />
@@ -766,8 +768,8 @@ export default function Profile() {
 
             {/* ── FOOTER ────────────────────────────────────────── */}
             <div className="mt-8 flex flex-col items-center gap-1">
-              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.15)', fontWeight: 500 }}>MySalonBookings</p>
-              <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.1)' }}>v1.0.0 · Built with care</p>
+              <p style={{ fontSize: 11, color: 'var(--t-text-3)', fontWeight: 500 }}>MySalonBookings</p>
+              <p style={{ fontSize: 10, color: 'var(--t-text-3)' }}>v1.0.0 · Built with care</p>
             </div>
 
             <div className="h-8" />
