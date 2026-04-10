@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState, useRef, useCallback, useLayoutEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -135,6 +135,7 @@ const BIZ_SUBTITLES = { barbershop:'Precision cuts. Defined character.', salon:'
 function SalonDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { addToast, addNotification } = useNotifications();
   const token = localStorage.getItem("customerToken");
 
@@ -239,6 +240,17 @@ function SalonDetails() {
   // Reset slide index when salon changes
   useEffect(() => { setHeroSlideIdx(0); }, [salon?._id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Restore pending service selection after login redirect
+  useEffect(() => {
+    const pending = location.state?.pendingServices;
+    if (pending?.length && salon) {
+      setSelectedServices(pending);
+      setBookDate(todayStr); setSlot(""); setBarberId(""); setAppliedCoupon(null);
+      setCouponDiscount(0); setCouponInput(""); setCouponError(""); setBookingSuccess(false); setBookError("");
+      setShowBooking(true);
+    }
+  }, [salon]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Auto-advance hero
   useEffect(() => {
     if (heroSectionRef.current) heroSectionRef.current._slideLen = heroSlides.length;
@@ -329,7 +341,7 @@ function SalonDetails() {
   };
 
   const openBooking = () => {
-    if (!isCustomer()) { clearCustomerAuth(); navigate("/login", { state: { from: `/salons/${id}` } }); return; }
+    if (!isCustomer()) { clearCustomerAuth(); navigate("/login", { state: { from: location.pathname, bookingState: { pendingServices: selectedServices } } }); return; }
     setBookDate(todayStr); setSlot(""); setBarberId(""); setAppliedCoupon(null);
     setCouponDiscount(0); setCouponInput(""); setCouponError(""); setBookingSuccess(false); setBookError(""); setShowBooking(true);
   };
