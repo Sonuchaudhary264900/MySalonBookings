@@ -156,6 +156,7 @@ function Booking() {
     e.preventDefault();
     if (!date) { setError("Please select a date."); return; }
     if (!slot)  { setError("Please select a time slot."); return; }
+    if (isPastSlot(slot)) { setSlot(""); setError("This time slot has just passed. Please select another."); return; }
 
     if (!isCustomer()) {
       clearCustomerAuth();

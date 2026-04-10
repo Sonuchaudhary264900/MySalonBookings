@@ -398,6 +398,7 @@ function SalonDetails() {
   const handleConfirm = async (e) => {
     if (e?.preventDefault) e.preventDefault();
     if (!slot) { setBookError("Please select a time slot."); return; }
+    if (isPastSlot(bookDate, slot)) { setSlot(""); setBookError("This time slot has just passed. Please select another."); return; }
     setBookError(""); setBookingLoading(true);
     try {
       const res = await API.post("/customer/bookings", {

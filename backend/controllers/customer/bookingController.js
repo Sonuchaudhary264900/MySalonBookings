@@ -57,6 +57,25 @@ const createBooking = async (req, res) => {
       );
     }
 
+    // Check if salon is open on the requested date
+    const DAY_NAMES = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
+    const dayName   = DAY_NAMES[new Date(appointmentDate + 'T12:00:00').getDay()];
+    const dayHours  = salon.workingHours?.[dayName];
+
+    const isHoliday = (salon.workingHours?.holidays || []).some(h =>
+      new Date(h.date).toISOString().slice(0, 10) === appointmentDate
+    );
+    if (isHoliday) {
+      return res.status(400).json(
+        formatErrorResponse('The salon is closed on this date. Please choose another date.', 400)
+      );
+    }
+    if (!dayHours || dayHours.isClosed) {
+      return res.status(400).json(
+        formatErrorResponse('The salon is closed on this day. Please choose another date.', 400)
+      );
+    }
+
     // Enforce max 2 active bookings per customer per day
     const dayStart = new Date(appointmentDate + 'T00:00:00.000Z');
     const dayEnd   = new Date(appointmentDate + 'T23:59:59.999Z');
@@ -96,6 +115,30 @@ const createBooking = async (req, res) => {
 
     const totalDuration = fetchedServices.reduce((sum, s) => sum + (s.duration || 30), 0);
     const totalPrice    = fetchedServices.reduce((sum, s) => sum + (s.basePrice || 0), 0);
+
+    // Check appointment time is within working hours
+    const parseMin = (t, fallback) => { const parts = (t || fallback).split(':').map(Number); return parts[0] * 60 + parts[1]; };
+    const openMin  = parseMin(dayHours.open,  '09:00');
+    const closeMin = parseMin(dayHours.close, '18:00');
+    const apptMin  = parseMin(appointmentTime, '09:00');
+    if (apptMin < openMin || apptMin + totalDuration > closeMin) {
+      return res.status(400).json(
+        formatErrorResponse('The requested time is outside the salon\'s working hours.', 400)
+      );
+    }
+
+    // Reject bookings for past time slots (using IST)
+    const nowIST    = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+    const todayIST  = nowIST.toISOString().slice(0, 10);
+    if (appointmentDate === todayIST) {
+      const nowMin = nowIST.getUTCHours() * 60 + nowIST.getUTCMinutes();
+      if (apptMin <= nowMin) {
+        return res.status(400).json(
+          formatErrorResponse('This time slot has already passed. Please choose an upcoming slot.', 400)
+        );
+      }
+    }
+
     const primaryService = fetchedServices[0];
     const combinedName  = fetchedServices.map(s => s.name).join(' + ');
 
