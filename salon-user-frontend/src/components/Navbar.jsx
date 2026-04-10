@@ -234,16 +234,33 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
     >
       <div style={{
         maxWidth: 1280, margin: "0 auto",
-        padding: "0 24px",
+        padding: "0 14px",
         height: 62,
-        display: "grid",
-        gridTemplateColumns: "1fr auto 1fr",
+        display: "flex",
         alignItems: "center",
-        gap: 16,
+        gap: 8,
       }}>
 
-        {/* ── LEFT: Logo ── */}
-        <Link to="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10, width: "fit-content" }}>
+        {/* ── HAMBURGER — mobile only, far left ── */}
+        <button
+          className="flex md:hidden"
+          onClick={() => setDrawerOpen(true)}
+          style={{
+            width: 38, height: 38, borderRadius: 12, flexShrink: 0,
+            alignItems: "center", justifyContent: "center",
+            background: "transparent", border: "none",
+            color: "var(--t-text-2)", cursor: "pointer",
+          }}
+        >
+          <Menu size={22} strokeWidth={2} />
+        </button>
+
+        {/* ── LOGO — centered on mobile, left on desktop ── */}
+        <Link
+          to="/"
+          className="flex-1 flex items-center justify-center md:flex-none md:justify-start"
+          style={{ textDecoration: "none", gap: 10 }}
+        >
           <div style={{
             width: 34, height: 34, borderRadius: 10,
             background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
@@ -263,8 +280,8 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
           </span>
         </Link>
 
-        {/* ── CENTER: Nav links (desktop only) ── */}
-        <nav style={{ alignItems: "center", gap: 2 }} className="hidden md:flex">
+        {/* ── CENTER: Nav links — desktop only ── */}
+        <nav style={{ alignItems: "center", gap: 2 }} className="hidden md:flex flex-1 justify-center">
           {DESKTOP_NAV.map(({ to, label, Icon }) => {
             const active = location.pathname === to;
             return (
@@ -274,7 +291,7 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
         </nav>
 
         {/* ── RIGHT: Actions ── */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "flex-end" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto" }}>
 
           {/* Bell — logged in only */}
           {token && (
@@ -361,27 +378,31 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
             </div>
           )}
 
-          {/* Theme toggle */}
-          <IconBtn onClick={toggleTheme} title={isDark ? "Light mode" : "Dark mode"}>
-            {isDark
-              ? <Sun size={15} strokeWidth={2} />
-              : <Moon size={15} strokeWidth={2} />
-            }
-          </IconBtn>
+          {/* Theme toggle — desktop only */}
+          <span className="hidden md:flex">
+            <IconBtn onClick={toggleTheme} title={isDark ? "Light mode" : "Dark mode"}>
+              {isDark
+                ? <Sun size={15} strokeWidth={2} />
+                : <Moon size={15} strokeWidth={2} />
+              }
+            </IconBtn>
+          </span>
 
-          {/* Guest: Sign In (always) + Join Free (desktop only) */}
+          {/* Guest: Sign In + Join Free (desktop only) */}
           {!token && (
             <>
               <Link to="/login"
                 style={{
                   textDecoration: "none", fontSize: 13, fontWeight: 600,
-                  padding: "7px 16px", borderRadius: 10,
-                  background: "var(--t-input-bg)", border: "1px solid var(--t-border)",
+                  padding: "7px 14px", borderRadius: 999,
+                  border: "1.5px solid var(--t-border)",
                   color: "var(--t-text-2)", transition: "all 0.18s ease",
+                  display: "flex", alignItems: "center", gap: 6,
                 }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(99,102,241,0.35)"; e.currentTarget.style.color = "var(--t-text)"; }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(99,102,241,0.5)"; e.currentTarget.style.color = "var(--t-accent)"; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--t-border)"; e.currentTarget.style.color = "var(--t-text-2)"; }}
               >
+                <User size={14} strokeWidth={2} />
                 Sign In
               </Link>
               <Link to="/register"
@@ -401,20 +422,6 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
               </Link>
             </>
           )}
-
-          {/* Hamburger — mobile only */}
-          <button
-            className="flex md:hidden"
-            onClick={() => setDrawerOpen(true)}
-            style={{
-              width: 36, height: 36, borderRadius: "50%",
-              alignItems: "center", justifyContent: "center",
-              background: "var(--t-input-bg)", border: "1px solid var(--t-border)",
-              color: "var(--t-text-2)", cursor: "pointer",
-            }}
-          >
-            <Menu size={18} strokeWidth={2} />
-          </button>
         </div>
 
       </div>
