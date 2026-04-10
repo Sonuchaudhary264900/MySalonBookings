@@ -498,7 +498,7 @@ export default function LandingPage({
               </div>
             </div>
             <h2 style={{ fontSize: "clamp(1.6rem,4.5vw,3rem)", fontWeight: 900, color: "var(--t-text)", letterSpacing: "-1.2px", marginBottom: 14, lineHeight: 1.15 }}>
-              Book smart.<br />Save time.<br /><span className="lp-shimmer">Look amazing.</span>
+              Avoid Long Queue.<br />Save time.<br /><span className="lp-shimmer">Look amazing.</span>
             </h2>
             <p style={{ color: "var(--t-text-2)", fontSize: 15.5, lineHeight: 1.75, maxWidth: 440, margin: "0 auto 36px" }}>
               Join 50,000+ customers who stopped calling salons and started booking smarter — instantly, for free.
