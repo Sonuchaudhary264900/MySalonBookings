@@ -118,7 +118,7 @@ const CSS = `
     /* FIX: flex-shrink:0 + width:100% ensures items don't collapse */
     flex-shrink: 0;
     width: 100%;
-    touch-action: pan-y;
+    touch-action: none;
   }
 
   /* ── video ── */
@@ -820,17 +820,13 @@ export default function Reels() {
     };
 
     const onTouchMove = (e) => {
+      e.preventDefault();
       const strip = stripRef.current;
       if (!strip) return;
       const dy = e.touches[0].clientY - touchStartY.current;
       touchDeltaY.current = dy;
 
-      // FIX: mark as swipe early so tap handler ignores it
-      if (Math.abs(dy) > 8) {
-        isSwiping.current = true;
-        // FIX: prevent any ancestor scroll while we're swiping reels
-        e.preventDefault();
-      }
+      if (Math.abs(dy) > 8) isSwiping.current = true;
 
       const itemH = getItemHeight();
       const base  = -currentIdx.current * itemH;
