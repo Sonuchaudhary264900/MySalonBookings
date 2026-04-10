@@ -97,10 +97,9 @@ const CSS = `
   /* ── feed container ── */
   .reels-feed {
     position: relative;
-    overflow-y: auto;
+    overflow: hidden;
     background: #000;
-    /* FIX: allow touch to propagate correctly */
-    touch-action: pan-y;
+    touch-action: none;
   }
 
   /* ── strip ── */
