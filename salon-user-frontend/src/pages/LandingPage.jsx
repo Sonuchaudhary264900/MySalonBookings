@@ -61,7 +61,7 @@ const CSS = `
   }
   @media(max-width:479px){
     .lp-gender-grid{grid-template-columns:1fr!important;}
-    .lp-hero-pad{padding-top:40px!important;padding-bottom:36px!important;}
+    .lp-hero-pad{padding-top:calc(82px + env(safe-area-inset-top, 0px))!important;padding-bottom:36px!important;}
     .lp-gender-tile-img{width:72px!important;}
     .lp-gender-tile-inner{padding:18px 14px 16px!important;}
   }
@@ -163,18 +163,18 @@ export default function LandingPage({
         ══════════════════════════════════════════ */}
         <section
           className="lp-hero-pad"
-          style={{ position: "relative", overflow: "hidden", padding: "clamp(48px,9vh,108px) 20px clamp(48px,6vh,80px)", textAlign: "center" }}
+          style={{ position: "relative", overflow: "hidden", paddingTop: "calc(clamp(82px,9vh,108px) + env(safe-area-inset-top, 0px))", paddingBottom: "clamp(48px,6vh,80px)", paddingLeft: 20, paddingRight: 20, textAlign: "center" }}
         >
           {/* Background orbs — dark only */}
           {isDark && <>
-            <div className="lp-orb1" style={{ position: "absolute", top: -160, left: "4%", width: 640, height: 640, borderRadius: "50%", background: "radial-gradient(circle,rgba(99,102,241,0.18) 0%,transparent 68%)", pointerEvents: "none" }} />
-            <div className="lp-orb2" style={{ position: "absolute", top: -80, right: "2%", width: 700, height: 700, borderRadius: "50%", background: "radial-gradient(circle,rgba(139,92,246,0.13) 0%,transparent 68%)", pointerEvents: "none" }} />
+            <div className="lp-orb1" style={{ position: "absolute", top: -160, left: "4%", width: 640, height: 640, borderRadius: "50%", background: "radial-gradient(circle,rgba(99,102,241,0.24) 0%,transparent 68%)", pointerEvents: "none" }} />
+            <div className="lp-orb2" style={{ position: "absolute", top: -80, right: "2%", width: 700, height: 700, borderRadius: "50%", background: "radial-gradient(circle,rgba(139,92,246,0.18) 0%,transparent 68%)", pointerEvents: "none" }} />
             <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 80% 50% at 50% 0%,rgba(99,102,241,0.07) 0%,transparent 70%)", pointerEvents: "none" }} />
             <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px)", backgroundSize: "60px 60px", pointerEvents: "none" }} />
           </>}
           {!isDark && <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 60% at 50% -10%,rgba(99,102,241,0.07) 0%,transparent 70%)", pointerEvents: "none" }} />}
 
-          <div className="max-w-3xl mx-auto" style={{ position: "relative", zIndex: 1 }}>
+          <div className="max-w-3xl mx-auto" style={{ position: "relative", zIndex: 1, maxWidth: "min(768px, 90%)" }}>
 
             {/* Entry buttons */}
             <div className="lp-u0 lp-hero-btns" style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginBottom: 32 }}>
@@ -201,13 +201,13 @@ export default function LandingPage({
             </div>
 
             {/* Headline */}
-            <h1 className="lp-u2" style={{ fontSize: "clamp(2.2rem,6vw,4.8rem)", fontWeight: 900, lineHeight: 1.06, letterSpacing: "-0.04em", marginBottom: 20 }}>
+            <h1 className="lp-u2" style={{ fontSize: "clamp(1.75rem,6vw,4.8rem)", fontWeight: 900, lineHeight: 1.06, letterSpacing: "-0.04em", marginBottom: 20 }}>
               Book smart, save time,<br />
               <span className="lp-shimmer">avoid waiting.</span>
             </h1>
 
             {/* Sub */}
-            <p className="lp-u3" style={{ fontSize: "clamp(0.95rem,2.2vw,1.15rem)", color: "var(--t-text-2)", lineHeight: 1.8, maxWidth: 460, margin: "0 auto 36px" }}>
+            <p className="lp-u3" style={{ fontSize: "clamp(0.95rem,2.2vw,1.15rem)", color: "var(--t-text-2)", lineHeight: 1.8, width: "100%", maxWidth: "min(460px, 90%)", margin: "0 auto 36px" }}>
               Enjoy a seamless salon experience —<br className="hidden sm:block" />
               browse real reviews, pick your slot, confirm instantly.
             </p>

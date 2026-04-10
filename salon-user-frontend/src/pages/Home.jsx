@@ -535,8 +535,8 @@ export default function Home() {
     return [...allSalons].sort((a, b) => parseFloat(b.averageRating || 0) - parseFloat(a.averageRating || 0)).slice(0, 2);
   }, [allSalons]);
 
-  const heroOverlayLight = "linear-gradient(90deg,#f9fafb 0%,rgba(249,250,251,0.97) 32%,rgba(249,250,251,0.72) 55%,transparent 100%)";
-  const heroOverlayDark  = "linear-gradient(90deg,#111827 0%,rgba(17,24,39,0.97) 32%,rgba(17,24,39,0.72) 55%,transparent 100%)";
+  const heroOverlayLight = "linear-gradient(90deg,#f9fafb 0%,rgba(249,250,251,0.97) 32%,rgba(249,250,251,0.88) 65%,transparent 100%)";
+  const heroOverlayDark  = "linear-gradient(90deg,#111827 0%,rgba(17,24,39,0.97) 32%,rgba(17,24,39,0.88) 65%,transparent 100%)";
   const heroOverlay = isDark ? heroOverlayDark : heroOverlayLight;
 
   return (
@@ -594,9 +594,12 @@ export default function Home() {
           position:"relative", zIndex:1,
           width:"100%", maxWidth:1280,
           margin:"0 auto",
-          padding:"clamp(24px,6vh,100px) clamp(16px,5vw,80px)",
+          paddingTop:"calc(clamp(82px,6vh,100px) + env(safe-area-inset-top, 0px))",
+          paddingBottom:"clamp(24px,6vh,100px)",
+          paddingLeft:"clamp(16px,5vw,80px)",
+          paddingRight:"clamp(16px,5vw,80px)",
         }}>
-          <div style={{ maxWidth:680 }}>
+          <div style={{ maxWidth:"min(680px, 90%)" }}>
 
             {/* Overline */}
             <div style={{
@@ -619,7 +622,7 @@ export default function Home() {
 
             {/* Headline */}
             <h1 style={{
-              fontSize:"clamp(36px, 4.5vw, 96px)",
+              fontSize:"clamp(26px, 4.5vw, 96px)",
               fontWeight:900,
               lineHeight:1.0,
               letterSpacing:"-0.04em",
@@ -629,7 +632,7 @@ export default function Home() {
               Avoid Long Queue.<br />Save Time.
             </h1>
             <h1 style={{
-              fontSize:"clamp(28px, 4.5vw, 72px)",
+              fontSize:"clamp(20px, 4.5vw, 72px)",
               fontWeight:900,
               lineHeight:1.05,
               letterSpacing:"-0.03em",
@@ -645,7 +648,7 @@ export default function Home() {
             {/* Sub-line */}
             <p style={{
               fontSize:16, fontWeight:500, color:"var(--t-hero-sub)",
-              marginBottom:32, lineHeight:1.6, maxWidth:480,
+              marginBottom:32, lineHeight:1.6, maxWidth:"min(480px, 90%)",
             }}>
               Discover and book the best GlowSpot near you — verified, rated, and ready.
             </p>
