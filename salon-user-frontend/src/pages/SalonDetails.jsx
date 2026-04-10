@@ -471,37 +471,45 @@ function SalonDetails() {
 
       {/* ════ PAGE CSS ════ */}
       <style>{`
-        .lux-hero{position:relative;height:100vh;min-height:580px;overflow:hidden}
+        .lux-hero{position:relative;height:100vh;min-height:520px;overflow:hidden}
         .lux-media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
         @keyframes luxKB{from{transform:scale(1)}to{transform:scale(1.06)}}
         .lux-media-img{animation:luxKB 12s ease-in-out infinite alternate}
         @keyframes heroFadeIn{from{opacity:0}to{opacity:1}}
         .lux-hero-slide{position:absolute;inset:0;animation:heroFadeIn 1.1s ease both}
-        .lux-section{padding:clamp(56px,10vw,140px) clamp(20px,6vw,96px)}
-        .lux-title{font-size:clamp(28px,5vw,72px);font-weight:900;line-height:1.05;letter-spacing:-.025em}
-        .lux-hero-title{font-size:clamp(28px,7vw,104px);font-weight:900;line-height:.95;letter-spacing:-.03em}
+        .lux-section{padding:clamp(44px,8vw,140px) clamp(16px,6vw,96px)}
+        .lux-title{font-size:clamp(24px,5vw,72px);font-weight:900;line-height:1.05;letter-spacing:-.025em}
+        .lux-hero-title{font-size:clamp(26px,7vw,104px);font-weight:900;line-height:.95;letter-spacing:-.03em}
         .lux-overline{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase}
-        .lux-body{font-size:clamp(15px,1.4vw,19px);line-height:1.75}
+        .lux-body{font-size:clamp(14px,1.4vw,19px);line-height:1.75}
         .lux-divider{width:36px;height:1px;margin:20px 0}
-        .lux-btn-p{display:inline-flex;align-items:center;gap:8px;padding:13px 24px;font-weight:700;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#fff;border-radius:2px;transition:all .25s ease;cursor:pointer;border:none;outline:none}
-        .lux-btn-o{display:inline-flex;align-items:center;gap:8px;padding:13px 24px;font-weight:700;font-size:12px;letter-spacing:.12em;text-transform:uppercase;border-radius:2px;transition:all .25s ease;cursor:pointer;background:transparent;text-decoration:none}
+        .lux-btn-p{display:inline-flex;align-items:center;gap:8px;padding:13px 24px;font-weight:700;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#fff;border-radius:2px;transition:all .25s ease;cursor:pointer;border:none;outline:none;white-space:nowrap}
+        .lux-btn-o{display:inline-flex;align-items:center;gap:8px;padding:13px 24px;font-weight:700;font-size:12px;letter-spacing:.12em;text-transform:uppercase;border-radius:2px;transition:all .25s ease;cursor:pointer;background:transparent;text-decoration:none;white-space:nowrap}
         .lux-btn-p:hover,.lux-btn-o:hover{opacity:.8;transform:translateY(-2px)}
-        @media(max-width:479px){.lux-btn-p,.lux-btn-o{padding:11px 18px;font-size:11px;letter-spacing:.08em}}
+        @media(max-width:639px){.lux-btn-p:hover,.lux-btn-o:hover{transform:none!important;opacity:1!important}}
+        @media(max-width:479px){.lux-btn-p,.lux-btn-o{padding:11px 16px;font-size:11px;letter-spacing:.07em}}
+        @media(max-width:374px){.lux-btn-p,.lux-btn-o{padding:10px 14px;font-size:10px;letter-spacing:.05em}}
         .lux-gallery-track{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
         .lux-gallery-track::-webkit-scrollbar{display:none}
         .lux-gc{position:relative;flex-shrink:0;overflow:hidden;scroll-snap-align:start;cursor:pointer;border-radius:2px}
         .lux-gc .gcm{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .7s ease}
         .lux-gc:hover .gcm{transform:scale(1.06)}
         .lux-svc-cat{border-bottom:1px solid ${dm.b05}}
-        .lux-svc-row{padding:16px 0;display:flex;align-items:center;gap:12px;border-bottom:1px solid ${dm.b03};cursor:pointer;transition:padding-left .2s}
+        .lux-svc-row{padding:14px 0;display:flex;align-items:center;gap:10px;border-bottom:1px solid ${dm.b03};cursor:pointer;transition:padding-left .2s}
         .lux-svc-row:hover{padding-left:8px}
-        .lux-rev-track{display:flex;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding:0 clamp(20px,6vw,96px)}
+        .lux-rev-track{display:flex;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding:0 clamp(16px,6vw,96px)}
         .lux-rev-track::-webkit-scrollbar{display:none}
-        .lux-info-row{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid ${dm.b04}}
+        .lux-info-row{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid ${dm.b04}}
         .lux-split{display:grid;grid-template-columns:1fr 1fr}
         @media(max-width:767px){.lux-split{grid-template-columns:1fr}}
-        .lux-pkg-card{border:1px solid ${dm.b07};padding:clamp(20px,3vw,32px);border-radius:2px;transition:border-color .2s,transform .2s;display:flex;flex-direction:column}
+        .lux-pkg-card{border:1px solid ${dm.b07};padding:clamp(16px,3vw,32px);border-radius:2px;transition:border-color .2s,transform .2s;display:flex;flex-direction:column}
         .lux-pkg-card:hover{border-color:${dm.b20};transform:translateY(-4px)}
+        @media(max-width:639px){.lux-pkg-card:hover{transform:none!important}}
+        .lux-cat-header{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%}
+        .lux-cat-left{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
+        .lux-cat-right{display:flex;align-items:center;gap:16px;flex-shrink:0}
+        @media(max-width:479px){.lux-cat-right{gap:10px}}
+        .lux-svc-name{overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
       `}</style>
 
       {/* ════ 1. HERO ════ */}
@@ -547,7 +555,7 @@ function SalonDetails() {
           </div>
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 z-10" style={{ padding: 'clamp(20px,5vw,80px)', paddingBottom: 'clamp(72px,9vh,130px)' }}>
+        <div className="absolute bottom-0 left-0 right-0 z-10" style={{ padding: 'clamp(16px,5vw,80px)', paddingBottom: 'clamp(64px,9vh,130px)' }}>
           <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .2, duration: .9, ease: [.22,1,.36,1] }}>
             <p className="lux-overline mb-4" style={{ color: 'rgba(255,255,255,.72)', textShadow: '0 1px 8px rgba(0,0,0,.65)' }}>
               {BIZ_SUBTITLES[salon.businessType] || 'Premium grooming experience'}
@@ -615,7 +623,7 @@ function SalonDetails() {
           </div>
         )}
 
-        <motion.div className="absolute right-6 bottom-8 flex flex-col items-center gap-2"
+        <motion.div className="absolute right-6 bottom-8 flex flex-col items-center gap-2 hidden sm:flex"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2 }}>
           <span className="lux-overline" style={{ color: 'rgba(255,255,255,.3)', fontSize: 9 }}>SCROLL</span>
           <div style={{ width: 1, height: 44, background: 'linear-gradient(to bottom,rgba(255,255,255,.35),transparent)' }} />
@@ -642,7 +650,7 @@ function SalonDetails() {
               {salon.description}
             </motion.p>
           )}
-          <motion.div className="flex flex-wrap" style={{ gap: 'clamp(24px,6vw,80px)', marginTop: 'clamp(36px,6vw,64px)' }}
+          <motion.div className="flex flex-wrap" style={{ gap: 'clamp(20px,6vw,80px)', marginTop: 'clamp(28px,6vw,64px)' }}
             initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
             transition={{ delay: .25, duration: .7 }}>
             {[
@@ -777,27 +785,27 @@ function SalonDetails() {
                       <motion.div key={cat} className="lux-svc-cat"
                         initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
                         transition={{ delay: Math.min(ci * .05, .3), duration: .5 }}>
-                        <button onClick={toggleCat} className="w-full text-left"
-                          style={{ padding: '22px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, transition: 'opacity .2s' }}
+                        <button onClick={toggleCat} className="lux-cat-header w-full text-left"
+                          style={{ padding: 'clamp(14px,2vw,22px) 0', transition: 'opacity .2s' }}
                           onMouseEnter={e => e.currentTarget.style.opacity = '.7'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
-                          <div className="flex items-center gap-5">
+                          <div className="lux-cat-left">
                             <div style={{
-                              width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+                              width: 40, height: 40, borderRadius: 12, flexShrink: 0,
                               background: `${theme.p}18`,
                               border: `1px solid ${theme.p}30`,
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
                             }}>
-                              <CatIcon style={{ width: 20, height: 20, color: theme.p, strokeWidth: 1.8 }} />
+                              <CatIcon style={{ width: 18, height: 18, color: theme.p, strokeWidth: 1.8 }} />
                             </div>
-                            <div>
-                              <p style={{ fontSize: 'clamp(18px,2.2vw,24px)', fontWeight: 800, color: dm.fg, letterSpacing: '-.015em' }}>{cat}</p>
+                            <div style={{ minWidth: 0 }}>
+                              <p className="lux-svc-name" style={{ fontSize: 'clamp(15px,2.2vw,22px)', fontWeight: 800, color: dm.fg, letterSpacing: '-.015em' }}>{cat}</p>
                               <p className="lux-overline mt-1" style={{ color: dm.fg28 }}>{catServices.length} service{catServices.length !== 1 ? 's' : ''}</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-6 shrink-0">
-                            <span style={{ fontSize: 15, fontWeight: 700, color: theme.p }}>from ₹{minPrice}</span>
+                          <div className="lux-cat-right">
+                            <span style={{ fontSize: 'clamp(12px,1.5vw,15px)', fontWeight: 700, color: theme.p, whiteSpace: 'nowrap' }}>from ₹{minPrice}</span>
                             <div className="w-8 h-8 rounded-full flex items-center justify-center"
-                              style={{ border: `1px solid ${dm.b12}`, color: dm.fg45 }}>
+                              style={{ border: `1px solid ${dm.b12}`, color: dm.fg45, flexShrink: 0 }}>
                               {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                             </div>
                           </div>
@@ -818,7 +826,7 @@ function SalonDetails() {
                                         alt={s.name}
                                         loading={svcIdx < 4 ? 'eager' : 'lazy'}
                                         style={{
-                                          width: 52, height: 52,
+                                          width: 'clamp(40px,11vw,52px)', height: 'clamp(40px,11vw,52px)',
                                           borderRadius: 10,
                                           objectFit: 'cover',
                                           flexShrink: 0,
@@ -842,8 +850,8 @@ function SalonDetails() {
                                         {s.applicableFor?.length === 1 && ` · ${s.applicableFor[0] === 'male' ? 'Men' : 'Women'}`}
                                       </p>
                                     </div>
-                                    <div className="flex items-center gap-4 shrink-0">
-                                      <span style={{ fontSize: 'clamp(16px,2vw,21px)', fontWeight: 900, color: dm.fg, letterSpacing: '-.025em' }}>₹{s.basePrice || s.price || 0}</span>
+                                    <div className="flex items-center gap-2 shrink-0" style={{ gap: 'clamp(8px,2vw,16px)' }}>
+                                      <span style={{ fontSize: 'clamp(14px,2vw,21px)', fontWeight: 900, color: dm.fg, letterSpacing: '-.025em', whiteSpace: 'nowrap' }}>₹{s.basePrice || s.price || 0}</span>
                                       <motion.button whileTap={{ scale: .88 }}
                                         className="w-9 h-9 rounded-full flex items-center justify-center"
                                         style={isSel ? { background: theme.p, border: `1px solid ${theme.p}`, color: '#fff' } : { background: 'transparent', border: `1px solid ${dm.b20}`, color: dm.fg55 }}>
@@ -1037,7 +1045,7 @@ function SalonDetails() {
                 <motion.div key={r._id}
                   initial={{ opacity: 0, x: 24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
                   transition={{ delay: Math.min(i * .06, .35), duration: .6 }}
-                  style={{ flexShrink: 0, width: 'clamp(290px,38vw,460px)', padding: 'clamp(28px,3vw,44px)', background: dm.card, border: `1px solid ${dm.cardBrd}`, scrollSnapAlign: 'start' }}>
+                  style={{ flexShrink: 0, width: 'clamp(260px,80vw,460px)', padding: 'clamp(20px,3vw,44px)', background: dm.card, border: `1px solid ${dm.cardBrd}`, scrollSnapAlign: 'start' }}>
                   <div className="flex mb-5">
                     {[1,2,3,4,5].map(s => <span key={s} style={{ fontSize: 16, color: s <= starRating ? '#fbbf24' : dm.b10 }}>★</span>)}
                   </div>
@@ -1068,7 +1076,7 @@ function SalonDetails() {
 
       {/* ════ 9. INFO ════ */}
       <section className="lux-section" style={{ borderBottom: `1px solid ${dm.b04}` }}>
-        <div className="lux-split" style={{ gap: 'clamp(40px,6vw,100px)' }}>
+        <div className="lux-split" style={{ gap: 'clamp(24px,6vw,100px)' }}>
           <div>
             <motion.p className="lux-overline mb-5" style={{ color: theme.p }}
               initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>Find Us</motion.p>
@@ -1124,7 +1132,7 @@ function SalonDetails() {
       </section>
 
       {/* ════ 10. FINAL CTA ════ */}
-      <section className="relative overflow-hidden flex items-center" style={{ minHeight: 'clamp(340px,65vh,900px)' }}>
+      <section className="relative overflow-hidden flex items-center" style={{ minHeight: 'clamp(300px,55vh,900px)' }}>
         {salon.ctaPhoto || salonPhotoUrls[1] || salonPhotoUrls[0]
           ? <img src={salon.ctaPhoto || salonPhotoUrls[1] || salonPhotoUrls[0]} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ filter: 'brightness(.35) saturate(.70) contrast(1.1)' }} />
           : <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse 65% 55% at 30% 50%, ${theme.p}30 0%, transparent 60%), radial-gradient(ellipse 50% 60% at 75% 50%, rgba(139,92,246,0.20) 0%, transparent 55%), var(--t-bg)` }} />
@@ -1143,12 +1151,12 @@ function SalonDetails() {
           <motion.div className="flex flex-wrap gap-4"
             initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: .2, duration: .7 }}>
             <motion.button whileTap={{ scale: .97 }} whileHover={{ scale: 1.02 }} onClick={handleSmartBook}
-              className="lux-btn-p" style={{ background: theme.p, boxShadow: `0 12px 40px ${theme.p}50`, fontSize: 13, padding: '17px 42px' }}>
+              className="lux-btn-p" style={{ background: theme.p, boxShadow: `0 12px 40px ${theme.p}50`, fontSize: 'clamp(11px,2.5vw,13px)', padding: 'clamp(13px,3vw,17px) clamp(22px,5vw,42px)' }}>
               <Zap className="w-4 h-4" /> Book Now
             </motion.button>
             {salon.phone && (
               <motion.a whileTap={{ scale: .97 }} href={`tel:${salon.phone}`}
-                className="lux-btn-o" style={{ fontSize: 13, padding: '17px 42px', color: dm.fg, border: `1px solid ${dm.b28}` }}>
+                className="lux-btn-o" style={{ fontSize: 'clamp(11px,2.5vw,13px)', padding: 'clamp(13px,3vw,17px) clamp(22px,5vw,42px)', color: dm.fg, border: `1px solid ${dm.b28}` }}>
                 <Phone className="w-4 h-4" /> Call Us
               </motion.a>
             )}

@@ -32,6 +32,21 @@ const LP_CSS = `
   .lp-benefit:hover{transform:translateY(-6px);border-color:rgba(99,102,241,0.4)!important;box-shadow:0 20px 50px rgba(99,102,241,0.12);}
   .lp-pain{transition:transform .25s ease,border-color .25s ease;}
   .lp-pain:hover{transform:translateY(-3px);}
+  @media(max-width:639px){
+    .lp-card:hover,.lp-step:hover,.lp-review:hover,.lp-benefit:hover,.lp-pain:hover{transform:none!important;box-shadow:none!important;}
+    .lp-btn-p:hover,.lp-btn-s:hover{transform:none!important;}
+    .home-hero-photo{
+      mask-image:linear-gradient(to left,black 0%,black 55%,transparent 85%)!important;
+      -webkit-mask-image:linear-gradient(to left,black 0%,black 55%,transparent 85%)!important;
+    }
+  }
+  @media(max-width:479px){
+    .home-hero-photo{
+      mask-image:none!important;
+      -webkit-mask-image:none!important;
+      opacity:0.22!important;
+    }
+  }
 `;
 const LP_FEATURES = [
   { Icon: MapPin,     color: "#6366f1", title: "Salons Near You",       desc: "Instantly see 500+ verified salons within 5 km. Browse ratings, services, and prices — no sign-up needed." },
@@ -533,7 +548,7 @@ export default function Home() {
       ══════════════════════════════════════════════════════════ */}
       <section style={{
         position:"relative",
-        minHeight:"min(85vh,680px)",
+        minHeight:"clamp(480px,85vh,680px)",
         display:"flex",
         alignItems:"center",
         overflow:"hidden",
@@ -552,6 +567,7 @@ export default function Home() {
         {/* Photo (right half, masked) */}
         <img
             src={heroBgImage} alt="" aria-hidden="true"
+            className="home-hero-photo"
             style={{
               position:"absolute", inset:0,
               width:"100%", height:"100%", objectFit:"cover",
@@ -578,7 +594,7 @@ export default function Home() {
           position:"relative", zIndex:1,
           width:"100%", maxWidth:1280,
           margin:"0 auto",
-          padding:"clamp(28px,6vh,100px) clamp(16px,5vw,80px)",
+          padding:"clamp(24px,6vh,100px) clamp(16px,5vw,80px)",
         }}>
           <div style={{ maxWidth:680 }}>
 
@@ -687,7 +703,7 @@ export default function Home() {
         background:"var(--t-nav-bg)", backdropFilter:"blur(28px)", WebkitBackdropFilter:"blur(28px)",
         borderBottom:"1px solid var(--t-border)",
       }}>
-        <div className="max-w-7xl mx-auto" style={{ padding:"10px 24px" }}>
+        <div className="max-w-7xl mx-auto" style={{ padding:"8px clamp(12px,4vw,24px)" }}>
           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
 
             {/* Pills */}
@@ -1066,7 +1082,7 @@ export default function Home() {
           <div className="max-w-5xl mx-auto">
             <div style={{ textAlign:"center", marginBottom:52 }}>
               <div style={{ display:"inline-block", background:"rgba(239,68,68,0.07)", border:"1px solid rgba(239,68,68,0.2)", borderRadius:99, padding:"4px 16px", fontSize:11, color:"#f87171", fontWeight:700, letterSpacing:1.5, marginBottom:16 }}>SOUND FAMILIAR?</div>
-              <h2 style={{ fontSize:"clamp(1.6rem,4vw,2.8rem)", fontWeight:900, color:"var(--t-text)", letterSpacing:"-1px", marginBottom:12 }}>The old way of booking is broken</h2>
+              <h2 style={{ fontSize:"clamp(1.6rem,4vw,2.8rem)", fontWeight:900, color:"var(--t-text)", letterSpacing:"-0.03em", marginBottom:12 }}>The old way of booking is broken</h2>
               <p style={{ color:"var(--t-text-2)", fontSize:15, maxWidth:440, margin:"0 auto", lineHeight:1.7 }}>You've been putting up with this for too long. There's a better way.</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -1094,7 +1110,7 @@ export default function Home() {
           <div className="max-w-5xl mx-auto">
             <div style={{ textAlign:"center", marginBottom:52 }}>
               <div style={{ display:"inline-block", background:"rgba(99,102,241,0.08)", border:"1px solid rgba(99,102,241,0.22)", borderRadius:99, padding:"4px 16px", fontSize:11, color:"var(--t-accent)", fontWeight:700, letterSpacing:1.5, marginBottom:16 }}>HOW IT WORKS</div>
-              <h2 style={{ fontSize:"clamp(1.6rem,4vw,2.8rem)", fontWeight:900, color:"var(--t-text)", letterSpacing:"-1px", marginBottom:12 }}>Book a salon in 3 steps</h2>
+              <h2 style={{ fontSize:"clamp(1.6rem,4vw,2.8rem)", fontWeight:900, color:"var(--t-text)", letterSpacing:"-0.03em", marginBottom:12 }}>Book a salon in 3 steps</h2>
               <p style={{ color:"var(--t-text-2)", fontSize:15, lineHeight:1.7 }}>No calls, no waiting — just tap, pick, and confirm.</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
@@ -1117,7 +1133,7 @@ export default function Home() {
           <div className="max-w-6xl mx-auto">
             <div style={{ textAlign:"center", marginBottom:52 }}>
               <div style={{ display:"inline-block", background:"rgba(139,92,246,0.08)", border:"1px solid rgba(139,92,246,0.22)", borderRadius:99, padding:"4px 16px", fontSize:11, color:"#a78bfa", fontWeight:700, letterSpacing:1.5, marginBottom:16 }}>FEATURES</div>
-              <h2 style={{ fontSize:"clamp(1.6rem,4vw,2.8rem)", fontWeight:900, color:"var(--t-text)", letterSpacing:"-1px", marginBottom:12 }}>Everything you need to look great</h2>
+              <h2 style={{ fontSize:"clamp(1.6rem,4vw,2.8rem)", fontWeight:900, color:"var(--t-text)", letterSpacing:"-0.03em", marginBottom:12 }}>Everything you need to look great</h2>
               <p style={{ color:"var(--t-text-2)", fontSize:15, maxWidth:440, margin:"0 auto", lineHeight:1.7 }}>One app for discovering, booking, and managing all your salon visits.</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -1142,10 +1158,10 @@ export default function Home() {
           <div className="max-w-5xl mx-auto">
             <div style={{ textAlign:"center", marginBottom:52 }}>
               <div style={{ display:"inline-block", background:"rgba(99,102,241,0.08)", border:"1px solid rgba(99,102,241,0.22)", borderRadius:99, padding:"4px 16px", fontSize:11, color:"var(--t-accent)", fontWeight:700, letterSpacing:1.5, marginBottom:16 }}>WHY CUSTOMERS LOVE IT</div>
-              <h2 style={{ fontSize:"clamp(1.6rem,4vw,2.8rem)", fontWeight:900, color:"var(--t-text)", letterSpacing:"-1px", marginBottom:12 }}>Three things you get. Every time.</h2>
+              <h2 style={{ fontSize:"clamp(1.6rem,4vw,2.8rem)", fontWeight:900, color:"var(--t-text)", letterSpacing:"-0.03em", marginBottom:12 }}>Three things you get. Every time.</h2>
               <p style={{ color:"var(--t-text-2)", fontSize:15, maxWidth:400, margin:"0 auto", lineHeight:1.7 }}>Not a promise — a guarantee built into every booking.</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {LP_BENEFITS.map(({ Icon, color, title, headline, points }) => (
                 <div key={title} className="lp-benefit" style={{ background:"var(--t-card)", border:"1px solid var(--t-border)", borderRadius:24, padding:"30px 26px" }}>
                   <div style={{ width:54, height:54, borderRadius:18, background:color+"14", border:`1px solid ${color}28`, display:"flex", alignItems:"center", justifyContent:"center", marginBottom:20 }}>
@@ -1177,7 +1193,7 @@ export default function Home() {
                 <span style={{ color:"var(--t-text-2)", fontSize:14, fontWeight:600 }}>4.9 / 5 · 1,000+ reviews</span>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {LP_REVIEWS.map(({ name, city, rating, text }) => (
                 <div key={name} className="lp-review" style={{ background:"var(--t-card)", border:"1px solid var(--t-border)", borderRadius:20, padding:"22px 20px" }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(99,102,241,0.35)"; }}

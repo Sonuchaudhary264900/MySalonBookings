@@ -50,9 +50,25 @@ const CSS = `
   .lp-pain:hover{transform:translateY(-3px);}
   .scrollbar-hide{scrollbar-width:none;-ms-overflow-style:none;}
   .scrollbar-hide::-webkit-scrollbar{display:none;}
+  @media(max-width:639px){
+    .lp-card:hover{transform:none!important;}
+    .lp-step:hover{transform:none!important;}
+    .lp-review:hover{transform:none!important;}
+    .lp-benefit:hover{transform:none!important;border-color:var(--t-border)!important;box-shadow:none!important;}
+    .lp-pain:hover{transform:none!important;}
+    .lp-btn-p:hover{transform:none!important;}
+    .lp-btn-s:hover{transform:none!important;}
+  }
   @media(max-width:479px){
     .lp-gender-grid{grid-template-columns:1fr!important;}
-    .lp-hero-pad{padding-top:48px!important;padding-bottom:40px!important;}
+    .lp-hero-pad{padding-top:40px!important;padding-bottom:36px!important;}
+    .lp-gender-tile-img{width:72px!important;}
+    .lp-gender-tile-inner{padding:18px 14px 16px!important;}
+  }
+  @media(max-width:374px){
+    .lp-gender-tile-img{width:60px!important;}
+    .lp-hero-btns{gap:8px!important;}
+    .lp-hero-btns a{padding:9px 16px!important;font-size:13px!important;}
   }
 `;
 
@@ -161,7 +177,7 @@ export default function LandingPage({
           <div className="max-w-3xl mx-auto" style={{ position: "relative", zIndex: 1 }}>
 
             {/* Entry buttons */}
-            <div className="lp-u0" style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginBottom: 32 }}>
+            <div className="lp-u0 lp-hero-btns" style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginBottom: 32 }}>
               <Link
                 to="/login"
                 className="lp-btn-p"
@@ -185,7 +201,7 @@ export default function LandingPage({
             </div>
 
             {/* Headline */}
-            <h1 className="lp-u2" style={{ fontSize: "clamp(2.2rem,6vw,4.8rem)", fontWeight: 900, lineHeight: 1.06, letterSpacing: "-2px", marginBottom: 20 }}>
+            <h1 className="lp-u2" style={{ fontSize: "clamp(2.2rem,6vw,4.8rem)", fontWeight: 900, lineHeight: 1.06, letterSpacing: "-0.04em", marginBottom: 20 }}>
               Book smart, save time,<br />
               <span className="lp-shimmer">avoid waiting.</span>
             </h1>
@@ -210,10 +226,10 @@ export default function LandingPage({
               >
                 <div style={{ position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.10)", pointerEvents: "none" }} />
                 <div style={{ position: "absolute", bottom: -30, left: -30, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.06)", pointerEvents: "none" }} />
-                <div style={{ flex: 1, padding: "22px 18px 20px", display: "flex", flexDirection: "column", justifyContent: "space-between", zIndex: 1 }}>
+                <div className="lp-gender-tile-inner" style={{ flex: 1, padding: "22px 18px 20px", display: "flex", flexDirection: "column", justifyContent: "space-between", zIndex: 1 }}>
                   <div>
                     <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.18em", color: "rgba(255,255,255,0.65)", margin: "0 0 7px", textTransform: "uppercase" }}>Grooming</p>
-                    <p style={{ fontSize: "clamp(1.2rem,2.8vw,1.6rem)", fontWeight: 900, color: "#fff", margin: "0 0 5px", letterSpacing: "-0.5px", lineHeight: 1.1 }}>Male</p>
+                    <p style={{ fontSize: "clamp(1.1rem,2.8vw,1.6rem)", fontWeight: 900, color: "#fff", margin: "0 0 5px", letterSpacing: "-0.5px", lineHeight: 1.1 }}>Male</p>
                     <p style={{ fontSize: 11, color: "rgba(255,255,255,0.72)", margin: 0, lineHeight: 1.5 }}>Haircut · Beard · Spa</p>
                   </div>
                   <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.28)", borderRadius: 999, padding: "6px 14px", marginTop: 16, width: "fit-content" }}>
@@ -221,7 +237,7 @@ export default function LandingPage({
                     <ArrowRight size={12} color="#fff" />
                   </div>
                 </div>
-                <div style={{ width: 90, display: "flex", alignItems: "center", justifyContent: "center", paddingRight: 8, zIndex: 1 }}>
+                <div className="lp-gender-tile-img" style={{ width: 90, display: "flex", alignItems: "center", justifyContent: "center", paddingRight: 8, zIndex: 1 }}>
                   <img src={maleBarberImg} alt="Male Salon" style={{ width: 76, height: 76, objectFit: "cover", borderRadius: 14, opacity: 0.88 }} />
                 </div>
               </Link>
@@ -235,10 +251,10 @@ export default function LandingPage({
               >
                 <div style={{ position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.10)", pointerEvents: "none" }} />
                 <div style={{ position: "absolute", bottom: -30, left: -30, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.06)", pointerEvents: "none" }} />
-                <div style={{ flex: 1, padding: "22px 18px 20px", display: "flex", flexDirection: "column", justifyContent: "space-between", zIndex: 1 }}>
+                <div className="lp-gender-tile-inner" style={{ flex: 1, padding: "22px 18px 20px", display: "flex", flexDirection: "column", justifyContent: "space-between", zIndex: 1 }}>
                   <div>
                     <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.18em", color: "rgba(255,255,255,0.65)", margin: "0 0 7px", textTransform: "uppercase" }}>Beauty</p>
-                    <p style={{ fontSize: "clamp(1.2rem,2.8vw,1.6rem)", fontWeight: 900, color: "#fff", margin: "0 0 5px", letterSpacing: "-0.5px", lineHeight: 1.1 }}>Female</p>
+                    <p style={{ fontSize: "clamp(1.1rem,2.8vw,1.6rem)", fontWeight: 900, color: "#fff", margin: "0 0 5px", letterSpacing: "-0.5px", lineHeight: 1.1 }}>Female</p>
                     <p style={{ fontSize: 11, color: "rgba(255,255,255,0.72)", margin: 0, lineHeight: 1.5 }}>Hair · Nails · Bridal</p>
                   </div>
                   <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.28)", borderRadius: 999, padding: "6px 14px", marginTop: 16, width: "fit-content" }}>
@@ -246,7 +262,7 @@ export default function LandingPage({
                     <ArrowRight size={12} color="#fff" />
                   </div>
                 </div>
-                <div style={{ width: 90, display: "flex", alignItems: "center", justifyContent: "center", paddingRight: 8, zIndex: 1 }}>
+                <div className="lp-gender-tile-img" style={{ width: 90, display: "flex", alignItems: "center", justifyContent: "center", paddingRight: 8, zIndex: 1 }}>
                   <div style={{ width: 76, height: 76, borderRadius: 14, overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
                     <img src={femaleSalonImg} alt="Female Salon" style={{ width: 76, height: 76, objectFit: "cover" }} />
                   </div>
@@ -297,7 +313,7 @@ export default function LandingPage({
               <div style={{ display: "inline-block", background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 99, padding: "4px 16px", fontSize: 11, color: "#f87171", fontWeight: 700, letterSpacing: 1.5, marginBottom: 16 }}>
                 SOUND FAMILIAR?
               </div>
-              <h2 style={{ fontSize: "clamp(1.6rem,4vw,2.8rem)", fontWeight: 900, color: "var(--t-text)", letterSpacing: "-1px", marginBottom: 12 }}>
+              <h2 style={{ fontSize: "clamp(1.6rem,4vw,2.8rem)", fontWeight: 900, color: "var(--t-text)", letterSpacing: "-0.03em", marginBottom: 12 }}>
                 The old way of booking is broken
               </h2>
               <p style={{ color: "var(--t-text-2)", fontSize: 15, maxWidth: 440, margin: "0 auto", lineHeight: 1.7 }}>
@@ -336,7 +352,7 @@ export default function LandingPage({
               <div style={{ display: "inline-block", background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.22)", borderRadius: 99, padding: "4px 16px", fontSize: 11, color: "var(--t-accent)", fontWeight: 700, letterSpacing: 1.5, marginBottom: 16 }}>
                 HOW IT WORKS
               </div>
-              <h2 style={{ fontSize: "clamp(1.6rem,4vw,2.8rem)", fontWeight: 900, color: "var(--t-text)", letterSpacing: "-1px", marginBottom: 12 }}>
+              <h2 style={{ fontSize: "clamp(1.6rem,4vw,2.8rem)", fontWeight: 900, color: "var(--t-text)", letterSpacing: "-0.03em", marginBottom: 12 }}>
                 Book a salon in 3 steps
               </h2>
               <p style={{ color: "var(--t-text-2)", fontSize: 15, lineHeight: 1.7 }}>No calls, no waiting — just tap, pick, and confirm.</p>
@@ -369,7 +385,7 @@ export default function LandingPage({
               <div style={{ display: "inline-block", background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.22)", borderRadius: 99, padding: "4px 16px", fontSize: 11, color: "#a78bfa", fontWeight: 700, letterSpacing: 1.5, marginBottom: 16 }}>
                 FEATURES
               </div>
-              <h2 style={{ fontSize: "clamp(1.6rem,4vw,2.8rem)", fontWeight: 900, color: "var(--t-text)", letterSpacing: "-1px", marginBottom: 12 }}>
+              <h2 style={{ fontSize: "clamp(1.6rem,4vw,2.8rem)", fontWeight: 900, color: "var(--t-text)", letterSpacing: "-0.03em", marginBottom: 12 }}>
                 Everything you need to look great
               </h2>
               <p style={{ color: "var(--t-text-2)", fontSize: 15, maxWidth: 440, margin: "0 auto", lineHeight: 1.7 }}>
@@ -405,14 +421,14 @@ export default function LandingPage({
               <div style={{ display: "inline-block", background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.22)", borderRadius: 99, padding: "4px 16px", fontSize: 11, color: "var(--t-accent)", fontWeight: 700, letterSpacing: 1.5, marginBottom: 16 }}>
                 WHY CUSTOMERS LOVE IT
               </div>
-              <h2 style={{ fontSize: "clamp(1.6rem,4vw,2.8rem)", fontWeight: 900, color: "var(--t-text)", letterSpacing: "-1px", marginBottom: 12 }}>
+              <h2 style={{ fontSize: "clamp(1.6rem,4vw,2.8rem)", fontWeight: 900, color: "var(--t-text)", letterSpacing: "-0.03em", marginBottom: 12 }}>
                 Three things you get. Every time.
               </h2>
               <p style={{ color: "var(--t-text-2)", fontSize: 15, maxWidth: 400, margin: "0 auto", lineHeight: 1.7 }}>
                 Not a promise — a guarantee built into every booking.
               </p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {BENEFITS.map(({ Icon, color, title, headline, points }) => (
                 <div
                   key={title}
@@ -456,7 +472,7 @@ export default function LandingPage({
                 <span style={{ color: "var(--t-text-2)", fontSize: 14, fontWeight: 600 }}>4.9 / 5 · 1,000+ reviews</span>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {REVIEWS.map(({ name, city, rating, text }) => (
                 <div
                   key={name}
@@ -497,7 +513,7 @@ export default function LandingPage({
                 <Scissors size={28} color="#6366f1" />
               </div>
             </div>
-            <h2 style={{ fontSize: "clamp(1.6rem,4.5vw,3rem)", fontWeight: 900, color: "var(--t-text)", letterSpacing: "-1.2px", marginBottom: 14, lineHeight: 1.15 }}>
+            <h2 style={{ fontSize: "clamp(1.6rem,4.5vw,3rem)", fontWeight: 900, color: "var(--t-text)", letterSpacing: "-0.035em", marginBottom: 14, lineHeight: 1.15 }}>
               Avoid Long Queue.<br />Save time.<br /><span className="lp-shimmer">Look amazing.</span>
             </h2>
             <p style={{ color: "var(--t-text-2)", fontSize: 15.5, lineHeight: 1.75, maxWidth: 440, margin: "0 auto 36px" }}>
@@ -507,14 +523,14 @@ export default function LandingPage({
               <Link
                 to="/register"
                 className="lp-btn-p"
-                style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "15px 34px", borderRadius: 16, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff", boxShadow: "0 0 52px rgba(99,102,241,0.45)", fontSize: 15, fontWeight: 700, textDecoration: "none", minHeight: 52 }}
+                style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "14px clamp(20px,5vw,34px)", borderRadius: 16, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff", boxShadow: "0 0 52px rgba(99,102,241,0.45)", fontSize: "clamp(13px,3.5vw,15px)", fontWeight: 700, textDecoration: "none", minHeight: 50 }}
               >
                 <Zap size={16} /> Create Free Account
               </Link>
               <Link
                 to="/login"
                 className="lp-btn-s"
-                style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "15px 34px", borderRadius: 16, background: "var(--t-card)", border: "1px solid var(--t-border)", color: "var(--t-text-2)", fontSize: 15, fontWeight: 600, textDecoration: "none", minHeight: 52 }}
+                style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "14px clamp(20px,5vw,34px)", borderRadius: 16, background: "var(--t-card)", border: "1px solid var(--t-border)", color: "var(--t-text-2)", fontSize: "clamp(13px,3.5vw,15px)", fontWeight: 600, textDecoration: "none", minHeight: 50 }}
               >
                 Sign In <ArrowRight size={15} />
               </Link>
