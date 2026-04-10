@@ -12,6 +12,7 @@ import Owners from './pages/Owners';
 import Customers from './pages/Customers';
 import Subscriptions from './pages/Subscriptions';
 import Promotions from './pages/Promotions';
+import SiteSettings from './pages/SiteSettings';
 import Layout from './components/Layout';
 
 const isAuth = () => !!localStorage.getItem('admin_token');
@@ -36,6 +37,7 @@ export default function App() {
             <Route path="customers"      element={<Customers />} />
             <Route path="subscriptions"  element={<Subscriptions />} />
             <Route path="promotions"     element={<Promotions />} />
+            <Route path="site-settings"  element={<SiteSettings />} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

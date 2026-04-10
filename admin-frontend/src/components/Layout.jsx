@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Clock, Store, Users, LogOut, Scissors, BookOpen, TrendingUp, UserCheck, CreditCard, Megaphone, Moon, Sun } from 'lucide-react';
+import { LayoutDashboard, Clock, Store, Users, LogOut, Scissors, BookOpen, TrendingUp, UserCheck, CreditCard, Megaphone, Moon, Sun, ImageIcon } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 const nav = [
@@ -12,6 +12,7 @@ const nav = [
   { to: '/customers',     icon: Users,           label: 'Customers'        },
   { to: '/subscriptions', icon: CreditCard,      label: 'Subscriptions'    },
   { to: '/promotions',    icon: Megaphone,       label: 'Promotions'       },
+  { to: '/site-settings', icon: ImageIcon,       label: 'Hero Images'      },
 ];
 
 export default function Layout() {

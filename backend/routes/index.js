@@ -3865,4 +3865,90 @@ router.put('/customer/bookings/:bookingId/messages/read', authenticateCustomer, 
   res.json({ success: true });
 }));
 
+/* =====================================================
+   SITE SETTINGS — Hero Images
+===================================================== */
+
+const SiteSettings = require('../models/SiteSettings');
+
+// GET /public/site-settings — fetch active hero images (public, no auth)
+router.get('/public/site-settings', asyncHandler(async (req, res) => {
+  const settings = await SiteSettings.findOne({ key: 'global' }).lean();
+  const heroImages = (settings?.heroImages || [])
+    .filter(img => img.active)
+    .sort((a, b) => a.order - b.order)
+    .map(img => ({ url: img.url, label: img.label }));
+  res.json({ success: true, data: { heroImages } });
+}));
+
+// GET /admin/site-settings — fetch all hero images including inactive (admin only)
+router.get('/admin/site-settings', authenticateAdmin, asyncHandler(async (req, res) => {
+  const settings = await SiteSettings.findOne({ key: 'global' }).lean();
+  res.json({ success: true, data: { heroImages: settings?.heroImages || [] } });
+}));
+
+// POST /admin/site-settings/hero-images — upload a new hero image
+router.post('/admin/site-settings/hero-images', authenticateAdmin, multerUpload.single('image'), asyncHandler(async (req, res) => {
+  if (!req.file) return res.status(400).json({ success: false, message: 'No image file provided' });
+  const { cloudinary: cl } = require('../config/cloudinary');
+  const uploadResult = await new Promise((resolve, reject) => {
+    const stream = cl.uploader.upload_stream(
+      { folder: 'smart-salon/hero', resource_type: 'image', quality: 'auto', fetch_format: 'auto' },
+      (err, result) => { if (err) reject(err); else resolve(result); }
+    );
+    stream.end(req.file.buffer);
+  });
+  const label = req.body.label || '';
+  const settings = await SiteSettings.findOneAndUpdate(
+    { key: 'global' },
+    {
+      $push: {
+        heroImages: {
+          url: uploadResult.secure_url,
+          publicId: uploadResult.public_id,
+          label,
+          active: true,
+          order: 0,
+          addedAt: new Date(),
+        },
+      },
+    },
+    { upsert: true, new: true }
+  );
+  res.json({ success: true, data: { heroImages: settings.heroImages } });
+}));
+
+// PATCH /admin/site-settings/hero-images/:imageId — toggle active or update label/order
+router.patch('/admin/site-settings/hero-images/:imageId', authenticateAdmin, asyncHandler(async (req, res) => {
+  const { active, label, order } = req.body;
+  const update = {};
+  if (active !== undefined) update['heroImages.$.active'] = active;
+  if (label  !== undefined) update['heroImages.$.label']  = label;
+  if (order  !== undefined) update['heroImages.$.order']  = order;
+  const settings = await SiteSettings.findOneAndUpdate(
+    { key: 'global', 'heroImages._id': req.params.imageId },
+    { $set: update },
+    { new: true }
+  );
+  if (!settings) return res.status(404).json({ success: false, message: 'Image not found' });
+  res.json({ success: true, data: { heroImages: settings.heroImages } });
+}));
+
+// DELETE /admin/site-settings/hero-images/:imageId — remove a hero image
+router.delete('/admin/site-settings/hero-images/:imageId', authenticateAdmin, asyncHandler(async (req, res) => {
+  const settings = await SiteSettings.findOne({ key: 'global' });
+  if (!settings) return res.status(404).json({ success: false, message: 'Settings not found' });
+  const img = settings.heroImages.id(req.params.imageId);
+  if (!img) return res.status(404).json({ success: false, message: 'Image not found' });
+  if (img.publicId) {
+    try {
+      const { cloudinary: cl } = require('../config/cloudinary');
+      await cl.uploader.destroy(img.publicId);
+    } catch (e) { /* ignore cloudinary delete errors */ }
+  }
+  settings.heroImages.pull({ _id: req.params.imageId });
+  await settings.save();
+  res.json({ success: true, data: { heroImages: settings.heroImages } });
+}));
+
 module.exports = router;

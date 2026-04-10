@@ -60,7 +60,6 @@ const HERO_CHIPS = [
   { label: "Skin & Derma",   cat: "Skin & Face / Beauty", Icon: Leaf      },
 ];
 
-const HERO_BG_FALLBACK = "/pngtree-salon-service-salon-design-hd-image_2512958.jpg";
 
 // ── Open-now ──────────────────────────────────────────────────────
 const DAYS = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
@@ -267,6 +266,7 @@ export default function Home() {
   const [userCoords, setUserCoords]     = useState(null);
   const [serviceMatchLabel, setServiceMatchLabel] = useState("");
   const [upcomingCount, setUpcomingCount] = useState(0);
+  const [adminHeroImage, setAdminHeroImage] = useState(null);
   const [showSticky, setShowSticky]     = useState(false);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [showSortPanel, setShowSortPanel]     = useState(false);
@@ -320,6 +320,13 @@ export default function Home() {
         : 0);
     }).catch(() => {});
   }, [isLoggedIn]);
+
+  useEffect(() => {
+    API.get("/public/site-settings").then(res => {
+      const imgs = res.data.data?.heroImages || [];
+      if (imgs.length > 0) setAdminHeroImage(imgs[0].url);
+    }).catch(() => {});
+  }, []);
 
   const applyFilters = (data, cats, gender, onlyOpen, onlyPremium) => {
     let r = data;
@@ -444,10 +451,10 @@ export default function Home() {
     : sort === "booked" ? "Trending Salons"
     : "GlowSpots Near You");
 
-  const heroBgImage = useMemo(() =>
-    allSalons.find(s => s.photos?.[0])?.photos?.[0] || allSalons[0]?.coverPhoto || HERO_BG_FALLBACK,
-    [allSalons]
-  );
+  const heroBgImage = adminHeroImage
+    || allSalons.find(s => s.photos?.[0])?.photos?.[0]
+    || allSalons[0]?.coverPhoto
+    || "/pngtree-salon-service-salon-design-hd-image_2512958.jpg";
 
   const bentoSalons = useMemo(() => {
     if (!allSalons.length) return [];
