@@ -794,9 +794,13 @@ export default function Reels() {
     if (!page) return;
     let accumulated = 0;
     let cooldown = null;
-    const THRESHOLD = 80;
+    const THRESHOLD = 150;
+    let gestureEnd = null;
     const onWheel = (e) => {
       e.preventDefault();
+      // reset accumulator if gesture paused for 150ms (momentum tail ended)
+      clearTimeout(gestureEnd);
+      gestureEnd = setTimeout(() => { accumulated = 0; }, 150);
       if (scrolling.current) return;
       accumulated += e.deltaY;
       if (Math.abs(accumulated) < THRESHOLD) return;
@@ -805,7 +809,7 @@ export default function Reels() {
       scrolling.current = true;
       clearTimeout(cooldown);
       scrollToIdx(currentIdx.current + dir, reelsRef.current.length);
-      cooldown = setTimeout(() => { scrolling.current = false; }, 600);
+      cooldown = setTimeout(() => { scrolling.current = false; }, 900);
     };
     page.addEventListener('wheel', onWheel, { passive: false });
     return () => { page.removeEventListener('wheel', onWheel); clearTimeout(cooldown); };
