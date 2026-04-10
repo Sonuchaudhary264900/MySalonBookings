@@ -125,16 +125,17 @@ export default function BottomNav() {
 
   if (["/login", "/register"].includes(location.pathname)) return null;
 
+  const visibleTabs = token ? TABS : TABS.filter(t => !t.authRequired);
+
   const handleTab = (tab) => {
-    if (tab.authRequired && !token) navigate("/login");
-    else navigate(tab.path);
+    navigate(tab.path);
   };
 
   return (
     <>
       <style>{CSS}</style>
       <nav className="bnav-wrap">
-        {TABS.map((tab) => {
+        {visibleTabs.map((tab) => {
           const active = location.pathname === tab.path;
           return (
             <button

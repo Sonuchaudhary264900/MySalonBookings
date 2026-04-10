@@ -4,7 +4,7 @@ import { useNotifications } from "../context/NotificationContext";
 import { useTheme } from "../context/ThemeContext";
 import {
   Home, Play, CalendarDays, Heart, Bell,
-  Sun, Moon, LogOut, User, Bookmark, Scissors, Settings,
+  Sun, Moon, LogOut, User, Bookmark, Scissors, Settings, Menu, X,
 } from "lucide-react";
 
 function getUserInitial() {
@@ -171,6 +171,7 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
   const [scrolled,     setScrolled]    = useState(false);
   const [_panelOpen,   _setPanelOpen]  = useState(false);
   const [profileOpen,  setProfileOpen] = useState(false);
+  const [drawerOpen,   setDrawerOpen]  = useState(false);
   const { isDark, toggleTheme } = useTheme();
   const userInitial = getUserInitial();
 
@@ -206,16 +207,17 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
   };
 
   const NAV_LINKS = [
-    { to: "/",          label: "Home",     Icon: Home         },
-    { to: "/reels",     label: "Reels",    Icon: Play         },
-    ...(token ? [
-      { to: "/dashboard",  label: "Bookings", Icon: CalendarDays },
-      { to: "/favorites",  label: "Saved",    Icon: Heart        },
-      { to: "/profile",    label: "Settings", Icon: Settings     },
-    ] : []),
+    { to: "/",          label: "Home",     Icon: Home,        auth: false },
+    { to: "/reels",     label: "Reels",    Icon: Play,        auth: false },
+    { to: "/dashboard", label: "Bookings", Icon: CalendarDays,auth: true  },
+    { to: "/favorites", label: "Saved",    Icon: Heart,       auth: true  },
+    { to: "/profile",   label: "Settings", Icon: Settings,    auth: true  },
   ];
+  // Desktop center nav: only show auth items if logged in
+  const DESKTOP_NAV = token ? NAV_LINKS : NAV_LINKS.filter(l => !l.auth);
 
   return (
+  <>
     <header
       style={{
         position: "fixed", top: 0, left: 0, right: 0, zIndex: 50,
@@ -262,8 +264,8 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
         </Link>
 
         {/* ── CENTER: Nav links (desktop only) ── */}
-        <nav style={{ display: "flex", alignItems: "center", gap: 2 }} className="hidden md:flex">
-          {NAV_LINKS.map(({ to, label, Icon }) => {
+        <nav style={{ alignItems: "center", gap: 2 }} className="hidden md:flex">
+          {DESKTOP_NAV.map(({ to, label, Icon }) => {
             const active = location.pathname === to;
             return (
               <NavItem key={to} to={to} label={label} Icon={Icon} active={active} />
@@ -367,7 +369,7 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
             }
           </IconBtn>
 
-          {/* Guest: Sign In + Join */}
+          {/* Guest: Sign In (always) + Join Free (desktop only) */}
           {!token && (
             <>
               <Link to="/login"
@@ -376,15 +378,14 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
                   padding: "7px 16px", borderRadius: 10,
                   background: "var(--t-input-bg)", border: "1px solid var(--t-border)",
                   color: "var(--t-text-2)", transition: "all 0.18s ease",
-                  display: "none",
                 }}
-                className="sm:block"
                 onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(99,102,241,0.35)"; e.currentTarget.style.color = "var(--t-text)"; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--t-border)"; e.currentTarget.style.color = "var(--t-text-2)"; }}
               >
                 Sign In
               </Link>
               <Link to="/register"
+                className="hidden md:inline-flex"
                 style={{
                   textDecoration: "none", fontSize: 13, fontWeight: 700,
                   padding: "7px 18px", borderRadius: 10,
@@ -400,10 +401,160 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
               </Link>
             </>
           )}
+
+          {/* Hamburger — mobile only */}
+          <button
+            className="flex md:hidden"
+            onClick={() => setDrawerOpen(true)}
+            style={{
+              width: 36, height: 36, borderRadius: "50%",
+              alignItems: "center", justifyContent: "center",
+              background: "var(--t-input-bg)", border: "1px solid var(--t-border)",
+              color: "var(--t-text-2)", cursor: "pointer",
+            }}
+          >
+            <Menu size={18} strokeWidth={2} />
+          </button>
         </div>
 
       </div>
     </header>
+
+    {/* ── Mobile Drawer ── */}
+    {drawerOpen && (
+      <div
+        onClick={() => setDrawerOpen(false)}
+        style={{
+          position: "fixed", inset: 0, zIndex: 200,
+          background: "rgba(0,0,0,0.55)",
+          backdropFilter: "blur(4px)",
+          WebkitBackdropFilter: "blur(4px)",
+        }}
+      />
+    )}
+    <div style={{
+      position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 201,
+      width: 280,
+      background: "var(--t-card)",
+      borderRight: "1px solid var(--t-border)",
+      boxShadow: "4px 0 40px rgba(0,0,0,0.18)",
+      transform: drawerOpen ? "translateX(0)" : "translateX(-100%)",
+      transition: "transform 0.28s cubic-bezier(0.4,0,0.2,1)",
+      display: "flex", flexDirection: "column",
+      fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif',
+      overflowY: "auto",
+    }}>
+      {/* Drawer header */}
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "18px 16px 14px",
+        borderBottom: "1px solid var(--t-border)",
+      }}>
+        <Link to="/" onClick={() => setDrawerOpen(false)} style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 9,
+            background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: "0 0 14px rgba(99,102,241,0.35)",
+          }}>
+            <Scissors size={14} color="#fff" strokeWidth={2.2} />
+          </div>
+          <span style={{
+            fontSize: 14, fontWeight: 800,
+            background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
+            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+          }}>Salon Bookings</span>
+        </Link>
+        <button
+          onClick={() => setDrawerOpen(false)}
+          style={{
+            width: 32, height: 32, borderRadius: "50%",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: "var(--t-input-bg)", border: "1px solid var(--t-border)",
+            color: "var(--t-text-3)", cursor: "pointer",
+          }}
+        >
+          <X size={16} strokeWidth={2} />
+        </button>
+      </div>
+
+      {/* Nav items */}
+      <nav style={{ padding: "10px 8px", flex: 1 }}>
+        {NAV_LINKS.map(({ to, label, Icon, auth }) => {
+          const active = location.pathname === to;
+          const locked = auth && !token;
+          const dest   = locked ? "/login" : to;
+          return (
+            <Link
+              key={label}
+              to={dest}
+              onClick={() => setDrawerOpen(false)}
+              style={{
+                display: "flex", alignItems: "center", gap: 14,
+                padding: "12px 14px", borderRadius: 14,
+                textDecoration: "none",
+                marginBottom: 2,
+                background: active ? "rgba(99,102,241,0.1)" : "transparent",
+                color: active ? "var(--t-accent)" : "var(--t-text-2)",
+                fontWeight: active ? 700 : 500,
+                fontSize: 14,
+                transition: "background 0.15s",
+              }}
+              onMouseEnter={e => !active && (e.currentTarget.style.background = "var(--t-input-bg)")}
+              onMouseLeave={e => !active && (e.currentTarget.style.background = "transparent")}
+            >
+              <Icon size={18} strokeWidth={active ? 2.4 : 2} style={{ flexShrink: 0 }} />
+              <span style={{ flex: 1 }}>{label}</span>
+              {locked && (
+                <span style={{
+                  fontSize: 10, fontWeight: 700, color: "var(--t-accent)",
+                  background: "rgba(99,102,241,0.12)", border: "1px solid rgba(99,102,241,0.2)",
+                  padding: "2px 8px", borderRadius: 99,
+                }}>Login</span>
+              )}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* Drawer footer */}
+      <div style={{ padding: "12px 8px 24px", borderTop: "1px solid var(--t-border)" }}>
+        {token ? (
+          <button
+            onClick={() => { setDrawerOpen(false); handleLogout(); }}
+            style={{
+              display: "flex", alignItems: "center", gap: 14, width: "100%",
+              padding: "12px 14px", borderRadius: 14, border: "none",
+              background: "transparent", color: "#f87171",
+              fontWeight: 600, fontSize: 14, cursor: "pointer",
+              transition: "background 0.15s",
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = "rgba(239,68,68,0.08)"}
+            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+          >
+            <LogOut size={18} strokeWidth={2} />
+            Sign Out
+          </button>
+        ) : (
+          <Link
+            to="/register"
+            onClick={() => setDrawerOpen(false)}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center",
+              padding: "12px 14px", borderRadius: 14,
+              background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
+              color: "#fff", fontWeight: 700, fontSize: 14,
+              textDecoration: "none",
+              boxShadow: "0 0 18px rgba(99,102,241,0.3)",
+            }}
+          >
+            Join Free
+          </Link>
+        )}
+      </div>
+    </div>
+  </>
   );
 }
 
