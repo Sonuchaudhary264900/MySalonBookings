@@ -792,18 +792,23 @@ export default function Reels() {
   useEffect(() => {
     const page = pageRef.current;
     if (!page) return;
-    let t = null;
+    let accumulated = 0;
+    let cooldown = null;
+    const THRESHOLD = 80;
     const onWheel = (e) => {
       e.preventDefault();
       if (scrolling.current) return;
+      accumulated += e.deltaY;
+      if (Math.abs(accumulated) < THRESHOLD) return;
+      const dir = accumulated > 0 ? 1 : -1;
+      accumulated = 0;
       scrolling.current = true;
-      clearTimeout(t);
-      scrollToIdx(currentIdx.current + (e.deltaY > 0 ? 1 : -1), reelsRef.current.length);
-      // FIX: reduced cooldown from 450ms → 300ms for snappier desktop scroll
-      t = setTimeout(() => { scrolling.current = false; }, 300);
+      clearTimeout(cooldown);
+      scrollToIdx(currentIdx.current + dir, reelsRef.current.length);
+      cooldown = setTimeout(() => { scrolling.current = false; }, 600);
     };
     page.addEventListener('wheel', onWheel, { passive: false });
-    return () => { page.removeEventListener('wheel', onWheel); clearTimeout(t); };
+    return () => { page.removeEventListener('wheel', onWheel); clearTimeout(cooldown); };
   }, [scrollToIdx]);
 
   /* ── Touch — mobile swipe ── */
