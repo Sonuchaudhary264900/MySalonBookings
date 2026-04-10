@@ -138,7 +138,7 @@ function AppLayout({ notifOpen, setNotifOpen }) {
           </Routes>
         </Suspense>
       </main>
-      {!isReels && <Footer />}
+      {pathname === '/' && <Footer />}
       {!isReels && <BottomNav />}
     </div>
   );
