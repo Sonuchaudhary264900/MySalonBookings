@@ -2,8 +2,9 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ActivityIndicator, RefreshControl, Modal, TextInput,
-  Alert, Switch, ScrollView, Animated,
+  Alert, Switch, ScrollView, Animated, Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
@@ -418,6 +419,9 @@ function ServiceModal({ visible, service, salon, onClose, onSaved }) {
   const [isActive, setIsActive]           = useState(true);
   const [loading, setLoading]             = useState(false);
   const [errors, setErrors]               = useState({});
+  const [photoUri, setPhotoUri]           = useState(null);
+  const [photoUrl, setPhotoUrl]           = useState('');
+  const [photoUploading, setPhotoUploading] = useState(false);
 
   useEffect(() => {
     if (service) {
@@ -438,10 +442,14 @@ function ServiceModal({ visible, service, salon, onClose, onSaved }) {
       } else {
         setApplicableFor('both');
       }
+      setPhotoUrl(service.photos?.[0] || '');
+      setPhotoUri(null);
     } else {
       setName(''); setDescription(''); setBasePrice(''); setDuration('30');
       setCategory(''); setCustomCategory(''); setIsActive(true);
       setApplicableFor(servedGender === 'unisex' ? 'both' : servedGender);
+      setPhotoUrl('');
+      setPhotoUri(null);
     }
     setErrors({});
     setCatExpanded(false);
@@ -463,6 +471,28 @@ function ServiceModal({ visible, service, salon, onClose, onSaved }) {
     try {
       const applicableForArr =
         applicableFor === 'both' ? ['male', 'female'] : [applicableFor];
+
+      let photos = photoUrl ? [photoUrl] : [];
+      if (photoUri) {
+        setPhotoUploading(true);
+        try {
+          const filename = photoUri.split('/').pop();
+          const ext = (filename.split('.').pop() || 'jpg').toLowerCase();
+          const formData = new FormData();
+          formData.append('photo', { uri: photoUri, name: filename, type: `image/${ext === 'jpg' ? 'jpeg' : ext}` });
+          const uploadRes = await api.post('/owner/services/upload-photo', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            timeout: 60000,
+          });
+          const url = uploadRes.data.data?.url;
+          if (url) photos = [url];
+        } catch { /* non-blocking */ } finally {
+          setPhotoUploading(false);
+        }
+      } else if (!photoUrl) {
+        photos = [];
+      }
+
       const payload = {
         name: name.trim(),
         description: description.trim(),
@@ -471,6 +501,7 @@ function ServiceModal({ visible, service, salon, onClose, onSaved }) {
         category,
         isActive,
         applicableFor: applicableForArr,
+        photos,
       };
       if (editing) {
         await api.put(`/owner/services/${service._id}`, payload);
@@ -484,6 +515,28 @@ function ServiceModal({ visible, service, salon, onClose, onSaved }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePickPhoto = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Please allow access to your photo library.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (result.canceled) return;
+    setPhotoUri(result.assets[0].uri);
+    setPhotoUrl('');
+  };
+
+  const handleRemovePhoto = () => {
+    setPhotoUri(null);
+    setPhotoUrl('');
   };
 
   const isCatCustom = category && !categoryOptions.find(o => o.label === category);
@@ -684,6 +737,42 @@ function ServiceModal({ visible, service, salon, onClose, onSaved }) {
             {!!errors.duration && <Text style={styles.fieldError}>{errors.duration}</Text>}
           </View>
 
+          {/* Service Photo — optional */}
+          <View style={styles.field}>
+            <Text style={[styles.fieldLabel, { color: theme.text }]}>
+              Service Photo <Text style={{ color: theme.subText, fontWeight: '400' }}>(optional)</Text>
+            </Text>
+            {(photoUri || photoUrl) ? (
+              <View style={{ position: 'relative' }}>
+                <Image
+                  source={{ uri: photoUri || photoUrl }}
+                  style={{ width: '100%', height: 140, borderRadius: 10 }}
+                  resizeMode="cover"
+                />
+                <TouchableOpacity
+                  onPress={handleRemovePhoto}
+                  style={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 14, width: 28, height: 28, alignItems: 'center', justifyContent: 'center' }}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="close" size={16} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                onPress={handlePickPhoto}
+                style={{ borderWidth: 2, borderStyle: 'dashed', borderColor: theme.border, borderRadius: 10, height: 100, alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="camera-outline" size={28} color={theme.subText} />
+                <Text style={{ color: theme.subText, fontSize: 13 }}>Add a photo</Text>
+              </TouchableOpacity>
+            )}
+            {photoUploading
+              ? <Text style={{ color: '#6366f1', fontSize: 12, marginTop: 4 }}>Uploading photo…</Text>
+              : <Text style={{ color: theme.subText, fontSize: 12, marginTop: 4 }}>Adding a photo improves bookings</Text>
+            }
+          </View>
+
           {/* Active toggle */}
           <View style={styles.toggleRow}>
             <Text style={[styles.fieldLabel, { color: theme.text }]}>Active</Text>
@@ -696,11 +785,11 @@ function ServiceModal({ visible, service, salon, onClose, onSaved }) {
           </View>
 
           <TouchableOpacity
-            style={[styles.saveBtn, loading && { opacity: 0.7 }]}
+            style={[styles.saveBtn, (loading || photoUploading) && { opacity: 0.7 }]}
             onPress={handleSave}
-            disabled={loading}
+            disabled={loading || photoUploading}
           >
-            {loading
+            {(loading || photoUploading)
               ? <ActivityIndicator color="#fff" />
               : <Text style={styles.saveBtnText}>{editing ? 'Save Changes' : 'Add Service'}</Text>
             }

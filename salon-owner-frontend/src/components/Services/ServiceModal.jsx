@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import Modal from '../common/Modal';
 import {
@@ -6,6 +6,7 @@ import {
   FEMALE_CATEGORIES,
   UNISEX_CATEGORIES,
 } from '../../constants/salonCategories';
+import { uploadServicePhoto } from '../../services/salonService';
 
 const GENDER_LABELS = { male: 'Male', female: 'Female' };
 
@@ -26,6 +27,10 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
     category: '', applicableFor: servedGender === 'unisex' ? 'both' : servedGender,
   });
   const [errors, setErrors] = useState({});
+  const [imageFile, setImageFile]           = useState(null);
+  const [imagePreview, setImagePreview]     = useState('');
+  const [imageUploading, setImageUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (service) {
@@ -47,6 +52,8 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
         category:      cat,
         applicableFor,
       });
+      setImagePreview(service.photos?.[0] || '');
+      setImageFile(null);
     } else {
       setCustomCategory('');
       setForm({
@@ -54,9 +61,29 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
         category: '',
         applicableFor: servedGender === 'unisex' ? '' : servedGender,
       });
+      setImagePreview('');
+      setImageFile(null);
     }
     setErrors({});
+    return () => {
+      setImageFile(prev => { if (prev) return null; return prev; });
+    };
   }, [service, isOpen]);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (imagePreview?.startsWith('blob:')) URL.revokeObjectURL(imagePreview);
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const handleRemoveImage = () => {
+    if (imagePreview?.startsWith('blob:')) URL.revokeObjectURL(imagePreview);
+    setImageFile(null);
+    setImagePreview('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -84,6 +111,19 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
     const applicableFor =
       form.applicableFor === 'both' ? ['male', 'female'] : [form.applicableFor];
 
+    let photos = imagePreview && !imagePreview.startsWith('blob:') ? [imagePreview] : [];
+    if (imageFile) {
+      setImageUploading(true);
+      try {
+        const url = await uploadServicePhoto(imageFile);
+        if (url) photos = [url];
+      } catch { /* non-blocking — service saves without photo */ } finally {
+        setImageUploading(false);
+      }
+    } else if (!imagePreview) {
+      photos = [];
+    }
+
     await onSubmit({
       name:          form.name.trim(),
       description:   form.description.trim(),
@@ -91,6 +131,7 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
       applicableFor,
       basePrice:     Number(form.basePrice),
       duration:      Number(form.duration),
+      photos,
     });
   };
 
@@ -250,6 +291,49 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
             className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
         </div>
 
+        {/* Service Photo — optional */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Service Photo <span className="text-gray-400 font-normal text-xs">(optional)</span>
+          </label>
+          {imagePreview ? (
+            <div className="relative w-full rounded-lg overflow-hidden border border-gray-200" style={{ height: 144 }}>
+              <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+              <button
+                type="button"
+                onClick={handleRemoveImage}
+                disabled={loading || imageUploading}
+                className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center hover:bg-black/80 transition"
+                style={{ background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 16, lineHeight: 1 }}
+                title="Remove photo"
+              >×</button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={loading || imageUploading}
+              className="w-full flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-indigo-400 hover:text-indigo-500 transition"
+              style={{ height: 108, border: '2px dashed #d1d5db', borderRadius: 8 }}
+            >
+              <span style={{ fontSize: 26 }}>📷</span>
+              <span className="text-sm">Add a photo</span>
+            </button>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/jpg,image/png,image/webp"
+            className="hidden"
+            onChange={handleImageChange}
+            disabled={loading || imageUploading}
+          />
+          {imageUploading
+            ? <p className="mt-1 text-xs text-indigo-500">Uploading photo…</p>
+            : <p className="mt-1 text-xs text-gray-400">Adding a photo improves bookings</p>
+          }
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Price (₹) *</label>
@@ -266,9 +350,9 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
         </div>
 
         <div className="flex gap-3 pt-2">
-          <button type="submit" disabled={loading}
+          <button type="submit" disabled={loading || imageUploading}
             className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-sm font-semibold transition">
-            {loading ? 'Saving…' : service ? 'Save Changes' : 'Add Service'}
+            {imageUploading ? 'Uploading…' : loading ? 'Saving…' : service ? 'Save Changes' : 'Add Service'}
           </button>
           <button type="button" onClick={onClose} disabled={loading}
             className="flex-1 py-2.5 border border-gray-200 hover:bg-gray-50 rounded-lg text-sm font-medium text-gray-700 transition">

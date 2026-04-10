@@ -1450,6 +1450,24 @@ router.post(
   asyncHandler(serviceController.createService)
 );
 
+router.post(
+  "/owner/services/upload-photo",
+  authenticateOwner,
+  multerUpload.single("photo"),
+  asyncHandler(async (req, res) => {
+    if (!req.file) return res.status(400).json({ success: false, message: "No file uploaded" });
+    const { cloudinary } = require("../config/cloudinary");
+    const url = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: "smart-salon/service-photos", resource_type: "image" },
+        (error, result) => { if (error) reject(error); else resolve(result.secure_url); }
+      );
+      stream.end(req.file.buffer);
+    });
+    res.json({ success: true, data: { url } });
+  })
+);
+
 router.get(
   "/owner/services",
   authenticateOwner,

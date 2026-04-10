@@ -130,6 +130,16 @@ export const getSalonStatus = async () => {
   return { success: true, data: response.data.data };
 };
 
+// ── UPLOAD SERVICE PHOTO ────────────────────────────────────────
+export const uploadServicePhoto = async (file) => {
+  const formData = new FormData();
+  formData.append('photo', file);
+  const response = await api.post('/owner/services/upload-photo', formData, {
+    headers: { 'Content-Type': undefined },
+  });
+  return response.data.data?.url || null;
+};
+
 // ── CREATE SERVICE ──────────────────────────────────────────────
 export const createService = async (serviceData) => {
   const price = serviceData.basePrice ?? serviceData.price;
@@ -144,6 +154,7 @@ export const createService = async (serviceData) => {
     applicableFor: serviceData.applicableFor || ['male'],
     basePrice:     parseFloat(price),
     duration:      parseInt(serviceData.duration),
+    photos:        serviceData.photos || [],
   });
   return { success: true, message: 'Service created', data: response.data.data };
 };
@@ -168,6 +179,7 @@ export const updateService = async (serviceId, serviceData) => {
     applicableFor: serviceData.applicableFor,
     basePrice:     price ? parseFloat(price) : undefined,
     duration:      serviceData.duration ? parseInt(serviceData.duration) : undefined,
+    photos:        serviceData.photos,
   };
   if (serviceData.isActive !== undefined) body.isActive = serviceData.isActive;
   const response = await api.put(`/owner/services/${serviceId}`, body);

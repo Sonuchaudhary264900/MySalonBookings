@@ -50,6 +50,7 @@ import {
   MALE_ONLY_CAT_LABELS,
   FEMALE_ONLY_CAT_LABELS,
   getCategoryOrderForBusinessType,
+  getServiceImage,
 } from "../constants/salonCategories";
 
 const BASE_TABS = ["Gallery", "Services", "Packages", "Reviews", "Info"];
@@ -806,10 +807,30 @@ function SalonDetails() {
                             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
                               exit={{ opacity: 0, height: 0 }} transition={{ duration: .32 }}
                               style={{ overflow: 'hidden', paddingBottom: 16 }}>
-                              {catServices.map(s => {
+                              {catServices.map((s, svcIdx) => {
                                 const isSel = selectedServices.some(x => x._id === s._id);
+                                const svcImgSrc = getServiceImage(s);
                                 return (
                                   <div key={s._id} className="lux-svc-row" onClick={() => toggleService(s)}>
+                                    {svcImgSrc && (
+                                      <img
+                                        src={svcImgSrc}
+                                        alt={s.name}
+                                        loading={svcIdx < 4 ? 'eager' : 'lazy'}
+                                        style={{
+                                          width: 52, height: 52,
+                                          borderRadius: 10,
+                                          objectFit: 'cover',
+                                          flexShrink: 0,
+                                          background: dm.b05,
+                                          opacity: 0,
+                                          transition: 'opacity 0.15s ease',
+                                          boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
+                                        }}
+                                        onLoad={(e) => { e.currentTarget.style.opacity = '1'; }}
+                                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                      />
+                                    )}
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-3 flex-wrap">
                                         <span style={{ fontSize: 'clamp(14px,1.6vw,17px)', fontWeight: 700, color: dm.fg }}>{s.name}</span>

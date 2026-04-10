@@ -30,7 +30,7 @@ function normalizeApplicableFor(raw, salonServedGender) {
 // ===================================================
 exports.createService = async (req, res) => {
   try {
-    const { name, description, category, basePrice, duration, variants, applicableFor } = req.body;
+    const { name, description, category, basePrice, duration, variants, applicableFor, photos } = req.body;
 
     const validation = validateServiceData({ name, basePrice, duration });
     if (!validation.valid) {
@@ -56,6 +56,7 @@ exports.createService = async (req, res) => {
       variants: variants || [],
       applicableFor: normalizedApplicableFor,
       isActive: true,
+      photos: Array.isArray(photos) ? photos.slice(0, 1) : [],
     });
 
     if (!salon.services.includes(service._id)) {
@@ -103,7 +104,7 @@ exports.getSalonServices = async (req, res) => {
 exports.updateService = async (req, res) => {
   try {
     const { serviceId } = req.params;
-    const { name, description, category, basePrice, duration, variants, isActive, applicableFor } = req.body;
+    const { name, description, category, basePrice, duration, variants, isActive, applicableFor, photos } = req.body;
 
     const service = await Service.findById(serviceId);
     if (!service) {
@@ -126,6 +127,7 @@ exports.updateService = async (req, res) => {
     if (applicableFor !== undefined) {
       service.applicableFor = normalizeApplicableFor(applicableFor, salon.servedGender);
     }
+    if (photos !== undefined) service.photos = Array.isArray(photos) ? photos.slice(0, 1) : [];
 
     await service.save();
 
