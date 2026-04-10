@@ -85,6 +85,7 @@ function AppLayout({ notifOpen, setNotifOpen }) {
   const isReels    = pathname === '/reels';
   const isSalon    = /^\/salons\/[^/]+$/.test(pathname);
   const isSalonPage = /^\/(salon|barbershop|spa-wellness|makeup-bridal|skin-derma)\/[^/]+(\/.*)?$/.test(pathname);
+  const isGuest    = !localStorage.getItem("customerToken");
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -138,7 +139,7 @@ function AppLayout({ notifOpen, setNotifOpen }) {
           </Routes>
         </Suspense>
       </main>
-      {pathname === '/' && <Footer />}
+      {pathname === '/' && isGuest && <Footer />}
       {!isReels && <BottomNav />}
     </div>
   );
