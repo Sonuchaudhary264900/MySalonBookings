@@ -451,10 +451,7 @@ export default function Home() {
     : sort === "booked" ? "Trending Salons"
     : "GlowSpots Near You");
 
-  const heroBgImage = adminHeroImage
-    || allSalons.find(s => s.photos?.[0])?.photos?.[0]
-    || allSalons[0]?.coverPhoto
-    || "/pngtree-salon-service-salon-design-hd-image_2512958.jpg";
+  const heroBgImage = adminHeroImage || "/pngtree-salon-service-salon-design-hd-image_2512958.jpg";
 
   const bentoSalons = useMemo(() => {
     if (!allSalons.length) return [];
