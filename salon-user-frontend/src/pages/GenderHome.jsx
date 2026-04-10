@@ -254,7 +254,7 @@ export default function GenderHome({ gender }) {
               transition: "all 0.22s ease",
             }}>
               <button onClick={() => runSearch(searchText, selectedCats)} style={{ display: "flex", background: "none", border: "none", cursor: "pointer", padding: 0, flexShrink: 0 }}>
-                <Search style={{ width: 17, height: 17, color: focused ? cfg.accent : "#94a3b8", transition: "color 0.2s" }} />
+                <Search style={{ width: 17, height: 17, color: focused ? cfg.accent : "#9ca3af", transition: "color 0.2s" }} />
               </button>
               <input
                 type="text"
@@ -264,11 +264,11 @@ export default function GenderHome({ gender }) {
                 onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); runSearch(searchText, selectedCats); } }}
                 onFocus={() => setFocused(true)}
                 onBlur={() => setFocused(false)}
-                style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 15, color: "#1e293b", minWidth: 0 }}
+                style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 15, color: "var(--t-text)", minWidth: 0 }}
               />
               {searchText && !searching && (
                 <button onClick={() => handleSearch("")} style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "flex", opacity: 0.6 }}>
-                  <X style={{ width: 14, height: 14, color: "#64748b" }} />
+                  <X style={{ width: 14, height: 14, color: "#6b7280" }} />
                 </button>
               )}
               {searching && <span style={{ width: 14, height: 14, border: `2px solid ${cfg.accent}`, borderTopColor: "transparent", borderRadius: "50%", display: "block", flexShrink: 0, animation: "spin 0.7s linear infinite" }} />}
@@ -403,7 +403,7 @@ export default function GenderHome({ gender }) {
 
         {/* ── Guest CTA ── */}
         {!localStorage.getItem("customerToken") && (
-          <div style={{ marginTop: 40, background: isDark ? "rgba(30,41,59,0.5)" : cfg.accent + "08", border: `1px solid ${cfg.accent}25`, borderRadius: 20, padding: "28px 24px", textAlign: "center" }}>
+          <div style={{ marginTop: 40, background: isDark ? "rgba(31,41,55,0.5)" : cfg.accent + "08", border: `1px solid ${cfg.accent}25`, borderRadius: 20, padding: "28px 24px", textAlign: "center" }}>
             <div style={{ fontSize: 36, marginBottom: 12 }}>{cfg.emoji}</div>
             <h3 style={{ fontSize: 17, fontWeight: 800, color: "var(--t-text)", margin: "0 0 8px" }}>Ready to book?</h3>
             <p style={{ fontSize: 13, color: "var(--t-text-2)", margin: "0 0 20px", lineHeight: 1.6 }}>Create a free account to book appointments, save favorites and track your visits.</p>
