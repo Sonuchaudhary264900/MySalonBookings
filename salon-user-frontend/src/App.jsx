@@ -140,7 +140,7 @@ function AppLayout({ notifOpen, setNotifOpen }) {
         </Suspense>
       </main>
       {pathname === '/' && isGuest && <Footer />}
-      {!isReels && <BottomNav />}
+      {!isReels && pathname !== '/' && <BottomNav />}
     </div>
   );
 }
