@@ -118,7 +118,7 @@ export default function HeroSection({
                 onChange={(e) => onSearch(e.target.value)}
                 onFocus={() => setFocused(true)}
                 onBlur={() => setFocused(false)}
-                style={{ fontSize: 16, background: "transparent", color: "#f1f5f9", flex: 1, outline: "none", minWidth: 0 }}
+                style={{ fontSize: 16, background: "transparent", color: "#ffffff", flex: 1, outline: "none", minWidth: 0 }}
                 className="placeholder-slate-500"
               />
               {searchText && !searching && (
