@@ -10,7 +10,6 @@ import API from "../services/api";
 import { useTheme } from "../context/ThemeContext";
 import { salonPath } from "../utils/formatters";
 import SalonCard from "../components/SalonCard";
-import LandingPage from "./LandingPage";
 
 // ── Helpers ──────────────────────────────────────────────────────
 function getUserName() {
@@ -458,57 +457,6 @@ export default function Home() {
     return [...allSalons].sort((a, b) => parseFloat(b.averageRating || 0) - parseFloat(a.averageRating || 0)).slice(0, 2);
   }, [allSalons]);
 
-  // ── Guest view ───────────────────────────────────────────────
-  if (!isLoggedIn) {
-    const guestGrid = (
-      <div id="salons">
-        <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16,flexWrap:"wrap",gap:10 }}>
-          <h2 style={{ fontSize:17,fontWeight:800,color:"var(--t-text)",marginBottom:2 }}>
-            {serviceMatchLabel || (sort==="rated"?"Top Rated Salons":sort==="booked"?"Trending Salons":"Salons Near You")}
-          </h2>
-        </div>
-        {loading && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
-            {Array(8).fill(0).map((_,i) => (
-              <div key={i} className="rounded-3xl overflow-hidden" style={{ background:"var(--t-card)",border:"1px solid var(--t-border)" }}>
-                <div className="h-44 skeleton" />
-                <div className="p-4 space-y-3">
-                  <div className="h-4 skeleton rounded-lg w-3/4" />
-                  <div className="h-3 skeleton rounded-lg w-1/2" />
-                  <div className="h-9 skeleton rounded-xl w-full mt-2" />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        {!loading && salons.length === 0 && !locDenied && (
-          <div style={{ textAlign:"center",padding:"48px 20px" }}>
-            <SearchX style={{ width:36,height:36,color:"var(--t-border)",margin:"0 auto 14px" }} />
-            <p style={{ fontSize:15,fontWeight:600,color:"var(--t-text)" }}>No salons found</p>
-            <p style={{ fontSize:13,color:"var(--t-text-3)" }}>Try adjusting your filters.</p>
-          </div>
-        )}
-        {!loading && salons.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
-            {salons.map(s => <SalonCard key={s._id} salon={s} userCoords={userCoords} />)}
-          </div>
-        )}
-      </div>
-    );
-    return (
-      <div style={{ background:"var(--t-bg)",minHeight:"100vh" }}>
-        <LandingPage
-          searchText={searchText} onSearch={handleSearch} onSearchSubmit={handleSearchSubmit}
-          onLocate={handleLocation} locLoading={locLoading} searching={searching}
-          selectedCats={selectedCats} onCategorySelect={handleCategory}
-          sort={sort} onSortChange={handleSortChange}
-          genderFilter={genderFilter} salonGrid={guestGrid}
-        />
-      </div>
-    );
-  }
-
-  // ── Logged-in view ───────────────────────────────────────────
   const heroOverlayLight = "linear-gradient(90deg,#f9fafb 0%,rgba(249,250,251,0.97) 32%,rgba(249,250,251,0.72) 55%,transparent 100%)";
   const heroOverlayDark  = "linear-gradient(90deg,#111827 0%,rgba(17,24,39,0.97) 32%,rgba(17,24,39,0.72) 55%,transparent 100%)";
   const heroOverlay = isDark ? heroOverlayDark : heroOverlayLight;
@@ -586,20 +534,20 @@ export default function Home() {
                 fontSize:11, fontWeight:800, letterSpacing:"0.16em",
                 textTransform:"uppercase", color:"var(--t-accent)",
               }}>
-                {getGreeting()}, {userName}
+                {isLoggedIn ? `${getGreeting()}, ${userName}` : getGreeting()}
               </span>
             </div>
 
             {/* Headline */}
             <h1 style={{
-              fontSize:"clamp(36px, 6.5vw, 96px)",
+              fontSize:"clamp(36px, 4.5vw, 96px)",
               fontWeight:900,
               lineHeight:1.0,
               letterSpacing:"-0.04em",
               color:"var(--t-hero-text)",
               margin:"0 0 10px",
             }}>
-              Book Smart.<br />Save Time.
+              Avoid Long Queue.<br />Save Time.
             </h1>
             <h1 style={{
               fontSize:"clamp(28px, 4.5vw, 72px)",
