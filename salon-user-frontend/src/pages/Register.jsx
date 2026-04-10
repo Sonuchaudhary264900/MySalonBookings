@@ -213,7 +213,7 @@ export default function Register() {
 
   const strength = pwStrength(password);
   const leftBg = isDark
-    ? "linear-gradient(145deg,#0f172a 0%,#1e293b 40%,#162032 70%,#0f172a 100%)"
+    ? "linear-gradient(145deg,#111827 0%,#1f2937 40%,#1f2937 70%,#111827 100%)"
     : "linear-gradient(135deg,#312e81 0%,#4f46e5 35%,#8b5cf6 65%,#6d28d9 100%)";
 
   return (
