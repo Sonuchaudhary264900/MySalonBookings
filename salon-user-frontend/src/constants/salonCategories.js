@@ -193,16 +193,86 @@ export const UNISEX_CATEGORIES = [
   },
 ];
 
-export const CATEGORY_ICON_MAP = Object.fromEntries(UNISEX_CATEGORIES.map(c => [c.label, c.icon]));
+// ── Lucide icon name map (covers all possible category label strings) ─
+// Values are Lucide component name strings — import and render in the UI
+export const CATEGORY_ICON_MAP = {
+  'Hair Services':               'Scissors',
+  'Hair Services (Men)':         'Scissors',
+  'Hair Services (Women)':       'Scissors',
+  'Beard & Grooming':            'Smile',
+  'Nail Services':               'Paintbrush',
+  'Skin & Face / Beauty':        'Sparkles',
+  'Skin & Face (Men Grooming)':  'Sparkles',
+  'Skin & Beauty':               'Sparkles',
+  'Face & Skin':                 'Sparkles',
+  'Spa & Massage':               'Waves',
+  'Spa & Relaxation':            'Waves',
+  'Body Grooming':               'Wind',
+  'Men Dermatology':             'Activity',
+  'Women Dermatology':           'Activity',
+  'Bridal & Events':             'Crown',
+  'Kids Services':               'Baby',
+  'At-Home Services':            'Home',
+  'Makeup Services':             'Palette',
+  'Hairstyling':                 'Scissors',
+  'Draping & Dressing':          'Shirt',
+  'Pre-Bridal':                  'Heart',
+  'Grooming Add-ons':            'Plus',
+  'Premium Add-ons':             'Star',
+};
 
+// ── Global fallback order ──────────────────────────────────────────
 export const ALL_CATEGORY_ORDER = [
   'Hair Services', 'Hair Services (Men)', 'Hair Services (Women)',
   'Beard & Grooming', 'Nail Services',
-  'Skin & Face / Beauty', 'Skin & Face (Men Grooming)', 'Skin & Beauty',
+  'Skin & Face / Beauty', 'Skin & Face (Men Grooming)', 'Skin & Beauty', 'Face & Skin',
   'Spa & Massage', 'Spa & Relaxation', 'Body Grooming',
   'Men Dermatology', 'Women Dermatology',
+  'Makeup Services', 'Hairstyling', 'Draping & Dressing', 'Pre-Bridal',
+  'Grooming Add-ons', 'Premium Add-ons',
   'Bridal & Events', 'Kids Services', 'At-Home Services',
 ];
 
-export const MALE_ONLY_CAT_LABELS  = new Set(['Beard & Grooming', 'Men Dermatology']);
-export const FEMALE_ONLY_CAT_LABELS = new Set(['Bridal & Events',  'Women Dermatology']);
+export const MALE_ONLY_CAT_LABELS  = new Set(['Beard & Grooming', 'Men Dermatology', 'Hair Services (Men)', 'Skin & Face (Men Grooming)', 'Face & Skin']);
+export const FEMALE_ONLY_CAT_LABELS = new Set(['Bridal & Events', 'Women Dermatology', 'Hair Services (Women)', 'Skin & Beauty', 'Nail Services', 'Spa & Relaxation', 'Makeup Services', 'Hairstyling', 'Draping & Dressing', 'Pre-Bridal']);
+
+// ── Per-businessType category order ───────────────────────────────
+const BIZ_CATEGORY_ORDERS = {
+  barbershop: {
+    male:   ['Hair Services', 'Hair Services (Men)', 'Beard & Grooming', 'Face & Skin', 'Skin & Face (Men Grooming)', 'Body Grooming', 'Spa & Massage', 'Men Dermatology', 'Kids Services', 'At-Home Services'],
+    female: ['Hair Services', 'Hair Services (Men)', 'Beard & Grooming', 'Face & Skin', 'Body Grooming', 'Men Dermatology'],
+    unisex: ['Hair Services', 'Hair Services (Men)', 'Beard & Grooming', 'Face & Skin', 'Skin & Face (Men Grooming)', 'Body Grooming', 'Spa & Massage', 'Men Dermatology', 'Kids Services', 'At-Home Services'],
+  },
+  salon: {
+    male:   ['Hair Services', 'Hair Services (Men)', 'Beard & Grooming', 'Skin & Face (Men Grooming)', 'Skin & Face / Beauty', 'Spa & Massage', 'Body Grooming', 'Men Dermatology', 'Kids Services', 'At-Home Services'],
+    female: ['Hair Services', 'Hair Services (Women)', 'Nail Services', 'Skin & Beauty', 'Skin & Face / Beauty', 'Body Grooming', 'Spa & Relaxation', 'Spa & Massage', 'Bridal & Events', 'Women Dermatology', 'Kids Services', 'At-Home Services'],
+    unisex: ['Hair Services', 'Hair Services (Men)', 'Hair Services (Women)', 'Beard & Grooming', 'Nail Services', 'Skin & Face / Beauty', 'Skin & Face (Men Grooming)', 'Skin & Beauty', 'Spa & Massage', 'Spa & Relaxation', 'Body Grooming', 'Bridal & Events', 'Men Dermatology', 'Women Dermatology', 'Kids Services', 'At-Home Services'],
+  },
+  spa_wellness: {
+    male:   ['Spa & Massage', 'Body Grooming', 'Skin & Face (Men Grooming)', 'Skin & Face / Beauty', 'Men Dermatology', 'At-Home Services'],
+    female: ['Spa & Relaxation', 'Spa & Massage', 'Body Grooming', 'Skin & Beauty', 'Skin & Face / Beauty', 'Women Dermatology', 'At-Home Services'],
+    unisex: ['Spa & Massage', 'Spa & Relaxation', 'Body Grooming', 'Skin & Face / Beauty', 'Skin & Beauty', 'Men Dermatology', 'Women Dermatology', 'At-Home Services'],
+  },
+  makeup_bridal: {
+    male:   ['Makeup Services', 'Hairstyling', 'Draping & Dressing', 'Pre-Bridal', 'Grooming Add-ons', 'Bridal & Events', 'Premium Add-ons'],
+    female: ['Makeup Services', 'Hairstyling', 'Draping & Dressing', 'Pre-Bridal', 'Grooming Add-ons', 'Bridal & Events', 'Nail Services', 'Skin & Beauty', 'Hair Services (Women)', 'Premium Add-ons'],
+    unisex: ['Makeup Services', 'Hairstyling', 'Draping & Dressing', 'Pre-Bridal', 'Grooming Add-ons', 'Bridal & Events', 'Nail Services', 'Skin & Beauty', 'Hair Services (Women)', 'Premium Add-ons'],
+  },
+  skin_derma: {
+    male:   ['Men Dermatology', 'Skin & Face (Men Grooming)', 'Skin & Face / Beauty', 'Hair Services (Men)', 'Body Grooming'],
+    female: ['Women Dermatology', 'Skin & Beauty', 'Skin & Face / Beauty', 'Hair Services (Women)', 'Nail Services', 'Body Grooming'],
+    unisex: ['Men Dermatology', 'Women Dermatology', 'Skin & Face / Beauty', 'Skin & Face (Men Grooming)', 'Skin & Beauty', 'Hair Services', 'Body Grooming'],
+  },
+};
+
+/**
+ * Returns an ordered array of category label strings for a given
+ * business type + gender combination.
+ * Falls back to ALL_CATEGORY_ORDER if the combo is not found.
+ */
+export function getCategoryOrderForBusinessType(businessType, servedGender) {
+  const bizOrders = BIZ_CATEGORY_ORDERS[businessType];
+  if (!bizOrders) return ALL_CATEGORY_ORDER;
+  const gender = servedGender === 'male' ? 'male' : servedGender === 'female' ? 'female' : 'unisex';
+  return bizOrders[gender] || ALL_CATEGORY_ORDER;
+}
