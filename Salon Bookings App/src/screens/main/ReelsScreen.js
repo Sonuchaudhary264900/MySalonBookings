@@ -176,34 +176,33 @@ function ReelItem({ item, isVisible, isMuted, onToggleMute, onOpenComment, onOpe
         onPlaybackStatusUpdate={handlePlaybackStatus}
       />
 
-      {/* Dark gradient overlay */}
-      <View style={styles.gradient} pointerEvents="none" />
-
-      {/* Top-right: mute button */}
-      <View style={styles.topBar} pointerEvents="box-none">
-        <TouchableOpacity onPress={onToggleMute} style={styles.muteBtn} activeOpacity={0.8}>
-          <Ionicons name={isMuted ? 'volume-mute' : 'volume-high'} size={20} color="#fff" />
-        </TouchableOpacity>
-      </View>
+      {/* Cinematic gradient overlays (top fade + bottom fade) */}
+      <View style={styles.gradientTop} pointerEvents="none" />
+      <View style={styles.gradientBottom} pointerEvents="none" />
 
       {/* Right sidebar: Like, Comment, Share, Avatar */}
       <View style={styles.sidebar}>
         {/* Like */}
         <TouchableOpacity style={styles.sideBtn} onPress={handleLike} activeOpacity={0.8}>
-          <Ionicons name={liked ? 'heart' : 'heart-outline'} size={30} color={liked ? '#f43f5e' : '#fff'} />
+          <View style={[styles.sideBtnCircle, liked && styles.sideBtnCircleLiked]}>
+            <Ionicons name={liked ? 'heart' : 'heart-outline'} size={22} color={liked ? '#f43f5e' : '#fff'} />
+          </View>
           <Text style={[styles.sideBtnLabel, liked && { color: '#f43f5e' }]}>{fmtCount(likeCount)}</Text>
         </TouchableOpacity>
 
         {/* Comment */}
         <TouchableOpacity style={styles.sideBtn} onPress={handleComment} activeOpacity={0.8}>
-          <Ionicons name="chatbubble-outline" size={27} color="#fff" />
+          <View style={styles.sideBtnCircle}>
+            <Ionicons name="chatbubble-outline" size={22} color="#fff" />
+          </View>
           <Text style={styles.sideBtnLabel}>{fmtCount(item.commentCount || 0)}</Text>
         </TouchableOpacity>
 
         {/* Share */}
         <TouchableOpacity style={styles.sideBtn} onPress={handleShare} activeOpacity={0.8}>
-          <Ionicons name="share-social-outline" size={27} color="#fff" />
-          <Text style={styles.sideBtnLabel}>Share</Text>
+          <View style={styles.sideBtnCircle}>
+            <Ionicons name="share-social-outline" size={20} color="#fff" />
+          </View>
         </TouchableOpacity>
 
         {/* Salon avatar */}
@@ -216,55 +215,34 @@ function ReelItem({ item, isVisible, isMuted, onToggleMute, onOpenComment, onOpe
                 <Ionicons name="storefront-outline" size={18} color="#fff" />
               </View>
             )}
-            <View style={styles.sideAvatarPlus}>
-              <Ionicons name="add" size={11} color="#fff" />
-            </View>
           </View>
         </TouchableOpacity>
       </View>
 
-      {/* Bottom-left: salon info + view count */}
+      {/* Bottom-left: salon info */}
       <View style={styles.bottomInfo} pointerEvents="box-none">
         <TouchableOpacity onPress={() => onOpenSalon(salon._id)} activeOpacity={0.8}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-            {salonLogo ? (
-              <Image source={{ uri: salonLogo }} style={styles.bottomAvatar} />
-            ) : (
-              <View style={[styles.bottomAvatar, { backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' }]}>
-                <Ionicons name="storefront-outline" size={16} color="#fff" />
-              </View>
+          <Text style={styles.salonName} numberOfLines={1}>{salon.name || 'Salon'}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 }}>
+            {city ? <Text style={styles.salonCity}>📍 {city}</Text> : null}
+            {salon.averageRating > 0 && (
+              <Text style={styles.salonRating}>★ {salon.averageRating.toFixed(1)}</Text>
             )}
-            <View style={{ flex: 1 }}>
-              <Text style={styles.salonName} numberOfLines={1}>{salon.name || 'Salon'}</Text>
-              {city ? <Text style={styles.salonCity}>📍 {city}</Text> : null}
-            </View>
           </View>
         </TouchableOpacity>
-        <StarRow rating={salon.averageRating} />
-        {viewCount > 0 && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
-            <Ionicons name="eye-outline" size={12} color="rgba(255,255,255,0.6)" />
-            <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: '600' }}>{fmtCount(viewCount)} views</Text>
-          </View>
-        )}
         {item.categories?.length > 0 && (
-          <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
-            {item.categories.map(cat => (
+          <View style={{ flexDirection: 'row', gap: 5, flexWrap: 'wrap', marginTop: 8 }}>
+            {item.categories.slice(0, 3).map(cat => (
               <View key={cat} style={styles.catChip}>
                 <Text style={styles.catChipText}>{cat}</Text>
               </View>
             ))}
           </View>
         )}
-        <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
-          <TouchableOpacity style={styles.bookNowBtn} onPress={() => onOpenSalon(salon._id)} activeOpacity={0.85}>
-            <Text style={styles.bookNowText}>Book Now</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.viewSalonBtn} onPress={() => onOpenSalon(salon._id)} activeOpacity={0.85}>
-            <Text style={styles.viewSalonText}>View Salon</Text>
-            <Ionicons name="arrow-forward" size={13} color="#fff" />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={styles.bookNowBtn} onPress={() => onOpenSalon(salon._id)} activeOpacity={0.85}>
+          <Ionicons name="cut-outline" size={15} color="#fff" />
+          <Text style={styles.bookNowText}>Book Appointment</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -426,7 +404,7 @@ export default function ReelsScreen() {
   const [mode,      setMode]      = useState('nearest'); // 'nearest' | 'all'
   const [gender,    setGender]    = useState('all');     // 'all' | 'male' | 'female'
   const [coords,    setCoords]    = useState(null);
-  const [locLabel,  setLocLabel]  = useState('');
+  const [locResolved, setLocResolved] = useState(false);
 
   const [commentTarget, setCommentTarget] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -442,15 +420,13 @@ export default function ReelsScreen() {
         if (status === 'granted') {
           const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
           setCoords({ lat: loc.coords.latitude, lng: loc.coords.longitude });
-          setLocLabel('Nearby You');
         } else {
           setMode('all');
-          setLocLabel('All Salons');
         }
       } catch {
         setMode('all');
-        setLocLabel('All Salons');
       }
+      setLocResolved(true);
     })();
   }, []);
 
@@ -492,10 +468,10 @@ export default function ReelsScreen() {
 
   // Initial load once location resolves
   useEffect(() => {
-    if (!locLabel) return;
+    if (!locResolved) return;
     fetchReels(1, mode, gender, coords);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locLabel]);
+  }, [locResolved]);
 
   // Re-fetch when mode or gender changes
   const didMount = useRef(false);
@@ -554,41 +530,20 @@ export default function ReelsScreen() {
 
   return (
     <View style={styles.root}>
-      {/* Floating top bar — location + mode + gender */}
+      {/* Compact top filter row */}
       <View style={styles.topOverlay} pointerEvents="box-none">
-        {/* Row 1: location label */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, marginBottom: 8 }} pointerEvents="none">
-          <Ionicons name="location" size={13} color="#818cf8" />
-          <Text style={styles.locationText}>{locLabel}</Text>
-        </View>
-
-        {/* Row 2: mode toggle */}
-        <View style={{ flexDirection: 'row', gap: 6, marginBottom: 6 }} pointerEvents="box-none">
-          {[['nearest', '📍 Nearest'], ['all', '🌐 All']].map(([m, label]) => (
-            <TouchableOpacity
-              key={m}
-              onPress={() => setMode(m)}
-              style={[styles.filterPill, mode === m && styles.filterPillActive]}
-              activeOpacity={0.85}
-            >
-              <Text style={[styles.filterPillText, mode === m && styles.filterPillTextActive]}>{label}</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 6 }} pointerEvents="box-none">
+          {[['nearest', '📍 Nearby'], ['all', '🌐 All']].map(([m, label]) => (
+            <TouchableOpacity key={m} onPress={() => setMode(m)} style={[styles.filterChip, mode === m && styles.filterChipActive]} activeOpacity={0.8}>
+              <Text style={[styles.filterChipText, mode === m && styles.filterChipTextActive]}>{label}</Text>
             </TouchableOpacity>
           ))}
-        </View>
-
-        {/* Row 3: gender filter */}
-        <View style={{ flexDirection: 'row', gap: 5 }} pointerEvents="box-none">
           {[['all', 'All'], ['male', 'Men'], ['female', 'Women']].map(([g, label]) => (
-            <TouchableOpacity
-              key={g}
-              onPress={() => setGender(g)}
-              style={[styles.genderPill, gender === g && styles.genderPillActive]}
-              activeOpacity={0.85}
-            >
-              <Text style={[styles.genderPillText, gender === g && styles.genderPillTextActive]}>{label}</Text>
+            <TouchableOpacity key={g} onPress={() => setGender(g)} style={[styles.filterChip, gender === g && styles.filterChipActive]} activeOpacity={0.8}>
+              <Text style={[styles.filterChipText, gender === g && styles.filterChipTextActive]}>{label}</Text>
             </TouchableOpacity>
           ))}
-        </View>
+        </ScrollView>
       </View>
 
       <FlatList
@@ -647,84 +602,67 @@ const styles = StyleSheet.create({
   reel:   { width: SCREEN_W, height: SCREEN_H, backgroundColor: '#000' },
 
   progressWrap: {
-    position: 'absolute', top: 0, left: 0, right: 0, height: 2,
-    backgroundColor: 'rgba(255,255,255,0.15)', zIndex: 25,
+    position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+    backgroundColor: 'rgba(255,255,255,0.10)', zIndex: 25,
   },
-  progressBar: { height: 2, backgroundColor: '#fff' },
+  progressBar: { height: 3, backgroundColor: '#8b5cf6' },
 
-  gradient: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'transparent',
+  gradientTop: {
+    position: 'absolute', top: 0, left: 0, right: 0, height: 140,
+    backgroundColor: 'rgba(0,0,0,0.28)', zIndex: 5,
   },
-
-  topBar: { position: 'absolute', top: 50, right: 16, zIndex: 10 },
-  muteBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    alignItems: 'center', justifyContent: 'center',
+  gradientBottom: {
+    position: 'absolute', bottom: 0, left: 0, right: 0, height: 320,
+    backgroundColor: 'rgba(0,0,0,0.72)', zIndex: 5,
   },
 
   topOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0,
     paddingTop: Platform.OS === 'ios' ? 54 : 36,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     zIndex: 20,
-    alignItems: 'center',
   },
-  locationText: { color: '#c7d2fe', fontSize: 12, fontWeight: '600' },
-
-  filterPill: {
-    flex: 1, paddingVertical: 6, borderRadius: 20, alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.15)',
+  filterChip: {
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 11,
+    backgroundColor: 'rgba(255,255,255,0.10)',
   },
-  filterPillActive: { backgroundColor: '#fff' },
-  filterPillText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  filterPillTextActive: { color: '#000' },
-
-  genderPill: {
-    flex: 1, paddingVertical: 5, borderRadius: 14, alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.2)',
-  },
-  genderPillActive: { backgroundColor: 'rgba(139,92,246,0.55)', borderColor: '#a78bfa' },
-  genderPillText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  genderPillTextActive: { color: '#e9d5ff' },
+  filterChipActive: { backgroundColor: 'rgba(99,102,241,0.75)' },
+  filterChipText: { color: 'rgba(255,255,255,0.55)', fontSize: 11, fontWeight: '700' },
+  filterChipTextActive: { color: '#fff' },
 
   sidebar: {
-    position: 'absolute', right: 12, bottom: 120,
-    gap: 20, alignItems: 'center', zIndex: 10,
+    position: 'absolute', right: 12, bottom: 84,
+    gap: 16, alignItems: 'center', zIndex: 10,
   },
-  sideBtn:      { alignItems: 'center', gap: 3 },
-  sideBtnLabel: { color: '#fff', fontSize: 12, fontWeight: '600' },
-  sideAvatarWrap: { position: 'relative' },
-  sideAvatar: { width: 44, height: 44, borderRadius: 22, borderWidth: 2, borderColor: '#fff' },
-  sideAvatarPlus: {
-    position: 'absolute', bottom: -6, left: '50%', marginLeft: -10,
-    width: 20, height: 20, borderRadius: 10,
-    backgroundColor: '#f43f5e', alignItems: 'center', justifyContent: 'center',
+  sideBtn:       { alignItems: 'center', gap: 4 },
+  sideBtnLabel:  { color: 'rgba(255,255,255,0.90)', fontSize: 11, fontWeight: '700' },
+  sideBtnCircle: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: 'rgba(10,10,10,0.55)',
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)',
+    shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 8, elevation: 4,
   },
+  sideBtnCircleLiked: { backgroundColor: 'rgba(244,63,94,0.15)', borderColor: 'rgba(244,63,94,0.4)' },
+  sideAvatarWrap: {},
+  sideAvatar: { width: 44, height: 44, borderRadius: 22, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)' },
 
   bottomInfo: {
-    position: 'absolute', bottom: 90, left: 14, right: 80, zIndex: 10,
+    position: 'absolute', bottom: 80, left: 14, right: 76, zIndex: 10,
   },
-  bottomAvatar: { width: 38, height: 38, borderRadius: 19, borderWidth: 2, borderColor: '#fff' },
-  salonName:    { color: '#fff', fontSize: 15, fontWeight: '700' },
-  salonCity:    { color: '#d1d5db', fontSize: 12 },
-  catChip:      { backgroundColor: 'rgba(99,102,241,0.65)', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 },
-  catChipText:  { color: '#fff', fontSize: 10, fontWeight: '700' },
+  salonName:   { color: '#fff', fontSize: 17, fontWeight: '700', letterSpacing: -0.2 },
+  salonCity:   { color: 'rgba(255,255,255,0.60)', fontSize: 12, fontWeight: '500' },
+  salonRating: { color: '#fbbf24', fontSize: 12, fontWeight: '700' },
+  catChip:     { backgroundColor: 'rgba(99,102,241,0.55)', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
+  catChipText: { color: '#ddd6fe', fontSize: 10, fontWeight: '700', letterSpacing: 0.5 },
   bookNowBtn: {
-    backgroundColor: '#6366f1', paddingHorizontal: 16, paddingVertical: 8,
-    borderRadius: 20, alignSelf: 'flex-start',
-    shadowColor: '#6366f1', shadowOpacity: 0.5, shadowRadius: 8, elevation: 4,
+    flexDirection: 'row', alignItems: 'center', gap: 7,
+    backgroundColor: '#6366f1', paddingHorizontal: 16, paddingVertical: 12,
+    borderRadius: 14, marginTop: 10,
+    shadowColor: '#6366f1', shadowOpacity: 0.45, shadowRadius: 12, elevation: 5,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
   },
-  bookNowText: { color: '#fff', fontSize: 13, fontWeight: '800' },
-  viewSalonBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)', paddingHorizontal: 12,
-    paddingVertical: 7, borderRadius: 20, alignSelf: 'flex-start',
-  },
-  viewSalonText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+  bookNowText: { color: '#fff', fontSize: 14, fontWeight: '700', letterSpacing: 0.2 },
 
   // Comment sheet
   sheetBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
