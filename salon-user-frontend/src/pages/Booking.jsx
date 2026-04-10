@@ -381,23 +381,23 @@ function Booking() {
                   No available slots for this date.
                 </div>
               ) : bookingMode === "sequential" ? (
-                /* Sequential mode — show the auto-assigned slot */
+                /* Sequential mode — best available slot card */
                 <div className="space-y-2">
-                  <div className="p-3 rounded-xl text-xs bg-indigo-50 dark:bg-indigo-50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                    ⏩ This salon assigns slots in order. Your slot is auto-assigned below.
-                  </div>
                   {(() => {
                     const s = slots[0];
                     const [h, m] = s.split(":").map(Number);
                     const endMin = h * 60 + m + totalDuration;
                     const endTime = `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
                     return (
-                      <div className="flex items-center justify-between px-4 py-3 rounded-xl font-semibold text-sm text-white" style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', boxShadow: '0 4px 14px rgba(99,102,241,0.3)' }}>
-                        <span>{s} – {endTime}</span>
-                        <span style={{ opacity: 0.75, fontSize: 11 }}>{totalDuration} min</span>
+                      <div className="rounded-xl p-4" style={{ background: 'rgba(99,102,241,.08)', border: '1px solid rgba(99,102,241,.3)' }}>
+                        <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--t-text-3)', marginBottom: 6 }}>✨ Best available slot for you</p>
+                        <p className="font-extrabold text-xl" style={{ color: 'var(--t-accent)', marginBottom: 4 }}>{s} – {endTime}</p>
+                        <p style={{ fontSize: 11, color: 'var(--t-text-2)', fontWeight: 500 }}>Perfectly fits your selected services</p>
+                        <p style={{ fontSize: 10, color: 'var(--t-text-3)', marginTop: 2 }}>No overlap • No waiting</p>
                       </div>
                     );
                   })()}
+                  <p style={{ fontSize: 10, fontWeight: 600, color: '#fbbf24', textAlign: 'center' }}>High demand — slots fill quickly today</p>
                 </div>
               ) : (
                 <>
@@ -469,6 +469,13 @@ function Booking() {
               </div>
             )}
 
+            {/* Trust layer */}
+            <div className="flex gap-4 flex-wrap">
+              {['Slot confirmed instantly', 'No waiting at salon', 'Pay after service'].map(t => (
+                <span key={t} style={{ fontSize: 11, color: '#4ade80', fontWeight: 600 }}>✔ {t}</span>
+              ))}
+            </div>
+
             {/* Coupon code — only shown if salon has active coupons */}
             {date && slot && salon?.hasCoupons && (
               <div>
@@ -535,21 +542,28 @@ function Booking() {
                       <span className="font-medium">−₹{couponDiscount}</span>
                     </div>
                   )}
-                  <div className="flex justify-between t-divider pt-2 mt-1">
-                    <span className="font-bold" style={{ color: 'var(--t-text)' }}>Total (Pay at salon)</span>
-                    <span className="font-bold text-base" style={{ color: 'var(--t-accent)' }}>₹{finalPrice}</span>
+                  <div className="flex justify-between items-center px-3 py-2.5 rounded-xl mt-2"
+                    style={{ background: 'rgba(99,102,241,.08)', border: '1px solid rgba(99,102,241,.2)' }}>
+                    <span className="font-bold text-sm" style={{ color: 'var(--t-text)' }}>Total · Pay at salon</span>
+                    <span className="font-extrabold text-lg" style={{ color: 'var(--t-accent)' }}>₹{finalPrice}</span>
                   </div>
                 </div>
               </div>
             )}
 
+            {slot && !loading && (
+              <p className="text-center text-xs font-semibold" style={{ color: 'var(--t-text-2)' }}>You're all set! Just one tap to confirm ✨</p>
+            )}
             <button
               type="submit"
               disabled={loading || !date || !slot}
               className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed py-3"
             >
-              {loading ? "Confirming…" : "Confirm Booking"}
+              {loading
+                ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 rounded-full animate-spin border-2 border-white/30 border-t-white" />Securing your slot…</span>
+                : "Lock My Slot 🔒"}
             </button>
+            <p className="text-center" style={{ fontSize: 10, color: 'var(--t-text-3)' }}>Instant confirmation • No payment now</p>
           </form>
         </div>
       </div>

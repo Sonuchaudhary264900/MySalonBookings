@@ -1655,19 +1655,25 @@ function SalonDetails() {
                       <Calendar className="w-4 h-4" style={{ color: theme.p }} /> Select Date
                     </label>
                     <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                      {dateDays.map(d => {
+                      {dateDays.map((d, i) => {
                         const active = bookDate === d;
                         const dateObj = new Date(d + 'T12:00:00');
+                        const label = i === 0 ? 'Today' : i === 1 ? 'Tmrw' : null;
+                        const labelColor = i === 0 ? '#4ade80' : '#fbbf24';
                         return (
-                          <button key={d} type="button" onClick={() => setBookDate(d)}
-                            className="flex flex-col items-center justify-center rounded-2xl shrink-0 transition-all hover:scale-105"
-                            style={{ width:52, height:62, borderWidth:1.5,
+                          <motion.button key={d} type="button" onClick={() => setBookDate(d)}
+                            whileTap={{ scale: 0.93 }}
+                            className="flex flex-col items-center justify-center rounded-2xl shrink-0"
+                            style={{ width: 58, height: label ? 76 : 62, borderWidth: 1.5,
                               background: active ? theme.p : dm.formInp,
                               borderColor: active ? theme.p : dm.b10,
-                              boxShadow: active ? `0 4px 12px ${theme.p}50` : 'none' }}>
+                              boxShadow: active ? `0 6px 18px ${theme.p}65` : 'none',
+                              transform: active ? 'scale(1.1)' : 'scale(1)',
+                              transition: 'all .2s ease' }}>
+                            {label && <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.04em', color: active ? 'rgba(255,255,255,.9)' : labelColor, marginBottom: 1 }}>{label}</span>}
                             <span className="text-[10px] font-bold" style={{ color: active ? 'rgba(255,255,255,.8)' : dm.fg35 }}>{formatDay(d)}</span>
                             <span className="text-lg font-extrabold" style={{ color: active ? '#fff' : dm.fg75 }}>{dateObj.getDate()}</span>
-                          </button>
+                          </motion.button>
                         );
                       })}
                     </div>
@@ -1719,10 +1725,18 @@ function SalonDetails() {
                         No available slots for this date.
                       </div>
                     ) : bookingMode === 'sequential' ? (
-                      <div className="flex items-center gap-3 p-3 rounded-xl text-sm" style={{ background: `${theme.p}12`, border: `1px solid ${theme.p}30` }}>
-                        <Zap className="w-4 h-4 shrink-0" style={{ color: theme.p }} />
-                        <span style={{ color: theme.p }}>Auto-assigned: <strong>{slots[0]} – {addMinutes(slots[0], totalDuration)}</strong></span>
-                      </div>
+                      <>
+                        <motion.div
+                          animate={{ boxShadow: [`0 0 0px ${theme.p}00`, `0 0 14px ${theme.p}40`, `0 0 0px ${theme.p}00`] }}
+                          transition={{ repeat: Infinity, duration: 2.4, ease: 'easeInOut' }}
+                          className="rounded-xl p-4" style={{ background: `${theme.p}10`, border: `1px solid ${theme.p}30` }}>
+                          <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: dm.fg40, marginBottom: 6 }}>✨ Best available slot for you</p>
+                          <p className="font-extrabold text-xl" style={{ color: theme.p, marginBottom: 4 }}>{slots[0]} – {addMinutes(slots[0], totalDuration)}</p>
+                          <p style={{ fontSize: 11, color: dm.fg45, fontWeight: 500 }}>Perfectly fits your selected services</p>
+                          <p style={{ fontSize: 10, color: dm.fg30, marginTop: 2 }}>No overlap • No waiting</p>
+                        </motion.div>
+                        <p style={{ fontSize: 10, fontWeight: 600, color: '#fbbf24', textAlign: 'center', marginTop: 6 }}>High demand — slots fill quickly today</p>
+                      </>
                     ) : (
                       <>
                         <div className="flex items-center gap-4 mb-3 text-xs flex-wrap" style={{ color: dm.fg30 }}>
@@ -1753,6 +1767,12 @@ function SalonDetails() {
                         </div>
                       </>
                     )}
+                  </div>
+
+                  <div className="flex gap-4 flex-wrap">
+                    {['Slot confirmed instantly', 'No waiting at salon', 'Pay after service'].map(t => (
+                      <span key={t} style={{ fontSize: 11, color: '#4ade80', fontWeight: 600 }}>✔ {t}</span>
+                    ))}
                   </div>
 
                   {slot && salon?.hasCoupons && (
@@ -1802,9 +1822,10 @@ function SalonDetails() {
                             <span className="font-medium">−₹{couponDiscount}</span>
                           </div>
                         )}
-                        <div className="flex justify-between pt-2 mt-1" style={{ borderTop: `1px solid ${dm.b07}` }}>
-                          <span className="font-bold" style={{ color: dm.fg }}>Total (Pay at salon)</span>
-                          <span className="font-bold text-base" style={{ color: theme.p }}>₹{finalPrice}</span>
+                        <div className="flex justify-between items-center px-3 py-2.5 rounded-xl mt-2"
+                          style={{ background: `${theme.p}12`, border: `1px solid ${theme.p}25` }}>
+                          <span className="font-bold text-sm" style={{ color: dm.fg }}>Total · Pay at salon</span>
+                          <span className="font-extrabold text-lg" style={{ color: theme.p }}>₹{finalPrice}</span>
                         </div>
                       </div>
                     </div>
@@ -1813,11 +1834,17 @@ function SalonDetails() {
 
                 <div className="shrink-0 px-5 py-4" style={{ borderTop: `1px solid ${dm.b07}`, background: dm.drawer, transition: 'background .3s' }}>
                   {bookError && <div className="mb-3 p-3 rounded-xl text-sm" style={{ background: 'rgba(239,68,68,.08)', color: '#f87171', border: '1px solid rgba(239,68,68,.2)' }}>{bookError}</div>}
+                  {slot && !bookingLoading && (
+                    <p className="text-center text-xs font-semibold mb-2" style={{ color: dm.fg45 }}>You're all set! Just one tap to confirm ✨</p>
+                  )}
                   <button onClick={handleConfirm} disabled={bookingLoading || !slot}
                     className="w-full py-3.5 text-base font-bold text-white rounded-2xl transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                     style={{ background: `linear-gradient(135deg,${theme.p},${theme.p}cc)`, boxShadow: slot ? `0 4px 20px ${theme.p}45` : 'none' }}>
-                    {bookingLoading ? 'Confirming…' : !slot ? 'Select a time slot' : 'Confirm Booking'}
+                    {bookingLoading
+                      ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 rounded-full animate-spin border-2 border-white/30 border-t-white" />Securing your slot…</span>
+                      : !slot ? 'Select a time slot' : 'Lock My Slot 🔒'}
                   </button>
+                  <p className="text-center mt-2" style={{ fontSize: 10, color: dm.fg30 }}>Instant confirmation • No payment now</p>
                 </div>
               </>
             )}
