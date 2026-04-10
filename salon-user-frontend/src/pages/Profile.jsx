@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 import { getCustomerToken, clearCustomerAuth } from "../utils/auth";
-import { useNotifications } from "../context/NotificationContext";
 
 // ── localStorage keys ─────────────────────────────────────────
 const NOTIF_KEY = 'notifPrefs';
@@ -11,7 +10,7 @@ const DEFAULT_NOTIF = {
   bookingReminders:   true,
   confirmationAlerts: true,
   cancellationAlerts: true,
-  promotionalOffers:  false,
+  promotionalOffers:  true,
 };
 
 // ── Toggle switch ─────────────────────────────────────────────
@@ -189,7 +188,6 @@ const I = {
 // ─────────────────────────────────────────────────────────────
 export default function Profile() {
   const navigate = useNavigate();
-  const { unreadCount } = useNotifications();
 
   const [user, setUser]       = useState(null);
   const [loading, setLoading] = useState(true);
@@ -354,33 +352,9 @@ export default function Profile() {
         className="px-4 sm:px-6 pt-5 pb-4"
         style={{ background: 'var(--t-card)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
       >
-        <div className="max-w-xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 style={{ fontSize: 22, fontWeight: 800, color: 'rgba(255,255,255,0.95)', lineHeight: 1.2 }}>Settings</h1>
-            <p style={{ fontSize: 13, marginTop: 2, color: 'rgba(255,255,255,0.32)' }}>Manage your account & preferences</p>
-          </div>
-          <Link
-            to="/notifications"
-            className="relative flex items-center justify-center shrink-0"
-            style={{
-              width: 40, height: 40, borderRadius: 12,
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              color: 'rgba(255,255,255,0.6)',
-            }}
-          >
-            {I.bell}
-            {unreadCount > 0 && (
-              <span
-                className="absolute flex items-center justify-center"
-                style={{
-                  top: 6, right: 6, minWidth: 8, height: 8,
-                  background: '#8b5cf6', borderRadius: 4,
-                  border: '2px solid var(--t-card)',
-                }}
-              />
-            )}
-          </Link>
+        <div className="max-w-xl mx-auto">
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: 'rgba(255,255,255,0.95)', lineHeight: 1.2 }}>Settings</h1>
+          <p style={{ fontSize: 13, marginTop: 2, color: 'rgba(255,255,255,0.32)' }}>Manage your account & preferences</p>
         </div>
       </div>
 

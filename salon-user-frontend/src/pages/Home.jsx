@@ -514,7 +514,7 @@ export default function Home() {
   const heroOverlay = isDark ? heroOverlayDark : heroOverlayLight;
 
   return (
-    <div style={{ background:"var(--t-bg)", minHeight:"100vh", overflowX:"hidden", fontFamily:'"Plus Jakarta Sans", system-ui, sans-serif' }}>
+    <div style={{ background:"var(--t-bg)", minHeight:"100vh", overflowX:"hidden", fontFamily:'"Plus Jakarta Sans", system-ui, sans-serif', WebkitTapHighlightColor:"transparent" }}>
 
 
       {/* ══════════════════════════════════════════════════════════
@@ -522,7 +522,7 @@ export default function Home() {
       ══════════════════════════════════════════════════════════ */}
       <section style={{
         position:"relative",
-        minHeight:"85vh",
+        minHeight:"min(85vh,680px)",
         display:"flex",
         alignItems:"center",
         overflow:"hidden",
@@ -567,7 +567,7 @@ export default function Home() {
           position:"relative", zIndex:1,
           width:"100%", maxWidth:1280,
           margin:"0 auto",
-          padding:"clamp(40px,8vh,100px) clamp(20px,6vw,80px)",
+          padding:"clamp(28px,6vh,100px) clamp(16px,5vw,80px)",
         }}>
           <div style={{ maxWidth:680 }}>
 
@@ -592,22 +592,21 @@ export default function Home() {
 
             {/* Headline */}
             <h1 style={{
-              fontSize:"clamp(46px, 6.5vw, 96px)",
+              fontSize:"clamp(36px, 6.5vw, 96px)",
               fontWeight:900,
               lineHeight:1.0,
               letterSpacing:"-0.04em",
               color:"var(--t-hero-text)",
               margin:"0 0 10px",
             }}>
-              Book Smart 
-              Save Time
+              Book Smart.<br />Save Time.
             </h1>
             <h1 style={{
-              fontSize:"clamp(46px, 4.5vw, 96px)",
+              fontSize:"clamp(28px, 4.5vw, 72px)",
               fontWeight:900,
-              lineHeight:1.0,
-              letterSpacing:"-0.04em",
-              margin:"0 0 32px",
+              lineHeight:1.05,
+              letterSpacing:"-0.03em",
+              margin:"0 0 28px",
               background:"linear-gradient(135deg,#6366f1 0%,#8b5cf6 50%,#a78bfa 100%)",
               WebkitBackgroundClip:"text",
               WebkitTextFillColor:"transparent",
