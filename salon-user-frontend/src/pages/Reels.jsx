@@ -97,17 +97,18 @@ const CSS = `
   /* ── feed container ── */
   .reels-feed {
     position: relative;
-    overflow: hidden;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
     background: #000;
-    touch-action: none;
   }
+  .reels-feed::-webkit-scrollbar { display: none; }
 
   /* ── strip ── */
   .reels-strip {
     display: flex;
     flex-direction: column;
-    will-change: transform;
-    /* FIX: strip must NOT have overflow:hidden and must be tall enough */
   }
 
   /* ── individual reel ── */
@@ -115,10 +116,10 @@ const CSS = `
     position: relative;
     overflow: hidden;
     background: #080808;
-    /* FIX: flex-shrink:0 + width:100% ensures items don't collapse */
     flex-shrink: 0;
     width: 100%;
-    touch-action: none;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
   }
 
   /* ── video ── */
@@ -129,7 +130,9 @@ const CSS = `
     height: 100%;
     object-fit: cover;
     display: block;
+    transition: transform 0.20s ease;
   }
+  .reel-video-tap { transform: scale(1.02); }
 
   /* ── cinematic gradient overlay ── */
   .reel-gradient {
@@ -139,10 +142,10 @@ const CSS = `
     background:
       linear-gradient(
         to bottom,
-        rgba(0,0,0,0.60) 0%,
-        rgba(0,0,0,0.10) 18%,
+        rgba(0,0,0,0.35) 0%,
+        rgba(0,0,0,0.05) 20%,
         transparent 36%,
-        transparent 48%,
+        transparent 50%,
         rgba(0,0,0,0.55) 72%,
         rgba(0,0,0,0.93) 100%
       );
@@ -183,7 +186,7 @@ const CSS = `
     18%, 72%  { opacity: 1; transform: scale(1);    }
   }
   @keyframes slideUp {
-    from { opacity: 0; transform: translateY(20px); }
+    from { opacity: 0; transform: translateY(12px); }
     to   { opacity: 1; transform: translateY(0);    }
   }
   @keyframes fadeIn {
@@ -199,8 +202,8 @@ const CSS = `
     100% { background-position:  200% center; }
   }
   @keyframes glowLike {
-    0%, 100% { box-shadow: 0 0 14px rgba(239,68,68,0.45), inset 0 1px 0 rgba(255,255,255,0.12); }
-    50%       { box-shadow: 0 0 32px rgba(239,68,68,0.80), inset 0 1px 0 rgba(255,255,255,0.12); }
+    0%, 100% { box-shadow: 0 0 12px rgba(239,68,68,0.40), inset 0 1px 0 rgba(255,255,255,0.12); }
+    50%       { box-shadow: 0 0 22px rgba(239,68,68,0.65), inset 0 1px 0 rgba(255,255,255,0.12); }
   }
   @keyframes dotPulse {
     0%,80%,100% { transform: scale(0.6); opacity: 0.4; }
@@ -225,15 +228,15 @@ const CSS = `
     -webkit-tap-highlight-color: transparent;
   }
   .btn-action-icon {
-    width: 54px; height: 54px; border-radius: 50%;
+    width: 44px; height: 44px; border-radius: 50%;
     background: rgba(10,10,10,0.55);
     backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
     border: 1px solid rgba(255,255,255,0.14);
     display: flex; align-items: center; justify-content: center;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 4px 16px rgba(0,0,0,0.4);
-    transition: transform 0.15s ease, box-shadow 0.2s ease;
+    transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.15s ease;
   }
-  .btn-action:active .btn-action-icon { transform: scale(0.90); }
+  .btn-action:active .btn-action-icon { transform: scale(0.94); filter: brightness(0.85); }
   .btn-action-label {
     color: rgba(255,255,255,0.92);
     font-size: 11px; font-weight: 800;
@@ -263,8 +266,20 @@ const CSS = `
   .comment-input:focus { border-color: rgba(139,92,246,0.5); }
   .comment-input::placeholder { color: rgba(255,255,255,0.28); }
 
-  /* FIX: allow touch-action pan on interactive elements inside the column,
-     but NOT on the feed itself (we handle all scroll ourselves) */
+  /* ── book button press ── */
+  .reel-book-btn { -webkit-tap-highlight-color: transparent; }
+  .reel-book-btn:active { transform: scale(0.94) !important; filter: brightness(0.90); }
+
+  /* ── floating filter chips row ── */
+  .reel-filters-float {
+    display: flex; gap: 6px;
+    overflow-x: auto; scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 16px 4px;
+  }
+  .reel-filters-float::-webkit-scrollbar { display: none; }
+
+  /* Allow fast tap on buttons and links inside the column */
   .reels-col button, .reels-col a { touch-action: manipulation; }
 `;
 
@@ -277,28 +292,23 @@ const IcoBack = () => (
   </svg>
 );
 const IcoHeart = ({ filled }) => (
-  <svg viewBox="0 0 24 24" width={26} height={26}
+  <svg viewBox="0 0 24 24" width={22} height={22}
     fill={filled ? '#ef4444' : 'none'}
-    stroke={filled ? '#ef4444' : '#fff'} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
+    stroke={filled ? '#ef4444' : '#fff'} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
     <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
   </svg>
 );
 const IcoComment = () => (
-  <svg viewBox="0 0 24 24" width={24} height={24} fill="none" stroke="#fff" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
+  <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
     <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
   </svg>
 );
 const IcoShare = () => (
-  <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="#fff" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
+  <svg viewBox="0 0 24 24" width={20} height={20} fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
     <path d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
   </svg>
 );
-const IcoEye = () => (
-  <svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-    <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-    <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-  </svg>
-);
+
 const IcoCheck = () => (
   <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="#4ade80" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
     <path d="M5 13l4 4L19 7" />
@@ -381,6 +391,7 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
   const [progress,  setProgress]  = useState(0);
   const [doubleTapHeart, setDoubleTapHeart] = useState(false);
 
+  const [videoTapPulse, setVideoTapPulse] = useState(false);
   const lastTapRef    = useRef(0);
   const viewedRef     = useRef(false);
   const viewTimerRef  = useRef(null);
@@ -485,6 +496,8 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
   const handleTap = useCallback((e) => {
     // Don't intercept taps on interactive children
     if (e.target.closest('button') || e.target.closest('a')) return;
+    setVideoTapPulse(true);
+    setTimeout(() => setVideoTapPulse(false), 200);
     const now = Date.now();
     if (now - lastTapRef.current < 320) {
       if (!liked) handleLike();
@@ -517,7 +530,7 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
         ref={videoRef}
         src={reel.videoUrl}
         poster={cloudinaryThumb(reel.videoUrl)}
-        className="reel-video"
+        className={`reel-video${videoTapPulse ? ' reel-video-tap' : ''}`}
         loop playsInline preload="auto"
         onTimeUpdate={handleTimeUpdate}
         onClick={handleTap}
@@ -568,14 +581,13 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
       {/* Right rail: action buttons */}
       <div style={{
         position: 'absolute',
-        bottom: `calc(${safeBottom} + 108px)`,
+        bottom: `calc(${safeBottom} + 80px)`,
         right: 14, zIndex: 10,
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 22,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
       }}>
         <ActionBtn
           onClick={handleLike}
           label={fmtCount(likeCount)}
-          subLabel="Like"
           color={liked ? '#ef4444' : undefined}
           liked={liked}
         >
@@ -584,13 +596,13 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
           </div>
         </ActionBtn>
 
-        <ActionBtn onClick={handleComment} label={fmtCount(reel.commentCount || 0)} subLabel="Comment">
+        <ActionBtn onClick={handleComment} label={fmtCount(reel.commentCount || 0)}>
           <IcoComment />
         </ActionBtn>
 
         <ActionBtn
           onClick={() => onShare(reel)}
-          label={copied === reel._id ? 'Copied!' : 'Share'}
+          label={copied === reel._id ? '✓' : ''}
           color={copied === reel._id ? '#4ade80' : undefined}
         >
           {copied === reel._id ? <IcoCheck /> : <IcoShare />}
@@ -620,55 +632,41 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
       }}>
 
         {/* Salon row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 9 }}>
-          <SalonAvatar logo={reel.salon.logo} initial={initial} size={44} fontSize={16} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{
-              color: '#fff', fontWeight: 900, fontSize: 14.5, margin: 0,
-              textShadow: '0 2px 10px rgba(0,0,0,0.95)',
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              letterSpacing: '-0.1px',
-            }}>
-              {reel.salon.name}
-            </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3, flexWrap: 'wrap' }}>
-              <IcoPin />
-              <span style={{ color: 'rgba(255,255,255,0.58)', fontSize: 11, fontWeight: 500 }}>
-                {reel.salon.city}
-              </span>
-              {reel.salon.averageRating > 0 && (
-                <>
-                  <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 10 }}>•</span>
-                  <span style={{ color: '#fbbf24', fontSize: 11, fontWeight: 800 }}>
-                    ★ {reel.salon.averageRating.toFixed(1)}
-                  </span>
-                </>
-              )}
-              {viewCount > 0 && (
-                <>
-                  <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 10 }}>•</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                    <IcoEye />
-                    <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, fontWeight: 600 }}>
-                      {fmtCount(viewCount)}
-                    </span>
-                  </div>
-                </>
-              )}
-            </div>
+        <div style={{ marginBottom: 8 }}>
+          <p style={{
+            color: '#fff', fontWeight: 700, fontSize: 17, margin: '0 0 4px',
+            textShadow: '0 2px 10px rgba(0,0,0,0.95)',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            letterSpacing: '-0.2px',
+          }}>
+            {reel.salon.name}
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+            <IcoPin />
+            <span style={{ color: 'rgba(255,255,255,0.60)', fontSize: 12, fontWeight: 500 }}>
+              {reel.salon.city}
+            </span>
+            {reel.salon.averageRating > 0 && (
+              <>
+                <span style={{ color: 'rgba(255,255,255,0.20)', fontSize: 10 }}>•</span>
+                <span style={{ color: '#fbbf24', fontSize: 12, fontWeight: 700 }}>
+                  ★ {reel.salon.averageRating.toFixed(1)}
+                </span>
+              </>
+            )}
           </div>
         </div>
 
         {/* Category chips */}
         {reel.categories?.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 12 }}>
-            {reel.categories.slice(0, 4).map(cat => (
+            {reel.categories.slice(0, 3).map(cat => (
               <span key={cat} style={{
                 background: 'linear-gradient(135deg, rgba(99,102,241,0.55), rgba(139,92,246,0.55))',
                 backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
                 border: '1px solid rgba(167,139,250,0.28)',
                 borderRadius: 20, padding: '4px 11px',
-                color: '#ddd6fe', fontSize: 10, fontWeight: 700, letterSpacing: 0.4,
+                color: '#ddd6fe', fontSize: 10, fontWeight: 700, letterSpacing: 2,
                 boxShadow: '0 2px 8px rgba(99,102,241,0.2)',
               }}>
                 {cat}
@@ -678,16 +676,15 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
         )}
 
         {/* Book Now CTA */}
-        <Link to={salonPath(reel.salon)} style={{
+        <Link to={salonPath(reel.salon)} className="reel-book-btn" style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          background: 'linear-gradient(135deg, #5b5ef7 0%, #7c3aed 50%, #9333ea 100%)',
-          backgroundSize: '200% auto',
-          borderRadius: 18, padding: '13px 20px',
+          background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+          borderRadius: 14, padding: '12px 20px',
           color: '#fff', textDecoration: 'none',
-          fontSize: 14, fontWeight: 800, letterSpacing: 0.3,
-          boxShadow: '0 6px 28px rgba(99,102,241,0.55), inset 0 1px 0 rgba(255,255,255,0.22)',
-          border: '1px solid rgba(139,92,246,0.45)',
-          transition: 'opacity 0.15s ease',
+          fontSize: 14, fontWeight: 700, letterSpacing: 0.2,
+          boxShadow: '0 4px 20px rgba(99,102,241,0.50), inset 0 1px 0 rgba(255,255,255,0.12)',
+          border: '1px solid rgba(255,255,255,0.06)',
+          transition: 'transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease',
         }}>
           <IcoScissors />
           Book Appointment
@@ -731,7 +728,6 @@ export default function Reels() {
   const [mode,     setMode]     = useState('nearest');
   const [gender,   setGender]   = useState('all');
   const [coords,   setCoords]   = useState(null);
-  const [locLabel, setLocLabel] = useState('Nearby');
 
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
@@ -744,131 +740,59 @@ export default function Reels() {
   const videoRefs   = useRef({});
   const muteTimer   = useRef(null);
   const feedRef     = useRef(null);
-  const stripRef    = useRef(null);
   const colRef      = useRef(null);
-  const pageRef     = useRef(null);
   const currentIdx  = useRef(0);
-  const scrolling   = useRef(false);
   const mutedRef    = useRef(muted);
   const reelsRef    = useRef([]);
-  const touchStartY = useRef(0);
-  const touchDeltaY = useRef(0);
-  // FIX: track if a touch is a swipe vs tap so we don't fire mute on swipe
-  const isSwiping   = useRef(false);
 
   /* ── FIX: get the actual item height from the feed element ── */
   const getItemHeight = useCallback(() => {
     return feedRef.current?.clientHeight || window.innerHeight;
   }, []);
 
-  /* ── Apply transform + play current video ── */
-  const scrollToIdx = useCallback((idx, total, animated = true) => {
+  /* ── Scroll to reel index using native scroll (instant) ── */
+  const scrollToIdx = useCallback((idx, total) => {
     if (total === 0) return;
     const clamped = Math.max(0, Math.min(idx, total - 1));
     currentIdx.current = clamped;
-    const strip = stripRef.current;
-    if (!strip) return;
-
+    const feed = feedRef.current;
+    if (!feed) return;
     const itemH = getItemHeight();
-
-    strip.style.transition = animated
-      ? 'transform 0.30s cubic-bezier(0.25,0.46,0.45,0.94)'
-      : 'none';
-    strip.style.transform = `translateY(-${clamped * itemH}px)`;
-
-    // Play current, pause + reset others
-    const currentId = reelsRef.current[clamped]?._id;
-    Object.entries(videoRefs.current).forEach(([id, v]) => {
-      if (!v) return;
-      if (id === currentId) { v.muted = mutedRef.current; v.play().catch(() => {}); }
-      else                  { v.pause(); v.currentTime = 0; }
-    });
+    feed.scrollTop = clamped * itemH;
   }, [getItemHeight]);
 
   /* ── Keep reelsRef in sync ── */
   useEffect(() => { reelsRef.current = reels; }, [reels]);
 
-  /* ── Wheel — desktop ── */
+  /* ── Scroll listener — detect active reel via rAF-gated midpoint ── */
   useEffect(() => {
-    const page = pageRef.current;
-    if (!page) return;
-    let accumulated = 0;
-    let cooldown = null;
-    const THRESHOLD = 150;
-    let gestureEnd = null;
-    const onWheel = (e) => {
-      e.preventDefault();
-      // reset accumulator if gesture paused for 150ms (momentum tail ended)
-      clearTimeout(gestureEnd);
-      gestureEnd = setTimeout(() => { accumulated = 0; }, 150);
-      if (scrolling.current) return;
-      accumulated += e.deltaY;
-      if (Math.abs(accumulated) < THRESHOLD) return;
-      const dir = accumulated > 0 ? 1 : -1;
-      accumulated = 0;
-      scrolling.current = true;
-      clearTimeout(cooldown);
-      scrollToIdx(currentIdx.current + dir, reelsRef.current.length);
-      cooldown = setTimeout(() => { scrolling.current = false; }, 900);
-    };
-    page.addEventListener('wheel', onWheel, { passive: false });
-    return () => { page.removeEventListener('wheel', onWheel); clearTimeout(cooldown); };
-  }, [scrollToIdx]);
-
-  /* ── Touch — mobile swipe ── */
-  useEffect(() => {
-    const col  = feedRef.current;
     const feed = feedRef.current;
-    if (!col || !feed) return;
-
-    const onTouchStart = (e) => {
-      touchStartY.current = e.touches[0].clientY;
-      touchDeltaY.current = 0;
-      isSwiping.current   = false;
-      if (stripRef.current) stripRef.current.style.transition = 'none';
+    if (!feed) return;
+    let rafId = null;
+    const onScroll = () => {
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        const itemH = getItemHeight();
+        if (!itemH) return;
+        const newIdx = Math.floor((feed.scrollTop + itemH * 0.5) / itemH);
+        if (newIdx !== currentIdx.current && newIdx >= 0 && newIdx < reelsRef.current.length) {
+          currentIdx.current = newIdx;
+          const currentId = reelsRef.current[newIdx]?._id;
+          Object.entries(videoRefs.current).forEach(([id, v]) => {
+            if (!v) return;
+            if (id === currentId) { v.muted = mutedRef.current; v.play().catch(() => {}); }
+            else { v.pause(); v.currentTime = 0; }
+          });
+        }
+      });
     };
-
-    const onTouchMove = (e) => {
-      e.preventDefault();
-      const strip = stripRef.current;
-      if (!strip) return;
-      const dy = e.touches[0].clientY - touchStartY.current;
-      touchDeltaY.current = dy;
-
-      if (Math.abs(dy) > 8) isSwiping.current = true;
-
-      const itemH = getItemHeight();
-      const base  = -currentIdx.current * itemH;
-      // FIX: add rubber-band resistance at the edges
-      const total    = reelsRef.current.length;
-      const atTop    = currentIdx.current === 0 && dy > 0;
-      const atBottom = currentIdx.current === total - 1 && dy < 0;
-      const delta    = (atTop || atBottom) ? dy * 0.25 : dy;
-      strip.style.transform = `translateY(${base + delta}px)`;
-    };
-
-    const onTouchEnd = () => {
-      const total     = reelsRef.current.length;
-      const itemH     = getItemHeight();
-      // FIX: use pixel threshold rather than fraction — feels more natural
-      const threshold = Math.min(itemH * 0.18, 80);
-
-      if      (touchDeltaY.current < -threshold) scrollToIdx(currentIdx.current + 1, total);
-      else if (touchDeltaY.current >  threshold) scrollToIdx(currentIdx.current - 1, total);
-      else                                        scrollToIdx(currentIdx.current,     total);
-    };
-
-    col.addEventListener('touchstart', onTouchStart, { passive: true });
-    // FIX: passive:false on touchmove so we can preventDefault() and block page scroll
-    col.addEventListener('touchmove',  onTouchMove,  { passive: false });
-    col.addEventListener('touchend',   onTouchEnd,   { passive: true });
+    feed.addEventListener('scroll', onScroll, { passive: true });
     return () => {
-      col.removeEventListener('touchstart', onTouchStart);
-      col.removeEventListener('touchmove',  onTouchMove);
-      col.removeEventListener('touchend',   onTouchEnd);
+      feed.removeEventListener('scroll', onScroll);
+      if (rafId) cancelAnimationFrame(rafId);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scrollToIdx, getItemHeight, reels.length]);
+  }, [getItemHeight, reels.length]);
 
   /* ── Keyboard navigation ── */
   useEffect(() => {
@@ -881,14 +805,15 @@ export default function Reels() {
     return () => window.removeEventListener('keydown', onKey);
   }, [scrollToIdx]);
 
-  /* ── Recalculate transform on resize ── */
+  /* ── Recalculate scroll position on resize ── */
   useEffect(() => {
     const onResize = () => {
-      const strip = stripRef.current;
-      if (!strip) return;
+      const feed = feedRef.current;
+      if (!feed) return;
       const itemH = getItemHeight();
-      strip.style.transition = 'none';
-      strip.style.transform  = `translateY(-${currentIdx.current * itemH}px)`;
+      feed.style.scrollBehavior = 'auto';
+      feed.scrollTop = currentIdx.current * itemH;
+      requestAnimationFrame(() => { if (feedRef.current) feedRef.current.style.scrollBehavior = ''; });
     };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
@@ -917,17 +842,17 @@ export default function Reels() {
       navigator.geolocation.getCurrentPosition(
         p => {
           const c = { lat: p.coords.latitude, lng: p.coords.longitude };
-          setCoords(c); setLocLabel('Nearby You');
+          setCoords(c);
           fetchReels('nearest', 'all', c);
         },
         () => {
-          setLocLabel('All Salons'); setMode('all');
+          setMode('all');
           fetchReels('all', 'all', null);
         },
         { timeout: 6000 }
       );
     } else {
-      setLocLabel('All Salons'); setMode('all');
+      setMode('all');
       fetchReels('all', 'all', null);
     }
   }, [fetchReels]);
@@ -936,7 +861,6 @@ export default function Reels() {
   const didMount = useRef(false);
   useEffect(() => {
     if (!didMount.current) { didMount.current = true; return; }
-    setLocLabel(mode === 'nearest' && coords ? 'Nearby You' : 'All Salons');
     fetchReels(mode, gender, coords);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, gender, fetchReels]);
@@ -951,11 +875,12 @@ export default function Reels() {
   useEffect(() => {
     if (!reels.length) return;
     currentIdx.current = 0;
-    // FIX: wait one frame so feed has been laid out and clientHeight is correct
     requestAnimationFrame(() => {
-      if (stripRef.current) {
-        stripRef.current.style.transition = 'none';
-        stripRef.current.style.transform  = 'translateY(0px)';
+      const feed = feedRef.current;
+      if (feed) {
+        feed.style.scrollBehavior = 'auto';
+        feed.scrollTop = 0;
+        requestAnimationFrame(() => { if (feedRef.current) feedRef.current.style.scrollBehavior = ''; });
       }
       const firstId = reels[0]?._id;
       if (firstId && videoRefs.current[firstId]) {
@@ -1025,7 +950,7 @@ export default function Reels() {
     <>
       <style>{CSS}</style>
 
-      <div className="reels-page" ref={pageRef}>
+      <div className="reels-page">
 
         {/* Loading */}
         {loading && (
@@ -1086,19 +1011,18 @@ export default function Reels() {
         {!loading && reels.length > 0 && (
         <div className="reels-col" ref={colRef}>
 
-          {/* Top bar */}
+          {/* Top bar — back + inline filter chips */}
           <div style={{
             position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20,
             pointerEvents: 'none',
             paddingTop: 'max(10px, env(safe-area-inset-top, 10px))',
           }}>
-            {/* Row 1: back · title · mute */}
             <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              display: 'flex', alignItems: 'center', gap: 8,
               padding: '0 14px 10px',
-              background: 'linear-gradient(to bottom, rgba(0,0,0,0.72) 0%, transparent 100%)',
             }}>
               <button onClick={() => navigate(-1)} type="button" style={{
+                flexShrink: 0,
                 background: 'rgba(255,255,255,0.12)',
                 backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
                 border: '1px solid rgba(255,255,255,0.14)',
@@ -1110,74 +1034,32 @@ export default function Reels() {
                 <IcoBack />
               </button>
 
-              <div style={{ textAlign: 'center' }}>
-                <p style={{
-                  color: '#fff', fontSize: 16, fontWeight: 900, margin: 0,
-                  letterSpacing: '-0.3px', textShadow: '0 2px 8px rgba(0,0,0,0.8)',
-                }}>
-                  Reels
-                </p>
-                <p style={{
-                  color: 'rgba(255,255,255,0.45)', fontSize: 10.5, margin: 0,
-                  display: 'flex', alignItems: 'center', gap: 3, justifyContent: 'center',
-                  fontWeight: 600,
-                }}>
-                  <IcoPin /> {locLabel}
-                </p>
-              </div>
-
-              <button onClick={toggleMute} type="button" style={{
-                background: 'rgba(255,255,255,0.12)',
-                backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-                border: '1px solid rgba(255,255,255,0.14)',
-                borderRadius: '50%', width: 40, height: 40,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#fff', cursor: 'pointer', pointerEvents: 'all',
-                boxShadow: '0 2px 10px rgba(0,0,0,0.35)',
-              }}>
-                {muted ? <IcoMuted /> : <IcoUnmuted />}
-              </button>
-            </div>
-
-            {/* Row 2: mode + gender filters */}
-            <div style={{ padding: '0 14px 6px', display: 'flex', flexDirection: 'column', gap: 7 }}>
-              <div style={{
-                display: 'flex', gap: 6, pointerEvents: 'all',
-                background: 'rgba(0,0,0,0.38)',
-                backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
-                borderRadius: 22, padding: 4,
-                border: '1px solid rgba(255,255,255,0.08)',
-              }}>
-                {[['nearest', '📍 Nearest'], ['all', '🌐 All Salons']].map(([m, label]) => (
+              {/* Compact filter chips */}
+              <div className="reel-filters-float" style={{ flex: 1, padding: 0 }}>
+                {[['nearest', '📍 Nearby'], ['all', '🌐 All']].map(([m, label]) => (
                   <button key={m} type="button" onClick={() => setMode(m)} style={{
-                    flex: 1, padding: '6px 0', borderRadius: 18, border: 'none',
-                    cursor: 'pointer', fontSize: 12, fontWeight: 800,
-                    background: mode === m
-                      ? 'linear-gradient(135deg,#6366f1,#7c3aed)'
-                      : 'transparent',
-                    color: mode === m ? '#fff' : 'rgba(255,255,255,0.5)',
-                    boxShadow: mode === m ? '0 2px 12px rgba(99,102,241,0.45)' : 'none',
-                    transition: 'all 0.2s ease',
-                    letterSpacing: 0.1,
+                    flexShrink: 0, height: 22, padding: '0 9px',
+                    borderRadius: 11, border: 'none', cursor: 'pointer',
+                    fontSize: 10.5, fontWeight: 700,
+                    background: mode === m ? 'rgba(99,102,241,0.65)' : 'rgba(255,255,255,0.08)',
+                    backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
+                    color: mode === m ? '#fff' : 'rgba(255,255,255,0.45)',
+                    transition: 'background 0.15s ease, color 0.15s ease',
+                    whiteSpace: 'nowrap', pointerEvents: 'all',
                   }}>
                     {label}
                   </button>
                 ))}
-              </div>
-
-              <div style={{ display: 'flex', gap: 6, pointerEvents: 'all' }}>
                 {[['all', 'All'], ['male', 'Men'], ['female', 'Women']].map(([val, label]) => (
                   <button key={val} type="button" onClick={() => setGender(val)} style={{
-                    flex: 1, padding: '5px 0', borderRadius: 14,
-                    border: `1.5px solid ${gender === val ? 'rgba(139,92,246,0.7)' : 'rgba(255,255,255,0.12)'}`,
-                    cursor: 'pointer', fontSize: 11, fontWeight: 800,
-                    background: gender === val
-                      ? 'rgba(139,92,246,0.45)'
-                      : 'rgba(0,0,0,0.28)',
-                    color: gender === val ? '#e9d5ff' : 'rgba(255,255,255,0.45)',
-                    backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-                    transition: 'all 0.18s ease',
-                    boxShadow: gender === val ? '0 2px 10px rgba(139,92,246,0.3)' : 'none',
+                    flexShrink: 0, height: 22, padding: '0 9px',
+                    borderRadius: 11, border: 'none', cursor: 'pointer',
+                    fontSize: 10.5, fontWeight: 700,
+                    background: gender === val ? 'rgba(99,102,241,0.65)' : 'rgba(255,255,255,0.08)',
+                    backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
+                    color: gender === val ? '#fff' : 'rgba(255,255,255,0.45)',
+                    transition: 'background 0.15s ease, color 0.15s ease',
+                    whiteSpace: 'nowrap', pointerEvents: 'all',
                   }}>
                     {label}
                   </button>
@@ -1186,9 +1068,10 @@ export default function Reels() {
             </div>
           </div>
 
-          {/* Scrollable feed (transform-based) */}
+
+          {/* Scrollable feed (native scroll-snap) */}
           <div className="reels-feed" ref={feedRef}>
-            <div className="reels-strip" ref={stripRef}>
+            <div className="reels-strip">
               {reels.map(reel => (
                 <ReelItem
                   key={reel._id}
