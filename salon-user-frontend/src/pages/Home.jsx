@@ -516,25 +516,6 @@ export default function Home() {
   return (
     <div style={{ background:"var(--t-bg)", minHeight:"100vh", overflowX:"hidden", fontFamily:'"Plus Jakarta Sans", system-ui, sans-serif' }}>
 
-      {/* ── STICKY SEARCH ─────────────────────────────────────── */}
-      <div style={{
-        position:"fixed", top:58, left:0, right:0, zIndex:50,
-        padding:"8px 16px",
-        background:"var(--t-nav-bg)", backdropFilter:"blur(24px)", WebkitBackdropFilter:"blur(24px)",
-        borderBottom:"1px solid var(--t-border)",
-        transform: showSticky ? "translateY(0)" : "translateY(-120%)",
-        transition:"transform 0.3s cubic-bezier(0.4,0,0.2,1)",
-        pointerEvents: showSticky ? "auto" : "none",
-      }}>
-        <div className="max-w-3xl mx-auto">
-          <SearchInput
-            value={searchText} onChange={handleSearch} onSearch={handleSearchSubmit}
-            onFocus={() => setStickyFocused(true)} onBlur={() => setStickyFocused(false)}
-            focused={stickyFocused} onClear={() => handleSearch("")}
-            onLocate={handleLocation} locLoading={locLoading} searching={searching} compact
-          />
-        </div>
-      </div>
 
       {/* ══════════════════════════════════════════════════════════
           HERO — full editorial, min 85vh
