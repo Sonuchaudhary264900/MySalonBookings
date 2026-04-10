@@ -60,7 +60,7 @@ const HERO_CHIPS = [
   { label: "Skin & Derma",   cat: "Skin & Face / Beauty", Icon: Leaf      },
 ];
 
-const HERO_BG_FALLBACK = "https://lh3.googleusercontent.com/aida-public/AB6AXuA5Ow_0qAnDQEETbqI6rW3_WYmBX8hOI0LKwxHUwOl1zf3Lb4U48tQrdNkpJeGSmydBfzxWNkmiFHYhFzR0N2n8RpKzINhyKv0fldGomLaIuSaHG2UqaVyTkZlehx-v5SE_94Y5VOTDdjpHNe_MCP02tlLDIlDCXzSrOepb6gXbtYNrpDaCgIcGomBKnBGfYgLmBVOI2Peaugs9Rb9BYyXp_FKLtk8ykSkhGD4PeiIs4W85f8ZIVNbW77o8O3g-ljXEjYSS4Sk2L1Y";
+const HERO_BG_FALLBACK = "/pngtree-salon-service-salon-design-hd-image_2512958.jpg";
 
 // ── Open-now ──────────────────────────────────────────────────────
 const DAYS = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
@@ -442,7 +442,7 @@ export default function Home() {
     || (isSearchActive ? "Search Results"
     : sort === "rated"  ? "Top Rated Salons"
     : sort === "booked" ? "Trending Salons"
-    : "Salons Near You");
+    : "GlowSpots Near You");
 
   const heroBgImage = useMemo(() =>
     allSalons.find(s => s.photos?.[0])?.photos?.[0] || allSalons[0]?.coverPhoto || HERO_BG_FALLBACK,
@@ -607,17 +607,18 @@ export default function Home() {
 
             {/* Headline */}
             <h1 style={{
-              fontSize:"clamp(46px, 7.5vw, 96px)",
+              fontSize:"clamp(46px, 6.5vw, 96px)",
               fontWeight:900,
               lineHeight:1.0,
               letterSpacing:"-0.04em",
               color:"var(--t-hero-text)",
               margin:"0 0 10px",
             }}>
-              Define Your
+              Book Smart 
+              Save Time
             </h1>
             <h1 style={{
-              fontSize:"clamp(46px, 7.5vw, 96px)",
+              fontSize:"clamp(46px, 4.5vw, 96px)",
               fontWeight:900,
               lineHeight:1.0,
               letterSpacing:"-0.04em",
@@ -627,7 +628,7 @@ export default function Home() {
               WebkitTextFillColor:"transparent",
               backgroundClip:"text",
             }}>
-              Aesthetic.
+              Don't let your glow wait.
             </h1>
 
             {/* Sub-line */}
@@ -635,7 +636,7 @@ export default function Home() {
               fontSize:16, fontWeight:500, color:"var(--t-hero-sub)",
               marginBottom:32, lineHeight:1.6, maxWidth:480,
             }}>
-              Discover and book the best salons near you — verified, rated, and ready.
+              Discover and book the best GlowSpot near you — verified, rated, and ready.
             </p>
 
             {/* Quick chips */}
