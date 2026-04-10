@@ -2,6 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useNotifications } from "../context/NotificationContext";
 import { useTheme } from "../context/ThemeContext";
+import {
+  Home, Play, CalendarDays, Heart, Bell,
+  Sun, Moon, LogOut, User, Bookmark, Scissors, Settings,
+} from "lucide-react";
 
 function getUserInitial() {
   try {
@@ -13,7 +17,6 @@ function getUserInitial() {
   } catch { return "U"; }
 }
 
-// ── Helpers ────────────────────────────────────────────────
 function relativeTime(iso) {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
@@ -24,48 +27,57 @@ function relativeTime(iso) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-const TYPE_ICON = {
-  success: "✅",
-  error:   "❌",
-  warning: "⚠️",
-  info:    "ℹ️",
-  booking: "📅",
-  cancel:  "🚫",
+const TYPE_COLOR = {
+  success: "#10b981",
+  error:   "#ef4444",
+  warning: "#f59e0b",
+  info:    "#6366f1",
+  booking: "#6366f1",
+  cancel:  "#ef4444",
 };
 
-// ── Notification Panel ─────────────────────────────────────
+// ── Notification Panel ──────────────────────────────────────
 function NotificationPanel({ onClose }) {
   const { notifications, unreadCount, markRead, markAllRead, removeNotification, clearAll } =
     useNotifications();
 
   return (
-    <div className="absolute right-0 top-full mt-2 w-[min(360px,calc(100vw-32px))] t-card rounded-2xl shadow-xl z-50 overflow-hidden fade-in">
+    <div style={{
+      position: "absolute", right: 0, top: "calc(100% + 10px)",
+      width: "min(360px, calc(100vw - 32px))",
+      background: "var(--t-card)",
+      border: "1px solid var(--t-border)",
+      borderRadius: 18,
+      boxShadow: "0 24px 64px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06)",
+      zIndex: 60,
+      overflow: "hidden",
+    }}>
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 t-divider">
-        <div className="flex items-center gap-2">
-          <span className="font-bold text-sm" style={{ color: "var(--t-text)" }}>Notifications</span>
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "14px 16px",
+        borderBottom: "1px solid var(--t-border)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontWeight: 700, fontSize: 13, color: "var(--t-text)" }}>Notifications</span>
           {unreadCount > 0 && (
-            <span className="bg-indigo-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full leading-none">
-              {unreadCount}
-            </span>
+            <span style={{
+              background: "#6366f1", color: "#fff",
+              fontSize: 10, fontWeight: 800,
+              padding: "2px 7px", borderRadius: 999,
+            }}>{unreadCount}</span>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div style={{ display: "flex", gap: 12 }}>
           {unreadCount > 0 && (
-            <button
-              onClick={markAllRead}
-              className="text-xs font-medium transition"
-              style={{ color: "var(--t-accent)" }}
-            >
+            <button onClick={markAllRead}
+              style={{ fontSize: 11, fontWeight: 600, color: "var(--t-accent)", background: "none", border: "none", cursor: "pointer" }}>
               Mark all read
             </button>
           )}
           {notifications.length > 0 && (
-            <button
-              onClick={clearAll}
-              className="text-xs transition"
-              style={{ color: "var(--t-text-3)" }}
-            >
+            <button onClick={clearAll}
+              style={{ fontSize: 11, color: "var(--t-text-3)", background: "none", border: "none", cursor: "pointer" }}>
               Clear all
             </button>
           )}
@@ -73,38 +85,46 @@ function NotificationPanel({ onClose }) {
       </div>
 
       {/* List */}
-      <div className="max-h-80 overflow-y-auto divide-y" style={{ borderColor: "var(--t-border)" }}>
+      <div style={{ maxHeight: 320, overflowY: "auto" }}>
         {notifications.length === 0 ? (
-          <div className="py-10 text-center">
-            <p className="text-3xl mb-2">🔔</p>
-            <p className="text-sm" style={{ color: "var(--t-text-3)" }}>No notifications yet</p>
+          <div style={{ padding: "40px 20px", textAlign: "center" }}>
+            <Bell size={28} style={{ color: "var(--t-border)", display: "block", margin: "0 auto 12px" }} />
+            <p style={{ fontSize: 13, color: "var(--t-text-3)" }}>No notifications yet</p>
           </div>
         ) : (
-          notifications.map((n) => (
+          notifications.map(n => (
             <div
               key={n.id}
               onClick={() => markRead(n.id)}
-              className="flex items-start gap-3 px-4 py-3 cursor-pointer transition"
-              style={{ background: !n.read ? "rgba(99,102,241,0.06)" : "transparent" }}
-              onMouseEnter={e => e.currentTarget.style.background = "var(--t-bg-2)"}
-              onMouseLeave={e => e.currentTarget.style.background = !n.read ? "rgba(99,102,241,0.06)" : "transparent"}
+              style={{
+                display: "flex", alignItems: "flex-start", gap: 12,
+                padding: "12px 16px", cursor: "pointer",
+                background: !n.read ? "rgba(99,102,241,0.05)" : "transparent",
+                borderBottom: "1px solid var(--t-border)",
+                transition: "background 0.15s",
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = "var(--t-input-bg)"}
+              onMouseLeave={e => e.currentTarget.style.background = !n.read ? "rgba(99,102,241,0.05)" : "transparent"}
             >
-              <span className="text-xl mt-0.5 shrink-0">
-                {TYPE_ICON[n.type] || TYPE_ICON.info}
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate" style={{ color: !n.read ? "var(--t-text)" : "var(--t-text-2)" }}>
+              <div style={{
+                width: 8, height: 8, borderRadius: "50%", marginTop: 5, flexShrink: 0,
+                background: TYPE_COLOR[n.type] || "#6366f1",
+                opacity: n.read ? 0.3 : 1,
+              }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 13, fontWeight: n.read ? 500 : 700, color: "var(--t-text)", margin: "0 0 2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {n.title}
                 </p>
                 {n.message && (
-                  <p className="text-xs mt-0.5 line-clamp-2" style={{ color: "var(--t-text-3)" }}>{n.message}</p>
+                  <p style={{ fontSize: 12, color: "var(--t-text-3)", margin: "0 0 4px", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                    {n.message}
+                  </p>
                 )}
-                <p className="text-xs mt-1" style={{ color: "var(--t-text-3)", opacity: 0.7 }}>{relativeTime(n.createdAt)}</p>
+                <p style={{ fontSize: 11, color: "var(--t-text-3)", opacity: 0.7, margin: 0 }}>{relativeTime(n.createdAt)}</p>
               </div>
               <button
-                onClick={(e) => { e.stopPropagation(); removeNotification(n.id); }}
-                className="text-xs transition shrink-0 mt-1"
-                style={{ color: "var(--t-text-3)" }}
+                onClick={e => { e.stopPropagation(); removeNotification(n.id); }}
+                style={{ fontSize: 12, color: "var(--t-text-3)", background: "none", border: "none", cursor: "pointer", padding: 2, flexShrink: 0 }}
               >
                 ✕
               </button>
@@ -116,14 +136,38 @@ function NotificationPanel({ onClose }) {
   );
 }
 
-// ── Navbar ─────────────────────────────────────────────────
+// ── Shared action button ────────────────────────────────────
+function IconBtn({ onClick, title, children, active }) {
+  const [hov, setHov] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        width: 36, height: 36, borderRadius: "50%",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        background: hov || active ? "rgba(99,102,241,0.1)" : "var(--t-input-bg)",
+        border: `1px solid ${hov || active ? "rgba(99,102,241,0.25)" : "var(--t-border)"}`,
+        color: hov || active ? "var(--t-accent)" : "var(--t-text-3)",
+        cursor: "pointer",
+        transition: "all 0.18s ease",
+        position: "relative",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+// ── Navbar ──────────────────────────────────────────────────
 function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOpen }) {
-  const navigate         = useNavigate();
-  const location         = useLocation();
-  const panelRef         = useRef(null);
-  const mobilePanelRef   = useRef(null);
-  const profileRef       = useRef(null);
-  const token            = localStorage.getItem("customerToken");
+  const navigate       = useNavigate();
+  const location       = useLocation();
+  const panelRef       = useRef(null);
+  const profileRef     = useRef(null);
+  const token          = localStorage.getItem("customerToken");
   const [scrolled,     setScrolled]    = useState(false);
   const [_panelOpen,   _setPanelOpen]  = useState(false);
   const [profileOpen,  setProfileOpen] = useState(false);
@@ -132,7 +176,6 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
 
   const panelOpen    = externalNotifOpen ?? _panelOpen;
   const setPanelOpen = setExternalNotifOpen ?? _setPanelOpen;
-
   const { unreadCount } = useNotifications();
 
   useEffect(() => {
@@ -143,20 +186,14 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
 
   useEffect(() => {
     if (!panelOpen) return;
-    const handle = (e) => {
-      const inDesktop = panelRef.current && panelRef.current.contains(e.target);
-      const inMobile  = mobilePanelRef.current && mobilePanelRef.current.contains(e.target);
-      if (!inDesktop && !inMobile) setPanelOpen(false);
-    };
+    const handle = e => { if (panelRef.current && !panelRef.current.contains(e.target)) setPanelOpen(false); };
     document.addEventListener("mousedown", handle);
     return () => document.removeEventListener("mousedown", handle);
   }, [panelOpen]);
 
   useEffect(() => {
     if (!profileOpen) return;
-    const handle = (e) => {
-      if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false);
-    };
+    const handle = e => { if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false); };
     document.addEventListener("mousedown", handle);
     return () => document.removeEventListener("mousedown", handle);
   }, [profileOpen]);
@@ -168,248 +205,233 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
     navigate("/");
   };
 
-  const handleSearchClick = () => {
-    if (location.pathname === "/") {
-      const el = document.getElementById("hero-search");
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
-        setTimeout(() => el.querySelector("input")?.focus(), 280);
-      }
-    } else {
-      navigate("/");
-    }
-  };
-
-  // Icon button shared style
-  const iconBtn = {
-    width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
-    background: "var(--t-input-bg)", border: "1px solid var(--t-border)", cursor: "pointer",
-    color: "var(--t-text-3)", transition: "all 0.18s ease",
-  };
+  const NAV_LINKS = [
+    { to: "/",          label: "Home",     Icon: Home         },
+    { to: "/reels",     label: "Reels",    Icon: Play         },
+    ...(token ? [
+      { to: "/dashboard",  label: "Bookings", Icon: CalendarDays },
+      { to: "/favorites",  label: "Saved",    Icon: Heart        },
+      { to: "/profile",    label: "Settings", Icon: Settings     },
+    ] : []),
+  ];
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
       style={{
-        background: "var(--t-nav-bg)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-        borderBottom: scrolled ? "1px solid var(--t-border)" : "1px solid transparent",
-        boxShadow: scrolled ? "0 4px 24px rgba(0,0,0,0.08)" : "none",
+        position: "fixed", top: 0, left: 0, right: 0, zIndex: 50,
+        background: scrolled
+          ? "var(--t-nav-bg)"
+          : "var(--t-nav-bg)",
+        backdropFilter: "blur(24px)",
+        WebkitBackdropFilter: "blur(24px)",
+        borderBottom: `1px solid ${scrolled ? "var(--t-border)" : "transparent"}`,
+        boxShadow: scrolled ? "0 2px 32px rgba(0,0,0,0.07)" : "none",
+        transition: "border-color 0.3s ease, box-shadow 0.3s ease",
+        fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif',
       }}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+      <div style={{
+        maxWidth: 1280, margin: "0 auto",
+        padding: "0 24px",
+        height: 62,
+        display: "grid",
+        gridTemplateColumns: "1fr auto 1fr",
+        alignItems: "center",
+        gap: 16,
+      }}>
 
-        {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 shrink-0">
-          <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center shadow-sm">
-            <span className="text-white text-base">✂</span>
+        {/* ── LEFT: Logo ── */}
+        <Link to="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10, width: "fit-content" }}>
+          <div style={{
+            width: 34, height: 34, borderRadius: 10,
+            background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: "0 0 18px rgba(99,102,241,0.35)",
+            flexShrink: 0,
+          }}>
+            <Scissors size={16} color="#fff" strokeWidth={2.2} />
           </div>
-          <span className="text-xl font-bold text-neon-gradient">Salon Bookings</span>
+          <span style={{
+            fontSize: 15, fontWeight: 800, letterSpacing: "-0.025em",
+            background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
+            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+          }}>
+            Salon Bookings
+          </span>
         </Link>
 
-        {/* Center — Desktop nav links (hidden on mobile where BottomNav takes over) */}
-        <nav className="hidden md:flex items-center gap-1 flex-1 justify-center">
-          {[
-            { to: "/",          label: "Home",     icon: "🏠" },
-            { to: "/reels",     label: "Reels",    icon: "🎬" },
-            ...(token ? [
-              { to: "/dashboard",  label: "Bookings", icon: "📅" },
-              { to: "/favorites",  label: "Saved",    icon: "❤️" },
-              { to: "/profile",    label: "Settings",  icon: "⚙️" },
-            ] : []),
-          ].map(({ to, label, icon }) => {
+        {/* ── CENTER: Nav links (desktop only) ── */}
+        <nav style={{ display: "flex", alignItems: "center", gap: 2 }} className="hidden md:flex">
+          {NAV_LINKS.map(({ to, label, Icon }) => {
             const active = location.pathname === to;
             return (
-              <Link
-                key={to}
-                to={to}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "7px 14px",
-                  borderRadius: 10,
-                  fontSize: 13,
-                  fontWeight: active ? 700 : 500,
-                  textDecoration: "none",
-                  transition: "all 0.18s ease",
-                  background: active ? "rgba(99,102,241,0.12)" : "transparent",
-                  color: active ? "var(--t-accent)" : "var(--t-text-2)",
-                  borderBottom: active ? "2px solid var(--t-accent)" : "2px solid transparent",
-                }}
-                onMouseEnter={e => { if (!active) { e.currentTarget.style.background = "var(--t-input-bg)"; e.currentTarget.style.color = "var(--t-text)"; } }}
-                onMouseLeave={e => { if (!active) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--t-text-2)"; } }}
-              >
-                <span style={{ fontSize: 14 }}>{icon}</span>
-                {label}
-              </Link>
+              <NavItem key={to} to={to} label={label} Icon={Icon} active={active} />
             );
           })}
         </nav>
 
-        {/* Right actions */}
-        <div className="flex items-center gap-1.5">
+        {/* ── RIGHT: Actions ── */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "flex-end" }}>
 
-          {/* Theme toggle — before login: leftmost; after login: rightmost (rendered below) */}
-          {!token && (
-            <button
-              onClick={toggleTheme}
-              style={iconBtn}
-              title={isDark ? "Light mode" : "Dark mode"}
-              onMouseEnter={e => { e.currentTarget.style.background = "rgba(99,102,241,0.12)"; e.currentTarget.style.color = "var(--t-accent)"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = "var(--t-input-bg)"; e.currentTarget.style.color = "var(--t-text-3)"; }}
-            >
-              {isDark ? (
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
-                </svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" />
-                </svg>
-              )}
-            </button>
-          )}
-
-          {/* Search icon — only when logged in */}
+          {/* Bell — logged in only */}
           {token && (
-            <button
-              onClick={handleSearchClick}
-              style={iconBtn}
-              title="Search"
-              onMouseEnter={e => { e.currentTarget.style.background = "rgba(99,102,241,0.12)"; e.currentTarget.style.color = "var(--t-accent)"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = "var(--t-input-bg)"; e.currentTarget.style.color = "var(--t-text-3)"; }}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
-                <circle cx="11" cy="11" r="7" /><path strokeLinecap="round" d="m21 21-4.35-4.35" />
-              </svg>
-            </button>
-          )}
-
-          {/* Notification bell — only when logged in */}
-          {token && (
-            <div className="relative" ref={panelRef}>
-              <button
-                onClick={() => setPanelOpen(v => !v)}
-                style={{ ...iconBtn, position: "relative" }}
-                title="Notifications"
-                onMouseEnter={e => { e.currentTarget.style.background = "rgba(99,102,241,0.12)"; e.currentTarget.style.color = "var(--t-accent)"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "var(--t-input-bg)"; e.currentTarget.style.color = "var(--t-text-3)"; }}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
+            <div style={{ position: "relative" }} ref={panelRef}>
+              <IconBtn onClick={() => setPanelOpen(v => !v)} title="Notifications" active={panelOpen}>
+                <Bell size={15} strokeWidth={2} />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
+                  <span style={{
+                    position: "absolute", top: -2, right: -2,
+                    minWidth: 16, height: 16,
+                    background: "#ef4444", color: "#fff",
+                    fontSize: 9, fontWeight: 800,
+                    borderRadius: 999,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    padding: "0 4px",
+                    lineHeight: 1,
+                    border: "1.5px solid var(--t-nav-bg)",
+                  }}>
                     {unreadCount > 9 ? "9+" : unreadCount}
                   </span>
                 )}
-              </button>
+              </IconBtn>
               {panelOpen && <NotificationPanel onClose={() => setPanelOpen(false)} />}
             </div>
           )}
 
-          {token ? (
-            /* Profile avatar dropdown */
-            <div className="relative" ref={profileRef}>
+          {/* Profile avatar — logged in */}
+          {token && (
+            <div style={{ position: "relative" }} ref={profileRef}>
               <button
                 onClick={() => setProfileOpen(v => !v)}
-                className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center text-white shadow-sm hover:shadow-md transition font-bold text-sm"
-                title="My Profile"
+                title="My Account"
+                style={{
+                  width: 36, height: 36, borderRadius: "50%",
+                  background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
+                  border: "2px solid rgba(99,102,241,0.3)",
+                  color: "#fff", fontWeight: 800, fontSize: 14,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  cursor: "pointer",
+                  boxShadow: profileOpen ? "0 0 0 3px rgba(99,102,241,0.2)" : "none",
+                  transition: "box-shadow 0.18s ease",
+                }}
               >
                 {userInitial}
               </button>
               {profileOpen && (
-                <div className="absolute right-0 top-full mt-2 w-52 t-card rounded-2xl shadow-xl py-1.5 z-50 fade-in">
-                  <Link
-                    to="/profile"
-                    onClick={() => setProfileOpen(false)}
-                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm transition"
-                    style={{ color: "var(--t-text-2)" }}
-                    onMouseEnter={e => e.currentTarget.style.background = "var(--t-bg-2)"}
-                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                    My Profile
-                  </Link>
-                  <Link
-                    to="/dashboard"
-                    onClick={() => setProfileOpen(false)}
-                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm transition"
-                    style={{ color: "var(--t-text-2)" }}
-                    onMouseEnter={e => e.currentTarget.style.background = "var(--t-bg-2)"}
-                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                    My Bookings
-                  </Link>
-                  <Link
-                    to="/favorites"
-                    onClick={() => setProfileOpen(false)}
-                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm transition"
-                    style={{ color: "var(--t-text-2)" }}
-                    onMouseEnter={e => e.currentTarget.style.background = "var(--t-bg-2)"}
-                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
-                    Saved Salons
-                  </Link>
-                  <div className="my-1 t-divider" />
+                <div style={{
+                  position: "absolute", right: 0, top: "calc(100% + 10px)",
+                  width: 210,
+                  background: "var(--t-card)",
+                  border: "1px solid var(--t-border)",
+                  borderRadius: 16,
+                  boxShadow: "0 24px 64px rgba(0,0,0,0.12)",
+                  zIndex: 60, overflow: "hidden",
+                  padding: "6px 0",
+                }}>
+                  {[
+                    { to: "/profile",   Icon: User,        label: "My Profile"    },
+                    { to: "/dashboard", Icon: CalendarDays, label: "My Bookings"  },
+                    { to: "/favorites", Icon: Bookmark,     label: "Saved Salons" },
+                  ].map(({ to, Icon, label }) => (
+                    <Link key={to} to={to}
+                      onClick={() => setProfileOpen(false)}
+                      style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", fontSize: 13, fontWeight: 500, color: "var(--t-text-2)", transition: "background 0.15s" }}
+                      onMouseEnter={e => e.currentTarget.style.background = "var(--t-input-bg)"}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                    >
+                      <Icon size={14} strokeWidth={2} style={{ color: "var(--t-text-3)" }} />
+                      {label}
+                    </Link>
+                  ))}
+                  <div style={{ height: 1, background: "var(--t-border)", margin: "4px 0" }} />
                   <button
                     onClick={() => { setProfileOpen(false); handleLogout(); }}
-                    className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-500 transition"
-                    onMouseEnter={e => e.currentTarget.style.background = "var(--t-error-bg)"}
+                    style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 16px", fontSize: 13, fontWeight: 500, color: "#f87171", background: "none", border: "none", cursor: "pointer", transition: "background 0.15s" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "rgba(239,68,68,0.06)"}
                     onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                   >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                    <LogOut size={14} strokeWidth={2} />
                     Sign Out
                   </button>
                 </div>
               )}
             </div>
-          ) : (
-            /* Guest buttons */
+          )}
+
+          {/* Theme toggle */}
+          <IconBtn onClick={toggleTheme} title={isDark ? "Light mode" : "Dark mode"}>
+            {isDark
+              ? <Sun size={15} strokeWidth={2} />
+              : <Moon size={15} strokeWidth={2} />
+            }
+          </IconBtn>
+
+          {/* Guest: Sign In + Join */}
+          {!token && (
             <>
-              <Link
-                to="/login"
-                className="hidden sm:block text-sm font-semibold px-4 py-1.5 rounded-xl transition-all duration-200"
-                style={{ background: "var(--t-input-bg)", border: "1px solid var(--t-border)", color: "var(--t-text-2)" }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(139,92,246,0.4)"; e.currentTarget.style.color = "var(--t-text)"; }}
+              <Link to="/login"
+                style={{
+                  textDecoration: "none", fontSize: 13, fontWeight: 600,
+                  padding: "7px 16px", borderRadius: 10,
+                  background: "var(--t-input-bg)", border: "1px solid var(--t-border)",
+                  color: "var(--t-text-2)", transition: "all 0.18s ease",
+                  display: "none",
+                }}
+                className="sm:block"
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(99,102,241,0.35)"; e.currentTarget.style.color = "var(--t-text)"; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--t-border)"; e.currentTarget.style.color = "var(--t-text-2)"; }}
               >
                 Sign In
               </Link>
-              <Link to="/register" className="neon-btn text-sm font-bold px-4 py-1.5 rounded-xl text-white">
+              <Link to="/register"
+                style={{
+                  textDecoration: "none", fontSize: 13, fontWeight: 700,
+                  padding: "7px 18px", borderRadius: 10,
+                  background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
+                  color: "#fff",
+                  boxShadow: "0 0 18px rgba(99,102,241,0.3)",
+                  transition: "box-shadow 0.18s ease",
+                }}
+                onMouseEnter={e => e.currentTarget.style.boxShadow = "0 0 28px rgba(99,102,241,0.5)"}
+                onMouseLeave={e => e.currentTarget.style.boxShadow = "0 0 18px rgba(99,102,241,0.3)"}
+              >
                 Join Free
               </Link>
             </>
-          )}
-
-          {/* Theme toggle — after login: rightmost */}
-          {token && (
-            <button
-              onClick={toggleTheme}
-              style={iconBtn}
-              title={isDark ? "Light mode" : "Dark mode"}
-              onMouseEnter={e => { e.currentTarget.style.background = "rgba(99,102,241,0.12)"; e.currentTarget.style.color = "var(--t-accent)"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = "var(--t-input-bg)"; e.currentTarget.style.color = "var(--t-text-3)"; }}
-            >
-              {isDark ? (
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
-                </svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" />
-                </svg>
-              )}
-            </button>
           )}
         </div>
 
       </div>
     </header>
+  );
+}
+
+// ── Nav link item ───────────────────────────────────────────
+function NavItem({ to, label, Icon, active }) {
+  const [hov, setHov] = useState(false);
+  return (
+    <Link
+      to={to}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        display: "flex", alignItems: "center", gap: 6,
+        padding: "7px 14px", borderRadius: 999,
+        fontSize: 13, fontWeight: active ? 700 : 500,
+        textDecoration: "none",
+        color: active ? "var(--t-accent)" : hov ? "var(--t-text)" : "var(--t-text-2)",
+        background: active
+          ? "rgba(99,102,241,0.1)"
+          : hov ? "var(--t-input-bg)" : "transparent",
+        border: `1px solid ${active ? "rgba(99,102,241,0.2)" : "transparent"}`,
+        boxShadow: active ? "0 0 0 0px rgba(99,102,241,0.12), inset 0 1px 0 rgba(255,255,255,0.08)" : "none",
+        transition: "all 0.18s ease",
+      }}
+    >
+      <Icon size={14} strokeWidth={active ? 2.4 : 2} />
+      {label}
+    </Link>
   );
 }
 
