@@ -378,15 +378,13 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
             </div>
           )}
 
-          {/* Theme toggle — desktop only */}
-          <span className="hidden md:flex">
-            <IconBtn onClick={toggleTheme} title={isDark ? "Light mode" : "Dark mode"}>
-              {isDark
-                ? <Sun size={15} strokeWidth={2} />
-                : <Moon size={15} strokeWidth={2} />
-              }
-            </IconBtn>
-          </span>
+          {/* Theme toggle */}
+          <IconBtn onClick={toggleTheme} title={isDark ? "Light mode" : "Dark mode"}>
+            {isDark
+              ? <Sun size={15} strokeWidth={2} />
+              : <Moon size={15} strokeWidth={2} />
+            }
+          </IconBtn>
 
           {/* Guest: Sign In + Join Free (desktop only) */}
           {!token && (
@@ -527,6 +525,25 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
 
       {/* Drawer footer */}
       <div style={{ padding: "12px 8px 24px", borderTop: "1px solid var(--t-border)" }}>
+        {/* Theme toggle row */}
+        <button
+          onClick={toggleTheme}
+          style={{
+            display: "flex", alignItems: "center", gap: 14, width: "100%",
+            padding: "12px 14px", borderRadius: 14, border: "none",
+            background: "transparent", color: "var(--t-text-2)",
+            fontWeight: 500, fontSize: 14, cursor: "pointer",
+            transition: "background 0.15s", marginBottom: 4,
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = "var(--t-input-bg)"}
+          onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+        >
+          {isDark
+            ? <Sun size={18} strokeWidth={2} style={{ color: "var(--t-accent)" }} />
+            : <Moon size={18} strokeWidth={2} style={{ color: "var(--t-accent)" }} />
+          }
+          {isDark ? "Light Mode" : "Dark Mode"}
+        </button>
         {token ? (
           <button
             onClick={() => { setDrawerOpen(false); handleLogout(); }}
