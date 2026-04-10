@@ -3,19 +3,19 @@ import { createContext, useContext, useState, useEffect } from 'react';
 const STORAGE_KEY = 'salonUserTheme';
 
 export const darkTheme = {
-  bg: '#0f172a',
-  card: '#1e293b',
-  cardAlt: '#162032',
-  text: '#f1f5f9',
-  subText: '#94a3b8',
-  border: '#334155',
-  rowBorder: '#1e293b',
-  input: '#1e293b',
-  inputBorder: '#475569',
-  placeholder: '#64748b',
+  bg: '#111827',
+  card: '#111827',
+  cardAlt: '#1f2937',
+  text: '#ffffff',
+  subText: '#9ca3af',
+  border: '#1f2937',
+  rowBorder: '#1f2937',
+  input: '#1f2937',
+  inputBorder: '#374151',
+  placeholder: '#6b7280',
   accent: '#818cf8',
-  navBtn: '#1e293b',
-  navBtnBorder: '#334155',
+  navBtn: '#1f2937',
+  navBtnBorder: '#374151',
 };
 
 export const lightTheme = {
