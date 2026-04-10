@@ -19,19 +19,19 @@ export const darkTheme = {
 };
 
 export const lightTheme = {
-  bg: '#f9fafb',
+  bg: '#F8FAFC',
   card: '#ffffff',
-  cardAlt: '#f3f4f6',
-  text: '#111827',
-  subText: '#6b7280',
-  border: '#e5e7eb',
-  rowBorder: '#f3f4f6',
-  input: '#ffffff',
-  inputBorder: '#d1d5db',
-  placeholder: '#9ca3af',
+  cardAlt: '#F1F5F9',
+  text: '#0F172A',
+  subText: '#475569',
+  border: '#CBD5E1',
+  rowBorder: '#F1F5F9',
+  input: '#F1F5F9',
+  inputBorder: '#CBD5E1',
+  placeholder: '#94A3B8',
   accent: '#6366f1',
   navBtn: '#ffffff',
-  navBtnBorder: '#e5e7eb',
+  navBtnBorder: '#CBD5E1',
 };
 
 const ThemeContext = createContext({

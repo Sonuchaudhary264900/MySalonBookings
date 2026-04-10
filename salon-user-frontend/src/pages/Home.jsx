@@ -159,10 +159,10 @@ function SearchInput({ value, onChange, onSearch, onFocus, onBlur, focused, onCl
       gap: compact ? 10 : 14, padding: compact ? "0 16px" : "0 22px",
       height: compact ? 46 : 62, borderRadius: 999,
       background: focused ? "var(--t-card)" : "var(--t-input-bg)",
-      border: focused ? "1.5px solid rgba(99,102,241,0.6)" : "1.5px solid var(--t-border)",
+      border: focused ? "1.5px solid rgba(99,102,241,0.65)" : "1.5px solid var(--t-border)",
       boxShadow: focused
-        ? "0 0 0 4px rgba(99,102,241,0.09),0 8px 40px rgba(99,102,241,0.14)"
-        : compact ? "none" : "0 4px 32px rgba(0,0,0,0.08)",
+        ? "0 0 0 4px rgba(99,102,241,0.12),0 8px 40px rgba(99,102,241,0.16)"
+        : compact ? "none" : "0 4px 24px rgba(15,23,42,0.10), 0 1px 4px rgba(15,23,42,0.06)",
       transition: "all 0.22s ease",
     }}>
       <button onClick={onSearch} style={{ display:"flex", background:"none", border:"none", cursor:value?"pointer":"default", padding:0, flexShrink:0 }}>
@@ -536,7 +536,7 @@ export default function Home() {
     return [...allSalons].sort((a, b) => parseFloat(b.averageRating || 0) - parseFloat(a.averageRating || 0)).slice(0, 2);
   }, [allSalons]);
 
-  const heroOverlayLight = "linear-gradient(90deg,#f9fafb 0%,rgba(249,250,251,0.97) 32%,rgba(249,250,251,0.88) 65%,transparent 100%)";
+  const heroOverlayLight = "linear-gradient(90deg,rgba(248,250,252,0.90) 0%,rgba(248,250,252,0.82) 35%,rgba(248,250,252,0.55) 62%,transparent 90%)";
   const heroOverlayDark  = "linear-gradient(90deg,rgba(10,15,30,0.97) 0%,rgba(10,15,30,0.92) 35%,rgba(10,15,30,0.75) 65%,transparent 100%)";
   const heroOverlay = isDark ? heroOverlayDark : heroOverlayLight;
 
@@ -700,12 +700,12 @@ export default function Home() {
                     display:"flex", alignItems:"center", gap:8,
                     padding:"10px 16px", borderRadius:999,
                     fontSize:13, fontWeight:700, cursor:"pointer",
-                    transition:"all 0.25s ease",
-                    background:"rgba(255,255,255,0.05)",
+                    transition:"all 0.2s ease",
+                    background: isDark ? "rgba(255,255,255,0.05)" : "var(--t-hero-card)",
                     backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
-                    border:"1px solid rgba(255,255,255,0.1)",
+                    border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid var(--t-hero-border)",
                     color:"var(--t-hero-text)",
-                    boxShadow:"0 2px 16px rgba(0,0,0,0.08)",
+                    boxShadow:"0 2px 12px rgba(15,23,42,0.08)",
                   }}
                 >
                   +{HERO_CHIPS.length - 3} More
@@ -723,12 +723,12 @@ export default function Home() {
                     display:"flex", alignItems:"center", gap:8,
                     padding:"10px 16px", borderRadius:999,
                     fontSize:13, fontWeight:700, cursor:"pointer",
-                    transition:"all 0.25s ease",
-                    background:"rgba(255,255,255,0.05)",
+                    transition:"all 0.2s ease",
+                    background: isDark ? "rgba(255,255,255,0.05)" : "var(--t-hero-card)",
                     backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
-                    border:"1px solid rgba(255,255,255,0.1)",
+                    border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid var(--t-hero-border)",
                     color:"var(--t-hero-text)",
-                    boxShadow:"0 2px 16px rgba(0,0,0,0.08)",
+                    boxShadow:"0 2px 12px rgba(15,23,42,0.08)",
                   }}
                 >
                   Show Less
