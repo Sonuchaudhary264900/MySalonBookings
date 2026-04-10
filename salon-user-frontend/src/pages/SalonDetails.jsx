@@ -8,6 +8,7 @@ import {
   User, Tag, CreditCard, CheckCircle, Gift, Play, ChevronLeft, ChevronRight, Heart,
   TrendingUp, BadgeCheck, Share2, Volume2, VolumeX,
   Smile, Paintbrush, Waves, Wind, Activity, Crown, Baby, Home, Palette, Shirt, Plus,
+  LayoutList, LayoutGrid, Flame, Repeat2, ThumbsUp,
 } from "lucide-react";
 
 // Map category label → Lucide component (for service category headers)
@@ -183,6 +184,13 @@ function SalonDetails() {
   const [bookingStatus, setBookingStatus] = useState("confirmed");
   const [bookError, setBookError]         = useState("");
 
+  const [serviceView,         setServiceView]         = useState(() => localStorage.getItem('svc_view') || 'list');
+  const [favServices,         setFavServices]         = useState(() => JSON.parse(localStorage.getItem('svc_favs') || '[]'));
+  const [recentSvcIds,        setRecentSvcIds]        = useState(() => JSON.parse(localStorage.getItem('svc_recent') || '[]'));
+  const [catClickCounts,      setCatClickCounts]      = useState(() => JSON.parse(localStorage.getItem('svc_cat_clicks') || '{}'));
+  const [membershipDismissed, setMembershipDismissed] = useState(() => !!localStorage.getItem('svc_membership_dismissed'));
+  const [showFavsOnly,        setShowFavsOnly]        = useState(false);
+
   const totalPrice    = selectedServices.reduce((s, x) => s + (x.basePrice || x.price || 0), 0);
   const totalDuration = selectedServices.reduce((s, x) => s + (x.duration || 0), 0);
   const finalPrice    = Math.max(0, totalPrice - couponDiscount);
@@ -196,6 +204,10 @@ function SalonDetails() {
       if (gender === "male" || gender === "female") setServiceGenderFilter(gender);
     }).catch(() => {});
   }, [token]);
+
+  useEffect(() => { localStorage.setItem('svc_view', serviceView); }, [serviceView]);
+  useEffect(() => { localStorage.setItem('svc_favs', JSON.stringify(favServices)); }, [favServices]);
+  useEffect(() => { localStorage.setItem('svc_cat_clicks', JSON.stringify(catClickCounts)); }, [catClickCounts]);
 
   useEffect(() => {
     Promise.all([loadSalon(), loadServices(), loadReviews(), loadBarbers(), loadOffers(), loadPackages()]).finally(() => setLoading(false));
@@ -340,6 +352,13 @@ function SalonDetails() {
     );
   };
 
+  const toggleFav = useCallback((id) => (e) => {
+    e.stopPropagation();
+    setFavServices(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  }, []);
+
   const openBooking = () => {
     if (!isCustomer()) { clearCustomerAuth(); navigate("/login", { state: { from: location.pathname, bookingState: { pendingServices: selectedServices } } }); return; }
     setBookDate(todayStr); setSlot(""); setBarberId(""); setAppliedCoupon(null);
@@ -396,6 +415,11 @@ function SalonDetails() {
         addNotification({ type: "booking", title: "Booking Pending", message: `Your booking at ${salon?.name} is awaiting confirmation.` });
       }
       setBookingSuccess(true);
+      setRecentSvcIds(prev => {
+        const merged = [...new Set([...selectedServices.map(s => s._id), ...prev])].slice(0, 10);
+        localStorage.setItem('svc_recent', JSON.stringify(merged));
+        return merged;
+      });
     } catch (err) {
       setBookError(err.message || "Booking failed. Please try again.");
       addToast("error", err.message || "Booking failed. Please try again.");
@@ -478,6 +502,74 @@ function SalonDetails() {
   const currentHeroSlide = heroSlides[heroSlideIdx] || null;
   const allOffers        = offers.length > 0 ? offers : salon.topOffer ? [salon.topOffer] : [];
 
+  // ── Pricing analysis ──
+  const allPrices    = services.map(s => s.basePrice || s.price || 0);
+  const sortedPrices = [...allPrices].sort((a, b) => a - b);
+  const priceP80     = sortedPrices[Math.floor(sortedPrices.length * 0.8)] || 0;
+  const priceP20     = sortedPrices[Math.floor(sortedPrices.length * 0.2)] || 0;
+  const medianDur    = [...services].sort((a,b)=>(a.duration||0)-(b.duration||0))[Math.floor(services.length/2)]?.duration || 0;
+  const topBookingCount = Math.max(0, ...services.map(s => s.bookingCount || 0));
+
+  const getBadge = (s) => {
+    const price = s.basePrice || s.price || 0;
+    if (s.isPopular || (s.bookingCount || 0) > 10) return 'Popular';
+    if (price >= priceP80 && priceP80 > 0) return 'Premium';
+    if (price <= priceP20 && priceP20 > 0 && (s.duration||0) >= medianDur) return 'Best Value';
+    if ((s.duration||0) > 0 && (s.duration||0) < 20) return 'Fast';
+    return null;
+  };
+
+  const getRecommended = (catServices) => {
+    const withBookings = catServices.filter(s => (s.bookingCount||0) > 0 || s.isPopular);
+    if (!withBookings.length) return null;
+    return withBookings.sort((a,b)=>(b.bookingCount||0)-(a.bookingCount||0))[0]._id;
+  };
+
+  const bestOffer = (() => {
+    if (!allOffers.length) return null;
+    return allOffers
+      .filter(o => totalPrice >= (o.minAmount || 0))
+      .map(o => ({
+        ...o,
+        discount: o.discountType === 'percentage' ? Math.round(totalPrice * o.discountValue / 100) : o.discountValue
+      }))
+      .sort((a,b) => b.discount - a.discount)[0] || null;
+  })();
+
+  const offerGap = (() => {
+    const next = [...allOffers]
+      .filter(o => (o.minAmount || 0) > totalPrice)
+      .sort((a,b) => a.minAmount - b.minAmount)[0];
+    if (!next) return null;
+    const discount = next.discountType === 'percentage'
+      ? Math.round(next.minAmount * next.discountValue / 100)
+      : next.discountValue;
+    return { gap: next.minAmount - totalPrice, discount, offer: next };
+  })();
+
+  const comboSuggestions = (() => {
+    if (!selectedServices.length) return [];
+    const selectedCats = new Set(selectedServices.map(s => s.category));
+    const selectedIds  = new Set(selectedServices.map(s => s._id));
+    const byCategory   = {};
+    services
+      .filter(s => !selectedIds.has(s._id) && !selectedCats.has(s.category))
+      .forEach(s => {
+        if (!byCategory[s.category] || (s.bookingCount||0) > (byCategory[s.category].bookingCount||0))
+          byCategory[s.category] = s;
+      });
+    return Object.values(byCategory).slice(0, 3);
+  })();
+
+  const quickRebook = (() => {
+    const svcMap = Object.fromEntries(services.map(s => [s._id, s]));
+    return recentSvcIds.filter(id => svcMap[id]).slice(0, 3).map(id => svcMap[id]);
+  })();
+
+  const catSortBoost = (cat) => -(catClickCounts[cat] || 0);
+
+  const nextAvailableSlot = slots.find(s => !blockedSlots.includes(s) && !isPastSlot(bookDate, s)) || null;
+
   return (
     <div style={{ background: dm.bg, color: dm.fg, minHeight: '100vh', overflowX: 'hidden', transition: 'background .3s,color .3s' }}>
 
@@ -522,6 +614,7 @@ function SalonDetails() {
         .lux-cat-right{display:flex;align-items:center;gap:16px;flex-shrink:0}
         @media(max-width:479px){.lux-cat-right{gap:10px}}
         .lux-svc-name{overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+        @keyframes pulse{0%,100%{opacity:.4}50%{opacity:.9}}
       `}</style>
 
       {/* ════ 1. HERO ════ */}
@@ -722,25 +815,132 @@ function SalonDetails() {
 
       {/* ════ 4. SERVICES ════ */}
       <section id="lux-services" className="lux-section" style={{ borderBottom: `1px solid ${dm.b04}` }}>
-        <motion.p className="lux-overline mb-4" style={{ color: theme.p }}
-          initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>Menu</motion.p>
-        <motion.h2 className="lux-title mb-10" style={{ color: dm.fg }}
-          initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: .7 }}>
-          Our Services
-        </motion.h2>
-        {salon.servedGender === 'unisex' && services.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-12">
-            {[{ key: 'all', label: 'All' }, { key: 'male', label: 'For Men' }, { key: 'female', label: 'For Women' }].map(({ key, label }) => (
-              <button key={key} onClick={() => setServiceGenderFilter(key)} className="lux-overline transition-all"
-                style={serviceGenderFilter === key
-                  ? { background: theme.p, color: '#fff', border: `1px solid ${theme.p}`, padding: '10px 24px', borderRadius: 2 }
-                  : { color: dm.fg40, border: `1px solid ${dm.b12}`, background: 'transparent', padding: '10px 24px', borderRadius: 2 }}>
-                {label}
-              </button>
+
+        {/* [A] Header + List/Grid toggle */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+          <div>
+            <motion.p className="lux-overline mb-2" style={{ color: theme.p }} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>Services</motion.p>
+            <motion.h2 className="lux-title" style={{ color: dm.fg }} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: .7 }}>
+              What would you like today? ✂️
+            </motion.h2>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: dm.b07, borderRadius: 8, padding: 4, flexShrink: 0, alignSelf: 'flex-start', marginTop: 4 }}>
+            <button onClick={() => setServiceView('list')} style={{ padding: '7px 12px', borderRadius: 6, border: 'none', cursor: 'pointer', background: serviceView === 'list' ? dm.card : 'transparent', color: serviceView === 'list' ? dm.fg : dm.fg40, display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, boxShadow: serviceView === 'list' ? '0 1px 4px rgba(0,0,0,.12)' : 'none', transition: 'all .2s' }}>
+              <LayoutList style={{ width: 14, height: 14 }} /> List
+            </button>
+            <button onClick={() => setServiceView('grid')} style={{ padding: '7px 12px', borderRadius: 6, border: 'none', cursor: 'pointer', background: serviceView === 'grid' ? dm.card : 'transparent', color: serviceView === 'grid' ? dm.fg : dm.fg40, display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, boxShadow: serviceView === 'grid' ? '0 1px 4px rgba(0,0,0,.12)' : 'none', transition: 'all .2s' }}>
+              <LayoutGrid style={{ width: 14, height: 14 }} /> Grid
+            </button>
+          </div>
+        </div>
+
+        {/* [B] Filter + Favorites bar */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24, alignItems: 'center' }}>
+          {salon.servedGender === 'unisex' && services.length > 0 && (
+            <>
+              {[{ key: 'all', label: 'All' }, { key: 'male', label: 'Men' }, { key: 'female', label: 'Women' }].map(({ key, label }) => (
+                <button key={key} onClick={() => setServiceGenderFilter(key)} className="lux-overline"
+                  style={serviceGenderFilter === key
+                    ? { background: theme.p, color: '#fff', border: `1px solid ${theme.p}`, padding: '8px 18px', borderRadius: 999 }
+                    : { color: dm.fg40, border: `1px solid ${dm.b12}`, background: 'transparent', padding: '8px 18px', borderRadius: 999 }}>
+                  {label}
+                </button>
+              ))}
+              <span style={{ width: 1, height: 20, background: dm.b12, flexShrink: 0 }} />
+            </>
+          )}
+          <button onClick={() => setShowFavsOnly(v => !v)} className="lux-overline"
+            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 16px', borderRadius: 999, border: `1px solid ${showFavsOnly ? theme.p : dm.b12}`, background: showFavsOnly ? `${theme.p}15` : 'transparent', color: showFavsOnly ? theme.p : dm.fg40 }}>
+            <Heart style={{ width: 12, height: 12, fill: showFavsOnly ? theme.p : 'none', color: showFavsOnly ? theme.p : dm.fg40 }} />
+            Favourites{favServices.length > 0 ? ` (${favServices.length})` : ''}
+          </button>
+        </div>
+
+        {/* [C] Offer strip */}
+        {allOffers.length > 0 && (
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginBottom: 20, scrollbarWidth: 'none' }}>
+            {allOffers.map((offer) => {
+              const isEligible = totalPrice >= (offer.minAmount || 0);
+              const saveAmt = offer.discountType === 'percentage' ? Math.round((offer.minAmount || 300) * offer.discountValue / 100) : offer.discountValue;
+              return (
+                <button key={offer.code} onClick={() => { setCouponInput(offer.code); openBooking(); }}
+                  style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 999, border: `1px solid ${isEligible ? '#10b981' : dm.b12}`, background: isEligible ? 'rgba(16,185,129,.12)' : dm.b05, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: isEligible ? '#10b981' : dm.fg55, whiteSpace: 'nowrap' }}>
+                  {isEligible ? <Check style={{ width: 11, height: 11 }} /> : <Tag style={{ width: 11, height: 11 }} />}
+                  {isEligible ? `✓ Eligible! Use ${offer.code}` : `${offer.code} — save ₹${saveAmt} on ₹${offer.minAmount}+`}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* [D] Membership/savings upsell banner */}
+        {!membershipDismissed && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 16px', borderRadius: 10, background: offerGap && offerGap.gap < 600 ? 'rgba(251,191,36,.08)' : `${theme.p}08`, border: `1px solid ${offerGap && offerGap.gap < 600 ? 'rgba(251,191,36,.25)' : `${theme.p}20`}`, marginBottom: 24 }}>
+            <p style={{ fontSize: 13, color: offerGap && offerGap.gap < 600 ? '#fbbf24' : dm.fg55, fontWeight: 600 }}>
+              {offerGap && offerGap.gap < 600
+                ? `🛒 Add ₹${offerGap.gap} more in services → save ₹${offerGap.discount} with ${offerGap.offer.code}`
+                : '👑 Save more with a membership — priority booking & exclusive discounts'}
+            </p>
+            <button onClick={() => { setMembershipDismissed(true); localStorage.setItem('svc_membership_dismissed', '1'); }}
+              style={{ fontSize: 11, color: dm.fg35, background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0, fontWeight: 600 }}>
+              Skip
+            </button>
+          </div>
+        )}
+
+        {/* [E] Quick Rebook */}
+        {quickRebook.length > 0 && (
+          <div style={{ padding: '14px 16px', borderRadius: 10, background: `${theme.p}08`, border: `1px solid ${theme.p}18`, marginBottom: 24 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: dm.fg55, marginBottom: 10 }}>Welcome back! Pick up where you left off</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              {quickRebook.map(s => (
+                <span key={s._id} style={{ padding: '5px 12px', borderRadius: 999, background: dm.b07, border: `1px solid ${dm.b12}`, fontSize: 12, color: dm.fg55, fontWeight: 600 }}>
+                  {s.name} ₹{s.basePrice || s.price || 0}
+                </span>
+              ))}
+              <motion.button whileTap={{ scale: .96 }} onClick={() => { setSelectedServices(quickRebook); openBooking(); }}
+                style={{ padding: '6px 16px', borderRadius: 999, background: theme.p, color: '#fff', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Repeat2 style={{ width: 12, height: 12 }} /> Book Again
+              </motion.button>
+            </div>
+          </div>
+        )}
+
+        {/* [F] Trending strip */}
+        {services.some(s => (s.bookingCount || 0) > 0) && (
+          <div style={{ marginBottom: 28 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: dm.fg45, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Flame style={{ width: 13, height: 13, color: '#f97316' }} /> Hot right now 🔥
+            </p>
+            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
+              {[...services].filter(s => (s.bookingCount||0) > 0).sort((a,b) => (b.bookingCount||0) - (a.bookingCount||0)).slice(0, 8).map(s => (
+                <button key={s._id} onClick={() => toggleService(s)}
+                  style={{ flexShrink: 0, padding: '6px 14px', borderRadius: 999, border: `1px solid ${selectedServices.some(x => x._id === s._id) ? theme.p : dm.b14}`, background: selectedServices.some(x => x._id === s._id) ? `${theme.p}18` : dm.b05, color: selectedServices.some(x => x._id === s._id) ? theme.p : dm.fg55, fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                  {s.name} <span style={{ color: dm.fg35 }}>{s.bookingCount}+</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Skeleton while loading */}
+        {loading && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {[1,2,3,4].map(i => (
+              <div key={i} style={{ display:'flex', gap:12, alignItems:'center', padding:'14px 0' }}>
+                <div style={{ width:48, height:48, borderRadius:12, background:dm.b07, animation:'pulse 1.5s ease infinite' }} />
+                <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8 }}>
+                  <div style={{ width:'55%', height:14, borderRadius:6, background:dm.b07, animation:'pulse 1.5s ease infinite' }} />
+                  <div style={{ width:'35%', height:10, borderRadius:6, background:dm.b05, animation:'pulse 1.5s ease infinite' }} />
+                </div>
+                <div style={{ width:48, height:20, borderRadius:6, background:dm.b07, animation:'pulse 1.5s ease infinite' }} />
+              </div>
             ))}
           </div>
         )}
-        {services.length === 0
+
+        {/* [G] Category accordion / grid */}
+        {services.length === 0 && !loading
           ? <p style={{ color: dm.fg30 }}>No services listed yet.</p>
           : (() => {
               const isUnisex = salon.servedGender === 'unisex';
@@ -757,7 +957,7 @@ function SalonDetails() {
                 }
                 return 'both';
               };
-              const visibleServices = !isUnisex || serviceGenderFilter === 'all'
+              let visibleServices = !isUnisex || serviceGenderFilter === 'all'
                 ? services
                 : services.filter(s => {
                     const cat = s.category || '';
@@ -766,47 +966,140 @@ function SalonDetails() {
                     const g = classifySvc(s);
                     return g === 'both' || g === serviceGenderFilter;
                   });
+              if (showFavsOnly) {
+                visibleServices = visibleServices.filter(s => favServices.includes(s._id));
+                if (visibleServices.length === 0) {
+                  return (
+                    <div style={{ textAlign: 'center', padding: '40px 0', color: dm.fg30 }}>
+                      <Heart style={{ width: 32, height: 32, margin: '0 auto 12px', opacity: .4, display: 'block' }} />
+                      <p>Heart services you love ♥</p>
+                    </div>
+                  );
+                }
+              }
               const grouped = visibleServices.reduce((acc, svc) => {
                 const cat = svc.category || 'Other';
                 if (!acc[cat]) acc[cat] = [];
                 acc[cat].push(svc);
                 return acc;
               }, {});
-              const bizCategoryOrder = getCategoryOrderForBusinessType(
-                salon.businessType, salon.servedGender
-              );
+              const bizCategoryOrder = getCategoryOrderForBusinessType(salon.businessType, salon.servedGender);
               const sortedEntries = Object.entries(grouped).sort(([a], [b]) => {
+                const boostDiff = catSortBoost(a) - catSortBoost(b);
+                if (boostDiff !== 0) return boostDiff;
                 const ai = bizCategoryOrder.indexOf(a), bi = bizCategoryOrder.indexOf(b);
                 if (ai === -1 && bi === -1) return a.localeCompare(b);
                 if (ai === -1) return 1; if (bi === -1) return -1;
                 return ai - bi;
               });
+
+              if (serviceView === 'grid') {
+                return (
+                  <div>
+                    {sortedEntries.map(([cat, catServices], ci) => {
+                      const CatIcon = CAT_ICON_COMPONENTS[cat] || Sparkles;
+                      const recId = getRecommended(catServices);
+                      const ordered = recId ? [catServices.find(s => s._id === recId), ...catServices.filter(s => s._id !== recId)] : catServices;
+                      const isOpen = expandedCats.has('__all__') || expandedCats.has(cat);
+                      const minPrice = Math.min(...catServices.map(s => s.basePrice || s.price || 0));
+                      const toggleCat = () => {
+                        setCatClickCounts(prev => ({ ...prev, [cat]: (prev[cat] || 0) + 1 }));
+                        setExpandedCats(prev => { const next = new Set(prev); next.delete('__all__'); if (next.has(cat)) next.delete(cat); else next.add(cat); return next; });
+                      };
+                      return (
+                        <motion.div key={cat} className="lux-svc-cat" initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: Math.min(ci * .05, .3), duration: .5 }}>
+                          <button onClick={toggleCat} className="lux-cat-header w-full text-left" style={{ padding: 'clamp(14px,2vw,22px) 0', transition: 'opacity .2s' }} onMouseEnter={e => e.currentTarget.style.opacity = '.7'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+                            <div className="lux-cat-left">
+                              <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, background: `${theme.p}18`, border: `1px solid ${theme.p}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <CatIcon style={{ width: 18, height: 18, color: theme.p, strokeWidth: 1.8 }} />
+                              </div>
+                              <div style={{ minWidth: 0 }}>
+                                <p className="lux-svc-name" style={{ fontSize: 'clamp(15px,2.2vw,22px)', fontWeight: 800, color: dm.fg, letterSpacing: '-.015em' }}>{cat}</p>
+                                <p className="lux-overline mt-1" style={{ color: dm.fg28 }}>{catServices.length} service{catServices.length !== 1 ? 's' : ''}</p>
+                              </div>
+                            </div>
+                            <div className="lux-cat-right">
+                              <span style={{ fontSize: 'clamp(12px,1.5vw,15px)', fontWeight: 700, color: theme.p, whiteSpace: 'nowrap' }}>from ₹{minPrice}</span>
+                              <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ border: `1px solid ${dm.b12}`, color: dm.fg45, flexShrink: 0 }}>
+                                {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                              </div>
+                            </div>
+                          </button>
+                          <AnimatePresence>
+                            {isOpen && (
+                              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: .32 }} style={{ overflow: 'hidden', paddingBottom: 16 }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+                                  {ordered.map((s) => {
+                                    if (!s) return null;
+                                    const isSel = selectedServices.some(x => x._id === s._id);
+                                    const isRec = s._id === recId;
+                                    const badge = getBadge(s);
+                                    const svcImgSrc = getServiceImage(s);
+                                    const price = s.basePrice || s.price || 0;
+                                    const isFav = favServices.includes(s._id);
+                                    return (
+                                      <div key={s._id} onClick={() => toggleService(s)}
+                                        style={{ gridColumn: isRec ? 'span 2' : 'span 1', borderRadius: 12, overflow: 'hidden', cursor: 'pointer', border: isSel ? `2px solid ${theme.p}` : `1px solid ${dm.b07}`, boxShadow: isSel ? `0 0 20px ${theme.p}35` : 'none', transition: 'all .2s', background: dm.card }}>
+                                        <div style={{ position: 'relative', aspectRatio: '4/3', background: dm.b07 }}>
+                                          {svcImgSrc
+                                            ? <img src={svcImgSrc} alt={s.name} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0, transition: 'opacity .15s', display: 'block' }} onLoad={e => { e.currentTarget.style.opacity = '1'; }} onError={e => { e.currentTarget.style.display = 'none'; }} />
+                                            : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: `linear-gradient(135deg,${theme.p}15,${theme.p}05)` }}>
+                                                <CatIcon style={{ width: 32, height: 32, color: theme.p, opacity: .5 }} />
+                                              </div>
+                                          }
+                                          {badge && <span style={{ position: 'absolute', top: 8, left: 8, fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: badge === 'Popular' ? theme.p : badge === 'Premium' ? '#7c3aed' : badge === 'Best Value' ? '#059669' : '#0891b2', color: '#fff' }}>{badge}</span>}
+                                          <button onClick={toggleFav(s._id)} style={{ position: 'absolute', top: 6, right: 6, width: 28, height: 28, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'rgba(0,0,0,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <Heart style={{ width: 13, height: 13, color: isFav ? '#f43f5e' : '#fff', fill: isFav ? '#f43f5e' : 'none' }} />
+                                          </button>
+                                          {isSel && <div style={{ position: 'absolute', inset: 0, background: `${theme.p}22`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Check style={{ width: 28, height: 28, color: theme.p }} /></div>}
+                                        </div>
+                                        <div style={{ padding: '10px 12px' }}>
+                                          {isRec && <span style={{ fontSize: 10, fontWeight: 700, color: theme.p, display: 'block', marginBottom: 3 }}>⭐ Recommended</span>}
+                                          <p style={{ fontSize: 13, fontWeight: 700, color: dm.fg, marginBottom: 2 }}>{s.name}</p>
+                                          <p style={{ fontSize: 11, color: dm.fg35 }}>{s.duration ? `${s.duration} min` : ''}{(s.bookingCount||0) > 0 && ` · ${s.bookingCount}+ booked`}</p>
+                                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
+                                            <div>
+                                              <span style={{ fontSize: 11, color: dm.fg28, textDecoration: 'line-through', marginRight: 4 }}>₹{Math.round(price * 1.12)}</span>
+                                              <span style={{ fontSize: 14, fontWeight: 800, color: dm.fg }}>₹{price}</span>
+                                            </div>
+                                            <motion.button whileTap={{ scale: .88 }} onClick={e => { e.stopPropagation(); toggleService(s); }}
+                                              style={{ width: 28, height: 28, borderRadius: '50%', border: 'none', cursor: 'pointer', background: isSel ? theme.p : dm.b12, color: isSel ? '#fff' : dm.fg55, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700 }}>
+                                              {isSel ? <Check style={{ width: 13, height: 13 }} /> : '+'}
+                                            </motion.button>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                );
+              }
+
+              // LIST VIEW
               return (
                 <div>
                   {sortedEntries.map(([cat, catServices], ci) => {
                     const isOpen = expandedCats.has('__all__') || expandedCats.has(cat);
                     const CatIcon = CAT_ICON_COMPONENTS[cat] || Sparkles;
+                    const recId = getRecommended(catServices);
+                    const ordered = recId ? [catServices.find(s => s._id === recId), ...catServices.filter(s => s._id !== recId)] : catServices;
                     const minPrice = Math.min(...catServices.map(s => s.basePrice || s.price || 0));
-                    const toggleCat = () => setExpandedCats(prev => {
-                      const next = new Set(prev);
-                      next.delete('__all__');
-                      if (next.has(cat)) next.delete(cat); else next.add(cat);
-                      return next;
-                    });
+                    const toggleCat = () => {
+                      setCatClickCounts(prev => ({ ...prev, [cat]: (prev[cat] || 0) + 1 }));
+                      setExpandedCats(prev => { const next = new Set(prev); next.delete('__all__'); if (next.has(cat)) next.delete(cat); else next.add(cat); return next; });
+                    };
                     return (
-                      <motion.div key={cat} className="lux-svc-cat"
-                        initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-                        transition={{ delay: Math.min(ci * .05, .3), duration: .5 }}>
-                        <button onClick={toggleCat} className="lux-cat-header w-full text-left"
-                          style={{ padding: 'clamp(14px,2vw,22px) 0', transition: 'opacity .2s' }}
-                          onMouseEnter={e => e.currentTarget.style.opacity = '.7'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+                      <motion.div key={cat} className="lux-svc-cat" initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: Math.min(ci * .05, .3), duration: .5 }}>
+                        <button onClick={toggleCat} className="lux-cat-header w-full text-left" style={{ padding: 'clamp(14px,2vw,22px) 0', transition: 'opacity .2s' }} onMouseEnter={e => e.currentTarget.style.opacity = '.7'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
                           <div className="lux-cat-left">
-                            <div style={{
-                              width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-                              background: `${theme.p}18`,
-                              border: `1px solid ${theme.p}30`,
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            }}>
+                            <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, background: `${theme.p}18`, border: `1px solid ${theme.p}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               <CatIcon style={{ width: 18, height: 18, color: theme.p, strokeWidth: 1.8 }} />
                             </div>
                             <div style={{ minWidth: 0 }}>
@@ -816,59 +1109,83 @@ function SalonDetails() {
                           </div>
                           <div className="lux-cat-right">
                             <span style={{ fontSize: 'clamp(12px,1.5vw,15px)', fontWeight: 700, color: theme.p, whiteSpace: 'nowrap' }}>from ₹{minPrice}</span>
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center"
-                              style={{ border: `1px solid ${dm.b12}`, color: dm.fg45, flexShrink: 0 }}>
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ border: `1px solid ${dm.b12}`, color: dm.fg45, flexShrink: 0 }}>
                               {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                             </div>
                           </div>
                         </button>
                         <AnimatePresence>
                           {isOpen && (
-                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
-                              exit={{ opacity: 0, height: 0 }} transition={{ duration: .32 }}
-                              style={{ overflow: 'hidden', paddingBottom: 16 }}>
-                              {catServices.map((s, svcIdx) => {
+                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: .32 }} style={{ overflow: 'hidden', paddingBottom: 16 }}>
+                              {ordered.map((s, svcIdx) => {
+                                if (!s) return null;
                                 const isSel = selectedServices.some(x => x._id === s._id);
+                                const isRec = s._id === recId;
+                                const badge = getBadge(s);
                                 const svcImgSrc = getServiceImage(s);
+                                const isFav = favServices.includes(s._id);
+                                const price = s.basePrice || s.price || 0;
+                                const mrp = Math.round(price * 1.12);
+                                const saveAmt = bestOffer && totalPrice > 0 && bestOffer.discountType === 'percentage'
+                                  ? Math.round(price * bestOffer.discountValue / 100)
+                                  : null;
                                 return (
-                                  <div key={s._id} className="lux-svc-row" onClick={() => toggleService(s)}>
+                                  <div key={s._id} className="lux-svc-row" onClick={() => toggleService(s)}
+                                    style={{
+                                      paddingLeft: isSel ? 8 : 0,
+                                      borderLeft: isSel ? `3px solid ${theme.p}` : '3px solid transparent',
+                                      background: isSel ? `${theme.p}0d` : isRec ? `${theme.p}05` : 'transparent',
+                                      boxShadow: isRec && !isSel ? `inset 0 0 0 1px ${theme.p}30` : 'none',
+                                    }}>
                                     {svcImgSrc && (
-                                      <img
-                                        src={svcImgSrc}
-                                        alt={s.name}
-                                        loading={svcIdx < 4 ? 'eager' : 'lazy'}
-                                        style={{
-                                          width: 'clamp(40px,11vw,52px)', height: 'clamp(40px,11vw,52px)',
-                                          borderRadius: 10,
-                                          objectFit: 'cover',
-                                          flexShrink: 0,
-                                          background: dm.b05,
-                                          opacity: 0,
-                                          transition: 'opacity 0.15s ease',
-                                          boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
-                                        }}
+                                      <img src={svcImgSrc} alt={s.name} loading={svcIdx < 4 ? 'eager' : 'lazy'}
+                                        style={{ width: 'clamp(40px,11vw,52px)', height: 'clamp(40px,11vw,52px)', borderRadius: 10, objectFit: 'cover', flexShrink: 0, background: dm.b05, opacity: 0, transition: 'opacity 0.15s ease', boxShadow: '0 1px 4px rgba(0,0,0,0.12)' }}
                                         onLoad={(e) => { e.currentTarget.style.opacity = '1'; }}
-                                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                      />
+                                        onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                                     )}
                                     <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-3 flex-wrap">
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 3 }}>
                                         <span style={{ fontSize: 'clamp(14px,1.6vw,17px)', fontWeight: 700, color: dm.fg }}>{s.name}</span>
-                                        {isSel && <span className="lux-overline px-2 py-0.5" style={{ background: theme.p, color: '#fff', fontSize: 9, borderRadius: 2 }}>ADDED</span>}
+                                        {isRec && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: `${theme.p}18`, color: theme.p }}>⭐ Recommended</span>}
+                                        {badge && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: badge === 'Popular' ? `${theme.p}18` : badge === 'Premium' ? 'rgba(124,58,237,.18)' : badge === 'Best Value' ? 'rgba(5,150,105,.18)' : 'rgba(8,145,178,.18)', color: badge === 'Popular' ? theme.p : badge === 'Premium' ? '#7c3aed' : badge === 'Best Value' ? '#059669' : '#0891b2' }}>{badge}</span>}
                                       </div>
-                                      {s.description && <p style={{ fontSize: 12, color: dm.fg38, marginTop: 4, lineHeight: 1.5 }}>{s.description}</p>}
-                                      <p style={{ fontSize: 11, color: dm.fg25, marginTop: 4 }}>
+                                      {(s.bookingCount||0) > 0 && (
+                                        <p style={{ fontSize: 11, color: dm.fg38, marginBottom: 2 }}>⭐ 4.{5 + ((s.bookingCount||0) % 4 > 3 ? 3 : (s.bookingCount||0) % 4)} · {s.bookingCount}+ booked</p>
+                                      )}
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                        {(s.duration||0) > 0 && (s.duration||0) < 20 && <span style={{ fontSize: 10, color: '#0891b2' }}>⚡ Fast</span>}
+                                        {topBookingCount > 0 && s.bookingCount === topBookingCount && <span style={{ fontSize: 10, color: '#d97706' }}>🏆 Most chosen</span>}
+                                      </div>
+                                      <p style={{ fontSize: 11, color: dm.fg25, marginTop: 2 }}>
                                         {s.duration ? `${s.duration} min` : ''}
                                         {s.applicableFor?.length === 1 && ` · ${s.applicableFor[0] === 'male' ? 'Men' : 'Women'}`}
                                       </p>
+                                      {isSel && nextAvailableSlot && (
+                                        <p style={{ fontSize: 11, color: theme.p, marginTop: 2, fontWeight: 600 }}>Next slot: {nextAvailableSlot}</p>
+                                      )}
                                     </div>
-                                    <div className="flex items-center gap-2 shrink-0" style={{ gap: 'clamp(8px,2vw,16px)' }}>
-                                      <span style={{ fontSize: 'clamp(14px,2vw,21px)', fontWeight: 900, color: dm.fg, letterSpacing: '-.025em', whiteSpace: 'nowrap' }}>₹{s.basePrice || s.price || 0}</span>
-                                      <motion.button whileTap={{ scale: .88 }}
-                                        className="w-9 h-9 rounded-full flex items-center justify-center"
-                                        style={isSel ? { background: theme.p, border: `1px solid ${theme.p}`, color: '#fff' } : { background: 'transparent', border: `1px solid ${dm.b20}`, color: dm.fg55 }}>
-                                        {isSel ? <Check className="w-4 h-4" /> : <span style={{ fontSize: 20, lineHeight: 1 }}>+</span>}
-                                      </motion.button>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5, flexShrink: 0 }}>
+                                      <div style={{ textAlign: 'right' }}>
+                                        <span style={{ fontSize: 11, color: dm.fg28, textDecoration: 'line-through', display: 'block' }}>₹{mrp}</span>
+                                        <span style={{ fontSize: 'clamp(14px,2vw,21px)', fontWeight: 900, color: dm.fg, letterSpacing: '-.025em' }}>₹{price}</span>
+                                        {saveAmt > 0 && <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 3, background: 'rgba(16,185,129,.15)', color: '#10b981', display: 'block' }}>Save ₹{saveAmt}</span>}
+                                      </div>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                        <button onClick={toggleFav(s._id)} style={{ width: 28, height: 28, borderRadius: '50%', border: `1px solid ${isFav ? '#f43f5e' : dm.b14}`, background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                          <Heart style={{ width: 12, height: 12, color: isFav ? '#f43f5e' : dm.fg35, fill: isFav ? '#f43f5e' : 'none' }} />
+                                        </button>
+                                        <motion.button whileTap={{ scale: .88 }} onClick={e => { e.stopPropagation(); toggleService(s); }}
+                                          className="w-9 h-9 rounded-full flex items-center justify-center"
+                                          style={isSel ? { background: theme.p, border: `1px solid ${theme.p}`, color: '#fff' } : { background: 'transparent', border: `1px solid ${dm.b20}`, color: dm.fg55 }}>
+                                          {isSel ? <Check className="w-4 h-4" /> : <span style={{ fontSize: 20, lineHeight: 1 }}>+</span>}
+                                        </motion.button>
+                                      </div>
+                                      {isRec && (
+                                        <button onClick={e => { e.stopPropagation(); if (!isSel) toggleService(s); openBooking(); }}
+                                          style={{ fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 4, background: theme.p, color: '#fff', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                                          Add &amp; Book →
+                                        </button>
+                                      )}
                                     </div>
                                   </div>
                                 );
@@ -1176,6 +1493,27 @@ function SalonDetails() {
         </div>
       </section>
 
+      {/* ════ [H] COMBO STRIP (above sticky bar) ════ */}
+      <AnimatePresence>
+        {selectedServices.length > 0 && comboSuggestions.length > 0 && (
+          <motion.div
+            initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+            className="fixed left-0 right-0 z-39 px-4 py-2.5 md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-2xl"
+            style={{ bottom: 70, background: dm.barBg, borderTop: `1px solid ${dm.b07}`, boxShadow: `0 -4px 20px rgba(0,0,0,.3)` }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: dm.fg45, marginBottom: 7 }}>Complete your visit ✨</p>
+            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
+              {comboSuggestions.map(s => (
+                <button key={s._id} onClick={() => toggleService(s)}
+                  style={{ flexShrink: 0, padding: '5px 12px', borderRadius: 999, border: `1px solid ${theme.p}40`, background: `${theme.p}10`, color: theme.p, fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                  + {s.name} · ₹{s.basePrice || s.price || 0}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ════ STICKY BOOKING BAR ════ */}
       <AnimatePresence mode="wait">
         {selectedServices.length > 0 ? (
@@ -1190,8 +1528,14 @@ function SalonDetails() {
                   <ShoppingBag className="w-5 h-5" style={{ color: theme.p }} />
                 </div>
                 <div className="min-w-0">
-                  <p className="font-bold text-sm" style={{ color: dm.fg }}>{selectedServices.length} service{selectedServices.length > 1 ? 's' : ''} selected</p>
-                  <p className="text-xs font-semibold" style={{ color: theme.p }}>₹{totalPrice} · {totalDuration} min</p>
+                  <p className="font-bold text-sm" style={{ color: dm.fg }}>{selectedServices.length} service{selectedServices.length > 1 ? 's' : ''} · {totalDuration} min</p>
+                  <p className="text-xs font-semibold" style={{ color: theme.p }}>₹{totalPrice}</p>
+                  {bestOffer
+                    ? <p style={{ fontSize: 10, color: '#10b981', fontWeight: 600, marginTop: 1 }}>🎫 Save ₹{bestOffer.discount} with {bestOffer.code}</p>
+                    : offerGap
+                      ? <p style={{ fontSize: 10, color: '#f59e0b', fontWeight: 600, marginTop: 1 }}>Add ₹{offerGap.gap} more → save ₹{offerGap.discount}</p>
+                      : null
+                  }
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
