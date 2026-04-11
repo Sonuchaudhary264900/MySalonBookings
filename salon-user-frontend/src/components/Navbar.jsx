@@ -4,7 +4,7 @@ import { useNotifications } from "../context/NotificationContext";
 import { useTheme } from "../context/ThemeContext";
 import {
   Home, Play, CalendarDays, Heart, Bell,
-  Sun, Moon, LogOut, User, Bookmark, Scissors, Settings, Menu, X,
+  Sun, Moon, LogOut, User, Bookmark, Scissors, Settings, Menu, X, Crown,
 } from "lucide-react";
 
 function getUserInitial() {
@@ -207,11 +207,12 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
   };
 
   const NAV_LINKS = [
-    { to: "/",          label: "Home",     Icon: Home,        auth: false },
-    { to: "/reels",     label: "Reels",    Icon: Play,        auth: false },
-    { to: "/dashboard", label: "Bookings", Icon: CalendarDays,auth: true  },
-    { to: "/favorites", label: "Saved",    Icon: Heart,       auth: true  },
-    { to: "/profile",   label: "Settings", Icon: Settings,    auth: true  },
+    { to: "/",               label: "Home",            Icon: Home,        auth: false },
+    { to: "/reels",          label: "Reels",           Icon: Play,        auth: false },
+    { to: "/dashboard",      label: "Bookings",        Icon: CalendarDays,auth: true  },
+    { to: "/favorites",      label: "Saved",           Icon: Heart,       auth: true  },
+    { to: "/my-subscription",label: "My Subscription", Icon: Crown,       auth: true  },
+    { to: "/profile",        label: "Settings",        Icon: Settings,    auth: true  },
   ];
   // Desktop center nav: only show auth items if logged in
   const DESKTOP_NAV = token ? NAV_LINKS : NAV_LINKS.filter(l => !l.auth);
@@ -349,9 +350,10 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
                   padding: "6px 0",
                 }}>
                   {[
-                    { to: "/profile",   Icon: User,        label: "My Profile"    },
-                    { to: "/dashboard", Icon: CalendarDays, label: "My Bookings"  },
-                    { to: "/favorites", Icon: Bookmark,     label: "Saved Salons" },
+                    { to: "/profile",          Icon: User,        label: "My Profile"       },
+                    { to: "/dashboard",        Icon: CalendarDays, label: "My Bookings"     },
+                    { to: "/favorites",        Icon: Bookmark,     label: "Saved Salons"    },
+                    { to: "/my-subscription",  Icon: Crown,        label: "My Subscription" },
                   ].map(({ to, Icon, label }) => (
                     <Link key={to} to={to}
                       onClick={() => setProfileOpen(false)}
