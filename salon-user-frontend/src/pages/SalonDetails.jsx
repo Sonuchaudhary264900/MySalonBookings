@@ -99,26 +99,6 @@ const getNextSlot = (wh, intervalMins = 30) => {
   return null;
 };
 
-// ── Reverse geocode (shared cache with SalonCard) ────────────────
-const GEO_KEY = 'salon_geo_cache';
-function getGeoCache() { try { return JSON.parse(localStorage.getItem(GEO_KEY) || '{}'); } catch { return {}; } }
-function saveGeoCache(c) { try { localStorage.setItem(GEO_KEY, JSON.stringify(c)); } catch {} }
-async function reverseGeocode(lat, lng) {
-  const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
-  const cache = getGeoCache();
-  if (cache[key]) return cache[key];
-  try {
-    const r = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`,
-      { headers: { 'Accept-Language': 'en' } }
-    );
-    const d = await r.json();
-    const a = d.address || {};
-    const place = a.suburb || a.neighbourhood || a.village || a.town || a.city_district || a.quarter || a.county || null;
-    if (place) { const c = getGeoCache(); c[key] = place; saveGeoCache(c); }
-    return place;
-  } catch { return null; }
-}
 
 const localDate = (offset = 0) => {
   const d = new Date();
@@ -176,7 +156,7 @@ function SalonDetails() {
   const [heroMuted, setHeroMuted]       = useState(true);
   const [heroSlideIdx, setHeroSlideIdx] = useState(0);
   const [photoSlideIdx, setPhotoSlideIdx] = useState(0);
-  const [locality, setLocality]          = useState(null);
+  const locality = salon?.locality || null;
   const { isDark: darkMode } = useTheme();
   const heroVideoRef2 = useRef(null);
   const heroSwipeStartX = useRef(null);
@@ -280,17 +260,7 @@ function SalonDetails() {
   // Reset slide index when salon changes
   useEffect(() => { setHeroSlideIdx(0); }, [salon?._id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Reverse geocode salon coordinates → locality
-  useEffect(() => {
-    if (!salon) return;
-    const coords = salon.location?.coordinates;
-    if (!coords || coords.length < 2) return;
-    const [lng, lat] = coords;
-    let cancelled = false;
-    setLocality(null);
-    reverseGeocode(lat, lng).then(place => { if (!cancelled && place) setLocality(place); });
-    return () => { cancelled = true; };
-  }, [salon?._id]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   // Restore pending service selection after login redirect
   useEffect(() => {
@@ -2192,7 +2162,6 @@ function SalonVideoViewer({ videos, startIdx, salon, onClose, onBook }) {
   const [copied, setCopied] = useState(false);
 
   // Locality
-  const [svvLocality, setSvvLocality] = useState(null);
 
   const videoRef    = useRef(null);
   const feedRef     = useRef(null);
@@ -2207,7 +2176,7 @@ function SalonVideoViewer({ videos, startIdx, salon, onClose, onBook }) {
   const total     = videos.length;
   const salonName = salon?.name || 'Salon';
   const salonLogo = salon?.logo || null;
-  const city      = [svvLocality, salon?.city].filter(Boolean).join(', ') || salon?.address || '';
+  const city      = [salon?.locality, salon?.city].filter(Boolean).join(', ') || salon?.address || '';
   const rating    = salon?.averageRating ? parseFloat(salon.averageRating).toFixed(1) : null;
   const salonId   = salon?._id;
   const videoUrl  = videos[idx] || '';
@@ -2220,16 +2189,6 @@ function SalonVideoViewer({ videos, startIdx, salon, onClose, onBook }) {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
   }, []);
-
-  // Reverse geocode salon coordinates
-  useEffect(() => {
-    const coords = salon?.location?.coordinates;
-    if (!coords || coords.length < 2) return;
-    const [lng, lat] = coords;
-    let cancelled = false;
-    reverseGeocode(lat, lng).then(place => { if (!cancelled && place) setSvvLocality(place); });
-    return () => { cancelled = true; };
-  }, [salon?._id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Measure feed height after mount — desktop col is CSS-sized, not 100vh
   useLayoutEffect(() => {

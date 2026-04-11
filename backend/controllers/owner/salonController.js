@@ -19,6 +19,25 @@ const { validateSalonData, validateCoordinates } = require('../../utils/validato
 const { getCoordinatesFromAddress } = require("../../services/googleMapsService");
 const messages = require('../../utils/messages');
 const { cloudinary } = require('../../config/cloudinary');
+const https = require('https');
+
+// Reverse geocode coordinates → locality (suburb/village/neighbourhood)
+async function reverseGeocodeLocality(lat, lng) {
+  return new Promise((resolve) => {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`;
+    https.get(url, { headers: { 'User-Agent': 'MySalonBookings/1.0', 'Accept-Language': 'en' } }, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const a = JSON.parse(data).address || {};
+          const place = a.suburb || a.neighbourhood || a.village || a.town || a.city_district || a.quarter || a.county || null;
+          resolve(place);
+        } catch { resolve(null); }
+      });
+    }).on('error', () => resolve(null));
+  });
+}
 
 
 // ===================================================
@@ -143,6 +162,7 @@ exports.createSalon = async (req, res) => {
         type: 'Point',
         coordinates: [Number(longitude), Number(latitude)],
       },
+      locality: await reverseGeocodeLocality(Number(latitude), Number(longitude)),
 
       description:   description || '',
       category:      resolvedCategory,
@@ -369,9 +389,9 @@ exports.updateSalon = async (req, res) => {
         type: 'Point',
         coordinates: [lng, lat],
       };
-
       salon.latitude = lat;
       salon.longitude = lng;
+      salon.locality = await reverseGeocodeLocality(lat, lng);
     }
 
     if (workingHours) {

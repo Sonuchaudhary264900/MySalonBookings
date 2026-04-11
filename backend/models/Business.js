@@ -156,6 +156,8 @@ location: {
   },
 },
 
+locality: { type: String, default: null }, // reverse-geocoded suburb/village from coordinates
+
     // ==========================================
     // CATEGORY
     // ==========================================

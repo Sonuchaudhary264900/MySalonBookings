@@ -8,26 +8,6 @@ import { salonPath } from "../utils/formatters";
 ───────────────────────────────────────────────────────────── */
 const isLoggedIn = () => !!localStorage.getItem('customerToken');
 
-// ── Reverse geocode cache (shared with SalonCard) ────────────
-const GEO_KEY = 'salon_geo_cache';
-function getGeoCache() { try { return JSON.parse(localStorage.getItem(GEO_KEY) || '{}'); } catch { return {}; } }
-function saveGeoCache(c) { try { localStorage.setItem(GEO_KEY, JSON.stringify(c)); } catch {} }
-async function reverseGeocode(lat, lng) {
-  const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
-  const cache = getGeoCache();
-  if (cache[key]) return cache[key];
-  try {
-    const r = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`,
-      { headers: { 'Accept-Language': 'en' } }
-    );
-    const d = await r.json();
-    const a = d.address || {};
-    const place = a.suburb || a.neighbourhood || a.village || a.town || a.city_district || a.quarter || a.county || null;
-    if (place) { const c = getGeoCache(); c[key] = place; saveGeoCache(c); }
-    return place;
-  } catch { return null; }
-}
 
 function getDistanceKm(lat1, lng1, lat2, lng2) {
   const R = 6371, dLat = (lat2 - lat1) * Math.PI / 180, dLng = (lng2 - lng1) * Math.PI / 180;
@@ -418,16 +398,7 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
   const [viewCount, setViewCount] = useState(reel.viewCount || 0);
   const [progress,  setProgress]  = useState(0);
   const [doubleTapHeart, setDoubleTapHeart] = useState(false);
-  const [locality,  setLocality]  = useState(null);
-
-  useEffect(() => {
-    const coords = reel.salon.location?.coordinates;
-    if (!coords || coords.length < 2) return;
-    const [lng, lat] = coords;
-    let cancelled = false;
-    reverseGeocode(lat, lng).then(place => { if (!cancelled && place) setLocality(place); });
-    return () => { cancelled = true; };
-  }, [reel.salon._id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const locality = reel.salon.locality || null;
 
   const distance = (() => {
     if (!userCoords) return null;

@@ -196,7 +196,7 @@ router.get("/public/salons", asyncHandler(async (req, res) => {
     : { totalBookings: -1, averageRating: -1 }; // default: booked
   const skip = (Number(page) - 1) * Number(limit);
   const rawSalons = await Business.find(query)
-    .select("name address city phone photos logo coverPhoto averageRating totalReviews totalBookings workingHours category servedGender offeredCategories isApproved isOnline lastOnlineAt location ownerId")
+    .select("name address city locality phone photos logo coverPhoto averageRating totalReviews totalBookings workingHours category servedGender offeredCategories isApproved isOnline lastOnlineAt location ownerId")
     .sort(sortOrder)
     .skip(skip)
     .limit(Number(limit))
@@ -538,12 +538,12 @@ router.get("/public/reels", asyncHandler(async (req, res) => {
         },
       },
     })
-      .select("name city address location logo coverPhoto averageRating reelVideos isBoostEnabled businessType")
+      .select("name city address locality location logo coverPhoto averageRating reelVideos isBoostEnabled businessType")
       .limit(100)
       .lean();
   } else {
     salons = await Business.find(baseQuery)
-      .select("name city address location logo coverPhoto averageRating reelVideos isBoostEnabled businessType")
+      .select("name city address locality location logo coverPhoto averageRating reelVideos isBoostEnabled businessType")
       .limit(100)
       .lean();
   }
@@ -563,7 +563,7 @@ router.get("/public/reels", asyncHandler(async (req, res) => {
         categories,
         _createdAt:      createdAt,
         _isBoostEnabled: s.isBoostEnabled || false,
-        salon: { _id: s._id, name: s.name, city: s.city, address: s.address || null, location: s.location || null, logo: s.logo || null, averageRating: s.averageRating || 0, businessType: s.businessType || 'salon' },
+        salon: { _id: s._id, name: s.name, city: s.city, address: s.address || null, locality: s.locality || null, location: s.location || null, logo: s.logo || null, averageRating: s.averageRating || 0, businessType: s.businessType || 'salon' },
       });
     }
   }
@@ -1928,7 +1928,7 @@ router.get("/public/services/search", asyncHandler(async (req, res) => {
     isApproved: true,
     isActive: true,
   })
-    .select("name address city phone photos logo coverPhoto averageRating totalReviews totalBookings workingHours category servedGender offeredCategories location ownerId")
+    .select("name address city locality phone photos logo coverPhoto averageRating totalReviews totalBookings workingHours category servedGender offeredCategories location ownerId")
     .populate("ownerId", "profilePhoto")
     .lean();
 
