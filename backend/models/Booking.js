@@ -9,7 +9,7 @@ const bookingSchema = new mongoose.Schema(
     customerName: String,
     customerPhone: String,
     customerEmail: String,
-    customerGender: { type: String, enum: ['male', 'female'] },
+    customerGender: { type: String, enum: ['male', 'female', null], default: null },
     salonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Business', required: true },
     salonName: String,
     salonPhone: String,

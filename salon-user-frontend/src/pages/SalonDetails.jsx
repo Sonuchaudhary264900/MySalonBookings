@@ -1722,8 +1722,10 @@ function SalonDetails() {
                         <div className="w-4 h-4 rounded-full animate-spin" style={{ border: `2px solid ${dm.b10}`, borderTopColor: dm.fg80 }} /> Loading available slots…
                       </div>
                     ) : closedDay ? (
-                      <div className="p-4 rounded-xl text-sm text-center" style={{ background: 'rgba(251,191,36,.08)', color: '#fbbf24', border: '1px solid rgba(251,191,36,.2)' }}>
-                        🔒 Salon is closed on this date.
+                      <div className="p-5 rounded-2xl text-center space-y-1" style={{ background: 'rgba(239,68,68,.08)', border: '1px solid rgba(239,68,68,.25)' }}>
+                        <p style={{ fontSize: 22 }}>🚫</p>
+                        <p className="font-bold text-sm" style={{ color: '#f87171' }}>Salon is closed on this day</p>
+                        <p className="text-xs" style={{ color: '#fca5a5' }}>Please pick another date from the calendar above</p>
                       </div>
                     ) : slots.length === 0 ? (
                       <div className="p-4 rounded-xl text-sm text-center" style={{ background: dm.formInp, color: dm.fg40 }}>
@@ -1852,11 +1854,12 @@ function SalonDetails() {
                   {slot && !bookingLoading && (
                     <p className="text-center text-xs font-semibold mb-2" style={{ color: dm.fg45 }}>You're all set! Just one tap to confirm ✨</p>
                   )}
-                  <button onClick={handleConfirm} disabled={bookingLoading || !slot}
+                  <button onClick={handleConfirm} disabled={bookingLoading || !slot || closedDay}
                     className="w-full py-3.5 text-base font-bold text-white rounded-2xl transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
-                    style={{ background: `linear-gradient(135deg,${theme.p},${theme.p}cc)`, boxShadow: slot ? `0 4px 20px ${theme.p}45` : 'none' }}>
+                    style={{ background: `linear-gradient(135deg,${theme.p},${theme.p}cc)`, boxShadow: slot && !closedDay ? `0 4px 20px ${theme.p}45` : 'none' }}>
                     {bookingLoading
                       ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 rounded-full animate-spin border-2 border-white/30 border-t-white" />Securing your slot…</span>
+                      : closedDay ? 'Salon closed — pick another date'
                       : !slot ? 'Select a time slot' : 'Lock My Slot 🔒'}
                   </button>
                   <p className="text-center mt-2" style={{ fontSize: 10, color: dm.fg30 }}>Instant confirmation • No payment now</p>

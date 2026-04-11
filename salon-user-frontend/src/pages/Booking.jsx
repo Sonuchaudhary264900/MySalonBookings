@@ -378,8 +378,10 @@ function Booking() {
                   Loading available slots…
                 </div>
               ) : closedDay ? (
-                <div className="p-4 rounded-xl text-sm text-center" style={{ background: 'var(--t-warn-bg)', color: 'var(--t-warn-text)', border: '1px solid var(--t-warn-border)' }}>
-                  🔒 Bookings are not available on this date. Please choose another date.
+                <div className="p-5 rounded-2xl text-center space-y-1" style={{ background: 'rgba(239,68,68,.08)', border: '1px solid rgba(239,68,68,.25)' }}>
+                  <p style={{ fontSize: 22 }}>🚫</p>
+                  <p className="font-bold text-sm" style={{ color: '#f87171' }}>Salon is closed on this day</p>
+                  <p className="text-xs" style={{ color: '#fca5a5' }}>Please pick another date from the calendar above</p>
                 </div>
               ) : slots.length === 0 ? (
                 <div className="p-4 rounded-xl text-sm text-center" style={{ background: 'var(--t-bg-2)', color: 'var(--t-text-2)' }}>
@@ -561,11 +563,12 @@ function Booking() {
             )}
             <button
               type="submit"
-              disabled={loading || !date || !slot}
+              disabled={loading || !date || !slot || closedDay}
               className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed py-3"
             >
               {loading
                 ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 rounded-full animate-spin border-2 border-white/30 border-t-white" />Securing your slot…</span>
+                : closedDay ? "Salon closed — pick another date"
                 : "Lock My Slot 🔒"}
             </button>
             <p className="text-center" style={{ fontSize: 10, color: 'var(--t-text-3)' }}>Instant confirmation • No payment now</p>
