@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Scissors, Calendar, Star, Settings,
   ChevronRight, ChevronLeft, X, Images, Users, Tag,
-  CreditCard, Store, BarChart2, Gift, MessageSquare, Megaphone,
+  CreditCard, Store, BarChart2, Gift, MessageSquare, Megaphone, Crown,
 } from 'lucide-react';
 import ROUTES from '../../routes';
 import { useNotifications } from '../../context/NotificationContext';
@@ -55,8 +55,20 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { chatUnreadCount } = useNotifications();
-  const { salon } = useSalon();
+  const { salon, subscription } = useSalon();
   const bizName = BIZ_NAME_MAP[salon?.businessType] || 'Salon';
+
+  const planLabel = {
+    free_trial:  'Free Trial',
+    starter:     'Starter Plan',
+    per_booking: 'Pay Per Booking',
+  }[subscription?.planType] || 'No Plan';
+
+  const planColor = subscription?.planType === 'starter'
+    ? { bg: 'bg-indigo-50 dark:bg-indigo-950/50', border: 'border-indigo-200/60 dark:border-indigo-800/40', text: 'text-indigo-600 dark:text-indigo-400', dot: 'bg-indigo-500' }
+    : subscription?.planType === 'per_booking'
+    ? { bg: 'bg-violet-50 dark:bg-violet-950/50', border: 'border-violet-200/60 dark:border-violet-800/40', text: 'text-violet-600 dark:text-violet-400', dot: 'bg-violet-500' }
+    : { bg: 'bg-amber-50 dark:bg-amber-950/30', border: 'border-amber-200/60 dark:border-amber-800/40', text: 'text-amber-600 dark:text-amber-400', dot: 'bg-amber-400' };
 
   const handleNavigation = (path) => {
     navigate(path);
@@ -192,6 +204,33 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
             </div>
           ))}
         </nav>
+
+        {/* ── My Subscription ── */}
+        <div className="shrink-0 px-2 pb-2 border-t border-gray-100 dark:border-gray-800/60 pt-2">
+          <button
+            onClick={() => handleNavigation(ROUTES.BILLING)}
+            type="button"
+            className={`w-full rounded-xl border transition-all duration-150 ${planColor.bg} ${planColor.border} ${collapsed ? 'md:flex md:justify-center md:p-2 p-3' : 'p-3'}`}
+          >
+            {/* Collapsed: icon only */}
+            <div className={`flex items-center gap-2.5 ${collapsed ? 'md:hidden' : ''}`}>
+              <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${planColor.text} bg-white/60 dark:bg-black/20`}>
+                <Crown className="w-3.5 h-3.5" />
+              </div>
+              <div className="flex-1 text-left min-w-0">
+                <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide leading-none mb-0.5">My Subscription</p>
+                <div className="flex items-center gap-1.5">
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${planColor.dot}`} />
+                  <p className={`text-xs font-bold truncate ${planColor.text}`}>{planLabel}</p>
+                </div>
+              </div>
+            </div>
+            {/* Collapsed icon only (desktop) */}
+            <div className={`hidden ${collapsed ? 'md:flex' : ''} items-center justify-center`}>
+              <Crown className={`w-4 h-4 ${planColor.text}`} />
+            </div>
+          </button>
+        </div>
 
         {/* ── Collapse toggle (desktop only) ── */}
         <div className="hidden md:flex shrink-0 p-3 border-t border-gray-100 dark:border-gray-800/60 justify-end">
