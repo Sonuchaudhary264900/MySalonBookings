@@ -157,6 +157,7 @@ function SalonDetails() {
   const [photoSlideIdx, setPhotoSlideIdx] = useState(0);
   const { isDark: darkMode } = useTheme();
   const heroVideoRef2 = useRef(null);
+  const heroSwipeStartX = useRef(null);
   const galleryTrackRef = useRef(null);
   const reviewTrackRef  = useRef(null);
   const heroSectionRef = useRef(null);
@@ -185,7 +186,7 @@ function SalonDetails() {
   const [bookingStatus, setBookingStatus] = useState("confirmed");
   const [bookError, setBookError]         = useState("");
 
-  const [serviceView,         setServiceView]         = useState(() => localStorage.getItem('svc_view') || 'list');
+  const [serviceView,         setServiceView]         = useState(() => localStorage.getItem('svc_view') || 'grid');
   const [favServices,         setFavServices]         = useState(() => JSON.parse(localStorage.getItem('svc_favs') || '[]'));
   const [recentSvcIds,        setRecentSvcIds]        = useState(() => JSON.parse(localStorage.getItem('svc_recent') || '[]'));
   const [catClickCounts,      setCatClickCounts]      = useState(() => JSON.parse(localStorage.getItem('svc_cat_clicks') || '{}'));
@@ -240,16 +241,17 @@ function SalonDetails() {
     return () => { stale = true; };
   }, [bookDate, id, totalDuration, showBooking, slotsKey]);
 
-  // ── Hero slides: coverPhoto first, then remaining photos, then videos ──
+  // ── Hero slides: videos only ──
   const heroSlides = useMemo(() => {
     if (!salon) return [];
-    const photos = (salon.photos || []).map(p => (typeof p === 'string' ? p : p?.url)).filter(Boolean);
     const videos = (salon.videos || []).map(v => (typeof v === 'string' ? v : v?.url)).filter(Boolean);
+    if (videos.length > 0) return videos.map(url => ({ url, type: 'video' }));
+    // Fallback: show cover/photos if no videos
+    const photos = (salon.photos || []).map(p => (typeof p === 'string' ? p : p?.url)).filter(Boolean);
     const cover  = salon.coverPhoto || null;
     const result = [];
     if (cover) result.push({ url: cover, type: 'image' });
     photos.filter(u => u !== cover).forEach(u => result.push({ url: u, type: 'image' }));
-    videos.forEach(u => result.push({ url: u, type: 'video' }));
     return result;
   }, [salon]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -580,7 +582,7 @@ function SalonDetails() {
 
       {/* ════ PAGE CSS ════ */}
       <style>{`
-        .lux-hero{position:relative;height:100vh;min-height:520px;overflow:hidden}
+        .lux-hero{position:relative;height:clamp(300px,60vh,560px);overflow:hidden}
         .lux-media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
         @keyframes luxKB{from{transform:scale(1)}to{transform:scale(1.06)}}
         .lux-media-img{animation:luxKB 12s ease-in-out infinite alternate}
@@ -588,7 +590,7 @@ function SalonDetails() {
         .lux-hero-slide{position:absolute;inset:0;animation:heroFadeIn 1.1s ease both}
         .lux-section{padding:clamp(44px,8vw,140px) clamp(16px,6vw,96px)}
         .lux-title{font-size:clamp(24px,5vw,72px);font-weight:900;line-height:1.05;letter-spacing:-.025em}
-        .lux-hero-title{font-size:clamp(26px,7vw,104px);font-weight:900;line-height:.95;letter-spacing:-.03em}
+        .lux-hero-title{font-size:clamp(22px,5.5vw,64px);font-weight:900;line-height:.95;letter-spacing:-.03em}
         .lux-overline{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase}
         .lux-body{font-size:clamp(14px,1.4vw,19px);line-height:1.75}
         .lux-divider{width:36px;height:1px;margin:20px 0}
@@ -625,7 +627,16 @@ function SalonDetails() {
       {/* ════ 1. HERO ════ */}
       <motion.section ref={el => { heroSectionRef.current = el; if (el) el._slideLen = heroSlides.length; }}
         className="lux-hero"
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}
+        onTouchStart={e => { heroSwipeStartX.current = e.touches[0].clientX; }}
+        onTouchEnd={e => {
+          if (heroSwipeStartX.current === null || heroSlides.length <= 1) return;
+          const dx = e.changedTouches[0].clientX - heroSwipeStartX.current;
+          heroSwipeStartX.current = null;
+          if (Math.abs(dx) < 40) return;
+          if (dx < 0) setHeroSlideIdx(i => (i + 1) % heroSlides.length);
+          else setHeroSlideIdx(i => (i - 1 + heroSlides.length) % heroSlides.length);
+        }}>
         {currentHeroSlide ? (
           <div key={heroSlideIdx} className="lux-hero-slide">
             {currentHeroSlide.type === 'video'
@@ -650,7 +661,7 @@ function SalonDetails() {
           </motion.button>
           <div className="flex items-center gap-2">
             {currentHeroSlide?.type === 'video' && (
-              <button onClick={() => { setHeroMuted(m => !m); heroVideoRef2.current && (heroVideoRef2.current.muted = !heroMuted); }}
+              <button onClick={e => { e.stopPropagation(); setHeroMuted(m => !m); heroVideoRef2.current && (heroVideoRef2.current.muted = !heroMuted); }}
                 className="w-10 h-10 rounded-full flex items-center justify-center text-white"
                 style={{ background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,.12)' }}>
                 {heroMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
@@ -665,7 +676,7 @@ function SalonDetails() {
           </div>
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 z-10" style={{ padding: 'clamp(16px,5vw,80px)', paddingBottom: 'clamp(64px,9vh,130px)' }}>
+        <div className="absolute bottom-0 left-0 right-0 z-10" style={{ padding: 'clamp(12px,4vw,60px)', paddingBottom: 'clamp(44px,7vh,90px)' }}>
           <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .2, duration: .9, ease: [.22,1,.36,1] }}>
             <p className="lux-overline mb-4" style={{ color: 'rgba(255,255,255,.72)', textShadow: '0 1px 8px rgba(0,0,0,.65)' }}>
               {BIZ_SUBTITLES[salon.businessType] || 'Premium grooming experience'}
@@ -1033,7 +1044,7 @@ function SalonDetails() {
                           <AnimatePresence>
                             {isOpen && (
                               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: .32 }} style={{ overflow: 'hidden', paddingBottom: 16 }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14 }}>
                                   {ordered.map((s) => {
                                     if (!s) return null;
                                     const isSel = selectedServices.some(x => x._id === s._id);
@@ -1044,7 +1055,7 @@ function SalonDetails() {
                                     const isFav = favServices.includes(s._id);
                                     return (
                                       <div key={s._id} onClick={() => toggleService(s)}
-                                        style={{ gridColumn: isRec ? 'span 2' : 'span 1', borderRadius: 12, overflow: 'hidden', cursor: 'pointer', border: isSel ? `2px solid ${theme.p}` : `1px solid ${dm.b07}`, boxShadow: isSel ? `0 0 20px ${theme.p}35` : 'none', transition: 'all .2s', background: dm.card }}>
+                                        style={{ borderRadius: 12, overflow: 'hidden', cursor: 'pointer', border: isSel ? `2px solid ${theme.p}` : `1px solid ${dm.b07}`, boxShadow: isSel ? `0 0 20px ${theme.p}35` : 'none', transition: 'all .2s', background: dm.card }}>
                                         <div style={{ position: 'relative', aspectRatio: '4/3', background: dm.b07 }}>
                                           {svcImgSrc
                                             ? <img src={svcImgSrc} alt={s.name} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0, transition: 'opacity .15s', display: 'block' }} onLoad={e => { e.currentTarget.style.opacity = '1'; }} onError={e => { e.currentTarget.style.display = 'none'; }} />
@@ -1058,17 +1069,17 @@ function SalonDetails() {
                                           </button>
                                           {isSel && <div style={{ position: 'absolute', inset: 0, background: `${theme.p}22`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Check style={{ width: 28, height: 28, color: theme.p }} /></div>}
                                         </div>
-                                        <div style={{ padding: '10px 12px' }}>
-                                          {isRec && <span style={{ fontSize: 10, fontWeight: 700, color: theme.p, display: 'block', marginBottom: 3 }}>⭐ Recommended</span>}
-                                          <p style={{ fontSize: 13, fontWeight: 700, color: dm.fg, marginBottom: 2 }}>{s.name}</p>
-                                          <p style={{ fontSize: 11, color: dm.fg35 }}>{s.duration ? `${s.duration} min` : ''}{(s.bookingCount||0) > 0 && ` · ${s.bookingCount}+ booked`}</p>
-                                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
+                                        <div style={{ padding: 'clamp(10px,1.2vw,16px) clamp(12px,1.4vw,18px)' }}>
+                                          {isRec && <span style={{ fontSize: 'clamp(10px,0.85vw,12px)', fontWeight: 700, color: theme.p, display: 'block', marginBottom: 3 }}>⭐ Recommended</span>}
+                                          <p style={{ fontSize: 'clamp(13px,1.1vw,16px)', fontWeight: 700, color: dm.fg, marginBottom: 2 }}>{s.name}</p>
+                                          <p style={{ fontSize: 'clamp(11px,0.85vw,13px)', color: dm.fg35 }}>{s.duration ? `${s.duration} min` : ''}{(s.bookingCount||0) > 0 && ` · ${s.bookingCount}+ booked`}</p>
+                                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
                                             <div>
-                                              <span style={{ fontSize: 11, color: dm.fg28, textDecoration: 'line-through', marginRight: 4 }}>₹{Math.round(price * 1.12)}</span>
-                                              <span style={{ fontSize: 14, fontWeight: 800, color: dm.fg }}>₹{price}</span>
+                                              <span style={{ fontSize: 'clamp(11px,0.85vw,13px)', color: dm.fg28, textDecoration: 'line-through', marginRight: 4 }}>₹{Math.round(price * 1.12)}</span>
+                                              <span style={{ fontSize: 'clamp(14px,1.2vw,17px)', fontWeight: 800, color: dm.fg }}>₹{price}</span>
                                             </div>
                                             <motion.button whileTap={{ scale: .88 }} onClick={e => { e.stopPropagation(); toggleService(s); }}
-                                              style={{ width: 28, height: 28, borderRadius: '50%', border: 'none', cursor: 'pointer', background: isSel ? theme.p : dm.b12, color: isSel ? '#fff' : dm.fg55, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700 }}>
+                                              style={{ width: 'clamp(28px,2vw,34px)', height: 'clamp(28px,2vw,34px)', borderRadius: '50%', border: 'none', cursor: 'pointer', background: isSel ? theme.p : dm.b12, color: isSel ? '#fff' : dm.fg55, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, flexShrink: 0 }}>
                                               {isSel ? <Check style={{ width: 13, height: 13 }} /> : '+'}
                                             </motion.button>
                                           </div>
