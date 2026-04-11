@@ -273,7 +273,7 @@ function SalonDetails() {
   useEffect(() => {
     if (heroSectionRef.current) heroSectionRef.current._slideLen = heroSlides.length;
     if (heroSlides.length <= 1) return;
-    const t = setInterval(() => setHeroSlideIdx(i => (i + 1) % heroSlides.length), 5500);
+    const t = setInterval(() => setHeroSlideIdx(i => (i + 1) % heroSlides.length), 2800);
     return () => clearInterval(t);
   }, [heroSlides.length]);
 
@@ -587,7 +587,7 @@ function SalonDetails() {
         @keyframes luxKB{from{transform:scale(1)}to{transform:scale(1.06)}}
         .lux-media-img{animation:luxKB 12s ease-in-out infinite alternate}
         @keyframes heroFadeIn{from{opacity:0}to{opacity:1}}
-        .lux-hero-slide{position:absolute;inset:0;animation:heroFadeIn 1.1s ease both}
+        .lux-hero-slide{position:absolute;inset:0;animation:heroFadeIn 0.25s ease both}
         .lux-section{padding:clamp(44px,8vw,140px) clamp(16px,6vw,96px)}
         .lux-title{font-size:clamp(24px,5vw,72px);font-weight:900;line-height:1.05;letter-spacing:-.025em}
         .lux-hero-title{font-size:clamp(22px,5.5vw,64px);font-weight:900;line-height:.95;letter-spacing:-.03em}
@@ -639,6 +639,10 @@ function SalonDetails() {
           if (dx < 0) setHeroSlideIdx(i => (i + 1) % heroSlides.length);
           else setHeroSlideIdx(i => (i - 1 + heroSlides.length) % heroSlides.length);
         }}>
+        {/* Preload next 5 videos so switching is instant */}
+        {heroSlides.filter((s, i) => s.type === 'video' && i !== heroSlideIdx).slice(0, 5).map(s => (
+          <video key={s.url} src={s.url} preload="auto" muted playsInline style={{ display: 'none' }} />
+        ))}
         {currentHeroSlide ? (
           <div key={heroSlideIdx} className="lux-hero-slide">
             {currentHeroSlide.type === 'video'

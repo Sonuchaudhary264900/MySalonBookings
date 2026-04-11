@@ -778,11 +778,25 @@ export default function Reels() {
         const newIdx = Math.floor((feed.scrollTop + itemH * 0.5) / itemH);
         if (newIdx !== currentIdx.current && newIdx >= 0 && newIdx < reelsRef.current.length) {
           currentIdx.current = newIdx;
-          const currentId = reelsRef.current[newIdx]?._id;
+          const reelsList = reelsRef.current;
+          const currentId = reelsList[newIdx]?._id;
+          // Preload next 3 videos
+          for (let ahead = 1; ahead <= 3; ahead++) {
+            const preloadId = reelsList[newIdx + ahead]?._id;
+            const pv = preloadId && videoRefs.current[preloadId];
+            if (pv && pv.readyState < 3) { pv.preload = 'auto'; pv.load(); }
+          }
           Object.entries(videoRefs.current).forEach(([id, v]) => {
             if (!v) return;
-            if (id === currentId) { v.muted = mutedRef.current; v.play().catch(() => {}); }
-            else { v.pause(); v.currentTime = 0; }
+            const reelIdx = reelsList.findIndex(r => r._id === id);
+            if (id === currentId) {
+              v.muted = mutedRef.current; v.play().catch(() => {});
+            } else if (Math.abs(reelIdx - newIdx) <= 2) {
+              // Keep buffer for nearby reels — just pause
+              v.pause();
+            } else {
+              v.pause(); v.currentTime = 0;
+            }
           });
         }
       });
@@ -886,6 +900,12 @@ export default function Reels() {
       if (firstId && videoRefs.current[firstId]) {
         videoRefs.current[firstId].muted = mutedRef.current;
         videoRefs.current[firstId].play().catch(() => {});
+      }
+      // Preload next 5 videos immediately on load
+      for (let i = 1; i <= 5; i++) {
+        const nextId = reels[i]?._id;
+        const nv = nextId && videoRefs.current[nextId];
+        if (nv) { nv.preload = 'auto'; nv.load(); }
       }
     });
   }, [reels]);
