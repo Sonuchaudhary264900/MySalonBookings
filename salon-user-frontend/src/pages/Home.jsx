@@ -543,7 +543,7 @@ export default function Home() {
       ══════════════════════════════════════════════════════════ */}
       <section style={{
         position:"relative",
-        minHeight:"clamp(480px,85vh,680px)",
+        minHeight:"clamp(300px,55vh,680px)",
         display:"flex",
         alignItems:"center",
         overflow:"hidden",
@@ -589,8 +589,8 @@ export default function Home() {
           position:"relative", zIndex:1,
           width:"100%", maxWidth:1280,
           margin:"0 auto",
-          paddingTop:"calc(clamp(82px,6vh,100px) + env(safe-area-inset-top, 0px))",
-          paddingBottom:"clamp(24px,6vh,100px)",
+          paddingTop:"calc(clamp(68px,5vh,100px) + env(safe-area-inset-top, 0px))",
+          paddingBottom:"clamp(10px,2vh,64px)",
           paddingLeft:"clamp(16px,5vw,80px)",
           paddingRight:"clamp(16px,5vw,80px)",
         }}>
@@ -599,7 +599,7 @@ export default function Home() {
             {/* Overline */}
             <div style={{
               display:"inline-flex", alignItems:"center", gap:8,
-              marginBottom:20,
+              marginBottom:14,
             }}>
               <span style={{
                 display:"inline-block",
@@ -617,21 +617,21 @@ export default function Home() {
 
             {/* Headline */}
             <h1 style={{
-              fontSize:"clamp(26px, 4.5vw, 96px)",
+              fontSize:"clamp(22px, 4.5vw, 96px)",
               fontWeight:900,
               lineHeight:1.0,
               letterSpacing:"-0.04em",
               color:"var(--t-hero-text)",
-              margin:"0 0 10px",
+              margin:"0 0 8px",
             }}>
               Avoid Long Queue.<br />Save Time.
             </h1>
             <h1 style={{
-              fontSize:"clamp(20px, 4.5vw, 72px)",
+              fontSize:"clamp(16px, 4.5vw, 72px)",
               fontWeight:900,
               lineHeight:1.05,
               letterSpacing:"-0.03em",
-              margin:"0 0 28px",
+              margin:"0 0 16px",
               background:"linear-gradient(135deg,#6366f1 0%,#8b5cf6 50%,#a78bfa 100%)",
               WebkitBackgroundClip:"text",
               WebkitTextFillColor:"transparent",
@@ -642,14 +642,14 @@ export default function Home() {
 
             {/* Sub-line */}
             <p style={{
-              fontSize:16, fontWeight:500, color:"var(--t-hero-sub)",
-              marginBottom:32, lineHeight:1.6, maxWidth:"min(480px, 90%)",
+              fontSize:"clamp(13px,1.2vw,16px)", fontWeight:500, color:"var(--t-hero-sub)",
+              marginBottom:20, lineHeight:1.55, maxWidth:"min(480px, 90%)",
             }}>
               Discover and book the best GlowSpot near you — verified, rated, and ready.
             </p>
 
             {/* Quick chips */}
-            <div style={{ display:"flex", flexWrap:"wrap", gap:10, marginBottom:28 }}>
+            <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:16 }}>
               {(showAllChips ? HERO_CHIPS : HERO_CHIPS.slice(0, 3)).map(({ label, cat, Icon }) => {
                 const active = selectedCats.includes(cat);
                 return (
@@ -661,9 +661,9 @@ export default function Home() {
                     onTouchStart={e => { e.currentTarget.style.transform = "scale(0.95)"; }}
                     onTouchEnd={e => { e.currentTarget.style.transform = active ? "scale(0.97)" : "scale(1)"; }}
                     style={{
-                      display:"flex", alignItems:"center", gap:8,
-                      padding:"10px 20px", borderRadius:999,
-                      fontSize:13, fontWeight:700, cursor:"pointer",
+                      display:"flex", alignItems:"center", gap:7,
+                      padding:"8px 16px", borderRadius:999,
+                      fontSize:12, fontWeight:700, cursor:"pointer",
                       transition:"all 0.25s ease",
                       background: active
                         ? "linear-gradient(135deg,#6366f1,#8b5cf6)"
@@ -691,9 +691,9 @@ export default function Home() {
                   onTouchStart={e => { e.currentTarget.style.transform = "scale(0.95)"; }}
                   onTouchEnd={e => { e.currentTarget.style.transform = "scale(1)"; }}
                   style={{
-                    display:"flex", alignItems:"center", gap:8,
-                    padding:"10px 16px", borderRadius:999,
-                    fontSize:13, fontWeight:700, cursor:"pointer",
+                    display:"flex", alignItems:"center", gap:7,
+                    padding:"8px 14px", borderRadius:999,
+                    fontSize:12, fontWeight:700, cursor:"pointer",
                     transition:"all 0.2s ease",
                     background: isDark ? "rgba(255,255,255,0.05)" : "var(--t-hero-card)",
                     backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
@@ -1155,7 +1155,7 @@ export default function Home() {
         </section>
 
         {/* FINAL CTA */}
-        <section style={{ position:"relative", overflow:"hidden", borderTop:"1px solid var(--t-border)", padding:"clamp(64px,9vh,96px) 20px" }}>
+        <section style={{ position:"relative", overflow:"hidden", borderTop:"1px solid var(--t-border)", padding:"clamp(40px,6vh,96px) 20px" }}>
           <div style={{ position:"absolute", inset:0, background:"radial-gradient(ellipse 70% 70% at 50% 50%,rgba(99,102,241,0.08) 0%,transparent 70%)", pointerEvents:"none" }} />
           <div style={{ position:"absolute", top:0, left:"50%", transform:"translateX(-50%)", width:"60%", height:1, background:"linear-gradient(90deg,transparent,rgba(99,102,241,0.4),transparent)", pointerEvents:"none" }} />
           <div className="max-w-2xl mx-auto text-center" style={{ position:"relative", zIndex:1 }}>

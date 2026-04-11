@@ -17,6 +17,27 @@ function setFavIds(ids) {
   localStorage.setItem("customerFavorites", JSON.stringify(ids));
 }
 
+// ── Reverse geocode cache (localStorage) ────────────────────────
+const GEO_KEY = 'salon_geo_cache';
+function getGeoCache() { try { return JSON.parse(localStorage.getItem(GEO_KEY) || '{}'); } catch { return {}; } }
+function saveGeoCache(c) { try { localStorage.setItem(GEO_KEY, JSON.stringify(c)); } catch {} }
+async function reverseGeocode(lat, lng) {
+  const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+  const cache = getGeoCache();
+  if (cache[key]) return cache[key];
+  try {
+    const r = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`,
+      { headers: { 'Accept-Language': 'en' } }
+    );
+    const d = await r.json();
+    const a = d.address || {};
+    const place = a.suburb || a.neighbourhood || a.village || a.town || a.city_district || a.quarter || a.county || null;
+    if (place) { const c = getGeoCache(); c[key] = place; saveGeoCache(c); }
+    return place;
+  } catch { return null; }
+}
+
 function getDistanceKm(lat1, lng1, lat2, lng2) {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -103,9 +124,20 @@ function SalonCard({ salon, userCoords }) {
   const [saving, setSaving]     = useState(false);
   const [hovered, setHovered]   = useState(false);
   const [heartBounce, setHeartBounce] = useState(false);
+  const [locality, setLocality] = useState(null);
   const heartTimer = useRef(null);
 
   useEffect(() => { setSaved(getFavIds().includes(salon._id)); }, [salon._id]);
+
+  // ── Reverse geocode coordinates → suburb/village/neighbourhood ──
+  useEffect(() => {
+    const coords = salon.location?.coordinates;
+    if (!coords || coords.length < 2) return;
+    const [lng, lat] = coords;
+    let cancelled = false;
+    reverseGeocode(lat, lng).then(place => { if (!cancelled && place) setLocality(place); });
+    return () => { cancelled = true; };
+  }, [salon._id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const distance = useMemo(() => {
     if (!userCoords) return null;
@@ -172,8 +204,8 @@ function SalonCard({ salon, userCoords }) {
             : "0 2px 16px rgba(0,0,0,0.06)",
         }}
       >
-        {/* ── Image (reduced height: 180px) ── */}
-        <div className="relative overflow-hidden" style={{ height: 180, borderRadius: "18px 18px 0 0" }}>
+        {/* ── Image ── */}
+        <div className="relative overflow-hidden" style={{ height: "clamp(120px,28vw,180px)", borderRadius: "18px 18px 0 0" }}>
           {hasPhoto ? (
             <img
               src={hasPhoto} alt={salon.name} loading="lazy"
@@ -322,7 +354,7 @@ function SalonCard({ salon, userCoords }) {
           <div className="flex items-center justify-between gap-2 mb-2">
             <p className="text-xs flex items-center gap-1 line-clamp-1 flex-1" style={{ color: "var(--t-text-2)" }}>
               <MapPin className="w-3 h-3 shrink-0" style={{ color: "rgba(99,102,241,0.7)" }} />
-              {address}
+              {locality || address}
             </p>
             {todayHours && (
               <p className="text-xs flex items-center gap-1 shrink-0" style={{ color: "var(--t-text-3)" }}>

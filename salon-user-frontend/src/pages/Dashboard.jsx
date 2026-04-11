@@ -934,7 +934,7 @@ export default function Dashboard() {
       {/* ══════════════════════════════════════════════════════
           HERO — full-viewport storytelling section
       ══════════════════════════════════════════════════════ */}
-      <div className="dashboard-hero" style={{ minHeight: '56vh', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+      <div className="dashboard-hero" style={{ minHeight: 'clamp(220px,42vh,400px)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
         <div className="dashboard-hero-orb-1" style={{ position:'absolute', top:-80, right:-80, width:400, height:400, borderRadius:'50%', pointerEvents:'none' }} />
         <div className="dashboard-hero-orb-2" style={{ position:'absolute', bottom:-60, left:-40, width:280, height:280, borderRadius:'50%', pointerEvents:'none' }} />
         <div className="dashboard-hero-grid" style={{ position:'absolute', inset:0, backgroundSize:'52px 52px', pointerEvents:'none', opacity: isDark ? 1 : 0.6 }} />
@@ -948,11 +948,11 @@ export default function Dashboard() {
         </div>
 
         {/* Hero content */}
-        <div style={{ maxWidth: 640, margin: '0 auto', padding: '80px 24px 40px', position: 'relative', width: '100%', animation: 'heroIn 0.6s cubic-bezier(0.16,1,0.3,1) both' }}>
+        <div style={{ maxWidth: 640, margin: '0 auto', padding: 'clamp(56px,5vh,80px) 20px clamp(18px,2vh,36px)', position: 'relative', width: '100%', animation: 'heroIn 0.6s cubic-bezier(0.16,1,0.3,1) both' }}>
           <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--t-hero-muted)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.14em' }}>
             My Bookings
           </p>
-          <h1 style={{ fontSize: 'clamp(32px,8vw,52px)', fontWeight: 900, color: 'var(--t-hero-text)', lineHeight: 1.08, letterSpacing: '-1.5px', marginBottom: 14 }}>
+          <h1 style={{ fontSize: 'clamp(24px,6vw,52px)', fontWeight: 900, color: 'var(--t-hero-text)', lineHeight: 1.08, letterSpacing: '-1.5px', marginBottom: 10 }}>
             Hey {firstName},<br/>
             <span style={{ opacity: 0.55, fontWeight: 800 }}>ready for your<br/>next look?</span>
           </h1>

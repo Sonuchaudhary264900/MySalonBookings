@@ -221,7 +221,7 @@ export default function GenderHome({ gender }) {
     <div style={{ background: "var(--t-bg)", minHeight: "100vh", fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
 
       {/* ── Hero Header ─────────────────────────────────────────── */}
-      <div style={{ position: "relative", overflow: "hidden", background: cfg.gradient, padding: "48px 20px 36px" }}>
+      <div style={{ position: "relative", overflow: "hidden", background: cfg.gradient, padding: "clamp(28px,4vh,48px) 20px clamp(20px,3vh,36px)" }}>
         {/* Orb */}
         <div style={{ position: "absolute", top: -80, right: -60, width: 300, height: 300, borderRadius: "50%", background: "rgba(255,255,255,0.08)", pointerEvents: "none" }} />
         <div style={{ position: "absolute", bottom: -60, left: -40, width: 220, height: 220, borderRadius: "50%", background: "rgba(255,255,255,0.06)", pointerEvents: "none" }} />
