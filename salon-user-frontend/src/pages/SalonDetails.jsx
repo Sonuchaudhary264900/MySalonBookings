@@ -621,6 +621,8 @@ function SalonDetails() {
         .lux-cat-right{display:flex;align-items:center;gap:16px;flex-shrink:0}
         @media(max-width:479px){.lux-cat-right{gap:10px}}
         .lux-svc-name{overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+        .svc-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+        @media(max-width:639px){.svc-grid{grid-template-columns:repeat(2,1fr);gap:10px}}
         @keyframes pulse{0%,100%{opacity:.4}50%{opacity:.9}}
       `}</style>
 
@@ -1044,7 +1046,7 @@ function SalonDetails() {
                           <AnimatePresence>
                             {isOpen && (
                               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: .32 }} style={{ overflow: 'hidden', paddingBottom: 16 }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14 }}>
+                                <div className="svc-grid">
                                   {ordered.map((s) => {
                                     if (!s) return null;
                                     const isSel = selectedServices.some(x => x._id === s._id);
