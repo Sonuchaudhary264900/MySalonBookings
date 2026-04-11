@@ -722,7 +722,7 @@ function SalonDetails() {
               {(locality || salon.address || salon.city) && (
                 <div className="flex items-center gap-1.5 text-sm" style={{ color: 'rgba(255,255,255,.70)', textShadow: '0 1px 6px rgba(0,0,0,.6)' }}>
                   <MapPin className="w-3.5 h-3.5" />
-                  {[locality, salon.city].filter(Boolean).join(', ') || salon.address}
+                  {locality ? [locality, salon.city].filter(Boolean).join(', ') : (salon.address || salon.city)}
                 </div>
               )}
               {openStatus !== null && (

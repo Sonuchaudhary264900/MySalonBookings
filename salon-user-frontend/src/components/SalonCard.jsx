@@ -324,7 +324,7 @@ function SalonCard({ salon, userCoords }) {
           <div className="flex items-center justify-between gap-2 mb-2">
             <p className="text-xs flex items-center gap-1 line-clamp-1 flex-1" style={{ color: "var(--t-text-2)" }}>
               <MapPin className="w-3 h-3 shrink-0" style={{ color: "rgba(99,102,241,0.7)" }} />
-              {[locality, salon.city].filter(Boolean).join(', ') || address}
+              {locality ? [locality, salon.city].filter(Boolean).join(', ') : address}
             </p>
             {todayHours && (
               <p className="text-xs flex items-center gap-1 shrink-0" style={{ color: "var(--t-text-3)" }}>
