@@ -97,7 +97,6 @@ export default function Register() {
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState("");
   const [otpTimer, setOtpTimer]   = useState(0);
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [focusedField, setFocusedField]   = useState(null);
   const [genderSaving, setGenderSaving]   = useState(false);
 
@@ -139,7 +138,6 @@ export default function Register() {
     e?.preventDefault();
     if (!name.trim() || !phone.trim()) { setError("Please fill all required fields."); return; }
     if (!validatePhone(phone)) { setError("Enter a valid 10-digit Indian mobile number."); return; }
-    if (!agreedToTerms) { setError("Please accept the Terms & Conditions to continue."); return; }
     setError(""); setLoading(true);
     try {
       const verifier = getRecaptchaVerifier();
@@ -309,29 +307,7 @@ export default function Register() {
             {/* Heading */}
             <div style={{ marginBottom:24 }}>
               <h2 style={{ fontSize:26, fontWeight:900, color:theme.text, letterSpacing:"-0.8px", marginBottom:4 }}>Create Account</h2>
-              <p style={{ fontSize:14, color:theme.placeholder }}>Free forever · Takes less than 2 minutes</p>
-            </div>
-
-            {/* Step indicator */}
-            <div style={{ display:"flex", alignItems:"center", marginBottom:28, gap:0 }}>
-              {STEP_META.map(({ num, label }, i) => (
-                <div key={num} style={{ display:"flex", alignItems:"center", flex:1 }}>
-                  <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
-                    <div style={{ width:34, height:34, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, transition:"all 0.3s ease",
-                      background: step>num ? "linear-gradient(135deg,#22c55e,#16a34a)" : step===num ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : theme.input,
-                      border: step>=num ? "none" : `1.5px solid ${theme.inputBorder}`,
-                      color: step>=num ? "#fff" : theme.placeholder,
-                      boxShadow: step===num ? "0 0 16px rgba(99,102,241,0.4)" : step>num ? "0 0 12px rgba(34,197,94,0.3)" : "none",
-                    }}>
-                      {step>num ? "✓" : num}
-                    </div>
-                    <span style={{ fontSize:10, fontWeight:600, color:step>=num?theme.subText:theme.placeholder, whiteSpace:"nowrap" }}>{label}</span>
-                  </div>
-                  {i < 2 && (
-                    <div style={{ flex:1, height:2, margin:"0 6px", marginBottom:16, borderRadius:99, background:step>num?"linear-gradient(90deg,#22c55e,#16a34a)":theme.inputBorder, transition:"all 0.4s ease" }} />
-                  )}
-                </div>
-              ))}
+              <p style={{ fontSize:14, color:theme.placeholder }}>Create your account in seconds</p>
             </div>
 
             {/* Error */}
@@ -346,7 +322,17 @@ export default function Register() {
               <form key="step1" className="rg-slide" onSubmit={handleSendOtp} style={{ display:"flex", flexDirection:"column", gap:18 }}>
 
                 <div>
-                  <label style={{ display:"block", fontSize:13, fontWeight:600, color:theme.subText, marginBottom:8 }}>Full Name</label>
+                  <label style={{ display:"block", fontSize:14, fontWeight:700, color:theme.text, marginBottom:8 }}>Phone Number</label>
+                  <div className="rg-inp-wrap">
+                    <span className="rg-inp-icon"><PhoneIcon color={focusedField==="phone"?theme.accent:theme.placeholder} /></span>
+                    <input type="tel" placeholder="9876543210" value={phone} onChange={e => setPhone(e.target.value)}
+                      style={{ ...inp("phone",true), height:60, fontSize:16, boxShadow: focusedField==="phone" ? "0 0 0 5px rgba(99,102,241,0.18)" : "none" }}
+                      onFocus={() => setFocusedField("phone")} onBlur={() => setFocusedField(null)} required />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display:"block", fontSize:12, fontWeight:600, color:theme.placeholder, marginBottom:8 }}>Full Name</label>
                   <div className="rg-inp-wrap">
                     <span className="rg-inp-icon"><UserIcon color={focusedField==="name"?theme.accent:theme.placeholder} /></span>
                     <input type="text" placeholder="John Doe" value={name} onChange={e => setName(e.target.value)}
@@ -354,45 +340,31 @@ export default function Register() {
                   </div>
                 </div>
 
-                <div>
-                  <label style={{ display:"block", fontSize:13, fontWeight:600, color:theme.subText, marginBottom:8 }}>Phone Number</label>
-                  <div className="rg-inp-wrap">
-                    <span className="rg-inp-icon"><PhoneIcon color={focusedField==="phone"?theme.accent:theme.placeholder} /></span>
-                    <input type="tel" placeholder="9876543210" value={phone} onChange={e => setPhone(e.target.value)}
-                      style={inp("phone",true)} onFocus={() => setFocusedField("phone")} onBlur={() => setFocusedField(null)} required />
-                  </div>
-                </div>
-
-                <div style={{ display:"flex", alignItems:"flex-start", gap:12 }}>
-                  <button type="button" onClick={() => setAgreedToTerms(v=>!v)}
-                    style={{ width:22, height:22, borderRadius:7, flexShrink:0, marginTop:1, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center",
-                      background: agreedToTerms ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : theme.input,
-                      border: agreedToTerms ? "none" : `1.5px solid ${theme.inputBorder}`,
-                      transition:"all 0.2s ease",
-                      boxShadow: agreedToTerms ? "0 0 10px rgba(99,102,241,0.4)" : "none",
-                    }}>
-                    {agreedToTerms && <span style={{ color:"#fff", fontSize:12, lineHeight:1 }}>✓</span>}
-                  </button>
-                  <p style={{ fontSize:13, color:theme.placeholder, lineHeight:1.6 }}>
-                    I agree to the{" "}
-                    <Link to="/legal/customer-terms" target="_blank" style={{ color:theme.accent, textDecoration:"none", fontWeight:600 }}>Terms & Conditions</Link>
-                    {" "}and{" "}
-                    <Link to="/legal/customer-privacy" target="_blank" style={{ color:theme.accent, textDecoration:"none", fontWeight:600 }}>Privacy Policy</Link>
-                  </p>
-                </div>
-
-                <button type="submit" disabled={loading||!agreedToTerms}
-                  style={{ width:"100%", height:52, borderRadius:14, border:"none", cursor:loading||!agreedToTerms?"not-allowed":"pointer",
-                    background:loading||!agreedToTerms?"rgba(99,102,241,0.4)":"linear-gradient(135deg,#6366f1,#8b5cf6)",
+                <button type="submit" disabled={loading}
+                  style={{ width:"100%", height:56, borderRadius:14, border:"none", cursor:loading?"not-allowed":"pointer",
+                    background:loading?"rgba(99,102,241,0.4)":"linear-gradient(135deg,#6366f1,#8b5cf6)",
                     color:"#fff", fontSize:15, fontWeight:700,
-                    boxShadow:loading||!agreedToTerms?"none":"0 0 32px rgba(99,102,241,0.4)",
+                    boxShadow:loading?"none":"0 0 32px rgba(99,102,241,0.4)",
                     transition:"all 0.22s ease", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}
-                  onMouseEnter={e => { if (!loading&&agreedToTerms) { e.currentTarget.style.boxShadow="0 0 48px rgba(99,102,241,0.65)"; e.currentTarget.style.transform="scale(1.02)"; }}}
-                  onMouseLeave={e => { e.currentTarget.style.boxShadow="0 0 32px rgba(99,102,241,0.4)"; e.currentTarget.style.transform="scale(1)"; }}>
+                  onMouseEnter={e => { if (!loading) { e.currentTarget.style.boxShadow="0 0 48px rgba(99,102,241,0.65)"; e.currentTarget.style.transform="scale(1.02)"; }}}
+                  onMouseLeave={e => { e.currentTarget.style.boxShadow="0 0 32px rgba(99,102,241,0.4)"; e.currentTarget.style.transform="scale(1)"; }}
+                  onMouseDown={e => { if (!loading) e.currentTarget.style.transform="scale(0.97)"; }}
+                  onMouseUp={e => { if (!loading) e.currentTarget.style.transform="scale(1)"; }}>
                   {loading ? (
                     <><span className="rg-spin" style={{ width:18, height:18, border:"2.5px solid rgba(255,255,255,0.3)", borderTopColor:"#fff", borderRadius:"50%", display:"block" }} /> Sending OTP…</>
-                  ) : "Send OTP →"}
+                  ) : "Continue"}
                 </button>
+
+                <p style={{ textAlign:"center", fontSize:12, color:theme.placeholder, lineHeight:1.6, margin:0 }}>
+                  By continuing, you agree to our{" "}
+                  <Link to="/legal/customer-terms" target="_blank" style={{ color:theme.accent, textDecoration:"none", fontWeight:600 }}>Terms</Link>
+                  {" "}&amp;{" "}
+                  <Link to="/legal/customer-privacy" target="_blank" style={{ color:theme.accent, textDecoration:"none", fontWeight:600 }}>Privacy Policy</Link>
+                </p>
+
+                <p style={{ textAlign:"center", fontSize:12, color:theme.placeholder, margin:0 }}>
+                  Takes less than 10 seconds · No password required at this step
+                </p>
               </form>
             )}
 
