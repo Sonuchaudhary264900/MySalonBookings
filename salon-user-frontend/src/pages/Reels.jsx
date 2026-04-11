@@ -392,6 +392,8 @@ function SalonAvatar({ logo, initial, size = 44, ringColor = '#6366f1', fontSize
 ───────────────────────────────────────────────────────────── */
 function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, copied, onRegisterRef, onAuthRequired, userCoords }) {
   const videoRef = useRef(null);
+  const containerRef = useRef(null);
+  const mutedRef = useRef(muted);
 
   const [liked,     setLiked]     = useState(reel.liked || false);
   const [likeCount, setLikeCount] = useState(reel.likeCount || 0);
@@ -415,16 +417,40 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
   const watchStartRef = useRef(null);
   const totalWatchRef = useRef(0);
 
+  // Keep mutedRef + DOM in sync with parent muted state
   useEffect(() => {
+    mutedRef.current = muted;
     const v = videoRef.current;
     if (v) v.muted = muted;
   }, [muted]);
 
+  // Register video ref with parent (for preload/mute control)
   useEffect(() => {
     const v = videoRef.current;
     if (v) onRegisterRef(v, reel._id);
     return () => onRegisterRef(null, reel._id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // IntersectionObserver — play when reel is visible, pause when not
+  useEffect(() => {
+    const container = containerRef.current;
+    const v = videoRef.current;
+    if (!container || !v) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.7) {
+          v.preload = 'auto';
+          v.muted = mutedRef.current;
+          v.play().catch(() => { v.muted = true; v.play().catch(() => {}); });
+        } else {
+          v.pause();
+        }
+      },
+      { threshold: 0.7 }
+    );
+    observer.observe(container);
+    return () => observer.disconnect();
   }, []);
 
   const handleTimeUpdate = useCallback(() => {
@@ -535,7 +561,7 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
   const safeBottom = 'env(safe-area-inset-bottom, 0px)';
 
   return (
-    <div className="reel-item">
+    <div className="reel-item" ref={containerRef}>
 
       {/* Progress bar */}
       <div className="reel-progress-wrap">
@@ -811,24 +837,11 @@ export default function Reels() {
         if (newIdx !== currentIdx.current && newIdx >= 0 && newIdx < reelsRef.current.length) {
           currentIdx.current = newIdx;
           const reelsList = reelsRef.current;
-          const currentId = reelsList[newIdx]?._id;
-          // Set preload="auto" only for current + next 3; reset others to "none"
+          // Update preload for current + next 3 only
           Object.entries(videoRefs.current).forEach(([id, v]) => {
             if (!v) return;
             const ri = reelsList.findIndex(r => r._id === id);
             v.preload = (ri >= newIdx && ri <= newIdx + 3) ? 'auto' : 'none';
-          });
-          Object.entries(videoRefs.current).forEach(([id, v]) => {
-            if (!v) return;
-            const reelIdx = reelsList.findIndex(r => r._id === id);
-            if (id === currentId) {
-              v.muted = mutedRef.current; safePlay(v);
-            } else if (Math.abs(reelIdx - newIdx) <= 2) {
-              // Keep buffer for nearby reels — just pause
-              v.pause();
-            } else {
-              v.pause(); v.currentTime = 0;
-            }
           });
         }
       });
@@ -930,11 +943,7 @@ export default function Reels() {
         requestAnimationFrame(() => { if (feedRef.current) feedRef.current.style.scrollBehavior = ''; });
       }
       const firstId = reels[targetIdx]?._id;
-      if (firstId && videoRefs.current[firstId]) {
-        videoRefs.current[firstId].muted = mutedRef.current;
-        safePlay(videoRefs.current[firstId]);
-      }
-      // Set preload only for current + next 3
+      // Set preload only for current + next 3 (IO handles actual play)
       if (videoRefs.current[firstId]) videoRefs.current[firstId].preload = 'auto';
       for (let i = 1; i <= 3; i++) {
         const nextId = reels[i]?._id;
@@ -951,11 +960,10 @@ export default function Reels() {
       videoRefs.current[id] = el;
       const idx = reelsRef.current.findIndex(r => r._id === id);
       if (idx >= currentIdx.current && idx <= currentIdx.current + 3) el.preload = 'auto';
-      if (idx === currentIdx.current) { safePlay(el); }
     } else {
       delete videoRefs.current[id];
     }
-  }, [safePlay]);
+  }, []);
 
   const toggleMute = useCallback(() => {
     setMuted(m => !m);
