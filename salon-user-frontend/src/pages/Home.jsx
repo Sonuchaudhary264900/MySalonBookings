@@ -156,8 +156,8 @@ function SearchInput({ value, onChange, onSearch, onFocus, onBlur, focused, onCl
   return (
     <div style={{
       display: "flex", alignItems: "center",
-      gap: compact ? 10 : 14, padding: compact ? "0 16px" : "0 22px",
-      height: compact ? 46 : 62, borderRadius: 999,
+      gap: compact ? 10 : 12, padding: compact ? "0 14px" : "0 18px",
+      height: compact ? 44 : "clamp(48px,8vw,58px)", borderRadius: 999,
       background: focused ? "var(--t-card)" : "var(--t-input-bg)",
       border: focused ? "1.5px solid rgba(99,102,241,0.65)" : "1.5px solid var(--t-border)",
       boxShadow: focused
@@ -759,7 +759,7 @@ export default function Home() {
             <div className="scrollbar-hide" style={{ overflowX:"auto", WebkitOverflowScrolling:"touch", flex:1, display:"flex", gap:6, minWidth:0 }}>
               {/* All Services */}
               <button onClick={clearAll} style={{
-                whiteSpace:"nowrap", padding:"7px 18px", borderRadius:999,
+                whiteSpace:"nowrap", padding:"6px 13px", borderRadius:999,
                 fontSize:12, fontWeight:700, cursor:"pointer", transition:"all 0.18s ease",
                 background: !hasActiveState ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "var(--t-input-bg)",
                 border: !hasActiveState ? "1px solid rgba(139,92,246,0.35)" : "1px solid var(--t-border)",
@@ -794,7 +794,7 @@ export default function Home() {
 
               {/* Premium Only */}
               <button onClick={handlePremiumOnly} style={{
-                whiteSpace:"nowrap", padding:"7px 18px", borderRadius:999,
+                whiteSpace:"nowrap", padding:"6px 13px", borderRadius:999,
                 fontSize:12, fontWeight:700, cursor:"pointer", transition:"all 0.18s ease",
                 display:"flex", alignItems:"center", gap:5,
                 background: premiumOnly ? "rgba(234,179,8,0.12)" : "var(--t-input-bg)",
