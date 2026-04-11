@@ -255,8 +255,8 @@ exports.firebaseRegister = async (req, res) => {
     // Validate fields
     const errors = [];
     if (!name || name.trim().length < 2) errors.push('Valid name is required');
-    if (!gender || !['male', 'female', 'other'].includes(gender)) errors.push('Valid gender is required');
     if (!password || password.length < 6) errors.push('Password must be at least 6 characters');
+    if (gender && !['male', 'female', 'other'].includes(gender)) errors.push('Gender must be male, female, or other');
     if (errors.length > 0) {
       return res.status(400).json(
         formatErrorResponse(messages.GENERIC.VALIDATION_ERROR, 400, errors)
@@ -316,6 +316,54 @@ exports.firebaseRegister = async (req, res) => {
     res.status(500).json(
       formatErrorResponse(error.message || messages.GENERIC.ERROR, 500)
     );
+  }
+};
+
+// ===================================================
+// FIREBASE PHONE AUTH - LOGIN (OTP-based, no password)
+// ===================================================
+exports.firebaseLogin = async (req, res) => {
+  try {
+    const { firebaseToken } = req.body;
+    if (!firebaseToken) {
+      return res.status(400).json(formatErrorResponse('Firebase token is required', 400));
+    }
+
+    const { verifyFirebaseToken } = require('../../config/firebaseAdmin');
+    const firebaseUser = await verifyFirebaseToken(firebaseToken);
+    const phone = firebaseUser.phone;
+
+    const customer = await Customer.findOne({ phone });
+    if (!customer) {
+      return res.status(404).json(
+        formatErrorResponse('No account found with this phone number. Please register first.', 404)
+      );
+    }
+
+    const token = jwt.sign(
+      { _id: customer._id, phone: customer.phone, role: customer.role, gender: customer.gender },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRE || '24h' }
+    );
+    const refreshToken = jwt.sign(
+      { _id: customer._id },
+      process.env.JWT_REFRESH_SECRET,
+      { expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d' }
+    );
+
+    customer.refreshTokens.push({ token: refreshToken });
+    await customer.save();
+
+    res.status(200).json(
+      formatSuccessResponse(
+        { customer: customer.getPublicProfile(), token, refreshToken },
+        'Login successful',
+        200
+      )
+    );
+  } catch (error) {
+    console.error('Error in customer firebase login:', error);
+    res.status(500).json(formatErrorResponse(error.message || messages.GENERIC.ERROR, 500));
   }
 };
 

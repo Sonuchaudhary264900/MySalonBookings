@@ -205,20 +205,6 @@ export default function Profile() {
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [genderSaving, setGenderSaving]       = useState(false);
 
-  const [cpStep, setCpStep]       = useState(1);
-  const [cpOtp, setCpOtp]         = useState('');
-  const [cpNewPw, setCpNewPw]     = useState('');
-  const [cpConfirm, setCpConfirm] = useState('');
-  const [cpShowPw, setCpShowPw]   = useState(false);
-  const [cpLoading, setCpLoading] = useState(false);
-  const [cpTimer, setCpTimer]     = useState(0);
-  const [cpError, setCpError]     = useState('');
-
-  useEffect(() => {
-    if (cpTimer <= 0) return;
-    const id = setInterval(() => setCpTimer(t => t - 1), 1000);
-    return () => clearInterval(id);
-  }, [cpTimer]);
 
   useEffect(() => {
     if (!getCustomerToken()) { navigate("/login"); return; }
@@ -256,30 +242,6 @@ export default function Profile() {
     if (d.length === 10) return `+91${d}`;
     if (d.length === 12 && d.startsWith('91')) return `+${d}`;
     return p || '';
-  };
-
-  const handleCpSendOtp = async () => {
-    const phone = normalizePhone(user?.phone || '');
-    if (!phone) { setCpError('No phone number linked to your account'); return; }
-    setCpLoading(true); setCpError('');
-    try {
-      await API.post('/customer/auth/forgot-password/send-otp', { phone });
-      setCpStep(2); setCpTimer(60);
-    } catch (err) { setCpError(err.response?.data?.message || 'Failed to send OTP'); }
-    finally { setCpLoading(false); }
-  };
-
-  const handleCpReset = async () => {
-    if (!cpOtp.trim())        { setCpError('Please enter the OTP'); return; }
-    if (!cpNewPw || cpNewPw.length < 6) { setCpError('Password must be at least 6 characters'); return; }
-    if (cpNewPw !== cpConfirm) { setCpError('Passwords do not match'); return; }
-    const phone = normalizePhone(user?.phone || '');
-    setCpLoading(true); setCpError('');
-    try {
-      await API.post('/customer/auth/forgot-password/reset', { phone, otp: cpOtp, newPassword: cpNewPw });
-      setCpStep(1); setCpOtp(''); setCpNewPw(''); setCpConfirm('');
-    } catch (err) { setCpError(err.response?.data?.message || 'Failed to change password'); }
-    finally { setCpLoading(false); }
   };
 
   const handleDeleteAccount = () => {
@@ -557,77 +519,6 @@ export default function Profile() {
 
             {/* ── SECURITY ──────────────────────────────────────── */}
             <SectionLabel>Security</SectionLabel>
-
-            <AccordionCard id="password" expanded={expandedSection}
-              onToggle={(id) => { toggleSection(id); setCpStep(1); setCpOtp(''); setCpNewPw(''); setCpConfirm(''); setCpError(''); }}
-              icon={I.lock} title="Change Password">
-              <div style={{ padding: '16px 16px 18px' }} className="space-y-3">
-                {cpError && (
-                  <p style={{ fontSize: 12, color: '#f87171', padding: '8px 12px', borderRadius: 10, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)' }}>
-                    {cpError}
-                  </p>
-                )}
-                {cpStep === 1 ? (
-                  <>
-                    <p style={{ fontSize: 12, color: 'var(--t-text-3)' }}>An OTP will be sent to your registered phone number.</p>
-                    <button onClick={handleCpSendOtp} disabled={cpLoading}
-                      className="w-full flex items-center justify-center"
-                      style={{
-                        height: 44, borderRadius: 12, fontSize: 14, fontWeight: 600,
-                        background: 'linear-gradient(135deg, #6d28d9, #4f46e5)',
-                        color: '#fff', border: 'none', cursor: 'pointer',
-                        opacity: cpLoading ? 0.7 : 1, transition: 'opacity 0.2s',
-                      }}>
-                      {cpLoading
-                        ? <span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />
-                        : 'Send OTP to Phone'}
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <p style={{ fontSize: 12, color: 'var(--t-text-3)' }}>OTP sent to {user?.phone}</p>
-                    <div style={inputStyle}>
-                      <span style={{ color: 'var(--t-text-3)', display: 'flex' }}>{I.key}</span>
-                      <input type="text" value={cpOtp} onChange={e => setCpOtp(e.target.value)}
-                        placeholder="Enter OTP" maxLength={6} inputMode="numeric" disabled={cpLoading}
-                        style={{ ...inputFieldStyle }} className="placeholder-style" />
-                    </div>
-                    <div style={inputStyle}>
-                      <span style={{ color: 'var(--t-text-3)', display: 'flex' }}>{I.lock}</span>
-                      <input type={cpShowPw ? 'text' : 'password'} value={cpNewPw} onChange={e => setCpNewPw(e.target.value)}
-                        placeholder="New password" disabled={cpLoading}
-                        style={{ ...inputFieldStyle }} />
-                      <button type="button" onClick={() => setCpShowPw(v => !v)}
-                        style={{ color: 'var(--t-text-3)', display: 'flex', flexShrink: 0 }}>
-                        {cpShowPw ? I.eyeOff : I.eye}
-                      </button>
-                    </div>
-                    <div style={inputStyle}>
-                      <span style={{ color: 'var(--t-text-3)', display: 'flex' }}>{I.lock}</span>
-                      <input type="password" value={cpConfirm} onChange={e => setCpConfirm(e.target.value)}
-                        placeholder="Confirm password" disabled={cpLoading}
-                        style={{ ...inputFieldStyle }} />
-                    </div>
-                    <button onClick={handleCpReset} disabled={cpLoading}
-                      className="w-full flex items-center justify-center"
-                      style={{
-                        height: 44, borderRadius: 12, fontSize: 14, fontWeight: 600,
-                        background: 'linear-gradient(135deg, #6d28d9, #4f46e5)',
-                        color: '#fff', border: 'none', cursor: 'pointer',
-                        opacity: cpLoading ? 0.7 : 1, transition: 'opacity 0.2s',
-                      }}>
-                      {cpLoading
-                        ? <span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />
-                        : 'Reset Password'}
-                    </button>
-                    <button onClick={cpTimer === 0 ? handleCpSendOtp : undefined} disabled={cpTimer > 0 || cpLoading}
-                      style={{ width: '100%', textAlign: 'center', fontSize: 13, color: cpTimer > 0 ? 'var(--t-text-3)' : '#a78bfa', background: 'none', border: 'none', cursor: cpTimer > 0 ? 'default' : 'pointer' }}>
-                      {cpTimer > 0 ? `Resend OTP in ${cpTimer}s` : 'Resend OTP'}
-                    </button>
-                  </>
-                )}
-              </div>
-            </AccordionCard>
 
             <div className="mt-2">
               <AccordionCard id="privacy" expanded={expandedSection} onToggle={toggleSection}

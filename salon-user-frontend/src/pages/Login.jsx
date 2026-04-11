@@ -1,5 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
+import { auth } from "../config/firebase";
 import API from "../services/api";
 import { useTheme } from "../context/ThemeContext";
 
@@ -9,26 +11,18 @@ const CSS = `
   @keyframes lg-pulse{0%,100%{opacity:0.5;transform:scale(1);}50%{opacity:0.9;transform:scale(1.08);}}
   @keyframes lg-spin{to{transform:rotate(360deg);}}
   @keyframes lg-up{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
-  @keyframes lg-shimmer{0%{background-position:200% center;}100%{background-position:-200% center;}}
+  @keyframes lg-slide{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
   .lg-f1{animation:lg-float1 6s ease-in-out infinite;}
   .lg-f2{animation:lg-float2 8s ease-in-out infinite;}
   .lg-pulse{animation:lg-pulse 3s ease-in-out infinite;}
   .lg-spin{animation:lg-spin .7s linear infinite;}
-  .lg-u0{animation:lg-up .55s .00s ease both;}
-  .lg-u1{animation:lg-up .55s .10s ease both;}
-  .lg-u2{animation:lg-up .55s .20s ease both;}
-  .lg-u3{animation:lg-up .55s .30s ease both;}
-  .lg-u4{animation:lg-up .55s .40s ease both;}
-  .lg-u5{animation:lg-up .55s .50s ease both;}
-  .lg-shimmer{
-    background:linear-gradient(90deg,#a78bfa,#818cf8,#c4b5fd,#a78bfa);
-    background-size:300% auto;
-    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-    animation:lg-shimmer 4s linear infinite;
-  }
+  .lg-u0{animation:lg-up .5s .00s ease both;}
+  .lg-u1{animation:lg-up .5s .08s ease both;}
+  .lg-u2{animation:lg-up .5s .16s ease both;}
+  .lg-u3{animation:lg-up .5s .24s ease both;}
+  .lg-slide{animation:lg-slide .35s ease both;}
   .lg-inp-wrap{position:relative;}
   .lg-inp-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);pointer-events:none;}
-  .lg-inp-eye{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:0;line-height:1;display:flex;align-items:center;}
 `;
 
 const FEATURES = [
@@ -38,25 +32,9 @@ const FEATURES = [
   { icon: "🔔", label: "Smart reminders", sub: "Never miss a slot"  },
 ];
 
-/* SVG icons */
 const PhoneIcon = ({ color }) => (
   <svg width={16} height={16} fill="none" viewBox="0 0 24 24" stroke={color} strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-  </svg>
-);
-const LockIcon = ({ color }) => (
-  <svg width={16} height={16} fill="none" viewBox="0 0 24 24" stroke={color} strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-  </svg>
-);
-const EyeIcon = ({ open, color }) => open ? (
-  <svg width={16} height={16} fill="none" viewBox="0 0 24 24" stroke={color} strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-  </svg>
-) : (
-  <svg width={16} height={16} fill="none" viewBox="0 0 24 24" stroke={color} strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
   </svg>
 );
 
@@ -67,104 +45,114 @@ export default function Login() {
   const from         = location.state?.from;
   const bookingState = location.state?.bookingState;
 
-  const [phone, setPhone]       = useState("");
-  const [password, setPassword] = useState("");
-  const [showPass, setShowPass] = useState(false);
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState("");
+  const [step, setStep]       = useState(1);
+  const [phone, setPhone]     = useState("");
+  const [otp, setOtp]         = useState(["","","","","",""]);
+  const [otpTimer, setOtpTimer] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState("");
   const [focusedField, setFocusedField] = useState(null);
 
-  const [fpOpen, setFpOpen]       = useState(false);
-  const [fpStep, setFpStep]       = useState(1);
-  const [fpPhone, setFpPhone]     = useState("");
-  const [fpOtp, setFpOtp]         = useState("");
-  const [fpNewPw, setFpNewPw]     = useState("");
-  const [fpConfirm, setFpConfirm] = useState("");
-  const [fpShowPw, setFpShowPw]   = useState(false);
-  const [fpLoading, setFpLoading] = useState(false);
-  const [fpError, setFpError]     = useState("");
-  const [fpTimer, setFpTimer]     = useState(0);
+  const phoneRef      = useRef(null);
+  const otpRefs       = useRef([]);
+  const recaptchaRef  = useRef(null);
+  const confirmRef    = useRef(null);
 
   useEffect(() => {
-    if (fpTimer <= 0) return;
-    const id = setInterval(() => setFpTimer(t => t - 1), 1000);
-    return () => clearInterval(id);
-  }, [fpTimer]);
+    if (step === 1) setTimeout(() => phoneRef.current?.focus(), 100);
+    if (step === 2) setTimeout(() => otpRefs.current[0]?.focus(), 120);
+  }, [step]);
 
-  const norm = p => {
-    let c = p.replace(/\D/g, "");
-    if (c.length === 10) c = "91" + c;
-    if (!c.startsWith("+")) c = "+" + c;
-    return c;
+  useEffect(() => {
+    if (otpTimer <= 0) return;
+    const id = setInterval(() => setOtpTimer(t => t - 1), 1000);
+    return () => clearInterval(id);
+  }, [otpTimer]);
+
+  const normalizePhone = p => {
+    const c = p.replace(/\D/g, "");
+    if (c.length === 10) return "+91" + c;
+    if (c.length === 12 && c.startsWith("91")) return "+" + c;
+    return "+" + c;
+  };
+  const validatePhone = p => /^\+91[6-9]\d{9}$/.test(normalizePhone(p));
+
+  const getRecaptchaVerifier = () => {
+    try { recaptchaRef.current?.clear(); } catch {}
+    recaptchaRef.current = null;
+    document.getElementById("lg-recaptcha")?.remove();
+    const container = document.createElement("div");
+    container.id = "lg-recaptcha";
+    document.body.appendChild(container);
+    recaptchaRef.current = new RecaptchaVerifier(auth, "lg-recaptcha", { size: "invisible" });
+    return recaptchaRef.current;
   };
 
-  const handleLogin = async e => {
-    e.preventDefault();
-    if (!phone.trim() || !password) { setError("Please fill in all fields."); return; }
+  const handleSendOtp = async e => {
+    e?.preventDefault();
+    if (!phone.trim()) { setError("Please enter your phone number."); return; }
+    if (!validatePhone(phone)) { setError("Enter a valid 10-digit Indian mobile number."); return; }
     setError(""); setLoading(true);
     try {
-      const res = await API.post("/customer/auth/login", { phone: norm(phone), password });
+      const verifier = getRecaptchaVerifier();
+      const confirmation = await signInWithPhoneNumber(auth, normalizePhone(phone), verifier);
+      confirmRef.current = confirmation;
+      setStep(2); setOtpTimer(60);
+    } catch (err) {
+      setError(err.message || "Failed to send OTP.");
+      if (recaptchaRef.current) { recaptchaRef.current.clear(); recaptchaRef.current = null; }
+    } finally { setLoading(false); }
+  };
+
+  const handleVerifyOtp = async (e, codeOverride) => {
+    e?.preventDefault();
+    const code = codeOverride ?? otp.join("");
+    if (code.length < 6) { setError("Enter the 6-digit OTP."); return; }
+    setError(""); setLoading(true);
+    try {
+      const result = await confirmRef.current.confirm(code);
+      const firebaseToken = await result.user.getIdToken();
+      const res = await API.post("/customer/auth/firebase-login", { firebaseToken });
       const { token, customer } = res.data.data || {};
       if (token) localStorage.setItem("customerToken", token);
       if (customer?.gender) localStorage.setItem("customerGender", customer.gender);
       from ? navigate(from, { state: bookingState, replace: true }) : navigate("/");
     } catch (err) {
-      setError(err.response?.data?.message || "Invalid phone or password.");
+      const msg = err.response?.data?.message || err.message || "Sign in failed.";
+      if (err.response?.status === 404) {
+        setError("No account found. Please register first.");
+      } else {
+        setError(msg);
+      }
     } finally { setLoading(false); }
   };
 
-  const handleFpSendOtp = async e => {
-    e?.preventDefault(); setFpError("");
-    if (!fpPhone.trim()) { setFpError("Phone number is required"); return; }
-    setFpLoading(true);
-    try {
-      await API.post("/customer/auth/forgot-password/send-otp", { phone: norm(fpPhone) });
-      setFpStep(2); setFpTimer(60);
-    } catch (err) {
-      setFpError(err.response?.data?.message || "Failed to send OTP");
-    } finally { setFpLoading(false); }
+  const handleOtpKey = (i, e) => {
+    if (e.key === "Backspace") {
+      if (otp[i]) { const next=[...otp]; next[i]=""; setOtp(next); }
+      else if (i > 0) otpRefs.current[i-1]?.focus();
+    }
+  };
+  const handleOtpChange = (i, val) => {
+    const digit = val.replace(/\D/g,"").slice(-1);
+    const next=[...otp]; next[i]=digit; setOtp(next);
+    if (digit && i < 5) otpRefs.current[i+1]?.focus();
+    const fullCode = [...next].join("");
+    if (i === 5 && digit && fullCode.length === 6) setTimeout(() => handleVerifyOtp(null, fullCode), 80);
   };
 
-  const handleFpReset = async e => {
-    e.preventDefault(); setFpError("");
-    if (!fpOtp.trim()) { setFpError("OTP is required"); return; }
-    if (!fpNewPw || fpNewPw.length < 6) { setFpError("Password must be at least 6 characters"); return; }
-    if (fpNewPw !== fpConfirm) { setFpError("Passwords do not match"); return; }
-    setFpLoading(true);
-    try {
-      await API.post("/customer/auth/forgot-password/reset", { phone: norm(fpPhone), otp: fpOtp, newPassword: fpNewPw });
-      setFpOpen(false); setFpStep(1); setFpPhone(""); setFpOtp(""); setFpNewPw(""); setFpConfirm(""); setError("");
-    } catch (err) {
-      setFpError(err.response?.data?.message || "Failed to reset password");
-    } finally { setFpLoading(false); }
-  };
-
-  const inpBgFocus = isDark ? 'rgba(129,140,248,0.1)' : 'rgba(99,102,241,0.05)';
-
-  const inputStyle = (field) => ({
-    width: "100%", height: 52, borderRadius: 14,
-    padding: "0 44px 0 44px",
-    fontSize: 15, outline: "none", boxSizing: "border-box",
-    background: focusedField === field ? inpBgFocus : theme.input,
-    border: focusedField === field ? `1.5px solid ${theme.accent}` : `1.5px solid ${theme.inputBorder}`,
+  const inpBgFocus = isDark ? "rgba(129,140,248,0.1)" : "rgba(99,102,241,0.05)";
+  const inp = (field) => ({
+    width:"100%", height:56, borderRadius:14,
+    padding:"0 16px 0 44px",
+    fontSize:16, outline:"none", boxSizing:"border-box",
+    background: focusedField===field ? inpBgFocus : theme.input,
+    border: focusedField===field ? `1.5px solid ${theme.accent}` : `1.5px solid ${theme.inputBorder}`,
     color: theme.text,
-    boxShadow: focusedField === field ? `0 0 0 4px rgba(99,102,241,0.12)` : "none",
-    transition: "all 0.22s ease",
-    fontFamily: "inherit",
+    boxShadow: focusedField===field ? "0 0 0 5px rgba(99,102,241,0.18)" : "none",
+    transition:"all 0.22s ease", fontFamily:"inherit",
   });
 
-  const fpInputStyle = (field) => ({
-    width: "100%", height: 48, borderRadius: 12,
-    padding: "0 16px", fontSize: 14, outline: "none", boxSizing: "border-box",
-    background: focusedField === field ? inpBgFocus : theme.input,
-    border: focusedField === field ? `1.5px solid ${theme.accent}` : `1.5px solid ${theme.inputBorder}`,
-    color: theme.text,
-    boxShadow: focusedField === field ? "0 0 0 3px rgba(99,102,241,0.12)" : "none",
-    transition: "all 0.22s ease",
-    fontFamily: "inherit",
-  });
-
-  /* left panel */
   const leftBg = isDark
     ? "linear-gradient(145deg,#111827 0%,#1f2937 40%,#1f2937 70%,#111827 100%)"
     : "linear-gradient(135deg,#3730a3 0%,#6366f1 40%,#8b5cf6 70%,#4f46e5 100%)";
@@ -178,19 +166,16 @@ export default function Login() {
         <div className="hidden lg:flex lg:w-[52%]"
           style={{ position:"relative", overflow:"hidden", background:leftBg, flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"60px 56px" }}>
 
-          {/* Orbs */}
           <div className="lg-pulse" style={{ position:"absolute", top:-120, left:-80, width:480, height:480, borderRadius:"50%", background: isDark ? "radial-gradient(circle,rgba(99,102,241,0.2) 0%,transparent 65%)" : "radial-gradient(circle,rgba(139,92,246,0.45) 0%,transparent 65%)", pointerEvents:"none" }} />
           <div className="lg-pulse" style={{ position:"absolute", bottom:-80, right:-60, width:360, height:360, borderRadius:"50%", background: isDark ? "radial-gradient(circle,rgba(129,140,248,0.15) 0%,transparent 65%)" : "radial-gradient(circle,rgba(99,102,241,0.4) 0%,transparent 65%)", pointerEvents:"none", animationDelay:"1.5s" }} />
           <div style={{ position:"absolute", inset:0, backgroundImage:"linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px)", backgroundSize:"48px 48px", pointerEvents:"none" }} />
 
           <div style={{ position:"relative", zIndex:1, width:"100%", maxWidth:440 }}>
-            {/* Logo */}
             <div className="lg-u0" style={{ display:"flex", alignItems:"center", gap:10, marginBottom:52 }}>
               <div style={{ width:44, height:44, borderRadius:14, background:"rgba(255,255,255,0.18)", backdropFilter:"blur(12px)", border:"1px solid rgba(255,255,255,0.25)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, boxShadow:"0 8px 24px rgba(0,0,0,0.2)" }}>✂</div>
               <span style={{ fontSize:18, fontWeight:800, color:"#fff", letterSpacing:"-0.3px" }}>My Salon Bookings</span>
             </div>
 
-            {/* Headline */}
             <div className="lg-u1" style={{ marginBottom:16 }}>
               <h1 style={{ fontSize:"clamp(2rem,3.5vw,2.8rem)", fontWeight:900, color:"#fff", lineHeight:1.1, letterSpacing:"-1.5px", marginBottom:14 }}>
                 Welcome Back 👋
@@ -200,11 +185,10 @@ export default function Login() {
               </p>
             </div>
 
-            {/* Feature cards */}
             <div className="lg-u2" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginTop:40 }}>
               {FEATURES.map(({ icon, label, sub }, i) => (
                 <div key={label} className={i % 2 === 0 ? "lg-f1" : "lg-f2"}
-                  style={{ background: isDark ? "rgba(31,41,55,0.6)" : "rgba(255,255,255,0.1)", backdropFilter:"blur(12px)", border: isDark ? `1px solid #374151` : "1px solid rgba(255,255,255,0.18)", borderRadius:16, padding:"16px 18px", animationDelay:`${i * 0.4}s` }}>
+                  style={{ background: isDark ? "rgba(31,41,55,0.6)" : "rgba(255,255,255,0.1)", backdropFilter:"blur(12px)", border: isDark ? "1px solid #374151" : "1px solid rgba(255,255,255,0.18)", borderRadius:16, padding:"16px 18px", animationDelay:`${i * 0.4}s` }}>
                   <div style={{ fontSize:22, marginBottom:6 }}>{icon}</div>
                   <div style={{ fontSize:13, fontWeight:700, color: isDark ? theme.text : "#fff", marginBottom:2 }}>{label}</div>
                   <div style={{ fontSize:11, color: isDark ? theme.subText : "rgba(255,255,255,0.55)" }}>{sub}</div>
@@ -212,7 +196,6 @@ export default function Login() {
               ))}
             </div>
 
-            {/* Trust line */}
             <div className="lg-u3" style={{ display:"flex", alignItems:"center", gap:8, marginTop:44 }}>
               <div style={{ display:"flex" }}>
                 {["A","B","C","D"].map((l,i) => (
@@ -240,150 +223,120 @@ export default function Login() {
           <div className="lg-u0 w-full" style={{ maxWidth:400 }}>
 
             {/* Mobile logo */}
-            <div className="lg:hidden lg-u0" style={{ display:"flex", alignItems:"center", gap:10, marginBottom:32, justifyContent:"center" }}>
+            <div className="lg:hidden" style={{ display:"flex", alignItems:"center", gap:10, marginBottom:32, justifyContent:"center" }}>
               <div style={{ width:40, height:40, borderRadius:12, background:"linear-gradient(135deg,#6366f1,#8b5cf6)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, boxShadow:"0 0 20px rgba(99,102,241,0.4)" }}>✂</div>
               <span style={{ fontSize:17, fontWeight:800, color:theme.text }}>My Salon Bookings</span>
             </div>
 
             {/* Heading */}
-            <div className="lg-u1" style={{ marginBottom:28 }}>
-              <h2 style={{ fontSize:28, fontWeight:900, color:theme.text, letterSpacing:"-0.8px", marginBottom:6 }}>Sign In</h2>
-              <p style={{ fontSize:14, color:theme.placeholder }}>Welcome back — let's get you in ✨</p>
+            <div style={{ marginBottom:28 }}>
+              <h2 style={{ fontSize:26, fontWeight:900, color:theme.text, letterSpacing:"-0.8px", marginBottom:4 }}>Sign In</h2>
+              <p style={{ fontSize:14, color:theme.placeholder }}>
+                {step === 1 ? "Enter your phone number to continue" : `OTP sent to ${normalizePhone(phone)}`}
+              </p>
             </div>
 
             {/* Error */}
             {error && (
-              <div className="lg-u0" style={{ marginBottom:18, padding:"12px 16px", borderRadius:12, fontSize:13.5, fontWeight:500, background:"rgba(239,68,68,0.1)", border:"1px solid rgba(239,68,68,0.3)", color:"#f87171" }}>
+              <div style={{ marginBottom:18, padding:"12px 16px", borderRadius:12, fontSize:13.5, fontWeight:500, background:"rgba(239,68,68,0.1)", border:"1px solid rgba(239,68,68,0.3)", color:"#f87171" }}>
                 ⚠ {error}
               </div>
             )}
 
-            {/* Form */}
-            <form onSubmit={handleLogin} style={{ display:"flex", flexDirection:"column", gap:18 }}>
-
-              {/* Phone */}
-              <div className="lg-u2">
-                <label style={{ display:"block", fontSize:13, fontWeight:600, color:theme.subText, marginBottom:8 }}>Phone Number</label>
-                <div className="lg-inp-wrap">
-                  <span className="lg-inp-icon"><PhoneIcon color={focusedField==="phone" ? theme.accent : theme.placeholder} /></span>
-                  <input type="tel" placeholder="+91 98765 43210" value={phone}
-                    onChange={e => setPhone(e.target.value)}
-                    onFocus={() => setFocusedField("phone")} onBlur={() => setFocusedField(null)}
-                    style={inputStyle("phone")} required />
+            {/* ── STEP 1 — Phone ── */}
+            {step === 1 && (
+              <form key="step1" className="lg-slide" onSubmit={handleSendOtp} style={{ display:"flex", flexDirection:"column", gap:18 }}>
+                <div>
+                  <label style={{ display:"block", fontSize:14, fontWeight:700, color:theme.text, marginBottom:8 }}>Phone Number</label>
+                  <div className="lg-inp-wrap">
+                    <span className="lg-inp-icon"><PhoneIcon color={focusedField==="phone" ? theme.accent : theme.placeholder} /></span>
+                    <input ref={phoneRef} type="tel" placeholder="9876543210" value={phone}
+                      onChange={e => setPhone(e.target.value.replace(/\D/g,"").slice(0,10))}
+                      maxLength={10}
+                      style={inp("phone")}
+                      onFocus={() => setFocusedField("phone")} onBlur={() => setFocusedField(null)} required />
+                  </div>
                 </div>
-              </div>
 
-              {/* Password */}
-              <div className="lg-u3">
-                <label style={{ display:"block", fontSize:13, fontWeight:600, color:theme.subText, marginBottom:8 }}>Password</label>
-                <div className="lg-inp-wrap">
-                  <span className="lg-inp-icon"><LockIcon color={focusedField==="password" ? theme.accent : theme.placeholder} /></span>
-                  <input type={showPass ? "text" : "password"} placeholder="Enter your password" value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    onFocus={() => setFocusedField("password")} onBlur={() => setFocusedField(null)}
-                    style={{ ...inputStyle("password"), paddingRight:44 }} required />
-                  <button type="button" className="lg-inp-eye" onClick={() => setShowPass(!showPass)} style={{ right:14 }}>
-                    <EyeIcon open={showPass} color={theme.placeholder} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Submit */}
-              <div className="lg-u4">
                 <button type="submit" disabled={loading}
-                  style={{ width:"100%", height:52, borderRadius:14, border:"none", cursor:loading?"not-allowed":"pointer", background:loading?"rgba(99,102,241,0.5)":"linear-gradient(135deg,#6366f1,#8b5cf6)", color:"#fff", fontSize:15, fontWeight:700, boxShadow:loading?"none":"0 0 32px rgba(99,102,241,0.4)", transition:"all 0.22s ease", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}
+                  style={{ width:"100%", height:56, borderRadius:14, border:"none", cursor:loading?"not-allowed":"pointer",
+                    background:loading?"rgba(99,102,241,0.4)":"linear-gradient(135deg,#6366f1,#8b5cf6)",
+                    color:"#fff", fontSize:15, fontWeight:700,
+                    boxShadow:loading?"none":"0 0 32px rgba(99,102,241,0.4)",
+                    transition:"all 0.22s ease", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}
                   onMouseEnter={e => { if (!loading) { e.currentTarget.style.boxShadow="0 0 48px rgba(99,102,241,0.65)"; e.currentTarget.style.transform="scale(1.02)"; }}}
-                  onMouseLeave={e => { e.currentTarget.style.boxShadow="0 0 32px rgba(99,102,241,0.4)"; e.currentTarget.style.transform="scale(1)"; }}>
+                  onMouseLeave={e => { e.currentTarget.style.boxShadow="0 0 32px rgba(99,102,241,0.4)"; e.currentTarget.style.transform="scale(1)"; }}
+                  onMouseDown={e => { if (!loading) e.currentTarget.style.transform="scale(0.97)"; }}
+                  onMouseUp={e => { if (!loading) e.currentTarget.style.transform="scale(1)"; }}>
+                  {loading ? (
+                    <><span className="lg-spin" style={{ width:18, height:18, border:"2.5px solid rgba(255,255,255,0.3)", borderTopColor:"#fff", borderRadius:"50%", display:"block" }} /> Sending OTP…</>
+                  ) : "Continue"}
+                </button>
+
+                <p style={{ textAlign:"center", fontSize:13.5, color:theme.placeholder }}>
+                  No account?{" "}
+                  <Link to="/register" state={{ from, bookingState }} style={{ color:theme.accent, fontWeight:700, textDecoration:"none" }}>Create one free →</Link>
+                </p>
+              </form>
+            )}
+
+            {/* ── STEP 2 — OTP ── */}
+            {step === 2 && (
+              <form key="step2" className="lg-slide" onSubmit={handleVerifyOtp} style={{ display:"flex", flexDirection:"column", gap:20 }}>
+
+                <div style={{ textAlign:"center", padding:"4px 0" }}>
+                  <div style={{ fontSize:40, marginBottom:10 }}>📱</div>
+                </div>
+
+                <div style={{ display:"flex", gap:10, justifyContent:"center" }}>
+                  {otp.map((digit, i) => (
+                    <input key={i} ref={el => otpRefs.current[i]=el}
+                      type="text" inputMode="numeric" maxLength={1} value={digit}
+                      onChange={e => handleOtpChange(i, e.target.value)}
+                      onKeyDown={e => handleOtpKey(i, e)}
+                      onFocus={() => setFocusedField(`otp-${i}`)} onBlur={() => setFocusedField(null)}
+                      style={{ width:50, height:58, borderRadius:14, textAlign:"center", fontSize:22, fontWeight:800, outline:"none",
+                        background: focusedField===`otp-${i}` ? inpBgFocus : digit ? (isDark?"rgba(99,102,241,0.08)":"rgba(99,102,241,0.05)") : theme.input,
+                        border: focusedField===`otp-${i}` ? `1.5px solid ${theme.accent}` : digit ? `1.5px solid rgba(99,102,241,0.35)` : `1.5px solid ${theme.inputBorder}`,
+                        color: theme.text,
+                        boxShadow: focusedField===`otp-${i}` ? "0 0 0 4px rgba(99,102,241,0.15)" : "none",
+                        transition:"all 0.18s ease", fontFamily:"inherit", boxSizing:"border-box",
+                      }} />
+                  ))}
+                </div>
+
+                <button type="submit" disabled={loading||otp.join("").length<6}
+                  style={{ width:"100%", height:52, borderRadius:14, border:"none", cursor:loading||otp.join("").length<6?"not-allowed":"pointer",
+                    background:otp.join("").length<6?"rgba(99,102,241,0.4)":"linear-gradient(135deg,#6366f1,#8b5cf6)",
+                    color:"#fff", fontSize:15, fontWeight:700,
+                    boxShadow:otp.join("").length===6?"0 0 32px rgba(99,102,241,0.4)":"none",
+                    transition:"all 0.22s ease", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}
+                  onMouseDown={e => { if (!loading && otp.join("").length===6) e.currentTarget.style.transform="scale(0.97)"; }}
+                  onMouseUp={e => { e.currentTarget.style.transform="scale(1)"; }}>
                   {loading ? (
                     <><span className="lg-spin" style={{ width:18, height:18, border:"2.5px solid rgba(255,255,255,0.3)", borderTopColor:"#fff", borderRadius:"50%", display:"block" }} /> Signing in…</>
-                  ) : "Sign In →"}
+                  ) : "Verify & Sign In"}
                 </button>
-              </div>
-            </form>
 
-            {/* Forgot + Register */}
-            <div className="lg-u5" style={{ marginTop:20, display:"flex", flexDirection:"column", gap:14, alignItems:"center" }}>
-              <button type="button" onClick={() => { setFpOpen(true); setFpPhone(phone); }}
-                style={{ background:"none", border:"none", cursor:"pointer", fontSize:13.5, color:theme.accent, fontWeight:600 }}>
-                Forgot Password?
-              </button>
-              <p style={{ fontSize:13.5, color:theme.placeholder, textAlign:"center" }}>
-                No account?{" "}
-                <Link to="/register" state={{ from, bookingState }} style={{ color:theme.accent, fontWeight:700, textDecoration:"none" }}>
-                  Create one free →
-                </Link>
-              </p>
-            </div>
+                <div style={{ display:"flex", flexDirection:"column", gap:10, alignItems:"center" }}>
+                  {otpTimer > 0 ? (
+                    <p style={{ fontSize:13, color:theme.placeholder }}>Resend in <span style={{ fontWeight:700, color:theme.subText }}>{otpTimer}s</span></p>
+                  ) : (
+                    <button type="button" onClick={handleSendOtp} disabled={loading}
+                      style={{ background:"none", border:"none", cursor:"pointer", fontSize:13.5, color:theme.accent, fontWeight:600 }}>
+                      Resend OTP
+                    </button>
+                  )}
+                  <button type="button" onClick={() => { setStep(1); setOtp(["","","","","",""]); setError(""); }}
+                    style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:theme.placeholder, textDecoration:"underline" }}>
+                    Change phone number
+                  </button>
+                </div>
+              </form>
+            )}
 
           </div>
         </div>
-
-        {/* ── FORGOT PASSWORD MODAL ── */}
-        {fpOpen && (
-          <div style={{ position:"fixed", inset:0, zIndex:60, display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(0,0,0,0.65)", backdropFilter:"blur(6px)", padding:20 }}>
-            <div style={{ width:"100%", maxWidth:380, background:theme.card, border:`1px solid ${theme.border}`, borderRadius:24, padding:28, boxShadow:"0 32px 80px rgba(0,0,0,0.5)" }}>
-              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20 }}>
-                <div>
-                  <h3 style={{ fontSize:18, fontWeight:800, color:theme.text, marginBottom:2 }}>
-                    {fpStep === 1 ? "Forgot Password" : "Reset Password"}
-                  </h3>
-                  <p style={{ fontSize:12.5, color:theme.placeholder }}>
-                    {fpStep === 1 ? "We'll send an OTP to your phone" : `OTP sent to ${fpPhone}`}
-                  </p>
-                </div>
-                <button onClick={() => { setFpOpen(false); setFpStep(1); }}
-                  style={{ width:32, height:32, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", background:theme.input, border:`1px solid ${theme.inputBorder}`, cursor:"pointer", color:theme.placeholder, fontSize:14 }}>✕</button>
-              </div>
-
-              {fpError && (
-                <div style={{ marginBottom:16, padding:"10px 14px", borderRadius:10, fontSize:13, background:"rgba(239,68,68,0.1)", border:"1px solid rgba(239,68,68,0.3)", color:"#f87171" }}>{fpError}</div>
-              )}
-
-              {fpStep === 1 ? (
-                <form onSubmit={handleFpSendOtp} style={{ display:"flex", flexDirection:"column", gap:14 }}>
-                  <input type="tel" value={fpPhone} onChange={e => setFpPhone(e.target.value)}
-                    placeholder="+91 98765 43210" disabled={fpLoading}
-                    style={fpInputStyle("fp-phone")}
-                    onFocus={() => setFocusedField("fp-phone")} onBlur={() => setFocusedField(null)} />
-                  <button type="submit" disabled={fpLoading}
-                    style={{ height:48, borderRadius:12, border:"none", cursor:fpLoading?"not-allowed":"pointer", background:"linear-gradient(135deg,#6366f1,#8b5cf6)", color:"#fff", fontWeight:700, fontSize:14, opacity:fpLoading?0.6:1 }}>
-                    {fpLoading ? "Sending…" : "Send OTP"}
-                  </button>
-                </form>
-              ) : (
-                <form onSubmit={handleFpReset} style={{ display:"flex", flexDirection:"column", gap:12 }}>
-                  <input type="text" value={fpOtp} onChange={e => setFpOtp(e.target.value)}
-                    placeholder="Enter 6-digit OTP" maxLength={6} disabled={fpLoading}
-                    style={fpInputStyle("fp-otp")}
-                    onFocus={() => setFocusedField("fp-otp")} onBlur={() => setFocusedField(null)} />
-                  <div style={{ position:"relative" }}>
-                    <input type={fpShowPw ? "text" : "password"} value={fpNewPw} onChange={e => setFpNewPw(e.target.value)}
-                      placeholder="New password" disabled={fpLoading}
-                      style={{ ...fpInputStyle("fp-pw"), paddingRight:40 }}
-                      onFocus={() => setFocusedField("fp-pw")} onBlur={() => setFocusedField(null)} />
-                    <button type="button" onClick={() => setFpShowPw(!fpShowPw)}
-                      style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", display:"flex" }}>
-                      <EyeIcon open={fpShowPw} color={theme.placeholder} />
-                    </button>
-                  </div>
-                  <input type="password" value={fpConfirm} onChange={e => setFpConfirm(e.target.value)}
-                    placeholder="Confirm new password" disabled={fpLoading}
-                    style={fpInputStyle("fp-confirm")}
-                    onFocus={() => setFocusedField("fp-confirm")} onBlur={() => setFocusedField(null)} />
-                  <button type="submit" disabled={fpLoading}
-                    style={{ height:48, borderRadius:12, border:"none", cursor:fpLoading?"not-allowed":"pointer", background:"linear-gradient(135deg,#6366f1,#8b5cf6)", color:"#fff", fontWeight:700, fontSize:14, opacity:fpLoading?0.6:1 }}>
-                    {fpLoading ? "Resetting…" : "Reset Password"}
-                  </button>
-                  <button type="button" onClick={fpTimer === 0 ? handleFpSendOtp : undefined}
-                    disabled={fpTimer > 0 || fpLoading}
-                    style={{ background:"none", border:"none", cursor:fpTimer>0?"default":"pointer", fontSize:13, color:theme.accent, fontWeight:600, opacity:fpTimer>0?0.5:1 }}>
-                    {fpTimer > 0 ? `Resend OTP in ${fpTimer}s` : "Resend OTP"}
-                  </button>
-                </form>
-              )}
-            </div>
-          </div>
-        )}
 
       </div>
     </>
