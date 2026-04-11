@@ -1081,6 +1081,11 @@ router.post("/customer/auth/firebase-login",
   asyncHandler(customerAuthController.firebaseLogin)
 );
 
+router.post("/customer/auth/firebase-auth",
+  rateLimiter(10, 900000),
+  asyncHandler(customerAuthController.firebaseAuth)
+);
+
 router.post("/customer/auth/firebase-reset-password",
   rateLimiter(5, 900000),
   asyncHandler(customerAuthController.firebaseResetPassword)

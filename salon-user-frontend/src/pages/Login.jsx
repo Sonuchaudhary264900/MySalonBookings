@@ -4,6 +4,7 @@ import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import { auth } from "../config/firebase";
 import API from "../services/api";
 import { useTheme } from "../context/ThemeContext";
+import confetti from "canvas-confetti";
 
 const CSS = `
   @keyframes lg-float1{0%,100%{transform:translateY(0px) rotate(0deg);}50%{transform:translateY(-18px) rotate(2deg);}}
@@ -48,19 +49,23 @@ export default function Login() {
   const [step, setStep]       = useState(1);
   const [phone, setPhone]     = useState("");
   const [otp, setOtp]         = useState(["","","","","",""]);
+  const [name, setName]       = useState("");
   const [otpTimer, setOtpTimer] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState("");
   const [focusedField, setFocusedField] = useState(null);
 
-  const phoneRef      = useRef(null);
-  const otpRefs       = useRef([]);
-  const recaptchaRef  = useRef(null);
-  const confirmRef    = useRef(null);
+  const phoneRef         = useRef(null);
+  const nameRef          = useRef(null);
+  const otpRefs          = useRef([]);
+  const recaptchaRef     = useRef(null);
+  const confirmRef       = useRef(null);
+  const firebaseTokenRef = useRef(null);
 
   useEffect(() => {
     if (step === 1) setTimeout(() => phoneRef.current?.focus(), 100);
     if (step === 2) setTimeout(() => otpRefs.current[0]?.focus(), 120);
+    if (step === 3) setTimeout(() => nameRef.current?.focus(), 120);
   }, [step]);
 
   useEffect(() => {
@@ -112,17 +117,41 @@ export default function Login() {
     try {
       const result = await confirmRef.current.confirm(code);
       const firebaseToken = await result.user.getIdToken();
-      const res = await API.post("/customer/auth/firebase-login", { firebaseToken });
+      const res = await API.post("/customer/auth/firebase-auth", { firebaseToken });
+      const data = res.data.data || {};
+      if (data.needsName) {
+        firebaseTokenRef.current = firebaseToken;
+        setStep(3);
+      } else {
+        if (data.token) localStorage.setItem("customerToken", data.token);
+        if (data.customer?.gender) localStorage.setItem("customerGender", data.customer.gender);
+        from ? navigate(from, { state: bookingState, replace: true }) : navigate("/");
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || "Sign in failed.");
+    } finally { setLoading(false); }
+  };
+
+  const handleNameSubmit = async e => {
+    e?.preventDefault();
+    if (name.trim().length < 2) { setError("Enter your name (at least 2 characters)."); return; }
+    setError(""); setLoading(true);
+    try {
+      const res = await API.post("/customer/auth/firebase-auth", {
+        firebaseToken: firebaseTokenRef.current,
+        name: name.trim(),
+      });
       const { token, customer } = res.data.data || {};
       if (token) localStorage.setItem("customerToken", token);
       if (customer?.gender) localStorage.setItem("customerGender", customer.gender);
+      try { confetti({ particleCount: 80, spread: 80, origin: { y: 0.65 }, colors: ['#6366f1','#8b5cf6','#22c55e','#a78bfa'] }); } catch {}
       from ? navigate(from, { state: bookingState, replace: true }) : navigate("/");
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || "Sign in failed.";
-      if (err.response?.status === 404) {
-        setError("No account found. Please register first.");
+      if (err.response?.status === 401) {
+        setError("Session expired. Please start again.");
+        setTimeout(() => { setStep(1); setOtp(["","","","","",""]); setName(""); setError(""); }, 2500);
       } else {
-        setError(msg);
+        setError(err.response?.data?.message || err.message || "Registration failed.");
       }
     } finally { setLoading(false); }
   };
@@ -230,9 +259,11 @@ export default function Login() {
 
             {/* Heading */}
             <div style={{ marginBottom:28 }}>
-              <h2 style={{ fontSize:26, fontWeight:900, color:theme.text, letterSpacing:"-0.8px", marginBottom:4 }}>Sign In</h2>
+              <h2 style={{ fontSize:26, fontWeight:900, color:theme.text, letterSpacing:"-0.8px", marginBottom:4 }}>
+                {step === 3 ? "What's your name?" : "Sign In"}
+              </h2>
               <p style={{ fontSize:14, color:theme.placeholder }}>
-                {step === 1 ? "Enter your phone number to continue" : `OTP sent to ${normalizePhone(phone)}`}
+                {step === 1 ? "Enter your phone number to continue" : step === 2 ? `OTP sent to ${normalizePhone(phone)}` : "We'll create your free account."}
               </p>
             </div>
 
@@ -332,6 +363,46 @@ export default function Login() {
                     Change phone number
                   </button>
                 </div>
+              </form>
+            )}
+
+            {/* ── STEP 3 — Name ── */}
+            {step === 3 && (
+              <form key="step3" className="lg-slide" onSubmit={handleNameSubmit} style={{ display:"flex", flexDirection:"column", gap:20 }}>
+
+                <div style={{ textAlign:"center", padding:"4px 0" }}>
+                  <div style={{ fontSize:40, marginBottom:10 }}>👤</div>
+                </div>
+
+                <div>
+                  <label style={{ display:"block", fontSize:14, fontWeight:700, color:theme.text, marginBottom:8 }}>Your Name</label>
+                  <input ref={nameRef} type="text" placeholder="e.g. Priya Sharma" value={name}
+                    onChange={e => setName(e.target.value.slice(0, 60))}
+                    maxLength={60}
+                    style={{ width:"100%", height:56, borderRadius:14, padding:"0 16px", fontSize:16, outline:"none", boxSizing:"border-box",
+                      background: focusedField==="name" ? (isDark ? "rgba(129,140,248,0.1)" : "rgba(99,102,241,0.05)") : theme.input,
+                      border: focusedField==="name" ? `1.5px solid ${theme.accent}` : `1.5px solid ${theme.inputBorder}`,
+                      color: theme.text,
+                      boxShadow: focusedField==="name" ? "0 0 0 5px rgba(99,102,241,0.18)" : "none",
+                      transition:"all 0.22s ease", fontFamily:"inherit",
+                    }}
+                    onFocus={() => setFocusedField("name")} onBlur={() => setFocusedField(null)} required />
+                </div>
+
+                <button type="submit" disabled={loading || name.trim().length < 2}
+                  style={{ width:"100%", height:56, borderRadius:14, border:"none",
+                    cursor: loading || name.trim().length < 2 ? "not-allowed" : "pointer",
+                    background: name.trim().length < 2 ? "rgba(99,102,241,0.4)" : "linear-gradient(135deg,#6366f1,#8b5cf6)",
+                    color:"#fff", fontSize:15, fontWeight:700,
+                    boxShadow: name.trim().length >= 2 ? "0 0 32px rgba(99,102,241,0.4)" : "none",
+                    transition:"all 0.22s ease", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}
+                  onMouseDown={e => { if (!loading && name.trim().length >= 2) e.currentTarget.style.transform="scale(0.97)"; }}
+                  onMouseUp={e => { e.currentTarget.style.transform="scale(1)"; }}>
+                  {loading ? (
+                    <><span className="lg-spin" style={{ width:18, height:18, border:"2.5px solid rgba(255,255,255,0.3)", borderTopColor:"#fff", borderRadius:"50%", display:"block" }} /> Creating account…</>
+                  ) : "Continue →"}
+                </button>
+
               </form>
             )}
 

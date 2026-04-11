@@ -240,6 +240,112 @@ exports.verifyOTPAndRegister = async (req, res) => {
 };
 
 // ===================================================
+// FIREBASE UNIFIED AUTH (LOGIN + REGISTER)
+// ===================================================
+exports.firebaseAuth = async (req, res) => {
+  try {
+    const { firebaseToken, name } = req.body;
+
+    if (!firebaseToken) {
+      return res.status(400).json(formatErrorResponse('Firebase token is required', 400));
+    }
+
+    const { verifyFirebaseToken } = require('../../config/firebaseAdmin');
+    let firebaseUser;
+    try {
+      firebaseUser = await verifyFirebaseToken(firebaseToken);
+    } catch (err) {
+      const msg = err.message || '';
+      if (msg.includes('TOKEN_EXPIRED')) {
+        return res.status(401).json(formatErrorResponse('OTP session expired. Please try again.', 401));
+      }
+      return res.status(401).json(formatErrorResponse('Invalid or expired Firebase token.', 401));
+    }
+
+    const phone = firebaseUser.phone.trim();
+    const customer = await Customer.findOne({ phone });
+
+    // --- EXISTING USER ---
+    if (customer) {
+      if (customer.isBanned) {
+        return res.status(403).json(formatErrorResponse('Your account has been suspended.', 403));
+      }
+
+      const token = jwt.sign(
+        { _id: customer._id, phone: customer.phone, role: customer.role, gender: customer.gender },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRE || '24h' }
+      );
+      const refreshToken = jwt.sign(
+        { _id: customer._id },
+        process.env.JWT_REFRESH_SECRET,
+        { expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d' }
+      );
+      customer.refreshTokens = [...customer.refreshTokens.slice(-4), { token: refreshToken }];
+      await customer.save();
+      console.log('firebase-auth login:', phone.slice(0, 6) + '****');
+      return res.status(200).json(
+        formatSuccessResponse({ customer: customer.getPublicProfile(), token, refreshToken, isNew: false }, 'Login successful')
+      );
+    }
+
+    // --- NEW USER: name not provided yet ---
+    if (!name || name.trim().length < 2) {
+      if (!name) {
+        return res.status(200).json(
+          formatSuccessResponse({ needsName: true }, 'Name required to create account')
+        );
+      }
+      return res.status(400).json(formatErrorResponse('Name must be at least 2 characters', 400));
+    }
+
+    // --- NEW USER: create account ---
+    const sanitizedName = name.trim().replace(/[<>\/\\]/g, '').slice(0, 60);
+    if (sanitizedName.length < 2) {
+      return res.status(400).json(formatErrorResponse('Name must be at least 2 characters', 400));
+    }
+
+    let newCustomer;
+    try {
+      newCustomer = await Customer.create({
+        phone,
+        phoneVerified: true,
+        name: sanitizedName,
+        role: 'customer',
+      });
+      newCustomer.referralCode = generateReferralCode(newCustomer._id);
+    } catch (err) {
+      if (err.code === 11000) {
+        // Race condition — another request already created the account
+        newCustomer = await Customer.findOne({ phone });
+      } else {
+        throw err;
+      }
+    }
+
+    const token = jwt.sign(
+      { _id: newCustomer._id, phone: newCustomer.phone, role: newCustomer.role, gender: newCustomer.gender },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRE || '24h' }
+    );
+    const refreshToken = jwt.sign(
+      { _id: newCustomer._id },
+      process.env.JWT_REFRESH_SECRET,
+      { expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d' }
+    );
+    newCustomer.refreshTokens = [...(newCustomer.refreshTokens || []).slice(-4), { token: refreshToken }];
+    await newCustomer.save();
+    console.log('firebase-auth register:', phone.slice(0, 6) + '****');
+    return res.status(201).json(
+      formatSuccessResponse({ customer: newCustomer.getPublicProfile(), token, refreshToken, isNew: true }, 'Account created successfully', 201)
+    );
+  } catch (error) {
+    console.error('Error in firebase-auth:', error);
+    res.status(500).json(formatErrorResponse(error.message || messages.GENERIC.ERROR, 500));
+  }
+};
+
+// ===================================================
 // FIREBASE PHONE AUTH REGISTER (CUSTOMER)
 // ===================================================
 exports.firebaseRegister = async (req, res) => {
