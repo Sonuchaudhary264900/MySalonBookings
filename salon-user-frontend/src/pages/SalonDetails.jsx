@@ -505,8 +505,8 @@ function SalonDetails() {
     cardBrd:  darkMode ? '#1f2937' : '#e5e7eb',
     barBg:    darkMode ? '#1f2937' : '#f3f4f6',
     ownerOvr: darkMode ? 'linear-gradient(to right,transparent 35%,rgba(17,24,39,.25) 55%,rgba(17,24,39,.72) 75%,#111827 100%)' : 'linear-gradient(to right,transparent 65%,rgba(0,0,0,.12) 100%)',
-    heroOvr1: 'linear-gradient(to top,rgba(0,0,0,.88) 0%,rgba(0,0,0,.60) 18%,rgba(0,0,0,.28) 42%,rgba(0,0,0,.08) 65%,transparent 100%)',
-    heroOvr2: 'linear-gradient(to right,rgba(0,0,0,.50) 0%,rgba(0,0,0,.28) 30%,rgba(0,0,0,.10) 55%,transparent 78%)',
+    heroOvr1: 'linear-gradient(to top,rgba(0,0,0,.92) 0%,rgba(0,0,0,.72) 22%,rgba(0,0,0,.38) 45%,rgba(0,0,0,.10) 65%,transparent 100%)',
+    heroOvr2: 'linear-gradient(to right,rgba(0,0,0,.38) 0%,rgba(0,0,0,.18) 35%,transparent 65%)',
     ctaOvr:   darkMode ? 'linear-gradient(to bottom,rgba(0,0,0,.30) 0%,rgba(0,0,0,.55) 100%)' : 'linear-gradient(to bottom,rgba(0,0,0,.25) 0%,rgba(0,0,0,.50) 100%)',
     formInp:  darkMode ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.03)',
     formBrd:  darkMode ? '#374151' : '#e5e7eb',
@@ -590,7 +590,7 @@ function SalonDetails() {
 
       {/* ════ PAGE CSS ════ */}
       <style>{`
-        .lux-hero{position:relative;height:clamp(300px,60vh,560px);overflow:hidden}
+        .lux-hero{position:relative;height:clamp(400px,66vh,560px);overflow:hidden}
         .lux-media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
         @keyframes luxKB{from{transform:scale(1)}to{transform:scale(1.06)}}
         .lux-media-img{animation:luxKB 12s ease-in-out infinite alternate}
@@ -598,7 +598,8 @@ function SalonDetails() {
         .lux-hero-slide{position:absolute;inset:0;animation:heroFadeIn 0.25s ease both}
         .lux-section{padding:clamp(44px,8vw,140px) clamp(16px,6vw,96px)}
         .lux-title{font-size:clamp(24px,5vw,72px);font-weight:900;line-height:1.05;letter-spacing:-.025em}
-        .lux-hero-title{font-size:clamp(22px,5.5vw,64px);font-weight:900;line-height:.95;letter-spacing:-.03em}
+        .lux-hero-title{font-size:clamp(26px,6vw,64px);font-weight:900;line-height:.95;letter-spacing:-.03em}
+        @media(max-width:479px){.lux-hero-title{font-size:clamp(22px,8vw,38px)}}
         .lux-overline{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase}
         .lux-body{font-size:clamp(14px,1.4vw,19px);line-height:1.75}
         .lux-divider{width:36px;height:1px;margin:20px 0}
@@ -694,15 +695,15 @@ function SalonDetails() {
           </div>
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 z-10" style={{ padding: 'clamp(12px,4vw,60px)', paddingBottom: 'clamp(44px,7vh,90px)' }}>
+        <div className="absolute bottom-0 left-0 right-0 z-10" style={{ padding: 'clamp(16px,4vw,60px)', paddingBottom: 'clamp(28px,5vh,64px)' }}>
           <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .2, duration: .9, ease: [.22,1,.36,1] }}>
-            <p className="lux-overline mb-4" style={{ color: 'rgba(255,255,255,.72)', textShadow: '0 1px 8px rgba(0,0,0,.65)' }}>
+            <p className="lux-overline mb-2" style={{ color: 'rgba(255,255,255,.72)', textShadow: '0 1px 8px rgba(0,0,0,.65)' }}>
               {BIZ_SUBTITLES[salon.businessType] || 'Premium grooming experience'}
             </p>
-            <h1 className="lux-hero-title text-white mb-5" style={{ maxWidth: 780, textShadow: '0 2px 16px rgba(0,0,0,.55), 0 0 40px rgba(0,0,0,.25)' }}>
+            <h1 className="lux-hero-title text-white mb-3" style={{ maxWidth: 780, textShadow: '0 2px 16px rgba(0,0,0,.55), 0 0 40px rgba(0,0,0,.25)' }}>
               {salon.name.toUpperCase()}
             </h1>
-            <div className="flex items-center flex-wrap mb-8" style={{ gap: 'clamp(12px,2vw,28px)' }}>
+            <div className="flex items-center flex-wrap mb-5" style={{ gap: 'clamp(8px,2vw,20px)' }}>
               {avgRating && (
                 <div className="flex items-center gap-2" style={{ textShadow: '0 1px 6px rgba(0,0,0,.55)' }}>
                   <div className="flex gap-0.5">
@@ -732,7 +733,7 @@ function SalonDetails() {
                 </div>
               )}
             </div>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2">
               <motion.button whileTap={{ scale: .97 }} whileHover={{ scale: 1.02 }} onClick={handleSmartBook}
                 className="lux-btn-p" style={{ background: theme.p, boxShadow: `0 8px 32px ${theme.p}66, 0 2px 8px rgba(0,0,0,.35)` }}>
                 <Zap className="w-4 h-4" /> Book Appointment
