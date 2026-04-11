@@ -505,8 +505,8 @@ function SalonDetails() {
     cardBrd:  darkMode ? '#1f2937' : '#e5e7eb',
     barBg:    darkMode ? '#1f2937' : '#f3f4f6',
     ownerOvr: darkMode ? 'linear-gradient(to right,transparent 35%,rgba(17,24,39,.25) 55%,rgba(17,24,39,.72) 75%,#111827 100%)' : 'linear-gradient(to right,transparent 65%,rgba(0,0,0,.12) 100%)',
-    heroOvr1: 'linear-gradient(to top,rgba(0,0,0,.92) 0%,rgba(0,0,0,.72) 22%,rgba(0,0,0,.38) 45%,rgba(0,0,0,.10) 65%,transparent 100%)',
-    heroOvr2: 'linear-gradient(to right,rgba(0,0,0,.38) 0%,rgba(0,0,0,.18) 35%,transparent 65%)',
+    heroOvr1: 'linear-gradient(to top,rgba(0,0,0,.88) 0%,rgba(0,0,0,.55) 28%,rgba(0,0,0,.15) 52%,transparent 70%)',
+    heroOvr2: 'linear-gradient(to right,rgba(0,0,0,.20) 0%,transparent 40%)',
     ctaOvr:   darkMode ? 'linear-gradient(to bottom,rgba(0,0,0,.30) 0%,rgba(0,0,0,.55) 100%)' : 'linear-gradient(to bottom,rgba(0,0,0,.25) 0%,rgba(0,0,0,.50) 100%)',
     formInp:  darkMode ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.03)',
     formBrd:  darkMode ? '#374151' : '#e5e7eb',
@@ -590,8 +590,11 @@ function SalonDetails() {
 
       {/* ════ PAGE CSS ════ */}
       <style>{`
-        .lux-hero{position:relative;height:clamp(400px,66vh,560px);overflow:hidden}
+        .lux-hero{position:relative;height:100vh;overflow:hidden}
+        @media(max-width:639px){.lux-hero{height:clamp(400px,66vh,560px)}}
         .lux-media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+        .lux-media-video{object-fit:cover}
+        @media(min-width:640px){.lux-media-video{object-fit:contain;background:#000}}
         @keyframes luxKB{from{transform:scale(1)}to{transform:scale(1.06)}}
         .lux-media-img{animation:luxKB 12s ease-in-out infinite alternate}
         @keyframes heroFadeIn{from{opacity:0}to{opacity:1}}
@@ -658,7 +661,8 @@ function SalonDetails() {
         {currentHeroSlide ? (
           <div key={heroSlideIdx} className="lux-hero-slide">
             {currentHeroSlide.type === 'video'
-              ? <video ref={heroVideoRef2} src={currentHeroSlide.url} autoPlay muted={heroMuted} playsInline className="lux-media"
+              ? <video ref={heroVideoRef2} src={currentHeroSlide.url} autoPlay muted={heroMuted} playsInline className="lux-media lux-media-video"
+                  loop={heroSlides.length === 1}
                   onEnded={() => heroSlides.length > 1 && setHeroSlideIdx(i => (i + 1) % heroSlides.length)} />
               : <img src={currentHeroSlide.url} alt={salon.name} className="lux-media lux-media-img" />
             }
