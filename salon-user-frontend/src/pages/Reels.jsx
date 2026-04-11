@@ -726,7 +726,7 @@ export default function Reels() {
   const [copied,   setCopied]  = useState(null);
 
   const [mode,     setMode]     = useState('nearest');
-  const [gender,   setGender]   = useState('all');
+  const [gender,   setGender]   = useState(() => localStorage.getItem('reelGender') || 'all');
   const [coords,   setCoords]   = useState(null);
 
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
@@ -1071,7 +1071,7 @@ export default function Reels() {
                   </button>
                 ))}
                 {[['all', 'All'], ['male', 'Men'], ['female', 'Women']].map(([val, label]) => (
-                  <button key={val} type="button" onClick={() => setGender(val)} style={{
+                  <button key={val} type="button" onClick={() => { setGender(val); localStorage.setItem('reelGender', val); }} style={{
                     flexShrink: 0, height: 22, padding: '0 9px',
                     borderRadius: 11, border: 'none', cursor: 'pointer',
                     fontSize: 10.5, fontWeight: 700,
