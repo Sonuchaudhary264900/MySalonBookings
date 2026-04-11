@@ -721,7 +721,7 @@ export default function Reels() {
   const navigate = useNavigate();
   const [reels,    setReels]   = useState([]);
   const [loading,  setLoading] = useState(true);
-  const [muted,    setMuted]   = useState(true);
+  const [muted,    setMuted]   = useState(false);
   const [showMute, setShowMute] = useState(false);
   const [copied,   setCopied]  = useState(null);
 
