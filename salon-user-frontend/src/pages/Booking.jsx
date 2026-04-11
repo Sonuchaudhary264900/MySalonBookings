@@ -126,12 +126,14 @@ function Booking() {
     setBlockedSlots([]);
     setClosedDay(false);
 
+    let stale = false;
     const fetchSlots = async () => {
       setSlotsLoading(true);
       try {
         const res = await API.get(
           `/public/salons/${salonId}/booked-slots?date=${date}&duration=${totalDuration}`
         );
+        if (stale) return;
         const data = res.data.data || {};
         const mode = data.bookingMode || "flexible";
         setBookingMode(mode);
@@ -143,13 +145,15 @@ function Booking() {
           setSlot(data.slots[0]);
         }
       } catch {
+        if (stale) return;
         setSlots([]);
         setBlockedSlots([]);
       } finally {
-        setSlotsLoading(false);
+        if (!stale) setSlotsLoading(false);
       }
     };
     fetchSlots();
+    return () => { stale = true; };
   }, [date, salonId, totalDuration]);
 
   const handleBooking = async (e) => {

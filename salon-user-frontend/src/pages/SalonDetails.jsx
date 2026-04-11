@@ -224,17 +224,20 @@ function SalonDetails() {
   useEffect(() => {
     if (!showBooking || !totalDuration || !id) return;
     setSlot(""); setSlots([]); setBlockedSlots([]); setClosedDay(false);
+    let stale = false;
     const fetchSlots = async () => {
       setSlotsLoading(true);
       try {
         const res = await API.get(`/public/salons/${id}/booked-slots?date=${bookDate}&duration=${totalDuration}`);
+        if (stale) return;
         const data = res.data.data || {};
         const mode = data.bookingMode || "sequential";
         setBookingMode(mode); setSlots(data.slots || []); setBlockedSlots(data.blockedSlots || []); setClosedDay(data.closedDay || false);
         if (mode === "sequential" && data.slots?.length === 1 && !isPastSlot(bookDate, data.slots[0])) setSlot(data.slots[0]);
-      } catch { setSlots([]); } finally { setSlotsLoading(false); }
+      } catch { if (!stale) setSlots([]); } finally { if (!stale) setSlotsLoading(false); }
     };
     fetchSlots();
+    return () => { stale = true; };
   }, [bookDate, id, totalDuration, showBooking, slotsKey]);
 
   // ── Hero slides: coverPhoto first, then remaining photos, then videos ──
