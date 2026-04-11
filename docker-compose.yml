@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: msb-backend
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./backend/.env
+    restart: unless-stopped
+
+  salon-user-frontend:
+    build:
+      context: ./salon-user-frontend
+      args:
+        VITE_API_BASE_URL: http://localhost:5000/api/v1
+    container_name: msb-user-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  salon-owner-frontend:
+    build:
+      context: ./salon-owner-frontend
+      args:
+        VITE_API_BASE_URL: http://localhost:5000/api/v1
+    container_name: msb-owner-frontend
+    ports:
+      - "3001:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  admin-frontend:
+    build:
+      context: ./admin-frontend
+      args:
+        VITE_API_BASE_URL: http://localhost:5000/api/v1
+    container_name: msb-admin-frontend
+    ports:
+      - "3002:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
