@@ -672,28 +672,15 @@ function SalonDetails() {
         {/* Noise texture to eliminate gradient banding */}
         <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.04, backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E\")", backgroundRepeat: 'repeat', backgroundSize: '200px 200px', mixBlendMode: 'overlay' }} />
 
-        <div className="absolute top-6 left-6 right-6 flex items-center justify-between z-10">
-          <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate(-1)}
-            className="w-11 h-11 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,.12)' }}>
-            <ArrowLeft className="w-5 h-5 text-white" />
-          </motion.button>
-          <div className="flex items-center gap-2">
-            {currentHeroSlide?.type === 'video' && (
-              <button onClick={e => { e.stopPropagation(); setHeroMuted(m => !m); heroVideoRef2.current && (heroVideoRef2.current.muted = !heroMuted); }}
-                className="w-10 h-10 rounded-full flex items-center justify-center text-white"
-                style={{ background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,.12)' }}>
-                {heroMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-              </button>
-            )}
-            {salon.isApproved && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white"
-                style={{ background: 'rgba(16,185,129,.2)', backdropFilter: 'blur(8px)', border: '1px solid rgba(16,185,129,.35)' }}>
-                <BadgeCheck className="w-3.5 h-3.5" /> Verified
-              </div>
-            )}
+        {currentHeroSlide?.type === 'video' && (
+          <div className="absolute top-6 right-6 z-10">
+            <button onClick={e => { e.stopPropagation(); setHeroMuted(m => !m); heroVideoRef2.current && (heroVideoRef2.current.muted = !heroMuted); }}
+              className="w-10 h-10 rounded-full flex items-center justify-center text-white"
+              style={{ background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,.12)' }}>
+              {heroMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            </button>
           </div>
-        </div>
+        )}
 
         <div className="absolute bottom-0 left-0 right-0 z-10" style={{ padding: 'clamp(16px,4vw,60px)', paddingBottom: 'clamp(28px,5vh,64px)' }}>
           <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .2, duration: .9, ease: [.22,1,.36,1] }}>
