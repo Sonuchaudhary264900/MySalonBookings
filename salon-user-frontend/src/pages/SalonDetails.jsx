@@ -303,13 +303,15 @@ function SalonDetails() {
     }
   }, [salon]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-advance hero
+  // Auto-advance hero — only for image slides (videos advance on onEnded)
   useEffect(() => {
     if (heroSectionRef.current) heroSectionRef.current._slideLen = heroSlides.length;
     if (heroSlides.length <= 1) return;
-    const t = setInterval(() => setHeroSlideIdx(i => (i + 1) % heroSlides.length), 2800);
-    return () => clearInterval(t);
-  }, [heroSlides.length]);
+    const current = heroSlides[heroSlideIdx];
+    if (current?.type === 'video') return; // video advances via onEnded
+    const t = setTimeout(() => setHeroSlideIdx(i => (i + 1) % heroSlides.length), 3500);
+    return () => clearTimeout(t);
+  }, [heroSlides.length, heroSlideIdx, heroSlides]);
 
   // Gallery auto-scroll
   useEffect(() => {
@@ -685,7 +687,8 @@ function SalonDetails() {
         {currentHeroSlide ? (
           <div key={heroSlideIdx} className="lux-hero-slide">
             {currentHeroSlide.type === 'video'
-              ? <video ref={heroVideoRef2} src={currentHeroSlide.url} autoPlay muted={heroMuted} loop playsInline className="lux-media" />
+              ? <video ref={heroVideoRef2} src={currentHeroSlide.url} autoPlay muted={heroMuted} playsInline className="lux-media"
+                  onEnded={() => heroSlides.length > 1 && setHeroSlideIdx(i => (i + 1) % heroSlides.length)} />
               : <img src={currentHeroSlide.url} alt={salon.name} className="lux-media lux-media-img" />
             }
           </div>
@@ -748,7 +751,8 @@ function SalonDetails() {
               )}
               {(locality || salon.address || salon.city) && (
                 <div className="flex items-center gap-1.5 text-sm" style={{ color: 'rgba(255,255,255,.70)', textShadow: '0 1px 6px rgba(0,0,0,.6)' }}>
-                  <MapPin className="w-3.5 h-3.5" />{locality || salon.city || salon.address}
+                  <MapPin className="w-3.5 h-3.5" />
+                  {[locality, salon.city].filter(Boolean).join(', ') || salon.address}
                 </div>
               )}
               {openStatus !== null && (
@@ -1510,8 +1514,7 @@ function SalonDetails() {
             <motion.p className="lux-overline mb-5" style={{ color: theme.p }}
               initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>Find Us</motion.p>
             {[
-              (locality || salon.address) && { icon: <MapPin className="w-4 h-4" />, text: locality ? (salon.address ? `${locality}, ${salon.address}` : locality) : salon.address },
-              salon.city    && { icon: <Building2 className="w-4 h-4" />, text: salon.city },
+              (locality || salon.address || salon.city) && { icon: <MapPin className="w-4 h-4" />, text: [locality, salon.city, salon.address].filter(Boolean).join(', ') },
               salon.phone   && { icon: <Phone className="w-4 h-4" />, text: salon.phone, href: `tel:${salon.phone}` },
               salon.email   && { icon: <Mail className="w-4 h-4" />, text: salon.email, href: `mailto:${salon.email}` },
             ].filter(Boolean).map(({ icon, text, href }, i) => (
