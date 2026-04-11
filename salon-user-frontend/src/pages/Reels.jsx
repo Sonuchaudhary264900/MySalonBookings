@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import API from "../services/api";
 import { salonPath } from "../utils/formatters";
 
@@ -7,6 +7,34 @@ import { salonPath } from "../utils/formatters";
    Helpers
 ───────────────────────────────────────────────────────────── */
 const isLoggedIn = () => !!localStorage.getItem('customerToken');
+
+// ── Reverse geocode cache (shared with SalonCard) ────────────
+const GEO_KEY = 'salon_geo_cache';
+function getGeoCache() { try { return JSON.parse(localStorage.getItem(GEO_KEY) || '{}'); } catch { return {}; } }
+function saveGeoCache(c) { try { localStorage.setItem(GEO_KEY, JSON.stringify(c)); } catch {} }
+async function reverseGeocode(lat, lng) {
+  const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+  const cache = getGeoCache();
+  if (cache[key]) return cache[key];
+  try {
+    const r = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`,
+      { headers: { 'Accept-Language': 'en' } }
+    );
+    const d = await r.json();
+    const a = d.address || {};
+    const place = a.suburb || a.neighbourhood || a.village || a.town || a.city_district || a.quarter || a.county || null;
+    if (place) { const c = getGeoCache(); c[key] = place; saveGeoCache(c); }
+    return place;
+  } catch { return null; }
+}
+
+function getDistanceKm(lat1, lng1, lat2, lng2) {
+  const R = 6371, dLat = (lat2 - lat1) * Math.PI / 180, dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+function fmtDist(km) { return km < 1 ? `${Math.round(km*1000)} m` : `${km.toFixed(1)} km`; }
 
 function cloudinaryThumb(url) {
   if (!url || !url.includes('/video/upload/')) return '';
@@ -382,7 +410,7 @@ function SalonAvatar({ logo, initial, size = 44, ringColor = '#6366f1', fontSize
 /* ─────────────────────────────────────────────────────────────
    Single Reel Item
 ───────────────────────────────────────────────────────────── */
-function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, copied, onRegisterRef, onAuthRequired }) {
+function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, copied, onRegisterRef, onAuthRequired, userCoords }) {
   const videoRef = useRef(null);
 
   const [liked,     setLiked]     = useState(reel.liked || false);
@@ -390,6 +418,24 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
   const [viewCount, setViewCount] = useState(reel.viewCount || 0);
   const [progress,  setProgress]  = useState(0);
   const [doubleTapHeart, setDoubleTapHeart] = useState(false);
+  const [locality,  setLocality]  = useState(null);
+
+  useEffect(() => {
+    const coords = reel.salon.location?.coordinates;
+    if (!coords || coords.length < 2) return;
+    const [lng, lat] = coords;
+    let cancelled = false;
+    reverseGeocode(lat, lng).then(place => { if (!cancelled && place) setLocality(place); });
+    return () => { cancelled = true; };
+  }, [reel.salon._id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const distance = (() => {
+    if (!userCoords) return null;
+    const coords = reel.salon.location?.coordinates;
+    if (!coords || coords.length < 2) return null;
+    const [lng, lat] = coords;
+    return fmtDist(getDistanceKm(userCoords.lat, userCoords.lng, lat, lng));
+  })();
 
   const [videoTapPulse, setVideoTapPulse] = useState(false);
   const lastTapRef    = useRef(0);
@@ -531,7 +577,7 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
         src={reel.videoUrl}
         poster={cloudinaryThumb(reel.videoUrl)}
         className={`reel-video${videoTapPulse ? ' reel-video-tap' : ''}`}
-        loop playsInline preload="auto"
+        loop playsInline preload="none"
         onTimeUpdate={handleTimeUpdate}
         onClick={handleTap}
       />
@@ -644,8 +690,14 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
             <IcoPin />
             <span style={{ color: 'rgba(255,255,255,0.60)', fontSize: 12, fontWeight: 500 }}>
-              {reel.salon.city}
+              {locality || reel.salon.city}
             </span>
+            {distance && (
+              <>
+                <span style={{ color: 'rgba(255,255,255,0.20)', fontSize: 10 }}>•</span>
+                <span style={{ color: 'rgba(255,255,255,0.50)', fontSize: 11, fontWeight: 600 }}>{distance}</span>
+              </>
+            )}
             {reel.salon.averageRating > 0 && (
               <>
                 <span style={{ color: 'rgba(255,255,255,0.20)', fontSize: 10 }}>•</span>
@@ -719,6 +771,15 @@ function LoadingDots() {
 ───────────────────────────────────────────────────────────── */
 export default function Reels() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const deepLinkId = new URLSearchParams(location.search).get('v');
+
+  // Play with muted fallback for autoplay policy
+  const safePlay = useCallback((v) => {
+    if (!v) return;
+    v.play().catch(() => { v.muted = true; v.play().catch(() => {}); });
+  }, []);
+
   const [reels,    setReels]   = useState([]);
   const [loading,  setLoading] = useState(true);
   const [muted,    setMuted]   = useState(false);
@@ -780,17 +841,17 @@ export default function Reels() {
           currentIdx.current = newIdx;
           const reelsList = reelsRef.current;
           const currentId = reelsList[newIdx]?._id;
-          // Preload next 3 videos
-          for (let ahead = 1; ahead <= 3; ahead++) {
-            const preloadId = reelsList[newIdx + ahead]?._id;
-            const pv = preloadId && videoRefs.current[preloadId];
-            if (pv && pv.readyState < 3) { pv.preload = 'auto'; pv.load(); }
-          }
+          // Set preload="auto" only for current + next 3; reset others to "none"
+          Object.entries(videoRefs.current).forEach(([id, v]) => {
+            if (!v) return;
+            const ri = reelsList.findIndex(r => r._id === id);
+            v.preload = (ri >= newIdx && ri <= newIdx + 3) ? 'auto' : 'none';
+          });
           Object.entries(videoRefs.current).forEach(([id, v]) => {
             if (!v) return;
             const reelIdx = reelsList.findIndex(r => r._id === id);
             if (id === currentId) {
-              v.muted = mutedRef.current; v.play().catch(() => {});
+              v.muted = mutedRef.current; safePlay(v);
             } else if (Math.abs(reelIdx - newIdx) <= 2) {
               // Keep buffer for nearby reels — just pause
               v.pause();
@@ -885,27 +946,29 @@ export default function Reels() {
     Object.values(videoRefs.current).forEach(v => { if (v) v.muted = muted; });
   }, [muted]);
 
-  /* ── Auto-play first reel when list loads ── */
+  /* ── Auto-play first reel when list loads (or deep-link to ?v=ID) ── */
   useEffect(() => {
     if (!reels.length) return;
-    currentIdx.current = 0;
+    const targetIdx = deepLinkId ? Math.max(0, reels.findIndex(r => r._id === deepLinkId)) : 0;
+    currentIdx.current = targetIdx;
     requestAnimationFrame(() => {
       const feed = feedRef.current;
       if (feed) {
         feed.style.scrollBehavior = 'auto';
-        feed.scrollTop = 0;
+        feed.scrollTop = targetIdx * (feed.clientHeight || window.innerHeight);
         requestAnimationFrame(() => { if (feedRef.current) feedRef.current.style.scrollBehavior = ''; });
       }
-      const firstId = reels[0]?._id;
+      const firstId = reels[targetIdx]?._id;
       if (firstId && videoRefs.current[firstId]) {
         videoRefs.current[firstId].muted = mutedRef.current;
-        videoRefs.current[firstId].play().catch(() => {});
+        safePlay(videoRefs.current[firstId]);
       }
-      // Preload next 5 videos immediately on load
-      for (let i = 1; i <= 5; i++) {
+      // Set preload only for current + next 3
+      if (videoRefs.current[firstId]) videoRefs.current[firstId].preload = 'auto';
+      for (let i = 1; i <= 3; i++) {
         const nextId = reels[i]?._id;
         const nv = nextId && videoRefs.current[nextId];
-        if (nv) { nv.preload = 'auto'; nv.load(); }
+        if (nv) nv.preload = 'auto';
       }
     });
   }, [reels]);
@@ -916,11 +979,12 @@ export default function Reels() {
       el.muted = mutedRef.current;
       videoRefs.current[id] = el;
       const idx = reelsRef.current.findIndex(r => r._id === id);
-      if (idx === currentIdx.current) { el.play().catch(() => {}); }
+      if (idx >= currentIdx.current && idx <= currentIdx.current + 3) el.preload = 'auto';
+      if (idx === currentIdx.current) { safePlay(el); }
     } else {
       delete videoRefs.current[id];
     }
-  }, []);
+  }, [safePlay]);
 
   const toggleMute = useCallback(() => {
     setMuted(m => !m);
@@ -930,9 +994,9 @@ export default function Reels() {
   }, []);
 
   const handleShare = useCallback(async (reel) => {
-    const url = `${window.location.origin}${salonPath(reel.salon)}`;
+    const url = `${window.location.origin}/reels?v=${reel._id}`;
     if (navigator.share) {
-      try { await navigator.share({ title: reel.salon.name, text: `Book at ${reel.salon.name}!`, url }); return; } catch {}
+      try { await navigator.share({ title: reel.salon.name, text: `Watch this reel from ${reel.salon.name}!`, url }); return; } catch {}
     }
     try { await navigator.clipboard.writeText(url); } catch {}
     setCopied(reel._id);
@@ -1104,6 +1168,7 @@ export default function Reels() {
                   copied={copied}
                   onRegisterRef={handleRegisterRef}
                   onAuthRequired={handleAuthRequired}
+                  userCoords={coords}
                 />
               ))}
             </div>

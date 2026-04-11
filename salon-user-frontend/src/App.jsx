@@ -82,7 +82,7 @@ class ErrorBoundary extends React.Component {
 // ── Layout wrapper — hides chrome on Reels page ───────────────
 function AppLayout({ notifOpen, setNotifOpen }) {
   const { pathname } = useLocation();
-  const isReels       = pathname === '/reels';
+  const isReels       = pathname === '/reels' || pathname.startsWith('/reels');
   const isSalon       = /^\/salons\/[^/]+$/.test(pathname);
   const isSalonPage   = /^\/(salon|barbershop|spa-wellness|makeup-bridal|skin-derma)\/[^/]+(\/.*)?$/.test(pathname);
   const isBookingFlow = pathname.startsWith('/booking/');

@@ -99,6 +99,27 @@ const getNextSlot = (wh, intervalMins = 30) => {
   return null;
 };
 
+// ── Reverse geocode (shared cache with SalonCard) ────────────────
+const GEO_KEY = 'salon_geo_cache';
+function getGeoCache() { try { return JSON.parse(localStorage.getItem(GEO_KEY) || '{}'); } catch { return {}; } }
+function saveGeoCache(c) { try { localStorage.setItem(GEO_KEY, JSON.stringify(c)); } catch {} }
+async function reverseGeocode(lat, lng) {
+  const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+  const cache = getGeoCache();
+  if (cache[key]) return cache[key];
+  try {
+    const r = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`,
+      { headers: { 'Accept-Language': 'en' } }
+    );
+    const d = await r.json();
+    const a = d.address || {};
+    const place = a.suburb || a.neighbourhood || a.village || a.town || a.city_district || a.quarter || a.county || null;
+    if (place) { const c = getGeoCache(); c[key] = place; saveGeoCache(c); }
+    return place;
+  } catch { return null; }
+}
+
 const localDate = (offset = 0) => {
   const d = new Date();
   d.setDate(d.getDate() + offset);
@@ -155,6 +176,7 @@ function SalonDetails() {
   const [heroMuted, setHeroMuted]       = useState(true);
   const [heroSlideIdx, setHeroSlideIdx] = useState(0);
   const [photoSlideIdx, setPhotoSlideIdx] = useState(0);
+  const [locality, setLocality]          = useState(null);
   const { isDark: darkMode } = useTheme();
   const heroVideoRef2 = useRef(null);
   const heroSwipeStartX = useRef(null);
@@ -257,6 +279,18 @@ function SalonDetails() {
 
   // Reset slide index when salon changes
   useEffect(() => { setHeroSlideIdx(0); }, [salon?._id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reverse geocode salon coordinates → locality
+  useEffect(() => {
+    if (!salon) return;
+    const coords = salon.location?.coordinates;
+    if (!coords || coords.length < 2) return;
+    const [lng, lat] = coords;
+    let cancelled = false;
+    setLocality(null);
+    reverseGeocode(lat, lng).then(place => { if (!cancelled && place) setLocality(place); });
+    return () => { cancelled = true; };
+  }, [salon?._id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Restore pending service selection after login redirect
   useEffect(() => {
@@ -433,6 +467,11 @@ function SalonDetails() {
     } finally { setBookingLoading(false); }
   };
 
+  // These must be before early returns to satisfy Rules of Hooks
+  const salonPhotoUrls = useMemo(() => (salon?.photos || []).map(p => (typeof p === 'string' ? p : p?.url)).filter(Boolean), [salon?._id, salon?.photos?.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  const salonVideoUrls = useMemo(() => (salon?.videos || []).map(v => (typeof v === 'string' ? v : v?.url)).filter(Boolean), [salon?._id, salon?.videos?.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  const galleryItems   = useMemo(() => [...salonPhotoUrls.map(url => ({ url, type: 'image' })), ...salonVideoUrls.map(url => ({ url, type: 'video' }))], [salonPhotoUrls, salonVideoUrls]);
+
   if (loading) {
     return (
       <div style={{ background: 'var(--t-bg)', minHeight: '100vh' }}>
@@ -456,10 +495,7 @@ function SalonDetails() {
     );
   }
 
-  const avgRating      = salon.averageRating || salon.rating ? parseFloat(salon.averageRating || salon.rating).toFixed(1) : null;
-  const salonPhotoUrls = (salon.photos || []).map(p => (typeof p === 'string' ? p : p?.url)).filter(Boolean);
-  const salonVideoUrls = (salon.videos || []).map(v => (typeof v === 'string' ? v : v?.url)).filter(Boolean);
-  const galleryItems   = [...salonPhotoUrls.map(url => ({ url, type: 'image' })), ...salonVideoUrls.map(url => ({ url, type: 'video' }))];
+  const avgRating = salon.averageRating || salon.rating ? parseFloat(salon.averageRating || salon.rating).toFixed(1) : null;
   const openStatus     = isOpenNow(salon.workingHours);
   const todayHours     = getTodayHours(salon.workingHours);
   const opensAt        = getOpensAt(salon.workingHours);
@@ -639,10 +675,13 @@ function SalonDetails() {
           if (dx < 0) setHeroSlideIdx(i => (i + 1) % heroSlides.length);
           else setHeroSlideIdx(i => (i - 1 + heroSlides.length) % heroSlides.length);
         }}>
-        {/* Preload next 5 videos so switching is instant */}
-        {heroSlides.filter((s, i) => s.type === 'video' && i !== heroSlideIdx).slice(0, 5).map(s => (
-          <video key={s.url} src={s.url} preload="auto" muted playsInline style={{ display: 'none' }} />
-        ))}
+        {/* Preload next 2 videos, metadata-only for ones further ahead */}
+        {heroSlides.map((s, i) => {
+          if (s.type !== 'video' || i === heroSlideIdx) return null;
+          const dist = (i - heroSlideIdx + heroSlides.length) % heroSlides.length;
+          if (dist > 4) return null;
+          return <video key={s.url} src={s.url} preload={dist <= 2 ? 'auto' : 'metadata'} muted playsInline style={{ display: 'none' }} />;
+        })}
         {currentHeroSlide ? (
           <div key={heroSlideIdx} className="lux-hero-slide">
             {currentHeroSlide.type === 'video'
@@ -707,9 +746,9 @@ function SalonDetails() {
                   )}
                 </div>
               )}
-              {(salon.address || salon.city) && (
+              {(locality || salon.address || salon.city) && (
                 <div className="flex items-center gap-1.5 text-sm" style={{ color: 'rgba(255,255,255,.70)', textShadow: '0 1px 6px rgba(0,0,0,.6)' }}>
-                  <MapPin className="w-3.5 h-3.5" />{salon.city || salon.address}
+                  <MapPin className="w-3.5 h-3.5" />{locality || salon.city || salon.address}
                 </div>
               )}
               {openStatus !== null && (
@@ -1471,7 +1510,7 @@ function SalonDetails() {
             <motion.p className="lux-overline mb-5" style={{ color: theme.p }}
               initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>Find Us</motion.p>
             {[
-              salon.address && { icon: <MapPin className="w-4 h-4" />, text: salon.address },
+              (locality || salon.address) && { icon: <MapPin className="w-4 h-4" />, text: locality ? (salon.address ? `${locality}, ${salon.address}` : locality) : salon.address },
               salon.city    && { icon: <Building2 className="w-4 h-4" />, text: salon.city },
               salon.phone   && { icon: <Phone className="w-4 h-4" />, text: salon.phone, href: `tel:${salon.phone}` },
               salon.email   && { icon: <Mail className="w-4 h-4" />, text: salon.email, href: `mailto:${salon.email}` },
@@ -2276,15 +2315,14 @@ function SalonVideoViewer({ videos, startIdx, salon, onClose, onBook }) {
     setShowComments(false);
   }, [total]);
 
-  // Swap video src + play when idx changes
+  // Play current video when idx changes (src is already set by JSX)
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
-    v.src = videos[idx] || '';
     v.muted = mutedRef.current;
     v.play().catch(() => {});
     setPlaying(true);
-  }, [idx, videos]);
+  }, [idx]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── Wheel (desktop) ── */
   useEffect(() => {
