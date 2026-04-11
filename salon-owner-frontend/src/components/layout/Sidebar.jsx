@@ -43,9 +43,10 @@ const NAV_SECTIONS = [
   {
     label: 'Account',
     items: [
-      { id: 'promotions', label: 'Promote Salon',  path: ROUTES.PROMOTIONS, icon: Megaphone  },
-      { id: 'billing',   label: 'Billing & Plan', path: ROUTES.BILLING,    icon: CreditCard },
-      { id: 'settings',  label: 'Settings',       path: ROUTES.SETTINGS,   icon: Settings   },
+      { id: 'promotions',    label: 'Promote Salon',    path: ROUTES.PROMOTIONS, icon: Megaphone  },
+      { id: 'subscription',  label: 'My Subscription',  path: ROUTES.BILLING,    icon: Crown      },
+      { id: 'billing',       label: 'Billing & Plan',   path: ROUTES.BILLING,    icon: CreditCard },
+      { id: 'settings',      label: 'Settings',         path: ROUTES.SETTINGS,   icon: Settings   },
     ],
   },
 ];
