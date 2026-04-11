@@ -121,9 +121,9 @@ export default function Register() {
     } finally { setLoading(false); }
   };
 
-  const handleVerifyOtp = async e => {
+  const handleVerifyOtp = async (e, codeOverride) => {
     e?.preventDefault();
-    const code = otp.join("");
+    const code = codeOverride ?? otp.join("");
     if (code.length < 6) { setError("Enter the 6-digit OTP."); return; }
     setError(""); setLoading(true);
     try {
@@ -179,7 +179,8 @@ export default function Register() {
     const digit = val.replace(/\D/g,"").slice(-1);
     const next=[...otp]; next[i]=digit; setOtp(next);
     if (digit && i < 5) otpRefs.current[i+1]?.focus();
-    if (i === 5 && digit && [...next].join("").length === 6) setTimeout(() => handleVerifyOtp(), 80);
+    const fullCode = [...next].join("");
+    if (i === 5 && digit && fullCode.length === 6) setTimeout(() => handleVerifyOtp(null, fullCode), 80);
   };
 
   const inpBgFocus = isDark ? 'rgba(129,140,248,0.1)' : 'rgba(99,102,241,0.05)';
