@@ -576,7 +576,7 @@ function SalonDetails() {
   const nextAvailableSlot = slots.find(s => !blockedSlots.includes(s) && !isPastSlot(bookDate, s)) || null;
 
   return (
-    <div style={{ background: dm.bg, color: dm.fg, minHeight: '100vh', overflowX: 'hidden', transition: 'background .3s,color .3s' }}>
+    <div style={{ background: dm.bg, color: dm.fg, minHeight: '100vh', overflowX: 'hidden', transition: 'background .3s,color .3s', paddingBottom: selectedServices.length > 0 ? 'calc(80px + env(safe-area-inset-bottom, 0px))' : 0 }}>
 
       {/* ════ PAGE CSS ════ */}
       <style>{`
@@ -1087,7 +1087,7 @@ function SalonDetails() {
                 );
               }
 
-              // LIST VIEW
+              // LIST VIEW — Zomato/Zepto style
               return (
                 <div>
                   {sortedEntries.map(([cat, catServices], ci) => {
@@ -1095,33 +1095,38 @@ function SalonDetails() {
                     const CatIcon = CAT_ICON_COMPONENTS[cat] || Sparkles;
                     const recId = getRecommended(catServices);
                     const ordered = recId ? [catServices.find(s => s._id === recId), ...catServices.filter(s => s._id !== recId)] : catServices;
-                    const minPrice = Math.min(...catServices.map(s => s.basePrice || s.price || 0));
                     const toggleCat = () => {
                       setCatClickCounts(prev => ({ ...prev, [cat]: (prev[cat] || 0) + 1 }));
                       setExpandedCats(prev => { const next = new Set(prev); next.delete('__all__'); if (next.has(cat)) next.delete(cat); else next.add(cat); return next; });
                     };
                     return (
-                      <motion.div key={cat} className="lux-svc-cat" initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: Math.min(ci * .05, .3), duration: .5 }}>
-                        <button onClick={toggleCat} className="lux-cat-header w-full text-left" style={{ padding: 'clamp(14px,2vw,22px) 0', transition: 'opacity .2s' }} onMouseEnter={e => e.currentTarget.style.opacity = '.7'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
-                          <div className="lux-cat-left">
-                            <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, background: `${theme.p}18`, border: `1px solid ${theme.p}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <CatIcon style={{ width: 18, height: 18, color: theme.p, strokeWidth: 1.8 }} />
+                      <motion.div key={cat} initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: Math.min(ci * .05, .25), duration: .45 }}
+                        style={{ marginBottom: 4, borderRadius: 16, overflow: 'hidden', border: `1px solid ${dm.b07}`, background: dm.card }}>
+
+                        {/* Category header */}
+                        <button onClick={toggleCat} className="w-full text-left"
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px', background: 'none', border: 'none', cursor: 'pointer', gap: 12 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                            <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: `${theme.p}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <CatIcon style={{ width: 17, height: 17, color: theme.p, strokeWidth: 2 }} />
                             </div>
                             <div style={{ minWidth: 0 }}>
-                              <p className="lux-svc-name" style={{ fontSize: 'clamp(15px,2.2vw,22px)', fontWeight: 800, color: dm.fg, letterSpacing: '-.015em' }}>{cat}</p>
-                              <p className="lux-overline mt-1" style={{ color: dm.fg28 }}>{catServices.length} service{catServices.length !== 1 ? 's' : ''}</p>
+                              <p style={{ fontSize: 15, fontWeight: 800, color: dm.fg, letterSpacing: '-.01em', lineHeight: 1.2 }}>{cat}</p>
+                              <p style={{ fontSize: 11, color: dm.fg35, fontWeight: 500, marginTop: 1 }}>{catServices.length} service{catServices.length !== 1 ? 's' : ''}</p>
                             </div>
                           </div>
-                          <div className="lux-cat-right">
-                            <span style={{ fontSize: 'clamp(12px,1.5vw,15px)', fontWeight: 700, color: theme.p, whiteSpace: 'nowrap' }}>from ₹{minPrice}</span>
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ border: `1px solid ${dm.b12}`, color: dm.fg45, flexShrink: 0 }}>
-                              {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: theme.p }}>from ₹{Math.min(...catServices.map(s => s.basePrice || s.price || 0))}</span>
+                            <div style={{ width: 28, height: 28, borderRadius: '50%', border: `1.5px solid ${dm.b14}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: dm.fg45 }}>
+                              {isOpen ? <ChevronUp style={{ width: 14, height: 14 }} /> : <ChevronDown style={{ width: 14, height: 14 }} />}
                             </div>
                           </div>
                         </button>
+
+                        {/* Service rows */}
                         <AnimatePresence>
                           {isOpen && (
-                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: .32 }} style={{ overflow: 'hidden', paddingBottom: 16 }}>
+                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: .28 }} style={{ overflow: 'hidden' }}>
                               {ordered.map((s, svcIdx) => {
                                 if (!s) return null;
                                 const isSel = selectedServices.some(x => x._id === s._id);
@@ -1130,67 +1135,101 @@ function SalonDetails() {
                                 const svcImgSrc = getServiceImage(s);
                                 const isFav = favServices.includes(s._id);
                                 const price = s.basePrice || s.price || 0;
-                                const mrp = Math.round(price * 1.12);
-                                const saveAmt = bestOffer && totalPrice > 0 && bestOffer.discountType === 'percentage'
-                                  ? Math.round(price * bestOffer.discountValue / 100)
-                                  : null;
+                                const isFast = (s.duration || 0) > 0 && (s.duration || 0) <= 20;
+                                const isTopBooked = topBookingCount > 0 && s.bookingCount === topBookingCount;
                                 return (
-                                  <div key={s._id} className="lux-svc-row" onClick={() => toggleService(s)}
-                                    style={{
-                                      paddingLeft: isSel ? 8 : 0,
-                                      borderLeft: isSel ? `3px solid ${theme.p}` : '3px solid transparent',
-                                      background: isSel ? `${theme.p}0d` : isRec ? `${theme.p}05` : 'transparent',
-                                      boxShadow: isRec && !isSel ? `inset 0 0 0 1px ${theme.p}30` : 'none',
-                                    }}>
-                                    {svcImgSrc && (
-                                      <img src={svcImgSrc} alt={s.name} loading={svcIdx < 4 ? 'eager' : 'lazy'}
-                                        style={{ width: 'clamp(40px,11vw,52px)', height: 'clamp(40px,11vw,52px)', borderRadius: 10, objectFit: 'cover', flexShrink: 0, background: dm.b05, opacity: 0, transition: 'opacity 0.15s ease', boxShadow: '0 1px 4px rgba(0,0,0,0.12)' }}
-                                        onLoad={(e) => { e.currentTarget.style.opacity = '1'; }}
-                                        onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                                    )}
-                                    <div className="flex-1 min-w-0">
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 3 }}>
-                                        <span style={{ fontSize: 'clamp(14px,1.6vw,17px)', fontWeight: 700, color: dm.fg }}>{s.name}</span>
-                                        {isRec && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: `${theme.p}18`, color: theme.p }}>⭐ Recommended</span>}
-                                        {badge && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: badge === 'Popular' ? `${theme.p}18` : badge === 'Premium' ? 'rgba(124,58,237,.18)' : badge === 'Best Value' ? 'rgba(5,150,105,.18)' : 'rgba(8,145,178,.18)', color: badge === 'Popular' ? theme.p : badge === 'Premium' ? '#7c3aed' : badge === 'Best Value' ? '#059669' : '#0891b2' }}>{badge}</span>}
-                                      </div>
-                                      {(s.bookingCount||0) > 0 && (
-                                        <p style={{ fontSize: 11, color: dm.fg38, marginBottom: 2 }}>⭐ 4.{5 + ((s.bookingCount||0) % 4 > 3 ? 3 : (s.bookingCount||0) % 4)} · {s.bookingCount}+ booked</p>
+                                  <div key={s._id}
+                                    style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '16px 18px', borderTop: `1px solid ${dm.b06}`, cursor: 'pointer', transition: 'background .15s', background: isSel ? `${theme.p}08` : 'transparent', position: 'relative' }}
+                                    onClick={() => toggleService(s)}
+                                    onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = dm.b04; }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = isSel ? `${theme.p}08` : 'transparent'; }}>
+
+                                    {/* Left accent bar when selected */}
+                                    {isSel && <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: theme.p, borderRadius: '0 2px 2px 0' }} />}
+
+                                    {/* Text content */}
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      {/* Badges row */}
+                                      {(isRec || badge || isFast || isTopBooked) && (
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 6 }}>
+                                          {isRec && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: `${theme.p}20`, color: theme.p }}>⭐ Recommended</span>}
+                                          {badge && !isRec && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4,
+                                            background: badge === 'Popular' ? `${theme.p}15` : badge === 'Premium' ? 'rgba(124,58,237,.15)' : badge === 'Best Value' ? 'rgba(5,150,105,.15)' : 'rgba(8,145,178,.15)',
+                                            color: badge === 'Popular' ? theme.p : badge === 'Premium' ? '#7c3aed' : badge === 'Best Value' ? '#059669' : '#0891b2' }}>{badge}</span>}
+                                          {isFast && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: 'rgba(6,182,212,.12)', color: '#06b6d4' }}>⚡ Quick</span>}
+                                          {isTopBooked && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: 'rgba(217,119,6,.12)', color: '#d97706' }}>🏆 #1 Choice</span>}
+                                        </div>
                                       )}
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                                        {(s.duration||0) > 0 && (s.duration||0) < 20 && <span style={{ fontSize: 10, color: '#0891b2' }}>⚡ Fast</span>}
-                                        {topBookingCount > 0 && s.bookingCount === topBookingCount && <span style={{ fontSize: 10, color: '#d97706' }}>🏆 Most chosen</span>}
+
+                                      {/* Name */}
+                                      <p style={{ fontSize: 15, fontWeight: 700, color: dm.fg, lineHeight: 1.3, marginBottom: 5 }}>{s.name}</p>
+
+                                      {/* Rating + duration row */}
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                                        {(s.bookingCount || 0) > 0 && (
+                                          <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, fontWeight: 600, color: '#22c55e' }}>
+                                            <span style={{ fontSize: 10 }}>★</span>
+                                            4.{5 + Math.min((s.bookingCount || 0) % 4, 3)}
+                                            <span style={{ color: dm.fg35, fontWeight: 400 }}>({s.bookingCount}+)</span>
+                                          </span>
+                                        )}
+                                        {s.duration > 0 && (
+                                          <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: dm.fg40 }}>
+                                            <span>⏱</span> {s.duration} min
+                                          </span>
+                                        )}
+                                        {s.applicableFor?.length === 1 && (
+                                          <span style={{ fontSize: 11, color: dm.fg35 }}>{s.applicableFor[0] === 'male' ? '♂ Men' : '♀ Women'}</span>
+                                        )}
                                       </div>
-                                      <p style={{ fontSize: 11, color: dm.fg25, marginTop: 2 }}>
-                                        {s.duration ? `${s.duration} min` : ''}
-                                        {s.applicableFor?.length === 1 && ` · ${s.applicableFor[0] === 'male' ? 'Men' : 'Women'}`}
-                                      </p>
-                                      {isSel && nextAvailableSlot && (
-                                        <p style={{ fontSize: 11, color: theme.p, marginTop: 2, fontWeight: 600 }}>Next slot: {nextAvailableSlot}</p>
+
+                                      {/* Description if exists */}
+                                      {s.description && (
+                                        <p style={{ fontSize: 12, color: dm.fg35, lineHeight: 1.5, marginBottom: 8, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{s.description}</p>
                                       )}
+
+                                      {/* Price row */}
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <span style={{ fontSize: 16, fontWeight: 800, color: dm.fg, letterSpacing: '-.02em' }}>₹{price}</span>
+                                        {isSel && nextAvailableSlot && (
+                                          <span style={{ fontSize: 11, color: theme.p, fontWeight: 600 }}>· Next: {nextAvailableSlot}</span>
+                                        )}
+                                      </div>
                                     </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5, flexShrink: 0 }}>
-                                      <div style={{ textAlign: 'right' }}>
-                                        <span style={{ fontSize: 11, color: dm.fg28, textDecoration: 'line-through', display: 'block' }}>₹{mrp}</span>
-                                        <span style={{ fontSize: 'clamp(14px,2vw,21px)', fontWeight: 900, color: dm.fg, letterSpacing: '-.025em' }}>₹{price}</span>
-                                        {saveAmt > 0 && <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 3, background: 'rgba(16,185,129,.15)', color: '#10b981', display: 'block' }}>Save ₹{saveAmt}</span>}
+
+                                    {/* Right: image + ADD button */}
+                                    <div style={{ flexShrink: 0, position: 'relative', width: 96, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                                      {/* Fav button */}
+                                      <button
+                                        style={{ position: 'absolute', top: 4, right: 4, zIndex: 2, width: 24, height: 24, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.35)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                        onClick={e => { e.stopPropagation(); toggleFav(s._id)(e); }}>
+                                        <Heart style={{ width: 11, height: 11, color: isFav ? '#f43f5e' : '#fff', fill: isFav ? '#f43f5e' : 'none' }} />
+                                      </button>
+
+                                      {/* Image */}
+                                      <div style={{ width: 96, height: 86, borderRadius: 12, overflow: 'hidden', background: `linear-gradient(135deg,${theme.p}15,${theme.p}05)`, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${dm.b08}` }}>
+                                        {svcImgSrc
+                                          ? <img src={svcImgSrc} alt={s.name} loading={svcIdx < 4 ? 'eager' : 'lazy'}
+                                              style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0, transition: 'opacity .2s' }}
+                                              onLoad={e => { e.currentTarget.style.opacity = '1'; }}
+                                              onError={e => { e.currentTarget.parentNode.style.background = `linear-gradient(135deg,${theme.p}12,${theme.p}04)`; e.currentTarget.style.display = 'none'; }} />
+                                          : <CatIcon style={{ width: 26, height: 26, color: theme.p, opacity: .45 }} />
+                                        }
                                       </div>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                                        <button onClick={toggleFav(s._id)} style={{ width: 28, height: 28, borderRadius: '50%', border: `1px solid ${isFav ? '#f43f5e' : dm.b14}`, background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                          <Heart style={{ width: 12, height: 12, color: isFav ? '#f43f5e' : dm.fg35, fill: isFav ? '#f43f5e' : 'none' }} />
-                                        </button>
-                                        <motion.button whileTap={{ scale: .88 }} onClick={e => { e.stopPropagation(); toggleService(s); }}
-                                          className="w-9 h-9 rounded-full flex items-center justify-center"
-                                          style={isSel ? { background: theme.p, border: `1px solid ${theme.p}`, color: '#fff' } : { background: 'transparent', border: `1px solid ${dm.b20}`, color: dm.fg55 }}>
-                                          {isSel ? <Check className="w-4 h-4" /> : <span style={{ fontSize: 20, lineHeight: 1 }}>+</span>}
-                                        </motion.button>
-                                      </div>
-                                      {isRec && (
-                                        <button onClick={e => { e.stopPropagation(); if (!isSel) toggleService(s); openBooking(); }}
-                                          style={{ fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 4, background: theme.p, color: '#fff', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                                          Add &amp; Book →
-                                        </button>
-                                      )}
+
+                                      {/* ADD / ✓ button */}
+                                      <motion.button whileTap={{ scale: .88 }}
+                                        onClick={e => { e.stopPropagation(); toggleService(s); }}
+                                        style={{
+                                          width: 80, height: 32, borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: 13, letterSpacing: '.02em',
+                                          background: isSel ? theme.p : dm.card,
+                                          color: isSel ? '#fff' : theme.p,
+                                          boxShadow: isSel ? `0 2px 12px ${theme.p}40` : `0 0 0 1.5px ${theme.p}`,
+                                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                                          transition: 'all .18s',
+                                        }}>
+                                        {isSel ? <><Check style={{ width: 13, height: 13 }} /> ADDED</> : '+ ADD'}
+                                      </motion.button>
                                     </div>
                                   </div>
                                 );
@@ -1505,7 +1544,7 @@ function SalonDetails() {
             initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 340, damping: 32 }}
             className="fixed bottom-0 left-0 right-0 z-40 md:bottom-4 md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-2xl md:rounded-2xl overflow-hidden"
-            style={{ background: dm.barBg, borderTop: `1px solid ${theme.p}22`, boxShadow: `0 -12px 48px rgba(0,0,0,.55),0 0 0 1px ${theme.p}12`, transition: 'background .3s' }}>
+            style={{ background: dm.barBg, borderTop: `1px solid ${theme.p}22`, boxShadow: `0 -12px 48px rgba(0,0,0,.55),0 0 0 1px ${theme.p}12`, transition: 'background .3s', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
 
             {/* Combo suggestions row — only when present */}
             <AnimatePresence>
