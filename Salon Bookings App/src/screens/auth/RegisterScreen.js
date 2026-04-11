@@ -21,7 +21,6 @@ export default function RegisterScreen({ navigation }) {
   const [otp, setOtp]                   = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading]           = useState(false);
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const confirmationRef                 = useRef(null);
 
   const normalizePhone = (p) => {
@@ -47,10 +46,6 @@ export default function RegisterScreen({ navigation }) {
       return;
     }
     if (password !== confirmPassword) { showError('Error', 'Passwords do not match'); return; }
-    if (!agreedToTerms) {
-      showError('Terms Required', 'Please accept the Terms & Conditions and Privacy Policy to continue.');
-      return;
-    }
 
     setLoading(true);
     try {
@@ -107,12 +102,30 @@ export default function RegisterScreen({ navigation }) {
         <View style={styles.card}>
           {step === 1 ? (
             <>
-              <Text style={styles.cardTitle}>Register</Text>
-              <Text style={styles.cardSubtitle}>Fill in your details to get started</Text>
+              <Text style={styles.cardTitle}>Create Account</Text>
+              <Text style={styles.cardSubtitle}>Create your account in seconds</Text>
+
+              {/* Phone */}
+              <View style={styles.field}>
+                <Text style={[styles.label, { fontSize: 14, fontWeight: '700', color: '#111827' }]}>Phone Number</Text>
+                <View style={styles.inputRow}>
+                  <Ionicons name="call-outline" size={18} color="#6b7280" style={styles.inputIcon} />
+                  <TextInput
+                    style={[styles.input, { fontSize: 16, height: 52 }]}
+                    placeholder="+91 98765 43210"
+                    placeholderTextColor="#9ca3af"
+                    keyboardType="phone-pad"
+                    value={phone}
+                    onChangeText={setPhone}
+                    editable={!loading}
+                    autoCapitalize="none"
+                  />
+                </View>
+              </View>
 
               {/* Full Name */}
               <View style={styles.field}>
-                <Text style={styles.label}>Full Name</Text>
+                <Text style={[styles.label, { fontSize: 12, color: '#9ca3af' }]}>Full Name</Text>
                 <View style={styles.inputRow}>
                   <Ionicons name="person-outline" size={18} color="#6b7280" style={styles.inputIcon} />
                   <TextInput
@@ -123,24 +136,6 @@ export default function RegisterScreen({ navigation }) {
                     onChangeText={setName}
                     editable={!loading}
                     autoCapitalize="words"
-                  />
-                </View>
-              </View>
-
-              {/* Phone */}
-              <View style={styles.field}>
-                <Text style={styles.label}>Phone Number</Text>
-                <View style={styles.inputRow}>
-                  <Ionicons name="call-outline" size={18} color="#6b7280" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="+91 98765 43210"
-                    placeholderTextColor="#9ca3af"
-                    keyboardType="phone-pad"
-                    value={phone}
-                    onChangeText={setPhone}
-                    editable={!loading}
-                    autoCapitalize="none"
                   />
                 </View>
               </View>
@@ -211,32 +206,26 @@ export default function RegisterScreen({ navigation }) {
                 <Text style={styles.hintText}>Password: 8+ chars with uppercase, lowercase, number & special character</Text>
               </View>
 
-              {/* Terms Agreement */}
-              <TouchableOpacity
-                style={styles.termsRow}
-                onPress={() => setAgreedToTerms(!agreedToTerms)}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
-                  {agreedToTerms && <Ionicons name="checkmark" size={13} color="#fff" />}
-                </View>
-                <Text style={styles.termsText}>
-                  I agree to the{' '}
-                  <Text style={styles.termsLink} onPress={() => Linking.openURL('https://mysalonbookings.com/legal/customer-terms')}>
-                    Terms & Conditions
-                  </Text>
-                  {' '}and{' '}
-                  <Text style={styles.termsLink} onPress={() => Linking.openURL('https://mysalonbookings.com/legal/customer-privacy')}>
-                    Privacy Policy
-                  </Text>
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={[styles.btn, (loading || !agreedToTerms) && styles.btnDisabled]} onPress={handleSendOtp} disabled={loading || !agreedToTerms}>
+              <TouchableOpacity style={[styles.btn, loading && styles.btnDisabled]} onPress={handleSendOtp} disabled={loading} activeOpacity={0.85}>
                 {loading ? <ActivityIndicator color="#fff" /> : (
-                  <><Ionicons name="phone-portrait-outline" size={18} color="#fff" /><Text style={styles.btnText}>Send OTP via SMS</Text></>
+                  <Text style={styles.btnText}>Continue</Text>
                 )}
               </TouchableOpacity>
+
+              <Text style={styles.termsText}>
+                By continuing, you agree to our{' '}
+                <Text style={styles.termsLink} onPress={() => Linking.openURL('https://mysalonbookings.com/legal/customer-terms')}>
+                  Terms
+                </Text>
+                {' '}&amp;{' '}
+                <Text style={styles.termsLink} onPress={() => Linking.openURL('https://mysalonbookings.com/legal/customer-privacy')}>
+                  Privacy Policy
+                </Text>
+              </Text>
+
+              <Text style={styles.trustSignal}>
+                Takes less than 10 seconds · No password required at this step
+              </Text>
             </>
           ) : (
             <>
@@ -339,6 +328,7 @@ const styles = StyleSheet.create({
   termsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 14 },
   checkbox: { width: 20, height: 20, borderRadius: 5, borderWidth: 2, borderColor: '#d1d5db', alignItems: 'center', justifyContent: 'center', marginTop: 1, flexShrink: 0 },
   checkboxChecked: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
-  termsText: { flex: 1, fontSize: 13, color: '#4b5563', lineHeight: 20 },
-  termsLink: { color: '#2563eb', fontWeight: '600', textDecorationLine: 'underline' },
+  termsText: { fontSize: 12, color: '#9ca3af', lineHeight: 18, textAlign: 'center', marginTop: 8 },
+  termsLink: { color: '#2563eb', fontWeight: '600' },
+  trustSignal: { fontSize: 12, color: '#9ca3af', textAlign: 'center', marginTop: 4, lineHeight: 18 },
 });
