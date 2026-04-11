@@ -884,6 +884,21 @@ export default function Reels() {
 
   /* ── geolocation on mount ── */
   useEffect(() => {
+    const fallbackToIp = async () => {
+      try {
+        const res = await fetch('https://ipapi.co/json/');
+        const data = await res.json();
+        if (data.latitude && data.longitude) {
+          const c = { lat: data.latitude, lng: data.longitude };
+          setCoords(c);
+          fetchReels('nearest', 'all', c);
+          return;
+        }
+      } catch {}
+      setMode('all');
+      fetchReels('all', 'all', null);
+    };
+
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         p => {
@@ -891,15 +906,11 @@ export default function Reels() {
           setCoords(c);
           fetchReels('nearest', 'all', c);
         },
-        () => {
-          setMode('all');
-          fetchReels('all', 'all', null);
-        },
+        () => fallbackToIp(),
         { timeout: 6000 }
       );
     } else {
-      setMode('all');
-      fetchReels('all', 'all', null);
+      fallbackToIp();
     }
   }, [fetchReels]);
 
