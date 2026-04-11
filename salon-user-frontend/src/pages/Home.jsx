@@ -934,19 +934,19 @@ export default function Home() {
           SALON GRID
       ══════════════════════════════════════════════════════════ */}
       {(!locDenied || isSearchActive) && (
-        <section id="salon-grid" style={{ maxWidth:1280, margin:"0 auto", padding:"40px 20px 80px" }}>
+        <section id="salon-grid" style={{ maxWidth:1280, margin:"0 auto", padding:"clamp(20px,4vw,40px) 16px 80px" }}>
 
           {/* Section header */}
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:28, gap:8, flexWrap:"wrap" }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"clamp(14px,3vw,28px)", gap:8, flexWrap:"wrap" }}>
             <div>
-              <p style={{ fontSize:11,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"var(--t-accent)",marginBottom:6 }}>
+              <p style={{ fontSize:11,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"var(--t-accent)",marginBottom:4 }}>
                 {sort === "rated" ? "Best in Class" : sort === "booked" ? "Most Popular" : "Near You"}
               </p>
-              <h2 style={{ fontSize:"clamp(24px,3.5vw,32px)",fontWeight:800,color:"var(--t-text)",letterSpacing:"-0.03em",margin:0 }}>
+              <h2 style={{ fontSize:"clamp(17px,3.5vw,30px)",fontWeight:800,color:"var(--t-text)",letterSpacing:"-0.02em",margin:0 }}>
                 {sectionTitle}
               </h2>
               {!loading && (
-                <p style={{ fontSize:13,color:"var(--t-text-3)",marginTop:6 }}>
+                <p style={{ fontSize:12,color:"var(--t-text-3)",marginTop:4 }}>
                   {salons.length} salon{salons.length !== 1 ? "s" : ""}{openNow ? " · open now" : ""}
                 </p>
               )}
