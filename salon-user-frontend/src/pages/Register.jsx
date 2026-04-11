@@ -4,6 +4,7 @@ import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import { auth } from "../config/firebase";
 import API from "../services/api";
 import { useTheme } from "../context/ThemeContext";
+import confetti from "canvas-confetti";
 
 const CSS = `
   @keyframes rg-float1{0%,100%{transform:translateY(0px) rotate(0deg);}50%{transform:translateY(-16px) rotate(2deg);}}
@@ -35,23 +36,6 @@ const BENEFITS = [
   { icon: "🏅", title: "Verified salons",      sub: "Genuine reviews only" },
 ];
 
-const STEP_META = [
-  { num: 1, label: "Your Info"  },
-  { num: 2, label: "Verify OTP" },
-  { num: 3, label: "Password"   },
-];
-
-function pwStrength(pw) {
-  if (!pw) return 0;
-  let s = 0;
-  if (pw.length >= 6) s++;
-  if (pw.length >= 8) s++;
-  if (/[A-Z]/.test(pw) || /[0-9]/.test(pw)) s++;
-  if (/[^a-zA-Z0-9]/.test(pw) || pw.length >= 10) s++;
-  return s;
-}
-const STRENGTH_LABEL = ["", "Weak", "Fair", "Good", "Strong"];
-const STRENGTH_COLOR = ["", "#ef4444", "#f59e0b", "#3b82f6", "#22c55e"];
 
 /* SVG icons */
 const UserIcon = ({ color }) => (
@@ -62,21 +46,6 @@ const UserIcon = ({ color }) => (
 const PhoneIcon = ({ color }) => (
   <svg width={16} height={16} fill="none" viewBox="0 0 24 24" stroke={color} strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-  </svg>
-);
-const LockIcon = ({ color }) => (
-  <svg width={16} height={16} fill="none" viewBox="0 0 24 24" stroke={color} strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-  </svg>
-);
-const EyeIcon = ({ open, color }) => open ? (
-  <svg width={16} height={16} fill="none" viewBox="0 0 24 24" stroke={color} strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-  </svg>
-) : (
-  <svg width={16} height={16} fill="none" viewBox="0 0 24 24" stroke={color} strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
   </svg>
 );
 
@@ -92,18 +61,18 @@ export default function Register() {
   const [phone, setPhone]         = useState("");
   const [gender, setGender]       = useState("");
   const [otp, setOtp]             = useState(["","","","","",""]);
-  const [password, setPassword]   = useState("");
-  const [showPass, setShowPass]   = useState(false);
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState("");
   const [otpTimer, setOtpTimer]   = useState(0);
   const [focusedField, setFocusedField]   = useState(null);
   const [genderSaving, setGenderSaving]   = useState(false);
 
-  const otpRefs         = useRef([]);
-  const recaptchaRef    = useRef(null);
-  const confirmationRef = useRef(null);
+  const otpRefs          = useRef([]);
+  const recaptchaRef     = useRef(null);
+  const confirmationRef  = useRef(null);
   const firebaseTokenRef = useRef("");
+  const phoneRef         = useRef(null);
+  const nameRef          = useRef(null);
 
   useEffect(() => {
     if (otpTimer <= 0) return;
@@ -112,7 +81,9 @@ export default function Register() {
   }, [otpTimer]);
 
   useEffect(() => {
+    if (step === 1) setTimeout(() => phoneRef.current?.focus(), 100);
     if (step === 2) setTimeout(() => otpRefs.current[0]?.focus(), 120);
+    if (step === 3) setTimeout(() => nameRef.current?.focus(), 120);
   }, [step]);
 
   const normalizePhone = p => {
@@ -136,7 +107,7 @@ export default function Register() {
 
   const handleSendOtp = async e => {
     e?.preventDefault();
-    if (!name.trim() || !phone.trim()) { setError("Please fill all required fields."); return; }
+    if (!phone.trim()) { setError("Please enter your phone number."); return; }
     if (!validatePhone(phone)) { setError("Enter a valid 10-digit Indian mobile number."); return; }
     setError(""); setLoading(true);
     try {
@@ -159,24 +130,27 @@ export default function Register() {
       const result = await confirmationRef.current.confirm(code);
       firebaseTokenRef.current = await result.user.getIdToken();
       setStep(3);
+      try { confetti({ particleCount: 55, spread: 75, origin: { y: 0.65 }, colors: ['#6366f1','#8b5cf6','#a78bfa','#c4b5fd'] }); } catch {}
     } catch (err) {
       setError(err.message || "Invalid OTP. Please try again.");
     } finally { setLoading(false); }
   };
 
-  const handleRegister = async e => {
-    e.preventDefault();
-    if (!/^(?=.*[a-zA-Z])(?=.*\d).{6,}$/.test(password)) {
-      setError("Password must be at least 6 characters with letters and numbers.");
-      return;
-    }
+  const handleNameSubmit = async () => {
     setError(""); setLoading(true);
+    const finalName = name.trim().length >= 2 ? name.trim() : "User";
+    const randomPass = ((typeof crypto !== "undefined" && crypto.randomUUID?.()) ?? Math.random().toString(36).slice(-10))
+      .replace(/-/g, "").slice(0, 10) + "Aa1!";
     try {
       const res = await API.post("/customer/auth/firebase-register", {
-        firebaseToken: firebaseTokenRef.current, name, password,
+        firebaseToken: firebaseTokenRef.current,
+        name: finalName,
+        password: randomPass,
       });
       const token = res.data.data?.token || res.data.token;
       if (token) localStorage.setItem("customerToken", token);
+      try { confetti({ particleCount: 100, spread: 90, origin: { y: 0.6 }, colors: ['#6366f1','#8b5cf6','#22c55e','#a78bfa'] }); } catch {}
+      setTimeout(() => { try { confetti({ particleCount: 40, spread: 55, origin: { y: 0.5, x: 0.2 }, colors: ['#f59e0b','#8b5cf6'] }); } catch {} }, 250);
       setStep(4);
     } catch (err) {
       setError(err.response?.data?.message || err.message || "Registration failed.");
@@ -222,7 +196,6 @@ export default function Register() {
     fontFamily:"inherit",
   });
 
-  const strength = pwStrength(password);
   const leftBg = isDark
     ? "linear-gradient(145deg,#111827 0%,#1f2937 40%,#1f2937 70%,#111827 100%)"
     : "linear-gradient(135deg,#312e81 0%,#4f46e5 35%,#8b5cf6 65%,#6d28d9 100%)";
@@ -277,7 +250,7 @@ export default function Register() {
                 ))}
               </div>
               <span style={{ fontSize:13, color:"rgba(255,255,255,0.75)", fontWeight:500 }}>
-                Step {step} of 3 — {STEP_META[step-1].label}
+                {step === 1 ? "Enter your phone" : step === 2 ? "Verify your number" : step === 3 ? "Almost there" : "Personalize"}
               </span>
             </div>
           </div>
@@ -325,18 +298,11 @@ export default function Register() {
                   <label style={{ display:"block", fontSize:14, fontWeight:700, color:theme.text, marginBottom:8 }}>Phone Number</label>
                   <div className="rg-inp-wrap">
                     <span className="rg-inp-icon"><PhoneIcon color={focusedField==="phone"?theme.accent:theme.placeholder} /></span>
-                    <input type="tel" placeholder="9876543210" value={phone} onChange={e => setPhone(e.target.value)}
+                    <input ref={phoneRef} type="tel" placeholder="9876543210" value={phone}
+                      onChange={e => setPhone(e.target.value.replace(/\D/g,"").slice(0,10))}
+                      maxLength={10}
                       style={{ ...inp("phone",true), height:60, fontSize:16, boxShadow: focusedField==="phone" ? "0 0 0 5px rgba(99,102,241,0.18)" : "none" }}
                       onFocus={() => setFocusedField("phone")} onBlur={() => setFocusedField(null)} required />
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ display:"block", fontSize:12, fontWeight:600, color:theme.placeholder, marginBottom:8 }}>Full Name</label>
-                  <div className="rg-inp-wrap">
-                    <span className="rg-inp-icon"><UserIcon color={focusedField==="name"?theme.accent:theme.placeholder} /></span>
-                    <input type="text" placeholder="John Doe" value={name} onChange={e => setName(e.target.value)}
-                      style={inp("name",true)} onFocus={() => setFocusedField("name")} onBlur={() => setFocusedField(null)} required />
                   </div>
                 </div>
 
@@ -401,10 +367,12 @@ export default function Register() {
                     background:otp.join("").length<6?"rgba(99,102,241,0.4)":"linear-gradient(135deg,#6366f1,#8b5cf6)",
                     color:"#fff", fontSize:15, fontWeight:700,
                     boxShadow:otp.join("").length===6?"0 0 32px rgba(99,102,241,0.4)":"none",
-                    transition:"all 0.22s ease", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
+                    transition:"all 0.22s ease", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}
+                  onMouseDown={e => { if (!loading && otp.join("").length===6) e.currentTarget.style.transform="scale(0.97)"; }}
+                  onMouseUp={e => { e.currentTarget.style.transform="scale(1)"; }}>
                   {loading ? (
                     <><span className="rg-spin" style={{ width:18, height:18, border:"2.5px solid rgba(255,255,255,0.3)", borderTopColor:"#fff", borderRadius:"50%", display:"block" }} /> Verifying…</>
-                  ) : "Verify OTP →"}
+                  ) : "Verify & Continue"}
                 </button>
 
                 <div style={{ display:"flex", flexDirection:"column", gap:10, alignItems:"center" }}>
@@ -424,51 +392,50 @@ export default function Register() {
               </form>
             )}
 
-            {/* ── STEP 3 ── */}
+            {/* ── STEP 3 — Name ── */}
             {step === 3 && (
-              <form key="step3" className="rg-slide" onSubmit={handleRegister} style={{ display:"flex", flexDirection:"column", gap:20 }}>
+              <div key="step3" className="rg-slide" style={{ display:"flex", flexDirection:"column", gap:20 }}>
+
                 <div style={{ textAlign:"center", padding:"8px 0 4px" }}>
-                  <div style={{ fontSize:42, marginBottom:10 }}>🔐</div>
-                  <p style={{ fontSize:14, color:theme.subText }}>Almost done! Set a secure password.</p>
+                  <div style={{ fontSize:42, marginBottom:12 }}>🎉</div>
+                  <h3 style={{ fontSize:22, fontWeight:900, color:theme.text, letterSpacing:"-0.5px", marginBottom:6 }}>
+                    What should we call you?
+                  </h3>
+                  <p style={{ fontSize:14, color:theme.placeholder }}>You can always update this later</p>
                 </div>
 
                 <div>
-                  <label style={{ display:"block", fontSize:13, fontWeight:600, color:theme.subText, marginBottom:8 }}>Create Password</label>
+                  <label style={{ display:"block", fontSize:13, fontWeight:600, color:theme.subText, marginBottom:8 }}>Full Name</label>
                   <div className="rg-inp-wrap">
-                    <span className="rg-inp-icon"><LockIcon color={focusedField==="password"?theme.accent:theme.placeholder} /></span>
-                    <input type={showPass?"text":"password"} placeholder="Min 6 chars with letters & numbers"
-                      value={password} onChange={e => setPassword(e.target.value)}
-                      style={{ ...inp("password",true), paddingRight:44 }}
-                      onFocus={() => setFocusedField("password")} onBlur={() => setFocusedField(null)} required />
-                    <button type="button" className="rg-inp-eye" onClick={() => setShowPass(!showPass)}>
-                      <EyeIcon open={showPass} color={theme.placeholder} />
-                    </button>
+                    <span className="rg-inp-icon"><UserIcon color={focusedField==="name"?theme.accent:theme.placeholder} /></span>
+                    <input ref={nameRef} type="text" placeholder="Your name" value={name} onChange={e => setName(e.target.value)}
+                      style={inp("name",true)}
+                      onFocus={() => setFocusedField("name")} onBlur={() => setFocusedField(null)} />
                   </div>
-                  {password && (
-                    <div style={{ marginTop:10 }}>
-                      <div style={{ display:"flex", gap:5, marginBottom:6 }}>
-                        {[1,2,3,4].map(n => (
-                          <div key={n} style={{ flex:1, height:4, borderRadius:99, transition:"all 0.3s ease", background:strength>=n?STRENGTH_COLOR[strength]:theme.inputBorder }} />
-                        ))}
-                      </div>
-                      <p style={{ fontSize:12, fontWeight:600, color:STRENGTH_COLOR[strength] }}>{STRENGTH_LABEL[strength]}</p>
-                    </div>
-                  )}
                 </div>
 
-                <button type="submit" disabled={loading}
-                  style={{ width:"100%", height:52, borderRadius:14, border:"none", cursor:loading?"not-allowed":"pointer",
-                    background:loading?"rgba(99,102,241,0.5)":"linear-gradient(135deg,#6366f1,#8b5cf6)",
+                <button type="button" onClick={handleNameSubmit} disabled={loading}
+                  style={{ width:"100%", height:56, borderRadius:14, border:"none", cursor:loading?"not-allowed":"pointer",
+                    background:loading?"rgba(99,102,241,0.4)":"linear-gradient(135deg,#6366f1,#8b5cf6)",
                     color:"#fff", fontSize:15, fontWeight:700,
                     boxShadow:loading?"none":"0 0 32px rgba(99,102,241,0.4)",
                     transition:"all 0.22s ease", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}
                   onMouseEnter={e => { if (!loading) { e.currentTarget.style.boxShadow="0 0 48px rgba(99,102,241,0.65)"; e.currentTarget.style.transform="scale(1.02)"; }}}
-                  onMouseLeave={e => { e.currentTarget.style.boxShadow="0 0 32px rgba(99,102,241,0.4)"; e.currentTarget.style.transform="scale(1)"; }}>
-                  {loading ? (
-                    <><span className="rg-spin" style={{ width:18, height:18, border:"2.5px solid rgba(255,255,255,0.3)", borderTopColor:"#fff", borderRadius:"50%", display:"block" }} /> Creating Account…</>
-                  ) : "Create Account ✓"}
+                  onMouseLeave={e => { e.currentTarget.style.boxShadow="0 0 32px rgba(99,102,241,0.4)"; e.currentTarget.style.transform="scale(1)"; }}
+                  onMouseDown={e => { if (!loading) e.currentTarget.style.transform="scale(0.97)"; }}
+                  onMouseUp={e => { if (!loading) e.currentTarget.style.transform="scale(1)"; }}>
+                  {loading
+                    ? <><span className="rg-spin" style={{ width:18, height:18, border:"2.5px solid rgba(255,255,255,0.3)", borderTopColor:"#fff", borderRadius:"50%", display:"block" }} /> Creating Account…</>
+                    : "Continue →"}
                 </button>
-              </form>
+
+                {!name.trim() && (
+                  <button type="button" onClick={handleNameSubmit} disabled={loading}
+                    style={{ background:"none", border:"none", cursor:"pointer", fontSize:13.5, color:theme.placeholder, fontWeight:500, textAlign:"center" }}>
+                    Skip for now
+                  </button>
+                )}
+              </div>
             )}
 
             {/* ── STEP 4 — Gender Onboarding ── */}
