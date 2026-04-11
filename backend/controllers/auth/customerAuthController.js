@@ -263,7 +263,7 @@ exports.firebaseAuth = async (req, res) => {
     }
 
     const phone = firebaseUser.phone.trim();
-    const customer = await Customer.findOne({ phone });
+    const customer = await Customer.findOne({ phone }).select('+isBanned');
 
     // --- EXISTING USER ---
     if (customer) {
@@ -281,7 +281,7 @@ exports.firebaseAuth = async (req, res) => {
         process.env.JWT_REFRESH_SECRET,
         { expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d' }
       );
-      customer.refreshTokens = [...customer.refreshTokens.slice(-4), { token: refreshToken }];
+      customer.refreshTokens = [...(customer.refreshTokens || []).slice(-4), { token: refreshToken }];
       await customer.save();
       console.log('firebase-auth login:', phone.slice(0, 6) + '****');
       return res.status(200).json(
