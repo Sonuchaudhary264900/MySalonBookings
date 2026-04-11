@@ -690,7 +690,7 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
             <IcoPin />
             <span style={{ color: 'rgba(255,255,255,0.60)', fontSize: 12, fontWeight: 500 }}>
-              {locality || reel.salon.city}
+              {[locality, reel.salon.city].filter(Boolean).join(', ') || reel.salon.address}
             </span>
             {distance && (
               <>

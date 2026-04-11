@@ -2191,6 +2191,9 @@ function SalonVideoViewer({ videos, startIdx, salon, onClose, onBook }) {
   // Share
   const [copied, setCopied] = useState(false);
 
+  // Locality
+  const [svvLocality, setSvvLocality] = useState(null);
+
   const videoRef    = useRef(null);
   const feedRef     = useRef(null);
   const stripRef    = useRef(null);
@@ -2204,7 +2207,7 @@ function SalonVideoViewer({ videos, startIdx, salon, onClose, onBook }) {
   const total     = videos.length;
   const salonName = salon?.name || 'Salon';
   const salonLogo = salon?.logo || null;
-  const city      = salon?.city || salon?.address || '';
+  const city      = [svvLocality, salon?.city].filter(Boolean).join(', ') || salon?.address || '';
   const rating    = salon?.averageRating ? parseFloat(salon.averageRating).toFixed(1) : null;
   const salonId   = salon?._id;
   const videoUrl  = videos[idx] || '';
@@ -2217,6 +2220,16 @@ function SalonVideoViewer({ videos, startIdx, salon, onClose, onBook }) {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
   }, []);
+
+  // Reverse geocode salon coordinates
+  useEffect(() => {
+    const coords = salon?.location?.coordinates;
+    if (!coords || coords.length < 2) return;
+    const [lng, lat] = coords;
+    let cancelled = false;
+    reverseGeocode(lat, lng).then(place => { if (!cancelled && place) setSvvLocality(place); });
+    return () => { cancelled = true; };
+  }, [salon?._id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Measure feed height after mount — desktop col is CSS-sized, not 100vh
   useLayoutEffect(() => {

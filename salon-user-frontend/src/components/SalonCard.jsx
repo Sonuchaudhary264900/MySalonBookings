@@ -177,7 +177,7 @@ function SalonCard({ salon, userCoords }) {
   const rating        = parseFloat(salon.averageRating || salon.rating || 0);
   const reviewCount   = salon.totalReviews || salon.reviewCount || 0;
   const totalBookings = salon.totalBookings || 0;
-  const address       = salon.address || [salon.city, salon.state].filter(Boolean).join(", ") || "Location not available";
+  const address       = salon.address || salon.city || "Location not available";
   const hasPhoto      = salon.photos?.[0] || salon.coverPhoto || salon.image;
 
   const isTopRated = rating >= 4.5 && reviewCount >= 10;
@@ -354,7 +354,7 @@ function SalonCard({ salon, userCoords }) {
           <div className="flex items-center justify-between gap-2 mb-2">
             <p className="text-xs flex items-center gap-1 line-clamp-1 flex-1" style={{ color: "var(--t-text-2)" }}>
               <MapPin className="w-3 h-3 shrink-0" style={{ color: "rgba(99,102,241,0.7)" }} />
-              {locality || address}
+              {[locality, salon.city].filter(Boolean).join(', ') || address}
             </p>
             {todayHours && (
               <p className="text-xs flex items-center gap-1 shrink-0" style={{ color: "var(--t-text-3)" }}>
