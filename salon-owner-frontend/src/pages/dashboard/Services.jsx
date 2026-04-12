@@ -119,12 +119,18 @@ const ServiceMenuSection = ({ salon }) => {
     return ai - bi;
   });
 
-  const Chip = ({ sub }) => {
+  const Chip = ({ sub, catName }) => {
     const name  = typeof sub === 'string' ? sub : sub.name;
     const price = typeof sub === 'string' ? null : sub.price;
+    const img   = catName ? getCatImg(catName, salon) : null;
     return (
       <span className="text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700
-        text-gray-600 dark:text-gray-300 px-2.5 py-1 rounded-full flex items-center gap-1.5 font-medium">
+        text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full flex items-center gap-1.5 font-medium">
+        {img && (
+          <span className="w-4 h-4 rounded-full overflow-hidden shrink-0">
+            <img src={img} alt="" className="w-full h-full object-cover" />
+          </span>
+        )}
         {name}
         {price > 0 && <span className="text-indigo-600 dark:text-indigo-400 font-bold">₹{price}</span>}
       </span>
@@ -216,7 +222,7 @@ const ServiceMenuSection = ({ salon }) => {
                       }),
                     })).filter(sec => sec.subs.length > 0);
                     if (!sectionSubs.length) {
-                      return <div className="flex flex-wrap gap-1.5">{subs.map((s,i)=><Chip key={i} sub={s}/>)}</div>;
+                      return <div className="flex flex-wrap gap-1.5">{subs.map((s,i)=><Chip key={i} sub={s} catName={cat.name}/>)}</div>;
                     }
                     return (
                       <div className="space-y-1.5">
@@ -277,14 +283,14 @@ const ServiceMenuSection = ({ salon }) => {
                                         </button>
                                         {isSubOpen && (
                                           <div className="flex flex-wrap gap-1.5 mt-1.5 px-1 pb-1">
-                                            {subSec.subs.map((s,i) => <Chip key={i} sub={s} />)}
+                                            {subSec.subs.map((s,i) => <Chip key={i} sub={s} catName={cat.name} />)}
                                           </div>
                                         )}
                                       </div>
                                     );
                                   }) : (
                                     <div className="flex flex-wrap gap-1.5 px-1 pb-1">
-                                      {sec.subs.map((s,i) => <Chip key={i} sub={s} />)}
+                                      {sec.subs.map((s,i) => <Chip key={i} sub={s} catName={cat.name} />)}
                                     </div>
                                   )}
                                 </div>
@@ -299,18 +305,18 @@ const ServiceMenuSection = ({ salon }) => {
                       {menSubs.length > 0 && (
                         <div>
                           <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1.5">👨 Male</p>
-                          <div className="flex flex-wrap gap-1.5">{menSubs.map((s,i)=><Chip key={i} sub={s}/>)}</div>
+                          <div className="flex flex-wrap gap-1.5">{menSubs.map((s,i)=><Chip key={i} sub={s} catName={cat.name}/>)}</div>
                         </div>
                       )}
                       {womenSubs.length > 0 && (
                         <div>
                           <p className="text-xs font-semibold text-pink-600 dark:text-pink-400 mb-1.5">👩 Female</p>
-                          <div className="flex flex-wrap gap-1.5">{womenSubs.map((s,i)=><Chip key={i} sub={s}/>)}</div>
+                          <div className="flex flex-wrap gap-1.5">{womenSubs.map((s,i)=><Chip key={i} sub={s} catName={cat.name}/>)}</div>
                         </div>
                       )}
                     </div>
                   ) : (
-                    <div className="flex flex-wrap gap-1.5">{subs.map((s,i)=><Chip key={i} sub={s}/>)}</div>
+                    <div className="flex flex-wrap gap-1.5">{subs.map((s,i)=><Chip key={i} sub={s} catName={cat.name}/>)}</div>
                   )}
                 </div>
               )}
