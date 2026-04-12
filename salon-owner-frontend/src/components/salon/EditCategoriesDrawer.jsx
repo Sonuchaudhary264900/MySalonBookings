@@ -5,6 +5,7 @@ import {
   IndianRupee, Clock, ChevronDown, Sparkles, Zap, Users, ChevronRight,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { uploadServicePhoto } from '../../services/salonService';
 import {
   MALE_CATEGORIES, MALE_OPTIONALS,
   FEMALE_CATEGORIES, FEMALE_OPTIONALS,
@@ -28,7 +29,7 @@ const normalizeSubs = (subs, catLabel = null) => {
       if (inMale && !inFemale)      genderContext = 'male';
       else if (inFemale && !inMale) genderContext = 'female';
     }
-    return { name: s.name, price: s.price ?? '', duration: s.duration ?? '', genderContext, ...(s.applicableFor ? { applicableFor: s.applicableFor } : {}) };
+    return { name: s.name, price: s.price ?? '', duration: s.duration ?? '', genderContext, ...(s.applicableFor ? { applicableFor: s.applicableFor } : {}), ...(s.photo ? { photo: s.photo } : {}) };
   });
 };
 
@@ -39,7 +40,7 @@ const buildSelections = (catList, offeredCategories) =>
     return acc;
   }, {});
 
-const EMPTY_MODAL = { open: false, catKey: '', subName: '', price: '', duration: '', genderContext: null };
+const EMPTY_MODAL = { open: false, catKey: '', subName: '', price: '', duration: '', genderContext: null, photoFile: null, photoPreview: '' };
 
 const PRICE_PRESETS  = [99, 149, 199, 249, 299, 499];
 const DUR_PRESETS    = [15, 20, 30, 45, 60, 90];
@@ -86,7 +87,7 @@ const ServiceChip = ({ sub, active, onClick, genderCtx }) => {
 };
 
 /* ─── Price modal ────────────────────────────────────────────── */
-const PriceModal = ({ modal, onChange, onConfirm, onClose, priceRef, durationRef }) => (
+const PriceModal = ({ modal, onChange, onConfirm, onClose, priceRef, durationRef, photoFileInputRef, photoUploading }) => (
   <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center px-4 pb-4 sm:pb-0">
     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
     <div className="relative z-10 w-full max-w-sm animate-[scalein_0.2s_ease_both]">
@@ -174,20 +175,63 @@ const PriceModal = ({ modal, onChange, onConfirm, onClose, priceRef, durationRef
             </div>
           </div>
 
+          {/* Photo (optional) */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+              Photo <span className="font-normal text-gray-400 dark:text-gray-600 normal-case">(optional)</span>
+            </label>
+            {modal.photoPreview ? (
+              <div className="relative w-full rounded-xl overflow-hidden" style={{ height: 96 }}>
+                <img src={modal.photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => onChange({ photoFile: null, photoPreview: '' })}
+                  className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center text-white text-sm font-bold"
+                  style={{ background: 'rgba(0,0,0,0.6)' }}
+                >×</button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => photoFileInputRef.current?.click()}
+                className="w-full flex flex-col items-center justify-center gap-1.5 text-gray-400 hover:text-indigo-500 transition-colors"
+                style={{ height: 76, border: '2px dashed #d1d5db', borderRadius: 10 }}
+              >
+                <span style={{ fontSize: 20 }}>📷</span>
+                <span className="text-xs">Add photo (optional)</span>
+              </button>
+            )}
+            <input
+              ref={photoFileInputRef}
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/webp"
+              className="hidden"
+              onChange={e => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const preview = URL.createObjectURL(file);
+                onChange({ photoFile: file, photoPreview: preview });
+              }}
+            />
+          </div>
+
           {/* Actions */}
           <div className="flex gap-2 pt-1">
-            <button type="button" onClick={onClose}
+            <button type="button" onClick={onClose} disabled={photoUploading}
               className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700
                 text-sm font-medium text-gray-600 dark:text-gray-300
-                hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50">
               Cancel
             </button>
-            <button type="button" onClick={onConfirm}
+            <button type="button" onClick={onConfirm} disabled={photoUploading}
               className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white
                 bg-gradient-to-r from-indigo-600 to-violet-600
                 hover:from-indigo-500 hover:to-violet-500
-                transition-all shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2">
-              <Check className="w-4 h-4" /> Add Service
+                transition-all shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2
+                disabled:opacity-50 disabled:cursor-not-allowed">
+              {photoUploading
+                ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Uploading…</>
+                : <><Check className="w-4 h-4" /> Add Service</>}
             </button>
           </div>
         </div>
@@ -389,11 +433,13 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
   const [gender,          setGender]          = useState(isBarberShop ? 'male' : (salon?.servedGender || ''));
   const [pendingGender,   setPendingGender]   = useState(null);
   const [genderModalOpen, setGenderModalOpen] = useState(false);
-  const [loading,       setLoading]      = useState(false);
-  const [expandedKey,   setExpandedKey]  = useState(null);
-  const [priceModal,    setPriceModal]   = useState(EMPTY_MODAL);
-  const priceRef    = useRef(null);
-  const durationRef = useRef(null);
+  const [loading,         setLoading]        = useState(false);
+  const [expandedKey,     setExpandedKey]    = useState(null);
+  const [priceModal,      setPriceModal]     = useState(EMPTY_MODAL);
+  const [photoUploading,  setPhotoUploading] = useState(false);
+  const priceRef       = useRef(null);
+  const durationRef    = useRef(null);
+  const photoFileRef   = useRef(null);
 
   const [maleSelections,   setMaleSelections]   = useState(() => buildSelections(maleCatList,   salon?.offeredCategories));
   const [femaleSelections, setFemaleSelections] = useState(() => buildSelections(femaleCatList, salon?.offeredCategories));
@@ -455,18 +501,25 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
     }
   };
 
-  const confirmSubPrice = () => {
-    const { catKey, subName, price, duration, genderContext } = priceModal;
+  const confirmSubPrice = async () => {
+    const { catKey, subName, price, duration, genderContext, photoFile } = priceModal;
     if (!price || parseFloat(price) <= 0) { toast.error('Please enter a valid price'); priceRef.current?.focus(); return; }
     if (!duration || parseInt(duration) <= 0) { toast.error('Please enter a valid duration'); durationRef.current?.focus(); return; }
     const applicableFor = genderContext === 'male' ? ['male'] : genderContext === 'female' ? ['female'] : null;
+    let photo = null;
+    if (photoFile) {
+      setPhotoUploading(true);
+      try { photo = await uploadServicePhoto(photoFile); } catch { /* non-blocking */ } finally { setPhotoUploading(false); }
+    }
+    if (priceModal.photoPreview?.startsWith('blob:')) URL.revokeObjectURL(priceModal.photoPreview);
+    if (photoFileRef.current) photoFileRef.current.value = '';
     setSels(prev => ({
       ...prev,
       [catKey]: {
         ...prev[catKey],
         subServices: [
           ...prev[catKey].subServices,
-          { name: subName, price, duration, genderContext, ...(applicableFor ? { applicableFor } : {}) },
+          { name: subName, price, duration, genderContext, ...(applicableFor ? { applicableFor } : {}), ...(photo ? { photo } : {}) },
         ],
       },
     }));
@@ -490,6 +543,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
     const toPayload = (subs) => subs.map(s => ({
       name: s.name, price: parseFloat(s.price) || 0, duration: parseInt(s.duration) || 0,
       ...(s.applicableFor ? { applicableFor: s.applicableFor } : {}),
+      ...(s.photo ? { photo: s.photo } : {}),
     }));
     if (gender === 'male') {
       offeredCategories = maleCatList.filter(c => maleSelections[c.key]?.enabled)
@@ -821,9 +875,11 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
           modal={priceModal}
           onChange={patch => setPriceModal(p => ({ ...p, ...patch }))}
           onConfirm={confirmSubPrice}
-          onClose={() => setPriceModal(EMPTY_MODAL)}
+          onClose={() => { if (priceModal.photoPreview?.startsWith('blob:')) URL.revokeObjectURL(priceModal.photoPreview); setPriceModal(EMPTY_MODAL); }}
           priceRef={priceRef}
           durationRef={durationRef}
+          photoFileInputRef={photoFileRef}
+          photoUploading={photoUploading}
         />
       )}
     </>
