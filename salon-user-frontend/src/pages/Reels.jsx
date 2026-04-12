@@ -23,6 +23,14 @@ function cloudinaryThumb(url) {
     .replace(/\.(mp4|mov|avi|mkv|webm)(\?.*)?$/i, '.jpg');
 }
 
+// Optimize video delivery: auto quality + auto codec (H.264/H.265 based on browser support)
+// Cloudinary generates + caches the optimized version on first request.
+function optimizeVideoUrl(url) {
+  if (!url || !url.includes('/video/upload/')) return url;
+  if (url.includes('q_auto') || url.includes('vc_auto')) return url; // already optimized
+  return url.replace('/video/upload/', '/video/upload/q_auto:good,vc_auto/');
+}
+
 function getSessionId() {
   let id = localStorage.getItem('reelSessionId');
   if (!id) {
@@ -571,7 +579,7 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
       {/* Video */}
       <video
         ref={videoRef}
-        src={reel.videoUrl}
+        src={optimizeVideoUrl(reel.videoUrl)}
         poster={cloudinaryThumb(reel.videoUrl)}
         className={`reel-video${videoTapPulse ? ' reel-video-tap' : ''}`}
         loop playsInline preload="none"

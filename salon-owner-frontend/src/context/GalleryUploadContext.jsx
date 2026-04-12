@@ -80,8 +80,12 @@ const uploadToCloudinary = (file, sig, onProgress, xhrRef) =>
     fd.append('timestamp', sig.timestamp);
     fd.append('signature', sig.signature);
     fd.append('folder',    sig.folder);
-    // Do NOT send max_bytes — it is not a Cloudinary upload API param and was causing
-    // "Invalid Signature" errors (backend was including it in the signed params).
+    // For video uploads: ask Cloudinary to use auto quality + auto codec.
+    // These are unsigned params — safe to add without re-signing.
+    if (sig.resource_type === 'video') {
+      fd.append('quality',     'auto:good');
+      fd.append('video_codec', 'auto');
+    }
 
     const xhr = new XMLHttpRequest();
     if (xhrRef) xhrRef.current = xhr; // expose so caller can abort

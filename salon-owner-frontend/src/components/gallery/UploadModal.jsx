@@ -5,7 +5,7 @@ const ACCEPT_IMAGE = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
 const ACCEPT_VIDEO = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/x-matroska', 'video/3gpp', 'video/3gpp2', 'video/mpeg', 'video/ogg'];
 
 export const MAX_IMAGE_MB      = 10;
-export const MAX_VIDEO_MB      = 100;
+export const MAX_VIDEO_MB      = 200;
 export const MAX_VIDEO_SECONDS = 90;
 
 const REEL_CATEGORIES = [
