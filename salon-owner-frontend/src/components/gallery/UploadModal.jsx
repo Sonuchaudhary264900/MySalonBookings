@@ -243,7 +243,8 @@ const GENDER_OPTIONS = [
 ];
 
 const VideoDetailsStep = ({ videoItem, onBack, onUpload, servedGender, offeredCategories = [] }) => {
-  const [caption,      setCaption]      = useState('');
+  const [caption,           setCaption]           = useState('');
+  const [showVideoPreview,  setShowVideoPreview]  = useState(false);
   const [targetGender, setTargetGender] = useState(
     servedGender === 'male' ? 'male' : servedGender === 'female' ? 'female' : ''
   );
@@ -295,16 +296,50 @@ const VideoDetailsStep = ({ videoItem, onBack, onUpload, servedGender, offeredCa
 
       <div className="flex-1 overflow-y-auto p-5 space-y-5">
 
+        {/* Full-screen video preview overlay */}
+        {showVideoPreview && (
+          <div
+            className="fixed inset-0 z-[999] flex items-center justify-center bg-black/90"
+            onClick={() => setShowVideoPreview(false)}
+          >
+            <video
+              src={URL.createObjectURL(videoItem.file)}
+              autoPlay
+              controls
+              playsInline
+              className="max-w-full max-h-full rounded-xl"
+              style={{ maxHeight: '90vh', maxWidth: '90vw' }}
+              onClick={e => e.stopPropagation()}
+            />
+            <button
+              onClick={() => setShowVideoPreview(false)}
+              className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        )}
+
         {/* Video preview card */}
         <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700">
-          <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700 shrink-0">
+          <button
+            type="button"
+            onClick={() => setShowVideoPreview(true)}
+            className="w-14 h-14 rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700 shrink-0 relative group"
+            title="Preview video"
+          >
             {videoItem.preview
               ? <img src={videoItem.preview} alt="" className="w-full h-full object-cover" />
               : <div className="w-full h-full flex items-center justify-center">
                   <Film className="w-6 h-6 text-gray-400" />
                 </div>
             }
-          </div>
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl">
+              <div className="w-7 h-7 rounded-full bg-white/90 flex items-center justify-center">
+                <span style={{ fontSize: 10, marginLeft: 2 }}>▶</span>
+              </div>
+            </div>
+          </button>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">{videoItem.file.name}</p>
             <p className="text-[10px] text-gray-400 mt-0.5">

@@ -5,8 +5,22 @@ import {
   MALE_CATEGORIES,
   FEMALE_CATEGORIES,
   UNISEX_CATEGORIES,
+  CATEGORY_IMAGES,
 } from '../../constants/salonCategories';
 import { uploadServicePhoto } from '../../services/salonService';
+
+const _nameHash = (str = '') => {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  return h;
+};
+
+const getCategoryDefaultImage = (category) => {
+  const entry = CATEGORY_IMAGES[category];
+  if (!entry) return null;
+  if (typeof entry === 'string') return entry;
+  return entry[0]; // first image for the category
+};
 
 const GENDER_LABELS = { male: 'Male', female: 'Female' };
 
@@ -29,6 +43,7 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
   const [errors, setErrors] = useState({});
   const [imageFile, setImageFile]           = useState(null);
   const [imagePreview, setImagePreview]     = useState('');
+  const [isCustomImage, setIsCustomImage]   = useState(false); // true = owner uploaded, false = category default
   const [imageUploading, setImageUploading] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -52,7 +67,9 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
         category:      cat,
         applicableFor,
       });
-      setImagePreview(service.photos?.[0] || '');
+      const existingPhoto = service.photos?.[0] || '';
+      setImagePreview(existingPhoto || getCategoryDefaultImage(cat) || '');
+      setIsCustomImage(!!existingPhoto);
       setImageFile(null);
     } else {
       setCustomCategory('');
@@ -62,6 +79,7 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
         applicableFor: servedGender === 'unisex' ? '' : servedGender,
       });
       setImagePreview('');
+      setIsCustomImage(false);
       setImageFile(null);
     }
     setErrors({});
@@ -76,12 +94,15 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
     if (imagePreview?.startsWith('blob:')) URL.revokeObjectURL(imagePreview);
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
+    setIsCustomImage(true);
   };
 
   const handleRemoveImage = () => {
     if (imagePreview?.startsWith('blob:')) URL.revokeObjectURL(imagePreview);
     setImageFile(null);
-    setImagePreview('');
+    setIsCustomImage(false);
+    const catDefault = getCategoryDefaultImage(form.category);
+    setImagePreview(catDefault || '');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -111,7 +132,8 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
     const applicableFor =
       form.applicableFor === 'both' ? ['male', 'female'] : [form.applicableFor];
 
-    let photos = imagePreview && !imagePreview.startsWith('blob:') ? [imagePreview] : [];
+    // Only save photos that are owner-uploaded (not category defaults)
+    let photos = (isCustomImage && imagePreview && !imagePreview.startsWith('blob:')) ? [imagePreview] : [];
     if (imageFile) {
       setImageUploading(true);
       try {
@@ -120,8 +142,6 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
       } catch { /* non-blocking — service saves without photo */ } finally {
         setImageUploading(false);
       }
-    } else if (!imagePreview) {
-      photos = [];
     }
 
     await onSubmit({
@@ -219,6 +239,9 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
                       setForm(p => ({ ...p, category: opt.label }));
                       if (errors.category) setErrors(p => ({ ...p, category: '' }));
                       setCatOpen(false);
+                      if (!isCustomImage && !imageFile) {
+                        setImagePreview(getCategoryDefaultImage(opt.label) || '');
+                      }
                     }}
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border-2 text-sm font-medium text-left transition ${
                       form.category === opt.label
@@ -284,29 +307,39 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
           {errors.category && <p className="mt-1 text-xs text-red-500">{errors.category}</p>}
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-          <textarea name="description" value={form.description} onChange={handleChange}
-            disabled={loading} rows={2} placeholder="Optional description…"
-            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
-        </div>
-
-        {/* Service Photo — optional */}
+        {/* Service Photo — shown right after category so default image appears immediately */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Service Photo <span className="text-gray-400 font-normal text-xs">(optional)</span>
+            Service Photo
+            {!isCustomImage && imagePreview && <span className="ml-1.5 text-gray-400 font-normal text-xs">(category default)</span>}
+            {isCustomImage && <span className="ml-1.5 text-indigo-500 font-normal text-xs">(custom)</span>}
           </label>
           {imagePreview ? (
             <div className="relative w-full rounded-lg overflow-hidden border border-gray-200" style={{ height: 144 }}>
-              <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+              <img src={imagePreview} alt="Preview" className="w-full h-full object-cover"
+                style={{ opacity: isCustomImage ? 1 : 0.75 }} />
+              {/* Camera overlay to change photo */}
               <button
                 type="button"
-                onClick={handleRemoveImage}
+                onClick={() => fileInputRef.current?.click()}
                 disabled={loading || imageUploading}
-                className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center hover:bg-black/80 transition"
-                style={{ background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 16, lineHeight: 1 }}
-                title="Remove photo"
-              >×</button>
+                className="absolute inset-0 flex flex-col items-center justify-center gap-1 opacity-0 hover:opacity-100 transition-opacity"
+                style={{ background: 'rgba(0,0,0,0.45)' }}
+                title="Upload your own photo"
+              >
+                <span style={{ fontSize: 22 }}>📷</span>
+                <span className="text-xs text-white font-medium">Change photo</span>
+              </button>
+              {isCustomImage && (
+                <button
+                  type="button"
+                  onClick={handleRemoveImage}
+                  disabled={loading || imageUploading}
+                  className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center hover:bg-black/80 transition"
+                  style={{ background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 16, lineHeight: 1 }}
+                  title="Remove custom photo"
+                >×</button>
+              )}
             </div>
           ) : (
             <button
@@ -317,7 +350,7 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
               style={{ height: 108, border: '2px dashed #d1d5db', borderRadius: 8 }}
             >
               <span style={{ fontSize: 26 }}>📷</span>
-              <span className="text-sm">Add a photo</span>
+              <span className="text-sm">Upload a photo</span>
             </button>
           )}
           <input
@@ -330,8 +363,17 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
           />
           {imageUploading
             ? <p className="mt-1 text-xs text-indigo-500">Uploading photo…</p>
-            : <p className="mt-1 text-xs text-gray-400">Adding a photo improves bookings</p>
+            : <p className="mt-1 text-xs text-gray-400">
+                {isCustomImage ? 'Your custom photo will be shown to customers' : 'Select category to see default photo · hover to upload yours'}
+              </p>
           }
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <textarea name="description" value={form.description} onChange={handleChange}
+            disabled={loading} rows={2} placeholder="Optional description…"
+            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
         </div>
 
         <div className="grid grid-cols-2 gap-4">

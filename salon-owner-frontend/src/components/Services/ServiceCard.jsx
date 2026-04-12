@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Edit2, Trash2, AlertTriangle, Clock, IndianRupee, Tag, Power } from 'lucide-react';
+import { getServiceImage, CATEGORY_ICON_MAP } from '../../constants/salonCategories';
 
 const ServiceCard = ({ service, onEdit, onDelete, onToggle, loading = false }) => {
   const isActive      = service.isActive !== false;
@@ -21,11 +22,14 @@ const ServiceCard = ({ service, onEdit, onDelete, onToggle, loading = false }) =
     onDelete(service._id || service.id);
   };
 
+  const imgSrc = getServiceImage(service);
+  const catIcon = CATEGORY_ICON_MAP[service.category] || '✨';
+
   return (
     <>
-      <div className={`group relative bg-white dark:bg-gray-900 border rounded-2xl p-4
+      <div className={`group relative bg-white dark:bg-gray-900 border rounded-2xl overflow-hidden
         hover:shadow-lg dark:hover:shadow-gray-900/80 hover:-translate-y-0.5
-        transition-all duration-200 flex flex-col gap-3
+        transition-all duration-200 flex flex-col
         ${isActive
           ? 'border-gray-100 dark:border-gray-800'
           : 'border-gray-100 dark:border-gray-800 opacity-60'
@@ -33,10 +37,32 @@ const ServiceCard = ({ service, onEdit, onDelete, onToggle, loading = false }) =
 
         {/* Active glow accent */}
         {isActive && (
-          <div className="absolute top-0 left-0 w-full h-0.5 rounded-t-2xl
+          <div className="absolute top-0 left-0 w-full h-0.5 z-10
             bg-gradient-to-r from-indigo-500/0 via-indigo-500/60 to-violet-500/0
             opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         )}
+
+        {/* Service image — 4:3 */}
+        <div className="relative w-full" style={{ aspectRatio: '4/3', background: '#f3f4f6' }}>
+          {imgSrc
+            ? <img src={imgSrc} alt={service.name} className="w-full h-full object-cover"
+                style={{ opacity: 0, transition: 'opacity .15s' }}
+                onLoad={e => { e.currentTarget.style.opacity = '1'; }}
+                onError={e => { e.currentTarget.style.display = 'none'; }} />
+            : <div className="w-full h-full flex items-center justify-center
+                bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-950 dark:to-violet-950">
+                <span className="text-3xl">{catIcon}</span>
+              </div>
+          }
+          {!isActive && (
+            <div className="absolute inset-0 bg-white/50 dark:bg-gray-900/50 flex items-center justify-center">
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400">Inactive</span>
+            </div>
+          )}
+        </div>
+
+        {/* Card body */}
+        <div className="flex flex-col gap-3 p-4">
 
         {/* Top row: name + toggle */}
         <div className="flex items-start justify-between gap-2">
@@ -45,11 +71,6 @@ const ServiceCard = ({ service, onEdit, onDelete, onToggle, loading = false }) =
               <h3 className={`text-sm font-bold truncate ${isActive ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
                 {service.name}
               </h3>
-              {!isActive && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 font-medium shrink-0">
-                  Inactive
-                </span>
-              )}
             </div>
             {service.category && (
               <div className="flex items-center gap-1 mt-0.5">
@@ -128,6 +149,7 @@ const ServiceCard = ({ service, onEdit, onDelete, onToggle, loading = false }) =
             <Trash2 className="w-3.5 h-3.5" /> Delete
           </button>
         </div>
+        </div>{/* end card body */}
       </div>
 
       {/* Deactivate Confirm Modal */}
