@@ -11,6 +11,7 @@ import {
   FEMALE_CATEGORIES, FEMALE_OPTIONALS,
   UNISEX_CATEGORIES,
   getCategoriesForSalonType,
+  CATEGORY_CARD_IMAGE_MAP,
 } from '../../constants/salonCategories';
 
 /* ─── Helpers ────────────────────────────────────────────────── */
@@ -279,6 +280,8 @@ const CategoryCard = ({
       );
     });
 
+  const catImg = CATEGORY_CARD_IMAGE_MAP[cat.label];
+
   return (
     <div className={`rounded-2xl border transition-all duration-200 overflow-hidden
       ${isActive
@@ -293,12 +296,22 @@ const CategoryCard = ({
         ${isActive && isExpanded ? 'border-b border-indigo-100 dark:border-indigo-900/40' : ''}`}
         onClick={() => isActive && onExpand(isExpanded ? null : cat.key)}>
 
-        <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg shrink-0 transition-all
-          ${isActive
-            ? 'bg-gradient-to-br from-indigo-500 to-violet-600 shadow-md shadow-indigo-500/25'
-            : 'bg-gray-100 dark:bg-gray-800'
-          }`}>
-          <span className={isActive ? 'filter drop-shadow-sm' : ''}>{cat.icon || '✨'}</span>
+        <div className="w-10 h-10 rounded-xl shrink-0 overflow-hidden transition-all">
+          {catImg ? (
+            <img
+              src={catImg}
+              alt={cat.label}
+              className={`w-full h-full object-cover transition-all duration-200 ${isActive ? 'brightness-100' : 'brightness-75 grayscale-[30%]'}`}
+            />
+          ) : (
+            <div className={`w-full h-full flex items-center justify-center text-lg
+              ${isActive
+                ? 'bg-gradient-to-br from-indigo-500 to-violet-600 shadow-md shadow-indigo-500/25'
+                : 'bg-gray-100 dark:bg-gray-800'
+              }`}>
+              <span className={isActive ? 'filter drop-shadow-sm' : ''}>{cat.icon || '✨'}</span>
+            </div>
+          )}
         </div>
 
         <div className="flex-1 min-w-0">

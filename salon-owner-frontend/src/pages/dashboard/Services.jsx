@@ -12,6 +12,7 @@ import { useSalon } from '../../hooks/useSalon';
 import {
   UNISEX_CATEGORIES,
   CATEGORY_ICON_MAP,
+  CATEGORY_CARD_IMAGE_MAP,
   ALL_CATEGORY_ORDER,
   MALE_ONLY_CAT_LABELS,
   FEMALE_ONLY_CAT_LABELS,
@@ -177,7 +178,13 @@ const ServiceMenuSection = ({ salon }) => {
               <button type="button" onClick={() => setExpanded(isOpen ? null : idx)}
                 className="w-full flex items-center gap-3 px-5 py-3.5 text-left
                   hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                <span className="text-base shrink-0">{CATEGORY_ICON_MAP[cat.name] || '✨'}</span>
+                {CATEGORY_CARD_IMAGE_MAP[cat.name] ? (
+                  <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0">
+                    <img src={CATEGORY_CARD_IMAGE_MAP[cat.name]} alt={cat.name} className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <span className="text-base shrink-0">{CATEGORY_ICON_MAP[cat.name] || '✨'}</span>
+                )}
                 <span className="flex-1 text-sm font-semibold text-gray-800 dark:text-gray-200">{cat.name}</span>
                 {isUnisex && isMaleOnly   && <span className="text-xs text-blue-500 font-medium">👨 Male</span>}
                 {isUnisex && isFemaleOnly && <span className="text-xs text-pink-500 font-medium">👩 Female</span>}
@@ -599,7 +606,13 @@ const Services = () => {
                     className="w-full flex items-center gap-3 px-5 py-4
                       hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-left"
                   >
-                    <span className="text-lg shrink-0">{CATEGORY_ICON_MAP[cat] || '✨'}</span>
+                    {CATEGORY_CARD_IMAGE_MAP[cat] ? (
+                      <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0">
+                        <img src={CATEGORY_CARD_IMAGE_MAP[cat]} alt={cat} className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <span className="text-lg shrink-0">{CATEGORY_ICON_MAP[cat] || '✨'}</span>
+                    )}
                     <span className="flex-1 text-sm font-bold text-gray-800 dark:text-gray-200">{cat}</span>
                     {isUnisex && isMaleOnly   && <span className="text-xs font-medium text-blue-500">👨 Male</span>}
                     {isUnisex && isFemaleOnly && <span className="text-xs font-medium text-pink-500">👩 Female</span>}
