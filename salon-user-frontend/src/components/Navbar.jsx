@@ -277,7 +277,7 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
             backgroundClip: "text",
           }}>
-            Salon Bookings
+            GlowLoox
           </span>
         </Link>
 

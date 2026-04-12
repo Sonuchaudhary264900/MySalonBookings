@@ -40,10 +40,10 @@ export default function Footer() {
               >
                 <span className="text-sm font-extrabold" style={{ color: "var(--t-text)" }}>✂</span>
               </div>
-              <span className="font-extrabold tracking-tight text-lg" style={{ color: "var(--t-text)" }}>Salon Bookings</span>
+              <span className="font-extrabold tracking-tight text-lg" style={{ color: "var(--t-text)" }}>GlowLoox</span>
             </div>
             <p className="text-sm leading-relaxed max-w-xs mb-5" style={{ color: "var(--t-text-2)" }}>
-              Discover top-rated salons near you and book appointments in seconds. Your perfect look is just a tap away.
+              Discover top-rated beauty & wellness spots near you and book in seconds. Your perfect look is just a tap away.
             </p>
             <div className="flex gap-3">
               {SOCIAL.map(({ icon, label, glow, href }) => {
@@ -169,10 +169,10 @@ export default function Footer() {
               <li className="flex items-center gap-2" style={{ color: "var(--t-text-2)" }}>
                 <span>✉</span>
                 <a
-                  href="mailto:support@mysalonbookings.com"
+                  href="mailto:support@glowloox.com"
                   className="transition-colors duration-200 hover:text-violet-400"
                 >
-                  support@mysalonbookings.com
+                  support@glowloox.com
                 </a>
               </li>
               <li className="flex items-center gap-2" style={{ color: "var(--t-text-2)" }}>
@@ -227,9 +227,9 @@ export default function Footer() {
         {/* Bottom row */}
         <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
           <p className="text-xs text-center sm:text-left" style={{ color: "var(--t-text-3)" }}>
-            © {new Date().getFullYear()} Salon Bookings by Gigamind Technology Pvt Ltd. All rights reserved.
+            © {new Date().getFullYear()} GlowLoox by Gigamind Technology Pvt Ltd. All rights reserved.
           </p>
-          <p className="text-xs" style={{ color: "var(--t-text-3)" }}>Made with ❤️ for Indian salons</p>
+          <p className="text-xs" style={{ color: "var(--t-text-3)" }}>Made with ❤️ for India</p>
         </div>
       </div>
     </footer>
