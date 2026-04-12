@@ -175,7 +175,7 @@ function SalonCard({ salon, userCoords }) {
         }}
       >
         {/* ── Image ── */}
-        <div className="relative overflow-hidden" style={{ height: "clamp(120px,28vw,180px)", borderRadius: "18px 18px 0 0" }}>
+        <div className="relative overflow-hidden" style={{ aspectRatio: '16/9', borderRadius: "18px 18px 0 0" }}>
           {hasPhoto ? (
             <img
               src={hasPhoto} alt={salon.name} loading="lazy"
@@ -252,9 +252,9 @@ function SalonCard({ salon, userCoords }) {
             {openStatus !== null && (
               <span className="flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full text-white"
                 style={{
-                  background: openStatus ? "rgba(16,185,129,0.9)" : "rgba(239,68,68,0.9)",
+                  background: openStatus ? "rgba(16,185,129,0.9)" : "rgba(239,68,68,0.72)",
                   backdropFilter: "blur(4px)",
-                  boxShadow: openStatus ? "0 0 10px rgba(16,185,129,0.4)" : "0 0 8px rgba(239,68,68,0.3)",
+                  boxShadow: openStatus ? "0 0 10px rgba(16,185,129,0.4)" : "none",
                 }}>
                 <span className="w-1.5 h-1.5 rounded-full bg-white inline-block" />
                 {openStatus ? "Open" : opensAt ? `Opens ${opensAt}` : "Closed"}
@@ -282,7 +282,7 @@ function SalonCard({ salon, userCoords }) {
 
           {/* Hover overlay */}
           <div className="absolute inset-0 flex items-center justify-center transition-opacity duration-200"
-            style={{ opacity: hovered ? 1 : 0, background: "rgba(0,0,0,0.28)", backdropFilter: hovered ? "blur(2px)" : "none", pointerEvents: "none" }}>
+            style={{ opacity: hovered ? 1 : 0, background: "rgba(0,0,0,0.28)", backdropFilter: "blur(2px)", pointerEvents: "none" }}>
             <span className="text-xs font-bold text-white px-4 py-2 rounded-xl"
               style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)", boxShadow: "0 0 20px rgba(99,102,241,0.55)", transition: "transform 0.22s ease", transform: hovered ? "translateY(0) scale(1)" : "translateY(10px) scale(0.94)" }}>
               View Details
@@ -291,9 +291,9 @@ function SalonCard({ salon, userCoords }) {
         </div>
 
         {/* ── Info ── */}
-        <div className="p-3.5">
+        <div className="p-4">
           {/* Name */}
-          <h2 className="font-bold text-[14px] leading-snug line-clamp-1 mb-1" style={{ color: "var(--t-text)" }}>
+          <h2 className="font-bold text-[15px] leading-snug line-clamp-1 mb-1" style={{ color: "var(--t-text)" }}>
             {salon.name}
           </h2>
 
@@ -315,9 +315,10 @@ function SalonCard({ salon, userCoords }) {
             <span className="text-xs font-bold" style={{ color: "var(--t-text)" }}>
               {rating > 0 ? rating.toFixed(1) : "—"}
             </span>
-            <span className="text-[11px]" style={{ color: "var(--t-text-3)" }}>
-              {reviewCount > 0 ? `(${reviewCount.toLocaleString()})` : "No reviews"}
-            </span>
+            {reviewCount > 0
+              ? <span className="text-[11px]" style={{ color: "var(--t-text-3)" }}>({reviewCount.toLocaleString()})</span>
+              : <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 99, background: 'rgba(99,102,241,0.1)', color: 'var(--t-accent)', border: '1px solid rgba(99,102,241,0.2)' }}>New</span>
+            }
           </div>
 
           {/* Address */}

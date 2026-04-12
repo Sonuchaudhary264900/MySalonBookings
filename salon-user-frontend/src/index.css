@@ -510,7 +510,6 @@ html.dark .dashboard-cta {
 .glass-card:hover {
   border-color: rgba(129,140,248,0.45);
   box-shadow: 0 0 32px rgba(99,102,241,0.15), 0 24px 56px rgba(0,0,0,0.3);
-  transform: translateY(-5px) scale(1.015);
 }
 /* Light mode: solid white card */
 html:not(.dark) .glass-card {
