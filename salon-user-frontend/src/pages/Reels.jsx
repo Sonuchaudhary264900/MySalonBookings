@@ -107,7 +107,7 @@ const CSS = `
     position: relative;
     overflow-y: scroll;
     scroll-snap-type: y mandatory;
-    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
     scrollbar-width: none;
     background: #000;
   }
@@ -771,12 +771,6 @@ export default function Reels() {
   const location = useLocation();
   const deepLinkId = new URLSearchParams(location.search).get('v');
 
-  // Play with muted fallback for autoplay policy
-  const safePlay = useCallback((v) => {
-    if (!v) return;
-    v.play().catch(() => { v.muted = true; v.play().catch(() => {}); });
-  }, []);
-
   const [reels,    setReels]   = useState([]);
   const [loading,  setLoading] = useState(true);
   const [muted,    setMuted]   = useState(false);
@@ -818,6 +812,15 @@ export default function Reels() {
     const itemH = getItemHeight();
     feed.scrollTop = clamped * itemH;
   }, [getItemHeight]);
+
+  /* ── On mount: disable browser scroll restoration + reset to top ── */
+  useEffect(() => {
+    const prev = history.scrollRestoration;
+    history.scrollRestoration = 'manual';
+    if (feedRef.current) feedRef.current.scrollTop = 0;
+    currentIdx.current = 0;
+    return () => { history.scrollRestoration = prev; };
+  }, []);
 
   /* ── Keep reelsRef in sync ── */
   useEffect(() => { reelsRef.current = reels; }, [reels]);
