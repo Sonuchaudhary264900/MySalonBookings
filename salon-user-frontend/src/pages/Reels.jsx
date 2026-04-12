@@ -231,7 +231,7 @@ const CSS = `
   }
 
   .heart-pop     { animation: heartPop   0.35s cubic-bezier(.36,.07,.19,.97); }
-  .heart-burst   { animation: heartBurst 0.72s ease forwards; pointer-events: none; }
+  .heart-burst   { animation: heartBurst 0.42s ease forwards; pointer-events: none; }
   .mute-toast    { animation: muteAnim   1.25s ease forwards; pointer-events: none; }
   .reel-info-in  { animation: slideUp    0.42s cubic-bezier(0.22,1,0.36,1) both; }
   .fade-in       { animation: fadeIn     0.30s ease both; }
@@ -553,7 +553,7 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
     if (now - lastTapRef.current < 320) {
       if (!liked) handleLike();
       setDoubleTapHeart(true);
-      setTimeout(() => setDoubleTapHeart(false), 750);
+      setTimeout(() => setDoubleTapHeart(false), 420);
     } else {
       onMuteToggle();
     }
@@ -598,8 +598,8 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
           zIndex: 30, pointerEvents: 'none',
         }}>
           <div className="heart-burst">
-            <svg viewBox="0 0 24 24" width={120} height={120} fill="#ef4444"
-              style={{ filter: 'drop-shadow(0 0 24px rgba(239,68,68,0.9)) drop-shadow(0 0 48px rgba(239,68,68,0.5))' }}>
+            <svg viewBox="0 0 24 24" width={58} height={58} fill="#ef4444"
+              style={{ filter: 'drop-shadow(0 0 14px rgba(239,68,68,0.9)) drop-shadow(0 0 28px rgba(239,68,68,0.5))' }}>
               <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
           </div>
