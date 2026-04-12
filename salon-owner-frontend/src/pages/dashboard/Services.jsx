@@ -120,9 +120,10 @@ const ServiceMenuSection = ({ salon }) => {
   });
 
   const Chip = ({ sub, catName }) => {
-    const name  = typeof sub === 'string' ? sub : sub.name;
-    const price = typeof sub === 'string' ? null : sub.price;
-    const img   = catName ? getCatImg(catName, salon) : null;
+    const name     = typeof sub === 'string' ? sub : sub.name;
+    const price    = typeof sub === 'string' ? null : sub.price;
+    const subPhoto = typeof sub === 'object' ? sub.photo : null;
+    const img      = subPhoto || (catName ? getCatImg(catName, salon) : null);
     return (
       <span className="text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700
         text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full flex items-center gap-1.5 font-medium">
@@ -531,8 +532,8 @@ const Services = () => {
           <StatsBar total={allServices.length} active={activeCount} inactive={inactiveCount} />
         )}
 
-        {/* ── Service Menu preview (inline toggle) ── */}
-        {salon?.offeredCategories?.length > 0 && (
+        {/* ── Service Menu preview (inline toggle — only when individual services also exist) ── */}
+        {salon?.offeredCategories?.length > 0 && allServices.length > 0 && (
           <div>
             <button
               onClick={() => setShowMenuSection(v => !v)}
@@ -574,6 +575,25 @@ const Services = () => {
         {loading && !allServices.length ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {[1,2,3,4,5,6].map(i => <SkeletonCard key={i} />)}
+          </div>
+        ) : allServices.length === 0 && salon?.offeredCategories?.length > 0 ? (
+          <div className="space-y-4">
+            <ServiceMenuSection salon={salon} />
+            <div className="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 rounded-2xl p-5 flex flex-col sm:flex-row items-center gap-4">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-gray-900 dark:text-white">Add individual services for bookings</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Your service menu is set up. Add individual services with photos to let customers book directly.</p>
+              </div>
+              <button
+                onClick={() => handleOpenModal(null)}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold shrink-0
+                  bg-gradient-to-r from-indigo-600 to-violet-600
+                  hover:from-indigo-500 hover:to-violet-500
+                  text-white shadow-lg shadow-indigo-500/20 transition-all"
+              >
+                <Plus className="w-4 h-4" /> Add Service
+              </button>
+            </div>
           </div>
         ) : allServices.length === 0 ? (
           <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm">
@@ -728,6 +748,7 @@ const Services = () => {
       <EditCategoriesDrawer
         isOpen={isCategoriesOpen}
         onClose={() => setIsCategoriesOpen(false)}
+        onSaved={async () => { setIsCategoriesOpen(false); await fetchSalon(); setShowMenuSection(true); }}
         onOpen={fetchSalon}
         salon={salon}
         updateSalon={updateSalon}

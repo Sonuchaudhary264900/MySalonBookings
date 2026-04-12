@@ -52,6 +52,7 @@ import {
   FEMALE_ONLY_CAT_LABELS,
   getCategoryOrderForBusinessType,
   getServiceImage,
+  getCategoryImage,
 } from "../constants/salonCategories";
 
 const BASE_TABS = ["Gallery", "Services", "Packages", "Reviews", "Info"];
@@ -1025,6 +1026,7 @@ function SalonDetails() {
                   <div>
                     {sortedEntries.map(([cat, catServices], ci) => {
                       const CatIcon = CAT_ICON_COMPONENTS[cat] || Sparkles;
+                      const catImg = getCategoryImage(cat, salon);
                       const recId = getRecommended(catServices);
                       const ordered = recId ? [catServices.find(s => s._id === recId), ...catServices.filter(s => s._id !== recId)] : catServices;
                       const isOpen = expandedCats.has('__all__') || expandedCats.has(cat);
@@ -1037,9 +1039,15 @@ function SalonDetails() {
                         <motion.div key={cat} className="lux-svc-cat" initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: Math.min(ci * .05, .3), duration: .5 }}>
                           <button onClick={toggleCat} className="lux-cat-header w-full text-left" style={{ padding: 'clamp(14px,2vw,22px) 0', transition: 'opacity .2s' }} onMouseEnter={e => e.currentTarget.style.opacity = '.7'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
                             <div className="lux-cat-left">
-                              <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, background: `${theme.p}18`, border: `1px solid ${theme.p}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <CatIcon style={{ width: 18, height: 18, color: theme.p, strokeWidth: 1.8 }} />
-                              </div>
+                              {catImg ? (
+                                <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, overflow: 'hidden' }}>
+                                  <img src={catImg} alt={cat} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} onError={e => { e.currentTarget.style.display = 'none'; }} />
+                                </div>
+                              ) : (
+                                <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, background: `${theme.p}18`, border: `1px solid ${theme.p}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <CatIcon style={{ width: 18, height: 18, color: theme.p, strokeWidth: 1.8 }} />
+                                </div>
+                              )}
                               <div style={{ minWidth: 0 }}>
                                 <p className="lux-svc-name" style={{ fontSize: 'clamp(15px,2.2vw,22px)', fontWeight: 800, color: dm.fg, letterSpacing: '-.015em' }}>{cat}</p>
                                 <p className="lux-overline mt-1" style={{ color: dm.fg28 }}>{catServices.length} service{catServices.length !== 1 ? 's' : ''}</p>
@@ -1115,6 +1123,7 @@ function SalonDetails() {
                   {sortedEntries.map(([cat, catServices], ci) => {
                     const isOpen = expandedCats.has('__all__') || expandedCats.has(cat);
                     const CatIcon = CAT_ICON_COMPONENTS[cat] || Sparkles;
+                    const catImg = getCategoryImage(cat, salon);
                     const recId = getRecommended(catServices);
                     const ordered = recId ? [catServices.find(s => s._id === recId), ...catServices.filter(s => s._id !== recId)] : catServices;
                     const toggleCat = () => {
@@ -1129,9 +1138,15 @@ function SalonDetails() {
                         <button onClick={toggleCat} className="w-full text-left"
                           style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px', background: 'none', border: 'none', cursor: 'pointer', gap: 12 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-                            <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: `${theme.p}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <CatIcon style={{ width: 17, height: 17, color: theme.p, strokeWidth: 2 }} />
-                            </div>
+                            {catImg ? (
+                              <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, overflow: 'hidden' }}>
+                                <img src={catImg} alt={cat} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} onError={e => { e.currentTarget.style.display = 'none'; }} />
+                              </div>
+                            ) : (
+                              <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: `${theme.p}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <CatIcon style={{ width: 17, height: 17, color: theme.p, strokeWidth: 2 }} />
+                              </div>
+                            )}
                             <div style={{ minWidth: 0 }}>
                               <p style={{ fontSize: 15, fontWeight: 800, color: dm.fg, letterSpacing: '-.01em', lineHeight: 1.2 }}>{cat}</p>
                               <p style={{ fontSize: 11, color: dm.fg35, fontWeight: 500, marginTop: 1 }}>{catServices.length} service{catServices.length !== 1 ? 's' : ''}</p>

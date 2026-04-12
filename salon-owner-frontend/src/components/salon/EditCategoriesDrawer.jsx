@@ -41,7 +41,7 @@ const buildSelections = (catList, offeredCategories) =>
     return acc;
   }, {});
 
-const EMPTY_MODAL = { open: false, catKey: '', subName: '', price: '', duration: '', genderContext: null, photoFile: null, photoPreview: '' };
+const EMPTY_MODAL = { open: false, catKey: '', subName: '', price: '', duration: '', genderContext: null, photoFile: null, photoPreview: '', catDefaultImage: null };
 
 const PRICE_PRESETS  = [99, 149, 199, 249, 299, 499];
 const DUR_PRESETS    = [15, 20, 30, 45, 60, 90];
@@ -60,7 +60,7 @@ const Toggle = ({ checked, onChange }) => (
 );
 
 /* ─── Service chip ───────────────────────────────────────────── */
-const ServiceChip = ({ sub, active, onClick, genderCtx }) => {
+const ServiceChip = ({ sub, active, onClick, genderCtx, catImage }) => {
   const name = typeof sub === 'string' ? sub : sub.name;
   const genderColor = genderCtx === 'male'
     ? active ? 'bg-blue-600 text-white border-blue-600 shadow-blue-500/30'   : 'border-blue-200 dark:border-blue-800/60 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:border-blue-400 dark:hover:border-blue-600'
@@ -72,10 +72,15 @@ const ServiceChip = ({ sub, active, onClick, genderCtx }) => {
     <button
       type="button"
       onClick={onClick}
-      className={`group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold
+      className={`group inline-flex items-center gap-1.5 px-2 py-1.5 rounded-full border text-xs font-semibold
         transition-all duration-150 ${genderColor}
         ${active ? 'shadow-md scale-[1.02]' : 'hover:scale-[1.015] hover:shadow-sm'}`}
     >
+      {catImage && (
+        <span className="w-4 h-4 rounded-full overflow-hidden shrink-0 border border-white/30">
+          <img src={catImage} alt="" className="w-full h-full object-cover" />
+        </span>
+      )}
       {active
         ? <Check className="w-3 h-3 shrink-0" />
         : <span className="w-3 h-3 shrink-0 flex items-center justify-center text-[10px] font-bold opacity-50 group-hover:opacity-80 transition-opacity">+</span>}
@@ -190,6 +195,24 @@ const PriceModal = ({ modal, onChange, onConfirm, onClose, priceRef, durationRef
                   className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center text-white text-sm font-bold"
                   style={{ background: 'rgba(0,0,0,0.6)' }}
                 >×</button>
+                <button
+                  type="button"
+                  onClick={() => photoFileInputRef.current?.click()}
+                  className="absolute bottom-1.5 right-1.5 px-2 py-0.5 rounded-lg text-white text-[10px] font-semibold"
+                  style={{ background: 'rgba(0,0,0,0.55)' }}
+                >Change</button>
+              </div>
+            ) : modal.catDefaultImage ? (
+              <div
+                className="relative w-full rounded-xl overflow-hidden cursor-pointer group"
+                style={{ height: 96 }}
+                onClick={() => photoFileInputRef.current?.click()}
+              >
+                <img src={modal.catDefaultImage} alt="" className="w-full h-full object-cover brightness-[0.65]" />
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 pointer-events-none">
+                  <span style={{ fontSize: 18 }}>📷</span>
+                  <span className="text-white text-[11px] font-semibold">Default photo · tap to change</span>
+                </div>
               </div>
             ) : (
               <button
@@ -212,6 +235,7 @@ const PriceModal = ({ modal, onChange, onConfirm, onClose, priceRef, durationRef
                 if (!file) return;
                 const preview = URL.createObjectURL(file);
                 onChange({ photoFile: file, photoPreview: preview });
+                e.target.value = '';
               }}
             />
           </div>
@@ -265,6 +289,8 @@ const CategoryCard = ({
     : (cat.subServices || []).length;
   const catFileRef = useRef(null);
 
+  const chipImg = customImage || CATEGORY_CARD_IMAGE_MAP[cat.label] || null;
+
   const renderChips = (subs, genderCtx = null) =>
     subs.map(sub => {
       const name = typeof sub === 'string' ? sub : sub;
@@ -277,6 +303,7 @@ const CategoryCard = ({
           sub={name}
           active={active}
           genderCtx={genderCtx}
+          catImage={active?.photo || chipImg}
           onClick={() => onToggleSub(cat.key, name, genderCtx)}
         />
       );
@@ -426,6 +453,15 @@ const CategoryCard = ({
                   <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-xl
                     bg-white dark:bg-gray-900 border border-indigo-100/80 dark:border-indigo-900/30
                     shadow-sm">
+                    {/* Sub photo thumbnail (custom or category default) */}
+                    <span className="w-7 h-7 rounded-lg overflow-hidden shrink-0 border border-gray-100 dark:border-gray-800">
+                      <img
+                        src={s.photo || chipImg || ''}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        style={!(s.photo || chipImg) ? { display: 'none' } : {}}
+                      />
+                    </span>
                     {s.genderContext && (
                       <span className="text-xs shrink-0">{s.genderContext === 'male' ? '👨' : '👩'}</span>
                     )}
@@ -453,27 +489,32 @@ const CategoryCard = ({
 };
 
 /* ─── Main Drawer ────────────────────────────────────────────── */
-const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) => {
+const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, onSaved, salon, updateSalon }) => {
   // Read businessType from salon record, fallback to owner profile (for legacy salons registered before businessType field was added)
   const { user } = useContext(AuthContext);
   const businessType    = salon?.businessType || 'salon';
-  const isBarberShop = businessType === 'barbershop';
+  const isBarberShop    = businessType === 'barbershop';
+  const isMakeupBridal  = businessType === 'makeup_bridal';
+  const isFixedGender   = isBarberShop || isMakeupBridal;
 
   // Build per-gender cat lists based on businessType
   const maleCatList   = getCategoriesForSalonType(businessType, 'male');
   const femaleCatList = getCategoriesForSalonType(businessType, 'female');
   const unisexCatList = getCategoriesForSalonType(businessType, 'unisex');
 
-  const [gender,          setGender]          = useState(isBarberShop ? 'male' : (salon?.servedGender || ''));
+  const [gender,          setGender]          = useState(
+    isBarberShop ? 'male' : isMakeupBridal ? 'female' : (salon?.servedGender || '')
+  );
   const [pendingGender,   setPendingGender]   = useState(null);
   const [genderModalOpen, setGenderModalOpen] = useState(false);
   const [loading,         setLoading]        = useState(false);
   const [expandedKey,     setExpandedKey]    = useState(null);
   const [priceModal,      setPriceModal]     = useState(EMPTY_MODAL);
   const [photoUploading,  setPhotoUploading] = useState(false);
-  const priceRef       = useRef(null);
-  const durationRef    = useRef(null);
-  const photoFileRef   = useRef(null);
+  const priceRef        = useRef(null);
+  const durationRef     = useRef(null);
+  const photoFileRef    = useRef(null);
+  const bridalBadgeRef  = useRef(null);
 
   const [maleSelections,   setMaleSelections]   = useState(() => buildSelections(maleCatList,   salon?.offeredCategories));
   const [femaleSelections, setFemaleSelections] = useState(() => buildSelections(femaleCatList, salon?.offeredCategories));
@@ -494,8 +535,9 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
   useEffect(() => {
     if (!isOpen || !salon) return;
     const type     = salon.businessType || 'salon';
-    const isBarber = type === 'barbershop';
-    setGender(isBarber ? 'male' : (salon.servedGender || ''));
+    const isBarber  = type === 'barbershop';
+    const isBridal  = type === 'makeup_bridal';
+    setGender(isBarber ? 'male' : isBridal ? 'female' : (salon.servedGender || ''));
     setMaleSelections(buildSelections(getCategoriesForSalonType(type, 'male'),   salon.offeredCategories));
     setFemaleSelections(buildSelections(getCategoriesForSalonType(type, 'female'), salon.offeredCategories));
     setUnisexSelections(buildSelections(getCategoriesForSalonType(type, 'unisex'), salon.offeredCategories));
@@ -540,7 +582,9 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
         },
       }));
     } else {
-      setPriceModal({ open: true, catKey, subName: sub, price: '', duration: '', genderContext });
+      const cat = currentCats.find(c => c.key === catKey);
+      const catDefaultImage = cat ? (customCatImages[cat.label] || CATEGORY_CARD_IMAGE_MAP[cat.label] || null) : null;
+      setPriceModal({ open: true, catKey, subName: sub, price: '', duration: '', genderContext, catDefaultImage });
       setTimeout(() => priceRef.current?.focus(), 80);
     }
   };
@@ -625,7 +669,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
     try {
       await updateSalon({ businessType, servedGender: gender, offeredCategories, kidsHaircut, atHomeServices, categoryImages: customCatImages });
       toast.success('Service menu saved!');
-      onClose();
+      if (onSaved) onSaved(); else onClose();
     } catch (err) {
       toast.error(err.message || 'Failed to save');
     } finally { setLoading(false); }
@@ -673,15 +717,17 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center shadow-md shrink-0 text-base
                   ${isBarberShop
                     ? 'bg-gradient-to-br from-blue-500 to-indigo-600'
+                    : isMakeupBridal
+                    ? 'bg-gradient-to-br from-pink-500 to-rose-500'
                     : 'bg-gradient-to-br from-indigo-500 to-violet-600'}`}>
                   {isBarberShop ? '💈' : <Sparkles className="w-4 h-4 text-white" />}
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-gray-900 dark:text-white">
-                    {isBarberShop ? 'Barbershop Menu' : 'Service Menu'}
+                    {isBarberShop ? 'Barbershop Menu' : isMakeupBridal ? 'Bridal & Makeup Menu' : 'Service Menu'}
                   </h2>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    {isBarberShop ? 'Full men\'s services & pricing' : 'Configure categories, services & pricing'}
+                    {isBarberShop ? 'Full men\'s services & pricing' : isMakeupBridal ? 'Bridal, makeup & beauty services' : 'Configure categories, services & pricing'}
                   </p>
                 </div>
               </div>
@@ -709,7 +755,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
           <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5
             scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800">
 
-            {/* ── Who Do You Serve / Barbershop badge ── */}
+            {/* ── Who Do You Serve / Barbershop / Bridal badge ── */}
             {isBarberShop ? (
               <div className="flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2
                 border-blue-200 dark:border-blue-800/70
@@ -724,6 +770,46 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
                 </div>
                 <div className="px-2.5 py-1 rounded-full bg-blue-600 text-white text-[10px] font-bold tracking-wide shrink-0">
                   MEN
+                </div>
+              </div>
+            ) : isMakeupBridal ? (
+              <div className="flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2
+                border-pink-200 dark:border-pink-800/70
+                bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-950/30 dark:to-rose-950/20">
+                {/* Changeable bridal image */}
+                <div className="relative w-10 h-10 rounded-xl overflow-hidden shrink-0 shadow-md shadow-pink-500/25 group cursor-pointer"
+                  onClick={() => bridalBadgeRef.current?.click()}>
+                  {(customCatImages['Bridal & Events'] || CATEGORY_CARD_IMAGE_MAP['Bridal & Events']) ? (
+                    <img
+                      src={customCatImages['Bridal & Events'] || CATEGORY_CARD_IMAGE_MAP['Bridal & Events']}
+                      alt="Bridal"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center
+                      bg-gradient-to-br from-pink-400 to-rose-500">
+                      <Sparkles className="w-4 h-4 text-white" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    style={{ background: 'rgba(0,0,0,0.5)' }}>
+                    <span style={{ fontSize: 12 }}>📷</span>
+                  </div>
+                </div>
+                <input
+                  ref={bridalBadgeRef}
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  className="hidden"
+                  onChange={e => { handleCatImageChange('Bridal & Events', e.target.files?.[0]); e.target.value = ''; }}
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-bold text-pink-500 dark:text-pink-400 uppercase tracking-widest leading-none mb-0.5">Makeup & Bridal</p>
+                  <p className="text-sm font-bold text-gray-900 dark:text-white">Bridal, Makeup & Beauty</p>
+                </div>
+                <div className="px-2.5 py-1 rounded-full bg-gradient-to-r from-pink-500 to-rose-500
+                  text-white text-[10px] font-bold tracking-wide shrink-0">
+                  FEMALE
                 </div>
               </div>
             ) : (

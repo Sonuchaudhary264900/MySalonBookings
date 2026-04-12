@@ -450,11 +450,11 @@ exports.updateSalon = async (req, res) => {
             ? sub.applicableFor
             : applicableFor;
 
+          const serviceUpdate = { category: categoryName, basePrice, duration, isActive: true, applicableFor: serviceApplicableFor };
+          if (sub.photo) serviceUpdate['photos'] = [sub.photo];
           const upserted = await Service.findOneAndUpdate(
             { salonId: salon._id, name: sub.name, applicableFor: serviceApplicableFor },
-            {
-              $set: { category: categoryName, basePrice, duration, isActive: true, applicableFor: serviceApplicableFor },
-            },
+            { $set: serviceUpdate },
             { upsert: true, new: true }
           );
           upsertedIds.push(upserted._id);
