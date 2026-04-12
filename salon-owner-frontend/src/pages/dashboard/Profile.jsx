@@ -410,7 +410,8 @@ const Profile = () => {
                 error={!!profileErrors.email} errorMessage={profileErrors.email}
                 disabled={profileLoading} required />
               <Input label="Phone Number" name="phone" type="tel" value={profileData.phone}
-                onChange={handleProfileChange} placeholder="+91 98765 43210"
+                onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 10); setProfileData(p => ({ ...p, phone: v })); if (profileErrors.phone) setProfileErrors(p => ({ ...p, phone: '' })); }}
+                placeholder="98765 43210"
                 error={!!profileErrors.phone} errorMessage={profileErrors.phone}
                 disabled={profileLoading} required />
 

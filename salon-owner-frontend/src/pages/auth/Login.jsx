@@ -432,13 +432,13 @@ const Login = () => {
                       className={`lgn-input${phoneError ? ' err' : ''}`}
                       type="tel"
                       value={phone}
-                      onChange={e => { setPhone(e.target.value); setPhoneError(''); }}
+                      onChange={e => { setPhone(e.target.value.replace(/\D/g, '').slice(0, 10)); setPhoneError(''); }}
                       placeholder="98765 43210"
                       disabled={loading}
                       autoComplete="tel"
                       aria-label="Phone number"
                       inputMode="numeric"
-                      maxLength={13}
+                      maxLength={10}
                     />
                   </div>
                   {phoneError && <p style={{ fontSize:12, color:'#f87171', marginTop:5, display:'flex', alignItems:'center', gap:4 }}><span>⚠</span>{phoneError}</p>}
@@ -591,10 +591,11 @@ const Login = () => {
                     style={{ paddingLeft:38 }}
                     type="tel"
                     value={fpPhone}
-                    onChange={e => setFpPhone(e.target.value)}
+                    onChange={e => setFpPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                     placeholder="Registered phone number"
                     disabled={fpLoading}
                     inputMode="numeric"
+                    maxLength={10}
                   />
                 </div>
                 <button type="submit" className="lgn-btn" disabled={fpLoading || !fpPhone.trim()}>
