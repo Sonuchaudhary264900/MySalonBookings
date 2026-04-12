@@ -1049,7 +1049,7 @@ function SalonDetails() {
                                 </div>
                               )}
                               <div style={{ minWidth: 0 }}>
-                                <p className="lux-svc-name" style={{ fontSize: 'clamp(15px,2.2vw,22px)', fontWeight: 800, color: dm.fg, letterSpacing: '-.015em' }}>{cat}</p>
+                                <p className="lux-svc-name" style={{ fontSize: 'clamp(18px,2.6vw,28px)', fontWeight: 800, color: dm.fg, letterSpacing: '-.015em' }}>{cat}</p>
                                 <p className="lux-overline mt-1" style={{ color: dm.fg28 }}>{catServices.length} service{catServices.length !== 1 ? 's' : ''}</p>
                               </div>
                             </div>
@@ -1148,7 +1148,7 @@ function SalonDetails() {
                               </div>
                             )}
                             <div style={{ minWidth: 0 }}>
-                              <p style={{ fontSize: 15, fontWeight: 800, color: dm.fg, letterSpacing: '-.01em', lineHeight: 1.2 }}>{cat}</p>
+                              <p style={{ fontSize: 19, fontWeight: 800, color: dm.fg, letterSpacing: '-.01em', lineHeight: 1.2 }}>{cat}</p>
                               <p style={{ fontSize: 11, color: dm.fg35, fontWeight: 500, marginTop: 1 }}>{catServices.length} service{catServices.length !== 1 ? 's' : ''}</p>
                             </div>
                           </div>

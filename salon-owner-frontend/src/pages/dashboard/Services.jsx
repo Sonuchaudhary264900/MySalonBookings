@@ -649,7 +649,7 @@ const Services = () => {
                     ) : (
                       <span className="text-lg shrink-0">{CATEGORY_ICON_MAP[cat] || '✨'}</span>
                     )}
-                    <span className="flex-1 text-sm font-bold text-gray-800 dark:text-gray-200">{cat}</span>
+                    <span className="flex-1 text-xl font-bold text-gray-800 dark:text-gray-200">{cat}</span>
                     {isUnisex && isMaleOnly   && <span className="text-xs font-medium text-blue-500">👨 Male</span>}
                     {isUnisex && isFemaleOnly && <span className="text-xs font-medium text-pink-500">👩 Female</span>}
                     <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800">
