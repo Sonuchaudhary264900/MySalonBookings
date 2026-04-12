@@ -1,9 +1,11 @@
 import { Link } from "react-router-dom";
 
 const SOCIAL = [
-  { icon: "f",  label: "Facebook",  glow: "rgba(59,130,246,0.6)",  href: null },
-  { icon: "in", label: "Instagram", glow: "rgba(236,72,153,0.6)",  href: "https://instagram.com/mysalonbookings_official" },
-  { icon: "𝕏",  label: "Twitter",  glow: "rgba(148,163,184,0.4)", href: null },
+  { icon: "in", label: "Instagram", glow: "rgba(236,72,153,0.6)",  href: "https://instagram.com/glowloox" },
+  { icon: "f",  label: "Facebook",  glow: "rgba(59,130,246,0.6)",  href: "https://facebook.com/glowloox" },
+  { icon: "▶",  label: "YouTube",   glow: "rgba(239,68,68,0.6)",   href: "https://youtube.com/@glowloox" },
+  { icon: "in", label: "LinkedIn",  glow: "rgba(59,130,246,0.5)",  href: "https://linkedin.com/company/glowloox" },
+  { icon: "gh", label: "GitHub",    glow: "rgba(148,163,184,0.4)", href: "https://github.com/glowloox" },
   { icon: "✓",  label: "WhatsApp", glow: "rgba(34,197,94,0.6)",   href: "https://wa.me/917973270642" },
 ];
 
@@ -189,8 +191,8 @@ export default function Footer() {
               </li>
               <li className="flex items-center gap-2" style={{ color: "var(--t-text-2)" }}>
                 <span>📸</span>
-                <a href="https://instagram.com/mysalonbookings_official" target="_blank" rel="noopener noreferrer" className="transition-colors duration-200 hover:text-pink-400">
-                  @mysalonbookings_official
+                <a href="https://instagram.com/glowloox" target="_blank" rel="noopener noreferrer" className="transition-colors duration-200 hover:text-pink-400">
+                  @glowloox
                 </a>
               </li>
               <li className="flex items-center gap-2" style={{ color: "var(--t-text-2)" }}>

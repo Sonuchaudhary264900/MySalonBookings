@@ -576,23 +576,13 @@ export default function Gallery() {
             </p>
           </div>
 
-        ) : activeFilter === 'reels' ? (
+        ) : (
           <ReelsDashboard
-            videos={videoPhotos}
+            items={photosForGrid}
             analyticsMap={analyticsMap}
             onDelete={handleDelete}
             onEdit={(photo, idx, list) => setEditModal({ index: idx, list })}
             onUpload={() => setShowUpload(true)}
-          />
-        ) : (
-          <MasonryGrid
-            photos={photosForGrid}
-            coverId={coverId}
-            analyticsMap={analyticsMap}
-            onView={openPreview}
-            onDelete={handleDelete}
-            onSetCover={handleSetCover}
-            mode={gridMode}
           />
         )}
 

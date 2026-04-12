@@ -11,6 +11,7 @@ import {
   cloudinaryVideoPosterUrl,
   galleryItemDedupeKey,
   normalizeClientMediaUrl,
+  isGalleryVideo,
 } from './galleryUtils';
 import { useAuth } from '../../hooks/useAuth';
 import { useSalon } from '../../hooks/useSalon';
@@ -49,8 +50,9 @@ function getAnalytics(video, analyticsMap) {
 
 /* ─── ReelGridCard ────────────────────────────────────────── */
 function ReelGridCard({ video, analyticsMap, onClick }) {
-  const url      = getGalleryMediaUrl(video);
-  const thumbUrl = cloudinaryVideoPosterUrl(url);
+  const url       = getGalleryMediaUrl(video);
+  const isVideo   = isGalleryVideo(video);
+  const thumbUrl  = isVideo ? cloudinaryVideoPosterUrl(url) : url;
   const analytics = getAnalytics(video, analyticsMap);
   const likes     = analytics?.likeCount    ?? 0;
   const comments  = analytics?.commentCount ?? 0;
@@ -61,10 +63,17 @@ function ReelGridCard({ video, analyticsMap, onClick }) {
     <button
       onClick={onClick}
       className="relative group block w-full bg-neutral-950 overflow-hidden cursor-pointer"
-      style={{ aspectRatio: '9 / 16' }}
+      style={{ aspectRatio: '1 / 1' }}
     >
-      {/* Thumbnail */}
-      {thumbUrl && !thumbErr ? (
+      {/* Thumbnail / image */}
+      {!isVideo ? (
+        <img
+          src={url}
+          alt=""
+          draggable={false}
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.04]"
+        />
+      ) : thumbUrl && !thumbErr ? (
         <img
           src={thumbUrl}
           alt=""
@@ -73,7 +82,6 @@ function ReelGridCard({ video, analyticsMap, onClick }) {
           className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.04]"
         />
       ) : (
-        /* Fallback: first frame from video */
         <video
           src={`${url}#t=0.5`}
           preload="metadata"
@@ -88,7 +96,7 @@ function ReelGridCard({ video, analyticsMap, onClick }) {
       )}
 
       {/* Hidden video just for duration when thumbnail loads fine */}
-      {thumbUrl && !thumbErr && (
+      {isVideo && thumbUrl && !thumbErr && (
         <video
           src={`${url}#t=0.1`}
           preload="metadata"
@@ -97,13 +105,15 @@ function ReelGridCard({ video, analyticsMap, onClick }) {
         />
       )}
 
-      {/* Top-right: play icon */}
-      <div className="absolute top-1.5 right-1.5 pointer-events-none drop-shadow">
-        <Play className="w-[14px] h-[14px] text-white fill-white" />
-      </div>
+      {/* Top-right: play icon for videos */}
+      {isVideo && (
+        <div className="absolute top-1.5 right-1.5 pointer-events-none drop-shadow">
+          <Play className="w-[14px] h-[14px] text-white fill-white" />
+        </div>
+      )}
 
       {/* Bottom-right: duration */}
-      {dur && (
+      {isVideo && dur && (
         <div className="absolute bottom-1.5 right-1.5 pointer-events-none">
           <span className="text-white text-[10px] font-bold drop-shadow tabular-nums">
             {fmtDuration(dur)}
@@ -143,10 +153,11 @@ function ReelViewerModal({ videos, initialIndex, analyticsMap, onClose }) {
 
   const current   = videos[idx] ?? null;
   const url       = current ? getGalleryMediaUrl(current) : '';
-  const thumbUrl  = cloudinaryVideoPosterUrl(url);
+  const isVideo   = current ? isGalleryVideo(current) : false;
+  const thumbUrl  = isVideo ? cloudinaryVideoPosterUrl(url) : url;
   const analytics = current ? getAnalytics(current, analyticsMap) : null;
   const likes     = (analytics?.likeCount ?? 0) + (localLiked ? 1 : 0);
-  const cats      = current ? (current.reelCategories || current.categories || []) : [];
+  const cats      = current ? (current.reelCategories || current.categories || current.tags || []) : [];
 
   const { user }     = useAuth();
   const { salon }    = useSalon();
@@ -196,6 +207,7 @@ function ReelViewerModal({ videos, initialIndex, analyticsMap, onClose }) {
   }, [comments.length]);
 
   const togglePlay = () => {
+    if (!isVideo) return;
     const v = videoRef.current;
     if (!v) return;
     if (playing) { v.pause(); setPlaying(false); }
@@ -260,32 +272,42 @@ function ReelViewerModal({ videos, initialIndex, analyticsMap, onClose }) {
         )}
         <div className="absolute inset-0 bg-black/30 pointer-events-none" />
 
-        {/* ── 9:16 video container — fills full viewport height ── */}
+        {/* ── Media container — fills full viewport height ── */}
         <div
           className="relative z-10 overflow-hidden rounded-xl shadow-2xl"
           style={{
             height: '100vh',
-            aspectRatio: '9 / 16',
-            maxWidth: 'calc(100% - 120px)', /* leave room for arrows */
+            aspectRatio: isVideo ? '9 / 16' : '1 / 1',
+            maxWidth: 'calc(100% - 120px)',
           }}
-          onClick={togglePlay}
+          onClick={isVideo ? togglePlay : undefined}
         >
-          <video
-            key={url}
-            ref={videoRef}
-            src={url}
-            muted={muted}
-            loop
-            playsInline
-            autoPlay
-            preload="auto"
-            onTimeUpdate={handleTimeUpdate}
-            onLoadedMetadata={(e) => setDuration(e.target.duration)}
-            className="w-full h-full object-cover cursor-pointer"
-          />
+          {isVideo ? (
+            <video
+              key={url}
+              ref={videoRef}
+              src={url}
+              muted={muted}
+              loop
+              playsInline
+              autoPlay
+              preload="auto"
+              onTimeUpdate={handleTimeUpdate}
+              onLoadedMetadata={(e) => setDuration(e.target.duration)}
+              className="w-full h-full object-cover cursor-pointer"
+            />
+          ) : (
+            <img
+              key={url}
+              src={url}
+              alt={current.caption || ''}
+              className="w-full h-full object-contain bg-black"
+              draggable={false}
+            />
+          )}
 
-          {/* Play/Pause flash */}
-          {!playing && (
+          {/* Play/Pause flash (video only) */}
+          {isVideo && !playing && (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="w-16 h-16 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
                 <Play className="w-8 h-8 text-white fill-white ml-1" />
@@ -293,13 +315,15 @@ function ReelViewerModal({ videos, initialIndex, analyticsMap, onClose }) {
             </div>
           )}
 
-          {/* Mute toggle */}
-          <button
-            onClick={(e) => { e.stopPropagation(); setMuted(m => !m); }}
-            className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-sm text-white hover:bg-black/70 transition"
-          >
-            {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-          </button>
+          {/* Mute toggle (video only) */}
+          {isVideo && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setMuted(m => !m); }}
+              className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-sm text-white hover:bg-black/70 transition"
+            >
+              {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            </button>
+          )}
 
           {/* Bottom overlay: caption + progress */}
           <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent pt-20 pb-4 px-4 pointer-events-none">
@@ -313,23 +337,40 @@ function ReelViewerModal({ videos, initialIndex, analyticsMap, onClose }) {
                 {current.caption}
               </p>
             )}
-            {/* Seek bar */}
-            <div
-              className="h-[3px] bg-white/30 rounded-full overflow-hidden cursor-pointer pointer-events-auto"
-              onClick={(e) => { e.stopPropagation(); handleSeek(e); }}
-            >
-              <div
-                className="h-full bg-white rounded-full transition-[width] duration-75"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <div className="flex justify-between mt-1">
-              <span className="text-[10px] text-white/50 tabular-nums">
-                {fmtDuration((progress / 100) * duration)}
-              </span>
-              <span className="text-[10px] text-white/50 tabular-nums">{fmtDuration(duration)}</span>
-            </div>
+            {/* Seek bar (video only) */}
+            {isVideo && (
+              <>
+                <div
+                  className="h-[3px] bg-white/30 rounded-full overflow-hidden cursor-pointer pointer-events-auto"
+                  onClick={(e) => { e.stopPropagation(); handleSeek(e); }}
+                >
+                  <div
+                    className="h-full bg-white rounded-full transition-[width] duration-75"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+                <div className="flex justify-between mt-1">
+                  <span className="text-[10px] text-white/50 tabular-nums">
+                    {fmtDuration((progress / 100) * duration)}
+                  </span>
+                  <span className="text-[10px] text-white/50 tabular-nums">{fmtDuration(duration)}</span>
+                </div>
+              </>
+            )}
           </div>
+        </div>
+
+        {/* Close */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 left-4 z-30 w-9 h-9 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-sm text-white hover:bg-black/70 transition"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        {/* Counter */}
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded-full bg-black/40 backdrop-blur-sm">
+          <span className="text-white text-xs font-medium tabular-nums">{idx + 1} / {videos.length}</span>
         </div>
 
         {/* Prev / Next arrows */}
@@ -349,19 +390,6 @@ function ReelViewerModal({ videos, initialIndex, analyticsMap, onClose }) {
             <ChevronRight className="w-5 h-5" />
           </button>
         )}
-
-        {/* Close */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 left-4 z-30 w-9 h-9 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-sm text-white hover:bg-black/70 transition"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        {/* Counter */}
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded-full bg-black/40 backdrop-blur-sm">
-          <span className="text-white text-xs font-medium tabular-nums">{idx + 1} / {videos.length}</span>
-        </div>
       </div>
 
       {/* ════ RIGHT — Comments & info panel ════ */}
@@ -536,12 +564,14 @@ function ReelViewerModal({ videos, initialIndex, analyticsMap, onClose }) {
    ReelsDashboard
    ════════════════════════════════════════════════════════════ */
 export default function ReelsDashboard({
-  videos       = [],
+  videos       = [],   // kept for backward compat (reels-only)
+  items,               // unified: photos + videos (takes precedence if provided)
   analyticsMap = {},
   onDelete,
   onEdit,
   onUpload,
 }) {
+  const allItems = items ?? videos;
   const [query,       setQuery]       = useState('');
   const [viewerIdx,   setViewerIdx]   = useState(null);
   const [searchFocus, setSearchFocus] = useState(false);
@@ -554,14 +584,14 @@ export default function ReelsDashboard({
 
   /* Filtered list */
   const filtered = query.trim()
-    ? videos.filter((v) => {
-        const cats = v.reelCategories || v.categories || [];
+    ? allItems.filter((v) => {
+        const cats = v.reelCategories || v.categories || v.tags || [];
         return (
           cats.some(c => c.toLowerCase().includes(query.toLowerCase())) ||
           (v.caption || '').toLowerCase().includes(query.toLowerCase())
         );
       })
-    : videos;
+    : allItems;
 
   /* Clamp viewer index when list shrinks */
   useEffect(() => {
@@ -571,22 +601,22 @@ export default function ReelsDashboard({
   }, [filtered.length]);
 
   /* ── Empty state ── */
-  if (!videos.length) {
+  if (!allItems.length) {
     return (
       <div className="bg-black min-h-[60vh] flex flex-col items-center justify-center gap-4 rounded-2xl">
         <div className="w-20 h-20 rounded-full border-2 border-neutral-800 flex items-center justify-center">
           <Play className="w-8 h-8 text-neutral-700" />
         </div>
         <div className="text-center">
-          <p className="text-white font-bold text-xl mb-1">No reels yet</p>
-          <p className="text-neutral-500 text-sm">Upload videos to show your best work</p>
+          <p className="text-white font-bold text-xl mb-1">No media yet</p>
+          <p className="text-neutral-500 text-sm">Upload photos and videos to showcase your work</p>
         </div>
         <button
           onClick={onUpload}
           className="mt-2 flex items-center gap-2 px-5 py-2.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-white font-semibold text-sm transition"
         >
           <Plus className="w-4 h-4" />
-          Upload Reel
+          Upload Media
         </button>
       </div>
     );
@@ -605,7 +635,7 @@ export default function ReelsDashboard({
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 flex items-center justify-center shadow">
               <Zap className="w-4 h-4 text-white" />
             </div>
-            <span className="text-white font-bold text-base tracking-tight hidden sm:block">Reels</span>
+            <span className="text-white font-bold text-base tracking-tight hidden sm:block">Gallery</span>
           </div>
 
           {/* Search */}
@@ -666,7 +696,7 @@ export default function ReelsDashboard({
         {/* Footer count */}
         {filtered.length > 0 && (
           <div className="px-4 py-3 border-t border-neutral-800 flex items-center justify-between">
-            <span className="text-neutral-600 text-xs">{filtered.length} video{filtered.length !== 1 ? 's' : ''}</span>
+            <span className="text-neutral-600 text-xs">{filtered.length} item{filtered.length !== 1 ? 's' : ''}</span>
             <button
               onClick={onUpload}
               className="flex items-center gap-1.5 text-sky-400 hover:text-sky-300 text-xs font-semibold transition"
