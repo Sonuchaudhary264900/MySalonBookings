@@ -29,22 +29,22 @@ export default function CustomerPrivacyPolicy() {
       <div style={S.wrap}>
         <span style={S.badge}>Legal Document</span>
         <h1 style={S.h1}>Privacy Policy for Customers</h1>
-        <p style={S.meta}>MySalonBookings &nbsp;·&nbsp; Effective Date: March 26, 2025 &nbsp;·&nbsp; Last Updated: March 26, 2025</p>
+        <p style={S.meta}>GlowLoox &nbsp;·&nbsp; Effective Date: March 26, 2025 &nbsp;·&nbsp; Last Updated: March 26, 2025</p>
 
         <div style={S.highlight}>
           <p style={{ ...S.p, margin: 0, color: 'rgba(255,255,255,0.8)' }}>
-            This Privacy Policy explains how <strong style={{ color: '#fff' }}>MySalonBookings</strong> ("we", "our", or "the Platform") collects, uses,
+            This Privacy Policy explains how <strong style={{ color: '#fff' }}>GlowLoox</strong> ("we", "our", or "the Platform") collects, uses,
             stores, and shares your personal information when you use our salon booking services as a customer.
-            By using MySalonBookings, you agree to the practices described in this policy.
+            By using GlowLoox, you agree to the practices described in this policy.
           </p>
         </div>
 
         <Section title="1. Who We Are">
-          <p style={S.p}>MySalonBookings is a SaaS (Software as a Service) platform that connects customers with salons and beauty service providers across India. We provide a digital marketplace where you can discover salons, book appointments, and manage your beauty service needs.</p>
-          <p style={S.p}><strong style={{ color: '#fff' }}>Platform Name:</strong> MySalonBookings<br />
-          <strong style={{ color: '#fff' }}>Website:</strong> mysalonbookings.com<br />
+          <p style={S.p}>GlowLoox is a SaaS (Software as a Service) platform that connects customers with salons and beauty service providers across India. We provide a digital marketplace where you can discover salons, book appointments, and manage your beauty service needs.</p>
+          <p style={S.p}><strong style={{ color: '#fff' }}>Platform Name:</strong> GlowLoox<br />
+          <strong style={{ color: '#fff' }}>Website:</strong> glowloox.com<br />
           <strong style={{ color: '#fff' }}>Android App Package:</strong> com.mysalonbookings.user<br />
-          <strong style={{ color: '#fff' }}>Contact Email:</strong> support@mysalonbookings.com</p>
+          <strong style={{ color: '#fff' }}>Contact Email:</strong> glowloox@gmail.com</p>
         </Section>
 
         <Section title="2. Information We Collect">
@@ -75,7 +75,7 @@ export default function CustomerPrivacyPolicy() {
         <Section title="3. How We Use Your Information">
           <p style={S.p}>We use your information for the following purposes:</p>
           <ul style={S.ul}>
-            <li style={S.li}><strong>Account Management</strong> – creating and maintaining your MySalonBookings account</li>
+            <li style={S.li}><strong>Account Management</strong> – creating and maintaining your GlowLoox account</li>
             <li style={S.li}><strong>Booking Services</strong> – processing, confirming, and managing your salon appointments</li>
             <li style={S.li}><strong>Notifications</strong> – sending booking confirmations, reminders, and status updates via push notifications, SMS, or email</li>
             <li style={S.li}><strong>Salon Discovery</strong> – showing you nearby salons using your location data</li>
@@ -100,24 +100,24 @@ export default function CustomerPrivacyPolicy() {
           </ul>
 
           <h3 style={S.h3}>4.3 Legal Disclosures</h3>
-          <p style={S.p}>We may disclose your information if required by law, court order, or government authority in India, or to protect the rights, safety, or property of MySalonBookings, our users, or the public.</p>
+          <p style={S.p}>We may disclose your information if required by law, court order, or government authority in India, or to protect the rights, safety, or property of GlowLoox, our users, or the public.</p>
 
           <h3 style={S.h3}>4.4 We Do NOT Sell Your Data</h3>
           <p style={S.p}>We do not sell, rent, or trade your personal information to any third party for marketing or advertising purposes.</p>
         </Section>
 
         <Section title="5. Razorpay Payment Processing">
-          <p style={S.p}>Payments on MySalonBookings are processed by <strong style={{ color: '#fff' }}>Razorpay Software Private Limited</strong>, a PCI-DSS compliant payment gateway. When you make a payment:</p>
+          <p style={S.p}>Payments on GlowLoox are processed by <strong style={{ color: '#fff' }}>Razorpay Software Private Limited</strong>, a PCI-DSS compliant payment gateway. When you make a payment:</p>
           <ul style={S.ul}>
             <li style={S.li}>You are redirected to or interact with Razorpay's secure payment interface</li>
             <li style={S.li}>Your card/UPI/banking details are entered directly on Razorpay's systems</li>
-            <li style={S.li}>MySalonBookings only receives a payment confirmation token – never your raw payment credentials</li>
+            <li style={S.li}>GlowLoox only receives a payment confirmation token – never your raw payment credentials</li>
             <li style={S.li}>Razorpay's Privacy Policy governs how they handle your payment data: razorpay.com/privacy</li>
           </ul>
         </Section>
 
         <Section title="6. Location Data">
-          <p style={S.p}>The MySalonBookings app requests location permission to help you find salons near you. Location access is <strong style={{ color: '#fff' }}>optional</strong> – you can use the app without granting location permission by searching for salons manually.</p>
+          <p style={S.p}>The GlowLoox app requests location permission to help you find salons near you. Location access is <strong style={{ color: '#fff' }}>optional</strong> – you can use the app without granting location permission by searching for salons manually.</p>
           <ul style={S.ul}>
             <li style={S.li}>Location data is used only to show nearby salons and is not stored permanently</li>
             <li style={S.li}>We do not track your location in the background</li>
@@ -152,7 +152,7 @@ export default function CustomerPrivacyPolicy() {
         </Section>
 
         <Section title="10. Your Rights">
-          <p style={S.p}>As a user of MySalonBookings, you have the following rights regarding your personal data:</p>
+          <p style={S.p}>As a user of GlowLoox, you have the following rights regarding your personal data:</p>
           <ul style={S.ul}>
             <li style={S.li}><strong>Access</strong> – request a copy of the personal data we hold about you</li>
             <li style={S.li}><strong>Correction</strong> – request correction of inaccurate or incomplete data</li>
@@ -160,23 +160,23 @@ export default function CustomerPrivacyPolicy() {
             <li style={S.li}><strong>Withdrawal of Consent</strong> – withdraw consent for optional data processing (e.g., location, notifications) at any time</li>
             <li style={S.li}><strong>Portability</strong> – request your booking history in a readable format</li>
           </ul>
-          <p style={S.p}>To exercise any of these rights, contact us at <strong style={{ color: '#a78bfa' }}>support@mysalonbookings.com</strong>. We will respond within 30 days.</p>
+          <p style={S.p}>To exercise any of these rights, contact us at <strong style={{ color: '#a78bfa' }}>glowloox@gmail.com</strong>. We will respond within 30 days.</p>
         </Section>
 
         <Section title="11. Children's Privacy">
-          <p style={S.p}>MySalonBookings is not intended for children under 13 years of age. We do not knowingly collect personal information from children. If you believe a child has provided us with personal information, please contact us immediately and we will delete such information.</p>
+          <p style={S.p}>GlowLoox is not intended for children under 13 years of age. We do not knowingly collect personal information from children. If you believe a child has provided us with personal information, please contact us immediately and we will delete such information.</p>
         </Section>
 
         <Section title="12. Changes to This Policy">
-          <p style={S.p}>We may update this Privacy Policy from time to time. We will notify you of significant changes by posting the new policy on our platform and updating the "Last Updated" date. Your continued use of MySalonBookings after changes are posted constitutes your acceptance of the updated policy.</p>
+          <p style={S.p}>We may update this Privacy Policy from time to time. We will notify you of significant changes by posting the new policy on our platform and updating the "Last Updated" date. Your continued use of GlowLoox after changes are posted constitutes your acceptance of the updated policy.</p>
         </Section>
 
         <Section title="13. Contact Us">
           <p style={S.p}>If you have any questions, concerns, or requests regarding this Privacy Policy or our data practices, please contact us:</p>
           <p style={S.p}>
-            <strong style={{ color: '#fff' }}>MySalonBookings Support Team</strong><br />
-            Email: <strong style={{ color: '#a78bfa' }}>support@mysalonbookings.com</strong><br />
-            Platform: mysalonbookings.com<br />
+            <strong style={{ color: '#fff' }}>GlowLoox Support Team</strong><br />
+            Email: <strong style={{ color: '#a78bfa' }}>glowloox@gmail.com</strong><br />
+            Platform: glowloox.com<br />
             Response Time: Within 2 business days
           </p>
         </Section>

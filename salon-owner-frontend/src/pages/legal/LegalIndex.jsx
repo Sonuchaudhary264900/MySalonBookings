@@ -57,7 +57,7 @@ export default function LegalIndex() {
           </div>
           <h1 style={{ color: '#fff', fontWeight: 900, fontSize: 30, margin: '0 0 8px', letterSpacing: '-0.03em' }}>Legal Documents</h1>
           <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 15, margin: 0 }}>
-            Privacy Policies and Terms & Conditions for MySalonBookings
+            Privacy Policies and Terms & Conditions for GlowLoox
           </p>
           <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 12, marginTop: 8 }}>
             Effective Date: March 26, 2025
@@ -109,8 +109,8 @@ export default function LegalIndex() {
         }}>
           <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, margin: 0, lineHeight: 1.6 }}>
             Questions about our legal policies? Contact us at{' '}
-            <a href="mailto:support@mysalonbookings.com" style={{ color: '#a78bfa', textDecoration: 'none' }}>
-              support@mysalonbookings.com
+            <a href="mailto:glowloox@gmail.com" style={{ color: '#a78bfa', textDecoration: 'none' }}>
+              glowloox@gmail.com
             </a>
           </p>
         </div>

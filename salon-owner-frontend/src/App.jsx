@@ -312,7 +312,7 @@ const DashboardMock = () => {
       <span style={{ width:11, height:11, borderRadius:'50%', background:'#f59e0b', display:'inline-block' }} />
       <span style={{ width:11, height:11, borderRadius:'50%', background:'#22c55e', display:'inline-block' }} />
       <span style={{ flex:1, height:22, background:m.urlBar, borderRadius:6, marginLeft:12, display:'flex', alignItems:'center', paddingLeft:10 }}>
-        <span style={{ fontSize:10, color:m.urlText }}>mysalonbookings.com/dashboard</span>
+        <span style={{ fontSize:10, color:m.urlText }}>glowloox.com/dashboard</span>
       </span>
     </div>
     <div style={{ display:'flex', minHeight:380 }}>
@@ -321,7 +321,7 @@ const DashboardMock = () => {
         <div style={{ display:'flex', alignItems:'center', gap:9, marginBottom:24, padding:'0 6px' }}>
           <div style={{ width:30, height:30, borderRadius:9, background:'linear-gradient(135deg,#7c3aed,#3b82f6)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14 }}>✂</div>
           <div>
-            <div style={{ fontSize:11, fontWeight:700, color:m.sidebarText }}>My Salon</div>
+            <div style={{ fontSize:11, fontWeight:700, color:m.sidebarText }}>GlowLoox</div>
             <div style={{ fontSize:9, color:m.sidebarSub }}>Owner Dashboard</div>
           </div>
         </div>
@@ -451,10 +451,10 @@ const LandingPage = () => {
           <div className="flex items-center gap-3">
             <div style={{ width:38, height:38, borderRadius:12, background:'linear-gradient(135deg,#7c3aed,#2563eb)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, boxShadow:'0 0 22px rgba(124,58,237,0.55)', flexShrink:0 }}>✂</div>
             <div className="hidden sm:flex flex-col">
-              <span style={{ fontWeight:800, fontSize:16, color:c.heading, letterSpacing:'-0.4px', lineHeight:1.1 }}>My Salon Bookings</span>
+              <span style={{ fontWeight:800, fontSize:16, color:c.heading, letterSpacing:'-0.4px', lineHeight:1.1 }}>GlowLoox</span>
               <span style={{ fontSize:9, color:c.subtle, fontWeight:500, letterSpacing:0.5 }}>FOR SALON OWNERS</span>
             </div>
-            <span className="sm:hidden" style={{ fontWeight:800, fontSize:15, color:c.heading }}>My Salon Bookings</span>
+            <span className="sm:hidden" style={{ fontWeight:800, fontSize:15, color:c.heading }}>GlowLoox</span>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -552,7 +552,7 @@ const LandingPage = () => {
           <div style={{ textAlign:'center', marginBottom:56 }}>
             <div style={{ display:'inline-block', background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.25)', borderRadius:99, padding:'4px 16px', fontSize:11, color:'#fca5a5', fontWeight:700, letterSpacing:1.5, marginBottom:18 }}>SOUND FAMILIAR?</div>
             <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:c.heading, letterSpacing:'-1px', marginBottom:12 }}>Every salon owner faces these problems</h2>
-            <p style={{ color:c.subtle, fontSize:15, lineHeight:1.7 }}>We built My Salon Bookings to solve every single one of them.</p>
+            <p style={{ color:c.subtle, fontSize:15, lineHeight:1.7 }}>We built GlowLoox to solve every single one of them.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[
@@ -607,7 +607,7 @@ const LandingPage = () => {
           <div style={{ textAlign:'center', marginBottom:60 }}>
             <div style={{ display:'inline-block', background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.25)', borderRadius:99, padding:'4px 16px', fontSize:11, color:'#6ee7b7', fontWeight:700, letterSpacing:1.5, marginBottom:18 }}>FOR CUSTOMERS</div>
             <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:c.heading, letterSpacing:'-1px', marginBottom:12 }}>4 ways customers discover &amp; book your salon</h2>
-            <p style={{ color:c.subtle, fontSize:15, maxWidth:480, margin:'0 auto', lineHeight:1.7 }}>Your salon is visible to thousands of customers on the My Salon Bookings app — for free.</p>
+            <p style={{ color:c.subtle, fontSize:15, maxWidth:480, margin:'0 auto', lineHeight:1.7 }}>Your salon is visible to thousands of customers on the GlowLoox app — for free.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             {[
@@ -834,7 +834,7 @@ const LandingPage = () => {
             ))}
           </div>
           <p style={{ textAlign:'center', marginTop:32, fontSize:13, color:c.subtle }}>
-            All plans include the <strong style={{ color:'#a78bfa' }}>My Salon Bookings app</strong> and full platform access. No hidden fees.
+            All plans include the <strong style={{ color:'#a78bfa' }}>GlowLoox app</strong> and full platform access. No hidden fees.
           </p>
         </div>
       </section>
@@ -848,7 +848,7 @@ const LandingPage = () => {
             Manage your salon on the go
           </h2>
           <p style={{ color:c.subtle, fontSize:15, lineHeight:1.75, maxWidth:440, margin:'0 auto 32px' }}>
-            My Salon Bookings lets you accept bookings, track revenue, and manage your team — right from your phone.
+            GlowLoox lets you accept bookings, track revenue, and manage your team — right from your phone.
           </p>
           <a
             href="https://play.google.com/store/apps/details?id=com.mysalonbookings.owner"
@@ -876,7 +876,7 @@ const LandingPage = () => {
             Stop losing bookings.<br />Start growing today.
           </h2>
           <p style={{ color:c.subtle, fontSize:15.5, marginBottom:36, lineHeight:1.75, maxWidth:400, margin:'0 auto 36px' }}>
-            500+ salon owners across India run smarter, earn more, and stress less — with My Salon Bookings. Join them free for 30 days.
+            500+ salon owners across India run smarter, earn more, and stress less — with GlowLoox. Join them free for 30 days.
           </p>
           <a href={ROUTES.ONBOARDING} className="msb-btn-p px-10 py-4 font-bold rounded-2xl inline-flex items-center gap-3" style={{ background:'linear-gradient(135deg,#7c3aed,#2563eb)', color:'#fff', boxShadow:'0 0 52px rgba(124,58,237,0.6)', fontSize:16 }}>
             🚀&nbsp; Start Free — No Card Needed
@@ -896,7 +896,7 @@ const LandingPage = () => {
               <div className="flex items-center gap-3 mb-4">
                 <div style={{ width:34, height:34, borderRadius:10, background:'linear-gradient(135deg,#7c3aed,#2563eb)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}>✂</div>
                 <div>
-                  <div style={{ fontSize:14, fontWeight:700, color:c.muted }}>My Salon Bookings</div>
+                  <div style={{ fontSize:14, fontWeight:700, color:c.muted }}>GlowLoox</div>
                   <div style={{ fontSize:10, color:c.subtle }}>by Gigamind Technology Pvt Ltd</div>
                 </div>
               </div>
@@ -905,7 +905,7 @@ const LandingPage = () => {
             {/* Links */}
             <div>
               <div style={{ fontSize:11, fontWeight:700, color:c.subtle, letterSpacing:1.2, marginBottom:14 }}>PRODUCT</div>
-              {[['Features','#features'],['Pricing','#pricing'],['My Salon Bookings App','https://play.google.com/store/apps/details?id=com.mysalonbookings.owner'],['Sign In', ROUTES.LOGIN]].map(([label,href]) => (
+              {[['Features','#features'],['Pricing','#pricing'],['GlowLoox App','https://play.google.com/store/apps/details?id=com.mysalonbookings.owner'],['Sign In', ROUTES.LOGIN]].map(([label,href]) => (
                 <div key={label} style={{ marginBottom:9 }}>
                   <a href={href} className="msb-link" style={{ fontSize:13, color:c.muted }}>{label}</a>
                 </div>
@@ -914,7 +914,7 @@ const LandingPage = () => {
             {/* Legal */}
             <div>
               <div style={{ fontSize:11, fontWeight:700, color:c.subtle, letterSpacing:1.2, marginBottom:14 }}>LEGAL & SUPPORT</div>
-              {[[`Privacy Policy`, ROUTES.OWNER_PRIVACY],[`Terms of Service`, ROUTES.OWNER_TERMS],[`Contact Us`,'mailto:support@mysalonbookings.com']].map(([label,href]) => (
+              {[[`Privacy Policy`, ROUTES.OWNER_PRIVACY],[`Terms of Service`, ROUTES.OWNER_TERMS],[`Contact Us`,'mailto:glowloox@gmail.com']].map(([label,href]) => (
                 <div key={label} style={{ marginBottom:9 }}>
                   <a href={href} className="msb-link" style={{ fontSize:13, color:c.muted }}>{label}</a>
                 </div>
@@ -922,7 +922,7 @@ const LandingPage = () => {
             </div>
           </div>
           <div style={{ borderTop:`1px solid ${c.dividerFaint}`, paddingTop:20, textAlign:'center', fontSize:12, color:c.subtle }}>
-            © 2026 My Salon Bookings by Gigamind Technology Pvt Ltd. All rights reserved.
+            © 2026 GlowLoox by Gigamind Technology Pvt Ltd. All rights reserved.
           </div>
         </div>
       </footer>

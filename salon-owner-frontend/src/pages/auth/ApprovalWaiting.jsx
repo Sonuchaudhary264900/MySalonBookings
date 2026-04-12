@@ -163,7 +163,7 @@ const ApprovalWaiting = () => {
               <div style={{ width:38, height:38, borderRadius:9, background:'linear-gradient(135deg,#6366f1,#8b5cf6)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 6px 18px rgba(99,102,241,0.35)' }}>
                 <Store size={18} color="#fff" />
               </div>
-              <span style={{ fontSize:17, fontWeight:700, color:textPrimary }}>My Salon Bookings</span>
+              <span style={{ fontSize:17, fontWeight:700, color:textPrimary }}>GlowLoox</span>
             </div>
           </div>
 
@@ -332,8 +332,8 @@ const ApprovalWaiting = () => {
                 <span style={{ fontSize:18, flexShrink:0 }}>💬</span>
                 <p style={{ color:supportText, fontSize:13, margin:0, lineHeight:1.5 }}>
                   Need help? Email us at{' '}
-                  <a href="mailto:support@mysalonbookings.com" style={{ color: isDark ? '#818cf8' : '#4f46e5', textDecoration:'none', fontWeight:600 }}>
-                    support@mysalonbookings.com
+                  <a href="mailto:glowloox@gmail.com" style={{ color: isDark ? '#818cf8' : '#4f46e5', textDecoration:'none', fontWeight:600 }}>
+                    glowloox@gmail.com
                   </a>
                 </p>
               </div>
@@ -356,7 +356,7 @@ const ApprovalWaiting = () => {
 
           {/* Footer */}
           <p style={{ textAlign:'center', color:footerColor, fontSize:12, marginTop:24 }}>
-            © 2026 My Salon Bookings by Gigamind Technology Pvt Ltd. All rights reserved.
+            © 2026 GlowLoox by Gigamind Technology Pvt Ltd. All rights reserved.
           </p>
         </div>
       </div>

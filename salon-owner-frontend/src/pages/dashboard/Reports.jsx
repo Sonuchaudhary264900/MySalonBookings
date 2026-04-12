@@ -370,7 +370,7 @@ ${recentBookings.length?`<h2>Recent Bookings</h2>
 <table><tr><th>Customer</th><th>Service</th><th>Date</th><th>Time</th><th>Status</th><th>Amount</th></tr>
 ${recentBookings.map(b=>`<tr><td>${b.customerName||'—'}</td><td>${b.serviceName||'—'}</td><td>${b.appointmentDate?new Date(b.appointmentDate).toLocaleDateString('en-IN'):'—'}</td><td>${b.appointmentTime||'—'}</td><td><span class="badge ${b.status||''}">${(b.status||'').replace('_',' ')}</span></td><td>${b.totalAmount?'₹'+b.totalAmount.toLocaleString():'—'}</td></tr>`).join('')}
 </table>`:''}
-<div class="footer">Powered by My Salon Bookings · mysalonbookings.com</div>
+<div class="footer">Powered by GlowLoox</div>
 </body></html>`;
 
     const iframe = document.createElement('iframe');

@@ -4,16 +4,16 @@ const Footer = () => (
 
       {/* Copyright */}
       <p className="text-xs text-gray-400 dark:text-gray-600 text-center md:text-left">
-        © {new Date().getFullYear()} My Salon Bookings by{' '}
+        © {new Date().getFullYear()} GlowLoox by{' '}
         <span className="font-semibold text-gray-500 dark:text-gray-400">Gigamind Technology Pvt Ltd.</span>{' '}
         All rights reserved.
       </p>
 
       {/* Contact */}
       <div className="flex items-center gap-5 flex-wrap justify-center text-xs">
-        <a href="mailto:support@mysalonbookings.com"
+        <a href="mailto:glowloox@gmail.com"
           className="flex items-center gap-1.5 text-gray-400 dark:text-gray-600 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-          ✉ support@mysalonbookings.com
+          ✉ glowloox@gmail.com
         </a>
         <a href="tel:+917973270642"
           className="flex items-center gap-1.5 text-gray-400 dark:text-gray-600 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
@@ -23,9 +23,25 @@ const Footer = () => (
           className="flex items-center gap-1.5 text-gray-400 dark:text-gray-600 hover:text-green-500 dark:hover:text-green-400 transition-colors">
           💬 WhatsApp
         </a>
-        <a href="https://instagram.com/mysalonbookings_official" target="_blank" rel="noopener noreferrer"
+        <a href="https://instagram.com/glowloox" target="_blank" rel="noopener noreferrer"
           className="flex items-center gap-1.5 text-gray-400 dark:text-gray-600 hover:text-pink-500 dark:hover:text-pink-400 transition-colors">
-          📸 @mysalonbookings_official
+          📸 Instagram
+        </a>
+        <a href="https://facebook.com/glowloox" target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-gray-400 dark:text-gray-600 hover:text-blue-500 dark:hover:text-blue-400 transition-colors">
+          🔵 Facebook
+        </a>
+        <a href="https://youtube.com/@glowloox" target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-gray-400 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 transition-colors">
+          ▶ YouTube
+        </a>
+        <a href="https://linkedin.com/company/glowloox" target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-gray-400 dark:text-gray-600 hover:text-blue-600 dark:hover:text-blue-500 transition-colors">
+          💼 LinkedIn
+        </a>
+        <a href="https://github.com/glowloox" target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-gray-400 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white transition-colors">
+          🐙 GitHub
         </a>
       </div>
 

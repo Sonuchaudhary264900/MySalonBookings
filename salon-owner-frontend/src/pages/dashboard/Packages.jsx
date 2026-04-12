@@ -646,7 +646,7 @@ function NotifyModal({ pkg, onClose }) {
           key: razorpayKeyId,
           amount: amount * 100,
           currency: 'INR',
-          name: 'My Salon Bookings',
+          name: 'GlowLoox',
           description: `Broadcast: ${pkg.name}`,
           order_id: orderId,
           prefill: { name: ownerName, email: ownerEmail, contact: ownerPhone },

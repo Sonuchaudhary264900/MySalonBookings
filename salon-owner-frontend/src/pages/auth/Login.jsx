@@ -350,7 +350,7 @@ const Login = () => {
           <div className="lgn-fu1" style={{ display:'flex', alignItems:'center', gap:12, marginBottom:56 }}>
             <div style={{ width:44, height:44, borderRadius:13, background:'linear-gradient(135deg,#7c3aed,#3b82f6)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, boxShadow:'0 0 22px rgba(124,58,237,0.5)' }}>✂</div>
             <div>
-              <div style={{ fontSize:17, fontWeight:700, color:'#f1f5f9', letterSpacing:'-0.3px' }}>My Salon Bookings</div>
+              <div style={{ fontSize:17, fontWeight:700, color:'#f1f5f9', letterSpacing:'-0.3px' }}>GlowLoox</div>
               <div style={{ fontSize:11, color:'#475569', fontWeight:500 }}>Owner Dashboard</div>
             </div>
           </div>
@@ -392,7 +392,7 @@ const Login = () => {
             <div className="flex lg:hidden lgn-fu1 items-center gap-3 justify-center mb-8">
               <div style={{ width:40, height:40, borderRadius:12, background:'linear-gradient(135deg,#7c3aed,#3b82f6)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, boxShadow:'0 0 18px rgba(124,58,237,0.5)' }}>✂</div>
               <div>
-                <div style={{ fontSize:16, fontWeight:700, color: isDark ? '#f1f5f9' : '#0f172a' }}>My Salon Bookings</div>
+                <div style={{ fontSize:16, fontWeight:700, color: isDark ? '#f1f5f9' : '#0f172a' }}>GlowLoox</div>
                 <div style={{ fontSize:11, color:'#64748b' }}>Owner Dashboard</div>
               </div>
             </div>
@@ -533,10 +533,10 @@ const Login = () => {
               <span style={{ color: isDark ? '#1e293b' : '#94a3b8', fontSize:12 }}>·</span>
               <a href={ROUTES.OWNER_PRIVACY} className="lgn-link" style={{ fontSize:12 }}>Privacy Policy</a>
               <span style={{ color: isDark ? '#1e293b' : '#94a3b8', fontSize:12 }}>·</span>
-              <a href="mailto:support@mysalonbookings.com" className="lgn-link" style={{ fontSize:12 }}>Contact Support</a>
+              <a href="mailto:glowloox@gmail.com" className="lgn-link" style={{ fontSize:12 }}>Contact Support</a>
             </div>
             <p style={{ textAlign:'center', fontSize:11.5, color: isDark ? '#1e293b' : '#94a3b8', marginTop:14 }}>
-              © 2026 My Salon Bookings by Gigamind Technology Pvt Ltd
+              © 2026 GlowLoox by Gigamind Technology Pvt Ltd
             </p>
 
           </div>

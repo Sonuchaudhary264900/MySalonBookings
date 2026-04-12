@@ -28,20 +28,20 @@ export default function OwnerPrivacyPolicy() {
       <div style={S.wrap}>
         <span style={S.badge}>Legal Document — Salon Owners</span>
         <h1 style={S.h1}>Privacy Policy for Salon Owners</h1>
-        <p style={S.meta}>MySalonBookings &nbsp;·&nbsp; Effective Date: March 26, 2025 &nbsp;·&nbsp; Last Updated: March 26, 2025</p>
+        <p style={S.meta}>GlowLoox &nbsp;·&nbsp; Effective Date: March 26, 2025 &nbsp;·&nbsp; Last Updated: March 26, 2025</p>
 
         <div style={S.highlight}>
           <p style={{ ...S.p, margin: 0, color: 'rgba(255,255,255,0.8)' }}>
-            This Privacy Policy applies to <strong style={{ color: '#fff' }}>salon owners and business operators</strong> ("you", "Owner", or "Business User") who use MySalonBookings to manage their salon, accept bookings, and grow their business. Please read this carefully — it explains how we collect and use your business and personal data as a service provider on our platform.
+            This Privacy Policy applies to <strong style={{ color: '#fff' }}>salon owners and business operators</strong> ("you", "Owner", or "Business User") who use GlowLoox to manage their salon, accept bookings, and grow their business. Please read this carefully — it explains how we collect and use your business and personal data as a service provider on our platform.
           </p>
         </div>
 
         <Section title="1. Who We Are">
-          <p style={S.p}>MySalonBookings is a B2B SaaS platform that provides salon owners with tools to manage bookings, customers, and their business operations. As a salon owner, you are a business user of our platform and this policy governs our relationship with you.</p>
-          <p style={S.p}><strong style={{ color: '#fff' }}>Platform Name:</strong> MySalonBookings (Owner App: "My Salon Bookings")<br />
+          <p style={S.p}>GlowLoox is a B2B SaaS platform that provides salon owners with tools to manage bookings, customers, and their business operations. As a salon owner, you are a business user of our platform and this policy governs our relationship with you.</p>
+          <p style={S.p}><strong style={{ color: '#fff' }}>Platform Name:</strong> GlowLoox (Owner App: "My Salon Bookings")<br />
           <strong style={{ color: '#fff' }}>Android Package:</strong> com.mysalonbookings.owner<br />
-          <strong style={{ color: '#fff' }}>Web Dashboard:</strong> mysalonbookings.com/dashboard<br />
-          <strong style={{ color: '#fff' }}>Contact Email:</strong> support@mysalonbookings.com</p>
+          <strong style={{ color: '#fff' }}>Web Dashboard:</strong> glowloox.com/dashboard<br />
+          <strong style={{ color: '#fff' }}>Contact Email:</strong> glowloox@gmail.com</p>
         </Section>
 
         <Section title="2. Information We Collect About You">
@@ -95,12 +95,12 @@ export default function OwnerPrivacyPolicy() {
             <li style={S.li}><strong>Analytics & Reporting</strong> – providing you with booking statistics and business insights within your dashboard</li>
             <li style={S.li}><strong>Support</strong> – resolving issues, answering queries, and investigating disputes</li>
             <li style={S.li}><strong>Security & Compliance</strong> – detecting fraud, preventing abuse, and complying with Indian law</li>
-            <li style={S.li}><strong>Platform Improvement</strong> – using aggregated, anonymized usage data to improve MySalonBookings</li>
+            <li style={S.li}><strong>Platform Improvement</strong> – using aggregated, anonymized usage data to improve GlowLoox</li>
           </ul>
         </Section>
 
         <Section title="4. Subscription Billing Data Handling">
-          <p style={S.p}>MySalonBookings uses <strong style={{ color: '#fff' }}>Razorpay</strong> to process all subscription payments. Here is how billing data is handled:</p>
+          <p style={S.p}>GlowLoox uses <strong style={{ color: '#fff' }}>Razorpay</strong> to process all subscription payments. Here is how billing data is handled:</p>
           <ul style={S.ul}>
             <li style={S.li}>When you pay for your subscription, you interact with Razorpay's secure payment interface</li>
             <li style={S.li}>We receive only a <strong style={{ color: '#fff' }}>payment confirmation token</strong> (Razorpay Order ID, Payment ID, and Signature) — never your card number, UPI PIN, or bank details</li>
@@ -111,13 +111,13 @@ export default function OwnerPrivacyPolicy() {
         </Section>
 
         <Section title="5. Customer Data You Access Through Our Platform">
-          <p style={S.p}>As a salon owner, you will have access to your customers' personal data (name, phone number, booking details) through the MySalonBookings dashboard. This is necessary to provide your services. As a data controller for this customer data, you must:</p>
+          <p style={S.p}>As a salon owner, you will have access to your customers' personal data (name, phone number, booking details) through the GlowLoox dashboard. This is necessary to provide your services. As a data controller for this customer data, you must:</p>
           <ul style={S.ul}>
             <li style={S.li}><strong>Use customer data only</strong> to manage and fulfill salon bookings made through our platform</li>
             <li style={S.li}><strong>Not share, sell, or transfer</strong> customer data to any third party</li>
             <li style={S.li}><strong>Not use customer contact details</strong> for unsolicited marketing or spam without explicit consent</li>
             <li style={S.li}><strong>Protect customer data</strong> you access from unauthorized disclosure or misuse</li>
-            <li style={S.li}><strong>Delete or return</strong> customer data upon termination of your MySalonBookings account</li>
+            <li style={S.li}><strong>Delete or return</strong> customer data upon termination of your GlowLoox account</li>
           </ul>
           <p style={S.p}>Violation of these obligations may result in immediate account suspension and may expose you to legal liability under applicable Indian data protection laws.</p>
         </Section>
@@ -173,11 +173,11 @@ export default function OwnerPrivacyPolicy() {
             <li style={S.li}><strong>Data Export</strong> – request an export of your booking history and invoice records</li>
             <li style={S.li}><strong>Notification Opt-Out</strong> – manage push notification preferences through your device settings</li>
           </ul>
-          <p style={S.p}>Submit requests to <strong style={{ color: '#34d399' }}>support@mysalonbookings.com</strong>. We respond within 30 business days.</p>
+          <p style={S.p}>Submit requests to <strong style={{ color: '#34d399' }}>glowloox@gmail.com</strong>. We respond within 30 business days.</p>
         </Section>
 
         <Section title="10. Approval Process">
-          <p style={S.p}>New salon owner accounts are subject to an approval process by MySalonBookings administrators. During this review, your submitted business information is reviewed for authenticity and compliance with our platform policies. We may request additional verification documents during this process.</p>
+          <p style={S.p}>New salon owner accounts are subject to an approval process by GlowLoox administrators. During this review, your submitted business information is reviewed for authenticity and compliance with our platform policies. We may request additional verification documents during this process.</p>
         </Section>
 
         <Section title="11. Changes to This Policy">
@@ -187,9 +187,9 @@ export default function OwnerPrivacyPolicy() {
         <Section title="12. Contact Us">
           <p style={S.p}>For privacy-related queries, data requests, or concerns:</p>
           <p style={S.p}>
-            <strong style={{ color: '#fff' }}>MySalonBookings Support</strong><br />
-            Email: <strong style={{ color: '#34d399' }}>support@mysalonbookings.com</strong><br />
-            Platform: mysalonbookings.com<br />
+            <strong style={{ color: '#fff' }}>GlowLoox Support</strong><br />
+            Email: <strong style={{ color: '#34d399' }}>glowloox@gmail.com</strong><br />
+            Platform: glowloox.com<br />
             Response Time: Within 2 business days
           </p>
         </Section>

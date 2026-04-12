@@ -20,7 +20,7 @@ const SECTIONS = [
     body: [
       'To register and manage your salon owner account and dashboard.',
       'To verify your identity via phone number OTP during registration and password reset.',
-      'To display your salon profile, services, photos, and location to customers searching on the MySalonBookings platform.',
+      'To display your salon profile, services, photos, and location to customers searching on the GlowLoox platform.',
       'To receive and manage bookings from customers in real time.',
       'To send you instant push notifications for new bookings and customer activity.',
       'To process payments for bookings through Razorpay.',
@@ -45,7 +45,7 @@ const SECTIONS = [
   {
     title: '4. Sharing Your Information',
     body: [
-      'Customers: Your salon name, location, services, photos, working hours, and ratings are publicly visible to customers on the MySalonBookings platform.',
+      'Customers: Your salon name, location, services, photos, working hours, and ratings are publicly visible to customers on the GlowLoox platform.',
       'Customer data: When a customer books your salon, you receive their name, phone number, and booking details. This data must be used only to fulfil the appointment.',
       'Payment processor: Transaction data is shared with Razorpay solely to process payments.',
       'Third-party services: We share only the minimum necessary data with the service providers listed in Section 3, solely to operate the platform.',
@@ -101,7 +101,7 @@ const SECTIONS = [
   {
     title: '10. Children\'s Privacy',
     body: [
-      'MySalonBookings Owner platform is intended for business owners aged 18 and above.',
+      'GlowLoox Owner platform is intended for business owners aged 18 and above.',
       'We do not knowingly collect information from anyone under 18. If you believe this has occurred, contact us at sonuchaudhary264900@gmail.com.',
     ],
   },
@@ -119,7 +119,7 @@ const SECTIONS = [
       'For any privacy-related questions, data requests, or complaints, please contact us:',
       'Email: sonuchaudhary264900@gmail.com',
       'Phone: +91 87264 90024',
-      'Address: MySalonBookings, India',
+      'Address: GlowLoox, India',
       'We will respond to all privacy-related requests within 30 days.',
     ],
   },
@@ -150,7 +150,7 @@ export default function PrivacyPolicy() {
       <div className="bg-gradient-to-br from-indigo-600 to-violet-700 py-14 px-4">
         <div className="max-w-3xl mx-auto text-center">
           <h1 className="text-3xl sm:text-4xl font-extrabold text-white mb-3">Privacy Policy</h1>
-          <p className="text-indigo-100 text-sm">Last updated: 22 March 2026 · MySalonBookings Owner Platform</p>
+          <p className="text-indigo-100 text-sm">Last updated: 22 March 2026 · GlowLoox Owner Platform</p>
         </div>
       </div>
 
@@ -158,7 +158,7 @@ export default function PrivacyPolicy() {
       <div className="max-w-3xl mx-auto px-4 py-12 space-y-8">
         <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
           <p className="text-slate-600 text-sm leading-relaxed">
-            MySalonBookings ("we", "our", or "us") is committed to protecting the privacy of salon owners who use our
+            GlowLoox ("we", "our", or "us") is committed to protecting the privacy of salon owners who use our
             Owner Dashboard platform. This Privacy Policy describes how we collect, use, and protect your information
             when you use the SmartSalon owner app and web dashboard. By using our services, you agree to the practices described here.
           </p>

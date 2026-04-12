@@ -1357,10 +1357,10 @@ const AboutContent = () => (
   <div className="space-y-4 mt-3">
     <div className="space-y-1">
       {[
-        { label: 'App Name',  value: 'My Salon Bookings' },
+        { label: 'App Name',  value: 'GlowLoox' },
         { label: 'Version',   value: '1.0.0' },
         { label: 'Platform',  value: 'Web (Owner Panel)' },
-        { label: 'Support',   value: 'support@mysalonbookings.com' },
+        { label: 'Support',   value: 'glowloox@gmail.com' },
       ].map(({ label, value }) => (
         <div key={label} className="flex justify-between py-2.5 border-b border-gray-100 dark:border-gray-800 last:border-0">
           <span className="text-sm text-gray-500 dark:text-gray-400">{label}</span>

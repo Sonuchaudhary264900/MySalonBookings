@@ -233,7 +233,7 @@ export default function LivePreviewPanel() {
 
               {/* Watermark */}
               <div style={{ textAlign: 'center', fontSize: 8, color: 'rgba(255,255,255,0.2)', paddingBottom: 4 }}>
-                Preview Only • Powered by GlowSpot
+                Preview Only • Powered by GlowLoox
               </div>
             </div>
           </div>

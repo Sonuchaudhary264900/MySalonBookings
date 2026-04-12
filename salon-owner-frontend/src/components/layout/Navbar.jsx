@@ -9,7 +9,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useNotifications } from '../../context/NotificationContext';
 import ROUTES from '../../routes';
 
-const CUSTOMER_APP_URL = import.meta.env.VITE_CUSTOMER_APP_URL || 'https://mysalonbookings.com';
+const CUSTOMER_APP_URL = import.meta.env.VITE_CUSTOMER_APP_URL || 'https://glowloox.com';
 
 const BIZ_NAME_MAP = {
   barbershop:    'Barbershop',

@@ -67,7 +67,7 @@ const PaymentModal = ({ isOpen, onClose, planKey, onSuccess }) => {
         key:         razorpayKeyId,
         amount:      amount * 100,
         currency:    'INR',
-        name:        'My Salon Bookings',
+        name:        'GlowLoox',
         description: plan.name,
         order_id:    orderId,
         prefill:     { name: ownerName, email: ownerEmail, contact: ownerPhone },

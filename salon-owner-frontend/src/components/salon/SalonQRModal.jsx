@@ -70,7 +70,7 @@ const SalonQRModal = ({ salon, onClose }) => {
 
       // Footer
       ctx.fillStyle = '#6b7280'; ctx.font = "11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif";
-      ctx.fillText('Powered by My Salon Bookings', 200, 500);
+      ctx.fillText('Powered by GlowLoox', 200, 500);
 
       URL.revokeObjectURL(url);
       resolve(canvas);
@@ -128,7 +128,7 @@ const SalonQRModal = ({ salon, onClose }) => {
         {/* Header */}
         <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100">
           <QrCode className="w-5 h-5 text-blue-600" />
-          <h2 className="font-semibold text-gray-900">My Salon QR Code</h2>
+          <h2 className="font-semibold text-gray-900">My QR Code</h2>
         </div>
 
         {/* Body */}

@@ -170,7 +170,7 @@ function PayModal({ tier, onClose, onSuccess, ownerInfo, bizName }) {
         key:         razorpayKeyId,
         amount,
         currency:    'INR',
-        name:        'My Salon Bookings',
+        name:        'GlowLoox',
         description: `Salon Promotion – ${tier.radiusKm} km for 1 Week`,
         order_id:    razorpayOrderId,
         prefill:     {

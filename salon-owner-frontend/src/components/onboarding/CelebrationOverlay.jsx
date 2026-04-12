@@ -85,7 +85,7 @@ export default function CelebrationOverlay({ name, onDone }) {
           fontSize: 16, color: '#94a3b8', textAlign: 'center',
           margin: '0 0 16px', maxWidth: 380, lineHeight: 1.6,
         }}>
-          Welcome to GlowSpot — let's get you your first booking.
+          Welcome to GlowLoox — let's get you your first booking.
         </p>
 
         {name && (
@@ -95,7 +95,7 @@ export default function CelebrationOverlay({ name, onDone }) {
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
             margin: 0,
           }}>
-            Congrats, {name}! You're officially a GlowSpot Partner. 🌟
+            Congrats, {name}! You're officially a GlowLoox Partner. 🌟
           </p>
         )}
 

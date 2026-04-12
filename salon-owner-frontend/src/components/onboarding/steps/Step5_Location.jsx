@@ -170,7 +170,7 @@ export default function Step5_Location() {
             Where is your salon? 📍
           </h1>
           <p style={{ color: sub, fontSize: 14, margin: 0, lineHeight: 1.5 }}>
-            Customers nearby will discover you on GlowSpot.
+            Customers nearby will discover you on GlowLoox.
           </p>
         </div>
 

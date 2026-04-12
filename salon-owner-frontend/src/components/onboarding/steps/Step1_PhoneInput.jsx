@@ -106,10 +106,10 @@ export default function Step1_PhoneInput() {
             fontSize: 32, boxShadow: '0 0 40px rgba(124,58,237,0.45)',
           }}>✨</div>
           <h1 style={{ fontSize: 'clamp(1.7rem,3vw,2.4rem)', fontWeight: 900, color: text, margin: '0 0 10px', letterSpacing: '-0.8px', lineHeight: 1.15 }}>
-            Welcome to GlowSpot ✨
+            Welcome to GlowLoox ✨
           </h1>
           <p style={{ color: sub, fontSize: 15, lineHeight: 1.65, margin: 0, maxWidth: 380, marginInline: 'auto' }}>
-            Thousands of salons trust GlowSpot to grow their business.
+            Thousands of salons trust GlowLoox to grow their business.
             Let's set yours up — it takes <strong style={{ color: '#a855f7' }}>less than 2 minutes.</strong>
           </p>
         </div>
