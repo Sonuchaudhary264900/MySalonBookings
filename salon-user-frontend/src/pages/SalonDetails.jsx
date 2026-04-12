@@ -634,8 +634,8 @@ function SalonDetails() {
         .lux-cat-right{display:flex;align-items:center;gap:16px;flex-shrink:0}
         @media(max-width:479px){.lux-cat-right{gap:10px}}
         .lux-svc-name{overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-        .svc-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
-        @media(max-width:639px){.svc-grid{grid-template-columns:repeat(2,1fr);gap:10px}}
+        .svc-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+        @media(max-width:639px){.svc-grid{grid-template-columns:repeat(2,1fr);gap:8px}}
         @keyframes pulse{0%,100%{opacity:.4}50%{opacity:.9}}
       `}</style>
 
@@ -1074,8 +1074,8 @@ function SalonDetails() {
                                     const isFav = favServices.includes(s._id);
                                     return (
                                       <div key={s._id} onClick={() => toggleService(s)}
-                                        style={{ borderRadius: 12, overflow: 'hidden', cursor: 'pointer', border: isSel ? `2px solid ${theme.p}` : `1px solid ${dm.b07}`, boxShadow: isSel ? `0 0 20px ${theme.p}35` : 'none', transition: 'all .2s', background: dm.card }}>
-                                        <div style={{ position: 'relative', aspectRatio: '4/3', background: dm.b07 }}>
+                                        style={{ borderRadius: 10, overflow: 'hidden', cursor: 'pointer', border: isSel ? `2px solid ${theme.p}` : `1px solid ${dm.b07}`, boxShadow: isSel ? `0 0 16px ${theme.p}30` : 'none', transition: 'all .2s', background: dm.card }}>
+                                        <div style={{ position: 'relative', aspectRatio: '1/1', background: dm.b07 }}>
                                           {svcImgSrc
                                             ? <img src={svcImgSrc} alt={s.name} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0, transition: 'opacity .15s', display: 'block' }} onLoad={e => { e.currentTarget.style.opacity = '1'; }} onError={e => { e.currentTarget.style.display = 'none'; }} />
                                             : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: `linear-gradient(135deg,${theme.p}15,${theme.p}05)` }}>
@@ -1088,18 +1088,18 @@ function SalonDetails() {
                                           </button>
                                           {isSel && <div style={{ position: 'absolute', inset: 0, background: `${theme.p}22`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Check style={{ width: 28, height: 28, color: theme.p }} /></div>}
                                         </div>
-                                        <div style={{ padding: 'clamp(10px,1.2vw,16px) clamp(12px,1.4vw,18px)' }}>
-                                          {isRec && <span style={{ fontSize: 'clamp(10px,0.85vw,12px)', fontWeight: 700, color: theme.p, display: 'block', marginBottom: 3 }}>⭐ Recommended</span>}
-                                          <p style={{ fontSize: 'clamp(13px,1.1vw,16px)', fontWeight: 700, color: dm.fg, marginBottom: 2 }}>{s.name}</p>
-                                          <p style={{ fontSize: 'clamp(11px,0.85vw,13px)', color: dm.fg35 }}>{s.duration ? `${s.duration} min` : ''}{(s.bookingCount||0) > 0 && ` · ${s.bookingCount}+ booked`}</p>
-                                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
-                                            <div>
-                                              <span style={{ fontSize: 'clamp(11px,0.85vw,13px)', color: dm.fg28, textDecoration: 'line-through', marginRight: 4 }}>₹{Math.round(price * 1.12)}</span>
-                                              <span style={{ fontSize: 'clamp(14px,1.2vw,17px)', fontWeight: 800, color: dm.fg }}>₹{price}</span>
+                                        <div style={{ padding: '8px 10px 10px' }}>
+                                          {isRec && <span style={{ fontSize: 10, fontWeight: 700, color: theme.p, display: 'block', marginBottom: 2 }}>⭐ Recommended</span>}
+                                          <p style={{ fontSize: 12, fontWeight: 700, color: dm.fg, marginBottom: 2, lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{s.name}</p>
+                                          <p style={{ fontSize: 10, color: dm.fg35, marginBottom: 5 }}>{s.duration ? `${s.duration} min` : ''}{(s.bookingCount||0) > 0 && ` · ${s.bookingCount}+`}</p>
+                                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                                            <div style={{ minWidth: 0 }}>
+                                              <span style={{ fontSize: 10, color: dm.fg28, textDecoration: 'line-through', marginRight: 2 }}>₹{Math.round(price * 1.12)}</span>
+                                              <span style={{ fontSize: 13, fontWeight: 800, color: dm.fg }}>₹{price}</span>
                                             </div>
                                             <motion.button whileTap={{ scale: .88 }} onClick={e => { e.stopPropagation(); toggleService(s); }}
-                                              style={{ width: 'clamp(28px,2vw,34px)', height: 'clamp(28px,2vw,34px)', borderRadius: '50%', border: 'none', cursor: 'pointer', background: isSel ? theme.p : dm.b12, color: isSel ? '#fff' : dm.fg55, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, flexShrink: 0 }}>
-                                              {isSel ? <Check style={{ width: 13, height: 13 }} /> : '+'}
+                                              style={{ width: 26, height: 26, borderRadius: '50%', border: 'none', cursor: 'pointer', background: isSel ? theme.p : dm.b12, color: isSel ? '#fff' : dm.fg55, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, flexShrink: 0 }}>
+                                              {isSel ? <Check style={{ width: 11, height: 11 }} /> : '+'}
                                             </motion.button>
                                           </div>
                                         </div>
@@ -1176,7 +1176,7 @@ function SalonDetails() {
                                 const isTopBooked = topBookingCount > 0 && s.bookingCount === topBookingCount;
                                 return (
                                   <div key={s._id}
-                                    style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '16px 18px', borderTop: `1px solid ${dm.b06}`, cursor: 'pointer', transition: 'background .15s', background: isSel ? `${theme.p}08` : 'transparent', position: 'relative' }}
+                                    style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', borderTop: `1px solid ${dm.b06}`, cursor: 'pointer', transition: 'background .15s', background: isSel ? `${theme.p}08` : 'transparent', position: 'relative' }}
                                     onClick={() => toggleService(s)}
                                     onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = dm.b04; }}
                                     onMouseLeave={e => { e.currentTarget.style.background = isSel ? `${theme.p}08` : 'transparent'; }}>
@@ -1235,16 +1235,16 @@ function SalonDetails() {
                                     </div>
 
                                     {/* Right: image + ADD button */}
-                                    <div style={{ flexShrink: 0, position: 'relative', width: 96, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                                    <div style={{ flexShrink: 0, position: 'relative', width: 80, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
                                       {/* Fav button */}
                                       <button
-                                        style={{ position: 'absolute', top: 4, right: 4, zIndex: 2, width: 24, height: 24, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.35)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                        style={{ position: 'absolute', top: 3, right: 3, zIndex: 2, width: 20, height: 20, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.35)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                         onClick={e => { e.stopPropagation(); toggleFav(s._id)(e); }}>
-                                        <Heart style={{ width: 11, height: 11, color: isFav ? '#f43f5e' : '#fff', fill: isFav ? '#f43f5e' : 'none' }} />
+                                        <Heart style={{ width: 9, height: 9, color: isFav ? '#f43f5e' : '#fff', fill: isFav ? '#f43f5e' : 'none' }} />
                                       </button>
 
                                       {/* Image */}
-                                      <div style={{ width: 96, height: 86, borderRadius: 12, overflow: 'hidden', background: `linear-gradient(135deg,${theme.p}15,${theme.p}05)`, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${dm.b08}` }}>
+                                      <div style={{ width: 80, height: 80, borderRadius: 10, overflow: 'hidden', background: `linear-gradient(135deg,${theme.p}15,${theme.p}05)`, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${dm.b08}` }}>
                                         {svcImgSrc
                                           ? <img src={svcImgSrc} alt={s.name} loading={svcIdx < 4 ? 'eager' : 'lazy'}
                                               style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0, transition: 'opacity .2s' }}
@@ -1258,14 +1258,14 @@ function SalonDetails() {
                                       <motion.button whileTap={{ scale: .88 }}
                                         onClick={e => { e.stopPropagation(); toggleService(s); }}
                                         style={{
-                                          width: 80, height: 32, borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: 13, letterSpacing: '.02em',
+                                          width: 72, height: 28, borderRadius: 6, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: 11, letterSpacing: '.02em',
                                           background: isSel ? theme.p : dm.card,
                                           color: isSel ? '#fff' : theme.p,
-                                          boxShadow: isSel ? `0 2px 12px ${theme.p}40` : `0 0 0 1.5px ${theme.p}`,
-                                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                                          boxShadow: isSel ? `0 2px 10px ${theme.p}40` : `0 0 0 1.5px ${theme.p}`,
+                                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
                                           transition: 'all .18s',
                                         }}>
-                                        {isSel ? <><Check style={{ width: 13, height: 13 }} /> ADDED</> : '+ ADD'}
+                                        {isSel ? <><Check style={{ width: 11, height: 11 }} /> ADDED</> : '+ ADD'}
                                       </motion.button>
                                     </div>
                                   </div>

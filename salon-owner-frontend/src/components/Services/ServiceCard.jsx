@@ -42,8 +42,8 @@ const ServiceCard = ({ service, onEdit, onDelete, onToggle, loading = false }) =
             opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         )}
 
-        {/* Service image — 4:3 */}
-        <div className="relative w-full" style={{ aspectRatio: '4/3', background: '#f3f4f6' }}>
+        {/* Service image — 1:1 */}
+        <div className="relative w-full" style={{ aspectRatio: '1/1', background: '#f3f4f6' }}>
           {imgSrc
             ? <img src={imgSrc} alt={service.name} className="w-full h-full object-cover"
                 style={{ opacity: 0, transition: 'opacity .15s' }}
@@ -62,7 +62,7 @@ const ServiceCard = ({ service, onEdit, onDelete, onToggle, loading = false }) =
         </div>
 
         {/* Card body */}
-        <div className="flex flex-col gap-3 p-4">
+        <div className="flex flex-col gap-2 p-3">
 
         {/* Top row: name + toggle */}
         <div className="flex items-start justify-between gap-2">
@@ -121,11 +121,11 @@ const ServiceCard = ({ service, onEdit, onDelete, onToggle, loading = false }) =
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+        <div className="flex items-center gap-1.5 pt-1.5 border-t border-gray-100 dark:border-gray-800">
           <button
             onClick={() => onEdit(service)}
             disabled={loading}
-            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-semibold
+            className="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg text-[11px] font-semibold
               bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300
               hover:bg-indigo-50 dark:hover:bg-indigo-950/50
               hover:text-indigo-600 dark:hover:text-indigo-400
@@ -133,12 +133,12 @@ const ServiceCard = ({ service, onEdit, onDelete, onToggle, loading = false }) =
               hover:border-indigo-200 dark:hover:border-indigo-800
               transition-all duration-150 disabled:opacity-40"
           >
-            <Edit2 className="w-3.5 h-3.5" /> Edit
+            <Edit2 className="w-3 h-3" /> Edit
           </button>
           <button
             onClick={() => setShowDelete(true)}
             disabled={loading}
-            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-semibold
+            className="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg text-[11px] font-semibold
               bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300
               hover:bg-red-50 dark:hover:bg-red-950/40
               hover:text-red-600 dark:hover:text-red-400
@@ -146,7 +146,7 @@ const ServiceCard = ({ service, onEdit, onDelete, onToggle, loading = false }) =
               hover:border-red-200 dark:hover:border-red-800
               transition-all duration-150 disabled:opacity-40"
           >
-            <Trash2 className="w-3.5 h-3.5" /> Delete
+            <Trash2 className="w-3 h-3" /> Delete
           </button>
         </div>
         </div>{/* end card body */}

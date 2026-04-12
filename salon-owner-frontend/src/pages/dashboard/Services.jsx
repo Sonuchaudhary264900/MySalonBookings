@@ -573,7 +573,7 @@ const Services = () => {
 
         {/* ── Content ── */}
         {loading && !allServices.length ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
             {[1,2,3,4,5,6].map(i => <SkeletonCard key={i} />)}
           </div>
         ) : allServices.length === 0 && salon?.offeredCategories?.length > 0 ? (
@@ -619,7 +619,7 @@ const Services = () => {
               const womenSvcs = showSplit ? svcs.filter(s => svcGenders(s, cat).includes('female')) : [];
 
               const renderCards = (list) => (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                   {list.map(svc => (
                     <ServiceCard
                       key={svc._id || svc.id}
