@@ -2247,10 +2247,19 @@ function SalonVideoViewer({ videos, startIdx, salon, onClose, onBook }) {
     }
   }, [liked, likeCount, videoUrl, salonId]);
 
-  // Share — copies salon page link
-  const handleShare = useCallback(() => {
+  // Share — opens native share sheet, falls back to clipboard copy
+  const handleShare = useCallback(async () => {
     const url = `${window.location.origin}${salonPath(salon)}`;
-    navigator.clipboard?.writeText(url).catch(() => {});
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: salon.name, text: `Check out ${salon.name} on GlowLoox!`, url });
+        return;
+      } catch (e) {
+        if (e.name === 'AbortError') return;
+        // share failed, fall through to clipboard
+      }
+    }
+    try { await navigator.clipboard?.writeText(url); } catch {}
     setCopied(true);
     setTimeout(() => setCopied(false), 2200);
   }, [salon]);

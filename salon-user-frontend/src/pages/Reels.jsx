@@ -986,7 +986,13 @@ export default function Reels() {
   const handleShare = useCallback(async (reel) => {
     const url = `${window.location.origin}/reels?v=${reel._id}`;
     if (navigator.share) {
-      try { await navigator.share({ title: reel.salon.name, text: `Watch this reel from ${reel.salon.name}!`, url }); return; } catch {}
+      try {
+        await navigator.share({ title: reel.salon.name, text: `Watch this reel from ${reel.salon.name}!`, url });
+        return;
+      } catch (e) {
+        if (e.name === 'AbortError') return;
+        // share failed, fall through to clipboard
+      }
     }
     try { await navigator.clipboard.writeText(url); } catch {}
     setCopied(reel._id);
