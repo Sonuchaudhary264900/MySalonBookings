@@ -295,9 +295,11 @@ locality: { type: String, default: null }, // reverse-geocoded suburb/village fr
         name: { type: String, required: true },
         subServices: [
           {
-            name:     { type: String },
-            price:    { type: Number, default: 0 },
-            duration: { type: Number, default: 0 }, // minutes
+            name:          { type: String },
+            price:         { type: Number, default: 0 },
+            duration:      { type: Number, default: 0 }, // minutes
+            photo:         { type: String, default: null },
+            applicableFor: [{ type: String }],
           },
         ],
       },
