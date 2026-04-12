@@ -167,7 +167,7 @@ img.onload=function(){
   var maxW=320,line='',lines=[],chars=bookingUrl.split('');
   chars.forEach(function(ch){var t=line+ch;if(ctx.measureText(t).width>maxW&&line){lines.push(line);line=ch;}else{line=t;}});
   if(line)lines.push(line);lines.forEach(function(l,i){ctx.fillText(l,200,386+i*13);});
-  ctx.fillStyle='#6b7280';ctx.font='11px Arial';ctx.fillText('Powered by My Salon Bookings',200,500);
+  ctx.fillStyle='#6b7280';ctx.font='11px Arial';ctx.fillText('Powered by GlowLoox',200,500);
   window.ReactNativeWebView.postMessage(c.toDataURL('image/png').split(',')[1]);
 };img.onerror=function(){window.ReactNativeWebView.postMessage('ERROR');};img.src=${qrApiUrl};
 })();<\/script></body></html>`;
@@ -210,7 +210,7 @@ img.onload=function(){
   if(line)lines.push(line);lines.forEach(function(l,i){ctx.fillText(l,W/2,QY+QS+98+i*13);});
   ctx.fillStyle='#f9fafb';ctx.fillRect(0,H-40,W,40);ctx.strokeStyle='#e5e7eb';ctx.lineWidth=1;
   ctx.beginPath();ctx.moveTo(0,H-40);ctx.lineTo(W,H-40);ctx.stroke();
-  ctx.fillStyle='#9ca3af';ctx.font='11px Arial';ctx.fillText('Powered by My Salon Bookings',W/2,H-16);
+  ctx.fillStyle='#9ca3af';ctx.font='11px Arial';ctx.fillText('Powered by GlowLoox',W/2,H-16);
   window.ReactNativeWebView.postMessage(c.toDataURL('image/png').split(',')[1]);
 };img.onerror=function(){window.ReactNativeWebView.postMessage('ERROR');};img.src=${qrApiUrl};
 })();<\/script></body></html>`;

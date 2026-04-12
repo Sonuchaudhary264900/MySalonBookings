@@ -201,8 +201,10 @@ export default function Login() {
 
           <div style={{ position:"relative", zIndex:1, width:"100%", maxWidth:440 }}>
             <div className="lg-u0" style={{ display:"flex", alignItems:"center", gap:10, marginBottom:52 }}>
-              <div style={{ width:44, height:44, borderRadius:14, background:"rgba(255,255,255,0.18)", backdropFilter:"blur(12px)", border:"1px solid rgba(255,255,255,0.25)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, boxShadow:"0 8px 24px rgba(0,0,0,0.2)" }}>✂</div>
-              <span style={{ fontSize:18, fontWeight:800, color:"#fff", letterSpacing:"-0.3px" }}>My Salon Bookings</span>
+              <div style={{ width:44, height:44, borderRadius:14, background:"linear-gradient(135deg,#4C1D95,#A78BFA)", backdropFilter:"blur(12px)", border:"1px solid rgba(255,255,255,0.25)", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 8px 24px rgba(124,58,237,0.45)" }}>
+                <svg viewBox="0 0 512 512" width="22" height="22" fill="none"><path d="M256,150 C270,210 310,240 370,256 C310,272 270,300 256,360 C242,300 202,272 142,256 C202,240 242,210 256,150 Z" fill="white"/></svg>
+              </div>
+              <span style={{ fontSize:18, fontWeight:800, color:"#fff", letterSpacing:"-0.3px" }}>GlowLoox</span>
             </div>
 
             <div className="lg-u1" style={{ marginBottom:16 }}>
@@ -253,8 +255,10 @@ export default function Login() {
 
             {/* Mobile logo */}
             <div className="lg:hidden" style={{ display:"flex", alignItems:"center", gap:10, marginBottom:32, justifyContent:"center" }}>
-              <div style={{ width:40, height:40, borderRadius:12, background:"linear-gradient(135deg,#6366f1,#8b5cf6)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, boxShadow:"0 0 20px rgba(99,102,241,0.4)" }}>✂</div>
-              <span style={{ fontSize:17, fontWeight:800, color:theme.text }}>My Salon Bookings</span>
+              <div style={{ width:40, height:40, borderRadius:12, background:"linear-gradient(135deg,#4C1D95,#A78BFA)", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 0 20px rgba(124,58,237,0.45)" }}>
+                <svg viewBox="0 0 512 512" width="20" height="20" fill="none"><path d="M256,150 C270,210 310,240 370,256 C310,272 270,300 256,360 C242,300 202,272 142,256 C202,240 242,210 256,150 Z" fill="white"/></svg>
+              </div>
+              <span style={{ fontSize:17, fontWeight:800, color:theme.text }}>GlowLoox</span>
             </div>
 
             {/* Heading */}

@@ -129,7 +129,7 @@ export default function LoginScreen({ navigation }) {
             <View style={styles.logoCircle}>
               <Image source={require('../../../assets/Icon-1024.png')} style={styles.logoImg} resizeMode="contain" />
             </View>
-            <Text style={styles.appName}>My Salon Bookings</Text>
+            <Text style={styles.appName}>GlowLoox</Text>
             <View style={styles.pillBadge}>
               <View style={styles.pillDot} />
               <Text style={styles.pillText}>Owner Portal</Text>

@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Cleaner premium gradient -->
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4C1D95"/>
+      <stop offset="100%" stop-color="#A78BFA"/>
+    </linearGradient>
+
+```
+<!-- Soft inner light -->
+<radialGradient id="innerLight" cx="35%" cy="30%" r="60%">
+  <stop offset="0%" stop-color="#ffffff" stop-opacity="0.14"/>
+  <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+</radialGradient>
+
+<!-- Main sparkle -->
+<linearGradient id="sparkleGrad" x1="0" y1="0" x2="0.4" y2="1">
+  <stop offset="0%" stop-color="#FEF3C7"/>
+  <stop offset="100%" stop-color="#FFFFFF"/>
+</linearGradient>
+
+<!-- Secondary sparkle -->
+<linearGradient id="sparkle2Grad" x1="0" y1="0" x2="1" y2="1">
+  <stop offset="0%" stop-color="#FDE68A"/>
+  <stop offset="100%" stop-color="#FFFFFF"/>
+</linearGradient>
+
+<!-- Softer glow -->
+<filter id="sparkleGlow" x="-40%" y="-40%" width="180%" height="180%">
+  <feGaussianBlur stdDeviation="4" result="blur"/>
+  <feMerge>
+    <feMergeNode in="blur"/>
+    <feMergeNode in="SourceGraphic"/>
+  </feMerge>
+</filter>
+```
+
+  </defs>
+
+  <!-- Background -->
+
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
+  <rect width="512" height="512" rx="112" fill="url(#innerLight)"/>
+
+  <!-- Main sparkle (refined shape) -->
+
+<path d="M256,150 
+        C270,210 310,240 370,256 
+        C310,272 270,300 256,360 
+        C242,300 202,272 142,256 
+        C202,240 242,210 256,150 Z"
+     fill="url(#sparkleGrad)"
+     filter="url(#sparkleGlow)"/>
+
+  <!-- Secondary sparkle -->
+
+<path d="M372,130 
+        L380,148 
+        L400,156 
+        L380,164 
+        L372,182 
+        L364,164 
+        L344,156 
+        L364,148 Z"
+     fill="url(#sparkle2Grad)"
+     opacity="0.85"/> </svg>

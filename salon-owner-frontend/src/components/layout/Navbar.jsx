@@ -63,7 +63,7 @@ const Navbar = ({ onMenuToggle }) => {
       ctx.fillStyle = '#ffffff'; ctx.fillRect(20, 20, 360, 520);
       ctx.fillStyle = '#4f46e5'; ctx.fillRect(20, 20, 360, 74);
       ctx.fillStyle = '#ffffff'; ctx.font = 'bold 17px Arial'; ctx.textAlign = 'center';
-      ctx.fillText(`\u2702  ${bizName} Booking`, 200, 64);
+      ctx.fillText(`GlowLoox — ${bizName} Booking`, 200, 64);
       ctx.drawImage(qrImg, 110, 110, 180, 180);
       ctx.fillStyle = '#111827'; ctx.font = 'bold 20px Arial';
       ctx.fillText(salon?.name || 'My Salon', 200, 322);
@@ -82,7 +82,7 @@ const Navbar = ({ onMenuToggle }) => {
       if (line) lines.push(line);
       lines.forEach((l, i) => ctx.fillText(l, 200, 386 + i * 13));
       ctx.fillStyle = '#6b7280'; ctx.font = '11px Arial';
-      ctx.fillText(`Powered by My ${bizName} Bookings`, 200, 500);
+      ctx.fillText('Powered by GlowLoox', 200, 500);
       URL.revokeObjectURL(url);
       resolve(canvas);
     };
@@ -140,11 +140,17 @@ const Navbar = ({ onMenuToggle }) => {
 
             {/* Logo */}
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-md shrink-0">
-                <span className="text-white text-sm">✂</span>
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-md shrink-0"
+                style={{ background: "linear-gradient(135deg,#4C1D95,#A78BFA)", boxShadow: "0 0 14px rgba(124,58,237,0.40)" }}>
+                <svg viewBox="0 0 512 512" width="18" height="18" fill="none">
+                  <path d="M256,150 C270,210 310,240 370,256 C310,272 270,300 256,360 C242,300 202,272 142,256 C202,240 242,210 256,150 Z" fill="white"/>
+                </svg>
               </div>
               <div className="hidden sm:block">
-                <span className="text-[15px] font-bold text-gray-900 dark:text-white tracking-tight">My {bizName} Bookings</span>
+                <span className="text-[15px] font-bold tracking-tight"
+                  style={{ background: "linear-gradient(135deg,#4C1D95,#A78BFA)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+                  GlowLoox
+                </span>
               </div>
             </div>
           </div>

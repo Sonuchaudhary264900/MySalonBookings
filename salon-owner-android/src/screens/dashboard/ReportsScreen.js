@@ -677,7 +677,7 @@ export default function ReportsScreen() {
   <tr><th>Date</th><th>Revenue (₹)</th><th>Bookings</th></tr>
   ${dailyRevenue.length ? dailyRevenue.map(r=>`<tr><td>${r.date}</td><td>₹${(r.revenue??0).toLocaleString()}</td><td>${r.bookings??0}</td></tr>`).join('') : '<tr><td colspan="3" class="empty">No data</td></tr>'}
 </table>
-<div class="footer">Powered by My Salon Bookings</div>
+<div class="footer">Powered by GlowLoox</div>
 </body></html>`;
     try {
       const { uri } = await Print.printToFileAsync({ html });

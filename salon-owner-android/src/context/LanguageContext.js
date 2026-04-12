@@ -6,7 +6,7 @@ const APP_PREFS_KEY = '@appPrefs';
 const translations = {
   en: {
     // App
-    appName: 'My Salon Bookings',
+    appName: 'GlowLoox',
     ownerPanel: 'Owner Panel',
     // Bottom tabs
     tabDashboard: 'Dashboard',
@@ -77,7 +77,7 @@ const translations = {
   },
   hi: {
     // App
-    appName: 'My Salon Bookings',
+    appName: 'GlowLoox',
     ownerPanel: 'मालिक पैनल',
     // Bottom tabs
     tabDashboard: 'डैशबोर्ड',

@@ -264,16 +264,18 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
         >
           <div style={{
             width: 34, height: 34, borderRadius: 10,
-            background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
+            background: "linear-gradient(135deg,#4C1D95,#A78BFA)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: "0 0 18px rgba(99,102,241,0.35)",
+            boxShadow: "0 0 18px rgba(124,58,237,0.40)",
             flexShrink: 0,
           }}>
-            <Scissors size={16} color="#fff" strokeWidth={2.2} />
+            <svg viewBox="0 0 512 512" width="18" height="18" fill="none">
+              <path d="M256,150 C270,210 310,240 370,256 C310,272 270,300 256,360 C242,300 202,272 142,256 C202,240 242,210 256,150 Z" fill="white"/>
+            </svg>
           </div>
           <span style={{
             fontSize: 15, fontWeight: 800, letterSpacing: "-0.025em",
-            background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
+            background: "linear-gradient(135deg,#4C1D95,#A78BFA)",
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
             backgroundClip: "text",
           }}>

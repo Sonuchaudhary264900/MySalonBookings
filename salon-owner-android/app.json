@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "My Salon Bookings",
+    "name": "GlowLoox",
     "slug": "salon-owner-android",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -45,20 +45,20 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow My Salon Bookings to access your photos to update your salon and profile pictures."
+          "photosPermission": "Allow GlowLoox to access your photos to update your salon and profile pictures."
         }
       ],
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow My Salon Bookings to use your location."
+          "locationAlwaysAndWhenInUsePermission": "Allow GlowLoox to use your location."
         }
       ],
       [
         "expo-media-library",
         {
-          "photosPermission": "Allow My Salon Bookings to access your photos.",
-          "savePhotosPermission": "Allow My Salon Bookings to save photos.",
+          "photosPermission": "Allow GlowLoox to access your photos.",
+          "savePhotosPermission": "Allow GlowLoox to save photos.",
           "isAccessMediaLocationEnabled": true
         }
       ],

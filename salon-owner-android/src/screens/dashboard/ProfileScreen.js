@@ -197,7 +197,7 @@ img.onload=function(){
   if(line)lines.push(line);
   lines.forEach(function(l,i){ctx.fillText(l,200,386+i*13);});
   ctx.fillStyle='#6b7280';ctx.font='11px Arial';
-  ctx.fillText('Powered by My Salon Bookings',200,500);
+  ctx.fillText('Powered by GlowLoox',200,500);
   window.ReactNativeWebView.postMessage(c.toDataURL('image/png').split(',')[1]);
 };
 img.onerror=function(){window.ReactNativeWebView.postMessage('ERROR');};
@@ -255,7 +255,7 @@ img.onload=function(){
   ctx.strokeStyle='#e5e7eb';ctx.lineWidth=1;
   ctx.beginPath();ctx.moveTo(0,H-40);ctx.lineTo(W,H-40);ctx.stroke();
   ctx.fillStyle='#9ca3af';ctx.font='11px Arial';
-  ctx.fillText('Powered by My Salon Bookings',W/2,H-16);
+  ctx.fillText('Powered by GlowLoox',W/2,H-16);
   window.ReactNativeWebView.postMessage(c.toDataURL('image/png').split(',')[1]);
 };
 img.onerror=function(){window.ReactNativeWebView.postMessage('ERROR');};
@@ -507,7 +507,7 @@ img.src=${qrApiUrl};
           title="About" subtitle="App info and support"
         >
           {[
-            { icon: 'apps-outline',        color: '#6b7280', label: 'App Name',    value: 'My Salon Bookings' },
+            { icon: 'apps-outline',        color: '#6b7280', label: 'App Name',    value: 'GlowLoox' },
             { icon: 'code-slash-outline',  color: '#6b7280', label: 'Version',     value: 'v1.0.0' },
             { icon: 'build-outline',       color: '#6b7280', label: 'Platform',    value: 'Android' },
             { icon: 'person-circle-outline', color: '#6b7280', label: 'Role',      value: 'Salon Owner' },

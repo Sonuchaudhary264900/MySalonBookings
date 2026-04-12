@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 200" width="820" height="200">
+  <defs>
+    <!-- Unified premium gradient -->
+    <linearGradient id="brandGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#5B21B6"/>
+      <stop offset="100%" stop-color="#A78BFA"/>
+    </linearGradient>
+
+```
+<!-- Sparkle gradient -->
+<linearGradient id="spkGrad" x1="0" y1="0" x2="0.4" y2="1">
+  <stop offset="0%" stop-color="#FEF3C7"/>
+  <stop offset="100%" stop-color="#FFFFFF"/>
+</linearGradient>
+
+<!-- Soft glow -->
+<filter id="spkGlow" x="-40%" y="-40%" width="180%" height="180%">
+  <feGaussianBlur stdDeviation="3"/>
+</filter>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;700&amp;display=swap');
+</style>
+```
+
+  </defs>
+
+  <!-- ICON -->
+
+  <g transform="translate(20,20) scale(0.3125)">
+    <rect width="512" height="512" rx="120" fill="url(#brandGrad)"/>
+
+```
+<!-- Clean sparkle -->
+<path d="M256,150 
+         C270,210 310,240 370,256 
+         C310,272 270,300 256,360 
+         C242,300 202,272 142,256 
+         C202,240 242,210 256,150 Z"
+      fill="url(#spkGrad)"
+      filter="url(#spkGlow)"/>
+```
+
+  </g>
+
+  <!-- WORDMARK -->
+
+<text
+x="210" y="130"
+font-family="'Inter', sans-serif"
+font-size="104"
+font-weight="700"
+letter-spacing="-2"
+fill="url(#brandGrad)"
+
+> GlowLoox</text>
+
+  <!-- TAGLINE -->
+
+<text
+x="212" y="162"
+font-family="'Inter', sans-serif"
+font-size="16"
+font-weight="400"
+letter-spacing="2"
+fill="#6D28D9"
+opacity="0.7"
+
+> Glow Starts Here</text>
+
+</svg>
