@@ -388,39 +388,22 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
             }
           </IconBtn>
 
-          {/* Guest: Sign In + Join Free (desktop only) */}
+          {/* Guest: Sign In */}
           {!token && (
-            <>
-              <Link to="/login"
-                style={{
-                  textDecoration: "none", fontSize: 13, fontWeight: 600,
-                  padding: "7px 14px", borderRadius: 999,
-                  border: "1.5px solid var(--t-border)",
-                  color: "var(--t-text-2)", transition: "all 0.18s ease",
-                  display: "flex", alignItems: "center", gap: 6,
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(99,102,241,0.5)"; e.currentTarget.style.color = "var(--t-accent)"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--t-border)"; e.currentTarget.style.color = "var(--t-text-2)"; }}
-              >
-                <User size={14} strokeWidth={2} />
-                Sign In
-              </Link>
-              <Link to="/register"
-                className="hidden md:inline-flex"
-                style={{
-                  textDecoration: "none", fontSize: 13, fontWeight: 700,
-                  padding: "7px 18px", borderRadius: 10,
-                  background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
-                  color: "#fff",
-                  boxShadow: "0 0 18px rgba(99,102,241,0.3)",
-                  transition: "box-shadow 0.18s ease",
-                }}
-                onMouseEnter={e => e.currentTarget.style.boxShadow = "0 0 28px rgba(99,102,241,0.5)"}
-                onMouseLeave={e => e.currentTarget.style.boxShadow = "0 0 18px rgba(99,102,241,0.3)"}
-              >
-                Join Free
-              </Link>
-            </>
+            <Link to="/login"
+              style={{
+                textDecoration: "none", fontSize: 13, fontWeight: 600,
+                padding: "7px 14px", borderRadius: 999,
+                border: "1.5px solid var(--t-border)",
+                color: "var(--t-text-2)", transition: "all 0.18s ease",
+                display: "flex", alignItems: "center", gap: 6,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(99,102,241,0.5)"; e.currentTarget.style.color = "var(--t-accent)"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--t-border)"; e.currentTarget.style.color = "var(--t-text-2)"; }}
+            >
+              <User size={14} strokeWidth={2} />
+              Sign In
+            </Link>
           )}
         </div>
 
