@@ -304,6 +304,7 @@ locality: { type: String, default: null }, // reverse-geocoded suburb/village fr
     ],
     kidsHaircut: { type: Boolean, default: false },
     atHomeServices: { type: Boolean, default: false },
+    categoryImages: { type: Map, of: String, default: {} },
 
     // ==========================================
     // SERVICES & STAFF

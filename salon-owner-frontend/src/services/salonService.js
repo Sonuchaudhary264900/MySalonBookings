@@ -119,6 +119,7 @@ export const updateSalon = async (salonData) => {
   if (Array.isArray(salonData.offeredCategories))   body.offeredCategories    = salonData.offeredCategories;
   if (salonData.kidsHaircut !== undefined)          body.kidsHaircut          = salonData.kidsHaircut;
   if (salonData.atHomeServices !== undefined)       body.atHomeServices       = salonData.atHomeServices;
+  if (salonData.categoryImages !== undefined)       body.categoryImages       = salonData.categoryImages;
 
   const response = await api.put('/owner/salon', body);
   return { success: true, message: 'Salon updated successfully', data: response.data.data };

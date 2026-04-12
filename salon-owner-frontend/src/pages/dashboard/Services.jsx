@@ -21,6 +21,16 @@ import {
   SALON_FEMALE_CATEGORIES,
 } from '../../constants/salonCategories';
 
+/* ─── Resolve category image: custom > default map > null ───────────────── */
+const getCatImg = (label, salon) => {
+  const saved = salon?.categoryImages;
+  if (saved) {
+    const custom = saved instanceof Map ? saved.get(label) : saved[label];
+    if (custom) return custom;
+  }
+  return CATEGORY_CARD_IMAGE_MAP[label] || null;
+};
+
 /* ─── Skeleton card ──────────────────────────────────────────── */
 const SkeletonCard = () => (
   <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 space-y-3 animate-pulse">
@@ -178,9 +188,9 @@ const ServiceMenuSection = ({ salon }) => {
               <button type="button" onClick={() => setExpanded(isOpen ? null : idx)}
                 className="w-full flex items-center gap-3 px-5 py-3.5 text-left
                   hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                {CATEGORY_CARD_IMAGE_MAP[cat.name] ? (
+                {getCatImg(cat.name, salon) ? (
                   <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0">
-                    <img src={CATEGORY_CARD_IMAGE_MAP[cat.name]} alt={cat.name} className="w-full h-full object-cover" />
+                    <img src={getCatImg(cat.name, salon)} alt={cat.name} className="w-full h-full object-cover" />
                   </div>
                 ) : (
                   <span className="text-base shrink-0">{CATEGORY_ICON_MAP[cat.name] || '✨'}</span>
@@ -606,9 +616,9 @@ const Services = () => {
                     className="w-full flex items-center gap-3 px-5 py-4
                       hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-left"
                   >
-                    {CATEGORY_CARD_IMAGE_MAP[cat] ? (
+                    {getCatImg(cat, salon) ? (
                       <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0">
-                        <img src={CATEGORY_CARD_IMAGE_MAP[cat]} alt={cat} className="w-full h-full object-cover" />
+                        <img src={getCatImg(cat, salon)} alt={cat} className="w-full h-full object-cover" />
                       </div>
                     ) : (
                       <span className="text-lg shrink-0">{CATEGORY_ICON_MAP[cat] || '✨'}</span>

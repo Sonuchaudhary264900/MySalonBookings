@@ -256,12 +256,14 @@ const SectionLabel = ({ label }) => (
 const CategoryCard = ({
   cat, sel, isExpanded, gender,
   onToggle, onExpand, onToggleSub,
+  customImage, onCatImageChange,
 }) => {
   const count    = sel.subServices.length;
   const isActive = sel.enabled;
   const totalServices = cat.sections
     ? cat.sections.reduce((n, s) => n + s.services.length, 0)
     : (cat.subServices || []).length;
+  const catFileRef = useRef(null);
 
   const renderChips = (subs, genderCtx = null) =>
     subs.map(sub => {
@@ -280,7 +282,7 @@ const CategoryCard = ({
       );
     });
 
-  const catImg = CATEGORY_CARD_IMAGE_MAP[cat.label];
+  const displayImg = customImage || CATEGORY_CARD_IMAGE_MAP[cat.label];
 
   return (
     <div className={`rounded-2xl border transition-all duration-200 overflow-hidden
@@ -296,22 +298,41 @@ const CategoryCard = ({
         ${isActive && isExpanded ? 'border-b border-indigo-100 dark:border-indigo-900/40' : ''}`}
         onClick={() => isActive && onExpand(isExpanded ? null : cat.key)}>
 
-        <div className="w-10 h-10 rounded-xl shrink-0 overflow-hidden transition-all">
-          {catImg ? (
+        {/* Category thumbnail with camera overlay */}
+        <div className="relative w-10 h-10 rounded-xl shrink-0 overflow-hidden group">
+          {displayImg ? (
             <img
-              src={catImg}
+              src={displayImg}
               alt={cat.label}
               className={`w-full h-full object-cover transition-all duration-200 ${isActive ? 'brightness-100' : 'brightness-75 grayscale-[30%]'}`}
             />
           ) : (
             <div className={`w-full h-full flex items-center justify-center text-lg
               ${isActive
-                ? 'bg-gradient-to-br from-indigo-500 to-violet-600 shadow-md shadow-indigo-500/25'
+                ? 'bg-gradient-to-br from-indigo-500 to-violet-600'
                 : 'bg-gray-100 dark:bg-gray-800'
               }`}>
-              <span className={isActive ? 'filter drop-shadow-sm' : ''}>{cat.icon || '✨'}</span>
+              <span>{cat.icon || '✨'}</span>
             </div>
           )}
+          {/* Camera overlay — edit category image */}
+          <button
+            type="button"
+            onClick={e => { e.stopPropagation(); catFileRef.current?.click(); }}
+            className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            style={{ background: 'rgba(0,0,0,0.55)' }}
+            title="Change category photo"
+          >
+            <span style={{ fontSize: 14 }}>📷</span>
+          </button>
+          <input
+            ref={catFileRef}
+            type="file"
+            accept="image/jpeg,image/jpg,image/png,image/webp"
+            className="hidden"
+            onClick={e => e.stopPropagation()}
+            onChange={e => { e.stopPropagation(); onCatImageChange(cat.label, e.target.files?.[0]); e.target.value = ''; }}
+          />
         </div>
 
         <div className="flex-1 min-w-0">
@@ -459,6 +480,14 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
   const [unisexSelections, setUnisexSelections] = useState(() => buildSelections(unisexCatList, salon?.offeredCategories));
   const [maleOptionals,    setMaleOptionals]    = useState({ kidsHaircut: salon?.kidsHaircut || false, atHomeServices: salon?.atHomeServices || false });
   const [femaleOptionals,  setFemaleOptionals]  = useState({ kidsServices: salon?.kidsHaircut || false, atHomeServices: salon?.atHomeServices || false });
+  const [customCatImages,  setCustomCatImages]  = useState(() => {
+    const saved = salon?.categoryImages;
+    if (!saved) return {};
+    // MongoDB Map comes as plain object or Map
+    if (saved instanceof Map) return Object.fromEntries(saved);
+    return { ...saved };
+  });
+  const [catImgUploading, setCatImgUploading] = useState(false);
 
   useEffect(() => { if (isOpen && onOpen) onOpen(); }, [isOpen]);
 
@@ -472,6 +501,8 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
     setUnisexSelections(buildSelections(getCategoriesForSalonType(type, 'unisex'), salon.offeredCategories));
     setMaleOptionals({ kidsHaircut: salon.kidsHaircut || false, atHomeServices: salon.atHomeServices || false });
     setFemaleOptionals({ kidsServices: salon.kidsHaircut || false, atHomeServices: salon.atHomeServices || false });
+    const saved = salon.categoryImages;
+    setCustomCatImages(saved ? (saved instanceof Map ? Object.fromEntries(saved) : { ...saved }) : {});
     setExpandedKey(null);
     setPendingGender(null);
     setPriceModal(EMPTY_MODAL);
@@ -511,6 +542,23 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
     } else {
       setPriceModal({ open: true, catKey, subName: sub, price: '', duration: '', genderContext });
       setTimeout(() => priceRef.current?.focus(), 80);
+    }
+  };
+
+  const handleCatImageChange = async (catLabel, file) => {
+    if (!file) return;
+    const preview = URL.createObjectURL(file);
+    setCustomCatImages(prev => ({ ...prev, [catLabel]: preview }));
+    setCatImgUploading(true);
+    try {
+      const url = await uploadServicePhoto(file);
+      if (url) setCustomCatImages(prev => ({ ...prev, [catLabel]: url }));
+      else setCustomCatImages(prev => { const n = { ...prev }; delete n[catLabel]; return n; });
+    } catch {
+      setCustomCatImages(prev => { const n = { ...prev }; delete n[catLabel]; return n; });
+    } finally {
+      URL.revokeObjectURL(preview);
+      setCatImgUploading(false);
     }
   };
 
@@ -575,7 +623,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
     if (!offeredCategories.length) { toast.error('Please select at least one category'); return; }
     setLoading(true);
     try {
-      await updateSalon({ businessType, servedGender: gender, offeredCategories, kidsHaircut, atHomeServices });
+      await updateSalon({ businessType, servedGender: gender, offeredCategories, kidsHaircut, atHomeServices, categoryImages: customCatImages });
       toast.success('Service menu saved!');
       onClose();
     } catch (err) {
@@ -727,6 +775,8 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
                       onToggle={toggleCat}
                       onExpand={setExpandedKey}
                       onToggleSub={toggleSub}
+                      customImage={customCatImages[cat.label] || null}
+                      onCatImageChange={handleCatImageChange}
                     />
                   );
                 })}
@@ -772,7 +822,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
           {/* ── Sticky footer ── */}
           <div className="shrink-0 px-5 py-4 border-t border-gray-100 dark:border-gray-800
             bg-white dark:bg-gray-950">
-            <button type="button" onClick={handleSave} disabled={loading || !gender}
+            <button type="button" onClick={handleSave} disabled={loading || !gender || catImgUploading}
               className={`w-full flex items-center justify-center gap-2 py-3 rounded-2xl
                 font-semibold text-sm text-white transition-all duration-200
                 ${isBarberShop
@@ -783,6 +833,8 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, salon, updateSalon }) =
                 hover:scale-[1.01]`}>
               {loading
                 ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving…</>
+                : catImgUploading
+                ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Uploading photo…</>
                 : <><Save className="w-4 h-4" /> Save Service Menu</>}
             </button>
           </div>
