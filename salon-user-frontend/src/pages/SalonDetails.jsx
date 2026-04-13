@@ -787,20 +787,6 @@ function SalonDetails() {
             </div>
           </div>
 
-          {/* ════ C. STATS ROW — mobile only ════ */}
-          <div className="glw-mobile-profile" style={{ display: 'flex', margin: '12px 16px', borderRadius: 16, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(167,139,250,.12)', overflow: 'hidden' }}>
-            {[
-              { val: followersCount > 0 ? (followersCount >= 1000 ? `${(followersCount/1000).toFixed(1)}k` : followersCount) : '—', label: 'FOLLOWERS' },
-              { val: totalBookings >= 1000 ? `${(totalBookings/1000).toFixed(1)}k` : totalBookings > 0 ? `${totalBookings}+` : '—', label: 'CUSTOMERS' },
-              { val: services.length > 0 ? services.length : '—', label: 'SERVICES' },
-            ].map(({ val, label }, i) => (
-              <div key={label} style={{ flex: 1, padding: '12px 6px', textAlign: 'center', borderLeft: i > 0 ? '1px solid rgba(167,139,250,.15)' : 'none' }}>
-                <p style={{ fontSize: 18, fontWeight: 900, color: '#FFFFFF', lineHeight: 1.1, marginBottom: 2 }}>{val}</p>
-                <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.10em', color: 'rgba(255,255,255,.4)', textTransform: 'uppercase' }}>{label}</p>
-              </div>
-            ))}
-          </div>
-
           {/* ════ D. ACTION BUTTONS — mobile only ════ */}
           <div className="glw-mobile-profile" style={{ display: 'flex', gap: 10, padding: '0 16px 16px' }}>
             <motion.button whileTap={{ scale: .96 }}
