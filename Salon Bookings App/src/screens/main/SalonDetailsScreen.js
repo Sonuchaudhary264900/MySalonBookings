@@ -12,7 +12,7 @@ import { useAuth } from '../../context/AuthContext';
 import { showError, showInfo } from '../../utils/toast';
 import { useTheme } from '../../context/ThemeContext';
 
-const BASE_TABS = ['Services', 'Packages', 'Reviews', 'Info'];
+const BASE_TABS = ['Services', 'Reels', 'Photos', 'Packages', 'Reviews', 'Info'];
 const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
 // ── Working hours helpers ─────────────────────────────────────────────────────
@@ -138,6 +138,8 @@ export default function SalonDetailsScreen({ route, navigation }) {
   const [selectedServices, setSelectedServices] = useState([]);
   const [isFavorite, setIsFavorite]       = useState(false);
   const [favLoading, setFavLoading]       = useState(false);
+  const [followed, setFollowed]           = useState(false);
+  const [reviewFilter, setReviewFilter]   = useState('all');
 
   const userGender = user?.gender;
   const [serviceGenderFilter, setServiceGenderFilter] = useState(
@@ -400,7 +402,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
           <View style={{ height: 14, backgroundColor: '#e5e7eb', borderRadius: 6, width: '40%' }} />
           <View style={{ height: 14, backgroundColor: '#e5e7eb', borderRadius: 6, width: '50%' }} />
         </View>
-        <ActivityIndicator color="#6366f1" style={{ marginTop: 20 }} />
+        <ActivityIndicator color="#7C3AED" style={{ marginTop: 20 }} />
       </View>
     );
   }
@@ -411,7 +413,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
         <Ionicons name="alert-circle-outline" size={52} color="#d1d5db" />
         <Text style={{ fontSize: 16, color: '#6b7280', marginTop: 12 }}>Salon not found</Text>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn2}>
-          <Text style={{ color: '#6366f1', fontWeight: '700' }}>Go Back</Text>
+          <Text style={{ color: '#7C3AED', fontWeight: '700' }}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -503,10 +505,17 @@ export default function SalonDetailsScreen({ route, navigation }) {
             <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
               <TouchableOpacity
                 onPress={() => setShowBooking(true)}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 11, borderRadius: 14, backgroundColor: '#6366f1', shadowColor: '#6366f1', shadowOpacity: 0.55, shadowRadius: 14, elevation: 8 }}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 11, borderRadius: 14, backgroundColor: '#7C3AED', shadowColor: '#7C3AED', shadowOpacity: 0.55, shadowRadius: 14, elevation: 8 }}
               >
                 <Ionicons name="flash-outline" size={16} color="#fff" />
-                <Text style={{ fontSize: 14, fontWeight: '700', color: '#fff' }}>Book Now</Text>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: '#fff' }}>Book Your Look ✨</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setFollowed(f => !f)}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 11, borderRadius: 14, backgroundColor: followed ? 'rgba(124,58,237,0.2)' : 'rgba(255,255,255,0.14)', borderWidth: 1.5, borderColor: followed ? '#7C3AED' : 'rgba(255,255,255,0.25)' }}
+              >
+                <Ionicons name={followed ? 'heart' : 'heart-outline'} size={16} color={followed ? '#A78BFA' : '#fff'} />
+                <Text style={{ fontSize: 14, fontWeight: '600', color: followed ? '#A78BFA' : '#fff' }}>{followed ? 'Following' : 'Follow'}</Text>
               </TouchableOpacity>
               {salon.phone && (
                 <TouchableOpacity
@@ -620,6 +629,20 @@ export default function SalonDetailsScreen({ route, navigation }) {
               </Text>
             )}
           </ScrollView>
+        </View>
+
+        {/* Stats row */}
+        <View style={{ flexDirection: 'row', marginHorizontal: 16, marginTop: 14, marginBottom: 4, borderRadius: 16, backgroundColor: 'rgba(124,58,237,0.08)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.15)', overflow: 'hidden' }}>
+          {[
+            { val: totalBookings >= 1000 ? `${(totalBookings/1000).toFixed(1)}k` : totalBookings > 0 ? `${totalBookings}+` : '—', label: 'CUSTOMERS' },
+            { val: services.length > 0 ? String(services.length) : '—', label: 'SERVICES' },
+            { val: rating > 0 ? `${rating.toFixed(1)}★` : '—', label: 'RATING' },
+          ].map(({ val, label }, i) => (
+            <View key={label} style={{ flex: 1, paddingVertical: 14, alignItems: 'center', borderLeftWidth: i > 0 ? 1 : 0, borderLeftColor: 'rgba(167,139,250,0.15)' }}>
+              <Text style={{ fontSize: 18, fontWeight: '900', color: '#FFFFFF', lineHeight: 22, marginBottom: 3 }}>{val}</Text>
+              <Text style={{ fontSize: 9, fontWeight: '700', letterSpacing: 1.2, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>{label}</Text>
+            </View>
+          ))}
         </View>
 
         {/* Quick info row */}
@@ -867,7 +890,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                       >
                         <View style={{ flex: 1 }}>
                           <View style={styles.serviceTop}>
-                            <Text style={[styles.serviceName, selected && { color: '#6366f1' }]}>{svc.name}</Text>
+                            <Text style={[styles.serviceName, selected && { color: '#7C3AED' }]}>{svc.name}</Text>
                             <Text style={styles.servicePrice}>₹{svc.basePrice || svc.price}</Text>
                           </View>
                           <View style={styles.serviceMeta}>
@@ -904,7 +927,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                             <View style={{ gap: 12 }}>
                               {maleOnly.length > 0 && (
                                 <View>
-                                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#6366f1', marginBottom: 6 }}>👨 Men</Text>
+                                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#7C3AED', marginBottom: 6 }}>👨 Men</Text>
                                   <View style={{ gap: 8 }}>{maleOnly.map(renderServiceCard)}</View>
                                 </View>
                               )}
@@ -930,6 +953,59 @@ export default function SalonDetailsScreen({ route, navigation }) {
             );
           })()}
 
+          {/* Reels Tab */}
+          {activeTab === 'Reels' && (() => {
+            const videos = (salon?.videos || []).map(v => typeof v === 'string' ? v : v?.url).filter(Boolean);
+            if (videos.length === 0) return (
+              <View style={styles.emptyTab}>
+                <Text style={{ fontSize: 36, marginBottom: 8 }}>🎬</Text>
+                <Text style={styles.emptyTabText}>No reels yet</Text>
+              </View>
+            );
+            return (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 3 }}>
+                {videos.map((url, i) => {
+                  const thumb = url.replace('/upload/', '/upload/so_0,f_jpg,q_60,w_400/').replace(/\.(mp4|mov|webm)$/, '.jpg');
+                  return (
+                    <TouchableOpacity key={url} onPress={() => setGalleryLightbox((salon?.photos || []).length + i)}
+                      style={{ width: '49%', aspectRatio: 9/16, borderRadius: 12, overflow: 'hidden', backgroundColor: 'rgba(124,58,237,0.1)', position: 'relative', marginBottom: 3 }}>
+                      <Image source={{ uri: thumb }} style={{ width: '100%', height: '100%' }} resizeMode="cover" onError={() => {}} />
+                      <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.25)', alignItems: 'center', justifyContent: 'center' }}>
+                        <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' }}>
+                          <Ionicons name="play" size={20} color="#fff" />
+                        </View>
+                      </View>
+                      <View style={{ position: 'absolute', bottom: 8, left: 8 }}>
+                        <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', fontWeight: '600' }}>{i+1}/{videos.length}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            );
+          })()}
+
+          {/* Photos Tab */}
+          {activeTab === 'Photos' && (() => {
+            const photos = (salon?.photos || []).map(p => typeof p === 'string' ? p : p?.url).filter(Boolean);
+            if (photos.length === 0) return (
+              <View style={styles.emptyTab}>
+                <Text style={{ fontSize: 36, marginBottom: 8 }}>📷</Text>
+                <Text style={styles.emptyTabText}>No photos yet</Text>
+              </View>
+            );
+            return (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 3 }}>
+                {photos.map((url, i) => (
+                  <TouchableOpacity key={url} onPress={() => setGalleryLightbox(i)}
+                    style={{ width: '49%', aspectRatio: 1, overflow: 'hidden', marginBottom: 3 }}>
+                    <Image source={{ uri: url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            );
+          })()}
+
           {/* Packages Tab */}
           {activeTab === 'Packages' && (
             <View style={{ gap: 12 }}>
@@ -944,7 +1020,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                   {packages.filter(p => p.type === 'package').length > 0 && (
                     <View>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                        <Ionicons name="gift-outline" size={15} color="#6366f1" />
+                        <Ionicons name="gift-outline" size={15} color="#7C3AED" />
                         <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>Service Packages</Text>
                       </View>
                       {packages.filter(p => p.type === 'package').map(pkg => (
@@ -967,7 +1043,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                           )}
                           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                             <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
-                              <Text style={{ fontSize: 20, fontWeight: '900', color: '#6366f1' }}>₹{pkg.discountedPrice}</Text>
+                              <Text style={{ fontSize: 20, fontWeight: '900', color: '#7C3AED' }}>₹{pkg.discountedPrice}</Text>
                               {pkg.originalPrice > 0 && pkg.originalPrice !== pkg.discountedPrice && (
                                 <>
                                   <Text style={{ fontSize: 12, color: theme.subText, textDecorationLine: 'line-through' }}>₹{pkg.originalPrice}</Text>
@@ -1041,43 +1117,96 @@ export default function SalonDetailsScreen({ route, navigation }) {
           )}
 
           {/* Reviews Tab */}
-          {activeTab === 'Reviews' && (
-            <View style={{ gap: 10 }}>
-              {reviews.length === 0 ? (
-                <View style={styles.emptyTab}>
-                  <Ionicons name="star-outline" size={36} color="#d1d5db" />
-                  <Text style={styles.emptyTabText}>No reviews yet</Text>
+          {activeTab === 'Reviews' && (() => {
+            const starCounts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+            reviews.forEach(r => { const s = Math.round(r.salonRating || r.rating || 5); starCounts[s] = (starCounts[s] || 0) + 1; });
+            const recommendRate = reviews.length ? Math.round(reviews.filter(r => (r.salonRating || r.rating || 0) >= 4).length / reviews.length * 100) : 0;
+            const filteredReviews = reviewFilter === 'with_photos' ? reviews.filter(r => r.photos?.length > 0) : reviews;
+            const avatarColors = ['#e94560', '#8b5cf6', '#10b981', '#f59e0b', '#38bdf8'];
+            return (
+              <View style={{ gap: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <Text style={{ fontSize: 17, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.3 }}>Reflections of Glow</Text>
+                  <TouchableOpacity style={{ backgroundColor: 'rgba(124,58,237,0.15)', borderWidth: 1, borderColor: 'rgba(124,58,237,0.35)', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#A78BFA' }}>Write Review</Text>
+                  </TouchableOpacity>
                 </View>
-              ) : reviews.map((r, i) => (
-                <View key={r._id || i} style={styles.reviewCard}>
-                  <View style={styles.reviewHeader}>
-                    <View style={styles.reviewAvatar}>
-                      <Text style={styles.reviewAvatarText}>{(r.customerName || r.name || 'U').charAt(0).toUpperCase()}</Text>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.reviewName}>{r.customerName || r.name || 'Anonymous'}</Text>
-                      <StarRating rating={r.salonRating || r.rating || 0} size={12} />
-                    </View>
-                    {r.createdAt && (
-                      <Text style={styles.reviewDate}>
-                        {new Date(r.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                      </Text>
-                    )}
+                <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: -8, marginBottom: 4 }}>Our community's experience with {salon.name}.</Text>
+                {reviews.length === 0 ? (
+                  <View style={styles.emptyTab}>
+                    <Text style={{ fontSize: 32, marginBottom: 8 }}>💬</Text>
+                    <Text style={styles.emptyTabText}>No reviews yet. Be the first!</Text>
                   </View>
-                  {r.reviewText && <Text style={styles.reviewText}>{r.reviewText}</Text>}
-                  {r.ownerResponse && (
-                    <View style={styles.ownerReplyBox}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 }}>
-                        <Ionicons name="chatbubble-outline" size={12} color="#6366f1" />
-                        <Text style={styles.ownerReplyLabel}>Owner's Reply</Text>
+                ) : (
+                  <>
+                    {/* Aggregate box */}
+                    <View style={{ borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.12)', padding: 18, marginBottom: 4 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+                        <View style={{ alignItems: 'center' }}>
+                          <Text style={{ fontSize: 44, fontWeight: '900', color: '#FFFFFF', lineHeight: 48 }}>{rating > 0 ? rating.toFixed(1) : '—'}</Text>
+                          <View style={{ flexDirection: 'row', gap: 2, marginVertical: 4 }}>
+                            {[1,2,3,4,5].map(s => <Text key={s} style={{ fontSize: 12, color: s <= Math.round(rating) ? '#FDE68A' : 'rgba(255,255,255,0.15)' }}>★</Text>)}
+                          </View>
+                          <Text style={{ fontSize: 8, fontWeight: '700', letterSpacing: 1, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase' }}>BASED ON {reviews.length}</Text>
+                        </View>
+                        <View style={{ flex: 1, gap: 5 }}>
+                          {[5,4,3,2,1].map(star => {
+                            const pct = reviews.length > 0 ? Math.round((starCounts[star] || 0) / reviews.length * 100) : 0;
+                            return (
+                              <View key={star} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                                <Text style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', fontWeight: '600', width: 8, textAlign: 'right' }}>{star}</Text>
+                                <Text style={{ fontSize: 9, color: '#FDE68A' }}>★</Text>
+                                <View style={{ flex: 1, height: 5, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
+                                  <View style={{ width: `${pct}%`, height: '100%', borderRadius: 999, backgroundColor: '#7C3AED' }} />
+                                </View>
+                                <Text style={{ fontSize: 8, color: 'rgba(255,255,255,0.35)', fontWeight: '600', width: 24, textAlign: 'right' }}>{pct}%</Text>
+                              </View>
+                            );
+                          })}
+                        </View>
                       </View>
-                      <Text style={styles.ownerReplyText}>{r.ownerResponse}</Text>
+                      <View style={{ borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.07)', paddingTop: 12, alignItems: 'center' }}>
+                        <Text style={{ fontSize: 8, fontWeight: '700', letterSpacing: 1.2, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', marginBottom: 4 }}>RECOMMENDATION RATE</Text>
+                        <Text style={{ fontSize: 32, fontWeight: '900', color: '#FFFFFF' }}>{recommendRate}%</Text>
+                        <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>of clients would recommend to a friend.</Text>
+                      </View>
                     </View>
-                  )}
-                </View>
-              ))}
-            </View>
-          )}
+                    {/* Filter pills */}
+                    <View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
+                      {[{ key: 'all', label: 'All Reviews' }, { key: 'with_photos', label: 'With Photos' }].map(({ key, label }) => (
+                        <TouchableOpacity key={key} onPress={() => setReviewFilter(key)}
+                          style={{ paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: reviewFilter === key ? '#7C3AED' : 'rgba(255,255,255,0.12)', backgroundColor: reviewFilter === key ? '#7C3AED' : 'transparent' }}>
+                          <Text style={{ fontSize: 12, fontWeight: '600', color: reviewFilter === key ? '#fff' : 'rgba(255,255,255,0.5)' }}>{label}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                    {/* Review cards */}
+                    {filteredReviews.map((r, i) => {
+                      const starRating = Math.round(r.salonRating || r.rating || 5);
+                      const name = r.customerName || r.name || 'Guest';
+                      return (
+                        <View key={r._id || i} style={{ borderRadius: 14, padding: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.10)', gap: 8 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                            <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: avatarColors[i % avatarColors.length], alignItems: 'center', justifyContent: 'center' }}>
+                              <Text style={{ fontSize: 13, fontWeight: '700', color: '#fff' }}>{name.charAt(0).toUpperCase()}</Text>
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Text style={{ fontSize: 13, fontWeight: '700', color: '#FFFFFF' }}>{name}</Text>
+                              {r.createdAt && <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{new Date(r.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</Text>}
+                            </View>
+                            <View style={{ flexDirection: 'row', gap: 1 }}>
+                              {[1,2,3,4,5].map(s => <Text key={s} style={{ fontSize: 11, color: s <= starRating ? '#FDE68A' : 'rgba(255,255,255,0.15)' }}>★</Text>)}
+                            </View>
+                          </View>
+                          {(r.reviewText || r.comment) && <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 19 }} numberOfLines={4}>&ldquo;{r.reviewText || r.comment}&rdquo;</Text>}
+                        </View>
+                      );
+                    })}
+                  </>
+                )}
+              </View>
+            );
+          })()}
 
           {/* Info Tab */}
           {activeTab === 'Info' && (
@@ -1086,8 +1215,8 @@ export default function SalonDetailsScreen({ route, navigation }) {
                 <Text style={styles.infoSectionTitle}>Contact</Text>
                 {salon.phone && (
                   <TouchableOpacity style={styles.infoRow2} onPress={() => Linking.openURL(`tel:${salon.phone}`)}>
-                    <Ionicons name="call-outline" size={16} color="#6366f1" />
-                    <Text style={[styles.infoValue, { color: '#6366f1' }]}>{salon.phone}</Text>
+                    <Ionicons name="call-outline" size={16} color="#7C3AED" />
+                    <Text style={[styles.infoValue, { color: '#7C3AED' }]}>{salon.phone}</Text>
                   </TouchableOpacity>
                 )}
                 {salon.email && (
@@ -1348,7 +1477,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                           onPress={() => setBarberId(b._id)}
                         >
                           <View style={styles.barberAvatar}>
-                            <Text style={{ fontSize: 15, fontWeight: '700', color: barberId === b._id ? '#fff' : '#6366f1' }}>
+                            <Text style={{ fontSize: 15, fontWeight: '700', color: barberId === b._id ? '#fff' : '#7C3AED' }}>
                               {b.name.charAt(0).toUpperCase()}
                             </Text>
                           </View>
@@ -1367,7 +1496,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                   </Text>
                   {slotsLoading ? (
                     <View style={styles.slotsLoading}>
-                      <ActivityIndicator color="#6366f1" size="small" />
+                      <ActivityIndicator color="#7C3AED" size="small" />
                       <Text style={{ color: '#6b7280', fontSize: 13 }}>Loading slots...</Text>
                     </View>
                   ) : closedDay ? (
@@ -1387,7 +1516,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                   ) : (
                     <>
                       <View style={styles.slotLegend}>
-                        {[['#e5e7eb','Past'],['#fecaca','Booked'],['#6366f1','Selected'],['#f3f4f6','Available']].map(([c, l]) => (
+                        {[['#e5e7eb','Past'],['#fecaca','Booked'],['#7C3AED','Selected'],['#f3f4f6','Available']].map(([c, l]) => (
                           <View key={l} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                             <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: c }} />
                             <Text style={{ fontSize: 10, color: '#6b7280' }}>{l}</Text>
@@ -1545,7 +1674,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                   </View>
                 </View>
                 <View style={{ backgroundColor: 'rgba(99,102,241,0.08)', borderRadius: 10, padding: 10, marginBottom: 12, width: '100%' }}>
-                  <Text style={{ fontSize: 12, color: '#6366f1', lineHeight: 17 }}>
+                  <Text style={{ fontSize: 12, color: '#7C3AED', lineHeight: 17 }}>
                     Pay directly at the salon. The owner will confirm after receiving your payment.
                   </Text>
                 </View>
@@ -1568,7 +1697,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                   <TouchableOpacity
                     onPress={handlePackageRequest}
                     disabled={pkgReqLoading}
-                    style={{ flex: 1, backgroundColor: '#6366f1', borderRadius: 12, height: 46, alignItems: 'center', justifyContent: 'center', opacity: pkgReqLoading ? 0.6 : 1 }}
+                    style={{ flex: 1, backgroundColor: '#7C3AED', borderRadius: 12, height: 46, alignItems: 'center', justifyContent: 'center', opacity: pkgReqLoading ? 0.6 : 1 }}
                   >
                     <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>
                       {pkgReqLoading ? 'Sending…' : 'Send Request'}
@@ -1586,7 +1715,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
 
 const getStyles = (t) => StyleSheet.create({
   // ── Salon details ──────────────────────────────────────────────────────────
-  container: { flex: 1, backgroundColor: t.bg },
+  container: { flex: 1, backgroundColor: '#0D0520' },
   loadingBox: { flex: 1, backgroundColor: t.bg },
   loadingHeader: { height: 240, backgroundColor: t.border },
   topBar: { position: 'absolute', left: 0, right: 0, zIndex: 10, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16 },
@@ -1594,7 +1723,7 @@ const getStyles = (t) => StyleSheet.create({
   backBtn2: { marginTop: 16, padding: 12 },
   heroWrapper: { position: 'relative' },
   heroImg: { width: '100%', height: 240 },
-  heroPlaceholder: { backgroundColor: '#4338ca', alignItems: 'center', justifyContent: 'center' },
+  heroPlaceholder: { backgroundColor: '#1A0528', alignItems: 'center', justifyContent: 'center' },
   heroOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 80, backgroundColor: 'transparent' },
   infoCard: { backgroundColor: t.card, marginHorizontal: 16, marginTop: -20, borderRadius: 16, padding: 16, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8, elevation: 4, gap: 8, marginBottom: 12, borderWidth: 1, borderColor: t.border },
   infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
@@ -1613,7 +1742,7 @@ const getStyles = (t) => StyleSheet.create({
   genderBadgeText: { fontSize: 12, fontWeight: '600' },
   tabBar: { flexDirection: 'row', backgroundColor: t.card, marginHorizontal: 16, borderRadius: 12, padding: 4, marginBottom: 12, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1, borderWidth: 1, borderColor: t.border },
   tabBtn: { flex: 1, paddingVertical: 9, alignItems: 'center', borderRadius: 9 },
-  tabBtnActive: { backgroundColor: '#6366f1', shadowColor: '#6366f1', shadowOpacity: 0.35, shadowRadius: 8, elevation: 4 },
+  tabBtnActive: { backgroundColor: '#7C3AED', shadowColor: '#7C3AED', shadowOpacity: 0.45, shadowRadius: 10, elevation: 5 },
   tabText: { fontSize: 13, fontWeight: '600', color: t.subText },
   tabTextActive: { color: '#fff' },
   tabBadge: { backgroundColor: t.border, borderRadius: 8, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
@@ -1625,43 +1754,43 @@ const getStyles = (t) => StyleSheet.create({
   emptyTab: { alignItems: 'center', paddingVertical: 40, gap: 10 },
   emptyTabText: { fontSize: 14, color: t.subText },
   serviceCard: { backgroundColor: t.card, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', gap: 14, borderWidth: 1.5, borderColor: t.border, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
-  serviceCardSelected: { borderColor: '#6366f1', backgroundColor: '#4338ca' },
+  serviceCardSelected: { borderColor: '#7C3AED', backgroundColor: '#1A0528' },
   serviceTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   serviceName: { fontSize: 15, fontWeight: '700', color: t.text, flex: 1 },
-  servicePrice: { fontSize: 16, fontWeight: '800', color: '#6366f1' },
+  servicePrice: { fontSize: 16, fontWeight: '800', color: '#7C3AED' },
   serviceMeta: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   serviceMetaText: { fontSize: 13, color: t.subText },
   serviceDesc: { fontSize: 13, color: t.subText, flex: 1 },
   checkbox: { width: 30, height: 30, borderRadius: 8, borderWidth: 2, borderColor: t.inputBorder, alignItems: 'center', justifyContent: 'center' },
-  checkboxChecked: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
+  checkboxChecked: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
   reviewCard: { backgroundColor: t.card, borderRadius: 12, padding: 14, gap: 8, borderWidth: 1, borderColor: t.border },
   reviewHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  reviewAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#4338ca', alignItems: 'center', justifyContent: 'center' },
+  reviewAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#1A0528', alignItems: 'center', justifyContent: 'center' },
   reviewAvatarText: { fontSize: 14, fontWeight: '700', color: '#93c5fd' },
   reviewName: { fontSize: 13, fontWeight: '700', color: t.text },
   reviewDate: { fontSize: 11, color: t.subText },
   reviewText: { fontSize: 13, color: t.text, lineHeight: 19 },
-  ownerReplyBox: { backgroundColor: '#eff6ff', borderRadius: 8, padding: 10, borderLeftWidth: 3, borderLeftColor: '#6366f1' },
-  ownerReplyLabel: { fontSize: 11, fontWeight: '700', color: '#6366f1' },
+  ownerReplyBox: { backgroundColor: '#eff6ff', borderRadius: 8, padding: 10, borderLeftWidth: 3, borderLeftColor: '#7C3AED' },
+  ownerReplyLabel: { fontSize: 11, fontWeight: '700', color: '#7C3AED' },
   ownerReplyText: { fontSize: 12, color: '#1e40af', lineHeight: 17 },
   infoSection: { backgroundColor: t.card, borderRadius: 12, padding: 14, gap: 10, borderWidth: 1, borderColor: t.border },
   infoSectionTitle: { fontSize: 13, fontWeight: '700', color: t.subText, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
   infoRow2: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   infoValue: { fontSize: 13, color: t.text, flex: 1, lineHeight: 19 },
   hoursRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5, borderTopWidth: 1, borderTopColor: t.border },
-  hoursRowToday: { backgroundColor: '#4338ca', marginHorizontal: -14, paddingHorizontal: 14, borderRadius: 6 },
+  hoursRowToday: { backgroundColor: '#1A0528', marginHorizontal: -14, paddingHorizontal: 14, borderRadius: 6 },
   hoursDay: { fontSize: 13, color: t.text },
   hoursTime: { fontSize: 13, color: t.text, fontWeight: '600' },
   hoursClosed: { fontSize: 13, color: '#ef4444' },
   bookBar: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: t.card, borderTopWidth: 1, borderTopColor: t.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 14, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 8, elevation: 8 },
   bookBarCount: { fontSize: 12, color: t.subText },
   bookBarPrice: { fontSize: 20, fontWeight: '800', color: t.text },
-  bookBtn: { backgroundColor: '#6366f1', borderRadius: 14, paddingHorizontal: 24, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  bookBtn: { backgroundColor: '#7C3AED', borderRadius: 14, paddingHorizontal: 24, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 8 },
   bookBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
 
   // ── Booking modal ──────────────────────────────────────────────────────────
   bkContainer: { flex: 1, backgroundColor: t.bg },
-  bkHeader: { backgroundColor: '#6366f1', paddingHorizontal: 16, paddingBottom: 14, overflow: 'hidden' },
+  bkHeader: { backgroundColor: '#7C3AED', paddingHorizontal: 16, paddingBottom: 14, overflow: 'hidden' },
   bkDecorCircle1: { position: 'absolute', width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.07)', top: -60, right: -30 },
   bkDecorCircle2: { position: 'absolute', width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.05)', bottom: -20, left: 20 },
   bkHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 14 },
@@ -1677,14 +1806,14 @@ const getStyles = (t) => StyleSheet.create({
 
   // Date chips
   dateChip: { width: 52, height: 62, borderRadius: 12, backgroundColor: t.card, borderWidth: 1.5, borderColor: t.border, alignItems: 'center', justifyContent: 'center', gap: 2 },
-  dateChipActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
+  dateChipActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
   dateChipDay: { fontSize: 11, color: t.subText, fontWeight: '600' },
   dateChipNum: { fontSize: 18, color: t.text, fontWeight: '800' },
   dateChipTextActive: { color: '#fff' },
 
   // Barber chips
   barberChip: { alignItems: 'center', gap: 6, backgroundColor: t.card, borderRadius: 12, borderWidth: 1.5, borderColor: t.border, padding: 12, minWidth: 72 },
-  barberChipActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
+  barberChipActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
   barberAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: t.bg, alignItems: 'center', justifyContent: 'center' },
   barberName: { fontSize: 12, fontWeight: '600', color: t.text },
   barberNameActive: { color: '#fff' },
@@ -1702,7 +1831,7 @@ const getStyles = (t) => StyleSheet.create({
   slotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   slotBtn: { width: '30%', borderRadius: 10, paddingVertical: 9, alignItems: 'center', borderWidth: 1.5 },
   slotAvailable: { backgroundColor: t.card, borderColor: t.inputBorder },
-  slotSelected: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
+  slotSelected: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
   slotPast: { backgroundColor: t.border, borderColor: t.border },
   slotBooked: { backgroundColor: '#fee2e2', borderColor: '#fca5a5' },
   slotTime: { fontSize: 13, fontWeight: '700', color: t.text },
@@ -1711,7 +1840,7 @@ const getStyles = (t) => StyleSheet.create({
   // Coupon
   couponRow: { flexDirection: 'row', gap: 8 },
   couponInput: { flex: 1, borderWidth: 1.5, borderColor: t.inputBorder, borderRadius: 10, paddingHorizontal: 12, height: 46, fontSize: 14, color: t.text, letterSpacing: 1 },
-  couponBtn: { backgroundColor: '#6366f1', borderRadius: 10, paddingHorizontal: 16, height: 46, alignItems: 'center', justifyContent: 'center' },
+  couponBtn: { backgroundColor: '#7C3AED', borderRadius: 10, paddingHorizontal: 16, height: 46, alignItems: 'center', justifyContent: 'center' },
   couponBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   couponApplied: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#f0fdf4', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#bbf7d0' },
   couponAppliedText: { flex: 1, fontSize: 13, color: '#16a34a', fontWeight: '600' },
@@ -1726,7 +1855,7 @@ const getStyles = (t) => StyleSheet.create({
   priceTotalVal: { fontSize: 16, fontWeight: '800', color: t.accent },
 
   // Confirm
-  confirmBtn: { backgroundColor: '#6366f1', borderRadius: 14, height: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  confirmBtn: { backgroundColor: '#7C3AED', borderRadius: 14, height: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   confirmBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 
   // Success
@@ -1741,7 +1870,7 @@ const getStyles = (t) => StyleSheet.create({
   successService: { fontSize: 13, color: t.subText, textAlign: 'center' },
   successRow: { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center' },
   successMeta: { fontSize: 13, color: t.text },
-  successBtn: { backgroundColor: '#6366f1', borderRadius: 12, height: 48, width: '100%', alignItems: 'center', justifyContent: 'center' },
+  successBtn: { backgroundColor: '#7C3AED', borderRadius: 12, height: 48, width: '100%', alignItems: 'center', justifyContent: 'center' },
   successBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
   successBtnOutline: { borderWidth: 1.5, borderColor: t.border, borderRadius: 12, height: 48, width: '100%', alignItems: 'center', justifyContent: 'center' },
   successBtnOutlineText: { color: t.text, fontWeight: '600', fontSize: 15 },
@@ -1752,11 +1881,11 @@ const getStyles = (t) => StyleSheet.create({
   alertIcon: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center' },
   alertTitle: { fontSize: 18, fontWeight: '700', color: t.text },
   alertText: { fontSize: 13, color: t.subText, textAlign: 'center', lineHeight: 20 },
-  alertBtn: { backgroundColor: '#6366f1', borderRadius: 12, height: 46, width: '100%', alignItems: 'center', justifyContent: 'center', marginTop: 4 },
+  alertBtn: { backgroundColor: '#7C3AED', borderRadius: 12, height: 46, width: '100%', alignItems: 'center', justifyContent: 'center', marginTop: 4 },
   alertBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 
   // Packages tab
   pkgCard: { backgroundColor: t.card, borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1 },
-  pkgBuyBtn: { backgroundColor: '#6366f1', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 9 },
+  pkgBuyBtn: { backgroundColor: '#7C3AED', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 9 },
   pkgBuyBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
 });
