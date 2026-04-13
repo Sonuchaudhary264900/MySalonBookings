@@ -1283,27 +1283,6 @@ function SalonDetails() {
             className="fixed bottom-[60px] left-0 right-0 z-[110] overflow-hidden"
             style={{ background: dm.barBg, borderTop: `1px solid ${theme.p}22`, boxShadow: `0 -12px 48px rgba(0,0,0,.55),0 0 0 1px ${theme.p}12`, transition: 'background .3s', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
 
-            {/* Combo suggestions row — only when present */}
-            <AnimatePresence>
-              {comboSuggestions.length > 0 && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.22, ease: 'easeOut' }}
-                  style={{ borderBottom: `1px solid ${dm.b07}`, overflow: 'hidden' }}>
-                  <div className="px-4 pt-2.5 pb-2">
-                    <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: dm.fg35, marginBottom: 6 }}>Complete your visit</p>
-                    <div style={{ display: 'flex', gap: 7, overflowX: 'auto', scrollbarWidth: 'none' }}>
-                      {comboSuggestions.map(s => (
-                        <button key={s._id} onClick={() => toggleService(s)}
-                          style={{ flexShrink: 0, padding: '4px 11px', borderRadius: 999, border: `1px solid ${theme.p}35`, background: `${theme.p}0d`, color: theme.p, fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', letterSpacing: '0.01em' }}>
-                          + {s.name} · ₹{s.basePrice || s.price || 0}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
 
             {/* Main booking row */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 16px' }}>
