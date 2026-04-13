@@ -222,7 +222,12 @@ function SalonDetails() {
   useEffect(() => {
     Promise.all([loadSalon(), loadServices(), loadReviews(), loadBarbers(), loadOffers(), loadPackages()]).finally(() => setLoading(false));
     if (token) {
-      API.get(`/customer/salons/${id}/follow-status`).then(r => { if (r.data?.following !== undefined) setFollowed(r.data.following); }).catch(() => {});
+      API.get(`/customer/salons/${id}/follow-status`).then(r => { if (r.data?.following !== undefined) setFollowed(r.data.following); }).catch((error) => {
+        // Ignore 404 errors (route not deployed yet) and auth errors, but log other errors
+        if (error.response?.status !== 404 && error.response?.status !== 401) {
+          console.error('Error checking follow status:', error);
+        }
+      });
     }
   }, [id]);
 
@@ -400,9 +405,12 @@ function SalonDetails() {
       const r = await API.post(`/customer/salons/${id}/follow`);
       setFollowed(r.data.following);
       if (r.data.followersCount !== undefined) setFollowersCount(r.data.followersCount);
-    } catch {
-      setFollowed(!newFollowed);
-      setFollowersCount(c => newFollowed ? Math.max(0, c - 1) : c + 1);
+    } catch (error) {
+      // Ignore 404 errors (route not deployed yet) and revert optimistic update
+      if (error.response?.status !== 404) {
+        setFollowed(!newFollowed);
+        setFollowersCount(c => newFollowed ? Math.max(0, c - 1) : c + 1);
+      }
     } finally { setFollowLoading(false); }
   };
 
