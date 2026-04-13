@@ -645,7 +645,7 @@ function SalonDetails() {
       `}</style>
 
       {/* ════ OUTER SHELL ════ */}
-      <div style={{ background: '#060114', minHeight: '100vh', paddingBottom: selectedServices.length > 0 ? 'calc(80px + env(safe-area-inset-bottom,0px))' : 0 }}>
+      <div style={{ background: '#060114', minHeight: '100vh', paddingBottom: selectedServices.length > 0 ? 'calc(140px + env(safe-area-inset-bottom,0px))' : 'calc(60px + env(safe-area-inset-bottom,0px))' }}>
         <div className="glw-col">
 
           {/* ════ A. BANNER ════ */}
@@ -1060,8 +1060,8 @@ function SalonDetails() {
                                                   </div>
                                                   <motion.button whileTap={{ scale: .88 }}
                                                     onClick={e => { e.stopPropagation(); toggleService(s); }}
-                                                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 800, color: isSel ? '#4ADE80' : '#A78BFA', letterSpacing: '.04em', padding: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                                    {isSel ? <><Check style={{ width: 12, height: 12 }} /> ADDED</> : 'BOOK NOW'}
+                                                    style={{ background: isSel ? 'rgba(124,58,237,.15)' : 'transparent', border: `1.5px solid ${isSel ? '#7C3AED' : '#7C3AED'}`, borderRadius: 8, cursor: 'pointer', fontSize: 11, fontWeight: 800, color: isSel ? '#4ADE80' : '#A78BFA', letterSpacing: '.04em', padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                    {isSel ? <><Check style={{ width: 11, height: 11 }} /> ADDED</> : '+ ADD'}
                                                   </motion.button>
                                                 </div>
                                               </div>
@@ -1280,7 +1280,7 @@ function SalonDetails() {
           <motion.div
             initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 340, damping: 32 }}
-            className="fixed bottom-0 left-0 right-0 z-40 md:bottom-4 md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-2xl md:rounded-2xl overflow-hidden"
+            className="fixed bottom-[60px] left-0 right-0 z-[110] md:bottom-4 md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-2xl md:rounded-2xl overflow-hidden"
             style={{ background: dm.barBg, borderTop: `1px solid ${theme.p}22`, boxShadow: `0 -12px 48px rgba(0,0,0,.55),0 0 0 1px ${theme.p}12`, transition: 'background .3s', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
 
             {/* Combo suggestions row — only when present */}
@@ -1306,27 +1306,34 @@ function SalonDetails() {
             </AnimatePresence>
 
             {/* Main booking row */}
-            <div className="flex items-center justify-between gap-4 px-5 py-3.5">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${theme.p}18` }}>
-                  <ShoppingBag className="w-5 h-5" style={{ color: theme.p }} />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 16px' }}>
+              {/* Left: icon + info */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                <div style={{ width: 42, height: 42, borderRadius: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${theme.p}20` }}>
+                  <ShoppingBag style={{ width: 20, height: 20, color: theme.p }} />
                 </div>
-                <div className="min-w-0">
-                  <p className="font-bold text-sm" style={{ color: dm.fg }}>{selectedServices.length} service{selectedServices.length > 1 ? 's' : ''} · {totalDuration} min</p>
-                  <p className="text-xs font-semibold" style={{ color: theme.p }}>₹{totalPrice}</p>
+                <div style={{ minWidth: 0 }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: dm.fg, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {selectedServices.length} service{selectedServices.length > 1 ? 's' : ''} · {totalDuration} min
+                  </p>
+                  <p style={{ fontSize: 13, fontWeight: 800, color: theme.p, margin: '2px 0 0' }}>₹{totalPrice}</p>
                   {bestOffer
-                    ? <p style={{ fontSize: 10, color: '#10b981', fontWeight: 600, marginTop: 1 }}>🎫 Save ₹{bestOffer.discount} with {bestOffer.code}</p>
+                    ? <p style={{ fontSize: 10, color: '#10b981', fontWeight: 600, margin: '2px 0 0' }}>🎫 Save ₹{bestOffer.discount} with {bestOffer.code}</p>
                     : offerGap
-                      ? <p style={{ fontSize: 10, color: '#f59e0b', fontWeight: 600, marginTop: 1 }}>Add ₹{offerGap.gap} more → save ₹{offerGap.discount}</p>
+                      ? <p style={{ fontSize: 10, color: '#f59e0b', fontWeight: 600, margin: '2px 0 0' }}>Add ₹{offerGap.gap} more → save ₹{offerGap.discount}</p>
                       : null
                   }
                 </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button onClick={() => setSelectedServices([])} className="text-sm px-3 py-2" style={{ color: dm.fg40 }}>Clear</button>
+              {/* Right: clear + book */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                <button onClick={() => setSelectedServices([])}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: dm.fg40, padding: '8px 4px' }}>
+                  Clear
+                </button>
                 <motion.button whileTap={{ scale: .96 }} whileHover={{ scale: 1.03 }} onClick={handleBookNow}
-                  className="lux-btn-p" style={{ background: theme.p, boxShadow: `0 4px 20px ${theme.p}45`, fontSize: 11, padding: '11px 22px' }}>
-                  <Zap className="w-3.5 h-3.5" /> Book Now →
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, background: theme.p, color: '#fff', border: 'none', borderRadius: 12, padding: '12px 20px', fontWeight: 800, fontSize: 13, cursor: 'pointer', boxShadow: `0 4px 20px ${theme.p}45`, whiteSpace: 'nowrap' }}>
+                  <Zap style={{ width: 14, height: 14 }} /> Book Now →
                 </motion.button>
               </div>
             </div>
