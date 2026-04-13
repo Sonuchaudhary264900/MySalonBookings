@@ -195,6 +195,9 @@ function SalonDetails() {
   const [catClickCounts,      setCatClickCounts]      = useState(() => JSON.parse(localStorage.getItem('svc_cat_clicks') || '{}'));
   const [membershipDismissed, setMembershipDismissed] = useState(() => !!localStorage.getItem('svc_membership_dismissed'));
   const [showFavsOnly,        setShowFavsOnly]        = useState(false);
+  const [activeTab, setActiveTab] = useState('services');
+  const [followed, setFollowed] = useState(false);
+  const [reviewFilter, setReviewFilter] = useState('all');
 
   const totalPrice    = selectedServices.reduce((s, x) => s + (x.basePrice || x.price || 0), 0);
   const totalDuration = selectedServices.reduce((s, x) => s + (x.duration || 0), 0);
@@ -378,8 +381,8 @@ function SalonDetails() {
     setCouponDiscount(0); setCouponInput(""); setCouponError(""); setBookingSuccess(false); setBookError(""); setShowBooking(true);
   };
 
-  const handleBookNow   = () => { if (selectedServices.length === 0) { document.getElementById('lux-services')?.scrollIntoView({ behavior: 'smooth' }); return; } openBooking(); };
-  const handleSmartBook = () => { if (selectedServices.length === 0) { document.getElementById('lux-services')?.scrollIntoView({ behavior: 'smooth' }); } else { openBooking(); } };
+  const handleBookNow   = () => { if (selectedServices.length === 0) { setActiveTab('services'); return; } openBooking(); };
+  const handleSmartBook = () => { if (selectedServices.length === 0) { setActiveTab('services'); } else { openBooking(); } };
 
   const applyCoupon = async () => {
     if (!couponInput.trim()) return;
@@ -587,991 +590,594 @@ function SalonDetails() {
   const nextAvailableSlot = slots.find(s => !blockedSlots.includes(s) && !isPastSlot(bookDate, s)) || null;
 
   return (
-    <div style={{ background: dm.bg, color: dm.fg, minHeight: '100vh', overflowX: 'hidden', transition: 'background .3s,color .3s', paddingBottom: selectedServices.length > 0 ? 'calc(80px + env(safe-area-inset-bottom, 0px))' : 0 }}>
+    <>
 
       {/* ════ PAGE CSS ════ */}
       <style>{`
-        .lux-hero{position:relative;height:100vh;overflow:hidden}
-        @media(max-width:639px){.lux-hero{height:clamp(400px,66vh,560px)}}
-        .lux-media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-        .lux-media-video{object-fit:cover}
-        @media(min-width:640px){.lux-media-video{object-fit:contain;background:#000}}
-        @keyframes luxKB{from{transform:scale(1)}to{transform:scale(1.06)}}
-        .lux-media-img{animation:luxKB 12s ease-in-out infinite alternate}
         @keyframes heroFadeIn{from{opacity:0}to{opacity:1}}
-        .lux-hero-slide{position:absolute;inset:0;animation:heroFadeIn 0.25s ease both}
-        .lux-section{padding:clamp(44px,8vw,140px) clamp(16px,6vw,96px)}
-        .lux-title{font-size:clamp(24px,5vw,72px);font-weight:900;line-height:1.05;letter-spacing:-.025em}
-        .lux-hero-title{font-size:clamp(26px,6vw,64px);font-weight:900;line-height:.95;letter-spacing:-.03em}
-        @media(max-width:479px){.lux-hero-title{font-size:clamp(22px,8vw,38px)}}
-        .lux-overline{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase}
-        .lux-body{font-size:clamp(14px,1.4vw,19px);line-height:1.75}
-        .lux-divider{width:36px;height:1px;margin:20px 0}
-        .lux-btn-p{display:inline-flex;align-items:center;gap:8px;padding:13px 24px;font-weight:700;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#fff;border-radius:2px;transition:all .25s ease;cursor:pointer;border:none;outline:none;white-space:nowrap}
-        .lux-btn-o{display:inline-flex;align-items:center;gap:8px;padding:13px 24px;font-weight:700;font-size:12px;letter-spacing:.12em;text-transform:uppercase;border-radius:2px;transition:all .25s ease;cursor:pointer;background:transparent;text-decoration:none;white-space:nowrap}
-        .lux-btn-p:hover,.lux-btn-o:hover{opacity:.8;transform:translateY(-2px)}
-        @media(max-width:639px){.lux-btn-p:hover,.lux-btn-o:hover{transform:none!important;opacity:1!important}}
-        @media(max-width:479px){.lux-btn-p,.lux-btn-o{padding:11px 16px;font-size:11px;letter-spacing:.07em}}
-        @media(max-width:374px){.lux-btn-p,.lux-btn-o{padding:10px 14px;font-size:10px;letter-spacing:.05em}}
-        .lux-gallery-track{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
-        .lux-gallery-track::-webkit-scrollbar{display:none}
-        .lux-gc{position:relative;flex-shrink:0;overflow:hidden;scroll-snap-align:start;cursor:pointer;border-radius:2px}
-        .lux-gc .gcm{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .7s ease}
-        .lux-gc:hover .gcm{transform:scale(1.06)}
-        .lux-svc-cat{border-bottom:1px solid ${dm.b05}}
-        .lux-svc-row{padding:14px 0;display:flex;align-items:center;gap:10px;border-bottom:1px solid ${dm.b03};cursor:pointer;transition:padding-left .2s}
-        .lux-svc-row:hover{padding-left:8px}
-        .lux-rev-track{display:flex;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding:0 clamp(16px,6vw,96px)}
-        .lux-rev-track::-webkit-scrollbar{display:none}
-        .lux-info-row{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid ${dm.b04}}
-        .lux-split{display:grid;grid-template-columns:1fr 1fr}
-        @media(max-width:767px){.lux-split{grid-template-columns:1fr}}
-        .lux-pkg-card{border:1px solid ${dm.b07};padding:clamp(16px,3vw,32px);border-radius:2px;transition:border-color .2s,transform .2s;display:flex;flex-direction:column}
-        .lux-pkg-card:hover{border-color:${dm.b20};transform:translateY(-4px)}
-        @media(max-width:639px){.lux-pkg-card:hover{transform:none!important}}
-        .lux-cat-header{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%}
-        .lux-cat-left{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
-        .lux-cat-right{display:flex;align-items:center;gap:16px;flex-shrink:0}
-        @media(max-width:479px){.lux-cat-right{gap:10px}}
-        .lux-svc-name{overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+        @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+        @keyframes pulse{0%,100%{opacity:.4}50%{opacity:.9}}
+        .glw-shimmer{background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.09) 50%,rgba(255,255,255,.04) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:8px}
+        .glw-col{max-width:480px;margin:0 auto;position:relative;background:#0D0520;min-height:100vh}
+        .glw-tab-btn{flex:1;padding:14px 4px;font-size:11px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;border:none;background:none;cursor:pointer;position:relative;transition:color .2s;white-space:nowrap}
+        .glw-photo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:3px}
+        .glw-reel-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:3px}
+        .glw-photo-cell{aspect-ratio:1;overflow:hidden;cursor:pointer;position:relative}
+        .glw-reel-cell{aspect-ratio:9/16;border-radius:12px;overflow:hidden;cursor:pointer;position:relative;background:rgba(255,255,255,.04)}
+        .glw-star-bar-track{flex:1;height:6px;border-radius:999px;background:rgba(255,255,255,.10);overflow:hidden}
+        .glw-star-bar-fill{height:100%;border-radius:999px;background:#7C3AED;transition:width 0.8s cubic-bezier(.22,1,.36,1)}
+        .lux-btn-p{display:inline-flex;align-items:center;gap:8px;padding:13px 24px;font-weight:700;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#fff;border-radius:12px;transition:all .25s ease;cursor:pointer;border:none;outline:none;white-space:nowrap}
         .svc-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
         @media(max-width:639px){.svc-grid{grid-template-columns:repeat(2,1fr);gap:8px}}
-        @keyframes pulse{0%,100%{opacity:.4}50%{opacity:.9}}
+        .scrollbar-hide{scrollbar-width:none;-ms-overflow-style:none}
+        .scrollbar-hide::-webkit-scrollbar{display:none}
       `}</style>
 
-      {/* ════ 1. HERO ════ */}
-      <motion.section ref={el => { heroSectionRef.current = el; if (el) el._slideLen = heroSlides.length; }}
-        className="lux-hero"
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}
-        onTouchStart={e => { heroSwipeStartX.current = e.touches[0].clientX; }}
-        onTouchEnd={e => {
-          if (heroSwipeStartX.current === null || heroSlides.length <= 1) return;
-          const dx = e.changedTouches[0].clientX - heroSwipeStartX.current;
-          heroSwipeStartX.current = null;
-          if (Math.abs(dx) < 40) return;
-          if (dx < 0) setHeroSlideIdx(i => (i + 1) % heroSlides.length);
-          else setHeroSlideIdx(i => (i - 1 + heroSlides.length) % heroSlides.length);
-        }}>
-        {/* Preload next 2 videos, metadata-only for ones further ahead */}
-        {heroSlides.map((s, i) => {
-          if (s.type !== 'video' || i === heroSlideIdx) return null;
-          const dist = (i - heroSlideIdx + heroSlides.length) % heroSlides.length;
-          if (dist > 4) return null;
-          return <video key={s.url} src={s.url} preload={dist <= 2 ? 'auto' : 'metadata'} muted playsInline style={{ display: 'none' }} />;
-        })}
-        {currentHeroSlide ? (
-          <div key={heroSlideIdx} className="lux-hero-slide">
-            {currentHeroSlide.type === 'video'
-              ? <video ref={heroVideoRef2} src={currentHeroSlide.url} autoPlay muted={heroMuted} playsInline className="lux-media lux-media-video"
-                  loop={heroSlides.length === 1}
-                  onEnded={() => heroSlides.length > 1 && setHeroSlideIdx(i => (i + 1) % heroSlides.length)} />
-              : <img src={currentHeroSlide.url} alt={salon.name} className="lux-media lux-media-img" />
-            }
-          </div>
-        ) : (
-          <div className="lux-media" style={{ background: `radial-gradient(ellipse 70% 60% at 20% 40%, ${theme.p}28 0%, transparent 55%), radial-gradient(ellipse 55% 65% at 80% 60%, rgba(139,92,246,0.18) 0%, transparent 50%), linear-gradient(135deg, var(--t-bg) 0%, var(--t-bg-2) 100%)` }} />
-        )}
-        <div className="absolute inset-0" style={{ background: dm.heroOvr1 }} />
-        <div className="absolute inset-0" style={{ background: dm.heroOvr2 }} />
-        <div className="absolute inset-0" style={{ background: `linear-gradient(135deg,${theme.p}14 0%,transparent 55%)` }} />
-        {/* Noise texture to eliminate gradient banding */}
-        <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.04, backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E\")", backgroundRepeat: 'repeat', backgroundSize: '200px 200px', mixBlendMode: 'overlay' }} />
+      {/* ════ OUTER SHELL ════ */}
+      <div style={{ background: '#060114', minHeight: '100vh', paddingBottom: selectedServices.length > 0 ? 'calc(80px + env(safe-area-inset-bottom,0px))' : 0 }}>
+        <div className="glw-col">
 
-        {currentHeroSlide?.type === 'video' && (
-          <div className="absolute top-6 right-6 z-10">
-            <button onClick={e => { e.stopPropagation(); setHeroMuted(m => !m); heroVideoRef2.current && (heroVideoRef2.current.muted = !heroMuted); }}
-              className="w-10 h-10 rounded-full flex items-center justify-center text-white"
-              style={{ background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,.12)' }}>
-              {heroMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-            </button>
+          {/* ════ A. BANNER ════ */}
+          <div ref={heroSectionRef} style={{ position: 'relative', height: 'clamp(180px,50vw,220px)', overflow: 'hidden', background: '#1A0528' }}>
+            {heroSlides.map((s, i) => {
+              if (s.type !== 'video' || i === heroSlideIdx) return null;
+              const dist = (i - heroSlideIdx + heroSlides.length) % heroSlides.length;
+              if (dist > 4) return null;
+              return <video key={s.url} src={s.url} preload={dist <= 2 ? 'auto' : 'metadata'} muted playsInline style={{ display: 'none' }} />;
+            })}
+            {currentHeroSlide ? (
+              <div key={heroSlideIdx} style={{ position: 'absolute', inset: 0, animation: 'heroFadeIn 0.25s ease both' }}>
+                {currentHeroSlide.type === 'video'
+                  ? <video ref={heroVideoRef2} src={currentHeroSlide.url} autoPlay muted={heroMuted} playsInline
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }}
+                      loop={heroSlides.length === 1}
+                      onEnded={() => heroSlides.length > 1 && setHeroSlideIdx(i => (i + 1) % heroSlides.length)} />
+                  : <img src={currentHeroSlide.url} alt={salon.name} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} />
+                }
+              </div>
+            ) : (
+              <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 60% at 20% 40%, rgba(124,58,237,.28) 0%, transparent 55%), linear-gradient(135deg, #0D0520 0%, #1A0528 100%)' }} />
+            )}
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(13,5,32,.05) 0%, rgba(13,5,32,.60) 75%, #0D0520 100%)' }} />
+            {currentHeroSlide?.type === 'video' && (
+              <button onClick={e => { e.stopPropagation(); setHeroMuted(m => !m); heroVideoRef2.current && (heroVideoRef2.current.muted = !heroMuted); }}
+                style={{ position: 'absolute', top: 12, right: 12, width: 34, height: 34, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,.12)', cursor: 'pointer', zIndex: 5, color: '#fff' }}>
+                {heroMuted ? <VolumeX style={{ width: 15, height: 15 }} /> : <Volume2 style={{ width: 15, height: 15 }} />}
+              </button>
+            )}
           </div>
-        )}
 
-        <div className="absolute bottom-0 left-0 right-0 z-10" style={{ padding: 'clamp(16px,4vw,60px)', paddingBottom: 'clamp(28px,5vh,64px)' }}>
-          <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .2, duration: .9, ease: [.22,1,.36,1] }}>
-            <p className="lux-overline mb-2" style={{ color: 'rgba(255,255,255,.72)', textShadow: '0 1px 8px rgba(0,0,0,.65)' }}>
-              {BIZ_SUBTITLES[salon.businessType] || 'Premium grooming experience'}
-            </p>
-            <h1 className="lux-hero-title text-white mb-3" style={{ maxWidth: 780, textShadow: '0 2px 16px rgba(0,0,0,.55), 0 0 40px rgba(0,0,0,.25)' }}>
-              {salon.name.toUpperCase()}
-            </h1>
-            <div className="flex items-center flex-wrap mb-5" style={{ gap: 'clamp(8px,2vw,20px)' }}>
+          {/* ════ B. PROFILE INFO ════ */}
+          <div style={{ padding: '0 16px 0', marginTop: -28, position: 'relative', zIndex: 2 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ width: 72, height: 72, borderRadius: '50%', border: '3px solid #7C3AED', overflow: 'hidden', flexShrink: 0, background: '#1A0528', boxShadow: '0 4px 20px rgba(124,58,237,.4)' }}>
+                {(salon.profilePhoto || salon.coverPhoto || salonPhotoUrls[0])
+                  ? <img src={salon.profilePhoto || salon.coverPhoto || salonPhotoUrls[0]} alt={salon.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(124,58,237,.2)', fontSize: 28, fontWeight: 900, color: '#A78BFA' }}>{(salon.name||'S').charAt(0)}</div>
+                }
+              </div>
               {avgRating && (
-                <div className="flex items-center gap-2" style={{ textShadow: '0 1px 6px rgba(0,0,0,.55)' }}>
-                  <div className="flex gap-0.5">
-                    {[1,2,3,4,5].map(s => (
-                      <Star key={s} className="w-3.5 h-3.5"
-                        style={{ color: s <= Math.round(parseFloat(avgRating)) ? '#fbbf24' : 'rgba(255,255,255,.25)',
-                                 fill:  s <= Math.round(parseFloat(avgRating)) ? '#fbbf24' : 'none',
-                                 filter: 'drop-shadow(0 1px 4px rgba(0,0,0,.5))' }} />
-                    ))}
-                  </div>
-                  <span className="font-bold text-sm text-white">{avgRating}</span>
-                  {(salon.totalReviews || reviews.length) > 0 && (
-                    <span className="text-sm" style={{ color: 'rgba(255,255,255,.55)' }}>({salon.totalReviews || reviews.length})</span>
-                  )}
-                </div>
-              )}
-              {(locality || salon.address || salon.city) && (
-                <div className="flex items-center gap-1.5 text-sm" style={{ color: 'rgba(255,255,255,.70)', textShadow: '0 1px 6px rgba(0,0,0,.6)' }}>
-                  <MapPin className="w-3.5 h-3.5" />
-                  {locality ? [locality, salon.city].filter(Boolean).join(', ') : (salon.address || salon.city)}
-                </div>
-              )}
-              {openStatus !== null && (
-                <div className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: openStatus ? '#4ade80' : '#f87171', textShadow: '0 1px 6px rgba(0,0,0,.6)' }}>
-                  <span className="w-2 h-2 rounded-full inline-block" style={{ background: openStatus ? '#4ade80' : '#f87171', boxShadow: openStatus ? '0 0 8px rgba(74,222,128,.6)' : '0 0 8px rgba(248,113,113,.6)' }} />
-                  {openStatus ? (todayHours ? `Open · ${todayHours}` : 'Open Now') : (opensAt ? `Opens ${opensAt}` : 'Closed Today')}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 999, background: 'rgba(253,230,138,.1)', border: '1px solid rgba(253,230,138,.2)' }}>
+                  <span style={{ color: '#FDE68A', fontSize: 13 }}>★</span>
+                  <span style={{ fontWeight: 800, fontSize: 14, color: '#FDE68A' }}>{avgRating}</span>
+                  <span style={{ fontSize: 11, color: 'rgba(253,230,138,.5)' }}>({reviews.length})</span>
                 </div>
               )}
             </div>
-            <div className="flex flex-wrap gap-2">
-              <motion.button whileTap={{ scale: .97 }} whileHover={{ scale: 1.02 }} onClick={handleSmartBook}
-                className="lux-btn-p" style={{ background: theme.p, boxShadow: `0 8px 32px ${theme.p}66, 0 2px 8px rgba(0,0,0,.35)` }}>
-                <Zap className="w-4 h-4" /> Book Appointment
-              </motion.button>
-              <motion.button whileTap={{ scale: .97 }} whileHover={{ scale: 1.02 }}
-                onClick={() => document.getElementById('lux-services')?.scrollIntoView({ behavior: 'smooth' })}
-                className="lux-btn-o" style={{ color: '#fff', border: '1px solid rgba(255,255,255,.35)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', background: 'rgba(255,255,255,.08)' }}>
-                View Services
-              </motion.button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <h1 style={{ fontSize: 22, fontWeight: 900, color: '#FFFFFF', letterSpacing: '-.02em', lineHeight: 1.1 }}>{salon.name}</h1>
+              {avgRating >= 4.5 && <BadgeCheck style={{ width: 18, height: 18, color: '#7C3AED', flexShrink: 0 }} />}
             </div>
-          </motion.div>
-        </div>
-
-        {/* Slide dot indicators */}
-        {heroSlides.length > 1 && (
-          <div className="absolute z-10 flex items-center gap-1.5"
-            style={{ bottom: 'clamp(76px,8vh,110px)', left: 'clamp(24px,6vw,96px)' }}>
-            {heroSlides.map((_, i) => (
-              <button key={i} onClick={() => setHeroSlideIdx(i)}
-                style={{
-                  width: i === heroSlideIdx ? 22 : 5, height: 5, borderRadius: 3, padding: 0, border: 'none', cursor: 'pointer',
-                  background: i === heroSlideIdx ? '#fff' : 'rgba(255,255,255,.35)',
-                  transition: 'all 0.35s ease',
-                  boxShadow: i === heroSlideIdx ? '0 0 8px rgba(255,255,255,.5)' : 'none',
-                }}
-              />
-            ))}
-          </div>
-        )}
-
-        <motion.div className="absolute right-6 bottom-8 flex flex-col items-center gap-2 hidden sm:flex"
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2 }}>
-          <span className="lux-overline" style={{ color: 'rgba(255,255,255,.3)', fontSize: 9 }}>SCROLL</span>
-          <div style={{ width: 1, height: 44, background: 'linear-gradient(to bottom,rgba(255,255,255,.35),transparent)' }} />
-        </motion.div>
-      </motion.section>
-
-      {/* ════ 2. STORY ════ */}
-      <section className="lux-section" style={{ borderBottom: `1px solid ${dm.b04}` }}>
-        <div style={{ maxWidth: 900 }}>
-          <motion.p className="lux-overline mb-8" style={{ color: theme.p }}
-            initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: .6 }}>
-            {salon.name}
-          </motion.p>
-          <motion.h2 className="lux-title" style={{ marginBottom: 32, color: dm.fg }}
-            initial={{ opacity: 0, y: 32 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            transition={{ duration: .85, ease: [.22,1,.36,1] }}>
-            More than a {BIZ_LABELS[salon.businessType] || 'visit'}.<br />
-            <span style={{ color: dm.fg38 }}>A transformation.</span>
-          </motion.h2>
-          {salon.description && (
-            <motion.p className="lux-body" style={{ color: dm.fg48, maxWidth: 560 }}
-              initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-              transition={{ delay: .15, duration: .7 }}>
-              {salon.description}
-            </motion.p>
-          )}
-          <motion.div className="flex flex-wrap" style={{ gap: 'clamp(20px,6vw,80px)', marginTop: 'clamp(28px,6vw,64px)' }}
-            initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            transition={{ delay: .25, duration: .7 }}>
-            {[
-              { val: avgRating || '—',  label: 'Rating' },
-              { val: totalBookings >= 1000 ? `${(totalBookings/1000).toFixed(1)}k` : String(totalBookings), label: 'Happy Clients' },
-              { val: String(services.length), label: 'Services' },
-              { val: salon.experience ? `${salon.experience}+` : '—', label: 'Years' },
-            ].map(({ val, label }) => (
-              <div key={label}>
-                <p style={{ fontSize: 'clamp(36px,4.5vw,60px)', fontWeight: 900, color: dm.fg, lineHeight: 1, letterSpacing: '-.04em' }}>{val}</p>
-                <p className="lux-overline mt-2" style={{ color: dm.fg35 }}>{label}</p>
-              </div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ════ 3. REELS ════ */}
-      {salonVideoUrls.length > 0 && (
-        <section style={{ paddingTop: 'clamp(64px,8vw,112px)', paddingBottom: 'clamp(64px,8vw,112px)', borderBottom: `1px solid ${dm.b04}` }}>
-          <div style={{ padding: '0 clamp(20px,6vw,96px)', marginBottom: 'clamp(24px,4vw,40px)' }}>
-            <motion.p className="lux-overline mb-3" style={{ color: theme.p }}
-              initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>Our Reels</motion.p>
-            <motion.h2 className="lux-title" style={{ color: dm.fg }}
-              initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: .7 }}>
-              Watch &amp; Explore
-            </motion.h2>
-          </div>
-          <div ref={galleryTrackRef} className="lux-gallery-track" style={{ paddingLeft: 'clamp(20px,6vw,96px)', paddingRight: 'clamp(20px,6vw,96px)' }}>
-            {salonVideoUrls.map((url, i) => {
-              const thumbUrl = url.includes('/video/upload/')
-                ? url.replace('/video/upload/', '/video/upload/w_800,h_560,c_fill,q_auto,f_jpg,vc_none/').replace(/\.(mp4|mov|avi|mkv|webm)(\?.*)?$/i, '.jpg')
-                : '';
-              return (
-                <motion.div key={i} className="lux-gc"
-                  style={{ width: 'clamp(180px,42vw,360px)', height: 'clamp(260px,60vw,560px)' }}
-                  initial={{ opacity: 0, scale: .96 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}
-                  transition={{ delay: Math.min(i * .07, .35), duration: .6 }}
-                  onClick={() => setVideoViewerIdx(i)}>
-                  <div className="gcm" style={{ background: 'var(--t-bg-2)' }} />
-                  {thumbUrl && <img src={thumbUrl} alt="" className="gcm" onError={e => { e.currentTarget.style.display='none'; }} />}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-14 h-14 rounded-full flex items-center justify-center"
-                      style={{ background: 'rgba(255,255,255,.12)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,.25)' }}>
-                      <Play className="w-6 h-6 text-white" fill="white" />
-                    </div>
-                  </div>
-                  <div className="absolute bottom-0 left-0 right-0 p-4" style={{ background: 'linear-gradient(to top,rgba(0,0,0,.82) 0%,rgba(0,0,0,.50) 40%,rgba(0,0,0,.15) 70%,transparent 100%)' }}>
-                    <span className="lux-overline" style={{ color: 'rgba(255,255,255,.55)', fontSize: 9 }}>▶ REEL {i + 1}</span>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {/* ════ 4. SERVICES ════ */}
-      <section id="lux-services" className="lux-section" style={{ borderBottom: `1px solid ${dm.b04}` }}>
-
-        {/* [A] Header + List/Grid toggle */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
-          <div>
-            <motion.p className="lux-overline mb-2" style={{ color: theme.p }} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>Services</motion.p>
-            <motion.h2 className="lux-title" style={{ color: dm.fg }} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: .7 }}>
-              What would you like today? ✂️
-            </motion.h2>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: dm.b07, borderRadius: 8, padding: 4, flexShrink: 0, alignSelf: 'flex-start', marginTop: 4 }}>
-            <button onClick={() => setServiceView('list')} style={{ padding: '7px 12px', borderRadius: 6, border: 'none', cursor: 'pointer', background: serviceView === 'list' ? dm.card : 'transparent', color: serviceView === 'list' ? dm.fg : dm.fg40, display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, boxShadow: serviceView === 'list' ? '0 1px 4px rgba(0,0,0,.12)' : 'none', transition: 'all .2s' }}>
-              <LayoutList style={{ width: 14, height: 14 }} /> List
-            </button>
-            <button onClick={() => setServiceView('grid')} style={{ padding: '7px 12px', borderRadius: 6, border: 'none', cursor: 'pointer', background: serviceView === 'grid' ? dm.card : 'transparent', color: serviceView === 'grid' ? dm.fg : dm.fg40, display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, boxShadow: serviceView === 'grid' ? '0 1px 4px rgba(0,0,0,.12)' : 'none', transition: 'all .2s' }}>
-              <LayoutGrid style={{ width: 14, height: 14 }} /> Grid
-            </button>
-          </div>
-        </div>
-
-        {/* [B] Filter + Favorites bar */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24, alignItems: 'center' }}>
-          {salon.servedGender === 'unisex' && services.length > 0 && (
-            <>
-              {[{ key: 'all', label: 'All' }, { key: 'male', label: 'Men' }, { key: 'female', label: 'Women' }].map(({ key, label }) => (
-                <button key={key} onClick={() => setServiceGenderFilter(key)} className="lux-overline"
-                  style={serviceGenderFilter === key
-                    ? { background: theme.p, color: '#fff', border: `1px solid ${theme.p}`, padding: '8px 18px', borderRadius: 999 }
-                    : { color: dm.fg40, border: `1px solid ${dm.b12}`, background: 'transparent', padding: '8px 18px', borderRadius: 999 }}>
-                  {label}
-                </button>
-              ))}
-              <span style={{ width: 1, height: 20, background: dm.b12, flexShrink: 0 }} />
-            </>
-          )}
-          <button onClick={() => setShowFavsOnly(v => !v)} className="lux-overline"
-            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 16px', borderRadius: 999, border: `1px solid ${showFavsOnly ? theme.p : dm.b12}`, background: showFavsOnly ? `${theme.p}15` : 'transparent', color: showFavsOnly ? theme.p : dm.fg40 }}>
-            <Heart style={{ width: 12, height: 12, fill: showFavsOnly ? theme.p : 'none', color: showFavsOnly ? theme.p : dm.fg40 }} />
-            Favourites{favServices.length > 0 ? ` (${favServices.length})` : ''}
-          </button>
-        </div>
-
-        {/* [C] Offer strip */}
-        {allOffers.length > 0 && (
-          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginBottom: 20, scrollbarWidth: 'none' }}>
-            {allOffers.map((offer) => {
-              const isEligible = totalPrice >= (offer.minAmount || 0);
-              const saveAmt = offer.discountType === 'percentage' ? Math.round((offer.minAmount || 300) * offer.discountValue / 100) : offer.discountValue;
-              return (
-                <button key={offer.code} onClick={() => { setCouponInput(offer.code); openBooking(); }}
-                  style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 999, border: `1px solid ${isEligible ? '#10b981' : dm.b12}`, background: isEligible ? 'rgba(16,185,129,.12)' : dm.b05, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: isEligible ? '#10b981' : dm.fg55, whiteSpace: 'nowrap' }}>
-                  {isEligible ? <Check style={{ width: 11, height: 11 }} /> : <Tag style={{ width: 11, height: 11 }} />}
-                  {isEligible ? `✓ Eligible! Use ${offer.code}` : `${offer.code} — save ₹${saveAmt} on ₹${offer.minAmount}+`}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* [D] Membership/savings upsell banner */}
-        {!membershipDismissed && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 16px', borderRadius: 10, background: offerGap && offerGap.gap < 600 ? 'rgba(251,191,36,.08)' : `${theme.p}08`, border: `1px solid ${offerGap && offerGap.gap < 600 ? 'rgba(251,191,36,.25)' : `${theme.p}20`}`, marginBottom: 24 }}>
-            <p style={{ fontSize: 13, color: offerGap && offerGap.gap < 600 ? '#fbbf24' : dm.fg55, fontWeight: 600 }}>
-              {offerGap && offerGap.gap < 600
-                ? `🛒 Add ₹${offerGap.gap} more in services → save ₹${offerGap.discount} with ${offerGap.offer.code}`
-                : '👑 Save more with a membership — priority booking & exclusive discounts'}
-            </p>
-            <button onClick={() => { setMembershipDismissed(true); localStorage.setItem('svc_membership_dismissed', '1'); }}
-              style={{ fontSize: 11, color: dm.fg35, background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0, fontWeight: 600 }}>
-              Skip
-            </button>
-          </div>
-        )}
-
-        {/* [E] Quick Rebook */}
-        {quickRebook.length > 0 && (
-          <div style={{ padding: '14px 16px', borderRadius: 10, background: `${theme.p}08`, border: `1px solid ${theme.p}18`, marginBottom: 24 }}>
-            <p style={{ fontSize: 12, fontWeight: 700, color: dm.fg55, marginBottom: 10 }}>Welcome back! Pick up where you left off</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              {quickRebook.map(s => (
-                <span key={s._id} style={{ padding: '5px 12px', borderRadius: 999, background: dm.b07, border: `1px solid ${dm.b12}`, fontSize: 12, color: dm.fg55, fontWeight: 600 }}>
-                  {s.name} ₹{s.basePrice || s.price || 0}
+            {salon.tagline && <p style={{ fontSize: 13, color: '#A78BFA', fontStyle: 'italic', marginBottom: 6 }}>{salon.tagline}</p>}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              {(locality || salon.city) && (
+                <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: 'rgba(255,255,255,.45)' }}>
+                  <MapPin style={{ width: 11, height: 11 }} /> {locality || salon.city}
                 </span>
-              ))}
-              <motion.button whileTap={{ scale: .96 }} onClick={() => { setSelectedServices(quickRebook); openBooking(); }}
-                style={{ padding: '6px 16px', borderRadius: 999, background: theme.p, color: '#fff', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Repeat2 style={{ width: 12, height: 12 }} /> Book Again
-              </motion.button>
+              )}
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600,
+                color: openStatus === 'open' ? '#4ADE80' : '#F87171',
+                padding: '2px 8px', borderRadius: 999,
+                background: openStatus === 'open' ? 'rgba(74,222,128,.1)' : 'rgba(248,113,113,.1)' }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: openStatus === 'open' ? '#4ADE80' : '#F87171', flexShrink: 0 }} />
+                {openStatus === 'open' ? `Open · ${todayHours || ''}` : opensAt ? `Opens ${opensAt}` : 'Closed'}
+              </span>
             </div>
           </div>
-        )}
 
-        {/* [F] Trending strip */}
-        {services.some(s => (s.bookingCount || 0) > 0) && (
-          <div style={{ marginBottom: 28 }}>
-            <p style={{ fontSize: 12, fontWeight: 700, color: dm.fg45, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
-              <Flame style={{ width: 13, height: 13, color: '#f97316' }} /> Hot right now 🔥
-            </p>
-            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
-              {[...services].filter(s => (s.bookingCount||0) > 0).sort((a,b) => (b.bookingCount||0) - (a.bookingCount||0)).slice(0, 8).map(s => (
-                <button key={s._id} onClick={() => toggleService(s)}
-                  style={{ flexShrink: 0, padding: '6px 14px', borderRadius: 999, border: `1px solid ${selectedServices.some(x => x._id === s._id) ? theme.p : dm.b14}`, background: selectedServices.some(x => x._id === s._id) ? `${theme.p}18` : dm.b05, color: selectedServices.some(x => x._id === s._id) ? theme.p : dm.fg55, fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                  {s.name} <span style={{ color: dm.fg35 }}>{s.bookingCount}+</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Skeleton while loading */}
-        {loading && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {[1,2,3,4].map(i => (
-              <div key={i} style={{ display:'flex', gap:12, alignItems:'center', padding:'14px 0' }}>
-                <div style={{ width:48, height:48, borderRadius:12, background:dm.b07, animation:'pulse 1.5s ease infinite' }} />
-                <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8 }}>
-                  <div style={{ width:'55%', height:14, borderRadius:6, background:dm.b07, animation:'pulse 1.5s ease infinite' }} />
-                  <div style={{ width:'35%', height:10, borderRadius:6, background:dm.b05, animation:'pulse 1.5s ease infinite' }} />
-                </div>
-                <div style={{ width:48, height:20, borderRadius:6, background:dm.b07, animation:'pulse 1.5s ease infinite' }} />
+          {/* ════ C. STATS ROW ════ */}
+          <div style={{ display: 'flex', margin: '16px 16px', borderRadius: 16, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(167,139,250,.12)', overflow: 'hidden' }}>
+            {[
+              { val: totalBookings >= 1000 ? `${(totalBookings/1000).toFixed(1)}k` : totalBookings > 0 ? `${totalBookings}+` : '—', label: 'CUSTOMERS' },
+              { val: services.length > 0 ? services.length : '—', label: 'SERVICES' },
+              { val: avgRating ? `${avgRating}★` : '—', label: 'RATING' },
+            ].map(({ val, label }, i) => (
+              <div key={label} style={{ flex: 1, padding: '14px 8px', textAlign: 'center', borderLeft: i > 0 ? '1px solid rgba(167,139,250,.15)' : 'none' }}>
+                <p style={{ fontSize: 20, fontWeight: 900, color: '#FFFFFF', lineHeight: 1.1, marginBottom: 3 }}>{val}</p>
+                <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.12em', color: 'rgba(255,255,255,.4)', textTransform: 'uppercase' }}>{label}</p>
               </div>
             ))}
           </div>
-        )}
 
-        {/* [G] Category accordion / grid */}
-        {services.length === 0 && !loading
-          ? <p style={{ color: dm.fg30 }}>No services listed yet.</p>
-          : (() => {
-              const isUnisex = salon.servedGender === 'unisex';
-              const classifySvc = (s) => {
-                const af = s.applicableFor || [];
-                if (af.length > 0 && af.includes('male') && !af.includes('female')) return 'male';
-                if (af.length > 0 && af.includes('female') && !af.includes('male')) return 'female';
-                const uniCat = UNISEX_CATEGORIES.find(u => u.label === (s.category || ''));
-                if (uniCat) {
-                  const inM = new Set(uniCat.maleSubServices).has(s.name);
-                  const inF = new Set(uniCat.femaleSubServices).has(s.name);
-                  if (inM && !inF) return 'male';
-                  if (inF && !inM) return 'female';
-                }
-                return 'both';
-              };
-              let visibleServices = !isUnisex || serviceGenderFilter === 'all'
-                ? services
-                : services.filter(s => {
-                    const cat = s.category || '';
-                    if (serviceGenderFilter === 'female' && MALE_ONLY_CAT_LABELS.has(cat)) return false;
-                    if (serviceGenderFilter === 'male' && FEMALE_ONLY_CAT_LABELS.has(cat)) return false;
-                    const g = classifySvc(s);
-                    return g === 'both' || g === serviceGenderFilter;
-                  });
-              if (showFavsOnly) {
-                visibleServices = visibleServices.filter(s => favServices.includes(s._id));
-                if (visibleServices.length === 0) {
-                  return (
-                    <div style={{ textAlign: 'center', padding: '40px 0', color: dm.fg30 }}>
-                      <Heart style={{ width: 32, height: 32, margin: '0 auto 12px', opacity: .4, display: 'block' }} />
-                      <p>Heart services you love ♥</p>
-                    </div>
-                  );
-                }
-              }
-              const grouped = visibleServices.reduce((acc, svc) => {
-                const cat = svc.category || 'Other';
-                if (!acc[cat]) acc[cat] = [];
-                acc[cat].push(svc);
-                return acc;
-              }, {});
-              const bizCategoryOrder = getCategoryOrderForBusinessType(salon.businessType, salon.servedGender);
-              const sortedEntries = Object.entries(grouped).sort(([a], [b]) => {
-                const boostDiff = catSortBoost(a) - catSortBoost(b);
-                if (boostDiff !== 0) return boostDiff;
-                const ai = bizCategoryOrder.indexOf(a), bi = bizCategoryOrder.indexOf(b);
-                if (ai === -1 && bi === -1) return a.localeCompare(b);
-                if (ai === -1) return 1; if (bi === -1) return -1;
-                return ai - bi;
-              });
-
-              if (serviceView === 'grid') {
-                return (
-                  <div>
-                    {sortedEntries.map(([cat, catServices], ci) => {
-                      const CatIcon = CAT_ICON_COMPONENTS[cat] || Sparkles;
-                      const catImg = getCategoryImage(cat, salon);
-                      const recId = getRecommended(catServices);
-                      const ordered = recId ? [catServices.find(s => s._id === recId), ...catServices.filter(s => s._id !== recId)] : catServices;
-                      const isOpen = expandedCats.has('__all__') || expandedCats.has(cat);
-                      const minPrice = Math.min(...catServices.map(s => s.basePrice || s.price || 0));
-                      const toggleCat = () => {
-                        setCatClickCounts(prev => ({ ...prev, [cat]: (prev[cat] || 0) + 1 }));
-                        setExpandedCats(prev => { const next = new Set(prev); next.delete('__all__'); if (next.has(cat)) next.delete(cat); else next.add(cat); return next; });
-                      };
-                      return (
-                        <motion.div key={cat} className="lux-svc-cat" initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: Math.min(ci * .05, .3), duration: .5 }}>
-                          <button onClick={toggleCat} className="lux-cat-header w-full text-left" style={{ padding: 'clamp(14px,2vw,22px) 0', transition: 'opacity .2s' }} onMouseEnter={e => e.currentTarget.style.opacity = '.7'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
-                            <div className="lux-cat-left">
-                              {catImg ? (
-                                <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, overflow: 'hidden' }}>
-                                  <img src={catImg} alt={cat} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} onError={e => { e.currentTarget.style.display = 'none'; }} />
-                                </div>
-                              ) : (
-                                <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, background: `${theme.p}18`, border: `1px solid ${theme.p}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                  <CatIcon style={{ width: 18, height: 18, color: theme.p, strokeWidth: 1.8 }} />
-                                </div>
-                              )}
-                              <div style={{ minWidth: 0 }}>
-                                <p className="lux-svc-name" style={{ fontSize: 'clamp(18px,2.6vw,28px)', fontWeight: 800, color: dm.fg, letterSpacing: '-.015em' }}>{cat}</p>
-                                <p className="lux-overline mt-1" style={{ color: dm.fg28 }}>{catServices.length} service{catServices.length !== 1 ? 's' : ''}</p>
-                              </div>
-                            </div>
-                            <div className="lux-cat-right">
-                              <span style={{ fontSize: 'clamp(12px,1.5vw,15px)', fontWeight: 700, color: theme.p, whiteSpace: 'nowrap' }}>from ₹{minPrice}</span>
-                              <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ border: `1px solid ${dm.b12}`, color: dm.fg45, flexShrink: 0 }}>
-                                {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                              </div>
-                            </div>
-                          </button>
-                          <AnimatePresence>
-                            {isOpen && (
-                              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: .32 }} style={{ overflow: 'hidden', paddingBottom: 16 }}>
-                                <div className="svc-grid">
-                                  {ordered.map((s) => {
-                                    if (!s) return null;
-                                    const isSel = selectedServices.some(x => x._id === s._id);
-                                    const isRec = s._id === recId;
-                                    const badge = getBadge(s);
-                                    const svcImgSrc = getServiceImage(s);
-                                    const price = s.basePrice || s.price || 0;
-                                    const isFav = favServices.includes(s._id);
-                                    return (
-                                      <div key={s._id} onClick={() => toggleService(s)}
-                                        style={{ borderRadius: 10, overflow: 'hidden', cursor: 'pointer', border: isSel ? `2px solid ${theme.p}` : `1px solid ${dm.b07}`, boxShadow: isSel ? `0 0 16px ${theme.p}30` : 'none', transition: 'all .2s', background: dm.card }}>
-                                        <div style={{ position: 'relative', aspectRatio: '1/1', background: dm.b07 }}>
-                                          {svcImgSrc
-                                            ? <img src={svcImgSrc} alt={s.name} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0, transition: 'opacity .15s', display: 'block' }} onLoad={e => { e.currentTarget.style.opacity = '1'; }} onError={e => { e.currentTarget.style.display = 'none'; }} />
-                                            : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: `linear-gradient(135deg,${theme.p}15,${theme.p}05)` }}>
-                                                <CatIcon style={{ width: 32, height: 32, color: theme.p, opacity: .5 }} />
-                                              </div>
-                                          }
-                                          {badge && <span style={{ position: 'absolute', top: 8, left: 8, fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: badge === 'Popular' ? theme.p : badge === 'Premium' ? '#7c3aed' : badge === 'Best Value' ? '#059669' : '#0891b2', color: '#fff' }}>{badge}</span>}
-                                          <button onClick={toggleFav(s._id)} style={{ position: 'absolute', top: 6, right: 6, width: 28, height: 28, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'rgba(0,0,0,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            <Heart style={{ width: 13, height: 13, color: isFav ? '#f43f5e' : '#fff', fill: isFav ? '#f43f5e' : 'none' }} />
-                                          </button>
-                                          {isSel && <div style={{ position: 'absolute', inset: 0, background: `${theme.p}22`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Check style={{ width: 28, height: 28, color: theme.p }} /></div>}
-                                        </div>
-                                        <div style={{ padding: '8px 10px 10px' }}>
-                                          {isRec && <span style={{ fontSize: 10, fontWeight: 700, color: theme.p, display: 'block', marginBottom: 2 }}>⭐ Recommended</span>}
-                                          <p style={{ fontSize: 12, fontWeight: 700, color: dm.fg, marginBottom: 2, lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{s.name}</p>
-                                          <p style={{ fontSize: 10, color: dm.fg35, marginBottom: 5 }}>{s.duration ? `${s.duration} min` : ''}{(s.bookingCount||0) > 0 && ` · ${s.bookingCount}+`}</p>
-                                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
-                                            <div style={{ minWidth: 0 }}>
-                                              <span style={{ fontSize: 10, color: dm.fg28, textDecoration: 'line-through', marginRight: 2 }}>₹{Math.round(price * 1.12)}</span>
-                                              <span style={{ fontSize: 13, fontWeight: 800, color: dm.fg }}>₹{price}</span>
-                                            </div>
-                                            <motion.button whileTap={{ scale: .88 }} onClick={e => { e.stopPropagation(); toggleService(s); }}
-                                              style={{ width: 26, height: 26, borderRadius: '50%', border: 'none', cursor: 'pointer', background: isSel ? theme.p : dm.b12, color: isSel ? '#fff' : dm.fg55, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, flexShrink: 0 }}>
-                                              {isSel ? <Check style={{ width: 11, height: 11 }} /> : '+'}
-                                            </motion.button>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </motion.div>
-                      );
-                    })}
-                  </div>
-                );
-              }
-
-              // LIST VIEW — Zomato/Zepto style
-              return (
-                <div>
-                  {sortedEntries.map(([cat, catServices], ci) => {
-                    const isOpen = expandedCats.has('__all__') || expandedCats.has(cat);
-                    const CatIcon = CAT_ICON_COMPONENTS[cat] || Sparkles;
-                    const catImg = getCategoryImage(cat, salon);
-                    const recId = getRecommended(catServices);
-                    const ordered = recId ? [catServices.find(s => s._id === recId), ...catServices.filter(s => s._id !== recId)] : catServices;
-                    const toggleCat = () => {
-                      setCatClickCounts(prev => ({ ...prev, [cat]: (prev[cat] || 0) + 1 }));
-                      setExpandedCats(prev => { const next = new Set(prev); next.delete('__all__'); if (next.has(cat)) next.delete(cat); else next.add(cat); return next; });
-                    };
-                    return (
-                      <motion.div key={cat} initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: Math.min(ci * .05, .25), duration: .45 }}
-                        style={{ marginBottom: 4, borderRadius: 16, overflow: 'hidden', border: `1px solid ${dm.b07}`, background: dm.card }}>
-
-                        {/* Category header */}
-                        <button onClick={toggleCat} className="w-full text-left"
-                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px', background: 'none', border: 'none', cursor: 'pointer', gap: 12 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-                            {catImg ? (
-                              <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, overflow: 'hidden' }}>
-                                <img src={catImg} alt={cat} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} onError={e => { e.currentTarget.style.display = 'none'; }} />
-                              </div>
-                            ) : (
-                              <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: `${theme.p}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <CatIcon style={{ width: 17, height: 17, color: theme.p, strokeWidth: 2 }} />
-                              </div>
-                            )}
-                            <div style={{ minWidth: 0 }}>
-                              <p style={{ fontSize: 19, fontWeight: 800, color: dm.fg, letterSpacing: '-.01em', lineHeight: 1.2 }}>{cat}</p>
-                              <p style={{ fontSize: 11, color: dm.fg35, fontWeight: 500, marginTop: 1 }}>{catServices.length} service{catServices.length !== 1 ? 's' : ''}</p>
-                            </div>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                            <span style={{ fontSize: 12, fontWeight: 700, color: theme.p }}>from ₹{Math.min(...catServices.map(s => s.basePrice || s.price || 0))}</span>
-                            <div style={{ width: 28, height: 28, borderRadius: '50%', border: `1.5px solid ${dm.b14}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: dm.fg45 }}>
-                              {isOpen ? <ChevronUp style={{ width: 14, height: 14 }} /> : <ChevronDown style={{ width: 14, height: 14 }} />}
-                            </div>
-                          </div>
-                        </button>
-
-                        {/* Service rows */}
-                        <AnimatePresence>
-                          {isOpen && (
-                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: .28 }} style={{ overflow: 'hidden' }}>
-                              {ordered.map((s, svcIdx) => {
-                                if (!s) return null;
-                                const isSel = selectedServices.some(x => x._id === s._id);
-                                const isRec = s._id === recId;
-                                const badge = getBadge(s);
-                                const svcImgSrc = getServiceImage(s);
-                                const isFav = favServices.includes(s._id);
-                                const price = s.basePrice || s.price || 0;
-                                const isFast = (s.duration || 0) > 0 && (s.duration || 0) <= 20;
-                                const isTopBooked = topBookingCount > 0 && s.bookingCount === topBookingCount;
-                                return (
-                                  <div key={s._id}
-                                    style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', borderTop: `1px solid ${dm.b06}`, cursor: 'pointer', transition: 'background .15s', background: isSel ? `${theme.p}08` : 'transparent', position: 'relative' }}
-                                    onClick={() => toggleService(s)}
-                                    onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = dm.b04; }}
-                                    onMouseLeave={e => { e.currentTarget.style.background = isSel ? `${theme.p}08` : 'transparent'; }}>
-
-                                    {/* Left accent bar when selected */}
-                                    {isSel && <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: theme.p, borderRadius: '0 2px 2px 0' }} />}
-
-                                    {/* Text content */}
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                      {/* Badges row */}
-                                      {(isRec || badge || isFast || isTopBooked) && (
-                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 6 }}>
-                                          {isRec && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: `${theme.p}20`, color: theme.p }}>⭐ Recommended</span>}
-                                          {badge && !isRec && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4,
-                                            background: badge === 'Popular' ? `${theme.p}15` : badge === 'Premium' ? 'rgba(124,58,237,.15)' : badge === 'Best Value' ? 'rgba(5,150,105,.15)' : 'rgba(8,145,178,.15)',
-                                            color: badge === 'Popular' ? theme.p : badge === 'Premium' ? '#7c3aed' : badge === 'Best Value' ? '#059669' : '#0891b2' }}>{badge}</span>}
-                                          {isFast && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: 'rgba(6,182,212,.12)', color: '#06b6d4' }}>⚡ Quick</span>}
-                                          {isTopBooked && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: 'rgba(217,119,6,.12)', color: '#d97706' }}>🏆 #1 Choice</span>}
-                                        </div>
-                                      )}
-
-                                      {/* Name */}
-                                      <p style={{ fontSize: 15, fontWeight: 700, color: dm.fg, lineHeight: 1.3, marginBottom: 5 }}>{s.name}</p>
-
-                                      {/* Rating + duration row */}
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
-                                        {(s.bookingCount || 0) > 0 && (
-                                          <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, fontWeight: 600, color: '#22c55e' }}>
-                                            <span style={{ fontSize: 10 }}>★</span>
-                                            4.{5 + Math.min((s.bookingCount || 0) % 4, 3)}
-                                            <span style={{ color: dm.fg35, fontWeight: 400 }}>({s.bookingCount}+)</span>
-                                          </span>
-                                        )}
-                                        {s.duration > 0 && (
-                                          <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: dm.fg40 }}>
-                                            <span>⏱</span> {s.duration} min
-                                          </span>
-                                        )}
-                                        {s.applicableFor?.length === 1 && (
-                                          <span style={{ fontSize: 11, color: dm.fg35 }}>{s.applicableFor[0] === 'male' ? '♂ Men' : '♀ Women'}</span>
-                                        )}
-                                      </div>
-
-                                      {/* Description if exists */}
-                                      {s.description && (
-                                        <p style={{ fontSize: 12, color: dm.fg35, lineHeight: 1.5, marginBottom: 8, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{s.description}</p>
-                                      )}
-
-                                      {/* Price row */}
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        <span style={{ fontSize: 16, fontWeight: 800, color: dm.fg, letterSpacing: '-.02em' }}>₹{price}</span>
-                                        {isSel && nextAvailableSlot && (
-                                          <span style={{ fontSize: 11, color: theme.p, fontWeight: 600 }}>· Next: {nextAvailableSlot}</span>
-                                        )}
-                                      </div>
-                                    </div>
-
-                                    {/* Right: image + ADD button */}
-                                    <div style={{ flexShrink: 0, position: 'relative', width: 80, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                                      {/* Fav button */}
-                                      <button
-                                        style={{ position: 'absolute', top: 3, right: 3, zIndex: 2, width: 20, height: 20, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.35)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                        onClick={e => { e.stopPropagation(); toggleFav(s._id)(e); }}>
-                                        <Heart style={{ width: 9, height: 9, color: isFav ? '#f43f5e' : '#fff', fill: isFav ? '#f43f5e' : 'none' }} />
-                                      </button>
-
-                                      {/* Image */}
-                                      <div style={{ width: 80, height: 80, borderRadius: 10, overflow: 'hidden', background: `linear-gradient(135deg,${theme.p}15,${theme.p}05)`, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${dm.b08}` }}>
-                                        {svcImgSrc
-                                          ? <img src={svcImgSrc} alt={s.name} loading={svcIdx < 4 ? 'eager' : 'lazy'}
-                                              style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0, transition: 'opacity .2s' }}
-                                              onLoad={e => { e.currentTarget.style.opacity = '1'; }}
-                                              onError={e => { e.currentTarget.parentNode.style.background = `linear-gradient(135deg,${theme.p}12,${theme.p}04)`; e.currentTarget.style.display = 'none'; }} />
-                                          : <CatIcon style={{ width: 26, height: 26, color: theme.p, opacity: .45 }} />
-                                        }
-                                      </div>
-
-                                      {/* ADD / ✓ button */}
-                                      <motion.button whileTap={{ scale: .88 }}
-                                        onClick={e => { e.stopPropagation(); toggleService(s); }}
-                                        style={{
-                                          width: 72, height: 28, borderRadius: 6, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: 11, letterSpacing: '.02em',
-                                          background: isSel ? theme.p : dm.card,
-                                          color: isSel ? '#fff' : theme.p,
-                                          boxShadow: isSel ? `0 2px 10px ${theme.p}40` : `0 0 0 1.5px ${theme.p}`,
-                                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
-                                          transition: 'all .18s',
-                                        }}>
-                                        {isSel ? <><Check style={{ width: 11, height: 11 }} /> ADDED</> : '+ ADD'}
-                                      </motion.button>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              );
-            })()
-        }
-      </section>
-
-      {/* ════ 5. OFFERS ════ */}
-      {allOffers.length > 0 && (
-        <section className="lux-section" style={{ paddingTop: 'clamp(60px,7vw,100px)', paddingBottom: 'clamp(60px,7vw,100px)', borderBottom: `1px solid ${dm.b04}` }}>
-          <motion.p className="lux-overline mb-6" style={{ color: theme.p }}
-            initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>Exclusive Offers</motion.p>
-          <div className="flex flex-wrap gap-4">
-            {allOffers.map((offer, i) => {
-              const lbl = offer.discountType === 'percentage' ? `${offer.discountValue}% OFF` : `₹${offer.discountValue} OFF`;
-              return (
-                <motion.button key={offer.code}
-                  initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * .08 }}
-                  whileTap={{ scale: .97 }} whileHover={{ y: -2 }}
-                  onClick={() => { setCouponInput(offer.code); if (!showBooking) openBooking(); }}
-                  className="flex items-center gap-5 px-7 py-5 text-left"
-                  style={{ border: `1px solid ${theme.p}35`, background: `${theme.p}08`, borderRadius: 2, minWidth: 200 }}>
-                  <div>
-                    <p style={{ fontSize: 'clamp(22px,3vw,32px)', fontWeight: 900, color: theme.p, letterSpacing: '-.025em', lineHeight: 1 }}>{lbl}</p>
-                    <p className="lux-overline mt-2" style={{ color: dm.fg45 }}>{offer.code}</p>
-                    {offer.minAmount > 0 && <p style={{ fontSize: 12, color: dm.fg28, marginTop: 4 }}>On orders ₹{offer.minAmount}+</p>}
-                  </div>
-                  <ChevronRight className="w-5 h-5 ml-auto shrink-0" style={{ color: dm.fg25 }} />
-                </motion.button>
-              );
-            })}
+          {/* ════ D. ACTION BUTTONS ════ */}
+          <div style={{ display: 'flex', gap: 10, padding: '0 16px 20px' }}>
+            <motion.button whileTap={{ scale: .96 }} onClick={handleSmartBook}
+              style={{ flex: 1, background: '#7C3AED', boxShadow: '0 8px 28px rgba(124,58,237,.45)', color: '#fff', border: 'none', borderRadius: 12, padding: '13px 8px', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <Zap style={{ width: 15, height: 15 }} /> Book Your Look ✨
+            </motion.button>
+            <motion.button whileTap={{ scale: .96 }}
+              animate={followed ? { scale: [1, 1.12, 1] } : {}}
+              onClick={() => setFollowed(f => !f)}
+              style={{ flex: 1, background: followed ? 'rgba(124,58,237,.15)' : 'transparent', border: `1.5px solid ${followed ? '#7C3AED' : 'rgba(167,139,250,.4)'}`, color: '#A78BFA', borderRadius: 12, padding: '13px 8px', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <Heart style={{ width: 15, height: 15, fill: followed ? '#A78BFA' : 'none' }} />
+              {followed ? 'Following' : 'Follow'}
+            </motion.button>
           </div>
-        </section>
-      )}
 
-      {/* ════ 6. PACKAGES ════ */}
-      {packages.length > 0 && (
-        <section className="lux-section" style={{ borderBottom: `1px solid ${dm.b04}` }}>
-          <motion.p className="lux-overline mb-4" style={{ color: theme.p }}
-            initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>Packages & Memberships</motion.p>
-          <motion.h2 className="lux-title mb-12" style={{ color: dm.fg }}
-            initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: .7 }}>
-            Curated Packages
-          </motion.h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {packages.map((pkg, i) => (
-              <motion.div key={pkg._id} className="lux-pkg-card"
-                initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-                transition={{ delay: Math.min(i * .08, .4), duration: .6 }}>
-                <div className="flex items-start gap-3 mb-6">
-                  <span style={{ fontSize: 32 }}>{pkg.icon || (pkg.type === 'package' ? '🎁' : '💳')}</span>
-                  <div className="flex-1">
-                    {pkg.tag && <p className="lux-overline mb-2" style={{ color: theme.p }}>{pkg.tag === 'popular' ? 'Most Popular' : pkg.tag === 'recommended' ? 'Recommended' : 'Best Value'}</p>}
-                    <h3 style={{ fontSize: 'clamp(17px,1.8vw,21px)', fontWeight: 800, color: dm.fg, letterSpacing: '-.015em' }}>{pkg.name}</h3>
-                    {pkg.description && <p style={{ fontSize: 13, color: dm.fg38, marginTop: 5, lineHeight: 1.55 }}>{pkg.description}</p>}
-                  </div>
-                </div>
-                {pkg.services?.length > 0 && (
-                  <div className="mb-6" style={{ borderTop: `1px solid ${dm.b05}`, paddingTop: 16 }}>
-                    {pkg.services.map((s, j) => (
-                      <div key={j} className="flex items-center gap-2.5 py-2" style={{ borderBottom: `1px solid ${dm.b03}` }}>
-                        <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: theme.p }} />
-                        <span style={{ fontSize: 13, color: dm.fg55 }}>{s.serviceName}</span>
-                      </div>
-                    ))}
-                  </div>
+          {/* ════ E. STICKY TAB BAR ════ */}
+          <div style={{ position: 'sticky', top: 0, zIndex: 40, background: 'rgba(13,5,32,.88)', backdropFilter: 'blur(24px)', borderBottom: '1px solid rgba(167,139,250,.10)', display: 'flex' }}>
+            {['services','reels','photos','reviews'].map(tab => (
+              <button key={tab} className="glw-tab-btn" onClick={() => setActiveTab(tab)}
+                style={{ color: activeTab === tab ? '#A78BFA' : 'rgba(255,255,255,.38)' }}>
+                {tab.toUpperCase()}
+                {activeTab === tab && (
+                  <motion.div layoutId="glwTabLine"
+                    style={{ position: 'absolute', bottom: 0, left: '15%', right: '15%', height: 2, background: '#7C3AED', borderRadius: 1 }} />
                 )}
-                {pkg.benefits && (
-                  <div className="mb-6 space-y-2">
-                    {pkg.benefits.discountPercent > 0 && <div className="flex items-center gap-2 text-sm" style={{ color: dm.fg45 }}><Check className="w-3.5 h-3.5 shrink-0" style={{ color: theme.p }} />{pkg.benefits.discountPercent}% off all services</div>}
-                    {pkg.benefits.priorityBooking && <div className="flex items-center gap-2 text-sm" style={{ color: dm.fg45 }}><Zap className="w-3.5 h-3.5 shrink-0" style={{ color: theme.p }} />Priority booking</div>}
-                    {(pkg.benefits.freeServices || []).map((fs, j) => (
-                      <div key={j} className="flex items-center gap-2 text-sm" style={{ color: dm.fg45 }}><Check className="w-3.5 h-3.5 shrink-0" style={{ color: theme.p }} />{fs.serviceName} × {fs.usageLimit}</div>
-                    ))}
-                  </div>
-                )}
-                <div className="flex items-end justify-between mt-auto pt-5" style={{ borderTop: `1px solid ${dm.b05}` }}>
-                  <div>
-                    <p style={{ fontSize: 'clamp(26px,3vw,36px)', fontWeight: 900, color: dm.fg, letterSpacing: '-.04em', lineHeight: 1 }}>₹{pkg.discountedPrice || pkg.price}</p>
-                    {pkg.type === 'membership' && <p style={{ fontSize: 12, color: dm.fg32, marginTop: 3 }}>/{pkg.billingCycle === 'monthly' ? 'month' : pkg.billingCycle === 'quarterly' ? 'quarter' : 'year'}</p>}
-                    {pkg.originalPrice > 0 && pkg.originalPrice !== pkg.discountedPrice && <p style={{ fontSize: 12, color: dm.fg28, marginTop: 2 }}><span className="line-through">₹{pkg.originalPrice}</span> · {pkg.discountPercent}% off</p>}
-                  </div>
-                  <motion.button whileTap={{ scale: .96 }} whileHover={{ scale: 1.02 }}
-                    onClick={() => { if (!isCustomer()) { navigate('/login'); return; } setPkgReqModal(pkg); setPkgNote(''); }}
-                    className="lux-btn-p" style={{ background: theme.p, boxShadow: `0 4px 20px ${theme.p}40`, fontSize: 11, padding: '12px 24px' }}>
-                    {pkg.type === 'package' ? 'Buy Now' : 'Subscribe'}
-                  </motion.button>
-                </div>
-              </motion.div>
+              </button>
             ))}
           </div>
-        </section>
-      )}
 
-      {/* ════ 7. OWNER ════ */}
-      {(salon.ownerName || salon.ownerPhoto) && (
-        <section style={{ borderBottom: `1px solid ${dm.b04}` }}>
-          <div className="lux-split">
-            {/* Left: auto-sliding business photos */}
-            <div className="relative overflow-hidden" style={{ minHeight: 'clamp(260px,55vw,480px)' }}>
-              {salonPhotoUrls.length > 0 ? (
-                <>
-                  {salonPhotoUrls.map((url, i) => (
-                    <div key={i} style={{
-                      position: 'absolute', inset: 0,
-                      opacity: i === photoSlideIdx % salonPhotoUrls.length ? 1 : 0,
-                      transition: 'opacity 1.1s ease',
-                      pointerEvents: 'none',
-                    }}>
-                      <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'contrast(1.06) saturate(1.08)', transition: 'transform 8s ease' }} />
+          {/* ════ F. TAB CONTENT ════ */}
+          <AnimatePresence mode="wait">
+            <motion.div key={activeTab}
+              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: .18 }}>
+
+              {/* ── F1. SERVICES ── */}
+              {activeTab === 'services' && (
+                <div style={{ padding: '16px 0' }}>
+
+                  {/* Offer strip */}
+                  {allOffers.length > 0 && (
+                    <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '0 16px 12px', scrollbarWidth: 'none' }}>
+                      {allOffers.map((offer) => {
+                        const isEligible = totalPrice >= (offer.minAmount || 0);
+                        const saveAmt = offer.discountType === 'percentage' ? Math.round((offer.minAmount || 300) * offer.discountValue / 100) : offer.discountValue;
+                        return (
+                          <button key={offer.code} onClick={() => { setCouponInput(offer.code); openBooking(); }}
+                            style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 999, border: `1px solid ${isEligible ? '#10b981' : 'rgba(255,255,255,.12)'}`, background: isEligible ? 'rgba(16,185,129,.12)' : 'rgba(255,255,255,.05)', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: isEligible ? '#10b981' : 'rgba(255,255,255,.55)', whiteSpace: 'nowrap' }}>
+                            {isEligible ? <Check style={{ width: 11, height: 11 }} /> : <Tag style={{ width: 11, height: 11 }} />}
+                            {isEligible ? `✓ Eligible! Use ${offer.code}` : `${offer.code} — save ₹${saveAmt} on ₹${offer.minAmount}+`}
+                          </button>
+                        );
+                      })}
                     </div>
-                  ))}
-                  {/* dot indicators */}
-                  {salonPhotoUrls.length > 1 && (
-                    <div style={{ position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 5, zIndex: 5 }}>
-                      {salonPhotoUrls.map((_, i) => (
-                        <button key={i} onClick={() => setPhotoSlideIdx(i)}
-                          style={{ width: i === photoSlideIdx % salonPhotoUrls.length ? 18 : 5, height: 5, borderRadius: 3, border: 'none', cursor: 'pointer', padding: 0, transition: 'all 0.3s ease', background: i === photoSlideIdx % salonPhotoUrls.length ? '#fff' : 'rgba(255,255,255,.35)' }} />
+                  )}
+
+                  {/* Quick Rebook */}
+                  {quickRebook.length > 0 && (
+                    <div style={{ margin: '0 16px 14px', padding: '12px 14px', borderRadius: 12, background: 'rgba(124,58,237,.08)', border: '1px solid rgba(124,58,237,.18)' }}>
+                      <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,.55)', marginBottom: 8 }}>Welcome back! Pick up where you left off</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        {quickRebook.map(s => (
+                          <span key={s._id} style={{ padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)', fontSize: 11, color: 'rgba(255,255,255,.55)', fontWeight: 600 }}>
+                            {s.name} ₹{s.basePrice || s.price || 0}
+                          </span>
+                        ))}
+                        <motion.button whileTap={{ scale: .96 }} onClick={() => { setSelectedServices(quickRebook); openBooking(); }}
+                          style={{ padding: '5px 14px', borderRadius: 999, background: '#7C3AED', color: '#fff', border: 'none', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Repeat2 style={{ width: 11, height: 11 }} /> Book Again
+                        </motion.button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Gender + Favs filter */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, padding: '0 16px 14px', alignItems: 'center' }}>
+                    {salon.servedGender === 'unisex' && services.length > 0 && (
+                      <>
+                        {[{ key: 'all', label: 'All' }, { key: 'male', label: 'Men' }, { key: 'female', label: 'Women' }].map(({ key, label }) => (
+                          <button key={key} onClick={() => setServiceGenderFilter(key)}
+                            style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.10em', textTransform: 'uppercase', background: serviceGenderFilter === key ? '#7C3AED' : 'transparent', color: serviceGenderFilter === key ? '#fff' : 'rgba(255,255,255,.4)', border: `1px solid ${serviceGenderFilter === key ? '#7C3AED' : 'rgba(255,255,255,.12)'}`, padding: '7px 16px', borderRadius: 999, cursor: 'pointer' }}>
+                            {label}
+                          </button>
+                        ))}
+                        <span style={{ width: 1, height: 18, background: 'rgba(255,255,255,.12)', flexShrink: 0 }} />
+                      </>
+                    )}
+                    <button onClick={() => setShowFavsOnly(v => !v)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 14px', borderRadius: 999, border: `1px solid ${showFavsOnly ? '#7C3AED' : 'rgba(255,255,255,.12)'}`, background: showFavsOnly ? 'rgba(124,58,237,.15)' : 'transparent', color: showFavsOnly ? '#A78BFA' : 'rgba(255,255,255,.4)', fontSize: 10, fontWeight: 700, letterSpacing: '.10em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                      <Heart style={{ width: 11, height: 11, fill: showFavsOnly ? '#A78BFA' : 'none', color: showFavsOnly ? '#A78BFA' : 'rgba(255,255,255,.4)' }} />
+                      Favourites{favServices.length > 0 ? ` (${favServices.length})` : ''}
+                    </button>
+                  </div>
+
+                  {/* Loading skeleton */}
+                  {loading && (
+                    <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {[1,2,3,4].map(i => (
+                        <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '14px', borderRadius: 14, background: 'rgba(255,255,255,.03)' }}>
+                          <div className="glw-shimmer" style={{ width: 76, height: 76, borderRadius: 12, flexShrink: 0 }} />
+                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                            <div className="glw-shimmer" style={{ width: '60%', height: 14 }} />
+                            <div className="glw-shimmer" style={{ width: '40%', height: 10 }} />
+                            <div className="glw-shimmer" style={{ width: '25%', height: 12 }} />
+                          </div>
+                          <div className="glw-shimmer" style={{ width: 60, height: 26, borderRadius: 999 }} />
+                        </div>
                       ))}
                     </div>
                   )}
-                </>
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center text-8xl" style={{ background: `linear-gradient(135deg,${theme.p}18,${theme.p}33)` }}>🧑‍🎨</div>
-              )}
-              <div className="absolute inset-0" style={{ background: dm.ownerOvr }} />
-            </div>
-            <div className="lux-section flex flex-col justify-center">
-              <motion.p className="lux-overline mb-4" style={{ color: theme.p }}
-                initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>Meet the founder</motion.p>
-              <motion.h2 style={{ fontSize: 'clamp(30px,4vw,52px)', fontWeight: 900, color: dm.fg, lineHeight: 1.1, letterSpacing: '-.025em', marginBottom: 16 }}
-                initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: .7 }}>
-                {salon.ownerName || 'Our Owner'}
-              </motion.h2>
-              <div className="lux-divider" style={{ background: theme.p }} />
-              <motion.p className="lux-body" style={{ color: dm.fg45, maxWidth: 440 }}
-                initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: .15, duration: .7 }}>
-                Founder &amp; Head Stylist. Passionate about creating transformative experiences that leave every client feeling their absolute best.
-              </motion.p>
-              {salon.experience > 0 && (
-                <div style={{ marginTop: 40 }}>
-                  <p style={{ fontSize: 'clamp(44px,5.5vw,72px)', fontWeight: 900, color: dm.fg, lineHeight: 1, letterSpacing: '-.045em' }}>{salon.experience}+</p>
-                  <p className="lux-overline mt-2" style={{ color: dm.fg35 }}>Years of mastery</p>
+
+                  {/* Services accordion */}
+                  {services.length === 0 && !loading
+                    ? <p style={{ color: 'rgba(255,255,255,.3)', padding: '24px 16px' }}>No services listed yet.</p>
+                    : (() => {
+                        const isUnisex = salon.servedGender === 'unisex';
+                        const classifySvc = (s) => {
+                          const af = s.applicableFor || [];
+                          if (af.length > 0 && af.includes('male') && !af.includes('female')) return 'male';
+                          if (af.length > 0 && af.includes('female') && !af.includes('male')) return 'female';
+                          const uniCat = UNISEX_CATEGORIES.find(u => u.label === (s.category || ''));
+                          if (uniCat) {
+                            const inM = new Set(uniCat.maleSubServices).has(s.name);
+                            const inF = new Set(uniCat.femaleSubServices).has(s.name);
+                            if (inM && !inF) return 'male';
+                            if (inF && !inM) return 'female';
+                          }
+                          return 'both';
+                        };
+                        let visibleServices = !isUnisex || serviceGenderFilter === 'all'
+                          ? services
+                          : services.filter(s => {
+                              const cat = s.category || '';
+                              if (serviceGenderFilter === 'female' && MALE_ONLY_CAT_LABELS.has(cat)) return false;
+                              if (serviceGenderFilter === 'male' && FEMALE_ONLY_CAT_LABELS.has(cat)) return false;
+                              const g = classifySvc(s);
+                              return g === 'both' || g === serviceGenderFilter;
+                            });
+                        if (showFavsOnly) {
+                          visibleServices = visibleServices.filter(s => favServices.includes(s._id));
+                          if (visibleServices.length === 0) {
+                            return (
+                              <div style={{ textAlign: 'center', padding: '40px 16px', color: 'rgba(255,255,255,.3)' }}>
+                                <Heart style={{ width: 32, height: 32, margin: '0 auto 12px', opacity: .4, display: 'block' }} />
+                                <p>Heart services you love ♥</p>
+                              </div>
+                            );
+                          }
+                        }
+                        const grouped = visibleServices.reduce((acc, svc) => {
+                          const cat = svc.category || 'Other';
+                          if (!acc[cat]) acc[cat] = [];
+                          acc[cat].push(svc);
+                          return acc;
+                        }, {});
+                        const bizCategoryOrder = getCategoryOrderForBusinessType(salon.businessType, salon.servedGender);
+                        const sortedEntries = Object.entries(grouped).sort(([a], [b]) => {
+                          const boostDiff = catSortBoost(a) - catSortBoost(b);
+                          if (boostDiff !== 0) return boostDiff;
+                          const ai = bizCategoryOrder.indexOf(a), bi = bizCategoryOrder.indexOf(b);
+                          if (ai === -1 && bi === -1) return a.localeCompare(b);
+                          if (ai === -1) return 1; if (bi === -1) return -1;
+                          return ai - bi;
+                        });
+                        return (
+                          <div>
+                            {sortedEntries.map(([cat, catServices], ci) => {
+                              const isOpen = expandedCats.has('__all__') || expandedCats.has(cat);
+                              const CatIcon = CAT_ICON_COMPONENTS[cat] || Sparkles;
+                              const catImg = getCategoryImage(cat, salon);
+                              const recId = getRecommended(catServices);
+                              const ordered = recId ? [catServices.find(s => s._id === recId), ...catServices.filter(s => s._id !== recId)] : catServices;
+                              const toggleCat = () => {
+                                setCatClickCounts(prev => ({ ...prev, [cat]: (prev[cat] || 0) + 1 }));
+                                setExpandedCats(prev => { const next = new Set(prev); next.delete('__all__'); if (next.has(cat)) next.delete(cat); else next.add(cat); return next; });
+                              };
+                              return (
+                                <motion.div key={cat} initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: Math.min(ci * .05, .25), duration: .45 }}
+                                  style={{ overflow: 'hidden', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
+                                  <button onClick={toggleCat} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px', background: 'none', border: 'none', cursor: 'pointer', gap: 12, width: '100%' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                                      {catImg ? (
+                                        <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, overflow: 'hidden' }}>
+                                          <img src={catImg} alt={cat} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} onError={e => { e.currentTarget.style.display = 'none'; }} />
+                                        </div>
+                                      ) : (
+                                        <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: 'rgba(124,58,237,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                          <CatIcon style={{ width: 17, height: 17, color: '#A78BFA', strokeWidth: 2 }} />
+                                        </div>
+                                      )}
+                                      <div style={{ minWidth: 0 }}>
+                                        <p style={{ fontSize: 17, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-.01em', lineHeight: 1.2 }}>{cat}</p>
+                                        <p style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', fontWeight: 500, marginTop: 1 }}>{catServices.length} service{catServices.length !== 1 ? 's' : ''}</p>
+                                      </div>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                                      <span style={{ fontSize: 12, fontWeight: 700, color: '#A78BFA' }}>from ₹{Math.min(...catServices.map(s => s.basePrice || s.price || 0))}</span>
+                                      <div style={{ width: 26, height: 26, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.45)' }}>
+                                        {isOpen ? <ChevronUp style={{ width: 13, height: 13 }} /> : <ChevronDown style={{ width: 13, height: 13 }} />}
+                                      </div>
+                                    </div>
+                                  </button>
+                                  <AnimatePresence>
+                                    {isOpen && (
+                                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: .28 }} style={{ overflow: 'hidden' }}>
+                                        {ordered.map((s, svcIdx) => {
+                                          if (!s) return null;
+                                          const isSel = selectedServices.some(x => x._id === s._id);
+                                          const isRec = s._id === recId;
+                                          const badge = getBadge(s);
+                                          const svcImgSrc = getServiceImage(s);
+                                          const isFav = favServices.includes(s._id);
+                                          const price = s.basePrice || s.price || 0;
+                                          const isFast = (s.duration || 0) > 0 && (s.duration || 0) <= 20;
+                                          const isTopBooked = topBookingCount > 0 && s.bookingCount === topBookingCount;
+                                          return (
+                                            <div key={s._id}
+                                              style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,.06)', cursor: 'pointer', transition: 'background .15s', background: isSel ? 'rgba(124,58,237,.08)' : 'transparent', position: 'relative' }}
+                                              onClick={() => toggleService(s)}
+                                              onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = 'rgba(255,255,255,.04)'; }}
+                                              onMouseLeave={e => { e.currentTarget.style.background = isSel ? 'rgba(124,58,237,.08)' : 'transparent'; }}>
+                                              {isSel && <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: '#7C3AED', borderRadius: '0 2px 2px 0' }} />}
+                                              <div style={{ flex: 1, minWidth: 0 }}>
+                                                {(isRec || badge || isFast || isTopBooked) && (
+                                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 5 }}>
+                                                    {isRec && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'rgba(124,58,237,.2)', color: '#A78BFA' }}>⭐ Recommended</span>}
+                                                    {badge && !isRec && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
+                                                      background: badge === 'Popular' ? 'rgba(124,58,237,.15)' : badge === 'Best Value' ? 'rgba(5,150,105,.15)' : 'rgba(8,145,178,.15)',
+                                                      color: badge === 'Popular' ? '#A78BFA' : badge === 'Best Value' ? '#34d399' : '#38bdf8' }}>
+                                                      {badge === 'Popular' ? '🔥 Most Booked' : badge === 'Best Value' ? '✨ Best Value' : badge === 'Premium' ? '⭐ Recommended' : '⚡ Quick'}
+                                                    </span>}
+                                                    {isFast && !badge && !isRec && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'rgba(6,182,212,.12)', color: '#38bdf8' }}>⚡ Quick</span>}
+                                                    {isTopBooked && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'rgba(217,119,6,.12)', color: '#fbbf24' }}>🏆 #1 Choice</span>}
+                                                  </div>
+                                                )}
+                                                <p style={{ fontSize: 15, fontWeight: 700, color: '#FFFFFF', lineHeight: 1.3, marginBottom: 5 }}>{s.name}</p>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginBottom: 6 }}>
+                                                  {(s.bookingCount || 0) > 0 && (
+                                                    <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, fontWeight: 600, color: '#4ADE80' }}>
+                                                      <span>★</span> 4.{5 + Math.min((s.bookingCount || 0) % 4, 3)}
+                                                      <span style={{ color: 'rgba(255,255,255,.35)', fontWeight: 400 }}>({s.bookingCount}+)</span>
+                                                    </span>
+                                                  )}
+                                                  {s.duration > 0 && <span style={{ fontSize: 11, color: 'rgba(255,255,255,.4)' }}>⏱ {s.duration} min</span>}
+                                                  {s.applicableFor?.length === 1 && <span style={{ fontSize: 11, color: 'rgba(255,255,255,.35)' }}>{s.applicableFor[0] === 'male' ? '♂ Men' : '♀ Women'}</span>}
+                                                </div>
+                                                {(s.bookingCount || 0) >= 20 && (
+                                                  <p style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginBottom: 5 }}>{s.bookingCount}+ people booked this</p>
+                                                )}
+                                                <span style={{ fontSize: 16, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-.02em' }}>₹{price}</span>
+                                              </div>
+                                              <div style={{ flexShrink: 0, position: 'relative', width: 80, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                                                <button style={{ position: 'absolute', top: 3, right: 3, zIndex: 2, width: 20, height: 20, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.45)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                  onClick={e => { e.stopPropagation(); toggleFav(s._id)(e); }}>
+                                                  <Heart style={{ width: 9, height: 9, color: isFav ? '#f43f5e' : '#fff', fill: isFav ? '#f43f5e' : 'none' }} />
+                                                </button>
+                                                <div style={{ width: 80, height: 80, borderRadius: 10, overflow: 'hidden', background: 'rgba(124,58,237,.12)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(167,139,250,.12)' }}>
+                                                  {svcImgSrc
+                                                    ? <img src={svcImgSrc} alt={s.name} loading={svcIdx < 4 ? 'eager' : 'lazy'}
+                                                        style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0, transition: 'opacity .2s' }}
+                                                        onLoad={e => { e.currentTarget.style.opacity = '1'; }}
+                                                        onError={e => { e.currentTarget.parentNode.style.background = 'rgba(124,58,237,.08)'; e.currentTarget.style.display = 'none'; }} />
+                                                    : <CatIcon style={{ width: 26, height: 26, color: '#A78BFA', opacity: .45 }} />
+                                                  }
+                                                </div>
+                                                <motion.button whileTap={{ scale: .88 }}
+                                                  onClick={e => { e.stopPropagation(); toggleService(s); }}
+                                                  style={{ width: 72, height: 28, borderRadius: 6, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: 11, letterSpacing: '.02em', background: isSel ? '#7C3AED' : 'transparent', color: isSel ? '#fff' : '#A78BFA', boxShadow: isSel ? '0 2px 10px rgba(124,58,237,.4)' : '0 0 0 1.5px #7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, transition: 'all .18s' }}>
+                                                  {isSel ? <><Check style={{ width: 11, height: 11 }} /> ADDED</> : '+ ADD'}
+                                                </motion.button>
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
+                                </motion.div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()
+                  }
+
+                  {/* Packages */}
+                  {packages.length > 0 && (
+                    <div style={{ padding: '20px 16px 0' }}>
+                      <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: '#A78BFA', marginBottom: 12 }}>Packages &amp; Memberships</p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {packages.map((pkg) => (
+                          <div key={pkg._id} style={{ borderRadius: 14, padding: '16px', background: 'rgba(255,255,255,.04)', border: '1px solid rgba(167,139,250,.10)' }}>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
+                              <span style={{ fontSize: 26 }}>{pkg.icon || (pkg.type === 'package' ? '🎁' : '💳')}</span>
+                              <div style={{ flex: 1 }}>
+                                {pkg.tag && <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: '#A78BFA', marginBottom: 2 }}>{pkg.tag === 'popular' ? 'Most Popular' : pkg.tag === 'recommended' ? 'Recommended' : 'Best Value'}</p>}
+                                <p style={{ fontSize: 15, fontWeight: 800, color: '#FFFFFF' }}>{pkg.name}</p>
+                                {pkg.description && <p style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginTop: 3, lineHeight: 1.5 }}>{pkg.description}</p>}
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <div>
+                                <p style={{ fontSize: 22, fontWeight: 900, color: '#FFFFFF', letterSpacing: '-.03em' }}>₹{pkg.discountedPrice || pkg.price}</p>
+                                {pkg.type === 'membership' && <p style={{ fontSize: 11, color: 'rgba(255,255,255,.32)', marginTop: 1 }}>/{pkg.billingCycle === 'monthly' ? 'month' : pkg.billingCycle === 'quarterly' ? 'quarter' : 'year'}</p>}
+                              </div>
+                              <motion.button whileTap={{ scale: .96 }}
+                                onClick={() => { if (!isCustomer()) { navigate('/login'); return; } setPkgReqModal(pkg); setPkgNote(''); }}
+                                style={{ background: '#7C3AED', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 20px', fontSize: 12, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px rgba(124,58,237,.4)' }}>
+                                {pkg.type === 'package' ? 'Buy Now' : 'Subscribe'}
+                              </motion.button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-          </div>
-        </section>
-      )}
 
-      {/* ════ 8. REVIEWS ════ */}
-      {reviews.length > 0 && (
-        <section style={{ paddingTop: 'clamp(80px,10vw,140px)', paddingBottom: 'clamp(80px,10vw,140px)', borderBottom: `1px solid ${dm.b04}` }}>
-          <div style={{ padding: '0 clamp(20px,6vw,96px)', marginBottom: 'clamp(28px,4vw,48px)' }}>
-            <motion.p className="lux-overline mb-3" style={{ color: theme.p }}
-              initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>Client Love</motion.p>
-            <div className="flex items-end justify-between flex-wrap gap-4">
-              <motion.h2 className="lux-title" style={{ color: dm.fg }}
-                initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: .7 }}>
-                {avgRating ? <><span style={{ color: theme.p }}>{avgRating}</span> out of 5</> : 'What clients say'}
-              </motion.h2>
-              <div className="flex items-center gap-4">
-                <p style={{ fontSize: 14, color: dm.fg35 }}>{reviews.length} verified review{reviews.length !== 1 ? 's' : ''}</p>
-                <button onClick={() => navigate(`${salonPath(salon)}/reviews`)}
-                  style={{ fontSize: 13, fontWeight: 600, color: theme.p, background: 'none', border: `1px solid ${theme.p}55`, borderRadius: 999, padding: '5px 16px', cursor: 'pointer' }}>
-                  See All
-                </button>
-              </div>
-            </div>
-          </div>
-          <div ref={reviewTrackRef} className="lux-rev-track" style={{ gap: 1 }}>
-            {reviews.map((r, i) => {
-              const starRating = Math.round(r.salonRating || r.rating || 5);
-              const name = r.customerId?.name || r.customerName || 'Guest';
-              const avatarColors = ['#e94560','#8b5cf6','#10b981','#f59e0b','#38bdf8'];
-              return (
-                <motion.div key={r._id}
-                  initial={{ opacity: 0, x: 24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
-                  transition={{ delay: Math.min(i * .06, .35), duration: .6 }}
-                  style={{ flexShrink: 0, width: 'clamp(260px,80vw,460px)', padding: 'clamp(20px,3vw,44px)', background: dm.card, border: `1px solid ${dm.cardBrd}`, scrollSnapAlign: 'start' }}>
-                  <div className="flex mb-5">
-                    {[1,2,3,4,5].map(s => <span key={s} style={{ fontSize: 16, color: s <= starRating ? '#fbbf24' : dm.b10 }}>★</span>)}
-                  </div>
-                  {r.comment && (
-                    <p style={{ fontSize: 'clamp(14px,1.5vw,17px)', lineHeight: 1.8, color: dm.fg75, marginBottom: 28, display: '-webkit-box', WebkitLineClamp: 5, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                      &ldquo;{r.comment}&rdquo;
-                    </p>
+              {/* ── F2. REELS ── */}
+              {activeTab === 'reels' && (
+                <div style={{ padding: '4px 0' }}>
+                  {salonVideoUrls.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '60px 24px', color: 'rgba(255,255,255,.3)' }}>
+                      <div style={{ fontSize: 40, marginBottom: 12 }}>🎬</div>
+                      <p style={{ fontWeight: 600 }}>No reels yet</p>
+                    </div>
+                  ) : (
+                    <div className="glw-reel-grid">
+                      {salonVideoUrls.map((url, i) => {
+                        const thumb = url.replace('/upload/', '/upload/so_0,f_jpg,q_60,w_400/').replace(/\.(mp4|mov|webm)$/, '.jpg');
+                        return (
+                          <div key={url} className="glw-reel-cell" onClick={() => setVideoViewerIdx(i)}>
+                            <img src={thumb} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} onError={e => { e.currentTarget.style.display = 'none'; }} />
+                            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.25)' }} />
+                            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,.18)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <div style={{ width: 0, height: 0, borderTop: '8px solid transparent', borderBottom: '8px solid transparent', borderLeft: '14px solid #fff', marginLeft: 3 }} />
+                            </div>
+                            <div style={{ position: 'absolute', bottom: 8, left: 8 }}>
+                              <p style={{ fontSize: 10, color: 'rgba(255,255,255,.7)', fontWeight: 600 }}>{i + 1}/{salonVideoUrls.length}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shrink-0"
-                      style={{ background: avatarColors[i % avatarColors.length], fontSize: 15 }}>
-                      {name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <p style={{ fontSize: 14, fontWeight: 700, color: dm.fg }}>{name}</p>
-                      <p style={{ fontSize: 11, color: dm.fg30, letterSpacing: '.04em' }}>
-                        {r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-IN',{ day:'2-digit',month:'short',year:'numeric' }) : ''}
-                        {r.serviceId?.name && ` · ${r.serviceId.name}`}
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        </section>
-      )}
+                </div>
+              )}
 
-      {/* ════ 9. INFO ════ */}
-      <section className="lux-section" style={{ borderBottom: `1px solid ${dm.b04}` }}>
-        <div className="lux-split" style={{ gap: 'clamp(24px,6vw,100px)' }}>
-          <div>
-            <motion.p className="lux-overline mb-5" style={{ color: theme.p }}
-              initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>Find Us</motion.p>
-            {[
-              (locality || salon.address || salon.city) && { icon: <MapPin className="w-4 h-4" />, text: [locality, salon.city, salon.address].filter(Boolean).join(', ') },
-              salon.phone   && { icon: <Phone className="w-4 h-4" />, text: salon.phone, href: `tel:${salon.phone}` },
-              salon.email   && { icon: <Mail className="w-4 h-4" />, text: salon.email, href: `mailto:${salon.email}` },
-            ].filter(Boolean).map(({ icon, text, href }, i) => (
-              <div key={i} className="lux-info-row">
-                <div style={{ color: theme.p, marginTop: 1 }}>{icon}</div>
-                {href
-                  ? <a href={href} style={{ fontSize: 15, color: dm.fg65, textDecoration: 'none' }}
-                      onMouseEnter={e => { e.currentTarget.style.color=dm.fg; }} onMouseLeave={e => { e.currentTarget.style.color=dm.fg65; }}>
-                      {text}
-                    </a>
-                  : <p style={{ fontSize: 15, color: dm.fg65 }}>{text}</p>
-                }
-              </div>
-            ))}
-            {(salon.address || salon.city) && (
-              <a href={`https://maps.google.com/?q=${encodeURIComponent(salon.address || salon.city)}`}
-                target="_blank" rel="noreferrer" className="lux-btn-o inline-flex mt-7"
-                style={{ fontSize: 11, padding: '11px 22px', color: dm.fg, border: `1px solid ${dm.b28}` }}>
-                <Navigation className="w-3.5 h-3.5" /> Get Directions
-              </a>
-            )}
-          </div>
-          {salon.workingHours && (
-            <div>
-              <motion.p className="lux-overline mb-5" style={{ color: theme.p }}
-                initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>Hours</motion.p>
-              {["monday","tuesday","wednesday","thursday","friday","saturday","sunday"].map(day => {
-                const h = salon.workingHours[day];
-                if (!h) return null;
-                const isToday = new Date().toLocaleDateString('en-US',{ weekday:'long' }).toLowerCase() === day;
+              {/* ── F3. PHOTOS ── */}
+              {activeTab === 'photos' && (
+                <div style={{ padding: '4px 0' }}>
+                  {salonPhotoUrls.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '60px 24px', color: 'rgba(255,255,255,.3)' }}>
+                      <div style={{ fontSize: 40, marginBottom: 12 }}>📷</div>
+                      <p style={{ fontWeight: 600 }}>No photos yet</p>
+                    </div>
+                  ) : (
+                    <div className="glw-photo-grid">
+                      {salonPhotoUrls.map((url, i) => (
+                        <div key={url} className="glw-photo-cell" onClick={() => setGalleryLightbox(i)}>
+                          <img src={url} alt="" loading={i < 4 ? 'eager' : 'lazy'} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform .3s' }}
+                            onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.04)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── F4. REVIEWS ── */}
+              {activeTab === 'reviews' && (() => {
+                const starCounts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+                reviews.forEach(r => { const s = Math.round(r.salonRating || r.rating || 5); starCounts[s] = (starCounts[s] || 0) + 1; });
+                const recommendRate = reviews.length ? Math.round(reviews.filter(r => (r.salonRating || r.rating || 0) >= 4).length / reviews.length * 100) : 0;
+                const filteredReviews = reviewFilter === 'with_photos' ? reviews.filter(r => r.photos?.length > 0) : reviews;
+                const avatarColors = ['#e94560', '#8b5cf6', '#10b981', '#f59e0b', '#38bdf8'];
                 return (
-                  <div key={day} className="lux-info-row"
-                    style={{ background: isToday ? `${theme.p}08` : 'transparent', paddingLeft: isToday ? 12 : 0, paddingRight: isToday ? 12 : 0 }}>
-                    <span className="capitalize flex-1" style={{ fontSize: 14, fontWeight: isToday ? 700 : 400, color: isToday ? dm.fg : dm.fg42 }}>
-                      {isToday && <span style={{ color: theme.p }}>→ </span>}{day}
-                    </span>
-                    {h.isClosed
-                      ? <span style={{ fontSize: 12, color: '#f87171', fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' }}>Closed</span>
-                      : <span style={{ fontSize: 14, color: isToday ? dm.fg : dm.fg50, fontWeight: isToday ? 700 : 400 }}>{h.open} – {h.close}</span>
-                    }
+                  <div style={{ padding: '20px 16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <h3 style={{ fontSize: 18, fontWeight: 900, color: '#FFFFFF', letterSpacing: '-.01em' }}>Reflections of Glow</h3>
+                      <button onClick={() => navigate(`${salonPath(salon)}/reviews`)}
+                        style={{ fontSize: 12, fontWeight: 700, color: '#A78BFA', background: 'rgba(124,58,237,.12)', border: '1px solid rgba(124,58,237,.3)', borderRadius: 999, padding: '6px 14px', cursor: 'pointer' }}>
+                        Write Review
+                      </button>
+                    </div>
+                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,.35)', marginBottom: 20 }}>Our community's experience with {salon.name}.</p>
+                    {reviews.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,.3)' }}>
+                        <div style={{ fontSize: 36, marginBottom: 8 }}>💬</div>
+                        <p>No reviews yet. Be the first!</p>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ borderRadius: 16, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(167,139,250,.12)', padding: '20px', marginBottom: 20 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 20 }}>
+                            <div style={{ textAlign: 'center', flexShrink: 0 }}>
+                              <p style={{ fontSize: 48, fontWeight: 900, color: '#FFFFFF', lineHeight: 1, letterSpacing: '-.04em' }}>{avgRating || '—'}</p>
+                              <div style={{ display: 'flex', gap: 2, justifyContent: 'center', margin: '4px 0' }}>
+                                {[1,2,3,4,5].map(s => <span key={s} style={{ fontSize: 14, color: s <= Math.round(Number(avgRating || 0)) ? '#FDE68A' : 'rgba(255,255,255,.15)' }}>★</span>)}
+                              </div>
+                              <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,.35)', marginTop: 2 }}>BASED ON {reviews.length}</p>
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              {[5,4,3,2,1].map(star => {
+                                const pct = reviews.length > 0 ? Math.round((starCounts[star] || 0) / reviews.length * 100) : 0;
+                                return (
+                                  <div key={star} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', fontWeight: 600, width: 10, textAlign: 'right' }}>{star}</span>
+                                    <span style={{ fontSize: 10, color: '#FDE68A' }}>★</span>
+                                    <div className="glw-star-bar-track">
+                                      <motion.div className="glw-star-bar-fill" initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: .8, delay: (5-star)*.08 }} />
+                                    </div>
+                                    <span style={{ fontSize: 9, color: 'rgba(255,255,255,.35)', fontWeight: 600, width: 26, textAlign: 'right' }}>{pct}%</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                          <div style={{ borderTop: '1px solid rgba(255,255,255,.07)', paddingTop: 14, textAlign: 'center' }}>
+                            <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,.35)', marginBottom: 4 }}>RECOMMENDATION RATE</p>
+                            <p style={{ fontSize: 36, fontWeight: 900, color: '#FFFFFF', letterSpacing: '-.03em' }}>{recommendRate}%</p>
+                            <p style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', marginTop: 3 }}>of clients would recommend to a friend.</p>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                          {[{ key: 'all', label: 'All Reviews' }, { key: 'with_photos', label: 'With Photos' }].map(({ key, label }) => (
+                            <button key={key} onClick={() => setReviewFilter(key)}
+                              style={{ padding: '7px 16px', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${reviewFilter === key ? '#7C3AED' : 'rgba(255,255,255,.12)'}`, background: reviewFilter === key ? '#7C3AED' : 'transparent', color: reviewFilter === key ? '#fff' : 'rgba(255,255,255,.5)' }}>
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                          {filteredReviews.map((r, i) => {
+                            const starRating = Math.round(r.salonRating || r.rating || 5);
+                            const name = r.customerId?.name || r.customerName || 'Guest';
+                            return (
+                              <div key={r._id} style={{ borderRadius: 14, padding: '16px', background: 'rgba(255,255,255,.04)', border: '1px solid rgba(167,139,250,.10)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                                  <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, background: avatarColors[i % avatarColors.length], display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#fff', fontSize: 14 }}>
+                                    {name.charAt(0).toUpperCase()}
+                                  </div>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <p style={{ fontSize: 13, fontWeight: 700, color: '#FFFFFF' }}>{name}</p>
+                                    <p style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>
+                                      {r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : ''}
+                                      {r.serviceId?.name && ` · ${r.serviceId.name}`}
+                                    </p>
+                                  </div>
+                                  <div style={{ display: 'flex', gap: 1 }}>
+                                    {[1,2,3,4,5].map(s => <span key={s} style={{ fontSize: 12, color: s <= starRating ? '#FDE68A' : 'rgba(255,255,255,.15)' }}>★</span>)}
+                                  </div>
+                                </div>
+                                {r.comment && <p style={{ fontSize: 13, color: 'rgba(255,255,255,.65)', lineHeight: 1.6, display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>&ldquo;{r.comment}&rdquo;</p>}
+                                {r.photos?.length > 0 && (
+                                  <div style={{ display: 'flex', gap: 6, marginTop: 10, overflowX: 'auto' }}>
+                                    {r.photos.map((p, pi) => (
+                                      <img key={pi} src={typeof p === 'string' ? p : p?.url} alt="" style={{ width: 60, height: 60, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
                   </div>
                 );
-              })}
-            </div>
-          )}
-        </div>
-      </section>
+              })()}
 
-      {/* ════ 10. FINAL CTA ════ */}
-      <section className="relative overflow-hidden flex items-center" style={{ minHeight: 'clamp(300px,55vh,900px)' }}>
-        {salon.ctaPhoto || salonPhotoUrls[1] || salonPhotoUrls[0]
-          ? <img src={salon.ctaPhoto || salonPhotoUrls[1] || salonPhotoUrls[0]} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ filter: 'brightness(.35) saturate(.70) contrast(1.1)' }} />
-          : <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse 65% 55% at 30% 50%, ${theme.p}30 0%, transparent 60%), radial-gradient(ellipse 50% 60% at 75% 50%, rgba(139,92,246,0.20) 0%, transparent 55%), var(--t-bg)` }} />
-        }
-        <div className="absolute inset-0" style={{ background: dm.ctaOvr }} />
-        <div className="absolute inset-0" style={{ background: `linear-gradient(135deg,${theme.p}14 0%,transparent 55%)` }} />
-        <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.035, backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E\")", backgroundRepeat: 'repeat', backgroundSize: '200px 200px', mixBlendMode: 'overlay' }} />
-        <div className="relative z-10 lux-section">
-          <motion.p className="lux-overline mb-6" style={{ color: theme.p }}
-            initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>{salon.name}</motion.p>
-          <motion.h2 style={{ fontSize: 'clamp(28px,6vw,88px)', fontWeight: 900, lineHeight: 1, letterSpacing: '-.04em', marginBottom: 'clamp(24px,4vw,36px)', maxWidth: 680, color: dm.fg }}
-            initial={{ opacity: 0, y: 32 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            transition={{ duration: .85, ease: [.22,1,.36,1] }}>
-            Ready for your<br />transformation?
-          </motion.h2>
-          <motion.div className="flex flex-wrap gap-4"
-            initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: .2, duration: .7 }}>
-            <motion.button whileTap={{ scale: .97 }} whileHover={{ scale: 1.02 }} onClick={handleSmartBook}
-              className="lux-btn-p" style={{ background: theme.p, boxShadow: `0 12px 40px ${theme.p}50`, fontSize: 'clamp(11px,2.5vw,13px)', padding: 'clamp(13px,3vw,17px) clamp(22px,5vw,42px)' }}>
-              <Zap className="w-4 h-4" /> Book Now
-            </motion.button>
-            {salon.phone && (
-              <motion.a whileTap={{ scale: .97 }} href={`tel:${salon.phone}`}
-                className="lux-btn-o" style={{ fontSize: 'clamp(11px,2.5vw,13px)', padding: 'clamp(13px,3vw,17px) clamp(22px,5vw,42px)', color: dm.fg, border: `1px solid ${dm.b28}` }}>
-                <Phone className="w-4 h-4" /> Call Us
-              </motion.a>
-            )}
-          </motion.div>
-        </div>
-      </section>
+            </motion.div>
+          </AnimatePresence>
+
+        </div>{/* end .glw-col */}
+      </div>{/* end outer */}
+
 
       {/* ════ STICKY BOOKING BAR (unified — combo suggestions inside) ════ */}
       <AnimatePresence>
@@ -1637,7 +1243,7 @@ function SalonDetails() {
       {videoViewerIdx !== null && salonVideoUrls.length > 0 && (
         <SalonVideoViewer videos={salonVideoUrls} startIdx={videoViewerIdx} salon={salon}
           onClose={() => setVideoViewerIdx(null)}
-          onBook={() => { setVideoViewerIdx(null); setTimeout(() => document.getElementById('lux-services')?.scrollIntoView({ behavior: 'smooth' }), 80); }} />
+          onBook={() => { setVideoViewerIdx(null); setActiveTab('services'); }} />
       )}
 
       {/* ════ GALLERY LIGHTBOX ════ */}
@@ -1997,7 +1603,7 @@ function SalonDetails() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
