@@ -1280,7 +1280,7 @@ function SalonDetails() {
           <motion.div
             initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 340, damping: 32 }}
-            className="fixed bottom-[60px] left-0 right-0 z-[110] md:bottom-4 md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-2xl md:rounded-2xl overflow-hidden"
+            className="fixed bottom-[60px] left-0 right-0 z-[110] overflow-hidden"
             style={{ background: dm.barBg, borderTop: `1px solid ${theme.p}22`, boxShadow: `0 -12px 48px rgba(0,0,0,.55),0 0 0 1px ${theme.p}12`, transition: 'background .3s', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
 
             {/* Combo suggestions row — only when present */}
@@ -1314,7 +1314,7 @@ function SalonDetails() {
                 </div>
                 <div style={{ minWidth: 0 }}>
                   <p style={{ fontSize: 13, fontWeight: 700, color: dm.fg, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {selectedServices.length} service{selectedServices.length > 1 ? 's' : ''} · {totalDuration} min
+                    {selectedServices.length} service{selectedServices.length > 1 ? 's' : ''} · {selectedServices.map(s => s.name).join(', ')}
                   </p>
                   <p style={{ fontSize: 13, fontWeight: 800, color: theme.p, margin: '2px 0 0' }}>₹{totalPrice}</p>
                   {bestOffer
