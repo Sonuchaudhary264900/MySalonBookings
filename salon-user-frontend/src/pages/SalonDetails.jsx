@@ -968,26 +968,26 @@ function SalonDetails() {
                               return (
                                 <motion.div key={cat} initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: Math.min(ci * .05, .25), duration: .45 }}
                                   style={{ overflow: 'hidden', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
-                                  <button onClick={toggleCat} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px', background: 'none', border: 'none', cursor: 'pointer', gap: 12, width: '100%' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                                      {catImg ? (
-                                        <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, overflow: 'hidden' }}>
-                                          <img src={catImg} alt={cat} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} onError={e => { e.currentTarget.style.display = 'none'; }} />
-                                        </div>
-                                      ) : (
-                                        <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: 'rgba(124,58,237,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                          <CatIcon style={{ width: 17, height: 17, color: '#A78BFA', strokeWidth: 2 }} />
-                                        </div>
-                                      )}
-                                      <div style={{ minWidth: 0 }}>
-                                        <p style={{ fontSize: 17, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-.01em', lineHeight: 1.2 }}>{cat}</p>
-                                        <p style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', fontWeight: 500, marginTop: 1 }}>{catServices.length} service{catServices.length !== 1 ? 's' : ''}</p>
-                                      </div>
+                                  <button onClick={toggleCat} style={{ display: 'flex', alignItems: 'stretch', gap: 14, padding: '14px 16px', background: 'none', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
+                                    {/* Category image — large left */}
+                                    <div style={{ width: 90, height: 90, borderRadius: 14, flexShrink: 0, overflow: 'hidden', border: '1px solid rgba(167,139,250,.12)', background: 'rgba(124,58,237,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                      {catImg
+                                        ? <img src={catImg} alt={cat} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} onError={e => { e.currentTarget.style.display = 'none'; }} />
+                                        : <CatIcon style={{ width: 32, height: 32, color: '#A78BFA', strokeWidth: 2, opacity: .6 }} />
+                                      }
                                     </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                                      <span style={{ fontSize: 12, fontWeight: 700, color: '#A78BFA' }}>from ₹{Math.min(...catServices.map(s => s.basePrice || s.price || 0))}</span>
-                                      <div style={{ width: 26, height: 26, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.45)' }}>
-                                        {isOpen ? <ChevronUp style={{ width: 13, height: 13 }} /> : <ChevronDown style={{ width: 13, height: 13 }} />}
+                                    {/* Category info — right */}
+                                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+                                        <p style={{ fontSize: 15, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-.01em', lineHeight: 1.3, margin: 0 }}>{cat}</p>
+                                        <span style={{ fontSize: 15, fontWeight: 800, color: '#A78BFA', whiteSpace: 'nowrap', flexShrink: 0 }}>from ₹{Math.min(...catServices.map(s => s.basePrice || s.price || 0))}+</span>
+                                      </div>
+                                      <p style={{ fontSize: 12, color: 'rgba(255,255,255,.35)', fontWeight: 500, margin: '5px 0 0' }}>{catServices.length} service{catServices.length !== 1 ? 's' : ''}</p>
+                                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginTop: 8 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, color: '#A78BFA' }}>
+                                          {isOpen ? 'Hide' : 'View All'}
+                                          {isOpen ? <ChevronUp style={{ width: 13, height: 13 }} /> : <ChevronDown style={{ width: 13, height: 13 }} />}
+                                        </div>
                                       </div>
                                     </div>
                                   </button>
@@ -1006,59 +1006,64 @@ function SalonDetails() {
                                           const isTopBooked = topBookingCount > 0 && s.bookingCount === topBookingCount;
                                           return (
                                             <div key={s._id}
-                                              style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,.06)', cursor: 'pointer', transition: 'background .15s', background: isSel ? 'rgba(124,58,237,.08)' : 'transparent', position: 'relative' }}
+                                              style={{ display: 'flex', alignItems: 'stretch', gap: 14, padding: '14px 16px', borderTop: '1px solid rgba(255,255,255,.06)', cursor: 'pointer', transition: 'background .15s', background: isSel ? 'rgba(124,58,237,.08)' : 'transparent', position: 'relative' }}
                                               onClick={() => toggleService(s)}
                                               onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = 'rgba(255,255,255,.04)'; }}
                                               onMouseLeave={e => { e.currentTarget.style.background = isSel ? 'rgba(124,58,237,.08)' : 'transparent'; }}>
                                               {isSel && <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: '#7C3AED', borderRadius: '0 2px 2px 0' }} />}
-                                              <div style={{ flex: 1, minWidth: 0 }}>
+                                              {/* Large image — left */}
+                                              <div style={{ position: 'relative', width: 90, height: 90, borderRadius: 14, overflow: 'hidden', flexShrink: 0, background: 'rgba(124,58,237,.12)', border: '1px solid rgba(167,139,250,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                {svcImgSrc
+                                                  ? <img src={svcImgSrc} alt={s.name} loading={svcIdx < 4 ? 'eager' : 'lazy'}
+                                                      style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0, transition: 'opacity .2s' }}
+                                                      onLoad={e => { e.currentTarget.style.opacity = '1'; }}
+                                                      onError={e => { e.currentTarget.parentNode.style.background = 'rgba(124,58,237,.08)'; e.currentTarget.style.display = 'none'; }} />
+                                                  : <CatIcon style={{ width: 32, height: 32, color: '#A78BFA', opacity: .45 }} />
+                                                }
+                                                <button style={{ position: 'absolute', top: 5, right: 5, zIndex: 2, width: 22, height: 22, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.5)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                  onClick={e => { e.stopPropagation(); toggleFav(s._id)(e); }}>
+                                                  <Heart style={{ width: 10, height: 10, color: isFav ? '#f43f5e' : '#fff', fill: isFav ? '#f43f5e' : 'none' }} />
+                                                </button>
+                                              </div>
+                                              {/* Text — right */}
+                                              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                                                {/* Name + price row */}
+                                                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+                                                  <p style={{ fontSize: 15, fontWeight: 700, color: '#FFFFFF', lineHeight: 1.3, margin: 0 }}>{s.name}</p>
+                                                  <span style={{ fontSize: 15, fontWeight: 800, color: '#A78BFA', whiteSpace: 'nowrap', flexShrink: 0 }}>₹{price}+</span>
+                                                </div>
+                                                {/* Badges */}
                                                 {(isRec || badge || isFast || isTopBooked) && (
-                                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 5 }}>
-                                                    {isRec && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'rgba(124,58,237,.2)', color: '#A78BFA' }}>⭐ Recommended</span>}
-                                                    {badge && !isRec && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
-                                                      background: badge === 'Popular' ? 'rgba(124,58,237,.15)' : badge === 'Best Value' ? 'rgba(5,150,105,.15)' : 'rgba(8,145,178,.15)',
+                                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 5 }}>
+                                                    {isRec && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: 'rgba(124,58,237,.25)', color: '#A78BFA', textTransform: 'uppercase', letterSpacing: '.04em' }}>⭐ Recommended</span>}
+                                                    {badge && !isRec && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, textTransform: 'uppercase', letterSpacing: '.04em',
+                                                      background: badge === 'Popular' ? 'rgba(124,58,237,.25)' : badge === 'Best Value' ? 'rgba(5,150,105,.2)' : 'rgba(8,145,178,.2)',
                                                       color: badge === 'Popular' ? '#A78BFA' : badge === 'Best Value' ? '#34d399' : '#38bdf8' }}>
-                                                      {badge === 'Popular' ? '🔥 Most Booked' : badge === 'Best Value' ? '✨ Best Value' : badge === 'Premium' ? '⭐ Recommended' : '⚡ Quick'}
+                                                      {badge === 'Popular' ? 'Popular Service' : badge === 'Best Value' ? 'Best Value' : badge === 'Premium' ? 'Premium' : 'Quick'}
                                                     </span>}
-                                                    {isFast && !badge && !isRec && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'rgba(6,182,212,.12)', color: '#38bdf8' }}>⚡ Quick</span>}
-                                                    {isTopBooked && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'rgba(217,119,6,.12)', color: '#fbbf24' }}>🏆 #1 Choice</span>}
+                                                    {isFast && !badge && !isRec && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: 'rgba(6,182,212,.12)', color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '.04em' }}>⚡ Quick</span>}
+                                                    {isTopBooked && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: 'rgba(217,119,6,.12)', color: '#fbbf24', textTransform: 'uppercase', letterSpacing: '.04em' }}>#1 Choice</span>}
                                                   </div>
                                                 )}
-                                                <p style={{ fontSize: 15, fontWeight: 700, color: '#FFFFFF', lineHeight: 1.3, marginBottom: 5 }}>{s.name}</p>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginBottom: 6 }}>
-                                                  {(s.bookingCount || 0) > 0 && (
-                                                    <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, fontWeight: 600, color: '#4ADE80' }}>
-                                                      <span>★</span> 4.{5 + Math.min((s.bookingCount || 0) % 4, 3)}
-                                                      <span style={{ color: 'rgba(255,255,255,.35)', fontWeight: 400 }}>({s.bookingCount}+)</span>
-                                                    </span>
-                                                  )}
-                                                  {s.duration > 0 && <span style={{ fontSize: 11, color: 'rgba(255,255,255,.4)' }}>⏱ {s.duration} min</span>}
-                                                  {s.applicableFor?.length === 1 && <span style={{ fontSize: 11, color: 'rgba(255,255,255,.35)' }}>{s.applicableFor[0] === 'male' ? '♂ Men' : '♀ Women'}</span>}
+                                                {/* Duration + Book Now row */}
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+                                                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                                    {s.duration > 0 && (
+                                                      <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'rgba(255,255,255,.4)' }}>
+                                                        <Clock style={{ width: 12, height: 12 }} />
+                                                        {s.duration >= 60 ? `${(s.duration / 60).toFixed(1).replace('.0', '')} hrs` : `${s.duration} min`}
+                                                      </span>
+                                                    )}
+                                                    {s.applicableFor?.length === 1 && (
+                                                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,.3)' }}>{s.applicableFor[0] === 'male' ? '♂ Men' : '♀ Women'}</span>
+                                                    )}
+                                                  </div>
+                                                  <motion.button whileTap={{ scale: .88 }}
+                                                    onClick={e => { e.stopPropagation(); toggleService(s); }}
+                                                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 800, color: isSel ? '#4ADE80' : '#A78BFA', letterSpacing: '.04em', padding: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                    {isSel ? <><Check style={{ width: 12, height: 12 }} /> ADDED</> : 'BOOK NOW'}
+                                                  </motion.button>
                                                 </div>
-                                                {(s.bookingCount || 0) >= 20 && (
-                                                  <p style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginBottom: 5 }}>{s.bookingCount}+ people booked this</p>
-                                                )}
-                                                <span style={{ fontSize: 16, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-.02em' }}>₹{price}</span>
-                                              </div>
-                                              <div style={{ flexShrink: 0, position: 'relative', width: 80, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                                                <button style={{ position: 'absolute', top: 3, right: 3, zIndex: 2, width: 20, height: 20, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.45)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                                  onClick={e => { e.stopPropagation(); toggleFav(s._id)(e); }}>
-                                                  <Heart style={{ width: 9, height: 9, color: isFav ? '#f43f5e' : '#fff', fill: isFav ? '#f43f5e' : 'none' }} />
-                                                </button>
-                                                <div style={{ width: 80, height: 80, borderRadius: 10, overflow: 'hidden', background: 'rgba(124,58,237,.12)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(167,139,250,.12)' }}>
-                                                  {svcImgSrc
-                                                    ? <img src={svcImgSrc} alt={s.name} loading={svcIdx < 4 ? 'eager' : 'lazy'}
-                                                        style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0, transition: 'opacity .2s' }}
-                                                        onLoad={e => { e.currentTarget.style.opacity = '1'; }}
-                                                        onError={e => { e.currentTarget.parentNode.style.background = 'rgba(124,58,237,.08)'; e.currentTarget.style.display = 'none'; }} />
-                                                    : <CatIcon style={{ width: 26, height: 26, color: '#A78BFA', opacity: .45 }} />
-                                                  }
-                                                </div>
-                                                <motion.button whileTap={{ scale: .88 }}
-                                                  onClick={e => { e.stopPropagation(); toggleService(s); }}
-                                                  style={{ width: 72, height: 28, borderRadius: 6, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: 11, letterSpacing: '.02em', background: isSel ? '#7C3AED' : 'transparent', color: isSel ? '#fff' : '#A78BFA', boxShadow: isSel ? '0 2px 10px rgba(124,58,237,.4)' : '0 0 0 1.5px #7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, transition: 'all .18s' }}>
-                                                  {isSel ? <><Check style={{ width: 11, height: 11 }} /> ADDED</> : '+ ADD'}
-                                                </motion.button>
                                               </div>
                                             </div>
                                           );
