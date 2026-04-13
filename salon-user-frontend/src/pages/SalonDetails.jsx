@@ -197,6 +197,8 @@ function SalonDetails() {
   const [showFavsOnly,        setShowFavsOnly]        = useState(false);
   const [activeTab, setActiveTab] = useState('services');
   const [followed, setFollowed] = useState(false);
+  const [followersCount, setFollowersCount] = useState(0);
+  const [followLoading, setFollowLoading] = useState(false);
   const [reviewFilter, setReviewFilter] = useState('all');
 
   const totalPrice    = selectedServices.reduce((s, x) => s + (x.basePrice || x.price || 0), 0);
@@ -219,9 +221,12 @@ function SalonDetails() {
 
   useEffect(() => {
     Promise.all([loadSalon(), loadServices(), loadReviews(), loadBarbers(), loadOffers(), loadPackages()]).finally(() => setLoading(false));
+    if (token) {
+      API.get(`/customer/salons/${id}/follow-status`).then(r => { if (r.data?.following !== undefined) setFollowed(r.data.following); }).catch(() => {});
+    }
   }, [id]);
 
-  const loadSalon    = async () => { try { const r = await API.get(`/public/salons/${id}`); const data = r.data.data || r.data.salon; setSalon(data); if (data?.topOffer) setOffers(prev => prev.length > 0 ? prev : [data.topOffer]); } catch {} };
+  const loadSalon    = async () => { try { const r = await API.get(`/public/salons/${id}`); const data = r.data.data || r.data.salon; setSalon(data); setFollowersCount(data?.followersCount || 0); if (data?.topOffer) setOffers(prev => prev.length > 0 ? prev : [data.topOffer]); } catch {} };
   const loadServices = async () => { try { const r = await API.get(`/public/salons/${id}/services`); setServices(r.data.data?.services || r.data.data || []); } catch {} };
   const loadReviews  = async () => { try { const r = await API.get(`/public/salons/${id}/reviews`);  setReviews(r.data.data?.reviews  || r.data.data || []); } catch {} };
   const loadBarbers  = async () => { try { const r = await API.get(`/public/salons/${id}/barbers`).catch(() => ({ data: { data: { barbers: [] } } })); setBarbers(r.data.data?.barbers || []); } catch {} };
@@ -383,6 +388,23 @@ function SalonDetails() {
 
   const handleBookNow   = () => { if (selectedServices.length === 0) { setActiveTab('services'); return; } openBooking(); };
   const handleSmartBook = () => { if (selectedServices.length === 0) { setActiveTab('services'); } else { openBooking(); } };
+
+  const handleFollow = async () => {
+    if (!token) { navigate('/login'); return; }
+    if (followLoading) return;
+    setFollowLoading(true);
+    const newFollowed = !followed;
+    setFollowed(newFollowed);
+    setFollowersCount(c => newFollowed ? c + 1 : Math.max(0, c - 1));
+    try {
+      const r = await API.post(`/customer/salons/${id}/follow`);
+      setFollowed(r.data.following);
+      if (r.data.followersCount !== undefined) setFollowersCount(r.data.followersCount);
+    } catch {
+      setFollowed(!newFollowed);
+      setFollowersCount(c => newFollowed ? Math.max(0, c - 1) : c + 1);
+    } finally { setFollowLoading(false); }
+  };
 
   const applyCoupon = async () => {
     if (!couponInput.trim()) return;
@@ -599,6 +621,15 @@ function SalonDetails() {
         @keyframes pulse{0%,100%{opacity:.4}50%{opacity:.9}}
         .glw-shimmer{background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.09) 50%,rgba(255,255,255,.04) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:8px}
         .glw-col{max-width:480px;margin:0 auto;position:relative;background:#0D0520;min-height:100vh}
+        @media(min-width:768px){
+          .glw-col{max-width:935px}
+          .glw-desktop-profile{display:flex;gap:40px;align-items:flex-start;padding:32px 32px 24px}
+          .glw-desktop-avatar{width:150px;height:150px;border-radius:50%;border:3px solid #7C3AED;overflow:hidden;flex-shrink:0;background:#1A0528;box-shadow:0 4px 32px rgba(124,58,237,.5)}
+          .glw-desktop-info{flex:1;min-width:0}
+          .glw-desktop-stats{display:flex;gap:32px;margin:16px 0}
+          .glw-mobile-profile{display:block}
+        }
+        @media(min-width:768px){.glw-mobile-profile{display:none}.glw-desktop-profile{display:flex !important}}
         .glw-tab-btn{flex:1;padding:14px 4px;font-size:11px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;border:none;background:none;cursor:pointer;position:relative;transition:color .2s;white-space:nowrap}
         .glw-photo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:3px}
         .glw-reel-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:3px}
@@ -647,32 +678,39 @@ function SalonDetails() {
             )}
           </div>
 
-          {/* ════ B. PROFILE INFO ════ */}
-          <div style={{ padding: '0 16px 0', marginTop: -28, position: 'relative', zIndex: 2 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 12 }}>
+          {/* ════ B. PROFILE INFO — mobile ════ */}
+          <div className="glw-mobile-profile" style={{ padding: '0 16px 0', marginTop: -28, position: 'relative', zIndex: 2 }}>
+            {/* Avatar row: avatar left, Book button right */}
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 10 }}>
               <div style={{ width: 72, height: 72, borderRadius: '50%', border: '3px solid #7C3AED', overflow: 'hidden', flexShrink: 0, background: '#1A0528', boxShadow: '0 4px 20px rgba(124,58,237,.4)' }}>
                 {(salon.profilePhoto || salon.coverPhoto || salonPhotoUrls[0])
                   ? <img src={salon.profilePhoto || salon.coverPhoto || salonPhotoUrls[0]} alt={salon.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(124,58,237,.2)', fontSize: 28, fontWeight: 900, color: '#A78BFA' }}>{(salon.name||'S').charAt(0)}</div>
                 }
               </div>
+              <motion.button whileTap={{ scale: .96 }} onClick={handleSmartBook}
+                style={{ background: 'linear-gradient(135deg,#7C3AED,#9D4EDD)', boxShadow: '0 6px 20px rgba(124,58,237,.45)', color: '#fff', border: 'none', borderRadius: 12, padding: '11px 16px', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Zap style={{ width: 14, height: 14 }} /> Book Your Look ✨
+              </motion.button>
+            </div>
+            {/* Name + badge + rating */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+              <h1 style={{ fontSize: 20, fontWeight: 900, color: '#FFFFFF', letterSpacing: '-.02em', lineHeight: 1.1 }}>{salon.name}</h1>
+              {avgRating >= 4.5 && <BadgeCheck style={{ width: 17, height: 17, color: '#7C3AED', flexShrink: 0 }} />}
               {avgRating && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 999, background: 'rgba(253,230,138,.1)', border: '1px solid rgba(253,230,138,.2)' }}>
-                  <span style={{ color: '#FDE68A', fontSize: 13 }}>★</span>
-                  <span style={{ fontWeight: 800, fontSize: 14, color: '#FDE68A' }}>{avgRating}</span>
-                  <span style={{ fontSize: 11, color: 'rgba(253,230,138,.5)' }}>({reviews.length})</span>
-                </div>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 3, marginLeft: 4 }}>
+                  <span style={{ color: '#FDE68A', fontSize: 12 }}>★</span>
+                  <span style={{ fontWeight: 700, fontSize: 12, color: '#FDE68A' }}>{avgRating}</span>
+                  <span style={{ fontSize: 10, color: 'rgba(253,230,138,.5)' }}>({reviews.length})</span>
+                </span>
               )}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-              <h1 style={{ fontSize: 22, fontWeight: 900, color: '#FFFFFF', letterSpacing: '-.02em', lineHeight: 1.1 }}>{salon.name}</h1>
-              {avgRating >= 4.5 && <BadgeCheck style={{ width: 18, height: 18, color: '#7C3AED', flexShrink: 0 }} />}
-            </div>
-            {salon.tagline && <p style={{ fontSize: 13, color: '#A78BFA', fontStyle: 'italic', marginBottom: 6 }}>{salon.tagline}</p>}
+            {salon.tagline && <p style={{ fontSize: 12, color: '#A78BFA', marginBottom: 5 }}>{salon.tagline}</p>}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
               {(locality || salon.city) && (
                 <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: 'rgba(255,255,255,.45)' }}>
-                  <MapPin style={{ width: 11, height: 11 }} /> {locality || salon.city}
+                  <MapPin style={{ width: 11, height: 11 }} />
+                  {locality && salon.city ? `${locality}, ${salon.city}` : locality || salon.city}
                 </span>
               )}
               <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600,
@@ -685,32 +723,98 @@ function SalonDetails() {
             </div>
           </div>
 
-          {/* ════ C. STATS ROW ════ */}
-          <div style={{ display: 'flex', margin: '16px 16px', borderRadius: 16, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(167,139,250,.12)', overflow: 'hidden' }}>
+          {/* ════ B2. PROFILE INFO — desktop (Instagram-style) ════ */}
+          <div className="glw-desktop-profile" style={{ display: 'none' }}>
+            <div className="glw-desktop-avatar">
+              {(salon.profilePhoto || salon.coverPhoto || salonPhotoUrls[0])
+                ? <img src={salon.profilePhoto || salon.coverPhoto || salonPhotoUrls[0]} alt={salon.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(124,58,237,.2)', fontSize: 52, fontWeight: 900, color: '#A78BFA' }}>{(salon.name||'S').charAt(0)}</div>
+              }
+            </div>
+            <div className="glw-desktop-info">
+              {/* Name row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+                <h1 style={{ fontSize: 26, fontWeight: 900, color: '#FFFFFF', letterSpacing: '-.02em', margin: 0 }}>{salon.name}</h1>
+                {avgRating >= 4.5 && <BadgeCheck style={{ width: 22, height: 22, color: '#7C3AED', flexShrink: 0 }} />}
+                <motion.button whileTap={{ scale: .96 }} onClick={handleSmartBook}
+                  style={{ background: 'linear-gradient(135deg,#7C3AED,#9D4EDD)', boxShadow: '0 6px 20px rgba(124,58,237,.45)', color: '#fff', border: 'none', borderRadius: 12, padding: '10px 20px', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Zap style={{ width: 15, height: 15 }} /> Book Your Look ✨
+                </motion.button>
+                <motion.button whileTap={{ scale: .96 }}
+                  animate={followed ? { scale: [1, 1.1, 1] } : {}}
+                  onClick={handleFollow}
+                  disabled={followLoading}
+                  style={{ background: followed ? 'rgba(124,58,237,.15)' : 'transparent', border: `1.5px solid ${followed ? '#7C3AED' : 'rgba(167,139,250,.4)'}`, color: '#A78BFA', borderRadius: 12, padding: '10px 20px', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Heart style={{ width: 15, height: 15, fill: followed ? '#A78BFA' : 'none' }} />
+                  {followed ? 'Following' : 'Follow'}
+                </motion.button>
+              </div>
+              {/* Stats row */}
+              <div className="glw-desktop-stats">
+                {[
+                  { val: followersCount > 0 ? (followersCount >= 1000 ? `${(followersCount/1000).toFixed(1)}k` : followersCount) : '—', label: 'Followers' },
+                  { val: totalBookings >= 1000 ? `${(totalBookings/1000).toFixed(1)}k` : totalBookings > 0 ? `${totalBookings}+` : '—', label: 'Customers' },
+                  { val: services.length > 0 ? services.length : '—', label: 'Services' },
+                ].map(({ val, label }) => (
+                  <div key={label} style={{ textAlign: 'left' }}>
+                    <p style={{ fontSize: 18, fontWeight: 900, color: '#FFFFFF', margin: '0 0 2px' }}>{val}</p>
+                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,.45)', margin: 0 }}>{label}</p>
+                  </div>
+                ))}
+              </div>
+              {/* Bio + location */}
+              {salon.tagline && <p style={{ fontSize: 13, color: '#A78BFA', marginBottom: 6 }}>{salon.tagline}</p>}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                {avgRating && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <span style={{ color: '#FDE68A', fontSize: 13 }}>★</span>
+                    <span style={{ fontWeight: 700, fontSize: 13, color: '#FDE68A' }}>{avgRating}</span>
+                    <span style={{ fontSize: 11, color: 'rgba(253,230,138,.5)' }}>({reviews.length})</span>
+                  </span>
+                )}
+                {(locality || salon.city) && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 12, color: 'rgba(255,255,255,.45)' }}>
+                    <MapPin style={{ width: 12, height: 12 }} />
+                    {locality && salon.city ? `${locality}, ${salon.city}` : locality || salon.city}
+                  </span>
+                )}
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600,
+                  color: openStatus === 'open' ? '#4ADE80' : '#F87171' }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: openStatus === 'open' ? '#4ADE80' : '#F87171', flexShrink: 0 }} />
+                  {openStatus === 'open' ? `Open · ${todayHours || ''}` : opensAt ? `Opens ${opensAt}` : 'Closed'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* ════ C. STATS ROW — mobile only ════ */}
+          <div className="glw-mobile-profile" style={{ display: 'flex', margin: '12px 16px', borderRadius: 16, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(167,139,250,.12)', overflow: 'hidden' }}>
             {[
+              { val: followersCount > 0 ? (followersCount >= 1000 ? `${(followersCount/1000).toFixed(1)}k` : followersCount) : '—', label: 'FOLLOWERS' },
               { val: totalBookings >= 1000 ? `${(totalBookings/1000).toFixed(1)}k` : totalBookings > 0 ? `${totalBookings}+` : '—', label: 'CUSTOMERS' },
               { val: services.length > 0 ? services.length : '—', label: 'SERVICES' },
-              { val: avgRating ? `${avgRating}★` : '—', label: 'RATING' },
             ].map(({ val, label }, i) => (
-              <div key={label} style={{ flex: 1, padding: '14px 8px', textAlign: 'center', borderLeft: i > 0 ? '1px solid rgba(167,139,250,.15)' : 'none' }}>
-                <p style={{ fontSize: 20, fontWeight: 900, color: '#FFFFFF', lineHeight: 1.1, marginBottom: 3 }}>{val}</p>
-                <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.12em', color: 'rgba(255,255,255,.4)', textTransform: 'uppercase' }}>{label}</p>
+              <div key={label} style={{ flex: 1, padding: '12px 6px', textAlign: 'center', borderLeft: i > 0 ? '1px solid rgba(167,139,250,.15)' : 'none' }}>
+                <p style={{ fontSize: 18, fontWeight: 900, color: '#FFFFFF', lineHeight: 1.1, marginBottom: 2 }}>{val}</p>
+                <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.10em', color: 'rgba(255,255,255,.4)', textTransform: 'uppercase' }}>{label}</p>
               </div>
             ))}
           </div>
 
-          {/* ════ D. ACTION BUTTONS ════ */}
-          <div style={{ display: 'flex', gap: 10, padding: '0 16px 20px' }}>
-            <motion.button whileTap={{ scale: .96 }} onClick={handleSmartBook}
-              style={{ flex: 1, background: '#7C3AED', boxShadow: '0 8px 28px rgba(124,58,237,.45)', color: '#fff', border: 'none', borderRadius: 12, padding: '13px 8px', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-              <Zap style={{ width: 15, height: 15 }} /> Book Your Look ✨
+          {/* ════ D. ACTION BUTTONS — mobile only ════ */}
+          <div className="glw-mobile-profile" style={{ display: 'flex', gap: 10, padding: '0 16px 16px' }}>
+            <motion.button whileTap={{ scale: .96 }}
+              animate={followed ? { scale: [1, 1.1, 1] } : {}}
+              onClick={handleFollow}
+              disabled={followLoading}
+              style={{ flex: 1, background: followed ? 'rgba(124,58,237,.15)' : 'transparent', border: `1.5px solid ${followed ? '#7C3AED' : 'rgba(167,139,250,.4)'}`, color: '#A78BFA', borderRadius: 12, padding: '11px 8px', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <Heart style={{ width: 14, height: 14, fill: followed ? '#A78BFA' : 'none' }} />
+              {followed ? 'Following' : 'Follow'}
             </motion.button>
             <motion.button whileTap={{ scale: .96 }}
-              animate={followed ? { scale: [1, 1.12, 1] } : {}}
-              onClick={() => setFollowed(f => !f)}
-              style={{ flex: 1, background: followed ? 'rgba(124,58,237,.15)' : 'transparent', border: `1.5px solid ${followed ? '#7C3AED' : 'rgba(167,139,250,.4)'}`, color: '#A78BFA', borderRadius: 12, padding: '13px 8px', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-              <Heart style={{ width: 15, height: 15, fill: followed ? '#A78BFA' : 'none' }} />
-              {followed ? 'Following' : 'Follow'}
+              onClick={() => { if (navigator.share) { navigator.share({ title: salon.name, url: window.location.href }); } else { navigator.clipboard?.writeText(window.location.href); } }}
+              style={{ flex: 1, background: 'transparent', border: '1.5px solid rgba(167,139,250,.4)', color: '#A78BFA', borderRadius: 12, padding: '11px 8px', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <Share2 style={{ width: 14, height: 14 }} /> Share
             </motion.button>
           </div>
 

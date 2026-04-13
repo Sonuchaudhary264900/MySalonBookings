@@ -1323,6 +1323,46 @@ router.get("/customer/favorites",
 );
 
 /* =====================================================
+   CUSTOMER FOLLOW ROUTES
+===================================================== */
+
+// POST /customer/salons/:salonId/follow — toggle follow
+router.post("/customer/salons/:salonId/follow",
+  authenticateCustomer,
+  validateObjectId("salonId"),
+  asyncHandler(async (req, res) => {
+    const customer = await Customer.findById(req.customer._id);
+    if (!customer) return res.status(404).json({ success: false, message: "Customer not found" });
+    const salonId = req.params.salonId;
+    const isFollowing = customer.followedSalons.some(id => id.toString() === salonId);
+
+    if (isFollowing) {
+      customer.followedSalons = customer.followedSalons.filter(id => id.toString() !== salonId);
+      await customer.save();
+      await Business.findByIdAndUpdate(salonId, { $inc: { followersCount: -1 } });
+      return res.json({ success: true, following: false, message: "Unfollowed" });
+    }
+
+    customer.followedSalons.push(salonId);
+    await customer.save();
+    const updated = await Business.findByIdAndUpdate(salonId, { $inc: { followersCount: 1 } }, { new: true });
+    res.json({ success: true, following: true, followersCount: updated.followersCount, message: "Followed" });
+  })
+);
+
+// GET /customer/salons/:salonId/follow-status — check if following
+router.get("/customer/salons/:salonId/follow-status",
+  authenticateCustomer,
+  validateObjectId("salonId"),
+  asyncHandler(async (req, res) => {
+    const customer = await Customer.findById(req.customer._id).select("followedSalons");
+    if (!customer) return res.status(404).json({ success: false, message: "Customer not found" });
+    const following = customer.followedSalons.some(id => id.toString() === req.params.salonId);
+    res.json({ success: true, following });
+  })
+);
+
+/* =====================================================
    OWNER AUTH ROUTES
 ===================================================== */
 

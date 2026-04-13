@@ -164,6 +164,12 @@ const customerSchema = new mongoose.Schema(
         ref: 'Barber',
       },
     ],
+    followedSalons: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Business',
+      },
+    ],
 
     // ==========================================
     // NOTIFICATION PREFERENCES

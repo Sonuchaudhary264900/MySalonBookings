@@ -446,6 +446,10 @@ locality: { type: String, default: null }, // reverse-geocoded suburb/village fr
       type: Number,
       default: 0,
     },
+    followersCount: {
+      type: Number,
+      default: 0,
+    },
     completedBookings: {
       type: Number,
       default: 0,

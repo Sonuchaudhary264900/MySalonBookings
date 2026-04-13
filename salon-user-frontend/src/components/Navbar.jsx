@@ -412,10 +412,9 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
       </div>
     </header>
 
-    {/* ── Mobile Drawer ── */}
+    {/* ── Mobile Drawer backdrop ── */}
     {drawerOpen && (
       <div
-        onClick={() => setDrawerOpen(false)}
         style={{
           position: "fixed", inset: 0, zIndex: 200,
           background: "rgba(0,0,0,0.55)",
