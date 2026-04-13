@@ -124,11 +124,11 @@ const formatDay = (dateStr) => {
 };
 
 const CAT_THEMES = {
-  barbershop:    { p: '#6366f1', ring: 'rgba(99,102,241,0.55)' },
-  salon:         { p: '#818cf8', ring: 'rgba(129,140,248,0.55)' },
-  spa_wellness:  { p: '#8b5cf6', ring: 'rgba(139,92,246,0.55)' },
-  makeup_bridal: { p: '#a78bfa', ring: 'rgba(167,139,250,0.55)' },
-  skin_derma:    { p: '#6366f1', ring: 'rgba(99,102,241,0.55)' },
+  barbershop:    { p: '#6366f1', acc: '#818cf8', ring: 'rgba(99,102,241,0.55)' },
+  salon:         { p: '#818cf8', acc: '#a5b4fc', ring: 'rgba(129,140,248,0.55)' },
+  spa_wellness:  { p: '#8b5cf6', acc: '#a78bfa', ring: 'rgba(139,92,246,0.55)' },
+  makeup_bridal: { p: '#a78bfa', acc: '#c4b5fd', ring: 'rgba(167,139,250,0.55)' },
+  skin_derma:    { p: '#6366f1', acc: '#818cf8', ring: 'rgba(99,102,241,0.55)' },
 };
 const DEFAULT_THEME = CAT_THEMES.salon;
 
@@ -475,7 +475,7 @@ function SalonDetails() {
       <div style={{ background: 'var(--t-bg)', minHeight: '100vh' }}>
         <div style={{ height: '100vh', background: 'linear-gradient(135deg,var(--t-bg),var(--t-bg-2))' }} />
         <div style={{ maxWidth: 800, margin: '0 auto', padding: '48px 24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
-          {[1,2,3].map(i => <div key={i} style={{ height: 20, background: 'rgba(255,255,255,.06)', borderRadius: 2 }} />)}
+          {[1,2,3].map(i => <div key={i} style={{ height: 20, background: 'var(--t-b07)', borderRadius: 2 }} />)}
         </div>
       </div>
     );
@@ -486,7 +486,7 @@ function SalonDetails() {
       <div style={{ background: 'var(--t-bg)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div className="text-center">
           <Frown className="w-12 h-12 mx-auto mb-4" style={{ color: 'rgba(255,255,255,.2)' }} />
-          <p className="mb-4" style={{ color: 'rgba(255,255,255,.4)' }}>Salon not found.</p>
+          <p className="mb-4" style={{ color: 'var(--t-fg-40)' }}>Salon not found.</p>
           <button onClick={() => navigate("/")} style={{ background: '#8b5cf6', color: '#fff', padding: '12px 32px', borderRadius: 2, border: 'none', cursor: 'pointer', fontWeight: 700 }}>Go Home</button>
         </div>
       </div>
@@ -502,7 +502,7 @@ function SalonDetails() {
   const dayOrder       = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
   const theme          = CAT_THEMES[salon.businessType] || DEFAULT_THEME;
   const dm = {
-    bg:  darkMode ? '#111827' : '#f9fafb',
+    bg:  darkMode ? '#060114' : '#f9fafb',
     fg:  darkMode ? '#ffffff' : '#111827',
     fg75: darkMode ? 'rgba(255,255,255,.75)' : 'rgba(17,24,39,.82)',
     fg65: darkMode ? 'rgba(255,255,255,.65)' : 'rgba(17,24,39,.72)',
@@ -527,9 +527,11 @@ function SalonDetails() {
     b05:  darkMode ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.04)',
     b04:  darkMode ? 'rgba(255,255,255,.04)' : 'rgba(0,0,0,.04)',
     b03:  darkMode ? 'rgba(255,255,255,.03)' : 'rgba(0,0,0,.03)',
-    card:     darkMode ? '#111827' : '#ffffff',
+    card:     darkMode ? '#0D0520' : '#ffffff',
     cardBrd:  darkMode ? '#1f2937' : '#e5e7eb',
-    barBg:    darkMode ? '#1f2937' : '#f3f4f6',
+    barBg:    darkMode ? '#0D0520' : '#f3f4f6',
+    cardBg2:  darkMode ? 'rgba(255,255,255,.04)' : 'rgba(0,0,0,.03)',
+    border1:  darkMode ? 'rgba(167,139,250,.12)' : 'rgba(0,0,0,.08)',
     ownerOvr: darkMode ? 'linear-gradient(to right,transparent 35%,rgba(17,24,39,.25) 55%,rgba(17,24,39,.72) 75%,#111827 100%)' : 'linear-gradient(to right,transparent 65%,rgba(0,0,0,.12) 100%)',
     heroOvr1: 'linear-gradient(to top,rgba(0,0,0,.88) 0%,rgba(0,0,0,.55) 28%,rgba(0,0,0,.15) 52%,transparent 70%)',
     heroOvr2: 'linear-gradient(to right,rgba(0,0,0,.20) 0%,transparent 40%)',
@@ -620,7 +622,7 @@ function SalonDetails() {
         @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
         @keyframes pulse{0%,100%{opacity:.4}50%{opacity:.9}}
         .glw-shimmer{background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.09) 50%,rgba(255,255,255,.04) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:8px}
-        .glw-col{max-width:480px;margin:0 auto;position:relative;background:#0D0520;min-height:100vh}
+        .glw-col{max-width:480px;margin:0 auto;position:relative;background:var(--t-bg);min-height:100vh}
         @media(min-width:768px){
           .glw-col{max-width:935px}
           .glw-desktop-profile{display:flex;gap:40px;align-items:flex-start;padding:32px 32px 24px}
@@ -645,11 +647,11 @@ function SalonDetails() {
       `}</style>
 
       {/* ════ OUTER SHELL ════ */}
-      <div style={{ background: '#060114', minHeight: '100vh', paddingBottom: selectedServices.length > 0 ? 'calc(140px + env(safe-area-inset-bottom,0px))' : 'calc(60px + env(safe-area-inset-bottom,0px))' }}>
+      <div style={{ background: dm.bg, minHeight: '100vh', paddingBottom: selectedServices.length > 0 ? 'calc(140px + env(safe-area-inset-bottom,0px))' : 'calc(60px + env(safe-area-inset-bottom,0px))' }}>
         <div className="glw-col">
 
           {/* ════ A. BANNER ════ */}
-          <div ref={heroSectionRef} style={{ position: 'relative', height: 'clamp(180px,50vw,220px)', overflow: 'hidden', background: '#1A0528' }}>
+          <div ref={heroSectionRef} style={{ position: 'relative', height: 'clamp(180px,50vw,220px)', overflow: 'hidden', background: dm.card }}>
             {heroSlides.map((s, i) => {
               if (s.type !== 'video' || i === heroSlideIdx) return null;
               const dist = (i - heroSlideIdx + heroSlides.length) % heroSlides.length;
@@ -667,7 +669,7 @@ function SalonDetails() {
                 }
               </div>
             ) : (
-              <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 60% at 20% 40%, rgba(124,58,237,.28) 0%, transparent 55%), linear-gradient(135deg, #0D0520 0%, #1A0528 100%)' }} />
+              <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(ellipse 70% 60% at 20% 40%, ${theme.p}47 0%, transparent 55%), linear-gradient(135deg, ${dm.card} 0%, ${dm.card} 100%)` }} />
             )}
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(13,5,32,.05) 0%, rgba(13,5,32,.60) 75%, #0D0520 100%)' }} />
             {currentHeroSlide?.type === 'video' && (
@@ -682,21 +684,21 @@ function SalonDetails() {
           <div className="glw-mobile-profile" style={{ padding: '0 16px 0', marginTop: -28, position: 'relative', zIndex: 2 }}>
             {/* Avatar row: avatar left, Book button right */}
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 10 }}>
-              <div style={{ width: 72, height: 72, borderRadius: '50%', border: '3px solid #7C3AED', overflow: 'hidden', flexShrink: 0, background: '#1A0528', boxShadow: '0 4px 20px rgba(124,58,237,.4)' }}>
+              <div style={{ width: 72, height: 72, borderRadius: '50%', border: `3px solid ${theme.p}`, overflow: 'hidden', flexShrink: 0, background: dm.card, boxShadow: `0 4px 20px ${theme.p}66` }}>
                 {(salon.profilePhoto || salon.coverPhoto || salonPhotoUrls[0])
                   ? <img src={salon.profilePhoto || salon.coverPhoto || salonPhotoUrls[0]} alt={salon.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(124,58,237,.2)', fontSize: 28, fontWeight: 900, color: '#A78BFA' }}>{(salon.name||'S').charAt(0)}</div>
+                  : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(124,58,237,.2)', fontSize: 28, fontWeight: 900, color: theme.acc }}>{(salon.name||'S').charAt(0)}</div>
                 }
               </div>
               <motion.button whileTap={{ scale: .96 }} onClick={handleSmartBook}
-                style={{ background: 'linear-gradient(135deg,#7C3AED,#9D4EDD)', boxShadow: '0 6px 20px rgba(124,58,237,.45)', color: '#fff', border: 'none', borderRadius: 12, padding: '11px 16px', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                style={{ background: theme.p, boxShadow: '0 6px 20px rgba(124,58,237,.45)', color: '#fff', border: 'none', borderRadius: 12, padding: '11px 16px', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Zap style={{ width: 14, height: 14 }} /> Book Your Look ✨
               </motion.button>
             </div>
             {/* Name + badge + rating */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-              <h1 style={{ fontSize: 20, fontWeight: 900, color: '#FFFFFF', letterSpacing: '-.02em', lineHeight: 1.1 }}>{salon.name}</h1>
-              {avgRating >= 4.5 && <BadgeCheck style={{ width: 17, height: 17, color: '#7C3AED', flexShrink: 0 }} />}
+              <h1 style={{ fontSize: 20, fontWeight: 900, color: dm.fg, letterSpacing: '-.02em', lineHeight: 1.1 }}>{salon.name}</h1>
+              {avgRating >= 4.5 && <BadgeCheck style={{ width: 17, height: 17, color: theme.p, flexShrink: 0 }} />}
               {avgRating && (
                 <span style={{ display: 'flex', alignItems: 'center', gap: 3, marginLeft: 4 }}>
                   <span style={{ color: '#FDE68A', fontSize: 12 }}>★</span>
@@ -705,10 +707,10 @@ function SalonDetails() {
                 </span>
               )}
             </div>
-            {salon.tagline && <p style={{ fontSize: 12, color: '#A78BFA', marginBottom: 5 }}>{salon.tagline}</p>}
+            {salon.tagline && <p style={{ fontSize: 12, color: theme.acc, marginBottom: 5 }}>{salon.tagline}</p>}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
               {(locality || salon.city) && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: 'rgba(255,255,255,.45)' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: dm.fg45 }}>
                   <MapPin style={{ width: 11, height: 11 }} />
                   {locality && salon.city ? `${locality}, ${salon.city}` : locality || salon.city}
                 </span>
@@ -728,24 +730,24 @@ function SalonDetails() {
             <div className="glw-desktop-avatar">
               {(salon.profilePhoto || salon.coverPhoto || salonPhotoUrls[0])
                 ? <img src={salon.profilePhoto || salon.coverPhoto || salonPhotoUrls[0]} alt={salon.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(124,58,237,.2)', fontSize: 52, fontWeight: 900, color: '#A78BFA' }}>{(salon.name||'S').charAt(0)}</div>
+                : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(124,58,237,.2)', fontSize: 52, fontWeight: 900, color: theme.acc }}>{(salon.name||'S').charAt(0)}</div>
               }
             </div>
             <div className="glw-desktop-info">
               {/* Name row */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
-                <h1 style={{ fontSize: 26, fontWeight: 900, color: '#FFFFFF', letterSpacing: '-.02em', margin: 0 }}>{salon.name}</h1>
-                {avgRating >= 4.5 && <BadgeCheck style={{ width: 22, height: 22, color: '#7C3AED', flexShrink: 0 }} />}
+                <h1 style={{ fontSize: 26, fontWeight: 900, color: dm.fg, letterSpacing: '-.02em', margin: 0 }}>{salon.name}</h1>
+                {avgRating >= 4.5 && <BadgeCheck style={{ width: 22, height: 22, color: theme.p, flexShrink: 0 }} />}
                 <motion.button whileTap={{ scale: .96 }} onClick={handleSmartBook}
-                  style={{ background: 'linear-gradient(135deg,#7C3AED,#9D4EDD)', boxShadow: '0 6px 20px rgba(124,58,237,.45)', color: '#fff', border: 'none', borderRadius: 12, padding: '10px 20px', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  style={{ background: theme.p, boxShadow: '0 6px 20px rgba(124,58,237,.45)', color: '#fff', border: 'none', borderRadius: 12, padding: '10px 20px', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Zap style={{ width: 15, height: 15 }} /> Book Your Look ✨
                 </motion.button>
                 <motion.button whileTap={{ scale: .96 }}
                   animate={followed ? { scale: [1, 1.1, 1] } : {}}
                   onClick={handleFollow}
                   disabled={followLoading}
-                  style={{ background: followed ? 'rgba(124,58,237,.15)' : 'transparent', border: `1.5px solid ${followed ? '#7C3AED' : 'rgba(167,139,250,.4)'}`, color: '#A78BFA', borderRadius: 12, padding: '10px 20px', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Heart style={{ width: 15, height: 15, fill: followed ? '#A78BFA' : 'none' }} />
+                  style={{ background: followed ? 'rgba(124,58,237,.15)' : 'transparent', border: `1.5px solid ${followed ? theme.p : `${theme.p}66`}`, color: theme.acc, borderRadius: 12, padding: '10px 20px', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Heart style={{ width: 15, height: 15, fill: followed ? theme.acc : 'none' }} />
                   {followed ? 'Following' : 'Follow'}
                 </motion.button>
               </div>
@@ -757,13 +759,13 @@ function SalonDetails() {
                   { val: services.length > 0 ? services.length : '—', label: 'Services' },
                 ].map(({ val, label }) => (
                   <div key={label} style={{ textAlign: 'left' }}>
-                    <p style={{ fontSize: 18, fontWeight: 900, color: '#FFFFFF', margin: '0 0 2px' }}>{val}</p>
-                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,.45)', margin: 0 }}>{label}</p>
+                    <p style={{ fontSize: 18, fontWeight: 900, color: dm.fg, margin: '0 0 2px' }}>{val}</p>
+                    <p style={{ fontSize: 12, color: dm.fg45, margin: 0 }}>{label}</p>
                   </div>
                 ))}
               </div>
               {/* Bio + location */}
-              {salon.tagline && <p style={{ fontSize: 13, color: '#A78BFA', marginBottom: 6 }}>{salon.tagline}</p>}
+              {salon.tagline && <p style={{ fontSize: 13, color: theme.acc, marginBottom: 6 }}>{salon.tagline}</p>}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 {avgRating && (
                   <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
@@ -773,7 +775,7 @@ function SalonDetails() {
                   </span>
                 )}
                 {(locality || salon.city) && (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 12, color: 'rgba(255,255,255,.45)' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 12, color: dm.fg45 }}>
                     <MapPin style={{ width: 12, height: 12 }} />
                     {locality && salon.city ? `${locality}, ${salon.city}` : locality || salon.city}
                   </span>
@@ -793,26 +795,26 @@ function SalonDetails() {
               animate={followed ? { scale: [1, 1.1, 1] } : {}}
               onClick={handleFollow}
               disabled={followLoading}
-              style={{ flex: 1, background: followed ? 'rgba(124,58,237,.15)' : 'transparent', border: `1.5px solid ${followed ? '#7C3AED' : 'rgba(167,139,250,.4)'}`, color: '#A78BFA', borderRadius: 12, padding: '11px 8px', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-              <Heart style={{ width: 14, height: 14, fill: followed ? '#A78BFA' : 'none' }} />
+              style={{ flex: 1, background: followed ? 'rgba(124,58,237,.15)' : 'transparent', border: `1.5px solid ${followed ? theme.p : `${theme.p}66`}`, color: theme.acc, borderRadius: 12, padding: '11px 8px', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <Heart style={{ width: 14, height: 14, fill: followed ? theme.acc : 'none' }} />
               {followed ? 'Following' : 'Follow'}
             </motion.button>
             <motion.button whileTap={{ scale: .96 }}
               onClick={() => { if (navigator.share) { navigator.share({ title: salon.name, url: window.location.href }); } else { navigator.clipboard?.writeText(window.location.href); } }}
-              style={{ flex: 1, background: 'transparent', border: '1.5px solid rgba(167,139,250,.4)', color: '#A78BFA', borderRadius: 12, padding: '11px 8px', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              style={{ flex: 1, background: 'transparent', border: `1.5px solid ${theme.p}66`, color: theme.acc, borderRadius: 12, padding: '11px 8px', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               <Share2 style={{ width: 14, height: 14 }} /> Share
             </motion.button>
           </div>
 
           {/* ════ E. STICKY TAB BAR ════ */}
-          <div style={{ position: 'sticky', top: 0, zIndex: 40, background: 'rgba(13,5,32,.88)', backdropFilter: 'blur(24px)', borderBottom: '1px solid rgba(167,139,250,.10)', display: 'flex' }}>
+          <div style={{ position: 'sticky', top: 0, zIndex: 40, background: darkMode ? 'rgba(13,5,32,.88)' : 'rgba(249,250,251,.95)', backdropFilter: 'blur(24px)', borderBottom: `1px solid ${theme.p}1a`, display: 'flex' }}>
             {['services','reels','photos','reviews'].map(tab => (
               <button key={tab} className="glw-tab-btn" onClick={() => setActiveTab(tab)}
-                style={{ color: activeTab === tab ? '#A78BFA' : 'rgba(255,255,255,.38)' }}>
+                style={{ color: activeTab === tab ? theme.acc : dm.fg38 }}>
                 {tab.toUpperCase()}
                 {activeTab === tab && (
                   <motion.div layoutId="glwTabLine"
-                    style={{ position: 'absolute', bottom: 0, left: '15%', right: '15%', height: 2, background: '#7C3AED', borderRadius: 1 }} />
+                    style={{ position: 'absolute', bottom: 0, left: '15%', right: '15%', height: 2, background: theme.p, borderRadius: 1 }} />
                 )}
               </button>
             ))}
@@ -836,7 +838,7 @@ function SalonDetails() {
                         const saveAmt = offer.discountType === 'percentage' ? Math.round((offer.minAmount || 300) * offer.discountValue / 100) : offer.discountValue;
                         return (
                           <button key={offer.code} onClick={() => { setCouponInput(offer.code); openBooking(); }}
-                            style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 999, border: `1px solid ${isEligible ? '#10b981' : 'rgba(255,255,255,.12)'}`, background: isEligible ? 'rgba(16,185,129,.12)' : 'rgba(255,255,255,.05)', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: isEligible ? '#10b981' : 'rgba(255,255,255,.55)', whiteSpace: 'nowrap' }}>
+                            style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 999, border: `1px solid ${isEligible ? '#10b981' : dm.b12}`, background: isEligible ? 'rgba(16,185,129,.12)' : dm.b05, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: isEligible ? '#10b981' : dm.fg55, whiteSpace: 'nowrap' }}>
                             {isEligible ? <Check style={{ width: 11, height: 11 }} /> : <Tag style={{ width: 11, height: 11 }} />}
                             {isEligible ? `✓ Eligible! Use ${offer.code}` : `${offer.code} — save ₹${saveAmt} on ₹${offer.minAmount}+`}
                           </button>
@@ -848,15 +850,15 @@ function SalonDetails() {
                   {/* Quick Rebook */}
                   {quickRebook.length > 0 && (
                     <div style={{ margin: '0 16px 14px', padding: '12px 14px', borderRadius: 12, background: 'rgba(124,58,237,.08)', border: '1px solid rgba(124,58,237,.18)' }}>
-                      <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,.55)', marginBottom: 8 }}>Welcome back! Pick up where you left off</p>
+                      <p style={{ fontSize: 11, fontWeight: 700, color: dm.fg55, marginBottom: 8 }}>Welcome back! Pick up where you left off</p>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                         {quickRebook.map(s => (
-                          <span key={s._id} style={{ padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)', fontSize: 11, color: 'rgba(255,255,255,.55)', fontWeight: 600 }}>
+                          <span key={s._id} style={{ padding: '4px 10px', borderRadius: 999, background: dm.b07, border: `1px solid ${dm.b12}`, fontSize: 11, color: dm.fg55, fontWeight: 600 }}>
                             {s.name} ₹{s.basePrice || s.price || 0}
                           </span>
                         ))}
                         <motion.button whileTap={{ scale: .96 }} onClick={() => { setSelectedServices(quickRebook); openBooking(); }}
-                          style={{ padding: '5px 14px', borderRadius: 999, background: '#7C3AED', color: '#fff', border: 'none', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          style={{ padding: '5px 14px', borderRadius: 999, background: theme.p, color: '#fff', border: 'none', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
                           <Repeat2 style={{ width: 11, height: 11 }} /> Book Again
                         </motion.button>
                       </div>
@@ -869,16 +871,16 @@ function SalonDetails() {
                       <>
                         {[{ key: 'all', label: 'All' }, { key: 'male', label: 'Men' }, { key: 'female', label: 'Women' }].map(({ key, label }) => (
                           <button key={key} onClick={() => setServiceGenderFilter(key)}
-                            style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.10em', textTransform: 'uppercase', background: serviceGenderFilter === key ? '#7C3AED' : 'transparent', color: serviceGenderFilter === key ? '#fff' : 'rgba(255,255,255,.4)', border: `1px solid ${serviceGenderFilter === key ? '#7C3AED' : 'rgba(255,255,255,.12)'}`, padding: '7px 16px', borderRadius: 999, cursor: 'pointer' }}>
+                            style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.10em', textTransform: 'uppercase', background: serviceGenderFilter === key ? theme.p : 'transparent', color: serviceGenderFilter === key ? '#fff' : dm.fg40, border: `1px solid ${serviceGenderFilter === key ? theme.p : dm.b12}`, padding: '7px 16px', borderRadius: 999, cursor: 'pointer' }}>
                             {label}
                           </button>
                         ))}
-                        <span style={{ width: 1, height: 18, background: 'rgba(255,255,255,.12)', flexShrink: 0 }} />
+                        <span style={{ width: 1, height: 18, background: dm.b12, flexShrink: 0 }} />
                       </>
                     )}
                     <button onClick={() => setShowFavsOnly(v => !v)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 14px', borderRadius: 999, border: `1px solid ${showFavsOnly ? '#7C3AED' : 'rgba(255,255,255,.12)'}`, background: showFavsOnly ? 'rgba(124,58,237,.15)' : 'transparent', color: showFavsOnly ? '#A78BFA' : 'rgba(255,255,255,.4)', fontSize: 10, fontWeight: 700, letterSpacing: '.10em', textTransform: 'uppercase', cursor: 'pointer' }}>
-                      <Heart style={{ width: 11, height: 11, fill: showFavsOnly ? '#A78BFA' : 'none', color: showFavsOnly ? '#A78BFA' : 'rgba(255,255,255,.4)' }} />
+                      style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 14px', borderRadius: 999, border: `1px solid ${showFavsOnly ? theme.p : dm.b12}`, background: showFavsOnly ? 'rgba(124,58,237,.15)' : 'transparent', color: showFavsOnly ? theme.acc : dm.fg40, fontSize: 10, fontWeight: 700, letterSpacing: '.10em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                      <Heart style={{ width: 11, height: 11, fill: showFavsOnly ? theme.acc : 'none', color: showFavsOnly ? theme.acc : dm.fg40 }} />
                       Favourites{favServices.length > 0 ? ` (${favServices.length})` : ''}
                     </button>
                   </div>
@@ -887,7 +889,7 @@ function SalonDetails() {
                   {loading && (
                     <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
                       {[1,2,3,4].map(i => (
-                        <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '14px', borderRadius: 14, background: 'rgba(255,255,255,.03)' }}>
+                        <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '14px', borderRadius: 14, background: dm.b03 }}>
                           <div className="glw-shimmer" style={{ width: 76, height: 76, borderRadius: 12, flexShrink: 0 }} />
                           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 7 }}>
                             <div className="glw-shimmer" style={{ width: '60%', height: 14 }} />
@@ -902,7 +904,7 @@ function SalonDetails() {
 
                   {/* Services accordion */}
                   {services.length === 0 && !loading
-                    ? <p style={{ color: 'rgba(255,255,255,.3)', padding: '24px 16px' }}>No services listed yet.</p>
+                    ? <p style={{ color: dm.fg30, padding: '24px 16px' }}>No services listed yet.</p>
                     : (() => {
                         const isUnisex = salon.servedGender === 'unisex';
                         const classifySvc = (s) => {
@@ -931,7 +933,7 @@ function SalonDetails() {
                           visibleServices = visibleServices.filter(s => favServices.includes(s._id));
                           if (visibleServices.length === 0) {
                             return (
-                              <div style={{ textAlign: 'center', padding: '40px 16px', color: 'rgba(255,255,255,.3)' }}>
+                              <div style={{ textAlign: 'center', padding: '40px 16px', color: dm.fg30 }}>
                                 <Heart style={{ width: 32, height: 32, margin: '0 auto 12px', opacity: .4, display: 'block' }} />
                                 <p>Heart services you love ♥</p>
                               </div>
@@ -967,24 +969,24 @@ function SalonDetails() {
                               };
                               return (
                                 <motion.div key={cat} initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: Math.min(ci * .05, .25), duration: .45 }}
-                                  style={{ overflow: 'hidden', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
+                                  style={{ overflow: 'hidden', borderBottom: `1px solid ${dm.b07}` }}>
                                   <button onClick={toggleCat} style={{ display: 'flex', alignItems: 'stretch', gap: 14, padding: '14px 16px', background: 'none', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
                                     {/* Category image — large left */}
-                                    <div style={{ width: 90, height: 90, borderRadius: 14, flexShrink: 0, overflow: 'hidden', border: '1px solid rgba(167,139,250,.12)', background: 'rgba(124,58,237,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <div style={{ width: 90, height: 90, borderRadius: 14, flexShrink: 0, overflow: 'hidden', border: `1px solid ${dm.border1}`, background: 'rgba(124,58,237,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                       {catImg
                                         ? <img src={catImg} alt={cat} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} onError={e => { e.currentTarget.style.display = 'none'; }} />
-                                        : <CatIcon style={{ width: 32, height: 32, color: '#A78BFA', strokeWidth: 2, opacity: .6 }} />
+                                        : <CatIcon style={{ width: 32, height: 32, color: theme.acc, strokeWidth: 2, opacity: .6 }} />
                                       }
                                     </div>
                                     {/* Category info — right */}
                                     <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                                       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-                                        <p style={{ fontSize: 15, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-.01em', lineHeight: 1.3, margin: 0 }}>{cat}</p>
-                                        <span style={{ fontSize: 15, fontWeight: 800, color: '#A78BFA', whiteSpace: 'nowrap', flexShrink: 0 }}>from ₹{Math.min(...catServices.map(s => s.basePrice || s.price || 0))}+</span>
+                                        <p style={{ fontSize: 15, fontWeight: 800, color: dm.fg, letterSpacing: '-.01em', lineHeight: 1.3, margin: 0 }}>{cat}</p>
+                                        <span style={{ fontSize: 15, fontWeight: 800, color: theme.acc, whiteSpace: 'nowrap', flexShrink: 0 }}>from ₹{Math.min(...catServices.map(s => s.basePrice || s.price || 0))}+</span>
                                       </div>
-                                      <p style={{ fontSize: 12, color: 'rgba(255,255,255,.35)', fontWeight: 500, margin: '5px 0 0' }}>{catServices.length} service{catServices.length !== 1 ? 's' : ''}</p>
+                                      <p style={{ fontSize: 12, color: dm.fg35, fontWeight: 500, margin: '5px 0 0' }}>{catServices.length} service{catServices.length !== 1 ? 's' : ''}</p>
                                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginTop: 8 }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, color: '#A78BFA' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, color: theme.acc }}>
                                           {isOpen ? 'Hide' : 'View All'}
                                           {isOpen ? <ChevronUp style={{ width: 13, height: 13 }} /> : <ChevronDown style={{ width: 13, height: 13 }} />}
                                         </div>
@@ -1006,19 +1008,19 @@ function SalonDetails() {
                                           const isTopBooked = topBookingCount > 0 && s.bookingCount === topBookingCount;
                                           return (
                                             <div key={s._id}
-                                              style={{ display: 'flex', alignItems: 'stretch', gap: 14, padding: '14px 16px', borderTop: '1px solid rgba(255,255,255,.06)', cursor: 'pointer', transition: 'background .15s', background: isSel ? 'rgba(124,58,237,.08)' : 'transparent', position: 'relative' }}
+                                              style={{ display: 'flex', alignItems: 'stretch', gap: 14, padding: '14px 16px', borderTop: `1px solid ${dm.b07}`, cursor: 'pointer', transition: 'background .15s', background: isSel ? 'rgba(124,58,237,.08)' : 'transparent', position: 'relative' }}
                                               onClick={() => toggleService(s)}
-                                              onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = 'rgba(255,255,255,.04)'; }}
+                                              onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = dm.b04; }}
                                               onMouseLeave={e => { e.currentTarget.style.background = isSel ? 'rgba(124,58,237,.08)' : 'transparent'; }}>
-                                              {isSel && <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: '#7C3AED', borderRadius: '0 2px 2px 0' }} />}
+                                              {isSel && <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: theme.p, borderRadius: '0 2px 2px 0' }} />}
                                               {/* Large image — left */}
-                                              <div style={{ position: 'relative', width: 90, height: 90, borderRadius: 14, overflow: 'hidden', flexShrink: 0, background: 'rgba(124,58,237,.12)', border: '1px solid rgba(167,139,250,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                              <div style={{ position: 'relative', width: 90, height: 90, borderRadius: 14, overflow: 'hidden', flexShrink: 0, background: 'rgba(124,58,237,.12)', border: `1px solid ${dm.border1}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                 {svcImgSrc
                                                   ? <img src={svcImgSrc} alt={s.name} loading={svcIdx < 4 ? 'eager' : 'lazy'}
                                                       style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0, transition: 'opacity .2s' }}
                                                       onLoad={e => { e.currentTarget.style.opacity = '1'; }}
                                                       onError={e => { e.currentTarget.parentNode.style.background = 'rgba(124,58,237,.08)'; e.currentTarget.style.display = 'none'; }} />
-                                                  : <CatIcon style={{ width: 32, height: 32, color: '#A78BFA', opacity: .45 }} />
+                                                  : <CatIcon style={{ width: 32, height: 32, color: theme.acc, opacity: .45 }} />
                                                 }
                                                 <button style={{ position: 'absolute', top: 5, right: 5, zIndex: 2, width: 22, height: 22, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.5)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                                   onClick={e => { e.stopPropagation(); toggleFav(s._id)(e); }}>
@@ -1029,16 +1031,16 @@ function SalonDetails() {
                                               <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                                                 {/* Name + price row */}
                                                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-                                                  <p style={{ fontSize: 15, fontWeight: 700, color: '#FFFFFF', lineHeight: 1.3, margin: 0 }}>{s.name}</p>
-                                                  <span style={{ fontSize: 15, fontWeight: 800, color: '#A78BFA', whiteSpace: 'nowrap', flexShrink: 0 }}>₹{price}+</span>
+                                                  <p style={{ fontSize: 15, fontWeight: 700, color: dm.fg, lineHeight: 1.3, margin: 0 }}>{s.name}</p>
+                                                  <span style={{ fontSize: 15, fontWeight: 800, color: theme.acc, whiteSpace: 'nowrap', flexShrink: 0 }}>₹{price}+</span>
                                                 </div>
                                                 {/* Badges */}
                                                 {(isRec || badge || isFast || isTopBooked) && (
                                                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 5 }}>
-                                                    {isRec && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: 'rgba(124,58,237,.25)', color: '#A78BFA', textTransform: 'uppercase', letterSpacing: '.04em' }}>⭐ Recommended</span>}
+                                                    {isRec && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: 'rgba(124,58,237,.25)', color: theme.acc, textTransform: 'uppercase', letterSpacing: '.04em' }}>⭐ Recommended</span>}
                                                     {badge && !isRec && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, textTransform: 'uppercase', letterSpacing: '.04em',
                                                       background: badge === 'Popular' ? 'rgba(124,58,237,.25)' : badge === 'Best Value' ? 'rgba(5,150,105,.2)' : 'rgba(8,145,178,.2)',
-                                                      color: badge === 'Popular' ? '#A78BFA' : badge === 'Best Value' ? '#34d399' : '#38bdf8' }}>
+                                                      color: badge === 'Popular' ? theme.acc : badge === 'Best Value' ? '#34d399' : '#38bdf8' }}>
                                                       {badge === 'Popular' ? 'Popular Service' : badge === 'Best Value' ? 'Best Value' : badge === 'Premium' ? 'Premium' : 'Quick'}
                                                     </span>}
                                                     {isFast && !badge && !isRec && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: 'rgba(6,182,212,.12)', color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '.04em' }}>⚡ Quick</span>}
@@ -1049,18 +1051,18 @@ function SalonDetails() {
                                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
                                                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                                                     {s.duration > 0 && (
-                                                      <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'rgba(255,255,255,.4)' }}>
+                                                      <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: dm.fg40 }}>
                                                         <Clock style={{ width: 12, height: 12 }} />
                                                         {s.duration >= 60 ? `${(s.duration / 60).toFixed(1).replace('.0', '')} hrs` : `${s.duration} min`}
                                                       </span>
                                                     )}
                                                     {s.applicableFor?.length === 1 && (
-                                                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,.3)' }}>{s.applicableFor[0] === 'male' ? '♂ Men' : '♀ Women'}</span>
+                                                      <span style={{ fontSize: 11, color: dm.fg30 }}>{s.applicableFor[0] === 'male' ? '♂ Men' : '♀ Women'}</span>
                                                     )}
                                                   </div>
                                                   <motion.button whileTap={{ scale: .88 }}
                                                     onClick={e => { e.stopPropagation(); toggleService(s); }}
-                                                    style={{ background: isSel ? 'rgba(124,58,237,.15)' : 'transparent', border: `1.5px solid ${isSel ? '#7C3AED' : '#7C3AED'}`, borderRadius: 8, cursor: 'pointer', fontSize: 11, fontWeight: 800, color: isSel ? '#4ADE80' : '#A78BFA', letterSpacing: '.04em', padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                    style={{ background: isSel ? 'rgba(124,58,237,.15)' : 'transparent', border: `1.5px solid ${isSel ? theme.p : theme.p}`, borderRadius: 8, cursor: 'pointer', fontSize: 11, fontWeight: 800, color: isSel ? '#4ADE80' : theme.acc, letterSpacing: '.04em', padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 4 }}>
                                                     {isSel ? <><Check style={{ width: 11, height: 11 }} /> ADDED</> : '+ ADD'}
                                                   </motion.button>
                                                 </div>
@@ -1082,26 +1084,26 @@ function SalonDetails() {
                   {/* Packages */}
                   {packages.length > 0 && (
                     <div style={{ padding: '20px 16px 0' }}>
-                      <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: '#A78BFA', marginBottom: 12 }}>Packages &amp; Memberships</p>
+                      <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: theme.acc, marginBottom: 12 }}>Packages &amp; Memberships</p>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                         {packages.map((pkg) => (
-                          <div key={pkg._id} style={{ borderRadius: 14, padding: '16px', background: 'rgba(255,255,255,.04)', border: '1px solid rgba(167,139,250,.10)' }}>
+                          <div key={pkg._id} style={{ borderRadius: 14, padding: '16px', background: dm.b04, border: `1px solid ${theme.p}1a` }}>
                             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
                               <span style={{ fontSize: 26 }}>{pkg.icon || (pkg.type === 'package' ? '🎁' : '💳')}</span>
                               <div style={{ flex: 1 }}>
-                                {pkg.tag && <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: '#A78BFA', marginBottom: 2 }}>{pkg.tag === 'popular' ? 'Most Popular' : pkg.tag === 'recommended' ? 'Recommended' : 'Best Value'}</p>}
-                                <p style={{ fontSize: 15, fontWeight: 800, color: '#FFFFFF' }}>{pkg.name}</p>
-                                {pkg.description && <p style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginTop: 3, lineHeight: 1.5 }}>{pkg.description}</p>}
+                                {pkg.tag && <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: theme.acc, marginBottom: 2 }}>{pkg.tag === 'popular' ? 'Most Popular' : pkg.tag === 'recommended' ? 'Recommended' : 'Best Value'}</p>}
+                                <p style={{ fontSize: 15, fontWeight: 800, color: dm.fg }}>{pkg.name}</p>
+                                {pkg.description && <p style={{ fontSize: 12, color: dm.fg40, marginTop: 3, lineHeight: 1.5 }}>{pkg.description}</p>}
                               </div>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                               <div>
-                                <p style={{ fontSize: 22, fontWeight: 900, color: '#FFFFFF', letterSpacing: '-.03em' }}>₹{pkg.discountedPrice || pkg.price}</p>
-                                {pkg.type === 'membership' && <p style={{ fontSize: 11, color: 'rgba(255,255,255,.32)', marginTop: 1 }}>/{pkg.billingCycle === 'monthly' ? 'month' : pkg.billingCycle === 'quarterly' ? 'quarter' : 'year'}</p>}
+                                <p style={{ fontSize: 22, fontWeight: 900, color: dm.fg, letterSpacing: '-.03em' }}>₹{pkg.discountedPrice || pkg.price}</p>
+                                {pkg.type === 'membership' && <p style={{ fontSize: 11, color: dm.fg32, marginTop: 1 }}>/{pkg.billingCycle === 'monthly' ? 'month' : pkg.billingCycle === 'quarterly' ? 'quarter' : 'year'}</p>}
                               </div>
                               <motion.button whileTap={{ scale: .96 }}
                                 onClick={() => { if (!isCustomer()) { navigate('/login'); return; } setPkgReqModal(pkg); setPkgNote(''); }}
-                                style={{ background: '#7C3AED', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 20px', fontSize: 12, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px rgba(124,58,237,.4)' }}>
+                                style={{ background: theme.p, color: '#fff', border: 'none', borderRadius: 10, padding: '9px 20px', fontSize: 12, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px rgba(124,58,237,.4)' }}>
                                 {pkg.type === 'package' ? 'Buy Now' : 'Subscribe'}
                               </motion.button>
                             </div>
@@ -1117,7 +1119,7 @@ function SalonDetails() {
               {activeTab === 'reels' && (
                 <div style={{ padding: '4px 0' }}>
                   {salonVideoUrls.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '60px 24px', color: 'rgba(255,255,255,.3)' }}>
+                    <div style={{ textAlign: 'center', padding: '60px 24px', color: dm.fg30 }}>
                       <div style={{ fontSize: 40, marginBottom: 12 }}>🎬</div>
                       <p style={{ fontWeight: 600 }}>No reels yet</p>
                     </div>
@@ -1147,7 +1149,7 @@ function SalonDetails() {
               {activeTab === 'photos' && (
                 <div style={{ padding: '4px 0' }}>
                   {salonPhotoUrls.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '60px 24px', color: 'rgba(255,255,255,.3)' }}>
+                    <div style={{ textAlign: 'center', padding: '60px 24px', color: dm.fg30 }}>
                       <div style={{ fontSize: 40, marginBottom: 12 }}>📷</div>
                       <p style={{ fontWeight: 600 }}>No photos yet</p>
                     </div>
@@ -1175,55 +1177,55 @@ function SalonDetails() {
                 return (
                   <div style={{ padding: '20px 16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <h3 style={{ fontSize: 18, fontWeight: 900, color: '#FFFFFF', letterSpacing: '-.01em' }}>Reflections of Glow</h3>
+                      <h3 style={{ fontSize: 18, fontWeight: 900, color: dm.fg, letterSpacing: '-.01em' }}>Reflections of Glow</h3>
                       <button onClick={() => navigate(`${salonPath(salon)}/reviews`)}
-                        style={{ fontSize: 12, fontWeight: 700, color: '#A78BFA', background: 'rgba(124,58,237,.12)', border: '1px solid rgba(124,58,237,.3)', borderRadius: 999, padding: '6px 14px', cursor: 'pointer' }}>
+                        style={{ fontSize: 12, fontWeight: 700, color: theme.acc, background: 'rgba(124,58,237,.12)', border: '1px solid rgba(124,58,237,.3)', borderRadius: 999, padding: '6px 14px', cursor: 'pointer' }}>
                         Write Review
                       </button>
                     </div>
-                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,.35)', marginBottom: 20 }}>Our community's experience with {salon.name}.</p>
+                    <p style={{ fontSize: 12, color: dm.fg35, marginBottom: 20 }}>Our community's experience with {salon.name}.</p>
                     {reviews.length === 0 ? (
-                      <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,.3)' }}>
+                      <div style={{ textAlign: 'center', padding: '40px 0', color: dm.fg30 }}>
                         <div style={{ fontSize: 36, marginBottom: 8 }}>💬</div>
                         <p>No reviews yet. Be the first!</p>
                       </div>
                     ) : (
                       <>
-                        <div style={{ borderRadius: 16, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(167,139,250,.12)', padding: '20px', marginBottom: 20 }}>
+                        <div style={{ borderRadius: 16, background: dm.b04, border: `1px solid ${dm.border1}`, padding: '20px', marginBottom: 20 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 20 }}>
                             <div style={{ textAlign: 'center', flexShrink: 0 }}>
-                              <p style={{ fontSize: 48, fontWeight: 900, color: '#FFFFFF', lineHeight: 1, letterSpacing: '-.04em' }}>{avgRating || '—'}</p>
+                              <p style={{ fontSize: 48, fontWeight: 900, color: dm.fg, lineHeight: 1, letterSpacing: '-.04em' }}>{avgRating || '—'}</p>
                               <div style={{ display: 'flex', gap: 2, justifyContent: 'center', margin: '4px 0' }}>
-                                {[1,2,3,4,5].map(s => <span key={s} style={{ fontSize: 14, color: s <= Math.round(Number(avgRating || 0)) ? '#FDE68A' : 'rgba(255,255,255,.15)' }}>★</span>)}
+                                {[1,2,3,4,5].map(s => <span key={s} style={{ fontSize: 14, color: s <= Math.round(Number(avgRating || 0)) ? '#FDE68A' : dm.fg25 }}>★</span>)}
                               </div>
-                              <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,.35)', marginTop: 2 }}>BASED ON {reviews.length}</p>
+                              <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: dm.fg35, marginTop: 2 }}>BASED ON {reviews.length}</p>
                             </div>
                             <div style={{ flex: 1 }}>
                               {[5,4,3,2,1].map(star => {
                                 const pct = reviews.length > 0 ? Math.round((starCounts[star] || 0) / reviews.length * 100) : 0;
                                 return (
                                   <div key={star} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
-                                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', fontWeight: 600, width: 10, textAlign: 'right' }}>{star}</span>
+                                    <span style={{ fontSize: 10, color: dm.fg35, fontWeight: 600, width: 10, textAlign: 'right' }}>{star}</span>
                                     <span style={{ fontSize: 10, color: '#FDE68A' }}>★</span>
                                     <div className="glw-star-bar-track">
                                       <motion.div className="glw-star-bar-fill" initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: .8, delay: (5-star)*.08 }} />
                                     </div>
-                                    <span style={{ fontSize: 9, color: 'rgba(255,255,255,.35)', fontWeight: 600, width: 26, textAlign: 'right' }}>{pct}%</span>
+                                    <span style={{ fontSize: 9, color: dm.fg35, fontWeight: 600, width: 26, textAlign: 'right' }}>{pct}%</span>
                                   </div>
                                 );
                               })}
                             </div>
                           </div>
-                          <div style={{ borderTop: '1px solid rgba(255,255,255,.07)', paddingTop: 14, textAlign: 'center' }}>
-                            <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,.35)', marginBottom: 4 }}>RECOMMENDATION RATE</p>
-                            <p style={{ fontSize: 36, fontWeight: 900, color: '#FFFFFF', letterSpacing: '-.03em' }}>{recommendRate}%</p>
-                            <p style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', marginTop: 3 }}>of clients would recommend to a friend.</p>
+                          <div style={{ borderTop: `1px solid ${dm.b07}`, paddingTop: 14, textAlign: 'center' }}>
+                            <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: dm.fg35, marginBottom: 4 }}>RECOMMENDATION RATE</p>
+                            <p style={{ fontSize: 36, fontWeight: 900, color: dm.fg, letterSpacing: '-.03em' }}>{recommendRate}%</p>
+                            <p style={{ fontSize: 11, color: dm.fg35, marginTop: 3 }}>of clients would recommend to a friend.</p>
                           </div>
                         </div>
                         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
                           {[{ key: 'all', label: 'All Reviews' }, { key: 'with_photos', label: 'With Photos' }].map(({ key, label }) => (
                             <button key={key} onClick={() => setReviewFilter(key)}
-                              style={{ padding: '7px 16px', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${reviewFilter === key ? '#7C3AED' : 'rgba(255,255,255,.12)'}`, background: reviewFilter === key ? '#7C3AED' : 'transparent', color: reviewFilter === key ? '#fff' : 'rgba(255,255,255,.5)' }}>
+                              style={{ padding: '7px 16px', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${reviewFilter === key ? theme.p : dm.b12}`, background: reviewFilter === key ? theme.p : 'transparent', color: reviewFilter === key ? '#fff' : dm.fg50 }}>
                               {label}
                             </button>
                           ))}
@@ -1233,23 +1235,23 @@ function SalonDetails() {
                             const starRating = Math.round(r.salonRating || r.rating || 5);
                             const name = r.customerId?.name || r.customerName || 'Guest';
                             return (
-                              <div key={r._id} style={{ borderRadius: 14, padding: '16px', background: 'rgba(255,255,255,.04)', border: '1px solid rgba(167,139,250,.10)' }}>
+                              <div key={r._id} style={{ borderRadius: 14, padding: '16px', background: dm.b04, border: `1px solid ${theme.p}1a` }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                                   <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, background: avatarColors[i % avatarColors.length], display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#fff', fontSize: 14 }}>
                                     {name.charAt(0).toUpperCase()}
                                   </div>
                                   <div style={{ flex: 1, minWidth: 0 }}>
-                                    <p style={{ fontSize: 13, fontWeight: 700, color: '#FFFFFF' }}>{name}</p>
-                                    <p style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>
+                                    <p style={{ fontSize: 13, fontWeight: 700, color: dm.fg }}>{name}</p>
+                                    <p style={{ fontSize: 10, color: dm.fg30 }}>
                                       {r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : ''}
                                       {r.serviceId?.name && ` · ${r.serviceId.name}`}
                                     </p>
                                   </div>
                                   <div style={{ display: 'flex', gap: 1 }}>
-                                    {[1,2,3,4,5].map(s => <span key={s} style={{ fontSize: 12, color: s <= starRating ? '#FDE68A' : 'rgba(255,255,255,.15)' }}>★</span>)}
+                                    {[1,2,3,4,5].map(s => <span key={s} style={{ fontSize: 12, color: s <= starRating ? '#FDE68A' : dm.fg25 }}>★</span>)}
                                   </div>
                                 </div>
-                                {r.comment && <p style={{ fontSize: 13, color: 'rgba(255,255,255,.65)', lineHeight: 1.6, display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>&ldquo;{r.comment}&rdquo;</p>}
+                                {r.comment && <p style={{ fontSize: 13, color: dm.fg65, lineHeight: 1.6, display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>&ldquo;{r.comment}&rdquo;</p>}
                                 {r.photos?.length > 0 && (
                                   <div style={{ display: 'flex', gap: 6, marginTop: 10, overflowX: 'auto' }}>
                                     {r.photos.map((p, pi) => (
@@ -1394,8 +1396,8 @@ function SalonDetails() {
               <>
                 <div className="rounded-t-3xl pt-3 pb-4 px-5 relative overflow-hidden shrink-0"
                   style={{ background: `linear-gradient(135deg,${theme.p}dd,${theme.p}aa)`, boxShadow: `0 4px 24px ${theme.p}40` }}>
-                  <div style={{ position:'absolute',top:-50,right:-30,width:150,height:150,borderRadius:'50%',background:'rgba(255,255,255,.07)',pointerEvents:'none' }} />
-                  <div style={{ position:'absolute',top:-15,right:70,width:90,height:90,borderRadius:'50%',background:'rgba(255,255,255,.04)',pointerEvents:'none' }} />
+                  <div style={{ position:'absolute',top:-50,right:-30,width:150,height:150,borderRadius:'50%',background:dm.b07,pointerEvents:'none' }} />
+                  <div style={{ position:'absolute',top:-15,right:70,width:90,height:90,borderRadius:'50%',background:dm.b04,pointerEvents:'none' }} />
                   <div className="w-10 h-1 rounded-full bg-white/30 mx-auto mb-4" />
                   <div className="flex items-center justify-between">
                     <div>
@@ -1404,12 +1406,12 @@ function SalonDetails() {
                         {salon.name}{selectedServices.length > 0 && ` · ${selectedServices.map(s => s.name).join(', ')}`}
                       </p>
                     </div>
-                    <button onClick={() => setShowBooking(false)} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,.15)' }}>
+                    <button onClick={() => setShowBooking(false)} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: dm.fg25 }}>
                       <X className="w-5 h-5 text-white" />
                     </button>
                   </div>
                   {selectedServices.length > 0 && (
-                    <div className="mt-3 flex items-center gap-3 px-3 py-2 rounded-xl" style={{ background: 'rgba(255,255,255,.12)' }}>
+                    <div className="mt-3 flex items-center gap-3 px-3 py-2 rounded-xl" style={{ background: dm.b12 }}>
                       <Scissors className="w-4 h-4 text-white/70 shrink-0" />
                       <span className="text-xs text-white/80 font-semibold flex-1 truncate">{totalDuration} min · ₹{totalPrice}</span>
                     </div>
