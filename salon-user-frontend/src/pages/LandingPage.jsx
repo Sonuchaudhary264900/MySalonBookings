@@ -225,7 +225,7 @@ export default function LandingPage({
                   padding: "13px clamp(20px,6vw,36px)",
                   borderRadius: 16,
                   background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
-                  color: "#fff", fontWeight: 700, fontSize: "clamp(13px,3.5vw,15px)",
+                  color: "#fff", fontWeight: 700, fontSize: "clamp(0.8125rem,3.5vw,0.9375rem)",
                   border: "none", cursor: "pointer",
                   boxShadow: "0 0 32px rgba(99,102,241,0.45), 0 4px 16px rgba(0,0,0,0.12)",
                   minHeight: 50, width: "100%", maxWidth: "min(90%,480px)",
@@ -547,14 +547,14 @@ export default function LandingPage({
               <Link
                 to="/register"
                 className="lp-btn-p"
-                style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "14px clamp(20px,5vw,34px)", borderRadius: 16, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff", boxShadow: "0 0 52px rgba(99,102,241,0.45)", fontSize: "clamp(13px,3.5vw,15px)", fontWeight: 700, textDecoration: "none", minHeight: 50 }}
+                style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "14px clamp(20px,5vw,34px)", borderRadius: 16, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff", boxShadow: "0 0 52px rgba(99,102,241,0.45)", fontSize: "clamp(0.8125rem,3.5vw,0.9375rem)", fontWeight: 700, textDecoration: "none", minHeight: 50 }}
               >
                 <Zap size={16} /> Create Free Account
               </Link>
               <Link
                 to="/login"
                 className="lp-btn-s"
-                style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "14px clamp(20px,5vw,34px)", borderRadius: 16, background: "var(--t-card)", border: "1px solid var(--t-border)", color: "var(--t-text-2)", fontSize: "clamp(13px,3.5vw,15px)", fontWeight: 600, textDecoration: "none", minHeight: 50 }}
+                style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "14px clamp(20px,5vw,34px)", borderRadius: 16, background: "var(--t-card)", border: "1px solid var(--t-border)", color: "var(--t-text-2)", fontSize: "clamp(0.8125rem,3.5vw,0.9375rem)", fontWeight: 600, textDecoration: "none", minHeight: 50 }}
               >
                 Sign In <ArrowRight size={15} />
               </Link>

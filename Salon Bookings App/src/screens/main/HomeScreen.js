@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef, memo, useMemo } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
+  View, StyleSheet, FlatList, TouchableOpacity,
   TextInput, ActivityIndicator, Image, RefreshControl,
-  ScrollView, Alert, Animated, Linking,
+  ScrollView, Alert, Animated, Linking
 } from 'react-native';
+import AppText from '../../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
@@ -29,7 +30,7 @@ const CATEGORY_KEYS = [
 const CATEGORY_ALIASES = {
   'Hair Services':        ['Hair Services', 'Hair Services (Men)', 'Hair Services (Women)'],
   'Skin & Face / Beauty': ['Skin & Face / Beauty', 'Skin & Face (Men Grooming)', 'Skin & Beauty'],
-  'Spa & Massage':        ['Spa & Massage', 'Spa & Relaxation'],
+  'Spa & Massage':        ['Spa & Massage', 'Spa & Relaxation']
 };
 
 const MALE_ONLY_CHIPS   = ['Beard & Grooming', 'Body Grooming'];
@@ -197,23 +198,23 @@ const SalonCard = memo(function SalonCard({ salon, onPress, distance, isFavorite
         <View style={styles.topLeftBadges}>
           {category.toLowerCase() !== 'salon' && (
             <View style={styles.categoryBadge}>
-              <Text style={styles.categoryBadgeText}>{category}</Text>
+              <AppText style={styles.categoryBadgeText}>{category}</AppText>
             </View>
           )}
           {salon.isApproved && (
             <View style={styles.verifiedImgBadge}>
               <Ionicons name="checkmark-circle" size={10} color="#fff" />
-              <Text style={styles.verifiedImgText}>Verified</Text>
+              <AppText style={styles.verifiedImgText}>Verified</AppText>
             </View>
           )}
           {isTopRated && (
             <View style={styles.topRatedBadge}>
-              <Text style={styles.topRatedText}>🏆 Top Rated</Text>
+              <AppText style={styles.topRatedText}>🏆 Top Rated</AppText>
             </View>
           )}
           {isTrending && (
             <View style={styles.trendingBadge}>
-              <Text style={styles.trendingText}>🔥 Trending</Text>
+              <AppText style={styles.trendingText}>🔥 Trending</AppText>
             </View>
           )}
         </View>
@@ -239,9 +240,9 @@ const SalonCard = memo(function SalonCard({ salon, onPress, distance, isFavorite
             {openStatus !== null && (
               <View style={[styles.openPillImg, { backgroundColor: openStatus ? 'rgba(16,185,129,0.92)' : 'rgba(239,68,68,0.92)' }]}>
                 <View style={styles.openDotImg} />
-                <Text style={styles.openPillImgText}>
+                <AppText style={styles.openPillImgText}>
                   {openStatus ? 'Open Now' : opensAt ? `Opens ${opensAt}` : 'Closed'}
-                </Text>
+                </AppText>
               </View>
             )}
           </View>
@@ -249,15 +250,15 @@ const SalonCard = memo(function SalonCard({ salon, onPress, distance, isFavorite
             {rating > 0 && (
               <View style={styles.ratingPillImg}>
                 <Ionicons name="star" size={11} color="#f59e0b" />
-                <Text style={styles.ratingPillText}>{rating.toFixed(1)}</Text>
-                {reviewCount > 0 && <Text style={styles.reviewCountText}>({reviewCount})</Text>}
+                <AppText style={styles.ratingPillText}>{rating.toFixed(1)}</AppText>
+                {reviewCount > 0 && <AppText style={styles.reviewCountText}>({reviewCount})</AppText>}
               </View>
             )}
             {distance != null && (
               <View style={styles.distancePillImg}>
-                <Text style={styles.distancePillText}>
+                <AppText style={styles.distancePillText}>
                   📍 {distance < 1 ? `${Math.round(distance * 1000)} m` : `${distance.toFixed(1)} km`}
-                </Text>
+                </AppText>
               </View>
             )}
           </View>
@@ -267,7 +268,7 @@ const SalonCard = memo(function SalonCard({ salon, onPress, distance, isFavorite
       {/* ── Info ── */}
       <View style={styles.cardBody}>
         {/* Salon name */}
-        <Text style={styles.cardName} numberOfLines={1}>{salon.name}</Text>
+        <AppText style={styles.cardName} numberOfLines={1}>{salon.name}</AppText>
 
         {/* Stars + rating + review count */}
         <View style={[styles.cardRow, { marginBottom: 6 }]}>
@@ -283,26 +284,26 @@ const SalonCard = memo(function SalonCard({ salon, onPress, distance, isFavorite
               color={rating > 0 && i <= Math.ceil(rating) ? '#f59e0b' : theme.border}
             />
           ))}
-          <Text style={styles.cardRatingValue}>{rating > 0 ? rating.toFixed(1) : '—'}</Text>
-          <Text style={styles.cardReviewCount}>
+          <AppText style={styles.cardRatingValue}>{rating > 0 ? rating.toFixed(1) : '—'}</AppText>
+          <AppText style={styles.cardReviewCount}>
             {reviewCount > 0
               ? `(${reviewCount.toLocaleString()} ${reviewCount === 1 ? 'review' : 'reviews'})`
               : 'No reviews yet'}
-          </Text>
+          </AppText>
         </View>
 
         {/* Address + Hours */}
         <View style={[styles.cardRowSpread, { marginBottom: 6 }]}>
           <View style={[styles.cardRow, { flex: 1, marginRight: 8 }]}>
             <Ionicons name="location-outline" size={13} color={theme.subText} />
-            <Text style={styles.cardAddress} numberOfLines={1}>
+            <AppText style={styles.cardAddress} numberOfLines={1}>
               {salon.address || [salon.city, salon.state].filter(Boolean).join(', ') || 'Address not available'}
-            </Text>
+            </AppText>
           </View>
           {todayHours && (
             <View style={styles.cardRow}>
               <Ionicons name="time-outline" size={12} color={theme.subText} />
-              <Text style={styles.cardHours}>{todayHours}</Text>
+              <AppText style={styles.cardHours}>{todayHours}</AppText>
             </View>
           )}
         </View>
@@ -310,7 +311,7 @@ const SalonCard = memo(function SalonCard({ salon, onPress, distance, isFavorite
         {/* Next available slot */}
         {nextSlot && (
           <View style={styles.nextSlotRow}>
-            <Text style={styles.nextSlotText}>⏱ Next slot: {nextSlot}</Text>
+            <AppText style={styles.nextSlotText}>⏱ Next slot: {nextSlot}</AppText>
           </View>
         )}
 
@@ -319,15 +320,15 @@ const SalonCard = memo(function SalonCard({ salon, onPress, distance, isFavorite
           <View style={[styles.cardRowSpread, { marginBottom: 10 }]}>
             {totalBookings >= 10 ? (
               <View style={styles.popularityPill}>
-                <Text style={styles.popularityText}>
+                <AppText style={styles.popularityText}>
                   🔥 {totalBookings >= 1000 ? `${(totalBookings / 1000).toFixed(1)}k` : `${totalBookings}+`} booked
-                </Text>
+                </AppText>
               </View>
             ) : <View />}
             {salon.minPrice && (
-              <Text style={{ fontSize: 12, fontWeight: '700', color: theme.accent }}>
+              <AppText style={{ fontSize: 12, fontWeight: '700', color: theme.accent }}>
                 from ₹{salon.minPrice}
-              </Text>
+              </AppText>
             )}
           </View>
         )}
@@ -335,17 +336,17 @@ const SalonCard = memo(function SalonCard({ salon, onPress, distance, isFavorite
         {/* Offer / promo tag */}
         {offerLabel && (
           <View style={styles.offerRow}>
-            <Text style={{ fontSize: 13 }}>🏷️</Text>
-            <Text style={styles.offerLabel} numberOfLines={1}>{offerLabel}</Text>
+            <AppText style={{ fontSize: 13 }}>🏷️</AppText>
+            <AppText style={styles.offerLabel} numberOfLines={1}>{offerLabel}</AppText>
             <View style={styles.offerCodeBadge}>
-              <Text style={styles.offerCodeText}>{salon.topOffer.code}</Text>
+              <AppText style={styles.offerCodeText}>{salon.topOffer.code}</AppText>
             </View>
           </View>
         )}
 
         {/* Book Now CTA */}
         <View style={styles.bookBtn}>
-          <Text style={styles.bookBtnText}>Book Now</Text>
+          <AppText style={styles.bookBtnText}>Book Now</AppText>
           <Ionicons name="arrow-forward" size={15} color="#fff" />
         </View>
       </View>
@@ -646,21 +647,21 @@ export default function HomeScreen({ navigation }) {
         <View style={{
           width: 96, height: 96, borderRadius: 48,
           backgroundColor: 'rgba(99,102,241,0.12)',
-          alignItems: 'center', justifyContent: 'center', marginBottom: 24,
+          alignItems: 'center', justifyContent: 'center', marginBottom: 24
         }}>
           <Ionicons name="location-outline" size={48} color={theme.accent} />
         </View>
-        <Text style={{ fontSize: 22, fontWeight: '800', color: theme.text, textAlign: 'center', marginBottom: 10 }}>
+        <AppText style={{ fontSize: 22, fontWeight: '800', color: theme.text, textAlign: 'center', marginBottom: 10 }}>
           Location Required
-        </Text>
-        <Text style={{ fontSize: 14, color: theme.subText, textAlign: 'center', lineHeight: 22, marginBottom: 32 }}>
+        </AppText>
+        <AppText style={{ fontSize: 14, color: theme.subText, textAlign: 'center', lineHeight: 22, marginBottom: 32 }}>
           We need your location to show nearby salons. Please allow location access to continue.
-        </Text>
+        </AppText>
         <TouchableOpacity
           style={{
             backgroundColor: theme.accent, paddingVertical: 14, paddingHorizontal: 36,
             borderRadius: 14, flexDirection: 'row', alignItems: 'center', gap: 8,
-            shadowColor: theme.accent, shadowOpacity: 0.4, shadowRadius: 12, elevation: 4,
+            shadowColor: theme.accent, shadowOpacity: 0.4, shadowRadius: 12, elevation: 4
           }}
           onPress={async () => {
             const { status } = await Location.requestForegroundPermissionsAsync();
@@ -677,12 +678,12 @@ export default function HomeScreen({ navigation }) {
           }}
         >
           <Ionicons name="location" size={18} color="#fff" />
-          <Text style={{ fontSize: 15, fontWeight: '700', color: '#fff' }}>Allow Location</Text>
+          <AppText style={{ fontSize: 15, fontWeight: '700', color: '#fff' }}>Allow Location</AppText>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => Linking.openSettings()} style={{ marginTop: 16 }}>
-          <Text style={{ fontSize: 13, color: theme.subText, textDecorationLine: 'underline' }}>
+          <AppText style={{ fontSize: 13, color: theme.subText, textDecorationLine: 'underline' }}>
             Open Settings
-          </Text>
+          </AppText>
         </TouchableOpacity>
       </View>
     );
@@ -695,14 +696,14 @@ export default function HomeScreen({ navigation }) {
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerTop}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.headerTitle}>
+            <AppText style={styles.headerTitle}>
               {getGreeting()},{' '}
-              <Text style={{ color: theme.accent }}>{user?.name || user?.firstName || 'there'}</Text>
+              <AppText style={{ color: theme.accent }}>{user?.name || user?.firstName || 'there'}</AppText>
               {' '}👋
-            </Text>
-            <Text style={styles.headerSub}>
+            </AppText>
+            <AppText style={styles.headerSub}>
               {locDenied ? t('homeSubLocDenied') : 'Where would you like to book today?'}
-            </Text>
+            </AppText>
           </View>
           {/* Theme toggle */}
           <TouchableOpacity
@@ -722,7 +723,7 @@ export default function HomeScreen({ navigation }) {
               <Ionicons name="notifications-outline" size={20} color={theme.subText} />
               {unreadCount > 0 && (
                 <View style={styles.notifBadge}>
-                  <Text style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                  <AppText style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</AppText>
                 </View>
               )}
             </TouchableOpacity>
@@ -788,8 +789,8 @@ export default function HomeScreen({ navigation }) {
                       onPress={() => handleCategory(c.key)}
                       activeOpacity={0.75}
                     >
-                      <Text style={{ fontSize: 14 }}>{c.emoji}</Text>
-                      <Text style={[styles.chipText, active && styles.chipTextActive]}>{c.label}</Text>
+                      <AppText style={{ fontSize: 14 }}>{c.emoji}</AppText>
+                      <AppText style={[styles.chipText, active && styles.chipTextActive]}>{c.label}</AppText>
                     </TouchableOpacity>
                   );
                 })}
@@ -811,19 +812,19 @@ export default function HomeScreen({ navigation }) {
                     paddingHorizontal: 12, paddingVertical: 7,
                     borderRadius: 20, borderWidth: 1.5,
                     backgroundColor: openNow ? 'rgba(16,185,129,0.12)' : styles.chip.backgroundColor,
-                    borderColor: openNow ? '#10b981' : styles.chip.borderColor,
+                    borderColor: openNow ? '#10b981' : styles.chip.borderColor
                   }}
                   activeOpacity={0.75}
                 >
                   <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: openNow ? '#10b981' : styles.chipText.color }} />
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: openNow ? '#10b981' : styles.chipText.color }}>Open Now</Text>
+                  <AppText style={{ fontSize: 12, fontWeight: '600', color: openNow ? '#10b981' : styles.chipText.color }}>Open Now</AppText>
                 </TouchableOpacity>
                 {(openNow || selectedCats.length > 0) && (
                   <TouchableOpacity
                     onPress={() => { setOpenNow(false); setSelectedCats([]); setSalons(applyFilters(allSalons, [], genderFilter, false)); }}
                     style={{ paddingHorizontal: 10, paddingVertical: 7 }}
                   >
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: theme.accent }}>✕ Clear</Text>
+                    <AppText style={{ fontSize: 12, fontWeight: '600', color: theme.accent }}>✕ Clear</AppText>
                   </TouchableOpacity>
                 )}
               </ScrollView>
@@ -841,10 +842,10 @@ export default function HomeScreen({ navigation }) {
                     onPress={() => navigation.getParent()?.navigate('BookingsTab')}
                     style={styles.navShortcut}
                   >
-                    <Text style={styles.navShortcutText}>📅 My Bookings</Text>
+                    <AppText style={styles.navShortcutText}>📅 My Bookings</AppText>
                     {upcomingCount > 0 && (
                       <View style={styles.navBadge}>
-                        <Text style={styles.navBadgeText}>{upcomingCount}</Text>
+                        <AppText style={styles.navBadgeText}>{upcomingCount}</AppText>
                       </View>
                     )}
                   </TouchableOpacity>
@@ -852,7 +853,7 @@ export default function HomeScreen({ navigation }) {
                     onPress={() => navigation.getParent()?.navigate('FavoritesTab')}
                     style={styles.navShortcut}
                   >
-                    <Text style={styles.navShortcutText}>❤️ Saved Salons</Text>
+                    <AppText style={styles.navShortcutText}>❤️ Saved Salons</AppText>
                   </TouchableOpacity>
                 </ScrollView>
               )}
@@ -862,17 +863,17 @@ export default function HomeScreen({ navigation }) {
               {!loading && (
                 <View style={{ paddingHorizontal: 16, marginBottom: 4 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-                    <Text style={{ fontSize: 15, fontWeight: '800', color: theme.text }}>{sectionTitle}</Text>
+                    <AppText style={{ fontSize: 15, fontWeight: '800', color: theme.text }}>{sectionTitle}</AppText>
                     {isSearchActive && (
                       <TouchableOpacity onPress={() => handleSearch('')}>
-                        <Text style={{ fontSize: 13, color: theme.accent, fontWeight: '600' }}>← Show All</Text>
+                        <AppText style={{ fontSize: 13, color: theme.accent, fontWeight: '600' }}>← Show All</AppText>
                       </TouchableOpacity>
                     )}
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <Text style={styles.resultsCount}>
+                    <AppText style={styles.resultsCount}>
                       {salons.length} salon{salons.length !== 1 ? 's' : ''} {isSearchActive ? 'found' : 'nearby'}
-                    </Text>
+                    </AppText>
                     {!isSearchActive && userCoords && (
                       <View style={{ flexDirection: 'row', gap: 4 }}>
                         {SORT_KEYS.map(s => (
@@ -883,12 +884,12 @@ export default function HomeScreen({ navigation }) {
                               paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10,
                               backgroundColor: sort === s.key ? '#4f46e5' : 'transparent',
                               borderWidth: 1,
-                              borderColor: sort === s.key ? '#4f46e5' : theme.border,
+                              borderColor: sort === s.key ? '#4f46e5' : theme.border
                             }}
                           >
-                            <Text style={{ fontSize: 11, fontWeight: '600', color: sort === s.key ? '#fff' : theme.subText }}>
+                            <AppText style={{ fontSize: 11, fontWeight: '600', color: sort === s.key ? '#fff' : theme.subText }}>
                               {s.key === 'nearby' ? '📍' : s.key === 'booked' ? '🔥' : '⭐'} {t(s.labelKey)}
-                            </Text>
+                            </AppText>
                           </TouchableOpacity>
                         ))}
                       </View>
@@ -901,10 +902,10 @@ export default function HomeScreen({ navigation }) {
           ListEmptyComponent={!loading ? (
             <View style={styles.emptyBox}>
               <Ionicons name="search-outline" size={48} color="#d1d5db" />
-              <Text style={styles.emptyTitle}>No salons found</Text>
-              <Text style={styles.emptyText}>
+              <AppText style={styles.emptyTitle}>No salons found</AppText>
+              <AppText style={styles.emptyText}>
                 {searchText ? 'Try a different search term' : 'No salons available in your area yet'}
-              </Text>
+              </AppText>
             </View>
           ) : null}
         />
@@ -1004,5 +1005,5 @@ const getStyles = (t) => StyleSheet.create({
   navShortcut: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: t.card, borderWidth: 1, borderColor: t.border },
   navShortcutText: { fontSize: 12, fontWeight: '600', color: t.text },
   navBadge: { minWidth: 16, height: 16, borderRadius: 8, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
-  navBadgeText: { fontSize: 9, fontWeight: '800', color: '#fff' },
+  navBadgeText: { fontSize: 9, fontWeight: '800', color: '#fff' }
 });

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Switch, Alert, ActivityIndicator, TextInput, Share, Clipboard, Linking,
+  View, StyleSheet, ScrollView, TouchableOpacity,
+  Switch, Alert, ActivityIndicator, TextInput, Share, Clipboard, Linking
 } from 'react-native';
+import AppText from '../../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -20,7 +21,7 @@ const DEFAULT_NOTIF = {
   bookingReminders: true,
   confirmationAlerts: true,
   cancellationAlerts: true,
-  promotionalOffers: false,
+  promotionalOffers: false
 };
 
 const LANGUAGES = LANGUAGE_OPTIONS.map(o => o.name);
@@ -30,7 +31,7 @@ const DATE_FORMATS = ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'];
 function SectionHeader({ title }) {
   const { theme } = useTheme();
   const styles = getStyles(theme);
-  return <Text style={styles.sectionHeader}>{title}</Text>;
+  return <AppText style={styles.sectionHeader}>{title}</AppText>;
 }
 
 function SettingRow({ icon, iconColor = '#6b7280', label, sublabel, rightEl, onPress, chevron = false }) {
@@ -42,8 +43,8 @@ function SettingRow({ icon, iconColor = '#6b7280', label, sublabel, rightEl, onP
         <Ionicons name={icon} size={18} color={iconColor} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={styles.rowLabel}>{label}</Text>
-        {sublabel ? <Text style={styles.rowSublabel}>{sublabel}</Text> : null}
+        <AppText style={styles.rowLabel}>{label}</AppText>
+        {sublabel ? <AppText style={styles.rowSublabel}>{sublabel}</AppText> : null}
       </View>
       {rightEl}
       {chevron && <Ionicons name="chevron-forward" size={16} color={theme.subText} style={{ marginLeft: 4 }} />}
@@ -184,7 +185,7 @@ export default function SettingsScreen({ navigation }) {
       [
         ...options.map(opt => ({
           text: opt === current ? `${opt} ✓` : opt,
-          onPress: () => onSelect(opt),
+          onPress: () => onSelect(opt)
         })),
         { text: 'Cancel', style: 'cancel' },
       ],
@@ -206,7 +207,7 @@ export default function SettingsScreen({ navigation }) {
           `❤️ Use my referral code and support me too\n\n` +
           `💸 Referral Code: ${referralCode}\n` +
           `🔗 https://owner.mysalonbookings.com`,
-        title: 'Join MySalonBookings',
+        title: 'Join MySalonBookings'
       });
     } catch {}
   };
@@ -242,7 +243,7 @@ export default function SettingsScreen({ navigation }) {
             } finally {
               setDeletingAccount(false);
             }
-          },
+          }
         },
       ],
     );
@@ -254,8 +255,8 @@ export default function SettingsScreen({ navigation }) {
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.headerTitle}>Settings</Text>
-            <Text style={styles.headerSub}>Manage your preferences</Text>
+            <AppText style={styles.headerTitle}>Settings</AppText>
+            <AppText style={styles.headerSub}>Manage your preferences</AppText>
           </View>
           <View style={{ flexDirection: 'row', gap: 4 }}>
             <TouchableOpacity
@@ -266,7 +267,7 @@ export default function SettingsScreen({ navigation }) {
               <Ionicons name="notifications-outline" size={20} color={theme.subText} />
               {unreadCount > 0 && (
                 <View style={styles.notifBadge}>
-                  <Text style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                  <AppText style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</AppText>
                 </View>
               )}
             </TouchableOpacity>
@@ -282,8 +283,8 @@ export default function SettingsScreen({ navigation }) {
             <Ionicons name="person-circle-outline" size={38} color="#fff" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.profileName}>{user?.name || 'Guest User'}</Text>
-            <Text style={styles.profileSub}>{user?.phone || 'Tap to sign in'}</Text>
+            <AppText style={styles.profileName}>{user?.name || 'Guest User'}</AppText>
+            <AppText style={styles.profileSub}>{user?.phone || 'Tap to sign in'}</AppText>
           </View>
           <View style={styles.profileChevronBox}>
             <Ionicons name="chevron-forward" size={18} color="#2563eb" />
@@ -300,8 +301,8 @@ export default function SettingsScreen({ navigation }) {
                 <Ionicons name="card-outline" size={18} color="#7c3aed" />
               </View>
               <View>
-                <Text style={styles.accordionHeaderTitle}>Account Info</Text>
-                <Text style={[styles.rowSublabel, { marginTop: 1 }]}>ID, membership and account type</Text>
+                <AppText style={styles.accordionHeaderTitle}>Account Info</AppText>
+                <AppText style={[styles.rowSublabel, { marginTop: 1 }]}>ID, membership and account type</AppText>
               </View>
             </View>
             <Ionicons name={expandedSection === 'account' ? 'chevron-up' : 'chevron-down'} size={18} color={theme.subText} />
@@ -321,8 +322,8 @@ export default function SettingsScreen({ navigation }) {
                       <Ionicons name={row.icon} size={18} color={row.color} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.rowSublabel}>{row.label}</Text>
-                      <Text style={[styles.rowLabel, row.mono && { fontFamily: 'monospace', letterSpacing: 1 }]}>{row.value}</Text>
+                      <AppText style={styles.rowSublabel}>{row.label}</AppText>
+                      <AppText style={[styles.rowLabel, row.mono && { fontFamily: 'monospace', letterSpacing: 1 }]}>{row.value}</AppText>
                     </View>
                   </View>
                   {i < arr.length - 1 && <Divider />}
@@ -341,7 +342,7 @@ export default function SettingsScreen({ navigation }) {
               <View style={[styles.iconBox, { backgroundColor: '#f59e0b18' }]}>
                 <Ionicons name="notifications-outline" size={18} color="#f59e0b" />
               </View>
-              <Text style={styles.accordionHeaderTitle}>Notifications</Text>
+              <AppText style={styles.accordionHeaderTitle}>Notifications</AppText>
             </View>
             <Ionicons name={expandedSection === 'notifications' ? 'chevron-up' : 'chevron-down'} size={18} color={theme.subText} />
           </TouchableOpacity>
@@ -370,17 +371,17 @@ export default function SettingsScreen({ navigation }) {
               <View style={[styles.iconBox, { backgroundColor: '#2563eb18' }]}>
                 <Ionicons name="color-palette-outline" size={18} color="#2563eb" />
               </View>
-              <Text style={styles.accordionHeaderTitle}>{t('appPreferences')}</Text>
+              <AppText style={styles.accordionHeaderTitle}>{t('appPreferences')}</AppText>
             </View>
             <Ionicons name={expandedSection === 'preferences' ? 'chevron-up' : 'chevron-down'} size={18} color={theme.subText} />
           </TouchableOpacity>
           {expandedSection === 'preferences' && (
             <View style={styles.accordionBody}>
-              <SettingRow icon="language-outline" iconColor="#2563eb" label={t('language')} rightEl={<Text style={styles.valueText}>{languageName}</Text>} onPress={() => showPicker('Select Language', LANGUAGES, languageName, async val => { await setLanguageByName(val); })} chevron />
+              <SettingRow icon="language-outline" iconColor="#2563eb" label={t('language')} rightEl={<AppText style={styles.valueText}>{languageName}</AppText>} onPress={() => showPicker('Select Language', LANGUAGES, languageName, async val => { await setLanguageByName(val); })} chevron />
               <Divider />
-              <SettingRow icon="time-outline" iconColor="#0891b2" label={t('timeFormat')} rightEl={<Text style={styles.valueText}>{timeFormat}</Text>} onPress={() => showPicker('Select Time Format', TIME_FORMATS, timeFormat, async val => { setTimeFormat(val); await saveAppPref('timeFormat', val); })} chevron />
+              <SettingRow icon="time-outline" iconColor="#0891b2" label={t('timeFormat')} rightEl={<AppText style={styles.valueText}>{timeFormat}</AppText>} onPress={() => showPicker('Select Time Format', TIME_FORMATS, timeFormat, async val => { setTimeFormat(val); await saveAppPref('timeFormat', val); })} chevron />
               <Divider />
-              <SettingRow icon="calendar-outline" iconColor="#059669" label={t('dateFormat')} rightEl={<Text style={styles.valueText}>{dateFormat}</Text>} onPress={() => showPicker('Select Date Format', DATE_FORMATS, dateFormat, async val => { setDateFormat(val); await saveAppPref('dateFormat', val); })} chevron />
+              <SettingRow icon="calendar-outline" iconColor="#059669" label={t('dateFormat')} rightEl={<AppText style={styles.valueText}>{dateFormat}</AppText>} onPress={() => showPicker('Select Date Format', DATE_FORMATS, dateFormat, async val => { setDateFormat(val); await saveAppPref('dateFormat', val); })} chevron />
             </View>
           )}
         </View>
@@ -394,7 +395,7 @@ export default function SettingsScreen({ navigation }) {
               <View style={[styles.iconBox, { backgroundColor: '#6366f118' }]}>
                 <Ionicons name="lock-closed-outline" size={18} color="#6366f1" />
               </View>
-              <Text style={styles.accordionHeaderTitle}>Change Password</Text>
+              <AppText style={styles.accordionHeaderTitle}>Change Password</AppText>
             </View>
             <Ionicons name={expandedSection === 'password' ? 'chevron-up' : 'chevron-down'} size={18} color={theme.subText} />
           </TouchableOpacity>
@@ -402,14 +403,14 @@ export default function SettingsScreen({ navigation }) {
             <View style={[styles.accordionBody, { padding: 14, gap: 10 }]}>
               {cpStep === 1 ? (
                 <>
-                  <Text style={styles.rowSublabel}>An OTP will be sent to your registered phone number</Text>
+                  <AppText style={styles.rowSublabel}>An OTP will be sent to your registered phone number</AppText>
                   <TouchableOpacity style={[styles.cpBtn, cpLoading && { opacity: 0.7 }]} onPress={handleCpSendOtp} disabled={cpLoading}>
-                    {cpLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.cpBtnText}>Send OTP to Phone</Text>}
+                    {cpLoading ? <ActivityIndicator color="#fff" size="small" /> : <AppText style={styles.cpBtnText}>Send OTP to Phone</AppText>}
                   </TouchableOpacity>
                 </>
               ) : (
                 <>
-                  <Text style={styles.rowSublabel}>OTP sent to {user?.phone}</Text>
+                  <AppText style={styles.rowSublabel}>OTP sent to {user?.phone}</AppText>
                   <View style={styles.cpInputRow}>
                     <Ionicons name="key-outline" size={16} color={theme.subText} style={{ marginRight: 8 }} />
                     <TextInput style={styles.cpInput} placeholder="Enter OTP" placeholderTextColor={theme.placeholder} keyboardType="number-pad" maxLength={6} value={cpOtp} onChangeText={setCpOtp} editable={!cpLoading} />
@@ -426,10 +427,10 @@ export default function SettingsScreen({ navigation }) {
                     <TextInput style={styles.cpInput} placeholder="Confirm password" placeholderTextColor={theme.placeholder} secureTextEntry value={cpConfirm} onChangeText={setCpConfirm} editable={!cpLoading} />
                   </View>
                   <TouchableOpacity style={[styles.cpBtn, cpLoading && { opacity: 0.7 }]} onPress={handleCpReset} disabled={cpLoading}>
-                    {cpLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.cpBtnText}>Reset Password</Text>}
+                    {cpLoading ? <ActivityIndicator color="#fff" size="small" /> : <AppText style={styles.cpBtnText}>Reset Password</AppText>}
                   </TouchableOpacity>
                   <TouchableOpacity style={{ alignItems: 'center', opacity: cpTimer > 0 ? 0.5 : 1 }} onPress={cpTimer === 0 ? handleCpSendOtp : undefined} disabled={cpTimer > 0}>
-                    <Text style={{ fontSize: 13, color: theme.accent }}>{cpTimer > 0 ? `Resend OTP in ${cpTimer}s` : 'Resend OTP'}</Text>
+                    <AppText style={{ fontSize: 13, color: theme.accent }}>{cpTimer > 0 ? `Resend OTP in ${cpTimer}s` : 'Resend OTP'}</AppText>
                   </TouchableOpacity>
                 </>
               )}
@@ -443,7 +444,7 @@ export default function SettingsScreen({ navigation }) {
               <View style={[styles.iconBox, { backgroundColor: '#10b98118' }]}>
                 <Ionicons name="shield-checkmark-outline" size={18} color="#10b981" />
               </View>
-              <Text style={styles.accordionHeaderTitle}>{t('privacySecurity')}</Text>
+              <AppText style={styles.accordionHeaderTitle}>{t('privacySecurity')}</AppText>
             </View>
             <Ionicons name={expandedSection === 'privacy' ? 'chevron-up' : 'chevron-down'} size={18} color={theme.subText} />
           </TouchableOpacity>
@@ -451,12 +452,12 @@ export default function SettingsScreen({ navigation }) {
             <View style={styles.accordionBody}>
               <View style={styles.privacyInfo}>
                 <Ionicons name="shield-checkmark-outline" size={22} color="#10b981" />
-                <Text style={styles.privacyText}>Your data is stored securely and never shared with third parties without your consent.</Text>
+                <AppText style={styles.privacyText}>Your data is stored securely and never shared with third parties without your consent.</AppText>
               </View>
               <Divider />
               <View style={styles.privacyInfo}>
                 <Ionicons name="lock-closed-outline" size={22} color="#6366f1" />
-                <Text style={styles.privacyText}>All communication with our servers is encrypted using HTTPS.</Text>
+                <AppText style={styles.privacyText}>All communication with our servers is encrypted using HTTPS.</AppText>
               </View>
               <Divider />
               <SettingRow icon="shield-checkmark-outline" iconColor="#6b7280" label="Privacy Policy" sublabel="How we collect and use your data" onPress={() => navigation.navigate('Legal')} chevron />
@@ -478,8 +479,8 @@ export default function SettingsScreen({ navigation }) {
                 <Ionicons name="gift-outline" size={18} color="#f59e0b" />
               </View>
               <View>
-                <Text style={styles.accordionHeaderTitle}>Refer & Earn</Text>
-                <Text style={[styles.rowSublabel, { marginTop: 1 }]}>Earn ₹50 per referral</Text>
+                <AppText style={styles.accordionHeaderTitle}>Refer & Earn</AppText>
+                <AppText style={[styles.rowSublabel, { marginTop: 1 }]}>Earn ₹50 per referral</AppText>
               </View>
             </View>
             <Ionicons name={expandedSection === 'refer' ? 'chevron-up' : 'chevron-down'} size={18} color={theme.subText} />
@@ -487,14 +488,14 @@ export default function SettingsScreen({ navigation }) {
           {expandedSection === 'refer' && (
             <View style={[styles.accordionBody, { padding: 16, gap: 14 }]}>
               <View style={styles.referBanner}>
-                <Text style={styles.referBannerEmoji}>🎁</Text>
+                <AppText style={styles.referBannerEmoji}>🎁</AppText>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.referBannerTitle}>Earn ₹50 for every salon you refer!</Text>
-                  <Text style={styles.referBannerSub}>Invite salon owners to join MySalonBookings and earn rewards when they get started.</Text>
+                  <AppText style={styles.referBannerTitle}>Earn ₹50 for every salon you refer!</AppText>
+                  <AppText style={styles.referBannerSub}>Invite salon owners to join MySalonBookings and earn rewards when they get started.</AppText>
                 </View>
               </View>
               <View style={{ gap: 8 }}>
-                <Text style={[styles.rowLabel, { fontSize: 13 }]}>How it works</Text>
+                <AppText style={[styles.rowLabel, { fontSize: 13 }]}>How it works</AppText>
                 {[
                   { icon: 'share-social-outline', color: '#2563eb', step: '1', text: 'Share your referral code with a salon owner' },
                   { icon: 'storefront-outline',   color: '#10b981', step: '2', text: 'They sign up on the MySalonBookings owner app' },
@@ -502,29 +503,29 @@ export default function SettingsScreen({ navigation }) {
                 ].map(item => (
                   <View key={item.step} style={styles.referStep}>
                     <View style={[styles.referStepNum, { backgroundColor: item.color + '18' }]}>
-                      <Text style={[styles.referStepNumText, { color: item.color }]}>{item.step}</Text>
+                      <AppText style={[styles.referStepNumText, { color: item.color }]}>{item.step}</AppText>
                     </View>
                     <Ionicons name={item.icon} size={16} color={item.color} />
-                    <Text style={styles.referStepText}>{item.text}</Text>
+                    <AppText style={styles.referStepText}>{item.text}</AppText>
                   </View>
                 ))}
               </View>
               <TouchableOpacity onPress={() => Alert.alert('Terms & Conditions', '• The referred salon owner must register using your referral code.\n\n• The salon owner must actively use the MySalonBookings owner app for a minimum of 30 consecutive days.\n\n• ₹50 will be credited to your account once the 30-day qualifying period is complete.\n\n• Each referral code can be used once per salon.\n\n• MySalonBookings reserves the right to modify or cancel the referral program at any time.')}>
-                <Text style={styles.referTermsLink}>View Terms & Conditions</Text>
+                <AppText style={styles.referTermsLink}>View Terms & Conditions</AppText>
               </TouchableOpacity>
               <View style={styles.referCodeBox}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.referCodeLabel}>Your Referral Code</Text>
-                  <Text style={styles.referCode}>{referralCode}</Text>
+                  <AppText style={styles.referCodeLabel}>Your Referral Code</AppText>
+                  <AppText style={styles.referCode}>{referralCode}</AppText>
                 </View>
                 <TouchableOpacity style={styles.referCopyBtn} onPress={handleCopyCode}>
                   <Ionicons name="copy-outline" size={16} color={theme.accent} />
-                  <Text style={styles.referCopyText}>Copy</Text>
+                  <AppText style={styles.referCopyText}>Copy</AppText>
                 </TouchableOpacity>
               </View>
               <TouchableOpacity style={styles.referShareBtn} onPress={handleShare}>
                 <Ionicons name="share-social-outline" size={18} color="#fff" />
-                <Text style={styles.referShareBtnText}>Share & Invite Salon Owners</Text>
+                <AppText style={styles.referShareBtnText}>Share & Invite Salon Owners</AppText>
               </TouchableOpacity>
             </View>
           )}
@@ -534,9 +535,9 @@ export default function SettingsScreen({ navigation }) {
         <SectionHeader title="About" />
 
         <Card>
-          <SettingRow icon="code-slash-outline" iconColor="#2563eb" label="App Version" rightEl={<Text style={styles.valueText}>v1.0.0</Text>} />
+          <SettingRow icon="code-slash-outline" iconColor="#2563eb" label="App Version" rightEl={<AppText style={styles.valueText}>v1.0.0</AppText>} />
           <Divider />
-          <SettingRow icon="globe-outline" iconColor="#059669" label="Website" rightEl={<Text style={styles.valueText}>mysalonbookings.com</Text>} onPress={() => Linking.openURL('https://mysalonbookings.com')} chevron />
+          <SettingRow icon="globe-outline" iconColor="#059669" label="Website" rightEl={<AppText style={styles.valueText}>mysalonbookings.com</AppText>} onPress={() => Linking.openURL('https://mysalonbookings.com')} chevron />
           <Divider />
           <SettingRow icon="shield-checkmark-outline" iconColor="#7c3aed" label="Legal & Privacy" sublabel="Privacy Policy · Terms & Conditions" onPress={() => navigation.navigate('Legal')} chevron />
         </Card>
@@ -544,7 +545,7 @@ export default function SettingsScreen({ navigation }) {
         {/* ── SIGN OUT ─────────────────────────────────────── */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.85}>
           <Ionicons name="log-out-outline" size={20} color="#ef4444" />
-          <Text style={styles.logoutBtnText}>Sign Out</Text>
+          <AppText style={styles.logoutBtnText}>Sign Out</AppText>
         </TouchableOpacity>
 
         <View style={{ height: 32 }} />
@@ -606,5 +607,5 @@ const getStyles = (t) => StyleSheet.create({
   referCopyText: { fontSize: 13, fontWeight: '700', color: t.accent },
   referShareBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: t.accent, borderRadius: 12, height: 46 },
   referShareBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
-  referTermsLink: { fontSize: 12, color: t.subText, textAlign: 'center', textDecorationLine: 'underline' },
+  referTermsLink: { fontSize: 12, color: t.subText, textAlign: 'center', textDecorationLine: 'underline' }
 });

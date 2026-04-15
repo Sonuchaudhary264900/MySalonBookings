@@ -1,7 +1,8 @@
 import React from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity, Alert,
+  View, StyleSheet, FlatList, TouchableOpacity, Alert
 } from 'react-native';
+import AppText from '../../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNotifications } from '../../context/NotificationContext';
@@ -11,7 +12,7 @@ const TYPE_CONFIG = {
   booking: { icon: 'calendar-outline',            bg: '#dbeafe', color: '#2563eb' },
   success: { icon: 'checkmark-circle-outline',    bg: '#dcfce7', color: '#16a34a' },
   warning: { icon: 'warning-outline',             bg: '#fef9c3', color: '#ca8a04' },
-  info:    { icon: 'information-circle-outline',  bg: '#dbeafe', color: '#2563eb' },
+  info:    { icon: 'information-circle-outline',  bg: '#dbeafe', color: '#2563eb' }
 };
 
 function timeAgo(isoStr) {
@@ -52,9 +53,9 @@ export default function NotificationsScreen({ navigation }) {
           <Ionicons name={cfg.icon} size={22} color={cfg.color} />
         </View>
         <View style={styles.content}>
-          <Text style={[styles.title, !item.read && { fontWeight: '700' }]}>{item.title}</Text>
-          <Text style={styles.message} numberOfLines={2}>{item.message}</Text>
-          <Text style={styles.time}>{timeAgo(item.createdAt)}</Text>
+          <AppText style={[styles.title, !item.read && { fontWeight: '700' }]}>{item.title}</AppText>
+          <AppText style={styles.message} numberOfLines={2}>{item.message}</AppText>
+          <AppText style={styles.time}>{timeAgo(item.createdAt)}</AppText>
         </View>
         <TouchableOpacity onPress={() => remove(item.id)} style={styles.deleteBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Ionicons name="close" size={16} color="#9ca3af" />
@@ -76,14 +77,14 @@ export default function NotificationsScreen({ navigation }) {
             <Ionicons name="arrow-back" size={20} color={theme.subText} />
           </TouchableOpacity>
           <View style={{ flex: 1, marginLeft: 10 }}>
-            <Text style={styles.headerTitle}>Notifications</Text>
-            {unreadCount > 0 && <Text style={styles.headerSub}>{unreadCount} unread</Text>}
+            <AppText style={styles.headerTitle}>Notifications</AppText>
+            {unreadCount > 0 && <AppText style={styles.headerSub}>{unreadCount} unread</AppText>}
           </View>
           <View style={styles.headerActions}>
             {unreadCount > 0 && (
               <TouchableOpacity style={styles.headerBtn} onPress={markAllRead}>
                 <Ionicons name="checkmark-done-outline" size={16} color={theme.subText} />
-                <Text style={styles.headerBtnText}>Mark all read</Text>
+                <AppText style={styles.headerBtnText}>Mark all read</AppText>
               </TouchableOpacity>
             )}
             {notifications.length > 0 && (
@@ -110,10 +111,10 @@ export default function NotificationsScreen({ navigation }) {
             <View style={styles.emptyIcon}>
               <Ionicons name="notifications-outline" size={48} color="#2563eb" />
             </View>
-            <Text style={styles.emptyTitle}>All caught up!</Text>
-            <Text style={styles.emptyText}>
+            <AppText style={styles.emptyTitle}>All caught up!</AppText>
+            <AppText style={styles.emptyText}>
               No notifications yet. Booking updates and reminders will appear here.
-            </Text>
+            </AppText>
           </View>
         }
       />
@@ -144,5 +145,5 @@ const getStyles = (t) => StyleSheet.create({
   empty: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 32 },
   emptyIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#dbeafe', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: t.text, marginBottom: 8 },
-  emptyText: { fontSize: 14, color: t.subText, textAlign: 'center', lineHeight: 20 },
+  emptyText: { fontSize: 14, color: t.subText, textAlign: 'center', lineHeight: 20 }
 });

@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet, Linking,
-  ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image, Dimensions,
+  View, TextInput, TouchableOpacity, StyleSheet, Linking,
+  ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image, Dimensions
 } from 'react-native';
+import AppText from '../../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import auth from '@react-native-firebase/auth';
 import { showError, showSuccess } from '../../utils/toast';
@@ -71,7 +72,7 @@ export default function RegisterScreen({ navigation }) {
       const res = await api.post('/customer/auth/firebase-register', {
         firebaseToken: firebaseTokenRef.current,
         name: finalName,
-        password: randomPass,
+        password: randomPass
       });
       if (!res.data.success) throw new Error(res.data.message || 'Registration failed');
       const { token, refreshToken } = res.data.data || {};
@@ -96,8 +97,8 @@ export default function RegisterScreen({ navigation }) {
         {/* Header */}
         <View style={styles.header}>
           <Image source={require('../../../assets/Icon-1024.png')} style={styles.logoImg} resizeMode="contain" />
-          <Text style={styles.appName}>My Salon Bookings</Text>
-          <Text style={styles.subtitle}>Create your account in seconds</Text>
+          <AppText style={styles.appName}>My Salon Bookings</AppText>
+          <AppText style={styles.subtitle}>Create your account in seconds</AppText>
         </View>
 
         <View style={styles.card}>
@@ -105,11 +106,11 @@ export default function RegisterScreen({ navigation }) {
           {/* ── STEP 1 — Phone ── */}
           {step === 1 && (
             <>
-              <Text style={styles.cardTitle}>Create Account</Text>
-              <Text style={styles.cardSubtitle}>Enter your phone number to get started</Text>
+              <AppText style={styles.cardTitle}>Create Account</AppText>
+              <AppText style={styles.cardSubtitle}>Enter your phone number to get started</AppText>
 
               <View style={styles.field}>
-                <Text style={styles.labelPrimary}>Phone Number</Text>
+                <AppText style={styles.labelPrimary}>Phone Number</AppText>
                 <View style={styles.inputRow}>
                   <Ionicons name="call-outline" size={18} color="#6b7280" style={styles.inputIcon} />
                   <TextInput
@@ -134,28 +135,28 @@ export default function RegisterScreen({ navigation }) {
               >
                 {loading
                   ? <ActivityIndicator color="#fff" />
-                  : <Text style={styles.btnText}>Continue</Text>}
+                  : <AppText style={styles.btnText}>Continue</AppText>}
               </TouchableOpacity>
 
-              <Text style={styles.termsText}>
+              <AppText style={styles.termsText}>
                 By continuing, you agree to our{' '}
-                <Text style={styles.termsLink} onPress={() => Linking.openURL('https://mysalonbookings.com/legal/customer-terms')}>Terms</Text>
+                <AppText style={styles.termsLink} onPress={() => Linking.openURL('https://mysalonbookings.com/legal/customer-terms')}>Terms</AppText>
                 {' '}&amp;{' '}
-                <Text style={styles.termsLink} onPress={() => Linking.openURL('https://mysalonbookings.com/legal/customer-privacy')}>Privacy Policy</Text>
-              </Text>
+                <AppText style={styles.termsLink} onPress={() => Linking.openURL('https://mysalonbookings.com/legal/customer-privacy')}>Privacy Policy</AppText>
+              </AppText>
 
-              <Text style={styles.trustSignal}>Takes less than 10 seconds · No password required</Text>
+              <AppText style={styles.trustSignal}>Takes less than 10 seconds · No password required</AppText>
             </>
           )}
 
           {/* ── STEP 2 — OTP ── */}
           {step === 2 && (
             <>
-              <Text style={styles.cardTitle}>Verify Phone</Text>
-              <Text style={styles.cardSubtitle}>Enter the 6-digit code sent to {normalizePhone(phone)}</Text>
+              <AppText style={styles.cardTitle}>Verify Phone</AppText>
+              <AppText style={styles.cardSubtitle}>Enter the 6-digit code sent to {normalizePhone(phone)}</AppText>
 
               <View style={styles.field}>
-                <Text style={styles.label}>OTP Code</Text>
+                <AppText style={styles.label}>OTP Code</AppText>
                 <View style={styles.inputRow}>
                   <Ionicons name="key-outline" size={18} color="#6b7280" style={styles.inputIcon} />
                   <TextInput
@@ -180,14 +181,14 @@ export default function RegisterScreen({ navigation }) {
               >
                 {loading
                   ? <ActivityIndicator color="#fff" />
-                  : <><Ionicons name="checkmark-circle-outline" size={18} color="#fff" /><Text style={styles.btnText}>Verify &amp; Continue</Text></>}
+                  : <><Ionicons name="checkmark-circle-outline" size={18} color="#fff" /><AppText style={styles.btnText}>Verify &amp; Continue</AppText></>}
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={() => { setStep(1); setOtp(''); confirmationRef.current = null; }}
                 style={{ marginTop: 12, alignItems: 'center' }}
               >
-                <Text style={styles.backLink}>← Change phone number</Text>
+                <AppText style={styles.backLink}>← Change phone number</AppText>
               </TouchableOpacity>
             </>
           )}
@@ -195,11 +196,11 @@ export default function RegisterScreen({ navigation }) {
           {/* ── STEP 3 — Name ── */}
           {step === 3 && (
             <>
-              <Text style={[styles.cardTitle, { textAlign: 'center', fontSize: 20 }]}>What should we call you?</Text>
-              <Text style={[styles.cardSubtitle, { textAlign: 'center' }]}>You can always update this later</Text>
+              <AppText style={[styles.cardTitle, { textAlign: 'center', fontSize: 20 }]}>What should we call you?</AppText>
+              <AppText style={[styles.cardSubtitle, { textAlign: 'center' }]}>You can always update this later</AppText>
 
               <View style={styles.field}>
-                <Text style={styles.label}>Full Name</Text>
+                <AppText style={styles.label}>Full Name</AppText>
                 <View style={styles.inputRow}>
                   <Ionicons name="person-outline" size={18} color="#6b7280" style={styles.inputIcon} />
                   <TextInput
@@ -225,12 +226,12 @@ export default function RegisterScreen({ navigation }) {
               >
                 {loading
                   ? <ActivityIndicator color="#fff" />
-                  : <Text style={styles.btnText}>Continue →</Text>}
+                  : <AppText style={styles.btnText}>Continue →</AppText>}
               </TouchableOpacity>
 
               {!name.trim() && (
                 <TouchableOpacity onPress={handleNameSubmit} disabled={loading} style={{ marginTop: 12, alignItems: 'center' }}>
-                  <Text style={styles.skipLink}>Skip for now</Text>
+                  <AppText style={styles.skipLink}>Skip for now</AppText>
                 </TouchableOpacity>
               )}
             </>
@@ -238,14 +239,14 @@ export default function RegisterScreen({ navigation }) {
 
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>OR</Text>
+            <AppText style={styles.dividerText}>OR</AppText>
             <View style={styles.dividerLine} />
           </View>
 
           <View style={styles.registerRow}>
-            <Text style={styles.registerText}>Already have an account? </Text>
+            <AppText style={styles.registerText}>Already have an account? </AppText>
             <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.registerLink}>Sign In</Text>
+              <AppText style={styles.registerLink}>Sign In</AppText>
             </TouchableOpacity>
           </View>
 
@@ -285,5 +286,5 @@ const styles = StyleSheet.create({
   registerLink: { fontSize: 14, color: '#2563eb', fontWeight: '700' },
   termsText:    { fontSize: 12, color: '#9ca3af', lineHeight: 18, textAlign: 'center', marginTop: 8 },
   termsLink:    { color: '#2563eb', fontWeight: '600' },
-  trustSignal:  { fontSize: 12, color: '#9ca3af', textAlign: 'center', marginTop: 4, lineHeight: 18 },
+  trustSignal:  { fontSize: 12, color: '#9ca3af', textAlign: 'center', marginTop: 4, lineHeight: 18 }
 });

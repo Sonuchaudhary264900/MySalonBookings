@@ -952,7 +952,7 @@ export default function Dashboard() {
           <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--t-hero-muted)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.14em' }}>
             My Bookings
           </p>
-          <h1 style={{ fontSize: 'clamp(24px,6vw,52px)', fontWeight: 900, color: 'var(--t-hero-text)', lineHeight: 1.08, letterSpacing: '-1.5px', marginBottom: 10 }}>
+          <h1 style={{ fontSize: 'clamp(1.5rem,6vw,3.25rem)', fontWeight: 900, color: 'var(--t-hero-text)', lineHeight: 1.08, letterSpacing: '-1.5px', marginBottom: 10 }}>
             Hey {firstName},<br/>
             <span style={{ opacity: 0.55, fontWeight: 800 }}>ready for your<br/>next look?</span>
           </h1>
@@ -1150,7 +1150,7 @@ export default function Dashboard() {
               <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--t-accent)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 14, position: 'relative' }}>
                 What's next?
               </p>
-              <h2 style={{ fontSize: 'clamp(24px,6vw,36px)', fontWeight: 900, color: 'var(--t-hero-text)', letterSpacing: '-0.8px', lineHeight: 1.15, marginBottom: 10, position: 'relative' }}>
+              <h2 style={{ fontSize: 'clamp(1.5rem,6vw,2.25rem)', fontWeight: 900, color: 'var(--t-hero-text)', letterSpacing: '-0.8px', lineHeight: 1.15, marginBottom: 10, position: 'relative' }}>
                 Book your next<br/>appointment now.
               </h2>
               <p style={{ fontSize: 14, color: 'var(--t-text-2)', marginBottom: 28, lineHeight: 1.7, position: 'relative' }}>

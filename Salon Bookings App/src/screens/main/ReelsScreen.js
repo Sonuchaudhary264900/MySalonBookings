@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  View, Text, FlatList, StyleSheet, Dimensions, TouchableOpacity,
+  View, FlatList, StyleSheet, Dimensions, TouchableOpacity,
   ActivityIndicator, TextInput, KeyboardAvoidingView, Platform,
-  Modal, Pressable, Share, Image, StatusBar, ScrollView,
+  Modal, Pressable, Share, Image, StatusBar, ScrollView
 } from 'react-native';
+import AppText from '../../components/AppText';
 import { Video, ResizeMode } from 'expo-av';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
@@ -107,7 +108,7 @@ function ReelItem({ item, isVisible, isMuted, onToggleMute, onOpenComment, onOpe
             const r = await api.post('/public/reels/view', {
               videoUrl: item.videoUrl,
               salonId: salon._id,
-              fingerprint,
+              fingerprint
             });
             setViewCount(r.data.viewCount || (viewCount + 1));
           } catch {
@@ -130,7 +131,7 @@ function ReelItem({ item, isVisible, isMuted, onToggleMute, onOpenComment, onOpe
     try {
       const r = await api.post('/public/reels/like', {
         videoUrl: item.videoUrl,
-        salonId: salon._id,
+        salonId: salon._id
       });
       setLiked(r.data.liked);
       setLikeCount(r.data.count ?? (wasLiked ? likeCount - 1 : likeCount + 1));
@@ -144,7 +145,7 @@ function ReelItem({ item, isVisible, isMuted, onToggleMute, onOpenComment, onOpe
     try {
       await Share.share({
         message: `Check out ${salon.name} on My Salon Bookings!\nhttps://mysalonbookings.com/salon/${salon._id}`,
-        title: salon.name,
+        title: salon.name
       });
     } catch { /* silent */ }
   };
@@ -187,7 +188,7 @@ function ReelItem({ item, isVisible, isMuted, onToggleMute, onOpenComment, onOpe
           <View style={[styles.sideBtnCircle, liked && styles.sideBtnCircleLiked]}>
             <Ionicons name={liked ? 'heart' : 'heart-outline'} size={22} color={liked ? '#f43f5e' : '#fff'} />
           </View>
-          <Text style={[styles.sideBtnLabel, liked && { color: '#f43f5e' }]}>{fmtCount(likeCount)}</Text>
+          <AppText style={[styles.sideBtnLabel, liked && { color: '#f43f5e' }]}>{fmtCount(likeCount)}</AppText>
         </TouchableOpacity>
 
         {/* Comment */}
@@ -195,7 +196,7 @@ function ReelItem({ item, isVisible, isMuted, onToggleMute, onOpenComment, onOpe
           <View style={styles.sideBtnCircle}>
             <Ionicons name="chatbubble-outline" size={22} color="#fff" />
           </View>
-          <Text style={styles.sideBtnLabel}>{fmtCount(item.commentCount || 0)}</Text>
+          <AppText style={styles.sideBtnLabel}>{fmtCount(item.commentCount || 0)}</AppText>
         </TouchableOpacity>
 
         {/* Share */}
@@ -222,11 +223,11 @@ function ReelItem({ item, isVisible, isMuted, onToggleMute, onOpenComment, onOpe
       {/* Bottom-left: salon info */}
       <View style={styles.bottomInfo} pointerEvents="box-none">
         <TouchableOpacity onPress={() => onOpenSalon(salon._id)} activeOpacity={0.8}>
-          <Text style={styles.salonName} numberOfLines={1}>{salon.name || 'Salon'}</Text>
+          <AppText style={styles.salonName} numberOfLines={1}>{salon.name || 'Salon'}</AppText>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 }}>
-            {city ? <Text style={styles.salonCity}>📍 {city}</Text> : null}
+            {city ? <AppText style={styles.salonCity}>📍 {city}</AppText> : null}
             {salon.averageRating > 0 && (
-              <Text style={styles.salonRating}>★ {salon.averageRating.toFixed(1)}</Text>
+              <AppText style={styles.salonRating}>★ {salon.averageRating.toFixed(1)}</AppText>
             )}
           </View>
         </TouchableOpacity>
@@ -234,14 +235,14 @@ function ReelItem({ item, isVisible, isMuted, onToggleMute, onOpenComment, onOpe
           <View style={{ flexDirection: 'row', gap: 5, flexWrap: 'wrap', marginTop: 8 }}>
             {item.categories.slice(0, 3).map(cat => (
               <View key={cat} style={styles.catChip}>
-                <Text style={styles.catChipText}>{cat}</Text>
+                <AppText style={styles.catChipText}>{cat}</AppText>
               </View>
             ))}
           </View>
         )}
         <TouchableOpacity style={styles.bookNowBtn} onPress={() => onOpenSalon(salon._id)} activeOpacity={0.85}>
           <Ionicons name="cut-outline" size={15} color="#fff" />
-          <Text style={styles.bookNowText}>Book Appointment</Text>
+          <AppText style={styles.bookNowText}>Book Appointment</AppText>
         </TouchableOpacity>
       </View>
     </View>
@@ -272,7 +273,7 @@ function CommentSheet({ visible, reel, onClose, token }) {
       const r = await api.post('/public/reels/comments', {
         videoUrl: reel.videoUrl,
         salonId: reel.salon._id,
-        text: trimmed,
+        text: trimmed
       });
       setComments(prev => [r.data.data, ...prev]);
       setText('');
@@ -285,29 +286,29 @@ function CommentSheet({ visible, reel, onClose, token }) {
       <Pressable style={styles.sheetBackdrop} onPress={onClose} />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.sheet}>
         <View style={styles.sheetHandle} />
-        <Text style={styles.sheetTitle}>
+        <AppText style={styles.sheetTitle}>
           Comments{reel ? ` · ${reel.salon?.name}` : ''}
-        </Text>
+        </AppText>
 
         <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
           {loading ? (
             <ActivityIndicator color="#6366f1" style={{ marginTop: 20 }} />
           ) : comments.length === 0 ? (
-            <Text style={styles.sheetEmpty}>No comments yet. Be the first!</Text>
+            <AppText style={styles.sheetEmpty}>No comments yet. Be the first!</AppText>
           ) : (
             comments.map(c => (
               <View key={c._id} style={styles.commentBlock}>
                 {/* User comment */}
                 <View style={styles.commentRow}>
                   <View style={styles.commentAvatar}>
-                    <Text style={styles.commentAvatarText}>{c.name?.[0]?.toUpperCase()}</Text>
+                    <AppText style={styles.commentAvatarText}>{c.name?.[0]?.toUpperCase()}</AppText>
                   </View>
                   <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text style={styles.commentName}>{c.name}</Text>
-                      <Text style={styles.commentTime}>{timeAgo(c.createdAt)}</Text>
+                      <AppText style={styles.commentName}>{c.name}</AppText>
+                      <AppText style={styles.commentTime}>{timeAgo(c.createdAt)}</AppText>
                     </View>
-                    <Text style={styles.commentText}>{c.text}</Text>
+                    <AppText style={styles.commentText}>{c.text}</AppText>
                   </View>
                 </View>
 
@@ -317,13 +318,13 @@ function CommentSheet({ visible, reel, onClose, token }) {
                     <View style={styles.replyLine} />
                     <View style={{ flex: 1 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                        <Text style={styles.replyOwnerName}>{r.ownerName}</Text>
+                        <AppText style={styles.replyOwnerName}>{r.ownerName}</AppText>
                         <View style={styles.ownerBadge}>
-                          <Text style={styles.ownerBadgeText}>Owner</Text>
+                          <AppText style={styles.ownerBadgeText}>Owner</AppText>
                         </View>
-                        <Text style={styles.commentTime}>{timeAgo(r.createdAt)}</Text>
+                        <AppText style={styles.commentTime}>{timeAgo(r.createdAt)}</AppText>
                       </View>
-                      <Text style={styles.replyText}>{r.text}</Text>
+                      <AppText style={styles.replyText}>{r.text}</AppText>
                     </View>
                   </View>
                 ))}
@@ -356,7 +357,7 @@ function CommentSheet({ visible, reel, onClose, token }) {
           </View>
         ) : (
           <View style={styles.loginNudge}>
-            <Text style={styles.loginNudgeText}>Log in to comment</Text>
+            <AppText style={styles.loginNudgeText}>Log in to comment</AppText>
           </View>
         )}
       </KeyboardAvoidingView>
@@ -370,17 +371,17 @@ function AuthModal({ visible, onClose, onLogin, onRegister }) {
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.authBackdrop} onPress={onClose}>
         <Pressable style={styles.authCard} onPress={() => {}}>
-          <Text style={{ fontSize: 36, textAlign: 'center', marginBottom: 10 }}>🔐</Text>
-          <Text style={styles.authTitle}>Login Required</Text>
-          <Text style={styles.authSub}>You need to be logged in to like or comment on reels.</Text>
+          <AppText style={{ fontSize: 36, textAlign: 'center', marginBottom: 10 }}>🔐</AppText>
+          <AppText style={styles.authTitle}>Login Required</AppText>
+          <AppText style={styles.authSub}>You need to be logged in to like or comment on reels.</AppText>
           <TouchableOpacity style={styles.authPrimaryBtn} onPress={onLogin} activeOpacity={0.85}>
-            <Text style={styles.authPrimaryText}>Log In</Text>
+            <AppText style={styles.authPrimaryText}>Log In</AppText>
           </TouchableOpacity>
           <TouchableOpacity style={styles.authSecondaryBtn} onPress={onRegister} activeOpacity={0.85}>
-            <Text style={styles.authSecondaryText}>Create Account</Text>
+            <AppText style={styles.authSecondaryText}>Create Account</AppText>
           </TouchableOpacity>
           <TouchableOpacity onPress={onClose} style={{ marginTop: 8 }}>
-            <Text style={{ color: '#6b7280', fontSize: 13, textAlign: 'center' }}>Maybe Later</Text>
+            <AppText style={{ color: '#6b7280', fontSize: 13, textAlign: 'center' }}>Maybe Later</AppText>
           </TouchableOpacity>
         </Pressable>
       </Pressable>
@@ -508,7 +509,7 @@ export default function ReelsScreen() {
     return (
       <View style={[styles.center, { backgroundColor: '#000' }]}>
         <ActivityIndicator size="large" color="#6366f1" />
-        <Text style={{ color: '#9ca3af', marginTop: 12 }}>Loading reels…</Text>
+        <AppText style={{ color: '#9ca3af', marginTop: 12 }}>Loading reels…</AppText>
       </View>
     );
   }
@@ -517,12 +518,12 @@ export default function ReelsScreen() {
     return (
       <View style={[styles.center, { backgroundColor: '#000' }]}>
         <Ionicons name="film-outline" size={60} color="#374151" />
-        <Text style={{ color: '#9ca3af', marginTop: 16, fontSize: 16 }}>No reels found</Text>
-        <Text style={{ color: '#6b7280', marginTop: 4, fontSize: 13, textAlign: 'center', paddingHorizontal: 40 }}>
+        <AppText style={{ color: '#9ca3af', marginTop: 16, fontSize: 16 }}>No reels found</AppText>
+        <AppText style={{ color: '#6b7280', marginTop: 4, fontSize: 13, textAlign: 'center', paddingHorizontal: 40 }}>
           Try switching to "All" mode or a different gender filter
-        </Text>
+        </AppText>
         <TouchableOpacity onPress={() => { setMode('all'); }} style={{ marginTop: 16, paddingHorizontal: 24, paddingVertical: 10, backgroundColor: '#6366f1', borderRadius: 20 }}>
-          <Text style={{ color: '#fff', fontWeight: '700' }}>Show All Salons</Text>
+          <AppText style={{ color: '#fff', fontWeight: '700' }}>Show All Salons</AppText>
         </TouchableOpacity>
       </View>
     );
@@ -535,12 +536,12 @@ export default function ReelsScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 6 }} pointerEvents="box-none">
           {[['nearest', '📍 Nearby'], ['all', '🌐 All']].map(([m, label]) => (
             <TouchableOpacity key={m} onPress={() => setMode(m)} style={[styles.filterChip, mode === m && styles.filterChipActive]} activeOpacity={0.8}>
-              <Text style={[styles.filterChipText, mode === m && styles.filterChipTextActive]}>{label}</Text>
+              <AppText style={[styles.filterChipText, mode === m && styles.filterChipTextActive]}>{label}</AppText>
             </TouchableOpacity>
           ))}
           {[['all', 'All'], ['male', 'Men'], ['female', 'Women']].map(([g, label]) => (
             <TouchableOpacity key={g} onPress={() => setGender(g)} style={[styles.filterChip, gender === g && styles.filterChipActive]} activeOpacity={0.8}>
-              <Text style={[styles.filterChipText, gender === g && styles.filterChipTextActive]}>{label}</Text>
+              <AppText style={[styles.filterChipText, gender === g && styles.filterChipTextActive]}>{label}</AppText>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -603,28 +604,28 @@ const styles = StyleSheet.create({
 
   progressWrap: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-    backgroundColor: 'rgba(255,255,255,0.10)', zIndex: 25,
+    backgroundColor: 'rgba(255,255,255,0.10)', zIndex: 25
   },
   progressBar: { height: 3, backgroundColor: '#8b5cf6' },
 
   gradientTop: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 140,
-    backgroundColor: 'rgba(0,0,0,0.28)', zIndex: 5,
+    backgroundColor: 'rgba(0,0,0,0.28)', zIndex: 5
   },
   gradientBottom: {
     position: 'absolute', bottom: 0, left: 0, right: 0, height: 320,
-    backgroundColor: 'rgba(0,0,0,0.72)', zIndex: 5,
+    backgroundColor: 'rgba(0,0,0,0.72)', zIndex: 5
   },
 
   topOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0,
     paddingTop: Platform.OS === 'ios' ? 54 : 36,
     paddingHorizontal: 14,
-    zIndex: 20,
+    zIndex: 20
   },
   filterChip: {
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 11,
-    backgroundColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(255,255,255,0.10)'
   },
   filterChipActive: { backgroundColor: 'rgba(99,102,241,0.75)' },
   filterChipText: { color: 'rgba(255,255,255,0.55)', fontSize: 11, fontWeight: '700' },
@@ -632,7 +633,7 @@ const styles = StyleSheet.create({
 
   sidebar: {
     position: 'absolute', right: 12, bottom: 84,
-    gap: 16, alignItems: 'center', zIndex: 10,
+    gap: 16, alignItems: 'center', zIndex: 10
   },
   sideBtn:       { alignItems: 'center', gap: 4 },
   sideBtnLabel:  { color: 'rgba(255,255,255,0.90)', fontSize: 11, fontWeight: '700' },
@@ -641,14 +642,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(10,10,10,0.55)',
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)',
-    shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 8, elevation: 4,
+    shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 8, elevation: 4
   },
   sideBtnCircleLiked: { backgroundColor: 'rgba(244,63,94,0.15)', borderColor: 'rgba(244,63,94,0.4)' },
   sideAvatarWrap: {},
   sideAvatar: { width: 44, height: 44, borderRadius: 22, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)' },
 
   bottomInfo: {
-    position: 'absolute', bottom: 80, left: 14, right: 76, zIndex: 10,
+    position: 'absolute', bottom: 80, left: 14, right: 76, zIndex: 10
   },
   salonName:   { color: '#fff', fontSize: 17, fontWeight: '700', letterSpacing: -0.2 },
   salonCity:   { color: 'rgba(255,255,255,0.60)', fontSize: 12, fontWeight: '500' },
@@ -660,7 +661,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#6366f1', paddingHorizontal: 16, paddingVertical: 12,
     borderRadius: 14, marginTop: 10,
     shadowColor: '#6366f1', shadowOpacity: 0.45, shadowRadius: 12, elevation: 5,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)'
   },
   bookNowText: { color: '#fff', fontSize: 14, fontWeight: '700', letterSpacing: 0.2 },
 
@@ -668,11 +669,11 @@ const styles = StyleSheet.create({
   sheetBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
   sheet: {
     backgroundColor: '#111827', borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    padding: 16, maxHeight: SCREEN_H * 0.75, minHeight: 320,
+    padding: 16, maxHeight: SCREEN_H * 0.75, minHeight: 320
   },
   sheetHandle: {
     width: 40, height: 4, borderRadius: 2, backgroundColor: '#374151',
-    alignSelf: 'center', marginBottom: 12,
+    alignSelf: 'center', marginBottom: 12
   },
   sheetTitle:  { color: '#f9fafb', fontSize: 15, fontWeight: '700', marginBottom: 12 },
   sheetEmpty:  { color: '#6b7280', textAlign: 'center', marginTop: 24 },
@@ -680,7 +681,7 @@ const styles = StyleSheet.create({
   commentRow:  { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   commentAvatar: {
     width: 32, height: 32, borderRadius: 16,
-    backgroundColor: '#4f46e5', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#4f46e5', alignItems: 'center', justifyContent: 'center'
   },
   commentAvatarText: { color: '#fff', fontSize: 12, fontWeight: '700' },
   commentName:  { color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: '700' },
@@ -691,34 +692,34 @@ const styles = StyleSheet.create({
   replyOwnerName: { color: '#a78bfa', fontSize: 11, fontWeight: '700' },
   ownerBadge: {
     backgroundColor: 'rgba(139,92,246,0.3)', borderRadius: 4,
-    paddingHorizontal: 5, paddingVertical: 1,
+    paddingHorizontal: 5, paddingVertical: 1
   },
   ownerBadgeText: { color: '#c4b5fd', fontSize: 9, fontWeight: '700' },
   replyText: { color: 'rgba(255,255,255,0.85)', fontSize: 13, lineHeight: 18, marginTop: 2 },
   commentInput: {
     flexDirection: 'row', alignItems: 'center', borderTopWidth: 1,
-    borderTopColor: '#374151', paddingTop: 10, gap: 8,
+    borderTopColor: '#374151', paddingTop: 10, gap: 8
   },
   commentTextInput: {
     flex: 1, backgroundColor: '#1f2937', borderRadius: 20,
-    paddingHorizontal: 14, paddingVertical: 8, color: '#f9fafb', fontSize: 14,
+    paddingHorizontal: 14, paddingVertical: 8, color: '#f9fafb', fontSize: 14
   },
   commentSend: {
     width: 38, height: 38, borderRadius: 19, backgroundColor: '#1f2937',
-    alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center'
   },
   loginNudge: {
-    borderTopWidth: 1, borderTopColor: '#374151', paddingVertical: 12, alignItems: 'center',
+    borderTopWidth: 1, borderTopColor: '#374151', paddingVertical: 12, alignItems: 'center'
   },
   loginNudgeText: { color: '#6b7280', fontSize: 13 },
 
   // Auth modal
   authBackdrop: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center', padding: 24,
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center', padding: 24
   },
   authCard: {
     backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 20, padding: 28, width: '100%', maxWidth: 320,
+    borderRadius: 20, padding: 28, width: '100%', maxWidth: 320
   },
   authTitle:        { color: '#fff', fontSize: 17, fontWeight: '800', textAlign: 'center', marginBottom: 8 },
   authSub:          { color: 'rgba(255,255,255,0.5)', fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 20 },
@@ -726,7 +727,7 @@ const styles = StyleSheet.create({
   authPrimaryText:  { color: '#fff', fontWeight: '700', fontSize: 14 },
   authSecondaryBtn: {
     backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)', borderRadius: 12, paddingVertical: 12, alignItems: 'center',
+    borderColor: 'rgba(255,255,255,0.15)', borderRadius: 12, paddingVertical: 12, alignItems: 'center'
   },
-  authSecondaryText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  authSecondaryText: { color: '#fff', fontWeight: '600', fontSize: 14 }
 });

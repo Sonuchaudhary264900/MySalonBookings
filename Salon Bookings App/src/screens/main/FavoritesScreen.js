@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Image, Alert,
+  View, StyleSheet, FlatList, TouchableOpacity,
+  ActivityIndicator, RefreshControl, Image, Alert
 } from 'react-native';
+import AppText from '../../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -99,10 +100,10 @@ export default function FavoritesScreen({ navigation }) {
     return (
       <View style={[styles.container, { paddingTop: insets.top, alignItems: 'center', justifyContent: 'center' }]}>
         <Ionicons name="heart-outline" size={56} color="#d1d5db" />
-        <Text style={styles.guestTitle}>Sign in to save salons</Text>
-        <Text style={styles.guestText}>Keep track of your favourite salons in one place</Text>
+        <AppText style={styles.guestTitle}>Sign in to save salons</AppText>
+        <AppText style={styles.guestText}>Keep track of your favourite salons in one place</AppText>
         <TouchableOpacity style={styles.signInBtn} onPress={() => navigation.navigate('Auth')}>
-          <Text style={styles.signInBtnText}>Sign In</Text>
+          <AppText style={styles.signInBtnText}>Sign In</AppText>
         </TouchableOpacity>
       </View>
     );
@@ -150,23 +151,23 @@ export default function FavoritesScreen({ navigation }) {
 
         {/* Info */}
         <View style={styles.cardBody}>
-          <Text style={styles.cardName} numberOfLines={1}>{item.name}</Text>
-          <Text style={styles.cardCategory}>{(item.category || '').replace('_', ' ')}</Text>
+          <AppText style={styles.cardName} numberOfLines={1}>{item.name}</AppText>
+          <AppText style={styles.cardCategory}>{(item.category || '').replace('_', ' ')}</AppText>
 
           {/* Stars left — Open/Closed right */}
           {rating > 0 && (
             <View style={styles.cardRowSpread}>
               <View style={styles.cardRow}>
                 <StarRating rating={rating} />
-                <Text style={styles.cardRating}>{rating.toFixed(1)}</Text>
-                {reviews > 0 && <Text style={styles.cardReviews}>({reviews})</Text>}
+                <AppText style={styles.cardRating}>{rating.toFixed(1)}</AppText>
+                {reviews > 0 && <AppText style={styles.cardReviews}>({reviews})</AppText>}
               </View>
               {openStatus !== null && (
                 <View style={[styles.openPill, { backgroundColor: openStatus ? '#dcfce7' : '#fee2e2' }]}>
                   <View style={[styles.openDot, { backgroundColor: openStatus ? '#16a34a' : '#dc2626' }]} />
-                  <Text style={[styles.openPillText, { color: openStatus ? '#16a34a' : '#dc2626' }]}>
+                  <AppText style={[styles.openPillText, { color: openStatus ? '#16a34a' : '#dc2626' }]}>
                     {openStatus ? 'Open' : 'Closed'}
-                  </Text>
+                  </AppText>
                 </View>
               )}
             </View>
@@ -176,27 +177,27 @@ export default function FavoritesScreen({ navigation }) {
           <View style={styles.cardRowSpread}>
             <View style={[styles.cardRow, { flex: 1, marginRight: 8 }]}>
               <Ionicons name="location-outline" size={13} color={theme.subText} />
-              <Text style={styles.cardAddress} numberOfLines={1}>
+              <AppText style={styles.cardAddress} numberOfLines={1}>
                 {item.address || [item.city, item.state].filter(Boolean).join(', ') || 'Address not listed'}
-              </Text>
+              </AppText>
             </View>
             {todayHours && (
               <View style={styles.cardRow}>
                 <Ionicons name="time-outline" size={12} color={theme.subText} />
-                <Text style={styles.cardHours}>{todayHours}</Text>
+                <AppText style={styles.cardHours}>{todayHours}</AppText>
               </View>
             )}
           </View>
 
           <View style={styles.cardFooter}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Text style={styles.viewDetails}>Book Now</Text>
+              <AppText style={styles.viewDetails}>Book Now</AppText>
               <Ionicons name="arrow-forward" size={13} color={theme.accent} />
             </View>
             {item.isApproved && (
               <View style={styles.verifiedBadge}>
                 <Ionicons name="checkmark-circle" size={12} color="#16a34a" />
-                <Text style={styles.verifiedText}>Verified</Text>
+                <AppText style={styles.verifiedText}>Verified</AppText>
               </View>
             )}
           </View>
@@ -211,8 +212,8 @@ export default function FavoritesScreen({ navigation }) {
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.headerTitle}>Saved Salons</Text>
-            <Text style={styles.headerSub}>{salons.length} salon{salons.length !== 1 ? 's' : ''} saved</Text>
+            <AppText style={styles.headerTitle}>Saved Salons</AppText>
+            <AppText style={styles.headerSub}>{salons.length} salon{salons.length !== 1 ? 's' : ''} saved</AppText>
           </View>
           <View style={{ flexDirection: 'row', gap: 4 }}>
             <TouchableOpacity
@@ -223,7 +224,7 @@ export default function FavoritesScreen({ navigation }) {
               <Ionicons name="notifications-outline" size={20} color={theme.subText} />
               {unreadCount > 0 && (
                 <View style={styles.notifBadge}>
-                  <Text style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                  <AppText style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</AppText>
                 </View>
               )}
             </TouchableOpacity>
@@ -238,10 +239,10 @@ export default function FavoritesScreen({ navigation }) {
       ) : salons.length === 0 ? (
         <View style={styles.empty}>
           <Ionicons name="heart-outline" size={52} color="#d1d5db" />
-          <Text style={styles.emptyTitle}>No saved salons yet</Text>
-          <Text style={styles.emptyText}>Tap the heart icon on any salon to save it here</Text>
+          <AppText style={styles.emptyTitle}>No saved salons yet</AppText>
+          <AppText style={styles.emptyText}>Tap the heart icon on any salon to save it here</AppText>
           <TouchableOpacity style={styles.exploreBtn} onPress={() => navigation.navigate('HomeTab')}>
-            <Text style={styles.exploreBtnText}>Explore Salons</Text>
+            <AppText style={styles.exploreBtnText}>Explore Salons</AppText>
           </TouchableOpacity>
         </View>
       ) : (
@@ -302,5 +303,5 @@ const getStyles = (t) => StyleSheet.create({
   cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6, paddingTop: 8, borderTopWidth: 1, borderTopColor: t.border },
   viewDetails: { fontSize: 12, fontWeight: '700', color: t.accent },
   verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#dcfce7', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999 },
-  verifiedText: { fontSize: 11, fontWeight: '600', color: '#16a34a' },
+  verifiedText: { fontSize: 11, fontWeight: '600', color: '#16a34a' }
 });

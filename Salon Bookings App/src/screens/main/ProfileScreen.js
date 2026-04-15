@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert,
+  View, StyleSheet, ScrollView, TouchableOpacity,
+  TextInput, ActivityIndicator, Alert
 } from 'react-native';
+import AppText from '../../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../services/api';
@@ -14,8 +15,8 @@ function InfoRow({ icon, label, value, theme, styles }) {
   return (
     <View style={styles.infoRow}>
       <Ionicons name={icon} size={16} color={theme.subText} style={{ width: 22 }} />
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue} numberOfLines={1}>{value || '—'}</Text>
+      <AppText style={styles.infoLabel}>{label}</AppText>
+      <AppText style={styles.infoValue} numberOfLines={1}>{value || '—'}</AppText>
     </View>
   );
 }
@@ -27,7 +28,7 @@ function SectionHeader({ icon, title, expanded, onPress, theme, styles }) {
         <View style={styles.sectionIconWrap}>
           <Ionicons name={icon} size={18} color={theme.accent} />
         </View>
-        <Text style={styles.sectionHeaderTitle}>{title}</Text>
+        <AppText style={styles.sectionHeaderTitle}>{title}</AppText>
       </View>
       <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={theme.subText} />
     </TouchableOpacity>
@@ -141,12 +142,12 @@ export default function ProfileScreen({ navigation }) {
     return (
       <View style={[styles.container, { paddingTop: insets.top, alignItems: 'center', justifyContent: 'center' }]}>
         <Ionicons name="person-circle-outline" size={80} color="#d1d5db" />
-        <Text style={styles.guestTitle}>Sign in to view your profile</Text>
+        <AppText style={styles.guestTitle}>Sign in to view your profile</AppText>
         <TouchableOpacity style={styles.signInBtn} onPress={() => navigation.navigate('Auth')}>
-          <Text style={styles.signInBtnText}>Sign In</Text>
+          <AppText style={styles.signInBtnText}>Sign In</AppText>
         </TouchableOpacity>
         <TouchableOpacity style={styles.signUpLink} onPress={() => navigation.navigate('Auth')}>
-          <Text style={styles.signUpLinkText}>New here? Create Account</Text>
+          <AppText style={styles.signUpLinkText}>New here? Create Account</AppText>
         </TouchableOpacity>
       </View>
     );
@@ -160,7 +161,7 @@ export default function ProfileScreen({ navigation }) {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="arrow-back" size={20} color={theme.subText} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>My Profile</Text>
+          <AppText style={styles.headerTitle}>My Profile</AppText>
         </View>
 
         {/* Profile card */}
@@ -169,9 +170,9 @@ export default function ProfileScreen({ navigation }) {
             <Ionicons name="person-circle" size={62} color={theme.accent} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.userName}>{user?.name || 'User'}</Text>
-            <Text style={styles.userPhone}>{user?.phone || ''}</Text>
-            {user?.email ? <Text style={styles.userEmail} numberOfLines={1}>{user.email}</Text> : null}
+            <AppText style={styles.userName}>{user?.name || 'User'}</AppText>
+            <AppText style={styles.userPhone}>{user?.phone || ''}</AppText>
+            {user?.email ? <AppText style={styles.userEmail} numberOfLines={1}>{user.email}</AppText> : null}
           </View>
         </View>
 
@@ -195,20 +196,20 @@ export default function ProfileScreen({ navigation }) {
                     <InfoRow icon="call-outline"   label="Phone"     value={user?.phone} theme={theme} styles={styles} />
                     <View style={styles.infoRow}>
                       <Ionicons name="mail-outline" size={16} color={theme.subText} style={{ width: 22 }} />
-                      <Text style={styles.infoLabel}>Email</Text>
-                      <Text style={styles.infoValue} numberOfLines={1}>{user?.email || '—'}</Text>
+                      <AppText style={styles.infoLabel}>Email</AppText>
+                      <AppText style={styles.infoValue} numberOfLines={1}>{user?.email || '—'}</AppText>
                     </View>
                     {/* Gender row */}
                     <View style={[styles.infoRow, { borderBottomWidth: 0, alignItems: 'center' }]}>
                       <Ionicons name="person-circle-outline" size={16} color={theme.subText} style={{ width: 22 }} />
-                      <Text style={styles.infoLabel}>Gender</Text>
+                      <AppText style={styles.infoLabel}>Gender</AppText>
                       <View style={{ flexDirection: 'row', gap: 8, marginLeft: 'auto' }}>
                         {[{ key: 'male', label: '👨 Male' }, { key: 'female', label: '👩 Female' }].map(({ key, label }) => {
                           const active = user?.gender === key;
                           return (
                             <TouchableOpacity key={key} onPress={() => handleGenderChange(key)} disabled={genderSaving}
                               style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 8, borderWidth: 1.5, borderColor: active ? '#ec4899' : (theme.border || '#e5e7eb'), backgroundColor: active ? '#ec4899' : 'transparent' }}>
-                              <Text style={{ fontSize: 12, fontWeight: '700', color: active ? '#fff' : theme.subText }}>{label}</Text>
+                              <AppText style={{ fontSize: 12, fontWeight: '700', color: active ? '#fff' : theme.subText }}>{label}</AppText>
                             </TouchableOpacity>
                           );
                         })}
@@ -216,20 +217,20 @@ export default function ProfileScreen({ navigation }) {
                     </View>
                     <TouchableOpacity style={styles.editBtn} onPress={() => { setName(user?.name || ''); setEmail(user?.email || ''); setEditing(true); }}>
                       <Ionicons name="create-outline" size={15} color={theme.accent} />
-                      <Text style={styles.editBtnText}>Edit Profile</Text>
+                      <AppText style={styles.editBtnText}>Edit Profile</AppText>
                     </TouchableOpacity>
                   </>
                 ) : (
                   <View style={{ padding: 12, gap: 10 }}>
                     <View style={styles.field}>
-                      <Text style={styles.fieldLabel}>Full Name</Text>
+                      <AppText style={styles.fieldLabel}>Full Name</AppText>
                       <View style={styles.inputRow}>
                         <Ionicons name="person-outline" size={15} color={theme.subText} style={{ marginRight: 8 }} />
                         <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Your name" placeholderTextColor={theme.placeholder} editable={!saving} />
                       </View>
                     </View>
                     <View style={styles.field}>
-                      <Text style={styles.fieldLabel}>Email Address</Text>
+                      <AppText style={styles.fieldLabel}>Email Address</AppText>
                       <View style={styles.inputRow}>
                         <Ionicons name="mail-outline" size={15} color={theme.subText} style={{ marginRight: 8 }} />
                         <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="your@email.com" placeholderTextColor={theme.placeholder} keyboardType="email-address" autoCapitalize="none" editable={!saving} />
@@ -237,10 +238,10 @@ export default function ProfileScreen({ navigation }) {
                     </View>
                     <View style={{ flexDirection: 'row', gap: 10 }}>
                       <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditing(false)} disabled={saving}>
-                        <Text style={styles.cancelBtnText}>Cancel</Text>
+                        <AppText style={styles.cancelBtnText}>Cancel</AppText>
                       </TouchableOpacity>
                       <TouchableOpacity style={[styles.saveBtn, saving && { opacity: 0.5 }]} onPress={handleSaveProfile} disabled={saving}>
-                        {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveBtnText}>Save</Text>}
+                        {saving ? <ActivityIndicator color="#fff" size="small" /> : <AppText style={styles.saveBtnText}>Save</AppText>}
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -264,21 +265,21 @@ export default function ProfileScreen({ navigation }) {
                 {cpStep === 0 && (
                   <TouchableOpacity style={[styles.secRow, { borderBottomWidth: 0 }]} onPress={() => setCpStep(1)}>
                     <Ionicons name="lock-closed-outline" size={16} color={theme.subText} />
-                    <Text style={styles.secRowText}>Change Password</Text>
+                    <AppText style={styles.secRowText}>Change Password</AppText>
                     <Ionicons name="chevron-forward" size={15} color={theme.subText} style={{ marginLeft: 'auto' }} />
                   </TouchableOpacity>
                 )}
                 {cpStep === 1 && (
                   <View style={{ padding: 12, gap: 10 }}>
-                    <Text style={[styles.fieldLabel, { color: theme.subText }]}>
+                    <AppText style={[styles.fieldLabel, { color: theme.subText }]}>
                       An OTP will be sent to {user?.phone}.
-                    </Text>
+                    </AppText>
                     <View style={{ flexDirection: 'row', gap: 10 }}>
                       <TouchableOpacity style={styles.cancelBtn} onPress={() => setCpStep(0)} disabled={cpLoading}>
-                        <Text style={styles.cancelBtnText}>Cancel</Text>
+                        <AppText style={styles.cancelBtnText}>Cancel</AppText>
                       </TouchableOpacity>
                       <TouchableOpacity style={[styles.saveBtn, cpLoading && { opacity: 0.5 }]} onPress={handleCpSendOtp} disabled={cpLoading}>
-                        {cpLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveBtnText}>Send OTP</Text>}
+                        {cpLoading ? <ActivityIndicator color="#fff" size="small" /> : <AppText style={styles.saveBtnText}>Send OTP</AppText>}
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -286,25 +287,25 @@ export default function ProfileScreen({ navigation }) {
                 {cpStep === 2 && (
                   <View style={{ padding: 12, gap: 10 }}>
                     <View style={styles.field}>
-                      <Text style={styles.fieldLabel}>OTP Code</Text>
+                      <AppText style={styles.fieldLabel}>OTP Code</AppText>
                       <View style={styles.inputRow}>
                         <Ionicons name="key-outline" size={15} color={theme.subText} style={{ marginRight: 8 }} />
                         <TextInput style={[styles.input, { flex: 1 }]} value={cpOtp} onChangeText={setCpOtp} placeholder="Enter OTP" placeholderTextColor={theme.placeholder} keyboardType="number-pad" editable={!cpLoading} />
                         {cpTimer > 0
-                          ? <Text style={{ fontSize: 12, color: theme.subText }}>{cpTimer}s</Text>
-                          : <TouchableOpacity onPress={handleCpSendOtp} disabled={cpLoading}><Text style={{ fontSize: 12, color: theme.accent, fontWeight: '600' }}>Resend</Text></TouchableOpacity>
+                          ? <AppText style={{ fontSize: 12, color: theme.subText }}>{cpTimer}s</AppText>
+                          : <TouchableOpacity onPress={handleCpSendOtp} disabled={cpLoading}><AppText style={{ fontSize: 12, color: theme.accent, fontWeight: '600' }}>Resend</AppText></TouchableOpacity>
                         }
                       </View>
                     </View>
                     <View style={styles.field}>
-                      <Text style={styles.fieldLabel}>New Password</Text>
+                      <AppText style={styles.fieldLabel}>New Password</AppText>
                       <View style={styles.inputRow}>
                         <Ionicons name="lock-closed-outline" size={15} color={theme.subText} style={{ marginRight: 8 }} />
                         <TextInput style={[styles.input, { flex: 1 }]} value={cpNewPw} onChangeText={setCpNewPw} placeholder="Min 8 characters" placeholderTextColor={theme.placeholder} secureTextEntry={!cpShowPw} editable={!cpLoading} />
                       </View>
                     </View>
                     <View style={styles.field}>
-                      <Text style={styles.fieldLabel}>Confirm Password</Text>
+                      <AppText style={styles.fieldLabel}>Confirm Password</AppText>
                       <View style={styles.inputRow}>
                         <Ionicons name="lock-closed-outline" size={15} color={theme.subText} style={{ marginRight: 8 }} />
                         <TextInput style={[styles.input, { flex: 1 }]} value={cpConfirm} onChangeText={setCpConfirm} placeholder="Re-enter password" placeholderTextColor={theme.placeholder} secureTextEntry={!cpShowPw} editable={!cpLoading} />
@@ -312,14 +313,14 @@ export default function ProfileScreen({ navigation }) {
                     </View>
                     <TouchableOpacity style={styles.showPwBtn} onPress={() => setCpShowPw(v => !v)}>
                       <Ionicons name={cpShowPw ? 'eye-off-outline' : 'eye-outline'} size={13} color={theme.subText} />
-                      <Text style={styles.showPwText}>{cpShowPw ? 'Hide' : 'Show'} passwords</Text>
+                      <AppText style={styles.showPwText}>{cpShowPw ? 'Hide' : 'Show'} passwords</AppText>
                     </TouchableOpacity>
                     <View style={{ flexDirection: 'row', gap: 10 }}>
                       <TouchableOpacity style={styles.cancelBtn} onPress={() => { setCpStep(0); setCpOtp(''); setCpNewPw(''); setCpConfirm(''); }} disabled={cpLoading}>
-                        <Text style={styles.cancelBtnText}>Cancel</Text>
+                        <AppText style={styles.cancelBtnText}>Cancel</AppText>
                       </TouchableOpacity>
                       <TouchableOpacity style={[styles.saveBtn, cpLoading && { opacity: 0.5 }]} onPress={handleCpReset} disabled={cpLoading}>
-                        {cpLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveBtnText}>Update</Text>}
+                        {cpLoading ? <ActivityIndicator color="#fff" size="small" /> : <AppText style={styles.saveBtnText}>Update</AppText>}
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -346,8 +347,8 @@ export default function ProfileScreen({ navigation }) {
                 ].map((item, i, arr) => (
                   <View key={item.label} style={[styles.secRow, i === arr.length - 1 && { borderBottomWidth: 0 }]}>
                     <Ionicons name={item.icon} size={16} color={theme.subText} />
-                    <Text style={styles.secRowText}>{item.label}</Text>
-                    <Text style={styles.secRowValue}>{item.value}</Text>
+                    <AppText style={styles.secRowText}>{item.label}</AppText>
+                    <AppText style={styles.secRowValue}>{item.value}</AppText>
                   </View>
                 ))}
               </View>
@@ -357,7 +358,7 @@ export default function ProfileScreen({ navigation }) {
           {/* Logout */}
           <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
             <Ionicons name="log-out-outline" size={20} color="#ef4444" />
-            <Text style={styles.logoutBtnText}>Logout</Text>
+            <AppText style={styles.logoutBtnText}>Logout</AppText>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -413,5 +414,5 @@ const getStyles = (t) => StyleSheet.create({
   signInBtn: { backgroundColor: t.accent, borderRadius: 12, paddingHorizontal: 32, paddingVertical: 12, marginTop: 14 },
   signInBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   signUpLink: { marginTop: 10 },
-  signUpLinkText: { color: t.accent, fontWeight: '600', fontSize: 13 },
+  signUpLinkText: { color: t.accent, fontWeight: '600', fontSize: 13 }
 });

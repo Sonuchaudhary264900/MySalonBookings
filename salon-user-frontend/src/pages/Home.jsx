@@ -617,7 +617,7 @@ export default function Home() {
 
             {/* Headline */}
             <h1 style={{
-              fontSize:"clamp(22px, 4.5vw, 96px)",
+              fontSize:"clamp(1.375rem, 4.5vw, 6rem)",
               fontWeight:900,
               lineHeight:1.0,
               letterSpacing:"-0.04em",
@@ -627,7 +627,7 @@ export default function Home() {
               Avoid Long Queue.<br />Save Time.
             </h1>
             <h1 style={{
-              fontSize:"clamp(16px, 4.5vw, 72px)",
+              fontSize:"clamp(1rem, 4.5vw, 4.5rem)",
               fontWeight:900,
               lineHeight:1.05,
               letterSpacing:"-0.03em",
@@ -642,7 +642,7 @@ export default function Home() {
 
             {/* Sub-line */}
             <p style={{
-              fontSize:"clamp(13px,1.2vw,16px)", fontWeight:500, color:"var(--t-hero-sub)",
+              fontSize:"clamp(0.8125rem,1.2vw,1rem)", fontWeight:500, color:"var(--t-hero-sub)",
               marginBottom:20, lineHeight:1.55, maxWidth:"min(480px, 90%)",
             }}>
               Discover and book the best GlowSpot near you — verified, rated, and ready.
@@ -942,7 +942,7 @@ export default function Home() {
               <p style={{ fontSize:11,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"var(--t-accent)",marginBottom:4 }}>
                 {sort === "rated" ? "Best in Class" : sort === "booked" ? "Most Popular" : "Near You"}
               </p>
-              <h2 style={{ fontSize:"clamp(17px,3.5vw,30px)",fontWeight:800,color:"var(--t-text)",letterSpacing:"-0.02em",margin:0 }}>
+              <h2 style={{ fontSize:"clamp(1.0625rem,3.5vw,1.875rem)",fontWeight:800,color:"var(--t-text)",letterSpacing:"-0.02em",margin:0 }}>
                 {sectionTitle}
               </h2>
               {!loading && (

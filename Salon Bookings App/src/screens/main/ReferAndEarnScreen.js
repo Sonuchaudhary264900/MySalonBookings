@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, Share, Clipboard,
-  ScrollView, Dimensions,
+  View, StyleSheet, TouchableOpacity, Share, Clipboard,
+  ScrollView, Dimensions
 } from 'react-native';
+import AppText from '../../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
@@ -65,7 +66,7 @@ export default function ReferAndEarnScreen({ navigation }) {
         >
           <Ionicons name="arrow-back" size={22} color={theme.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Refer &amp; Earn</Text>
+        <AppText style={styles.headerTitle}>Refer &amp; Earn</AppText>
         <View style={{ width: 36 }} />
       </View>
 
@@ -75,45 +76,45 @@ export default function ReferAndEarnScreen({ navigation }) {
           <View style={styles.heroIconWrap}>
             <Ionicons name="gift" size={44} color="#fff" />
           </View>
-          <Text style={styles.heroTitle}>Refer a salon, earn ₹50!</Text>
-          <Text style={styles.heroSub}>
+          <AppText style={styles.heroTitle}>Refer a salon, earn ₹50!</AppText>
+          <AppText style={styles.heroSub}>
             Invite salon owners to join MySalonBookings. When they qualify, you earn ₹50!
-          </Text>
+          </AppText>
         </View>
 
         {/* Referral code box */}
         <View style={styles.codeCard}>
-          <Text style={styles.codeLabel}>Your Referral Code</Text>
+          <AppText style={styles.codeLabel}>Your Referral Code</AppText>
           <View style={styles.codeRow}>
-            <Text style={styles.codeText}>{referralCode}</Text>
+            <AppText style={styles.codeText}>{referralCode}</AppText>
             <TouchableOpacity
               onPress={handleCopy}
               style={[styles.copyBtn, copied && styles.copyBtnDone]}
               activeOpacity={0.8}
             >
               <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={16} color={copied ? '#16a34a' : '#2563eb'} />
-              <Text style={[styles.copyBtnText, copied && { color: '#16a34a' }]}>
+              <AppText style={[styles.copyBtnText, copied && { color: '#16a34a' }]}>
                 {copied ? 'Copied!' : 'Copy'}
-              </Text>
+              </AppText>
             </TouchableOpacity>
           </View>
           <TouchableOpacity style={styles.shareBtn} onPress={handleShare} activeOpacity={0.85}>
             <Ionicons name="share-social-outline" size={18} color="#fff" />
-            <Text style={styles.shareBtnText}>Share &amp; Invite Salon Owners</Text>
+            <AppText style={styles.shareBtnText}>Share &amp; Invite Salon Owners</AppText>
           </TouchableOpacity>
         </View>
 
         {/* How it works */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>How it works</Text>
+          <AppText style={styles.sectionTitle}>How it works</AppText>
           {HOW_IT_WORKS.map((step, i) => (
             <View key={i} style={styles.stepRow}>
               <View style={[styles.stepIconWrap, { backgroundColor: step.color + '18' }]}>
                 <Ionicons name={step.icon} size={22} color={step.color} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.stepTitle}>{step.title}</Text>
-                <Text style={styles.stepDesc}>{step.desc}</Text>
+                <AppText style={styles.stepTitle}>{step.title}</AppText>
+                <AppText style={styles.stepDesc}>{step.desc}</AppText>
               </View>
             </View>
           ))}
@@ -122,9 +123,9 @@ export default function ReferAndEarnScreen({ navigation }) {
         {/* Terms note */}
         <View style={styles.terms}>
           <Ionicons name="information-circle-outline" size={14} color={theme.subText} />
-          <Text style={styles.termsText}>
+          <AppText style={styles.termsText}>
             The referred salon owner must register using your code and actively use the app for 30 days. ₹50 is credited once they qualify. Each code is valid once per salon. Terms may change.
-          </Text>
+          </AppText>
         </View>
       </ScrollView>
     </View>
@@ -160,5 +161,5 @@ const getStyles = (t) => StyleSheet.create({
   stepDesc: { fontSize: 13, color: t.subText, lineHeight: 18 },
 
   terms: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginHorizontal: 16, padding: 12, backgroundColor: t.card, borderRadius: 10, borderWidth: 1, borderColor: t.border },
-  termsText: { flex: 1, fontSize: 11, color: t.subText, lineHeight: 16 },
+  termsText: { flex: 1, fontSize: 11, color: t.subText, lineHeight: 16 }
 });

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image, Dimensions, Alert,
+  View, TextInput, TouchableOpacity, StyleSheet,
+  ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image, Dimensions, Alert
 } from 'react-native';
+import AppText from '../../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import auth from '@react-native-firebase/auth';
 import { useAuth } from '../../context/AuthContext';
@@ -102,18 +103,18 @@ export default function LoginScreen({ navigation }) {
         {/* Header */}
         <View style={styles.header}>
           <Image source={require('../../../assets/Icon-1024.png')} style={styles.logoImg} resizeMode="contain" />
-          <Text style={styles.appName}>My Salon Bookings</Text>
-          <Text style={styles.subtitle}>Book your perfect look</Text>
+          <AppText style={styles.appName}>My Salon Bookings</AppText>
+          <AppText style={styles.subtitle}>Book your perfect look</AppText>
         </View>
 
         {/* Card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Welcome Back</Text>
-          <Text style={styles.cardSubtitle}>Sign in to your account</Text>
+          <AppText style={styles.cardTitle}>Welcome Back</AppText>
+          <AppText style={styles.cardSubtitle}>Sign in to your account</AppText>
 
           {/* Phone */}
           <View style={styles.field}>
-            <Text style={styles.label}>Phone Number</Text>
+            <AppText style={styles.label}>Phone Number</AppText>
             <View style={styles.inputRow}>
               <Ionicons name="call-outline" size={18} color="#6b7280" style={styles.inputIcon} />
               <TextInput
@@ -131,7 +132,7 @@ export default function LoginScreen({ navigation }) {
 
           {/* Password */}
           <View style={styles.field}>
-            <Text style={styles.label}>Password</Text>
+            <AppText style={styles.label}>Password</AppText>
             <View style={styles.inputRow}>
               <Ionicons name="lock-closed-outline" size={18} color="#6b7280" style={styles.inputIcon} />
               <TextInput
@@ -159,34 +160,34 @@ export default function LoginScreen({ navigation }) {
             ) : (
               <>
                 <Ionicons name="log-in-outline" size={18} color="#fff" />
-                <Text style={styles.btnText}>Sign In</Text>
+                <AppText style={styles.btnText}>Sign In</AppText>
               </>
             )}
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.forgotBtn} onPress={() => { setFpMode(true); setFpPhone(phone); }}>
-            <Text style={styles.forgotText}>Forgot Password?</Text>
+            <AppText style={styles.forgotText}>Forgot Password?</AppText>
           </TouchableOpacity>
 
           {/* Features row */}
           <View style={styles.featuresRow}>
             {['Book Salons', 'Track History', 'Save Favorites'].map((f) => (
               <View key={f} style={styles.featureChip}>
-                <Text style={styles.featureText}>{f}</Text>
+                <AppText style={styles.featureText}>{f}</AppText>
               </View>
             ))}
           </View>
 
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>OR</Text>
+            <AppText style={styles.dividerText}>OR</AppText>
             <View style={styles.dividerLine} />
           </View>
 
           <View style={styles.registerRow}>
-            <Text style={styles.registerText}>New here? </Text>
+            <AppText style={styles.registerText}>New here? </AppText>
             <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.registerLink}>Create Account</Text>
+              <AppText style={styles.registerLink}>Create Account</AppText>
             </TouchableOpacity>
           </View>
         </View>
@@ -197,25 +198,25 @@ export default function LoginScreen({ navigation }) {
         <View style={styles.fpOverlay}>
           <View style={styles.fpCard}>
             <View style={styles.fpHeader}>
-              <Text style={styles.fpTitle}>{fpStep === 1 ? 'Forgot Password' : 'Reset Password'}</Text>
+              <AppText style={styles.fpTitle}>{fpStep === 1 ? 'Forgot Password' : 'Reset Password'}</AppText>
               <TouchableOpacity onPress={() => { setFpMode(false); setFpStep(1); fpConfirmationRef.current = null; }}>
                 <Ionicons name="close" size={22} color="#6b7280" />
               </TouchableOpacity>
             </View>
             {fpStep === 1 ? (
               <>
-                <Text style={styles.fpSub}>Enter your registered phone number</Text>
+                <AppText style={styles.fpSub}>Enter your registered phone number</AppText>
                 <View style={[styles.inputRow, { marginBottom: 12 }]}>
                   <Ionicons name="call-outline" size={18} color="#6b7280" style={styles.inputIcon} />
                   <TextInput style={styles.input} placeholder="+91 98765 43210" placeholderTextColor="#9ca3af" keyboardType="phone-pad" value={fpPhone} onChangeText={setFpPhone} editable={!fpLoading} />
                 </View>
                 <TouchableOpacity style={[styles.btn, fpLoading && styles.btnDisabled, { marginBottom: 0 }]} onPress={handleFpSendOtp} disabled={fpLoading}>
-                  {fpLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Send OTP</Text>}
+                  {fpLoading ? <ActivityIndicator color="#fff" /> : <AppText style={styles.btnText}>Send OTP</AppText>}
                 </TouchableOpacity>
               </>
             ) : (
               <>
-                <Text style={styles.fpSub}>OTP sent to {fpPhone}</Text>
+                <AppText style={styles.fpSub}>OTP sent to {fpPhone}</AppText>
                 <View style={[styles.inputRow, { marginBottom: 10 }]}>
                   <Ionicons name="key-outline" size={18} color="#6b7280" style={styles.inputIcon} />
                   <TextInput style={styles.input} placeholder="6-digit OTP" placeholderTextColor="#9ca3af" keyboardType="number-pad" maxLength={6} value={fpOtp} onChangeText={setFpOtp} editable={!fpLoading} />
@@ -232,10 +233,10 @@ export default function LoginScreen({ navigation }) {
                   <TextInput style={styles.input} placeholder="Confirm new password" placeholderTextColor="#9ca3af" secureTextEntry value={fpConfirm} onChangeText={setFpConfirm} editable={!fpLoading} />
                 </View>
                 <TouchableOpacity style={[styles.btn, fpLoading && styles.btnDisabled, { marginBottom: 0 }]} onPress={handleFpReset} disabled={fpLoading}>
-                  {fpLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Reset Password</Text>}
+                  {fpLoading ? <ActivityIndicator color="#fff" /> : <AppText style={styles.btnText}>Reset Password</AppText>}
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.forgotBtn, { opacity: fpTimer > 0 ? 0.5 : 1, marginTop: 10 }]} onPress={fpTimer === 0 ? handleFpSendOtp : undefined} disabled={fpTimer > 0}>
-                  <Text style={styles.forgotText}>{fpTimer > 0 ? `Resend OTP in ${fpTimer}s` : 'Resend OTP'}</Text>
+                  <AppText style={styles.forgotText}>{fpTimer > 0 ? `Resend OTP in ${fpTimer}s` : 'Resend OTP'}</AppText>
                 </TouchableOpacity>
               </>
             )}
@@ -280,5 +281,5 @@ const styles = StyleSheet.create({
   fpCard: { backgroundColor: '#fff', borderRadius: 20, padding: 24, width: '100%', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 16, elevation: 12 },
   fpHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   fpTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
-  fpSub: { fontSize: 13, color: '#6b7280', marginBottom: 14 },
+  fpSub: { fontSize: 13, color: '#6b7280', marginBottom: 14 }
 });

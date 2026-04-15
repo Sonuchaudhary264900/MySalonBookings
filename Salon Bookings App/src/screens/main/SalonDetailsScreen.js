@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Image, ActivityIndicator, Linking, Alert, Modal, TextInput, Dimensions,
+  View, StyleSheet, ScrollView, TouchableOpacity,
+  Image, ActivityIndicator, Linking, Alert, Modal, TextInput, Dimensions
 } from 'react-native';
+import AppText from '../../components/AppText';
 import { Video, ResizeMode } from 'expo-av';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -104,13 +105,13 @@ function WorkingHoursRow({ day, hours, styles }) {
   const isToday = day.toLowerCase() === today.toLowerCase();
   return (
     <View style={[styles.hoursRow, isToday && styles.hoursRowToday]}>
-      <Text style={[styles.hoursDay, isToday && { color: '#60a5fa', fontWeight: '700' }]}>{day}</Text>
+      <AppText style={[styles.hoursDay, isToday && { color: '#60a5fa', fontWeight: '700' }]}>{day}</AppText>
       {hours?.isClosed ? (
-        <Text style={styles.hoursClosed}>Closed</Text>
+        <AppText style={styles.hoursClosed}>Closed</AppText>
       ) : (
-        <Text style={[styles.hoursTime, isToday && { color: '#60a5fa' }]}>
+        <AppText style={[styles.hoursTime, isToday && { color: '#60a5fa' }]}>
           {hours?.open || '09:00'} – {hours?.close || '21:00'}
-        </Text>
+        </AppText>
       )}
     </View>
   );
@@ -277,7 +278,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
       if (selectedServices.length > 0) {
         await AsyncStorage.setItem('pendingBooking', JSON.stringify({
           salonId,
-          serviceIds: selectedServices.map(s => s._id),
+          serviceIds: selectedServices.map(s => s._id)
         }));
       }
       Alert.alert('Sign In Required', 'Please sign in to book an appointment.', [
@@ -312,7 +313,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
       const res = await api.post('/customer/coupons/validate', {
         code: couponInput.trim().toUpperCase(),
         salonId,
-        totalAmount: totalPrice,
+        totalAmount: totalPrice
       });
       const { coupon, discount } = res.data.data;
       setAppliedCoupon(coupon);
@@ -343,7 +344,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
         appointmentDate: bookDate,
         appointmentTime: slot,
         paymentMethod: 'cash',
-        couponCode: appliedCoupon?.code || undefined,
+        couponCode: appliedCoupon?.code || undefined
       });
       const booking = res.data.data?.booking || res.data.data;
       setBookingStatus(booking?.status || 'confirmed');
@@ -411,9 +412,9 @@ export default function SalonDetailsScreen({ route, navigation }) {
     return (
       <View style={[styles.loadingBox, { paddingTop: insets.top + 60, alignItems: 'center', justifyContent: 'center' }]}>
         <Ionicons name="alert-circle-outline" size={52} color="#d1d5db" />
-        <Text style={{ fontSize: 16, color: '#6b7280', marginTop: 12 }}>Salon not found</Text>
+        <AppText style={{ fontSize: 16, color: '#6b7280', marginTop: 12 }}>Salon not found</AppText>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn2}>
-          <Text style={{ color: '#7C3AED', fontWeight: '700' }}>Go Back</Text>
+          <AppText style={{ color: '#7C3AED', fontWeight: '700' }}>Go Back</AppText>
         </TouchableOpacity>
       </View>
     );
@@ -435,7 +436,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
           {salon?.isApproved && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, backgroundColor: 'rgba(34,197,94,0.2)', borderWidth: 1, borderColor: 'rgba(34,197,94,0.45)' }}>
               <Ionicons name="checkmark-circle" size={13} color="#4ade80" />
-              <Text style={{ fontSize: 11, fontWeight: '700', color: '#4ade80' }}>Verified</Text>
+              <AppText style={{ fontSize: 11, fontWeight: '700', color: '#4ade80' }}>Verified</AppText>
             </View>
           )}
           <TouchableOpacity
@@ -468,19 +469,19 @@ export default function SalonDetailsScreen({ route, navigation }) {
               <View style={{ flexDirection: 'row', marginBottom: 8 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: 'rgba(251,191,36,0.2)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.45)' }}>
                   <Ionicons name="trophy-outline" size={11} color="#fbbf24" />
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#fbbf24' }}>Top Rated in Your Area</Text>
+                  <AppText style={{ fontSize: 11, fontWeight: '700', color: '#fbbf24' }}>Top Rated in Your Area</AppText>
                 </View>
               </View>
             )}
             {/* Name */}
-            <Text style={{ fontSize: 26, fontWeight: '900', color: '#fff', marginBottom: 4, lineHeight: 32, textShadowColor: 'rgba(0,0,0,0.55)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8 }} numberOfLines={2}>{salon.name}</Text>
+            <AppText style={{ fontSize: 26, fontWeight: '900', color: '#fff', marginBottom: 4, lineHeight: 32, textShadowColor: 'rgba(0,0,0,0.55)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8 }} numberOfLines={2}>{salon.name}</AppText>
             {/* Address */}
             {(salon.address || salon.city) && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 12 }}>
                 <Ionicons name="location-outline" size={14} color="rgba(255,255,255,0.7)" />
-                <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', flex: 1 }} numberOfLines={1}>
+                <AppText style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', flex: 1 }} numberOfLines={1}>
                   {salon.address}{salon.city ? `, ${salon.city}` : ''}
-                </Text>
+                </AppText>
               </View>
             )}
             {/* Rating + services row */}
@@ -488,16 +489,16 @@ export default function SalonDetailsScreen({ route, navigation }) {
               {rating > 0 && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, backgroundColor: 'rgba(251,191,36,0.15)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.35)' }}>
                   <Ionicons name="star" size={12} color="#fbbf24" />
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#fbbf24' }}>{rating.toFixed(1)}</Text>
+                  <AppText style={{ fontSize: 13, fontWeight: '700', color: '#fbbf24' }}>{rating.toFixed(1)}</AppText>
                   {(salon.totalReviews || salon.reviewCount || reviews.length) > 0 && (
-                    <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>({salon.totalReviews || salon.reviewCount || reviews.length})</Text>
+                    <AppText style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>({salon.totalReviews || salon.reviewCount || reviews.length})</AppText>
                   )}
                 </View>
               )}
               {services.length > 0 && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }}>
                   <Ionicons name="cut-outline" size={12} color="rgba(255,255,255,0.8)" />
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.8)' }}>{services.length} Services</Text>
+                  <AppText style={{ fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.8)' }}>{services.length} Services</AppText>
                 </View>
               )}
             </View>
@@ -508,14 +509,14 @@ export default function SalonDetailsScreen({ route, navigation }) {
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 11, borderRadius: 14, backgroundColor: '#7C3AED', shadowColor: '#7C3AED', shadowOpacity: 0.55, shadowRadius: 14, elevation: 8 }}
               >
                 <Ionicons name="flash-outline" size={16} color="#fff" />
-                <Text style={{ fontSize: 14, fontWeight: '700', color: '#fff' }}>Book Your Look ✨</Text>
+                <AppText style={{ fontSize: 14, fontWeight: '700', color: '#fff' }}>Book Your Look ✨</AppText>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setFollowed(f => !f)}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 11, borderRadius: 14, backgroundColor: followed ? 'rgba(124,58,237,0.2)' : 'rgba(255,255,255,0.14)', borderWidth: 1.5, borderColor: followed ? '#7C3AED' : 'rgba(255,255,255,0.25)' }}
               >
                 <Ionicons name={followed ? 'heart' : 'heart-outline'} size={16} color={followed ? '#A78BFA' : '#fff'} />
-                <Text style={{ fontSize: 14, fontWeight: '600', color: followed ? '#A78BFA' : '#fff' }}>{followed ? 'Following' : 'Follow'}</Text>
+                <AppText style={{ fontSize: 14, fontWeight: '600', color: followed ? '#A78BFA' : '#fff' }}>{followed ? 'Following' : 'Follow'}</AppText>
               </TouchableOpacity>
               {salon.phone && (
                 <TouchableOpacity
@@ -523,7 +524,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 11, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' }}
                 >
                   <Ionicons name="call-outline" size={16} color="#fff" />
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff' }}>Call</Text>
+                  <AppText style={{ fontSize: 14, fontWeight: '600', color: '#fff' }}>Call</AppText>
                 </TouchableOpacity>
               )}
               {(salon.address || salon.city) && (
@@ -532,7 +533,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 11, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' }}
                 >
                   <Ionicons name="navigate-outline" size={16} color="#fff" />
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff' }}>Directions</Text>
+                  <AppText style={{ fontSize: 14, fontWeight: '600', color: '#fff' }}>Directions</AppText>
                 </TouchableOpacity>
               )}
             </View>
@@ -545,22 +546,22 @@ export default function SalonDetailsScreen({ route, navigation }) {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
               backgroundColor: salon.servedGender === 'male' ? 'rgba(59,130,246,0.1)' : salon.servedGender === 'female' ? 'rgba(236,72,153,0.1)' : 'rgba(139,92,246,0.1)',
               borderWidth: 1,
-              borderColor: salon.servedGender === 'male' ? 'rgba(59,130,246,0.22)' : salon.servedGender === 'female' ? 'rgba(236,72,153,0.22)' : 'rgba(139,92,246,0.22)',
+              borderColor: salon.servedGender === 'male' ? 'rgba(59,130,246,0.22)' : salon.servedGender === 'female' ? 'rgba(236,72,153,0.22)' : 'rgba(139,92,246,0.22)'
             }}>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: salon.servedGender === 'male' ? '#60a5fa' : salon.servedGender === 'female' ? '#f472b6' : '#c4b5fd' }}>
+              <AppText style={{ fontSize: 12, fontWeight: '600', color: salon.servedGender === 'male' ? '#60a5fa' : salon.servedGender === 'female' ? '#f472b6' : '#c4b5fd' }}>
                 {salon.servedGender === 'male' ? '👨 Men' : salon.servedGender === 'female' ? '👩 Women' : '👥 Unisex'}
-              </Text>
+              </AppText>
             </View>
           )}
           {salon.ownerGender && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
               backgroundColor: salon.ownerGender === 'male' ? 'rgba(59,130,246,0.1)' : salon.ownerGender === 'female' ? 'rgba(236,72,153,0.1)' : 'rgba(148,163,184,0.1)',
               borderWidth: 1,
-              borderColor: salon.ownerGender === 'male' ? 'rgba(59,130,246,0.22)' : salon.ownerGender === 'female' ? 'rgba(236,72,153,0.22)' : 'rgba(148,163,184,0.2)',
+              borderColor: salon.ownerGender === 'male' ? 'rgba(59,130,246,0.22)' : salon.ownerGender === 'female' ? 'rgba(236,72,153,0.22)' : 'rgba(148,163,184,0.2)'
             }}>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: salon.ownerGender === 'male' ? '#60a5fa' : salon.ownerGender === 'female' ? '#f472b6' : theme.subText }}>
+              <AppText style={{ fontSize: 12, fontWeight: '600', color: salon.ownerGender === 'male' ? '#60a5fa' : salon.ownerGender === 'female' ? '#f472b6' : theme.subText }}>
                 {salon.ownerGender === 'male' ? '👨 Owner: Male' : salon.ownerGender === 'female' ? '👩 Owner: Female' : '🧑 Owner: Other'}
-              </Text>
+              </AppText>
             </View>
           )}
           {salon.phone && (
@@ -569,12 +570,12 @@ export default function SalonDetailsScreen({ route, navigation }) {
               style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: theme.cardAlt, borderWidth: 1, borderColor: theme.border }}
             >
               <Ionicons name="call-outline" size={12} color={theme.subText} />
-              <Text style={{ fontSize: 12, fontWeight: '600', color: theme.subText }}>{salon.phone}</Text>
+              <AppText style={{ fontSize: 12, fontWeight: '600', color: theme.subText }}>{salon.phone}</AppText>
             </TouchableOpacity>
           )}
         </ScrollView>
         {salon.description && (
-          <Text style={{ fontSize: 13, color: theme.subText, lineHeight: 19, paddingHorizontal: 16, paddingBottom: 10 }}>{salon.description}</Text>
+          <AppText style={{ fontSize: 13, color: theme.subText, lineHeight: 19, paddingHorizontal: 16, paddingBottom: 10 }}>{salon.description}</AppText>
         )}
 
         {/* Trust strip */}
@@ -583,21 +584,21 @@ export default function SalonDetailsScreen({ route, navigation }) {
             {openStatus !== null && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: openStatus ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.1)', borderWidth: 1, borderColor: openStatus ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.2)' }}>
                 <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: openStatus ? '#10b981' : '#ef4444' }} />
-                <Text style={{ fontSize: 11, fontWeight: '700', color: openStatus ? '#10b981' : '#ef4444' }}>
+                <AppText style={{ fontSize: 11, fontWeight: '700', color: openStatus ? '#10b981' : '#ef4444' }}>
                   {openStatus ? 'Open Now' : opensAt ? `Opens ${opensAt}` : 'Closed'}
-                </Text>
+                </AppText>
               </View>
             )}
             {todayHours && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 <Ionicons name="time-outline" size={13} color={theme.subText} />
-                <Text style={{ fontSize: 11, fontWeight: '600', color: theme.subText }}>{todayHours}</Text>
+                <AppText style={{ fontSize: 11, fontWeight: '600', color: theme.subText }}>{todayHours}</AppText>
               </View>
             )}
             {rating > 0 && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 <Ionicons name="star" size={13} color="#f59e0b" />
-                <Text style={{ fontSize: 11, fontWeight: '700', color: '#f59e0b' }}>{rating.toFixed(1)} Rating</Text>
+                <AppText style={{ fontSize: 11, fontWeight: '700', color: '#f59e0b' }}>{rating.toFixed(1)} Rating</AppText>
               </View>
             )}
             {(() => {
@@ -605,28 +606,28 @@ export default function SalonDetailsScreen({ route, navigation }) {
               return (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                   <Ionicons name="people-outline" size={13} color={theme.subText} />
-                  <Text style={{ fontSize: 11, fontWeight: '600', color: theme.subText }}>
+                  <AppText style={{ fontSize: 11, fontWeight: '600', color: theme.subText }}>
                     {rc > 0 ? `${rc} ${rc === 1 ? 'Review' : 'Reviews'}` : 'No reviews yet'}
-                  </Text>
+                  </AppText>
                 </View>
               );
             })()}
             {salon.isApproved && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 <Ionicons name="checkmark-circle-outline" size={13} color="#10b981" />
-                <Text style={{ fontSize: 11, fontWeight: '600', color: '#10b981' }}>Verified</Text>
+                <AppText style={{ fontSize: 11, fontWeight: '600', color: '#10b981' }}>Verified</AppText>
               </View>
             )}
             {services.length > 0 && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 <Ionicons name="cut-outline" size={13} color={theme.subText} />
-                <Text style={{ fontSize: 11, fontWeight: '600', color: theme.subText }}>{services.length} Services</Text>
+                <AppText style={{ fontSize: 11, fontWeight: '600', color: theme.subText }}>{services.length} Services</AppText>
               </View>
             )}
             {totalBookings >= 10 && (
-              <Text style={{ fontSize: 11, fontWeight: '600', color: '#f87171' }}>
+              <AppText style={{ fontSize: 11, fontWeight: '600', color: '#f87171' }}>
                 🔥 {totalBookings >= 1000 ? `${(totalBookings/1000).toFixed(1)}k` : `${totalBookings}+`} booked
-              </Text>
+              </AppText>
             )}
           </ScrollView>
         </View>
@@ -639,8 +640,8 @@ export default function SalonDetailsScreen({ route, navigation }) {
             { val: rating > 0 ? `${rating.toFixed(1)}★` : '—', label: 'RATING' },
           ].map(({ val, label }, i) => (
             <View key={label} style={{ flex: 1, paddingVertical: 14, alignItems: 'center', borderLeftWidth: i > 0 ? 1 : 0, borderLeftColor: 'rgba(167,139,250,0.15)' }}>
-              <Text style={{ fontSize: 18, fontWeight: '900', color: '#FFFFFF', lineHeight: 22, marginBottom: 3 }}>{val}</Text>
-              <Text style={{ fontSize: 9, fontWeight: '700', letterSpacing: 1.2, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>{label}</Text>
+              <AppText style={{ fontSize: 18, fontWeight: '900', color: '#FFFFFF', lineHeight: 22, marginBottom: 3 }}>{val}</AppText>
+              <AppText style={{ fontSize: 9, fontWeight: '700', letterSpacing: 1.2, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>{label}</AppText>
             </View>
           ))}
         </View>
@@ -651,22 +652,22 @@ export default function SalonDetailsScreen({ route, navigation }) {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 8 }}>
               {nextSlot && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, backgroundColor: 'rgba(99,102,241,0.1)', borderWidth: 1, borderColor: 'rgba(99,102,241,0.2)' }}>
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: theme.accent }}>⏱ Next slot: {nextSlot}</Text>
+                  <AppText style={{ fontSize: 11, fontWeight: '700', color: theme.accent }}>⏱ Next slot: {nextSlot}</AppText>
                 </View>
               )}
               {salon.minPrice && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, backgroundColor: 'rgba(99,102,241,0.08)', borderWidth: 1, borderColor: 'rgba(99,102,241,0.15)' }}>
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: theme.accent }}>💰 From ₹{salon.minPrice}</Text>
+                  <AppText style={{ fontSize: 11, fontWeight: '700', color: theme.accent }}>💰 From ₹{salon.minPrice}</AppText>
                 </View>
               )}
               {salon.kidsHaircut && (
                 <View style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, backgroundColor: 'rgba(234,179,8,0.12)', borderWidth: 1, borderColor: 'rgba(234,179,8,0.2)' }}>
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#f59e0b' }}>👶 Kids Haircut</Text>
+                  <AppText style={{ fontSize: 11, fontWeight: '700', color: '#f59e0b' }}>👶 Kids Haircut</AppText>
                 </View>
               )}
               {salon.atHomeServices && (
                 <View style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, backgroundColor: 'rgba(16,185,129,0.12)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.2)' }}>
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#10b981' }}>🏠 At-Home Service</Text>
+                  <AppText style={{ fontSize: 11, fontWeight: '700', color: '#10b981' }}>🏠 At-Home Service</AppText>
                 </View>
               )}
             </ScrollView>
@@ -681,9 +682,9 @@ export default function SalonDetailsScreen({ route, navigation }) {
           <View style={{ marginHorizontal: 16, marginBottom: 14 }}>
             {/* Section header */}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>🏷️ Offers & Coupons</Text>
+              <AppText style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>🏷️ Offers & Coupons</AppText>
               <View style={{ backgroundColor: 'rgba(16,185,129,0.15)', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 }}>
-                <Text style={{ fontSize: 10, fontWeight: '700', color: '#059669' }}>{allOffers.length}</Text>
+                <AppText style={{ fontSize: 10, fontWeight: '700', color: '#059669' }}>{allOffers.length}</AppText>
               </View>
             </View>
             {allOffers.map((offer) => {
@@ -697,33 +698,33 @@ export default function SalonDetailsScreen({ route, navigation }) {
               return (
                 <View key={offer.code} style={{ backgroundColor: bgClr, borderWidth: 1, borderColor: borderClr, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 8 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <Text style={{ fontSize: 18 }}>{icon}</Text>
+                    <AppText style={{ fontSize: 18 }}>{icon}</AppText>
                     <View style={{ flex: 1 }}>
                       {/* Discount label + badges */}
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                        <Text style={{ fontSize: 13, fontWeight: '700', color: textClr }}>{offerLabel}</Text>
+                        <AppText style={{ fontSize: 13, fontWeight: '700', color: textClr }}>{offerLabel}</AppText>
                         {offer.isExpiringSoon && (
                           <View style={{ backgroundColor: 'rgba(245,158,11,0.15)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.3)', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 }}>
-                            <Text style={{ fontSize: 9, fontWeight: '700', color: '#d97706' }}>⏰ EXPIRING SOON</Text>
+                            <AppText style={{ fontSize: 9, fontWeight: '700', color: '#d97706' }}>⏰ EXPIRING SOON</AppText>
                           </View>
                         )}
                         {offer.isLimited && !offer.isExpiringSoon && (
                           <View style={{ backgroundColor: 'rgba(239,68,68,0.12)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 }}>
-                            <Text style={{ fontSize: 9, fontWeight: '700', color: '#dc2626' }}>⚡ LIMITED</Text>
+                            <AppText style={{ fontSize: 9, fontWeight: '700', color: '#dc2626' }}>⚡ LIMITED</AppText>
                           </View>
                         )}
                       </View>
                       {/* Meta: expiry + remaining */}
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 3, flexWrap: 'wrap' }}>
                         {offer.expiresLabel && (
-                          <Text style={{ fontSize: 10, color: offer.isExpiringSoon ? '#d97706' : theme.subText }}>
+                          <AppText style={{ fontSize: 10, color: offer.isExpiringSoon ? '#d97706' : theme.subText }}>
                             {offer.daysLeft === 0 ? '🔴' : offer.daysLeft === 1 ? '🟡' : '🟢'} {offer.expiresLabel}
-                          </Text>
+                          </AppText>
                         )}
                         {offer.remaining !== null && (
-                          <Text style={{ fontSize: 10, fontWeight: '600', color: offer.isLimited ? '#dc2626' : theme.subText }}>
+                          <AppText style={{ fontSize: 10, fontWeight: '600', color: offer.isLimited ? '#dc2626' : theme.subText }}>
                             {offer.remaining <= 5 ? `🔴 Only ${offer.remaining} left!` : offer.remaining <= 10 ? `🟡 Only ${offer.remaining} left` : `${offer.remaining} uses left`}
-                          </Text>
+                          </AppText>
                         )}
                       </View>
                     </View>
@@ -732,7 +733,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                       onPress={() => { setCouponInput(offer.code); if (!showBooking) openBooking(); }}
                       style={{ backgroundColor: `rgba(${offer.isExpiringSoon ? '245,158,11' : offer.isLimited ? '239,68,68' : '5,150,105'},0.15)`, borderWidth: 1, borderColor: borderClr, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 }}
                     >
-                      <Text style={{ fontSize: 11, fontWeight: '700', color: textClr, letterSpacing: 0.5 }}>{offer.code}</Text>
+                      <AppText style={{ fontSize: 11, fontWeight: '700', color: textClr, letterSpacing: 0.5 }}>{offer.code}</AppText>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -747,12 +748,12 @@ export default function SalonDetailsScreen({ route, navigation }) {
           {TABS.map(t => (
             <TouchableOpacity key={t} style={[styles.tabBtn, activeTab === t && styles.tabBtnActive]} onPress={() => setTab(t)}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Text style={[styles.tabText, activeTab === t && styles.tabTextActive]}>{t}</Text>
+                <AppText style={[styles.tabText, activeTab === t && styles.tabTextActive]}>{t}</AppText>
                 {((t === 'Reviews' && reviews.length > 0) || (t === 'Packages' && packages.length > 0)) && (
                   <View style={[styles.tabBadge, activeTab === t && styles.tabBadgeActive]}>
-                    <Text style={[styles.tabBadgeText, tab === t && { color: '#bfdbfe' }]}>
+                    <AppText style={[styles.tabBadgeText, tab === t && { color: '#bfdbfe' }]}>
                       {t === 'Reviews' ? reviews.length : packages.length}
-                    </Text>
+                    </AppText>
                   </View>
                 )}
               </View>
@@ -778,7 +779,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
               'Body Grooming':        { m: new Set(['Chest Waxing','Back Waxing','Full Body Wax','Threading (optional)','Nose Wax','Ear Cleaning']), f: new Set(['Full Body Wax','Half Wax','Bikini Wax','Threading (Eyebrow / Upper Lip / Forehead)','Body Polish','Body Scrub']) },
               'Bridal & Events':      { m: new Set(['Groom Makeup','Hairstyling (Groom)','Shave & Grooming (Groom)']), f: new Set(['Bridal Makeup','Engagement Makeup','Party Makeup','Hairstyling','Saree Draping']) },
               'Kids Services':        { m: new Set(["Kids' Haircut (Boys)","Kids' Hair Styling (Boys)","Kids' Hair Wash"]), f: new Set(["Kids' Haircut (Girls)","Kids' Hair Styling (Girls)","Kids' Hair Wash","Kids' Braiding"]) },
-              'At-Home Services':     { m: new Set(['At-Home Haircut (Men)','At-Home Shave','At-Home Massage','At-Home Facial (Men)']), f: new Set(['At-Home Haircut (Women)','At-Home Facial','At-Home Waxing','At-Home Massage','At-Home Bridal']) },
+              'At-Home Services':     { m: new Set(['At-Home Haircut (Men)','At-Home Shave','At-Home Massage','At-Home Facial (Men)']), f: new Set(['At-Home Haircut (Women)','At-Home Facial','At-Home Waxing','At-Home Massage','At-Home Bridal']) }
             };
 
             const classifySvc = (s) => {
@@ -812,7 +813,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
               'Skin & Face / Beauty': '🧖', 'Skin & Face (Men Grooming)': '🧴', 'Skin & Beauty': '🧖',
               'Spa & Massage': '💆', 'Spa & Relaxation': '💆',
               'Body Grooming': '🧴', 'Bridal & Events': '👰',
-              'Kids Services': '👶', 'At-Home Services': '🏠',
+              'Kids Services': '👶', 'At-Home Services': '🏠'
             };
 
             const CATEGORY_ORDER = [
@@ -857,11 +858,11 @@ export default function SalonDetailsScreen({ route, navigation }) {
                           paddingHorizontal: 12, paddingVertical: 7,
                           borderRadius: 20, borderWidth: 1.5,
                           backgroundColor: serviceGenderFilter === key ? '#4f46e5' : '#fff',
-                          borderColor: serviceGenderFilter === key ? '#4f46e5' : '#d1d5db',
+                          borderColor: serviceGenderFilter === key ? '#4f46e5' : '#d1d5db'
                         }}
                       >
-                        <Text style={{ fontSize: 13 }}>{emoji}</Text>
-                        <Text style={{ fontSize: 12, fontWeight: '600', color: serviceGenderFilter === key ? '#fff' : '#6b7280' }}>{label}</Text>
+                        <AppText style={{ fontSize: 13 }}>{emoji}</AppText>
+                        <AppText style={{ fontSize: 12, fontWeight: '600', color: serviceGenderFilter === key ? '#fff' : '#6b7280' }}>{label}</AppText>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -870,7 +871,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                 {visibleServices.length === 0 ? (
                   <View style={styles.emptyTab}>
                     <Ionicons name="cut-outline" size={36} color="#d1d5db" />
-                    <Text style={styles.emptyTabText}>No services listed</Text>
+                    <AppText style={styles.emptyTabText}>No services listed</AppText>
                   </View>
                 ) : sortedGroupEntries.map(([cat, catServices]) => {
                   const showGenderSplit = salon.servedGender === 'unisex' && serviceGenderFilter === 'all';
@@ -890,13 +891,13 @@ export default function SalonDetailsScreen({ route, navigation }) {
                       >
                         <View style={{ flex: 1 }}>
                           <View style={styles.serviceTop}>
-                            <Text style={[styles.serviceName, selected && { color: '#7C3AED' }]}>{svc.name}</Text>
-                            <Text style={styles.servicePrice}>₹{svc.basePrice || svc.price}</Text>
+                            <AppText style={[styles.serviceName, selected && { color: '#7C3AED' }]}>{svc.name}</AppText>
+                            <AppText style={styles.servicePrice}>₹{svc.basePrice || svc.price}</AppText>
                           </View>
                           <View style={styles.serviceMeta}>
                             <Ionicons name="time-outline" size={12} color="#9ca3af" />
-                            <Text style={styles.serviceMetaText}>{svc.duration} min</Text>
-                            {svc.description && <Text style={styles.serviceDesc} numberOfLines={1}>· {svc.description}</Text>}
+                            <AppText style={styles.serviceMetaText}>{svc.duration} min</AppText>
+                            {svc.description && <AppText style={styles.serviceDesc} numberOfLines={1}>· {svc.description}</AppText>}
                           </View>
                         </View>
                         <View style={[styles.checkbox, selected && styles.checkboxChecked]}>
@@ -915,9 +916,9 @@ export default function SalonDetailsScreen({ route, navigation }) {
                         style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 15, backgroundColor: theme.card }}
                         activeOpacity={0.7}
                       >
-                        <Text style={{ fontSize: 18 }}>{categoryIconMap[cat] || '✨'}</Text>
-                        <Text style={{ fontSize: 15, fontWeight: '700', color: theme.text, flex: 1 }}>{cat}</Text>
-                        <Text style={{ fontSize: 12, color: theme.subText, marginRight: 6 }}>{catServices.length}</Text>
+                        <AppText style={{ fontSize: 18 }}>{categoryIconMap[cat] || '✨'}</AppText>
+                        <AppText style={{ fontSize: 15, fontWeight: '700', color: theme.text, flex: 1 }}>{cat}</AppText>
+                        <AppText style={{ fontSize: 12, color: theme.subText, marginRight: 6 }}>{catServices.length}</AppText>
                         <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={16} color={theme.subText} />
                       </TouchableOpacity>
 
@@ -927,13 +928,13 @@ export default function SalonDetailsScreen({ route, navigation }) {
                             <View style={{ gap: 12 }}>
                               {maleOnly.length > 0 && (
                                 <View>
-                                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#7C3AED', marginBottom: 6 }}>👨 Men</Text>
+                                  <AppText style={{ fontSize: 12, fontWeight: '700', color: '#7C3AED', marginBottom: 6 }}>👨 Men</AppText>
                                   <View style={{ gap: 8 }}>{maleOnly.map(renderServiceCard)}</View>
                                 </View>
                               )}
                               {femaleOnly.length > 0 && (
                                 <View>
-                                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#ec4899', marginBottom: 6 }}>👩 Women</Text>
+                                  <AppText style={{ fontSize: 12, fontWeight: '700', color: '#ec4899', marginBottom: 6 }}>👩 Women</AppText>
                                   <View style={{ gap: 8 }}>{femaleOnly.map(renderServiceCard)}</View>
                                 </View>
                               )}
@@ -958,8 +959,8 @@ export default function SalonDetailsScreen({ route, navigation }) {
             const videos = (salon?.videos || []).map(v => typeof v === 'string' ? v : v?.url).filter(Boolean);
             if (videos.length === 0) return (
               <View style={styles.emptyTab}>
-                <Text style={{ fontSize: 36, marginBottom: 8 }}>🎬</Text>
-                <Text style={styles.emptyTabText}>No reels yet</Text>
+                <AppText style={{ fontSize: 36, marginBottom: 8 }}>🎬</AppText>
+                <AppText style={styles.emptyTabText}>No reels yet</AppText>
               </View>
             );
             return (
@@ -976,7 +977,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                         </View>
                       </View>
                       <View style={{ position: 'absolute', bottom: 8, left: 8 }}>
-                        <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', fontWeight: '600' }}>{i+1}/{videos.length}</Text>
+                        <AppText style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', fontWeight: '600' }}>{i+1}/{videos.length}</AppText>
                       </View>
                     </TouchableOpacity>
                   );
@@ -990,8 +991,8 @@ export default function SalonDetailsScreen({ route, navigation }) {
             const photos = (salon?.photos || []).map(p => typeof p === 'string' ? p : p?.url).filter(Boolean);
             if (photos.length === 0) return (
               <View style={styles.emptyTab}>
-                <Text style={{ fontSize: 36, marginBottom: 8 }}>📷</Text>
-                <Text style={styles.emptyTabText}>No photos yet</Text>
+                <AppText style={{ fontSize: 36, marginBottom: 8 }}>📷</AppText>
+                <AppText style={styles.emptyTabText}>No photos yet</AppText>
               </View>
             );
             return (
@@ -1012,7 +1013,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
               {packages.length === 0 ? (
                 <View style={styles.emptyTab}>
                   <Ionicons name="gift-outline" size={36} color="#d1d5db" />
-                  <Text style={styles.emptyTabText}>No packages or memberships yet</Text>
+                  <AppText style={styles.emptyTabText}>No packages or memberships yet</AppText>
                 </View>
               ) : (
                 <>
@@ -1021,33 +1022,33 @@ export default function SalonDetailsScreen({ route, navigation }) {
                     <View>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                         <Ionicons name="gift-outline" size={15} color="#7C3AED" />
-                        <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>Service Packages</Text>
+                        <AppText style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>Service Packages</AppText>
                       </View>
                       {packages.filter(p => p.type === 'package').map(pkg => (
                         <View key={pkg._id} style={[styles.pkgCard, { borderColor: '#c7d2fe' }]}>
                           <View style={{ flexDirection: 'row', gap: 10, marginBottom: 8 }}>
-                            <Text style={{ fontSize: 24 }}>{pkg.icon || '🎁'}</Text>
+                            <AppText style={{ fontSize: 24 }}>{pkg.icon || '🎁'}</AppText>
                             <View style={{ flex: 1 }}>
-                              <Text style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>{pkg.name}</Text>
-                              {pkg.description ? <Text style={{ fontSize: 12, color: theme.subText }} numberOfLines={2}>{pkg.description}</Text> : null}
+                              <AppText style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>{pkg.name}</AppText>
+                              {pkg.description ? <AppText style={{ fontSize: 12, color: theme.subText }} numberOfLines={2}>{pkg.description}</AppText> : null}
                             </View>
                           </View>
                           {pkg.services?.length > 0 && (
                             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
                               {pkg.services.map((svc, i) => (
                                 <View key={i} style={{ backgroundColor: theme.bg, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 }}>
-                                  <Text style={{ fontSize: 11, color: theme.subText }}>{svc.serviceName}</Text>
+                                  <AppText style={{ fontSize: 11, color: theme.subText }}>{svc.serviceName}</AppText>
                                 </View>
                               ))}
                             </View>
                           )}
                           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                             <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
-                              <Text style={{ fontSize: 20, fontWeight: '900', color: '#7C3AED' }}>₹{pkg.discountedPrice}</Text>
+                              <AppText style={{ fontSize: 20, fontWeight: '900', color: '#7C3AED' }}>₹{pkg.discountedPrice}</AppText>
                               {pkg.originalPrice > 0 && pkg.originalPrice !== pkg.discountedPrice && (
                                 <>
-                                  <Text style={{ fontSize: 12, color: theme.subText, textDecorationLine: 'line-through' }}>₹{pkg.originalPrice}</Text>
-                                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#22c55e' }}>{pkg.discountPercent}% OFF</Text>
+                                  <AppText style={{ fontSize: 12, color: theme.subText, textDecorationLine: 'line-through' }}>₹{pkg.originalPrice}</AppText>
+                                  <AppText style={{ fontSize: 11, fontWeight: '700', color: '#22c55e' }}>{pkg.discountPercent}% OFF</AppText>
                                 </>
                               )}
                             </View>
@@ -1055,7 +1056,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                               onPress={() => { setPkgReqItem(pkg); setPkgNote(''); }}
                               style={styles.pkgBuyBtn}
                             >
-                              <Text style={styles.pkgBuyBtnText}>Buy Now</Text>
+                              <AppText style={styles.pkgBuyBtnText}>Buy Now</AppText>
                             </TouchableOpacity>
                           </View>
                         </View>
@@ -1068,43 +1069,43 @@ export default function SalonDetailsScreen({ route, navigation }) {
                     <View>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                         <Ionicons name="card-outline" size={15} color="#7c3aed" />
-                        <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>Membership Plans</Text>
+                        <AppText style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>Membership Plans</AppText>
                       </View>
                       {packages.filter(p => p.type === 'membership').map(pkg => (
                         <View key={pkg._id} style={[styles.pkgCard, { borderColor: '#ddd6fe' }]}>
                           <View style={{ flexDirection: 'row', gap: 10, marginBottom: 8 }}>
-                            <Text style={{ fontSize: 24 }}>{pkg.icon || '💳'}</Text>
+                            <AppText style={{ fontSize: 24 }}>{pkg.icon || '💳'}</AppText>
                             <View style={{ flex: 1 }}>
-                              <Text style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>{pkg.name}</Text>
-                              {pkg.description ? <Text style={{ fontSize: 12, color: theme.subText }} numberOfLines={2}>{pkg.description}</Text> : null}
+                              <AppText style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>{pkg.name}</AppText>
+                              {pkg.description ? <AppText style={{ fontSize: 12, color: theme.subText }} numberOfLines={2}>{pkg.description}</AppText> : null}
                             </View>
                           </View>
                           <View style={{ gap: 4, marginBottom: 8 }}>
                             {pkg.benefits?.discountPercent > 0 && (
-                              <Text style={{ fontSize: 12, color: theme.subText }}>🏷 {pkg.benefits.discountPercent}% off all services</Text>
+                              <AppText style={{ fontSize: 12, color: theme.subText }}>🏷 {pkg.benefits.discountPercent}% off all services</AppText>
                             )}
                             {pkg.benefits?.priorityBooking && (
-                              <Text style={{ fontSize: 12, color: theme.subText }}>⚡ Priority booking</Text>
+                              <AppText style={{ fontSize: 12, color: theme.subText }}>⚡ Priority booking</AppText>
                             )}
                             {(pkg.benefits?.freeServices || []).map((fs, i) => (
-                              <Text key={i} style={{ fontSize: 12, color: theme.subText }}>✓ {fs.serviceName} × {fs.usageLimit}</Text>
+                              <AppText key={i} style={{ fontSize: 12, color: theme.subText }}>✓ {fs.serviceName} × {fs.usageLimit}</AppText>
                             ))}
                           </View>
                           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                             <View>
                               <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
-                                <Text style={{ fontSize: 20, fontWeight: '900', color: '#7c3aed' }}>₹{pkg.price}</Text>
-                                <Text style={{ fontSize: 12, color: theme.subText }}>
+                                <AppText style={{ fontSize: 20, fontWeight: '900', color: '#7c3aed' }}>₹{pkg.price}</AppText>
+                                <AppText style={{ fontSize: 12, color: theme.subText }}>
                                   /{pkg.billingCycle === 'monthly' ? 'month' : pkg.billingCycle === 'quarterly' ? 'quarter' : 'year'}
-                                </Text>
+                                </AppText>
                               </View>
-                              <Text style={{ fontSize: 11, color: theme.subText }}>Valid {pkg.durationDays} days</Text>
+                              <AppText style={{ fontSize: 11, color: theme.subText }}>Valid {pkg.durationDays} days</AppText>
                             </View>
                             <TouchableOpacity
                               onPress={() => { setPkgReqItem(pkg); setPkgNote(''); }}
                               style={[styles.pkgBuyBtn, { backgroundColor: '#7c3aed' }]}
                             >
-                              <Text style={styles.pkgBuyBtnText}>Subscribe</Text>
+                              <AppText style={styles.pkgBuyBtnText}>Subscribe</AppText>
                             </TouchableOpacity>
                           </View>
                         </View>
@@ -1126,16 +1127,16 @@ export default function SalonDetailsScreen({ route, navigation }) {
             return (
               <View style={{ gap: 12 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <Text style={{ fontSize: 17, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.3 }}>Reflections of Glow</Text>
+                  <AppText style={{ fontSize: 17, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.3 }}>Reflections of Glow</AppText>
                   <TouchableOpacity style={{ backgroundColor: 'rgba(124,58,237,0.15)', borderWidth: 1, borderColor: 'rgba(124,58,237,0.35)', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#A78BFA' }}>Write Review</Text>
+                    <AppText style={{ fontSize: 11, fontWeight: '700', color: '#A78BFA' }}>Write Review</AppText>
                   </TouchableOpacity>
                 </View>
-                <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: -8, marginBottom: 4 }}>Our community's experience with {salon.name}.</Text>
+                <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: -8, marginBottom: 4 }}>Our community's experience with {salon.name}.</AppText>
                 {reviews.length === 0 ? (
                   <View style={styles.emptyTab}>
-                    <Text style={{ fontSize: 32, marginBottom: 8 }}>💬</Text>
-                    <Text style={styles.emptyTabText}>No reviews yet. Be the first!</Text>
+                    <AppText style={{ fontSize: 32, marginBottom: 8 }}>💬</AppText>
+                    <AppText style={styles.emptyTabText}>No reviews yet. Be the first!</AppText>
                   </View>
                 ) : (
                   <>
@@ -1143,32 +1144,32 @@ export default function SalonDetailsScreen({ route, navigation }) {
                     <View style={{ borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.12)', padding: 18, marginBottom: 4 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 16 }}>
                         <View style={{ alignItems: 'center' }}>
-                          <Text style={{ fontSize: 44, fontWeight: '900', color: '#FFFFFF', lineHeight: 48 }}>{rating > 0 ? rating.toFixed(1) : '—'}</Text>
+                          <AppText style={{ fontSize: 44, fontWeight: '900', color: '#FFFFFF', lineHeight: 48 }}>{rating > 0 ? rating.toFixed(1) : '—'}</AppText>
                           <View style={{ flexDirection: 'row', gap: 2, marginVertical: 4 }}>
-                            {[1,2,3,4,5].map(s => <Text key={s} style={{ fontSize: 12, color: s <= Math.round(rating) ? '#FDE68A' : 'rgba(255,255,255,0.15)' }}>★</Text>)}
+                            {[1,2,3,4,5].map(s => <AppText key={s} style={{ fontSize: 12, color: s <= Math.round(rating) ? '#FDE68A' : 'rgba(255,255,255,0.15)' }}>★</AppText>)}
                           </View>
-                          <Text style={{ fontSize: 8, fontWeight: '700', letterSpacing: 1, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase' }}>BASED ON {reviews.length}</Text>
+                          <AppText style={{ fontSize: 8, fontWeight: '700', letterSpacing: 1, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase' }}>BASED ON {reviews.length}</AppText>
                         </View>
                         <View style={{ flex: 1, gap: 5 }}>
                           {[5,4,3,2,1].map(star => {
                             const pct = reviews.length > 0 ? Math.round((starCounts[star] || 0) / reviews.length * 100) : 0;
                             return (
                               <View key={star} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                                <Text style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', fontWeight: '600', width: 8, textAlign: 'right' }}>{star}</Text>
-                                <Text style={{ fontSize: 9, color: '#FDE68A' }}>★</Text>
+                                <AppText style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', fontWeight: '600', width: 8, textAlign: 'right' }}>{star}</AppText>
+                                <AppText style={{ fontSize: 9, color: '#FDE68A' }}>★</AppText>
                                 <View style={{ flex: 1, height: 5, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
                                   <View style={{ width: `${pct}%`, height: '100%', borderRadius: 999, backgroundColor: '#7C3AED' }} />
                                 </View>
-                                <Text style={{ fontSize: 8, color: 'rgba(255,255,255,0.35)', fontWeight: '600', width: 24, textAlign: 'right' }}>{pct}%</Text>
+                                <AppText style={{ fontSize: 8, color: 'rgba(255,255,255,0.35)', fontWeight: '600', width: 24, textAlign: 'right' }}>{pct}%</AppText>
                               </View>
                             );
                           })}
                         </View>
                       </View>
                       <View style={{ borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.07)', paddingTop: 12, alignItems: 'center' }}>
-                        <Text style={{ fontSize: 8, fontWeight: '700', letterSpacing: 1.2, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', marginBottom: 4 }}>RECOMMENDATION RATE</Text>
-                        <Text style={{ fontSize: 32, fontWeight: '900', color: '#FFFFFF' }}>{recommendRate}%</Text>
-                        <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>of clients would recommend to a friend.</Text>
+                        <AppText style={{ fontSize: 8, fontWeight: '700', letterSpacing: 1.2, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', marginBottom: 4 }}>RECOMMENDATION RATE</AppText>
+                        <AppText style={{ fontSize: 32, fontWeight: '900', color: '#FFFFFF' }}>{recommendRate}%</AppText>
+                        <AppText style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>of clients would recommend to a friend.</AppText>
                       </View>
                     </View>
                     {/* Filter pills */}
@@ -1176,7 +1177,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                       {[{ key: 'all', label: 'All Reviews' }, { key: 'with_photos', label: 'With Photos' }].map(({ key, label }) => (
                         <TouchableOpacity key={key} onPress={() => setReviewFilter(key)}
                           style={{ paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: reviewFilter === key ? '#7C3AED' : 'rgba(255,255,255,0.12)', backgroundColor: reviewFilter === key ? '#7C3AED' : 'transparent' }}>
-                          <Text style={{ fontSize: 12, fontWeight: '600', color: reviewFilter === key ? '#fff' : 'rgba(255,255,255,0.5)' }}>{label}</Text>
+                          <AppText style={{ fontSize: 12, fontWeight: '600', color: reviewFilter === key ? '#fff' : 'rgba(255,255,255,0.5)' }}>{label}</AppText>
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -1188,17 +1189,17 @@ export default function SalonDetailsScreen({ route, navigation }) {
                         <View key={r._id || i} style={{ borderRadius: 14, padding: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.10)', gap: 8 }}>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                             <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: avatarColors[i % avatarColors.length], alignItems: 'center', justifyContent: 'center' }}>
-                              <Text style={{ fontSize: 13, fontWeight: '700', color: '#fff' }}>{name.charAt(0).toUpperCase()}</Text>
+                              <AppText style={{ fontSize: 13, fontWeight: '700', color: '#fff' }}>{name.charAt(0).toUpperCase()}</AppText>
                             </View>
                             <View style={{ flex: 1 }}>
-                              <Text style={{ fontSize: 13, fontWeight: '700', color: '#FFFFFF' }}>{name}</Text>
-                              {r.createdAt && <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{new Date(r.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</Text>}
+                              <AppText style={{ fontSize: 13, fontWeight: '700', color: '#FFFFFF' }}>{name}</AppText>
+                              {r.createdAt && <AppText style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{new Date(r.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</AppText>}
                             </View>
                             <View style={{ flexDirection: 'row', gap: 1 }}>
-                              {[1,2,3,4,5].map(s => <Text key={s} style={{ fontSize: 11, color: s <= starRating ? '#FDE68A' : 'rgba(255,255,255,0.15)' }}>★</Text>)}
+                              {[1,2,3,4,5].map(s => <AppText key={s} style={{ fontSize: 11, color: s <= starRating ? '#FDE68A' : 'rgba(255,255,255,0.15)' }}>★</AppText>)}
                             </View>
                           </View>
-                          {(r.reviewText || r.comment) && <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 19 }} numberOfLines={4}>&ldquo;{r.reviewText || r.comment}&rdquo;</Text>}
+                          {(r.reviewText || r.comment) && <AppText style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 19 }} numberOfLines={4}>&ldquo;{r.reviewText || r.comment}&rdquo;</AppText>}
                         </View>
                       );
                     })}
@@ -1212,36 +1213,36 @@ export default function SalonDetailsScreen({ route, navigation }) {
           {activeTab === 'Info' && (
             <View style={{ gap: 12 }}>
               <View style={styles.infoSection}>
-                <Text style={styles.infoSectionTitle}>Contact</Text>
+                <AppText style={styles.infoSectionTitle}>Contact</AppText>
                 {salon.phone && (
                   <TouchableOpacity style={styles.infoRow2} onPress={() => Linking.openURL(`tel:${salon.phone}`)}>
                     <Ionicons name="call-outline" size={16} color="#7C3AED" />
-                    <Text style={[styles.infoValue, { color: '#7C3AED' }]}>{salon.phone}</Text>
+                    <AppText style={[styles.infoValue, { color: '#7C3AED' }]}>{salon.phone}</AppText>
                   </TouchableOpacity>
                 )}
                 {salon.email && (
                   <View style={styles.infoRow2}>
                     <Ionicons name="mail-outline" size={16} color="#6b7280" />
-                    <Text style={styles.infoValue}>{salon.email}</Text>
+                    <AppText style={styles.infoValue}>{salon.email}</AppText>
                   </View>
                 )}
               </View>
 
               <View style={styles.infoSection}>
-                <Text style={styles.infoSectionTitle}>Address</Text>
+                <AppText style={styles.infoSectionTitle}>Address</AppText>
                 <View style={styles.infoRow2}>
                   <Ionicons name="location-outline" size={16} color="#6b7280" />
-                  <Text style={styles.infoValue}>
+                  <AppText style={styles.infoValue}>
                     {[salon.address, salon.city, salon.district, salon.state, salon.pincode].filter(Boolean).join(', ')}
-                  </Text>
+                  </AppText>
                 </View>
               </View>
 
               {galleryItems.length > 0 && (
                 <View style={styles.infoSection}>
-                  <Text style={styles.infoSectionTitle}>
+                  <AppText style={styles.infoSectionTitle}>
                     Gallery ({salonPhotos.length} photo{salonPhotos.length !== 1 ? 's' : ''}{salonVideos.length > 0 ? ` · ${salonVideos.length} video${salonVideos.length !== 1 ? 's' : ''}` : ''})
-                  </Text>
+                  </AppText>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingTop: 4 }}>
                     {galleryItems.map((item, i) => (
                       <TouchableOpacity
@@ -1266,7 +1267,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
 
               {salon.workingHours && (
                 <View style={styles.infoSection}>
-                  <Text style={styles.infoSectionTitle}>Working Hours</Text>
+                  <AppText style={styles.infoSectionTitle}>Working Hours</AppText>
                   {DAY_NAMES.map(day => (
                     <WorkingHoursRow
                       key={day}
@@ -1287,11 +1288,11 @@ export default function SalonDetailsScreen({ route, navigation }) {
       {selectedServices.length > 0 && (
         <View style={[styles.bookBar, { paddingBottom: insets.bottom + 12 }]}>
           <View>
-            <Text style={styles.bookBarCount}>{selectedServices.length} service{selectedServices.length > 1 ? 's' : ''} · {totalDuration} min</Text>
-            <Text style={styles.bookBarPrice}>₹{totalPrice}</Text>
+            <AppText style={styles.bookBarCount}>{selectedServices.length} service{selectedServices.length > 1 ? 's' : ''} · {totalDuration} min</AppText>
+            <AppText style={styles.bookBarPrice}>₹{totalPrice}</AppText>
           </View>
           <TouchableOpacity style={styles.bookBtn} onPress={handleBookNow}>
-            <Text style={styles.bookBtnText}>Book Now</Text>
+            <AppText style={styles.bookBtnText}>Book Now</AppText>
             <Ionicons name="arrow-forward" size={16} color="#fff" />
           </TouchableOpacity>
         </View>
@@ -1310,7 +1311,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
               <View style={{ position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 48, paddingBottom: 12, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.4)' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   {isVideo && <Ionicons name="videocam" size={16} color="#a78bfa" />}
-                  <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>{galleryLightbox + 1} / {galleryItems.length}</Text>
+                  <AppText style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>{galleryLightbox + 1} / {galleryItems.length}</AppText>
                 </View>
                 <TouchableOpacity onPress={() => { galleryVideoRef.current?.pauseAsync?.().catch(()=>{}); setGalleryLightbox(null); }}
                   style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
@@ -1376,39 +1377,39 @@ export default function SalonDetailsScreen({ route, navigation }) {
                     color={bookingStatus === 'pending' ? '#d97706' : '#16a34a'}
                   />
                 </View>
-                <Text style={styles.successTitle}>
+                <AppText style={styles.successTitle}>
                   {bookingStatus === 'pending' ? 'Booking Received!' : 'Booking Confirmed!'}
-                </Text>
+                </AppText>
                 {bookingStatus === 'pending' && (
                   <View style={styles.pendingNote}>
-                    <Text style={styles.pendingNoteText}>Awaiting salon confirmation. You'll be notified once approved.</Text>
+                    <AppText style={styles.pendingNoteText}>Awaiting salon confirmation. You'll be notified once approved.</AppText>
                   </View>
                 )}
                 <View style={styles.successDetails}>
-                  <Text style={styles.successSalon}>{salon.name}</Text>
-                  <Text style={styles.successService}>{selectedServices.map(s => s.name).join(' + ')}</Text>
+                  <AppText style={styles.successSalon}>{salon.name}</AppText>
+                  <AppText style={styles.successService}>{selectedServices.map(s => s.name).join(' + ')}</AppText>
                   <View style={styles.successRow}>
                     <Ionicons name="calendar-outline" size={14} color="#6b7280" />
-                    <Text style={styles.successMeta}>{bookDate}</Text>
+                    <AppText style={styles.successMeta}>{bookDate}</AppText>
                     <Ionicons name="time-outline" size={14} color="#6b7280" style={{ marginLeft: 12 }} />
-                    <Text style={styles.successMeta}>{slot}</Text>
+                    <AppText style={styles.successMeta}>{slot}</AppText>
                   </View>
                   <View style={styles.successRow}>
                     <Ionicons name="cash-outline" size={14} color="#6b7280" />
-                    <Text style={styles.successMeta}>₹{finalPrice} · Pay at salon</Text>
+                    <AppText style={styles.successMeta}>₹{finalPrice} · Pay at salon</AppText>
                   </View>
                 </View>
                 <TouchableOpacity
                   style={styles.successBtn}
                   onPress={() => { setShowBooking(false); navigation.getParent()?.navigate('BookingsTab'); }}
                 >
-                  <Text style={styles.successBtnText}>View My Bookings</Text>
+                  <AppText style={styles.successBtnText}>View My Bookings</AppText>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.successBtnOutline}
                   onPress={() => { setShowBooking(false); navigation.goBack(); }}
                 >
-                  <Text style={styles.successBtnOutlineText}>Browse More Salons</Text>
+                  <AppText style={styles.successBtnOutlineText}>Browse More Salons</AppText>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1423,15 +1424,15 @@ export default function SalonDetailsScreen({ route, navigation }) {
                   <TouchableOpacity onPress={() => setShowBooking(false)} style={styles.bkBackBtn}>
                     <Ionicons name="arrow-back" size={20} color="#fff" />
                   </TouchableOpacity>
-                  <Text style={styles.bkHeaderTitle}>Book Appointment</Text>
+                  <AppText style={styles.bkHeaderTitle}>Book Appointment</AppText>
                   <View style={{ width: 36 }} />
                 </View>
                 {/* Selected services summary strip */}
                 <View style={styles.bkSvcStrip}>
-                  <Text style={styles.bkSvcStripText} numberOfLines={1}>
+                  <AppText style={styles.bkSvcStripText} numberOfLines={1}>
                     {salon.name} · {selectedServices.map(s => s.name).join(', ')}
-                  </Text>
-                  <Text style={styles.bkSvcStripMeta}>{totalDuration} min · ₹{totalPrice}</Text>
+                  </AppText>
+                  <AppText style={styles.bkSvcStripMeta}>{totalDuration} min · ₹{totalPrice}</AppText>
                 </View>
               </View>
 
@@ -1439,7 +1440,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
 
                 {/* Date selection */}
                 <View style={styles.bkSection}>
-                  <Text style={styles.bkSectionTitle}>Select Date</Text>
+                  <AppText style={styles.bkSectionTitle}>Select Date</AppText>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
                     {dateDays.map(d => {
                       const { day, date: dateNum } = formatDay(d);
@@ -1450,8 +1451,8 @@ export default function SalonDetailsScreen({ route, navigation }) {
                           style={[styles.dateChip, active && styles.dateChipActive]}
                           onPress={() => setBookDate(d)}
                         >
-                          <Text style={[styles.dateChipDay, active && styles.dateChipTextActive]}>{day}</Text>
-                          <Text style={[styles.dateChipNum, active && styles.dateChipTextActive]}>{dateNum}</Text>
+                          <AppText style={[styles.dateChipDay, active && styles.dateChipTextActive]}>{day}</AppText>
+                          <AppText style={[styles.dateChipNum, active && styles.dateChipTextActive]}>{dateNum}</AppText>
                         </TouchableOpacity>
                       );
                     })}
@@ -1461,14 +1462,14 @@ export default function SalonDetailsScreen({ route, navigation }) {
                 {/* Stylist selection */}
                 {barbers.length > 0 && (
                   <View style={styles.bkSection}>
-                    <Text style={styles.bkSectionTitle}>Select Stylist <Text style={{ fontWeight: '400', color: '#9ca3af' }}>(optional)</Text></Text>
+                    <AppText style={styles.bkSectionTitle}>Select Stylist <AppText style={{ fontWeight: '400', color: '#9ca3af' }}>(optional)</AppText></AppText>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
                       <TouchableOpacity
                         style={[styles.barberChip, barberId === '' && styles.barberChipActive]}
                         onPress={() => setBarberId('')}
                       >
                         <View style={styles.barberAvatar}><Ionicons name="people-outline" size={18} color={barberId === '' ? '#fff' : '#6b7280'} /></View>
-                        <Text style={[styles.barberName, barberId === '' && styles.barberNameActive]}>Any</Text>
+                        <AppText style={[styles.barberName, barberId === '' && styles.barberNameActive]}>Any</AppText>
                       </TouchableOpacity>
                       {barbers.map(b => (
                         <TouchableOpacity
@@ -1477,12 +1478,12 @@ export default function SalonDetailsScreen({ route, navigation }) {
                           onPress={() => setBarberId(b._id)}
                         >
                           <View style={styles.barberAvatar}>
-                            <Text style={{ fontSize: 15, fontWeight: '700', color: barberId === b._id ? '#fff' : '#7C3AED' }}>
+                            <AppText style={{ fontSize: 15, fontWeight: '700', color: barberId === b._id ? '#fff' : '#7C3AED' }}>
                               {b.name.charAt(0).toUpperCase()}
-                            </Text>
+                            </AppText>
                           </View>
-                          <Text style={[styles.barberName, barberId === b._id && styles.barberNameActive]}>{b.name}</Text>
-                          {b.experience > 0 && <Text style={styles.barberExp}>{b.experience}yr</Text>}
+                          <AppText style={[styles.barberName, barberId === b._id && styles.barberNameActive]}>{b.name}</AppText>
+                          {b.experience > 0 && <AppText style={styles.barberExp}>{b.experience}yr</AppText>}
                         </TouchableOpacity>
                       ))}
                     </ScrollView>
@@ -1491,27 +1492,27 @@ export default function SalonDetailsScreen({ route, navigation }) {
 
                 {/* Time slots */}
                 <View style={styles.bkSection}>
-                  <Text style={styles.bkSectionTitle}>
-                    Select Time {totalDuration > 0 && <Text style={{ fontWeight: '400', color: '#9ca3af' }}>({totalDuration} min)</Text>}
-                  </Text>
+                  <AppText style={styles.bkSectionTitle}>
+                    Select Time {totalDuration > 0 && <AppText style={{ fontWeight: '400', color: '#9ca3af' }}>({totalDuration} min)</AppText>}
+                  </AppText>
                   {slotsLoading ? (
                     <View style={styles.slotsLoading}>
                       <ActivityIndicator color="#7C3AED" size="small" />
-                      <Text style={{ color: '#6b7280', fontSize: 13 }}>Loading slots...</Text>
+                      <AppText style={{ color: '#6b7280', fontSize: 13 }}>Loading slots...</AppText>
                     </View>
                   ) : closedDay ? (
                     <View style={styles.closedDay}>
                       <Ionicons name="lock-closed-outline" size={20} color="#d97706" />
-                      <Text style={styles.closedDayText}>Salon is closed on this date. Try another day.</Text>
+                      <AppText style={styles.closedDayText}>Salon is closed on this date. Try another day.</AppText>
                     </View>
                   ) : slots.length === 0 ? (
                     <View style={styles.noSlots}>
-                      <Text style={styles.noSlotsText}>No available slots for this date.</Text>
+                      <AppText style={styles.noSlotsText}>No available slots for this date.</AppText>
                     </View>
                   ) : bookingMode === 'sequential' ? (
                     <View style={styles.seqSlot}>
                       <Ionicons name="flash-outline" size={16} color="#7c3aed" />
-                      <Text style={styles.seqText}>Auto-assigned: <Text style={{ fontWeight: '800' }}>{slots[0]} – {addMinutes(slots[0], totalDuration)}</Text></Text>
+                      <AppText style={styles.seqText}>Auto-assigned: <AppText style={{ fontWeight: '800' }}>{slots[0]} – {addMinutes(slots[0], totalDuration)}</AppText></AppText>
                     </View>
                   ) : (
                     <>
@@ -1519,7 +1520,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                         {[['#e5e7eb','Past'],['#fecaca','Booked'],['#7C3AED','Selected'],['#f3f4f6','Available']].map(([c, l]) => (
                           <View key={l} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                             <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: c }} />
-                            <Text style={{ fontSize: 10, color: '#6b7280' }}>{l}</Text>
+                            <AppText style={{ fontSize: 10, color: '#6b7280' }}>{l}</AppText>
                           </View>
                         ))}
                       </View>
@@ -1545,8 +1546,8 @@ export default function SalonDetailsScreen({ route, navigation }) {
                                 setSlot(s);
                               }}
                             >
-                              <Text style={[styles.slotTime, selected && { color: '#fff' }, (past || blocked) && { color: '#9ca3af' }]}>{s}</Text>
-                              <Text style={[styles.slotEnd, selected && { color: '#bfdbfe' }, (past || blocked) && { color: '#d1d5db' }]}>–{end}</Text>
+                              <AppText style={[styles.slotTime, selected && { color: '#fff' }, (past || blocked) && { color: '#9ca3af' }]}>{s}</AppText>
+                              <AppText style={[styles.slotEnd, selected && { color: '#bfdbfe' }, (past || blocked) && { color: '#d1d5db' }]}>–{end}</AppText>
                             </TouchableOpacity>
                           );
                         })}
@@ -1558,13 +1559,13 @@ export default function SalonDetailsScreen({ route, navigation }) {
                 {/* Coupon */}
                 {slot && salon?.hasCoupons && (
                   <View style={styles.bkSection}>
-                    <Text style={styles.bkSectionTitle}>Coupon Code</Text>
+                    <AppText style={styles.bkSectionTitle}>Coupon Code</AppText>
                     {appliedCoupon ? (
                       <View style={styles.couponApplied}>
                         <Ionicons name="checkmark-circle" size={18} color="#16a34a" />
-                        <Text style={styles.couponAppliedText}>{appliedCoupon.code} — ₹{couponDiscount} off</Text>
+                        <AppText style={styles.couponAppliedText}>{appliedCoupon.code} — ₹{couponDiscount} off</AppText>
                         <TouchableOpacity onPress={removeCoupon}>
-                          <Text style={{ color: '#ef4444', fontSize: 12, fontWeight: '600' }}>Remove</Text>
+                          <AppText style={{ color: '#ef4444', fontSize: 12, fontWeight: '600' }}>Remove</AppText>
                         </TouchableOpacity>
                       </View>
                     ) : (
@@ -1582,37 +1583,37 @@ export default function SalonDetailsScreen({ route, navigation }) {
                           onPress={applyCoupon}
                           disabled={!couponInput.trim() || couponLoading}
                         >
-                          {couponLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.couponBtnText}>Apply</Text>}
+                          {couponLoading ? <ActivityIndicator size="small" color="#fff" /> : <AppText style={styles.couponBtnText}>Apply</AppText>}
                         </TouchableOpacity>
                       </View>
                     )}
-                    {!!couponError && <Text style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>{couponError}</Text>}
+                    {!!couponError && <AppText style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>{couponError}</AppText>}
                   </View>
                 )}
 
                 {/* Price summary */}
                 {slot && (
                   <View style={styles.priceSummary}>
-                    <Text style={styles.priceSummaryTitle}>Booking Summary</Text>
+                    <AppText style={styles.priceSummaryTitle}>Booking Summary</AppText>
                     {selectedServices.map(s => (
                       <View key={s._id} style={styles.priceRow}>
-                        <Text style={styles.priceLabel}>{s.name}</Text>
-                        <Text style={styles.priceVal}>₹{s.basePrice || s.price}</Text>
+                        <AppText style={styles.priceLabel}>{s.name}</AppText>
+                        <AppText style={styles.priceVal}>₹{s.basePrice || s.price}</AppText>
                       </View>
                     ))}
                     <View style={styles.priceRow}>
-                      <Text style={styles.priceLabel}>Date & Time</Text>
-                      <Text style={styles.priceVal}>{bookDate} · {slot}</Text>
+                      <AppText style={styles.priceLabel}>Date & Time</AppText>
+                      <AppText style={styles.priceVal}>{bookDate} · {slot}</AppText>
                     </View>
                     {couponDiscount > 0 && (
                       <View style={styles.priceRow}>
-                        <Text style={[styles.priceLabel, { color: '#16a34a' }]}>Discount</Text>
-                        <Text style={[styles.priceVal, { color: '#16a34a' }]}>−₹{couponDiscount}</Text>
+                        <AppText style={[styles.priceLabel, { color: '#16a34a' }]}>Discount</AppText>
+                        <AppText style={[styles.priceVal, { color: '#16a34a' }]}>−₹{couponDiscount}</AppText>
                       </View>
                     )}
                     <View style={[styles.priceRow, { borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 8, marginTop: 4 }]}>
-                      <Text style={styles.priceTotalLabel}>Total (Pay at salon)</Text>
-                      <Text style={styles.priceTotalVal}>₹{finalPrice}</Text>
+                      <AppText style={styles.priceTotalLabel}>Total (Pay at salon)</AppText>
+                      <AppText style={styles.priceTotalVal}>₹{finalPrice}</AppText>
                     </View>
                   </View>
                 )}
@@ -1628,7 +1629,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                 >
                   {bookingLoading
                     ? <ActivityIndicator color="#fff" />
-                    : <><Ionicons name="checkmark-circle-outline" size={20} color="#fff" /><Text style={styles.confirmBtnText}>Confirm Booking</Text></>
+                    : <><Ionicons name="checkmark-circle-outline" size={20} color="#fff" /><AppText style={styles.confirmBtnText}>Confirm Booking</AppText></>
                   }
                 </TouchableOpacity>
               </View>
@@ -1642,12 +1643,12 @@ export default function SalonDetailsScreen({ route, navigation }) {
                 <View style={[styles.alertIcon, { backgroundColor: slotAlert === 'past' ? '#f3f4f6' : '#fee2e2' }]}>
                   <Ionicons name={slotAlert === 'past' ? 'time-outline' : 'ban-outline'} size={36} color={slotAlert === 'past' ? '#374151' : '#ef4444'} />
                 </View>
-                <Text style={styles.alertTitle}>{slotAlert === 'past' ? 'Time Has Passed' : 'Slot Already Booked'}</Text>
-                <Text style={styles.alertText}>
+                <AppText style={styles.alertTitle}>{slotAlert === 'past' ? 'Time Has Passed' : 'Slot Already Booked'}</AppText>
+                <AppText style={styles.alertText}>
                   {slotAlert === 'past' ? 'This time slot has already passed. Please choose an upcoming slot.' : 'This slot is taken. Please choose another available slot.'}
-                </Text>
+                </AppText>
                 <TouchableOpacity style={styles.alertBtn} onPress={() => setSlotAlert('')}>
-                  <Text style={styles.alertBtnText}>Choose Another Slot</Text>
+                  <AppText style={styles.alertBtnText}>Choose Another Slot</AppText>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1663,22 +1664,22 @@ export default function SalonDetailsScreen({ route, navigation }) {
             {pkgReqItem && (
               <>
                 <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 12 }}>
-                  <Text style={{ fontSize: 28 }}>{pkgReqItem.icon || (pkgReqItem.type === 'package' ? '🎁' : '💳')}</Text>
+                  <AppText style={{ fontSize: 28 }}>{pkgReqItem.icon || (pkgReqItem.type === 'package' ? '🎁' : '💳')}</AppText>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>{pkgReqItem.name}</Text>
-                    <Text style={{ fontSize: 12, color: theme.subText }}>
+                    <AppText style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>{pkgReqItem.name}</AppText>
+                    <AppText style={{ fontSize: 12, color: theme.subText }}>
                       {pkgReqItem.type === 'package'
                         ? `₹${pkgReqItem.discountedPrice}`
                         : `₹${pkgReqItem.price}/${pkgReqItem.billingCycle === 'monthly' ? 'month' : pkgReqItem.billingCycle === 'quarterly' ? 'quarter' : 'year'}`}
-                    </Text>
+                    </AppText>
                   </View>
                 </View>
                 <View style={{ backgroundColor: 'rgba(99,102,241,0.08)', borderRadius: 10, padding: 10, marginBottom: 12, width: '100%' }}>
-                  <Text style={{ fontSize: 12, color: '#7C3AED', lineHeight: 17 }}>
+                  <AppText style={{ fontSize: 12, color: '#7C3AED', lineHeight: 17 }}>
                     Pay directly at the salon. The owner will confirm after receiving your payment.
-                  </Text>
+                  </AppText>
                 </View>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: theme.subText, marginBottom: 6 }}>Note (optional)</Text>
+                <AppText style={{ fontSize: 12, fontWeight: '600', color: theme.subText, marginBottom: 6 }}>Note (optional)</AppText>
                 <TextInput
                   style={{ borderWidth: 1, borderColor: theme.border, borderRadius: 10, padding: 10, fontSize: 13, color: theme.text, backgroundColor: theme.bg, width: '100%', height: 68, textAlignVertical: 'top', marginBottom: 14 }}
                   placeholder="Any message to the salon owner..."
@@ -1692,16 +1693,16 @@ export default function SalonDetailsScreen({ route, navigation }) {
                     onPress={() => { setPkgReqItem(null); setPkgNote(''); }}
                     style={{ flex: 1, borderWidth: 1.5, borderColor: theme.border, borderRadius: 12, height: 46, alignItems: 'center', justifyContent: 'center' }}
                   >
-                    <Text style={{ color: theme.subText, fontWeight: '600', fontSize: 14 }}>Cancel</Text>
+                    <AppText style={{ color: theme.subText, fontWeight: '600', fontSize: 14 }}>Cancel</AppText>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={handlePackageRequest}
                     disabled={pkgReqLoading}
                     style={{ flex: 1, backgroundColor: '#7C3AED', borderRadius: 12, height: 46, alignItems: 'center', justifyContent: 'center', opacity: pkgReqLoading ? 0.6 : 1 }}
                   >
-                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>
+                    <AppText style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>
                       {pkgReqLoading ? 'Sending…' : 'Send Request'}
-                    </Text>
+                    </AppText>
                   </TouchableOpacity>
                 </View>
               </>
@@ -1887,5 +1888,5 @@ const getStyles = (t) => StyleSheet.create({
   // Packages tab
   pkgCard: { backgroundColor: t.card, borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1 },
   pkgBuyBtn: { backgroundColor: '#7C3AED', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 9 },
-  pkgBuyBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  pkgBuyBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' }
 });

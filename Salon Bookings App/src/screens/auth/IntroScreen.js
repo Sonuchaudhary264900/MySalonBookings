@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { View, Image, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import AppText from '../../components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function IntroScreen({ navigation }) {
@@ -13,16 +14,16 @@ export default function IntroScreen({ navigation }) {
         resizeMode="contain"
       />
       <View style={styles.bottom}>
-        <Text style={styles.title}>My Salon Bookings</Text>
-        <Text style={styles.subtitle}>Discover salons, book appointments{'\n'}and manage your beauty routine</Text>
+        <AppText style={styles.title}>My Salon Bookings</AppText>
+        <AppText style={styles.subtitle}>Discover salons, book appointments{'\n'}and manage your beauty routine</AppText>
         <TouchableOpacity style={styles.btnPrimary} onPress={() => navigation.navigate('Register')}>
-          <Text style={styles.btnPrimaryText}>Get Started</Text>
+          <AppText style={styles.btnPrimaryText}>Get Started</AppText>
         </TouchableOpacity>
         <TouchableOpacity style={styles.btnSecondary} onPress={() => navigation.navigate('Login')}>
-          <Text style={styles.btnSecondaryText}>Already have an account? <Text style={styles.btnSecondaryBold}>Sign In</Text></Text>
+          <AppText style={styles.btnSecondaryText}>Already have an account? <AppText style={styles.btnSecondaryBold}>Sign In</AppText></AppText>
         </TouchableOpacity>
         <TouchableOpacity style={styles.btnGuest} onPress={() => navigation.navigate('GuestHome')}>
-          <Text style={styles.btnGuestText}>Browse Salons</Text>
+          <AppText style={styles.btnGuestText}>Browse Salons</AppText>
         </TouchableOpacity>
       </View>
     </View>
@@ -42,5 +43,5 @@ const styles = StyleSheet.create({
   btnSecondaryText: { fontSize: 14, color: '#6b7280' },
   btnSecondaryBold: { color: '#2563eb', fontWeight: '700' },
   btnGuest:     { alignItems: 'center', paddingVertical: 8 },
-  btnGuestText: { fontSize: 13, color: '#9ca3af', textDecorationLine: 'underline' },
+  btnGuestText: { fontSize: 13, color: '#9ca3af', textDecorationLine: 'underline' }
 });

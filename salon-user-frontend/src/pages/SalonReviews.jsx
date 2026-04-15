@@ -72,7 +72,7 @@ export default function SalonReviews() {
           <p style={{ fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: theme.p, marginBottom: 10, fontWeight: 600 }}>
             Client Reviews
           </p>
-          <h1 style={{ fontSize: 'clamp(24px,4vw,38px)', fontWeight: 800, color: dm.fg, marginBottom: 8 }}>
+          <h1 style={{ fontSize: 'clamp(1.5rem,4vw,2.375rem)', fontWeight: 800, color: dm.fg, marginBottom: 8 }}>
             {loading ? 'Loading…' : avgRating ? (
               <><span style={{ color: theme.p }}>{avgRating}</span> out of 5</>
             ) : 'What clients say'}
@@ -114,12 +114,12 @@ export default function SalonReviews() {
                   </div>
                   {/* Comment */}
                   {r.reviewText && (
-                    <p style={{ fontSize: 'clamp(14px,1.5vw,16px)', lineHeight: 1.75, color: dm.fg75, marginBottom: 20 }}>
+                    <p style={{ fontSize: 'clamp(0.875rem,1.5vw,1rem)', lineHeight: 1.75, color: dm.fg75, marginBottom: 20 }}>
                       &ldquo;{r.reviewText}&rdquo;
                     </p>
                   )}
                   {r.comment && !r.reviewText && (
-                    <p style={{ fontSize: 'clamp(14px,1.5vw,16px)', lineHeight: 1.75, color: dm.fg75, marginBottom: 20 }}>
+                    <p style={{ fontSize: 'clamp(0.875rem,1.5vw,1rem)', lineHeight: 1.75, color: dm.fg75, marginBottom: 20 }}>
                       &ldquo;{r.comment}&rdquo;
                     </p>
                   )}

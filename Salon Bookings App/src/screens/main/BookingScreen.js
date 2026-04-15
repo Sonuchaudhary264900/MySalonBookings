@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, TextInput, Modal, Alert,
+  View, StyleSheet, ScrollView, TouchableOpacity,
+  ActivityIndicator, TextInput, Modal, Alert
 } from 'react-native';
+import AppText from '../../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../services/api';
@@ -131,7 +132,7 @@ export default function BookingScreen({ route, navigation }) {
       const res = await api.post('/customer/coupons/validate', {
         code: couponInput.trim().toUpperCase(),
         salonId,
-        totalAmount: totalPrice,
+        totalAmount: totalPrice
       });
       const { coupon, discount } = res.data.data;
       setAppliedCoupon(coupon);
@@ -163,7 +164,7 @@ export default function BookingScreen({ route, navigation }) {
         appointmentDate: date,
         appointmentTime: slot,
         paymentMethod: 'cash',
-        couponCode: appliedCoupon?.code || undefined,
+        couponCode: appliedCoupon?.code || undefined
       });
       const booking = res.data.data?.booking || res.data.data;
       const status  = booking?.status || 'confirmed';
@@ -181,7 +182,7 @@ export default function BookingScreen({ route, navigation }) {
     return (
       <View style={[styles.container, { paddingTop: insets.top, alignItems: 'center', justifyContent: 'center' }]}>
         <ActivityIndicator size="large" color="#2563eb" />
-        <Text style={{ color: theme.subText, marginTop: 12, fontSize: 14 }}>Loading...</Text>
+        <AppText style={{ color: theme.subText, marginTop: 12, fontSize: 14 }}>Loading...</AppText>
       </View>
     );
   }
@@ -194,31 +195,31 @@ export default function BookingScreen({ route, navigation }) {
           <View style={[styles.successIcon, { backgroundColor: isPending ? '#fef3c7' : '#dcfce7' }]}>
             <Ionicons name={isPending ? 'time-outline' : 'checkmark-circle'} size={52} color={isPending ? '#d97706' : '#16a34a'} />
           </View>
-          <Text style={styles.successTitle}>{isPending ? 'Booking Received!' : 'Booking Confirmed!'}</Text>
+          <AppText style={styles.successTitle}>{isPending ? 'Booking Received!' : 'Booking Confirmed!'}</AppText>
           {isPending && (
             <View style={styles.pendingNote}>
-              <Text style={styles.pendingNoteText}>Awaiting salon confirmation. You'll be notified once approved.</Text>
+              <AppText style={styles.pendingNoteText}>Awaiting salon confirmation. You'll be notified once approved.</AppText>
             </View>
           )}
           <View style={styles.successDetails}>
-            <Text style={styles.successSalon}>{salon?.name}</Text>
-            <Text style={styles.successService}>{services.map(s => s.name).join(' + ')}</Text>
+            <AppText style={styles.successSalon}>{salon?.name}</AppText>
+            <AppText style={styles.successService}>{services.map(s => s.name).join(' + ')}</AppText>
             <View style={styles.successRow}>
               <Ionicons name="calendar-outline" size={14} color="#6b7280" />
-              <Text style={styles.successMeta}>{date}</Text>
+              <AppText style={styles.successMeta}>{date}</AppText>
               <Ionicons name="time-outline" size={14} color="#6b7280" style={{ marginLeft: 12 }} />
-              <Text style={styles.successMeta}>{slot}</Text>
+              <AppText style={styles.successMeta}>{slot}</AppText>
             </View>
             <View style={styles.successRow}>
               <Ionicons name="cash-outline" size={14} color="#6b7280" />
-              <Text style={styles.successMeta}>₹{finalPrice} · Pay at salon</Text>
+              <AppText style={styles.successMeta}>₹{finalPrice} · Pay at salon</AppText>
             </View>
           </View>
           <TouchableOpacity style={styles.successBtn} onPress={() => navigation.getParent()?.navigate('BookingsTab')}>
-            <Text style={styles.successBtnText}>View My Bookings</Text>
+            <AppText style={styles.successBtnText}>View My Bookings</AppText>
           </TouchableOpacity>
           <TouchableOpacity style={styles.successBtnOutline} onPress={() => navigation.getParent()?.navigate('HomeTab')}>
-            <Text style={styles.successBtnOutlineText}>Browse More Salons</Text>
+            <AppText style={styles.successBtnOutlineText}>Browse More Salons</AppText>
           </TouchableOpacity>
         </View>
       </View>
@@ -235,7 +236,7 @@ export default function BookingScreen({ route, navigation }) {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={20} color="#fff" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Book Appointment</Text>
+          <AppText style={styles.headerTitle}>Book Appointment</AppText>
           <View style={{ width: 36 }} />
         </View>
       </View>
@@ -244,24 +245,24 @@ export default function BookingScreen({ route, navigation }) {
 
         {/* Salon + Services Summary */}
         <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>{salon?.name || 'Loading...'}</Text>
+          <AppText style={styles.summaryTitle}>{salon?.name || 'Loading...'}</AppText>
           {services.map(s => (
             <View key={s._id} style={styles.summaryRow}>
-              <Text style={styles.summaryService}>{s.name} · {s.duration} min</Text>
-              <Text style={styles.summaryPrice}>₹{s.basePrice || s.price}</Text>
+              <AppText style={styles.summaryService}>{s.name} · {s.duration} min</AppText>
+              <AppText style={styles.summaryPrice}>₹{s.basePrice || s.price}</AppText>
             </View>
           ))}
           {services.length > 1 && (
             <View style={[styles.summaryRow, { borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 8, marginTop: 4 }]}>
-              <Text style={styles.summaryTotal}>Total · {totalDuration} min</Text>
-              <Text style={[styles.summaryPrice, { fontSize: 16 }]}>₹{totalPrice}</Text>
+              <AppText style={styles.summaryTotal}>Total · {totalDuration} min</AppText>
+              <AppText style={[styles.summaryPrice, { fontSize: 16 }]}>₹{totalPrice}</AppText>
             </View>
           )}
         </View>
 
         {/* Date Selection */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Select Date</Text>
+          <AppText style={styles.sectionTitle}>Select Date</AppText>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
             {dateDays.map(d => {
               const { day, date: dateNum } = formatDay(d);
@@ -272,8 +273,8 @@ export default function BookingScreen({ route, navigation }) {
                   style={[styles.dateChip, active && styles.dateChipActive]}
                   onPress={() => setDate(d)}
                 >
-                  <Text style={[styles.dateChipDay, active && styles.dateChipTextActive]}>{day}</Text>
-                  <Text style={[styles.dateChipNum, active && styles.dateChipTextActive]}>{dateNum}</Text>
+                  <AppText style={[styles.dateChipDay, active && styles.dateChipTextActive]}>{day}</AppText>
+                  <AppText style={[styles.dateChipNum, active && styles.dateChipTextActive]}>{dateNum}</AppText>
                 </TouchableOpacity>
               );
             })}
@@ -283,14 +284,14 @@ export default function BookingScreen({ route, navigation }) {
         {/* Stylist Selection */}
         {barbers.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Select Stylist <Text style={{ fontWeight: '400', color: '#9ca3af' }}>(optional)</Text></Text>
+            <AppText style={styles.sectionTitle}>Select Stylist <AppText style={{ fontWeight: '400', color: '#9ca3af' }}>(optional)</AppText></AppText>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
               <TouchableOpacity
                 style={[styles.barberChip, barberId === '' && styles.barberChipActive]}
                 onPress={() => setBarberId('')}
               >
                 <View style={styles.barberAvatar}><Ionicons name="people-outline" size={18} color={barberId === '' ? '#fff' : '#6b7280'} /></View>
-                <Text style={[styles.barberName, barberId === '' && styles.barberNameActive]}>Any</Text>
+                <AppText style={[styles.barberName, barberId === '' && styles.barberNameActive]}>Any</AppText>
               </TouchableOpacity>
               {barbers.map(b => (
                 <TouchableOpacity
@@ -299,12 +300,12 @@ export default function BookingScreen({ route, navigation }) {
                   onPress={() => setBarberId(b._id)}
                 >
                   <View style={styles.barberAvatar}>
-                    <Text style={{ fontSize: 15, fontWeight: '700', color: barberId === b._id ? '#fff' : '#2563eb' }}>
+                    <AppText style={{ fontSize: 15, fontWeight: '700', color: barberId === b._id ? '#fff' : '#2563eb' }}>
                       {b.name.charAt(0).toUpperCase()}
-                    </Text>
+                    </AppText>
                   </View>
-                  <Text style={[styles.barberName, barberId === b._id && styles.barberNameActive]}>{b.name}</Text>
-                  {b.experience > 0 && <Text style={styles.barberExp}>{b.experience}yr</Text>}
+                  <AppText style={[styles.barberName, barberId === b._id && styles.barberNameActive]}>{b.name}</AppText>
+                  {b.experience > 0 && <AppText style={styles.barberExp}>{b.experience}yr</AppText>}
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -313,27 +314,27 @@ export default function BookingScreen({ route, navigation }) {
 
         {/* Time Slots */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            Select Time {totalDuration > 0 && <Text style={{ fontWeight: '400', color: '#9ca3af' }}>({totalDuration} min)</Text>}
-          </Text>
+          <AppText style={styles.sectionTitle}>
+            Select Time {totalDuration > 0 && <AppText style={{ fontWeight: '400', color: '#9ca3af' }}>({totalDuration} min)</AppText>}
+          </AppText>
           {slotsLoading ? (
             <View style={styles.slotsLoading}>
               <ActivityIndicator color="#2563eb" size="small" />
-              <Text style={{ color: '#6b7280', fontSize: 13 }}>Loading slots...</Text>
+              <AppText style={{ color: '#6b7280', fontSize: 13 }}>Loading slots...</AppText>
             </View>
           ) : closedDay ? (
             <View style={styles.closedDay}>
               <Ionicons name="lock-closed-outline" size={20} color="#d97706" />
-              <Text style={styles.closedDayText}>Salon is closed on this date. Try another day.</Text>
+              <AppText style={styles.closedDayText}>Salon is closed on this date. Try another day.</AppText>
             </View>
           ) : slots.length === 0 ? (
             <View style={styles.noSlots}>
-              <Text style={styles.noSlotsText}>No available slots for this date.</Text>
+              <AppText style={styles.noSlotsText}>No available slots for this date.</AppText>
             </View>
           ) : bookingMode === 'sequential' ? (
             <View style={styles.seqSlot}>
               <Ionicons name="flash-outline" size={16} color="#7c3aed" />
-              <Text style={styles.seqText}>Auto-assigned: <Text style={{ fontWeight: '800' }}>{slots[0]} – {addMinutes(slots[0], totalDuration)}</Text></Text>
+              <AppText style={styles.seqText}>Auto-assigned: <AppText style={{ fontWeight: '800' }}>{slots[0]} – {addMinutes(slots[0], totalDuration)}</AppText></AppText>
             </View>
           ) : (
             <>
@@ -341,7 +342,7 @@ export default function BookingScreen({ route, navigation }) {
                 {[['#e5e7eb','Past'],['#fecaca','Booked'],['#2563eb','Selected'],['#f3f4f6','Available']].map(([c, l]) => (
                   <View key={l} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                     <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: c }} />
-                    <Text style={{ fontSize: 10, color: '#6b7280' }}>{l}</Text>
+                    <AppText style={{ fontSize: 10, color: '#6b7280' }}>{l}</AppText>
                   </View>
                 ))}
               </View>
@@ -367,8 +368,8 @@ export default function BookingScreen({ route, navigation }) {
                         setSlot(s);
                       }}
                     >
-                      <Text style={[styles.slotTime, selected && { color: '#fff' }, (past || blocked) && { color: '#9ca3af' }]}>{s}</Text>
-                      <Text style={[styles.slotEnd, selected && { color: '#bfdbfe' }, (past || blocked) && { color: '#d1d5db' }]}>–{end}</Text>
+                      <AppText style={[styles.slotTime, selected && { color: '#fff' }, (past || blocked) && { color: '#9ca3af' }]}>{s}</AppText>
+                      <AppText style={[styles.slotEnd, selected && { color: '#bfdbfe' }, (past || blocked) && { color: '#d1d5db' }]}>–{end}</AppText>
                     </TouchableOpacity>
                   );
                 })}
@@ -380,13 +381,13 @@ export default function BookingScreen({ route, navigation }) {
         {/* Coupon — only shown if salon has active coupons */}
         {slot && salon?.hasCoupons && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Coupon Code</Text>
+            <AppText style={styles.sectionTitle}>Coupon Code</AppText>
             {appliedCoupon ? (
               <View style={styles.couponApplied}>
                 <Ionicons name="checkmark-circle" size={18} color="#16a34a" />
-                <Text style={styles.couponAppliedText}>{appliedCoupon.code} — ₹{couponDiscount} off</Text>
+                <AppText style={styles.couponAppliedText}>{appliedCoupon.code} — ₹{couponDiscount} off</AppText>
                 <TouchableOpacity onPress={removeCoupon}>
-                  <Text style={{ color: '#ef4444', fontSize: 12, fontWeight: '600' }}>Remove</Text>
+                  <AppText style={{ color: '#ef4444', fontSize: 12, fontWeight: '600' }}>Remove</AppText>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -404,37 +405,37 @@ export default function BookingScreen({ route, navigation }) {
                   onPress={applyCoupon}
                   disabled={!couponInput.trim() || couponLoading}
                 >
-                  {couponLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.couponBtnText}>Apply</Text>}
+                  {couponLoading ? <ActivityIndicator size="small" color="#fff" /> : <AppText style={styles.couponBtnText}>Apply</AppText>}
                 </TouchableOpacity>
               </View>
             )}
-            {!!couponError && <Text style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>{couponError}</Text>}
+            {!!couponError && <AppText style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>{couponError}</AppText>}
           </View>
         )}
 
         {/* Price Summary */}
         {slot && (
           <View style={styles.priceSummary}>
-            <Text style={styles.priceSummaryTitle}>Booking Summary</Text>
+            <AppText style={styles.priceSummaryTitle}>Booking Summary</AppText>
             {services.map(s => (
               <View key={s._id} style={styles.priceRow}>
-                <Text style={styles.priceLabel}>{s.name}</Text>
-                <Text style={styles.priceVal}>₹{s.basePrice || s.price}</Text>
+                <AppText style={styles.priceLabel}>{s.name}</AppText>
+                <AppText style={styles.priceVal}>₹{s.basePrice || s.price}</AppText>
               </View>
             ))}
             <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>Date & Time</Text>
-              <Text style={styles.priceVal}>{date} · {slot}</Text>
+              <AppText style={styles.priceLabel}>Date & Time</AppText>
+              <AppText style={styles.priceVal}>{date} · {slot}</AppText>
             </View>
             {couponDiscount > 0 && (
               <View style={styles.priceRow}>
-                <Text style={[styles.priceLabel, { color: '#16a34a' }]}>Discount</Text>
-                <Text style={[styles.priceVal, { color: '#16a34a' }]}>−₹{couponDiscount}</Text>
+                <AppText style={[styles.priceLabel, { color: '#16a34a' }]}>Discount</AppText>
+                <AppText style={[styles.priceVal, { color: '#16a34a' }]}>−₹{couponDiscount}</AppText>
               </View>
             )}
             <View style={[styles.priceRow, { borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 8, marginTop: 4 }]}>
-              <Text style={styles.priceTotalLabel}>Total (Pay at salon)</Text>
-              <Text style={styles.priceTotalVal}>₹{finalPrice}</Text>
+              <AppText style={styles.priceTotalLabel}>Total (Pay at salon)</AppText>
+              <AppText style={styles.priceTotalVal}>₹{finalPrice}</AppText>
             </View>
           </View>
         )}
@@ -448,7 +449,7 @@ export default function BookingScreen({ route, navigation }) {
           disabled={!slot || loading}
         >
           {loading ? <ActivityIndicator color="#fff" /> : (
-            <><Ionicons name="checkmark-circle-outline" size={20} color="#fff" /><Text style={styles.confirmBtnText}>Confirm Booking</Text></>
+            <><Ionicons name="checkmark-circle-outline" size={20} color="#fff" /><AppText style={styles.confirmBtnText}>Confirm Booking</AppText></>
           )}
         </TouchableOpacity>
       </View>
@@ -460,12 +461,12 @@ export default function BookingScreen({ route, navigation }) {
             <View style={[styles.modalIcon, { backgroundColor: slotAlert === 'past' ? '#f3f4f6' : '#fee2e2' }]}>
               <Ionicons name={slotAlert === 'past' ? 'time-outline' : 'ban-outline'} size={36} color={slotAlert === 'past' ? '#374151' : '#ef4444'} />
             </View>
-            <Text style={styles.modalTitle}>{slotAlert === 'past' ? 'Time Has Passed' : 'Slot Already Booked'}</Text>
-            <Text style={styles.modalText}>
+            <AppText style={styles.modalTitle}>{slotAlert === 'past' ? 'Time Has Passed' : 'Slot Already Booked'}</AppText>
+            <AppText style={styles.modalText}>
               {slotAlert === 'past' ? 'This time slot has already passed. Please choose an upcoming slot.' : 'This slot is taken. Please choose another available slot.'}
-            </Text>
+            </AppText>
             <TouchableOpacity style={styles.modalBtn} onPress={() => setSlotAlert('')}>
-              <Text style={styles.modalBtnText}>Choose Another Slot</Text>
+              <AppText style={styles.modalBtnText}>Choose Another Slot</AppText>
             </TouchableOpacity>
           </View>
         </View>
@@ -555,5 +556,5 @@ const getStyles = (t) => StyleSheet.create({
   modalTitle: { fontSize: 18, fontWeight: '700', color: t.text },
   modalText: { fontSize: 13, color: t.subText, textAlign: 'center', lineHeight: 20 },
   modalBtn: { backgroundColor: '#2563eb', borderRadius: 12, height: 46, width: '100%', alignItems: 'center', justifyContent: 'center', marginTop: 4 },
-  modalBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  modalBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 }
 });
