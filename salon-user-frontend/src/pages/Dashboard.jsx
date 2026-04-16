@@ -698,7 +698,10 @@ function DirectionsModal({ salon, salonCoords, userCoords, onClose }) {
               {salon?.name || "Directions"}
             </p>
             <p style={{ margin: 0, fontSize: 12, color: fg2 }}>
-              {[salon?.address, salon?.locality, salon?.city].filter(Boolean).join(", ") || "Tap the pin for details"}
+              {[salon?.locality, salon?.address, salon?.city]
+                .filter(Boolean)
+                .filter((v, i, a) => a.indexOf(v) === i)
+                .join(", ") || "Tap the pin for details"}
             </p>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: fg2, padding: 4, flexShrink: 0 }}>
@@ -732,8 +735,8 @@ function DirectionsModal({ salon, salonCoords, userCoords, onClose }) {
           {loading && <div style={{ marginLeft: "auto", fontSize: 12, color: fg2 }}>Calculating…</div>}
         </div>
 
-        {/* Map */}
-        <div style={{ flex: 1, minHeight: 300, position: "relative" }}>
+        {/* Map — explicit height required; height:100% on MapContainer needs a fixed parent */}
+        <div style={{ height: 300, flexShrink: 0, position: "relative" }}>
           <MapContainer
             center={[sLat || 20.5937, sLng || 78.9629]}
             zoom={13}
