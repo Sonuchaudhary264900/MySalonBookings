@@ -158,6 +158,7 @@ const Customer          = require("../models/Customer");
 const Coupon            = require("../models/Coupon");
 const Booking           = require("../models/Booking");
 const Promotion         = require("../models/Promotion");
+const Queue             = require("../models/Queue");
 
 /* =====================================================
    EXTRA ROUTES (MERGED OWNER ROUTES)
@@ -358,6 +359,34 @@ router.get("/public/salons/nearby", asyncHandler(async (req, res) => {
   }
 
   res.json({ success: true, data: { salons, count: salons.length } });
+}));
+
+// GET /public/salons/:salonId/queue — live queue for today (public, no auth)
+router.get("/public/salons/:salonId/queue", validateObjectId("salonId"), asyncHandler(async (req, res) => {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+  const queueDoc = await Queue.findOne({
+    salonId: req.params.salonId,
+    date: { $gte: today, $lt: tomorrow },
+  }).lean();
+  if (!queueDoc) {
+    return res.json({ success: true, data: { queue: [], totalWaiting: 0, averageWaitTime: 0 } });
+  }
+  const visible = (queueDoc.queue || [])
+    .filter(q => q.status === 'waiting' || q.status === 'in_progress')
+    .sort((a, b) => a.position - b.position)
+    .map(q => ({
+      position: q.position,
+      customerName: q.customerName,
+      serviceName: q.serviceName,
+      estimatedDuration: q.estimatedDuration,
+      status: q.status,
+    }));
+  res.json({ success: true, data: {
+    queue: visible,
+    totalWaiting: queueDoc.totalWaiting,
+    averageWaitTime: queueDoc.averageWaitTime,
+  }});
 }));
 
 // GET /public/salons/:salonId
@@ -1339,8 +1368,8 @@ router.post("/customer/salons/:salonId/follow",
     if (isFollowing) {
       customer.followedSalons = customer.followedSalons.filter(id => id.toString() !== salonId);
       await customer.save();
-      await Business.findByIdAndUpdate(salonId, { $inc: { followersCount: -1 } });
-      return res.json({ success: true, following: false, message: "Unfollowed" });
+      const updatedBiz = await Business.findByIdAndUpdate(salonId, { $inc: { followersCount: -1 } }, { new: true });
+      return res.json({ success: true, following: false, followersCount: updatedBiz?.followersCount ?? 0, message: "Unfollowed" });
     }
 
     customer.followedSalons.push(salonId);

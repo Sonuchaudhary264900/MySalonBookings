@@ -38,6 +38,7 @@ const OwnerTerms              = lazy(() => import("./pages/legal/OwnerTerms"));
 const Reels                   = lazy(() => import("./pages/Reels"));
 const SalonReviews            = lazy(() => import("./pages/SalonReviews"));
 const MySubscription          = lazy(() => import("./pages/MySubscription"));
+const MapView                 = lazy(() => import("./pages/MapView"));
 
 // ── Page loading fallback ──────────────────────────────────────
 function PageLoader() {
@@ -84,6 +85,7 @@ class ErrorBoundary extends React.Component {
 function AppLayout({ notifOpen, setNotifOpen }) {
   const { pathname } = useLocation();
   const isReels       = pathname === '/reels' || pathname.startsWith('/reels');
+  const isMap         = pathname === '/map';
   const isSalon       = /^\/salons\/[^/]+$/.test(pathname);
   const isSalonPage   = /^\/(salon|barbershop|spa-wellness|makeup-bridal|skin-derma)\/[^/]+(\/.*)?$/.test(pathname);
   const isBookingFlow = pathname.startsWith('/booking/');
@@ -93,9 +95,9 @@ function AppLayout({ notifOpen, setNotifOpen }) {
     <div className="flex flex-col min-h-screen">
       <SwipeHandler />
       <ScrollToTop />
-      {!isReels && <Navbar notifOpen={notifOpen} setNotifOpen={setNotifOpen} />}
+      {!isReels && !isMap && <Navbar notifOpen={notifOpen} setNotifOpen={setNotifOpen} />}
       <ToastContainer />
-      <main className={isReels ? 'flex-grow min-w-0' : isSalon ? 'flex-grow pb-20 md:pb-0 min-w-0 page-root' : isBookingFlow ? 'flex-grow pb-20 md:pb-0 pt-16 min-w-0 page-root' : 'flex-grow pb-20 md:pb-0 pt-16 min-w-0 page-root'}>
+      <main className={isReels || isMap ? 'flex-grow min-w-0' : isSalon ? 'flex-grow pb-20 md:pb-0 min-w-0 page-root' : isBookingFlow ? 'flex-grow pb-20 md:pb-0 pt-16 min-w-0 page-root' : 'flex-grow pb-20 md:pb-0 pt-16 min-w-0 page-root'}>
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/"                            element={<Home />} />
@@ -125,6 +127,7 @@ function AppLayout({ notifOpen, setNotifOpen }) {
             <Route path="/legal/owner-privacy"         element={<OwnerPrivacyPolicy />} />
             <Route path="/legal/owner-terms"           element={<OwnerTerms />} />
             <Route path="/reels"                       element={<Reels />} />
+            <Route path="/map"                         element={<MapView />} />
             <Route path="/my-subscription"             element={<MySubscription />} />
 
             {/* 404 */}

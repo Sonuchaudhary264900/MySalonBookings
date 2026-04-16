@@ -171,17 +171,43 @@ const CSS = `
   .reel-progress-wrap {
     position: absolute;
     top: 0; left: 0; right: 0;
-    height: 3px;
-    background: rgba(255,255,255,0.10);
+    height: 20px; /* enlarged hit area for easy tap/drag */
+    padding-top: 8px;
+    background: transparent;
     z-index: 26;
+    cursor: pointer;
+    touch-action: none;
+  }
+  .reel-progress-track {
+    width: 100%;
+    height: 3px;
+    background: rgba(255,255,255,0.18);
+    border-radius: 3px;
+    overflow: hidden;
   }
   .reel-progress-bar {
     height: 100%;
     background: linear-gradient(to right, #6366f1, #a78bfa, #f0abfc);
-    border-radius: 0 3px 3px 0;
+    border-radius: 3px;
     box-shadow: 0 0 10px rgba(167,139,250,0.75);
     transition: width 0.2s linear;
     will-change: width;
+  }
+
+  /* ── seek feedback flash ── */
+  .seek-flash {
+    position: absolute;
+    top: 50%; transform: translateY(-50%);
+    zIndex: 30;
+    pointer-events: none;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    animation: seekFlash 0.55s ease forwards;
+  }
+  @keyframes seekFlash {
+    0%   { opacity: 0; transform: translateY(-50%) scale(0.7); }
+    20%  { opacity: 1; transform: translateY(-50%) scale(1);   }
+    75%  { opacity: 1; transform: translateY(-50%) scale(1);   }
+    100% { opacity: 0; transform: translateY(-50%) scale(0.9); }
   }
 
   /* ── keyframes ── */
@@ -419,11 +445,14 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
   })();
 
   const [videoTapPulse, setVideoTapPulse] = useState(false);
+  const [seekFeedback,  setSeekFeedback]  = useState(null); // { dir: 'rewind'|'forward', ts: number }
   const lastTapRef    = useRef(0);
   const viewedRef     = useRef(false);
   const viewTimerRef  = useRef(null);
   const watchStartRef = useRef(null);
   const totalWatchRef = useRef(0);
+  const progressRef   = useRef(null);
+  const seekingRef    = useRef(false);
 
   // Keep mutedRef + DOM in sync with parent muted state
   useEffect(() => {
@@ -544,20 +573,61 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
     }
   }, [liked, likeCount, reel.videoUrl, reel.salon._id, onAuthRequired]);
 
+  // ── Draggable progress bar seek ──
+  const seekTo = useCallback((clientX) => {
+    const el = progressRef.current;
+    const v = videoRef.current;
+    if (!el || !v || !v.duration) return;
+    const rect = el.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    v.currentTime = pct * v.duration;
+    setProgress(pct * 100);
+  }, []);
+
+  const handleProgressDown = useCallback((e) => {
+    e.stopPropagation();
+    seekingRef.current = true;
+    seekTo(e.clientX);
+    const onMove = (me) => { if (seekingRef.current) seekTo(me.clientX); };
+    const onUp   = () => {
+      seekingRef.current = false;
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup',   onUp);
+    };
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup',   onUp);
+  }, [seekTo]);
+
+  // ── Zone-based tap: LEFT=rewind, CENTER=mute, RIGHT=forward; double-tap=like ──
   const handleTap = useCallback((e) => {
-    // Don't intercept taps on interactive children
     if (e.target.closest('button') || e.target.closest('a')) return;
-    setVideoTapPulse(true);
-    setTimeout(() => setVideoTapPulse(false), 200);
     const now = Date.now();
-    if (now - lastTapRef.current < 320) {
+    const isDouble = now - lastTapRef.current < 320;
+    lastTapRef.current = now;
+
+    if (isDouble) {
       if (!liked) handleLike();
       setDoubleTapHeart(true);
       setTimeout(() => setDoubleTapHeart(false), 420);
+      return;
+    }
+
+    const rect = containerRef.current?.getBoundingClientRect();
+    const x = (e.clientX ?? e.touches?.[0]?.clientX ?? (rect?.width ?? 0) / 2) - (rect?.left ?? 0);
+    const zone = x / (rect?.width || 1);
+    const v = videoRef.current;
+
+    if (zone < 0.33) {
+      if (v) v.currentTime = Math.max(0, v.currentTime - 10);
+      setSeekFeedback({ dir: 'rewind', ts: Date.now() });
+    } else if (zone > 0.67) {
+      if (v) v.currentTime = Math.min(v.duration || 0, v.currentTime + 10);
+      setSeekFeedback({ dir: 'forward', ts: Date.now() });
     } else {
       onMuteToggle();
+      setVideoTapPulse(true);
+      setTimeout(() => setVideoTapPulse(false), 200);
     }
-    lastTapRef.current = now;
   }, [liked, handleLike, onMuteToggle]);
 
   const handleComment = useCallback(() => {
@@ -571,10 +641,31 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
   return (
     <div className="reel-item" ref={containerRef}>
 
-      {/* Progress bar */}
-      <div className="reel-progress-wrap">
-        <div className="reel-progress-bar" style={{ width: `${progress}%` }} />
+      {/* Progress bar — draggable */}
+      <div className="reel-progress-wrap" ref={progressRef} onPointerDown={handleProgressDown}>
+        <div className="reel-progress-track">
+          <div className="reel-progress-bar" style={{ width: `${progress}%`, transition: seekingRef.current ? 'none' : 'width 0.2s linear' }} />
+        </div>
       </div>
+
+      {/* Seek feedback flash — LEFT rewind */}
+      {seekFeedback?.dir === 'rewind' && (
+        <div key={seekFeedback.ts} className="seek-flash" style={{ left: '16%' }}>
+          <svg viewBox="0 0 24 24" width={32} height={32} fill="#fff">
+            <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+          </svg>
+          <span style={{ color: '#fff', fontSize: 13, fontWeight: 800, textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>10s</span>
+        </div>
+      )}
+      {/* Seek feedback flash — RIGHT forward */}
+      {seekFeedback?.dir === 'forward' && (
+        <div key={seekFeedback.ts} className="seek-flash" style={{ right: '16%', left: 'auto' }}>
+          <svg viewBox="0 0 24 24" width={32} height={32} fill="#fff">
+            <path d="M12 5V1l5 5-5 5V7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z"/>
+          </svg>
+          <span style={{ color: '#fff', fontSize: 13, fontWeight: 800, textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>10s</span>
+        </div>
+      )}
 
       {/* Video */}
       <video
@@ -797,13 +888,14 @@ export default function Reels() {
   const [commentText,      setCommentText]      = useState('');
   const [posting,          setPosting]          = useState(false);
 
-  const videoRefs   = useRef({});
-  const muteTimer   = useRef(null);
-  const feedRef     = useRef(null);
-  const colRef      = useRef(null);
-  const currentIdx  = useRef(0);
-  const mutedRef    = useRef(muted);
-  const reelsRef    = useRef([]);
+  const videoRefs     = useRef({});
+  const muteTimer     = useRef(null);
+  const feedRef       = useRef(null);
+  const colRef        = useRef(null);
+  const currentIdx    = useRef(0);
+  const mutedRef      = useRef(muted);
+  const reelsRef      = useRef([]);
+  const scrollingRef  = useRef(false);
 
   /* ── FIX: get the actual item height from the feed element ── */
   const getItemHeight = useCallback(() => {
@@ -833,12 +925,25 @@ export default function Reels() {
   /* ── Keep reelsRef in sync ── */
   useEffect(() => { reelsRef.current = reels; }, [reels]);
 
-  /* ── Scroll listener — detect active reel via rAF-gated midpoint ── */
+  /* ── Scroll listener — fast-scroll guard + rAF-gated index update ── */
   useEffect(() => {
     const feed = feedRef.current;
     if (!feed) return;
     let rafId = null;
+    let scrollTimer = null;
+
     const onScroll = () => {
+      // Fast-scroll guard: pause all videos while user is actively scrolling
+      if (!scrollingRef.current) {
+        scrollingRef.current = true;
+        Object.values(videoRefs.current).forEach(v => v?.pause());
+      }
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => {
+        scrollingRef.current = false;
+        // IntersectionObserver will auto-play the now-visible reel
+      }, 120);
+
       if (rafId) return;
       rafId = requestAnimationFrame(() => {
         rafId = null;
@@ -848,11 +953,11 @@ export default function Reels() {
         if (newIdx !== currentIdx.current && newIdx >= 0 && newIdx < reelsRef.current.length) {
           currentIdx.current = newIdx;
           const reelsList = reelsRef.current;
-          // Update preload for current + next 3 only
+          // Preload: 1 before current + current + 3 ahead
           Object.entries(videoRefs.current).forEach(([id, v]) => {
             if (!v) return;
             const ri = reelsList.findIndex(r => r._id === id);
-            v.preload = (ri >= newIdx && ri <= newIdx + 3) ? 'auto' : 'none';
+            v.preload = (ri >= newIdx - 1 && ri <= newIdx + 3) ? 'auto' : 'none';
           });
         }
       });
@@ -861,6 +966,7 @@ export default function Reels() {
     return () => {
       feed.removeEventListener('scroll', onScroll);
       if (rafId) cancelAnimationFrame(rafId);
+      clearTimeout(scrollTimer);
     };
   }, [getItemHeight, reels.length]);
 

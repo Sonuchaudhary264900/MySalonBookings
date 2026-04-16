@@ -200,6 +200,9 @@ function SalonDetails() {
   const [followersCount, setFollowersCount] = useState(0);
   const [followLoading, setFollowLoading] = useState(false);
   const [reviewFilter, setReviewFilter] = useState('all');
+  const [queueData, setQueueData]     = useState(null);
+  const [queueLoading, setQueueLoading] = useState(false);
+  const queueAvailableRef = useRef(true); // set false on 404 so we stop retrying
 
   const totalPrice    = selectedServices.reduce((s, x) => s + (x.basePrice || x.price || 0), 0);
   const totalDuration = selectedServices.reduce((s, x) => s + (x.duration || 0), 0);
@@ -219,17 +222,26 @@ function SalonDetails() {
   useEffect(() => { localStorage.setItem('svc_favs', JSON.stringify(favServices)); }, [favServices]);
   useEffect(() => { localStorage.setItem('svc_cat_clicks', JSON.stringify(catClickCounts)); }, [catClickCounts]);
 
+  // Load queue lazily only when the Queue tab is opened, then poll every 30s
+  // queueAvailableRef prevents retrying if the route returns 404 (not yet deployed)
+  useEffect(() => {
+    if (activeTab !== 'queue' || !queueAvailableRef.current) return;
+    setQueueLoading(true);
+    loadQueue();
+    const t = setInterval(() => { if (queueAvailableRef.current) loadQueue(); }, 30000);
+    return () => clearInterval(t);
+  }, [activeTab, id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     Promise.all([loadSalon(), loadServices(), loadReviews(), loadBarbers(), loadOffers(), loadPackages()]).finally(() => setLoading(false));
     if (token) {
-      API.get(`/customer/salons/${id}/follow-status`).then(r => { if (r.data?.following !== undefined) setFollowed(r.data.following); }).catch((error) => {
-        // Ignore 404 errors (route not deployed yet) and auth errors, but log other errors
-        if (error.response?.status !== 404 && error.response?.status !== 401) {
-          console.error('Error checking follow status:', error);
-        }
-      });
+      API.get(`/customer/salons/${id}/follow-status`)
+        .then(r => { if (r.data?.following !== undefined) setFollowed(r.data.following); })
+        .catch(() => {});
     }
-  }, [id]);
+
+    // Queue is loaded lazily when user opens the Queue tab (see activeTab effect below)
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadSalon    = async () => { try { const r = await API.get(`/public/salons/${id}`); const data = r.data.data || r.data.salon; setSalon(data); setFollowersCount(data?.followersCount || 0); if (data?.topOffer) setOffers(prev => prev.length > 0 ? prev : [data.topOffer]); } catch {} };
   const loadServices = async () => { try { const r = await API.get(`/public/salons/${id}/services`); setServices(r.data.data?.services || r.data.data || []); } catch {} };
@@ -237,6 +249,21 @@ function SalonDetails() {
   const loadBarbers  = async () => { try { const r = await API.get(`/public/salons/${id}/barbers`).catch(() => ({ data: { data: { barbers: [] } } })); setBarbers(r.data.data?.barbers || []); } catch {} };
   const loadOffers   = async () => { try { const r = await API.get(`/public/salons/${id}/offers`);  const list = r.data.data?.offers || []; if (list.length > 0) setOffers(list); } catch {} };
   const loadPackages = async () => { try { const r = await API.get(`/public/salons/${id}/packages`); setPackages(r.data.data?.packages || []); } catch {} };
+
+  const loadQueue = useCallback(async () => {
+    if (!queueAvailableRef.current) { setQueueLoading(false); return; }
+    try {
+      const r = await API.get(`/public/salons/${id}/queue`);
+      const d = r.data.data;
+      setQueueData(prev => {
+        if (prev?.totalWaiting === d.totalWaiting && prev?.queue?.length === d.queue?.length) return prev;
+        return d;
+      });
+    } catch (e) {
+      if (e?.response?.status === 404) queueAvailableRef.current = false; // route not deployed yet
+    }
+    finally { setQueueLoading(false); }
+  }, [id]);
 
   useEffect(() => {
     if (!showBooking || !totalDuration || !id) return;
@@ -405,12 +432,9 @@ function SalonDetails() {
       const r = await API.post(`/customer/salons/${id}/follow`);
       setFollowed(r.data.following);
       if (r.data.followersCount !== undefined) setFollowersCount(r.data.followersCount);
-    } catch (error) {
-      // Ignore 404 errors (route not deployed yet) and revert optimistic update
-      if (error.response?.status !== 404) {
-        setFollowed(!newFollowed);
-        setFollowersCount(c => newFollowed ? Math.max(0, c - 1) : c + 1);
-      }
+    } catch {
+      setFollowed(!newFollowed);
+      setFollowersCount(c => newFollowed ? Math.max(0, c - 1) : c + 1);
     } finally { setFollowLoading(false); }
   };
 
@@ -816,7 +840,7 @@ function SalonDetails() {
 
           {/* ════ E. STICKY TAB BAR ════ */}
           <div style={{ position: 'sticky', top: 0, zIndex: 40, background: darkMode ? 'rgba(13,5,32,.88)' : 'rgba(249,250,251,.95)', backdropFilter: 'blur(24px)', borderBottom: `1px solid ${theme.p}1a`, display: 'flex' }}>
-            {['services','reels','photos','reviews'].map(tab => (
+            {['services','reels','photos','reviews','queue'].map(tab => (
               <button key={tab} className="glw-tab-btn" onClick={() => setActiveTab(tab)}
                 style={{ color: activeTab === tab ? theme.acc : dm.fg38 }}>
                 {tab.toUpperCase()}
@@ -1276,6 +1300,93 @@ function SalonDetails() {
                   </div>
                 );
               })()}
+
+              {/* ── F5. LIVE QUEUE ── */}
+              {activeTab === 'queue' && (
+                <div style={{ padding: '20px 16px 80px' }}>
+                  {/* Header */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#4ADE80',
+                      boxShadow: '0 0 0 0 rgba(74,222,128,0.4)',
+                      animation: 'queuePulse 2s cubic-bezier(0.4,0,0.6,1) infinite',
+                      flexShrink: 0 }} />
+                    <h3 style={{ fontSize: 17, fontWeight: 800, color: dm.fg, margin: 0, letterSpacing: '-0.02em' }}>Live Queue</h3>
+                    {(queueData?.totalWaiting ?? 0) > 0 && (
+                      <span style={{ background: theme.p, color: '#fff', borderRadius: 20,
+                        padding: '2px 10px', fontSize: 11, fontWeight: 700, letterSpacing: 0.2 }}>
+                        {queueData.totalWaiting} waiting
+                      </span>
+                    )}
+                    {(queueData?.averageWaitTime ?? 0) > 0 && (
+                      <span style={{ fontSize: 12, color: dm.fg45, marginLeft: 'auto', whiteSpace: 'nowrap' }}>
+                        ~{queueData.averageWaitTime} min avg
+                      </span>
+                    )}
+                  </div>
+
+                  <style>{`@keyframes queuePulse { 0%,100%{box-shadow:0 0 0 0 rgba(74,222,128,0.4)} 70%{box-shadow:0 0 0 8px rgba(74,222,128,0)} }`}</style>
+
+                  {/* Loading state */}
+                  {queueLoading && !queueData && (
+                    <div style={{ textAlign: 'center', padding: '48px 0', color: dm.fg45, fontSize: 14 }}>
+                      Loading queue…
+                    </div>
+                  )}
+
+                  {/* Empty state */}
+                  {!queueLoading && !(queueData?.queue?.length) && (
+                    <div style={{ textAlign: 'center', padding: '40px 20px',
+                      background: dm.card, borderRadius: 20,
+                      border: `1px solid ${dm.cardBrd}` }}>
+                      <div style={{ fontSize: 36, marginBottom: 10 }}>✅</div>
+                      <p style={{ fontWeight: 800, fontSize: 16, color: dm.fg, margin: '0 0 6px' }}>No queue right now</p>
+                      <p style={{ fontSize: 13, color: dm.fg45, margin: 0 }}>Walk in anytime — no waiting!</p>
+                    </div>
+                  )}
+
+                  {/* Queue items */}
+                  {queueData?.queue?.map((item, i) => (
+                    <div key={i} style={{ background: dm.card, border: `1px solid ${item.status === 'in_progress' ? `${theme.p}44` : dm.cardBrd}`,
+                      borderRadius: 16, padding: '14px 16px', marginBottom: 10,
+                      display: 'flex', alignItems: 'center', gap: 14,
+                      boxShadow: item.status === 'in_progress' ? `0 4px 20px ${theme.p}18` : 'none',
+                      transition: 'all 0.2s' }}>
+                      {/* Position badge */}
+                      <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+                        background: item.status === 'in_progress' ? `${theme.p}22` : `${dm.cardBrd}88`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: item.status === 'in_progress' ? 16 : 13, fontWeight: 800,
+                        color: item.status === 'in_progress' ? theme.p : dm.fg45,
+                        border: item.status === 'in_progress' ? `1.5px solid ${theme.p}55` : 'none' }}>
+                        {item.status === 'in_progress' ? '✂' : item.position}
+                      </div>
+                      {/* Info */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontWeight: 700, fontSize: 14, color: dm.fg, margin: '0 0 3px',
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {item.customerName}
+                        </p>
+                        <p style={{ fontSize: 12, color: dm.fg45, margin: 0 }}>{item.serviceName}</p>
+                      </div>
+                      {/* Right side */}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                        {item.estimatedDuration > 0 && (
+                          <span style={{ fontSize: 12, fontWeight: 700, color: theme.acc }}>
+                            ~{item.estimatedDuration} min
+                          </span>
+                        )}
+                        {item.status === 'in_progress' && (
+                          <span style={{ fontSize: 10, fontWeight: 700, color: '#4ADE80',
+                            background: 'rgba(74,222,128,0.12)', borderRadius: 20, padding: '3px 9px',
+                            border: '1px solid rgba(74,222,128,0.25)' }}>
+                            IN SERVICE
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
             </motion.div>
           </AnimatePresence>
