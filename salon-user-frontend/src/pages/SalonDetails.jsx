@@ -1478,7 +1478,7 @@ function SalonDetails() {
 
       {/* ════ BOOKING DRAWER ════ */}
       {showBooking && (
-        <div className="fixed inset-0 z-50 flex flex-col md:items-center md:justify-center"
+        <div className="fixed inset-0 z-[200] flex flex-col md:items-center md:justify-center"
           style={{ background: 'rgba(0,0,0,.75)', backdropFilter: 'blur(6px)' }}
           onClick={e => { if (e.target === e.currentTarget && !bookingSuccess) setShowBooking(false); }}>
           <div className="mt-auto w-full max-h-[92vh] rounded-t-3xl flex flex-col md:mt-0 md:rounded-3xl md:max-w-xl md:max-h-[88vh]"
