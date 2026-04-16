@@ -222,10 +222,10 @@ function SalonDetails() {
   useEffect(() => { localStorage.setItem('svc_favs', JSON.stringify(favServices)); }, [favServices]);
   useEffect(() => { localStorage.setItem('svc_cat_clicks', JSON.stringify(catClickCounts)); }, [catClickCounts]);
 
-  // Load queue lazily only when the Queue tab is opened, then poll every 30s
-  // queueAvailableRef prevents retrying if the route returns 404 (not yet deployed)
+  // Queue tab hidden until backend route is deployed — re-add 'queue' to tabs array to enable
+  // queueAvailableRef stops retrying after first 404
   useEffect(() => {
-    if (activeTab !== 'queue' || !queueAvailableRef.current) return;
+    if (activeTab !== 'queue' || !queueAvailableRef.current) return; // tab is hidden, this never fires
     setQueueLoading(true);
     loadQueue();
     const t = setInterval(() => { if (queueAvailableRef.current) loadQueue(); }, 30000);
