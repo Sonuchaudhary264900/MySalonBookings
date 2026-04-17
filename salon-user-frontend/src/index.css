@@ -11,20 +11,20 @@
 /* Using CSS custom property so it's defined once                     */
 :root {
   --noise-url: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
-  --t-bg:           #F8FAFC;
-  --t-bg-2:         #F1F5F9;
+  --t-bg:           #eef2ff;
+  --t-bg-2:         #e0e7ff;
   --t-card:         #ffffff;
-  --t-card-2:       #F1F5F9;
-  --t-border:       #CBD5E1;
+  --t-card-2:       #f0f4ff;
+  --t-border:       #c7d2fe;
   --t-shadow:       0 1px 3px rgba(15,23,42,0.08), 0 4px 20px rgba(15,23,42,0.07);
   --t-shadow-hover: 0 6px 28px rgba(99,102,241,0.18), 0 12px 40px rgba(15,23,42,0.10);
   --t-text:         #0F172A;
   --t-text-2:       #475569;
   --t-text-3:       #64748B;
-  --t-input-bg:     #F1F5F9;
-  --t-input-border: #CBD5E1;
-  --t-nav-bg:       rgba(248,250,252,0.95);
-  --t-nav-bg-solid: #F8FAFC;
+  --t-input-bg:     #f0f4ff;
+  --t-input-border: #c7d2fe;
+  --t-nav-bg:       rgba(238,242,255,0.95);
+  --t-nav-bg-solid: #eef2ff;
   --t-accent:       #6366f1;
   --t-accent-2:     #8b5cf6;
   --t-accent-text:  #6366f1;
@@ -47,20 +47,20 @@
 }
 
 html.dark {
-  --t-bg:           #111827;
-  --t-bg-2:         #1f2937;
-  --t-card:         #111827;
-  --t-card-2:       #1f2937;
-  --t-border:       #1f2937;
+  --t-bg:           #0f1729;
+  --t-bg-2:         #131d35;
+  --t-card:         #131d35;
+  --t-card-2:       #1a2545;
+  --t-border:       #1e2d4a;
   --t-shadow:       0 4px 24px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.03);
   --t-shadow-hover: 0 0 30px rgba(99,102,241,0.25), 0 8px 40px rgba(0,0,0,0.4);
   --t-text:         #ffffff;
   --t-text-2:       #9ca3af;
   --t-text-3:       #6b7280;
-  --t-input-bg:     #1f2937;
-  --t-input-border: #374151;
-  --t-nav-bg:       rgba(17,24,39,0.92);
-  --t-nav-bg-solid: #111827;
+  --t-input-bg:     #131d35;
+  --t-input-border: #1e2d4a;
+  --t-nav-bg:       rgba(15,23,41,0.92);
+  --t-nav-bg-solid: #0f1729;
   --t-accent:       #818cf8;
   --t-accent-2:     #a78bfa;
   --t-accent-text:  #818cf8;

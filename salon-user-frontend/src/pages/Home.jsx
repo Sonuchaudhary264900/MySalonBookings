@@ -322,7 +322,7 @@ function _EditorialSkeleton() {
 // ── Main Component ────────────────────────────────────────────────
 export default function Home() {
   const isLoggedIn = !!localStorage.getItem("customerToken");
-  const { isDark } = useTheme();
+  useTheme();
   const [userName, setUserName] = useState(() => getUserName());
 
   const [salons, setSalons]             = useState([]);
@@ -344,9 +344,6 @@ export default function Home() {
   const [premiumOnly, setPremiumOnly]   = useState(false);
   const [userCoords, setUserCoords]     = useState(null);
   const [serviceMatchLabel, setServiceMatchLabel] = useState("");
-  const [adminHeroImage, setAdminHeroImage] = useState(null);
-  const [showSticky, setShowSticky]     = useState(false);
-  const heroSearchRef = useRef(null);
 
   useEffect(() => {
     if (!isLoggedIn) return;
@@ -361,15 +358,6 @@ export default function Home() {
     }).catch(() => {});
   }, [isLoggedIn]);
 
-  useEffect(() => {
-    if (!heroSearchRef.current) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setShowSticky(!entry.isIntersecting),
-      { rootMargin: "-68px 0px 0px 0px", threshold: 0 }
-    );
-    observer.observe(heroSearchRef.current);
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     let ignore = false;
@@ -388,12 +376,6 @@ export default function Home() {
   }, []);
 
 
-  useEffect(() => {
-    API.get("/public/site-settings").then(res => {
-      const imgs = res.data.data?.heroImages || [];
-      if (imgs.length > 0) setAdminHeroImage(imgs[0].url);
-    }).catch(() => {});
-  }, []);
 
   const applyFilters = (data, cats, gender, onlyOpen, onlyPremium) => {
     let r = data;
@@ -498,14 +480,13 @@ export default function Home() {
   };
 
   const handleSortChange = key => {
-    setSort(key); setShowSortPanel(false);
+    setSort(key);
     if (!searchText.trim()) fetchBySort(key, userCoords, selectedCats, genderFilter);
-    setTimeout(() => document.getElementById("salon-grid")?.scrollIntoView({ behavior:"smooth", block:"start" }), 80);
   };
 
   const clearAll = () => {
     setSearchText(""); setSelectedCats([]); setGenderFilter("all"); setOpenNow(false); setPremiumOnly(false);
-    setServiceMatchLabel(""); setSalons(allSalons); setShowFilterPanel(false);
+    setServiceMatchLabel(""); setSalons(allSalons);
   };
 
   const isSearchActive = searchText.trim().length > 0;
@@ -518,11 +499,6 @@ export default function Home() {
     : sort === "booked" ? "Trending Salons"
     : "GlowSpots Near You");
 
-  const heroBgImage = adminHeroImage || "/pngtree-salon-service-salon-design-hd-image_2512958.jpg";
-
-  const heroOverlayLight = "linear-gradient(90deg,rgba(248,250,252,0.90) 0%,rgba(248,250,252,0.82) 35%,rgba(248,250,252,0.55) 62%,transparent 90%)";
-  const heroOverlayDark  = "linear-gradient(90deg,rgba(10,15,30,0.97) 0%,rgba(10,15,30,0.92) 35%,rgba(10,15,30,0.75) 65%,transparent 100%)";
-  const heroOverlay = isDark ? heroOverlayDark : heroOverlayLight;
 
   return (
     <div style={{ background:"var(--t-bg)", minHeight:"100vh", overflowX:"hidden", fontFamily:'"Plus Jakarta Sans", system-ui, sans-serif', WebkitTapHighlightColor:"transparent" }}>
@@ -533,110 +509,40 @@ export default function Home() {
       ══════════════════════════════════════════════════════════ */}
       <section style={{
         position:"relative",
-        minHeight:"clamp(300px,55vh,680px)",
-        display:"flex",
-        alignItems:"center",
+        background:"var(--t-hero-bg)",
         overflow:"hidden",
       }}>
-
-        {/* Background: theme hero gradient always present */}
-        <div style={{ position:"absolute", inset:0, background:"var(--t-hero-bg)" }} />
-
-        {/* Noise texture */}
-        <div style={{
-          position:"absolute", inset:0,
-          backgroundImage:"var(--noise-url)",
-          opacity:0.035, mixBlendMode:"overlay", pointerEvents:"none",
-        }} />
-
-        {/* Photo (right half, masked) */}
-        <img
-            src={heroBgImage} alt="" aria-hidden="true"
-            className="home-hero-photo"
-            style={{
-              position:"absolute", inset:0,
-              width:"100%", height:"100%", objectFit:"cover",
-              maskImage: "linear-gradient(to left, black 0%, black 38%, transparent 68%)",
-              WebkitMaskImage: "linear-gradient(to left, black 0%, black 38%, transparent 68%)",
-            }}
-          />
-
-        {/* Gradient overlay — blends photo with bg */}
-        <div style={{ position:"absolute", inset:0, background:heroOverlay }} />
-
-        {/* Radial accent glow */}
-        <div style={{
-          position:"absolute", top:"-10%", left:"-5%",
-          width:600, height:600, borderRadius:"50%",
-          background: isDark
-            ? "radial-gradient(ellipse,rgba(99,102,241,0.18) 0%,transparent 65%)"
-            : "radial-gradient(ellipse,rgba(99,102,241,0.1) 0%,transparent 65%)",
-          pointerEvents:"none",
-        }} />
 
         {/* Content */}
         <div style={{
           position:"relative", zIndex:1,
           width:"100%", maxWidth:1280,
           margin:"0 auto",
-          paddingTop:"calc(clamp(68px,5vh,100px) + env(safe-area-inset-top, 0px))",
-          paddingBottom:"clamp(10px,2vh,64px)",
+          paddingTop:"calc(clamp(32px,3vh,56px) + env(safe-area-inset-top, 0px))",
+          paddingBottom:"clamp(10px,2vh,40px)",
         }}>
-          {/* Text block */}
+          {/* Greeting + Search */}
           <div style={{ paddingLeft:"clamp(16px,5vw,80px)", paddingRight:"clamp(16px,5vw,80px)" }}>
-            <div style={{ maxWidth:"min(680px, 90%)" }}>
+            <div style={{ maxWidth:"min(560px, 100%)" }}>
 
-              {/* Overline */}
+              {/* Greeting overline */}
               <div style={{
                 display:"inline-flex", alignItems:"center", gap:8,
-                marginBottom:14,
+                marginBottom:16,
               }}>
-                <span style={{
-                  display:"inline-block",
-                  width:28, height:2,
-                  background:"var(--t-accent)",
-                  borderRadius:999,
-                }} />
-                <span style={{
-                  fontSize:11, fontWeight:800, letterSpacing:"0.16em",
-                  textTransform:"uppercase", color:"var(--t-accent)",
-                }}>
+                <span style={{ display:"inline-block", width:28, height:2, background:"var(--t-accent)", borderRadius:999 }} />
+                <span style={{ fontSize:12, fontWeight:800, letterSpacing:"0.16em", textTransform:"uppercase", color:"var(--t-accent)" }}>
                   {isLoggedIn ? `${getGreeting()}, ${userName}` : getGreeting()}
                 </span>
               </div>
 
-              {/* Headline */}
-              <h1 style={{
-                fontSize:"clamp(1.375rem, 4.5vw, 6rem)",
-                fontWeight:900,
-                lineHeight:1.0,
-                letterSpacing:"-0.04em",
-                color:"var(--t-hero-text)",
-                margin:"0 0 8px",
-              }}>
-                Avoid Long Queue.<br />Save Time.
-              </h1>
-              <h1 style={{
-                fontSize:"clamp(1rem, 4.5vw, 4.5rem)",
-                fontWeight:900,
-                lineHeight:1.05,
-                letterSpacing:"-0.03em",
-                margin:"0 0 16px",
-                background:"linear-gradient(135deg,#6366f1 0%,#8b5cf6 50%,#a78bfa 100%)",
-                WebkitBackgroundClip:"text",
-                WebkitTextFillColor:"transparent",
-                backgroundClip:"text",
-              }}>
-                Don't let your glow wait.
-              </h1>
-
-              {/* Sub-line */}
-              <p style={{
-                fontSize:"clamp(0.8125rem,1.2vw,1rem)", fontWeight:500, color:"var(--t-hero-sub)",
-                marginBottom:20, lineHeight:1.55, maxWidth:"min(480px, 90%)",
-              }}>
-                Discover and book the best GlowSpot near you — verified, rated, and ready.
-              </p>
+              {/* Search bar */}
+              <SearchInput
+                value={searchText} onChange={handleSearch} onSearch={handleSearchSubmit}
+                onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+                focused={focused} onClear={() => handleSearch("")}
+                onLocate={handleLocation} locLoading={locLoading} searching={searching}
+              />
 
             </div>
           </div>
@@ -695,17 +601,6 @@ export default function Home() {
             })}
           </div>
 
-          {/* Search bar */}
-          <div style={{ paddingLeft:"clamp(16px,5vw,80px)", paddingRight:"clamp(16px,5vw,80px)" }}>
-            <div ref={heroSearchRef} id="hero-search" style={{ maxWidth:560 }}>
-              <SearchInput
-                value={searchText} onChange={handleSearch} onSearch={handleSearchSubmit}
-                onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-                focused={focused} onClear={() => handleSearch("")}
-                onLocate={handleLocation} locLoading={locLoading} searching={searching}
-              />
-            </div>
-          </div>
         </div>
       </section>
 
