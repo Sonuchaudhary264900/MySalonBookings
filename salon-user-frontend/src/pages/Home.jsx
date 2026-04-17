@@ -576,21 +576,21 @@ export default function Home() {
               .hero-chip-btn.chip-on{
                 border-color:rgba(99,102,241,0.6);
                 border-bottom-color:transparent;
-                border-radius:18px 18px 0 0;
+                border-radius:30px 30px 20px 20px;
                 margin-bottom:-2px;
                 background:rgba(99,102,241,0.09);
                 z-index:2;
               }
               .hero-chip-btn.chip-on::before{
                 content:'';position:absolute;
-                bottom:-2px;left:-20px;
+                bottom:16px;left:-20px;
                 width:20px;height:20px;
                 border-bottom-right-radius:20px;
                 box-shadow:10px 10px 0 rgba(99,102,241,0.6);
               }
               .hero-chip-btn.chip-on::after{
                 content:'';position:absolute;
-                bottom:-2px;right:-20px;
+                bottom:16px;right:-20px;
                 width:20px;height:20px;
                 border-bottom-left-radius:20px;
                 box-shadow:-10px 10px 0 rgba(99,102,241,0.6);
