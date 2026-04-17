@@ -666,7 +666,6 @@ export default function Home() {
               return (
                 <button
                   key={label}
-                  ref={el => { if (el && active) el.scrollIntoView({ behavior:"smooth", inline:"center", block:"nearest" }); }}
                   onClick={() => cat === null ? clearAll() : handleCategory(cat)}
                   onMouseDown={e => { e.currentTarget.style.transform = "scale(0.92)"; }}
                   onMouseUp={e => { e.currentTarget.style.transform = "scale(1)"; }}
