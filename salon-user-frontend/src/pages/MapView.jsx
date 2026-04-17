@@ -764,6 +764,15 @@ export default function MapView() {
     fetchSalons(c.lat, c.lng, sort);
   }, [sort, fetchSalons]);
 
+  /* ── Intercept browser back while modal is open ── */
+  useEffect(() => {
+    if (!modalId) return;
+    window.history.pushState({ mvModal: true }, "");
+    const onPop = () => { setModalId(null); setSelected(null); };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [modalId]);
+
   const salonCoords = selected?.location?.coordinates;
 
   return (
@@ -884,7 +893,7 @@ export default function MapView() {
             <SalonDetails
               key={modalId}
               salonId={modalId}
-              onClose={() => { setModalId(null); setSelected(null); }}
+              onClose={() => { setModalId(null); setSelected(null); window.history.back(); }}
             />
           </Suspense>
         </div>
