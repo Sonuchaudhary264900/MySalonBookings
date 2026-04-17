@@ -122,8 +122,6 @@ const CATEGORY_ALIASES = {
   "Skin & Face / Beauty": ["Skin & Face / Beauty","Skin & Face (Men Grooming)","Skin & Beauty"],
   "Spa & Massage":        ["Spa & Massage","Spa & Relaxation"],
 };
-const MALE_ONLY   = ["Beard & Grooming","Body Grooming"];
-const FEMALE_ONLY = ["Bridal & Events"];
 const SORT_OPTIONS = [
   { key: "nearby", label: "Nearest"  },
   { key: "rated",  label: "Top Rated"},
@@ -328,10 +326,6 @@ export default function Home() {
   const [salons, setSalons]             = useState([]);
   const [allSalons, setAllSalons]       = useState([]);
   const [selectedCats, setSelectedCats] = useState([]);
-  const [genderFilter, setGenderFilter] = useState(() => {
-    const g = localStorage.getItem("customerGender");
-    return g === "male" || g === "female" ? g : "all";
-  });
   const [sort, setSort]                 = useState("nearby");
   const [loading, setLoading]           = useState(true);
   const [locLoading, setLocLoading]     = useState(false);
@@ -341,7 +335,7 @@ export default function Home() {
   const [focused, setFocused]           = useState(false);
   const [stickyFocused, setStickyFocused] = useState(false);
   const [openNow, setOpenNow]           = useState(false);
-  const [premiumOnly, setPremiumOnly]   = useState(false);
+  const [selectedServiceCat, setSelectedServiceCat] = useState(null);
   const [userCoords, setUserCoords]     = useState(null);
   const [serviceMatchLabel, setServiceMatchLabel] = useState("");
 
@@ -351,10 +345,6 @@ export default function Home() {
       const d = res.data?.data || {};
       const n = d.name || d.firstName || "";
       if (n) setUserName(n);
-      if (d.gender === "male" || d.gender === "female") {
-        setGenderFilter(d.gender);
-        localStorage.setItem("customerGender", d.gender);
-      }
     }).catch(() => {});
   }, [isLoggedIn]);
 
@@ -377,7 +367,7 @@ export default function Home() {
 
 
 
-  const applyFilters = (data, cats, gender, onlyOpen, onlyPremium) => {
+  const applyFilters = (data, cats, onlyOpen, serviceCat) => {
     let r = data;
     if (cats.length > 0) {
       r = r.filter(s => cats.some(cat => {
@@ -385,10 +375,8 @@ export default function Home() {
         return (s.offeredCategoryNames || []).some(n => aliases.includes(n));
       }));
     }
-    if (gender === "unisex") { r = r.filter(s => (s.servedGender || "unisex") === "unisex"); }
-    else if (gender !== "all") { r = r.filter(s => { const sg = s.servedGender || "unisex"; return sg === gender || sg === "unisex"; }); }
+    if (serviceCat) { r = r.filter(s => (s.offeredCategoryNames || []).includes(serviceCat)); }
     if (onlyOpen) { r = r.filter(s => isOpenNow(s.workingHours) === true); }
-    if (onlyPremium) { r = r.filter(s => s.isPremium === true || s.isPromoted === true); }
     return r;
   };
 
@@ -399,7 +387,7 @@ export default function Home() {
       const res = await API.get(`/public/salons/nearby?latitude=${coords.lat}&longitude=${coords.lng}&sort=${sortKey}`);
       const data = res.data.data?.salons || res.data.data || [];
       setAllSalons(data);
-      setSalons(applyFilters(data, cats ?? selectedCats, gender ?? genderFilter, openNow, premiumOnly));
+      setSalons(applyFilters(data, cats ?? selectedCats, openNow));
     } catch { setAllSalons([]); setSalons([]); }
     finally { setLoading(false); }
   };
@@ -409,6 +397,7 @@ export default function Home() {
   const handleCategory = (cat, btnEl) => {
     const newCats = selectedCats.includes(cat) ? [] : [cat];
     setSelectedCats(newCats);
+    setSelectedServiceCat(null);
     if (btnEl && chipScrollRef.current) {
       const container = chipScrollRef.current;
       const btnLeft = btnEl.offsetLeft;
@@ -417,50 +406,40 @@ export default function Home() {
       container.scrollTo({ left: scrollTo, behavior: "smooth" });
     }
     if (searchText.trim()) { runSearch(searchText, newCats); }
-    else { setSalons(applyFilters(allSalons, newCats, genderFilter, openNow, premiumOnly)); }
+    else { setSalons(applyFilters(allSalons, newCats, openNow)); }
   };
 
-  const handleGenderFilter = gender => {
-    const newCats = selectedCats.filter(k => {
-      if (gender === "female" && MALE_ONLY.includes(k)) return false;
-      if (gender === "male"   && FEMALE_ONLY.includes(k)) return false;
-      return true;
-    });
-    setSelectedCats(newCats); setGenderFilter(gender);
-    if (searchText.trim()) { runSearch(searchText, newCats, gender); }
-    else { setSalons(applyFilters(allSalons, newCats, gender, openNow, premiumOnly)); }
+  const handleServiceCat = (cat) => {
+    const next = selectedServiceCat === cat ? null : cat;
+    setSelectedServiceCat(next);
+    setSalons(applyFilters(allSalons, selectedCats, openNow, next));
   };
 
   const handleOpenNow = () => {
     const next = !openNow; setOpenNow(next);
-    setSalons(applyFilters(allSalons, selectedCats, genderFilter, next, premiumOnly));
+    setSalons(applyFilters(allSalons, selectedCats, next, selectedServiceCat));
   };
 
-  const handlePremiumOnly = () => {
-    const next = !premiumOnly; setPremiumOnly(next);
-    setSalons(applyFilters(allSalons, selectedCats, genderFilter, openNow, next));
-  };
-
-  const runSearch = useCallback(async (text, cats, gender) => {
+  const runSearch = useCallback(async (text, cats) => {
     if (!text.trim()) return;
     setSearching(true); setServiceMatchLabel("");
     const q = text.toLowerCase();
-    const ac = cats ?? selectedCats, ag = gender ?? genderFilter;
+    const ac = cats ?? selectedCats;
     const local = allSalons.filter(s => s.name?.toLowerCase().includes(q) || s.city?.toLowerCase().includes(q) || s.address?.toLowerCase().includes(q));
-    const localF = applyFilters(local, ac, ag, openNow, premiumOnly);
+    const localF = applyFilters(local, ac, openNow);
     if (localF.length > 0) { setSalons(localF); setSearching(false); return; }
     try {
       const res = await API.get(`/public/services/search?q=${encodeURIComponent(text.trim())}`);
       const d = res.data.data;
-      if (d?.salons?.length > 0) { setSalons(applyFilters(d.salons, ac, ag, openNow, premiumOnly)); setServiceMatchLabel(`Salons offering "${d.matchedService}"`); }
+      if (d?.salons?.length > 0) { setSalons(applyFilters(d.salons, ac, openNow)); setServiceMatchLabel(`Salons offering "${d.matchedService}"`); }
       else { setSalons([]); }
     } catch { setSalons([]); }
     finally { setSearching(false); }
-  }, [allSalons, selectedCats, genderFilter, openNow, premiumOnly]);
+  }, [allSalons, selectedCats, openNow]);
 
   const handleSearch = text => {
     setSearchText(text);
-    if (!text.trim()) { setServiceMatchLabel(""); setSalons(applyFilters(allSalons, selectedCats, genderFilter, openNow, premiumOnly)); }
+    if (!text.trim()) { setServiceMatchLabel(""); setSalons(applyFilters(allSalons, selectedCats, openNow)); }
   };
   const handleSearchSubmit = () => { if (searchText.trim()) runSearch(searchText, selectedCats); };
 
@@ -476,8 +455,8 @@ export default function Home() {
     navigator.geolocation.getCurrentPosition(
       pos => {
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setUserCoords(coords); setLocDenied(false); setSort("nearby"); setGenderFilter("all");
-        fetchBySort("nearby", coords, [], "all").finally(() => setLocLoading(false));
+        setUserCoords(coords); setLocDenied(false); setSort("nearby");
+        fetchBySort("nearby", coords, []).finally(() => setLocLoading(false));
       },
       err => {
         setLocLoading(false); setLocDenied(true);
@@ -490,17 +469,26 @@ export default function Home() {
 
   const handleSortChange = key => {
     setSort(key);
-    if (!searchText.trim()) fetchBySort(key, userCoords, selectedCats, genderFilter);
+    if (!searchText.trim()) fetchBySort(key, userCoords, selectedCats);
   };
 
   const clearAll = () => {
-    setSearchText(""); setSelectedCats([]); setGenderFilter("all"); setOpenNow(false); setPremiumOnly(false);
+    setSearchText(""); setSelectedCats([]); setSelectedServiceCat(null); setOpenNow(false);
     setServiceMatchLabel(""); setSalons(allSalons);
   };
 
   const isSearchActive = searchText.trim().length > 0;
-  const isFiltered     = selectedCats.length > 0 || genderFilter !== "all" || openNow || premiumOnly;
+  const isFiltered     = selectedCats.length > 0 || !!selectedServiceCat || openNow;
   const hasActiveState = isSearchActive || isFiltered;
+
+  const availableServiceCats = useMemo(() => {
+    if (selectedCats.length === 0) return [];
+    const set = new Set();
+    applyFilters(allSalons, selectedCats, false).forEach(s =>
+      (s.offeredCategoryNames || []).forEach(n => set.add(n))
+    );
+    return [...set].sort();
+  }, [allSalons, selectedCats]);
 
   const sectionTitle = serviceMatchLabel
     || (isSearchActive ? "Search Results"
@@ -626,71 +614,33 @@ export default function Home() {
       </section>
 
       {/* ══════════════════════════════════════════════════════════
-          STICKY DISCOVERY BAR
+          DYNAMIC SERVICE CATEGORY CHIPS
       ══════════════════════════════════════════════════════════ */}
-      <div style={{
-        position:"sticky", top:64, zIndex:40,
-        background:"var(--t-nav-bg)", backdropFilter:"blur(28px)", WebkitBackdropFilter:"blur(28px)",
-        borderBottom:"1px solid var(--t-border)",
-      }}>
-        <div className="max-w-7xl mx-auto" style={{ padding:"8px clamp(12px,4vw,24px)" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-
-            {/* Pills */}
-            <div className="cat-scroll-bar" style={{ overflowX:"auto", WebkitOverflowScrolling:"touch", flex:1, display:"flex", alignItems:"flex-end", gap:14, minWidth:0, scrollSnapType:"x mandatory", scrollbarWidth:"none", padding:"4px 0 6px" }}>
-              {/* All Services */}
-              <button onClick={clearAll} style={{
-                whiteSpace:"nowrap", padding:"6px 13px", borderRadius:999,
-                fontSize:12, fontWeight:700, cursor:"pointer", transition:"all 0.18s ease",
-                background: !hasActiveState ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "var(--t-input-bg)",
-                border: !hasActiveState ? "1px solid rgba(139,92,246,0.35)" : "1px solid var(--t-border)",
-                color: !hasActiveState ? "#fff" : "var(--t-text-2)",
-                boxShadow: !hasActiveState ? "0 2px 14px rgba(99,102,241,0.24)" : "none",
-                flexShrink:0,
-              }}>All Services</button>
-
-              {/* For Men */}
-              {(() => {
-                const active = genderFilter === "male";
-                return <button onClick={() => handleGenderFilter(active?"all":"male")} style={{
-                  whiteSpace:"nowrap", padding:"7px 18px", borderRadius:999,
-                  fontSize:12, fontWeight:700, cursor:"pointer", transition:"all 0.18s ease",
-                  background: active ? "rgba(99,102,241,0.1)" : "var(--t-input-bg)",
-                  border: active ? "1px solid rgba(99,102,241,0.32)" : "1px solid var(--t-border)",
-                  color: active ? "var(--t-accent)" : "var(--t-text-2)", flexShrink:0,
-                }}>For Men</button>;
-              })()}
-
-              {/* For Women */}
-              {(() => {
-                const active = genderFilter === "female";
-                return <button onClick={() => handleGenderFilter(active?"all":"female")} style={{
-                  whiteSpace:"nowrap", padding:"7px 18px", borderRadius:999,
-                  fontSize:12, fontWeight:700, cursor:"pointer", transition:"all 0.18s ease",
-                  background: active ? "rgba(236,72,153,0.1)" : "var(--t-input-bg)",
-                  border: active ? "1px solid rgba(236,72,153,0.32)" : "1px solid var(--t-border)",
-                  color: active ? "#ec4899" : "var(--t-text-2)", flexShrink:0,
-                }}>For Women</button>;
-              })()}
-
-              {/* Premium Only */}
-              <button onClick={handlePremiumOnly} style={{
-                whiteSpace:"nowrap", padding:"6px 13px", borderRadius:999,
-                fontSize:12, fontWeight:700, cursor:"pointer", transition:"all 0.18s ease",
-                display:"flex", alignItems:"center", gap:5,
-                background: premiumOnly ? "rgba(234,179,8,0.12)" : "var(--t-input-bg)",
-                border: premiumOnly ? "1px solid rgba(234,179,8,0.4)" : "1px solid var(--t-border)",
-                color: premiumOnly ? "#d97706" : "var(--t-text-2)", flexShrink:0,
-              }}>
-                <Crown style={{ width:12, height:12 }} />
-                Premium
-              </button>
-
+      {availableServiceCats.length > 0 && (
+        <div style={{
+          position:"sticky", top:64, zIndex:40,
+          background:"var(--t-nav-bg)", backdropFilter:"blur(28px)", WebkitBackdropFilter:"blur(28px)",
+          borderBottom:"1px solid var(--t-border)",
+        }}>
+          <div className="max-w-7xl mx-auto" style={{ padding:"8px clamp(12px,4vw,24px)" }}>
+            <div className="cat-scroll-bar" style={{ overflowX:"auto", WebkitOverflowScrolling:"touch", display:"flex", alignItems:"center", gap:8, scrollbarWidth:"none", padding:"4px 0 6px" }}>
+              {availableServiceCats.map(cat => {
+                const active = selectedServiceCat === cat;
+                return (
+                  <button key={cat} onClick={() => handleServiceCat(cat)} style={{
+                    whiteSpace:"nowrap", padding:"6px 14px", borderRadius:999,
+                    fontSize:12, fontWeight:700, cursor:"pointer", transition:"all 0.18s ease", flexShrink:0,
+                    background: active ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "var(--t-input-bg)",
+                    border: active ? "1px solid rgba(139,92,246,0.35)" : "1px solid var(--t-border)",
+                    color: active ? "#fff" : "var(--t-text-2)",
+                    boxShadow: active ? "0 2px 14px rgba(99,102,241,0.24)" : "none",
+                  }}>{cat}</button>
+                );
+              })}
             </div>
-
           </div>
         </div>
-      </div>
+      )}
 
       {/* ── LOCATION DENIED ────────────────────────────────────── */}
       {locDenied && !isSearchActive && (
