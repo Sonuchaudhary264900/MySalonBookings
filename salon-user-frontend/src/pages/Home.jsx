@@ -1120,6 +1120,41 @@ export default function Home() {
 
       </section>
 
+      {/* ── ACTIVE CATEGORY CONTEXT BANNER ───────────────────────── */}
+      {selectedCats.length > 0 && (() => {
+        const chip = HERO_CHIPS.find(c => c.cat === selectedCats[0]);
+        if (!chip) return null;
+        const { label, Icon } = chip;
+        return (
+          <div style={{
+            background:"linear-gradient(135deg,rgba(99,102,241,0.13) 0%,rgba(139,92,246,0.09) 100%)",
+            borderBottom:"1px solid rgba(99,102,241,0.18)",
+            padding:"14px clamp(16px,4vw,32px)",
+          }}>
+            <div style={{ maxWidth:1280, margin:"0 auto", display:"flex", alignItems:"center", gap:12 }}>
+              <div style={{
+                width:40, height:40, borderRadius:"50%", flexShrink:0,
+                background:"linear-gradient(135deg,#6366f1,#8b5cf6)",
+                display:"flex", alignItems:"center", justifyContent:"center",
+                boxShadow:"0 4px 14px rgba(99,102,241,0.4)",
+              }}>
+                <Icon style={{ width:18, height:18, color:"#fff" }} />
+              </div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <p style={{ margin:0, fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.1em", color:"var(--t-accent)", opacity:0.8 }}>Browsing</p>
+                <h2 style={{ margin:0, fontSize:16, fontWeight:800, color:"var(--t-text)", letterSpacing:"-0.02em", lineHeight:1.2 }}>{label}</h2>
+              </div>
+              {!loading && (
+                <span style={{ fontSize:12, fontWeight:700, color:"var(--t-accent)", background:"rgba(99,102,241,0.12)", border:"1px solid rgba(99,102,241,0.22)", borderRadius:999, padding:"4px 12px", flexShrink:0 }}>
+                  {salons.length} found
+                </span>
+              )}
+              <button onClick={clearAll} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--t-text-3)", fontSize:20, lineHeight:1, padding:"0 4px", flexShrink:0 }}>×</button>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ══════════════════════════════════════════════════════════
           DYNAMIC SERVICE CATEGORY CHIPS
       ══════════════════════════════════════════════════════════ */}
@@ -1171,41 +1206,6 @@ export default function Home() {
           </button>
         </div>
       )}
-
-      {/* ── ACTIVE CATEGORY CONTEXT BANNER ───────────────────────── */}
-      {selectedCats.length > 0 && (() => {
-        const chip = HERO_CHIPS.find(c => c.cat === selectedCats[0]);
-        if (!chip) return null;
-        const { label, Icon } = chip;
-        return (
-          <div style={{
-            background:"linear-gradient(135deg,rgba(99,102,241,0.13) 0%,rgba(139,92,246,0.09) 100%)",
-            borderBottom:"1px solid rgba(99,102,241,0.18)",
-            padding:"14px clamp(16px,4vw,32px)",
-          }}>
-            <div style={{ maxWidth:1280, margin:"0 auto", display:"flex", alignItems:"center", gap:12 }}>
-              <div style={{
-                width:40, height:40, borderRadius:"50%", flexShrink:0,
-                background:"linear-gradient(135deg,#6366f1,#8b5cf6)",
-                display:"flex", alignItems:"center", justifyContent:"center",
-                boxShadow:"0 4px 14px rgba(99,102,241,0.4)",
-              }}>
-                <Icon style={{ width:18, height:18, color:"#fff" }} />
-              </div>
-              <div style={{ flex:1, minWidth:0 }}>
-                <p style={{ margin:0, fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.1em", color:"var(--t-accent)", opacity:0.8 }}>Browsing</p>
-                <h2 style={{ margin:0, fontSize:16, fontWeight:800, color:"var(--t-text)", letterSpacing:"-0.02em", lineHeight:1.2 }}>{label}</h2>
-              </div>
-              {!loading && (
-                <span style={{ fontSize:12, fontWeight:700, color:"var(--t-accent)", background:"rgba(99,102,241,0.12)", border:"1px solid rgba(99,102,241,0.22)", borderRadius:999, padding:"4px 12px", flexShrink:0 }}>
-                  {salons.length} found
-                </span>
-              )}
-              <button onClick={clearAll} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--t-text-3)", fontSize:20, lineHeight:1, padding:"0 4px", flexShrink:0 }}>×</button>
-            </div>
-          </div>
-        );
-      })()}
 
       {/* ══════════════════════════════════════════════════════════
           SALON GRID
