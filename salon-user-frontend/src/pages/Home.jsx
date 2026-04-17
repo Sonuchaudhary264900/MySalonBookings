@@ -827,7 +827,11 @@ export default function Home() {
   const [userCoords, setUserCoords]     = useState(null);
   const [serviceMatchLabel, setServiceMatchLabel] = useState("");
 
-  // Persist cart across navigation (clears only on true page refresh)
+  // Clean up old persisted category keys (legacy) and persist cart only
+  useEffect(() => {
+    sessionStorage.removeItem("home_cats");
+    sessionStorage.removeItem("home_svccat");
+  }, []);
   useEffect(() => { if (cart.salon) sessionStorage.setItem("home_cart", JSON.stringify(cart)); else sessionStorage.removeItem("home_cart"); }, [cart]);
 
   useEffect(() => {
@@ -966,6 +970,8 @@ export default function Home() {
   const clearAll = () => {
     setSearchText(""); setSelectedCats([]); setSelectedServiceCat(null); setOpenNow(false);
     setServiceMatchLabel(""); setSalons(allSalons);
+    setCart({ salon: null, serviceMap: {} });
+    sessionStorage.removeItem("home_cart");
   };
 
   const isSearchActive = searchText.trim().length > 0;
@@ -1258,8 +1264,8 @@ export default function Home() {
 
           {/* Salon cards */}
           {!loading && salons.length > 0 && (
-            selectedCats.length > 0 ? (
-              /* ── Category selected: inline service discovery view ── */
+            selectedServiceCat ? (
+              /* ── Sub-service selected: inline service discovery view ── */
               <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
                 {salons.map(s => (
                   <HomeSalonServiceCard
