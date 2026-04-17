@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
@@ -8,6 +8,8 @@ import API from "../services/api";
 import { salonPath } from "../utils/formatters";
 import { useTheme } from "../context/ThemeContext";
 import DirectionsModal from "../components/DirectionsModal";
+
+const SalonDetails = lazy(() => import("./SalonDetails"));
 
 /* ── Fix Leaflet default icon path (Vite/React build issue) ── */
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
@@ -703,9 +705,9 @@ export default function MapView() {
   const [coords,   setCoords]   = useState(null);
   const [center,   setCenter]   = useState([20.5937, 78.9629]);
   const [selected, setSelected] = useState(null);
+  const [modalId,  setModalId]  = useState(null);
   const [dirOpen,  setDirOpen]  = useState(false);
   const [sort,     setSort]     = useState("nearby");
-  const [cardSnap, setCardSnap] = useState("peek"); // for map dim
 
   /* ── Fetch nearby salons ── */
   const fetchSalons = useCallback(async (lat, lng, sortBy) => {
@@ -752,7 +754,7 @@ export default function MapView() {
             bizDist(s, coords?.lat, coords?.lng),
             s.coverPhoto || s.photos?.[0] || s.logo || s.profilePhoto
           )}
-          eventHandlers={{ click: () => { setSelected(s); setDirOpen(false); } }}
+          eventHandlers={{ click: () => { setSelected(s); setModalId(s._id); setDirOpen(false); } }}
         />
       )),
   [salons, selected?._id, coords]);
@@ -770,8 +772,7 @@ export default function MapView() {
       <div style={{
         position: "fixed", inset: 0,
         background: isDark ? "#111827" : "#f8fafc",
-        filter: cardSnap === "full" ? "brightness(0.92)" : "none",
-        transition: "filter 0.3s ease",
+        filter: "none",
       }}>
 
         {/* Top bar */}
@@ -862,26 +863,31 @@ export default function MapView() {
         </div>
       </div>
 
-      {/* Tap-outside overlay (stops at NAV_H so BottomNav stays interactive) */}
-      {selected && !dirOpen && (
-        <div
-          style={{ position:"fixed", inset:0, bottom: NAV_H, zIndex:200 }}
-          onClick={() => { setSelected(null); setCardSnap("peek"); }}
-        />
-      )}
-
-      {/* SalonCard — key={_id} ensures remount on new selection */}
-      {selected && !dirOpen && (
-        <SalonCard
-          key={selected._id}
-          salon={selected}
-          userCoords={coords}
-          onClose={() => { setSelected(null); setCardSnap("peek"); }}
-          onDirections={() => setDirOpen(true)}
-          navigate={navigate}
-          isDark={isDark}
-          onSnapChange={setCardSnap}
-        />
+      {/* Full-screen SalonDetails modal */}
+      {modalId && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 400,
+          background: "var(--t-bg, #0d0520)",
+          overflowY: "auto",
+          WebkitOverflowScrolling: "touch",
+          animation: "mvSlideUp 0.32s cubic-bezier(0.22,1,0.36,1) both",
+        }}>
+          <style>{`@keyframes mvSlideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}`}</style>
+          <Suspense fallback={
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background:"var(--t-bg,#0d0520)" }}>
+              <div style={{ width:40, height:40, borderRadius:"50%", background:"conic-gradient(from 0deg,#6366f1,#a78bfa,transparent)", animation:"mvSpin 0.85s linear infinite", padding:4 }}>
+                <div style={{ width:"100%", height:"100%", borderRadius:"50%", background:"var(--t-bg,#0d0520)" }} />
+              </div>
+              <style>{`@keyframes mvSpin{to{transform:rotate(360deg)}}`}</style>
+            </div>
+          }>
+            <SalonDetails
+              key={modalId}
+              salonId={modalId}
+              onClose={() => { setModalId(null); setSelected(null); }}
+            />
+          </Suspense>
+        </div>
       )}
 
       {/* Directions modal */}

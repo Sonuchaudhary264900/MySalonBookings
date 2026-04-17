@@ -135,8 +135,9 @@ const DEFAULT_THEME = CAT_THEMES.salon;
 const BIZ_LABELS    = { barbershop:'barbershop visit', salon:'salon visit', spa_wellness:'spa session', makeup_bridal:'makeover', skin_derma:'skin treatment' };
 const BIZ_SUBTITLES = { barbershop:'Precision cuts. Defined character.', salon:'Luxury grooming experience.', spa_wellness:'Wellness & beauty elevated.', makeup_bridal:'Bridal beauty artistry.', skin_derma:'Advanced skin science.' };
 
-function SalonDetails() {
-  const { id } = useParams();
+function SalonDetails({ salonId: propId, onClose }) {
+  const { id: paramId } = useParams();
+  const id = propId || paramId;
   const navigate = useNavigate();
   const location = useLocation();
   const { addToast, addNotification } = useNotifications();
@@ -704,6 +705,12 @@ function SalonDetails() {
               <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(ellipse 70% 60% at 20% 40%, ${theme.p}47 0%, transparent 55%), linear-gradient(135deg, ${dm.card} 0%, ${dm.card} 100%)` }} />
             )}
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(13,5,32,.05) 0%, rgba(13,5,32,.60) 75%, #0D0520 100%)' }} />
+            {onClose && (
+              <button onClick={onClose}
+                style={{ position: 'absolute', top: 12, left: 12, width: 34, height: 34, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,.12)', cursor: 'pointer', zIndex: 6, color: '#fff' }}>
+                <X style={{ width: 16, height: 16 }} />
+              </button>
+            )}
             {currentHeroSlide?.type === 'video' && (
               <button onClick={e => { e.stopPropagation(); setHeroMuted(m => !m); heroVideoRef2.current && (heroVideoRef2.current.muted = !heroMuted); }}
                 style={{ position: 'absolute', top: 12, right: 12, width: 34, height: 34, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,.12)', cursor: 'pointer', zIndex: 5, color: '#fff' }}>
