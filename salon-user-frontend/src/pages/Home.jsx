@@ -546,9 +546,10 @@ export default function Home() {
 
           {/* Full-width circular category bar */}
           <style>{`.cat-scroll-hero::-webkit-scrollbar{display:none}`}</style>
+          <div style={{ position:"relative" }}>
           <div ref={chipScrollRef} className="cat-scroll-hero" style={{
             display:"flex", overflowX:"auto", gap:0,
-            padding:"14px clamp(8px,4vw,48px) 18px",
+            padding:"14px clamp(8px,4vw,48px) 10px",
             scrollbarWidth:"none",
           }}>
             {HERO_CHIPS.map(({ label, cat, Icon }) => {
@@ -563,7 +564,8 @@ export default function Home() {
                     display:"flex", flexDirection:"column", alignItems:"center", gap:0,
                     flexShrink:0, background:"none", border:"none", cursor:"pointer",
                     padding:"0 14px", position:"relative",
-                    transition:"transform 0.18s cubic-bezier(0.4,0,0.2,1)",
+                    transform: active ? "translateY(-6px)" : "translateY(0)",
+                    transition:"transform 0.22s cubic-bezier(0.4,0,0.2,1)",
                   }}
                 >
                   {/* Circle */}
@@ -577,7 +579,6 @@ export default function Home() {
                     boxShadow: active
                       ? "0 0 0 4px rgba(99,102,241,0.18), 0 8px 28px rgba(99,102,241,0.55), inset 0 1px 1px rgba(255,255,255,0.22)"
                       : "none",
-                    transform: active ? "scale(1.08)" : "scale(1)",
                     transition:"all 0.28s cubic-bezier(0.4,0,0.2,1)",
                   }}>
                     <Icon style={{
@@ -595,14 +596,14 @@ export default function Home() {
                     transition:"all 0.22s ease",
                   }}>{label}</span>
 
-                  {/* Active dot indicator */}
+                  {/* Active dot */}
                   {active && (
                     <span style={{
-                      position:"absolute", bottom:-6,
+                      position:"absolute", bottom:0,
                       left:"50%", transform:"translateX(-50%)",
-                      width:18, height:3, borderRadius:999,
+                      width:20, height:3, borderRadius:999,
                       background:"linear-gradient(90deg,#818cf8,#6366f1)",
-                      boxShadow:"0 0 8px rgba(99,102,241,0.7)",
+                      boxShadow:"0 0 8px rgba(99,102,241,0.8)",
                     }} />
                   )}
                 </button>
@@ -610,7 +611,16 @@ export default function Home() {
             })}
           </div>
 
+          {/* Instamart-style accent line */}
+          <div style={{
+            position:"absolute", bottom:0, left:0, right:0, height:3, pointerEvents:"none",
+            background:"linear-gradient(90deg,transparent 0%,#818cf8 20%,#6366f1 50%,#a78bfa 80%,transparent 100%)",
+            opacity:0.85,
+          }} />
+          </div>{/* end position:relative */}
+
         </div>
+
       </section>
 
       {/* ══════════════════════════════════════════════════════════
