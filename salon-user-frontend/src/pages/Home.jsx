@@ -130,11 +130,14 @@ const SORT_OPTIONS = [
   { key: "booked", label: "Trending" },
 ];
 const HERO_CHIPS = [
+  { label: "All",            cat: null,                   Icon: Sparkles  },
   { label: "Salon",          cat: "Hair Services",        Icon: Scissors  },
   { label: "Barbershop",     cat: "Beard & Grooming",     Icon: User      },
   { label: "Spa & Wellness", cat: "Spa & Massage",        Icon: Droplets  },
   { label: "Makeup & Bridal",cat: "Bridal & Events",      Icon: Sparkles  },
   { label: "Skin & Derma",   cat: "Skin & Face / Beauty", Icon: Leaf      },
+  { label: "Kids",           cat: "Kids Services",        Icon: Baby      },
+  { label: "At-Home",        cat: "At-Home Services",     Icon: HomeIcon  },
 ];
 
 
@@ -590,118 +593,123 @@ export default function Home() {
           margin:"0 auto",
           paddingTop:"calc(clamp(68px,5vh,100px) + env(safe-area-inset-top, 0px))",
           paddingBottom:"clamp(10px,2vh,64px)",
-          paddingLeft:"clamp(16px,5vw,80px)",
-          paddingRight:"clamp(16px,5vw,80px)",
         }}>
-          <div style={{ maxWidth:"min(680px, 90%)" }}>
+          {/* Text block */}
+          <div style={{ paddingLeft:"clamp(16px,5vw,80px)", paddingRight:"clamp(16px,5vw,80px)" }}>
+            <div style={{ maxWidth:"min(680px, 90%)" }}>
 
-            {/* Overline */}
-            <div style={{
-              display:"inline-flex", alignItems:"center", gap:8,
-              marginBottom:14,
-            }}>
-              <span style={{
-                display:"inline-block",
-                width:28, height:2,
-                background:"var(--t-accent)",
-                borderRadius:999,
-              }} />
-              <span style={{
-                fontSize:11, fontWeight:800, letterSpacing:"0.16em",
-                textTransform:"uppercase", color:"var(--t-accent)",
+              {/* Overline */}
+              <div style={{
+                display:"inline-flex", alignItems:"center", gap:8,
+                marginBottom:14,
               }}>
-                {isLoggedIn ? `${getGreeting()}, ${userName}` : getGreeting()}
-              </span>
+                <span style={{
+                  display:"inline-block",
+                  width:28, height:2,
+                  background:"var(--t-accent)",
+                  borderRadius:999,
+                }} />
+                <span style={{
+                  fontSize:11, fontWeight:800, letterSpacing:"0.16em",
+                  textTransform:"uppercase", color:"var(--t-accent)",
+                }}>
+                  {isLoggedIn ? `${getGreeting()}, ${userName}` : getGreeting()}
+                </span>
+              </div>
+
+              {/* Headline */}
+              <h1 style={{
+                fontSize:"clamp(1.375rem, 4.5vw, 6rem)",
+                fontWeight:900,
+                lineHeight:1.0,
+                letterSpacing:"-0.04em",
+                color:"var(--t-hero-text)",
+                margin:"0 0 8px",
+              }}>
+                Avoid Long Queue.<br />Save Time.
+              </h1>
+              <h1 style={{
+                fontSize:"clamp(1rem, 4.5vw, 4.5rem)",
+                fontWeight:900,
+                lineHeight:1.05,
+                letterSpacing:"-0.03em",
+                margin:"0 0 16px",
+                background:"linear-gradient(135deg,#6366f1 0%,#8b5cf6 50%,#a78bfa 100%)",
+                WebkitBackgroundClip:"text",
+                WebkitTextFillColor:"transparent",
+                backgroundClip:"text",
+              }}>
+                Don't let your glow wait.
+              </h1>
+
+              {/* Sub-line */}
+              <p style={{
+                fontSize:"clamp(0.8125rem,1.2vw,1rem)", fontWeight:500, color:"var(--t-hero-sub)",
+                marginBottom:20, lineHeight:1.55, maxWidth:"min(480px, 90%)",
+              }}>
+                Discover and book the best GlowSpot near you — verified, rated, and ready.
+              </p>
+
             </div>
+          </div>
 
-            {/* Headline */}
-            <h1 style={{
-              fontSize:"clamp(1.375rem, 4.5vw, 6rem)",
-              fontWeight:900,
-              lineHeight:1.0,
-              letterSpacing:"-0.04em",
-              color:"var(--t-hero-text)",
-              margin:"0 0 8px",
-            }}>
-              Avoid Long Queue.<br />Save Time.
-            </h1>
-            <h1 style={{
-              fontSize:"clamp(1rem, 4.5vw, 4.5rem)",
-              fontWeight:900,
-              lineHeight:1.05,
-              letterSpacing:"-0.03em",
-              margin:"0 0 16px",
-              background:"linear-gradient(135deg,#6366f1 0%,#8b5cf6 50%,#a78bfa 100%)",
-              WebkitBackgroundClip:"text",
-              WebkitTextFillColor:"transparent",
-              backgroundClip:"text",
-            }}>
-              Don't let your glow wait.
-            </h1>
+          {/* Full-width circular category bar */}
+          <div className="cat-scroll-hero" style={{
+            display:"flex", overflowX:"auto", gap:18,
+            padding:"12px clamp(16px,5vw,80px) 8px",
+            scrollbarWidth:"none",
+            marginBottom:16,
+          }}>
+            <style>{`.cat-scroll-hero::-webkit-scrollbar{display:none}`}</style>
+            {HERO_CHIPS.map(({ label, cat, Icon }) => {
+              const active = cat === null ? selectedCats.length === 0 : selectedCats.includes(cat);
+              return (
+                <button
+                  key={label}
+                  ref={el => { if (el && active) el.scrollIntoView({ behavior:"smooth", inline:"center", block:"nearest" }); }}
+                  onClick={() => cat === null ? clearAll() : handleCategory(cat)}
+                  onMouseDown={e => { e.currentTarget.style.transform = "scale(0.92)"; }}
+                  onMouseUp={e => { e.currentTarget.style.transform = "scale(1)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}
+                  onTouchStart={e => { e.currentTarget.style.transform = "scale(0.92)"; }}
+                  onTouchEnd={e => { e.currentTarget.style.transform = "scale(1)"; }}
+                  style={{
+                    display:"flex", flexDirection:"column", alignItems:"center", gap:0,
+                    flexShrink:0, background:"none", border:"none", cursor:"pointer",
+                    padding:"0 2px",
+                    transition:"transform 0.25s cubic-bezier(0.4,0,0.2,1)",
+                  }}
+                >
+                  <div style={{
+                    width:52, height:52, borderRadius:"50%",
+                    display:"flex", alignItems:"center", justifyContent:"center",
+                    background: active
+                      ? "linear-gradient(135deg,#6366f1,#8b5cf6)"
+                      : "rgba(255,255,255,0.06)",
+                    backdropFilter: active ? "none" : "blur(10px)",
+                    WebkitBackdropFilter: active ? "none" : "blur(10px)",
+                    border: active ? "none" : "1px solid rgba(255,255,255,0.09)",
+                    boxShadow: active
+                      ? "0 6px 18px rgba(99,102,241,0.35),0 0 16px rgba(99,102,241,0.12),inset 0 1px 1px rgba(255,255,255,0.18)"
+                      : "0 2px 6px rgba(0,0,0,0.15)",
+                    transform: active ? "scale(1.06)" : "scale(1)",
+                    transition:"all 0.25s cubic-bezier(0.4,0,0.2,1)",
+                  }}>
+                    <Icon style={{ width:20, height:20, color: active ? "#fff" : "rgba(255,255,255,0.75)" }} />
+                  </div>
+                  <span style={{
+                    fontSize:11, fontWeight:500, marginTop:7,
+                    letterSpacing:"0.2px", whiteSpace:"nowrap",
+                    color: active ? "#fff" : "rgba(255,255,255,0.65)",
+                    transition:"color 0.25s cubic-bezier(0.4,0,0.2,1)",
+                  }}>{label}</span>
+                </button>
+              );
+            })}
+          </div>
 
-            {/* Sub-line */}
-            <p style={{
-              fontSize:"clamp(0.8125rem,1.2vw,1rem)", fontWeight:500, color:"var(--t-hero-sub)",
-              marginBottom:20, lineHeight:1.55, maxWidth:"min(480px, 90%)",
-            }}>
-              Discover and book the best GlowSpot near you — verified, rated, and ready.
-            </p>
-
-            {/* Premium circular category bar */}
-            <div className="cat-scroll-hero" style={{
-              display:"flex", overflowX:"auto", gap:18,
-              padding:"12px 14px 8px", marginBottom:8,
-              scrollSnapType:"x mandatory", scrollbarWidth:"none",
-            }}>
-              <style>{`.cat-scroll-hero::-webkit-scrollbar{display:none}`}</style>
-              {HERO_CHIPS.map(({ label, cat, Icon }) => {
-                const active = selectedCats.includes(cat);
-                return (
-                  <button
-                    key={label}
-                    ref={el => { if (el && active) el.scrollIntoView({ behavior:"smooth", inline:"center", block:"nearest" }); }}
-                    onClick={() => handleCategory(cat)}
-                    onMouseDown={e => { e.currentTarget.style.transform = "scale(0.92)"; }}
-                    onMouseUp={e => { e.currentTarget.style.transform = "scale(1)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}
-                    onTouchStart={e => { e.currentTarget.style.transform = "scale(0.92)"; }}
-                    onTouchEnd={e => { e.currentTarget.style.transform = "scale(1)"; }}
-                    style={{
-                      display:"flex", flexDirection:"column", alignItems:"center", gap:0,
-                      flexShrink:0, background:"none", border:"none", cursor:"pointer",
-                      padding:"0 2px", scrollSnapAlign:"center",
-                      transition:"transform 0.25s cubic-bezier(0.4,0,0.2,1)",
-                    }}
-                  >
-                    <div style={{
-                      width:52, height:52, borderRadius:"50%",
-                      display:"flex", alignItems:"center", justifyContent:"center",
-                      background: active
-                        ? "linear-gradient(135deg,#6366f1,#8b5cf6)"
-                        : "rgba(255,255,255,0.06)",
-                      backdropFilter: active ? "none" : "blur(10px)",
-                      WebkitBackdropFilter: active ? "none" : "blur(10px)",
-                      border: active ? "none" : "1px solid rgba(255,255,255,0.09)",
-                      boxShadow: active
-                        ? "0 6px 18px rgba(99,102,241,0.35),0 0 16px rgba(99,102,241,0.12),inset 0 1px 1px rgba(255,255,255,0.18)"
-                        : "0 2px 6px rgba(0,0,0,0.15)",
-                      transform: active ? "scale(1.06)" : "scale(1)",
-                      transition:"all 0.25s cubic-bezier(0.4,0,0.2,1)",
-                    }}>
-                      <Icon style={{ width:20, height:20, color: active ? "#fff" : "rgba(255,255,255,0.75)" }} />
-                    </div>
-                    <span style={{
-                      fontSize:11, fontWeight:500, marginTop:7,
-                      letterSpacing:"0.2px", whiteSpace:"nowrap",
-                      color: active ? "#fff" : "rgba(255,255,255,0.65)",
-                      transition:"color 0.25s cubic-bezier(0.4,0,0.2,1)",
-                    }}>{label}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Search bar */}
+          {/* Search bar */}
+          <div style={{ paddingLeft:"clamp(16px,5vw,80px)", paddingRight:"clamp(16px,5vw,80px)" }}>
             <div ref={heroSearchRef} id="hero-search" style={{ maxWidth:560 }}>
               <SearchInput
                 value={searchText} onChange={handleSearch} onSearch={handleSearchSubmit}
@@ -710,7 +718,6 @@ export default function Home() {
                 onLocate={handleLocation} locLoading={locLoading} searching={searching}
               />
             </div>
-
           </div>
         </div>
       </section>
@@ -776,54 +783,6 @@ export default function Home() {
                 Premium
               </button>
 
-              {/* Category circles */}
-              {CATEGORIES.filter(({ key }) => {
-                if (genderFilter === "female" && MALE_ONLY.includes(key)) return false;
-                if (genderFilter === "male"   && FEMALE_ONLY.includes(key)) return false;
-                return true;
-              }).map(({ key, label, Icon }) => {
-                const active = selectedCats.includes(key);
-                return (
-                  <button
-                    key={key}
-                    ref={el => { if (el && active) el.scrollIntoView({ behavior:"smooth", inline:"center", block:"nearest" }); }}
-                    onClick={() => handleCategory(key)}
-                    onMouseDown={e => { e.currentTarget.style.transform = "scale(0.92)"; }}
-                    onMouseUp={e => { e.currentTarget.style.transform = "scale(1)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}
-                    onTouchStart={e => { e.currentTarget.style.transform = "scale(0.92)"; }}
-                    onTouchEnd={e => { e.currentTarget.style.transform = "scale(1)"; }}
-                    style={{
-                      display:"flex", flexDirection:"column", alignItems:"center", gap:0,
-                      flexShrink:0, background:"none", border:"none", cursor:"pointer",
-                      padding:"0 2px", scrollSnapAlign:"center",
-                      transition:"transform 0.25s cubic-bezier(0.4,0,0.2,1)",
-                    }}
-                  >
-                    <div style={{
-                      width:44, height:44, borderRadius:"50%",
-                      display:"flex", alignItems:"center", justifyContent:"center",
-                      background: active
-                        ? "linear-gradient(135deg,#6366f1,#8b5cf6)"
-                        : "var(--t-input-bg)",
-                      border: active ? "none" : "1px solid var(--t-border)",
-                      boxShadow: active
-                        ? "0 4px 14px rgba(99,102,241,0.35),0 0 12px rgba(99,102,241,0.1)"
-                        : "0 1px 4px rgba(0,0,0,0.08)",
-                      transform: active ? "scale(1.06)" : "scale(1)",
-                      transition:"all 0.25s cubic-bezier(0.4,0,0.2,1)",
-                    }}>
-                      {Icon && <Icon style={{ width:18, height:18, color: active ? "#fff" : "var(--t-text-2)", opacity: active ? 1 : 0.75 }} />}
-                    </div>
-                    <span style={{
-                      fontSize:10, fontWeight:500, marginTop:5,
-                      letterSpacing:"0.2px", whiteSpace:"nowrap",
-                      color: active ? "var(--t-accent)" : "var(--t-text-3)",
-                      transition:"color 0.25s cubic-bezier(0.4,0,0.2,1)",
-                    }}>{label}</span>
-                  </button>
-                );
-              })}
             </div>
 
             {/* Controls */}
