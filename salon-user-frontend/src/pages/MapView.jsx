@@ -66,9 +66,6 @@ function getSnapY(snap) {
 function salonIcon(isActive, name, distMetres, photoUrl) {
   const size    = isActive ? 48 : 38;
   const initial = (name || "S").charAt(0).toUpperCase();
-  const distLabel = typeof distMetres === "number"
-    ? `<span style="font-size:9px;font-weight:700;color:${isActive ? "#6366f1" : "#64748b"};margin-top:1px;white-space:nowrap;">${fmtDist(distMetres)}</span>`
-    : "";
   const shortName = name ? (name.length > 14 ? name.slice(0, 13) + "\u2026" : name) : "";
   const innerHtml = photoUrl
     ? `<img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;" />`
@@ -76,6 +73,7 @@ function salonIcon(isActive, name, distMetres, photoUrl) {
   return L.divIcon({
     className: "",
     html: `<div style="display:flex;flex-direction:column;align-items:center;gap:0;${isActive ? "animation:markerPop 0.3s cubic-bezier(0.34,1.56,0.64,1) both;will-change:transform;" : ""}">
+      ${shortName ? `<div style="background:${isActive ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "rgba(255,255,255,0.96)"};color:${isActive ? "#fff" : "#1e293b"};font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,0.2);white-space:nowrap;margin-bottom:3px;border:1px solid ${isActive ? "transparent" : "rgba(99,102,241,0.15)"};max-width:90px;overflow:hidden;text-overflow:ellipsis;">${shortName}</div>` : ""}
       <div style="
         width:${size}px;height:${size}px;border-radius:50%;overflow:hidden;
         border:${isActive ? "3px" : "2.5px"} solid ${isActive ? "#6366f1" : "#fff"};
@@ -83,10 +81,8 @@ function salonIcon(isActive, name, distMetres, photoUrl) {
         background:linear-gradient(135deg,#6366f1,#8b5cf6);flex-shrink:0;
       ">${innerHtml}</div>
       <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid ${isActive ? "#6366f1" : "#fff"};margin-top:-1px;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.18));"></div>
-      ${shortName ? `<div style="background:${isActive ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "rgba(255,255,255,0.96)"};color:${isActive ? "#fff" : "#1e293b"};font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;box-shadow:0 1px 6px rgba(0,0,0,0.18);white-space:nowrap;margin-top:2px;border:1px solid ${isActive ? "transparent" : "rgba(99,102,241,0.15)"};max-width:90px;overflow:hidden;text-overflow:ellipsis;">${shortName}</div>` : ""}
-      ${distLabel ? `<div style="margin-top:1px;">${distLabel}</div>` : ""}
     </div>`,
-    iconSize: [100, 90], iconAnchor: [50, 55], popupAnchor: [0, -60],
+    iconSize: [100, 90], iconAnchor: [50, 72], popupAnchor: [0, -80],
   });
 }
 
@@ -190,7 +186,6 @@ function SalonCard({ salon, userCoords, onClose, onDirections, navigate, isDark,
   const phone       = salon.phone || salon.contactPhone;
   const rating      = salon.averageRating || 0;
   const reviews     = salon.reviewCount || salon.totalReviews || 0;
-  const category    = salon.category || salon.businessType;
   const openStatus  = getOpenStatus(salon);
   const nearbyServices = Array.isArray(salon.services)
     ? salon.services.slice(0, 6).map(s => typeof s === "string" ? s : s?.name).filter(Boolean)
@@ -333,9 +328,11 @@ function SalonCard({ salon, userCoords, onClose, onDirections, navigate, isDark,
         bottom: NAV_H,
         height: "85vh",
         zIndex: 201,
-        background: bg,
+        background: isDark ? "rgba(17,24,39,0.72)" : "rgba(255,255,255,0.88)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
         borderRadius: "20px 20px 0 0",
-        boxShadow: "0 -8px 40px rgba(0,0,0,0.28)",
+        boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
         willChange: "transform",
         overflow: "hidden",
         display: "flex",
@@ -404,11 +401,11 @@ function SalonCard({ salon, userCoords, onClose, onDirections, navigate, isDark,
             </svg>
           </button>
 
-          {/* Circular avatar — top-right, glowing ring */}
+          {/* Circular avatar — top-right, subtle border */}
           <div style={{ position: "absolute", top: 12, right: 14, zIndex: 4,
-            width: 54, height: 54, borderRadius: "50%", overflow: "hidden",
-            border: "2.5px solid rgba(255,255,255,0.85)",
-            boxShadow: "0 0 0 3px rgba(99,102,241,0.5),0 0 0 6px rgba(99,102,241,0.15),0 4px 20px rgba(0,0,0,0.45)",
+            width: 44, height: 44, borderRadius: "50%", overflow: "hidden",
+            border: "2px solid rgba(255,255,255,0.8)",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.3)",
             background: "linear-gradient(135deg,#6366f1,#8b5cf6)", flexShrink: 0,
             pointerEvents: "none" }}
           >
@@ -423,18 +420,7 @@ function SalonCard({ salon, userCoords, onClose, onDirections, navigate, isDark,
 
           {/* Bottom overlay — all salon info on the image */}
           <div style={{ position: "absolute", bottom: 0, left: 0, right: 0,
-            padding: "0 14px 12px", zIndex: 3 }}>
-
-            {/* Category chip */}
-            {category && (
-              <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.75)",
-                background: "rgba(99,102,241,0.32)", backdropFilter: "blur(6px)",
-                WebkitBackdropFilter: "blur(6px)",
-                padding: "2px 9px", borderRadius: 20, border: "1px solid rgba(99,102,241,0.45)",
-                display: "inline-block", marginBottom: 5 }}>
-                {category}
-              </span>
-            )}
+            padding: "14px 16px 14px", zIndex: 3 }}>
 
             {/* Name + verified badge */}
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
@@ -452,7 +438,7 @@ function SalonCard({ salon, userCoords, onClose, onDirections, navigate, isDark,
             </div>
 
             {/* Meta row: rating · distance · open/closed */}
-            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
               {rating > 0 && (
                 <span style={{ fontSize: 12, fontWeight: 800, color: "#FDE68A",
                   textShadow: "0 1px 4px rgba(0,0,0,0.4)" }}>
@@ -481,12 +467,12 @@ function SalonCard({ salon, userCoords, onClose, onDirections, navigate, isDark,
             <div style={{ display: "flex", gap: 8 }}>
               <button
                 onClick={(e) => { e.stopPropagation(); navigate(salonPath(salon)); }}
-                style={{ flex: 1, padding: "12px 0", borderRadius: 14, border: "none", cursor: "pointer",
+                style={{ flex: 1, padding: "12px 0", borderRadius: 12, border: "none", cursor: "pointer",
                   background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
-                  color: "#fff", fontWeight: 800, fontSize: 14,
-                  boxShadow: "0 4px 22px rgba(99,102,241,0.6)",
+                  color: "#fff", fontWeight: 700, fontSize: 14,
+                  boxShadow: "0 4px 12px rgba(99,102,241,0.25)",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                ⚡ Book Your Look ✨
+                Book Now
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); onDirections(); }}
