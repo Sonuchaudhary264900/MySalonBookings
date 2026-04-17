@@ -72,19 +72,29 @@ function salonIcon(isActive, name, distMetres, photoUrl) {
   const innerHtml = photoUrl
     ? `<img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;" />`
     : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:${Math.round(size / 2.6)}px;font-weight:900;color:#fff;border-radius:50%;">${initial}</div>`;
+  const pulseStyle = isActive
+    ? `position:relative;display:inline-flex;align-items:center;justify-content:center;`
+    : "";
+  const pulseRing = isActive
+    ? `<div style="position:absolute;inset:-6px;border-radius:50%;border:2.5px solid rgba(99,102,241,0.55);animation:mvPulse 1.6s ease-out infinite;pointer-events:none;"></div>
+       <div style="position:absolute;inset:-12px;border-radius:50%;border:2px solid rgba(99,102,241,0.25);animation:mvPulse 1.6s ease-out 0.4s infinite;pointer-events:none;"></div>`
+    : "";
   return L.divIcon({
     className: "",
-    html: `<div style="display:flex;flex-direction:column;align-items:center;gap:0;${isActive ? "animation:markerPop 0.3s cubic-bezier(0.34,1.56,0.64,1) both;will-change:transform;" : ""}">
-      ${shortName ? `<div style="background:${isActive ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "rgba(255,255,255,0.96)"};color:${isActive ? "#fff" : "#1e293b"};font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,0.2);white-space:nowrap;margin-bottom:3px;border:1px solid ${isActive ? "transparent" : "rgba(99,102,241,0.15)"};max-width:90px;overflow:hidden;text-overflow:ellipsis;">${shortName}</div>` : ""}
-      <div style="
-        width:${size}px;height:${size}px;border-radius:50%;overflow:hidden;
-        border:${isActive ? "3px" : "2.5px"} solid ${isActive ? "#6366f1" : "#fff"};
-        box-shadow:0 3px 14px rgba(99,102,241,${isActive ? "0.72" : "0.38"}),0 1px 4px rgba(0,0,0,0.18);
-        background:linear-gradient(135deg,#6366f1,#8b5cf6);flex-shrink:0;
-      ">${innerHtml}</div>
+    html: `<style>@keyframes mvPulse{0%{transform:scale(0.85);opacity:0.8}70%{transform:scale(1.3);opacity:0}100%{transform:scale(1.3);opacity:0}}@keyframes markerPop{from{transform:scale(0.55);opacity:0}to{transform:scale(1);opacity:1}}</style>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:0;${isActive ? "animation:markerPop 0.3s cubic-bezier(0.34,1.56,0.64,1) both;will-change:transform;" : ""}">
+      ${isActive && shortName ? `<div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,0.2);white-space:nowrap;margin-bottom:3px;max-width:90px;overflow:hidden;text-overflow:ellipsis;">${shortName}</div>` : ""}
+      <div style="${pulseStyle}width:${size}px;height:${size}px;border-radius:50%;overflow:visible;flex-shrink:0;">
+        ${pulseRing}
+        <div style="width:100%;height:100%;border-radius:50%;overflow:hidden;
+          border:${isActive ? "3px" : "2.5px"} solid ${isActive ? "#6366f1" : "#fff"};
+          box-shadow:0 3px 14px rgba(99,102,241,${isActive ? "0.72" : "0.38"}),0 1px 4px rgba(0,0,0,0.18);
+          background:linear-gradient(135deg,#6366f1,#8b5cf6);
+        ">${innerHtml}</div>
+      </div>
       <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid ${isActive ? "#6366f1" : "#fff"};margin-top:-1px;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.18));"></div>
     </div>`,
-    iconSize: [100, 90], iconAnchor: [50, 72], popupAnchor: [0, -80],
+    iconSize: [100, 100], iconAnchor: [50, 80], popupAnchor: [0, -90],
   });
 }
 
@@ -694,6 +704,166 @@ function SalonCard({ salon, userCoords, onClose, onDirections, navigate, isDark,
 }
 
 /* ══════════════════════════════════════════
+   SALON SHEET — peek → full bottom sheet
+   Tap marker → peek (half screen, map visible)
+   Swipe up → full SalonDetails
+   Swipe down from peek → dismiss, map returns
+══════════════════════════════════════════ */
+const PEEK_H = 340; // px visible in peek state
+
+function SalonSheet({ salonId, onClose }) {
+  const sheetRef  = useRef(null);
+  const scrollRef = useRef(null);
+  const snapRef   = useRef("peek");
+  const drag      = useRef({ active: false, startY: 0, lastY: 0, vel: 0, ts: 0, startSnap: "peek" });
+  const [snap, setSnap] = useState("peek");
+
+  const getY = () => ({
+    peek: window.innerHeight - PEEK_H,
+    full: 0,
+  });
+
+  const applyY = (y) => {
+    if (!sheetRef.current) return;
+    sheetRef.current.style.transform = `translateY(${Math.max(0, y)}px)`;
+  };
+  const setTrans = (on) => {
+    if (!sheetRef.current) return;
+    sheetRef.current.style.transition = on
+      ? "transform 0.32s cubic-bezier(0.22,1,0.36,1)"
+      : "none";
+  };
+
+  const doSnap = useCallback((s) => {
+    snapRef.current = s;
+    setTrans(true);
+    applyY(getY()[s]);
+    setSnap(s);
+    if (s !== "full" && scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, []); // eslint-disable-line
+
+  const doClose = useCallback(() => {
+    setTrans(true);
+    applyY(window.innerHeight);
+    setTimeout(onClose, 300);
+  }, [onClose]);
+
+  /* entry: animate from below into peek */
+  useLayoutEffect(() => {
+    if (!sheetRef.current) return;
+    sheetRef.current.style.transition = "none";
+    sheetRef.current.style.transform  = `translateY(${window.innerHeight}px)`;
+    requestAnimationFrame(() => {
+      if (!sheetRef.current) return;
+      sheetRef.current.style.transition = "transform 0.38s cubic-bezier(0.22,1,0.36,1)";
+      sheetRef.current.style.transform  = `translateY(${getY().peek}px)`;
+    });
+  }, []); // eslint-disable-line
+
+  function onHandleDown(e) {
+    if (snapRef.current === "full" && (scrollRef.current?.scrollTop ?? 0) > 4) return;
+    e.preventDefault();
+    drag.current = {
+      active: true, startY: e.clientY, lastY: e.clientY,
+      vel: 0, ts: Date.now(), startSnap: snapRef.current,
+    };
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setTrans(false);
+  }
+
+  function onHandleMove(e) {
+    if (!drag.current.active) return;
+    const now = Date.now();
+    drag.current.vel  = (e.clientY - drag.current.lastY) / Math.max(now - drag.current.ts, 1);
+    drag.current.lastY = e.clientY;
+    drag.current.ts   = now;
+    const base = getY()[drag.current.startSnap];
+    const raw  = base + (e.clientY - drag.current.startY);
+    /* rubber-band resistance at top and at max-down */
+    const clamped = raw < 0
+      ? raw * 0.18
+      : raw > window.innerHeight - 60
+        ? window.innerHeight - 60 + (raw - (window.innerHeight - 60)) * 0.25
+        : raw;
+    applyY(clamped);
+  }
+
+  function onHandleUp(e) {
+    if (!drag.current.active) return;
+    drag.current.active = false;
+    const vel = drag.current.vel;
+    const dy  = e.clientY - drag.current.startY;
+
+    if (vel > 0.45) {
+      /* fast swipe down */
+      if (drag.current.startSnap === "peek") doClose();
+      else doSnap("peek");
+    } else if (vel < -0.45) {
+      /* fast swipe up */
+      doSnap("full");
+    } else {
+      /* position-based: midpoint between peek and full */
+      const curY = getY()[drag.current.startSnap] + dy;
+      const mid  = getY().peek / 2;
+      if (curY < mid)                       doSnap("full");
+      else if (curY > window.innerHeight - 80) doClose();
+      else                                  doSnap("peek");
+    }
+  }
+
+  return (
+    <div
+      ref={sheetRef}
+      style={{
+        position: "fixed", left: 0, right: 0, bottom: 0,
+        height: "100vh",
+        zIndex: 400,
+        background: "var(--t-bg,#0d0520)",
+        borderRadius: "20px 20px 0 0",
+        boxShadow: "0 -8px 40px rgba(0,0,0,0.45)",
+        display: "flex", flexDirection: "column",
+        willChange: "transform",
+        overflow: "hidden",
+      }}
+    >
+      <style>{`@keyframes mvSpin{to{transform:rotate(360deg)}}`}</style>
+
+      {/* ── drag handle (always grabbable) ── */}
+      <div
+        onPointerDown={onHandleDown}
+        onPointerMove={onHandleMove}
+        onPointerUp={onHandleUp}
+        onPointerCancel={onHandleUp}
+        style={{
+          flexShrink: 0, height: 28,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          cursor: "grab", touchAction: "none", userSelect: "none",
+          position: "relative", zIndex: 2,
+        }}
+      >
+        <div style={{ width: 40, height: 4, borderRadius: 2, background: "rgba(255,255,255,0.22)" }} />
+      </div>
+
+      {/* ── scrollable salon content ── */}
+      <div
+        ref={scrollRef}
+        style={{ flex: 1, overflowY: snap === "full" ? "auto" : "hidden", WebkitOverflowScrolling: "touch" }}
+      >
+        <Suspense fallback={
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:220 }}>
+            <div style={{ width:36, height:36, borderRadius:"50%", background:"conic-gradient(from 0deg,#6366f1,#a78bfa,transparent)", animation:"mvSpin 0.85s linear infinite", padding:3 }}>
+              <div style={{ width:"100%", height:"100%", borderRadius:"50%", background:"var(--t-bg,#0d0520)" }} />
+            </div>
+          </div>
+        }>
+          <SalonDetails salonId={salonId} onClose={doClose} />
+        </Suspense>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════
    MAIN COMPONENT
 ══════════════════════════════════════════ */
 export default function MapView() {
@@ -857,8 +1027,8 @@ export default function MapView() {
             <PanForCard selectedId={selected?._id} />
             {coords && <Marker position={[coords.lat, coords.lng]} icon={userIcon} />}
             <MarkerClusterGroup
-              chunkedLoading maxClusterRadius={40}
-              disableClusteringAtZoom={17} spiderfyOnMaxZoom showCoverageOnHover={false}
+              chunkedLoading maxClusterRadius={70}
+              disableClusteringAtZoom={18} spiderfyOnMaxZoom showCoverageOnHover={false}
               iconCreateFunction={(cluster) => L.divIcon({
                 className: "",
                 html: `<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 10px rgba(99,102,241,0.5);">${cluster.getChildCount()}</div>`,
@@ -872,31 +1042,13 @@ export default function MapView() {
         </div>
       </div>
 
-      {/* Full-screen SalonDetails modal */}
+      {/* Full-screen SalonDetails — swipe-down-to-close sheet */}
       {modalId && (
-        <div style={{
-          position: "fixed", inset: 0, zIndex: 400,
-          background: "var(--t-bg, #0d0520)",
-          overflowY: "auto",
-          WebkitOverflowScrolling: "touch",
-          animation: "mvSlideUp 0.32s cubic-bezier(0.22,1,0.36,1) both",
-        }}>
-          <style>{`@keyframes mvSlideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}`}</style>
-          <Suspense fallback={
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background:"var(--t-bg,#0d0520)" }}>
-              <div style={{ width:40, height:40, borderRadius:"50%", background:"conic-gradient(from 0deg,#6366f1,#a78bfa,transparent)", animation:"mvSpin 0.85s linear infinite", padding:4 }}>
-                <div style={{ width:"100%", height:"100%", borderRadius:"50%", background:"var(--t-bg,#0d0520)" }} />
-              </div>
-              <style>{`@keyframes mvSpin{to{transform:rotate(360deg)}}`}</style>
-            </div>
-          }>
-            <SalonDetails
-              key={modalId}
-              salonId={modalId}
-              onClose={() => { setModalId(null); setSelected(null); window.history.back(); }}
-            />
-          </Suspense>
-        </div>
+        <SalonSheet
+          key={modalId}
+          salonId={modalId}
+          onClose={() => { setModalId(null); setSelected(null); window.history.back(); }}
+        />
       )}
 
       {/* Directions modal */}
