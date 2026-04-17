@@ -354,18 +354,6 @@ function SalonCard({ salon, userCoords, onClose, onDirections, navigate, isDark,
         }
       `}</style>
 
-      {/* ── Drag handle (pointer events) ── */}
-      <div
-        onPointerDown={onHandleDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-        style={{ padding: "10px 0 4px", display: "flex", justifyContent: "center",
-          flexShrink: 0, cursor: "grab", touchAction: "none", userSelect: "none" }}
-      >
-        <div style={{ width: 36, height: 4, borderRadius: 2, background: brd }} />
-      </div>
-
       {/* ── Scrollable content ── */}
       <div
         ref={scrollRef}
@@ -373,99 +361,145 @@ function SalonCard({ salon, userCoords, onClose, onDirections, navigate, isDark,
       >
 
         {/* ════════════════════════════════
-            PEEK — SalonDetails hero replica
+            PEEK — Cinema card: image fills full height, info overlaid at bottom
         ════════════════════════════════ */}
-        <div style={{ position: "relative" }}>
-          {/* Cover banner */}
-          <div style={{ height: 82, overflow: "hidden", position: "relative" }}>
-            {coverImg
-              ? <img src={coverImg} alt={salon.name}
-                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-              : <div style={{ width: "100%", height: "100%",
-                  background: "linear-gradient(135deg,#6366f1 0%,#8b5cf6 60%,#a78bfa 100%)",
-                  display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <span style={{ fontSize: 38, fontWeight: 900, color: "rgba(255,255,255,0.22)" }}>
-                    {(salon.name || "S").charAt(0)}
-                  </span>
+        <div
+          onPointerDown={onHandleDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+          style={{ position: "relative", height: "min(220px, 28vh)", overflow: "hidden",
+            flexShrink: 0, touchAction: "none", userSelect: "none", cursor: "grab" }}
+        >
+          {/* Cover image or deep gradient fallback */}
+          {coverImg
+            ? <img src={coverImg} alt={salon.name}
+                style={{ position: "absolute", inset: 0, width: "100%", height: "100%",
+                  objectFit: "cover", display: "block", pointerEvents: "none" }} />
+            : <div style={{ position: "absolute", inset: 0,
+                background: "linear-gradient(135deg,#0f0c29 0%,#302b63 50%,#24243e 100%)" }} />
+          }
+
+          {/* Cinematic scrim — lighter so photo stays visible */}
+          <div style={{ position: "absolute", inset: 0, pointerEvents: "none",
+            background: "linear-gradient(to top, rgba(0,0,0,0.76) 0%, rgba(0,0,0,0.35) 45%, rgba(0,0,0,0.06) 75%, transparent 100%)"
+          }} />
+
+          {/* Drag handle pill */}
+          <div style={{ position: "absolute", top: 8, left: "50%", transform: "translateX(-50%)",
+            zIndex: 3, width: 36, height: 4, borderRadius: 2,
+            background: "rgba(255,255,255,0.4)", pointerEvents: "none" }} />
+
+          {/* Close — top-left glass */}
+          <button
+            onClick={(e) => { e.stopPropagation(); onClose(); }}
+            style={{ position: "absolute", top: 12, left: 12, zIndex: 4,
+              width: 30, height: 30, borderRadius: "50%", border: "none", cursor: "pointer",
+              background: "rgba(0,0,0,0.45)", backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+              display: "flex", alignItems: "center", justifyContent: "center" }}
+          >
+            <svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke="#fff" strokeWidth={2.5}>
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+
+          {/* Circular avatar — top-right, glowing ring */}
+          <div style={{ position: "absolute", top: 12, right: 14, zIndex: 4,
+            width: 54, height: 54, borderRadius: "50%", overflow: "hidden",
+            border: "2.5px solid rgba(255,255,255,0.85)",
+            boxShadow: "0 0 0 3px rgba(99,102,241,0.5),0 0 0 6px rgba(99,102,241,0.15),0 4px 20px rgba(0,0,0,0.45)",
+            background: "linear-gradient(135deg,#6366f1,#8b5cf6)", flexShrink: 0,
+            pointerEvents: "none" }}
+          >
+            {logoImg
+              ? <img src={logoImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center",
+                  justifyContent: "center", fontSize: 22, fontWeight: 900, color: "#fff" }}>
+                  {(salon.name || "S").charAt(0)}
                 </div>
             }
-            {/* Bottom fade */}
-            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 44,
-              background: `linear-gradient(to top,${bg},transparent)` }} />
-            {/* Close */}
-            <button onClick={onClose}
-              style={{ position: "absolute", top: 8, right: 10,
-                background: "rgba(0,0,0,0.4)", border: "none", borderRadius: "50%",
-                width: 28, height: 28, cursor: "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke="#fff" strokeWidth={2.5}>
-                <path d="M18 6L6 18M6 6l12 12"/>
-              </svg>
-            </button>
           </div>
 
-          {/* Logo + name + meta */}
-          <div style={{ padding: "0 16px 12px", marginTop: -20, position: "relative", zIndex: 1 }}>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 10, marginBottom: 6 }}>
-              {/* Logo */}
-              <div style={{ width: 52, height: 52, borderRadius: 14, overflow: "hidden", flexShrink: 0,
-                border: `3px solid ${bg}`, boxShadow: "0 2px 14px rgba(0,0,0,0.2)",
-                background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
-                {logoImg
-                  ? <img src={logoImg} alt="" style={{ width:"100%",height:"100%",objectFit:"cover" }} />
-                  : <div style={{ width:"100%",height:"100%",display:"flex",alignItems:"center",
-                      justifyContent:"center",fontSize:20,fontWeight:900,color:"#fff" }}>
-                      {(salon.name||"S").charAt(0)}
-                    </div>
-                }
-              </div>
-              <div style={{ flex: 1, minWidth: 0, paddingBottom: 2 }}>
-                <p style={{ margin: 0, fontWeight: 900, fontSize: 17, color: fg, lineHeight: 1.2,
-                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {salon.name}
-                </p>
-                {category && (
-                  <span style={{ fontSize: 10, fontWeight: 700, background: chip, color: "#6366f1",
-                    padding: "2px 8px", borderRadius: 20, border: "1px solid rgba(99,102,241,0.18)",
-                    display: "inline-block", marginTop: 3 }}>
-                    {category}
-                  </span>
-                )}
-              </div>
+          {/* Bottom overlay — all salon info on the image */}
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0,
+            padding: "0 14px 12px", zIndex: 3 }}>
+
+            {/* Category chip */}
+            {category && (
+              <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.75)",
+                background: "rgba(99,102,241,0.32)", backdropFilter: "blur(6px)",
+                WebkitBackdropFilter: "blur(6px)",
+                padding: "2px 9px", borderRadius: 20, border: "1px solid rgba(99,102,241,0.45)",
+                display: "inline-block", marginBottom: 5 }}>
+                {category}
+              </span>
+            )}
+
+            {/* Name + verified badge */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+              <p style={{ margin: 0, fontSize: 22, fontWeight: 900, color: "#fff",
+                letterSpacing: "-0.03em", lineHeight: 1.1,
+                textShadow: "0 2px 16px rgba(0,0,0,0.6)",
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {salon.name}
+              </p>
+              {rating >= 4.5 && (
+                <svg viewBox="0 0 24 24" width={18} height={18} fill="#818cf8" style={{ flexShrink: 0 }}>
+                  <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg>
+              )}
             </div>
 
-            {/* Rating + distance */}
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 5 }}>
+            {/* Meta row: rating · distance · open/closed */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
               {rating > 0 && (
-                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <Stars rating={rating} />
-                  <span style={{ fontWeight: 800, fontSize: 13, color: "#fbbf24" }}>{rating.toFixed(1)}</span>
-                  {reviews > 0 && <span style={{ fontSize: 12, color: fg2 }}>({reviews})</span>}
-                </div>
+                <span style={{ fontSize: 12, fontWeight: 800, color: "#FDE68A",
+                  textShadow: "0 1px 4px rgba(0,0,0,0.4)" }}>
+                  ★ {rating.toFixed(1)}
+                </span>
+              )}
+              {reviews > 0 && (
+                <span style={{ fontSize: 11, color: "rgba(253,230,138,0.55)" }}>({reviews})</span>
               )}
               {dist && (
-                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <svg viewBox="0 0 24 24" width={12} height={12} fill="none" stroke="#6366f1" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/>
-                  </svg>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: "#6366f1" }}>{dist}</span>
-                </div>
+                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.55)" }}>· {dist} away</span>
+              )}
+              {openStatus && (
+                <span style={{ fontSize: 11, fontWeight: 600,
+                  color: openStatus.open ? "#4ADE80" : "#F87171",
+                  background: openStatus.open ? "rgba(74,222,128,0.18)" : "rgba(248,113,113,0.18)",
+                  backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)",
+                  padding: "2px 8px", borderRadius: 999,
+                  border: `1px solid ${openStatus.open ? "rgba(74,222,128,0.3)" : "rgba(248,113,113,0.3)"}` }}>
+                  {openStatus.label}
+                </span>
               )}
             </div>
 
-            {/* Open/Closed */}
-            {openStatus && (
-              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <div style={{ width: 7, height: 7, borderRadius: "50%",
-                  background: openStatus.open ? "#22c55e" : "#ef4444",
-                  boxShadow: openStatus.open ? "0 0 0 3px rgba(34,197,94,0.2)" : "none",
-                  flexShrink: 0 }} />
-                <span style={{ fontSize: 12, fontWeight: 600,
-                  color: openStatus.open ? "#22c55e" : "#ef4444" }}>
-                  {openStatus.label}
-                </span>
-              </div>
-            )}
+            {/* Action row */}
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={(e) => { e.stopPropagation(); navigate(salonPath(salon)); }}
+                style={{ flex: 1, padding: "12px 0", borderRadius: 14, border: "none", cursor: "pointer",
+                  background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
+                  color: "#fff", fontWeight: 800, fontSize: 14,
+                  boxShadow: "0 4px 22px rgba(99,102,241,0.6)",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                ⚡ Book Your Look ✨
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onDirections(); }}
+                style={{ width: 46, borderRadius: 14, cursor: "pointer",
+                  background: "rgba(255,255,255,0.15)", backdropFilter: "blur(10px)",
+                  WebkitBackdropFilter: "blur(10px)",
+                  border: "1px solid rgba(255,255,255,0.22)",
+                  display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg viewBox="0 0 24 24" width={17} height={17} fill="none" stroke="#fff" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
 
