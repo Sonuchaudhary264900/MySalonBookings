@@ -404,9 +404,18 @@ export default function Home() {
     finally { setLoading(false); }
   };
 
-  const handleCategory = cat => {
-    const newCats = selectedCats.includes(cat) ? selectedCats.filter(c => c !== cat) : [...selectedCats, cat];
+  const chipScrollRef = useRef(null);
+
+  const handleCategory = (cat, btnEl) => {
+    const newCats = selectedCats.includes(cat) ? [] : [cat];
     setSelectedCats(newCats);
+    if (btnEl && chipScrollRef.current) {
+      const container = chipScrollRef.current;
+      const btnLeft = btnEl.offsetLeft;
+      const btnWidth = btnEl.offsetWidth;
+      const scrollTo = btnLeft - (container.offsetWidth / 2) + (btnWidth / 2);
+      container.scrollTo({ left: scrollTo, behavior: "smooth" });
+    }
     if (searchText.trim()) { runSearch(searchText, newCats); }
     else { setSalons(applyFilters(allSalons, newCats, genderFilter, openNow, premiumOnly)); }
   };
@@ -548,8 +557,8 @@ export default function Home() {
           </div>
 
           {/* Full-width circular category bar */}
-          <div className="cat-scroll-hero" style={{
-            display:"flex", overflowX:"auto", gap:18,
+          <div ref={chipScrollRef} className="cat-scroll-hero" style={{
+            display:"flex", overflowX:"auto", gap:6,
             padding:"12px clamp(16px,5vw,80px) 8px",
             scrollbarWidth:"none",
             marginBottom:16,
@@ -560,41 +569,48 @@ export default function Home() {
               return (
                 <button
                   key={label}
-                  onClick={() => cat === null ? clearAll() : handleCategory(cat)}
-                  onMouseDown={e => { e.currentTarget.style.transform = "scale(0.92)"; }}
+                  onClick={e => cat === null ? clearAll() : handleCategory(cat, e.currentTarget)}
+                  onMouseDown={e => { e.currentTarget.style.transform = "scale(0.93)"; }}
                   onMouseUp={e => { e.currentTarget.style.transform = "scale(1)"; }}
                   onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}
-                  onTouchStart={e => { e.currentTarget.style.transform = "scale(0.92)"; }}
+                  onTouchStart={e => { e.currentTarget.style.transform = "scale(0.93)"; }}
                   onTouchEnd={e => { e.currentTarget.style.transform = "scale(1)"; }}
                   style={{
                     display:"flex", flexDirection:"column", alignItems:"center", gap:0,
-                    flexShrink:0, background:"none", border:"none", cursor:"pointer",
-                    padding:"0 2px",
-                    transition:"transform 0.25s cubic-bezier(0.4,0,0.2,1)",
+                    flexShrink:0, cursor:"pointer",
+                    padding: active ? "8px 14px 10px" : "8px 14px 10px",
+                    borderRadius:20,
+                    background: active
+                      ? "rgba(99,102,241,0.18)"
+                      : "transparent",
+                    border: active
+                      ? "1.5px solid rgba(99,102,241,0.45)"
+                      : "1.5px solid transparent",
+                    boxShadow: active
+                      ? "0 4px 18px rgba(99,102,241,0.22), inset 0 1px 0 rgba(255,255,255,0.08)"
+                      : "none",
+                    transition:"all 0.22s cubic-bezier(0.4,0,0.2,1)",
                   }}
                 >
                   <div style={{
-                    width:52, height:52, borderRadius:"50%",
+                    width:50, height:50, borderRadius:"50%",
                     display:"flex", alignItems:"center", justifyContent:"center",
                     background: active
                       ? "linear-gradient(135deg,#6366f1,#8b5cf6)"
-                      : "rgba(255,255,255,0.06)",
-                    backdropFilter: active ? "none" : "blur(10px)",
-                    WebkitBackdropFilter: active ? "none" : "blur(10px)",
-                    border: active ? "none" : "1px solid rgba(255,255,255,0.09)",
+                      : "rgba(255,255,255,0.07)",
+                    border: active ? "none" : "1px solid rgba(255,255,255,0.10)",
                     boxShadow: active
-                      ? "0 6px 18px rgba(99,102,241,0.35),0 0 16px rgba(99,102,241,0.12),inset 0 1px 1px rgba(255,255,255,0.18)"
-                      : "0 2px 6px rgba(0,0,0,0.15)",
-                    transform: active ? "scale(1.06)" : "scale(1)",
-                    transition:"all 0.25s cubic-bezier(0.4,0,0.2,1)",
+                      ? "0 4px 14px rgba(99,102,241,0.5), inset 0 1px 1px rgba(255,255,255,0.22)"
+                      : "none",
+                    transition:"all 0.22s cubic-bezier(0.4,0,0.2,1)",
                   }}>
-                    <Icon style={{ width:20, height:20, color: active ? "#fff" : "rgba(255,255,255,0.75)" }} />
+                    <Icon style={{ width:20, height:20, color: active ? "#fff" : "rgba(255,255,255,0.7)" }} />
                   </div>
                   <span style={{
-                    fontSize:11, fontWeight:500, marginTop:7,
+                    fontSize:11, fontWeight: active ? 700 : 500, marginTop:7,
                     letterSpacing:"0.2px", whiteSpace:"nowrap",
-                    color: active ? "#fff" : "rgba(255,255,255,0.65)",
-                    transition:"color 0.25s cubic-bezier(0.4,0,0.2,1)",
+                    color: active ? "#c7d2fe" : "rgba(255,255,255,0.6)",
+                    transition:"all 0.22s cubic-bezier(0.4,0,0.2,1)",
                   }}>{label}</span>
                 </button>
               );
@@ -693,6 +709,41 @@ export default function Home() {
           </button>
         </div>
       )}
+
+      {/* ── ACTIVE CATEGORY CONTEXT BANNER ───────────────────────── */}
+      {selectedCats.length > 0 && (() => {
+        const chip = HERO_CHIPS.find(c => c.cat === selectedCats[0]);
+        if (!chip) return null;
+        const { label, Icon } = chip;
+        return (
+          <div style={{
+            background:"linear-gradient(135deg,rgba(99,102,241,0.13) 0%,rgba(139,92,246,0.09) 100%)",
+            borderBottom:"1px solid rgba(99,102,241,0.18)",
+            padding:"14px clamp(16px,4vw,32px)",
+          }}>
+            <div style={{ maxWidth:1280, margin:"0 auto", display:"flex", alignItems:"center", gap:12 }}>
+              <div style={{
+                width:40, height:40, borderRadius:"50%", flexShrink:0,
+                background:"linear-gradient(135deg,#6366f1,#8b5cf6)",
+                display:"flex", alignItems:"center", justifyContent:"center",
+                boxShadow:"0 4px 14px rgba(99,102,241,0.4)",
+              }}>
+                <Icon style={{ width:18, height:18, color:"#fff" }} />
+              </div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <p style={{ margin:0, fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.1em", color:"var(--t-accent)", opacity:0.8 }}>Browsing</p>
+                <h2 style={{ margin:0, fontSize:16, fontWeight:800, color:"var(--t-text)", letterSpacing:"-0.02em", lineHeight:1.2 }}>{label}</h2>
+              </div>
+              {!loading && (
+                <span style={{ fontSize:12, fontWeight:700, color:"var(--t-accent)", background:"rgba(99,102,241,0.12)", border:"1px solid rgba(99,102,241,0.22)", borderRadius:999, padding:"4px 12px", flexShrink:0 }}>
+                  {salons.length} found
+                </span>
+              )}
+              <button onClick={clearAll} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--t-text-3)", fontSize:20, lineHeight:1, padding:"0 4px", flexShrink:0 }}>×</button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ══════════════════════════════════════════════════════════
           SALON GRID

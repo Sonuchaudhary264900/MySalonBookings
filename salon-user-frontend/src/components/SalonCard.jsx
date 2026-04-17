@@ -282,7 +282,7 @@ function SalonCard({ salon, userCoords }) {
 
           {/* Hover overlay */}
           <div className="absolute inset-0 flex items-center justify-center transition-opacity duration-200"
-            style={{ opacity: hovered ? 1 : 0, background: "rgba(0,0,0,0.28)", backdropFilter: "blur(2px)", pointerEvents: "none" }}>
+            style={{ opacity: hovered ? 1 : 0, background: "rgba(0,0,0,0.28)", pointerEvents: "none" }}>
             <span className="text-xs font-bold text-white px-4 py-2 rounded-xl"
               style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)", boxShadow: "0 0 20px rgba(99,102,241,0.55)", transition: "transform 0.22s ease", transform: hovered ? "translateY(0) scale(1)" : "translateY(10px) scale(0.94)" }}>
               View Details
