@@ -1,7 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
-import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import API from "../services/api";
@@ -65,36 +64,55 @@ function getSnapY(snap) {
 }
 
 /* ── Business pin icon ── */
-function salonIcon(isActive, name, distMetres, photoUrl) {
-  const size    = isActive ? 48 : 38;
+function salonIcon(isActive, name, photoUrl) {
+  const size    = isActive ? 46 : 34;
   const initial = (name || "S").charAt(0).toUpperCase();
   const shortName = name ? (name.length > 14 ? name.slice(0, 13) + "\u2026" : name) : "";
   const innerHtml = photoUrl
     ? `<img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;" />`
     : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:${Math.round(size / 2.6)}px;font-weight:900;color:#fff;border-radius:50%;">${initial}</div>`;
-  const pulseStyle = isActive
-    ? `position:relative;display:inline-flex;align-items:center;justify-content:center;`
-    : "";
-  const pulseRing = isActive
-    ? `<div style="position:absolute;inset:-6px;border-radius:50%;border:2.5px solid rgba(99,102,241,0.55);animation:mvPulse 1.6s ease-out infinite;pointer-events:none;"></div>
-       <div style="position:absolute;inset:-12px;border-radius:50%;border:2px solid rgba(99,102,241,0.25);animation:mvPulse 1.6s ease-out 0.4s infinite;pointer-events:none;"></div>`
-    : "";
+
+  if (!isActive) {
+    /* ── inactive: tiny tight pin, no label, no extra spacing ── */
+    return L.divIcon({
+      className: "",
+      html: `<div style="display:flex;flex-direction:column;align-items:center;gap:0;">
+        <div style="width:${size}px;height:${size}px;border-radius:50%;overflow:hidden;
+          border:2.5px solid #fff;
+          box-shadow:0 2px 8px rgba(99,102,241,0.35),0 1px 3px rgba(0,0,0,0.2);
+          background:linear-gradient(135deg,#6366f1,#8b5cf6);flex-shrink:0;
+        ">${innerHtml}</div>
+        <div style="width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:6px solid #fff;margin-top:-1px;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.15));"></div>
+      </div>`,
+      iconSize: [size, size + 8],
+      iconAnchor: [size / 2, size + 8],
+      popupAnchor: [0, -(size + 8)],
+    });
+  }
+
+  /* ── active: larger, pulse rings, name label above ── */
   return L.divIcon({
     className: "",
-    html: `<style>@keyframes mvPulse{0%{transform:scale(0.85);opacity:0.8}70%{transform:scale(1.3);opacity:0}100%{transform:scale(1.3);opacity:0}}@keyframes markerPop{from{transform:scale(0.55);opacity:0}to{transform:scale(1);opacity:1}}</style>
-    <div style="display:flex;flex-direction:column;align-items:center;gap:0;${isActive ? "animation:markerPop 0.3s cubic-bezier(0.34,1.56,0.64,1) both;will-change:transform;" : ""}">
-      ${isActive && shortName ? `<div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,0.2);white-space:nowrap;margin-bottom:3px;max-width:90px;overflow:hidden;text-overflow:ellipsis;">${shortName}</div>` : ""}
-      <div style="${pulseStyle}width:${size}px;height:${size}px;border-radius:50%;overflow:visible;flex-shrink:0;">
-        ${pulseRing}
+    html: `<style>
+      @keyframes mvPulse{0%{transform:scale(0.85);opacity:0.8}70%{transform:scale(1.35);opacity:0}100%{transform:scale(1.35);opacity:0}}
+      @keyframes markerPop{from{transform:scale(0.55);opacity:0}to{transform:scale(1);opacity:1}}
+    </style>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:0;animation:markerPop 0.3s cubic-bezier(0.34,1.56,0.64,1) both;will-change:transform;">
+      ${shortName ? `<div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,0.25);white-space:nowrap;margin-bottom:4px;max-width:100px;overflow:hidden;text-overflow:ellipsis;">${shortName}</div>` : ""}
+      <div style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;flex-shrink:0;">
+        <div style="position:absolute;inset:-7px;border-radius:50%;border:2.5px solid rgba(99,102,241,0.5);animation:mvPulse 1.6s ease-out infinite;pointer-events:none;"></div>
+        <div style="position:absolute;inset:-14px;border-radius:50%;border:2px solid rgba(99,102,241,0.22);animation:mvPulse 1.6s ease-out 0.5s infinite;pointer-events:none;"></div>
         <div style="width:100%;height:100%;border-radius:50%;overflow:hidden;
-          border:${isActive ? "3px" : "2.5px"} solid ${isActive ? "#6366f1" : "#fff"};
-          box-shadow:0 3px 14px rgba(99,102,241,${isActive ? "0.72" : "0.38"}),0 1px 4px rgba(0,0,0,0.18);
+          border:3px solid #6366f1;
+          box-shadow:0 4px 16px rgba(99,102,241,0.7),0 1px 4px rgba(0,0,0,0.2);
           background:linear-gradient(135deg,#6366f1,#8b5cf6);
         ">${innerHtml}</div>
       </div>
-      <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid ${isActive ? "#6366f1" : "#fff"};margin-top:-1px;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.18));"></div>
+      <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:8px solid #6366f1;margin-top:-1px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.25));"></div>
     </div>`,
-    iconSize: [100, 100], iconAnchor: [50, 80], popupAnchor: [0, -90],
+    iconSize: [120, 100],
+    iconAnchor: [60, 88],
+    popupAnchor: [0, -95],
   });
 }
 
@@ -921,7 +939,6 @@ export default function MapView() {
           icon={salonIcon(
             selected?._id === s._id,
             s.name,
-            bizDist(s, coords?.lat, coords?.lng),
             s.coverPhoto || s.photos?.[0] || s.logo || s.profilePhoto
           )}
           eventHandlers={{ click: () => { setSelected(s); setModalId(s._id); setDirOpen(false); } }}
@@ -1026,17 +1043,7 @@ export default function MapView() {
             <FlyTo coords={coords ? { lat: coords.lat, lng: coords.lng } : null} />
             <PanForCard selectedId={selected?._id} />
             {coords && <Marker position={[coords.lat, coords.lng]} icon={userIcon} />}
-            <MarkerClusterGroup
-              chunkedLoading maxClusterRadius={70}
-              disableClusteringAtZoom={18} spiderfyOnMaxZoom showCoverageOnHover={false}
-              iconCreateFunction={(cluster) => L.divIcon({
-                className: "",
-                html: `<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 10px rgba(99,102,241,0.5);">${cluster.getChildCount()}</div>`,
-                iconSize: [36, 36], iconAnchor: [18, 18],
-              })}
-            >
-              {markers}
-            </MarkerClusterGroup>
+            {markers}
             <LocateMe onLocate={handleLocate} />
           </MapContainer>
         </div>
