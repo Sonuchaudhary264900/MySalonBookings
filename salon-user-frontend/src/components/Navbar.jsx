@@ -4,7 +4,7 @@ import { useNotifications } from "../context/NotificationContext";
 import { useTheme } from "../context/ThemeContext";
 import {
   Home, Play, CalendarDays, Heart, Bell,
-  Sun, Moon, LogOut, User, Bookmark, Scissors, Settings, Menu, X, Crown,
+  Sun, Moon, LogOut, User, Bookmark, Scissors, Settings, Menu, X, Crown, MapPin,
 } from "lucide-react";
 
 function getUserInitial() {
@@ -209,6 +209,7 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
   const NAV_LINKS = [
     { to: "/",               label: "Home",            Icon: Home,        auth: false },
     { to: "/reels",          label: "Reels",           Icon: Play,        auth: false },
+    { to: "/map",            label: "Map",             Icon: MapPin,      auth: false },
     { to: "/dashboard",      label: "Bookings",        Icon: CalendarDays,auth: true  },
     { to: "/favorites",      label: "Saved",           Icon: Heart,       auth: true  },
     { to: "/my-subscription",label: "My Subscription", Icon: Crown,       auth: true  },
@@ -220,6 +221,7 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
   return (
   <>
     <header
+      className="md:hidden"
       style={{
         position: "fixed", top: 0, left: 0, right: 0, zIndex: 50,
         background: scrolled
@@ -564,6 +566,147 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
         )}
       </div>
     </div>
+
+    {/* ══════════════════════════════════════════════════════════
+        DESKTOP PERSISTENT SIDEBAR (ChatGPT / Instagram style)
+    ══════════════════════════════════════════════════════════ */}
+    <aside className="hidden md:flex flex-col" style={{
+      position: "fixed", top: 0, left: 0, bottom: 0,
+      width: 220, zIndex: 50,
+      background: "var(--t-card)",
+      borderRight: "1px solid var(--t-border)",
+      fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif',
+    }}>
+
+      {/* Logo */}
+      <div style={{ padding: "20px 16px 16px", borderBottom: "1px solid var(--t-border)" }}>
+        <Link to="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width:34,height:34,borderRadius:10,background:"linear-gradient(135deg,#4C1D95,#A78BFA)",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 18px rgba(124,58,237,0.40)",flexShrink:0 }}>
+            <svg viewBox="0 0 512 512" width="18" height="18" fill="none">
+              <path d="M256,150 C270,210 310,240 370,256 C310,272 270,300 256,360 C242,300 202,272 142,256 C202,240 242,210 256,150 Z" fill="white"/>
+            </svg>
+          </div>
+          <span style={{ fontSize:15,fontWeight:800,letterSpacing:"-0.025em",background:"linear-gradient(135deg,#4C1D95,#A78BFA)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text" }}>GlowLoox</span>
+        </Link>
+      </div>
+
+      {/* Nav items */}
+      <nav style={{ padding: "10px 8px", flex: 1, overflowY: "auto" }}>
+        {DESKTOP_NAV.map(({ to, label, Icon, auth }) => {
+          const active = location.pathname === to;
+          const locked = auth && !token;
+          return (
+            <Link key={label} to={locked ? "/login" : to}
+              style={{
+                display:"flex", alignItems:"center", gap:14,
+                padding:"11px 14px", borderRadius:12,
+                textDecoration:"none", marginBottom:2,
+                background: active ? "rgba(99,102,241,0.1)" : "transparent",
+                color: active ? "var(--t-accent)" : "var(--t-text-2)",
+                fontWeight: active ? 700 : 500, fontSize:14,
+                transition:"background 0.15s",
+              }}
+              onMouseEnter={e => !active && (e.currentTarget.style.background = "var(--t-input-bg)")}
+              onMouseLeave={e => !active && (e.currentTarget.style.background = "transparent")}
+            >
+              <Icon size={18} strokeWidth={active ? 2.4 : 2} style={{ flexShrink:0 }} />
+              <span style={{ flex:1 }}>{label}</span>
+              {locked && <span style={{ fontSize:10,fontWeight:700,color:"var(--t-accent)",background:"rgba(99,102,241,0.12)",border:"1px solid rgba(99,102,241,0.2)",padding:"2px 8px",borderRadius:99 }}>Login</span>}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* Bottom section: notifications, theme, profile/sign-in */}
+      <div style={{ padding:"12px 8px 20px", borderTop:"1px solid var(--t-border)", display:"flex", flexDirection:"column", gap:2 }}>
+
+        {/* Notifications */}
+        {token && (
+          <div style={{ position:"relative" }} ref={panelRef}>
+            <button
+              onClick={() => setPanelOpen(v => !v)}
+              style={{ display:"flex",alignItems:"center",gap:14,width:"100%",padding:"11px 14px",borderRadius:12,border:"none",background:"transparent",color:"var(--t-text-2)",fontWeight:500,fontSize:14,cursor:"pointer",transition:"background 0.15s" }}
+              onMouseEnter={e => e.currentTarget.style.background = "var(--t-input-bg)"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            >
+              <div style={{ position:"relative",flexShrink:0 }}>
+                <Bell size={18} strokeWidth={2} />
+                {unreadCount > 0 && (
+                  <span style={{ position:"absolute",top:-4,right:-4,minWidth:14,height:14,background:"#ef4444",color:"#fff",fontSize:8,fontWeight:800,borderRadius:999,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px",border:"1.5px solid var(--t-card)" }}>
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </div>
+              Notifications
+            </button>
+            {panelOpen && (
+              <div style={{ position:"absolute",bottom:"calc(100% + 8px)",left:0,right:0 }}>
+                <NotificationPanel onClose={() => setPanelOpen(false)} />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Theme toggle */}
+        <button
+          onClick={toggleTheme}
+          style={{ display:"flex",alignItems:"center",gap:14,width:"100%",padding:"11px 14px",borderRadius:12,border:"none",background:"transparent",color:"var(--t-text-2)",fontWeight:500,fontSize:14,cursor:"pointer",transition:"background 0.15s" }}
+          onMouseEnter={e => e.currentTarget.style.background = "var(--t-input-bg)"}
+          onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+        >
+          {isDark ? <Sun size={18} strokeWidth={2} style={{ color:"var(--t-accent)" }} /> : <Moon size={18} strokeWidth={2} style={{ color:"var(--t-accent)" }} />}
+          {isDark ? "Light Mode" : "Dark Mode"}
+        </button>
+
+        {/* Profile or Sign In */}
+        {token ? (
+          <div style={{ position:"relative" }} ref={profileRef}>
+            <button
+              onClick={() => setProfileOpen(v => !v)}
+              style={{ display:"flex",alignItems:"center",gap:12,width:"100%",padding:"10px 14px",borderRadius:12,border:"none",background:"transparent",cursor:"pointer",transition:"background 0.15s" }}
+              onMouseEnter={e => e.currentTarget.style.background = "var(--t-input-bg)"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            >
+              <div style={{ width:32,height:32,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",border:"2px solid rgba(99,102,241,0.3)",color:"#fff",fontWeight:800,fontSize:13,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>{userInitial}</div>
+              <span style={{ fontSize:13,fontWeight:600,color:"var(--t-text-2)",flex:1,textAlign:"left" }}>My Account</span>
+            </button>
+            {profileOpen && (
+              <div style={{ position:"absolute",bottom:"calc(100% + 8px)",left:0,right:0,background:"var(--t-card)",border:"1px solid var(--t-border)",borderRadius:16,boxShadow:"0 24px 64px rgba(0,0,0,0.12)",zIndex:60,overflow:"hidden",padding:"6px 0" }}>
+                {[
+                  { to:"/profile",         Icon:User,        label:"My Profile"       },
+                  { to:"/dashboard",       Icon:CalendarDays,label:"My Bookings"      },
+                  { to:"/favorites",       Icon:Bookmark,    label:"Saved Salons"     },
+                  { to:"/my-subscription", Icon:Crown,       label:"My Subscription"  },
+                ].map(({ to, Icon, label }) => (
+                  <Link key={to} to={to} onClick={() => setProfileOpen(false)}
+                    style={{ textDecoration:"none",display:"flex",alignItems:"center",gap:10,padding:"10px 16px",fontSize:13,fontWeight:500,color:"var(--t-text-2)",transition:"background 0.15s" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "var(--t-input-bg)"}
+                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                  >
+                    <Icon size={14} strokeWidth={2} style={{ color:"var(--t-text-3)" }} />{label}
+                  </Link>
+                ))}
+                <div style={{ height:1,background:"var(--t-border)",margin:"4px 0" }} />
+                <button
+                  onClick={() => { setProfileOpen(false); handleLogout(); }}
+                  style={{ display:"flex",alignItems:"center",gap:10,width:"100%",padding:"10px 16px",fontSize:13,fontWeight:500,color:"#f87171",background:"none",border:"none",cursor:"pointer" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(239,68,68,0.06)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
+                  <LogOut size={14} strokeWidth={2} />Sign Out
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <Link to="/login" style={{ display:"flex",alignItems:"center",justifyContent:"center",padding:"11px 14px",borderRadius:12,background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",fontWeight:700,fontSize:14,textDecoration:"none",boxShadow:"0 0 18px rgba(99,102,241,0.3)",marginTop:4 }}>
+            Sign In
+          </Link>
+        )}
+
+      </div>
+    </aside>
+
   </>
   );
 }

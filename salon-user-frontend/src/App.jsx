@@ -97,7 +97,7 @@ function AppLayout({ notifOpen, setNotifOpen }) {
       <ScrollToTop />
       {!isReels && !isMap && <Navbar notifOpen={notifOpen} setNotifOpen={setNotifOpen} />}
       <ToastContainer />
-      <main className={isReels || isMap ? 'flex-grow min-w-0' : isSalon ? 'flex-grow pb-20 md:pb-0 min-w-0 page-root' : isBookingFlow ? 'flex-grow pb-20 md:pb-0 pt-16 min-w-0 page-root' : 'flex-grow pb-20 md:pb-0 pt-16 min-w-0 page-root'}>
+      <main className={isReels || isMap ? 'flex-grow min-w-0' : isSalon ? 'flex-grow pb-20 md:pb-0 md:pl-[220px] min-w-0 page-root' : isBookingFlow ? 'flex-grow pb-20 md:pb-0 pt-16 md:pt-0 md:pl-[220px] min-w-0 page-root' : 'flex-grow pb-20 md:pb-0 pt-16 md:pt-0 md:pl-[220px] min-w-0 page-root'}>
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/"                            element={<Home />} />
