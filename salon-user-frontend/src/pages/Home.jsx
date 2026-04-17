@@ -767,9 +767,77 @@ export default function Home() {
 
           {/* Salon cards */}
           {!loading && salons.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-              {salons.map(s => <SalonCard key={s._id} salon={s} userCoords={userCoords} />)}
-            </div>
+            selectedServiceCat ? (
+              /* ── Service-selected: compact list view ── */
+              <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                {salons.map(s => {
+                  const photo = s.photos?.[0] || s.coverPhoto || s.image || null;
+                  const relevantAliases = selectedCats.flatMap(cat => CATEGORY_ALIASES[cat] || [cat]);
+                  const subServices = (s.offeredCategoryNames || []).filter(n => relevantAliases.includes(n));
+                  const km = userCoords && s.location?.coordinates
+                    ? (() => {
+                        const [lng, lat] = s.location.coordinates;
+                        const R = 6371, dLat = (lat - userCoords.lat) * Math.PI/180, dLng = (lng - userCoords.lng) * Math.PI/180;
+                        const a = Math.sin(dLat/2)**2 + Math.cos(userCoords.lat*Math.PI/180)*Math.cos(lat*Math.PI/180)*Math.sin(dLng/2)**2;
+                        const d = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                        return d < 1 ? `${Math.round(d*1000)} m` : `${d.toFixed(1)} km`;
+                      })()
+                    : null;
+                  return (
+                    <Link key={s._id} to={salonPath(s)} style={{ textDecoration:"none" }}>
+                      <div
+                        style={{
+                          display:"flex", alignItems:"center", gap:14,
+                          padding:"14px 16px", borderRadius:16,
+                          background:"var(--t-card)", border:"1px solid var(--t-border)",
+                          boxShadow:"0 2px 12px rgba(0,0,0,0.05)",
+                          transition:"box-shadow 0.2s ease, transform 0.2s ease",
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.boxShadow="0 8px 28px rgba(99,102,241,0.14)"; e.currentTarget.style.transform="translateY(-2px)"; }}
+                        onMouseLeave={e => { e.currentTarget.style.boxShadow="0 2px 12px rgba(0,0,0,0.05)"; e.currentTarget.style.transform="translateY(0)"; }}
+                      >
+                        {/* Circular photo */}
+                        <div style={{ width:56, height:56, borderRadius:"50%", flexShrink:0, overflow:"hidden", border:"2px solid var(--t-border)", background:"linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
+                          {photo
+                            ? <img src={photo} alt={s.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                            : <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                                <span style={{ fontSize:20, fontWeight:800, color:"#fff" }}>{s.name?.[0] || "S"}</span>
+                              </div>
+                          }
+                        </div>
+
+                        {/* Info */}
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, marginBottom:5 }}>
+                            <span style={{ fontSize:15, fontWeight:700, color:"var(--t-text)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{s.name}</span>
+                            {km && <span style={{ fontSize:11, fontWeight:600, color:"var(--t-text-3)", flexShrink:0 }}>{km} away</span>}
+                          </div>
+                          {subServices.length > 0 && (
+                            <div style={{ display:"flex", flexWrap:"wrap", gap:5 }}>
+                              {subServices.map(cat => (
+                                <span key={cat} style={{
+                                  fontSize:11, fontWeight:600, padding:"2px 9px", borderRadius:999,
+                                  background: cat === selectedServiceCat ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "rgba(99,102,241,0.08)",
+                                  color: cat === selectedServiceCat ? "#fff" : "var(--t-accent)",
+                                  border:`1px solid ${cat === selectedServiceCat ? "rgba(99,102,241,0.4)" : "rgba(99,102,241,0.18)"}`,
+                                }}>{cat}</span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        <span style={{ fontSize:20, color:"var(--t-text-3)", flexShrink:0 }}>›</span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              /* ── Default grid view ── */
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                {salons.map(s => <SalonCard key={s._id} salon={s} userCoords={userCoords} />)}
+              </div>
+            )
           )}
         </section>
       )}
