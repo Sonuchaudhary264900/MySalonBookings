@@ -572,8 +572,8 @@ export default function Home() {
                     display:"flex", alignItems:"center", justifyContent:"center",
                     background: active
                       ? "linear-gradient(145deg,#818cf8 0%,#6366f1 40%,#4f46e5 100%)"
-                      : "rgba(255,255,255,0.06)",
-                    border: active ? "none" : "1.5px solid rgba(255,255,255,0.09)",
+                      : "var(--t-hero-card)",
+                    border: active ? "none" : "1.5px solid var(--t-hero-border)",
                     boxShadow: active
                       ? "0 0 0 4px rgba(99,102,241,0.18), 0 8px 28px rgba(99,102,241,0.55), inset 0 1px 1px rgba(255,255,255,0.22)"
                       : "none",
@@ -582,7 +582,7 @@ export default function Home() {
                   }}>
                     <Icon style={{
                       width:22, height:22,
-                      color: active ? "#fff" : "rgba(255,255,255,0.45)",
+                      color: active ? "#fff" : "var(--t-hero-muted)",
                       transition:"color 0.22s ease",
                     }} />
                   </div>
@@ -591,7 +591,7 @@ export default function Home() {
                   <span style={{
                     fontSize:11, fontWeight: active ? 700 : 500,
                     marginTop:8, letterSpacing:"0.15px", whiteSpace:"nowrap",
-                    color: active ? "#fff" : "rgba(255,255,255,0.42)",
+                    color: active ? "#fff" : "var(--t-hero-muted)",
                     transition:"all 0.22s ease",
                   }}>{label}</span>
 
@@ -618,7 +618,7 @@ export default function Home() {
       ══════════════════════════════════════════════════════════ */}
       {availableServiceCats.length > 0 && (
         <div style={{
-          position:"sticky", top:64, zIndex:40,
+          position:"sticky", top:"var(--sticky-offset, 64px)", zIndex:40,
           background:"var(--t-nav-bg)", backdropFilter:"blur(28px)", WebkitBackdropFilter:"blur(28px)",
           borderBottom:"1px solid var(--t-border)",
         }}>
