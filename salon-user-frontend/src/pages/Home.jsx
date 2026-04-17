@@ -557,75 +557,66 @@ export default function Home() {
           </div>
 
           {/* Full-width circular category bar */}
+          <style>{`.cat-scroll-hero::-webkit-scrollbar{display:none}`}</style>
           <div ref={chipScrollRef} className="cat-scroll-hero" style={{
-            display:"flex", overflowX:"auto", gap:2,
-            padding:"10px clamp(8px,4vw,48px) 0",
+            display:"flex", overflowX:"auto", gap:0,
+            padding:"14px clamp(8px,4vw,48px) 18px",
             scrollbarWidth:"none",
-            borderBottom:"2px solid rgba(99,102,241,0.2)",
-            position:"relative",
           }}>
-            <style>{`
-              .cat-scroll-hero::-webkit-scrollbar{display:none}
-              .hero-chip-btn{
-                display:flex;flex-direction:column;align-items:center;gap:0;
-                flex-shrink:0;background:none;border:2px solid transparent;
-                cursor:pointer;padding:8px 14px 12px;
-                position:relative;
-                transition:border-color 0.22s ease,background 0.22s ease;
-              }
-              .hero-chip-btn.chip-on{
-                border-color:rgba(99,102,241,0.6);
-                border-bottom-color:transparent;
-                border-radius:30px 30px 20px 20px;
-                margin-bottom:-2px;
-                background:rgba(99,102,241,0.09);
-                z-index:2;
-              }
-              .hero-chip-btn.chip-on::before{
-                content:'';position:absolute;
-                bottom:16px;left:-20px;
-                width:20px;height:20px;
-                border-bottom-right-radius:20px;
-                box-shadow:10px 10px 0 rgba(99,102,241,0.6);
-              }
-              .hero-chip-btn.chip-on::after{
-                content:'';position:absolute;
-                bottom:16px;right:-20px;
-                width:20px;height:20px;
-                border-bottom-left-radius:20px;
-                box-shadow:-10px 10px 0 rgba(99,102,241,0.6);
-              }
-            `}</style>
             {HERO_CHIPS.map(({ label, cat, Icon }) => {
               const active = cat === null ? selectedCats.length === 0 : selectedCats.includes(cat);
               return (
                 <button
                   key={label}
-                  className={active ? "hero-chip-btn chip-on" : "hero-chip-btn"}
                   onClick={e => cat === null ? clearAll() : handleCategory(cat, e.currentTarget)}
-                  onTouchStart={e => { e.currentTarget.style.opacity = "0.75"; }}
-                  onTouchEnd={e => { e.currentTarget.style.opacity = "1"; }}
+                  onTouchStart={e => { e.currentTarget.style.transform = "scale(0.92)"; }}
+                  onTouchEnd={e => { e.currentTarget.style.transform = "scale(1)"; }}
+                  style={{
+                    display:"flex", flexDirection:"column", alignItems:"center", gap:0,
+                    flexShrink:0, background:"none", border:"none", cursor:"pointer",
+                    padding:"0 14px", position:"relative",
+                    transition:"transform 0.18s cubic-bezier(0.4,0,0.2,1)",
+                  }}
                 >
+                  {/* Circle */}
                   <div style={{
-                    width:50, height:50, borderRadius:"50%",
+                    width:54, height:54, borderRadius:"50%",
                     display:"flex", alignItems:"center", justifyContent:"center",
                     background: active
-                      ? "linear-gradient(135deg,#6366f1,#8b5cf6)"
-                      : "rgba(255,255,255,0.07)",
-                    border: active ? "none" : "1px solid rgba(255,255,255,0.10)",
+                      ? "linear-gradient(145deg,#818cf8 0%,#6366f1 40%,#4f46e5 100%)"
+                      : "rgba(255,255,255,0.06)",
+                    border: active ? "none" : "1.5px solid rgba(255,255,255,0.09)",
                     boxShadow: active
-                      ? "0 4px 14px rgba(99,102,241,0.5)"
+                      ? "0 0 0 4px rgba(99,102,241,0.18), 0 8px 28px rgba(99,102,241,0.55), inset 0 1px 1px rgba(255,255,255,0.22)"
                       : "none",
-                    transition:"all 0.22s ease",
+                    transform: active ? "scale(1.08)" : "scale(1)",
+                    transition:"all 0.28s cubic-bezier(0.4,0,0.2,1)",
                   }}>
-                    <Icon style={{ width:20, height:20, color: active ? "#fff" : "rgba(255,255,255,0.65)" }} />
+                    <Icon style={{
+                      width:22, height:22,
+                      color: active ? "#fff" : "rgba(255,255,255,0.45)",
+                      transition:"color 0.22s ease",
+                    }} />
                   </div>
+
+                  {/* Label */}
                   <span style={{
-                    fontSize:11, fontWeight: active ? 700 : 500, marginTop:7,
-                    letterSpacing:"0.2px", whiteSpace:"nowrap",
-                    color: active ? "#c7d2fe" : "rgba(255,255,255,0.55)",
+                    fontSize:11, fontWeight: active ? 700 : 500,
+                    marginTop:8, letterSpacing:"0.15px", whiteSpace:"nowrap",
+                    color: active ? "#fff" : "rgba(255,255,255,0.42)",
                     transition:"all 0.22s ease",
                   }}>{label}</span>
+
+                  {/* Active dot indicator */}
+                  {active && (
+                    <span style={{
+                      position:"absolute", bottom:-6,
+                      left:"50%", transform:"translateX(-50%)",
+                      width:18, height:3, borderRadius:999,
+                      background:"linear-gradient(90deg,#818cf8,#6366f1)",
+                      boxShadow:"0 0 8px rgba(99,102,241,0.7)",
+                    }} />
+                  )}
                 </button>
               );
             })}
