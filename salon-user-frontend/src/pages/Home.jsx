@@ -3,8 +3,8 @@ import { Link } from "react-router-dom";
 import {
   LocateFixed, Search, X, SearchX,
   Scissors, Sparkles, Droplets, User, Leaf,
-  SlidersHorizontal, ChevronDown, MapPin,
-  CalendarCheck, Star, CheckCircle2, ArrowRight, Crown,
+  MapPin,
+  Star, CheckCircle2, ArrowRight, Crown,
   Zap, Bell, RefreshCw, QrCode, Gift, Target, CreditCard,
   Calendar, CheckCircle, Users, BadgeCheck, Wallet,
   Phone, Clock, Wind, Baby, Home as HomeIcon, Brush,
@@ -344,11 +344,8 @@ export default function Home() {
   const [premiumOnly, setPremiumOnly]   = useState(false);
   const [userCoords, setUserCoords]     = useState(null);
   const [serviceMatchLabel, setServiceMatchLabel] = useState("");
-  const [upcomingCount, setUpcomingCount] = useState(0);
   const [adminHeroImage, setAdminHeroImage] = useState(null);
   const [showSticky, setShowSticky]     = useState(false);
-  const [showFilterPanel, setShowFilterPanel] = useState(false);
-  const [showSortPanel, setShowSortPanel]     = useState(false);
   const heroSearchRef = useRef(null);
 
   useEffect(() => {
@@ -390,15 +387,6 @@ export default function Home() {
     return () => { ignore = true; };
   }, []);
 
-  useEffect(() => {
-    if (!isLoggedIn) return;
-    API.get("/customer/bookings").then(res => {
-      const arr = res.data.data?.bookings || res.data.data || [];
-      setUpcomingCount(Array.isArray(arr)
-        ? arr.filter(b => ["pending","confirmed","in_progress"].includes(b.status)).length
-        : 0);
-    }).catch(() => {});
-  }, [isLoggedIn]);
 
   useEffect(() => {
     API.get("/public/site-settings").then(res => {
@@ -784,86 +772,7 @@ export default function Home() {
 
             </div>
 
-            {/* Controls */}
-            <div style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
-              <button
-                onClick={() => { setShowFilterPanel(p => !p); setShowSortPanel(false); }}
-                style={{
-                  display:"flex", alignItems:"center", gap:6,
-                  padding:"7px 14px", borderRadius:10,
-                  fontSize:12, fontWeight:700, cursor:"pointer",
-                  background: showFilterPanel ? "rgba(99,102,241,0.1)" : "var(--t-input-bg)",
-                  border: showFilterPanel ? "1px solid rgba(99,102,241,0.3)" : "1px solid var(--t-border)",
-                  color: showFilterPanel ? "var(--t-accent)" : "var(--t-text-2)",
-                  transition:"all 0.18s ease",
-                }}
-              >
-                <SlidersHorizontal style={{ width:13,height:13 }} />
-                Filters
-              </button>
-              <div style={{ width:1,height:18,background:"var(--t-border)" }} />
-              <div style={{ position:"relative" }}>
-                <button
-                  onClick={() => { setShowSortPanel(p => !p); setShowFilterPanel(false); }}
-                  style={{ display:"flex", alignItems:"center", gap:5, fontSize:12, fontWeight:700, cursor:"pointer", background:"none", border:"none", color:"var(--t-text-2)" }}
-                >
-                  {SORT_OPTIONS.find(s => s.key === sort)?.label || "Sort"}
-                  <ChevronDown style={{ width:14,height:14, transition:"transform 0.2s", transform:showSortPanel?"rotate(180deg)":"rotate(0)" }} />
-                </button>
-                {showSortPanel && (
-                  <div style={{ position:"absolute", right:0, top:"calc(100% + 10px)", background:"var(--t-card)", border:"1px solid var(--t-border)", borderRadius:12, overflow:"hidden", boxShadow:"0 12px 40px rgba(0,0,0,0.14)", zIndex:50, minWidth:148 }}>
-                    {SORT_OPTIONS.map(opt => (
-                      <button key={opt.key} onClick={() => handleSortChange(opt.key)} style={{
-                        display:"block", width:"100%", padding:"11px 18px", textAlign:"left",
-                        fontSize:13, fontWeight: sort===opt.key ? 700 : 500, cursor:"pointer",
-                        background: sort===opt.key ? "rgba(99,102,241,0.07)" : "transparent",
-                        border:"none", borderBottom:"1px solid var(--t-border)",
-                        color: sort===opt.key ? "var(--t-accent)" : "var(--t-text)",
-                        transition:"background 0.15s ease",
-                      }}>{opt.label}</button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
-
-          {/* Expanded filter panel */}
-          {showFilterPanel && (
-            <div style={{ padding:"10px 0 4px", display:"flex", alignItems:"center", gap:10, borderTop:"1px solid var(--t-border)", marginTop:10, flexWrap:"wrap" }}>
-              <button onClick={handleOpenNow} style={{
-                display:"flex", alignItems:"center", gap:6,
-                padding:"6px 14px", borderRadius:999,
-                fontSize:12, fontWeight:700, cursor:"pointer",
-                background: openNow ? "rgba(16,185,129,0.1)" : "var(--t-input-bg)",
-                border: openNow ? "1px solid rgba(16,185,129,0.35)" : "1px solid var(--t-border)",
-                color: openNow ? "#059669" : "var(--t-text-2)", transition:"all 0.18s ease",
-              }}>
-                <span style={{ width:7,height:7,borderRadius:"50%",background:openNow?"#10b981":"var(--t-text-3)",display:"inline-block" }} />
-                Open Now
-              </button>
-              <Link to="/dashboard" style={{
-                display:"flex", alignItems:"center", gap:6,
-                padding:"6px 14px", borderRadius:999,
-                fontSize:12, fontWeight:700, textDecoration:"none",
-                background:"var(--t-input-bg)", border:"1px solid var(--t-border)",
-                color:"var(--t-text-2)", transition:"all 0.18s ease",
-              }}>
-                <CalendarCheck style={{ width:12,height:12 }} />
-                My Bookings
-                {upcomingCount > 0 && (
-                  <span style={{ background:"#6366f1",color:"#fff",fontSize:9,fontWeight:800,width:16,height:16,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center" }}>
-                    {upcomingCount}
-                  </span>
-                )}
-              </Link>
-              {hasActiveState && (
-                <button onClick={clearAll} style={{ fontSize:12,fontWeight:600,color:"var(--t-accent)",background:"none",border:"none",cursor:"pointer",padding:"6px 4px" }}>
-                  Clear all
-                </button>
-              )}
-            </div>
-          )}
         </div>
       </div>
 
