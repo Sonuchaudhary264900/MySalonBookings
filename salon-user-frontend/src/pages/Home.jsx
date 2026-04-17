@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   LocateFixed, Search, X, SearchX,
   Scissors, Sparkles, Droplets, User, Leaf,
@@ -12,6 +12,7 @@ import {
 import API from "../services/api";
 import { useTheme } from "../context/ThemeContext";
 import { salonPath } from "../utils/formatters";
+import { isCustomer } from "../utils/auth";
 import SalonCard from "../components/SalonCard";
 
 // ── Landing section CSS ───────────────────────────────────────────
@@ -317,11 +318,290 @@ function _EditorialSkeleton() {
   );
 }
 
+// ── Quick Book Sheet ──────────────────────────────────────────────
+const _qbLocalDate = (offset = 0) => {
+  const d = new Date(); d.setDate(d.getDate() + offset);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+};
+const _qbTodayStr = _qbLocalDate(0);
+const _qbDays = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const _qbMonths = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+function QuickBookSheet({ salon, selectedServiceCat, onClose }) {
+  const navigate = useNavigate();
+  const [services, setServices]       = useState([]);
+  const [loadingSvcs, setLoadingSvcs] = useState(true);
+  const [selectedSvcs, setSelectedSvcs] = useState([]);
+  const [step, setStep]               = useState("services"); // "services" | "booking"
+  const [bookDate, setBookDate]       = useState(_qbTodayStr);
+  const [slot, setSlot]               = useState("");
+  const [slots, setSlots]             = useState([]);
+  const [blockedSlots, setBlockedSlots] = useState([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [closedDay, setClosedDay]     = useState(false);
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [bookError, setBookError]     = useState("");
+
+  const totalDuration = selectedSvcs.reduce((s, x) => s + (x.duration || 30), 0);
+  const totalPrice    = selectedSvcs.reduce((s, x) => s + (x.basePrice || x.price || 0), 0);
+
+  useEffect(() => {
+    setLoadingSvcs(true);
+    API.get(`/public/salons/${salon._id}/services`)
+      .then(r => {
+        const all = r.data.data?.services || r.data.data || [];
+        setServices(selectedServiceCat ? all.filter(s => s.category === selectedServiceCat) : all);
+      })
+      .catch(() => setServices([]))
+      .finally(() => setLoadingSvcs(false));
+  }, [salon._id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (step !== "booking" || selectedSvcs.length === 0) return;
+    setSlotsLoading(true); setSlot("");
+    API.get(`/public/salons/${salon._id}/booked-slots?date=${bookDate}&duration=${Math.max(totalDuration, 30)}`)
+      .then(r => {
+        const data = r.data.data || {};
+        setSlots(data.slots || []); setBlockedSlots(data.blockedSlots || []); setClosedDay(data.closedDay || false);
+      })
+      .catch(() => { setSlots([]); setBlockedSlots([]); })
+      .finally(() => setSlotsLoading(false));
+  }, [bookDate, step, totalDuration]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggleSvc = (svc) => setSelectedSvcs(prev =>
+    prev.find(s => s._id === svc._id) ? prev.filter(s => s._id !== svc._id) : [...prev, svc]
+  );
+
+  const isPast = (s) => {
+    if (bookDate !== _qbTodayStr) return false;
+    const [h, m] = s.split(":").map(Number);
+    const now = new Date();
+    return h * 60 + m <= now.getHours() * 60 + now.getMinutes();
+  };
+
+  const handleContinue = () => {
+    if (!isCustomer()) { navigate("/login", { state: { from: "/" } }); return; }
+    setStep("booking");
+  };
+
+  const handleConfirm = async () => {
+    if (!slot) { setBookError("Please select a time slot."); return; }
+    setBookError(""); setBookingLoading(true);
+    try {
+      await API.post("/customer/bookings", {
+        salonId: salon._id, serviceIds: selectedSvcs.map(s => s._id),
+        appointmentDate: bookDate, appointmentTime: slot, paymentMethod: "cash",
+      });
+      setBookingSuccess(true);
+    } catch (err) {
+      setBookError(err.response?.data?.message || "Booking failed. Please try again.");
+    } finally { setBookingLoading(false); }
+  };
+
+  const dateDays = Array.from({ length: 7 }, (_, i) => _qbLocalDate(i));
+  const fmtDay = (ds) => {
+    const d = new Date(ds + "T12:00:00");
+    return { day: _qbDays[d.getDay()], date: d.getDate(), month: _qbMonths[d.getMonth()] };
+  };
+  const photo = salon.photos?.[0] || salon.coverPhoto || salon.image || null;
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.55)", zIndex:1000, backdropFilter:"blur(4px)", WebkitBackdropFilter:"blur(4px)" }} />
+      <div style={{
+        position:"fixed", bottom:0, left:0, right:0, zIndex:1001,
+        maxHeight:"90vh", display:"flex", flexDirection:"column",
+        background:"var(--t-card)", borderRadius:"24px 24px 0 0",
+        boxShadow:"0 -8px 48px rgba(0,0,0,0.25)",
+      }}>
+        {/* Handle */}
+        <div style={{ display:"flex", justifyContent:"center", paddingTop:12, paddingBottom:4, flexShrink:0 }}>
+          <div style={{ width:40, height:4, borderRadius:999, background:"var(--t-border)" }} />
+        </div>
+
+        {/* Header */}
+        <div style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 20px 14px", flexShrink:0, borderBottom:"1px solid var(--t-border)" }}>
+          <div style={{ width:46, height:46, borderRadius:"50%", flexShrink:0, overflow:"hidden", border:"2px solid var(--t-border)", background:"linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
+            {photo
+              ? <img src={photo} alt={salon.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+              : <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                  <span style={{ fontSize:18, fontWeight:800, color:"#fff" }}>{salon.name?.[0] || "S"}</span>
+                </div>
+            }
+          </div>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontSize:15, fontWeight:800, color:"var(--t-text)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{salon.name}</div>
+            {selectedServiceCat && <div style={{ fontSize:12, color:"var(--t-accent)", fontWeight:600, marginTop:1 }}>{selectedServiceCat}</div>}
+          </div>
+          <Link to={salonPath(salon)} style={{ fontSize:11, color:"var(--t-text-3)", fontWeight:600, textDecoration:"none", flexShrink:0, marginRight:8 }} onClick={e => e.stopPropagation()}>Full page ›</Link>
+          <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--t-text-3)", fontSize:22, lineHeight:1, padding:4, flexShrink:0 }}>×</button>
+        </div>
+
+        {/* Scrollable body */}
+        <div style={{ flex:1, overflowY:"auto", WebkitOverflowScrolling:"touch" }}>
+          {!bookingSuccess && step === "services" && (
+            <div style={{ padding:"14px 16px 20px" }}>
+              {loadingSvcs ? (
+                <div style={{ display:"flex", flexDirection:"column", gap:10, padding:"8px 0" }}>
+                  {[1,2,3].map(i => <div key={i} className="skeleton" style={{ height:68, borderRadius:12 }} />)}
+                </div>
+              ) : services.length === 0 ? (
+                <p style={{ textAlign:"center", color:"var(--t-text-3)", padding:"32px 0", fontSize:14 }}>No services listed for this category.</p>
+              ) : (
+                <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                  {services.map(svc => {
+                    const sel = !!selectedSvcs.find(s => s._id === svc._id);
+                    return (
+                      <div key={svc._id} onClick={() => toggleSvc(svc)} style={{
+                        display:"flex", alignItems:"center", gap:12, padding:"12px 14px", borderRadius:12,
+                        background: sel ? "rgba(99,102,241,0.08)" : "var(--t-input-bg)",
+                        border: sel ? "1.5px solid rgba(99,102,241,0.4)" : "1.5px solid var(--t-border)",
+                        cursor:"pointer", transition:"all 0.15s ease",
+                      }}>
+                        <div style={{
+                          width:22, height:22, borderRadius:6, flexShrink:0,
+                          background: sel ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "transparent",
+                          border: sel ? "none" : "2px solid var(--t-border)",
+                          display:"flex", alignItems:"center", justifyContent:"center",
+                        }}>
+                          {sel && <span style={{ color:"#fff", fontSize:13, lineHeight:1 }}>✓</span>}
+                        </div>
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ fontSize:14, fontWeight:700, color:"var(--t-text)" }}>{svc.name}</div>
+                          <div style={{ fontSize:12, color:"var(--t-text-3)", marginTop:2 }}>
+                            {svc.duration ? `${svc.duration} min` : ""}
+                            {svc.duration && (svc.basePrice || svc.price) ? " · " : ""}
+                            {(svc.basePrice || svc.price) ? `₹${svc.basePrice || svc.price}` : ""}
+                          </div>
+                        </div>
+                        {(svc.basePrice || svc.price) && (
+                          <span style={{ fontSize:14, fontWeight:800, color:"var(--t-accent)", flexShrink:0 }}>₹{svc.basePrice || svc.price}</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {!bookingSuccess && step === "booking" && (
+            <div style={{ padding:"14px 16px 20px" }}>
+              {/* Selected summary */}
+              <div style={{ marginBottom:16 }}>
+                <p style={{ fontSize:11, fontWeight:700, color:"var(--t-text-3)", marginBottom:7, textTransform:"uppercase", letterSpacing:"0.1em" }}>Selected</p>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                  {selectedSvcs.map(s => (
+                    <span key={s._id} style={{ fontSize:12, fontWeight:600, padding:"4px 10px", borderRadius:999, background:"rgba(99,102,241,0.1)", color:"var(--t-accent)", border:"1px solid rgba(99,102,241,0.2)" }}>{s.name}</span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Date picker */}
+              <p style={{ fontSize:11, fontWeight:700, color:"var(--t-text-3)", marginBottom:8, textTransform:"uppercase", letterSpacing:"0.1em" }}>Select Date</p>
+              <div style={{ display:"flex", gap:8, overflowX:"auto", paddingBottom:4, marginBottom:16, scrollbarWidth:"none" }}>
+                {dateDays.map(d => {
+                  const { day, date, month } = fmtDay(d);
+                  const active = bookDate === d;
+                  return (
+                    <button key={d} onClick={() => setBookDate(d)} style={{
+                      flexShrink:0, padding:"10px 14px", borderRadius:12, minWidth:56,
+                      background: active ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "var(--t-input-bg)",
+                      border: active ? "none" : "1px solid var(--t-border)", cursor:"pointer", textAlign:"center",
+                    }}>
+                      <div style={{ fontSize:11, fontWeight:600, color: active ? "rgba(255,255,255,0.8)" : "var(--t-text-3)" }}>{day}</div>
+                      <div style={{ fontSize:18, fontWeight:800, color: active ? "#fff" : "var(--t-text)", lineHeight:1.1, margin:"3px 0 1px" }}>{date}</div>
+                      <div style={{ fontSize:10, color: active ? "rgba(255,255,255,0.7)" : "var(--t-text-3)" }}>{month}</div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Slot picker */}
+              <p style={{ fontSize:11, fontWeight:700, color:"var(--t-text-3)", marginBottom:8, textTransform:"uppercase", letterSpacing:"0.1em" }}>Select Time</p>
+              {slotsLoading ? (
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8 }}>
+                  {[1,2,3,4,5,6,7,8].map(i => <div key={i} className="skeleton" style={{ height:40, borderRadius:8 }} />)}
+                </div>
+              ) : closedDay ? (
+                <p style={{ color:"var(--t-text-3)", fontSize:13 }}>Closed on this day.</p>
+              ) : slots.length === 0 ? (
+                <p style={{ color:"var(--t-text-3)", fontSize:13 }}>No available slots for this date.</p>
+              ) : (
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8 }}>
+                  {slots.map(s => {
+                    const blocked = blockedSlots.includes(s);
+                    const past = isPast(s);
+                    const active = slot === s;
+                    const disabled = blocked || past;
+                    return (
+                      <button key={s} disabled={disabled} onClick={() => !disabled && setSlot(s)} style={{
+                        padding:"10px 4px", borderRadius:8, fontSize:12, fontWeight:700,
+                        background: active ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "var(--t-input-bg)",
+                        border: active ? "none" : "1px solid var(--t-border)",
+                        color: active ? "#fff" : disabled ? "var(--t-text-3)" : "var(--t-text)",
+                        cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.4 : 1,
+                      }}>{s}</button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {bookError && <p style={{ color:"#f87171", fontSize:13, marginTop:10 }}>{bookError}</p>}
+            </div>
+          )}
+
+          {bookingSuccess && (
+            <div style={{ padding:"40px 20px", textAlign:"center" }}>
+              <div style={{ width:64, height:64, borderRadius:"50%", background:"rgba(16,185,129,0.12)", border:"2px solid rgba(16,185,129,0.3)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" }}>
+                <CheckCircle2 style={{ width:30, height:30, color:"#10b981" }} />
+              </div>
+              <h3 style={{ fontSize:20, fontWeight:800, color:"var(--t-text)", marginBottom:8 }}>Booking Confirmed!</h3>
+              <p style={{ fontSize:13, color:"var(--t-text-2)", lineHeight:1.7, marginBottom:24 }}>
+                {selectedSvcs.map(s => s.name).join(" + ")}<br />at {salon.name}<br />{bookDate} · {slot}
+              </p>
+              <button onClick={onClose} style={{ padding:"13px 32px", borderRadius:12, background:"linear-gradient(135deg,#6366f1,#8b5cf6)", border:"none", cursor:"pointer", color:"#fff", fontWeight:700, fontSize:14 }}>Done</button>
+            </div>
+          )}
+        </div>
+
+        {/* Footer action */}
+        {!bookingSuccess && (
+          <div style={{ flexShrink:0, background:"var(--t-card)", borderTop:"1px solid var(--t-border)", padding:"12px 16px", display:"flex", gap:10, alignItems:"center" }}>
+            {step === "booking" && (
+              <button onClick={() => setStep("services")} style={{ padding:"13px 18px", borderRadius:12, background:"var(--t-input-bg)", border:"1px solid var(--t-border)", cursor:"pointer", color:"var(--t-text)", fontWeight:700, fontSize:13, flexShrink:0 }}>Back</button>
+            )}
+            <button
+              onClick={step === "services" ? handleContinue : handleConfirm}
+              disabled={selectedSvcs.length === 0 || bookingLoading}
+              style={{
+                flex:1, padding:"14px 20px", borderRadius:12, border:"none",
+                background: selectedSvcs.length === 0 ? "var(--t-input-bg)" : "linear-gradient(135deg,#6366f1,#8b5cf6)",
+                color: selectedSvcs.length === 0 ? "var(--t-text-3)" : "#fff",
+                fontWeight:800, fontSize:14,
+                cursor: selectedSvcs.length === 0 || bookingLoading ? "not-allowed" : "pointer",
+              }}
+            >
+              {bookingLoading ? "Booking…" : step === "services"
+                ? selectedSvcs.length === 0 ? "Select a service" : `Continue · ₹${totalPrice}`
+                : `Confirm Booking${slot ? ` at ${slot}` : ""}`}
+            </button>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
 // ── Main Component ────────────────────────────────────────────────
 export default function Home() {
   const isLoggedIn = !!localStorage.getItem("customerToken");
   useTheme();
+  const navigate = useNavigate();
   const [userName, setUserName] = useState(() => getUserName());
+  const [quickBookSalon, setQuickBookSalon] = useState(null);
+  const [quickBookCat, setQuickBookCat]     = useState(null);
 
   const [salons, setSalons]             = useState([]);
   const [allSalons, setAllSalons]       = useState([]);
@@ -784,51 +1064,49 @@ export default function Home() {
                       })()
                     : null;
                   return (
-                    <Link key={s._id} to={salonPath(s)} style={{ textDecoration:"none" }}>
-                      <div
-                        style={{
-                          display:"flex", alignItems:"center", gap:14,
-                          padding:"14px 16px", borderRadius:16,
-                          background:"var(--t-card)", border:"1px solid var(--t-border)",
-                          boxShadow:"0 2px 12px rgba(0,0,0,0.05)",
-                          transition:"box-shadow 0.2s ease, transform 0.2s ease",
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.boxShadow="0 8px 28px rgba(99,102,241,0.14)"; e.currentTarget.style.transform="translateY(-2px)"; }}
-                        onMouseLeave={e => { e.currentTarget.style.boxShadow="0 2px 12px rgba(0,0,0,0.05)"; e.currentTarget.style.transform="translateY(0)"; }}
-                      >
-                        {/* Circular photo */}
-                        <div style={{ width:56, height:56, borderRadius:"50%", flexShrink:0, overflow:"hidden", border:"2px solid var(--t-border)", background:"linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
-                          {photo
-                            ? <img src={photo} alt={s.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
-                            : <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                                <span style={{ fontSize:20, fontWeight:800, color:"#fff" }}>{s.name?.[0] || "S"}</span>
-                              </div>
-                          }
-                        </div>
-
-                        {/* Info */}
-                        <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, marginBottom:5 }}>
-                            <span style={{ fontSize:15, fontWeight:700, color:"var(--t-text)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{s.name}</span>
-                            {km && <span style={{ fontSize:11, fontWeight:600, color:"var(--t-text-3)", flexShrink:0 }}>{km} away</span>}
+                    <div key={s._id} style={{
+                      borderRadius:16, background:"var(--t-card)", border:"1px solid var(--t-border)",
+                      boxShadow:"0 2px 12px rgba(0,0,0,0.05)", overflow:"hidden",
+                    }}>
+                      {/* Top row: salon info + link to full page */}
+                      <Link to={salonPath(s)} style={{ textDecoration:"none", display:"block" }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:14, padding:"14px 16px 10px" }}>
+                          <div style={{ width:52, height:52, borderRadius:"50%", flexShrink:0, overflow:"hidden", border:"2px solid var(--t-border)", background:"linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
+                            {photo
+                              ? <img src={photo} alt={s.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                              : <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                                  <span style={{ fontSize:20, fontWeight:800, color:"#fff" }}>{s.name?.[0] || "S"}</span>
+                                </div>
+                            }
                           </div>
-                          {subServices.length > 0 && (
-                            <div style={{ display:"flex", flexWrap:"wrap", gap:5 }}>
-                              {subServices.map(cat => (
-                                <span key={cat} style={{
-                                  fontSize:11, fontWeight:600, padding:"2px 9px", borderRadius:999,
-                                  background: cat === selectedServiceCat ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "rgba(99,102,241,0.08)",
-                                  color: cat === selectedServiceCat ? "#fff" : "var(--t-accent)",
-                                  border:`1px solid ${cat === selectedServiceCat ? "rgba(99,102,241,0.4)" : "rgba(99,102,241,0.18)"}`,
-                                }}>{cat}</span>
-                              ))}
-                            </div>
-                          )}
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <span style={{ fontSize:15, fontWeight:700, color:"var(--t-text)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", display:"block" }}>{s.name}</span>
+                            {km && <span style={{ fontSize:11, fontWeight:600, color:"var(--t-text-3)" }}>{km} away</span>}
+                          </div>
+                          <ArrowRight style={{ width:16, height:16, color:"var(--t-text-3)", flexShrink:0 }} />
                         </div>
+                      </Link>
 
-                        <span style={{ fontSize:20, color:"var(--t-text-3)", flexShrink:0 }}>›</span>
-                      </div>
-                    </Link>
+                      {/* Sub-service chips — tap to book */}
+                      {subServices.length > 0 && (
+                        <div style={{ padding:"0 16px 14px", display:"flex", flexWrap:"wrap", gap:7 }}>
+                          {subServices.map(cat => (
+                            <button key={cat} onClick={() => { setQuickBookSalon(s); setQuickBookCat(cat); }} style={{
+                              fontSize:12, fontWeight:700, padding:"6px 14px", borderRadius:999, cursor:"pointer",
+                              background:"linear-gradient(135deg,rgba(99,102,241,0.12),rgba(139,92,246,0.10))",
+                              color:"var(--t-accent)",
+                              border:"1.5px solid rgba(99,102,241,0.28)",
+                              transition:"all 0.15s ease",
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background="linear-gradient(135deg,#6366f1,#8b5cf6)"; e.currentTarget.style.color="#fff"; e.currentTarget.style.borderColor="transparent"; }}
+                            onMouseLeave={e => { e.currentTarget.style.background="linear-gradient(135deg,rgba(99,102,241,0.12),rgba(139,92,246,0.10))"; e.currentTarget.style.color="var(--t-accent)"; e.currentTarget.style.borderColor="rgba(99,102,241,0.28)"; }}
+                            >
+                              Book {cat}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -1031,6 +1309,13 @@ export default function Home() {
         </section>
       </>}
 
+      {quickBookSalon && (
+        <QuickBookSheet
+          salon={quickBookSalon}
+          selectedServiceCat={quickBookCat}
+          onClose={() => { setQuickBookSalon(null); setQuickBookCat(null); }}
+        />
+      )}
     </div>
   );
 }
