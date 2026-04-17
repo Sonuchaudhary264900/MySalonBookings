@@ -7,7 +7,7 @@ import {
   CalendarCheck, Star, CheckCircle2, ArrowRight, Crown,
   Zap, Bell, RefreshCw, QrCode, Gift, Target, CreditCard,
   Calendar, CheckCircle, Users, BadgeCheck, Wallet,
-  Phone, Clock,
+  Phone, Clock, Wind, Baby, Home as HomeIcon, Brush,
 } from "lucide-react";
 import API from "../services/api";
 import { useTheme } from "../context/ThemeContext";
@@ -107,15 +107,15 @@ function getGreeting() {
 
 // ── Static data ───────────────────────────────────────────────────
 const CATEGORIES = [
-  { key: "Hair Services",        label: "Hair" },
-  { key: "Beard & Grooming",     label: "Beard" },
-  { key: "Nail Services",        label: "Nails" },
-  { key: "Skin & Face / Beauty", label: "Skin" },
-  { key: "Spa & Massage",        label: "Spa" },
-  { key: "Body Grooming",        label: "Body" },
-  { key: "Bridal & Events",      label: "Bridal" },
-  { key: "Kids Services",        label: "Kids" },
-  { key: "At-Home Services",     label: "At-Home" },
+  { key: "Hair Services",        label: "Hair",    Icon: Scissors  },
+  { key: "Beard & Grooming",     label: "Beard",   Icon: User      },
+  { key: "Nail Services",        label: "Nails",   Icon: Brush     },
+  { key: "Skin & Face / Beauty", label: "Skin",    Icon: Leaf      },
+  { key: "Spa & Massage",        label: "Spa",     Icon: Droplets  },
+  { key: "Body Grooming",        label: "Body",    Icon: Wind      },
+  { key: "Bridal & Events",      label: "Bridal",  Icon: Crown     },
+  { key: "Kids Services",        label: "Kids",    Icon: Baby      },
+  { key: "At-Home Services",     label: "At-Home", Icon: HomeIcon  },
 ];
 const CATEGORY_ALIASES = {
   "Hair Services":        ["Hair Services","Hair Services (Men)","Hair Services (Women)"],
@@ -346,7 +346,6 @@ export default function Home() {
   const [showSticky, setShowSticky]     = useState(false);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [showSortPanel, setShowSortPanel]     = useState(false);
-  const [showAllChips, setShowAllChips]       = useState(false);
   const heroSearchRef = useRef(null);
 
   useEffect(() => {
@@ -648,86 +647,58 @@ export default function Home() {
               Discover and book the best GlowSpot near you — verified, rated, and ready.
             </p>
 
-            {/* Quick chips */}
-            <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:16 }}>
-              {(showAllChips ? HERO_CHIPS : HERO_CHIPS.slice(0, 3)).map(({ label, cat, Icon }) => {
+            {/* Premium circular category bar */}
+            <div className="cat-scroll-hero" style={{
+              display:"flex", overflowX:"auto", gap:18,
+              padding:"12px 14px 8px", marginBottom:8,
+              scrollSnapType:"x mandatory", scrollbarWidth:"none",
+            }}>
+              <style>{`.cat-scroll-hero::-webkit-scrollbar{display:none}`}</style>
+              {HERO_CHIPS.map(({ label, cat, Icon }) => {
                 const active = selectedCats.includes(cat);
                 return (
                   <button
-                    key={label} onClick={() => handleCategory(cat)}
-                    onMouseDown={e => { e.currentTarget.style.transform = "scale(0.95)"; }}
-                    onMouseUp={e => { e.currentTarget.style.transform = active ? "scale(0.97)" : "scale(1)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.transform = active ? "scale(0.97)" : "scale(1)"; }}
-                    onTouchStart={e => { e.currentTarget.style.transform = "scale(0.95)"; }}
-                    onTouchEnd={e => { e.currentTarget.style.transform = active ? "scale(0.97)" : "scale(1)"; }}
+                    key={label}
+                    ref={el => { if (el && active) el.scrollIntoView({ behavior:"smooth", inline:"center", block:"nearest" }); }}
+                    onClick={() => handleCategory(cat)}
+                    onMouseDown={e => { e.currentTarget.style.transform = "scale(0.92)"; }}
+                    onMouseUp={e => { e.currentTarget.style.transform = "scale(1)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}
+                    onTouchStart={e => { e.currentTarget.style.transform = "scale(0.92)"; }}
+                    onTouchEnd={e => { e.currentTarget.style.transform = "scale(1)"; }}
                     style={{
-                      display:"flex", alignItems:"center", gap:7,
-                      padding:"8px 16px", borderRadius:999,
-                      fontSize:12, fontWeight:700, cursor:"pointer",
-                      transition:"all 0.25s ease",
-                      background: active
-                        ? "linear-gradient(135deg,#6366f1,#8b5cf6)"
-                        : "var(--t-hero-card)",
-                      backdropFilter:"blur(12px)", WebkitBackdropFilter:"blur(12px)",
-                      border: active ? "1px solid rgba(139,92,246,0.5)" : "1px solid var(--t-hero-border)",
-                      color: active ? "#fff" : "var(--t-hero-text)",
-                      boxShadow: active
-                        ? "0 0 24px rgba(99,102,241,0.42), 0 4px 16px rgba(0,0,0,0.1)"
-                        : "0 2px 16px rgba(0,0,0,0.08)",
-                      transform: active ? "scale(0.97)" : "scale(1)",
+                      display:"flex", flexDirection:"column", alignItems:"center", gap:0,
+                      flexShrink:0, background:"none", border:"none", cursor:"pointer",
+                      padding:"0 2px", scrollSnapAlign:"center",
+                      transition:"transform 0.25s cubic-bezier(0.4,0,0.2,1)",
                     }}
                   >
-                    <Icon style={{ width:14, height:14 }} />
-                    {label}
+                    <div style={{
+                      width:52, height:52, borderRadius:"50%",
+                      display:"flex", alignItems:"center", justifyContent:"center",
+                      background: active
+                        ? "linear-gradient(135deg,#6366f1,#8b5cf6)"
+                        : "rgba(255,255,255,0.06)",
+                      backdropFilter: active ? "none" : "blur(10px)",
+                      WebkitBackdropFilter: active ? "none" : "blur(10px)",
+                      border: active ? "none" : "1px solid rgba(255,255,255,0.09)",
+                      boxShadow: active
+                        ? "0 6px 18px rgba(99,102,241,0.35),0 0 16px rgba(99,102,241,0.12),inset 0 1px 1px rgba(255,255,255,0.18)"
+                        : "0 2px 6px rgba(0,0,0,0.15)",
+                      transform: active ? "scale(1.06)" : "scale(1)",
+                      transition:"all 0.25s cubic-bezier(0.4,0,0.2,1)",
+                    }}>
+                      <Icon style={{ width:20, height:20, color: active ? "#fff" : "rgba(255,255,255,0.75)" }} />
+                    </div>
+                    <span style={{
+                      fontSize:11, fontWeight:500, marginTop:7,
+                      letterSpacing:"0.2px", whiteSpace:"nowrap",
+                      color: active ? "#fff" : "rgba(255,255,255,0.65)",
+                      transition:"color 0.25s cubic-bezier(0.4,0,0.2,1)",
+                    }}>{label}</span>
                   </button>
                 );
               })}
-              {!showAllChips && HERO_CHIPS.length > 3 && (
-                <button
-                  onClick={() => setShowAllChips(true)}
-                  onMouseDown={e => { e.currentTarget.style.transform = "scale(0.95)"; }}
-                  onMouseUp={e => { e.currentTarget.style.transform = "scale(1)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}
-                  onTouchStart={e => { e.currentTarget.style.transform = "scale(0.95)"; }}
-                  onTouchEnd={e => { e.currentTarget.style.transform = "scale(1)"; }}
-                  style={{
-                    display:"flex", alignItems:"center", gap:7,
-                    padding:"8px 14px", borderRadius:999,
-                    fontSize:12, fontWeight:700, cursor:"pointer",
-                    transition:"all 0.2s ease",
-                    background: isDark ? "rgba(255,255,255,0.05)" : "var(--t-hero-card)",
-                    backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
-                    border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid var(--t-hero-border)",
-                    color:"var(--t-hero-text)",
-                    boxShadow:"0 2px 12px rgba(15,23,42,0.08)",
-                  }}
-                >
-                  +{HERO_CHIPS.length - 3} More
-                </button>
-              )}
-              {showAllChips && (
-                <button
-                  onClick={() => setShowAllChips(false)}
-                  onMouseDown={e => { e.currentTarget.style.transform = "scale(0.95)"; }}
-                  onMouseUp={e => { e.currentTarget.style.transform = "scale(1)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}
-                  onTouchStart={e => { e.currentTarget.style.transform = "scale(0.95)"; }}
-                  onTouchEnd={e => { e.currentTarget.style.transform = "scale(1)"; }}
-                  style={{
-                    display:"flex", alignItems:"center", gap:8,
-                    padding:"10px 16px", borderRadius:999,
-                    fontSize:13, fontWeight:700, cursor:"pointer",
-                    transition:"all 0.2s ease",
-                    background: isDark ? "rgba(255,255,255,0.05)" : "var(--t-hero-card)",
-                    backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
-                    border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid var(--t-hero-border)",
-                    color:"var(--t-hero-text)",
-                    boxShadow:"0 2px 12px rgba(15,23,42,0.08)",
-                  }}
-                >
-                  Show Less
-                </button>
-              )}
             </div>
 
             {/* Search bar */}
@@ -756,7 +727,7 @@ export default function Home() {
           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
 
             {/* Pills */}
-            <div className="scrollbar-hide" style={{ overflowX:"auto", WebkitOverflowScrolling:"touch", flex:1, display:"flex", gap:6, minWidth:0 }}>
+            <div className="cat-scroll-bar" style={{ overflowX:"auto", WebkitOverflowScrolling:"touch", flex:1, display:"flex", alignItems:"flex-end", gap:14, minWidth:0, scrollSnapType:"x mandatory", scrollbarWidth:"none", padding:"4px 0 6px" }}>
               {/* All Services */}
               <button onClick={clearAll} style={{
                 whiteSpace:"nowrap", padding:"6px 13px", borderRadius:999,
@@ -805,21 +776,52 @@ export default function Home() {
                 Premium
               </button>
 
-              {/* Category pills */}
+              {/* Category circles */}
               {CATEGORIES.filter(({ key }) => {
                 if (genderFilter === "female" && MALE_ONLY.includes(key)) return false;
                 if (genderFilter === "male"   && FEMALE_ONLY.includes(key)) return false;
                 return true;
-              }).map(({ key, label }) => {
+              }).map(({ key, label, Icon }) => {
                 const active = selectedCats.includes(key);
                 return (
-                  <button key={key} onClick={() => handleCategory(key)} style={{
-                    whiteSpace:"nowrap", padding:"7px 18px", borderRadius:999,
-                    fontSize:12, fontWeight:700, cursor:"pointer", transition:"all 0.18s ease",
-                    background: active ? "rgba(99,102,241,0.1)" : "var(--t-input-bg)",
-                    border: active ? "1px solid rgba(99,102,241,0.28)" : "1px solid var(--t-border)",
-                    color: active ? "var(--t-accent)" : "var(--t-text-2)", flexShrink:0,
-                  }}>{label}</button>
+                  <button
+                    key={key}
+                    ref={el => { if (el && active) el.scrollIntoView({ behavior:"smooth", inline:"center", block:"nearest" }); }}
+                    onClick={() => handleCategory(key)}
+                    onMouseDown={e => { e.currentTarget.style.transform = "scale(0.92)"; }}
+                    onMouseUp={e => { e.currentTarget.style.transform = "scale(1)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}
+                    onTouchStart={e => { e.currentTarget.style.transform = "scale(0.92)"; }}
+                    onTouchEnd={e => { e.currentTarget.style.transform = "scale(1)"; }}
+                    style={{
+                      display:"flex", flexDirection:"column", alignItems:"center", gap:0,
+                      flexShrink:0, background:"none", border:"none", cursor:"pointer",
+                      padding:"0 2px", scrollSnapAlign:"center",
+                      transition:"transform 0.25s cubic-bezier(0.4,0,0.2,1)",
+                    }}
+                  >
+                    <div style={{
+                      width:44, height:44, borderRadius:"50%",
+                      display:"flex", alignItems:"center", justifyContent:"center",
+                      background: active
+                        ? "linear-gradient(135deg,#6366f1,#8b5cf6)"
+                        : "var(--t-input-bg)",
+                      border: active ? "none" : "1px solid var(--t-border)",
+                      boxShadow: active
+                        ? "0 4px 14px rgba(99,102,241,0.35),0 0 12px rgba(99,102,241,0.1)"
+                        : "0 1px 4px rgba(0,0,0,0.08)",
+                      transform: active ? "scale(1.06)" : "scale(1)",
+                      transition:"all 0.25s cubic-bezier(0.4,0,0.2,1)",
+                    }}>
+                      {Icon && <Icon style={{ width:18, height:18, color: active ? "#fff" : "var(--t-text-2)", opacity: active ? 1 : 0.75 }} />}
+                    </div>
+                    <span style={{
+                      fontSize:10, fontWeight:500, marginTop:5,
+                      letterSpacing:"0.2px", whiteSpace:"nowrap",
+                      color: active ? "var(--t-accent)" : "var(--t-text-3)",
+                      transition:"color 0.25s cubic-bezier(0.4,0,0.2,1)",
+                    }}>{label}</span>
+                  </button>
                 );
               })}
             </div>
