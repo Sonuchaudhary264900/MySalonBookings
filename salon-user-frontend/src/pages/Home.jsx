@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import SalonDetails from "./SalonDetails";
 import {
   LocateFixed, Search, X, SearchX,
   Scissors, Sparkles, Droplets, User, Leaf,
@@ -8,6 +9,7 @@ import {
   Zap, Bell, RefreshCw, QrCode, Gift, Target, CreditCard,
   Calendar, CheckCircle, Users, BadgeCheck, Wallet,
   Phone, Clock, Wind, Baby, Home as HomeIcon, Brush,
+  ChevronDown, ChevronUp, ShoppingBag,
 } from "lucide-react";
 import API from "../services/api";
 import { useTheme } from "../context/ThemeContext";
@@ -318,6 +320,193 @@ function _EditorialSkeleton() {
   );
 }
 
+// ── Home Salon Service Card ───────────────────────────────────────
+function calcKm(userCoords, salon) {
+  if (!userCoords || !salon.location?.coordinates) return null;
+  const [lng, lat] = salon.location.coordinates;
+  const R = 6371;
+  const dLat = (lat - userCoords.lat) * Math.PI / 180;
+  const dLng = (lng - userCoords.lng) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(userCoords.lat*Math.PI/180)*Math.cos(lat*Math.PI/180)*Math.sin(dLng/2)**2;
+  const d = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return d < 1 ? `${Math.round(d*1000)} m` : `${d.toFixed(1)} km`;
+}
+
+function HomeSalonServiceCard({ salon, selectedCats, selectedServiceCat, cart, onAdd, onRemove, userCoords, onSalonOpen }) {
+  const [services, setServices]   = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [expanded, setExpanded]   = useState(true);
+
+  useEffect(() => {
+    API.get(`/public/salons/${salon._id}/services`)
+      .then(r => {
+        const all = r.data.data?.services || r.data.data || [];
+        const aliases = selectedCats.flatMap(cat => CATEGORY_ALIASES[cat] || [cat]);
+        const filtered = selectedServiceCat
+          ? all.filter(s => s.category === selectedServiceCat)
+          : all.filter(s => aliases.includes(s.category));
+        setServices(filtered);
+      })
+      .catch(() => setServices([]))
+      .finally(() => setLoading(false));
+  }, [salon._id, selectedServiceCat]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const km = useMemo(() => calcKm(userCoords, salon), [userCoords, salon._id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const minPrice = useMemo(() => {
+    const prices = services.map(s => s.basePrice || s.price || 0).filter(p => p > 0);
+    return prices.length > 0 ? Math.min(...prices) : 0;
+  }, [services]);
+
+  const photo = salon.photos?.[0] || salon.coverPhoto || salon.image || null;
+  const cartForThisSalon = cart.salon?._id === salon._id ? cart.serviceMap : {};
+
+  return (
+    <div style={{ borderRadius:16, background:"var(--t-card)", border:"1px solid var(--t-border)", overflow:"hidden", boxShadow:"0 2px 12px rgba(0,0,0,0.05)" }}>
+
+      {/* Category header — cover image + salon name + distance */}
+      <div style={{ position:"relative", overflow:"hidden" }}>
+        {photo && (
+          <div style={{ height:88, overflow:"hidden", position:"relative" }}>
+            <img src={photo} alt={salon.name} style={{ width:"100%", height:"100%", objectFit:"cover", filter:"brightness(0.45)" }} />
+            <div style={{ position:"absolute", inset:0, background:"linear-gradient(to right,rgba(10,10,30,0.75) 0%,rgba(10,10,30,0.2) 100%)" }} />
+          </div>
+        )}
+        <div style={{
+          position: photo ? "absolute" : "relative",
+          top:0, left:0, right:0, bottom:0,
+          display:"flex", alignItems:"center", gap:12,
+          padding:"12px 14px",
+          background: photo ? "transparent" : "var(--t-input-bg)",
+        }}>
+          <div onClick={() => onSalonOpen(salon._id)} style={{ display:"flex", alignItems:"center", gap:12, flex:1, minWidth:0, textDecoration:"none", cursor:"pointer" }}>
+            {/* Salon avatar */}
+            <div style={{ width:46, height:46, borderRadius:10, flexShrink:0, overflow:"hidden", border:"2px solid rgba(255,255,255,0.25)", background:"linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
+              {photo
+                ? <img src={photo} alt={salon.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                : <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                    <span style={{ fontSize:18, fontWeight:800, color:"#fff" }}>{salon.name?.[0] || "S"}</span>
+                  </div>
+              }
+            </div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:15, fontWeight:800, color:photo?"#fff":"var(--t-text)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{salon.name}</div>
+              <div style={{ display:"flex", alignItems:"center", gap:8, marginTop:2 }}>
+                {km && <span style={{ fontSize:11, fontWeight:600, color:photo?"rgba(255,255,255,0.7)":"var(--t-text-3)" }}>{km} away</span>}
+                {!loading && services.length > 0 && minPrice > 0 && (
+                  <span style={{ fontSize:11, fontWeight:700, color:photo?"rgba(255,255,255,0.85)":"var(--t-accent)" }}>from ₹{minPrice}+</span>
+                )}
+              </div>
+            </div>
+          </div>
+          {!loading && services.length > 0 && (
+            <button onClick={() => setExpanded(p => !p)} style={{
+              background:"rgba(255,255,255,0.12)", border:"1px solid rgba(255,255,255,0.2)",
+              borderRadius:8, padding:"5px 10px", cursor:"pointer", flexShrink:0,
+              display:"flex", alignItems:"center", gap:4,
+              color:photo?"rgba(255,255,255,0.9)":"var(--t-text-3)", fontSize:11, fontWeight:700,
+            }}>
+              {expanded ? <><span>Hide</span><ChevronUp size={12} /></> : <><span>Show</span><ChevronDown size={12} /></>}
+            </button>
+          )}
+        </div>
+        {/* Service count badge */}
+        {!loading && services.length > 0 && (
+          <div style={{
+            position:"absolute", top:10, right: expanded ? 90 : 90,
+            fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.75)",
+            background:"rgba(0,0,0,0.3)", borderRadius:6, padding:"2px 7px",
+          }}>
+            {services.length} service{services.length !== 1 ? "s" : ""}
+          </div>
+        )}
+      </div>
+
+      {/* Loading skeletons */}
+      {loading && (
+        <div style={{ padding:"12px 14px", display:"flex", flexDirection:"column", gap:8 }}>
+          {[1,2].map(i => <div key={i} className="skeleton" style={{ height:72, borderRadius:10 }} />)}
+        </div>
+      )}
+
+      {/* No services */}
+      {!loading && services.length === 0 && (
+        <div style={{ padding:"14px 16px" }}>
+          <p style={{ fontSize:13, color:"var(--t-text-3)" }}>No services listed for this category.</p>
+        </div>
+      )}
+
+      {/* Service rows */}
+      {!loading && expanded && services.length > 0 && (
+        <div>
+          {services.map((svc, idx) => {
+            const added = !!cartForThisSalon[svc._id];
+            const price = svc.basePrice || svc.price || 0;
+            const af = svc.applicableFor || [];
+            const gender = af.includes("male") && !af.includes("female") ? "Men"
+              : af.includes("female") && !af.includes("male") ? "Women" : null;
+            const isQuick = svc.duration && svc.duration <= 20;
+
+            return (
+              <div key={svc._id} style={{
+                display:"flex", alignItems:"center", gap:12, padding:"12px 14px",
+                borderTop:"1px solid var(--t-border)",
+                background: added ? "rgba(99,102,241,0.05)" : "transparent",
+              }}>
+                {/* Service image / placeholder */}
+                <div style={{ width:76, height:76, borderRadius:10, flexShrink:0, overflow:"hidden", background:"var(--t-input-bg)", border:"1px solid var(--t-border)" }}>
+                  {svc.image
+                    ? <img src={svc.image} alt={svc.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                    : <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center", background:"linear-gradient(135deg,rgba(99,102,241,0.12),rgba(139,92,246,0.12))" }}>
+                        <Scissors style={{ width:22, height:22, color:"var(--t-accent)", opacity:0.45 }} />
+                      </div>
+                  }
+                </div>
+
+                {/* Info */}
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:14, fontWeight:700, color:"var(--t-text)", marginBottom:4 }}>{svc.name}</div>
+                  {isQuick && (
+                    <div style={{ display:"inline-flex", alignItems:"center", gap:3, background:"rgba(251,191,36,0.12)", border:"1px solid rgba(251,191,36,0.35)", borderRadius:6, padding:"2px 7px", marginBottom:4 }}>
+                      <Zap style={{ width:10, height:10, color:"#fbbf24", fill:"#fbbf24" }} />
+                      <span style={{ fontSize:10, fontWeight:800, color:"#fbbf24", letterSpacing:"0.05em" }}>QUICK</span>
+                    </div>
+                  )}
+                  <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
+                    {svc.duration > 0 && (
+                      <span style={{ fontSize:11, color:"var(--t-text-3)", display:"flex", alignItems:"center", gap:3 }}>
+                        <Clock style={{ width:10, height:10 }} />{svc.duration} min
+                      </span>
+                    )}
+                    {gender && (
+                      <span style={{ fontSize:11, color:"var(--t-text-3)", display:"flex", alignItems:"center", gap:3 }}>
+                        <User style={{ width:10, height:10 }} />{gender}
+                      </span>
+                    )}
+                  </div>
+                  {price > 0 && (
+                    <div style={{ fontSize:14, fontWeight:800, color:"var(--t-text)", marginTop:4 }}>₹{price}</div>
+                  )}
+                </div>
+
+                {/* ADD / ADDED button */}
+                <button
+                  onClick={() => added ? onRemove(salon, svc) : onAdd(salon, svc)}
+                  style={{
+                    flexShrink:0, minWidth:64, padding:"8px 14px", borderRadius:8, fontWeight:800, fontSize:13, cursor:"pointer", transition:"all 0.15s ease",
+                    background: added ? "rgba(99,102,241,0.15)" : "transparent",
+                    border: added ? "1.5px solid rgba(99,102,241,0.4)" : "1.5px solid var(--t-accent)",
+                    color: "var(--t-accent)",
+                  }}
+                >{added ? "ADDED" : "+ ADD"}</button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Quick Book Sheet ──────────────────────────────────────────────
 const _qbLocalDate = (offset = 0) => {
   const d = new Date(); d.setDate(d.getDate() + offset);
@@ -327,12 +516,12 @@ const _qbTodayStr = _qbLocalDate(0);
 const _qbDays = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const _qbMonths = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-function QuickBookSheet({ salon, selectedServiceCat, onClose }) {
+function QuickBookSheet({ salon, selectedServiceCat, preSelectedServices = [], onClose }) {
   const navigate = useNavigate();
   const [services, setServices]       = useState([]);
   const [loadingSvcs, setLoadingSvcs] = useState(true);
-  const [selectedSvcs, setSelectedSvcs] = useState([]);
-  const [step, setStep]               = useState("services"); // "services" | "booking"
+  const [selectedSvcs, setSelectedSvcs] = useState(preSelectedServices);
+  const [step, setStep]               = useState(preSelectedServices.length > 0 ? "booking" : "services");
   const [bookDate, setBookDate]       = useState(_qbTodayStr);
   const [slot, setSlot]               = useState("");
   const [slots, setSlots]             = useState([]);
@@ -602,6 +791,25 @@ export default function Home() {
   const [userName, setUserName] = useState(() => getUserName());
   const [quickBookSalon, setQuickBookSalon] = useState(null);
   const [quickBookCat, setQuickBookCat]     = useState(null);
+  const [overlaySalonId, setOverlaySalonId] = useState(null);
+  const [cart, setCart] = useState(() => { try { return JSON.parse(sessionStorage.getItem("home_cart") || "null") || { salon: null, serviceMap: {} }; } catch { return { salon: null, serviceMap: {} }; } });
+  const cartServices = useMemo(() => Object.values(cart.serviceMap), [cart.serviceMap]);
+  const cartTotal    = useMemo(() => cartServices.reduce((s, x) => s + (x.basePrice || x.price || 0), 0), [cartServices]);
+
+  const addToCart = useCallback((salon, service) => {
+    setCart(prev => ({
+      salon,
+      serviceMap: { ...(prev.salon?._id === salon._id ? prev.serviceMap : {}), [service._id]: service },
+    }));
+  }, []);
+
+  const removeFromCart = useCallback((salon, service) => {
+    setCart(prev => {
+      if (prev.salon?._id !== salon._id) return prev;
+      const { [service._id]: _, ...rest } = prev.serviceMap;
+      return { salon: Object.keys(rest).length > 0 ? prev.salon : null, serviceMap: rest };
+    });
+  }, []);
 
   const [salons, setSalons]             = useState([]);
   const [allSalons, setAllSalons]       = useState([]);
@@ -618,6 +826,9 @@ export default function Home() {
   const [selectedServiceCat, setSelectedServiceCat] = useState(null);
   const [userCoords, setUserCoords]     = useState(null);
   const [serviceMatchLabel, setServiceMatchLabel] = useState("");
+
+  // Persist cart across navigation (clears only on true page refresh)
+  useEffect(() => { if (cart.salon) sessionStorage.setItem("home_cart", JSON.stringify(cart)); else sessionStorage.removeItem("home_cart"); }, [cart]);
 
   useEffect(() => {
     if (!isLoggedIn) return;
@@ -1047,68 +1258,22 @@ export default function Home() {
 
           {/* Salon cards */}
           {!loading && salons.length > 0 && (
-            selectedServiceCat ? (
-              /* ── Service-selected: compact list view ── */
-              <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                {salons.map(s => {
-                  const photo = s.photos?.[0] || s.coverPhoto || s.image || null;
-                  const relevantAliases = selectedCats.flatMap(cat => CATEGORY_ALIASES[cat] || [cat]);
-                  const subServices = (s.offeredCategoryNames || []).filter(n => relevantAliases.includes(n));
-                  const km = userCoords && s.location?.coordinates
-                    ? (() => {
-                        const [lng, lat] = s.location.coordinates;
-                        const R = 6371, dLat = (lat - userCoords.lat) * Math.PI/180, dLng = (lng - userCoords.lng) * Math.PI/180;
-                        const a = Math.sin(dLat/2)**2 + Math.cos(userCoords.lat*Math.PI/180)*Math.cos(lat*Math.PI/180)*Math.sin(dLng/2)**2;
-                        const d = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                        return d < 1 ? `${Math.round(d*1000)} m` : `${d.toFixed(1)} km`;
-                      })()
-                    : null;
-                  return (
-                    <div key={s._id} style={{
-                      borderRadius:16, background:"var(--t-card)", border:"1px solid var(--t-border)",
-                      boxShadow:"0 2px 12px rgba(0,0,0,0.05)", overflow:"hidden",
-                    }}>
-                      {/* Top row: salon info + link to full page */}
-                      <Link to={salonPath(s)} style={{ textDecoration:"none", display:"block" }}>
-                        <div style={{ display:"flex", alignItems:"center", gap:14, padding:"14px 16px 10px" }}>
-                          <div style={{ width:52, height:52, borderRadius:"50%", flexShrink:0, overflow:"hidden", border:"2px solid var(--t-border)", background:"linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
-                            {photo
-                              ? <img src={photo} alt={s.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
-                              : <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                                  <span style={{ fontSize:20, fontWeight:800, color:"#fff" }}>{s.name?.[0] || "S"}</span>
-                                </div>
-                            }
-                          </div>
-                          <div style={{ flex:1, minWidth:0 }}>
-                            <span style={{ fontSize:15, fontWeight:700, color:"var(--t-text)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", display:"block" }}>{s.name}</span>
-                            {km && <span style={{ fontSize:11, fontWeight:600, color:"var(--t-text-3)" }}>{km} away</span>}
-                          </div>
-                          <ArrowRight style={{ width:16, height:16, color:"var(--t-text-3)", flexShrink:0 }} />
-                        </div>
-                      </Link>
-
-                      {/* Sub-service chips — tap to book */}
-                      {subServices.length > 0 && (
-                        <div style={{ padding:"0 16px 14px", display:"flex", flexWrap:"wrap", gap:7 }}>
-                          {subServices.map(cat => (
-                            <button key={cat} onClick={() => { setQuickBookSalon(s); setQuickBookCat(cat); }} style={{
-                              fontSize:12, fontWeight:700, padding:"6px 14px", borderRadius:999, cursor:"pointer",
-                              background:"linear-gradient(135deg,rgba(99,102,241,0.12),rgba(139,92,246,0.10))",
-                              color:"var(--t-accent)",
-                              border:"1.5px solid rgba(99,102,241,0.28)",
-                              transition:"all 0.15s ease",
-                            }}
-                            onMouseEnter={e => { e.currentTarget.style.background="linear-gradient(135deg,#6366f1,#8b5cf6)"; e.currentTarget.style.color="#fff"; e.currentTarget.style.borderColor="transparent"; }}
-                            onMouseLeave={e => { e.currentTarget.style.background="linear-gradient(135deg,rgba(99,102,241,0.12),rgba(139,92,246,0.10))"; e.currentTarget.style.color="var(--t-accent)"; e.currentTarget.style.borderColor="rgba(99,102,241,0.28)"; }}
-                            >
-                              Book {cat}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+            selectedCats.length > 0 ? (
+              /* ── Category selected: inline service discovery view ── */
+              <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+                {salons.map(s => (
+                  <HomeSalonServiceCard
+                    key={s._id}
+                    salon={s}
+                    selectedCats={selectedCats}
+                    selectedServiceCat={selectedServiceCat}
+                    cart={cart}
+                    onAdd={addToCart}
+                    onRemove={removeFromCart}
+                    userCoords={userCoords}
+                    onSalonOpen={(id) => { if (cart.salon && cart.salon._id !== id) { setCart({ salon: null, serviceMap: {} }); setSelectedCats([]); setSelectedServiceCat(null); } setOverlaySalonId(id); }}
+                  />
+                ))}
               </div>
             ) : (
               /* ── Default grid view ── */
@@ -1309,10 +1474,48 @@ export default function Home() {
         </section>
       </>}
 
+      {/* ── SalonDetails overlay (preserves Home state) ─────── */}
+      {overlaySalonId && (
+        <div style={{ position:"fixed", inset:0, zIndex:300, overflowY:"auto", background:"var(--t-bg)" }}>
+          <SalonDetails salonId={overlaySalonId} onClose={() => setOverlaySalonId(null)} />
+        </div>
+      )}
+
+      {/* ── Floating cart bar ────────────────────────────────── */}
+      {cartServices.length > 0 && !quickBookSalon && (
+        <div style={{ position:"fixed", bottom:72, left:16, right:16, zIndex:200, maxWidth:600, margin:"0 auto" }}>
+          <button
+            onClick={() => setQuickBookSalon(cart.salon)}
+            style={{
+              width:"100%", display:"flex", alignItems:"center", justifyContent:"space-between",
+              padding:"14px 20px", borderRadius:16,
+              background:"linear-gradient(135deg,#6366f1,#8b5cf6)",
+              border:"none", cursor:"pointer",
+              boxShadow:"0 8px 32px rgba(99,102,241,0.55)",
+            }}
+          >
+            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+              <div style={{ width:28, height:28, borderRadius:8, background:"rgba(255,255,255,0.2)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                <ShoppingBag style={{ width:14, height:14, color:"#fff" }} />
+              </div>
+              <div style={{ textAlign:"left" }}>
+                <div style={{ fontSize:13, fontWeight:800, color:"#fff" }}>{cartServices.length} service{cartServices.length > 1 ? "s" : ""} added</div>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,0.75)", fontWeight:600 }}>{cart.salon?.name}</div>
+              </div>
+            </div>
+            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+              <span style={{ fontSize:15, fontWeight:800, color:"#fff" }}>₹{cartTotal}</span>
+              <span style={{ fontSize:13, fontWeight:700, color:"rgba(255,255,255,0.85)" }}>Book →</span>
+            </div>
+          </button>
+        </div>
+      )}
+
       {quickBookSalon && (
         <QuickBookSheet
           salon={quickBookSalon}
           selectedServiceCat={quickBookCat}
+          preSelectedServices={cart.salon?._id === quickBookSalon._id ? cartServices : []}
           onClose={() => { setQuickBookSalon(null); setQuickBookCat(null); }}
         />
       )}
