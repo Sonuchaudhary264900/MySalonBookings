@@ -17,6 +17,38 @@ import { salonPath } from "../utils/formatters";
 import { isCustomer } from "../utils/auth";
 import SalonCard from "../components/SalonCard";
 
+// ── Service image helpers (owner photo → category fallback → null) ──
+const _nameHash = (str = '') => { let h = 0; for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0; return h; };
+const SVC_CAT_IMAGES = {
+  'Hair Services':             ['https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=80&h=80&fit=crop&q=70','https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=80&h=80&fit=crop&q=70','https://images.unsplash.com/photo-1562322140-8baeececf3df?w=80&h=80&fit=crop&q=70'],
+  'Hair Services (Men)':       ['https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=80&h=80&fit=crop&q=70','https://images.unsplash.com/photo-1599351431613-18ef1fdd27e5?w=80&h=80&fit=crop&q=70'],
+  'Hair Services (Women)':     ['https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=80&h=80&fit=crop&q=70','https://images.unsplash.com/photo-1562322140-8baeececf3df?w=80&h=80&fit=crop&q=70'],
+  'Beard & Grooming':          ['https://images.unsplash.com/photo-1599351431613-18ef1fdd27e5?w=80&h=80&fit=crop&q=70','https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=80&h=80&fit=crop&q=70'],
+  'Nail Services':             'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=80&h=80&fit=crop&q=70',
+  'Skin & Face / Beauty':      ['https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=80&h=80&fit=crop&q=70','https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=80&h=80&fit=crop&q=70'],
+  'Skin & Face (Men Grooming)':'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=80&h=80&fit=crop&q=70',
+  'Skin & Beauty':             'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=80&h=80&fit=crop&q=70',
+  'Face & Skin':               'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=80&h=80&fit=crop&q=70',
+  'Skin & Face':               'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=80&h=80&fit=crop&q=70',
+  'Spa & Massage':             ['https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=80&h=80&fit=crop&q=70','https://images.unsplash.com/photo-1498842812179-c81beecf902c?w=80&h=80&fit=crop&q=70'],
+  'Spa & Relaxation':          'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=80&h=80&fit=crop&q=70',
+  'Body Grooming':             'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=80&h=80&fit=crop&q=70',
+  'Bridal & Events':           'https://images.unsplash.com/photo-1519741497674-611481863552?w=80&h=80&fit=crop&q=70',
+  'Men Dermatology':           'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=80&h=80&fit=crop&q=70',
+  'Women Dermatology':         'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=80&h=80&fit=crop&q=70',
+  'Kids Services':             'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=80&h=80&fit=crop&q=70',
+  'At-Home Services':          'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=80&h=80&fit=crop&q=70',
+  'Makeup Services':           'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=80&h=80&fit=crop&q=70',
+  'Hairstyling':               'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=80&h=80&fit=crop&q=70',
+};
+const getServiceImage = (svc) => {
+  if (svc.photos?.[0]) return svc.photos[0];
+  const entry = SVC_CAT_IMAGES[svc.category];
+  if (!entry) return null;
+  if (typeof entry === 'string') return entry;
+  return entry[_nameHash(svc.name) % entry.length];
+};
+
 // ── Landing section CSS ───────────────────────────────────────────
 const LP_CSS = `
   @keyframes lp-shimmer{0%{background-position:200% center;}100%{background-position:-200% center;}}
@@ -454,8 +486,8 @@ function HomeSalonServiceCard({ salon, selectedCats, selectedServiceCat, cart, o
               }}>
                 {/* Service image / placeholder */}
                 <div style={{ width:76, height:76, borderRadius:10, flexShrink:0, overflow:"hidden", background:"var(--t-input-bg)", border:"1px solid var(--t-border)" }}>
-                  {svc.image
-                    ? <img src={svc.image} alt={svc.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                  {getServiceImage(svc)
+                    ? <img src={getServiceImage(svc)} alt={svc.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
                     : <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center", background:"linear-gradient(135deg,rgba(99,102,241,0.12),rgba(139,92,246,0.12))" }}>
                         <Scissors style={{ width:22, height:22, color:"var(--t-accent)", opacity:0.45 }} />
                       </div>
