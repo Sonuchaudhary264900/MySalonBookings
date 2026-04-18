@@ -700,16 +700,18 @@ exports.firebaseRegister = async (req, res) => {
       );
     }
 
-    // Validate name and email (phone comes from Firebase, no password required)
+    // Validate name only — email is optional at registration, can be added later in Profile
     const errors = [];
     if (!name || name.trim().length < 2) errors.push('Valid name is required');
-    if (!email || !/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email)) errors.push('Valid email is required');
+    if (email && !/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email)) errors.push('Valid email address required');
     if (gender && !['male', 'female', 'other'].includes(gender)) errors.push('Gender must be male, female, or other');
     if (errors.length > 0) {
       return res.status(400).json(
         formatErrorResponse(messages.GENERIC.VALIDATION_ERROR, 400, errors)
       );
     }
+
+    const normalizedEmail = email ? email.toLowerCase().trim() : null;
 
     // Verify Firebase token and extract phone number
     const { verifyFirebaseToken } = require('../../config/firebaseAdmin');
@@ -727,15 +729,15 @@ exports.firebaseRegister = async (req, res) => {
     const regDigits = phone.replace(/\D/g, '');
     const regTen = regDigits.length >= 10 ? regDigits.slice(-10) : regDigits;
 
-    // Check if owner already exists (robust: match exact variants OR last 10 digits OR email)
+    // Check if owner already exists (phone variants; also check email only when provided)
     const regVariants = [phone, `+91${regTen}`, `91${regTen}`, regTen];
-    const existingOwner = await Owner.findOne({
-      $or: [
-        { phone: { $in: regVariants } },
-        { phone: { $regex: regTen + '$' } },
-        { email: email.toLowerCase().trim() },
-      ],
-    });
+    const orClauses = [
+      { phone: { $in: regVariants } },
+      { phone: { $regex: regTen + '$' } },
+    ];
+    if (normalizedEmail) orClauses.push({ email: normalizedEmail });
+    const existingOwner = await Owner.findOne({ $or: orClauses });
+
     if (existingOwner) {
       // Phone is Firebase-verified — if the phone matches, auto-login
       if (existingOwner.phone === phone || existingOwner.phone.replace(/\D/g,'').slice(-10) === regTen) {
@@ -771,7 +773,7 @@ exports.firebaseRegister = async (req, res) => {
       phoneVerified: true,
       firebaseUid: firebaseUser.uid,
       name: name.trim(),
-      email: email.toLowerCase().trim(),
+      email: normalizedEmail,
       gender: gender || null,
       status: 'mobile_verified',
       role: 'owner',

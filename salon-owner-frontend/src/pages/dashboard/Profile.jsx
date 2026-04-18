@@ -112,8 +112,7 @@ const Profile = () => {
     e.preventDefault();
     const errs = {};
     if (!profileData.name.trim())  errs.name  = 'Name is required';
-    if (!profileData.email.trim()) errs.email = 'Email is required';
-    else if (!/\S+@\S+\.\S+/.test(profileData.email)) errs.email = 'Email is invalid';
+    if (profileData.email.trim() && !/\S+@\S+\.\S+/.test(profileData.email)) errs.email = 'Email is invalid';
     if (!profileData.phone.trim()) errs.phone = 'Phone is required';
     if (Object.keys(errs).length) { setProfileErrors(errs); return; }
 
@@ -365,6 +364,24 @@ const Profile = () => {
           );
         })()}
 
+        {/* ── Email nudge — shown only until owner adds their email ── */}
+        {!user?.email && (
+          <div
+            className="flex items-start gap-3 px-4 py-3.5 rounded-xl border cursor-pointer"
+            style={{ background: 'rgba(124,58,237,0.06)', borderColor: 'rgba(124,58,237,0.25)' }}
+            onClick={() => setActiveSection('profile')}
+          >
+            <Mail className="w-5 h-5 mt-0.5 shrink-0" style={{ color: '#7c3aed' }} />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold" style={{ color: '#7c3aed' }}>Add your email address</p>
+              <p className="text-xs text-gray-500 mt-0.5">Required for booking alerts and important account notifications.</p>
+            </div>
+            <span className="shrink-0 text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: 'rgba(124,58,237,0.12)', color: '#7c3aed' }}>
+              Add Now
+            </span>
+          </div>
+        )}
+
         {/* ── Section 1: My Profile ── */}
         <Section
           id="profile"
@@ -405,10 +422,10 @@ const Profile = () => {
                 onChange={handleProfileChange} placeholder="Your name"
                 error={!!profileErrors.name} errorMessage={profileErrors.name}
                 disabled={profileLoading} required />
-              <Input label="Email Address" name="email" type="email" value={profileData.email}
+              <Input label="Email Address (optional)" name="email" type="email" value={profileData.email}
                 onChange={handleProfileChange} placeholder="your@email.com"
                 error={!!profileErrors.email} errorMessage={profileErrors.email}
-                disabled={profileLoading} required />
+                disabled={profileLoading} />
               <Input label="Phone Number" name="phone" type="tel" value={profileData.phone}
                 onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 10); setProfileData(p => ({ ...p, phone: v })); if (profileErrors.phone) setProfileErrors(p => ({ ...p, phone: '' })); }}
                 placeholder="98765 43210"

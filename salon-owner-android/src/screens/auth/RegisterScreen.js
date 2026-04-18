@@ -39,7 +39,6 @@ export default function RegisterScreen({ navigation }) {
   // Step 3 — profile
   const [name, setName]         = useState('');
   const [gender, setGender]     = useState('');
-  const [email, setEmail]       = useState('');
   const [referralCode, setReferralCode] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
@@ -134,7 +133,6 @@ export default function RegisterScreen({ navigation }) {
   const handleRegister = async () => {
     if (!name.trim() || name.trim().length < 2) { Alert.alert('Error', 'Name must be at least 2 characters'); return; }
     if (!gender) { Alert.alert('Error', 'Please select your gender'); return; }
-    if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) { Alert.alert('Error', 'Enter a valid email address'); return; }
     if (!agreedToTerms) { Alert.alert('Terms Required', 'Please accept the Terms & Conditions and Privacy Policy'); return; }
 
     setLoading(true);
@@ -142,7 +140,6 @@ export default function RegisterScreen({ navigation }) {
       const res = await api.post('/owner/auth/firebase-register', {
         firebaseToken: firebaseTokenRef.current,
         name: name.trim(),
-        email: email.trim().toLowerCase(),
         gender,
       });
       if (!res.data.success) throw new Error(res.data.message || 'Registration failed');
@@ -359,24 +356,6 @@ export default function RegisterScreen({ navigation }) {
                         <Text style={[styles.genderLabel, gender === g.value && styles.genderLabelActive]}>{g.label}</Text>
                       </TouchableOpacity>
                     ))}
-                  </View>
-                </View>
-
-                {/* Email */}
-                <View style={styles.field}>
-                  <Text style={styles.label}>Email Address</Text>
-                  <View style={styles.inputRow}>
-                    <Ionicons name="mail-outline" size={18} color="#818cf8" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="your@email.com"
-                      placeholderTextColor="#4b5563"
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      value={email}
-                      onChangeText={setEmail}
-                      editable={!loading}
-                    />
                   </View>
                 </View>
 

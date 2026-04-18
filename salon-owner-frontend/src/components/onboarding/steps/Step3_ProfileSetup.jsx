@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
-import { ArrowRight, User, Mail } from 'lucide-react';
+import { ArrowRight, User } from 'lucide-react';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import { useAuth } from '../../../hooks/useAuth';
 import { useTheme } from '../../../context/ThemeContext';
@@ -45,7 +45,7 @@ export default function Step3_ProfileSetup() {
   const { register } = useAuth();
   const { isDark } = useTheme();
 
-  const [form, setForm]           = useState({ name: data.name || '', email: data.email || '', gender: data.gender || '', referral: data.referralCode || '' });
+  const [form, setForm]           = useState({ name: data.name || '', gender: data.gender || '', referral: data.referralCode || '' });
   const [errors, setErrors]       = useState({});
   const [loading, setLoading]     = useState(false);
   const [referralOpen, setReferralOpen] = useState(false);
@@ -57,7 +57,6 @@ export default function Step3_ProfileSetup() {
   const validate = () => {
     const e = {};
     if (!form.name.trim() || form.name.trim().length < 2) e.name = 'Name must be at least 2 characters';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Enter a valid email address';
     if (!form.gender) e.gender = 'Please select your gender';
     if (!agreed) e.terms = 'Please accept the Terms & Conditions';
     setErrors(e);
@@ -68,8 +67,8 @@ export default function Step3_ProfileSetup() {
     if (!validate() || loading) return;
     setLoading(true);
     try {
-      update({ name: form.name, email: form.email, gender: form.gender, referralCode: form.referral });
-      await register(data.firebaseToken, form.name.trim(), form.email.trim().toLowerCase(), null, form.gender);
+      update({ name: form.name, gender: form.gender, referralCode: form.referral });
+      await register(data.firebaseToken, form.name.trim(), null, null, form.gender);
 
       // Apply referral code if provided (best-effort, non-blocking)
       if (form.referral.trim()) {
@@ -83,9 +82,7 @@ export default function Step3_ProfileSetup() {
       toast.success('Account created! 🎉');
       nextStep();
     } catch (err) {
-      const msg = err.message || 'Registration failed';
-      if (msg.toLowerCase().includes('email')) setErrors({ email: msg });
-      else toast.error(msg);
+      toast.error(err.message || 'Registration failed');
     } finally {
       setLoading(false);
     }
@@ -132,16 +129,6 @@ export default function Step3_ProfileSetup() {
             <input className="s3-inp" placeholder="Priya Sharma"
               value={form.name} onChange={e => patchForm('name', e.target.value)}
               style={inpStyle(errors.name)} />
-          </InputField>
-
-          {/* Email */}
-          <InputField label="Email Address *" icon={Mail} error={errors.email} hint="For booking alerts and important updates">
-            <input className="s3-inp" type="email" placeholder="you@example.com"
-              value={form.email} onChange={e => patchForm('email', e.target.value)}
-              style={inpStyle(errors.email)} />
-            {form.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email) && !errors.email && (
-              <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: '#10b981', fontSize: 16 }}>✓</span>
-            )}
           </InputField>
 
           {/* Gender */}
