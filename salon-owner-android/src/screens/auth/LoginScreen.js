@@ -85,8 +85,8 @@ export default function LoginScreen({ navigation }) {
     } catch (err) {
       const msg = err?.message || '';
       if (msg.toLowerCase().includes('not found') || (msg.toLowerCase().includes('no') && msg.toLowerCase().includes('account'))) {
-        // Phone is already verified — pass it straight to Register so the user skips steps 1 & 2
-        navigation.navigate('Register', { phone: formatPhone(phone), firebaseToken });
+        // Phone verified but owner not registered — go directly to profile step
+        navigation.navigate('Onboarding', { initialStep: 3, prefillPhone: formatPhone(phone), prefillToken: firebaseToken });
       } else if (msg.toLowerCase().includes('invalid') || msg.toLowerCase().includes('otp')) {
         setOtpError('Invalid OTP. Please check and try again.');
       } else {
@@ -141,8 +141,8 @@ export default function LoginScreen({ navigation }) {
             {/* Step 1: Phone */}
             {step === 1 && (
               <>
-                <Text style={styles.cardTitle}>Welcome Back</Text>
-                <Text style={styles.cardSubtitle}>Enter your phone number to sign in</Text>
+                <Text style={styles.cardTitle}>Get Started</Text>
+                <Text style={styles.cardSubtitle}>Enter your phone number to sign in or register</Text>
 
                 <View style={styles.field}>
                   <Text style={styles.label}>Phone Number</Text>
@@ -181,15 +181,6 @@ export default function LoginScreen({ navigation }) {
                   )}
                 </TouchableOpacity>
 
-                <View style={styles.divider}>
-                  <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>OR</Text>
-                  <View style={styles.dividerLine} />
-                </View>
-
-                <TouchableOpacity style={styles.registerBtn} onPress={() => navigation.navigate('Register')} activeOpacity={0.8}>
-                  <Text style={styles.registerBtnText}>Create New Account</Text>
-                </TouchableOpacity>
               </>
             )}
 

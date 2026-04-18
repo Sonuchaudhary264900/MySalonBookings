@@ -39,7 +39,7 @@ const SPEED_MSG = {
 };
 
 function OnboardingContent() {
-  const { step, prevStep, phone } = useOnboarding();
+  const { step, prevStep, minStep } = useOnboarding();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const confirmationRef = useRef(null);
@@ -69,7 +69,7 @@ function OnboardingContent() {
     Animated.timing(progressAnim, { toValue: progress, duration: 400, useNativeDriver: false }).start();
   }, [progress]);
 
-  const canGoBack = step > 1 && !(step === 4 && user?.salonId); // can't go back past profile if already has salon
+  const canGoBack = step > minStep && !(step === 4 && user?.salonId);
 
   const renderStep = () => {
     const props = { confirmationRef };
@@ -154,9 +154,11 @@ function OnboardingContent() {
 }
 
 export default function OnboardingScreen({ route }) {
-  const initialStep = route?.params?.initialStep || 1;
+  const initialStep   = route?.params?.initialStep  || 1;
+  const prefillPhone  = route?.params?.prefillPhone || '';
+  const prefillToken  = route?.params?.prefillToken || '';
   return (
-    <OnboardingProvider initialStep={initialStep}>
+    <OnboardingProvider initialStep={initialStep} prefillPhone={prefillPhone} prefillToken={prefillToken}>
       <OnboardingContent />
     </OnboardingProvider>
   );

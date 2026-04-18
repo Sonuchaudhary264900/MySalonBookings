@@ -135,7 +135,7 @@ export default function IntroScreen({ navigation }) {
 
         <TouchableOpacity
           style={styles.btnPrimary}
-          onPress={() => navigation.navigate('Onboarding')}
+          onPress={() => navigation.navigate('Login')}
           activeOpacity={0.88}
         >
           <Text style={styles.btnPrimaryText}>Get Started Free</Text>

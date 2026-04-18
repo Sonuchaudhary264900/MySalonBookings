@@ -29,7 +29,6 @@ import { showSuccess, showError } from './src/utils/toast';
 
 import IntroScreen             from './src/screens/auth/IntroScreen';
 import LoginScreen             from './src/screens/auth/LoginScreen';
-import RegisterScreen          from './src/screens/auth/RegisterScreen';
 import OnboardingScreen        from './src/screens/onboarding/OnboardingScreen';
 import SalonRegistrationScreen from './src/screens/salon/SalonRegistrationScreen';
 import ApprovalWaitingScreen   from './src/screens/salon/ApprovalWaitingScreen';
@@ -358,10 +357,9 @@ function MainDrawer({ navigation }) {
 function AuthNavigator() {
   return (
     <AuthStack.Navigator screenOptions={{ headerShown: false }}>
-      <AuthStack.Screen name="Intro"       component={IntroScreen} />
-      <AuthStack.Screen name="Login"       component={LoginScreen} />
-      <AuthStack.Screen name="Register"    component={RegisterScreen} />
-      <AuthStack.Screen name="Onboarding"  component={OnboardingScreen} />
+      <AuthStack.Screen name="Intro"      component={IntroScreen} />
+      <AuthStack.Screen name="Login"      component={LoginScreen} />
+      <AuthStack.Screen name="Onboarding" component={OnboardingScreen} />
     </AuthStack.Navigator>
   );
 }

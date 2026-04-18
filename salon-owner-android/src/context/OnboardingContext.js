@@ -10,12 +10,13 @@ export const STEP_LABELS = [
   'Media', 'Services', 'Pricing', 'Preview',
 ];
 
-export const OnboardingProvider = ({ children, initialStep = 1 }) => {
+export const OnboardingProvider = ({ children, initialStep = 1, prefillPhone = '', prefillToken = '' }) => {
   const [step, setStep] = useState(initialStep);
+  const minStep = initialStep;
 
   // ── Step 1-3: Auth ──────────────────────────────────────────
-  const [phone, setPhone]               = useState('');
-  const [firebaseToken, setFirebaseToken] = useState('');
+  const [phone, setPhone]               = useState(prefillPhone);
+  const [firebaseToken, setFirebaseToken] = useState(prefillToken);
 
   // Step 3: Profile
   const [ownerName, setOwnerName]       = useState('');
@@ -82,12 +83,12 @@ export const OnboardingProvider = ({ children, initialStep = 1 }) => {
 
   // ── Navigation ────────────────────────────────────────────────
   const nextStep = () => setStep(s => Math.min(s + 1, TOTAL_STEPS));
-  const prevStep = () => setStep(s => Math.max(s - 1, 1));
+  const prevStep = () => setStep(s => Math.max(s - 1, minStep));
   const goToStep = (n) => setStep(n);
 
   return (
     <OnboardingContext.Provider value={{
-      step, nextStep, prevStep, goToStep,
+      step, nextStep, prevStep, goToStep, minStep,
 
       // Auth
       phone, setPhone,
