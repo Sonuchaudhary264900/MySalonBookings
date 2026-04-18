@@ -1834,6 +1834,21 @@ router.get("/admin/auth/me", authenticateAdmin, asyncHandler(adminAuthController
 
 router.get("/admin/dashboard", authenticateAdmin, asyncHandler(adminManagementController.getDashboardStats));
 router.get("/admin/owners", authenticateAdmin, asyncHandler(adminManagementController.getAllOwners));
+
+router.get("/admin/diagnose-phone/:phone", authenticateAdmin, asyncHandler(async (req, res) => {
+  const Owner = require("../models/Owner");
+  const raw = req.params.phone;
+  const digits = raw.replace(/\D/g, '');
+  const tenDigit = digits.length >= 10 ? digits.slice(-10) : digits;
+
+  const owner = await Owner.findOne({ phone: { $regex: tenDigit + '$' } }).select('_id phone email name businessId');
+  const business = await Business.findOne({ phone: { $regex: tenDigit + '$' } }).select('_id phone name ownerId');
+  const ownerViaBusiness = business?.ownerId
+    ? await Owner.findById(business.ownerId).select('_id phone email name')
+    : null;
+
+  res.json({ success: true, data: { input: raw, tenDigit, owner, business, ownerViaBusiness } });
+}));
 router.get("/admin/salons/all", authenticateAdmin, asyncHandler(adminManagementController.getAllSalons));
 router.get("/admin/salons/filter-options", authenticateAdmin, asyncHandler(adminManagementController.getFilterOptions));
 router.get("/admin/salons/:salonId/detail", authenticateAdmin, asyncHandler(adminManagementController.getSalonDetail));

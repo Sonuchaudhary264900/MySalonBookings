@@ -989,11 +989,26 @@ exports.firebaseLogin = async (req, res) => {
     console.log(`[owner firebaseLogin] firebase phone: "${rawPhone}", tenDigit: "${tenDigit}"`);
 
     // Match by last 10 digits — covers +91XXXXXXXXXX, 91XXXXXXXXXX, XXXXXXXXXX, etc.
-    const owner = await Owner.findOne({
+    let owner = await Owner.findOne({
       phone: { $regex: tenDigit + '$' },
     }).select('+isBanned');
 
     console.log(`[owner firebaseLogin] owner found: ${owner ? `${owner._id} (phone: ${owner.phone})` : 'null'}`);
+
+    // Fallback: business contact phone may differ from owner's personal phone.
+    // Look up Business by phone, then resolve Owner via Business.ownerId.
+    if (!owner) {
+      const Business = require('../../models/Business');
+      const business = await Business.findOne({
+        phone: { $regex: tenDigit + '$' },
+      }).select('ownerId phone name');
+      console.log(`[owner firebaseLogin] fallback business: ${business ? `${business._id} (phone: ${business.phone}, ownerId: ${business.ownerId})` : 'null'}`);
+
+      if (business?.ownerId) {
+        owner = await Owner.findById(business.ownerId).select('+isBanned');
+        console.log(`[owner firebaseLogin] fallback owner: ${owner ? `${owner._id} (phone: ${owner.phone})` : 'null — orphan business'}`);
+      }
+    }
 
     if (!owner) {
       return res.status(404).json(
