@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
-import { Eye, EyeOff, ArrowRight, User, Mail, Lock } from 'lucide-react';
+import { ArrowRight, User, Mail } from 'lucide-react';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import { useAuth } from '../../../hooks/useAuth';
 import { useTheme } from '../../../context/ThemeContext';
@@ -22,23 +22,6 @@ const S3_CSS = `
   .s3-btn:active:not(:disabled){transform:scale(0.97);}
 `;
 
-const STRENGTH_LEVELS = [
-  { label: 'Very Weak', color: '#ef4444', copy: 'Keep going...' },
-  { label: 'Weak',      color: '#f97316', copy: 'Getting better!' },
-  { label: 'Fair',      color: '#eab308', copy: 'Nice!' },
-  { label: 'Strong',    color: '#22c55e', copy: 'Strong password!' },
-  { label: 'Very Strong', color: '#10b981', copy: 'Unbreakable 🔥' },
-];
-
-function getStrength(pw) {
-  let score = 0;
-  if (pw.length >= 8)  score++;
-  if (pw.length >= 12) score++;
-  if (/[A-Z]/.test(pw)) score++;
-  if (/[0-9]/.test(pw)) score++;
-  if (/[^A-Za-z0-9]/.test(pw)) score++;
-  return Math.min(4, Math.max(0, score - 1 < 0 ? 0 : score - 1));
-}
 
 function InputField({ label, icon: Icon, error, children, hint }) {
   const { isDark } = useTheme();
@@ -62,9 +45,7 @@ export default function Step3_ProfileSetup() {
   const { register } = useAuth();
   const { isDark } = useTheme();
 
-  const [form, setForm]           = useState({ name: data.name, email: data.email, password: data.password, confirm: '', gender: data.gender, referral: data.referralCode });
-  const [showPw, setShowPw]       = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [form, setForm]           = useState({ name: data.name || '', email: data.email || '', gender: data.gender || '', referral: data.referralCode || '' });
   const [errors, setErrors]       = useState({});
   const [loading, setLoading]     = useState(false);
   const [referralOpen, setReferralOpen] = useState(false);
@@ -73,15 +54,10 @@ export default function Step3_ProfileSetup() {
 
   const patchForm = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  const pwStrength = form.password.length > 0 ? getStrength(form.password) : -1;
-  const pwsMatch   = form.password && form.confirm && form.password === form.confirm;
-
   const validate = () => {
     const e = {};
     if (!form.name.trim() || form.name.trim().length < 2) e.name = 'Name must be at least 2 characters';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Enter a valid email address';
-    if (form.password.length < 8) e.password = 'Password must be at least 8 characters';
-    if (form.password !== form.confirm) e.confirm = 'Passwords do not match';
     if (!form.gender) e.gender = 'Please select your gender';
     if (!agreed) e.terms = 'Please accept the Terms & Conditions';
     setErrors(e);
@@ -92,8 +68,8 @@ export default function Step3_ProfileSetup() {
     if (!validate() || loading) return;
     setLoading(true);
     try {
-      update({ name: form.name, email: form.email, password: form.password, gender: form.gender, referralCode: form.referral });
-      await register(data.firebaseToken, form.name.trim(), form.email.trim().toLowerCase(), form.password, form.gender);
+      update({ name: form.name, email: form.email, gender: form.gender, referralCode: form.referral });
+      await register(data.firebaseToken, form.name.trim(), form.email.trim().toLowerCase(), null, form.gender);
 
       // Apply referral code if provided (best-effort, non-blocking)
       if (form.referral.trim()) {
@@ -165,43 +141,6 @@ export default function Step3_ProfileSetup() {
               style={inpStyle(errors.email)} />
             {form.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email) && !errors.email && (
               <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: '#10b981', fontSize: 16 }}>✓</span>
-            )}
-          </InputField>
-
-          {/* Password */}
-          <InputField label="Password *" icon={Lock} error={errors.password}>
-            <input className="s3-inp" type={showPw ? 'text' : 'password'} placeholder="Min. 8 characters"
-              value={form.password} onChange={e => patchForm('password', e.target.value)}
-              style={{ ...inpStyle(errors.password), paddingRight: 44 }} />
-            <button onClick={() => setShowPw(p => !p)} tabIndex={-1} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: sub, padding: 4 }}>
-              {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
-          </InputField>
-
-          {/* Password strength */}
-          {pwStrength >= 0 && (
-            <div>
-              <div style={{ display: 'flex', gap: 3 }}>
-                {STRENGTH_LEVELS.map((l, i) => (
-                  <div key={i} style={{ flex: 1, height: 4, borderRadius: 99, background: i <= pwStrength ? l.color : isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb', transition: 'background 0.3s' }} />
-                ))}
-              </div>
-              <p style={{ fontSize: 11, color: STRENGTH_LEVELS[pwStrength].color, marginTop: 5, fontWeight: 600 }}>
-                {STRENGTH_LEVELS[pwStrength].copy}
-              </p>
-            </div>
-          )}
-
-          {/* Confirm password */}
-          <InputField label="Confirm Password *" icon={Lock} error={errors.confirm}>
-            <input className="s3-inp" type={showConfirm ? 'text' : 'password'} placeholder="Repeat your password"
-              value={form.confirm} onChange={e => patchForm('confirm', e.target.value)}
-              style={{ ...inpStyle(errors.confirm), paddingRight: 44 }} />
-            <button onClick={() => setShowConfirm(p => !p)} tabIndex={-1} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: sub, padding: 4 }}>
-              {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
-            {pwsMatch && (
-              <span style={{ position: 'absolute', right: 40, top: '50%', transform: 'translateY(-50%)', color: '#10b981', fontSize: 16 }}>✓</span>
             )}
           </InputField>
 

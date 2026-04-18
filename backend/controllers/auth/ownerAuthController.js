@@ -713,7 +713,16 @@ exports.firebaseRegister = async (req, res) => {
 
     // Verify Firebase token and extract phone number
     const { verifyFirebaseToken } = require('../../config/firebaseAdmin');
-    const firebaseUser = await verifyFirebaseToken(firebaseToken);
+    let firebaseUser;
+    try {
+      firebaseUser = await verifyFirebaseToken(firebaseToken);
+    } catch (err) {
+      const msg = err.message || '';
+      if (msg.includes('TOKEN_EXPIRED')) {
+        return res.status(401).json(formatErrorResponse('OTP session expired. Please resend the code and try again.', 401));
+      }
+      return res.status(401).json(formatErrorResponse('Invalid or expired Firebase token. Please resend the OTP.', 401));
+    }
     const phone = firebaseUser.phone;
     const regDigits = phone.replace(/\D/g, '');
     const regTen = regDigits.length >= 10 ? regDigits.slice(-10) : regDigits;
