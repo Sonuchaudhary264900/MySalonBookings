@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useMemo, useEffect, useRef } from "react";
 import {
-  Heart, Clock, CheckCircle, Scissors, MapPin, Star,
+  Heart, CheckCircle, Scissors, MapPin, Star,
   Megaphone, TrendingUp, Trophy, User, Users, Home as HomeIcon,
   Tag, Baby,
 } from "lucide-react";
@@ -58,6 +58,12 @@ function getOpensAt(workingHours) {
   if (!h || h.isClosed || !h.open) return null;
   return h.open;
 }
+function to12h(hhmm) {
+  const [h, m] = hhmm.split(":").map(Number);
+  const ampm = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 || 12;
+  return `${h12}:${String(m).padStart(2,"0")} ${ampm}`;
+}
 function getNextSlot(workingHours, intervalMins = 30) {
   if (!workingHours) return null;
   const now = new Date();
@@ -81,9 +87,10 @@ function getNextSlot(workingHours, intervalMins = 30) {
     } else { slotM = openM; }
     const hh = String(Math.floor(slotM / 60)).padStart(2, "0");
     const mm = String(slotM % 60).padStart(2, "0");
-    if (i === 0) return `${hh}:${mm}`;
-    if (i === 1) return `Tomorrow ${hh}:${mm}`;
-    return `${DAYS[dayIdx].charAt(0).toUpperCase() + DAYS[dayIdx].slice(1, 3)} ${hh}:${mm}`;
+    const t = to12h(`${hh}:${mm}`);
+    if (i === 0) return t;
+    if (i === 1) return `Tomorrow ${t}`;
+    return `${DAYS[dayIdx].charAt(0).toUpperCase() + DAYS[dayIdx].slice(1, 3)} ${t}`;
   }
   return null;
 }
@@ -118,10 +125,9 @@ function SalonCard({ salon, userCoords }) {
     return formatDistance(km);
   }, [userCoords, salon.location]);
 
-  const openStatus  = useMemo(() => isOpenNow(salon.workingHours),     [salon.workingHours]);
-  const todayHours  = useMemo(() => getTodayHours(salon.workingHours), [salon.workingHours]);
-  const opensAt     = useMemo(() => getOpensAt(salon.workingHours),    [salon.workingHours]);
-  const nextSlot    = useMemo(() => getNextSlot(salon.workingHours),   [salon.workingHours]);
+  const openStatus  = useMemo(() => isOpenNow(salon.workingHours), [salon.workingHours]);
+  const opensAt     = useMemo(() => getOpensAt(salon.workingHours), [salon.workingHours]);
+  const nextSlot    = useMemo(() => getNextSlot(salon.workingHours), [salon.workingHours]);
 
   const handleFavorite = async (e) => {
     e.preventDefault(); e.stopPropagation();
@@ -203,12 +209,6 @@ function SalonCard({ salon, userCoords }) {
 
           {/* Top-left: badges */}
           <div className={`absolute left-2.5 flex flex-wrap gap-1.5 ${salon.isPromoted ? "top-8" : "top-2.5"}`}>
-            {catLabel.toLowerCase() !== "salon" && (
-              <span className="text-[10px] font-bold px-2.5 py-1 rounded-full capitalize text-white"
-                style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.12)" }}>
-                {catLabel}
-              </span>
-            )}
             {salon.isApproved && (
               <span className="flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full text-white"
                 style={{ background: "rgba(16,185,129,0.92)", backdropFilter: "blur(8px)", boxShadow: "0 0 14px rgba(16,185,129,0.55)", border: "1.5px solid rgba(255,255,255,0.2)" }}>
@@ -247,23 +247,32 @@ function SalonCard({ salon, userCoords }) {
             />
           </button>
 
-          {/* Bottom-left: Open/Closed */}
-          <div className="absolute bottom-2.5 left-2.5">
-            {openStatus !== null && (
-              <span className="flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full text-white"
-                style={{
-                  background: openStatus ? "rgba(16,185,129,0.9)" : "rgba(239,68,68,0.72)",
-                  backdropFilter: "blur(4px)",
-                  boxShadow: openStatus ? "0 0 10px rgba(16,185,129,0.4)" : "none",
-                }}>
-                <span className="w-1.5 h-1.5 rounded-full bg-white inline-block" />
-                {openStatus ? "Open" : opensAt ? `Opens ${opensAt}` : "Closed"}
-              </span>
-            )}
-          </div>
-
-          {/* Bottom-right: Rating + Distance */}
-          <div className="absolute bottom-2.5 right-2.5 flex flex-col items-end gap-1">
+          {/* Bottom row: offer (left) · open/closed · rating · distance (right) */}
+          <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-end justify-between gap-2">
+            {/* Left: offer pill */}
+            <div className="flex flex-col items-start gap-1">
+              {offerLabel && (
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full"
+                  style={{ background: "rgba(5,150,105,0.82)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.22)", boxShadow: "0 2px 10px rgba(5,150,105,0.38)" }}>
+                  <Tag className="w-2.5 h-2.5 text-white" />
+                  <span className="text-[10px] font-bold text-white">{offerLabel}</span>
+                  <span style={{ fontSize:9, fontWeight:800, color:"rgba(255,255,255,0.8)", background:"rgba(255,255,255,0.15)", padding:"1px 5px", borderRadius:99 }}>{salon.topOffer.code}</span>
+                </div>
+              )}
+              {openStatus !== null && (
+                <span className="flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full text-white"
+                  style={{
+                    background: openStatus ? "rgba(16,185,129,0.9)" : "rgba(239,68,68,0.72)",
+                    backdropFilter: "blur(4px)",
+                    boxShadow: openStatus ? "0 0 10px rgba(16,185,129,0.4)" : "none",
+                  }}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-white inline-block" />
+                  {openStatus ? "Open" : opensAt ? `Opens ${opensAt}` : "Closed"}
+                </span>
+              )}
+            </div>
+            {/* Right: rating + distance */}
+            <div className="flex flex-col items-end gap-1">
             {rating > 0 && (
               <span className="flex items-center gap-1 text-[11px] font-bold text-white px-2.5 py-1 rounded-full"
                 style={{ background: "rgba(0,0,0,0.56)", backdropFilter: "blur(4px)", border: "1px solid rgba(255,255,255,0.1)" }}>
@@ -278,6 +287,7 @@ function SalonCard({ salon, userCoords }) {
                 <MapPin className="w-3 h-3" /> {distance}
               </span>
             )}
+            </div>
           </div>
 
           {/* Hover overlay */}
@@ -297,54 +307,37 @@ function SalonCard({ salon, userCoords }) {
             {salon.name}
           </h2>
 
-          {/* Stars + rating + reviews */}
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <div className="flex items-center gap-0.5">
-              {[1,2,3,4,5].map(i => (
-                <Star key={i} className="w-2.5 h-2.5"
-                  style={{
-                    color: "#f59e0b",
-                    fill: rating > 0 && i <= Math.floor(rating) ? "#f59e0b"
-                      : rating > 0 && i === Math.ceil(rating) && rating % 1 >= 0.5 ? "#f59e0b"
-                      : "none",
-                    opacity: rating === 0 || i > Math.ceil(rating) ? 0.25 : 1,
-                  }}
-                />
-              ))}
-            </div>
-            <span className="text-xs font-bold" style={{ color: "var(--t-text)" }}>
-              {rating > 0 ? rating.toFixed(1) : "—"}
-            </span>
-            {reviewCount > 0
-              ? <span className="text-[11px]" style={{ color: "var(--t-text-3)" }}>({reviewCount.toLocaleString()})</span>
-              : <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 99, background: 'rgba(99,102,241,0.1)', color: 'var(--t-accent)', border: '1px solid rgba(99,102,241,0.2)' }}>New</span>
-            }
-          </div>
-
-          {/* Address */}
-          <p className="text-xs flex items-center gap-1 mb-1" style={{ color: "var(--t-text-2)", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
-            <MapPin className="w-3 h-3 shrink-0" style={{ color: "rgba(99,102,241,0.7)" }} />
-            {locality ? [locality, salon.city].filter(Boolean).join(', ') : address}
-          </p>
-          {todayHours && (
-            <p className="text-xs flex items-center gap-1 mb-2" style={{ color: "var(--t-text-3)" }}>
-              <Clock className="w-3 h-3 shrink-0" />
-              {todayHours}
-            </p>
-          )}
-
-          {/* Next slot */}
-          {nextSlot && (
-            <div className="flex items-center gap-1.5 mb-2">
-              <span className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full"
-                style={{ background: openStatus ? "rgba(99,102,241,0.1)" : "rgba(99,102,241,0.07)", border: "1px solid rgba(99,102,241,0.18)", color: "var(--t-accent)" }}>
-                <Clock className="w-3 h-3" />
-                Next: {nextSlot}
+          {/* Chips row 1: Locality · Next slot · Gender */}
+          <div className="flex items-center gap-1.5 flex-wrap mb-2">
+            {locality && (
+              <span className="flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                style={{ background: "var(--t-input-bg)", border: "1px solid var(--t-border)", color: "var(--t-text-2)" }}>
+                <MapPin className="w-3 h-3" style={{ color: "rgba(99,102,241,0.7)" }} />
+                {locality}
               </span>
-            </div>
-          )}
-
-          {/* Tags row */}
+            )}
+            {nextSlot && (
+              <span className="flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                style={{ background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.18)", color: "var(--t-accent)" }}>
+                Next {nextSlot}
+              </span>
+            )}
+            {salon.servedGender && (
+              <span className="flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                style={{
+                  background: salon.servedGender === "male" ? "rgba(59,130,246,0.12)" : salon.servedGender === "female" ? "rgba(236,72,153,0.12)" : "rgba(139,92,246,0.12)",
+                  color:      salon.servedGender === "male" ? "#60a5fa" : salon.servedGender === "female" ? "#f472b6" : "#c4b5fd",
+                  border:    `1px solid ${salon.servedGender === "male" ? "rgba(59,130,246,0.2)" : salon.servedGender === "female" ? "rgba(236,72,153,0.2)" : "rgba(139,92,246,0.2)"}`,
+                }}>
+                {salon.servedGender === "male"
+                  ? <><User className="w-3 h-3" /> Men</>
+                  : salon.servedGender === "female"
+                    ? <><User className="w-3 h-3" /> Women</>
+                    : <><Users className="w-3 h-3" /> Unisex</>}
+              </span>
+            )}
+          </div>
+          {/* Chips row 2: Bookings · Kids · At-Home · Min price */}
           <div className="flex items-center justify-between gap-2 mb-2.5">
             <div className="flex items-center gap-1.5 flex-wrap flex-1">
               {totalBookings >= 10 && (
@@ -352,20 +345,6 @@ function SalonCard({ salon, userCoords }) {
                   style={{ background: "rgba(239,68,68,0.09)", color: "#f87171", border: "1px solid rgba(239,68,68,0.18)" }}>
                   <TrendingUp className="w-3 h-3" />
                   {totalBookings >= 1000 ? `${(totalBookings/1000).toFixed(1)}k` : `${totalBookings}+`} booked
-                </span>
-              )}
-              {salon.servedGender && (
-                <span className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                  style={{
-                    background: salon.servedGender === "male" ? "rgba(59,130,246,0.12)" : salon.servedGender === "female" ? "rgba(236,72,153,0.12)" : "rgba(139,92,246,0.12)",
-                    color:      salon.servedGender === "male" ? "#60a5fa" : salon.servedGender === "female" ? "#f472b6" : "#c4b5fd",
-                    border:    `1px solid ${salon.servedGender === "male" ? "rgba(59,130,246,0.2)" : salon.servedGender === "female" ? "rgba(236,72,153,0.2)" : "rgba(139,92,246,0.2)"}`,
-                  }}>
-                  {salon.servedGender === "male"
-                    ? <><User className="w-3 h-3" /> Men</>
-                    : salon.servedGender === "female"
-                      ? <><User className="w-3 h-3" /> Women</>
-                      : <><Users className="w-3 h-3" /> Unisex</>}
                 </span>
               )}
               {salon.kidsHaircut && (
@@ -383,23 +362,34 @@ function SalonCard({ salon, userCoords }) {
             </div>
             {salon.minPrice && (
               <span className="text-xs font-bold shrink-0" style={{ color: "var(--t-accent)" }}>
-                from \u20b9{salon.minPrice}
+                from ₹{salon.minPrice}
               </span>
             )}
           </div>
 
-          {/* Offer tag */}
-          {offerLabel && (
-            <div className="flex items-center gap-2 mb-2.5 px-3 py-1.5 rounded-xl"
-              style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.22)" }}>
-              <Tag className="w-3.5 h-3.5 shrink-0" style={{ color: "#059669" }} />
-              <span className="text-[11px] font-bold flex-1" style={{ color: "#059669" }}>{offerLabel}</span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                style={{ background: "rgba(5,150,105,0.15)", color: "#059669", border: "1px solid rgba(5,150,105,0.25)" }}>
-                {salon.topOffer.code}
-              </span>
-            </div>
-          )}
+          {/* Service categories */}
+          {salon.offeredCategoryNames?.length > 0 && (() => {
+            const cats = salon.offeredCategoryNames;
+            const shown = cats.slice(0, 3);
+            const extra = cats.length - shown.length;
+            return (
+              <div className="flex items-center gap-1.5 flex-wrap mb-2.5">
+                {shown.map(cat => (
+                  <span key={cat} className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                    style={{ background: "var(--t-input-bg)", border: "1px solid var(--t-border)", color: "var(--t-text-3)" }}>
+                    {cat}
+                  </span>
+                ))}
+                {extra > 0 && (
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                    style={{ background: "var(--t-input-bg)", border: "1px solid var(--t-border)", color: "var(--t-text-3)" }}>
+                    +{extra} more
+                  </span>
+                )}
+              </div>
+            );
+          })()}
+
 
           {/* Book CTA */}
           <div className="w-full text-white text-sm font-bold py-2 rounded-xl text-center flex items-center justify-center gap-1.5"
@@ -409,7 +399,7 @@ function SalonCard({ salon, userCoords }) {
               transition: "box-shadow 0.25s ease",
               fontSize: 13,
             }}>
-            Book Now
+            Book Now · Instant
             <span style={{ display:"inline-block", transition:"transform 0.2s ease", transform: hovered ? "translateX(4px)" : "translateX(0)" }}>
               →
             </span>
