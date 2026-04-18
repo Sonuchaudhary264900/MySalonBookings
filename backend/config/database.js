@@ -52,6 +52,78 @@ const connectDB = async () => {
       }
     }
 
+    // ── One-time migration: drop unused fields from customers ──────────────
+    try {
+      const customers = conn.connection.db.collection('customers');
+      const sample = await customers.findOne({ $or: [{ alternatePhone: { $exists: true } }, { preferredBarbers: { $exists: true } }] });
+      if (sample) {
+        const { modifiedCount } = await customers.updateMany({}, { $unset: { alternatePhone: '', preferredBarbers: '' } });
+        console.log(`✅ Migration: removed alternatePhone/preferredBarbers from ${modifiedCount} customer(s)`);
+      }
+    } catch (migErr) {
+      console.warn('⚠️  Migration (customers unused fields): ' + migErr.message);
+    }
+
+    // ── One-time migration: drop unused referral fields from owners ─────────
+    try {
+      const owners = conn.connection.db.collection('owners');
+      const sample = await owners.findOne({ $or: [{ referredBy: { $exists: true } }, { referralCode: { $exists: true } }, { referralAppliedAt: { $exists: true } }] });
+      if (sample) {
+        const { modifiedCount } = await owners.updateMany({}, { $unset: { referredBy: '', referralCode: '', referralAppliedAt: '' } });
+        console.log(`✅ Migration: removed referral fields from ${modifiedCount} owner(s)`);
+      }
+    } catch (migErr) {
+      console.warn('⚠️  Migration (owners referral fields): ' + migErr.message);
+    }
+
+    // ── One-time migration: drop ctaPhoto from salons ───────────────────────
+    try {
+      const salons = conn.connection.db.collection('salons');
+      const sample = await salons.findOne({ ctaPhoto: { $exists: true } });
+      if (sample) {
+        const { modifiedCount } = await salons.updateMany({}, { $unset: { ctaPhoto: '' } });
+        console.log(`✅ Migration: removed ctaPhoto from ${modifiedCount} salon(s)`);
+      }
+    } catch (migErr) {
+      console.warn('⚠️  Migration (salons ctaPhoto): ' + migErr.message);
+    }
+
+    // ── One-time migration: bookings — drop duplicate top-level service fields
+    //    and promote flat reminder booleans into remindersSent sub-object ─────
+    try {
+      const bookings = conn.connection.db.collection('bookings');
+
+      // Drop legacy single-service fields (duplicated in services[])
+      const legacySample = await bookings.findOne({ $or: [{ serviceId: { $exists: true } }, { serviceName: { $exists: true } }, { servicePrice: { $exists: true } }] });
+      if (legacySample) {
+        const { modifiedCount } = await bookings.updateMany({}, { $unset: { serviceId: '', serviceName: '', servicePrice: '' } });
+        console.log(`✅ Migration: removed legacy service fields from ${modifiedCount} booking(s)`);
+      }
+
+      // Migrate flat reminder booleans → remindersSent sub-object
+      const reminderSample = await bookings.findOne({ tenMinReminderSent: { $exists: true } });
+      if (reminderSample) {
+        const { modifiedCount } = await bookings.updateMany(
+          { tenMinReminderSent: { $exists: true } },
+          [
+            {
+              $set: {
+                remindersSent: {
+                  tenMin:    { $ifNull: ['$tenMinReminderSent',    false] },
+                  thirtyMin: { $ifNull: ['$thirtyMinReminderSent', false] },
+                  oneHour:   { $ifNull: ['$oneHourReminderSent',   false] },
+                },
+              },
+            },
+            { $unset: ['tenMinReminderSent', 'thirtyMinReminderSent', 'oneHourReminderSent'] },
+          ]
+        );
+        console.log(`✅ Migration: consolidated remindersSent on ${modifiedCount} booking(s)`);
+      }
+    } catch (migErr) {
+      console.warn('⚠️  Migration (bookings cleanup): ' + migErr.message);
+    }
+
     // Connection events
     mongoose.connection.on("connected", () => {
       console.log("📡 Mongoose connected to DB");
