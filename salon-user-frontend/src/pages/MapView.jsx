@@ -1143,7 +1143,7 @@ export default function MapView() {
             <SalonMarkersLayer
               salons={salons}
               selectedId={selected?._id}
-              onSelect={(s) => { setRouteData(null); setSelected(s); setModalId(null); }}
+              onSelect={(s) => { setRouteData(null); setSelected(s); setModalId(s._id); }}
             />
           </MapContainer>
         </div>
@@ -1165,21 +1165,7 @@ export default function MapView() {
         )}
       </div>
 
-      {/* Salon bottom-sheet (peek → mid → full) with in-map directions */}
-      {selected && !modalId && !routeData && (
-        <SalonCard
-          key={selected._id}
-          salon={selected}
-          userCoords={coords}
-          isDark={isDark}
-          navigate={navigate}
-          onClose={() => setSelected(null)}
-          onDirections={() => fetchRoute(selected)}
-          onSnapChange={(snap) => { if (snap === "full") { setModalId(selected._id); } }}
-        />
-      )}
-
-      {/* Full SalonDetails sheet (opened when SalonCard reaches full snap) */}
+      {/* Full SalonDetails sheet */}
       {modalId && (
         <SalonSheet
           key={modalId}
