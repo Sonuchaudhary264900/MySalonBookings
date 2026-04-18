@@ -1066,7 +1066,7 @@ exports.firebaseLogin = async (req, res) => {
           { phone: { $in: phoneVariants } },
           { phone: { $regex: tenDigit + '$' } },
         ],
-      }).select('_id name email phone ownerId');
+      }).select('_id name email phone ownerId createdAt');
 
       if (business) {
         console.log(`[owner firebaseLogin] business found by phone: ${business._id} — creating owner`);
@@ -1083,6 +1083,7 @@ exports.firebaseLogin = async (req, res) => {
               firebaseUid,
               businessId: business._id,
               status: 'salon_registered',
+              subscription: { trialStartDate: business.createdAt },
             });
             // Link the business back to this owner
             await Business.updateOne({ _id: business._id }, { ownerId: owner._id });
