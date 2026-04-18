@@ -718,9 +718,11 @@ exports.firebaseRegister = async (req, res) => {
     const regDigits = phone.replace(/\D/g, '');
     const regTen = regDigits.length >= 10 ? regDigits.slice(-10) : regDigits;
 
-    // Check if owner already exists (robust: match last 10 digits OR email)
+    // Check if owner already exists (robust: match exact variants OR last 10 digits OR email)
+    const regVariants = [phone, `+91${regTen}`, `91${regTen}`, regTen];
     const existingOwner = await Owner.findOne({
       $or: [
+        { phone: { $in: regVariants } },
         { phone: { $regex: regTen + '$' } },
         { email: email.toLowerCase().trim() },
       ],
@@ -982,11 +984,22 @@ exports.firebaseLogin = async (req, res) => {
     const digits = rawPhone.replace(/\D/g, ''); // 919876543210
     const tenDigit = digits.length >= 10 ? digits.slice(-10) : digits;
 
-    console.log(`[owner firebaseLogin] firebase phone: "${rawPhone}", tenDigit: "${tenDigit}"`);
+    // Build all plausible phone formats for this number
+    const phoneVariants = [
+      rawPhone,
+      `+91${tenDigit}`,
+      `91${tenDigit}`,
+      tenDigit,
+    ];
 
-    // Match by last 10 digits — covers +91XXXXXXXXXX, 91XXXXXXXXXX, XXXXXXXXXX, etc.
+    console.log(`[owner firebaseLogin] firebase phone: "${rawPhone}", tenDigit: "${tenDigit}", variants: ${JSON.stringify(phoneVariants)}`);
+
+    // Try exact match on all variants first, then regex fallback
     let owner = await Owner.findOne({
-      phone: { $regex: tenDigit + '$' },
+      $or: [
+        { phone: { $in: phoneVariants } },
+        { phone: { $regex: tenDigit + '$' } },
+      ],
     }).select('+isBanned');
 
     console.log(`[owner firebaseLogin] owner found: ${owner ? `${owner._id} (phone: ${owner.phone})` : 'null'}`);
@@ -996,7 +1009,10 @@ exports.firebaseLogin = async (req, res) => {
     if (!owner) {
       const Business = require('../../models/Business');
       const business = await Business.findOne({
-        phone: { $regex: tenDigit + '$' },
+        $or: [
+          { phone: { $in: phoneVariants } },
+          { phone: { $regex: tenDigit + '$' } },
+        ],
       }).select('ownerId phone name');
       console.log(`[owner firebaseLogin] fallback business: ${business ? `${business._id} (phone: ${business.phone}, ownerId: ${business.ownerId})` : 'null'}`);
 
