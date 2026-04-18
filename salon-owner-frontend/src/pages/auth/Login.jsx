@@ -89,6 +89,22 @@ const Login = () => {
     return () => clearInterval(id);
   }, [otpTimer]);
 
+  // Pre-render reCAPTCHA on mount so it's ready before the user clicks Send OTP
+  useEffect(() => {
+    const container = document.createElement('div');
+    container.id = 'lgn-recaptcha';
+    document.body.appendChild(container);
+    try {
+      recaptchaRef.current = new RecaptchaVerifier(auth, 'lgn-recaptcha', { size: 'invisible' });
+      recaptchaRef.current.render();
+    } catch {}
+    return () => {
+      try { recaptchaRef.current?.clear(); } catch {}
+      recaptchaRef.current = null;
+      document.getElementById('lgn-recaptcha')?.remove();
+    };
+  }, []);
+
   const normalizePhone = (p) => {
     const d = p.replace(/\D/g, '');
     if (d.length === 10) return `+91${d}`;
@@ -97,9 +113,9 @@ const Login = () => {
   };
 
   const getRecaptchaVerifier = () => {
-    try { recaptchaRef.current?.clear(); } catch {}
-    recaptchaRef.current = null;
-    document.getElementById('lgn-recaptcha')?.remove();
+    if (recaptchaRef.current) return recaptchaRef.current;
+    // Recreate if cleared after a previous failure
+    try { document.getElementById('lgn-recaptcha')?.remove(); } catch {}
     const container = document.createElement('div');
     container.id = 'lgn-recaptcha';
     document.body.appendChild(container);
@@ -121,7 +137,9 @@ const Login = () => {
       toast.success('OTP sent!');
     } catch (err) {
       setError(err.message || 'Failed to send OTP.');
-      if (recaptchaRef.current) { recaptchaRef.current.clear(); recaptchaRef.current = null; }
+      // Clear so getRecaptchaVerifier recreates fresh on next attempt
+      try { recaptchaRef.current?.clear(); } catch {}
+      recaptchaRef.current = null;
     } finally { setLoading(false); }
   };
 
