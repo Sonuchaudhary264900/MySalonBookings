@@ -35,6 +35,23 @@ const connectDB = async () => {
       console.warn('⚠️  Migration (coupon index): ' + migErr.message);
     }
 
+    // ── One-time migration: drop TTL index on refreshTokens.createdAt ──
+    // expires: 7d on a subdocument array field caused MongoDB to delete entire
+    // Owner/Customer documents 7 days after first login. Must be dropped from Atlas.
+    for (const collName of ['owners', 'customers']) {
+      try {
+        const coll = conn.connection.db.collection(collName);
+        const indexes = await coll.indexes();
+        const ttlIndex = indexes.find(i => i.name === 'refreshTokens.createdAt_1');
+        if (ttlIndex) {
+          await coll.dropIndex('refreshTokens.createdAt_1');
+          console.log(`✅ Migration: dropped TTL index on ${collName}.refreshTokens.createdAt`);
+        }
+      } catch (migErr) {
+        console.warn(`⚠️  Migration (${collName} TTL index): ` + migErr.message);
+      }
+    }
+
     // Connection events
     mongoose.connection.on("connected", () => {
       console.log("📡 Mongoose connected to DB");
