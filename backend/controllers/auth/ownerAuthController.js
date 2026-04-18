@@ -718,14 +718,19 @@ exports.firebaseRegister = async (req, res) => {
     const { verifyFirebaseToken } = require('../../config/firebaseAdmin');
     const firebaseUser = await verifyFirebaseToken(firebaseToken);
     const phone = firebaseUser.phone;
+    const regDigits = phone.replace(/\D/g, '');
+    const regTen = regDigits.length >= 10 ? regDigits.slice(-10) : regDigits;
 
-    // Check if owner already exists
+    // Check if owner already exists (robust: match last 10 digits OR email)
     const existingOwner = await Owner.findOne({
-      $or: [{ phone }, { email: email.toLowerCase().trim() }],
+      $or: [
+        { phone: { $regex: regTen + '$' } },
+        { email: email.toLowerCase().trim() },
+      ],
     });
     if (existingOwner) {
       // Phone is Firebase-verified — if the phone matches, auto-login
-      if (existingOwner.phone === phone) {
+      if (existingOwner.phone === phone || existingOwner.phone.replace(/\D/g,'').slice(-10) === regTen) {
         const token = jwt.sign(
           { _id: existingOwner._id, phone: existingOwner.phone, role: existingOwner.role, businessId: existingOwner.businessId },
           process.env.JWT_SECRET,
@@ -983,16 +988,12 @@ exports.firebaseLogin = async (req, res) => {
 
     console.log(`[owner firebaseLogin] firebase phone: "${rawPhone}", tenDigit: "${tenDigit}"`);
 
+    // Match by last 10 digits — covers +91XXXXXXXXXX, 91XXXXXXXXXX, XXXXXXXXXX, etc.
     const owner = await Owner.findOne({
-      $or: [
-        { phone: rawPhone },
-        { phone: `+91${tenDigit}` },
-        { phone: `91${tenDigit}` },
-        { phone: tenDigit },
-      ],
+      phone: { $regex: tenDigit + '$' },
     }).select('+isBanned');
 
-    console.log(`[owner firebaseLogin] owner found: ${owner ? owner._id : 'null'}`);
+    console.log(`[owner firebaseLogin] owner found: ${owner ? `${owner._id} (phone: ${owner.phone})` : 'null'}`);
 
     if (!owner) {
       return res.status(404).json(
