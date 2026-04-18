@@ -25,7 +25,6 @@ export default function Chat() {
     if (msgsRef.current) msgsRef.current.scrollTop = msgsRef.current.scrollHeight;
   };
 
-  // Load booking info + messages
   useEffect(() => {
     Promise.all([
       API.get("/customer/bookings"),
@@ -35,12 +34,10 @@ export default function Chat() {
       const found = Array.isArray(all) ? all.find(b => b._id === bookingId) : null;
       setBooking(found || { _id: bookingId, status: "confirmed" });
       setMessages(mRes.data.data?.messages || []);
-    }).catch(() => {
-      setBooking({ _id: bookingId, status: "confirmed" });
-    }).finally(() => setLoading(false));
+    }).catch(() => setBooking({ _id: bookingId, status: "confirmed" }))
+      .finally(() => setLoading(false));
   }, [bookingId]);
 
-  // Socket
   useEffect(() => {
     const socket = io(SOCKET_URL, { transports: ["polling", "websocket"] });
     socketRef.current = socket;
@@ -52,7 +49,8 @@ export default function Chat() {
         try { const a = new Audio("/sounds/chat_message.wav"); a.volume = 0.85; a.play().catch(() => {}); } catch {}
         if (typeof Notification !== "undefined" && Notification.permission === "granted") {
           try {
-            const n = new Notification(`💬 ${salonName}`, { body: (message.text || "").slice(0, 100), icon: "/icon.png", tag: `chat-${bookingId}`, renotify: true });
+            const sName = booking?.salonName || "Salon";
+            const n = new Notification(`💬 ${sName}`, { body: (message.text || "").slice(0, 100), icon: "/icon.png", tag: `chat-${bookingId}`, renotify: true });
             n.onclick = () => { window.focus(); n.close(); };
           } catch {}
         }
@@ -102,7 +100,6 @@ export default function Chat() {
   const handleKeyDown = e => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); e.stopPropagation(); handleSend(); }
   };
-
   const handleChange = e => {
     setText(e.target.value);
     if (isChatOpen) socketRef.current?.emit("chat-typing", { bookingId, senderRole: "customer" });
@@ -122,7 +119,6 @@ export default function Chat() {
     return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
   };
 
-  // Group by day
   const grouped = [];
   let lastDay = null;
   messages.forEach((msg, i) => {
@@ -134,43 +130,49 @@ export default function Chat() {
   return (
     <>
       <style>{`
-        .chat-page {
-          display: flex; flex-direction: column;
-          height: 100dvh; height: -webkit-fill-available;
+        .chat-fullpage {
+          position: fixed;
+          inset: 0;
+          z-index: 200;
+          display: flex;
+          flex-direction: column;
           background: var(--t-bg);
           font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
           overflow: hidden;
-          max-width: 640px;
-          margin: 0 auto;
         }
-        @keyframes chatSpin { to { transform: rotate(360deg); } }
+        @keyframes chatSpin   { to { transform: rotate(360deg); } }
         @keyframes chatBounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
       `}</style>
 
-      <div className="chat-page">
+      <div className="chat-fullpage">
 
         {/* ── Header ── */}
-        <div style={{ flexShrink: 0, background: "linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%)", padding: "0 16px 14px 8px", display: "flex", alignItems: "center", gap: 12,
-          paddingTop: "max(14px, env(safe-area-inset-top, 14px))" }}>
-          {/* Back button */}
+        <div style={{
+          flexShrink: 0,
+          background: "linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%)",
+          padding: "max(14px, env(safe-area-inset-top, 14px)) 16px 14px 8px",
+          display: "flex", alignItems: "center", gap: 12,
+        }}>
           <button
             onClick={() => navigate(-1)}
             style={{ width: 38, height: 38, borderRadius: "50%", background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#fff", flexShrink: 0 }}
           >
             <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
           </button>
-          {/* Avatar */}
           <div style={{ width: 42, height: 42, borderRadius: "50%", background: "rgba(255,255,255,0.2)", border: "2px solid rgba(255,255,255,0.35)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, fontWeight: 800, color: "#fff", flexShrink: 0 }}>
             {salonInitial}
           </div>
-          {/* Info */}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{salonName}</p>
-            {booking && (booking.serviceName || booking.appointmentTime) && (
+            <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {salonName}
+            </p>
+            {peerTyping ? (
+              <p style={{ margin: "2px 0 0", fontSize: 11, color: "rgba(255,255,255,0.85)", fontStyle: "italic" }}>typing…</p>
+            ) : booking && (booking.serviceName || booking.appointmentTime) ? (
               <p style={{ margin: "2px 0 0", fontSize: 11, color: "rgba(255,255,255,0.75)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {[booking.serviceName, booking.appointmentDate ? new Date(booking.appointmentDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : null, booking.appointmentTime].filter(Boolean).join(" · ")}
               </p>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -188,14 +190,14 @@ export default function Chat() {
           style={{ flex: 1, overflowY: "auto", padding: "12px 14px", display: "flex", flexDirection: "column", gap: 4, WebkitOverflowScrolling: "touch", minHeight: 0 }}
         >
           {loading ? (
-            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", flex: 1, padding: "40px 0" }}>
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", flex: 1 }}>
               <div style={{ width: 28, height: 28, border: "3px solid rgba(99,102,241,0.2)", borderTopColor: "#6366f1", borderRadius: "50%", animation: "chatSpin 0.8s linear infinite" }} />
             </div>
           ) : messages.length === 0 ? (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flex: 1, gap: 10, padding: "40px 0" }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flex: 1, gap: 10, textAlign: "center" }}>
               <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(99,102,241,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26 }}>💬</div>
               <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "var(--t-text-2)" }}>No messages yet</p>
-              <p style={{ margin: 0, fontSize: 12, color: "var(--t-text-3)", textAlign: "center" }}>Start the conversation with {salonName}</p>
+              <p style={{ margin: 0, fontSize: 12, color: "var(--t-text-3)" }}>Start the conversation with {salonName}</p>
             </div>
           ) : (
             grouped.map((item, idx) => {
@@ -214,7 +216,7 @@ export default function Chat() {
                     <div style={{
                       padding: "9px 13px", wordBreak: "break-word", fontSize: 14, lineHeight: 1.5,
                       borderRadius: mine ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
-                      background: mine ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "var(--t-bg-2, var(--t-input-bg))",
+                      background: mine ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "var(--t-input-bg)",
                       color: mine ? "#fff" : "var(--t-text)",
                       border: mine ? "none" : "1px solid var(--t-border)",
                       boxShadow: mine ? "0 2px 12px rgba(99,102,241,0.3)" : "0 1px 4px rgba(0,0,0,0.06)",
@@ -236,10 +238,9 @@ export default function Chat() {
             })
           )}
 
-          {/* Typing indicator */}
           {peerTyping && (
             <div style={{ display: "flex", justifyContent: "flex-start", marginTop: 4 }}>
-              <div style={{ padding: "10px 14px", borderRadius: "18px 18px 18px 4px", background: "var(--t-bg-2, var(--t-input-bg))", border: "1px solid var(--t-border)", display: "flex", alignItems: "center", gap: 4 }}>
+              <div style={{ padding: "10px 14px", borderRadius: "18px 18px 18px 4px", background: "var(--t-input-bg)", border: "1px solid var(--t-border)", display: "flex", alignItems: "center", gap: 4 }}>
                 {[0, 1, 2].map(i => (
                   <div key={i} style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--t-text-3)", animation: `chatBounce 1.2s ${i * 0.2}s infinite ease-in-out` }} />
                 ))}
@@ -250,11 +251,19 @@ export default function Chat() {
 
         {/* ── Input Bar ── */}
         {isChatOpen ? (
-          <div style={{ flexShrink: 0, borderTop: "1px solid var(--t-border)", padding: "10px 12px", paddingBottom: "calc(10px + env(safe-area-inset-bottom, 0px))", background: "var(--t-card)" }}>
+          <div style={{
+            flexShrink: 0,
+            borderTop: "1px solid var(--t-border)",
+            padding: "10px 12px",
+            paddingBottom: "calc(10px + env(safe-area-inset-bottom, 0px))",
+            background: "var(--t-card)",
+          }}>
             <div style={{
               display: "flex", alignItems: "flex-end", gap: 8,
-              background: "var(--t-input-bg)", border: `1.5px solid ${focused ? "#6366f1" : "var(--t-border)"}`,
-              borderRadius: 20, padding: "6px 6px 6px 14px", transition: "border-color 0.2s",
+              background: "var(--t-input-bg)",
+              border: `1.5px solid ${focused ? "#6366f1" : "var(--t-border)"}`,
+              borderRadius: 20, padding: "6px 6px 6px 14px",
+              transition: "border-color 0.2s",
               boxShadow: focused ? "0 0 0 3px rgba(99,102,241,0.15)" : "none",
             }}>
               <textarea
@@ -291,12 +300,20 @@ export default function Chat() {
           </div>
         ) : (
           booking && (
-            <div style={{ flexShrink: 0, padding: "14px", paddingBottom: "calc(14px + env(safe-area-inset-bottom, 0px))", borderTop: "1px solid var(--t-border)", background: "var(--t-card)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-              <span style={{ fontSize: 14 }}>🔒</span>
+            <div style={{
+              flexShrink: 0,
+              padding: "14px",
+              paddingBottom: "calc(14px + env(safe-area-inset-bottom, 0px))",
+              borderTop: "1px solid var(--t-border)",
+              background: "var(--t-card)",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            }}>
+              <span>🔒</span>
               <span style={{ fontSize: 13, color: "var(--t-text-3)" }}>Chat is closed for this booking</span>
             </div>
           )
         )}
+
       </div>
     </>
   );
