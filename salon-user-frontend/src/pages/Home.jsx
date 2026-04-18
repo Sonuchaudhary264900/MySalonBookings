@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import SalonDetails from "./SalonDetails";
 import {
-  LocateFixed, Search, X, SearchX,
+  LocateFixed, Search, X, SearchX, Map,
   Scissors, Sparkles, Droplets, User, Leaf,
   MapPin,
   Star, CheckCircle2, ArrowRight, Crown,
@@ -187,12 +187,12 @@ function isOpenNow(wh) {
 }
 
 // ── Search input ──────────────────────────────────────────────────
-function SearchInput({ value, onChange, onSearch, onFocus, onBlur, focused, onClear, onLocate, locLoading, searching, compact }) {
+function SearchInput({ value, onChange, onSearch, onFocus, onBlur, focused, onClear, onLocate, locLoading, searching, compact, onMapClick }) {
   const handleKey = e => { if (e.key === "Enter") { e.preventDefault(); onSearch?.(); } };
   return (
     <div style={{
       display: "flex", alignItems: "center",
-      gap: compact ? 10 : 12, padding: compact ? "0 14px" : "0 18px",
+      gap: compact ? 8 : 10, padding: compact ? "0 6px 0 14px" : "0 6px 0 18px",
       height: compact ? 44 : "clamp(48px,8vw,58px)", borderRadius: 999,
       background: focused ? "var(--t-card)" : "var(--t-input-bg)",
       border: focused ? "1.5px solid rgba(99,102,241,0.65)" : "1.5px solid var(--t-border)",
@@ -201,27 +201,49 @@ function SearchInput({ value, onChange, onSearch, onFocus, onBlur, focused, onCl
         : compact ? "none" : "0 4px 24px rgba(15,23,42,0.10), 0 1px 4px rgba(15,23,42,0.06)",
       transition: "all 0.22s ease",
     }}>
-      <button onClick={onSearch} style={{ display:"flex", background:"none", border:"none", cursor:value?"pointer":"default", padding:0, flexShrink:0 }}>
-        <Search style={{ width:compact?16:19, height:compact?16:19, color:focused?"var(--t-accent)":"var(--t-text-3)", transition:"color 0.2s" }} />
+      {/* Map icon — opens /map */}
+      <button onClick={onMapClick} title="Open map view"
+        style={{ display:"flex", alignItems:"center", justifyContent:"center", background:"none", border:"none", cursor:"pointer", padding:0, flexShrink:0 }}>
+        <Map style={{ width:compact?16:18, height:compact?16:18, color: focused ? "var(--t-accent)" : "var(--t-text-3)", transition:"color 0.2s" }} />
       </button>
+
+      <div style={{ width:1, height:18, background:"var(--t-border)", flexShrink:0 }} />
+
       <input
         type="text" placeholder="Search salons, services, city…" value={value}
         onChange={e => onChange(e.target.value)} onKeyDown={handleKey} onFocus={onFocus} onBlur={onBlur}
         style={{ flex:1, background:"transparent", border:"none", outline:"none", fontSize:compact?14:15.5, color:"var(--t-text)", minWidth:0, fontFamily:"inherit", fontWeight:500 }}
       />
+
       {value && !searching && (
-        <button onClick={onClear} style={{ background:"none",border:"none",cursor:"pointer",padding:2,display:"flex",opacity:0.55 }}>
+        <button onClick={onClear} style={{ background:"none",border:"none",cursor:"pointer",padding:2,display:"flex",opacity:0.55,flexShrink:0 }}>
           <X style={{ width:15,height:15,color:"var(--t-text-2)" }} />
         </button>
       )}
       {searching && <span style={{ width:15,height:15,border:"2px solid var(--t-accent)",borderTopColor:"transparent",borderRadius:"50%",display:"block",flexShrink:0,animation:"spin 0.7s linear infinite" }} />}
-      <div style={{ width:1,height:20,background:"var(--t-border)",flexShrink:0 }} />
+
+      {/* Locate */}
       <button onClick={onLocate} disabled={locLoading} title="Detect location"
-        style={{ display:"flex",alignItems:"center",gap:5,background:"none",border:"none",cursor:"pointer",color:"var(--t-accent)",fontSize:12,fontWeight:700,flexShrink:0,opacity:locLoading?0.5:1 }}>
+        style={{ display:"flex",alignItems:"center",background:"none",border:"none",cursor:"pointer",color:"var(--t-text-3)",flexShrink:0,opacity:locLoading?0.5:1,padding:"0 2px" }}>
         {locLoading
           ? <span style={{ width:14,height:14,border:"2px solid var(--t-accent)",borderTopColor:"transparent",borderRadius:"50%",display:"block",animation:"spin 0.7s linear infinite" }} />
           : <LocateFixed style={{ width:15,height:15 }} />}
-        {!compact && <span className="hidden sm:inline" style={{ fontSize:12 }}>Locate</span>}
+      </button>
+
+      {/* Search button */}
+      <button onClick={onSearch}
+        style={{
+          display:"flex", alignItems:"center", justifyContent:"center", gap:5,
+          background: value ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "var(--t-border)",
+          border:"none", borderRadius:999, cursor: value ? "pointer" : "default",
+          padding: compact ? "6px 12px" : "8px 16px",
+          color: value ? "#fff" : "var(--t-text-3)",
+          fontSize: compact ? 12 : 13, fontWeight:700,
+          flexShrink:0, transition:"all 0.2s ease",
+          boxShadow: value ? "0 2px 10px rgba(99,102,241,0.35)" : "none",
+        }}>
+        <Search style={{ width:13, height:13 }} />
+        {!compact && <span>Search</span>}
       </button>
     </div>
   );
@@ -1068,6 +1090,7 @@ export default function Home() {
                 onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
                 focused={focused} onClear={() => handleSearch("")}
                 onLocate={handleLocation} locLoading={locLoading} searching={searching}
+                onMapClick={() => navigate("/map")}
               />
 
             </div>
