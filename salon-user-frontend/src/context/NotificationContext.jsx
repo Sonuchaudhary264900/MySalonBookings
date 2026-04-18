@@ -76,22 +76,34 @@ export function NotificationProvider({ children }) {
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  // ── Poll customer bookings every 30s — detect status changes ──
+  // ── Poll customer bookings — detect status changes, backoff on errors ──
   useEffect(() => {
     const token = localStorage.getItem('customerToken');
     if (!token) return;
 
+    let timeoutId = null;
+    let failCount = 0;
+
+    const getDelay = () => {
+      if (failCount === 0) return POLL_INTERVAL;
+      return Math.min(POLL_INTERVAL * Math.pow(2, failCount), 300000); // max 5 min
+    };
+
+    const schedule = () => {
+      timeoutId = setTimeout(poll, getDelay());
+    };
+
     const poll = async () => {
       try {
         const res = await API.get('/customer/bookings');
+        failCount = 0;
         const data = res.data.data;
         const bookings = Array.isArray(data) ? data : (data?.bookings || []);
 
         if (seenStatusRef.current === null) {
-          // First run — snapshot, no notifications
           seenStatusRef.current = {};
           bookings.forEach((b) => { if (b._id) seenStatusRef.current[b._id] = b.status; });
-          return;
+          schedule(); return;
         }
 
         bookings.forEach((b) => {
@@ -105,7 +117,6 @@ export function NotificationProvider({ children }) {
 
           if (prevStatus !== currStatus) {
             seenStatusRef.current[b._id] = currStatus;
-
             if (currStatus === 'confirmed' && prevStatus === 'pending') {
               addNotification({ type: 'success', title: 'Booking Confirmed!', message: `${service} at ${salonName} is confirmed.` });
             } else if (currStatus === 'cancelled') {
@@ -117,7 +128,6 @@ export function NotificationProvider({ children }) {
             }
           }
 
-          // New booking not yet tracked
           if (prevStatus === undefined) {
             seenStatusRef.current[b._id] = currStatus;
             if (currStatus === 'confirmed') {
@@ -127,13 +137,15 @@ export function NotificationProvider({ children }) {
             }
           }
         });
-      } catch { /* silent */ }
+      } catch {
+        failCount = Math.min(failCount + 1, 4); // cap at 4 → max 8min backoff
+      }
+      schedule();
     };
 
     seenStatusRef.current = null;
     poll();
-    const interval = setInterval(poll, POLL_INTERVAL);
-    return () => clearInterval(interval);
+    return () => clearTimeout(timeoutId);
   }, [addNotification]);
 
   return (
