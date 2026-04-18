@@ -20,12 +20,16 @@ const GENDER_OPTIONS = [
   { value: 'other',  label: 'Other',  emoji: '🧑' },
 ];
 
-export default function RegisterScreen({ navigation }) {
+export default function RegisterScreen({ navigation, route }) {
   const { refreshUser } = useAuth();
   const insets = useSafeAreaInsets();
 
+  // If coming from Login after a verified-but-unregistered phone, skip steps 1 & 2
+  const prefillPhone = route?.params?.phone || '';
+  const prefillToken = route?.params?.firebaseToken || null;
+
   // Step 1 — phone
-  const [phone, setPhone]       = useState('');
+  const [phone, setPhone]       = useState(prefillPhone);
   const [phoneError, setPhoneError] = useState('');
 
   // Step 2 — OTP
@@ -34,7 +38,7 @@ export default function RegisterScreen({ navigation }) {
   const [resendTimer, setResendTimer] = useState(60);
   const otpRefs                 = useRef([]);
   const confirmationRef         = useRef(null);
-  const firebaseTokenRef        = useRef(null);
+  const firebaseTokenRef        = useRef(prefillToken);
 
   // Step 3 — profile
   const [name, setName]         = useState('');
@@ -42,7 +46,8 @@ export default function RegisterScreen({ navigation }) {
   const [referralCode, setReferralCode] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
-  const [step, setStep]         = useState(1);
+  // Start at step 3 if phone + token already provided (came from Login redirect)
+  const [step, setStep]         = useState(prefillPhone && prefillToken ? 3 : 1);
   const [loading, setLoading]   = useState(false);
 
   // OTP countdown timer
@@ -325,6 +330,14 @@ export default function RegisterScreen({ navigation }) {
                 <Text style={styles.cardTitle}>Complete Profile</Text>
                 <Text style={styles.cardSubtitle}>Almost there! Fill in your details</Text>
 
+                {/* Show verified phone when arriving from Login */}
+                {!!prefillPhone && (
+                  <View style={styles.phoneBanner}>
+                    <Ionicons name="checkmark-circle" size={16} color="#10b981" />
+                    <Text style={styles.phoneBannerText}>Phone verified: {prefillPhone}</Text>
+                  </View>
+                )}
+
                 {/* Name */}
                 <View style={styles.field}>
                   <Text style={styles.label}>Full Name</Text>
@@ -593,4 +606,13 @@ const styles = StyleSheet.create({
   loginBtnText: { color: '#818cf8', fontSize: 15, fontWeight: '700' },
 
   footerText: { textAlign: 'center', color: '#334155', fontSize: 12, marginTop: 24 },
+
+  phoneBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 7,
+    backgroundColor: 'rgba(16,185,129,0.1)',
+    borderWidth: 1, borderColor: 'rgba(16,185,129,0.3)',
+    borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8,
+    marginBottom: 4,
+  },
+  phoneBannerText: { fontSize: 13, color: '#10b981', fontWeight: '600', flex: 1 },
 });

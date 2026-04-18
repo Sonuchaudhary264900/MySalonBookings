@@ -85,14 +85,8 @@ export default function LoginScreen({ navigation }) {
     } catch (err) {
       const msg = err?.message || '';
       if (msg.toLowerCase().includes('not found') || (msg.toLowerCase().includes('no') && msg.toLowerCase().includes('account'))) {
-        Alert.alert(
-          'No Account Found',
-          'No GlowLoox Partner account found for this number. Please register to create your account.',
-          [
-            { text: 'Register', onPress: () => navigation.navigate('Register') },
-            { text: 'Try Again', style: 'cancel', onPress: () => { setStep(1); setOtp(['','','','','','']); } },
-          ]
-        );
+        // Phone is already verified — pass it straight to Register so the user skips steps 1 & 2
+        navigation.navigate('Register', { phone: formatPhone(phone), firebaseToken });
       } else if (msg.toLowerCase().includes('invalid') || msg.toLowerCase().includes('otp')) {
         setOtpError('Invalid OTP. Please check and try again.');
       } else {
