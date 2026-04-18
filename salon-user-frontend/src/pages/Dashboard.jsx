@@ -949,14 +949,6 @@ export default function Dashboard() {
         <div className="dashboard-hero-orb-2" style={{ position:'absolute', bottom:-60, left:-40, width:280, height:280, borderRadius:'50%', pointerEvents:'none' }} />
         <div className="dashboard-hero-grid" style={{ position:'absolute', inset:0, backgroundSize:'52px 52px', pointerEvents:'none', opacity: isDark ? 1 : 0.6 }} />
 
-        {/* Notification bell — top right */}
-        <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 10 }}>
-          <Link to="/notifications" style={{ position:'relative', width:42, height:42, borderRadius:'50%', background: 'var(--t-hero-card)', border: '1px solid var(--t-hero-border)', display:'flex', alignItems:'center', justifyContent:'center', color: 'var(--t-hero-text)', textDecoration:'none', backdropFilter:'blur(12px)' }}>
-            <svg style={{ width:18, height:18 }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-            {unreadCount > 0 && <span style={{ position:'absolute', top:1, right:1, minWidth:16, height:16, background:'#ef4444', color:'#fff', fontSize:9, fontWeight:700, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', padding:'0 3px', border: '2px solid var(--t-bg)' }}>{unreadCount > 9 ? '9+' : unreadCount}</span>}
-          </Link>
-        </div>
-
         {/* Hero content */}
         <div style={{ maxWidth: 640, margin: '0 auto', padding: 'clamp(56px,5vh,80px) 20px clamp(18px,2vh,36px)', position: 'relative', width: '100%', animation: 'heroIn 0.6s cubic-bezier(0.16,1,0.3,1) both' }}>
           <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--t-hero-muted)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.14em' }}>

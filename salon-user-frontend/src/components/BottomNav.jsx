@@ -95,6 +95,11 @@ const HomeIcon = ({ active }) => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
   </svg>
 );
+const MessagesIcon = ({ active }) => (
+  <svg viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+  </svg>
+);
 const BookingsIcon = ({ active }) => (
   <svg viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 1.8}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -125,9 +130,8 @@ const MapIcon = ({ active }) => (
 const AUTH_TABS = [
   { label: "Home",      path: "/",          Icon: HomeIcon      },
   { label: "Reels",     path: "/reels",     Icon: ReelsIcon     },
-  { label: "Map",       path: "/map",       Icon: MapIcon       },
   { label: "Bookings",  path: "/dashboard", Icon: BookingsIcon  },
-  { label: "Saved",     path: "/favorites", Icon: FavoritesIcon },
+  { label: "Messages",  path: "/messages",  Icon: MessagesIcon  },
   { label: "Profile",   path: "/profile",   Icon: ProfileIcon   },
 ];
 
@@ -157,6 +161,7 @@ function isTabActive(tabPath, pathname) {
   if (tabPath === "/dashboard") return pathname === "/dashboard" || pathname.startsWith("/dashboard/");
   if (tabPath === "/favorites") return pathname === "/favorites" || pathname.startsWith("/favorites/");
   if (tabPath === "/profile")   return pathname === "/profile"   || pathname.startsWith("/profile/");
+  if (tabPath === "/messages")  return pathname === "/messages"  || pathname.startsWith("/messages/");
   return pathname === tabPath;
 }
 

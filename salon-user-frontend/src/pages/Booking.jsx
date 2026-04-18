@@ -188,10 +188,8 @@ function Booking() {
       const status = res.data.data?.booking?.status || res.data.data?.status || "confirmed";
       setBookingStatus(status);
       if (status === "confirmed") {
-        addToast("success", "Booking confirmed!");
         addNotification({ type: "booking", title: "Booking Confirmed", message: `${services.map(s => s.name).join(" + ")} at ${salon?.name} on ${date} at ${slot}` });
       } else {
-        addToast("info", "Booking received! Awaiting salon confirmation.");
         addNotification({ type: "booking", title: "Booking Pending", message: `Your booking at ${salon?.name} is awaiting confirmation.` });
       }
       setSuccess(true);
