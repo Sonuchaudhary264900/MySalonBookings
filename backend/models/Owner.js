@@ -29,6 +29,11 @@ const ownerSchema = new mongoose.Schema(
       trim: true,
       match: [/^\+\d{1,15}$/, 'Please provide a valid phone number with country code'],
     },
+    firebaseUid: {
+      type: String,
+      default: null,
+      sparse: true,
+    },
     phoneVerified: {
       type: Boolean,
       default: false,

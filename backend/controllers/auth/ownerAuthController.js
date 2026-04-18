@@ -760,6 +760,7 @@ exports.firebaseRegister = async (req, res) => {
     const owner = await Owner.create({
       phone,
       phoneVerified: true,
+      firebaseUid: firebaseUser.uid,
       name: name.trim(),
       email: email.toLowerCase().trim(),
       gender: gender || null,
@@ -981,44 +982,36 @@ exports.firebaseLogin = async (req, res) => {
     }
 
     const rawPhone = firebaseUser.phone.trim();
+    const firebaseUid = firebaseUser.uid;
     const digits = rawPhone.replace(/\D/g, '');
     const tenDigit = digits.length >= 10 ? digits.slice(-10) : digits;
 
-    // Build every plausible stored format from Firebase phone
-    const variantSet = new Set([
-      rawPhone,
-      `+91${tenDigit}`,
-      `91${tenDigit}`,
-      tenDigit,
-      `0${tenDigit}`,
-    ]);
-
-    // Also add variants derived from the client-supplied phone (what the user typed)
-    // This handles any DB format mismatch regardless of how the account was registered
+    // Build every plausible stored format from Firebase phone + user-typed phone
+    const variantSet = new Set([rawPhone, `+91${tenDigit}`, `91${tenDigit}`, tenDigit, `0${tenDigit}`]);
     if (clientPhone) {
       const cd = String(clientPhone).replace(/\D/g, '');
       const ct = cd.length >= 10 ? cd.slice(-10) : cd;
-      variantSet.add(clientPhone.trim());
-      variantSet.add(`+91${ct}`);
-      variantSet.add(`91${ct}`);
-      variantSet.add(ct);
-      variantSet.add(`0${ct}`);
+      [clientPhone.trim(), `+91${ct}`, `91${ct}`, ct, `0${ct}`].forEach(v => variantSet.add(v));
+    }
+    const phoneVariants = [...variantSet];
+    console.log(`[owner firebaseLogin] uid="${firebaseUid}" firebase="${rawPhone}" variants=${JSON.stringify(phoneVariants)}`);
+
+    // 1. Lookup by Firebase UID (fastest — set on all future logins)
+    let owner = await Owner.findOne({ firebaseUid }).select('+isBanned');
+    if (owner) console.log(`[owner firebaseLogin] found by firebaseUid: ${owner._id}`);
+
+    // 2. Lookup by phone variants + regex
+    if (!owner) {
+      owner = await Owner.findOne({
+        $or: [
+          { phone: { $in: phoneVariants } },
+          { phone: { $regex: tenDigit + '$' } },
+        ],
+      }).select('+isBanned');
+      if (owner) console.log(`[owner firebaseLogin] found by phone query: ${owner._id} stored="${owner.phone}"`);
     }
 
-    const phoneVariants = [...variantSet];
-    console.log(`[owner firebaseLogin] firebase="${rawPhone}" client="${clientPhone || ''}" variants=${JSON.stringify(phoneVariants)}`);
-
-    // Lookup: exact match on all variants first, then end-of-string regex
-    let owner = await Owner.findOne({
-      $or: [
-        { phone: { $in: phoneVariants } },
-        { phone: { $regex: tenDigit + '$' } },
-      ],
-    }).select('+isBanned');
-
-    console.log(`[owner firebaseLogin] owner: ${owner ? `${owner._id} phone="${owner.phone}"` : 'null'}`);
-
-    // Fallback: match by Business phone → resolve Owner via ownerId
+    // 3. Business phone fallback → resolve Owner via ownerId
     if (!owner) {
       const Business = require('../../models/Business');
       const business = await Business.findOne({
@@ -1026,34 +1019,38 @@ exports.firebaseLogin = async (req, res) => {
           { phone: { $in: phoneVariants } },
           { phone: { $regex: tenDigit + '$' } },
         ],
-      }).select('ownerId phone name');
-      console.log(`[owner firebaseLogin] business fallback: ${business ? `${business._id} phone="${business.phone}" ownerId=${business.ownerId}` : 'null'}`);
-
+      }).select('ownerId phone');
       if (business?.ownerId) {
         owner = await Owner.findById(business.ownerId).select('+isBanned');
-        console.log(`[owner firebaseLogin] owner via business: ${owner ? `${owner._id}` : 'null — orphan'}`);
+        if (owner) console.log(`[owner firebaseLogin] found via business ${business._id}: ${owner._id}`);
       }
     }
 
-    // Final fallback: look up by email (covers any phone-format mismatch)
-    // Firebase OTP already proved the user owns this phone number.
-    // If found by email, patch the stored phone to the Firebase-verified format.
-    if (!owner && req.body.email) {
-      const cleanEmail = String(req.body.email).toLowerCase().trim();
-      owner = await Owner.findOne({ email: cleanEmail }).select('+isBanned');
-      if (owner) {
-        console.log(`[owner firebaseLogin] found by email "${cleanEmail}", stored phone="${owner.phone}", updating to "${rawPhone}"`);
+    // 4. Brute-force JS scan — covers any stored type/format that defeats regex
+    // (e.g. phone stored as Number, or with invisible chars).  Safe for small owner collections.
+    if (!owner) {
+      const allOwners = await Owner.find({}).select('+isBanned phone firebaseUid').lean();
+      console.log(`[owner firebaseLogin] brute-scan: ${allOwners.length} owners, tenDigit="${tenDigit}"`);
+      const matched = allOwners.find(o => {
+        if (!o.phone) return false;
+        const d = String(o.phone).replace(/\D/g, '');
+        return d.length >= 10 && d.slice(-10) === tenDigit;
+      });
+      if (matched) {
+        owner = await Owner.findById(matched._id).select('+isBanned');
+        console.log(`[owner firebaseLogin] brute-scan match: ${owner._id} stored phone="${matched.phone}"`);
+        // Heal the stored phone to E.164 so future regex lookups work
         try {
           await Owner.updateOne({ _id: owner._id }, { phone: rawPhone });
           owner.phone = rawPhone;
-        } catch (phoneErr) {
-          console.warn(`[owner firebaseLogin] phone update failed (duplicate?): ${phoneErr.message}`);
+        } catch (healErr) {
+          console.warn(`[owner firebaseLogin] phone heal failed: ${healErr.message}`);
         }
       }
     }
 
     if (!owner) {
-      console.log(`[owner firebaseLogin] NOT FOUND — firebase="${rawPhone}" client="${clientPhone || ''}" email="${req.body.email || ''}" variants=${JSON.stringify(phoneVariants)}`);
+      console.log(`[owner firebaseLogin] NOT FOUND after all 4 fallbacks — firebase="${rawPhone}"`);
       return res.status(404).json(
         formatErrorResponse(`No GlowLoox Partner account found for ${rawPhone}. Please register to create your account.`, 404)
       );
@@ -1075,6 +1072,8 @@ exports.firebaseLogin = async (req, res) => {
     );
 
     owner.refreshTokens = [...(owner.refreshTokens || []).slice(-4), { token: refreshToken }];
+    // Persist Firebase UID so future logins find the account instantly
+    if (!owner.firebaseUid) owner.firebaseUid = firebaseUid;
     await owner.save();
 
     return res.status(200).json(

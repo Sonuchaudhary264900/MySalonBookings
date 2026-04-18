@@ -22,9 +22,6 @@ export default function LoginScreen({ navigation }) {
   const [otpError, setOtpError] = useState('');
   const [resendTimer, setResendTimer] = useState(60);
   const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [savedToken, setSavedToken] = useState('');
   const otpRefs = useRef([]);
   const confirmationRef = useRef(null);
 
@@ -75,10 +72,6 @@ export default function LoginScreen({ navigation }) {
     } finally { setLoading(false); }
   };
 
-  const doLogin = async (token, emailHint) => {
-    await firebaseLogin(token, formatPhone(phone), emailHint);
-  };
-
   const handleVerifyOtp = async () => {
     setOtpError('');
     const code = otp.join('');
@@ -86,40 +79,21 @@ export default function LoginScreen({ navigation }) {
     setLoading(true);
     try {
       const result = await confirmationRef.current.confirm(code);
-      const token = await result.user.getIdToken();
-      setSavedToken(token);
-      await doLogin(token, '');
-    } catch (err) {
-      const msg = err?.message || '';
-      if (msg.toLowerCase().includes('not found') || (msg.toLowerCase().includes('no') && msg.toLowerCase().includes('account'))) {
-        // Phone lookup failed — go to email recovery step
-        setStep(3);
-        setOtp(['','','','','','']);
-      } else if (msg.toLowerCase().includes('invalid') || msg.toLowerCase().includes('otp')) {
-        setOtpError('Invalid OTP. Please check and try again.');
-      } else {
-        Alert.alert('Login Failed', msg || 'Something went wrong. Please try again.');
-      }
-    } finally { setLoading(false); }
-  };
-
-  const handleEmailRecover = async () => {
-    setEmailError('');
-    if (!email.trim() || !email.includes('@')) { setEmailError('Enter your registered email'); return; }
-    setLoading(true);
-    try {
-      await doLogin(savedToken, email.trim());
+      const firebaseToken = await result.user.getIdToken();
+      await firebaseLogin(firebaseToken, formatPhone(phone));
     } catch (err) {
       const msg = err?.message || '';
       if (msg.toLowerCase().includes('not found') || (msg.toLowerCase().includes('no') && msg.toLowerCase().includes('account'))) {
         Alert.alert(
-          'Account Not Found',
-          'No account found with this email and phone combination.',
+          'No Account Found',
+          'No GlowLoox Partner account found for this number. Please register to create your account.',
           [
             { text: 'Register', onPress: () => navigation.navigate('Register') },
-            { text: 'Try Again', style: 'cancel', onPress: () => { setStep(1); setEmail(''); } },
+            { text: 'Try Again', style: 'cancel', onPress: () => { setStep(1); setOtp(['','','','','','']); } },
           ]
         );
+      } else if (msg.toLowerCase().includes('invalid') || msg.toLowerCase().includes('otp')) {
+        setOtpError('Invalid OTP. Please check and try again.');
       } else {
         Alert.alert('Login Failed', msg || 'Something went wrong. Please try again.');
       }
@@ -287,59 +261,6 @@ export default function LoginScreen({ navigation }) {
               </>
             )}
 
-            {/* Step 3: Email Recovery */}
-            {step === 3 && (
-              <>
-                <Text style={styles.cardTitle}>Recover Account</Text>
-                <Text style={styles.cardSubtitle}>Phone verified! Enter your registered email to find your account.</Text>
-
-                <View style={[styles.otpBoxWrap, { marginBottom: 8 }]}>
-                  <Ionicons name="mail-outline" size={28} color="#818cf8" />
-                </View>
-
-                <View style={styles.field}>
-                  <Text style={styles.label}>Registered Email</Text>
-                  <View style={[styles.inputRow, emailError ? styles.inputRowError : styles.inputRowNormal]}>
-                    <TextInput
-                      style={[styles.input, { flex: 1, paddingLeft: 0 }]}
-                      placeholder="you@example.com"
-                      placeholderTextColor="#4b5563"
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      value={email}
-                      onChangeText={t => { setEmail(t); setEmailError(''); }}
-                      editable={!loading}
-                      autoFocus
-                    />
-                  </View>
-                  {!!emailError && <Text style={styles.errorText}>{emailError}</Text>}
-                </View>
-
-                <TouchableOpacity
-                  style={[styles.btn, (loading || !email.includes('@')) && styles.btnDisabled]}
-                  onPress={handleEmailRecover}
-                  disabled={loading || !email.includes('@')}
-                  activeOpacity={0.88}
-                >
-                  {loading ? <ActivityIndicator color="#fff" /> : (
-                    <>
-                      <Text style={styles.btnText}>Recover Account</Text>
-                      <View style={styles.btnArrow}>
-                        <Ionicons name="checkmark" size={16} color="#fff" />
-                      </View>
-                    </>
-                  )}
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={() => { setStep(1); setEmail(''); setEmailError(''); }} style={styles.backBtn}>
-                  <Ionicons name="arrow-back" size={16} color="#818cf8" />
-                  <Text style={styles.backLink}>Try different phone number</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => navigation.navigate('Register')} style={[styles.backBtn, { marginTop: 4 }]}>
-                  <Text style={[styles.backLink, { color: '#94a3b8' }]}>Create new account instead</Text>
-                </TouchableOpacity>
-              </>
-            )}
           </View>
 
           <Text style={styles.footerText}>By signing in, you agree to our Terms of Service</Text>
