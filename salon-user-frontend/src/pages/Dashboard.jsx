@@ -6,7 +6,6 @@ import { getCustomerToken } from "../utils/auth";
 import { useNotifications } from "../context/NotificationContext";
 import { salonPath } from "../utils/formatters";
 import { useTheme } from "../context/ThemeContext";
-import DirectionsModal from "../components/DirectionsModal";
 
 function getUserName() {
   try {
@@ -598,7 +597,6 @@ function BookingCard({ booking: initialBooking, userCoords, onCancelled, isNext 
   const [booking, setBooking]               = useState(initialBooking);
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [reviewed, setReviewed]             = useState(false);
-  const [dirOpen, setDirOpen]               = useState(false);
   const [cancelling, setCancelling]         = useState(false);
   const [hovered, setHovered]               = useState(false);
   const navigate = useNavigate();
@@ -770,8 +768,11 @@ function BookingCard({ booking: initialBooking, userCoords, onCancelled, isNext 
                 <IcPhone /> Call
               </a>
             )}
-            {(salonDoc?.location?.coordinates?.length === 2 || salonDoc?.address) && (
-              <button className="bk-action" onClick={() => setDirOpen(true)}
+            {salonDoc?.location?.coordinates?.length === 2 && (
+              <button className="bk-action" onClick={() => {
+                const [lng, lat] = salonDoc.location.coordinates;
+                navigate(`/map?destLat=${lat}&destLng=${lng}&salonName=${encodeURIComponent(salonName)}`);
+              }}
                 style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 13px', background: 'transparent', border: `1px solid var(--t-border)`, borderRadius: 9, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--t-text-2)' }}>
                 <IcNavigate /> Directions
               </button>
@@ -793,14 +794,6 @@ function BookingCard({ booking: initialBooking, userCoords, onCancelled, isNext 
       </div>
 
       {rescheduleOpen && <RescheduleModal booking={booking} onClose={() => setRescheduleOpen(false)} onRescheduled={handleRescheduled} />}
-      {dirOpen && (
-        <DirectionsModal
-          salon={salonDoc}
-          salonCoords={salonDoc?.location?.coordinates?.length === 2 ? salonDoc.location.coordinates : null}
-          userCoords={userCoords}
-          onClose={() => setDirOpen(false)}
-        />
-      )}
     </>
   );
 }

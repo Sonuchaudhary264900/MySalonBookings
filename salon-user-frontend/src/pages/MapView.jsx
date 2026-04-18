@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useCallback, useRef, lazy, Suspense } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -812,6 +812,7 @@ function SalonSheet({ salonId, onClose }) {
 ══════════════════════════════════════════ */
 export default function MapView() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { isDark } = useTheme();
 
   const [salons,        setSalons]        = useState([]);
@@ -883,6 +884,37 @@ export default function MapView() {
       }
     };
   }, []); // eslint-disable-line
+
+  /* ── Auto-route when opened from Dashboard "Directions" button ── */
+  const autoRoutedRef = useRef(false);
+  useEffect(() => {
+    if (autoRoutedRef.current) return;
+    const destLat  = parseFloat(searchParams.get("destLat"));
+    const destLng  = parseFloat(searchParams.get("destLng"));
+    const salonName = searchParams.get("salonName") || "Destination";
+    if (isNaN(destLat) || isNaN(destLng)) return;
+    autoRoutedRef.current = true;
+
+    const fakeSalon = {
+      name: decodeURIComponent(salonName),
+      location: { coordinates: [destLng, destLat] },
+    };
+
+    if (coordsRef.current) {
+      fetchRoute(fakeSalon);
+    } else {
+      navigator.geolocation?.getCurrentPosition(
+        (p) => {
+          const c = { lat: p.coords.latitude, lng: p.coords.longitude };
+          coordsRef.current = c;
+          setCoords(c);
+          fetchRoute(fakeSalon);
+        },
+        () => fetchRoute(fakeSalon),
+        { timeout: 6000, enableHighAccuracy: true }
+      );
+    }
+  }, [searchParams, fetchRoute]); // eslint-disable-line
 
   /* ── Re-fetch on sort change ── */
   useEffect(() => {
