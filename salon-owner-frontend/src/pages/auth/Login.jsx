@@ -129,6 +129,7 @@ const Login = () => {
     e?.preventDefault();
     const code = codeOverride ?? otp.join('');
     if (code.length < 6) { setError('Enter the 6-digit OTP.'); return; }
+    if (!confirmRef.current) { setError('Session expired. Please resend OTP.'); return; }
     setError(''); setLoading(true);
     try {
       const result = await confirmRef.current.confirm(code);
@@ -171,7 +172,7 @@ const Login = () => {
     const n=[...otp]; n[i]=digit; setOtp(n);
     if (digit && i < 5) otpRefs.current[i+1]?.focus();
     const full = [...n].join('');
-    if (i === 5 && digit && full.length === 6) setTimeout(() => handleVerifyOtp(null, full), 80);
+    if (i === 5 && digit && full.length === 6) setTimeout(() => handleVerifyOtp(null, full).catch(err => { setError(err?.message || 'Sign in failed.'); }), 80);
   };
 
   const c = isDark;

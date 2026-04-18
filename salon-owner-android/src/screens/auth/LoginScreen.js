@@ -76,6 +76,7 @@ export default function LoginScreen({ navigation }) {
     setOtpError('');
     const code = otp.join('');
     if (code.length !== 6) { setOtpError('Enter the complete 6-digit code'); return; }
+    if (!confirmationRef.current) { setOtpError('Session expired. Please resend OTP.'); return; }
     setLoading(true);
     try {
       const result = await confirmationRef.current.confirm(code);
