@@ -846,19 +846,63 @@ function ReelItem({ reel, muted, showMute, onMuteToggle, onComment, onShare, cop
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Loading dots
+   Reel skeleton loader
 ───────────────────────────────────────────────────────────── */
-function LoadingDots() {
+const SKELETON_CSS = `
+  .reel-skeleton-shimmer {
+    background: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.10) 40%, rgba(255,255,255,0.04) 80%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s linear infinite;
+    border-radius: 10px;
+  }
+`;
+
+function ReelSkeleton() {
+  const safeBottom = 'env(safe-area-inset-bottom, 0px)';
   return (
-    <div style={{ display: 'flex', gap: 7, alignItems: 'center' }}>
-      {[0, 1, 2].map(i => (
-        <div key={i} style={{
-          width: 8, height: 8, borderRadius: '50%',
-          background: 'linear-gradient(135deg,#6366f1,#a78bfa)',
-          animation: `dotPulse 1.2s ease ${i * 0.2}s infinite`,
-        }} />
-      ))}
+    <div className="reel-item" style={{ background: '#0d0d0d' }}>
+      <div className="reel-gradient" />
+      {/* Right rail skeleton */}
+      <div style={{
+        position: 'absolute',
+        bottom: `calc(${safeBottom} + 80px)`,
+        right: 14, zIndex: 10,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20,
+      }}>
+        {[44, 44, 44, 50].map((sz, i) => (
+          <div key={i} className="reel-skeleton-shimmer" style={{ width: sz, height: sz, borderRadius: '50%' }} />
+        ))}
+      </div>
+      {/* Bottom info skeleton */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10,
+        padding: `20px 16px calc(${safeBottom} + 20px)`, paddingRight: 82,
+      }}>
+        <div className="reel-skeleton-shimmer" style={{ height: 18, width: '60%', marginBottom: 10 }} />
+        <div className="reel-skeleton-shimmer" style={{ height: 12, width: '40%', marginBottom: 14 }} />
+        <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+          {[60, 70, 55].map((w, i) => (
+            <div key={i} className="reel-skeleton-shimmer" style={{ height: 22, width: w, borderRadius: 20 }} />
+          ))}
+        </div>
+        <div className="reel-skeleton-shimmer" style={{ height: 44, borderRadius: 14 }} />
+      </div>
     </div>
+  );
+}
+
+function ReelsFeedSkeleton() {
+  return (
+    <>
+      <style>{SKELETON_CSS}</style>
+      <div className="reels-col" style={{ pointerEvents: 'none' }}>
+        <div className="reels-feed" style={{ overflow: 'hidden' }}>
+          <div className="reels-strip">
+            <ReelSkeleton />
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -1138,25 +1182,8 @@ export default function Reels() {
 
       <div className="reels-page">
 
-        {/* Loading */}
-        {loading && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
-            <div style={{
-              width: 52, height: 52, borderRadius: '50%',
-              background: 'conic-gradient(from 0deg, #6366f1, #a78bfa, #f0abfc, transparent)',
-              animation: 'spin 0.9s linear infinite',
-              padding: 4,
-            }}>
-              <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: '#050505' }} />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-              <LoadingDots />
-              <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13, margin: 0, letterSpacing: 0.3 }}>
-                Discovering reels…
-              </p>
-            </div>
-          </div>
-        )}
+        {/* Loading skeleton */}
+        {loading && <ReelsFeedSkeleton />}
 
         {/* Empty */}
         {!loading && !reels.length && (
