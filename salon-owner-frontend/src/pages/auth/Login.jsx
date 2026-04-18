@@ -133,16 +133,25 @@ const Login = () => {
     try {
       const result = await confirmRef.current.confirm(code);
       const firebaseToken = await result.user.getIdToken();
-      const response = await login(firebaseToken);
 
-      toast.success('Welcome back! 🎉');
-      const status = response?.data?.owner?.status;
-      if (status === 'mobile_verified') {
-        navigate(ROUTES.ONBOARDING, { replace: true });
-      } else if (status === 'salon_registered' || status === 'pending_approval') {
-        navigate(ROUTES.APPROVAL_WAITING, { replace: true });
-      } else {
-        navigate(ROUTES.DASHBOARD, { replace: true });
+      try {
+        const response = await login(firebaseToken);
+        toast.success('Welcome back! 🎉');
+        const status = response?.data?.owner?.status;
+        if (status === 'mobile_verified') {
+          navigate(ROUTES.ONBOARDING, { replace: true });
+        } else if (status === 'salon_registered' || status === 'pending_approval') {
+          navigate(ROUTES.APPROVAL_WAITING, { replace: true });
+        } else {
+          navigate(ROUTES.DASHBOARD, { replace: true });
+        }
+      } catch (loginErr) {
+        if (loginErr.status === 404 || loginErr.message?.includes('404') || loginErr.message?.toLowerCase().includes('not found') || loginErr.message?.toLowerCase().includes('no glowloox')) {
+          toast('No account found — let\'s create one!', { icon: '👋' });
+          navigate(ROUTES.ONBOARDING, { replace: true });
+        } else {
+          throw loginErr;
+        }
       }
     } catch (err) {
       const msg = err.message || 'Sign in failed.';
@@ -193,7 +202,7 @@ const Login = () => {
             <div style={{ width:44, height:44, borderRadius:13, background:'linear-gradient(135deg,#7c3aed,#3b82f6)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, boxShadow:'0 0 22px rgba(124,58,237,0.5)' }}>✂</div>
             <div>
               <div style={{ fontSize:17, fontWeight:700, color:'#f1f5f9', letterSpacing:'-0.3px' }}>GlowLoox</div>
-              <div style={{ fontSize:11, color:'#475569', fontWeight:500 }}>Owner Dashboard</div>
+              <div style={{ fontSize:11, color:'#475569', fontWeight:500 }}>GlowLoox Partner</div>
             </div>
           </div>
           <div className="lgn-fu2" style={{ marginBottom:16 }}>
@@ -228,7 +237,7 @@ const Login = () => {
               <div style={{ width:40, height:40, borderRadius:12, background:'linear-gradient(135deg,#7c3aed,#3b82f6)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, boxShadow:'0 0 18px rgba(124,58,237,0.5)' }}>✂</div>
               <div>
                 <div style={{ fontSize:16, fontWeight:700, color: c ? '#f1f5f9' : '#0f172a' }}>GlowLoox</div>
-                <div style={{ fontSize:11, color:'#64748b' }}>Owner Dashboard</div>
+                <div style={{ fontSize:11, color:'#64748b' }}>GlowLoox Partner</div>
               </div>
             </div>
 
@@ -239,7 +248,7 @@ const Login = () => {
                   {step === 1 ? 'Welcome back' : 'Enter OTP'}
                 </h2>
                 <p style={{ fontSize:14, color: c ? '#475569' : '#64748b', margin:0 }}>
-                  {step === 1 ? 'Sign in with your registered phone number' : `OTP sent to +91 ${phone}`}
+                  {step === 1 ? 'Sign in to your GlowLoox Partner dashboard' : `OTP sent to +91 ${phone}`}
                 </p>
               </div>
 

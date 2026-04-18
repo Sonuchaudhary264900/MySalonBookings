@@ -981,6 +981,8 @@ exports.firebaseLogin = async (req, res) => {
     const digits = rawPhone.replace(/\D/g, ''); // 919876543210
     const tenDigit = digits.length >= 10 ? digits.slice(-10) : digits;
 
+    console.log(`[owner firebaseLogin] firebase phone: "${rawPhone}", tenDigit: "${tenDigit}"`);
+
     const owner = await Owner.findOne({
       $or: [
         { phone: rawPhone },
@@ -990,9 +992,11 @@ exports.firebaseLogin = async (req, res) => {
       ],
     }).select('+isBanned');
 
+    console.log(`[owner firebaseLogin] owner found: ${owner ? owner._id : 'null'}`);
+
     if (!owner) {
       return res.status(404).json(
-        formatErrorResponse('No owner account found for this phone number. Please register first.', 404)
+        formatErrorResponse(`No GlowLoox Partner account found for ${rawPhone}. Please register to create your account.`, 404)
       );
     }
 
