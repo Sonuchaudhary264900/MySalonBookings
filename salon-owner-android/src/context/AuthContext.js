@@ -44,9 +44,9 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
-  const login = useCallback(async (identifier, password) => {
+  const firebaseLogin = useCallback(async (firebaseToken) => {
     setError(null);
-    const response = await api.post('/owner/auth/login', { identifier, password });
+    const response = await api.post('/owner/auth/firebase-login', { firebaseToken });
     if (!response.data.success) throw new Error(response.data.message || 'Login failed');
     const { token, refreshToken, owner: userData } = response.data.data;
     await AsyncStorage.setItem('token', token);
@@ -65,13 +65,6 @@ export const AuthProvider = ({ children }) => {
     return response.data;
   }, []);
 
-  const changePassword = useCallback(async (currentPassword, newPassword) => {
-    setError(null);
-    const response = await api.post('/owner/auth/change-password', { currentPassword, newPassword });
-    if (!response.data.success) throw new Error(response.data.message || 'Failed to change password');
-    return response.data;
-  }, []);
-
   const refreshUser = useCallback(async () => {
     try {
       const response = await api.get('/owner/auth/me');
@@ -87,7 +80,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, isAuthenticated: !!user, login, updateProfile, changePassword, refreshUser, logout }}>
+    <AuthContext.Provider value={{ user, loading, error, isAuthenticated: !!user, firebaseLogin, updateProfile, refreshUser, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1396,57 +1396,15 @@ router.get("/customer/salons/:salonId/follow-status",
 ===================================================== */
 
 router.post(
-  "/owner/auth/send-otp",
-  rateLimiter(5, 900000),
-  asyncHandler(ownerAuthController.sendOTP)
-);
-
-router.post(
-  "/owner/auth/verify-otp",
-  rateLimiter(10, 900000),
-  asyncHandler(ownerAuthController.verifyOTP)
-);
-
-router.post(
-  "/owner/auth/register",
-  rateLimiter(5, 900000),
-  asyncHandler(ownerAuthController.verifyOTPAndRegister)
-);
-
-router.post(
   "/owner/auth/firebase-register",
   rateLimiter(5, 900000),
   asyncHandler(ownerAuthController.firebaseRegister)
 );
 
 router.post(
-  "/owner/auth/firebase-reset-password",
-  rateLimiter(5, 900000),
-  asyncHandler(ownerAuthController.firebaseResetPassword)
-);
-
-router.post(
   "/owner/auth/firebase-login",
   rateLimiter(10, 900000),
   asyncHandler(ownerAuthController.firebaseLogin)
-);
-
-router.post(
-  "/owner/auth/login",
-  rateLimiter(5, 900000),
-  asyncHandler(ownerAuthController.login)
-);
-
-router.post(
-  "/owner/auth/forgot-password/send-otp",
-  rateLimiter(5, 900000),
-  asyncHandler(ownerAuthController.forgotPasswordSendOTP)
-);
-
-router.post(
-  "/owner/auth/forgot-password/reset",
-  rateLimiter(5, 900000),
-  asyncHandler(ownerAuthController.forgotPasswordReset)
 );
 
 router.post(
@@ -1471,12 +1429,6 @@ router.put(
   "/owner/auth/me",
   authenticateOwner,
   asyncHandler(ownerAuthController.updateProfile)
-);
-
-router.post(
-  "/owner/auth/change-password",
-  authenticateOwner,
-  asyncHandler(ownerAuthController.changePassword)
 );
 
 router.post(

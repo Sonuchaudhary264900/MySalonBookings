@@ -20,23 +20,6 @@ const GENDER_OPTIONS = [
   { value: 'other',  label: 'Other',  emoji: '🧑' },
 ];
 
-function passwordStrength(pw) {
-  let score = 0;
-  if (pw.length >= 8) score++;
-  if (/[A-Z]/.test(pw)) score++;
-  if (/[a-z]/.test(pw)) score++;
-  if (/[0-9]/.test(pw)) score++;
-  if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pw)) score++;
-  const levels = [
-    { label: 'Very Weak', color: '#ef4444', pct: 0.2 },
-    { label: 'Weak',      color: '#f97316', pct: 0.4 },
-    { label: 'Fair',      color: '#eab308', pct: 0.6 },
-    { label: 'Strong',    color: '#22c55e', pct: 0.8 },
-    { label: 'Very Strong', color: '#10b981', pct: 1.0 },
-  ];
-  return pw.length === 0 ? null : levels[score - 1] || levels[0];
-}
-
 export default function RegisterScreen({ navigation }) {
   const { refreshUser } = useAuth();
   const insets = useSafeAreaInsets();
@@ -57,10 +40,6 @@ export default function RegisterScreen({ navigation }) {
   const [name, setName]         = useState('');
   const [gender, setGender]     = useState('');
   const [email, setEmail]       = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPw, setConfirmPw] = useState('');
-  const [showPw, setShowPw]     = useState(false);
-  const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [referralCode, setReferralCode] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
@@ -156,11 +135,6 @@ export default function RegisterScreen({ navigation }) {
     if (!name.trim() || name.trim().length < 2) { Alert.alert('Error', 'Name must be at least 2 characters'); return; }
     if (!gender) { Alert.alert('Error', 'Please select your gender'); return; }
     if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) { Alert.alert('Error', 'Enter a valid email address'); return; }
-    if (password.length < 8) {
-      Alert.alert('Weak Password', 'Password must be at least 8 characters');
-      return;
-    }
-    if (password !== confirmPw) { Alert.alert('Error', 'Passwords do not match'); return; }
     if (!agreedToTerms) { Alert.alert('Terms Required', 'Please accept the Terms & Conditions and Privacy Policy'); return; }
 
     setLoading(true);
@@ -169,7 +143,6 @@ export default function RegisterScreen({ navigation }) {
         firebaseToken: firebaseTokenRef.current,
         name: name.trim(),
         email: email.trim().toLowerCase(),
-        password,
         gender,
       });
       if (!res.data.success) throw new Error(res.data.message || 'Registration failed');
@@ -185,7 +158,6 @@ export default function RegisterScreen({ navigation }) {
     } finally { setLoading(false); }
   };
 
-  const pwStrength = passwordStrength(password);
   const otpFilled = otp.join('').length === 6;
 
   return (
@@ -408,63 +380,6 @@ export default function RegisterScreen({ navigation }) {
                   </View>
                 </View>
 
-                {/* Password */}
-                <View style={styles.field}>
-                  <Text style={styles.label}>Password</Text>
-                  <View style={styles.inputRow}>
-                    <Ionicons name="lock-closed-outline" size={18} color="#818cf8" style={styles.inputIcon} />
-                    <TextInput
-                      style={[styles.input, { flex: 1 }]}
-                      placeholder="Minimum 8 characters"
-                      placeholderTextColor="#4b5563"
-                      secureTextEntry={!showPw}
-                      value={password}
-                      onChangeText={setPassword}
-                      editable={!loading}
-                      autoComplete="new-password"
-                      textContentType="newPassword"
-                      importantForAutofill="yes"
-                    />
-                    <TouchableOpacity onPress={() => setShowPw(!showPw)} style={{ padding: 4 }}>
-                      <Ionicons name={showPw ? 'eye-off-outline' : 'eye-outline'} size={18} color="#6b7280" />
-                    </TouchableOpacity>
-                  </View>
-                  {password.length > 0 && pwStrength && (
-                    <View style={styles.strengthWrap}>
-                      <View style={styles.strengthBar}>
-                        <View style={[styles.strengthFill, { width: `${pwStrength.pct * 100}%`, backgroundColor: pwStrength.color }]} />
-                      </View>
-                      <Text style={[styles.strengthLabel, { color: pwStrength.color }]}>{pwStrength.label}</Text>
-                    </View>
-                  )}
-                </View>
-
-                {/* Confirm Password */}
-                <View style={styles.field}>
-                  <Text style={styles.label}>Confirm Password</Text>
-                  <View style={styles.inputRow}>
-                    <Ionicons name="lock-closed-outline" size={18} color="#818cf8" style={styles.inputIcon} />
-                    <TextInput
-                      style={[styles.input, { flex: 1 }]}
-                      placeholder="Re-enter password"
-                      placeholderTextColor="#4b5563"
-                      secureTextEntry={!showConfirmPw}
-                      value={confirmPw}
-                      onChangeText={setConfirmPw}
-                      editable={!loading}
-                      autoComplete="new-password"
-                      textContentType="newPassword"
-                      importantForAutofill="yes"
-                    />
-                    {confirmPw.length > 0 && confirmPw === password
-                      ? <Ionicons name="checkmark-circle" size={20} color="#22c55e" />
-                      : <TouchableOpacity onPress={() => setShowConfirmPw(!showConfirmPw)} style={{ padding: 4 }}>
-                          <Ionicons name={showConfirmPw ? 'eye-off-outline' : 'eye-outline'} size={18} color="#6b7280" />
-                        </TouchableOpacity>
-                    }
-                  </View>
-                </View>
-
                 {/* Referral */}
                 <View style={styles.field}>
                   <Text style={styles.label}>Referral Code <Text style={{ color: '#475569', fontWeight: '400' }}>(optional)</Text></Text>
@@ -658,12 +573,6 @@ const styles = StyleSheet.create({
   genderEmoji: { fontSize: 20 },
   genderLabel: { fontSize: 12, fontWeight: '600', color: '#94a3b8' },
   genderLabelActive: { color: '#c4b5fd' },
-
-  // Password strength
-  strengthWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 7 },
-  strengthBar: { flex: 1, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.08)' },
-  strengthFill: { height: 4, borderRadius: 2 },
-  strengthLabel: { fontSize: 11, fontWeight: '700', width: 72, textAlign: 'right' },
 
   // Terms
   termsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 16 },

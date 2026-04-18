@@ -692,7 +692,7 @@ exports.firebaseResetPassword = async (req, res) => {
 // ===================================================
 exports.firebaseRegister = async (req, res) => {
   try {
-    const { firebaseToken, name, email, password, gender } = req.body;
+    const { firebaseToken, name, email, gender } = req.body;
 
     if (!firebaseToken) {
       return res.status(400).json(
@@ -700,13 +700,10 @@ exports.firebaseRegister = async (req, res) => {
       );
     }
 
-    // Validate name, email, password (phone comes from Firebase)
+    // Validate name and email (phone comes from Firebase, no password required)
     const errors = [];
     if (!name || name.trim().length < 2) errors.push('Valid name is required');
     if (!email || !/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email)) errors.push('Valid email is required');
-    if (!password || password.length < 8) {
-      errors.push('Password must be at least 8 characters');
-    }
     if (gender && !['male', 'female', 'other'].includes(gender)) errors.push('Gender must be male, female, or other');
     if (errors.length > 0) {
       return res.status(400).json(
@@ -757,13 +754,12 @@ exports.firebaseRegister = async (req, res) => {
       );
     }
 
-    // Create owner
+    // Create owner (passwordless — Firebase OTP is the authentication factor)
     const owner = await Owner.create({
       phone,
       phoneVerified: true,
       name: name.trim(),
       email: email.toLowerCase().trim(),
-      password,
       gender: gender || null,
       status: 'mobile_verified',
       role: 'owner',
