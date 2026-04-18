@@ -955,6 +955,64 @@ exports.forgotPasswordReset = async (req, res) => {
 // ===================================================
 // LOGOUT
 // ===================================================
+// ===================================================
+// FIREBASE PHONE AUTH - LOGIN (OTP-based, no password)
+// ===================================================
+exports.firebaseLogin = async (req, res) => {
+  try {
+    const { firebaseToken } = req.body;
+    if (!firebaseToken) {
+      return res.status(400).json(formatErrorResponse('Firebase token is required', 400));
+    }
+
+    const { verifyFirebaseToken } = require('../../config/firebaseAdmin');
+    let firebaseUser;
+    try {
+      firebaseUser = await verifyFirebaseToken(firebaseToken);
+    } catch (err) {
+      const msg = err.message || '';
+      if (msg.includes('TOKEN_EXPIRED')) {
+        return res.status(401).json(formatErrorResponse('OTP session expired. Please try again.', 401));
+      }
+      return res.status(401).json(formatErrorResponse('Invalid or expired Firebase token.', 401));
+    }
+
+    const phone = firebaseUser.phone.trim();
+    const owner = await Owner.findOne({ phone }).select('+isBanned');
+
+    if (!owner) {
+      return res.status(404).json(
+        formatErrorResponse('No owner account found for this phone number. Please register first.', 404)
+      );
+    }
+
+    if (owner.isBanned) {
+      return res.status(403).json(formatErrorResponse('Your account has been suspended.', 403));
+    }
+
+    const token = jwt.sign(
+      { _id: owner._id, phone: owner.phone, role: owner.role, businessId: owner.businessId },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRE || '24h' }
+    );
+    const refreshToken = jwt.sign(
+      { _id: owner._id },
+      process.env.JWT_REFRESH_SECRET,
+      { expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d' }
+    );
+
+    owner.refreshTokens = [...(owner.refreshTokens || []).slice(-4), { token: refreshToken }];
+    await owner.save();
+
+    return res.status(200).json(
+      formatSuccessResponse({ owner: owner.getPublicProfile(), token, refreshToken }, 'Login successful')
+    );
+  } catch (error) {
+    console.error('Error in owner firebaseLogin:', error);
+    res.status(500).json(formatErrorResponse(error.message || messages.GENERIC.ERROR, 500));
+  }
+};
+
 exports.logout = async (req, res) => {
   try {
     const { refreshToken } = req.body;

@@ -73,30 +73,23 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  // ========== LOGIN ==========
+  // ========== LOGIN (Firebase OTP) ==========
 
-  const login = useCallback(async (phoneNumber, password) => {
+  const login = useCallback(async (firebaseToken) => {
     try {
       setError(null);
 
-      // Backend expects `identifier` (phone or email), not `phone`
-      const response = await API.post('/owner/auth/login', {
-        identifier: phoneNumber,
-        password: password,
-      });
+      const response = await API.post('/owner/auth/firebase-login', { firebaseToken });
 
       if (!response.data.success) {
         throw new Error(response.data.message || 'Login failed');
       }
 
-      // Backend returns `owner` not `user`
       const { token, refreshToken, owner: userData } = response.data.data;
 
-      // Store tokens
       localStorage.setItem('token', token);
       localStorage.setItem('refreshToken', refreshToken);
 
-      // Update user state
       setUser(userData);
 
       return response.data;

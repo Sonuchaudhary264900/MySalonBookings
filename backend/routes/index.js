@@ -1426,6 +1426,12 @@ router.post(
 );
 
 router.post(
+  "/owner/auth/firebase-login",
+  rateLimiter(10, 900000),
+  asyncHandler(ownerAuthController.firebaseLogin)
+);
+
+router.post(
   "/owner/auth/login",
   rateLimiter(5, 900000),
   asyncHandler(ownerAuthController.login)
