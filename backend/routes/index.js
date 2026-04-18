@@ -285,7 +285,7 @@ router.get("/public/salons/nearby", asyncHandler(async (req, res) => {
       $project: {
         name: 1, address: 1, city: 1, locality: 1, phone: 1, photos: 1, logo: 1, coverPhoto: 1,
         averageRating: 1, totalReviews: 1, totalBookings: 1,
-        workingHours: 1, category: 1, servedGender: 1, location: 1, isApproved: 1, isOnline: 1, lastOnlineAt: 1, distance: 1,
+        workingHours: 1, category: 1, businessType: 1, servedGender: 1, location: 1, isApproved: 1, isOnline: 1, lastOnlineAt: 1, distance: 1,
         ownerPhoto: { $ifNull: [{ $arrayElemAt: ["$_owner.profilePhoto", 0] }, null] },
         offeredCategoryNames: {
           $map: {

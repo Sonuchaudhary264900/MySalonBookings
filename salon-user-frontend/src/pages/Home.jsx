@@ -163,14 +163,14 @@ const SORT_OPTIONS = [
   { key: "booked", label: "Trending" },
 ];
 const HERO_CHIPS = [
-  { label: "All",            cat: null,                   Icon: Sparkles  },
-  { label: "Salon",          cat: "Hair Services",        Icon: Scissors  },
-  { label: "Barbershop",     cat: "Beard & Grooming",     Icon: User      },
-  { label: "Spa & Wellness", cat: "Spa & Massage",        Icon: Droplets  },
-  { label: "Makeup & Bridal",cat: "Bridal & Events",      Icon: Sparkles  },
-  { label: "Skin & Derma",   cat: "Skin & Face / Beauty", Icon: Leaf      },
-  { label: "Kids",           cat: "Kids Services",        Icon: Baby      },
-  { label: "At-Home",        cat: "At-Home Services",     Icon: HomeIcon  },
+  { label: "All",            cat: null,                   businessType: null,          Icon: Sparkles  },
+  { label: "Salon",          cat: "Hair Services",        businessType: "salon",       Icon: Scissors  },
+  { label: "Barbershop",     cat: "Beard & Grooming",     businessType: "barbershop",  Icon: User      },
+  { label: "Spa & Wellness", cat: "Spa & Massage",        businessType: "spa_wellness",Icon: Droplets  },
+  { label: "Makeup & Bridal",cat: "Bridal & Events",      businessType: "makeup_bridal",Icon: Sparkles },
+  { label: "Skin & Derma",   cat: "Skin & Face / Beauty", businessType: "skin_derma",  Icon: Leaf      },
+  { label: "Kids",           cat: "Kids Services",        businessType: null,          Icon: Baby      },
+  { label: "At-Home",        cat: "At-Home Services",     businessType: null,          Icon: HomeIcon  },
 ];
 
 
@@ -919,6 +919,8 @@ export default function Home() {
     let r = data;
     if (cats.length > 0) {
       r = r.filter(s => cats.some(cat => {
+        const chip = HERO_CHIPS.find(c => c.cat === cat);
+        if (chip?.businessType && s.businessType === chip.businessType) return true;
         const aliases = CATEGORY_ALIASES[cat] || [cat];
         return (s.offeredCategoryNames || []).some(n => aliases.includes(n));
       }));
