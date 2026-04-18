@@ -80,7 +80,7 @@ export default function LoginScreen({ navigation }) {
     try {
       const result = await confirmationRef.current.confirm(code);
       const firebaseToken = await result.user.getIdToken();
-      await firebaseLogin(firebaseToken);
+      await firebaseLogin(firebaseToken, formatPhone(phone));
     } catch (err) {
       const msg = err?.response?.data?.message || err?.message || '';
       if (msg.toLowerCase().includes('no') && msg.toLowerCase().includes('account')) {

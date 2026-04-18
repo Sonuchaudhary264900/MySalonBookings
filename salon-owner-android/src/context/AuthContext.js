@@ -44,9 +44,9 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
-  const firebaseLogin = useCallback(async (firebaseToken) => {
+  const firebaseLogin = useCallback(async (firebaseToken, phone) => {
     setError(null);
-    const response = await api.post('/owner/auth/firebase-login', { firebaseToken });
+    const response = await api.post('/owner/auth/firebase-login', { firebaseToken, phone });
     if (!response.data.success) throw new Error(response.data.message || 'Login failed');
     const { token, refreshToken, owner: userData } = response.data.data;
     await AsyncStorage.setItem('token', token);

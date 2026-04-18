@@ -963,7 +963,7 @@ exports.forgotPasswordReset = async (req, res) => {
 // ===================================================
 exports.firebaseLogin = async (req, res) => {
   try {
-    const { firebaseToken } = req.body;
+    const { firebaseToken, phone: clientPhone } = req.body;
     if (!firebaseToken) {
       return res.status(400).json(formatErrorResponse('Firebase token is required', 400));
     }
@@ -980,21 +980,35 @@ exports.firebaseLogin = async (req, res) => {
       return res.status(401).json(formatErrorResponse('Invalid or expired Firebase token.', 401));
     }
 
-    const rawPhone = firebaseUser.phone.trim(); // e.g. +919876543210
-    const digits = rawPhone.replace(/\D/g, ''); // 919876543210
+    const rawPhone = firebaseUser.phone.trim();
+    const digits = rawPhone.replace(/\D/g, '');
     const tenDigit = digits.length >= 10 ? digits.slice(-10) : digits;
 
-    // Build all plausible phone formats for this number
-    const phoneVariants = [
+    // Build every plausible stored format from Firebase phone
+    const variantSet = new Set([
       rawPhone,
       `+91${tenDigit}`,
       `91${tenDigit}`,
       tenDigit,
-    ];
+      `0${tenDigit}`,
+    ]);
 
-    console.log(`[owner firebaseLogin] firebase phone: "${rawPhone}", tenDigit: "${tenDigit}", variants: ${JSON.stringify(phoneVariants)}`);
+    // Also add variants derived from the client-supplied phone (what the user typed)
+    // This handles any DB format mismatch regardless of how the account was registered
+    if (clientPhone) {
+      const cd = String(clientPhone).replace(/\D/g, '');
+      const ct = cd.length >= 10 ? cd.slice(-10) : cd;
+      variantSet.add(clientPhone.trim());
+      variantSet.add(`+91${ct}`);
+      variantSet.add(`91${ct}`);
+      variantSet.add(ct);
+      variantSet.add(`0${ct}`);
+    }
 
-    // Try exact match on all variants first, then regex fallback
+    const phoneVariants = [...variantSet];
+    console.log(`[owner firebaseLogin] firebase="${rawPhone}" client="${clientPhone || ''}" variants=${JSON.stringify(phoneVariants)}`);
+
+    // Lookup: exact match on all variants first, then end-of-string regex
     let owner = await Owner.findOne({
       $or: [
         { phone: { $in: phoneVariants } },
@@ -1002,10 +1016,9 @@ exports.firebaseLogin = async (req, res) => {
       ],
     }).select('+isBanned');
 
-    console.log(`[owner firebaseLogin] owner found: ${owner ? `${owner._id} (phone: ${owner.phone})` : 'null'}`);
+    console.log(`[owner firebaseLogin] owner: ${owner ? `${owner._id} phone="${owner.phone}"` : 'null'}`);
 
-    // Fallback: business contact phone may differ from owner's personal phone.
-    // Look up Business by phone, then resolve Owner via Business.ownerId.
+    // Fallback: match by Business phone → resolve Owner via ownerId
     if (!owner) {
       const Business = require('../../models/Business');
       const business = await Business.findOne({
@@ -1014,15 +1027,16 @@ exports.firebaseLogin = async (req, res) => {
           { phone: { $regex: tenDigit + '$' } },
         ],
       }).select('ownerId phone name');
-      console.log(`[owner firebaseLogin] fallback business: ${business ? `${business._id} (phone: ${business.phone}, ownerId: ${business.ownerId})` : 'null'}`);
+      console.log(`[owner firebaseLogin] business fallback: ${business ? `${business._id} phone="${business.phone}" ownerId=${business.ownerId}` : 'null'}`);
 
       if (business?.ownerId) {
         owner = await Owner.findById(business.ownerId).select('+isBanned');
-        console.log(`[owner firebaseLogin] fallback owner: ${owner ? `${owner._id} (phone: ${owner.phone})` : 'null — orphan business'}`);
+        console.log(`[owner firebaseLogin] owner via business: ${owner ? `${owner._id}` : 'null — orphan'}`);
       }
     }
 
     if (!owner) {
+      console.log(`[owner firebaseLogin] NOT FOUND — firebase="${rawPhone}" client="${clientPhone || ''}" variants=${JSON.stringify(phoneVariants)}`);
       return res.status(404).json(
         formatErrorResponse(`No GlowLoox Partner account found for ${rawPhone}. Please register to create your account.`, 404)
       );

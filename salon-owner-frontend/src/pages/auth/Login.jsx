@@ -135,7 +135,7 @@ const Login = () => {
       const firebaseToken = await result.user.getIdToken();
 
       try {
-        const response = await login(firebaseToken);
+        const response = await login(firebaseToken, normalizePhone(phone));
         toast.success('Welcome back! 🎉');
         const status = response?.data?.owner?.status;
         if (status === 'mobile_verified') {
