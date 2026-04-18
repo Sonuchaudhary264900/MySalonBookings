@@ -21,21 +21,27 @@ const { initiateRefund } = require('../config/razorpay');
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
 const isTLS = REDIS_URL.startsWith('rediss://');
-const workerConnection = () => new IORedis(REDIS_URL, {
-  maxRetriesPerRequest: null,
-  enableReadyCheck: false,
-  // Exponential backoff — prevents flooding Redis/Upstash on rate-limit errors
-  retryStrategy(times) {
-    if (times > 10) return null; // stop retrying after 10 attempts
-    return Math.min(times * 500, 30000); // 500ms → 30s cap
-  },
-  reconnectOnError(err) {
-    // Don't reconnect on Upstash rate-limit errors — they are temporary
-    if (err.message && err.message.includes('ERR max requests limit exceeded')) return false;
-    return true;
-  },
-  ...(isTLS && { tls: { rejectUnauthorized: false } }),
-});
+const workerConnection = () => {
+  const conn = new IORedis(REDIS_URL, {
+    maxRetriesPerRequest: null,
+    enableReadyCheck: false,
+    retryStrategy(times) {
+      if (times > 10) return null;
+      return Math.min(times * 500, 30000);
+    },
+    reconnectOnError(err) {
+      if (err.message && err.message.includes('ERR max requests limit exceeded')) return false;
+      return true;
+    },
+    ...(isTLS && { tls: { rejectUnauthorized: false } }),
+  });
+  conn.on('error', (err) => {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('⚠️  BullMQ worker Redis error (non-fatal):', err.message);
+    }
+  });
+  return conn;
+};
 
 const workers = [];
 
