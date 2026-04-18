@@ -32,7 +32,16 @@ const getQueueConnection = () => {
     queueConnection = new IORedis(REDIS_URL, {
       maxRetriesPerRequest: null, // required by BullMQ
       enableReadyCheck: false,
+      retryStrategy(times) {
+        return Math.min(times * 500, 10000); // slower backoff: 500ms → 10s max
+      },
       ...(isTLS && { tls: { rejectUnauthorized: false } }),
+    });
+    queueConnection.on('error', (err) => {
+      // suppress — BullMQ handles its own reconnection
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('⚠️  BullMQ Redis error (non-fatal):', err.message);
+      }
     });
   }
   return queueConnection;

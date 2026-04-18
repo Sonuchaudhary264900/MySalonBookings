@@ -674,7 +674,7 @@ Runs every minute — sends push to customer 10 min before slot
 ====================================================
 */
 
-const send10MinReminders = cron.schedule('* * * * *', async () => {
+const send10MinReminders = cron.schedule('*/5 * * * *', async () => {
   try {
     const { sendExpoPush } = require('../utils/pushNotification');
 
@@ -682,7 +682,9 @@ const send10MinReminders = cron.schedule('* * * * *', async () => {
     const nowIST = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
     const todayIST = nowIST.toISOString().slice(0, 10);
     const nowMins = nowIST.getUTCHours() * 60 + nowIST.getUTCMinutes();
-    const targetMins = nowMins + 10;
+    // Window: 8–13 minutes ahead (covers 5-min polling gap)
+    const windowStart = nowMins + 8;
+    const windowEnd = nowMins + 13;
 
     const bookings = await Booking.find({
       status: { $in: ['pending', 'confirmed'] },
@@ -696,7 +698,7 @@ const send10MinReminders = cron.schedule('* * * * *', async () => {
 
         const [h, m] = booking.appointmentTime.split(':');
         const slotMins = parseInt(h, 10) * 60 + parseInt(m, 10);
-        if (slotMins !== targetMins) continue;
+        if (slotMins < windowStart || slotMins > windowEnd) continue;
 
         if (booking.customerId?.pushToken) {
           await sendExpoPush(

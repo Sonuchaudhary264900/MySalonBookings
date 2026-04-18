@@ -23,11 +23,14 @@ const redisOptions = {
   maxRetriesPerRequest: 3,
   enableReadyCheck: true,
   retryStrategy(times) {
-    const delay = Math.min(times * 200, 3000);
+    // Slow backoff — avoids burning through Upstash request limits on reconnect storms
+    const delay = Math.min(times * 500, 15000);
     return delay;
   },
   reconnectOnError(err) {
     if (err.message.includes('READONLY')) return true;
+    // Don't reconnect on quota errors — backing off is better
+    if (err.message.includes('max requests limit exceeded')) return false;
     return false;
   },
   lazyConnect: false,
