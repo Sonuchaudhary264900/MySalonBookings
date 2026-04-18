@@ -19,18 +19,22 @@ const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 // Upstash (and any rediss:// URL) requires TLS
 const isTLS = REDIS_URL.startsWith('rediss://');
 
+let _quotaHit = false;
+
 const redisOptions = {
   maxRetriesPerRequest: 3,
   enableReadyCheck: true,
   retryStrategy(times) {
-    // Slow backoff — avoids burning through Upstash request limits on reconnect storms
-    const delay = Math.min(times * 500, 15000);
-    return delay;
+    if (_quotaHit) return null; // stop retrying completely when quota is exhausted
+    if (times > 8) return null;
+    return Math.min(times * 2000, 300000); // 2s → 5min max
   },
   reconnectOnError(err) {
     if (err.message.includes('READONLY')) return true;
-    // Don't reconnect on quota errors — backing off is better
-    if (err.message.includes('max requests limit exceeded')) return false;
+    if (err.message.includes('max requests limit exceeded')) {
+      _quotaHit = true;
+      return false;
+    }
     return false;
   },
   lazyConnect: false,
@@ -52,8 +56,10 @@ try {
 
   redisClient.on('error', (err) => {
     isRedisConnected = false;
-    // Don't crash — app degrades gracefully without cache
-    if (process.env.NODE_ENV !== 'production') {
+    if (err.message && err.message.includes('max requests limit exceeded')) {
+      _quotaHit = true;
+      console.warn('⚠️  Upstash Redis quota exceeded — cache disabled until quota resets');
+    } else if (process.env.NODE_ENV !== 'production') {
       console.warn('⚠️  Redis Error (app continues without cache):', err.message);
     }
   });

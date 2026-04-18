@@ -1,16 +1,4 @@
 // queues/workers.js
-/*
-  BullMQ Workers — consume jobs from queues
-  Each worker processes jobs independently with retry + error handling.
-
-  Workers:
-  - notificationWorker  → Expo push notifications
-  - emailWorker         → Nodemailer emails
-  - bookingReminderWorker → Scheduled booking reminders
-  - analyticsWorker     → Analytics event ingestion
-  - refundWorker        → Razorpay refund processing
-*/
-
 const { Worker } = require('bullmq');
 const IORedis = require('ioredis');
 const { logger } = require('../config/logger');
@@ -19,27 +7,45 @@ const { sendExpoPush } = require('../services/pushService');
 const { initiateRefund } = require('../config/razorpay');
 
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
-
 const isTLS = REDIS_URL.startsWith('rediss://');
-const workerConnection = () => {
+
+// Track whether the quota limit has been hit — circuit breaker
+let quotaExceeded = false;
+
+// Single shared connection config for all workers.
+// BullMQ calls .duplicate() internally, so each worker gets its own connection,
+// but they all inherit this config — one source of truth for retry behaviour.
+const makeWorkerConn = () => {
   const conn = new IORedis(REDIS_URL, {
-    maxRetriesPerRequest: null,
+    maxRetriesPerRequest: null,   // required by BullMQ
     enableReadyCheck: false,
+    // Aggressive backoff: 2s → 4s → … → 5min max
+    // Reduces auth commands during reconnect storms
     retryStrategy(times) {
-      if (times > 10) return null;
-      return Math.min(times * 500, 30000);
+      if (quotaExceeded) return null; // stop retrying when quota is hit
+      if (times > 8) return null;     // give up after ~8 attempts (~5 min)
+      return Math.min(times * 2000, 300000); // 2s, 4s, 8s … 5min
     },
     reconnectOnError(err) {
-      if (err.message && err.message.includes('ERR max requests limit exceeded')) return false;
-      return true;
+      if (err.message && err.message.includes('ERR max requests limit exceeded')) {
+        quotaExceeded = true;
+        return false;
+      }
+      return false;
     },
     ...(isTLS && { tls: { rejectUnauthorized: false } }),
   });
+
   conn.on('error', (err) => {
-    if (process.env.NODE_ENV !== 'production') {
-      console.warn('⚠️  BullMQ worker Redis error (non-fatal):', err.message);
+    if (err.message && err.message.includes('ERR max requests limit exceeded')) {
+      if (!quotaExceeded) {
+        quotaExceeded = true;
+        logger.warn('[Workers] Upstash Redis quota exceeded — stopping all workers');
+        stopAllWorkers().catch(() => {});
+      }
     }
   });
+
   return conn;
 };
 
@@ -47,7 +53,6 @@ const workers = [];
 
 // ===================================================
 // NOTIFICATION WORKER
-// Processes Expo push notification jobs
 // ===================================================
 const notificationWorker = new Worker('notifications', async (job) => {
   const { token, title, body, data } = job.data;
@@ -55,13 +60,12 @@ const notificationWorker = new Worker('notifications', async (job) => {
   await sendExpoPush(token, title, body, data || {});
   metrics.queueJobsTotal.inc({ queue: 'notifications', status: 'completed' });
 }, {
-  connection: workerConnection(),
-  concurrency: 20,
+  connection: makeWorkerConn(),
+  concurrency: 5,
 });
 
 // ===================================================
 // EMAIL WORKER
-// Processes nodemailer email jobs
 // ===================================================
 const emailWorker = new Worker('emails', async (job) => {
   if (process.env.GMAIL_ENABLED !== 'true') {
@@ -76,13 +80,12 @@ const emailWorker = new Worker('emails', async (job) => {
   await transporter.sendMail(job.data);
   metrics.queueJobsTotal.inc({ queue: 'emails', status: 'completed' });
 }, {
-  connection: workerConnection(),
-  concurrency: 5,
+  connection: makeWorkerConn(),
+  concurrency: 2,
 });
 
 // ===================================================
 // BOOKING REMINDER WORKER
-// Processes scheduled reminder jobs (24h, 1h, 30min)
 // ===================================================
 const bookingReminderWorker = new Worker('bookingReminder', async (job) => {
   const Booking = require('../models/Booking');
@@ -97,9 +100,9 @@ const bookingReminderWorker = new Worker('bookingReminder', async (job) => {
   if (!token) return;
 
   const messages = {
-    '24h_reminder':  { title: '📅 Appointment Tomorrow', body: `Your booking at ${booking.salonId?.name} is tomorrow. See you there!` },
-    '1h_reminder':   { title: '⏰ 1 Hour to Go!', body: `Your appointment at ${booking.salonId?.name} is in 1 hour.` },
-    '30min_reminder':{ title: '🕐 30 Minutes!', body: `Your appointment at ${booking.salonId?.name} starts in 30 minutes. Get ready!` },
+    '24h_reminder':   { title: '📅 Appointment Tomorrow', body: `Your booking at ${booking.salonId?.name} is tomorrow. See you there!` },
+    '1h_reminder':    { title: '⏰ 1 Hour to Go!',        body: `Your appointment at ${booking.salonId?.name} is in 1 hour.` },
+    '30min_reminder': { title: '🕐 30 Minutes!',          body: `Your appointment at ${booking.salonId?.name} starts in 30 minutes. Get ready!` },
   };
 
   const msg = messages[job.name];
@@ -107,51 +110,46 @@ const bookingReminderWorker = new Worker('bookingReminder', async (job) => {
 
   metrics.queueJobsTotal.inc({ queue: 'bookingReminder', status: 'completed' });
 }, {
-  connection: workerConnection(),
-  concurrency: 10,
+  connection: makeWorkerConn(),
+  concurrency: 3,
 });
 
 // ===================================================
-// ANALYTICS WORKER
-// Fire-and-forget event ingestion
+// ANALYTICS WORKER — low priority, skip if quota hit
 // ===================================================
 const analyticsWorker = new Worker('analytics', async (job) => {
-  // Future: write to ClickHouse / BigQuery
-  // For now: structured log that can be shipped via ELK
   logger.info('analytics_event', { event: job.name, ...job.data });
   metrics.queueJobsTotal.inc({ queue: 'analytics', status: 'completed' });
 }, {
-  connection: workerConnection(),
-  concurrency: 10,
+  connection: makeWorkerConn(),
+  concurrency: 2,
 });
 
 // ===================================================
 // REFUND WORKER
-// Idempotent Razorpay refund processing
 // ===================================================
 const refundWorker = new Worker('refunds', async (job) => {
-  const { paymentId, amount, reason } = job.data;
+  const { paymentId, amount } = job.data;
   logger.info('Processing refund', { paymentId, amount });
   await initiateRefund(paymentId, amount);
   logger.info('Refund processed', { paymentId });
   metrics.queueJobsTotal.inc({ queue: 'refunds', status: 'completed' });
 }, {
-  connection: workerConnection(),
-  concurrency: 3,
+  connection: makeWorkerConn(),
+  concurrency: 2,
 });
 
 // ===================================================
-// ERROR HANDLERS — log failures, don't crash
+// ERROR HANDLERS
 // ===================================================
 const allWorkers = [
-  { worker: notificationWorker,   name: 'notifications' },
-  { worker: emailWorker,          name: 'emails' },
-  { worker: bookingReminderWorker,name: 'bookingReminder' },
-  { worker: analyticsWorker,      name: 'analytics' },
-  { worker: refundWorker,         name: 'refunds' },
+  { worker: notificationWorker,    name: 'notifications' },
+  { worker: emailWorker,           name: 'emails' },
+  { worker: bookingReminderWorker, name: 'bookingReminder' },
+  { worker: analyticsWorker,       name: 'analytics' },
+  { worker: refundWorker,          name: 'refunds' },
 ];
 
-// Throttle repeated error logs — one log per worker per 60s to prevent flooding
 const lastErrorLog = {};
 
 allWorkers.forEach(({ worker, name }) => {
@@ -169,12 +167,11 @@ allWorkers.forEach(({ worker, name }) => {
     const isRateLimit = err.message?.includes('ERR max requests limit exceeded');
     const now = Date.now();
     const last = lastErrorLog[name] || 0;
-    // Log at most once per 60s for rate-limit errors, 5s for others
-    const throttle = isRateLimit ? 60000 : 5000;
+    const throttle = isRateLimit ? 300000 : 10000; // rate-limit: 5min, others: 10s
     if (now - last > throttle) {
       lastErrorLog[name] = now;
       if (isRateLimit) {
-        logger.warn(`Worker [${name}] Redis rate limit exceeded — Upstash free plan quota reached. Backing off.`);
+        logger.warn(`Worker [${name}] Upstash quota exceeded — workers will stop.`);
       } else {
         logger.error(`Worker error [${name}]`, { error: err.message });
       }
@@ -185,7 +182,7 @@ allWorkers.forEach(({ worker, name }) => {
 });
 
 const stopAllWorkers = async () => {
-  await Promise.all(workers.map(w => w.close()));
+  await Promise.all(workers.map(w => w.close().catch(() => {})));
   logger.info('All BullMQ workers stopped');
 };
 

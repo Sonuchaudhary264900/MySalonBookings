@@ -30,17 +30,23 @@ const getQueueConnection = () => {
   if (!queueConnection) {
     const isTLS = REDIS_URL.startsWith('rediss://');
     queueConnection = new IORedis(REDIS_URL, {
-      maxRetriesPerRequest: null, // required by BullMQ
+      maxRetriesPerRequest: null,
       enableReadyCheck: false,
       retryStrategy(times) {
-        return Math.min(times * 500, 10000); // slower backoff: 500ms → 10s max
+        if (times > 8) return null;
+        return Math.min(times * 2000, 300000); // 2s → 5min max
+      },
+      reconnectOnError(err) {
+        if (err.message && err.message.includes('ERR max requests limit exceeded')) return false;
+        return false;
       },
       ...(isTLS && { tls: { rejectUnauthorized: false } }),
     });
     queueConnection.on('error', (err) => {
-      // suppress — BullMQ handles its own reconnection
-      if (process.env.NODE_ENV !== 'production') {
-        console.warn('⚠️  BullMQ Redis error (non-fatal):', err.message);
+      if (err.message && err.message.includes('ERR max requests limit exceeded')) {
+        logger.warn('[Queues] Upstash quota exceeded — queue operations will fail gracefully');
+      } else if (process.env.NODE_ENV !== 'production') {
+        console.warn('⚠️  BullMQ queue Redis error (non-fatal):', err.message);
       }
     });
   }
