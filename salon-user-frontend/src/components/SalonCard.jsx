@@ -301,14 +301,14 @@ function SalonCard({ salon, userCoords }) {
         </div>
 
         {/* ── Info ── */}
-        <div className="p-4">
+        <div className="px-3 pt-2.5 pb-2.5">
           {/* Name */}
-          <h2 className="font-bold text-[15px] leading-snug line-clamp-1 mb-1" style={{ color: "var(--t-text)" }}>
+          <h2 className="font-bold text-[14px] leading-snug line-clamp-1 mb-1" style={{ color: "var(--t-text)" }}>
             {salon.name}
           </h2>
 
           {/* Chips row 1: Locality · Next slot · Gender */}
-          <div className="flex items-center gap-1.5 flex-wrap mb-2">
+          <div className="flex items-center gap-1 flex-wrap mb-1.5">
             {locality && (
               <span className="flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full"
                 style={{ background: "var(--t-input-bg)", border: "1px solid var(--t-border)", color: "var(--t-text-2)" }}>
@@ -338,7 +338,7 @@ function SalonCard({ salon, userCoords }) {
             )}
           </div>
           {/* Chips row 2: Bookings · Kids · At-Home · Min price */}
-          <div className="flex items-center justify-between gap-2 mb-2.5">
+          <div className="flex items-center justify-between gap-2 mb-1.5">
             <div className="flex items-center gap-1.5 flex-wrap flex-1">
               {totalBookings >= 10 && (
                 <span className="flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full"
@@ -373,7 +373,7 @@ function SalonCard({ salon, userCoords }) {
             const shown = cats.slice(0, 3);
             const extra = cats.length - shown.length;
             return (
-              <div className="flex items-center gap-1.5 flex-wrap mb-2.5">
+              <div className="flex items-center gap-1 flex-wrap mb-1.5">
                 {shown.map(cat => (
                   <span key={cat} className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
                     style={{ background: "var(--t-input-bg)", border: "1px solid var(--t-border)", color: "var(--t-text-3)" }}>
