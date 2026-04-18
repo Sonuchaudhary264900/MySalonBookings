@@ -125,7 +125,6 @@ const MapIcon = ({ active }) => (
 const AUTH_TABS = [
   { label: "Home",      path: "/",          Icon: HomeIcon      },
   { label: "Reels",     path: "/reels",     Icon: ReelsIcon     },
-  { label: "Map",       path: "/map",       Icon: MapIcon       },
   { label: "Bookings",  path: "/dashboard", Icon: BookingsIcon  },
   { label: "Saved",     path: "/favorites", Icon: FavoritesIcon },
   { label: "Profile",   path: "/profile",   Icon: ProfileIcon   },

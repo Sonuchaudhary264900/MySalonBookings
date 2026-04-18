@@ -1077,7 +1077,6 @@ export default function Home() {
                 display:"inline-flex", alignItems:"center", gap:8,
                 marginBottom:16,
               }}>
-                <span style={{ display:"inline-block", width:28, height:2, background:"var(--t-accent)", borderRadius:999 }} />
                 <span style={{ fontSize:12, fontWeight:800, letterSpacing:"0.16em", textTransform:"uppercase", color:"var(--t-accent)" }}>
                   {isLoggedIn ? `${getGreeting()}, ${userName}` : getGreeting()}
                 </span>
