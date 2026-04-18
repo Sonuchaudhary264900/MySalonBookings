@@ -601,7 +601,7 @@ function BookingCard({ booking: initialBooking, userCoords, onCancelled, isNext 
   const [dirOpen, setDirOpen]               = useState(false);
   const [cancelling, setCancelling]         = useState(false);
   const [hovered, setHovered]               = useState(false);
-  const [chatOpen, setChatOpen]             = useState(false);
+  const navigate = useNavigate();
   const countdown = useCountdown(booking.appointmentDate, booking.appointmentTime);
 
   const status = booking.status || 'pending';
@@ -753,7 +753,7 @@ function BookingCard({ booking: initialBooking, userCoords, onCancelled, isNext 
         {(isUpcoming || !!salonPhone || !!mapsUrl || status === 'completed') && (
           <div className="bk-actions-reveal" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 14 }}>
             {CHAT_OPEN_SET.has(status) && (
-              <button className="bk-action" onClick={() => setChatOpen(true)}
+              <button className="bk-action" onClick={() => navigate(`/chat/${booking._id}`)}
                 style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 13px', background: 'transparent', border: `1px solid var(--t-border)`, borderRadius: 9, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--t-accent)' }}>
                 💬 Chat
               </button>
@@ -793,7 +793,6 @@ function BookingCard({ booking: initialBooking, userCoords, onCancelled, isNext 
       </div>
 
       {rescheduleOpen && <RescheduleModal booking={booking} onClose={() => setRescheduleOpen(false)} onRescheduled={handleRescheduled} />}
-      {chatOpen && <ChatDrawer booking={booking} onClose={() => setChatOpen(false)} />}
       {dirOpen && (
         <DirectionsModal
           salon={salonDoc}

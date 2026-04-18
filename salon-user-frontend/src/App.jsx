@@ -40,6 +40,7 @@ const SalonReviews            = lazy(() => import("./pages/SalonReviews"));
 const MySubscription          = lazy(() => import("./pages/MySubscription"));
 const MapView                 = lazy(() => import("./pages/MapView"));
 const Notifications           = lazy(() => import("./pages/Notifications"));
+const Chat                    = lazy(() => import("./pages/Chat"));
 
 // ── Page loading fallback ──────────────────────────────────────
 function PageLoader() {
@@ -87,18 +88,20 @@ function AppLayout({ notifOpen, setNotifOpen }) {
   const { pathname } = useLocation();
   const isReels       = pathname === '/reels' || pathname.startsWith('/reels');
   const isMap         = pathname === '/map';
+  const isChat        = pathname.startsWith('/chat/');
   const isSalon       = /^\/salons\/[^/]+$/.test(pathname);
   const isSalonPage   = /^\/(salon|barbershop|spa-wellness|makeup-bridal|skin-derma)\/[^/]+(\/.*)?$/.test(pathname);
   const isBookingFlow = pathname.startsWith('/booking/');
   const isGuest       = !localStorage.getItem("customerToken");
+  const hideChrome    = isReels || isMap || isChat;
 
   return (
     <div className="flex flex-col min-h-screen">
       <SwipeHandler />
       <ScrollToTop />
-      {!isReels && !isMap && <Navbar notifOpen={notifOpen} setNotifOpen={setNotifOpen} />}
+      {!hideChrome && <Navbar notifOpen={notifOpen} setNotifOpen={setNotifOpen} />}
       <ToastContainer />
-      <main className={isReels || isMap ? 'flex-grow min-w-0' : isSalon ? 'flex-grow pb-20 md:pb-0 md:pl-[220px] min-w-0 page-root' : isBookingFlow ? 'flex-grow pb-20 md:pb-0 pt-16 md:pt-0 md:pl-[220px] min-w-0 page-root' : 'flex-grow pb-20 md:pb-0 pt-16 md:pt-0 md:pl-[220px] min-w-0 page-root'}>
+      <main className={hideChrome ? 'flex-grow min-w-0' : isSalon ? 'flex-grow pb-20 md:pb-0 md:pl-[220px] min-w-0 page-root' : isBookingFlow ? 'flex-grow pb-20 md:pb-0 pt-16 md:pt-0 md:pl-[220px] min-w-0 page-root' : 'flex-grow pb-20 md:pb-0 pt-16 md:pt-0 md:pl-[220px] min-w-0 page-root'}>
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/"                            element={<Home />} />
@@ -131,6 +134,7 @@ function AppLayout({ notifOpen, setNotifOpen }) {
             <Route path="/map"                         element={<MapView />} />
             <Route path="/my-subscription"             element={<MySubscription />} />
             <Route path="/notifications"               element={<Notifications />} />
+            <Route path="/chat/:bookingId"             element={<Chat />} />
 
             {/* 404 */}
             <Route path="*" element={
@@ -148,7 +152,7 @@ function AppLayout({ notifOpen, setNotifOpen }) {
         </Suspense>
       </main>
       {pathname === '/' && isGuest && <Footer />}
-      {!isReels && <BottomNav />}
+      {!hideChrome && <BottomNav />}
     </div>
   );
 }
