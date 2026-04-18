@@ -242,8 +242,7 @@ function SearchInput({ value, onChange, onSearch, onFocus, onBlur, focused, onCl
           flexShrink:0, transition:"all 0.2s ease",
           boxShadow: value ? "0 2px 10px rgba(99,102,241,0.35)" : "none",
         }}>
-        <Search style={{ width:13, height:13 }} />
-        {!compact && <span>Search</span>}
+        <Search style={{ width:compact?14:16, height:compact?14:16 }} />
       </button>
     </div>
   );
