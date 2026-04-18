@@ -13,8 +13,6 @@ const bookingSchema = new mongoose.Schema(
     salonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Business', required: true },
     salonName: String,
     salonPhone: String,
-    serviceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Service' },
-    serviceName: String,
     services: [
       {
         serviceId:    { type: mongoose.Schema.Types.ObjectId, ref: 'Service' },
@@ -31,7 +29,6 @@ const bookingSchema = new mongoose.Schema(
     estimatedDuration: Number,
     queuePosition: Number,
     estimatedWaitTime: Number,
-    servicePrice: Number,
     discount: { type: Number, default: 0 },
     couponApplied: String,
     totalAmount: Number,
@@ -54,9 +51,11 @@ const bookingSchema = new mongoose.Schema(
     reviewedAt: Date,
     confirmationSentAt: Date,
     reminderSentAt: Date,
-    tenMinReminderSent: { type: Boolean, default: false },
-    thirtyMinReminderSent: { type: Boolean, default: false },
-    oneHourReminderSent: { type: Boolean, default: false },
+    remindersSent: {
+      tenMin:    { type: Boolean, default: false },
+      thirtyMin: { type: Boolean, default: false },
+      oneHour:   { type: Boolean, default: false },
+    },
     ownerNotes: String,
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },

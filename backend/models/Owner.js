@@ -280,23 +280,6 @@ const ownerSchema = new mongoose.Schema(
     },
 
     // ==========================================
-    // REFERRAL
-    // ==========================================
-    referredBy: {
-      type: require('mongoose').Schema.Types.ObjectId,
-      ref: 'Customer',
-      default: null,
-    },
-    referralCode: {
-      type: String,
-      default: null,
-    },
-    referralAppliedAt: {
-      type: Date,
-      default: null,
-    },
-
-    // ==========================================
     // SUBSCRIPTION / BILLING
     // ==========================================
     subscription: {

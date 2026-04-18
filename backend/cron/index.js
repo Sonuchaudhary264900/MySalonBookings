@@ -193,7 +193,7 @@ const send1HourReminders = cron.schedule('*/5 * * * *', async () => {
 
     const bookings = await Booking.find({
       status: { $in: ['confirmed', 'pending'] },
-      oneHourReminderSent: { $ne: true },
+      'remindersSent.oneHour': { $ne: true },
     }).populate('customerId', 'pushToken name').lean();
 
     let sent = 0;
@@ -218,7 +218,7 @@ const send1HourReminders = cron.schedule('*/5 * * * *', async () => {
           ).catch(() => {});
         }
 
-        await Booking.updateOne({ _id: booking._id }, { $set: { oneHourReminderSent: true } });
+        await Booking.updateOne({ _id: booking._id }, { $set: { 'remindersSent.oneHour': true } });
         sent++;
 
       } catch (error) {
@@ -548,7 +548,7 @@ const send30MinReminders = cron.schedule('*/5 * * * *', async () => {
 
     const bookings = await Booking.find({
       status: { $in: ['confirmed', 'pending'] },
-      thirtyMinReminderSent: { $ne: true },
+      'remindersSent.thirtyMin': { $ne: true },
     }).populate('customerId', 'pushToken name').lean();
 
     let sent = 0;
@@ -586,7 +586,7 @@ const send30MinReminders = cron.schedule('*/5 * * * *', async () => {
           ).catch(() => {});
         }
 
-        await Booking.updateOne({ _id: booking._id }, { $set: { thirtyMinReminderSent: true } });
+        await Booking.updateOne({ _id: booking._id }, { $set: { 'remindersSent.thirtyMin': true } });
         sent++;
 
       } catch (error) {
@@ -688,7 +688,7 @@ const send10MinReminders = cron.schedule('*/5 * * * *', async () => {
 
     const bookings = await Booking.find({
       status: { $in: ['pending', 'confirmed'] },
-      tenMinReminderSent: { $ne: true },
+      'remindersSent.tenMin': { $ne: true },
     }).populate('customerId', 'pushToken name').lean();
 
     for (const booking of bookings) {
@@ -710,7 +710,7 @@ const send10MinReminders = cron.schedule('*/5 * * * *', async () => {
           );
         }
 
-        await Booking.updateOne({ _id: booking._id }, { $set: { tenMinReminderSent: true } });
+        await Booking.updateOne({ _id: booking._id }, { $set: { 'remindersSent.tenMin': true } });
       } catch (err) {
         console.error('10-min reminder single error:', err.message);
       }

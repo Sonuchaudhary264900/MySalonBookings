@@ -196,10 +196,6 @@ locality: { type: String, default: null }, // reverse-geocoded suburb/village fr
       type: String, // Cloudinary URL
       default: null,
     },
-    ctaPhoto: {
-      type: String, // Cloudinary URL — used as background on the CTA banner section
-      default: null,
-    },
     // Onboarding-uploaded salon tour video
     videoUrl: {
       type: String,

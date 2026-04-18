@@ -218,8 +218,6 @@ const createBooking = async (req, res) => {
       customerGender: customer.gender || null,
       salonId,
       salonName: salon.name,
-      serviceId: primaryService._id,
-      serviceName: combinedName,
       services: fetchedServices.map(s => ({
         serviceId:    s._id,
         serviceName:  s.name,
@@ -231,7 +229,6 @@ const createBooking = async (req, res) => {
       appointmentDate: new Date(appointmentDate + 'T12:00:00.000Z'),
       appointmentTime,
       estimatedDuration: totalDuration,
-      servicePrice: totalPrice,
       discount: discountAmount,
       couponApplied: appliedCouponCode,
       totalAmount: finalAmount,

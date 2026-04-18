@@ -50,12 +50,6 @@ const customerSchema = new mongoose.Schema(
       type: String, // Cloudinary URL
       default: null,
     },
-    alternatePhone: {
-      type: String,
-      trim: true,
-      default: null,
-    },
-
     // ==========================================
     // STATUS
     // ==========================================
@@ -156,12 +150,6 @@ const customerSchema = new mongoose.Schema(
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Business',
-      },
-    ],
-    preferredBarbers: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Barber',
       },
     ],
     followedSalons: [

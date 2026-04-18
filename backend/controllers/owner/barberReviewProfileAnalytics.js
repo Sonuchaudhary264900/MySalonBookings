@@ -73,7 +73,7 @@ const getDashboardAnalytics = async (req, res) => {
       _id:             b._id,
       customerName:    b.customerName,
       customerPhone:   b.customerPhone,
-      serviceName:     b.serviceName,
+      serviceName:     b.services?.[0]?.serviceName || '',
       appointmentDate: b.appointmentDate,
       appointmentTime: b.appointmentTime,
       status:          b.status,
@@ -82,7 +82,7 @@ const getDashboardAnalytics = async (req, res) => {
 
     const serviceMap = {};
     for (const b of bookings) {
-      const key = b.serviceName || 'Unknown';
+      const key = b.services?.[0]?.serviceName || 'Unknown';
       if (!serviceMap[key]) serviceMap[key] = { name: key, bookings: 0, revenue: 0 };
       serviceMap[key].bookings++;
       if (b.status === 'completed') serviceMap[key].revenue += (b.totalAmount || 0);
