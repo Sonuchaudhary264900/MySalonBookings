@@ -68,7 +68,7 @@ const ownerSchema = new mongoose.Schema(
     },
     gender: {
       type: String,
-      enum: ['male', 'female', 'other', null],
+      enum: ['male', 'female', null],
       default: null,
     },
     profilePhoto: {
