@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useNotifications } from "../context/NotificationContext";
 import { useTheme } from "../context/ThemeContext";
 import {
-  Home, Play, CalendarDays, Heart, Bell, CheckCircle, ChevronLeft, MessageCircle,
+  Home, Play, CalendarDays, Heart, Bell, CheckCircle, ChevronLeft,
   Sun, Moon, LogOut, User, Bookmark, Scissors, Settings, Menu, X, Crown, MapPin,
 } from "lucide-react";
 
@@ -301,11 +301,10 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
     { to: "/",               label: "Home",            Icon: Home,        auth: false },
     { to: "/reels",          label: "Reels",           Icon: Play,        auth: false },
     { to: "/map",            label: "Map",             Icon: MapPin,      auth: false },
-    { to: "/dashboard",      label: "Bookings",        Icon: CalendarDays,   auth: true  },
-    { to: "/messages",       label: "Messages",        Icon: MessageCircle,  auth: true  },
-    { to: "/favorites",      label: "Saved",           Icon: Heart,          auth: true  },
-    { to: "/my-subscription",label: "My Subscription", Icon: Crown,          auth: true  },
-    { to: "/profile",        label: "Settings",        Icon: Settings,       auth: true  },
+    { to: "/dashboard",      label: "Bookings",        Icon: CalendarDays,auth: true  },
+    { to: "/favorites",      label: "Saved",           Icon: Heart,       auth: true  },
+    { to: "/my-subscription",label: "My Subscription", Icon: Crown,       auth: true  },
+    { to: "/profile",        label: "Settings",        Icon: Settings,    auth: true  },
   ];
   // Desktop center nav: only show auth items if logged in
   const DESKTOP_NAV = token ? NAV_LINKS : NAV_LINKS.filter(l => !l.auth);
