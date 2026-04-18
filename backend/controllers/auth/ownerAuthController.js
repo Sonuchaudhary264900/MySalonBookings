@@ -1058,8 +1058,46 @@ exports.firebaseLogin = async (req, res) => {
       }
     }
 
+    // 5. Business phone match — owner doc missing or ownerId unset → auto-create owner
     if (!owner) {
-      console.log(`[owner firebaseLogin] NOT FOUND after all 4 fallbacks — firebase="${rawPhone}"`);
+      const Business = require('../../models/Business');
+      const business = await Business.findOne({
+        $or: [
+          { phone: { $in: phoneVariants } },
+          { phone: { $regex: tenDigit + '$' } },
+        ],
+      }).select('_id name email phone ownerId');
+
+      if (business) {
+        console.log(`[owner firebaseLogin] business found by phone: ${business._id} — creating owner`);
+        const baseEmail = business.email;
+        // Attempt to create owner from business data; fall back to phone-derived email on conflict
+        const tryEmails = [baseEmail, `owner.${tenDigit}@glowloox.com`];
+        for (const email of tryEmails) {
+          try {
+            owner = await Owner.create({
+              phone: rawPhone,
+              email,
+              name: business.name,
+              phoneVerified: true,
+              firebaseUid,
+              businessId: business._id,
+              status: 'salon_registered',
+            });
+            // Link the business back to this owner
+            await Business.updateOne({ _id: business._id }, { ownerId: owner._id });
+            console.log(`[owner firebaseLogin] auto-created owner ${owner._id} from business ${business._id}`);
+            break;
+          } catch (createErr) {
+            if (createErr.code === 11000) continue; // email conflict — try next
+            throw createErr;
+          }
+        }
+      }
+    }
+
+    if (!owner) {
+      console.log(`[owner firebaseLogin] NOT FOUND after all 5 fallbacks — firebase="${rawPhone}"`);
       return res.status(404).json(
         formatErrorResponse(`No GlowLoox Partner account found for ${rawPhone}. Please register to create your account.`, 404)
       );

@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { OnboardingProvider, useOnboarding } from '../../context/OnboardingContext';
 import OnboardingLayout from '../../components/onboarding/OnboardingLayout';
@@ -56,13 +56,25 @@ function StepRenderer() {
 function OnboardingInner() {
   const { isAuthenticated, user, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { update, goToStep } = useOnboarding();
+
+  // Pre-fill phone+token from Login redirect (phone verified, skip Steps 1 & 2)
+  useEffect(() => {
+    const state = location.state;
+    if (state?.skipToStep && state?.phone && state?.firebaseToken) {
+      update({ phone: state.phone, firebaseToken: state.firebaseToken });
+      goToStep(state.skipToStep);
+      // Clear state so back-navigation doesn't re-trigger
+      window.history.replaceState({}, '');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Already approved → go to dashboard
   useEffect(() => {
     if (!loading && isAuthenticated) {
       if (user?.status === 'approved' || user?.status === 'salon_registered') {
-        // Let them continue if salon not yet registered — they might be mid-onboarding
-        // Only redirect if truly done (approved)
         if (user?.status === 'approved') {
           navigate(ROUTES.DASHBOARD, { replace: true });
         }

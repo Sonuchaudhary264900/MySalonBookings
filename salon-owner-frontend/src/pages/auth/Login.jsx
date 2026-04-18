@@ -166,8 +166,11 @@ const Login = () => {
       } catch (loginErr) {
         const msg = loginErr.message || '';
         if (msg.toLowerCase().includes('not found') || msg.toLowerCase().includes('no glowloox')) {
-          toast('No account found — redirecting to registration', { icon: '👋' });
-          navigate(ROUTES.ONBOARDING, { replace: true });
+          toast('No account found — let\'s create one!', { icon: '👋' });
+          navigate(ROUTES.ONBOARDING, {
+            replace: true,
+            state: { phone: normalizePhone(phone), firebaseToken, skipToStep: 3 },
+          });
         } else {
           throw loginErr;
         }
