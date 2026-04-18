@@ -1035,8 +1035,25 @@ exports.firebaseLogin = async (req, res) => {
       }
     }
 
+    // Final fallback: look up by email (covers any phone-format mismatch)
+    // Firebase OTP already proved the user owns this phone number.
+    // If found by email, patch the stored phone to the Firebase-verified format.
+    if (!owner && req.body.email) {
+      const cleanEmail = String(req.body.email).toLowerCase().trim();
+      owner = await Owner.findOne({ email: cleanEmail }).select('+isBanned');
+      if (owner) {
+        console.log(`[owner firebaseLogin] found by email "${cleanEmail}", stored phone="${owner.phone}", updating to "${rawPhone}"`);
+        try {
+          await Owner.updateOne({ _id: owner._id }, { phone: rawPhone });
+          owner.phone = rawPhone;
+        } catch (phoneErr) {
+          console.warn(`[owner firebaseLogin] phone update failed (duplicate?): ${phoneErr.message}`);
+        }
+      }
+    }
+
     if (!owner) {
-      console.log(`[owner firebaseLogin] NOT FOUND — firebase="${rawPhone}" client="${clientPhone || ''}" variants=${JSON.stringify(phoneVariants)}`);
+      console.log(`[owner firebaseLogin] NOT FOUND — firebase="${rawPhone}" client="${clientPhone || ''}" email="${req.body.email || ''}" variants=${JSON.stringify(phoneVariants)}`);
       return res.status(404).json(
         formatErrorResponse(`No GlowLoox Partner account found for ${rawPhone}. Please register to create your account.`, 404)
       );

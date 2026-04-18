@@ -68,12 +68,14 @@ const Login = () => {
     if (user) navigate(ROUTES.DASHBOARD);
   }, [user, navigate]);
 
-  const [step,      setStep]      = useState(1);
-  const [phone,     setPhone]     = useState('');
-  const [otp,       setOtp]       = useState(['','','','','','']);
-  const [otpTimer,  setOtpTimer]  = useState(0);
-  const [loading,   setLoading]   = useState(false);
-  const [error,     setError]     = useState('');
+  const [step,         setStep]         = useState(1);
+  const [phone,        setPhone]        = useState('');
+  const [otp,          setOtp]          = useState(['','','','','','']);
+  const [otpTimer,     setOtpTimer]     = useState(0);
+  const [loading,      setLoading]      = useState(false);
+  const [error,        setError]        = useState('');
+  const [email,        setEmail]        = useState('');
+  const [firebaseToken, setFirebaseToken] = useState('');
 
   const otpRefs       = useRef([]);
   const recaptchaRef  = useRef(null);
@@ -125,6 +127,19 @@ const Login = () => {
     } finally { setLoading(false); }
   };
 
+  const doLogin = async (token, emailHint) => {
+    const response = await login(token, normalizePhone(phone), emailHint);
+    toast.success('Welcome back! 🎉');
+    const status = response?.data?.owner?.status;
+    if (status === 'mobile_verified') {
+      navigate(ROUTES.ONBOARDING, { replace: true });
+    } else if (status === 'salon_registered' || status === 'pending_approval') {
+      navigate(ROUTES.APPROVAL_WAITING, { replace: true });
+    } else {
+      navigate(ROUTES.DASHBOARD, { replace: true });
+    }
+  };
+
   const handleVerifyOtp = async (e, codeOverride) => {
     e?.preventDefault();
     const code = codeOverride ?? otp.join('');
@@ -132,23 +147,16 @@ const Login = () => {
     setError(''); setLoading(true);
     try {
       const result = await confirmRef.current.confirm(code);
-      const firebaseToken = await result.user.getIdToken();
-
+      const token = await result.user.getIdToken();
+      setFirebaseToken(token);
       try {
-        const response = await login(firebaseToken, normalizePhone(phone));
-        toast.success('Welcome back! 🎉');
-        const status = response?.data?.owner?.status;
-        if (status === 'mobile_verified') {
-          navigate(ROUTES.ONBOARDING, { replace: true });
-        } else if (status === 'salon_registered' || status === 'pending_approval') {
-          navigate(ROUTES.APPROVAL_WAITING, { replace: true });
-        } else {
-          navigate(ROUTES.DASHBOARD, { replace: true });
-        }
+        await doLogin(token, '');
       } catch (loginErr) {
-        if (loginErr.status === 404 || loginErr.message?.includes('404') || loginErr.message?.toLowerCase().includes('not found') || loginErr.message?.toLowerCase().includes('no glowloox')) {
-          toast('No account found — let\'s create one!', { icon: '👋' });
-          navigate(ROUTES.ONBOARDING, { replace: true });
+        const msg = loginErr.message || '';
+        if (msg.toLowerCase().includes('not found') || msg.toLowerCase().includes('no glowloox')) {
+          // Phone lookup failed — ask for registered email to recover account
+          setStep(3);
+          setError('');
         } else {
           throw loginErr;
         }
@@ -157,6 +165,24 @@ const Login = () => {
       const msg = err.message || 'Sign in failed.';
       setError(msg);
       toast.error(msg);
+    } finally { setLoading(false); }
+  };
+
+  const handleEmailRecover = async (e) => {
+    e?.preventDefault();
+    if (!email.trim() || !email.includes('@')) { setError('Enter your registered email.'); return; }
+    setError(''); setLoading(true);
+    try {
+      await doLogin(firebaseToken, email.trim());
+    } catch (err) {
+      const msg = err.message || '';
+      if (msg.toLowerCase().includes('not found') || msg.toLowerCase().includes('no glowloox')) {
+        toast('No account found — let\'s create one!', { icon: '👋' });
+        navigate(ROUTES.ONBOARDING, { replace: true });
+      } else {
+        setError(msg || 'Login failed.');
+        toast.error(msg || 'Login failed.');
+      }
     } finally { setLoading(false); }
   };
 
@@ -248,7 +274,7 @@ const Login = () => {
                   {step === 1 ? 'Welcome back' : 'Enter OTP'}
                 </h2>
                 <p style={{ fontSize:14, color: c ? '#475569' : '#64748b', margin:0 }}>
-                  {step === 1 ? 'Sign in to your GlowLoox Partner dashboard' : `OTP sent to +91 ${phone}`}
+                  {step === 1 ? 'Sign in to your GlowLoox Partner dashboard' : step === 2 ? `OTP sent to +91 ${phone}` : 'Enter your registered email to recover your account'}
                 </p>
               </div>
 
@@ -335,6 +361,44 @@ const Login = () => {
                     <button type="button" onClick={() => { setStep(1); setOtp(['','','','','','']); setError(''); }}
                       style={{ background:'none', border:'none', cursor:'pointer', fontSize:13, color: c ? '#475569' : '#94a3b8', textDecoration:'underline', fontFamily:'inherit' }}>
                       Change phone number
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Step 3 — Email recovery (phone not found in DB) */}
+              {step === 3 && (
+                <form key="step3" className="lgn-slide" onSubmit={handleEmailRecover} style={{ display:'flex', flexDirection:'column', gap:18 }}>
+                  <div style={{ textAlign:'center', fontSize:38, padding:'4px 0' }}>📧</div>
+                  <p style={{ fontSize:13, color: c ? '#94a3b8' : '#64748b', textAlign:'center', margin:0 }}>
+                    Your phone was verified but we couldn't find your account. Enter the email you registered with to recover it.
+                  </p>
+                  <div>
+                    <label style={{ display:'block', fontSize:13, fontWeight:600, color: c ? '#94a3b8' : '#64748b', marginBottom:7 }}>Registered Email</label>
+                    <div style={{ position:'relative' }}>
+                      <input
+                        className="lgn-input"
+                        type="email"
+                        value={email}
+                        onChange={e => { setEmail(e.target.value); setError(''); }}
+                        placeholder="you@example.com"
+                        disabled={loading}
+                        autoFocus
+                        style={{ paddingLeft:16 }}
+                      />
+                    </div>
+                  </div>
+                  <button type="submit" className="lgn-btn" disabled={loading || !email.includes('@')}>
+                    {loading ? <><div className="lgn-spinner" /> Recovering…</> : 'Recover Account'}
+                  </button>
+                  <div style={{ display:'flex', flexDirection:'column', gap:8, alignItems:'center' }}>
+                    <button type="button" onClick={() => { setStep(1); setOtp(['','','','','','']); setEmail(''); setError(''); }}
+                      style={{ background:'none', border:'none', cursor:'pointer', fontSize:13, color: c ? '#475569' : '#94a3b8', textDecoration:'underline', fontFamily:'inherit' }}>
+                      Try a different phone number
+                    </button>
+                    <button type="button" onClick={() => navigate(ROUTES.ONBOARDING)}
+                      style={{ background:'none', border:'none', cursor:'pointer', fontSize:13, color:'#a78bfa', fontWeight:600, fontFamily:'inherit' }}>
+                      Create new account instead →
                     </button>
                   </div>
                 </form>

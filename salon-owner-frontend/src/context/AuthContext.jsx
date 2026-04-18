@@ -75,11 +75,11 @@ export const AuthProvider = ({ children }) => {
 
   // ========== LOGIN (Firebase OTP) ==========
 
-  const login = useCallback(async (firebaseToken, phone) => {
+  const login = useCallback(async (firebaseToken, phone, email) => {
     try {
       setError(null);
 
-      const response = await API.post('/owner/auth/firebase-login', { firebaseToken, phone });
+      const response = await API.post('/owner/auth/firebase-login', { firebaseToken, phone, ...(email && { email }) });
 
       if (!response.data.success) {
         throw new Error(response.data.message || 'Login failed');
