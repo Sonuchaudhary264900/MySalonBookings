@@ -977,8 +977,18 @@ exports.firebaseLogin = async (req, res) => {
       return res.status(401).json(formatErrorResponse('Invalid or expired Firebase token.', 401));
     }
 
-    const phone = firebaseUser.phone.trim();
-    const owner = await Owner.findOne({ phone }).select('+isBanned');
+    const rawPhone = firebaseUser.phone.trim(); // e.g. +919876543210
+    const digits = rawPhone.replace(/\D/g, ''); // 919876543210
+    const tenDigit = digits.length >= 10 ? digits.slice(-10) : digits;
+
+    const owner = await Owner.findOne({
+      $or: [
+        { phone: rawPhone },
+        { phone: `+91${tenDigit}` },
+        { phone: `91${tenDigit}` },
+        { phone: tenDigit },
+      ],
+    }).select('+isBanned');
 
     if (!owner) {
       return res.status(404).json(
