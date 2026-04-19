@@ -42,7 +42,7 @@ function InputField({ label, icon: Icon, error, children, hint }) {
 
 export default function Step3_ProfileSetup() {
   const { data, update, nextStep } = useOnboarding();
-  const { register } = useAuth();
+  const { updateProfile } = useAuth();
   const { isDark } = useTheme();
 
   const [form, setForm]           = useState({ name: data.name || '', referral: data.referralCode || '' });
@@ -65,18 +65,16 @@ export default function Step3_ProfileSetup() {
     setLoading(true);
     try {
       update({ name: form.name, referralCode: form.referral });
-      await register(data.firebaseToken, form.name.trim());
+      await updateProfile({ name: form.name.trim() });
 
       // Apply referral code if provided (best-effort, non-blocking)
       if (form.referral.trim()) {
         try {
           await api.post('/owner/referral/apply', { code: form.referral.trim().toUpperCase() });
-        } catch {
-          // Silently ignore referral errors — don't block onboarding
-        }
+        } catch { /* ignore referral errors */ }
       }
 
-      toast.success('Account created! 🎉');
+      toast.success('Profile saved!');
       nextStep();
     } catch (err) {
       toast.error(err.message || 'Registration failed');

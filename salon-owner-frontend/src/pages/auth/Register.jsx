@@ -41,11 +41,12 @@ const Register = () => {
   const { register, user } = useAuth();
   const { isDark, toggleTheme } = useTheme();
 
+  // Only redirect if user was already logged in before reaching this page
+  // (handleVerified handles post-registration navigation explicitly)
   useEffect(() => {
     if (!user) return;
-    if (user.status === 'mobile_verified') navigate(ROUTES.ONBOARDING, { replace: true });
-    else if (user.status === 'pending_approval' || user.status === 'salon_registered') navigate(ROUTES.APPROVAL_WAITING, { replace: true });
-    else navigate(ROUTES.DASHBOARD, { replace: true });
+    if (user.status === 'pending_approval' || user.status === 'salon_registered') navigate(ROUTES.APPROVAL_WAITING, { replace: true });
+    else if (user.status === 'approved') navigate(ROUTES.DASHBOARD, { replace: true });
   }, [user, navigate]);
 
   const handleVerified = async (firebaseToken, phone) => {

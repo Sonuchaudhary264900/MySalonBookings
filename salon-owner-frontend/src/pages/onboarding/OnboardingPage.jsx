@@ -96,15 +96,14 @@ function OnboardingInner() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Guard: no firebase token and no existing JWT → send to Register for OTP
+  // Guard: no JWT → send back to Register
   useEffect(() => {
     if (!draftLoaded) return;
     const hasJwt = !!localStorage.getItem('token');
-    const incomingToken = location.state?.firebaseToken;
-    if (currentStep === 1 && !data.firebaseToken && !incomingToken && !hasJwt) {
+    if (!hasJwt && !location.state?.firebaseToken && !data.firebaseToken) {
       navigate(ROUTES.REGISTER, { replace: true });
     }
-  }, [draftLoaded, currentStep, data.firebaseToken, location.state, navigate]);
+  }, [draftLoaded, data.firebaseToken, location.state, navigate]);
 
   // Already approved → go to dashboard
   useEffect(() => {
