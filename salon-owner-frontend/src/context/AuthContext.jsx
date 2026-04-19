@@ -58,15 +58,28 @@ export const AuthProvider = ({ children }) => {
 
       const { token, refreshToken, owner: userData } = response.data.data;
 
-      // Store tokens
       localStorage.setItem('token', token);
       localStorage.setItem('refreshToken', refreshToken);
-
-      // Update user state
       setUser(userData);
 
       return response.data;
     } catch (err) {
+      // 409 = owner already exists → auto-login with same token
+      if (err.response?.status === 409) {
+        try {
+          const loginRes = await API.post('/owner/auth/firebase-login', { firebaseToken });
+          if (!loginRes.data.success) throw new Error(loginRes.data.message || 'Login failed');
+          const { token, refreshToken, owner: userData } = loginRes.data.data;
+          localStorage.setItem('token', token);
+          localStorage.setItem('refreshToken', refreshToken);
+          setUser(userData);
+          return loginRes.data;
+        } catch (loginErr) {
+          const msg = loginErr.response?.data?.message || loginErr.message || 'Login failed';
+          setError(msg);
+          throw new Error(msg);
+        }
+      }
       const errorMessage = err.response?.data?.message || err.message || 'Registration failed';
       setError(errorMessage);
       throw new Error(errorMessage);
