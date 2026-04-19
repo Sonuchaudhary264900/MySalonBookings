@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowRight, Sparkles, Lock } from 'lucide-react';
+import { ArrowRight, Sparkles, Lock, Scissors, Flower2, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import { useTheme } from '../../../context/ThemeContext';
@@ -57,8 +57,8 @@ export default function Step4_SalonIdentity() {
   const lockedGender  = businessTypeDef?.autoGender || null;  // 'male' | 'female' | 'unisex' | null
 
   const NAME_CONFIG = {
-    barbershop:    { label: 'Barbershop Name', placeholder: 'e.g. The Classic Cuts',       title: "What's your barbershop called? ✂️" },
-    salon:         { label: 'Salon Name',       placeholder: 'e.g. The Glow Room',          title: "What's your salon called? ✂️" },
+    barbershop:    { label: 'Barbershop Name', placeholder: 'e.g. The Classic Cuts',       title: "What's your barbershop called?" },
+    salon:         { label: 'Salon Name',       placeholder: 'e.g. The Glow Room',          title: "What's your salon called?" },
     spa_wellness:  { label: 'Spa Name',         placeholder: 'e.g. Serene Bliss Spa',       title: "What's your spa called? 🧘" },
     makeup_bridal: { label: 'Studio Name',      placeholder: 'e.g. The Bridal Glow Studio', title: "What's your studio called? 💄" },
     skin_derma:    { label: 'Clinic Name',      placeholder: 'e.g. ClearSkin Derma Clinic', title: "What's your clinic called? 🏥" },
@@ -193,8 +193,8 @@ export default function Step4_SalonIdentity() {
                 display: 'flex', alignItems: 'center', gap: 14,
                 boxShadow: '0 0 0 3px rgba(124,58,237,0.15)',
               }}>
-                <div style={{ fontSize: 28 }}>
-                  {lockedGender === 'male' ? '✂️' : lockedGender === 'female' ? '💅' : '✨'}
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(124,58,237,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {lockedGender === 'male' ? <Scissors size={18} color="#a855f7" /> : lockedGender === 'female' ? <Flower2 size={18} color="#a855f7" /> : <Users size={18} color="#a855f7" />}
                 </div>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: '#a855f7' }}>
@@ -210,10 +210,10 @@ export default function Step4_SalonIdentity() {
               /* Normal gender picker */
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                 {[
-                  { v: 'male',   icon: '✂️', label: 'Men Only' },
-                  { v: 'female', icon: '💅', label: 'Women Only' },
-                  { v: 'unisex', icon: '✨', label: 'Unisex' },
-                ].map(({ v, icon, label }) => (
+                  { v: 'male',   Icon: Scissors, label: 'Men Only' },
+                  { v: 'female', Icon: Flower2,  label: 'Women Only' },
+                  { v: 'unisex', Icon: Users,    label: 'Unisex' },
+                ].map(({ v, Icon, label }) => (
                   <button key={v} className="s4-gender-card"
                     onClick={() => { setGender(v); setErrors(er => ({ ...er, gender: '' })); }}
                     style={{
@@ -228,7 +228,11 @@ export default function Step4_SalonIdentity() {
                     {gender === v && (
                       <div style={{ position: 'absolute', top: 8, right: 8, width: 16, height: 16, borderRadius: '50%', background: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#fff', fontWeight: 700 }}>✓</div>
                     )}
-                    <div style={{ fontSize: 26, marginBottom: 6 }}>{icon}</div>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 12, background: gender === v ? 'rgba(124,58,237,0.18)' : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Icon size={20} color={gender === v ? '#a855f7' : (isDark ? '#94a3b8' : '#6b7280')} />
+                      </div>
+                    </div>
                     <div style={{ fontSize: 12, fontWeight: 700, color: gender === v ? '#a855f7' : sub }}>{label}</div>
                   </button>
                 ))}
