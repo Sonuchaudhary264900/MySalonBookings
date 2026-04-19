@@ -67,7 +67,7 @@ export function useOnboardingSubmit() {
       const payload = {
         name:             data.salonName,
         phone,
-        email:            user?.email || data.email || '',
+        email:            user?.email || data.email || null,
         address:          data.address,
         city:             data.city,
         district:         data.district,
