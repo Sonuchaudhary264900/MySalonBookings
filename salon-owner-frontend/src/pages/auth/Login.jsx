@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
-import { Phone, ArrowRight, Scissors, BarChart2, Users, Calendar, Sun, Moon } from 'lucide-react';
+import { Scissors, BarChart2, Users, Calendar, Sun, Moon } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { auth } from '../../config/firebase';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../context/ThemeContext';
 import ROUTES from '../../routes';
+import PhoneOtpForm from '../../components/auth/PhoneOtpForm';
 
 const LOGIN_CSS = `
   @keyframes lgn-orb1{0%,100%{transform:translate(0,0) scale(1);}40%{transform:translate(50px,-60px) scale(1.08);}70%{transform:translate(-30px,40px) scale(0.94);}}
@@ -14,8 +13,6 @@ const LOGIN_CSS = `
   @keyframes lgn-orb3{0%,100%{transform:translate(0,0) scale(1);}50%{transform:translate(25px,45px) scale(1.05);}}
   @keyframes lgn-fadeup{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
   @keyframes lgn-shimmer{0%{background-position:200% center;}100%{background-position:-200% center;}}
-  @keyframes lgn-spin{to{transform:rotate(360deg);}}
-  @keyframes lgn-slide{from{opacity:0;transform:translateX(16px);}to{opacity:1;transform:translateX(0);}}
   .lgn-orb1{animation:lgn-orb1 18s ease-in-out infinite;}
   .lgn-orb2{animation:lgn-orb2 22s ease-in-out infinite;}
   .lgn-orb3{animation:lgn-orb3 14s ease-in-out infinite;}
@@ -24,28 +21,12 @@ const LOGIN_CSS = `
   .lgn-fu3{animation:lgn-fadeup .6s .2s ease both;}
   .lgn-fu4{animation:lgn-fadeup .6s .3s ease both;}
   .lgn-fu5{animation:lgn-fadeup .6s .4s ease both;}
-  .lgn-slide{animation:lgn-slide .35s ease both;}
   .lgn-shimmer{background:linear-gradient(90deg,#a78bfa,#60a5fa,#c4b5fd,#a78bfa);background-size:300% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:lgn-shimmer 5s linear infinite;}
-  .lgn-input{width:100%;background:rgba(255,255,255,0.06);border:1.5px solid rgba(255,255,255,0.1);border-radius:12px;padding:13px 16px 13px 44px;color:#f1f5f9;font-size:16px;outline:none;transition:border-color .2s,background .2s,box-shadow .2s;font-family:inherit;}
-  .lgn-input::placeholder{color:#475569;}
-  .lgn-input:focus{border-color:rgba(139,92,246,0.7);background:rgba(255,255,255,0.09);box-shadow:0 0 0 3px rgba(139,92,246,0.15);}
-  .lgn-input.err{border-color:rgba(239,68,68,0.7);}
-  .lgn-btn{width:100%;padding:14px;border-radius:13px;font-size:15px;font-weight:700;background:linear-gradient(135deg,#7c3aed,#3b82f6);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 0 28px rgba(124,58,237,0.45);transition:transform .22s,box-shadow .22s,opacity .22s;font-family:inherit;}
-  .lgn-btn:hover:not(:disabled){transform:scale(1.025);box-shadow:0 0 42px rgba(124,58,237,0.65);}
-  .lgn-btn:disabled{opacity:0.6;cursor:not-allowed;transform:none;}
-  .lgn-spinner{width:18px;height:18px;border:2.5px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:lgn-spin .7s linear infinite;flex-shrink:0;}
-  .lgn-outline-btn{width:100%;padding:13px;border-radius:13px;font-size:14px;font-weight:600;background:rgba(255,255,255,0.05);color:#cbd5e1;border:1.5px solid rgba(255,255,255,0.12);cursor:pointer;transition:background .22s,transform .22s;font-family:inherit;}
-  .lgn-outline-btn:hover{background:rgba(255,255,255,0.1);transform:scale(1.01);}
   .lgn-link{color:#a78bfa;font-weight:600;text-decoration:none;transition:color .2s;}
   .lgn-link:hover{color:#c4b5fd;}
   .lgn-hero-card{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:16px 18px;display:flex;align-items:center;gap:14px;transition:transform .3s,border-color .3s;}
   .lgn-hero-card:hover{transform:translateX(5px);border-color:rgba(139,92,246,0.4);}
   @media(max-width:480px){.lgn-card{padding:24px 20px 20px!important;}.lgn-form-panel{padding:20px 14px!important;}}
-  [data-lm] .lgn-input{background:rgba(0,0,0,0.04);border-color:rgba(0,0,0,0.1);color:#0f172a;}
-  [data-lm] .lgn-input::placeholder{color:#94a3b8;}
-  [data-lm] .lgn-input:focus{border-color:rgba(124,58,237,0.5);background:rgba(0,0,0,0.06);box-shadow:0 0 0 3px rgba(124,58,237,0.1);}
-  [data-lm] .lgn-outline-btn{background:rgba(0,0,0,0.04);color:#475569;border-color:rgba(0,0,0,0.1);}
-  [data-lm] .lgn-outline-btn:hover{background:rgba(0,0,0,0.07);}
   [data-lm] .lgn-hero-card{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.1);}
   [data-lm] .lgn-hero-card:hover{border-color:rgba(199,210,254,0.5);}
   [data-lm] .lgn-link{color:#7c3aed;}
@@ -60,130 +41,33 @@ const HERO_FEATURES = [
 ];
 
 const Login = () => {
-  const navigate          = useNavigate();
-  const { login, user }   = useAuth();
+  const navigate = useNavigate();
+  const { login, user } = useAuth();
   const { isDark, toggleTheme } = useTheme();
+  const [notFound, setNotFound] = useState(false);
+  const [extraError, setExtraError] = useState('');
 
   useEffect(() => {
-    if (user) navigate(ROUTES.DASHBOARD);
+    if (!user) return;
+    if (user.status === 'mobile_verified') navigate(ROUTES.ONBOARDING, { replace: true });
+    else if (user.status === 'pending_approval' || user.status === 'salon_registered') navigate(ROUTES.APPROVAL_WAITING, { replace: true });
+    else navigate(ROUTES.DASHBOARD, { replace: true });
   }, [user, navigate]);
 
-  const [step,         setStep]         = useState(1);
-  const [phone,        setPhone]        = useState('');
-  const [otp,          setOtp]          = useState(['','','','','','']);
-  const [otpTimer,     setOtpTimer]     = useState(0);
-  const [loading,      setLoading]      = useState(false);
-  const [error,        setError]        = useState('');
-  const [notFound,     setNotFound]     = useState(false);
-
-  const otpRefs       = useRef([]);
-  const recaptchaRef  = useRef(null);
-  const confirmRef    = useRef(null);
-
-  useEffect(() => {
-    if (step === 2) setTimeout(() => otpRefs.current[0]?.focus(), 120);
-  }, [step]);
-
-  useEffect(() => {
-    if (otpTimer <= 0) return;
-    const id = setInterval(() => setOtpTimer(t => t - 1), 1000);
-    return () => clearInterval(id);
-  }, [otpTimer]);
-
-  // Pre-render reCAPTCHA on mount so it's ready before the user clicks Send OTP
-  useEffect(() => {
-    const container = document.createElement('div');
-    container.id = 'lgn-recaptcha';
-    document.body.appendChild(container);
-    try {
-      recaptchaRef.current = new RecaptchaVerifier(auth, 'lgn-recaptcha', { size: 'invisible' });
-      recaptchaRef.current.render();
-    } catch {}
-    return () => {
-      try { recaptchaRef.current?.clear(); } catch {}
-      recaptchaRef.current = null;
-      document.getElementById('lgn-recaptcha')?.remove();
-    };
-  }, []);
-
-  const normalizePhone = (p) => {
-    const d = p.replace(/\D/g, '');
-    if (d.length === 10) return `+91${d}`;
-    if (d.length === 12 && d.startsWith('91')) return `+${d}`;
-    return p.trim();
+  const handleVerified = async (firebaseToken, phone) => {
+    const response = await login(firebaseToken, phone);
+    toast.success('Welcome back!');
+    const status = response?.data?.owner?.status;
+    if (status === 'mobile_verified') navigate(ROUTES.ONBOARDING, { replace: true });
+    else if (status === 'pending_approval' || status === 'salon_registered') navigate(ROUTES.APPROVAL_WAITING, { replace: true });
+    else navigate(ROUTES.DASHBOARD, { replace: true });
   };
 
-  const getRecaptchaVerifier = () => {
-    if (recaptchaRef.current) return recaptchaRef.current;
-    // Recreate if cleared after a previous failure
-    try { document.getElementById('lgn-recaptcha')?.remove(); } catch {}
-    const container = document.createElement('div');
-    container.id = 'lgn-recaptcha';
-    document.body.appendChild(container);
-    recaptchaRef.current = new RecaptchaVerifier(auth, 'lgn-recaptcha', { size: 'invisible' });
-    return recaptchaRef.current;
-  };
-
-  const handleSendOtp = async (e) => {
-    e?.preventDefault();
-    if (!phone.trim() || phone.replace(/\D/g,'').length < 10) {
-      setError('Enter a valid 10-digit phone number'); return;
-    }
-    setError(''); setLoading(true);
-    try {
-      const verifier = getRecaptchaVerifier();
-      const confirmation = await signInWithPhoneNumber(auth, normalizePhone(phone), verifier);
-      confirmRef.current = confirmation;
-      setStep(2); setOtpTimer(60);
-      toast.success('OTP sent!');
-    } catch (err) {
-      setError(err.message || 'Failed to send OTP.');
-      // Clear so getRecaptchaVerifier recreates fresh on next attempt
-      try { recaptchaRef.current?.clear(); } catch {}
-      recaptchaRef.current = null;
-    } finally { setLoading(false); }
-  };
-
-  const handleVerifyOtp = async (e, codeOverride) => {
-    e?.preventDefault();
-    const code = codeOverride ?? otp.join('');
-    if (code.length < 6) { setError('Enter the 6-digit OTP.'); return; }
-    if (!confirmRef.current) { setError('Session expired. Please resend OTP.'); return; }
-    setError(''); setLoading(true);
-    try {
-      const result = await confirmRef.current.confirm(code);
-      const firebaseToken = await result.user.getIdToken();
-      const response = await login(firebaseToken, normalizePhone(phone));
-      toast.success('Welcome back! 🎉');
-      const status = response?.data?.owner?.status;
-      if (status === 'mobile_verified') {
-        navigate(ROUTES.ONBOARDING, { replace: true });
-      } else if (status === 'salon_registered' || status === 'pending_approval') {
-        navigate(ROUTES.APPROVAL_WAITING, { replace: true });
-      } else {
-        navigate(ROUTES.DASHBOARD, { replace: true });
-      }
-    } catch (err) {
-      const msg = err.message || 'Sign in failed.';
-      setError(msg);
-      const isNotFound = msg.toLowerCase().includes('no glowloox') || msg.toLowerCase().includes('not found');
-      setNotFound(isNotFound);
-      if (!isNotFound) toast.error(msg);
-    } finally { setLoading(false); }
-  };
-
-  const handleOtpKey = (i, e) => {
-    if (e.key === 'Backspace') {
-      if (otp[i]) { const n=[...otp]; n[i]=''; setOtp(n); }
-      else if (i > 0) otpRefs.current[i-1]?.focus();
-    }
-  };
-  const handleOtpChange = (i, val) => {
-    const digit = val.replace(/\D/g,'').slice(-1);
-    const n=[...otp]; n[i]=digit; setOtp(n);
-    if (digit && i < 5) otpRefs.current[i+1]?.focus();
-    const full = [...n].join('');
-    if (i === 5 && digit && full.length === 6) setTimeout(() => handleVerifyOtp(null, full).catch(err => { setError(err?.message || 'Sign in failed.'); }), 80);
+  const handleError = (msg) => {
+    const isNotFound = msg.toLowerCase().includes('no glowloox') || msg.toLowerCase().includes('not found');
+    setNotFound(isNotFound);
+    setExtraError(isNotFound ? msg : '');
+    if (!isNotFound) toast.error(msg);
   };
 
   const c = isDark;
@@ -255,107 +139,29 @@ const Login = () => {
 
             <div className="lgn-fu2 lgn-card" style={{ background: c ? 'rgba(255,255,255,0.04)' : '#ffffff', backdropFilter:'blur(24px)', border:`1px solid ${c ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'}`, borderRadius:24, padding:'36px 36px 32px', boxShadow: c ? '0 32px 80px rgba(0,0,0,0.5),0 0 60px rgba(124,58,237,0.08)' : '0 32px 80px rgba(0,0,0,0.1)' }}>
 
-              <div style={{ marginBottom:28 }}>
-                <h2 style={{ fontSize:22, fontWeight:800, color: c ? '#f1f5f9' : '#0f172a', letterSpacing:'-0.6px', marginBottom:6 }}>
-                  {step === 1 ? 'Sign in' : 'Enter OTP'}
-                </h2>
-                <p style={{ fontSize:14, color: c ? '#475569' : '#64748b', margin:0 }}>
-                  {step === 1 ? 'Sign in to your GlowLoox Partner dashboard' : `OTP sent to +91 ${phone}`}
-                </p>
+              <div style={{ marginBottom: 28 }}>
+                <h2 style={{ fontSize: 22, fontWeight: 800, color: c ? '#f1f5f9' : '#0f172a', letterSpacing: '-0.6px', marginBottom: 6 }}>Sign in</h2>
+                <p style={{ fontSize: 14, color: c ? '#475569' : '#64748b', margin: 0 }}>Sign in to your GlowLoox Partner dashboard</p>
               </div>
 
-              {error && (
-                <div style={{ marginBottom:20, display:'flex', flexDirection:'column', gap:10 }}>
-                  <div style={{ background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)', borderRadius:11, padding:'11px 14px', display:'flex', alignItems:'flex-start', gap:10 }}>
-                    <span style={{ fontSize:15, flexShrink:0 }}>⚠️</span>
-                    <p style={{ fontSize:13, color:'#f87171', margin:0 }}>{error}</p>
-                    <button onClick={() => { setError(''); setNotFound(false); }} style={{ marginLeft:'auto', color:'#f87171', background:'none', border:'none', cursor:'pointer', fontSize:16, flexShrink:0 }}>✕</button>
-                  </div>
-                  {notFound && (
-                    <button onClick={() => navigate(ROUTES.REGISTER)} style={{ width:'100%', padding:'12px', borderRadius:12, fontSize:14, fontWeight:700, background:'linear-gradient(135deg,#7c3aed,#3b82f6)', color:'#fff', border:'none', cursor:'pointer', fontFamily:'inherit' }}>
-                      Register Now
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {/* Step 1 — Phone */}
-              {step === 1 && (
-                <form key="step1" className="lgn-slide" onSubmit={handleSendOtp} style={{ display:'flex', flexDirection:'column', gap:18 }}>
-                  <div>
-                    <label style={{ display:'block', fontSize:13, fontWeight:600, color: c ? '#94a3b8' : '#64748b', marginBottom:7 }}>
-                      Phone Number
-                    </label>
-                    <div style={{ position:'relative' }}>
-                      <Phone size={16} color="#475569" style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', pointerEvents:'none' }} />
-                      <input
-                        className="lgn-input"
-                        type="tel"
-                        value={phone}
-                        onChange={e => { setPhone(e.target.value.replace(/\D/g,'').slice(0,10)); setError(''); setNotFound(false); }}
-                        placeholder="98765 43210"
-                        disabled={loading}
-                        inputMode="numeric"
-                        maxLength={10}
-                        autoFocus
-                      />
-                    </div>
-                  </div>
-
-                  <button type="submit" className="lgn-btn" disabled={loading || phone.replace(/\D/g,'').length < 10}>
-                    {loading ? <><div className="lgn-spinner" /> Sending OTP…</> : <>Send OTP <ArrowRight size={17} /></>}
+              <PhoneOtpForm
+                recaptchaId="lgn-recaptcha"
+                isDark={isDark}
+                submitLabel="Verify & Sign In"
+                onVerified={handleVerified}
+                extraError={extraError}
+                extraActions={notFound && (
+                  <button onClick={() => navigate(ROUTES.REGISTER)} style={{ width: '100%', padding: '12px', borderRadius: 12, fontSize: 14, fontWeight: 700, background: 'linear-gradient(135deg,#7c3aed,#3b82f6)', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    Register Now
                   </button>
-
-                  <p style={{ textAlign:'center', fontSize:13, color: c ? '#475569' : '#64748b', margin:0 }}>
+                )}
+                footerSlot={
+                  <p style={{ textAlign: 'center', fontSize: 13, color: c ? '#475569' : '#64748b', margin: 0 }}>
                     New here?{' '}
-                    <a href={ROUTES.REGISTER} style={{ color:'#a78bfa', fontWeight:600, textDecoration:'none' }}>Create an account</a>
+                    <a href={ROUTES.REGISTER} style={{ color: '#a78bfa', fontWeight: 600, textDecoration: 'none' }}>Create an account</a>
                   </p>
-                </form>
-              )}
-
-              {/* Step 2 — OTP */}
-              {step === 2 && (
-                <form key="step2" className="lgn-slide" onSubmit={handleVerifyOtp} style={{ display:'flex', flexDirection:'column', gap:20 }}>
-
-                  <div style={{ textAlign:'center', padding:'4px 0', fontSize:38 }}>📱</div>
-
-                  <div style={{ display:'flex', gap:10, justifyContent:'center' }}>
-                    {otp.map((digit, i) => (
-                      <input key={i} ref={el => otpRefs.current[i] = el}
-                        type="text" inputMode="numeric" maxLength={1} value={digit}
-                        onChange={e => handleOtpChange(i, e.target.value)}
-                        onKeyDown={e => handleOtpKey(i, e)}
-                        style={{ width:50, height:58, borderRadius:14, textAlign:'center', fontSize:22, fontWeight:800, outline:'none',
-                          background: digit ? (c ? 'rgba(99,102,241,0.1)' : 'rgba(99,102,241,0.06)') : (c ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'),
-                          border: digit ? '1.5px solid rgba(99,102,241,0.4)' : `1.5px solid ${c ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
-                          color: c ? '#f1f5f9' : '#0f172a',
-                          transition:'all 0.18s', fontFamily:'inherit', boxSizing:'border-box',
-                        }} />
-                    ))}
-                  </div>
-
-                  <button type="submit" className="lgn-btn" disabled={loading || otp.join('').length < 6}>
-                    {loading ? <><div className="lgn-spinner" /> Verifying…</> : 'Verify & Sign In'}
-                  </button>
-
-                  <div style={{ display:'flex', flexDirection:'column', gap:8, alignItems:'center' }}>
-                    {otpTimer > 0 ? (
-                      <p style={{ fontSize:13, color: c ? '#475569' : '#64748b' }}>
-                        Resend in <span style={{ fontWeight:700, color: c ? '#94a3b8' : '#475569' }}>{otpTimer}s</span>
-                      </p>
-                    ) : (
-                      <button type="button" onClick={handleSendOtp} disabled={loading}
-                        style={{ background:'none', border:'none', cursor:'pointer', fontSize:13.5, color:'#a78bfa', fontWeight:600, fontFamily:'inherit' }}>
-                        Resend OTP
-                      </button>
-                    )}
-                    <button type="button" onClick={() => { setStep(1); setOtp(['','','','','','']); setError(''); }}
-                      style={{ background:'none', border:'none', cursor:'pointer', fontSize:13, color: c ? '#475569' : '#94a3b8', textDecoration:'underline', fontFamily:'inherit' }}>
-                      Change phone number
-                    </button>
-                  </div>
-                </form>
-              )}
+                }
+              />
 
             </div>
 
