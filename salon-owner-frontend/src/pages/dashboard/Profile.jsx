@@ -94,12 +94,12 @@ const Profile = () => {
 
   // ── Profile form state ──
   const [isEditing, setIsEditing]       = useState(false);
-  const [profileData, setProfileData]   = useState({ name: '', email: '', phone: '', gender: '' });
+  const [profileData, setProfileData]   = useState({ name: '', email: '', phone: '' });
   const [profileErrors, setProfileErrors] = useState({});
   const [profileLoading, setProfileLoading] = useState(false);
 
   useEffect(() => {
-    if (user) setProfileData({ name: user.name || '', email: user.email || '', phone: user.phone || '', gender: user.gender || '' });
+    if (user) setProfileData({ name: user.name || '', email: user.email || '', phone: user.phone || '' });
   }, [user]);
 
   const handleProfileChange = (e) => {
@@ -390,14 +390,13 @@ const Profile = () => {
           icon={User}
           iconColor="bg-blue-100 text-blue-600"
           title="My Profile"
-          subtitle="Name, gender, email and phone number"
+          subtitle="Name, email and phone number"
         >
           {!isEditing ? (
             <div className="space-y-3 pt-2">
               {[
                 { icon: Mail,  color: 'text-blue-500',  label: 'Email',  value: user?.email },
                 { icon: Phone, color: 'text-green-500', label: 'Phone',  value: user?.phone },
-                { icon: User,  color: 'text-indigo-500', label: 'Gender', value: user?.gender ? ({ male: 'Male', female: 'Female', other: 'Other' }[user.gender]) : null },
                 (() => { const td = SALON_TYPES.find(t => t.key === salon?.businessType); return td ? { icon: Sparkles, color: 'text-indigo-500', label: 'Business Type', value: td.label } : null; })(),
                 salon && { icon: MapPin,   color: 'text-red-500',    label: 'Address', value: salon.address },
               ].filter(Boolean).map(({ icon: Icon, color, label, value }) => (
@@ -432,39 +431,12 @@ const Profile = () => {
                 error={!!profileErrors.phone} errorMessage={profileErrors.phone}
                 disabled={profileLoading} required />
 
-              {/* Gender */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Gender</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { value: 'male',   label: 'Male',   emoji: '👨' },
-                    { value: 'female', label: 'Female', emoji: '👩' },
-                    { value: 'other',  label: 'Other',  emoji: '🧑' },
-                  ].map(opt => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      disabled={profileLoading}
-                      onClick={() => setProfileData(p => ({ ...p, gender: opt.value }))}
-                      className={`flex flex-col items-center gap-1 py-2 rounded-lg border-2 text-sm font-medium transition ${
-                        profileData.gender === opt.value
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                      }`}
-                    >
-                      <span className="text-lg">{opt.emoji}</span>
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               <div className="flex gap-2 pt-1">
                 <Button type="submit" variant="primary" loading={profileLoading} disabled={profileLoading} fullWidth>
                   Save Changes
                 </Button>
                 <Button type="button" variant="outline" disabled={profileLoading} fullWidth
-                  onClick={() => { setIsEditing(false); setProfileErrors({}); if (user) setProfileData({ name: user.name||'', email: user.email||'', phone: user.phone||'', gender: user.gender||'' }); }}>
+                  onClick={() => { setIsEditing(false); setProfileErrors({}); if (user) setProfileData({ name: user.name||'', email: user.email||'', phone: user.phone||'' }); }}>
                   Cancel
                 </Button>
               </div>

@@ -45,7 +45,7 @@ export default function Step3_ProfileSetup() {
   const { register } = useAuth();
   const { isDark } = useTheme();
 
-  const [form, setForm]           = useState({ name: data.name || '', gender: data.gender || '', referral: data.referralCode || '' });
+  const [form, setForm]           = useState({ name: data.name || '', referral: data.referralCode || '' });
   const [errors, setErrors]       = useState({});
   const [loading, setLoading]     = useState(false);
   const [referralOpen, setReferralOpen] = useState(false);
@@ -57,7 +57,6 @@ export default function Step3_ProfileSetup() {
   const validate = () => {
     const e = {};
     if (!form.name.trim() || form.name.trim().length < 2) e.name = 'Name must be at least 2 characters';
-    if (!form.gender) e.gender = 'Please select your gender';
     if (!agreed) e.terms = 'Please accept the Terms & Conditions';
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -67,8 +66,8 @@ export default function Step3_ProfileSetup() {
     if (!validate() || loading) return;
     setLoading(true);
     try {
-      update({ name: form.name, gender: form.gender, referralCode: form.referral });
-      await register(data.firebaseToken, form.name.trim(), null, null, form.gender);
+      update({ name: form.name, referralCode: form.referral });
+      await register(data.firebaseToken, form.name.trim(), null, null, null);
 
       // Apply referral code if provided (best-effort, non-blocking)
       if (form.referral.trim()) {
@@ -130,28 +129,6 @@ export default function Step3_ProfileSetup() {
               value={form.name} onChange={e => patchForm('name', e.target.value)}
               style={inpStyle(errors.name)} />
           </InputField>
-
-          {/* Gender */}
-          <div>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: isDark ? 'rgba(255,255,255,0.55)' : '#6b7280', marginBottom: 8 }}>Gender *</label>
-            <div style={{ display: 'flex', gap: 10 }}>
-              {[{ v: 'male', label: '👨 Male' }, { v: 'female', label: '👩 Female' }, { v: 'other', label: '✨ Other' }].map(({ v, label }) => (
-                <button key={v} onClick={() => { patchForm('gender', v); setErrors(e => ({ ...e, gender: '' })); }}
-                  style={{
-                    flex: 1, padding: '11px 8px', borderRadius: 12, fontFamily: 'inherit',
-                    border: `2px solid ${form.gender === v ? '#7c3aed' : border}`,
-                    background: form.gender === v ? (isDark ? 'rgba(124,58,237,0.15)' : 'rgba(124,58,237,0.08)') : (isDark ? 'rgba(255,255,255,0.04)' : '#f9fafb'),
-                    color: form.gender === v ? '#a855f7' : sub, fontWeight: 600, fontSize: 13,
-                    cursor: 'pointer', transition: 'all 0.15s',
-                    boxShadow: form.gender === v ? '0 0 0 3px rgba(124,58,237,0.15)' : 'none',
-                    transform: form.gender === v ? 'scale(1.03)' : 'scale(1)',
-                  }}>
-                  {label}
-                </button>
-              ))}
-            </div>
-            {errors.gender && <p style={{ color: '#f87171', fontSize: 11, marginTop: 5 }}>{errors.gender}</p>}
-          </div>
 
           {/* Referral */}
           <div>
