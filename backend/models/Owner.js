@@ -47,9 +47,8 @@ const ownerSchema = new mongoose.Schema(
     email: {
       type: String,
       required: false,
-      default: null,
       unique: true,
-      sparse: true,   // allows multiple null values while keeping uniqueness for real emails
+      sparse: true,   // skips absent fields — email must be omitted (not null) for this to work
       lowercase: true,
       trim: true,
       match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email'],

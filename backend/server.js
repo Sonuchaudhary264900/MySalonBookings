@@ -341,6 +341,16 @@ const startServer = async () => {
     logger.warn("lastLocation fix error", { error: e.message });
   }
 
+  // Remove explicit email:null from owners so sparse unique index allows multiple email-less accounts
+  try {
+    const Owner = require("./models/Owner");
+    const result = await Owner.updateMany({ email: null }, { $unset: { email: "" } });
+    if (result.modifiedCount > 0)
+      logger.info(`✅ Cleared email:null from ${result.modifiedCount} owner(s) — sparse index fix`);
+  } catch (e) {
+    logger.warn("Owner email null-fix error", { error: e.message });
+  }
+
   // Allow up to 10 minutes for large uploads (Cloudinary direct-upload register calls are fast,
   // but keep this high so any legacy proxy path also gets sufficient time)
   server.timeout          = 10 * 60 * 1000; // 10 min
