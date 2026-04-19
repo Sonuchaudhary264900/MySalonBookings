@@ -6,6 +6,7 @@ import { useTheme } from '../../../context/ThemeContext';
 import { useGeoLocation } from '../../../hooks/useGeoLocation';
 import { useReverseGeocode, INDIAN_STATES } from '../../../hooks/useReverseGeocode';
 import { STATE_DISTRICTS } from '../../../constants/indianLocations';
+import SelectDropdown from '../../common/SelectDropdown';
 
 const S5_CSS = `
   @keyframes s5-fadeup{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
@@ -238,20 +239,14 @@ export default function Step5_Location() {
                   <span className="s5-badge" style={{ fontSize: 10, fontWeight: 700, color: '#10b981', background: 'rgba(16,185,129,0.1)', padding: '2px 8px', borderRadius: 99, border: '1px solid rgba(16,185,129,0.2)' }}>Auto ✓</span>
                 )}
               </div>
-              <select
+              <SelectDropdown
                 value={fields.state}
-                onChange={e => patchField('state', e.target.value)}
-                style={{
-                  ...inpStyle(errors.state), appearance: 'none', paddingRight: 28,
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%239ca3af' d='M1 1l5 5 5-5'/%3E%3C/svg%3E")`,
-                  backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center',
-                  cursor: 'pointer', width: '100%', borderRadius: 12, padding: '11px 14px',
-                  outline: 'none', fontFamily: 'inherit', fontSize: 13.5,
-                  colorScheme: isDark ? 'dark' : 'light',
-                }}>
-                <option value="">Select state</option>
-                {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
+                onChange={v => patchField('state', v)}
+                options={INDIAN_STATES}
+                placeholder="Select state"
+                isDark={isDark}
+                error={!!errors.state}
+              />
               {errors.state && <p style={{ color: '#f87171', fontSize: 11, marginTop: 3 }}>{errors.state}</p>}
             </div>
 
@@ -263,20 +258,13 @@ export default function Step5_Location() {
                   <span className="s5-badge" style={{ fontSize: 10, fontWeight: 700, color: '#10b981', background: 'rgba(16,185,129,0.1)', padding: '2px 8px', borderRadius: 99, border: '1px solid rgba(16,185,129,0.2)' }}>Auto ✓</span>
                 )}
               </div>
-              <select
+              <SelectDropdown
                 value={fields.district}
-                onChange={e => { patchField('district', e.target.value); setAutoDetected(d => ({ ...d, district: false })); }}
-                style={{
-                  ...inpStyle(false), appearance: 'none', paddingRight: 28,
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%239ca3af' d='M1 1l5 5 5-5'/%3E%3C/svg%3E")`,
-                  backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center',
-                  cursor: 'pointer', width: '100%', borderRadius: 12, padding: '11px 14px',
-                  outline: 'none', fontFamily: 'inherit', fontSize: 13.5,
-                  colorScheme: isDark ? 'dark' : 'light',
-                }}>
-                <option value="">{fields.state ? 'Select district' : 'Select state first'}</option>
-                {(STATE_DISTRICTS[fields.state] || []).map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
+                onChange={v => { patchField('district', v); setAutoDetected(d => ({ ...d, district: false })); }}
+                options={STATE_DISTRICTS[fields.state] || []}
+                placeholder={fields.state ? 'Select district' : 'Select state first'}
+                isDark={isDark}
+              />
             </div>
 
             {/* 3. City */}

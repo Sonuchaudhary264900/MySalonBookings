@@ -18,6 +18,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { uploadSalonPhotos } from '../../services/salonService';
 import { SALON_TYPES } from '../../constants/salonCategories';
 import { INDIAN_STATES, STATE_DISTRICTS } from '../../constants/indianLocations';
+import SelectDropdown from '../../components/common/SelectDropdown';
 import { Scissors, Wand2, Waves, FlaskConical } from 'lucide-react';
 import api from '../../services/api';
 
@@ -570,17 +571,25 @@ const SalonContent = ({ salon, updateSalon }) => {
       </div>
       <div className="space-y-1.5">
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">State</label>
-        <select name="state" value={form.state} onChange={handleChange} disabled={loading} className={SEL} style={{ appearance: 'none', colorScheme: isDark ? 'dark' : 'light' }}>
-          <option value="">Select state</option>
-          {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
+        <SelectDropdown
+          value={form.state}
+          onChange={v => setForm(p => ({ ...p, state: v, district: '' }))}
+          options={INDIAN_STATES}
+          placeholder="Select state"
+          isDark={isDark}
+          disabled={loading}
+        />
       </div>
       <div className="space-y-1.5">
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">District</label>
-        <select name="district" value={form.district} onChange={handleChange} disabled={loading} className={SEL} style={{ appearance: 'none', colorScheme: isDark ? 'dark' : 'light' }}>
-          <option value="">{form.state ? 'Select district' : 'Select state first'}</option>
-          {(STATE_DISTRICTS[form.state] || []).map(d => <option key={d} value={d}>{d}</option>)}
-        </select>
+        <SelectDropdown
+          value={form.district}
+          onChange={v => setForm(p => ({ ...p, district: v }))}
+          options={STATE_DISTRICTS[form.state] || []}
+          placeholder={form.state ? 'Select district' : 'Select state first'}
+          isDark={isDark}
+          disabled={loading}
+        />
       </div>
       <LabelInput label="City" name="city" placeholder="City" />
       <LabelInput label="Locality" name="address" placeholder="Area / Street address" />
