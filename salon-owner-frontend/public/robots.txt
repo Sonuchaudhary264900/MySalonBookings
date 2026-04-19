@@ -1,5 +1,13 @@
 User-agent: *
+Allow: /
 Disallow: /dashboard
 Disallow: /dashboard/
 Disallow: /salon/register
 Disallow: /approval-waiting
+Disallow: /onboarding
+
+# Sitemaps
+Sitemap: https://mysalonbookings.com/sitemap.xml
+
+# Crawl-delay hint (optional, ignored by Google)
+Crawl-delay: 10

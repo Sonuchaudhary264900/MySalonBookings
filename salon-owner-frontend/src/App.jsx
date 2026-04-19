@@ -908,6 +908,34 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* ── FAQ ───────────────────────────────────────────────── */}
+      <section style={{ padding:'96px 20px', background:c.section, borderTop:`1px solid ${c.divider}` }}>
+        <div className="max-w-3xl mx-auto">
+          <div style={{ textAlign:'center', marginBottom:56 }}>
+            <div style={{ display:'inline-block', background:'rgba(124,58,237,0.1)', border:'1px solid rgba(124,58,237,0.25)', borderRadius:99, padding:'4px 16px', fontSize:11, color:'#a78bfa', fontWeight:700, letterSpacing:1.5, marginBottom:18 }}>FAQ</div>
+            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:c.heading, letterSpacing:'-1px', marginBottom:12 }}>Common questions</h2>
+          </div>
+          <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+            {[
+              { q:'Is GlowLoox free to use?', a:'Yes. GlowLoox is free to start — no credit card required. You get full platform access from day one. For growing businesses, the Starter Plan is ₹150/month or choose the Per Booking Plan at just ₹1 per confirmed booking.' },
+              { q:'What types of businesses can use GlowLoox?', a:'GlowLoox works for all beauty and wellness businesses — hair salons, beauty parlours, spas, grooming studios, nail salons, makeup studios, tattoo parlours, and any service-based business that takes appointments.' },
+              { q:'How do clients book appointments?', a:'Clients discover your business on the GlowLoox app, select a service, and pick an available time slot. You get an instant push notification and can accept or decline from the app or dashboard.' },
+              { q:'Does GlowLoox have a mobile app?', a:'Yes. The GlowLoox Partner app for business owners is available on Android. Manage bookings, track revenue, and receive notifications — all from your phone.' },
+              { q:'Does GlowLoox support UPI payments?', a:'Yes. GlowLoox supports UPI, credit/debit cards, and cash. It auto-generates invoices and provides daily, weekly, and monthly earnings reports.' },
+              { q:'How quickly can I set up my business on GlowLoox?', a:'Most owners complete setup in under 5 minutes. You add your services, set your hours, and your booking page is live — ready to accept clients the same day.' },
+            ].map(({ q, a }, i) => (
+              <details key={i} style={{ background:c.card, border:`1px solid ${c.border}`, borderRadius:16, overflow:'hidden', cursor:'pointer' }}>
+                <summary style={{ padding:'18px 22px', fontSize:14.5, fontWeight:700, color:c.heading, listStyle:'none', display:'flex', justifyContent:'space-between', alignItems:'center', gap:12 }}>
+                  {q}
+                  <span style={{ color:c.subtle, flexShrink:0, fontSize:18, lineHeight:1 }}>+</span>
+                </summary>
+                <div style={{ padding:'0 22px 18px', fontSize:13.5, color:c.subtle, lineHeight:1.8 }}>{a}</div>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── FOOTER ────────────────────────────────────────────── */}
       <footer style={{ borderTop:`1px solid ${c.divider}`, padding:'40px 20px', background:c.bg }}>
         <div className="max-w-6xl mx-auto">
