@@ -100,10 +100,12 @@ function OnboardingInner() {
   useEffect(() => {
     if (!draftLoaded) return;
     const hasJwt = !!localStorage.getItem('token');
-    if (currentStep === 1 && !data.firebaseToken && !hasJwt) {
+    // Also check location.state: when redirected from Login the context update hasn't applied yet
+    const incomingToken = location.state?.firebaseToken;
+    if (currentStep === 1 && !data.firebaseToken && !incomingToken && !hasJwt) {
       navigate(ROUTES.LOGIN, { replace: true });
     }
-  }, [draftLoaded, currentStep, data.firebaseToken, navigate]);
+  }, [draftLoaded, currentStep, data.firebaseToken, location.state, navigate]);
 
   // Already approved → go to dashboard
   useEffect(() => {
