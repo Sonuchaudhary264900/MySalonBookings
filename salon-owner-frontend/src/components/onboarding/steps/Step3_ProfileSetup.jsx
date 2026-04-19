@@ -50,14 +50,12 @@ export default function Step3_ProfileSetup() {
   const [loading, setLoading]     = useState(false);
   const [referralOpen, setReferralOpen] = useState(false);
   const [referralApplied, setReferralApplied] = useState(false);
-  const [agreed, setAgreed]       = useState(false);
 
   const patchForm = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const validate = () => {
     const e = {};
     if (!form.name.trim() || form.name.trim().length < 2) e.name = 'Name must be at least 2 characters';
-    if (!agreed) e.terms = 'Please accept the Terms & Conditions';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -161,18 +159,6 @@ export default function Step3_ProfileSetup() {
             )}
           </div>
 
-          {/* Terms */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-            <input type="checkbox" checked={agreed} onChange={e => { setAgreed(e.target.checked); setErrors(er => ({ ...er, terms: '' })); }}
-              style={{ width: 16, height: 16, marginTop: 2, accentColor: '#7c3aed', cursor: 'pointer', flexShrink: 0 }} />
-            <span style={{ fontSize: 13, color: sub, lineHeight: 1.5 }}>
-              I agree to the{' '}
-              <a href="/legal/owner-terms" target="_blank" style={{ color: '#7c3aed', fontWeight: 600 }}>Terms of Service</a>
-              {' '}and{' '}
-              <a href="/legal/owner-privacy" target="_blank" style={{ color: '#7c3aed', fontWeight: 600 }}>Privacy Policy</a>
-            </span>
-          </div>
-          {errors.terms && <p style={{ color: '#f87171', fontSize: 11, marginTop: -10 }}>{errors.terms}</p>}
 
           {/* Submit */}
           <button
@@ -197,8 +183,11 @@ export default function Step3_ProfileSetup() {
             )}
           </button>
 
-          <p style={{ textAlign: 'center', fontSize: 11, color: sub, margin: 0 }}>
-            🔒 Your information is encrypted and never shared.
+          <p style={{ textAlign: 'center', fontSize: 12, color: sub, margin: 0, lineHeight: 1.6 }}>
+            By continuing you agree to our{' '}
+            <a href="/legal/owner-terms" target="_blank" style={{ color: '#7c3aed', fontWeight: 600 }}>Terms of Service</a>
+            {' '}and{' '}
+            <a href="/legal/owner-privacy" target="_blank" style={{ color: '#7c3aed', fontWeight: 600 }}>Privacy Policy</a>
           </p>
         </div>
       </div>

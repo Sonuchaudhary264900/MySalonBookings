@@ -26,13 +26,10 @@ export default function Step3_Profile() {
     nextStep,
   } = useOnboarding();
 
-  const [agreed, setAgreed]   = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
     if (!ownerName.trim() || ownerName.trim().length < 2) { Alert.alert('Error', 'Name must be at least 2 characters'); return; }
-    if (!ownerGender) { Alert.alert('Error', 'Please select your gender'); return; }
-    if (!agreed) { Alert.alert('Terms Required', 'Please accept the Terms & Conditions'); return; }
 
     setLoading(true);
     try {
@@ -113,23 +110,10 @@ export default function Step3_Profile() {
           </View>
         </View>
 
-        {/* Terms */}
-        <TouchableOpacity style={s.termsRow} onPress={() => setAgreed(!agreed)} activeOpacity={0.8}>
-          <View style={[s.cb, agreed && s.cbOn]}>
-            {agreed && <Ionicons name="checkmark" size={13} color="#fff" />}
-          </View>
-          <Text style={s.termsText}>
-            I agree to the{' '}
-            <Text style={s.termsLink} onPress={() => Linking.openURL('https://owner.mysalonbookings.com/legal/owner-terms')}>Terms & Conditions</Text>
-            {' '}and{' '}
-            <Text style={s.termsLink} onPress={() => Linking.openURL('https://owner.mysalonbookings.com/legal/owner-privacy')}>Privacy Policy</Text>
-          </Text>
-        </TouchableOpacity>
-
         <TouchableOpacity
-          style={[s.btn, (loading || !agreed) && s.btnOff]}
+          style={[s.btn, loading && s.btnOff]}
           onPress={handleRegister}
-          disabled={loading || !agreed}
+          disabled={loading}
           activeOpacity={0.88}
         >
           {loading ? <ActivityIndicator color="#fff" /> : (
@@ -139,6 +123,13 @@ export default function Step3_Profile() {
             </>
           )}
         </TouchableOpacity>
+
+        <Text style={s.termsNote}>
+          By continuing you agree to our{' '}
+          <Text style={s.termsLink} onPress={() => Linking.openURL('https://owner.mysalonbookings.com/legal/owner-terms')}>Terms of Service</Text>
+          {' '}and{' '}
+          <Text style={s.termsLink} onPress={() => Linking.openURL('https://owner.mysalonbookings.com/legal/owner-privacy')}>Privacy Policy</Text>
+        </Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -163,10 +154,7 @@ const s = StyleSheet.create({
   gEmoji:         { fontSize: 20, marginBottom: 3 },
   gLabel:         { fontSize: 12, fontWeight: '600', color: '#94a3b8' },
   gLabelOn:       { color: '#c4b5fd' },
-  termsRow:       { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 18 },
-  cb:             { width: 20, height: 20, borderRadius: 6, borderWidth: 2, borderColor: 'rgba(99,102,241,0.4)', alignItems: 'center', justifyContent: 'center', marginTop: 1, flexShrink: 0, backgroundColor: 'rgba(255,255,255,0.05)' },
-  cbOn:           { backgroundColor: '#6366f1', borderColor: '#6366f1' },
-  termsText:      { flex: 1, fontSize: 13, color: '#94a3b8', lineHeight: 20 },
+  termsNote:      { textAlign: 'center', fontSize: 12, color: '#64748b', marginTop: 14, lineHeight: 18 },
   termsLink:      { color: '#818cf8', fontWeight: '600' },
   btn:            { backgroundColor: '#6366f1', borderRadius: 14, height: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, shadowColor: '#6366f1', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.45, shadowRadius: 14, elevation: 8 },
   btnOff:         { opacity: 0.5 },
