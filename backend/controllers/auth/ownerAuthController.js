@@ -739,8 +739,14 @@ exports.firebaseRegister = async (req, res) => {
     const existingOwner = await Owner.findOne({ $or: orClauses });
 
     if (existingOwner) {
-      // Phone is Firebase-verified — if the phone matches, auto-login
-      if (existingOwner.phone === phone || existingOwner.phone.replace(/\D/g,'').slice(-10) === regTen) {
+      // Firebase already verified the phone — if email was NOT provided, this match is purely
+      // by phone, so it's safe to auto-login regardless of stored phone format differences.
+      // Only block with 409 when an email was explicitly provided and it belongs to a different phone.
+      const phoneMatches = !existingOwner.phone ||
+        existingOwner.phone === phone ||
+        existingOwner.phone.replace(/\D/g,'').slice(-10) === regTen;
+
+      if (!normalizedEmail || phoneMatches) {
         const token = jwt.sign(
           { _id: existingOwner._id, phone: existingOwner.phone, role: existingOwner.role, businessId: existingOwner.businessId },
           process.env.JWT_SECRET,
@@ -761,23 +767,23 @@ exports.firebaseRegister = async (req, res) => {
           )
         );
       }
-      // Email conflict with a different account
+      // Email was provided and belongs to a different phone — genuine conflict
       return res.status(409).json(
-        formatErrorResponse('Email is already registered with another account', 409)
+        formatErrorResponse('This email is already registered with a different account.', 409)
       );
     }
 
     // Create owner (passwordless — Firebase OTP is the authentication factor)
-    const owner = await Owner.create({
+    const ownerData = {
       phone,
       phoneVerified: true,
       firebaseUid: firebaseUser.uid,
       name: name.trim(),
-      email: normalizedEmail,
-      gender: gender || null,
       status: 'mobile_verified',
       role: 'owner',
-    });
+    };
+    if (normalizedEmail) ownerData.email = normalizedEmail;
+    const owner = await Owner.create(ownerData);
 
     // Generate JWT token
     const token = jwt.sign(

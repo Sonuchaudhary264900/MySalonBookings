@@ -147,9 +147,11 @@ const Register = () => {
         toast.error('An account already exists for this number. Please sign in.');
         navigate(ROUTES.LOGIN, { replace: true });
       } catch (loginErr) {
+        const status = loginErr.response?.status;
         const msg = loginErr.message || '';
-        if (msg.toLowerCase().includes('no glowloox') || msg.toLowerCase().includes('not found')) {
-          // No existing account — start onboarding
+        // 404 with specific "no glowloox" backend message = no account → onboarding
+        // Any other error (including generic Render 404, 500, network) = real failure
+        if (status === 404 && msg.toLowerCase().includes('no glowloox')) {
           navigate(ROUTES.ONBOARDING, {
             replace: true,
             state: { phone: normalizePhone(phone), firebaseToken },
