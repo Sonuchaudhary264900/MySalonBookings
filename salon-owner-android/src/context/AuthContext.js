@@ -1,5 +1,6 @@
 import React, { createContext, useState, useCallback, useEffect, useContext } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import auth from '@react-native-firebase/auth';
 import api from '../services/api';
 
 export const AuthContext = createContext();
@@ -25,17 +26,17 @@ export const AuthProvider = ({ children }) => {
           setUser(u);
           await AsyncStorage.setItem('ownerUser', JSON.stringify(u));
         } catch (err) {
-          // Interceptor shapes error as { status, message } — check both forms
           const status = err.response?.status ?? err.status;
           if (status === 401 || status === 403) {
-            // Token invalid/expired — log out
             await AsyncStorage.multiRemove(['token', 'refreshToken', 'ownerUser']);
+            try { await auth().signOut(); } catch {}
             setUser(null);
           }
           // Network error — keep cached session, don't log out
         }
       } catch {
         await AsyncStorage.multiRemove(['token', 'refreshToken', 'ownerUser']);
+        try { await auth().signOut(); } catch {}
         setUser(null);
       } finally {
         setLoading(false);
@@ -75,6 +76,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = useCallback(async () => {
     await AsyncStorage.multiRemove(['token', 'refreshToken', 'ownerUser']);
+    try { await auth().signOut(); } catch {}
     setUser(null);
     setError(null);
   }, []);
