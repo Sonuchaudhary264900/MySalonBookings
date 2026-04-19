@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useState, useEffect, useRef } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { GalleryUploadProvider } from './context/GalleryUploadContext';
@@ -954,8 +954,7 @@ function App() {
                   {/* Public auth routes — redirect away if already logged in */}
                   <Route element={<PublicRoute />}>
                     <Route path={ROUTES.LOGIN}    element={<Login />} />
-                    {/* Old /register → redirect to new unified onboarding */}
-                    <Route path={ROUTES.REGISTER} element={<Navigate to={ROUTES.ONBOARDING} replace />} />
+                    <Route path={ROUTES.REGISTER} element={<Register />} />
                   </Route>
 
                   {/* New unified onboarding — accessible to guests AND mobile_verified owners */}

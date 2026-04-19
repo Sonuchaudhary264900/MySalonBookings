@@ -152,28 +152,15 @@ const Login = () => {
     try {
       const result = await confirmRef.current.confirm(code);
       const firebaseToken = await result.user.getIdToken();
-      try {
-        const response = await login(firebaseToken, normalizePhone(phone));
-        toast.success('Welcome back! 🎉');
-        const status = response?.data?.owner?.status;
-        if (status === 'mobile_verified') {
-          navigate(ROUTES.ONBOARDING, { replace: true });
-        } else if (status === 'salon_registered' || status === 'pending_approval') {
-          navigate(ROUTES.APPROVAL_WAITING, { replace: true });
-        } else {
-          navigate(ROUTES.DASHBOARD, { replace: true });
-        }
-      } catch (loginErr) {
-        const msg = loginErr.message || '';
-        if (msg.toLowerCase().includes('not found') || msg.toLowerCase().includes('no glowloox')) {
-          toast('No account found — let\'s create one!', { icon: '👋' });
-          navigate(ROUTES.ONBOARDING, {
-            replace: true,
-            state: { phone: normalizePhone(phone), firebaseToken },
-          });
-        } else {
-          throw loginErr;
-        }
+      const response = await login(firebaseToken, normalizePhone(phone));
+      toast.success('Welcome back! 🎉');
+      const status = response?.data?.owner?.status;
+      if (status === 'mobile_verified') {
+        navigate(ROUTES.ONBOARDING, { replace: true });
+      } else if (status === 'salon_registered' || status === 'pending_approval') {
+        navigate(ROUTES.APPROVAL_WAITING, { replace: true });
+      } else {
+        navigate(ROUTES.DASHBOARD, { replace: true });
       }
     } catch (err) {
       const msg = err.message || 'Sign in failed.';
@@ -267,7 +254,7 @@ const Login = () => {
 
               <div style={{ marginBottom:28 }}>
                 <h2 style={{ fontSize:22, fontWeight:800, color: c ? '#f1f5f9' : '#0f172a', letterSpacing:'-0.6px', marginBottom:6 }}>
-                  {step === 1 ? 'Welcome back' : 'Enter OTP'}
+                  {step === 1 ? 'Sign in' : 'Enter OTP'}
                 </h2>
                 <p style={{ fontSize:14, color: c ? '#475569' : '#64748b', margin:0 }}>
                   {step === 1 ? 'Sign in to your GlowLoox Partner dashboard' : `OTP sent to +91 ${phone}`}
@@ -309,8 +296,9 @@ const Login = () => {
                     {loading ? <><div className="lgn-spinner" /> Sending OTP…</> : <>Send OTP <ArrowRight size={17} /></>}
                   </button>
 
-                  <p style={{ textAlign:'center', fontSize:12.5, color: c ? '#475569' : '#64748b', margin:0 }}>
-                    New here? Enter your number — we'll set up your account automatically.
+                  <p style={{ textAlign:'center', fontSize:13, color: c ? '#475569' : '#64748b', margin:0 }}>
+                    New here?{' '}
+                    <a href={ROUTES.REGISTER} style={{ color:'#a78bfa', fontWeight:600, textDecoration:'none' }}>Create an account</a>
                   </p>
                 </form>
               )}
