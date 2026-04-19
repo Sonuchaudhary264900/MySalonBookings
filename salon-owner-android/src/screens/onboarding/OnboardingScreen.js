@@ -40,7 +40,7 @@ const SPEED_MSG = {
 
 function OnboardingContent() {
   const { step, prevStep, minStep } = useOnboarding();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const insets = useSafeAreaInsets();
   const confirmationRef = useRef(null);
 
@@ -116,9 +116,9 @@ function OnboardingContent() {
         </View>
 
         <View style={s.topRight}>
-          <View style={s.speedBadge}>
-            <Text style={s.speedText}>{SPEED_MSG[step]}</Text>
-          </View>
+          <TouchableOpacity style={s.logoutBtn} onPress={logout} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Ionicons name="log-out-outline" size={18} color="#64748b" />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -175,6 +175,7 @@ const s = StyleSheet.create({
   topCenter:     { flex: 1, alignItems: 'center' },
   topRight:      { width: 44, alignItems: 'flex-end' },
   backBtn:       { width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.07)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  logoutBtn:     { width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   logoWrap:      { width: 36, height: 36, borderRadius: 10, backgroundColor: '#0d0d2b', overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'rgba(56,189,248,0.4)' },
   logo:          { width: 32, height: 32 },
   stepCounter:   { fontSize: 11, color: '#475569', fontWeight: '600', letterSpacing: 0.5 },
