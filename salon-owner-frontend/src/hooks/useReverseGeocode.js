@@ -16,28 +16,59 @@ function inferState(components) {
   return INDIAN_STATES.find(s => s.toLowerCase() === level1.toLowerCase()) || level1;
 }
 
-/** Match geocoded district string against STATE_DISTRICTS list; returns '' if no match */
-function inferDistrict(rawDistrict, state) {
-  const list = STATE_DISTRICTS[state];
-  if (!list || !rawDistrict) return '';
-  const norm = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const raw = norm(rawDistrict);
+const DISTRICT_ALIASES = {
+  // Punjab — official vs common names
+  'sasnagar': 'Mohali', 'sahibzadaajitsinghnagar': 'Mohali',
+  'nawanshahr': 'Shaheed Bhagat Singh Nagar', 'nawanshahar': 'Shaheed Bhagat Singh Nagar',
+  'ropar': 'Rupnagar',
+  // Haryana
+  'gurgaon': 'Gurugram',
+  // Karnataka
+  'bangaloreurban': 'Bengaluru Urban', 'bangalorerural': 'Bengaluru Rural',
+  'bangalore': 'Bengaluru Urban',
+  // Uttar Pradesh
+  'gautambuddhnagar': 'Gautam Buddha Nagar',
+  'allahabad': 'Prayagraj', 'faizabad': 'Ayodhya',
+  // Madhya Pradesh
+  'narmadapuram': 'Hoshangabad',
+  // West Bengal
+  'north24parganas': 'North 24 Parganas', 'south24parganas': 'South 24 Parganas',
+  'north24parganasdistrict': 'North 24 Parganas',
+};
+
+/** Match a single raw string against STATE_DISTRICTS list; returns '' if no match */
+function matchDistrict(raw, list) {
+  if (!raw || !list) return '';
+  const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const n = norm(raw);
+  // Alias lookup
+  if (DISTRICT_ALIASES[n] && list.includes(DISTRICT_ALIASES[n])) return DISTRICT_ALIASES[n];
   // Exact normalized match
-  const exact = list.find(d => norm(d) === raw);
+  const exact = list.find(d => norm(d) === n);
   if (exact) return exact;
-  // One contains the other (handles extra words like "Urban", "Rural")
-  const partial = list.find(d => {
-    const nd = norm(d);
-    return nd.includes(raw) || raw.includes(nd);
-  });
+  // One contains the other
+  const partial = list.find(d => { const nd = norm(d); return nd.includes(n) || n.includes(nd); });
   if (partial) return partial;
-  // First significant word match (e.g. Google "Gurugram District" → our "Gurugram")
-  const firstWord = rawDistrict.toLowerCase().split(/\s+/)[0];
-  if (firstWord.length > 3) {
-    const wordMatch = list.find(d => d.toLowerCase().startsWith(firstWord));
-    if (wordMatch) return wordMatch;
+  // Word-by-word: each significant word in raw vs each word in district names
+  const words = raw.toLowerCase().split(/\s+/).filter(w => w.length >= 4).map(norm);
+  for (const w of words) {
+    const wm = list.find(d => {
+      const dWords = d.toLowerCase().split(/\s+/).map(norm);
+      return dWords.some(dw => dw.startsWith(w) || w.startsWith(dw));
+    });
+    if (wm) return wm;
   }
   return '';
+}
+
+/**
+ * Try admin_level_2 first; if it doesn't match a known district, try level_3.
+ * Google sometimes puts the tehsil at level_2 and the district at level_3.
+ */
+function inferDistrict(level2, level3, state) {
+  const list = STATE_DISTRICTS[state];
+  if (!list) return '';
+  return matchDistrict(level2, list) || matchDistrict(level3, list);
 }
 
 /**
@@ -64,11 +95,11 @@ export function useReverseGeocode() {
         const locality = getComponent(c, 'locality');
         const city     = locality;
 
-        // level_2 is the district in India; level_3 is taluk/tehsil (too granular)
-        const rawDistrict = getComponent(c, 'administrative_area_level_2')
-                         || getComponent(c, 'administrative_area_level_3');
+        const level2   = getComponent(c, 'administrative_area_level_2');
+        const level3   = getComponent(c, 'administrative_area_level_3');
         const state    = inferState(c);
-        const district = inferDistrict(rawDistrict, state);
+        // Try level_2 first; if it's a tehsil name that doesn't match, fall through to level_3
+        const district = inferDistrict(level2, level3, state);
         const pincode  = getShortComponent(c, 'postal_code');
 
         // Street address excludes city to avoid duplication in the city field
