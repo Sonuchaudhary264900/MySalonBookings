@@ -52,11 +52,14 @@ const HERO_FEATURES = [
 
 const Register = () => {
   const navigate = useNavigate();
-  const { login, user } = useAuth();
+  const { register, user } = useAuth();
   const { isDark, toggleTheme } = useTheme();
 
   useEffect(() => {
-    if (user) navigate(ROUTES.DASHBOARD);
+    if (!user) return;
+    if (user.status === 'mobile_verified') navigate(ROUTES.ONBOARDING, { replace: true });
+    else if (user.status === 'pending_approval' || user.status === 'salon_registered') navigate(ROUTES.APPROVAL_WAITING, { replace: true });
+    else navigate(ROUTES.DASHBOARD, { replace: true });
   }, [user, navigate]);
 
   const [step,     setStep]     = useState(1);
@@ -140,24 +143,14 @@ const Register = () => {
     try {
       const result = await confirmRef.current.confirm(code);
       const firebaseToken = await result.user.getIdToken();
-      // Check if owner already exists
-      try {
-        await login(firebaseToken, normalizePhone(phone));
-        // Owner exists — send to login
-        toast.error('An account already exists for this number. Please sign in.');
-        navigate(ROUTES.LOGIN, { replace: true });
-      } catch (loginErr) {
-        const msg = loginErr.message || '';
-        // 404 with specific "no glowloox" backend message = no account → onboarding
-        // Any other error (including generic Render 404, 500, network) = real failure
-        if (msg.toLowerCase().includes('no glowloox')) {
-          navigate(ROUTES.ONBOARDING, {
-            replace: true,
-            state: { phone: normalizePhone(phone), firebaseToken },
-          });
-        } else {
-          throw loginErr;
-        }
+      const data = await register(firebaseToken);
+      const ownerStatus = data?.data?.owner?.status;
+      if (ownerStatus === 'mobile_verified') {
+        navigate(ROUTES.ONBOARDING, { replace: true, state: { phone: normalizePhone(phone), firebaseToken } });
+      } else if (ownerStatus === 'pending_approval' || ownerStatus === 'salon_registered') {
+        navigate(ROUTES.APPROVAL_WAITING, { replace: true });
+      } else {
+        navigate(ROUTES.DASHBOARD, { replace: true });
       }
     } catch (err) {
       const msg = err.message || 'Verification failed.';
