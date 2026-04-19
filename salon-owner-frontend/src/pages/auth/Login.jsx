@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Scissors, BarChart2, Users, Calendar, Sun, Moon } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -44,8 +44,6 @@ const Login = () => {
   const navigate = useNavigate();
   const { login, user } = useAuth();
   const { isDark, toggleTheme } = useTheme();
-  const [notFound, setNotFound] = useState(false);
-  const [extraError, setExtraError] = useState('');
 
   useEffect(() => {
     if (!user) return;
@@ -55,19 +53,22 @@ const Login = () => {
   }, [user, navigate]);
 
   const handleVerified = async (firebaseToken, phone) => {
-    const response = await login(firebaseToken, phone);
-    toast.success('Welcome back!');
-    const status = response?.data?.owner?.status;
-    if (status === 'mobile_verified') navigate(ROUTES.ONBOARDING, { replace: true });
-    else if (status === 'pending_approval' || status === 'salon_registered') navigate(ROUTES.APPROVAL_WAITING, { replace: true });
-    else navigate(ROUTES.DASHBOARD, { replace: true });
-  };
-
-  const handleError = (msg) => {
-    const isNotFound = msg.toLowerCase().includes('no glowloox') || msg.toLowerCase().includes('not found');
-    setNotFound(isNotFound);
-    setExtraError(isNotFound ? msg : '');
-    if (!isNotFound) toast.error(msg);
+    try {
+      const response = await login(firebaseToken, phone);
+      toast.success('Welcome back!');
+      const status = response?.data?.owner?.status;
+      if (status === 'mobile_verified') navigate(ROUTES.ONBOARDING, { replace: true });
+      else if (status === 'pending_approval' || status === 'salon_registered') navigate(ROUTES.APPROVAL_WAITING, { replace: true });
+      else navigate(ROUTES.DASHBOARD, { replace: true });
+    } catch (err) {
+      const msg = err.message || '';
+      if (msg.toLowerCase().includes('no glowloox') || msg.toLowerCase().includes('not found')) {
+        toast.error('No account found. Redirecting to register…');
+        navigate(ROUTES.REGISTER, { replace: true });
+      } else {
+        throw err;
+      }
+    }
   };
 
   const c = isDark;
@@ -149,12 +150,6 @@ const Login = () => {
                 isDark={isDark}
                 submitLabel="Verify & Sign In"
                 onVerified={handleVerified}
-                extraError={extraError}
-                extraActions={notFound && (
-                  <button onClick={() => navigate(ROUTES.REGISTER)} style={{ width: '100%', padding: '12px', borderRadius: 12, fontSize: 14, fontWeight: 700, background: 'linear-gradient(135deg,#7c3aed,#3b82f6)', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-                    Register Now
-                  </button>
-                )}
                 footerSlot={
                   <p style={{ textAlign: 'center', fontSize: 13, color: c ? '#475569' : '#64748b', margin: 0 }}>
                     New here?{' '}
