@@ -74,6 +74,7 @@ const Login = () => {
   const [otpTimer,     setOtpTimer]     = useState(0);
   const [loading,      setLoading]      = useState(false);
   const [error,        setError]        = useState('');
+  const [notFound,     setNotFound]     = useState(false);
 
   const otpRefs       = useRef([]);
   const recaptchaRef  = useRef(null);
@@ -165,7 +166,9 @@ const Login = () => {
     } catch (err) {
       const msg = err.message || 'Sign in failed.';
       setError(msg);
-      toast.error(msg);
+      const isNotFound = msg.toLowerCase().includes('no glowloox') || msg.toLowerCase().includes('not found');
+      setNotFound(isNotFound);
+      if (!isNotFound) toast.error(msg);
     } finally { setLoading(false); }
   };
 
@@ -262,10 +265,17 @@ const Login = () => {
               </div>
 
               {error && (
-                <div style={{ background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)', borderRadius:11, padding:'11px 14px', marginBottom:20, display:'flex', alignItems:'flex-start', gap:10 }}>
-                  <span style={{ fontSize:15, flexShrink:0 }}>⚠️</span>
-                  <p style={{ fontSize:13, color:'#f87171', margin:0 }}>{error}</p>
-                  <button onClick={() => setError('')} style={{ marginLeft:'auto', color:'#f87171', background:'none', border:'none', cursor:'pointer', fontSize:16, flexShrink:0 }}>✕</button>
+                <div style={{ marginBottom:20, display:'flex', flexDirection:'column', gap:10 }}>
+                  <div style={{ background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)', borderRadius:11, padding:'11px 14px', display:'flex', alignItems:'flex-start', gap:10 }}>
+                    <span style={{ fontSize:15, flexShrink:0 }}>⚠️</span>
+                    <p style={{ fontSize:13, color:'#f87171', margin:0 }}>{error}</p>
+                    <button onClick={() => { setError(''); setNotFound(false); }} style={{ marginLeft:'auto', color:'#f87171', background:'none', border:'none', cursor:'pointer', fontSize:16, flexShrink:0 }}>✕</button>
+                  </div>
+                  {notFound && (
+                    <button onClick={() => navigate(ROUTES.REGISTER)} style={{ width:'100%', padding:'12px', borderRadius:12, fontSize:14, fontWeight:700, background:'linear-gradient(135deg,#7c3aed,#3b82f6)', color:'#fff', border:'none', cursor:'pointer', fontFamily:'inherit' }}>
+                      Register Now
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -282,7 +292,7 @@ const Login = () => {
                         className="lgn-input"
                         type="tel"
                         value={phone}
-                        onChange={e => { setPhone(e.target.value.replace(/\D/g,'').slice(0,10)); setError(''); }}
+                        onChange={e => { setPhone(e.target.value.replace(/\D/g,'').slice(0,10)); setError(''); setNotFound(false); }}
                         placeholder="98765 43210"
                         disabled={loading}
                         inputMode="numeric"
