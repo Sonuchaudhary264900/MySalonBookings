@@ -8,8 +8,8 @@ export const useOnboarding = () => {
   return ctx;
 };
 
-// Step → progress % mapping (11 steps)
-const STEP_PROGRESS = { 1:9, 2:18, 3:27, 4:36, 5:45, 6:55, 7:64, 8:73, 9:82, 10:91, 11:98 };
+// Step → progress % mapping (9 steps — phone/OTP handled by Login screen)
+const STEP_PROGRESS = { 1:11, 2:22, 3:33, 4:44, 5:56, 6:67, 7:78, 8:89, 9:98 };
 
 const getProgressMessage = (pct) => {
   if (pct <= 20)  return "Let's get started!";
@@ -146,7 +146,7 @@ export function OnboardingProvider({ children }) {
     setDirection(1);
     setCompletedSteps(prev => [...new Set([...prev, currentStep])]);
     setCurrentStep(prev => {
-      const next = Math.min(prev + 1, 11);
+      const next = Math.min(prev + 1, 9);
       setData(d => { saveDraft(next, d); return d; });
       return next;
     });

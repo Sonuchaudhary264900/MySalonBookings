@@ -169,7 +169,7 @@ const Login = () => {
           toast('No account found — let\'s create one!', { icon: '👋' });
           navigate(ROUTES.ONBOARDING, {
             replace: true,
-            state: { phone: normalizePhone(phone), firebaseToken, skipToStep: 3 },
+            state: { phone: normalizePhone(phone), firebaseToken },
           });
         } else {
           throw loginErr;
@@ -309,12 +309,9 @@ const Login = () => {
                     {loading ? <><div className="lgn-spinner" /> Sending OTP…</> : <>Send OTP <ArrowRight size={17} /></>}
                   </button>
 
-                  <div style={{ textAlign:'center' }}>
-                    <p style={{ fontSize:13.5, color: c ? '#475569' : '#64748b', marginBottom:12 }}>Don't have an account?</p>
-                    <a href={ROUTES.REGISTER} className="lgn-outline-btn" style={{ display:'block', textDecoration:'none' }}>
-                      Create Free Account → 30-Day Trial
-                    </a>
-                  </div>
+                  <p style={{ textAlign:'center', fontSize:12.5, color: c ? '#475569' : '#64748b', margin:0 }}>
+                    New here? Enter your number — we'll set up your account automatically.
+                  </p>
                 </form>
               )}
 

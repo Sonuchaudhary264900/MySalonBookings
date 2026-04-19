@@ -34,7 +34,7 @@ export default function OnboardingLayout({ children }) {
   const { currentStep, prevStep, progress } = useOnboarding();
   const { isDark, toggleTheme } = useTheme();
 
-  const isSplitLayout = currentStep >= 4;
+  const isSplitLayout = currentStep >= 2;
   const showBack      = currentStep > 1;
 
   const bg        = isDark ? '#07071a' : '#f5f3ff';
