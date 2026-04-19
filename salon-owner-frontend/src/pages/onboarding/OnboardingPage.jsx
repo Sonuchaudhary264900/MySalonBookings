@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { OnboardingProvider, useOnboarding } from '../../context/OnboardingContext';
 import OnboardingLayout from '../../components/onboarding/OnboardingLayout';
 import { useAuth } from '../../hooks/useAuth';
+import { useTheme } from '../../context/ThemeContext';
 import ROUTES from '../../routes';
 
 const Step1  = lazy(() => import('../../components/onboarding/steps/Step1_PhoneInput'));
@@ -26,9 +27,36 @@ const variants = {
   exit:  (dir) => ({ x: dir > 0 ? '-60%' : '60%', opacity: 0 }),
 };
 
+function DraftSkeleton() {
+  const { isDark } = useTheme();
+  const base = isDark ? 'rgba(255,255,255,0.07)' : '#ede9fe';
+  const shine = isDark ? 'rgba(255,255,255,0.04)' : '#f5f3ff';
+  const sk = (w, h, r = 10) => (
+    <div style={{ width: w, height: h, borderRadius: r, background: `linear-gradient(90deg,${base} 25%,${shine} 50%,${base} 75%)`, backgroundSize: '200% 100%', animation: 'sk-shine 1.2s infinite' }} />
+  );
+  return (
+    <>
+      <style>{`@keyframes sk-shine{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 18, padding: '8px 0' }}>
+        {sk('60%', 36, 12)}
+        {sk('85%', 16, 8)}
+        <div style={{ height: 12 }} />
+        {sk('100%', 120, 20)}
+        <div style={{ height: 8 }} />
+        {sk('100%', 60, 14)}
+        {sk('100%', 60, 14)}
+        <div style={{ height: 8 }} />
+        {sk('55%', 48, 14)}
+      </div>
+    </>
+  );
+}
+
 function StepRenderer() {
-  const { currentStep, direction } = useOnboarding();
+  const { currentStep, direction, draftLoaded } = useOnboarding();
   const StepComponent = STEPS[currentStep - 1];
+
+  if (!draftLoaded) return <DraftSkeleton />;
 
   return (
     <AnimatePresence mode="wait" custom={direction}>

@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import api from '../services/api';
 
 const OnboardingContext = createContext(null);
 export const useOnboarding = () => {
@@ -19,86 +20,152 @@ const getProgressMessage = (pct) => {
   return 'Your salon is ready! 🎉';
 };
 
+const INITIAL_DATA = {
+  // Phase 1 — auth
+  phone:             '',
+  confirmationResult: null,
+  firebaseToken:     '',
+
+  // Step 3 — profile
+  name:       '',
+  email:      '',
+  password:   '',
+  gender:     '',
+  referralCode: '',
+
+  // Step 4 — salon type
+  businessType: '',
+
+  // Step 5 — salon identity
+  salonName:    '',
+  servedGender: '',
+  description:  '',
+
+  // Step 5 — location
+  lat:      null,
+  lng:      null,
+  address:  '',
+  city:     '',
+  district: '',
+  state:    '',
+  pincode:  '',
+
+  // Step 6 — working hours
+  workingDays:    ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+  openTime:       '09:00',
+  closeTime:      '21:00',
+  hasLunchBreak:  false,
+  lunchStart:     '13:00',
+  lunchEnd:       '14:00',
+
+  // Step 7 — media
+  videoUrl:                 '',
+  videoPublicId:            '',
+  photos:                   [],
+  businessLicenseUrl:       '',
+  businessRegistrationUrl:  '',
+
+  // Step 8 — services
+  selectedServices: [],
+
+  // Step 9 — pricing
+  servicePricing: {},
+
+  // UX flags
+  quickSetup: false,
+};
+
+// Fields that must NOT be saved to DB (runtime-only)
+const SKIP_FIELDS = new Set(['confirmationResult', 'firebaseToken', 'password']);
+
+function stripRuntime(data) {
+  const clean = { ...data };
+  SKIP_FIELDS.forEach(k => delete clean[k]);
+  return clean;
+}
+
 export function OnboardingProvider({ children }) {
   const [currentStep, setCurrentStep]       = useState(1);
-  const [direction, setDirection]           = useState(1);   // 1=forward -1=back
+  const [direction, setDirection]           = useState(1);
   const [completedSteps, setCompletedSteps] = useState([]);
+  const [data, setData]                     = useState(INITIAL_DATA);
+  const [draftLoaded, setDraftLoaded]       = useState(false);
 
-  /* ── Onboarding data (flat so updates are cheap) ── */
-  const [data, setData] = useState({
-    // Phase 1 — auth
-    phone:             '',
-    confirmationResult: null,
-    firebaseToken:     '',
+  const saveTimerRef = useRef(null);
 
-    // Step 3 — profile
-    name:       '',
-    email:      '',
-    password:   '',
-    gender:     '',   // 'male' | 'female' | 'other'
-    referralCode: '',
+  /* ── helpers ── */
+  const hasToken = () => !!localStorage.getItem('token');
 
-    // Step 4 — salon type
-    businessType: '',  // 'barbershop' | 'salon' | 'spa_wellness' | 'makeup_bridal' | 'skin_derma'
+  const saveDraft = useCallback(async (step, latestData) => {
+    if (!hasToken()) return;
+    try {
+      await api.put('/owner/onboarding/draft', {
+        currentStep: step,
+        data: stripRuntime(latestData),
+      });
+    } catch { /* silent — don't block the user */ }
+  }, []);
 
-    // Step 5 — salon identity
-    salonName:    '',
-    servedGender: '',  // 'male' | 'female' | 'unisex'
-    description:  '',
+  const debouncedSave = useCallback((step, latestData) => {
+    if (!hasToken()) return;
+    clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => saveDraft(step, latestData), 800);
+  }, [saveDraft]);
 
-    // Step 5 — location
-    lat:      null,
-    lng:      null,
-    address:  '',
-    city:     '',
-    district: '',
-    state:    '',
-    pincode:  '',
+  /* ── restore draft on mount if token exists ── */
+  useEffect(() => {
+    if (!hasToken()) { setDraftLoaded(true); return; }
+    api.get('/owner/onboarding/draft')
+      .then(res => {
+        const draft = res.data?.data;
+        if (draft?.currentStep && draft.currentStep > 1) {
+          setCurrentStep(draft.currentStep);
+          setCompletedSteps(
+            Array.from({ length: draft.currentStep - 1 }, (_, i) => i + 1)
+          );
+        }
+        if (draft?.data && Object.keys(draft.data).length > 0) {
+          setData(prev => ({ ...prev, ...draft.data }));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setDraftLoaded(true));
+  }, []);
 
-    // Step 6 — working hours
-    workingDays:    ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-    openTime:       '09:00',
-    closeTime:      '21:00',
-    hasLunchBreak:  false,
-    lunchStart:     '13:00',
-    lunchEnd:       '14:00',
+  /* ── update — patch data and auto-save ── */
+  const update = useCallback((patch) => {
+    setData(prev => {
+      const next = { ...prev, ...patch };
+      debouncedSave(currentStep, next);
+      return next;
+    });
+  }, [currentStep, debouncedSave]);
 
-    // Step 7 — media
-    videoUrl:                 '',
-    videoPublicId:            '',
-    photos:                   [],   // [{url, publicId, isCover}]
-    businessLicenseUrl:       '',
-    businessRegistrationUrl:  '',
-
-    // Step 8 — services
-    // [{categoryKey, categoryLabel, categoryIcon, serviceName}]
-    selectedServices: [],
-
-    // Step 9 — pricing
-    // {serviceName: {price:'', duration:''}}
-    servicePricing: {},
-
-    // UX flags
-    quickSetup: false,
-  });
-
-  const update = useCallback((patch) => setData(prev => ({ ...prev, ...patch })), []);
-
+  /* ── navigation ── */
   const nextStep = useCallback(() => {
     setDirection(1);
     setCompletedSteps(prev => [...new Set([...prev, currentStep])]);
-    setCurrentStep(prev => Math.min(prev + 1, 11));
-  }, [currentStep]);
+    setCurrentStep(prev => {
+      const next = Math.min(prev + 1, 11);
+      setData(d => { saveDraft(next, d); return d; });
+      return next;
+    });
+  }, [currentStep, saveDraft]);
 
   const prevStep = useCallback(() => {
     setDirection(-1);
-    setCurrentStep(prev => Math.max(prev - 1, 1));
-  }, []);
+    setCurrentStep(prev => {
+      const next = Math.max(prev - 1, 1);
+      setData(d => { saveDraft(next, d); return d; });
+      return next;
+    });
+  }, [saveDraft]);
 
   const goToStep = useCallback((step) => {
     setDirection(step > currentStep ? 1 : -1);
     setCurrentStep(step);
-  }, [currentStep]);
+    setData(d => { saveDraft(step, d); return d; });
+  }, [currentStep, saveDraft]);
 
   const progress        = STEP_PROGRESS[currentStep] ?? 10;
   const progressMessage = getProgressMessage(progress);
@@ -109,6 +176,7 @@ export function OnboardingProvider({ children }) {
       currentStep, direction, completedSteps,
       nextStep, prevStep, goToStep,
       progress, progressMessage,
+      draftLoaded,
     }}>
       {children}
     </OnboardingContext.Provider>

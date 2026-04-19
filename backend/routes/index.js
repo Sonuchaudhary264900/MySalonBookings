@@ -150,6 +150,7 @@ const promotionAdminController = safeRequire("../controllers/admin/promotionAdmi
 /* =====================================================
    MODELS (for inline public handlers)
 ===================================================== */
+const Owner             = require("../models/Owner");
 const Business          = require("../models/Business");
 const BusinessMedia     = require("../models/BusinessMedia");
 const Service           = require("../models/Service");
@@ -1435,6 +1436,26 @@ router.post(
   "/owner/auth/delete-account",
   asyncHandler(ownerAuthController.deleteAccount)
 );
+
+/* =====================================================
+   OWNER ONBOARDING DRAFT ROUTES
+===================================================== */
+
+// GET /owner/onboarding/draft — load saved draft
+router.get("/owner/onboarding/draft", authenticateOwner, asyncHandler(async (req, res) => {
+  const owner = await Owner.findById(req.owner._id).select("onboardingDraft").lean();
+  res.json({ success: true, data: owner?.onboardingDraft || { currentStep: 1, data: {} } });
+}));
+
+// PUT /owner/onboarding/draft — save draft
+router.put("/owner/onboarding/draft", authenticateOwner, asyncHandler(async (req, res) => {
+  const { currentStep, data } = req.body;
+  await Owner.updateOne(
+    { _id: req.owner._id },
+    { $set: { onboardingDraft: { currentStep, data, updatedAt: new Date() } } }
+  );
+  res.json({ success: true });
+}));
 
 /* =====================================================
    OWNER SALON ROUTES (CONTROLLER)

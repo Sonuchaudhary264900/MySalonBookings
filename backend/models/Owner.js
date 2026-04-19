@@ -356,6 +356,15 @@ const ownerSchema = new mongoose.Schema(
     },
 
     // ==========================================
+    // ONBOARDING DRAFT (resume where left off)
+    // ==========================================
+    onboardingDraft: {
+      currentStep: { type: Number, default: 1 },
+      data:        { type: mongoose.Schema.Types.Mixed, default: {} },
+      updatedAt:   { type: Date, default: null },
+    },
+
+    // ==========================================
     // TIMESTAMPS
     // ==========================================
     createdAt: {
