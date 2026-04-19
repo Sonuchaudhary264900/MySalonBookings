@@ -118,17 +118,20 @@ export function OnboardingProvider({ children }) {
     api.get('/owner/onboarding/draft')
       .then(res => {
         const draft = res.data?.data;
-        if (draft?.currentStep && draft.currentStep > 1) {
-          setCurrentStep(draft.currentStep);
-          setCompletedSteps(
-            Array.from({ length: draft.currentStep - 1 }, (_, i) => i + 1)
-          );
-        }
+        // Owner already has JWT (registered) — step 1 is registration, skip it
+        const savedStep = draft?.currentStep ?? 1;
+        const effectiveStep = savedStep <= 1 ? 2 : savedStep;
+        setCurrentStep(effectiveStep);
+        setCompletedSteps(Array.from({ length: effectiveStep - 1 }, (_, i) => i + 1));
         if (draft?.data && Object.keys(draft.data).length > 0) {
           setData(prev => ({ ...prev, ...draft.data }));
         }
       })
-      .catch(() => {})
+      .catch(() => {
+        // Draft fetch failed (route not deployed yet) — still skip step 1 for registered owners
+        setCurrentStep(2);
+        setCompletedSteps([1]);
+      })
       .finally(() => setDraftLoaded(true));
   }, []);
 
