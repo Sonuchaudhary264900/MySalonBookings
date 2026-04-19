@@ -34,7 +34,7 @@ const getQueueConnection = () => {
       enableReadyCheck: false,
       retryStrategy(times) {
         if (times > 8) return null;
-        return Math.min(times * 2000, 300000); // 2s → 5min max
+        return Math.min(times * 2000, 300000);
       },
       reconnectOnError(err) {
         if (err.message && err.message.includes('ERR max requests limit exceeded')) return false;
@@ -42,13 +42,18 @@ const getQueueConnection = () => {
       },
       ...(isTLS && { tls: { rejectUnauthorized: false } }),
     });
-    queueConnection.on('error', (err) => {
-      if (err.message && err.message.includes('ERR max requests limit exceeded')) {
-        logger.warn('[Queues] Upstash quota exceeded — queue operations will fail gracefully');
-      } else if (process.env.NODE_ENV !== 'production') {
-        console.warn('⚠️  BullMQ queue Redis error (non-fatal):', err.message);
-      }
-    });
+    const attachQueueErrorHandler = (conn) => {
+      conn.on('error', (err) => {
+        if (err.message && err.message.includes('ERR max requests limit exceeded')) {
+          logger.warn('[Queues] Upstash quota exceeded — queue operations will fail gracefully');
+        } else if (process.env.NODE_ENV !== 'production') {
+          console.warn('⚠️  BullMQ queue Redis error (non-fatal):', err.message);
+        }
+      });
+      const _dup = conn.duplicate.bind(conn);
+      conn.duplicate = (...args) => { const d = _dup(...args); attachQueueErrorHandler(d); return d; };
+    };
+    attachQueueErrorHandler(queueConnection);
   }
   return queueConnection;
 };

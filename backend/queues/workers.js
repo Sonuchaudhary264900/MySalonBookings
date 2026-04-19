@@ -15,16 +15,34 @@ let quotaExceeded = false;
 // Single shared connection config for all workers.
 // BullMQ calls .duplicate() internally, so each worker gets its own connection,
 // but they all inherit this config — one source of truth for retry behaviour.
+const attachErrorHandler = (conn) => {
+  conn.on('error', (err) => {
+    if (err.message && err.message.includes('ERR max requests limit exceeded')) {
+      if (!quotaExceeded) {
+        quotaExceeded = true;
+        logger.warn('[Workers] Upstash Redis quota exceeded — stopping all workers');
+        stopAllWorkers().catch(() => {});
+      }
+    }
+  });
+  // Patch duplicate() so BullMQ's internal connections also have an error handler
+  const _dup = conn.duplicate.bind(conn);
+  conn.duplicate = (...args) => {
+    const d = _dup(...args);
+    attachErrorHandler(d);
+    return d;
+  };
+  return conn;
+};
+
 const makeWorkerConn = () => {
   const conn = new IORedis(REDIS_URL, {
     maxRetriesPerRequest: null,   // required by BullMQ
     enableReadyCheck: false,
-    // Aggressive backoff: 2s → 4s → … → 5min max
-    // Reduces auth commands during reconnect storms
     retryStrategy(times) {
-      if (quotaExceeded) return null; // stop retrying when quota is hit
-      if (times > 8) return null;     // give up after ~8 attempts (~5 min)
-      return Math.min(times * 2000, 300000); // 2s, 4s, 8s … 5min
+      if (quotaExceeded) return null;
+      if (times > 8) return null;
+      return Math.min(times * 2000, 300000);
     },
     reconnectOnError(err) {
       if (err.message && err.message.includes('ERR max requests limit exceeded')) {
@@ -36,17 +54,7 @@ const makeWorkerConn = () => {
     ...(isTLS && { tls: { rejectUnauthorized: false } }),
   });
 
-  conn.on('error', (err) => {
-    if (err.message && err.message.includes('ERR max requests limit exceeded')) {
-      if (!quotaExceeded) {
-        quotaExceeded = true;
-        logger.warn('[Workers] Upstash Redis quota exceeded — stopping all workers');
-        stopAllWorkers().catch(() => {});
-      }
-    }
-  });
-
-  return conn;
+  return attachErrorHandler(conn);
 };
 
 const workers = [];
