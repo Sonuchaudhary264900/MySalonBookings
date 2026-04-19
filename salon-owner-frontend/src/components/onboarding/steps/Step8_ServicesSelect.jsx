@@ -407,55 +407,35 @@ export default function Step8_ServicesSelect() {
           {/* Service grid — sectioned if sections exist, flat otherwise */}
           <div style={{ padding: '10px 14px 14px', maxHeight: 340, overflowY: 'auto' }}>
             {activeCat?.sections ? (
-              /* ── Sectioned layout (barbershop etc.) ── */
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {activeCat.sections.map(section => (
-                  <div key={section.label}>
-                    {/* Section divider */}
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8,
-                    }}>
-                      <div style={{ flex: 1, height: 1, background: isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb' }} />
-                      <span style={{
-                        fontSize: 9, fontWeight: 900, letterSpacing: '0.16em',
-                        textTransform: 'uppercase',
-                        color: isDark ? 'rgba(255,255,255,0.3)' : '#9ca3af',
-                        padding: '0 4px', whiteSpace: 'nowrap',
-                      }}>{section.label}</span>
-                      <div style={{ flex: 1, height: 1, background: isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb' }} />
-                    </div>
-                    {/* Service chips */}
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-                      {section.services.map(serviceName => {
-                        const on = selected.has(serviceName);
-                        return (
-                          <button key={serviceName}
-                            className={`s8-card${on ? ' sel' : ''}`}
-                            onClick={() => toggleService(activeCat, serviceName)}
-                            style={{
-                              padding: '7px 13px',
-                              borderRadius: 99,
-                              border: `2px solid ${on ? typeConf.color : (isDark ? 'rgba(255,255,255,0.12)' : '#e5e7eb')}`,
-                              background: on
-                                ? (isDark ? `${typeConf.color}22` : `${typeConf.color}12`)
-                                : (isDark ? 'rgba(255,255,255,0.04)' : '#f9f9fc'),
-                              color: on ? typeConf.color : textSub,
-                              fontWeight: on ? 700 : 500,
-                              fontSize: 12,
-                              cursor: 'pointer',
-                              fontFamily: 'inherit',
-                              boxShadow: on ? `0 0 0 3px ${typeConf.glow}` : 'none',
-                              display: 'inline-flex', alignItems: 'center', gap: 5,
-                              lineHeight: 1.2,
-                            }}>
-                            {on && <span style={{ fontSize: 10, fontWeight: 900 }}>✓</span>}
-                            {serviceName}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
+              /* ── Flat chips (sections collapsed — no sub-category dividers) ── */
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                {activeCat.sections.flatMap(s => s.services).map(serviceName => {
+                  const on = selected.has(serviceName);
+                  return (
+                    <button key={serviceName}
+                      className={`s8-card${on ? ' sel' : ''}`}
+                      onClick={() => toggleService(activeCat, serviceName)}
+                      style={{
+                        padding: '7px 13px',
+                        borderRadius: 99,
+                        border: `2px solid ${on ? typeConf.color : (isDark ? 'rgba(255,255,255,0.12)' : '#e5e7eb')}`,
+                        background: on
+                          ? (isDark ? `${typeConf.color}22` : `${typeConf.color}12`)
+                          : (isDark ? 'rgba(255,255,255,0.04)' : '#f9f9fc'),
+                        color: on ? typeConf.color : textSub,
+                        fontWeight: on ? 700 : 500,
+                        fontSize: 12,
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                        boxShadow: on ? `0 0 0 3px ${typeConf.glow}` : 'none',
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        lineHeight: 1.2,
+                      }}>
+                      {on && <span style={{ fontSize: 10, fontWeight: 900 }}>✓</span>}
+                      {serviceName}
+                    </button>
+                  );
+                })}
               </div>
             ) : (
               /* ── Flat grid layout ── */

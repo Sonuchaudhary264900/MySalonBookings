@@ -473,8 +473,8 @@ const LandingPage = () => {
               )}
             </button>
             <a href={ROUTES.LOGIN} className="msb-link hidden sm:block px-4 py-2 text-sm font-medium rounded-xl" style={{ color:'#64748b' }}>Sign In</a>
-            <a href={ROUTES.ONBOARDING} className="msb-btn-p px-5 py-2.5 text-sm font-bold rounded-xl" style={{ background:'linear-gradient(135deg,#7c3aed,#2563eb)', color:'#fff', boxShadow:'0 0 24px rgba(124,58,237,0.45)' }}>
-              Start Free →
+            <a href={ROUTES.REGISTER} className="msb-btn-p px-5 py-2.5 text-sm font-bold rounded-xl" style={{ background:'linear-gradient(135deg,#7c3aed,#2563eb)', color:'#fff', boxShadow:'0 0 24px rgba(124,58,237,0.45)' }}>
+              Register →
             </a>
           </div>
         </div>
@@ -510,7 +510,7 @@ const LandingPage = () => {
 
           {/* CTA row */}
           <div className="msb-fu4 flex flex-wrap gap-3 justify-center mb-3">
-            <a href={ROUTES.ONBOARDING} className="msb-btn-p px-8 py-4 font-bold rounded-2xl text-base" style={{ background:'linear-gradient(135deg,#7c3aed,#2563eb)', color:'#fff', boxShadow:'0 0 36px rgba(124,58,237,0.55)', display:'inline-flex', alignItems:'center', gap:10 }}>
+            <a href={ROUTES.REGISTER} className="msb-btn-p px-8 py-4 font-bold rounded-2xl text-base" style={{ background:'linear-gradient(135deg,#7c3aed,#2563eb)', color:'#fff', boxShadow:'0 0 36px rgba(124,58,237,0.55)', display:'inline-flex', alignItems:'center', gap:10 }}>
               🚀&nbsp; Start 30-Day Free Trial
             </a>
             <a href={ROUTES.LOGIN} className="msb-btn-s px-8 py-4 font-semibold rounded-2xl text-base" style={{ background:c.btnSecBg, border:`1px solid ${c.btnSecBorder}`, color:c.muted, display:'inline-flex', alignItems:'center', gap:8 }}>
@@ -643,7 +643,7 @@ const LandingPage = () => {
                 <h3 style={{ fontSize:16.5, fontWeight:700, color:c.heading, marginBottom:10 }}>{title}</h3>
                 <p style={{ fontSize:13.5, color:c.subtle, lineHeight:1.78, marginBottom: highlight ? 18 : 0 }}>{desc}</p>
                 {highlight && (
-                  <a href={ROUTES.ONBOARDING} className="msb-link inline-flex items-center gap-1.5" style={{ fontSize:13, color:'#a78bfa', fontWeight:600 }}>
+                  <a href={ROUTES.REGISTER} className="msb-link inline-flex items-center gap-1.5" style={{ fontSize:13, color:'#a78bfa', fontWeight:600 }}>
                     Generate your QR free →
                   </a>
                 )}
@@ -822,7 +822,7 @@ const LandingPage = () => {
                     </div>
                   ))}
                 </div>
-                <a href={ROUTES.ONBOARDING} className={highlight ? 'msb-btn-p' : 'msb-btn-s'} style={{
+                <a href={ROUTES.REGISTER} className={highlight ? 'msb-btn-p' : 'msb-btn-s'} style={{
                   display:'block', textAlign:'center', padding:'13px 0', borderRadius:14, position:'relative',
                   ...(highlight
                     ? { background:'linear-gradient(135deg,#7c3aed,#2563eb)', color:'#fff', fontWeight:700, fontSize:14, boxShadow:'0 0 30px rgba(124,58,237,0.5)' }
@@ -878,7 +878,7 @@ const LandingPage = () => {
           <p style={{ color:c.subtle, fontSize:15.5, marginBottom:36, lineHeight:1.75, maxWidth:400, margin:'0 auto 36px' }}>
             500+ salon owners across India run smarter, earn more, and stress less — with GlowLoox. Join them free for 30 days.
           </p>
-          <a href={ROUTES.ONBOARDING} className="msb-btn-p px-10 py-4 font-bold rounded-2xl inline-flex items-center gap-3" style={{ background:'linear-gradient(135deg,#7c3aed,#2563eb)', color:'#fff', boxShadow:'0 0 52px rgba(124,58,237,0.6)', fontSize:16 }}>
+          <a href={ROUTES.REGISTER} className="msb-btn-p px-10 py-4 font-bold rounded-2xl inline-flex items-center gap-3" style={{ background:'linear-gradient(135deg,#7c3aed,#2563eb)', color:'#fff', boxShadow:'0 0 52px rgba(124,58,237,0.6)', fontSize:16 }}>
             🚀&nbsp; Start Free — No Card Needed
           </a>
           <p style={{ fontSize:12, color:c.subtle, marginTop:18 }}>
