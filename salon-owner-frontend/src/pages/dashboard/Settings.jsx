@@ -14,8 +14,10 @@ import { useSalon } from '../../hooks/useSalon';
 import { useAuth } from '../../hooks/useAuth';
 import { useNotifications } from '../../context/NotificationContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useTheme } from '../../context/ThemeContext';
 import { uploadSalonPhotos } from '../../services/salonService';
 import { SALON_TYPES } from '../../constants/salonCategories';
+import { INDIAN_STATES, STATE_DISTRICTS } from '../../constants/indianLocations';
 import { Scissors, Wand2, Waves, FlaskConical } from 'lucide-react';
 import api from '../../services/api';
 
@@ -362,12 +364,13 @@ async function uploadVideoToCloudinary(file, onProgress) {
 }
 
 const SalonContent = ({ salon, updateSalon }) => {
+  const { isDark } = useTheme();
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors,  setErrors]  = useState({});
   const [form, setForm] = useState({
     name: '', description: '',
-    phone: '', email: '', address: '', city: '', state: '',
+    phone: '', email: '', address: '', city: '', district: '', state: '',
   });
   const [videoUploading, setVideoUploading] = useState(false);
   const [videoProgress,  setVideoProgress]  = useState(0);
@@ -384,13 +387,14 @@ const SalonContent = ({ salon, updateSalon }) => {
       email:       salon.email       || '',
       address:     salon.address     || '',
       city:        salon.city        || '',
+      district:    salon.district    || '',
       state:       salon.state       || '',
     });
   }, [salon]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm(p => ({ ...p, [name]: value }));
+    setForm(p => ({ ...p, [name]: value, ...(name === 'state' ? { district: '' } : {}) }));
     if (errors[name]) setErrors(p => ({ ...p, [name]: '' }));
   };
 
@@ -414,7 +418,7 @@ const SalonContent = ({ salon, updateSalon }) => {
     if (salon) setForm({
       name: salon.name||'', description: salon.description||'',
       phone: salon.phone||'', email: salon.email||'',
-      address: salon.address||'', city: salon.city||'', state: salon.state||'',
+      address: salon.address||'', city: salon.city||'', district: salon.district||'', state: salon.state||'',
     });
     setErrors({});
     setEditing(false);
@@ -487,9 +491,10 @@ const SalonContent = ({ salon, updateSalon }) => {
         { label: 'Description', value: form.description },
         { label: 'Phone',       value: form.phone },
         { label: 'Email',       value: form.email },
-        { label: 'Address',     value: form.address },
-        { label: 'City',        value: form.city },
         { label: 'State',       value: form.state },
+        { label: 'District',    value: form.district },
+        { label: 'City',        value: form.city },
+        { label: 'Locality',    value: form.address },
       ].map(({ label, value }) => <FieldRow key={label} label={label} value={value} />)}
 
       {/* Business Type row — with lucide icon */}
@@ -563,11 +568,22 @@ const SalonContent = ({ salon, updateSalon }) => {
         <LabelInput label="Phone" name="phone" type="tel" placeholder="+91 98765 43210" required error={errors.phone} />
         <LabelInput label="Email" name="email" type="email" placeholder="salon@email.com" />
       </div>
-      <LabelInput label="Address" name="address" placeholder="Street address" />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <LabelInput label="City" name="city" placeholder="City" />
-        <LabelInput label="State" name="state" placeholder="State" />
+      <div className="space-y-1.5">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">State</label>
+        <select name="state" value={form.state} onChange={handleChange} disabled={loading} className={SEL} style={{ appearance: 'none', colorScheme: isDark ? 'dark' : 'light' }}>
+          <option value="">Select state</option>
+          {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
       </div>
+      <div className="space-y-1.5">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">District</label>
+        <select name="district" value={form.district} onChange={handleChange} disabled={loading} className={SEL} style={{ appearance: 'none', colorScheme: isDark ? 'dark' : 'light' }}>
+          <option value="">{form.state ? 'Select district' : 'Select state first'}</option>
+          {(STATE_DISTRICTS[form.state] || []).map(d => <option key={d} value={d}>{d}</option>)}
+        </select>
+      </div>
+      <LabelInput label="City" name="city" placeholder="City" />
+      <LabelInput label="Locality" name="address" placeholder="Area / Street address" />
       {mapSrc && (
         <div>
           <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1.5">

@@ -5,6 +5,7 @@ import { useOnboarding } from '../../../context/OnboardingContext';
 import { useTheme } from '../../../context/ThemeContext';
 import { useGeoLocation } from '../../../hooks/useGeoLocation';
 import { useReverseGeocode, INDIAN_STATES } from '../../../hooks/useReverseGeocode';
+import { STATE_DISTRICTS } from '../../../constants/indianLocations';
 
 const S5_CSS = `
   @keyframes s5-fadeup{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
@@ -117,9 +118,9 @@ export default function Step5_Location() {
   }, [update]);
 
   const patchField = (k, v) => {
-    setFields(f => ({ ...f, [k]: v }));
-    update({ [k]: v });
-    if (k === 'state') setAutoDetected(d => ({ ...d, state: false }));
+    setFields(f => ({ ...f, [k]: v, ...(k === 'state' ? { district: '' } : {}) }));
+    update({ [k]: v, ...(k === 'state' ? { district: '' } : {}) });
+    if (k === 'state') setAutoDetected(d => ({ ...d, state: false, district: false }));
   };
 
   const handleDetect = () => {
@@ -229,10 +230,59 @@ export default function Step5_Location() {
               Address Details
             </p>
 
+            {/* 1. State */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: sub }}>State *</label>
+                {autoDetected.state && (
+                  <span className="s5-badge" style={{ fontSize: 10, fontWeight: 700, color: '#10b981', background: 'rgba(16,185,129,0.1)', padding: '2px 8px', borderRadius: 99, border: '1px solid rgba(16,185,129,0.2)' }}>Auto ✓</span>
+                )}
+              </div>
+              <select
+                value={fields.state}
+                onChange={e => patchField('state', e.target.value)}
+                style={{
+                  ...inpStyle(errors.state), appearance: 'none', paddingRight: 28,
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%239ca3af' d='M1 1l5 5 5-5'/%3E%3C/svg%3E")`,
+                  backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center',
+                  cursor: 'pointer', width: '100%', borderRadius: 12, padding: '11px 14px',
+                  outline: 'none', fontFamily: 'inherit', fontSize: 13.5,
+                  colorScheme: isDark ? 'dark' : 'light',
+                }}>
+                <option value="">Select state</option>
+                {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+              {errors.state && <p style={{ color: '#f87171', fontSize: 11, marginTop: 3 }}>{errors.state}</p>}
+            </div>
+
+            {/* 2. District */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: sub }}>District</label>
+                {autoDetected.district && (
+                  <span className="s5-badge" style={{ fontSize: 10, fontWeight: 700, color: '#10b981', background: 'rgba(16,185,129,0.1)', padding: '2px 8px', borderRadius: 99, border: '1px solid rgba(16,185,129,0.2)' }}>Auto ✓</span>
+                )}
+              </div>
+              <select
+                value={fields.district}
+                onChange={e => { patchField('district', e.target.value); setAutoDetected(d => ({ ...d, district: false })); }}
+                style={{
+                  ...inpStyle(false), appearance: 'none', paddingRight: 28,
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%239ca3af' d='M1 1l5 5 5-5'/%3E%3C/svg%3E")`,
+                  backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center',
+                  cursor: 'pointer', width: '100%', borderRadius: 12, padding: '11px 14px',
+                  outline: 'none', fontFamily: 'inherit', fontSize: 13.5,
+                  colorScheme: isDark ? 'dark' : 'light',
+                }}>
+                <option value="">{fields.state ? 'Select district' : 'Select state first'}</option>
+                {(STATE_DISTRICTS[fields.state] || []).map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+
+            {/* 3. City */}
             {[
-              { key: 'address', label: 'Street Address *', placeholder: '12, MG Road, Indiranagar' },
-              { key: 'city',    label: 'City *',           placeholder: 'Bengaluru' },
-              { key: 'district',label: 'District',         placeholder: 'Bengaluru Urban' },
+              { key: 'city',    label: 'City *',      placeholder: 'Bengaluru' },
+              { key: 'address', label: 'Locality',     placeholder: '12, MG Road, Indiranagar' },
             ].map(({ key, label, placeholder }) => (
               <div key={key}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
@@ -250,45 +300,19 @@ export default function Step5_Location() {
               </div>
             ))}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              {/* State dropdown */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: sub }}>State *</label>
-                  {autoDetected.state && (
-                    <span className="s5-badge" style={{ fontSize: 10, fontWeight: 700, color: '#10b981', background: 'rgba(16,185,129,0.1)', padding: '2px 8px', borderRadius: 99, border: '1px solid rgba(16,185,129,0.2)' }}>Auto ✓</span>
-                  )}
-                </div>
-                <select
-                  value={fields.state}
-                  onChange={e => patchField('state', e.target.value)}
-                  style={{
-                    ...inpStyle(errors.state), appearance: 'none', paddingRight: 28,
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%239ca3af' d='M1 1l5 5 5-5'/%3E%3C/svg%3E")`,
-                    backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center',
-                    cursor: 'pointer', width: '100%', borderRadius: 12, padding: '11px 14px',
-                    outline: 'none', fontFamily: 'inherit', fontSize: 13.5,
-                  }}>
-                  <option value="">Select state</option>
-                  {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-                {errors.state && <p style={{ color: '#f87171', fontSize: 11, marginTop: 3 }}>{errors.state}</p>}
+            {/* 5. Pincode */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: sub }}>Pincode *</label>
+                {autoDetected.pincode && (
+                  <span className="s5-badge" style={{ fontSize: 10, fontWeight: 700, color: '#10b981', background: 'rgba(16,185,129,0.1)', padding: '2px 8px', borderRadius: 99, border: '1px solid rgba(16,185,129,0.2)' }}>Auto ✓</span>
+                )}
               </div>
-
-              {/* Pincode */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: sub }}>Pincode *</label>
-                  {autoDetected.pincode && (
-                    <span className="s5-badge" style={{ fontSize: 10, fontWeight: 700, color: '#10b981', background: 'rgba(16,185,129,0.1)', padding: '2px 8px', borderRadius: 99, border: '1px solid rgba(16,185,129,0.2)' }}>Auto ✓</span>
-                  )}
-                </div>
-                <input className="s5-inp" placeholder="560001" inputMode="numeric" maxLength={6}
-                  value={fields.pincode}
-                  onChange={e => { patchField('pincode', e.target.value.replace(/\D/g, '').slice(0, 6)); setErrors(er => ({ ...er, pincode: '' })); }}
-                  style={inpStyle(errors.pincode)} />
-                {errors.pincode && <p style={{ color: '#f87171', fontSize: 11, marginTop: 3 }}>{errors.pincode}</p>}
-              </div>
+              <input className="s5-inp" placeholder="560001" inputMode="numeric" maxLength={6}
+                value={fields.pincode}
+                onChange={e => { patchField('pincode', e.target.value.replace(/\D/g, '').slice(0, 6)); setErrors(er => ({ ...er, pincode: '' })); }}
+                style={inpStyle(errors.pincode)} />
+              {errors.pincode && <p style={{ color: '#f87171', fontSize: 11, marginTop: 3 }}>{errors.pincode}</p>}
             </div>
 
             {(fields.address || fields.city) && (
