@@ -84,7 +84,7 @@ function OnboardingInner() {
   const { isAuthenticated, user, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { update } = useOnboarding();
+  const { update, data, currentStep, draftLoaded } = useOnboarding();
 
   // Pre-fill phone + firebase token passed from Login after OTP verification
   useEffect(() => {
@@ -95,6 +95,15 @@ function OnboardingInner() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Guard: if at step 1 with no firebase token and no existing JWT, send back to Login for OTP
+  useEffect(() => {
+    if (!draftLoaded) return;
+    const hasJwt = !!localStorage.getItem('token');
+    if (currentStep === 1 && !data.firebaseToken && !hasJwt) {
+      navigate(ROUTES.LOGIN, { replace: true });
+    }
+  }, [draftLoaded, currentStep, data.firebaseToken, navigate]);
 
   // Already approved → go to dashboard
   useEffect(() => {
