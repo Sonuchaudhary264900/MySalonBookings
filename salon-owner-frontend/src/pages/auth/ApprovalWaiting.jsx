@@ -65,10 +65,15 @@ const ApprovalWaiting = () => {
   useEffect(() => {
     const check = async () => {
       setLoading(true);
-      try { await fetchSalon(); } catch (e) { console.error('Error fetching salon:', e); }
-      finally { setLoading(false); }
+      const result = await fetchSalon();
+      setLoading(false);
+      // No salon in DB — owner never finished onboarding, send them back
+      if (!result && !salon) {
+        navigate(ROUTES.ONBOARDING, { replace: true });
+      }
     };
     check();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -80,8 +85,8 @@ const ApprovalWaiting = () => {
 
   const handleCheckStatus = async () => {
     setCheckingStatus(true);
-    try { await fetchSalon(); } catch (e) { console.error('Error checking status:', e); }
-    finally { setCheckingStatus(false); }
+    await fetchSalon();
+    setCheckingStatus(false);
   };
 
   const handleLogout = () => { logout(); navigate(ROUTES.LOGIN); };
