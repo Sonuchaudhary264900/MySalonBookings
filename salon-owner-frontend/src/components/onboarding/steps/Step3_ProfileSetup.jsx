@@ -65,7 +65,7 @@ export default function Step3_ProfileSetup() {
     setLoading(true);
     try {
       update({ name: form.name, referralCode: form.referral });
-      await register(data.firebaseToken, form.name.trim(), null, null, null);
+      await register(data.firebaseToken, form.name.trim());
 
       // Apply referral code if provided (best-effort, non-blocking)
       if (form.referral.trim()) {
@@ -123,7 +123,7 @@ export default function Step3_ProfileSetup() {
 
           {/* Name */}
           <InputField label="Full Name *" icon={User} error={errors.name} hint="How should we address you?">
-            <input className="s3-inp" placeholder="Priya Sharma"
+            <input className="s3-inp" placeholder="Priya/John/etc."
               value={form.name} onChange={e => patchForm('name', e.target.value)}
               style={inpStyle(errors.name)} />
           </InputField>

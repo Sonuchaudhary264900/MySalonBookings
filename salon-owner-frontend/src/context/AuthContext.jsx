@@ -40,16 +40,14 @@ export const AuthProvider = ({ children }) => {
   // ========== REGISTER (Firebase Phone Auth) ==========
   // firebaseToken: ID token obtained from Firebase after phone OTP verification
 
-  const register = useCallback(async (firebaseToken, name, email, password, gender) => {
+  const register = useCallback(async (firebaseToken, name, email) => {
     try {
       setError(null);
 
       const response = await API.post('/owner/auth/firebase-register', {
         firebaseToken,
         name,
-        email,
-        password,
-        gender,
+        ...(email ? { email } : {}),
       });
 
       if (!response.data.success) {
