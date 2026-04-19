@@ -700,11 +700,9 @@ exports.firebaseRegister = async (req, res) => {
       );
     }
 
-    // Validate name only — email is optional at registration, can be added later in Profile
+    // name and email are optional at registration — collected during onboarding
     const errors = [];
-    if (!name || name.trim().length < 2) errors.push('Valid name is required');
     if (email && !/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email)) errors.push('Valid email address required');
-    if (gender && !['male', 'female', 'other'].includes(gender)) errors.push('Gender must be male, female, or other');
     if (errors.length > 0) {
       return res.status(400).json(
         formatErrorResponse(messages.GENERIC.VALIDATION_ERROR, 400, errors)
@@ -778,7 +776,7 @@ exports.firebaseRegister = async (req, res) => {
       phone,
       phoneVerified: true,
       firebaseUid: firebaseUser.uid,
-      name: name.trim(),
+      ...(name && name.trim().length >= 2 ? { name: name.trim() } : {}),
       status: 'mobile_verified',
       role: 'owner',
     };
