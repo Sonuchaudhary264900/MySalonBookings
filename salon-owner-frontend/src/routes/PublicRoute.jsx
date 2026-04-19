@@ -35,16 +35,12 @@ const PublicRoute = () => {
 
   // User is authenticated
   if (isAuthenticated && user) {
-    // Redirect based on user status
     if (user.status === 'mobile_verified') {
-      return <Navigate to={ROUTES.SALON_REGISTER} replace />;
+      return <Navigate to={ROUTES.ONBOARDING} replace />;
     }
-
     if (user.status === 'pending_approval' || user.status === 'salon_registered') {
       return <Navigate to={ROUTES.APPROVAL_WAITING} replace />;
     }
-
-    // User is fully approved
     return <Navigate to={ROUTES.DASHBOARD} replace />;
   }
 

@@ -948,9 +948,11 @@ function App() {
               <FloatingUploadBar />
               <Suspense fallback={<PageLoader />}>
                 <Routes>
-                  {/* Public routes */}
+                  {/* Landing page — always public, never redirects */}
+                  <Route path={ROUTES.HOME} element={<LandingPage />} />
+
+                  {/* Public auth routes — redirect away if already logged in */}
                   <Route element={<PublicRoute />}>
-                    <Route path={ROUTES.HOME}     element={<LandingPage />} />
                     <Route path={ROUTES.LOGIN}    element={<Login />} />
                     {/* Old /register → redirect to new unified onboarding */}
                     <Route path={ROUTES.REGISTER} element={<Navigate to={ROUTES.ONBOARDING} replace />} />
