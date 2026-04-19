@@ -1,6 +1,12 @@
 import React, { lazy, Suspense, useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import {
+  Calendar, BarChart2, Sparkles, Bell, Users, Image as LucideImage, Target, UserCheck,
+  Clock, CreditCard, Shield, Bot, PhoneCall, UserX, TrendingDown, Zap, RotateCcw,
+  FileText, Smartphone, TrendingUp, MapPin, Search, QrCode, Star, BellOff, DollarSign,
+  Gift, Cake, Rocket, PlayCircle, ClipboardList, HelpCircle, AlertTriangle
+} from 'lucide-react';
 import { AuthProvider } from './context/AuthContext';
 import { GalleryUploadProvider } from './context/GalleryUploadContext';
 import FloatingUploadBar from './components/gallery/FloatingUploadBar';
@@ -232,32 +238,32 @@ const LANDING_CSS = `
 `;
 
 const FEATURES_DATA = [
-  { icon:'📅', color:'#818cf8', bg:'rgba(99,102,241,0.15)',  title:'Smart Bookings',        desc:'Real-time slot management with instant confirmations. Zero double-bookings, zero phone calls.' },
-  { icon:'📊', color:'#a78bfa', bg:'rgba(139,92,246,0.15)', title:'Live Analytics',         desc:'Revenue trends, peak hours, and top services — updated live so you always know what\'s working.' },
-  { icon:'✂',  color:'#67e8f9', bg:'rgba(6,182,212,0.15)',  title:'Service & Pricing Menu', desc:'Manage services, create combos (haircut + facial), and set dynamic pricing for peak vs off-peak hours.' },
-  { icon:'🔔', color:'#fcd34d', bg:'rgba(245,158,11,0.15)', title:'Instant Alerts',         desc:'Push notifications for every new booking, cancellation, and reminder. Never miss a customer again.' },
-  { icon:'👥', color:'#6ee7b7', bg:'rgba(16,185,129,0.15)', title:'Customer CRM',           desc:'Full visit history, preferences, and loyalty tracking. One-click rebooking for returning customers.' },
-  { icon:'🖼', color:'#f9a8d4', bg:'rgba(236,72,153,0.15)', title:'Gallery & Coupons',      desc:'Showcase your work and run discount campaigns — festival offers, birthday deals, and loyalty rewards.' },
-  { icon:'🎯', color:'#fb923c', bg:'rgba(249,115,22,0.15)', title:'Marketing Automation',   desc:'Auto-send Diwali offers, birthday discounts, and win-back campaigns for inactive customers — zero manual effort.' },
-  { icon:'👨‍💼', color:'#34d399', bg:'rgba(52,211,153,0.15)', title:'Staff Management',       desc:'Track each stylist\'s bookings, performance, and earnings contribution. Optimize your team during peak hours.' },
-  { icon:'⏱',  color:'#60a5fa', bg:'rgba(59,130,246,0.15)', title:'Digital Queue',          desc:'Customers join a live queue digitally. No more "abhi aa raha hoon" chaos — everyone knows exactly when they\'re next.' },
-  { icon:'💳', color:'#c084fc', bg:'rgba(192,132,252,0.15)', title:'Payments & Billing',    desc:'Accept UPI, cards, and cash. Auto-generate invoices and track daily, weekly, and monthly earnings effortlessly.' },
-  { icon:'🔐', color:'#94a3b8', bg:'rgba(148,163,184,0.15)', title:'Security & Backup',    desc:'Encrypted customer data with cloud backup — no data loss ever. Role-based access for owner vs staff.' },
-  { icon:'🤖', color:'#f472b6', bg:'rgba(244,114,182,0.15)', title:'AI Smart Suggestions',  desc:'Predict busy days, suggest services based on history, and auto-upsell — "Customers also booked facial."' },
+  { Icon: Calendar,      color:'#818cf8', bg:'rgba(99,102,241,0.15)',  title:'Smart Bookings',        desc:'Real-time slot management with instant confirmations. Zero double-bookings, zero phone calls.' },
+  { Icon: BarChart2,     color:'#a78bfa', bg:'rgba(139,92,246,0.15)', title:'Live Analytics',         desc:'Revenue trends, peak hours, and top services — updated live so you always know what\'s working.' },
+  { Icon: Sparkles,      color:'#67e8f9', bg:'rgba(6,182,212,0.15)',  title:'Service & Pricing Menu', desc:'Manage services, create combos, and set dynamic pricing for peak vs off-peak hours.' },
+  { Icon: Bell,          color:'#fcd34d', bg:'rgba(245,158,11,0.15)', title:'Instant Alerts',         desc:'Push notifications for every new booking, cancellation, and reminder. Never miss a customer again.' },
+  { Icon: Users,         color:'#6ee7b7', bg:'rgba(16,185,129,0.15)', title:'Customer CRM',           desc:'Full visit history, preferences, and loyalty tracking. One-click rebooking for returning customers.' },
+  { Icon: LucideImage,   color:'#f9a8d4', bg:'rgba(236,72,153,0.15)', title:'Gallery & Coupons',      desc:'Showcase your work and run discount campaigns — festival offers, birthday deals, and loyalty rewards.' },
+  { Icon: Target,        color:'#fb923c', bg:'rgba(249,115,22,0.15)', title:'Marketing Automation',   desc:'Auto-send Diwali offers, birthday discounts, and win-back campaigns for inactive customers — zero manual effort.' },
+  { Icon: UserCheck,     color:'#34d399', bg:'rgba(52,211,153,0.15)', title:'Staff Management',       desc:'Track each team member\'s bookings, performance, and earnings contribution. Optimize your team during peak hours.' },
+  { Icon: Clock,         color:'#60a5fa', bg:'rgba(59,130,246,0.15)', title:'Digital Queue',          desc:'Customers join a live queue digitally. No more "abhi aa raha hoon" chaos — everyone knows exactly when they\'re next.' },
+  { Icon: CreditCard,    color:'#c084fc', bg:'rgba(192,132,252,0.15)', title:'Payments & Billing',    desc:'Accept UPI, cards, and cash. Auto-generate invoices and track daily, weekly, and monthly earnings effortlessly.' },
+  { Icon: Shield,        color:'#94a3b8', bg:'rgba(148,163,184,0.15)', title:'Security & Backup',    desc:'Encrypted customer data with cloud backup — no data loss ever. Role-based access for owner vs staff.' },
+  { Icon: Bot,           color:'#f472b6', bg:'rgba(244,114,182,0.15)', title:'AI Smart Suggestions',  desc:'Predict busy days, suggest services based on history, and auto-upsell — "Customers also booked this."' },
 ];
 
 const PRICING_PLANS = [
   {
-    name: 'Free Trial', price: '₹0', period: '/30 days',
-    desc: 'Try everything free. No credit card needed.',
+    name: 'Free', price: '₹0', period: '/forever',
+    desc: 'Get started free. No credit card needed.',
     highlight: false,
     features: ['Full platform access','Unlimited bookings','Live dashboard','Customer management','Push notifications','Cancel anytime'],
-    cta: 'Start Free Trial',
+    cta: 'Register Now',
     badge: null,
   },
   {
     name: 'Starter', price: '₹150', period: '/month',
-    desc: 'Fixed monthly cost — great for busy salons.',
+    desc: 'Fixed monthly cost — great for growing businesses.',
     highlight: true,
     features: ['Unlimited bookings','Live dashboard & analytics','Customer management','Service & gallery management','Push notifications','Priority support'],
     cta: 'Choose Starter',
@@ -275,7 +281,7 @@ const PRICING_PLANS = [
 
 const REVIEWS = [
   { name:'Rakesh Sharma', salon:'Sharma Cuts, Pune', rating:5, text:'My bookings doubled in the first month. The dashboard is incredibly easy to use — I manage everything from my phone.' },
-  { name:'Priya Nair', salon:'Glam Studio, Kochi', rating:5, text:'No more missed appointments. Customers love booking online and I get instant notifications. Best ₹150 I spend every month.' },
+  { name:'Priya Nair', salon:'Glam Studio, Kochi', rating:5, text:'No more missed appointments. Clients love booking online and I get instant notifications. Best ₹150 I spend every month.' },
   { name:'Mohammed Farhan', salon:'Style Hub, Hyderabad', rating:5, text:'The analytics show me which services earn the most. I switched to the starter plan and never looked back.' },
 ];
 
@@ -449,10 +455,10 @@ const LandingPage = () => {
       <nav style={{ position:'fixed', top:0, left:0, right:0, zIndex:50, background:c.nav, WebkitBackdropFilter:'blur(20px)', backdropFilter:'blur(20px)', borderBottom:`1px solid ${c.border}` }}>
         <div className="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div style={{ width:38, height:38, borderRadius:12, background:'linear-gradient(135deg,#7c3aed,#2563eb)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, boxShadow:'0 0 22px rgba(124,58,237,0.55)', flexShrink:0 }}>✂</div>
+            <div style={{ width:38, height:38, borderRadius:12, background:'linear-gradient(135deg,#7c3aed,#2563eb)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, boxShadow:'0 0 22px rgba(124,58,237,0.55)', flexShrink:0 }}>✨</div>
             <div className="hidden sm:flex flex-col">
               <span style={{ fontWeight:800, fontSize:16, color:c.heading, letterSpacing:'-0.4px', lineHeight:1.1 }}>GlowLoox</span>
-              <span style={{ fontSize:9, color:c.subtle, fontWeight:500, letterSpacing:0.5 }}>FOR SALON OWNERS</span>
+              <span style={{ fontSize:9, color:c.subtle, fontWeight:500, letterSpacing:0.5 }}>PARTNER PLATFORM</span>
             </div>
             <span className="sm:hidden" style={{ fontWeight:800, fontSize:15, color:c.heading }}>GlowLoox</span>
           </div>
@@ -492,26 +498,26 @@ const LandingPage = () => {
           {/* Live badge */}
           <div className="msb-fu1 inline-flex items-center gap-2 mb-7" style={{ background:'rgba(16,185,129,0.08)', border:'1px solid rgba(16,185,129,0.22)', borderRadius:99, padding:'5px 16px', fontSize:12, color:'#6ee7b7', fontWeight:600 }}>
             <span className="msb-pulse-dot" style={{ width:7, height:7, borderRadius:'50%', background:'#10b981', display:'inline-block' }} />
-            500+ salons running live across India
+            500+ businesses live across India
           </div>
 
           {/* Headline */}
           <h1 className="msb-fu2" style={{ fontSize:'clamp(1.9rem,6vw,4.6rem)', fontWeight:900, lineHeight:1.15, letterSpacing:'-1.5px', color:c.heading, marginBottom:20 }}>
-            Run Your Salon Online.<br />
-            Get More Customers.<br />
-            <span className="msb-shimmer">Earn More Money.</span>
+            Grow Your Business Online.<br />
+            Get More Clients.<br />
+            <span className="msb-shimmer">Earn More Revenue.</span>
           </h1>
 
           {/* Subheading */}
           <p className="msb-fu3 mx-auto" style={{ fontSize:'clamp(1rem,2.4vw,1.15rem)', color:c.muted, lineHeight:1.8, maxWidth:520, marginBottom:40 }}>
             Bookings, analytics, staff, payments & customers —<br className="hidden sm:block" />
-            all in one dashboard built for Indian salons.
+            all in one dashboard built for Indian beauty & wellness businesses.
           </p>
 
           {/* CTA row */}
           <div className="msb-fu4 flex flex-wrap gap-3 justify-center mb-3">
             <a href={ROUTES.REGISTER} className="msb-btn-p px-8 py-4 font-bold rounded-2xl text-base" style={{ background:'linear-gradient(135deg,#7c3aed,#2563eb)', color:'#fff', boxShadow:'0 0 36px rgba(124,58,237,0.55)', display:'inline-flex', alignItems:'center', gap:10 }}>
-              🚀&nbsp; Start 30-Day Free Trial
+              <Sparkles size={18} /> Register Now — It's Free
             </a>
             <a href={ROUTES.LOGIN} className="msb-btn-s px-8 py-4 font-semibold rounded-2xl text-base" style={{ background:c.btnSecBg, border:`1px solid ${c.btnSecBorder}`, color:c.muted, display:'inline-flex', alignItems:'center', gap:8 }}>
               Owner Login →
@@ -526,11 +532,25 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* ── TRUST TICKER ──────────────────────────────────────── */}
+      <div style={{ background: isDark ? 'rgba(124,58,237,0.06)' : 'rgba(124,58,237,0.04)', borderTop:`1px solid ${c.divider}`, borderBottom:`1px solid ${c.divider}`, padding:'12px 0', overflow:'hidden' }}>
+        <div className="msb-ticker">
+          {['Free to start', '5-minute setup', 'Works on mobile & desktop', 'Real-time notifications', 'Live revenue analytics', 'Secure & encrypted', 'Built for India', 'UPI & card payments', 'Customer CRM included', 'Automated marketing',
+            'Free to start', '5-minute setup', 'Works on mobile & desktop', 'Real-time notifications', 'Live revenue analytics', 'Secure & encrypted', 'Built for India', 'UPI & card payments', 'Customer CRM included', 'Automated marketing',
+          ].map((item, i) => (
+            <span key={i} style={{ fontSize:12.5, color:c.muted, fontWeight:600, whiteSpace:'nowrap', display:'inline-flex', alignItems:'center', gap:8 }}>
+              <span style={{ width:5, height:5, borderRadius:'50%', background:'#7c3aed', display:'inline-block', opacity:0.7 }} />
+              {item}
+            </span>
+          ))}
+        </div>
+      </div>
+
       {/* ── STATS BAR ─────────────────────────────────────────── */}
       <section style={{ background:c.section, borderTop:`1px solid ${c.divider}`, borderBottom:`1px solid ${c.divider}`, padding:'48px 20px' }}>
         <div className="max-w-5xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { value:'500+',  label:'Salon Owners',     sub:'across India',  color:'#818cf8', glow:'rgba(99,102,241,0.3)' },
+            { value:'500+',  label:'Business Owners',  sub:'across India',  color:'#818cf8', glow:'rgba(99,102,241,0.3)' },
             { value:'50K+',  label:'Bookings Managed', sub:'and counting',  color:'#6ee7b7', glow:'rgba(16,185,129,0.3)' },
             { value:'99.9%', label:'Platform Uptime',  sub:'guaranteed',    color:'#fcd34d', glow:'rgba(245,158,11,0.3)' },
             { value:'4.9★',  label:'Average Rating',   sub:'by owners',     color:'#f9a8d4', glow:'rgba(236,72,153,0.3)' },
@@ -551,20 +571,20 @@ const LandingPage = () => {
         <div className="max-w-5xl mx-auto">
           <div style={{ textAlign:'center', marginBottom:56 }}>
             <div style={{ display:'inline-block', background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.25)', borderRadius:99, padding:'4px 16px', fontSize:11, color:'#fca5a5', fontWeight:700, letterSpacing:1.5, marginBottom:18 }}>SOUND FAMILIAR?</div>
-            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:c.heading, letterSpacing:'-1px', marginBottom:12 }}>Every salon owner faces these problems</h2>
+            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:c.heading, letterSpacing:'-1px', marginBottom:12 }}>Every beauty business faces these problems</h2>
             <p style={{ color:c.subtle, fontSize:15, lineHeight:1.7 }}>We built GlowLoox to solve every single one of them.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[
-              { pain:'"Abhi aa raha hoon" — customers arrive late or not at all',   fix:'Automated reminders & digital queue eliminate no-shows', icon:'📵' },
-              { pain:'Phone rings all day while you\'re mid-haircut',                fix:'Customers self-book online 24/7 — your phone stays silent', icon:'📞' },
-              { pain:'No idea which services actually make you money',               fix:'Live analytics show top earners, peak days, and growth trends', icon:'❓' },
-              { pain:'Peak hour chaos — everyone wants the same slot',              fix:'Smart slot system distributes load and shows wait times', icon:'😤' },
-              { pain:'Repeat customers forget to come back',                        fix:'Automated follow-ups and offers bring them back automatically', icon:'👋' },
-              { pain:'Staff performance is a guessing game',                        fix:'Track each stylist\'s bookings, revenue, and productivity live', icon:'📋' },
-            ].map(({ pain, fix, icon }) => (
+              { pain:'"Abhi aa raha hoon" — customers arrive late or not at all',   fix:'Automated reminders & digital queue eliminate no-shows', Icon: UserX },
+              { pain:'Phone rings all day while you\'re with a client',              fix:'Clients self-book online 24/7 — your phone stays silent', Icon: PhoneCall },
+              { pain:'No idea which services actually make you money',               fix:'Live analytics show top earners, peak days, and growth trends', Icon: TrendingDown },
+              { pain:'Peak hour chaos — everyone wants the same slot',              fix:'Smart slot system distributes load and shows wait times', Icon: AlertTriangle },
+              { pain:'Repeat customers forget to come back',                        fix:'Automated follow-ups and offers bring them back automatically', Icon: RotateCcw },
+              { pain:'Staff performance is a guessing game',                        fix:'Track each stylist\'s bookings, revenue, and productivity live', Icon: ClipboardList },
+            ].map(({ pain, fix, Icon }) => (
               <div key={pain} className="msb-pain" style={{ background:c.card, border:`1px solid ${c.border}`, borderRadius:20, padding:'22px 20px', cursor:'default' }}>
-                <div style={{ fontSize:28, marginBottom:12 }}>{icon}</div>
+                <div style={{ marginBottom:12 }}><Icon size={26} color='#ef4444' strokeWidth={1.8} /></div>
                 <p style={{ fontSize:13, color:'#ef4444', fontWeight:600, lineHeight:1.6, marginBottom:12, fontStyle:'italic' }}>"{pain}"</p>
                 <div style={{ display:'flex', alignItems:'flex-start', gap:8 }}>
                   <span style={{ color:'#6ee7b7', fontWeight:800, fontSize:14, flexShrink:0, marginTop:1 }}>✓</span>
@@ -586,13 +606,13 @@ const LandingPage = () => {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
             {[
-              { step:'01', icon:'📝', title:'Create Your Account', desc:'Register your salon in under 5 minutes. Add your services, pricing, and working hours.', color:'#818cf8' },
-              { step:'02', icon:'📲', title:'Share Your Profile', desc:'Customers find your salon on the app, pick a service, and book an available slot instantly.', color:'#a78bfa' },
-              { step:'03', icon:'💰', title:'Grow Your Revenue', desc:'Track earnings, manage bookings, get paid — all from your phone or browser.', color:'#67e8f9' },
-            ].map(({ step, icon, title, desc, color }) => (
+              { step:'01', Icon: FileText,   title:'Create Your Account', desc:'Register your business in under 5 minutes. Add your services, pricing, and working hours.', color:'#818cf8' },
+              { step:'02', Icon: Smartphone,  title:'Share Your Profile', desc:'Clients discover your business on the GlowLoox app, pick a service, and book an available slot instantly.', color:'#a78bfa' },
+              { step:'03', Icon: TrendingUp,  title:'Grow Your Revenue', desc:'Track earnings, manage bookings, get paid — all from your phone or browser.', color:'#67e8f9' },
+            ].map(({ step, Icon, title, desc, color }) => (
               <div key={step} className="msb-step" style={{ background:c.card, border:`1px solid ${c.border}`, borderRadius:22, padding:'30px 26px', position:'relative', overflow:'hidden', boxShadow:c.shadow }}>
                 <div style={{ position:'absolute', top:16, right:18, fontSize:52, fontWeight:900, color:c.watermark, lineHeight:1, userSelect:'none' }}>{step}</div>
-                <div style={{ width:52, height:52, borderRadius:16, background:`${color}18`, border:`1px solid ${color}30`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, marginBottom:20, boxShadow:`0 0 24px ${color}25` }}>{icon}</div>
+                <div style={{ width:52, height:52, borderRadius:16, background:`${color}18`, border:`1px solid ${color}30`, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:20, boxShadow:`0 0 24px ${color}25` }}><Icon size={22} color={color} strokeWidth={1.8} /></div>
                 <h3 style={{ fontSize:16, fontWeight:700, color:c.heading, marginBottom:10 }}>{title}</h3>
                 <p style={{ fontSize:13.5, color:c.subtle, lineHeight:1.75 }}>{desc}</p>
               </div>
@@ -606,32 +626,32 @@ const LandingPage = () => {
         <div className="max-w-5xl mx-auto">
           <div style={{ textAlign:'center', marginBottom:60 }}>
             <div style={{ display:'inline-block', background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.25)', borderRadius:99, padding:'4px 16px', fontSize:11, color:'#6ee7b7', fontWeight:700, letterSpacing:1.5, marginBottom:18 }}>FOR CUSTOMERS</div>
-            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:c.heading, letterSpacing:'-1px', marginBottom:12 }}>4 ways customers discover &amp; book your salon</h2>
-            <p style={{ color:c.subtle, fontSize:15, maxWidth:480, margin:'0 auto', lineHeight:1.7 }}>Your salon is visible to thousands of customers on the GlowLoox app — for free.</p>
+            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:c.heading, letterSpacing:'-1px', marginBottom:12 }}>4 ways clients discover &amp; book your business</h2>
+            <p style={{ color:c.subtle, fontSize:15, maxWidth:480, margin:'0 auto', lineHeight:1.7 }}>Your business is visible to thousands of clients on the GlowLoox app — for free.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             {[
               {
-                num:'01', icon:'📍', title:'Nearby Search',
-                desc:'Customers open the app and instantly see salons close to them. Your profile appears automatically based on location — no ads or extra cost needed.',
+                num:'01', Icon: MapPin, title:'Nearby Search',
+                desc:'Clients open the app and instantly see businesses close to them. Your profile appears automatically based on location — no ads or extra cost needed.',
                 color:'#6ee7b7', bg:'rgba(16,185,129,0.13)', highlight:false,
               },
               {
-                num:'02', icon:'🔍', title:'Search by Service',
-                desc:'When a customer searches "hair cut", "facial", or "beard trim", your salon surfaces if you offer that service. The more services you list, the more you get found.',
+                num:'02', Icon: Search, title:'Search by Service',
+                desc:'When a client searches "hair cut", "facial", or "beard trim", your business appears if you offer that service. The more services you list, the more you get found.',
                 color:'#818cf8', bg:'rgba(99,102,241,0.13)', highlight:false,
               },
               {
-                num:'03', icon:'📲', title:'QR Code & Direct Link',
-                desc:'Every salon gets a unique QR code and booking link. Place the QR on your counter, business cards, or WhatsApp status — customers scan and land straight on your booking page.',
+                num:'03', Icon: QrCode, title:'QR Code & Direct Link',
+                desc:'Every business gets a unique QR code and booking link. Place the QR on your counter, business cards, or WhatsApp status — clients scan and land straight on your booking page.',
                 color:'#a78bfa', bg:'rgba(139,92,246,0.15)', border:'rgba(139,92,246,0.35)', highlight:true,
               },
               {
-                num:'04', icon:'⭐', title:'Ratings & Categories',
-                desc:'Top-rated salons appear higher in results. Customers filter by Men / Women / Unisex and by category. Better reviews and a complete profile = more bookings.',
+                num:'04', Icon: Star, title:'Ratings & Categories',
+                desc:'Top-rated businesses appear higher in results. Clients filter by Men / Women / Unisex and by category. Better reviews and a complete profile = more bookings.',
                 color:'#fcd34d', bg:'rgba(245,158,11,0.13)', highlight:false,
               },
-            ].map(({ num, icon, title, desc, color, bg, highlight }) => (
+            ].map(({ num, Icon, title, desc, color, bg, highlight }) => (
               <div key={num} className="msb-step" style={{
                 background: highlight ? 'linear-gradient(145deg,rgba(139,92,246,0.1),rgba(99,102,241,0.06))' : c.card,
                 border: highlight ? '1px solid rgba(139,92,246,0.35)' : `1px solid ${c.border}`,
@@ -639,7 +659,7 @@ const LandingPage = () => {
                 boxShadow: highlight ? '0 0 50px rgba(139,92,246,0.15)' : c.shadow,
               }}>
                 <div style={{ position:'absolute', top:14, right:20, fontSize:56, fontWeight:900, color:c.watermark, lineHeight:1, userSelect:'none', letterSpacing:'-3px' }}>{num}</div>
-                <div style={{ width:52, height:52, borderRadius:16, background:bg, border:`1px solid ${color}25`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, marginBottom:18, boxShadow:`0 0 24px ${color}25` }}>{icon}</div>
+                <div style={{ width:52, height:52, borderRadius:16, background:bg, border:`1px solid ${color}25`, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:18, boxShadow:`0 0 24px ${color}25` }}><Icon size={22} color={color} strokeWidth={1.8} /></div>
                 <h3 style={{ fontSize:16.5, fontWeight:700, color:c.heading, marginBottom:10 }}>{title}</h3>
                 <p style={{ fontSize:13.5, color:c.subtle, lineHeight:1.78, marginBottom: highlight ? 18 : 0 }}>{desc}</p>
                 {highlight && (
@@ -658,13 +678,13 @@ const LandingPage = () => {
         <div className="max-w-6xl mx-auto">
           <div style={{ textAlign:'center', marginBottom:60 }}>
             <div style={{ display:'inline-block', background:'rgba(124,58,237,0.1)', border:'1px solid rgba(124,58,237,0.25)', borderRadius:99, padding:'4px 16px', fontSize:11, color:'#a78bfa', fontWeight:700, letterSpacing:1.5, marginBottom:18 }}>FEATURES</div>
-            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:c.heading, letterSpacing:'-1px', marginBottom:12 }}>Everything your salon needs</h2>
+            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:c.heading, letterSpacing:'-1px', marginBottom:12 }}>Everything your business needs</h2>
             <p style={{ color:c.subtle, fontSize:15, maxWidth:440, margin:'0 auto', lineHeight:1.7 }}>One platform replaces all the apps and notebooks you currently use.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {FEATURES_DATA.map(({ icon, color, bg, title, desc }) => (
+            {FEATURES_DATA.map(({ Icon, color, bg, title, desc }) => (
               <div key={title} className="msb-feat" style={{ background:c.card, border:`1px solid ${c.border}`, borderRadius:22, padding:'28px 24px', cursor:'default' }}>
-                <div style={{ width:52, height:52, borderRadius:15, background:bg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, marginBottom:18, boxShadow:`0 0 26px ${color}30` }}>{icon}</div>
+                <div style={{ width:52, height:52, borderRadius:15, background:bg, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:18, boxShadow:`0 0 26px ${color}30` }}><Icon size={22} color={color} strokeWidth={1.8} /></div>
                 <h3 style={{ fontSize:16, fontWeight:700, color:c.heading, marginBottom:8 }}>{title}</h3>
                 <p style={{ fontSize:13.5, color:c.subtle, lineHeight:1.75 }}>{desc}</p>
               </div>
@@ -679,17 +699,17 @@ const LandingPage = () => {
           <div style={{ textAlign:'center', marginBottom:56 }}>
             <div style={{ display:'inline-block', background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.25)', borderRadius:99, padding:'4px 16px', fontSize:11, color:'#6ee7b7', fontWeight:700, letterSpacing:1.5, marginBottom:18 }}>RESULTS</div>
             <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:c.heading, letterSpacing:'-1px', marginBottom:12 }}>What happens in your first 30 days</h2>
-            <p style={{ color:c.subtle, fontSize:15, lineHeight:1.7, maxWidth:460, margin:'0 auto' }}>Salon owners consistently report these outcomes in their first month on the platform.</p>
+            <p style={{ color:c.subtle, fontSize:15, lineHeight:1.7, maxWidth:460, margin:'0 auto' }}>Business owners consistently report these outcomes in their first month on the platform.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-16">
             {[
-              { value:'2×', label:'More Bookings',      sub:'vs phone-only salons',  color:'#818cf8', glow:'rgba(99,102,241,0.35)',  icon:'📈' },
-              { value:'40%', label:'Fewer No-Shows',    sub:'with automated reminders', color:'#6ee7b7', glow:'rgba(16,185,129,0.35)', icon:'🔔' },
-              { value:'3×', label:'Faster Check-in',    sub:'with digital queue',    color:'#fcd34d', glow:'rgba(245,158,11,0.35)',  icon:'⚡' },
-              { value:'₹0', label:'Extra Marketing Cost', sub:'customers find you free', color:'#f9a8d4', glow:'rgba(236,72,153,0.35)', icon:'💸' },
-            ].map(({ value, label, sub, color, glow, icon }) => (
+              { value:'2×', label:'More Bookings',      sub:'vs phone-only businesses',  color:'#818cf8', glow:'rgba(99,102,241,0.35)',  Icon: TrendingUp },
+              { value:'40%', label:'Fewer No-Shows',   sub:'with automated reminders', color:'#6ee7b7', glow:'rgba(16,185,129,0.35)', Icon: BellOff },
+              { value:'3×', label:'Faster Check-in',   sub:'with digital queue',    color:'#fcd34d', glow:'rgba(245,158,11,0.35)',  Icon: Zap },
+              { value:'₹0', label:'Extra Marketing Cost', sub:'customers find you free', color:'#f9a8d4', glow:'rgba(236,72,153,0.35)', Icon: DollarSign },
+            ].map(({ value, label, sub, color, glow, Icon }) => (
               <div key={label} className="msb-result" style={{ background:c.card, border:`1px solid ${c.border}`, borderRadius:22, padding:'28px 22px', textAlign:'center', cursor:'default' }}>
-                <div style={{ fontSize:30, marginBottom:10 }}>{icon}</div>
+                <div style={{ display:'flex', justifyContent:'center', marginBottom:10 }}><Icon size={28} color={color} strokeWidth={1.8} /></div>
                 <div style={{ fontSize:44, fontWeight:900, color, letterSpacing:'-2px', lineHeight:1, textShadow:`0 0 40px ${glow}`, marginBottom:8 }}>{value}</div>
                 <div style={{ fontSize:13, color:c.muted, fontWeight:700, marginBottom:4 }}>{label}</div>
                 <div style={{ fontSize:11, color:c.subtle }}>{sub}</div>
@@ -702,7 +722,7 @@ const LandingPage = () => {
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', background:c.card2, borderBottom:`1px solid ${c.divider}`, padding:'14px 24px' }}>
               <div style={{ fontSize:11, fontWeight:700, color:c.subtle, letterSpacing:1.2 }}>WHAT YOU DO NOW</div>
               <div style={{ fontSize:11, fontWeight:700, color:c.subtle, letterSpacing:1.2, textAlign:'center' }}>→</div>
-              <div style={{ fontSize:11, fontWeight:700, color:'#6ee7b7', letterSpacing:1.2, textAlign:'right' }}>WITH MY SALON BOOKINGS</div>
+              <div style={{ fontSize:11, fontWeight:700, color:'#6ee7b7', letterSpacing:1.2, textAlign:'right' }}>WITH GLOWLOOX ✨</div>
             </div>
             {[
               ['Phone calls for every booking',        'Online self-booking 24/7'],
@@ -732,13 +752,13 @@ const LandingPage = () => {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-8">
             {[
-              { icon:'🎉', color:'#fb923c', title:'Festival Campaigns',     desc:'Auto-send Diwali, Holi, Eid, and Christmas offers to your entire customer list with one click. Increase bookings during high-demand periods.' },
-              { icon:'🎂', color:'#f472b6', title:'Birthday & Anniversary', desc:'Delight customers on their special day with automatic discount messages. Personal touch = loyal customers who keep coming back.' },
-              { icon:'💤', color:'#818cf8', title:'Win-Back Campaigns',     desc:'Customers who haven\'t visited in 30+ days get an automatic "We miss you" offer. Recover lost revenue on autopilot.' },
-              { icon:'🤖', color:'#a78bfa', title:'AI Smart Upselling',     desc:'When a customer books a haircut, the app suggests "Customers also booked facial." Smart suggestions increase your average bill.' },
-            ].map(({ icon, color, title, desc }) => (
+              { Icon: Gift,       color:'#fb923c', title:'Festival Campaigns',     desc:'Auto-send Diwali, Holi, Eid, and Christmas offers to your entire customer list with one click. Increase bookings during high-demand periods.' },
+              { Icon: Cake,       color:'#f472b6', title:'Birthday & Anniversary', desc:'Delight customers on their special day with automatic discount messages. Personal touch = loyal customers who keep coming back.' },
+              { Icon: RotateCcw,  color:'#818cf8', title:'Win-Back Campaigns',     desc:'Customers who haven\'t visited in 30+ days get an automatic "We miss you" offer. Recover lost revenue on autopilot.' },
+              { Icon: Bot,        color:'#a78bfa', title:'AI Smart Upselling',     desc:'When a customer books a service, the app suggests "Customers also booked this." Smart suggestions increase your average bill.' },
+            ].map(({ Icon, color, title, desc }) => (
               <div key={title} className="msb-ai" style={{ background:c.card, border:`1px solid ${c.border}`, borderRadius:20, padding:'26px 24px', display:'flex', gap:18, cursor:'default' }}>
-                <div style={{ width:52, height:52, borderRadius:15, background:`${color}18`, border:`1px solid ${color}30`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, flexShrink:0, boxShadow:`0 0 24px ${color}20` }}>{icon}</div>
+                <div style={{ width:52, height:52, borderRadius:15, background:`${color}18`, border:`1px solid ${color}30`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:`0 0 24px ${color}20` }}><Icon size={22} color={color} strokeWidth={1.8} /></div>
                 <div>
                   <h3 style={{ fontSize:15, fontWeight:700, color:c.heading, marginBottom:8 }}>{title}</h3>
                   <p style={{ fontSize:13, color:c.subtle, lineHeight:1.7 }}>{desc}</p>
@@ -761,7 +781,7 @@ const LandingPage = () => {
         <div className="max-w-5xl mx-auto">
           <div style={{ textAlign:'center', marginBottom:56 }}>
             <div style={{ display:'inline-block', background:'rgba(124,58,237,0.1)', border:'1px solid rgba(124,58,237,0.25)', borderRadius:99, padding:'4px 16px', fontSize:11, color:'#a78bfa', fontWeight:700, letterSpacing:1.5, marginBottom:18 }}>REVIEWS</div>
-            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:c.heading, letterSpacing:'-1px', marginBottom:12 }}>Loved by salon owners</h2>
+            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:c.heading, letterSpacing:'-1px', marginBottom:12 }}>Loved by business owners</h2>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6, marginTop:8 }}>
               <span style={{ color:'#fcd34d', fontSize:18, letterSpacing:2 }}>★★★★★</span>
               <span style={{ color:c.muted, fontSize:14, fontWeight:600 }}>4.9 / 5 · 500+ reviews</span>
@@ -769,7 +789,8 @@ const LandingPage = () => {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
             {REVIEWS.map(({ name, salon, rating, text }) => (
-              <div key={name} className="msb-review" style={{ background:c.card, border:`1px solid ${c.border}`, borderRadius:20, padding:'24px 22px' }}>
+              <div key={name} className="msb-review" style={{ background:c.card, border:`1px solid ${c.border}`, borderRadius:20, padding:'24px 22px', position:'relative' }}>
+                <div style={{ position:'absolute', top:18, right:18, background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.25)', borderRadius:99, padding:'2px 9px', fontSize:9.5, color:'#6ee7b7', fontWeight:700, letterSpacing:0.6 }}>✓ VERIFIED</div>
                 <div style={{ color:'#fcd34d', fontSize:15, marginBottom:14, letterSpacing:2 }}>{'★'.repeat(rating)}</div>
                 <p style={{ fontSize:13.5, color:c.muted, lineHeight:1.75, marginBottom:18, fontStyle:'italic' }}>"{text}"</p>
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
@@ -843,9 +864,9 @@ const LandingPage = () => {
       <section style={{ padding:'80px 20px', borderTop:`1px solid ${c.divider}`, position:'relative', overflow:'hidden' }}>
         <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse 70% 60% at 50% 100%,rgba(37,99,235,0.1) 0%,transparent 70%)', pointerEvents:'none' }} />
         <div className="max-w-4xl mx-auto text-center relative" style={{ zIndex:1 }}>
-          <div style={{ fontSize:48, marginBottom:16 }}>📱</div>
+          <div style={{ display:'flex', justifyContent:'center', marginBottom:16 }}><Smartphone size={48} color='#818cf8' strokeWidth={1.5} /></div>
           <h2 style={{ fontSize:'clamp(1.6rem,3.5vw,2.4rem)', fontWeight:800, color:c.heading, letterSpacing:'-1px', marginBottom:12 }}>
-            Manage your salon on the go
+            Manage your business on the go
           </h2>
           <p style={{ color:c.subtle, fontSize:15, lineHeight:1.75, maxWidth:440, margin:'0 auto 32px' }}>
             GlowLoox lets you accept bookings, track revenue, and manage your team — right from your phone.
@@ -857,7 +878,7 @@ const LandingPage = () => {
             className="msb-btn-p inline-flex items-center gap-3 px-7 py-4 rounded-2xl font-bold text-sm"
             style={{ background: isDark ? 'linear-gradient(135deg,#1a1a2e,#16213e)' : 'linear-gradient(135deg,#f1f5f9,#e2e8f0)', border:`1px solid ${c.btnBorder}`, color:c.heading, boxShadow:'0 0 30px rgba(37,99,235,0.3)', display:'inline-flex' }}
           >
-            <span style={{ fontSize:26 }}>▶</span>
+            <PlayCircle size={26} color={c.heading} strokeWidth={1.6} />
             <div style={{ textAlign:'left' }}>
               <div style={{ fontSize:9, fontWeight:500, color:c.subtle, letterSpacing:0.5 }}>GET IT ON</div>
               <div style={{ fontSize:15, fontWeight:800, color:c.heading, marginTop:1 }}>Google Play</div>
@@ -871,18 +892,18 @@ const LandingPage = () => {
         <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse 70% 70% at 50% 50%,rgba(124,58,237,0.16) 0%,transparent 70%)', pointerEvents:'none' }} />
         <div style={{ position:'absolute', top:0, left:'50%', transform:'translateX(-50%)', width:'70%', height:1, background:'linear-gradient(90deg,transparent,rgba(139,92,246,0.45),transparent)', pointerEvents:'none' }} />
         <div className="max-w-2xl mx-auto text-center relative" style={{ zIndex:1 }}>
-          <div style={{ fontSize:44, marginBottom:16 }}>✂</div>
+          <div style={{ display:'flex', justifyContent:'center', marginBottom:16 }}><Sparkles size={44} color='#a78bfa' strokeWidth={1.4} /></div>
           <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:900, color:c.heading, letterSpacing:'-1.2px', marginBottom:14, lineHeight:1.15 }}>
             Stop losing bookings.<br />Start growing today.
           </h2>
           <p style={{ color:c.subtle, fontSize:15.5, marginBottom:36, lineHeight:1.75, maxWidth:400, margin:'0 auto 36px' }}>
-            500+ salon owners across India run smarter, earn more, and stress less — with GlowLoox. Join them free for 30 days.
+            500+ business owners across India run smarter, earn more, and stress less — with GlowLoox. Join them for free.
           </p>
           <a href={ROUTES.REGISTER} className="msb-btn-p px-10 py-4 font-bold rounded-2xl inline-flex items-center gap-3" style={{ background:'linear-gradient(135deg,#7c3aed,#2563eb)', color:'#fff', boxShadow:'0 0 52px rgba(124,58,237,0.6)', fontSize:16 }}>
-            🚀&nbsp; Start Free — No Card Needed
+            <Rocket size={18} /> Register Now — It's Free
           </a>
           <p style={{ fontSize:12, color:c.subtle, marginTop:18 }}>
-            ✓ 30 days free &nbsp;·&nbsp; ✓ Full access &nbsp;·&nbsp; ✓ Cancel anytime
+            ✓ No credit card &nbsp;·&nbsp; ✓ Full access &nbsp;·&nbsp; ✓ Cancel anytime
           </p>
         </div>
       </section>
@@ -894,13 +915,13 @@ const LandingPage = () => {
             {/* Brand */}
             <div>
               <div className="flex items-center gap-3 mb-4">
-                <div style={{ width:34, height:34, borderRadius:10, background:'linear-gradient(135deg,#7c3aed,#2563eb)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}>✂</div>
+                <div style={{ width:34, height:34, borderRadius:10, background:'linear-gradient(135deg,#7c3aed,#2563eb)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}>✨</div>
                 <div>
                   <div style={{ fontSize:14, fontWeight:700, color:c.muted }}>GlowLoox</div>
                   <div style={{ fontSize:10, color:c.subtle }}>by Gigamind Technology Pvt Ltd</div>
                 </div>
               </div>
-              <p style={{ fontSize:12.5, color:c.subtle, lineHeight:1.75 }}>India's leading salon management platform for modern salon owners.</p>
+              <p style={{ fontSize:12.5, color:c.subtle, lineHeight:1.75 }}>India's leading beauty &amp; wellness booking platform for modern business owners.</p>
             </div>
             {/* Links */}
             <div>
