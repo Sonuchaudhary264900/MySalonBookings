@@ -639,6 +639,19 @@ export const CATEGORY_CARD_IMAGE_MAP = {
 
   // ─── At-Home ───────────────────────────────────────────────────────────────
   'At-Home Services':         'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=600&h=300&fit=crop&q=85',
+
+  // ─── Barbershop / Men's Salon new categories ───────────────────────────────
+  'Hair Services':            'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&h=300&fit=crop&q=85',
+  'Beard & Shaving':          'https://images.unsplash.com/photo-1599351431613-18ef1fdd27e5?w=600&h=300&fit=crop&q=85',
+  'Hair Colour & Chemical':   'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=600&h=300&fit=crop&q=85',
+  'Skincare & Face':          'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&h=300&fit=crop&q=85',
+  'Scalp & Hair Health':      'https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=600&h=300&fit=crop&q=85',
+  'Wellness & Relaxation':    'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&h=300&fit=crop&q=85',
+  'Hand & Foot Grooming':     'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=600&h=300&fit=crop&q=85',
+  'Packages & Combos':        'https://images.unsplash.com/photo-1535016120720-40c646be5580?w=600&h=300&fit=crop&q=85',
+  'Memberships':              'https://images.unsplash.com/photo-1519699047748-de8e457a634e?w=600&h=300&fit=crop&q=85',
+  'Premium / Modern Services':'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=600&h=300&fit=crop&q=85',
+  'Grooming & Body Care':     'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=600&h=300&fit=crop&q=85',
 };
 
 // Priority: owner photo → deterministic pool pick → null
@@ -720,137 +733,242 @@ export const BARBERSHOP_CATEGORIES = [
     tabIcon: 'scissors',
     sections: [
       {
-        label: 'Haircuts',
-        services: [
-          'Basic Haircut', 'Fade / Taper / Skin Fade', 'Designer Haircut',
-          'Undercut', 'Crew Cut', 'Buzz Cut',
-        ],
+        label: 'Basic Haircuts',
+        services: ['Classic Haircut', 'Trim / Maintenance Cut', 'Kids Haircut', 'Senior Citizen Haircut'],
       },
       {
-        label: 'Hair Styling & Color',
-        services: [
-          'Hair Styling', 'Hair Coloring', 'Global Hair Color',
-          'Highlights / Streaks', 'Root Touch-Up', 'Grey Coverage',
-        ],
+        label: 'Precision Cuts',
+        services: ['Low Fade', 'Mid Fade', 'High Fade', 'Taper Fade', 'Skin Fade / Bald Fade', 'Buzz Cut', 'Crew Cut', 'Caesar Cut'],
       },
       {
-        label: 'Hair Treatments',
-        services: [
-          'Hair Spa', 'Hair Smoothening', 'Hair Straightening',
-          'Keratin Treatment', 'Hair Botox', 'Hair Rebonding',
-        ],
+        label: 'Advanced / Trend Cuts',
+        services: ['Undercut', 'Pompadour', 'Quiff', 'Slick Back', 'Textured Crop', 'Modern Mullet', 'Fringe / Bangs Style'],
       },
       {
-        label: 'Hair Care & Scalp',
-        services: [
-          'Hair Wash', 'Blow Dry', 'Dandruff Treatment',
-          'Hair Fall Treatment', 'Scalp Treatment', 'Deep Conditioning',
-        ],
+        label: 'Long Hair Services',
+        services: ['Layered Cut', 'Straight Cut', 'Volume Reduction', 'Split-End Cutting', 'Long Hair Styling'],
+      },
+      {
+        label: 'Hair Art & Detailing',
+        services: ['Hair Tattoo / Design', 'Line-up / Edge-up', 'Hard Part / Razor Part', 'Fade Patterns'],
+      },
+      {
+        label: 'Hair Styling',
+        services: ['Blow Dry', 'Hair Wax Styling', 'Gel Styling', 'Clay Styling', 'Party / Event Styling'],
       },
     ],
     subServices: [
-      'Basic Haircut', 'Fade / Taper / Skin Fade', 'Designer Haircut', 'Undercut', 'Crew Cut', 'Buzz Cut',
-      'Hair Styling', 'Hair Coloring', 'Global Hair Color', 'Highlights / Streaks', 'Root Touch-Up', 'Grey Coverage',
-      'Hair Spa', 'Hair Smoothening', 'Hair Straightening', 'Keratin Treatment', 'Hair Botox', 'Hair Rebonding',
-      'Hair Wash', 'Blow Dry', 'Dandruff Treatment', 'Hair Fall Treatment', 'Scalp Treatment', 'Deep Conditioning',
+      'Classic Haircut', 'Trim / Maintenance Cut', 'Kids Haircut', 'Senior Citizen Haircut',
+      'Low Fade', 'Mid Fade', 'High Fade', 'Taper Fade', 'Skin Fade / Bald Fade', 'Buzz Cut', 'Crew Cut', 'Caesar Cut',
+      'Undercut', 'Pompadour', 'Quiff', 'Slick Back', 'Textured Crop', 'Modern Mullet', 'Fringe / Bangs Style',
+      'Layered Cut', 'Straight Cut', 'Volume Reduction', 'Split-End Cutting', 'Long Hair Styling',
+      'Hair Tattoo / Design', 'Line-up / Edge-up', 'Hard Part / Razor Part', 'Fade Patterns',
+      'Blow Dry', 'Hair Wax Styling', 'Gel Styling', 'Clay Styling', 'Party / Event Styling',
     ],
   },
   {
     key: 'beard_grooming',
-    label: 'Beard & Grooming',
+    label: 'Beard & Shaving',
     icon: '🧔',
     tabIcon: 'beard',
     sections: [
       {
-        label: 'Basic Grooming',
-        services: ['Beard Trim', 'Clean Shave', 'Hot Towel Shave'],
+        label: 'Shaving',
+        services: ['Basic Shave', 'Razor Shave', 'Straight Razor Shave', 'Hot Towel Shave', 'Royal Shave', 'Head Shave'],
       },
       {
-        label: 'Styling & Shaping',
-        services: ['Beard Styling / Shape', 'Designer Beard', 'Beard Fade'],
+        label: 'Beard Grooming',
+        services: ['Beard Trim', 'Beard Shaping', 'Beard Fade', 'Beard Sculpting'],
       },
       {
-        label: 'Coloring',
-        services: ['Beard Coloring', 'Grey Coverage (Beard)'],
+        label: 'Mustache Services',
+        services: ['Mustache Trim', 'Mustache Styling', 'Handlebar Styling'],
       },
       {
-        label: 'Treatments',
-        services: ['Beard Spa', 'Beard Smoothening'],
-      },
-      {
-        label: 'Care & Maintenance',
-        services: ['Beard Wash', 'Beard Conditioning', 'Beard Oil Treatment', 'Beard Dandruff Treatment'],
+        label: 'Beard Treatments',
+        services: ['Beard Conditioning', 'Beard Spa', 'Hot Oil Beard Treatment', 'Beard Straightening', 'Beard Smoothening'],
       },
     ],
     subServices: [
-      'Beard Trim', 'Clean Shave', 'Hot Towel Shave',
-      'Beard Styling / Shape', 'Designer Beard', 'Beard Fade',
-      'Beard Coloring', 'Grey Coverage (Beard)',
-      'Beard Spa', 'Beard Smoothening',
-      'Beard Wash', 'Beard Conditioning', 'Beard Oil Treatment', 'Beard Dandruff Treatment',
+      'Basic Shave', 'Razor Shave', 'Straight Razor Shave', 'Hot Towel Shave', 'Royal Shave', 'Head Shave',
+      'Beard Trim', 'Beard Shaping', 'Beard Fade', 'Beard Sculpting',
+      'Mustache Trim', 'Mustache Styling', 'Handlebar Styling',
+      'Beard Conditioning', 'Beard Spa', 'Hot Oil Beard Treatment', 'Beard Straightening', 'Beard Smoothening',
+    ],
+  },
+  {
+    key: 'hair_colour',
+    label: 'Hair Colour & Chemical',
+    icon: '🎨',
+    tabIcon: 'color',
+    sections: [
+      {
+        label: 'Natural Colour',
+        services: ['Grey Coverage', 'Grey Blending', 'Beard Colouring', 'Mustache Colour'],
+      },
+      {
+        label: 'Fashion Colour',
+        services: ['Global Hair Colour', 'Highlights', 'Lowlights', 'Balayage', 'Ombre'],
+      },
+      {
+        label: 'Creative Colour',
+        services: ['Fantasy Colours', 'Neon Colours', 'Colour + Fade Design'],
+      },
+      {
+        label: 'Chemical Treatments',
+        services: ['Hair Smoothening', 'Hair Rebonding', 'Hair Relaxing', 'Perming', 'Keratin Treatment'],
+      },
+    ],
+    subServices: [
+      'Grey Coverage', 'Grey Blending', 'Beard Colouring', 'Mustache Colour',
+      'Global Hair Colour', 'Highlights', 'Lowlights', 'Balayage', 'Ombre',
+      'Fantasy Colours', 'Neon Colours', 'Colour + Fade Design',
+      'Hair Smoothening', 'Hair Rebonding', 'Hair Relaxing', 'Perming', 'Keratin Treatment',
     ],
   },
   {
     key: 'skin_face',
-    label: 'Face & Skin',
+    label: 'Skincare & Face',
     icon: '🧴',
     tabIcon: 'face',
     sections: [
       {
-        label: 'Facials',
-        services: [
-          'Clean-up', 'Basic Facial', 'Detan', 'Face Bleach',
-          'Gold Facial', 'Diamond Facial', 'Charcoal Facial', 'Fruit Facial', 'Anti-Aging Facial',
-        ],
+        label: 'Facial Services',
+        services: ['Basic Clean-up', 'Deep Cleansing Facial', 'Anti-Aging Facial', 'De-tan Facial', 'Hydration Facial', 'Acne Treatment Facial'],
       },
       {
         label: 'Skin Treatments',
-        services: [
-          'Anti-Acne Treatment', 'Skin Brightening', 'Pigmentation Treatment',
-          'Dark Circle Treatment', 'Oil Control Treatment', 'Sensitive Skin Treatment', 'Deep Cleansing Treatment',
-        ],
+        services: ['Blackhead Removal', 'Whitehead Removal', 'Pimple Treatment', 'Skin Polishing'],
       },
       {
-        label: 'Advanced Skin Care',
-        services: ['Face Polishing', 'Skin Hydration Treatment', 'Exfoliation Treatment'],
+        label: 'Grooming Details',
+        services: ['Eyebrow Threading', 'Eyebrow Waxing', 'Ear Hair Removal', 'Nose Hair Removal', 'Face Waxing'],
+      },
+      {
+        label: 'Advanced Aesthetic',
+        services: ['Skin Tightening', 'Face Massage', 'LED Facial Therapy'],
       },
     ],
     subServices: [
-      'Clean-up', 'Basic Facial', 'Detan', 'Face Bleach',
-      'Gold Facial', 'Diamond Facial', 'Charcoal Facial', 'Fruit Facial', 'Anti-Aging Facial',
-      'Anti-Acne Treatment', 'Skin Brightening', 'Pigmentation Treatment',
-      'Dark Circle Treatment', 'Oil Control Treatment', 'Sensitive Skin Treatment', 'Deep Cleansing Treatment',
-      'Face Polishing', 'Skin Hydration Treatment', 'Exfoliation Treatment',
+      'Basic Clean-up', 'Deep Cleansing Facial', 'Anti-Aging Facial', 'De-tan Facial', 'Hydration Facial', 'Acne Treatment Facial',
+      'Blackhead Removal', 'Whitehead Removal', 'Pimple Treatment', 'Skin Polishing',
+      'Eyebrow Threading', 'Eyebrow Waxing', 'Ear Hair Removal', 'Nose Hair Removal', 'Face Waxing',
+      'Skin Tightening', 'Face Massage', 'LED Facial Therapy',
     ],
   },
   {
-    key: 'body_grooming',
-    label: 'Body Grooming',
-    icon: '🧍',
-    tabIcon: 'body',
+    key: 'scalp_health',
+    label: 'Scalp & Hair Health',
+    icon: '💆',
+    tabIcon: 'scalp',
     sections: [
       {
-        label: 'Hair Removal',
-        services: ['Chest Waxing', 'Back Waxing', 'Arm Waxing', 'Leg Waxing', 'Full Body Wax'],
+        label: 'Scalp Treatments',
+        services: ['Anti-Dandruff Treatment', 'Scalp Detox', 'Hair Fall Control', 'Hair Growth Therapy', 'Scalp Nourishment Therapy'],
       },
       {
-        label: 'Threading & Precision',
-        services: ['Eyebrow Threading', 'Threading (optional)', 'Nose Wax', 'Ear Wax'],
-      },
-      {
-        label: 'Hygiene & Care',
-        services: ['Ear Cleaning', 'Underarm Cleaning', 'Intimate Area Grooming (optional)'],
-      },
-      {
-        label: 'Body Care',
-        services: ['Body Polishing', 'Body Scrub', 'Body Detan'],
+        label: 'Oil & Therapy',
+        services: ['Head Oil Massage', 'Deep Conditioning Treatment', 'Protein Treatment'],
       },
     ],
     subServices: [
-      'Chest Waxing', 'Back Waxing', 'Arm Waxing', 'Leg Waxing', 'Full Body Wax',
-      'Eyebrow Threading', 'Threading (optional)', 'Nose Wax', 'Ear Wax',
-      'Ear Cleaning', 'Underarm Cleaning', 'Intimate Area Grooming (optional)',
-      'Body Polishing', 'Body Scrub', 'Body Detan',
+      'Anti-Dandruff Treatment', 'Scalp Detox', 'Hair Fall Control', 'Hair Growth Therapy', 'Scalp Nourishment Therapy',
+      'Head Oil Massage', 'Deep Conditioning Treatment', 'Protein Treatment',
+    ],
+  },
+  {
+    key: 'wellness',
+    label: 'Wellness & Relaxation',
+    icon: '🧘',
+    tabIcon: 'wellness',
+    sections: [
+      {
+        label: 'Massage Services',
+        services: ['Head Massage', 'Neck Massage', 'Shoulder Massage', 'Head + Neck + Shoulder Combo'],
+      },
+      {
+        label: 'Relaxation Services',
+        services: ['Stress Relief Therapy', 'Relaxation Package'],
+      },
+    ],
+    subServices: [
+      'Head Massage', 'Neck Massage', 'Shoulder Massage', 'Head + Neck + Shoulder Combo',
+      'Stress Relief Therapy', 'Relaxation Package',
+    ],
+  },
+  {
+    key: 'hand_foot',
+    label: 'Hand & Foot Grooming',
+    icon: '🖐',
+    tabIcon: 'hand',
+    sections: [
+      {
+        label: 'Hand Care',
+        services: ['Express Manicure', 'Nail Cleaning', 'Nail Shaping'],
+      },
+      {
+        label: 'Foot Care',
+        services: ['Express Pedicure', 'Foot Cleaning', 'Heel Repair'],
+      },
+    ],
+    subServices: [
+      'Express Manicure', 'Nail Cleaning', 'Nail Shaping',
+      'Express Pedicure', 'Foot Cleaning', 'Heel Repair',
+    ],
+  },
+  {
+    key: 'packages',
+    label: 'Packages & Combos',
+    icon: '🎁',
+    tabIcon: 'package',
+    sections: [
+      {
+        label: 'Basic Combos',
+        services: ['Haircut + Beard Trim', 'Haircut + Shave'],
+      },
+      {
+        label: 'Premium Combos',
+        services: ['Haircut + Beard + Facial', 'Haircut + Colour + Styling', 'Full Grooming Package'],
+      },
+      {
+        label: 'Event Packages',
+        services: ['Groom Wedding Package', 'Party Grooming Package', 'Photoshoot Styling'],
+      },
+    ],
+    subServices: [
+      'Haircut + Beard Trim', 'Haircut + Shave',
+      'Haircut + Beard + Facial', 'Haircut + Colour + Styling', 'Full Grooming Package',
+      'Groom Wedding Package', 'Party Grooming Package', 'Photoshoot Styling',
+    ],
+  },
+  {
+    key: 'memberships',
+    label: 'Memberships',
+    icon: '⭐',
+    tabIcon: 'membership',
+    sections: [
+      {
+        label: 'Subscription Plans',
+        services: ['Monthly Grooming Plan', 'Unlimited Haircut Plan', 'Unlimited Beard Line-up Plan', 'VIP Membership', 'Priority Service Membership'],
+      },
+    ],
+    subServices: [
+      'Monthly Grooming Plan', 'Unlimited Haircut Plan', 'Unlimited Beard Line-up Plan', 'VIP Membership', 'Priority Service Membership',
+    ],
+  },
+  {
+    key: 'premium_services',
+    label: 'Premium / Modern Services',
+    icon: '🤖',
+    tabIcon: 'premium',
+    sections: [
+      {
+        label: 'Smart Services',
+        services: ['AI Hairstyle Recommendation', 'Smart Mirror Consultation', 'Scalp Analysis (Digital)', 'Personalized Grooming Plan', 'Hair & Beard Health Tracking'],
+      },
+    ],
+    subServices: [
+      'AI Hairstyle Recommendation', 'Smart Mirror Consultation', 'Scalp Analysis (Digital)', 'Personalized Grooming Plan', 'Hair & Beard Health Tracking',
     ],
   },
 ];
@@ -1481,106 +1599,218 @@ export const SALON_MALE_CATEGORIES = [
     tabIcon: 'scissors',
     sections: [
       {
-        label: 'Haircuts',
-        services: [
-          'Basic Haircut', 'Fade / Taper / Skin Fade', 'Designer Haircut',
-          'Undercut', 'Crew Cut', 'Buzz Cut',
-        ],
+        label: 'Basic Haircuts',
+        services: ['Classic Haircut', 'Trim / Maintenance Cut', 'Kids Haircut', 'Senior Citizen Haircut'],
       },
       {
-        label: 'Hair Styling & Color',
-        services: [
-          'Hair Styling', 'Hair Coloring', 'Global Hair Color',
-          'Highlights / Streaks', 'Root Touch-Up', 'Grey Coverage',
-        ],
+        label: 'Precision Cuts',
+        services: ['Low Fade', 'Mid Fade', 'High Fade', 'Taper Fade', 'Skin Fade / Bald Fade', 'Buzz Cut', 'Crew Cut', 'Caesar Cut'],
       },
       {
-        label: 'Hair Treatments',
-        services: [
-          'Hair Spa', 'Hair Smoothening', 'Hair Straightening',
-          'Keratin Treatment', 'Hair Botox', 'Hair Rebonding',
-        ],
+        label: 'Advanced Cuts',
+        services: ['Undercut', 'Pompadour', 'Quiff', 'Slick Back', 'Textured Crop', 'Modern Mullet', 'Fringe / Bangs Style'],
       },
       {
-        label: 'Hair Care',
-        services: [
-          'Hair Wash', 'Blow Dry', 'Head Massage', 'Dandruff Treatment',
-          'Hair Fall Treatment', 'Scalp Treatment', 'Deep Conditioning',
-        ],
+        label: 'Hair Art & Detailing',
+        services: ['Hair Tattoo / Design', 'Line-up / Edge-up', 'Hard Part / Razor Part', 'Fade Patterns'],
+      },
+      {
+        label: 'Hair Styling',
+        services: ['Blow Dry', 'Hair Wax Styling', 'Gel Styling', 'Clay Styling', 'Party / Event Styling'],
       },
     ],
     subServices: [
-      'Basic Haircut', 'Fade / Taper / Skin Fade', 'Designer Haircut', 'Undercut', 'Crew Cut', 'Buzz Cut',
-      'Hair Styling', 'Hair Coloring', 'Global Hair Color', 'Highlights / Streaks', 'Root Touch-Up', 'Grey Coverage',
-      'Hair Spa', 'Hair Smoothening', 'Hair Straightening', 'Keratin Treatment', 'Hair Botox', 'Hair Rebonding',
-      'Hair Wash', 'Blow Dry', 'Head Massage', 'Dandruff Treatment', 'Hair Fall Treatment', 'Scalp Treatment', 'Deep Conditioning',
+      'Classic Haircut', 'Trim / Maintenance Cut', 'Kids Haircut', 'Senior Citizen Haircut',
+      'Low Fade', 'Mid Fade', 'High Fade', 'Taper Fade', 'Skin Fade / Bald Fade', 'Buzz Cut', 'Crew Cut', 'Caesar Cut',
+      'Undercut', 'Pompadour', 'Quiff', 'Slick Back', 'Textured Crop', 'Modern Mullet', 'Fringe / Bangs Style',
+      'Hair Tattoo / Design', 'Line-up / Edge-up', 'Hard Part / Razor Part', 'Fade Patterns',
+      'Blow Dry', 'Hair Wax Styling', 'Gel Styling', 'Clay Styling', 'Party / Event Styling',
+    ],
+  },
+  {
+    key: 'salon_m_beard',
+    label: 'Beard & Grooming',
+    icon: '🧔',
+    tabIcon: 'beard',
+    sections: [
+      {
+        label: 'Shaving',
+        services: ['Basic Shave', 'Hot Towel Shave', 'Straight Razor Shave', 'Royal Shave', 'Head Shave'],
+      },
+      {
+        label: 'Beard Grooming',
+        services: ['Beard Trim', 'Beard Shaping', 'Beard Fade', 'Beard Sculpting'],
+      },
+      {
+        label: 'Mustache',
+        services: ['Mustache Trim', 'Mustache Styling', 'Handlebar Styling'],
+      },
+      {
+        label: 'Beard Treatments',
+        services: ['Beard Conditioning', 'Beard Spa', 'Hot Oil Beard Treatment', 'Beard Smoothening'],
+      },
+    ],
+    subServices: [
+      'Basic Shave', 'Hot Towel Shave', 'Straight Razor Shave', 'Royal Shave', 'Head Shave',
+      'Beard Trim', 'Beard Shaping', 'Beard Fade', 'Beard Sculpting',
+      'Mustache Trim', 'Mustache Styling', 'Handlebar Styling',
+      'Beard Conditioning', 'Beard Spa', 'Hot Oil Beard Treatment', 'Beard Smoothening',
+    ],
+  },
+  {
+    key: 'salon_m_colour',
+    label: 'Hair Colour & Chemical',
+    icon: '🎨',
+    tabIcon: 'color',
+    sections: [
+      {
+        label: 'Natural Colour',
+        services: ['Grey Coverage', 'Grey Blending', 'Beard Colouring'],
+      },
+      {
+        label: 'Fashion Colour',
+        services: ['Global Hair Colour', 'Highlights', 'Lowlights', 'Balayage', 'Ombre'],
+      },
+      {
+        label: 'Chemical Treatments',
+        services: ['Hair Smoothening', 'Hair Rebonding', 'Hair Relaxing', 'Keratin Treatment', 'Perming'],
+      },
+    ],
+    subServices: [
+      'Grey Coverage', 'Grey Blending', 'Beard Colouring',
+      'Global Hair Colour', 'Highlights', 'Lowlights', 'Balayage', 'Ombre',
+      'Hair Smoothening', 'Hair Rebonding', 'Hair Relaxing', 'Keratin Treatment', 'Perming',
     ],
   },
   {
     key: 'salon_m_skin',
-    label: 'Skin & Face',
+    label: 'Skincare & Face',
     icon: '🧴',
     tabIcon: 'face',
     sections: [
       {
-        label: 'Basic Care',
-        services: [
-          'Clean-up', 'Basic Facial', 'Detan', 'Face Bleach',
-          'Express Cleanup', 'Premium Cleanup',
-        ],
-      },
-      {
-        label: 'Premium Facials',
-        services: ['Gold Facial', 'Charcoal Facial'],
+        label: 'Facial Services',
+        services: ['Basic Clean-up', 'Deep Cleansing Facial', 'Anti-Aging Facial', 'De-tan Facial', 'Hydration Facial', 'Acne Treatment Facial'],
       },
       {
         label: 'Skin Treatments',
-        services: ['Anti-Acne Treatment', 'Skin Brightening', 'Oil Control Treatment'],
+        services: ['Blackhead Removal', 'Whitehead Removal', 'Pimple Treatment', 'Skin Polishing'],
+      },
+      {
+        label: 'Grooming Details',
+        services: ['Eyebrow Threading', 'Eyebrow Waxing', 'Ear Hair Removal', 'Nose Hair Removal'],
+      },
+      {
+        label: 'Advanced Aesthetic',
+        services: ['Skin Tightening', 'Face Massage', 'LED Facial Therapy'],
       },
     ],
     subServices: [
-      'Clean-up', 'Basic Facial', 'Detan', 'Face Bleach', 'Express Cleanup', 'Premium Cleanup',
-      'Gold Facial', 'Charcoal Facial',
-      'Anti-Acne Treatment', 'Skin Brightening', 'Oil Control Treatment',
+      'Basic Clean-up', 'Deep Cleansing Facial', 'Anti-Aging Facial', 'De-tan Facial', 'Hydration Facial', 'Acne Treatment Facial',
+      'Blackhead Removal', 'Whitehead Removal', 'Pimple Treatment', 'Skin Polishing',
+      'Eyebrow Threading', 'Eyebrow Waxing', 'Ear Hair Removal', 'Nose Hair Removal',
+      'Skin Tightening', 'Face Massage', 'LED Facial Therapy',
+    ],
+  },
+  {
+    key: 'salon_m_scalp',
+    label: 'Scalp & Hair Health',
+    icon: '💆',
+    tabIcon: 'scalp',
+    sections: [
+      {
+        label: 'Scalp Treatments',
+        services: ['Anti-Dandruff Treatment', 'Scalp Detox', 'Hair Fall Control', 'Hair Growth Therapy', 'Scalp Nourishment Therapy'],
+      },
+      {
+        label: 'Oil & Therapy',
+        services: ['Head Oil Massage', 'Deep Conditioning Treatment', 'Protein Treatment'],
+      },
+    ],
+    subServices: [
+      'Anti-Dandruff Treatment', 'Scalp Detox', 'Hair Fall Control', 'Hair Growth Therapy', 'Scalp Nourishment Therapy',
+      'Head Oil Massage', 'Deep Conditioning Treatment', 'Protein Treatment',
+    ],
+  },
+  {
+    key: 'salon_m_wellness',
+    label: 'Wellness & Relaxation',
+    icon: '🧘',
+    tabIcon: 'wellness',
+    sections: [
+      {
+        label: 'Massage',
+        services: ['Head Massage', 'Neck Massage', 'Shoulder Massage', 'Head + Neck + Shoulder Combo'],
+      },
+      {
+        label: 'Relaxation',
+        services: ['Stress Relief Therapy', 'Relaxation Package'],
+      },
+    ],
+    subServices: [
+      'Head Massage', 'Neck Massage', 'Shoulder Massage', 'Head + Neck + Shoulder Combo',
+      'Stress Relief Therapy', 'Relaxation Package',
     ],
   },
   {
     key: 'salon_m_grooming',
-    label: 'Grooming & Hair Removal',
+    label: 'Grooming & Body Care',
     icon: '✂️',
     tabIcon: 'grooming',
     sections: [
       {
         label: 'Body Waxing',
-        services: ['Chest Waxing', 'Back Waxing', 'Arm Waxing', 'Leg Waxing'],
+        services: ['Chest Waxing', 'Back Waxing', 'Arm Waxing', 'Leg Waxing', 'Full Body Wax'],
       },
       {
-        label: 'Face & Ear',
-        services: ['Eyebrow Threading', 'Nose Wax', 'Ear Wax', 'Ear Cleaning'],
-      },
-      {
-        label: 'Body Care',
-        services: ['Underarm Cleaning'],
+        label: 'Hand & Foot',
+        services: ['Express Manicure', 'Nail Cleaning', 'Nail Shaping', 'Express Pedicure', 'Foot Cleaning', 'Heel Repair'],
       },
     ],
     subServices: [
-      'Chest Waxing', 'Back Waxing', 'Arm Waxing', 'Leg Waxing',
-      'Eyebrow Threading', 'Nose Wax', 'Ear Wax', 'Ear Cleaning',
-      'Underarm Cleaning',
+      'Chest Waxing', 'Back Waxing', 'Arm Waxing', 'Leg Waxing', 'Full Body Wax',
+      'Express Manicure', 'Nail Cleaning', 'Nail Shaping', 'Express Pedicure', 'Foot Cleaning', 'Heel Repair',
     ],
   },
   {
     key: 'salon_m_packages',
-    label: 'Packages',
+    label: 'Packages & Combos',
     icon: '🎁',
     tabIcon: 'package',
     sections: [
       {
-        label: 'Special Services',
-        services: ['Grooming Package'],
+        label: 'Basic Combos',
+        services: ['Haircut + Beard Trim', 'Haircut + Shave'],
+      },
+      {
+        label: 'Premium Combos',
+        services: ['Haircut + Beard + Facial', 'Haircut + Colour + Styling', 'Full Grooming Package'],
+      },
+      {
+        label: 'Event Packages',
+        services: ['Groom Wedding Package', 'Party Grooming Package', 'Photoshoot Styling'],
       },
     ],
-    subServices: ['Grooming Package'],
+    subServices: [
+      'Haircut + Beard Trim', 'Haircut + Shave',
+      'Haircut + Beard + Facial', 'Haircut + Colour + Styling', 'Full Grooming Package',
+      'Groom Wedding Package', 'Party Grooming Package', 'Photoshoot Styling',
+    ],
+  },
+  {
+    key: 'salon_m_memberships',
+    label: 'Memberships',
+    icon: '⭐',
+    tabIcon: 'membership',
+    sections: [
+      {
+        label: 'Plans',
+        services: ['Monthly Grooming Plan', 'Unlimited Haircut Plan', 'VIP Membership', 'Priority Service Membership'],
+      },
+    ],
+    subServices: [
+      'Monthly Grooming Plan', 'Unlimited Haircut Plan', 'VIP Membership', 'Priority Service Membership',
+    ],
   },
 ];
 

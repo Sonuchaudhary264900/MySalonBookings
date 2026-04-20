@@ -288,6 +288,7 @@ const CategoryCard = ({
     ? cat.sections.reduce((n, s) => n + s.services.length, 0)
     : (cat.subServices || []).length;
   const catFileRef = useRef(null);
+  const [activeSec, setActiveSec] = useState(null);
 
   const chipImg = customImage || CATEGORY_CARD_IMAGE_MAP[cat.label] || null;
 
@@ -394,14 +395,14 @@ const CategoryCard = ({
 
       {/* Expanded body */}
       {isActive && isExpanded && (
-        <div className="px-4 pt-3 pb-4 space-y-3 bg-gray-50/60 dark:bg-gray-800/20">
-          <p className="text-[10px] text-gray-400 dark:text-gray-600 font-medium tracking-wide">
-            Tap to select · enter price & duration
-          </p>
+        <div className="bg-gray-50/60 dark:bg-gray-800/20">
 
-          {/* Unisex gender split */}
+          {/* Unisex gender split — keeps existing flat layout */}
           {gender === 'unisex' && cat.maleSubServices ? (
-            <div className="space-y-4">
+            <div className="px-4 pt-3 pb-4 space-y-4">
+              <p className="text-[10px] text-gray-400 dark:text-gray-600 font-medium tracking-wide">
+                Tap to select · enter price & duration
+              </p>
               {cat.maleSubServices.length > 0 && (
                 <div>
                   <p className="text-xs font-bold text-blue-600 dark:text-blue-400 mb-2 flex items-center gap-1.5">
@@ -424,61 +425,108 @@ const CategoryCard = ({
               )}
             </div>
           ) : cat.sections ? (
-            /* ── Sectioned layout ── */
-            <div className="space-y-3">
-              {cat.sections.map((section, idx) => (
-                <div key={section.label}>
-                  {idx > 0 && <div className="pt-1" />}
-                  <SectionLabel label={section.label} />
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {renderChips(section.services)}
+            /* ── 3-level drill-down: category → sub-category → services ── */
+            <div className="px-3 pt-2 pb-3 space-y-1.5">
+              <p className="text-[10px] text-gray-400 dark:text-gray-600 font-medium tracking-wide px-1 mb-2">
+                Choose a sub-category
+              </p>
+              {cat.sections.map((section) => {
+                const selectedInSection = section.services.filter(name =>
+                  sel.subServices.find(s => s.name === name)
+                ).length;
+                const isSecActive = activeSec === section.label;
+                return (
+                  <div key={section.label}>
+                    <button
+                      type="button"
+                      onClick={() => setActiveSec(isSecActive ? null : section.label)}
+                      className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-left transition-all duration-150
+                        ${isSecActive
+                          ? 'bg-indigo-600 shadow-md shadow-indigo-500/20'
+                          : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-700 hover:bg-indigo-50/60 dark:hover:bg-indigo-950/20'
+                        }`}
+                    >
+                      <span className={`flex-1 text-xs font-semibold ${isSecActive ? 'text-white' : 'text-gray-700 dark:text-gray-300'}`}>
+                        {section.label}
+                      </span>
+                      {selectedInSection > 0 && (
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center
+                          ${isSecActive ? 'bg-white/25 text-white' : 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400'}`}>
+                          {selectedInSection}
+                        </span>
+                      )}
+                      <span className={`text-[10px] ${isSecActive ? 'text-white/60' : 'text-gray-400 dark:text-gray-600'}`}>
+                        {section.services.length}
+                      </span>
+                      <ChevronRight className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200
+                        ${isSecActive ? 'rotate-90 text-white/80' : 'text-gray-400 dark:text-gray-600'}`} />
+                    </button>
+
+                    {isSecActive && (
+                      <div className="mt-1.5 mb-0.5 px-1">
+                        <div className="bg-white dark:bg-gray-900 border border-indigo-100 dark:border-indigo-900/40 rounded-xl p-3">
+                          <p className="text-[10px] text-gray-400 dark:text-gray-600 font-medium tracking-wide mb-2">
+                            Tap to select · set price & duration
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {renderChips(section.services)}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
-            <div className="flex flex-wrap gap-1.5">
-              {renderChips(cat.subServices || [])}
+            <div className="px-4 pt-3 pb-4">
+              <p className="text-[10px] text-gray-400 dark:text-gray-600 font-medium tracking-wide mb-2">
+                Tap to select · enter price & duration
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {renderChips(cat.subServices || [])}
+              </div>
             </div>
           )}
 
           {/* Selected summary */}
           {sel.subServices.length > 0 && (
-            <div className="border-t border-gray-200 dark:border-gray-700/60 pt-3 mt-1">
-              <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <Check className="w-3 h-3" /> {sel.subServices.length} Service{sel.subServices.length !== 1 ? 's' : ''} Added
-              </p>
-              <div className="space-y-1.5">
-                {sel.subServices.map((s, i) => (
-                  <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-xl
-                    bg-white dark:bg-gray-900 border border-indigo-100/80 dark:border-indigo-900/30
-                    shadow-sm">
-                    {/* Sub photo thumbnail (custom or category default) */}
-                    <span className="w-7 h-7 rounded-lg overflow-hidden shrink-0 border border-gray-100 dark:border-gray-800">
-                      <img
-                        src={s.photo || chipImg || ''}
-                        alt=""
-                        className="w-full h-full object-cover"
-                        style={!(s.photo || chipImg) ? { display: 'none' } : {}}
-                      />
-                    </span>
-                    {s.genderContext && (
-                      <span className="text-xs shrink-0">{s.genderContext === 'male' ? '👨' : '👩'}</span>
-                    )}
-                    <span className="flex-1 text-xs font-semibold text-gray-700 dark:text-gray-300 truncate">{s.name}</span>
-                    <span className="flex items-center gap-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
-                      <IndianRupee className="w-3 h-3" />{s.price}
-                    </span>
-                    <span className="flex items-center gap-0.5 text-xs text-gray-400 dark:text-gray-500 shrink-0 ml-1">
-                      <Clock className="w-3 h-3" />{s.duration}m
-                    </span>
-                    <button type="button"
-                      onClick={() => onToggleSub(cat.key, s.name, s.genderContext || null)}
-                      className="text-gray-300 dark:text-gray-700 hover:text-red-500 dark:hover:text-red-400 transition-colors shrink-0 ml-1 p-0.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30">
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
+            <div className="px-4 pb-4">
+              <div className="border-t border-gray-200 dark:border-gray-700/60 pt-3">
+                <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <Check className="w-3 h-3" /> {sel.subServices.length} Service{sel.subServices.length !== 1 ? 's' : ''} Added
+                </p>
+                <div className="space-y-1.5">
+                  {sel.subServices.map((s, i) => (
+                    <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-xl
+                      bg-white dark:bg-gray-900 border border-indigo-100/80 dark:border-indigo-900/30
+                      shadow-sm">
+                      <span className="w-7 h-7 rounded-lg overflow-hidden shrink-0 border border-gray-100 dark:border-gray-800">
+                        <img
+                          src={s.photo || chipImg || ''}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          style={!(s.photo || chipImg) ? { display: 'none' } : {}}
+                        />
+                      </span>
+                      {s.genderContext && (
+                        <span className="text-xs shrink-0">{s.genderContext === 'male' ? '👨' : '👩'}</span>
+                      )}
+                      <span className="flex-1 text-xs font-semibold text-gray-700 dark:text-gray-300 truncate">{s.name}</span>
+                      <span className="flex items-center gap-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
+                        <IndianRupee className="w-3 h-3" />{s.price}
+                      </span>
+                      <span className="flex items-center gap-0.5 text-xs text-gray-400 dark:text-gray-500 shrink-0 ml-1">
+                        <Clock className="w-3 h-3" />{s.duration}m
+                      </span>
+                      <button type="button"
+                        onClick={() => onToggleSub(cat.key, s.name, s.genderContext || null)}
+                        className="text-gray-300 dark:text-gray-700 hover:text-red-500 dark:hover:text-red-400 transition-colors shrink-0 ml-1 p-0.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
