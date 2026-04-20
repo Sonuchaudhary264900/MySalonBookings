@@ -189,7 +189,7 @@ export default function GlowLooxProfile() {
       const res = await api.get('/owner/gallery');
       const raw = res.data.data || [];
       setGalleryItems(raw.map(p => ({
-        ...normalizeOwnerGalleryPayload(p),
+        ...p,
         type: isGalleryVideo(p) ? 'video' : 'image',
       })).filter(hasRenderableGalleryMedia));
     } catch {}

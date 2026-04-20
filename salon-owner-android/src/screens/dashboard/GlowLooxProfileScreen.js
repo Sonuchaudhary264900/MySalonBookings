@@ -89,6 +89,7 @@ export default function GlowLooxProfileScreen() {
 
   const [services, setServices] = useState([]);
   const [reviews, setReviews] = useState([]);
+  const [galleryItems, setGalleryItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('gallery');
@@ -98,11 +99,9 @@ export default function GlowLooxProfileScreen() {
 
   const bizTheme = BIZ_THEME[salon?.businessType] || DEFAULT_BIZ;
 
-  const photoUrls = (salon?.photos || []).map(p => typeof p === 'string' ? p : p?.url).filter(Boolean);
-  const videoUrls = (salon?.videos || []).map(v => typeof v === 'string' ? v : v?.url).filter(Boolean);
-  const bannerSlides = videoUrls.length > 0
-    ? videoUrls.map(u => ({ url: u, type: 'video' }))
-    : photoUrls.map(u => ({ url: u, type: 'image' }));
+  const photoUrls = galleryItems.filter(i => i.type === 'image').map(i => i.url).filter(Boolean);
+  const videoUrls = galleryItems.filter(i => i.type === 'video').map(i => i.url).filter(Boolean);
+  const bannerSlides = galleryItems.filter(i => i.url);
 
   const coverPhoto = salon?.profilePhoto || salon?.coverPhoto || photoUrls[0] || null;
 
@@ -116,12 +115,15 @@ export default function GlowLooxProfileScreen() {
   const load = useCallback(async () => {
     if (!salon?._id) return;
     try {
-      const [svcRes, revRes] = await Promise.all([
+      const [svcRes, revRes, galRes] = await Promise.all([
         api.get(`/public/salons/${salon._id}/services`).catch(() => ({ data: { data: [] } })),
         api.get(`/public/salons/${salon._id}/reviews`).catch(() => ({ data: { data: [] } })),
+        api.get('/owner/gallery').catch(() => ({ data: { data: [] } })),
       ]);
       setServices(svcRes.data.data?.services || svcRes.data.data || []);
       setReviews(revRes.data.data?.reviews || revRes.data.data || []);
+      const rawGallery = galRes.data.data || [];
+      setGalleryItems(rawGallery.filter(i => i.url));
     } finally {
       setLoading(false);
       setRefreshing(false);
