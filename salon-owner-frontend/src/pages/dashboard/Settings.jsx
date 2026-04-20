@@ -5,17 +5,21 @@ import {
   Save, Edit2, X, ChevronDown, Plus,
   CheckCircle2, BellOff, Camera, Trash2, ImagePlus, GitBranch,
   Eye, EyeOff, Info, Clock, Video,
+  Mail, Phone, QrCode, ShieldCheck, KeyRound,
 } from 'lucide-react';
+import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
+import { auth } from '../../config/firebase';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
+import SalonQRModal from '../../components/salon/SalonQRModal';
 import { useSalon } from '../../hooks/useSalon';
 import { useAuth } from '../../hooks/useAuth';
 import { useNotifications } from '../../context/NotificationContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useTheme } from '../../context/ThemeContext';
-import { uploadSalonPhotos } from '../../services/salonService';
+import { uploadSalonPhotos, updateSalonLogo } from '../../services/salonService';
 import { SALON_TYPES } from '../../constants/salonCategories';
 import { INDIAN_STATES, STATE_DISTRICTS } from '../../constants/indianLocations';
 import SelectDropdown from '../../components/common/SelectDropdown';
@@ -142,127 +146,299 @@ const SaveBar = ({ onSave, onCancel, loading }) => (
 /* ─── My Profile ─────────────────────────────────────────────── */
 const ProfileContent = () => {
   const { user, updateProfile } = useAuth();
-  const { salon } = useSalon();
-  const [editing, setEditing]     = useState(false);
-  const [loading, setLoading]     = useState(false);
-  const [pwStep, setPwStep]       = useState(1);
-  const [pwLoading, setPwLoading] = useState(false);
-  const [pwTimer, setPwTimer]     = useState(0);
-  const [form, setForm]   = useState({ name: '', email: '' });
-  const [pw, setPw]       = useState({ otp: '', next: '', confirm: '' });
-  const [pwError, setPwError]   = useState('');
-  const [pwShowPw, setPwShowPw] = useState(false);
-  const [errors, setErrors]     = useState({});
+  const { salon, fetchSalon } = useSalon();
 
-  useEffect(() => {
-    if (pwTimer <= 0) return;
-    const id = setInterval(() => setPwTimer(t => t - 1), 1000);
-    return () => clearInterval(id);
-  }, [pwTimer]);
+  // Avatar upload
+  const [logoUrl, setLogoUrl]         = useState(null);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const fileInputRef = useRef(null);
+  const [showQR, setShowQR]           = useState(false);
 
-  useEffect(() => {
-    if (user) setForm({ name: user.name || '', email: user.email || '' });
-  }, [user]);
+  useEffect(() => { if (salon?.logo) setLogoUrl(salon.logo); }, [salon]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm(p => ({ ...p, [name]: value }));
-    if (errors[name]) setErrors(p => ({ ...p, [name]: '' }));
-  };
-
-  const handleSaveProfile = async (e) => {
-    e.preventDefault();
-    const errs = {};
-    if (!form.name.trim())  errs.name  = 'Name is required';
-    if (!form.email.trim()) errs.email = 'Email is required';
-    if (Object.keys(errs).length) { setErrors(errs); return; }
-    setLoading(true);
+  const handleLogoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLogoUploading(true);
     try {
-      await updateProfile({ name: form.name.trim(), email: form.email.trim() });
-      toast.success('Profile updated!');
-      setEditing(false);
-    } catch (err) {
-      toast.error(err.message || 'Failed to update profile');
-    } finally { setLoading(false); }
-  };
-
-  const handlePwSendOtp = async (e) => {
-    e.preventDefault();
-    setPwError('');
-    if (!user?.phone) { setPwError('No phone number linked to your account'); return; }
-    setPwLoading(true);
-    try {
-      await api.post('/owner/auth/forgot-password/send-otp', { phone: user.phone });
-      setPwStep(2); setPwTimer(60);
-      toast.success('OTP sent to your registered phone!');
-    } catch (err) {
-      setPwError(err.response?.data?.message || 'Failed to send OTP');
-    } finally { setPwLoading(false); }
-  };
-
-  const handlePwReset = async (e) => {
-    e.preventDefault();
-    setPwError('');
-    if (!pw.otp.trim())           { setPwError('OTP is required'); return; }
-    if (!pw.next || pw.next.length < 8) { setPwError('Password must be at least 8 characters'); return; }
-    if (pw.next !== pw.confirm)   { setPwError('Passwords do not match'); return; }
-    setPwLoading(true);
-    try {
-      await api.post('/owner/auth/forgot-password/reset', { phone: user.phone, otp: pw.otp, newPassword: pw.next });
-      toast.success('Password changed successfully!');
-      setPwStep(1); setPw({ otp: '', next: '', confirm: '' });
-    } catch (err) {
-      setPwError(err.response?.data?.message || 'Failed to change password');
-    } finally { setPwLoading(false); }
+      const url = await updateSalonLogo(file);
+      setLogoUrl(url);
+      if (fetchSalon) fetchSalon();
+      toast.success('Profile photo updated!');
+    } catch {
+      toast.error('Failed to upload photo');
+    } finally { setLogoUploading(false); e.target.value = ''; }
   };
 
   const memberSince = user?.createdAt
     ? new Date(user.createdAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })
     : '—';
 
+  // Profile edit
+  const [isEditing, setIsEditing]         = useState(false);
+  const [profileData, setProfileData]     = useState({ name: '', email: '', phone: '' });
+  const [profileErrors, setProfileErrors] = useState({});
+  const [profileLoading, setProfileLoading] = useState(false);
+
+  useEffect(() => {
+    if (user) setProfileData({ name: user.name || '', email: user.email || '', phone: user.phone || '' });
+  }, [user]);
+
+  const handleProfileChange = (e) => {
+    const { name, value } = e.target;
+    setProfileData(p => ({ ...p, [name]: value }));
+    if (profileErrors[name]) setProfileErrors(p => ({ ...p, [name]: '' }));
+  };
+
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    const errs = {};
+    if (!profileData.name.trim()) errs.name = 'Name is required';
+    if (profileData.email.trim() && !/\S+@\S+\.\S+/.test(profileData.email)) errs.email = 'Email is invalid';
+    if (!profileData.phone.trim()) errs.phone = 'Phone is required';
+    if (Object.keys(errs).length) { setProfileErrors(errs); return; }
+    setProfileLoading(true);
+    try {
+      await updateProfile(profileData);
+      toast.success('Profile updated!');
+      setIsEditing(false);
+    } catch (err) {
+      toast.error(err.message || 'Failed to update profile');
+    } finally { setProfileLoading(false); }
+  };
+
+  // Security — Firebase OTP password reset
+  const [secPhase, setSecPhase]           = useState('idle');
+  const [secOtp, setSecOtp]               = useState(['', '', '', '', '', '']);
+  const [secNewPw, setSecNewPw]           = useState('');
+  const [secConfirmPw, setSecConfirmPw]   = useState('');
+  const [showNewPw, setShowNewPw]         = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
+  const [secErrors, setSecErrors]         = useState({});
+  const [secLoading, setSecLoading]       = useState(false);
+  const [otpTimer, setOtpTimer]           = useState(0);
+  const [confirmResult, setConfirmResult] = useState(null);
+  const [secOpen, setSecOpen]             = useState(false);
+  const [accOpen, setAccOpen]             = useState(false);
+  const otpRefs      = useRef([]);
+  const recaptchaRef = useRef(null);
+
+  useEffect(() => {
+    if (otpTimer <= 0) return;
+    const t = setTimeout(() => setOtpTimer(p => p - 1), 1000);
+    return () => clearTimeout(t);
+  }, [otpTimer]);
+
+  useEffect(() => {
+    return () => { try { recaptchaRef.current?.clear(); } catch {} };
+  }, []);
+
+  const setupRecaptcha = () => {
+    if (recaptchaRef.current) return recaptchaRef.current;
+    const verifier = new RecaptchaVerifier(auth, 'profile-pw-reset-recaptcha', {
+      size: 'invisible', callback: () => {},
+    });
+    recaptchaRef.current = verifier;
+    return verifier;
+  };
+
+  const handleSendOtp = async () => {
+    if (!user?.phone) { toast.error('No phone number found on your account'); return; }
+    setSecLoading(true);
+    try {
+      const verifier = setupRecaptcha();
+      const result = await signInWithPhoneNumber(auth, user.phone, verifier);
+      setConfirmResult(result);
+      setSecPhase('sent');
+      setOtpTimer(60);
+      setSecOtp(['', '', '', '', '', '']);
+      setSecErrors({});
+      setTimeout(() => otpRefs.current[0]?.focus(), 100);
+      toast.success(`OTP sent to ${user.phone}`);
+    } catch {
+      toast.error('Failed to send OTP. Try again.');
+      try { recaptchaRef.current?.clear(); recaptchaRef.current = null; } catch {}
+    } finally { setSecLoading(false); }
+  };
+
+  const handleOtpChange = (idx, val) => {
+    if (!/^\d?$/.test(val)) return;
+    const next = [...secOtp];
+    next[idx] = val;
+    setSecOtp(next);
+    if (secErrors.otp) setSecErrors(p => ({ ...p, otp: '' }));
+    if (val && idx < 5) otpRefs.current[idx + 1]?.focus();
+    if (val && idx === 5 && next.every(d => d)) verifyAndReset(next.join(''));
+  };
+
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!pasted) return;
+    const next = ['', '', '', '', '', ''];
+    pasted.split('').forEach((ch, i) => { next[i] = ch; });
+    setSecOtp(next);
+    if (secErrors.otp) setSecErrors(p => ({ ...p, otp: '' }));
+    otpRefs.current[Math.min(pasted.length, 5)]?.focus();
+    if (pasted.length === 6) verifyAndReset(pasted);
+  };
+
+  const handleOtpKeyDown = (idx, e) => {
+    if (e.key === 'Backspace' && !secOtp[idx] && idx > 0) otpRefs.current[idx - 1]?.focus();
+    if (e.key === 'ArrowLeft'  && idx > 0) otpRefs.current[idx - 1]?.focus();
+    if (e.key === 'ArrowRight' && idx < 5) otpRefs.current[idx + 1]?.focus();
+  };
+
+  const verifyAndReset = async (code) => {
+    if (!confirmResult || secLoading) return;
+    const errs = {};
+    if (!secNewPw)               errs.newPw    = 'Enter your new password';
+    else if (secNewPw.length < 8) errs.newPw   = 'Minimum 8 characters';
+    if (secNewPw !== secConfirmPw) errs.confirmPw = 'Passwords do not match';
+    if (Object.keys(errs).length) { setSecErrors(errs); return; }
+    setSecLoading(true);
+    try {
+      const result  = await confirmResult.confirm(code);
+      const idToken = await result.user.getIdToken();
+      await api.post('/owner/auth/firebase-reset-password', { firebaseToken: idToken, newPassword: secNewPw });
+      setSecPhase('success');
+      setSecOtp(['', '', '', '', '', '']);
+      setSecNewPw(''); setSecConfirmPw('');
+      toast.success('Password updated successfully!');
+    } catch (err) {
+      const msg = err?.message || err?.response?.data?.message || '';
+      if (msg.toLowerCase().includes('invalid') || msg.toLowerCase().includes('code')) {
+        setSecErrors(p => ({ ...p, otp: 'Incorrect OTP — try again' }));
+        setSecOtp(['', '', '', '', '', '']);
+        otpRefs.current[0]?.focus();
+      } else {
+        toast.error(msg || 'Failed to reset password');
+      }
+    } finally { setSecLoading(false); }
+  };
+
+  const handleResetPassword = (e) => {
+    e.preventDefault();
+    const code = secOtp.join('');
+    if (code.length < 6) { setSecErrors(p => ({ ...p, otp: 'Enter all 6 digits' })); return; }
+    verifyAndReset(code);
+  };
+
+  const typeDef = SALON_TYPES.find(t => t.key === salon?.businessType);
+
   return (
-    <div className="space-y-5 mt-3">
-      {/* Avatar row */}
+    <div className="space-y-4 mt-3">
+
+      {/* Avatar row with upload */}
       <div className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700/50">
-        <div className="w-12 h-12 rounded-full shrink-0 overflow-hidden ring-2 ring-indigo-100 dark:ring-indigo-900">
-          {salon?.logo ? (
-            <img src={salon.logo} alt="profile" className="w-full h-full object-cover" />
+        <div
+          className="relative w-14 h-14 rounded-full shrink-0 cursor-pointer group"
+          onClick={() => !logoUploading && fileInputRef.current?.click()}
+          title="Change profile photo"
+        >
+          {logoUrl ? (
+            <img src={logoUrl} alt="Profile" className="w-14 h-14 rounded-full object-cover" />
           ) : (
-            <div className="w-full h-full bg-indigo-100 dark:bg-indigo-950 flex items-center justify-center">
+            <div className="w-14 h-14 rounded-full bg-indigo-100 dark:bg-indigo-950 flex items-center justify-center">
               <User className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             </div>
           )}
+          <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+            {logoUploading
+              ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              : <Camera className="w-4 h-4 text-white" />}
+          </div>
         </div>
-        <div>
+        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleLogoChange} />
+        <div className="flex-1 min-w-0">
           <p className="font-bold text-gray-900 dark:text-white">{user?.name || '—'}</p>
           <p className="text-xs text-gray-500 dark:text-gray-400">Member since {memberSince}</p>
+          {typeDef && (
+            <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
+              style={{ background: `${typeDef.color}15`, color: typeDef.color, border: `1px solid ${typeDef.color}33` }}>
+              {typeDef.label}
+            </span>
+          )}
         </div>
+        {salon?._id && (
+          <button onClick={() => setShowQR(true)}
+            className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-200 dark:border-indigo-700
+              bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 text-xs font-semibold
+              hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition">
+            <QrCode className="w-3.5 h-3.5" /> My QR
+          </button>
+        )}
       </div>
 
-      {/* Profile fields / form */}
-      {editing ? (
-        <form onSubmit={handleSaveProfile} className="space-y-4">
+      {/* Business type card */}
+      {typeDef && (() => {
+        const TypeIcon = SALON_TYPE_ICONS[typeDef.key];
+        return (
+          <div className="rounded-xl border-2 p-3.5 flex items-center gap-3"
+            style={{ borderColor: `${typeDef.color}40`, background: `${typeDef.color}08` }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+              style={{ background: `${typeDef.color}18` }}>
+              {TypeIcon && <TypeIcon size={20} strokeWidth={1.5} color={typeDef.color} />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: typeDef.color }}>
+                Your Business Type
+              </p>
+              <p className="font-bold text-gray-900 dark:text-white text-sm">{typeDef.label}</p>
+              {typeDef.description && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{typeDef.description}</p>}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Email nudge */}
+      {!user?.email && (
+        <div className="flex items-start gap-3 px-4 py-3 rounded-xl border cursor-pointer"
+          style={{ background: 'rgba(124,58,237,0.06)', borderColor: 'rgba(124,58,237,0.25)' }}
+          onClick={() => setIsEditing(true)}>
+          <Mail className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#7c3aed' }} />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold" style={{ color: '#7c3aed' }}>Add your email address</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Required for booking alerts and notifications.</p>
+          </div>
+          <span className="shrink-0 text-xs font-bold px-2 py-0.5 rounded-full"
+            style={{ background: 'rgba(124,58,237,0.12)', color: '#7c3aed' }}>Add Now</span>
+        </div>
+      )}
+
+      {/* Profile fields / edit form */}
+      {isEditing ? (
+        <form onSubmit={handleUpdateProfile} className="space-y-3 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700">
+          <p className="text-sm font-semibold text-gray-900 dark:text-white">Edit Profile</p>
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Full Name</label>
-            <input name="name" value={form.name} onChange={handleChange}
-              placeholder="Your name" disabled={loading} required className={INP} />
-            {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
+            <input name="name" value={profileData.name} onChange={handleProfileChange}
+              placeholder="Your name" disabled={profileLoading} required className={INP} />
+            {profileErrors.name && <p className="text-xs text-red-500">{profileErrors.name}</p>}
           </div>
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email Address</label>
-            <input name="email" type="email" value={form.email} onChange={handleChange}
-              placeholder="your@email.com" disabled={loading} required className={INP} />
-            {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email Address (optional)</label>
+            <input name="email" type="email" value={profileData.email} onChange={handleProfileChange}
+              placeholder="your@email.com" disabled={profileLoading} className={INP} />
+            {profileErrors.email && <p className="text-xs text-red-500">{profileErrors.email}</p>}
           </div>
-          <SaveBar loading={loading}
-            onCancel={() => { setEditing(false); setErrors({}); if (user) setForm({ name: user.name||'', email: user.email||'' }); }} />
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Phone Number</label>
+            <input name="phone" type="tel" value={profileData.phone}
+              onChange={e => { const v = e.target.value.replace(/\D/g,'').slice(0,10); setProfileData(p => ({...p, phone: v})); if (profileErrors.phone) setProfileErrors(p => ({...p, phone: ''})); }}
+              placeholder="98765 43210" disabled={profileLoading} required className={INP} />
+            {profileErrors.phone && <p className="text-xs text-red-500">{profileErrors.phone}</p>}
+          </div>
+          <SaveBar loading={profileLoading}
+            onCancel={() => { setIsEditing(false); setProfileErrors({}); if (user) setProfileData({ name: user.name||'', email: user.email||'', phone: user.phone||'' }); }} />
         </form>
       ) : (
         <div>
           <FieldRow label="Name"  value={user?.name} />
           <FieldRow label="Email" value={user?.email} />
           <FieldRow label="Phone" value={user?.phone} />
-          <button onClick={() => setEditing(true)}
+          {salon?.address && <FieldRow label="Address" value={salon.address} />}
+          <button onClick={() => setIsEditing(true)}
             className="mt-3 flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700
               text-sm font-medium text-gray-700 dark:text-gray-300
               hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
@@ -271,63 +447,219 @@ const ProfileContent = () => {
         </div>
       )}
 
-      {/* Change password */}
-      <div className="border-t border-gray-100 dark:border-gray-800 pt-5">
-        <p className="text-sm font-semibold text-gray-800 dark:text-white mb-3">Change Password</p>
-        {pwError && (
-          <p className="text-sm text-red-600 dark:text-red-400 mb-3 bg-red-50 dark:bg-red-950/30 px-3 py-2 rounded-xl border border-red-200 dark:border-red-800/50">
-            {pwError}
-          </p>
-        )}
-        {pwStep === 1 ? (
-          <form onSubmit={handlePwSendOtp} className="space-y-3">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              An OTP will be sent to your registered phone: <strong className="text-gray-700 dark:text-gray-200">{user?.phone || '—'}</strong>
-            </p>
-            <button type="submit" disabled={pwLoading}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl
-                bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors disabled:opacity-60">
-              {pwLoading && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-              Send OTP
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={handlePwReset} className="space-y-3">
-            <p className="text-sm text-gray-500 dark:text-gray-400">OTP sent to <strong className="text-gray-700 dark:text-gray-200">{user?.phone}</strong></p>
-            <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">OTP</label>
-              <input type="text" value={pw.otp} onChange={e => setPw(p => ({ ...p, otp: e.target.value }))}
-                placeholder="Enter 6-digit OTP" disabled={pwLoading} maxLength={6} required className={INP} />
+      {/* Security sub-section */}
+      <div className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <button type="button" onClick={() => setSecOpen(p => !p)}
+          className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+          <div className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-950 flex items-center justify-center shrink-0">
+            <Lock className="w-4 h-4 text-red-600 dark:text-red-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">Security</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Password and login security</p>
+          </div>
+          <ChevronDown className={`w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0 transition-transform duration-200 ${secOpen ? 'rotate-180' : ''}`} />
+        </button>
+
+        {secOpen && (
+          <div className="px-4 pb-5 pt-2 border-t border-gray-100 dark:border-gray-800 space-y-4">
+
+            {/* Status pills */}
+            <div className="flex flex-wrap gap-2 pt-1">
+              {[
+                { icon: ShieldCheck, label: 'Active & Verified', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/50' },
+                { icon: Phone,       label: 'Phone Auth',        color: 'text-blue-600 dark:text-blue-400',    bg: 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800/50' },
+                { icon: KeyRound,    label: 'Password Protected', color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-950/30 border-violet-200 dark:border-violet-800/50' },
+              ].map(({ icon: Ic, label, color, bg }) => (
+                <span key={label} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold ${bg} ${color}`}>
+                  <Ic className="w-3.5 h-3.5" /> {label}
+                </span>
+              ))}
             </div>
-            <div className="space-y-1.5 relative">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">New Password</label>
-              <input type={pwShowPw ? 'text' : 'password'} value={pw.next}
-                onChange={e => setPw(p => ({ ...p, next: e.target.value }))}
-                placeholder="Min 8 characters" disabled={pwLoading} required className={INP} />
-              <button type="button" onClick={() => setPwShowPw(!pwShowPw)}
-                className="absolute right-3 top-9 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
-                {pwShowPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+
+            {/* Last changed */}
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1.5">
+                <KeyRound className="w-3.5 h-3.5" /> Last password changed
+              </span>
+              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                user?.lastPasswordChange
+                  ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500'
+              }`}>
+                {user?.lastPasswordChange
+                  ? new Date(user.lastPasswordChange).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                  : 'Never'}
+              </span>
+            </div>
+
+            <div id="profile-pw-reset-recaptcha" />
+
+            {/* Phase: idle */}
+            {secPhase === 'idle' && (
+              <button onClick={handleSendOtp} disabled={secLoading}
+                className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl font-semibold text-sm text-white transition-all disabled:opacity-60"
+                style={{ background: 'linear-gradient(135deg,#7c3aed,#db2777)', boxShadow: '0 4px 20px rgba(124,58,237,0.35)' }}>
+                {secLoading
+                  ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  : <Phone className="w-4 h-4" />}
+                Send OTP to My Mobile
               </button>
-            </div>
-            <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Confirm Password</label>
-              <input type="password" value={pw.confirm}
-                onChange={e => setPw(p => ({ ...p, confirm: e.target.value }))}
-                placeholder="Repeat new password" disabled={pwLoading} required className={INP} />
-            </div>
-            <button type="submit" disabled={pwLoading}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl
-                bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors disabled:opacity-60">
-              {pwLoading && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-              <Save className="w-4 h-4" /> Reset Password
-            </button>
-            <button type="button" onClick={pwTimer === 0 ? handlePwSendOtp : undefined} disabled={pwTimer > 0 || pwLoading}
-              className="w-full text-center text-sm text-indigo-600 dark:text-indigo-400 disabled:opacity-50 hover:underline">
-              {pwTimer > 0 ? `Resend OTP in ${pwTimer}s` : 'Resend OTP'}
-            </button>
-          </form>
+            )}
+
+            {/* Phase: sent */}
+            {secPhase === 'sent' && (
+              <form onSubmit={handleResetPassword} className="space-y-5">
+                <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800/50">
+                  <div className="w-8 h-8 rounded-full bg-violet-100 dark:bg-violet-950 flex items-center justify-center shrink-0">
+                    <Phone className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-violet-500 dark:text-violet-400 font-medium">SMS OTP sent to</p>
+                    <p className="text-sm font-bold text-violet-800 dark:text-violet-200">
+                      {user?.phone?.replace(/(\+\d{2})(\d{4})(\d+)(\d{4})/, '$1 $2 XXXX $4')}
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2.5 uppercase tracking-wider">Enter OTP</p>
+                  <div className="flex gap-2 justify-center">
+                    {secOtp.map((digit, idx) => (
+                      <input key={idx}
+                        ref={el => otpRefs.current[idx] = el}
+                        type="text" inputMode="numeric" maxLength={1}
+                        autoComplete={idx === 0 ? 'one-time-code' : 'off'}
+                        value={digit}
+                        onChange={e => handleOtpChange(idx, e.target.value)}
+                        onKeyDown={e => handleOtpKeyDown(idx, e)}
+                        onPaste={handleOtpPaste}
+                        className={`w-10 text-center text-xl font-bold rounded-xl border-2 transition-all outline-none
+                          ${digit ? 'border-violet-500 bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300' : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200'}
+                          focus:border-violet-500 focus:bg-white dark:focus:bg-gray-900 focus:shadow-[0_0_0_3px_rgba(124,58,237,0.12)]`}
+                        style={{ height: 48 }}
+                      />
+                    ))}
+                  </div>
+                  {secErrors.otp && <p className="text-xs text-red-500 mt-1.5 text-center">{secErrors.otp}</p>}
+                </div>
+
+                <div className="text-center">
+                  {otpTimer > 0 ? (
+                    <p className="text-xs text-gray-400 dark:text-gray-500">Resend OTP in <span className="font-semibold text-violet-600 dark:text-violet-400">{otpTimer}s</span></p>
+                  ) : (
+                    <button type="button" onClick={handleSendOtp}
+                      className="text-xs font-semibold text-violet-600 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-200 transition">
+                      Resend OTP
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">New Password</label>
+                  <div className="relative">
+                    <input type={showNewPw ? 'text' : 'password'} value={secNewPw}
+                      onChange={e => { setSecNewPw(e.target.value); if (secErrors.newPw) setSecErrors(p => ({...p, newPw:''})); }}
+                      placeholder="Min 8 characters"
+                      className={`${INP} pr-11 ${secErrors.newPw ? 'border-red-400' : ''}`} />
+                    <button type="button" onClick={() => setShowNewPw(p => !p)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                      {showNewPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {secErrors.newPw && <p className="text-xs text-red-500">{secErrors.newPw}</p>}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Confirm Password</label>
+                  <div className="relative">
+                    <input type={showConfirmPw ? 'text' : 'password'} value={secConfirmPw}
+                      onChange={e => { setSecConfirmPw(e.target.value); if (secErrors.confirmPw) setSecErrors(p => ({...p, confirmPw:''})); }}
+                      placeholder="Re-enter new password"
+                      className={`${INP} pr-11 ${secErrors.confirmPw ? 'border-red-400' : ''}`} />
+                    <button type="button" onClick={() => setShowConfirmPw(p => !p)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                      {showConfirmPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {secErrors.confirmPw && <p className="text-xs text-red-500">{secErrors.confirmPw}</p>}
+                </div>
+
+                <div className="flex gap-2 pt-1">
+                  <button type="submit" disabled={secLoading}
+                    className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold text-sm text-white transition-all disabled:opacity-60"
+                    style={{ background: 'linear-gradient(135deg,#7c3aed,#db2777)', boxShadow: '0 4px 16px rgba(124,58,237,0.3)' }}>
+                    {secLoading
+                      ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      : <ShieldCheck className="w-4 h-4" />}
+                    Update Password
+                  </button>
+                  <button type="button" onClick={() => { setSecPhase('idle'); setSecErrors({}); }}
+                    className="px-5 py-3.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Phase: success */}
+            {secPhase === 'success' && (
+              <div className="flex flex-col items-center gap-3 py-6 text-center">
+                <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center">
+                  <CheckCircle2 className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div>
+                  <p className="font-bold text-gray-900 dark:text-white text-base">Password Updated</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Your account is secured with the new password.</p>
+                </div>
+                <button onClick={() => setSecPhase('idle')}
+                  className="mt-1 text-sm font-semibold text-violet-600 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-200 transition">
+                  Back to Security
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </div>
+
+      {/* Account Information sub-section */}
+      <div className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <button type="button" onClick={() => setAccOpen(p => !p)}
+          className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+          <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-950 flex items-center justify-center shrink-0">
+            <Info className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">Account Information</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Account type, ID and status</p>
+          </div>
+          <ChevronDown className={`w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0 transition-transform duration-200 ${accOpen ? 'rotate-180' : ''}`} />
+        </button>
+        {accOpen && (
+          <div className="px-4 pb-5 pt-2 border-t border-gray-100 dark:border-gray-800">
+            <div className="space-y-2 pt-2">
+              {[
+                { label: 'User ID',      value: user?._id ? `${String(user._id).substring(0, 16)}…` : '—' },
+                { label: 'Account Type', value: typeDef ? `${typeDef.label} Owner` : 'Salon Owner' },
+                { label: 'Member Since', value: memberSince },
+              ].map(({ label, value }) => (
+                <div key={label} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800/60 rounded-lg">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">{label}</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">{value}</span>
+                </div>
+              ))}
+              <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800/60 rounded-lg">
+                <span className="text-sm text-gray-500 dark:text-gray-400">Account Status</span>
+                <span className="flex items-center gap-1 px-3 py-1 bg-green-100 dark:bg-green-950/40 text-green-800 dark:text-green-400 rounded-full text-xs font-semibold">
+                  <CheckCircle2 className="w-3 h-3" /> Active
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {showQR && salon?._id && <SalonQRModal salon={salon} onClose={() => setShowQR(false)} />}
     </div>
   );
 };
