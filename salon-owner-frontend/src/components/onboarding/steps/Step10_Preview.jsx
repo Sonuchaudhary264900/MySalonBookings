@@ -1,5 +1,8 @@
 import React from 'react';
 import { Edit2, CheckCircle, Rocket, Scissors, Clock, BadgeIndianRupee, Layers, ChevronRight, Sparkles } from 'lucide-react';
+
+const BIZ_LABEL = { barbershop:'Barbershop', salon:'Salon', spa_wellness:'Spa', makeup_bridal:'Studio', skin_derma:'Clinic' };
+const getBizLabel = (type) => BIZ_LABEL[type] || 'Business';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useOnboarding } from '../../../context/OnboardingContext';
@@ -105,7 +108,7 @@ export default function Step10_Preview() {
         {/* Header */}
         <div className="s10-fu1" style={{ textAlign: 'center' }}>
           <h1 style={{ fontSize: 'clamp(1.6rem,3vw,2.2rem)', fontWeight: 900, color: text, margin: '0 0 8px', letterSpacing: '-0.6px' }}>
-            Here's your salon 🎉
+            Here's your {getBizLabel(data.businessType)} on GlowLoox 🎉
           </h1>
           <p style={{ color: sub, fontSize: 14, margin: 0 }}>
             Review everything before going live.
@@ -252,9 +255,9 @@ export default function Step10_Preview() {
           }}>
           {submitting ? (
             <><div style={{ width: 22, height: 22, border: '3px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', borderRadius: '50%', animation: 's10-spin 0.7s linear infinite' }} />
-            {phase === 'creating' ? 'Setting up your salon...' : 'Almost ready...'}</>
+            {phase === 'creating' ? `Setting up your ${getBizLabel(data.businessType).toLowerCase()}...` : 'Almost ready...'}</>
           ) : (
-            <><Rocket size={22} /> Submit My Salon</>
+            <><Rocket size={22} /> Submit My {getBizLabel(data.businessType)}</>
           )}
         </button>
 

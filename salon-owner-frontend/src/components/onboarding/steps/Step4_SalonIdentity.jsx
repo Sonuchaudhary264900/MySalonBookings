@@ -91,13 +91,13 @@ export default function Step4_SalonIdentity() {
   const handleNext = () => {
     const effectiveGender = lockedGender || gender;
     const e = {};
-    if (!name.trim())        e.name   = 'Salon name is required';
+    if (!name.trim())        e.name   = `${nameConfig.label} is required`;
     if (!effectiveGender)    e.gender = 'Please select who you serve';
     if (!desc.trim())        e.desc   = 'Add a short description';
     setErrors(e);
     if (Object.keys(e).length) return;
     update({ salonName: name.trim(), servedGender: effectiveGender, description: desc.trim() });
-    toast.success("Your salon has a name — it's real now! 🏷️");
+    toast.success(`${name.trim()} is live on GlowLoox — it's real now! 🏷️`);
     nextStep();
   };
 

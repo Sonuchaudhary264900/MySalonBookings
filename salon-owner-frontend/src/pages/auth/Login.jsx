@@ -104,11 +104,11 @@ const Login = () => {
           </div>
           <div className="lgn-fu2" style={{ marginBottom:16 }}>
             <h1 style={{ fontSize:'clamp(2rem,3.5vw,3rem)', fontWeight:800, color:'#f8fafc', lineHeight:1.1, letterSpacing:'-1.5px', margin:0 }}>
-              Your salon,<br /><span className="lgn-shimmer">fully in control.</span>
+              Your business,<br /><span className="lgn-shimmer">fully in control.</span>
             </h1>
           </div>
           <p className="lgn-fu3" style={{ fontSize:15, color:'#475569', lineHeight:1.75, marginBottom:44, maxWidth:380 }}>
-            One dashboard to manage bookings, track revenue, handle customers, and grow your salon business.
+            One dashboard to manage bookings, track revenue, handle customers, and grow your beauty business.
           </p>
           <div className="lgn-fu4" style={{ display:'flex', flexDirection:'column', gap:10 }}>
             {HERO_FEATURES.map(({ icon: Icon, color, label }) => (
@@ -121,7 +121,7 @@ const Login = () => {
             ))}
           </div>
           <p className="lgn-fu5" style={{ marginTop:44, fontSize:12, color:'#1e293b' }}>
-            Trusted by <strong style={{ color:'#334155' }}>500+ salon owners</strong> across India
+            Trusted by <strong style={{ color:'#334155' }}>500+ GlowLoox partners</strong> across India
           </p>
         </div>
 

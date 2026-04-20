@@ -96,8 +96,9 @@ export default function Step4_SalonType() {
   };
 
   const handleContinue = () => {
-    if (!selected) { setError('Please select a salon type to continue'); return; }
-    toast.success("Great choice — let's build your salon!");
+    if (!selected) { setError('Please select your business type to continue'); return; }
+    const label = SALON_TYPES.find(t => t.key === selected)?.label || 'business';
+    toast.success(`Great choice — let's build your ${label}!`);
     nextStep();
   };
 
@@ -256,7 +257,7 @@ export default function Step4_SalonType() {
             boxShadow: selected ? '0 4px 20px rgba(124,58,237,0.4)' : 'none',
           }}
         >
-          Continue — Set Up Your Salon <ArrowRight size={18} />
+          {selected ? `Continue — Set Up Your ${SALON_TYPES.find(t => t.key === selected)?.label || 'Business'}` : 'Select a type to continue'} <ArrowRight size={18} />
         </button>
       </div>
     </>

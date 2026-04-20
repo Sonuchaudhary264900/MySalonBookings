@@ -39,14 +39,14 @@ const AW_CSS = `
 
 /* ─── Data ──────────────────────────────────────────────────────────────────── */
 const TIMELINE = [
-  { id:1, label:'Application Submitted', sub:'Your salon info has been received',    done:true   },
+  { id:1, label:'Application Submitted', sub:'Your information has been received',    done:true   },
   { id:2, label:'Under Review',          sub:'Our team verifies your details',        active:true },
   { id:3, label:'Decision Made',         sub:'Approval or feedback within 24–48h',   done:false  },
   { id:4, label:'Go Live',              sub:'Start accepting bookings',              done:false  },
 ];
 
 const NEXT_STEPS = [
-  'Our team will verify your salon information and documents',
+  'Our team will verify your information and documents',
   "We'll check your business credentials and photos",
   "You'll receive a notification via email once approved",
   'Access your full dashboard to add services, staff & more',
@@ -211,14 +211,14 @@ const ApprovalWaiting = () => {
               </div>
 
               <h1 style={{ fontSize:22, fontWeight:800, color:textPrimary, margin:0, marginBottom:8, letterSpacing:'-0.3px' }}>
-                {isApproved ? 'Salon Approved! 🎉' : isRejected ? 'Application Rejected' : 'Application Under Review'}
+                {isApproved ? `${salon?.name || 'GlowLoox'} is Live! 🎉` : isRejected ? 'Application Rejected' : 'Application Under Review'}
               </h1>
               <p style={{ color:textMuted, fontSize:14, margin:0 }}>
                 {isApproved
-                  ? 'Your salon is live — redirecting to dashboard…'
+                  ? "You're live on GlowLoox — redirecting to dashboard…"
                   : isRejected
                   ? 'Please contact support for details'
-                  : "We're verifying your salon — typically 24–48 hours"}
+                  : "We're reviewing your application — typically 24–48 hours"}
               </p>
             </div>
 
@@ -231,10 +231,10 @@ const ApprovalWaiting = () => {
                   /* Salon not found — likely phone-conflict 409 navigated here incorrectly */
                   <div style={{ textAlign:'center', padding:'12px 0' }}>
                     <p style={{ color: isDark ? '#f87171' : '#dc2626', fontSize:13, fontWeight:600, margin:'0 0 8px' }}>
-                      ⚠️ Salon data not found for your account
+                      ⚠️ Application data not found for your account
                     </p>
                     <p style={{ color:textMuted, fontSize:12, margin:'0 0 12px', lineHeight:1.5 }}>
-                      Your salon may not have been registered yet, or there was a phone number conflict during registration. Please go back and register again.
+                      Your registration may be incomplete or there was a conflict during sign-up. Please go back and try again.
                     </p>
                     <div style={{ display:'flex', gap:8, justifyContent:'center', flexWrap:'wrap' }}>
                       <button
@@ -247,7 +247,7 @@ const ApprovalWaiting = () => {
                         onClick={() => navigate(ROUTES.SALON_REGISTER)}
                         style={{ background:'linear-gradient(135deg,#6366f1,#8b5cf6)', border:'none', borderRadius:8, color:'#fff', fontSize:13, fontWeight:600, padding:'7px 16px', cursor:'pointer', fontFamily:'inherit' }}
                       >
-                        Register Salon →
+                        Complete Registration →
                       </button>
                     </div>
                   </div>
@@ -259,7 +259,7 @@ const ApprovalWaiting = () => {
                         value: isApproved ? 'Approved' : isRejected ? 'Rejected' : 'Pending Approval',
                         color: isApproved ? '#22c55e' : isRejected ? '#ef4444' : '#f59e0b',
                       },
-                      { label:'Salon', value: loading ? 'Loading…' : (salon?.name || '—'), color: textPrimary },
+                      { label:'Business', value: loading ? 'Loading…' : (salon?.name || '—'), color: textPrimary },
                       { label:'Owner', value: user?.name || '—', color: textPrimary },
                     ].map(({ label, value, color }) => (
                       <div key={label} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:12 }}>

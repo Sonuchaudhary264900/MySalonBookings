@@ -43,7 +43,7 @@ const CSS = `
 `;
 
 const STATS = [
-  { icon: Users,     value: '500+',   label: 'Active salons' },
+  { icon: Users,     value: '500+',   label: 'GlowLoox partners' },
   { icon: TrendingUp,value: '₹2.4Cr', label: 'Bookings processed' },
   { icon: Zap,       value: '< 3 min',label: 'Setup time' },
 ];
@@ -126,13 +126,13 @@ const Register = () => {
           {/* Headline */}
           <div className="rg-a2" style={{ marginBottom: 18 }}>
             <h1 style={{ fontSize: 'clamp(2.2rem,4vw,3.2rem)', fontWeight: 900, color: '#f8fafc', lineHeight: 1.08, letterSpacing: '-2px', margin: 0 }}>
-              Your salon,<br />
+              Your business,<br />
               <span className="rg-shimmer">fully booked.</span>
             </h1>
           </div>
 
           <p className="rg-a3" style={{ fontSize: 15, color: 'rgba(255,255,255,0.5)', lineHeight: 1.75, marginBottom: 44, maxWidth: 360 }}>
-            Join 500+ salon owners managing bookings, revenue, and growth — all from one beautiful dashboard.
+            Join 500+ GlowLoox partners managing bookings, revenue, and growth — all from one beautiful dashboard.
           </p>
 
           {/* Stats */}
