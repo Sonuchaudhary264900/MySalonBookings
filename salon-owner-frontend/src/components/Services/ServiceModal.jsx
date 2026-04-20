@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Pencil } from 'lucide-react';
 import Modal from '../common/Modal';
+import CategoryIcon from '../common/CategoryIcon';
 import {
   CATEGORY_IMAGES,
   getCategoriesForSalonType,
@@ -217,12 +218,12 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
                 : 'border-gray-200 text-gray-400 hover:border-indigo-300'
             }`}
           >
-            <span>
-              {form.category && form.category !== '__other__'
-                ? `${categoryOptions.find(o => o.label === form.category)?.icon ?? '✏️'} ${form.category}`
-                : form.category === '__other__'
-                ? '✏️ Other…'
-                : 'Select category…'}
+            <span className="flex items-center gap-2">
+              {form.category && form.category !== '__other__' ? (
+                <><CategoryIcon label={form.category} className="w-4 h-4 shrink-0" />{form.category}</>
+              ) : form.category === '__other__' ? (
+                <><Pencil className="w-4 h-4 shrink-0" />Other…</>
+              ) : 'Select category…'}
             </span>
             {catOpen ? <ChevronUp className="w-4 h-4 shrink-0" /> : <ChevronDown className="w-4 h-4 shrink-0" />}
           </button>
@@ -251,7 +252,7 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
                         : 'border-gray-200 bg-white text-gray-600 hover:border-indigo-300'
                     }`}
                   >
-                    <span className="text-lg shrink-0">{opt.icon}</span>
+                    <CategoryIcon label={opt.label} className="w-4 h-4 shrink-0 text-indigo-500" />
                     <span className="leading-tight">{opt.label}</span>
                   </button>
                 ))}
@@ -270,7 +271,7 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
                       : 'border-gray-200 bg-white text-gray-600 hover:border-indigo-300'
                   }`}
                 >
-                  <span className="text-lg shrink-0">✏️</span>
+                  <Pencil className="w-4 h-4 shrink-0 text-gray-400" />
                   <span className="leading-tight">Other</span>
                 </button>
               </div>

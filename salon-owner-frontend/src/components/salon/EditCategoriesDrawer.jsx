@@ -3,7 +3,9 @@ import { AuthContext } from '../../context/AuthContext';
 import {
   X, Save, AlertTriangle, Check,
   IndianRupee, Clock, ChevronDown, Sparkles, Zap, Users, ChevronRight, ChevronLeft,
+  User, UserRound, Camera, Baby, Home, Scissors,
 } from 'lucide-react';
+import CategoryIcon from '../common/CategoryIcon';
 import toast from 'react-hot-toast';
 import { uploadServicePhoto } from '../../services/salonService';
 import {
@@ -210,7 +212,7 @@ const PriceModal = ({ modal, onChange, onConfirm, onClose, priceRef, durationRef
               >
                 <img src={modal.catDefaultImage} alt="" className="w-full h-full object-cover brightness-[0.65]" />
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 pointer-events-none">
-                  <span style={{ fontSize: 18 }}>📷</span>
+                  <Camera className="w-4 h-4 text-white" />
                   <span className="text-white text-[11px] font-semibold">Default photo · tap to change</span>
                 </div>
               </div>
@@ -221,7 +223,7 @@ const PriceModal = ({ modal, onChange, onConfirm, onClose, priceRef, durationRef
                 className="w-full flex flex-col items-center justify-center gap-1.5 text-gray-400 hover:text-indigo-500 transition-colors"
                 style={{ height: 76, border: '2px dashed #d1d5db', borderRadius: 10 }}
               >
-                <span style={{ fontSize: 20 }}>📷</span>
+                <Camera className="w-5 h-5" />
                 <span className="text-xs">Add photo (optional)</span>
               </button>
             )}
@@ -343,7 +345,7 @@ const CategoryCard = ({
           ) : (
             <div className={`w-full h-full flex items-center justify-center text-lg
               ${isActive ? 'bg-gradient-to-br from-indigo-500 to-violet-600' : 'bg-gray-100 dark:bg-gray-800'}`}>
-              <span>{cat.icon || '✨'}</span>
+              <CategoryIcon label={cat.label} className="w-5 h-5 text-white" />
             </div>
           )}
           {/* Camera overlay — edit category image */}
@@ -354,7 +356,7 @@ const CategoryCard = ({
             style={{ background: 'rgba(0,0,0,0.55)' }}
             title="Change category photo"
           >
-            <span style={{ fontSize: 14 }}>📷</span>
+            <Camera className="w-3.5 h-3.5 text-white" />
           </button>
           <input
             ref={catFileRef}
@@ -420,7 +422,7 @@ const CategoryCard = ({
               {cat.maleSubServices.length > 0 && (
                 <div>
                   <p className="text-xs font-bold text-blue-600 dark:text-blue-400 mb-2 flex items-center gap-1.5">
-                    <span>👨</span> Men
+                    <User className="w-3 h-3" /> Men
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {renderChips(cat.maleSubServices, 'male')}
@@ -430,7 +432,7 @@ const CategoryCard = ({
               {cat.femaleSubServices.length > 0 && (
                 <div>
                   <p className="text-xs font-bold text-pink-600 dark:text-pink-400 mb-2 flex items-center gap-1.5">
-                    <span>👩</span> Women
+                    <UserRound className="w-3 h-3" /> Women
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {renderChips(cat.femaleSubServices, 'female')}
@@ -524,7 +526,7 @@ const CategoryCard = ({
                         />
                       </span>
                       {s.genderContext && (
-                        <span className="text-xs shrink-0">{s.genderContext === 'male' ? '👨' : '👩'}</span>
+                        {s.genderContext === 'male' ? <User className="w-3 h-3 text-blue-500 shrink-0" /> : <UserRound className="w-3 h-3 text-pink-500 shrink-0" />}
                       )}
                       <span className="flex-1 text-xs font-semibold text-gray-700 dark:text-gray-300 truncate">{s.name}</span>
                       <span className="flex items-center gap-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
@@ -748,9 +750,9 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, onSaved, salon, updateS
   );
 
   const GENDER_OPTS = [
-    { val: 'male',   emoji: '👨', label: 'Male',   grad: 'from-blue-600 to-indigo-600',  ring: 'ring-blue-400'  },
-    { val: 'female', emoji: '👩', label: 'Female',  grad: 'from-pink-500 to-rose-500',    ring: 'ring-pink-400'  },
-    { val: 'unisex', emoji: '👥', label: 'Unisex',  grad: 'from-indigo-600 to-violet-600', ring: 'ring-indigo-400' },
+    { val: 'male',   Icon: User,      label: 'Male',   grad: 'from-blue-600 to-indigo-600',  ring: 'ring-blue-400'  },
+    { val: 'female', Icon: UserRound, label: 'Female',  grad: 'from-pink-500 to-rose-500',    ring: 'ring-pink-400'  },
+    { val: 'unisex', Icon: Users,     label: 'Unisex',  grad: 'from-indigo-600 to-violet-600', ring: 'ring-indigo-400' },
   ];
 
   const currentOptionals = gender === 'male' ? MALE_OPTIONALS : gender === 'female' ? FEMALE_OPTIONALS : [];
@@ -784,7 +786,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, onSaved, salon, updateS
                     : isMakeupBridal
                     ? 'bg-gradient-to-br from-pink-500 to-rose-500'
                     : 'bg-gradient-to-br from-indigo-500 to-violet-600'}`}>
-                  {isBarberShop ? '💈' : <Sparkles className="w-4 h-4 text-white" />}
+                  {isBarberShop ? <Scissors className="w-4 h-4 text-white" /> : isMakeupBridal ? <Sparkles className="w-4 h-4 text-white" /> : <Sparkles className="w-4 h-4 text-white" />}
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-gray-900 dark:text-white">
@@ -825,8 +827,8 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, onSaved, salon, updateS
                 border-blue-200 dark:border-blue-800/70
                 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/20">
                 <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600
-                  flex items-center justify-center shadow-md shadow-blue-500/25 shrink-0 text-lg">
-                  💈
+                  flex items-center justify-center shadow-md shadow-blue-500/25 shrink-0">
+                  <Scissors className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[10px] font-bold text-blue-500 dark:text-blue-400 uppercase tracking-widest leading-none mb-0.5">Barbershop</p>
@@ -857,7 +859,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, onSaved, salon, updateS
                   )}
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                     style={{ background: 'rgba(0,0,0,0.5)' }}>
-                    <span style={{ fontSize: 12 }}>📷</span>
+                    <Camera className="w-3 h-3 text-white" />
                   </div>
                 </div>
                 <input
@@ -895,8 +897,8 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, onSaved, salon, updateS
                   <div>
                     <p className="text-xs font-semibold text-indigo-500 dark:text-indigo-400 uppercase tracking-wider leading-none mb-0.5">Who do you serve?</p>
                     {gender ? (
-                      <p className="text-sm font-bold text-gray-900 dark:text-white capitalize">
-                        {GENDER_OPTS.find(g => g.val === gender)?.emoji}{' '}
+                      <p className="text-sm font-bold text-gray-900 dark:text-white capitalize flex items-center gap-1.5">
+                        {(() => { const opt = GENDER_OPTS.find(g => g.val === gender); return opt ? <opt.Icon className="w-4 h-4" /> : null; })()}
                         {GENDER_OPTS.find(g => g.val === gender)?.label} customers
                       </p>
                     ) : (
@@ -1106,7 +1108,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, onSaved, salon, updateS
               </button>
             </div>
             <div className="space-y-2">
-              {GENDER_OPTS.map(({ val, emoji, label, grad, ring }) => {
+              {GENDER_OPTS.map(({ val, Icon, label, grad, ring }) => {
                 const isSelected = gender === val;
                 return (
                   <button
@@ -1120,7 +1122,9 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, onSaved, salon, updateS
                         : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-indigo-300 dark:hover:border-indigo-700'
                       }`}
                   >
-                    <span className="text-2xl shrink-0">{emoji}</span>
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${isSelected ? 'bg-white/20' : 'bg-indigo-50 dark:bg-indigo-950/40'}`}>
+                      <Icon className={`w-5 h-5 ${isSelected ? 'text-white' : 'text-indigo-500'}`} />
+                    </div>
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm font-bold ${isSelected ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
                         {label} customers

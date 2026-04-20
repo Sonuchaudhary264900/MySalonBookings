@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Plus, LayoutList, ChevronDown, ChevronLeft, ChevronRight, Scissors, Search,
-  Layers, CheckCircle2, XCircle, Sparkles,
+  Layers, CheckCircle2, XCircle, Sparkles, Baby, Home, User, UserRound,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import ServiceCard from '../../components/Services/ServiceCard';
 import ServiceModal from '../../components/Services/ServiceModal';
 import EditCategoriesDrawer from '../../components/salon/EditCategoriesDrawer';
+import CategoryIcon from '../../components/common/CategoryIcon';
 import { useSalon } from '../../hooks/useSalon';
 import {
   UNISEX_CATEGORIES,
-  CATEGORY_ICON_MAP,
   CATEGORY_CARD_IMAGE_MAP,
   ALL_CATEGORY_ORDER,
   MALE_ONLY_CAT_LABELS,
@@ -20,6 +20,15 @@ import {
   SALON_MALE_CATEGORIES,
   SALON_FEMALE_CATEGORIES,
 } from '../../constants/salonCategories';
+
+const BUSINESS_LABEL = {
+  barbershop:    'Barbershop',
+  makeup_bridal: 'Makeup & Bridal Studio',
+  spa_wellness:  'Spa & Wellness',
+  skin_derma:    'Skin Clinic',
+  salon:         'Salon',
+};
+const getBusinessLabel = (type) => BUSINESS_LABEL[type] || 'Salon';
 
 /* ─── Resolve category image: custom > default map > null ───────────────── */
 const getCatImg = (label, salon) => {
@@ -63,7 +72,7 @@ const EmptyState = ({ onAdd }) => (
     </div>
     <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No services added yet</h3>
     <p className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-xs mb-8">
-      Start by adding the services your salon offers to attract customers and enable bookings.
+      Start by adding the services your business offers to attract customers and enable bookings.
     </p>
     <button onClick={onAdd}
       className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold
@@ -153,14 +162,14 @@ const ServiceMenuSection = ({ salon }) => {
         <div className="flex gap-2 flex-wrap">
           {salon.kidsHaircut && (
             <span className="text-xs bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400
-              border border-amber-200 dark:border-amber-800 px-2.5 py-1 rounded-full font-medium">
-              👶 Kids
+              border border-amber-200 dark:border-amber-800 px-2.5 py-1 rounded-full font-medium flex items-center gap-1">
+              <Baby className="w-3 h-3" /> Kids
             </span>
           )}
           {salon.atHomeServices && (
             <span className="text-xs bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400
-              border border-emerald-200 dark:border-emerald-800 px-2.5 py-1 rounded-full font-medium">
-              🏠 At-Home
+              border border-emerald-200 dark:border-emerald-800 px-2.5 py-1 rounded-full font-medium flex items-center gap-1">
+              <Home className="w-3 h-3" /> At-Home
             </span>
           )}
         </div>
@@ -200,11 +209,13 @@ const ServiceMenuSection = ({ salon }) => {
                     <img src={getCatImg(cat.name, salon)} alt={cat.name} className="w-full h-full object-cover" />
                   </div>
                 ) : (
-                  <span className="text-base shrink-0">{CATEGORY_ICON_MAP[cat.name] || '✨'}</span>
+                  <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center shrink-0">
+                    <CategoryIcon label={cat.name} className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
+                  </div>
                 )}
                 <span className="flex-1 text-sm font-semibold text-gray-800 dark:text-gray-200">{cat.name}</span>
-                {isUnisex && isMaleOnly   && <span className="text-xs text-blue-500 font-medium">👨 Male</span>}
-                {isUnisex && isFemaleOnly && <span className="text-xs text-pink-500 font-medium">👩 Female</span>}
+                {isUnisex && isMaleOnly   && <span className="text-xs text-blue-500 font-medium flex items-center gap-0.5"><User className="w-3 h-3" /> Male</span>}
+                {isUnisex && isFemaleOnly && <span className="text-xs text-pink-500 font-medium flex items-center gap-0.5"><UserRound className="w-3 h-3" /> Female</span>}
                 <span className="text-xs text-gray-400 dark:text-gray-600 font-medium">{subs.length}</span>
                 <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
               </button>
@@ -243,7 +254,8 @@ const ServiceMenuSection = ({ salon }) => {
                             ? 'text-pink-600 dark:text-pink-400'
                             : 'text-indigo-600 dark:text-indigo-400';
                           const chevCls = isMaleSec ? 'text-blue-400' : isFemaleSec ? 'text-pink-400' : 'text-indigo-400';
-                          const displayLabel = isMaleSec ? '👨 Male' : isFemaleSec ? '👩 Female' : sec.label;
+                          const displayLabel = isMaleSec ? 'Male' : isFemaleSec ? 'Female' : sec.label;
+                          const DisplayIcon  = isMaleSec ? User : isFemaleSec ? UserRound : null;
                           // For Male/Female sections in unisex salon, look up sub-sections
                           const genderCatDefs = isMaleSec ? SALON_MALE_CATEGORIES : isFemaleSec ? SALON_FEMALE_CATEGORIES : null;
                           const genderCatDef  = genderCatDefs ? genderCatDefs.find(d => d.label === cat.name) : null;
@@ -262,7 +274,9 @@ const ServiceMenuSection = ({ salon }) => {
                                 type="button"
                                 onClick={() => setExpandedSection(prev => ({ ...prev, [secKey]: !prev[secKey] }))}
                                 className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors ${btnCls}`}>
-                                <span className={`text-xs font-semibold ${labelCls}`}>{displayLabel}</span>
+                                <span className={`text-xs font-semibold ${labelCls} flex items-center gap-1`}>
+                                  {DisplayIcon && <DisplayIcon className="w-3 h-3" />}{displayLabel}
+                                </span>
                                 <span className={`text-xs ${chevCls} ml-1`}>({sec.subs.length})</span>
                                 <ChevronDown className={`w-3 h-3 ${chevCls} ml-auto transition-transform duration-200 ${isSecOpen ? 'rotate-180' : ''}`} />
                               </button>
@@ -487,7 +501,7 @@ const Services = () => {
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Services</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-              Manage your salon services and pricing
+              Manage your {getBusinessLabel(salon?.businessType).toLowerCase()} services and pricing
             </p>
           </div>
           <div className="flex items-center gap-2.5 flex-wrap">
@@ -654,11 +668,13 @@ const Services = () => {
                         <img src={getCatImg(cat, salon)} alt={cat} className="w-full h-full object-cover" />
                       </div>
                     ) : (
-                      <span className="text-lg shrink-0">{CATEGORY_ICON_MAP[cat] || '✨'}</span>
+                      <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center shrink-0">
+                        <CategoryIcon label={cat} className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
+                      </div>
                     )}
                     <span className="flex-1 text-xl font-bold text-gray-800 dark:text-gray-200">{cat}</span>
-                    {isUnisex && isMaleOnly   && <span className="text-xs font-medium text-blue-500">👨 Male</span>}
-                    {isUnisex && isFemaleOnly && <span className="text-xs font-medium text-pink-500">👩 Female</span>}
+                    {isUnisex && isMaleOnly   && <span className="text-xs font-medium text-blue-500 flex items-center gap-0.5"><User className="w-3 h-3" /> Male</span>}
+                    {isUnisex && isFemaleOnly && <span className="text-xs font-medium text-pink-500 flex items-center gap-0.5"><UserRound className="w-3 h-3" /> Female</span>}
                     <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800">
                       {svcs.length}
                     </span>
@@ -681,7 +697,7 @@ const Services = () => {
                                 className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-left
                                   bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/30
                                   border border-blue-100 dark:border-blue-900/40 transition-colors">
-                                <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">👨 Male</span>
+                                <span className="text-sm font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1"><User className="w-3.5 h-3.5" /> Male</span>
                                 <span className="text-xs text-blue-400 ml-1">({menSvcs.length})</span>
                                 <ChevronDown className={`w-4 h-4 text-blue-400 ml-auto transition-transform duration-200 ${expandedGender[cat] === 'male' ? 'rotate-180' : ''}`} />
                               </button>
@@ -698,7 +714,7 @@ const Services = () => {
                                 className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-left
                                   bg-pink-50 dark:bg-pink-950/30 hover:bg-pink-100 dark:hover:bg-pink-900/30
                                   border border-pink-100 dark:border-pink-900/40 transition-colors">
-                                <span className="text-sm font-semibold text-pink-600 dark:text-pink-400">👩 Female</span>
+                                <span className="text-sm font-semibold text-pink-600 dark:text-pink-400 flex items-center gap-1"><UserRound className="w-3.5 h-3.5" /> Female</span>
                                 <span className="text-xs text-pink-400 ml-1">({womenSvcs.length})</span>
                                 <ChevronDown className={`w-4 h-4 text-pink-400 ml-auto transition-transform duration-200 ${expandedGender[cat] === 'female' ? 'rotate-180' : ''}`} />
                               </button>
@@ -714,7 +730,7 @@ const Services = () => {
                             <div>
                               <div className="flex items-center gap-2 mb-3 px-1">
                                 <div className="h-px flex-1 bg-blue-100 dark:bg-blue-900/40" />
-                                <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">👨 Male</span>
+                                <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1"><User className="w-3 h-3" /> Male</span>
                                 <div className="h-px flex-1 bg-blue-100 dark:bg-blue-900/40" />
                               </div>
                               {renderCards(menSvcs)}
@@ -724,7 +740,7 @@ const Services = () => {
                             <div>
                               <div className="flex items-center gap-2 mb-3 px-1">
                                 <div className="h-px flex-1 bg-pink-100 dark:bg-pink-900/40" />
-                                <span className="text-xs font-semibold text-pink-600 dark:text-pink-400">👩 Female</span>
+                                <span className="text-xs font-semibold text-pink-600 dark:text-pink-400 flex items-center gap-1"><UserRound className="w-3 h-3" /> Female</span>
                                 <div className="h-px flex-1 bg-pink-100 dark:bg-pink-900/40" />
                               </div>
                               {renderCards(womenSvcs)}
@@ -752,7 +768,9 @@ const Services = () => {
             >
               <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
             </button>
-            <span className="text-lg shrink-0">{CATEGORY_ICON_MAP[selectedCategory] || '✨'}</span>
+            <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center shrink-0">
+              <CategoryIcon label={selectedCategory} className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
+            </div>
             <div className="flex-1 min-w-0">
               <h2 className="text-base font-bold text-gray-900 dark:text-white truncate">{selectedCategory}</h2>
               <p className="text-xs text-gray-500 dark:text-gray-400">

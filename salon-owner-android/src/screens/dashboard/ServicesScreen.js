@@ -21,13 +21,16 @@ const CATEGORY_ORDER = [
   'Bridal & Events', 'Kids Services', 'At-Home Services',
 ];
 
-const CAT_ICON = {
-  'Hair Services': '✂️', 'Hair Services (Men)': '✂️', 'Hair Services (Women)': '✂️',
-  'Beard & Grooming': '🧔', 'Nail Services': '💅',
-  'Skin & Face / Beauty': '🧖', 'Skin & Face (Men Grooming)': '🧴', 'Skin & Beauty': '🧖',
-  'Spa & Massage': '💆', 'Spa & Relaxation': '💆', 'Body Grooming': '🧴',
-  'Bridal & Events': '👰', 'Kids Services': '👶', 'At-Home Services': '🏠',
+const CAT_IONICON = {
+  'Hair Services': 'cut-outline',       'Hair Services (Men)': 'cut-outline',   'Hair Services (Women)': 'cut-outline',
+  'Beard & Grooming': 'person-outline', 'Nail Services': 'color-palette-outline',
+  'Skin & Face / Beauty': 'water-outline', 'Skin & Face (Men Grooming)': 'water-outline', 'Skin & Beauty': 'water-outline',
+  'Spa & Massage': 'leaf-outline',      'Spa & Relaxation': 'leaf-outline',     'Body Grooming': 'body-outline',
+  'Bridal & Events': 'star-outline',    'Kids Services': 'happy-outline',       'At-Home Services': 'home-outline',
+  'Men Dermatology': 'medkit-outline',  'Skin Dermatology': 'medkit-outline',
+  'Makeup & Styling': 'brush-outline',
 };
+const getCatIcon = (label) => CAT_IONICON[label] || 'sparkles-outline';
 
 const UNISEX_CAT_LOOKUP = {
   'Hair Services': {
@@ -157,7 +160,7 @@ function ServiceMenuSection({ salon, theme }) {
       <View style={[styles.menuSectionHeader, { borderBottomColor: theme.border }]}>
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={{ fontSize: 13 }}>✨</Text>
+            <Ionicons name="sparkles-outline" size={14} color={theme.accent} />
             <Text style={[styles.menuSectionTitle, { color: theme.text }]}>Service Menu</Text>
           </View>
           <Text style={[styles.menuSectionSub, { color: theme.subText }]}>
@@ -171,12 +174,14 @@ function ServiceMenuSection({ salon, theme }) {
         <View style={{ flexDirection: 'row', gap: 6 }}>
           {salon.kidsHaircut && (
             <View style={styles.optBadge}>
-              <Text style={styles.optBadgeText}>👶 Kids</Text>
+              <Ionicons name="happy-outline" size={11} color="#92400e" />
+              <Text style={styles.optBadgeText}> Kids</Text>
             </View>
           )}
           {salon.atHomeServices && (
             <View style={[styles.optBadge, { backgroundColor: '#dcfce7', borderColor: '#bbf7d0' }]}>
-              <Text style={[styles.optBadgeText, { color: '#166534' }]}>🏠 At-Home</Text>
+              <Ionicons name="home-outline" size={11} color="#166534" />
+              <Text style={[styles.optBadgeText, { color: '#166534' }]}> At-Home</Text>
             </View>
           )}
         </View>
@@ -202,10 +207,12 @@ function ServiceMenuSection({ salon, theme }) {
               onPress={() => setExpandedIdx(isOpen ? null : idx)}
               activeOpacity={0.7}
             >
-              <Text style={styles.menuCatEmoji}>{CAT_ICON[cat.name] || '✨'}</Text>
+              <View style={styles.menuCatIconBox}>
+                <Ionicons name={getCatIcon(cat.name)} size={16} color={theme.accent} />
+              </View>
               <Text style={[styles.menuCatName, { color: theme.text }]}>{cat.name}</Text>
-              {isUnisex && isMaleOnly   && <Text style={styles.genderTagM}>👨 Men</Text>}
-              {isUnisex && isFemaleOnly && <Text style={styles.genderTagF}>👩 Women</Text>}
+              {isUnisex && isMaleOnly   && <View style={styles.genderTagM}><Ionicons name="person-outline" size={10} color="#2563eb" /><Text style={styles.genderTagMTxt}> Men</Text></View>}
+              {isUnisex && isFemaleOnly && <View style={styles.genderTagF}><Ionicons name="woman-outline" size={10} color="#db2777" /><Text style={styles.genderTagFTxt}> Women</Text></View>}
               <Text style={[styles.menuCatCount, { color: theme.subText }]}>{subs.length}</Text>
               <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={14} color={theme.subText} />
             </TouchableOpacity>
@@ -223,7 +230,7 @@ function ServiceMenuSection({ salon, theme }) {
                     )}
                     {menSubs.length > 0 && (
                       <View>
-                        <Text style={styles.gTagM}>👨 Men</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 4 }}><Ionicons name="person-outline" size={10} color="#2563eb" /><Text style={styles.gTagM}>Men</Text></View>
                         <View style={styles.subChipsWrap}>
                           {menSubs.map((s, i) => <SubChip key={i} sub={s} theme={theme} />)}
                         </View>
@@ -231,7 +238,7 @@ function ServiceMenuSection({ salon, theme }) {
                     )}
                     {womenSubs.length > 0 && (
                       <View>
-                        <Text style={styles.gTagF}>👩 Women</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 4 }}><Ionicons name="woman-outline" size={10} color="#db2777" /><Text style={styles.gTagF}>Women</Text></View>
                         <View style={styles.subChipsWrap}>
                           {womenSubs.map((s, i) => <SubChip key={i} sub={s} theme={theme} />)}
                         </View>
@@ -367,35 +374,24 @@ function EmptyState({ onAdd, theme }) {
 
 // ── Category options by gender (mirrors website ServiceModal) ───
 const MALE_CAT_OPTIONS = [
-  { icon: '✂️', label: 'Hair Services (Men)' },
-  { icon: '🧔', label: 'Beard & Grooming' },
-  { icon: '💆', label: 'Spa & Massage' },
-  { icon: '🧴', label: 'Skin & Face (Men Grooming)' },
-  { icon: '🧍', label: 'Body Grooming' },
+  { label: 'Hair Services (Men)' }, { label: 'Beard & Grooming' },
+  { label: 'Spa & Massage' }, { label: 'Skin & Face (Men Grooming)' }, { label: 'Body Grooming' },
 ];
 const FEMALE_CAT_OPTIONS = [
-  { icon: '💇', label: 'Hair Services (Women)' },
-  { icon: '💅', label: 'Nail Services' },
-  { icon: '🧖', label: 'Skin & Beauty' },
-  { icon: '🧴', label: 'Body Grooming' },
-  { icon: '💆', label: 'Spa & Relaxation' },
-  { icon: '👰', label: 'Bridal & Events' },
+  { label: 'Hair Services (Women)' }, { label: 'Nail Services' },
+  { label: 'Skin & Beauty' }, { label: 'Body Grooming' },
+  { label: 'Spa & Relaxation' }, { label: 'Bridal & Events' },
 ];
 const UNISEX_CAT_OPTIONS = [
-  { icon: '✂️', label: 'Hair Services' },
-  { icon: '🧔', label: 'Beard & Grooming' },
-  { icon: '💅', label: 'Nail Services' },
-  { icon: '🧖', label: 'Skin & Face / Beauty' },
-  { icon: '💆', label: 'Spa & Massage' },
-  { icon: '🧴', label: 'Body Grooming' },
-  { icon: '👰', label: 'Bridal & Events' },
-  { icon: '👶', label: 'Kids Services' },
-  { icon: '🏠', label: 'At-Home Services' },
+  { label: 'Hair Services' }, { label: 'Beard & Grooming' },
+  { label: 'Nail Services' }, { label: 'Skin & Face / Beauty' },
+  { label: 'Spa & Massage' }, { label: 'Body Grooming' },
+  { label: 'Bridal & Events' }, { label: 'Kids Services' }, { label: 'At-Home Services' },
 ];
 
 function getCategoryOptions(servedGender, offeredCategories) {
   if (offeredCategories && offeredCategories.length > 0) {
-    return offeredCategories.map(c => ({ icon: CAT_ICON[c.name] || '✨', label: c.name }));
+    return offeredCategories.map(c => ({ label: c.name }));
   }
   if (servedGender === 'male')   return MALE_CAT_OPTIONS;
   if (servedGender === 'female') return FEMALE_CAT_OPTIONS;
@@ -578,7 +574,7 @@ function ServiceModal({ visible, service, salon, onClose, onSaved }) {
             <View style={styles.field}>
               <Text style={[styles.fieldLabel, { color: theme.text }]}>Applicable For *</Text>
               <View style={styles.applicableRow}>
-                {[['male', '👨 Men'], ['female', '👩 Women'], ['both', '👥 Both']].map(([val, label]) => (
+                {[['male', 'person-outline', 'Men'], ['female', 'woman-outline', 'Women'], ['both', 'people-outline', 'Both']].map(([val, iconName, label]) => (
                   <TouchableOpacity
                     key={val}
                     style={[
@@ -589,8 +585,9 @@ function ServiceModal({ visible, service, salon, onClose, onSaved }) {
                     onPress={() => { setApplicableFor(val); if (errors.applicableFor) setErrors(p => ({ ...p, applicableFor: '' })); }}
                     activeOpacity={0.7}
                   >
+                    <Ionicons name={iconName} size={12} color={applicableFor === val ? '#fff' : theme.subText} />
                     <Text style={[styles.applicableBtnText, { color: theme.subText }, applicableFor === val && styles.applicableBtnTextActive]}>
-                      {label}
+                      {' '}{label}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -613,13 +610,17 @@ function ServiceModal({ visible, service, salon, onClose, onSaved }) {
               onPress={() => setCatExpanded(o => !o)}
               activeOpacity={0.7}
             >
-              <Text style={[styles.catTriggerText, { color: (category && category !== '__other__') ? '#4338ca' : theme.subText }]}>
-                {category && category !== '__other__'
-                  ? `${categoryOptions.find(o => o.label === category)?.icon ?? '✏️'} ${category}`
-                  : category === '__other__'
-                  ? '✏️ Other…'
-                  : 'Select category…'}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                {category && category !== '__other__' && (
+                  <Ionicons name={getCatIcon(category)} size={14} color="#4338ca" />
+                )}
+                {category === '__other__' && (
+                  <Ionicons name="pencil-outline" size={14} color={theme.subText} />
+                )}
+                <Text style={[styles.catTriggerText, { color: (category && category !== '__other__') ? '#4338ca' : theme.subText }]}>
+                  {category && category !== '__other__' ? category : category === '__other__' ? 'Other…' : 'Select category…'}
+                </Text>
+              </View>
               <Ionicons name={catExpanded ? 'chevron-up' : 'chevron-down'} size={16} color={theme.subText} />
             </TouchableOpacity>
 
@@ -641,7 +642,7 @@ function ServiceModal({ visible, service, salon, onClose, onSaved }) {
                     }}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.catGridItemEmoji}>{opt.icon}</Text>
+                    <Ionicons name={getCatIcon(opt.label)} size={18} color={category === opt.label ? '#4338ca' : theme.subText} />
                     <Text
                       style={[styles.catGridItemText, { color: theme.text }, category === opt.label && { color: '#4338ca', fontWeight: '700' }]}
                       numberOfLines={2}
@@ -661,7 +662,7 @@ function ServiceModal({ visible, service, salon, onClose, onSaved }) {
                   onPress={() => { setCategory('__other__'); if (errors.category) setErrors(p => ({ ...p, category: '' })); }}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.catGridItemEmoji}>✏️</Text>
+                  <Ionicons name="pencil-outline" size={18} color={(category === '__other__' || isCatCustom) ? '#4338ca' : theme.subText} />
                   <Text style={[styles.catGridItemText, { color: theme.text }, (category === '__other__' || isCatCustom) && { color: '#4338ca', fontWeight: '700' }]}>
                     Other
                   </Text>
@@ -905,15 +906,17 @@ export default function ServicesScreen() {
       onPress={() => setSelectedCategory(cat)}
       activeOpacity={0.7}
     >
-      <Text style={styles.catNavEmoji}>{CAT_ICON[cat] || '✨'}</Text>
+      <View style={styles.catNavIconBox}>
+        <Ionicons name={getCatIcon(cat)} size={18} color={theme.accent} />
+      </View>
       <View style={{ flex: 1 }}>
         <Text style={[styles.catNavTitle, { color: theme.text }]}>{cat}</Text>
         <Text style={[styles.catNavSub, { color: theme.subText }]}>
           {svcs.length} service{svcs.length !== 1 ? 's' : ''}
         </Text>
       </View>
-      {isUnisex && MALE_ONLY_CATS.includes(cat)   && <Text style={styles.genderTagM}>👨 Men</Text>}
-      {isUnisex && FEMALE_ONLY_CATS.includes(cat) && <Text style={styles.genderTagF}>👩 Women</Text>}
+      {isUnisex && MALE_ONLY_CATS.includes(cat)   && <View style={styles.genderTagM}><Ionicons name="person-outline" size={10} color="#2563eb" /><Text style={styles.genderTagMTxt}> Men</Text></View>}
+      {isUnisex && FEMALE_ONLY_CATS.includes(cat) && <View style={styles.genderTagF}><Ionicons name="woman-outline" size={10} color="#db2777" /><Text style={styles.genderTagFTxt}> Women</Text></View>}
       <View style={[styles.countBadge, { backgroundColor: theme.bg }]}>
         <Text style={[styles.countBadgeText, { color: theme.subText }]}>{svcs.length}</Text>
       </View>
@@ -973,7 +976,7 @@ export default function ServicesScreen() {
           <View>
             <View style={styles.genderSeparator}>
               <View style={[styles.genderLine, { backgroundColor: '#bfdbfe' }]} />
-              <Text style={styles.genderSepTextM}>👨 Men</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}><Ionicons name="person-outline" size={10} color="#2563eb" /><Text style={styles.genderSepTextM}>Men</Text></View>
               <View style={[styles.genderLine, { backgroundColor: '#bfdbfe' }]} />
             </View>
             <View style={{ gap: 10 }}>{renderCards(menSvcs)}</View>
@@ -983,7 +986,7 @@ export default function ServicesScreen() {
           <View>
             <View style={styles.genderSeparator}>
               <View style={[styles.genderLine, { backgroundColor: '#fbcfe8' }]} />
-              <Text style={styles.genderSepTextF}>👩 Women</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}><Ionicons name="woman-outline" size={10} color="#db2777" /><Text style={styles.genderSepTextF}>Women</Text></View>
               <View style={[styles.genderLine, { backgroundColor: '#fbcfe8' }]} />
             </View>
             <View style={{ gap: 10 }}>{renderCards(womenSvcs)}</View>
@@ -1005,7 +1008,7 @@ export default function ServicesScreen() {
               </TouchableOpacity>
               <View style={{ flex: 1, marginLeft: 8 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text style={{ fontSize: 18 }}>{CAT_ICON[selectedCategory] || '✨'}</Text>
+                  <Ionicons name={getCatIcon(selectedCategory)} size={18} color={theme.accent} />
                   <Text style={[styles.headerTitle, { color: theme.text }]}>{selectedCategory}</Text>
                 </View>
                 <Text style={[styles.headerSub, { color: theme.subText }]}>
@@ -1076,7 +1079,7 @@ export default function ServicesScreen() {
                 onPress={() => setShowMenuSection(v => !v)}
                 activeOpacity={0.7}
               >
-                <Text style={{ fontSize: 12 }}>✨</Text>
+                <Ionicons name="sparkles-outline" size={12} color="#6366f1" />
                 <Text style={styles.menuToggleText}>
                   {showMenuSection ? 'Hide' : 'View'} offered service categories
                 </Text>
@@ -1164,11 +1167,11 @@ const styles = StyleSheet.create({
   menuSectionHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1 },
   menuSectionTitle: { fontSize: 13, fontWeight: '700' },
   menuSectionSub: { fontSize: 11, marginTop: 2 },
-  optBadge: { backgroundColor: '#fef9c3', borderWidth: 1, borderColor: '#fde68a', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
+  optBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fef9c3', borderWidth: 1, borderColor: '#fde68a', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   optBadgeText: { fontSize: 11, fontWeight: '600', color: '#854d0e' },
   divider: { height: 1 },
   menuCatRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 12 },
-  menuCatEmoji: { fontSize: 15 },
+  menuCatIconBox: { width: 28, height: 28, borderRadius: 8, backgroundColor: 'rgba(99,102,241,0.1)', alignItems: 'center', justifyContent: 'center' },
   menuCatName: { flex: 1, fontSize: 13, fontWeight: '600' },
   menuCatCount: { fontSize: 12, fontWeight: '500' },
   menuCatBody: { paddingHorizontal: 14, paddingVertical: 10 },
@@ -1179,8 +1182,10 @@ const styles = StyleSheet.create({
   subChipPrice: { fontSize: 11, fontWeight: '700' },
   gTagM: { fontSize: 11, fontWeight: '700', color: '#3b82f6', marginBottom: 5 },
   gTagF: { fontSize: 11, fontWeight: '700', color: '#be185d', marginBottom: 5 },
-  genderTagM: { fontSize: 11, fontWeight: '600', color: '#3b82f6' },
-  genderTagF: { fontSize: 11, fontWeight: '600', color: '#be185d' },
+  genderTagM: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999, backgroundColor: '#eff6ff' },
+  genderTagMTxt: { fontSize: 10, fontWeight: '600', color: '#2563eb' },
+  genderTagF: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999, backgroundColor: '#fdf2f8' },
+  genderTagFTxt: { fontSize: 10, fontWeight: '600', color: '#db2777' },
 
   // Search bar
   searchBar: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 10 },
@@ -1188,7 +1193,7 @@ const styles = StyleSheet.create({
 
   // Category nav cards (replaces accordion)
   catNavCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 14, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 14 },
-  catNavEmoji: { fontSize: 22 },
+  catNavIconBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(99,102,241,0.1)', alignItems: 'center', justifyContent: 'center' },
   catNavTitle: { fontSize: 14, fontWeight: '700' },
   catNavSub: { fontSize: 11, fontWeight: '500', marginTop: 2 },
   backBtn: { padding: 4, marginRight: 2 },

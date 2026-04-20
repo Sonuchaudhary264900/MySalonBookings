@@ -10,71 +10,83 @@ import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { useSalon } from '../../context/SalonContext';
 
+// ── Category icon helper (Ionicons) ───────────────────────────
+const CAT_IONICON = {
+  'Hair Services (Men)': 'cut-outline',   'Hair Services (Women)': 'cut-outline',  'Hair Services': 'cut-outline',
+  'Beard & Grooming': 'person-outline',   'Nail Services': 'color-palette-outline',
+  'Skin & Face (Men Grooming)': 'water-outline', 'Skin & Beauty': 'water-outline', 'Skin & Face / Beauty': 'water-outline',
+  'Spa & Massage': 'leaf-outline',        'Spa & Relaxation': 'leaf-outline',
+  'Body Grooming': 'body-outline',        'Bridal & Events': 'star-outline',
+  'Kids Services': 'happy-outline',       "Kids' Haircut": 'happy-outline',
+  'At-Home Services': 'home-outline',     'Men Dermatology': 'medkit-outline',
+};
+const getCatIcon = (label) => CAT_IONICON[label] || 'sparkles-outline';
+
 // ── Category Constants ─────────────────────────────────────────
 const MALE_CATEGORIES = [
-  { key: 'hair_services', label: 'Hair Services (Men)', icon: '✂️',
+  { key: 'hair_services', label: 'Hair Services (Men)', icon: 'cut-outline',
     subServices: ['Basic Haircut','Fade / Taper / Skin Fade','Designer Haircut','Hair Styling','Hair Wash','Blow Dry','Hair Coloring','Hair Straightening','Hair Smoothening','Hair Spa','Dandruff Treatment','Hair Fall Treatment'] },
-  { key: 'beard_grooming', label: 'Beard & Grooming', icon: '🧔',
+  { key: 'beard_grooming', label: 'Beard & Grooming', icon: 'person-outline',
     subServices: ['Beard Trim','Clean Shave','Beard Styling / Shape','Designer Beard','Beard Coloring','Hot Towel Shave'] },
-  { key: 'spa_massage', label: 'Spa & Massage', icon: '💆',
+  { key: 'spa_massage', label: 'Spa & Massage', icon: 'leaf-outline',
     subServices: ['Head Massage','Neck & Shoulder Massage','Full Body Massage','Foot Massage','Deep Tissue Massage','Relaxation Massage'] },
-  { key: 'skin_face', label: 'Skin & Face (Men Grooming)', icon: '🧴',
+  { key: 'skin_face', label: 'Skin & Face (Men Grooming)', icon: 'water-outline',
     subServices: ['Basic Facial','Gold Facial','Diamond Facial','Clean-up','Detan','Face Bleach','Anti-Acne Treatment','Skin Brightening'] },
-  { key: 'body_grooming', label: 'Body Grooming', icon: '🧍',
+  { key: 'body_grooming', label: 'Body Grooming', icon: 'body-outline',
     subServices: ['Chest Waxing','Back Waxing','Full Body Wax','Threading (optional)','Nose Wax','Ear Cleaning'] },
 ];
 
 const MALE_OPTIONALS = [
-  { key: 'kidsHaircut',    label: "Kids' Haircut",    icon: '👶' },
-  { key: 'atHomeServices', label: 'At-Home Services', icon: '🏠' },
+  { key: 'kidsHaircut',    label: "Kids' Haircut",    icon: 'happy-outline' },
+  { key: 'atHomeServices', label: 'At-Home Services', icon: 'home-outline' },
 ];
 
 const FEMALE_CATEGORIES = [
-  { key: 'hair_services_women', label: 'Hair Services (Women)', icon: '💇',
+  { key: 'hair_services_women', label: 'Hair Services (Women)', icon: 'cut-outline',
     subServices: ['Haircut (Layer / Step / Trim)','Advanced Haircut','Hair Styling (Straight / Curl / Party)','Hair Wash','Blow Dry','Hair Coloring','Highlights / Balayage','Hair Smoothening','Rebonding','Keratin Treatment','Hair Spa'] },
-  { key: 'nail_services', label: 'Nail Services', icon: '💅',
+  { key: 'nail_services', label: 'Nail Services', icon: 'color-palette-outline',
     subServices: ['Manicure','Pedicure','Nail Art','Gel Nails','Acrylic Nails','Nail Extensions','Nail Repair'] },
-  { key: 'skin_beauty', label: 'Skin & Beauty', icon: '🧖',
+  { key: 'skin_beauty', label: 'Skin & Beauty', icon: 'water-outline',
     subServices: ['Basic Facial','Gold Facial','Diamond Facial','Hydra Facial','Clean-up','Detan','Bleach','Anti-aging Treatment','Skin Brightening'] },
-  { key: 'body_grooming_women', label: 'Body Grooming', icon: '🧴',
+  { key: 'body_grooming_women', label: 'Body Grooming', icon: 'body-outline',
     subServices: ['Full Body Wax','Half Wax','Bikini Wax','Threading (Eyebrow / Upper Lip / Forehead)','Body Polish','Body Scrub'] },
-  { key: 'spa_relaxation', label: 'Spa & Relaxation', icon: '💆',
+  { key: 'spa_relaxation', label: 'Spa & Relaxation', icon: 'leaf-outline',
     subServices: ['Head Massage','Full Body Massage','Aromatherapy','Spa Therapy'] },
-  { key: 'bridal_events', label: 'Bridal & Events', icon: '👰',
+  { key: 'bridal_events', label: 'Bridal & Events', icon: 'star-outline',
     subServices: ['Bridal Makeup','Engagement Makeup','Party Makeup','Hairstyling','Saree Draping'] },
 ];
 
 const FEMALE_OPTIONALS = [
-  { key: 'kidsServices',   label: "Kids' Services",   icon: '👶' },
-  { key: 'atHomeServices', label: 'At-Home Services', icon: '🏠' },
+  { key: 'kidsServices',   label: "Kids' Services",   icon: 'happy-outline' },
+  { key: 'atHomeServices', label: 'At-Home Services', icon: 'home-outline' },
 ];
 
 const UNISEX_CATEGORIES = [
-  { key: 'hair_services_unisex', label: 'Hair Services', icon: '✂️',
+  { key: 'hair_services_unisex', label: 'Hair Services', icon: 'cut-outline',
     maleSubServices: ['Basic Haircut','Fade / Taper / Skin Fade','Designer Haircut','Hair Styling','Hair Wash','Blow Dry','Hair Coloring','Hair Straightening','Hair Smoothening','Hair Spa','Dandruff Treatment','Hair Fall Treatment'],
     femaleSubServices: ['Haircut (Layer / Step / Trim)','Advanced Haircut','Hair Styling (Straight / Curl / Party)','Hair Wash','Blow Dry','Hair Coloring','Highlights / Balayage','Hair Smoothening','Rebonding','Keratin Treatment','Hair Spa'] },
-  { key: 'beard_grooming_unisex', label: 'Beard & Grooming', icon: '🧔',
+  { key: 'beard_grooming_unisex', label: 'Beard & Grooming', icon: 'person-outline',
     maleSubServices: ['Beard Trim','Clean Shave','Beard Styling / Shape','Designer Beard','Beard Coloring','Hot Towel Shave'],
     femaleSubServices: [] },
-  { key: 'nail_services_unisex', label: 'Nail Services', icon: '💅',
+  { key: 'nail_services_unisex', label: 'Nail Services', icon: 'color-palette-outline',
     maleSubServices: ['Manicure','Pedicure'],
     femaleSubServices: ['Manicure','Pedicure','Nail Art','Gel Nails','Acrylic Nails','Nail Extensions','Nail Repair'] },
-  { key: 'skin_beauty_unisex', label: 'Skin & Face / Beauty', icon: '🧖',
+  { key: 'skin_beauty_unisex', label: 'Skin & Face / Beauty', icon: 'water-outline',
     maleSubServices: ['Basic Facial','Gold Facial','Diamond Facial','Clean-up','Detan','Face Bleach','Anti-Acne Treatment','Skin Brightening'],
     femaleSubServices: ['Basic Facial','Gold Facial','Diamond Facial','Hydra Facial','Clean-up','Detan','Bleach','Anti-aging Treatment','Skin Brightening'] },
-  { key: 'spa_massage_unisex', label: 'Spa & Massage', icon: '💆',
+  { key: 'spa_massage_unisex', label: 'Spa & Massage', icon: 'leaf-outline',
     maleSubServices: ['Head Massage','Neck & Shoulder Massage','Full Body Massage','Foot Massage','Deep Tissue Massage','Relaxation Massage'],
     femaleSubServices: ['Head Massage','Full Body Massage','Foot Massage','Aromatherapy','Spa Therapy','Relaxation Massage'] },
-  { key: 'body_grooming_unisex', label: 'Body Grooming', icon: '🧴',
+  { key: 'body_grooming_unisex', label: 'Body Grooming', icon: 'body-outline',
     maleSubServices: ['Chest Waxing','Back Waxing','Full Body Wax','Threading (optional)','Nose Wax','Ear Cleaning'],
     femaleSubServices: ['Full Body Wax','Half Wax','Bikini Wax','Threading (Eyebrow / Upper Lip / Forehead)','Body Polish','Body Scrub'] },
-  { key: 'bridal_events_unisex', label: 'Bridal & Events', icon: '👰',
+  { key: 'bridal_events_unisex', label: 'Bridal & Events', icon: 'star-outline',
     maleSubServices: ['Groom Makeup','Hairstyling (Groom)','Shave & Grooming (Groom)'],
     femaleSubServices: ['Bridal Makeup','Engagement Makeup','Party Makeup','Hairstyling','Saree Draping'] },
-  { key: 'kids_services_unisex', label: 'Kids Services', icon: '👶',
+  { key: 'kids_services_unisex', label: 'Kids Services', icon: 'happy-outline',
     maleSubServices: ["Kids' Haircut (Boys)","Kids' Hair Styling (Boys)","Kids' Hair Wash"],
     femaleSubServices: ["Kids' Haircut (Girls)","Kids' Hair Styling (Girls)","Kids' Hair Wash","Kids' Braiding"] },
-  { key: 'at_home_services_unisex', label: 'At-Home Services', icon: '🏠',
+  { key: 'at_home_services_unisex', label: 'At-Home Services', icon: 'home-outline',
     maleSubServices: ['At-Home Haircut (Men)','At-Home Shave','At-Home Massage','At-Home Facial (Men)'],
     femaleSubServices: ['At-Home Haircut (Women)','At-Home Facial','At-Home Waxing','At-Home Massage','At-Home Bridal'] },
 ];
@@ -313,7 +325,7 @@ export default function ServiceMenuScreen() {
             <Text style={[st.genderPickerLabel, { color: isDark ? '#a5b4fc' : '#6366f1' }]}>WHO DO YOU SERVE?</Text>
             {gender ? (
               <Text style={[st.genderPickerValue, { color: theme.text }]}>
-                {gender === 'male' ? '👨 Male customers' : gender === 'female' ? '👩 Female customers' : '👥 Unisex customers'}
+                {gender === 'male' ? 'Male customers' : gender === 'female' ? 'Female customers' : 'Unisex customers'}
               </Text>
             ) : (
               <Text style={[st.genderPickerValue, { color: theme.subText }]}>Tap to select…</Text>
@@ -352,7 +364,7 @@ export default function ServiceMenuScreen() {
                         <View style={{ gap: 10 }}>
                           {cat.maleSubServices.length > 0 && (
                             <View>
-                              <Text style={st.gTag_m}>👨 Men</Text>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 }}><Ionicons name="person-outline" size={11} color="#2563eb" /><Text style={st.gTag_m}>Men</Text></View>
                               <View style={st.chipsWrap}>
                                 {cat.maleSubServices.map(sub => {
                                   const active = sel.subServices.find(s => s.name === sub && s.genderContext === 'male');
@@ -369,7 +381,7 @@ export default function ServiceMenuScreen() {
                           )}
                           {cat.femaleSubServices.length > 0 && (
                             <View>
-                              <Text style={st.gTag_f}>👩 Women</Text>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 }}><Ionicons name="woman-outline" size={11} color="#db2777" /><Text style={st.gTag_f}>Women</Text></View>
                               <View style={st.chipsWrap}>
                                 {cat.femaleSubServices.map(sub => {
                                   const active = sel.subServices.find(s => s.name === sub && s.genderContext === 'female');
@@ -405,7 +417,7 @@ export default function ServiceMenuScreen() {
                           <Text style={st.selListTitle}>Selected:</Text>
                           {sel.subServices.map((sub, i) => (
                             <View key={i} style={st.selRow}>
-                              {sub.genderContext && <Text style={{ fontSize: 12 }}>{sub.genderContext === 'male' ? '👨' : '👩'}</Text>}
+                              {sub.genderContext && <Ionicons name={sub.genderContext === 'male' ? 'person-outline' : 'woman-outline'} size={12} color={sub.genderContext === 'male' ? '#2563eb' : '#db2777'} />}
                               <Text style={[st.selName, { color: theme.text }]} numberOfLines={1}>{sub.name}</Text>
                               <Text style={st.selPrice}>₹{sub.price}</Text>
                               <Text style={[st.selDur, { color: theme.subText }]}>{sub.duration} min</Text>
@@ -435,7 +447,9 @@ export default function ServiceMenuScreen() {
                       onPress={() => setSelectedCatKey(cat.key)}
                       activeOpacity={0.7}
                     >
-                      <Text style={st.catEmoji}>{cat.icon}</Text>
+                      <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(99,102,241,0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                        <Ionicons name={getCatIcon(cat.label)} size={18} color={theme.accent} />
+                      </View>
                       <View style={{ flex: 1 }}>
                         <Text style={[st.catLabel, { color: theme.text }]}>{cat.label}</Text>
                         <Text style={[st.catDetailSub, { color: theme.subText }]}>
@@ -466,7 +480,9 @@ export default function ServiceMenuScreen() {
                 <Text style={[st.secLabel, { color: theme.subText, marginBottom: 4 }]}>OPTIONAL ADD-ONS</Text>
                 {(gender === 'male' ? MALE_OPTIONALS : FEMALE_OPTIONALS).map((opt, i, arr) => (
                   <View key={opt.key} style={[st.optRow, { borderBottomColor: theme.border, borderBottomWidth: i < arr.length - 1 ? 1 : 0 }]}>
-                    <Text style={st.optEmoji}>{opt.icon}</Text>
+                    <View style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: 'rgba(99,102,241,0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                      <Ionicons name={opt.icon} size={16} color={theme.accent} />
+                    </View>
                     <Text style={[st.optLabel, { color: theme.text }]}>{opt.label}</Text>
                     <Switch
                       value={gender === 'male' ? maleOptionals[opt.key] : femaleOptionals[opt.key]}
@@ -503,10 +519,10 @@ export default function ServiceMenuScreen() {
               </TouchableOpacity>
             </View>
             {[
-              { val: 'male',   emoji: '👨', label: 'Male customers',   desc: 'Men-only salon services' },
-              { val: 'female', emoji: '👩', label: 'Female customers',  desc: 'Women-only salon services' },
-              { val: 'unisex', emoji: '👥', label: 'Unisex customers',  desc: 'Services for all genders' },
-            ].map(({ val, emoji, label, desc }) => {
+              { val: 'male',   iconName: 'person-outline', label: 'Male customers',   desc: 'Men-only services' },
+              { val: 'female', iconName: 'woman-outline',  label: 'Female customers',  desc: 'Women-only services' },
+              { val: 'unisex', iconName: 'people-outline', label: 'Unisex customers',  desc: 'Services for all genders' },
+            ].map(({ val, iconName, label, desc }) => {
               const isSelected = gender === val;
               return (
                 <TouchableOpacity
@@ -518,7 +534,9 @@ export default function ServiceMenuScreen() {
                   onPress={() => { handleChangeGender(val); setGenderModalVisible(false); }}
                   activeOpacity={0.8}
                 >
-                  <Text style={{ fontSize: 26, marginRight: 12 }}>{emoji}</Text>
+                  <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: isSelected ? theme.accent : (isDark ? '#1e1b4b' : '#eef2ff'), alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                    <Ionicons name={iconName} size={22} color={isSelected ? '#fff' : theme.accent} />
+                  </View>
                   <View style={{ flex: 1 }}>
                     <Text style={[st.genderOptLabel, { color: theme.text }]}>{label}</Text>
                     <Text style={[st.genderOptDesc, { color: theme.subText }]}>{desc}</Text>
@@ -540,7 +558,7 @@ export default function ServiceMenuScreen() {
               <Text style={[st.modalTitle, { color: theme.text }]}>{priceModal.subName}</Text>
               {priceModal.genderContext && (
                 <Text style={[st.modalGender, { color: theme.subText }]}>
-                  {priceModal.genderContext === 'male' ? '👨 Men' : '👩 Women'}
+                  {priceModal.genderContext === 'male' ? 'Men' : 'Women'}
                 </Text>
               )}
 
