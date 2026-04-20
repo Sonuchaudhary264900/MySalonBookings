@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Scissors, Calendar, Star, Settings,
   ChevronRight, ChevronLeft, X, Images, Users, Tag,
-  Store, BarChart2, Gift, MessageSquare, Megaphone, Crown,
+  Store, BarChart2, Gift, MessageSquare, Megaphone, Crown, Eye,
 } from 'lucide-react';
 import ROUTES from '../../routes';
 import { useNotifications } from '../../context/NotificationContext';
@@ -34,10 +34,11 @@ const NAV_SECTIONS = [
   {
     label: 'Content',
     items: [
-      { id: 'gallery',   label: 'Gallery',          path: ROUTES.GALLERY,   icon: Images     },
-      { id: 'coupons',   label: 'Coupons',          path: ROUTES.COUPONS,   icon: Tag        },
-      { id: 'packages',  label: 'Packages & Plans', path: ROUTES.PACKAGES,  icon: Gift       },
-      { id: 'reviews',   label: 'Reviews',          path: ROUTES.REVIEWS,   icon: Star       },
+      { id: 'glowloox',  label: 'GlowLoox Profile',  path: ROUTES.GLOWLOOX,  icon: Eye        },
+      { id: 'gallery',   label: 'Gallery',            path: ROUTES.GALLERY,   icon: Images     },
+      { id: 'coupons',   label: 'Coupons',            path: ROUTES.COUPONS,   icon: Tag        },
+      { id: 'packages',  label: 'Packages & Plans',   path: ROUTES.PACKAGES,  icon: Gift       },
+      { id: 'reviews',   label: 'Reviews',            path: ROUTES.REVIEWS,   icon: Star       },
     ],
   },
   {

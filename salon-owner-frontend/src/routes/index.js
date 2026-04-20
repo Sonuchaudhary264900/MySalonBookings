@@ -33,6 +33,7 @@ const ROUTES = {
   BILLING:       '/dashboard/billing',
   PROMOTIONS:    '/dashboard/promotions',
   MESSAGES:      '/dashboard/messages',
+  GLOWLOOX:      '/dashboard/glowloox',
 
   // Legal (public)
   PRIVACY:       '/privacy-policy',
