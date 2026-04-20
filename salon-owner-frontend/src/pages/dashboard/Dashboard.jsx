@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import CelebrationOverlay from "../../components/onboarding/CelebrationOverlay";
+import WelcomeBackOverlay from "../../components/onboarding/WelcomeBackOverlay";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import api from "../../services/api";
@@ -447,16 +448,32 @@ const Dashboard = () => {
   /* Walk-in modal */
   const [walkInOpen, setWalkInOpen] = useState(false);
 
-  /* First-time approval celebration */
-  const celebrationKey = user?._id ? `celebration_shown_${user._id}` : null;
+  /* First-time celebration vs. welcome-back overlay */
+  const celebrationKey   = user?._id ? `glx_cel_${user._id}`  : null;
+  const welcomeBackKey   = user?._id ? `glx_wb_${user._id}`   : null;
+
   const [showCelebration, setShowCelebration] = useState(() => {
     if (!celebrationKey) return false;
     return !localStorage.getItem(celebrationKey);
   });
 
+  const [showWelcomeBack, setShowWelcomeBack] = useState(() => {
+    if (!welcomeBackKey) return false;
+    // Only show welcome-back after the celebration has been seen (i.e. key set)
+    // and not on this session yet
+    const celebSeen = !!localStorage.getItem(celebrationKey);
+    const wbShown   = sessionStorage.getItem(welcomeBackKey);
+    return celebSeen && !wbShown;
+  });
+
   const handleCelebrationDone = () => {
     if (celebrationKey) localStorage.setItem(celebrationKey, '1');
     setShowCelebration(false);
+  };
+
+  const handleWelcomeBackDone = () => {
+    if (welcomeBackKey) sessionStorage.setItem(welcomeBackKey, '1');
+    setShowWelcomeBack(false);
   };
 
   /* ── Fetch queue ── */
@@ -569,7 +586,20 @@ const Dashboard = () => {
   return (
     <DashboardLayout>
       {showCelebration && (
-        <CelebrationOverlay name={user?.name} onDone={handleCelebrationDone} />
+        <CelebrationOverlay
+          name={user?.name}
+          salonName={salon?.name}
+          businessType={salon?.businessType}
+          onDone={handleCelebrationDone}
+        />
+      )}
+      {!showCelebration && showWelcomeBack && (
+        <WelcomeBackOverlay
+          name={user?.name}
+          salonName={salon?.name}
+          businessType={salon?.businessType}
+          onDone={handleWelcomeBackDone}
+        />
       )}
       <div className="space-y-5">
 
