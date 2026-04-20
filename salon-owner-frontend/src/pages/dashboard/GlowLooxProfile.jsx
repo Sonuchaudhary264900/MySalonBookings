@@ -867,9 +867,7 @@ export default function GlowLooxProfile() {
               <div className="flex items-center gap-2 mb-1">
                 <h1 className="text-[18px] font-black text-gray-900 dark:text-white tracking-tight">{salon?.name || '—'}</h1>
                 {avgRating >= 4.5 && <BadgeCheck style={{ color: biz.p }} className="w-4 h-4 shrink-0" />}
-                <button onClick={openHeaderEdit} className="ml-auto shrink-0">
-                  <EditBtn label="Edit" />
-                </button>
+                <EditBtn onClick={openHeaderEdit} label="Edit" />
               </div>
               <div style={{ backgroundColor: biz.p + '18', borderColor: biz.p + '40', color: biz.acc }}
                 className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border mb-2">
