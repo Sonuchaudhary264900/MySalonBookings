@@ -526,7 +526,7 @@ const CategoryCard = ({
                         />
                       </span>
                       {s.genderContext && (
-                        {s.genderContext === 'male' ? <User className="w-3 h-3 text-blue-500 shrink-0" /> : <UserRound className="w-3 h-3 text-pink-500 shrink-0" />}
+                        s.genderContext === 'male' ? <User className="w-3 h-3 text-blue-500 shrink-0" /> : <UserRound className="w-3 h-3 text-pink-500 shrink-0" />
                       )}
                       <span className="flex-1 text-xs font-semibold text-gray-700 dark:text-gray-300 truncate">{s.name}</span>
                       <span className="flex items-center gap-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
