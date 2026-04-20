@@ -1,193 +1,202 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { ArrowRight, User } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import { useAuth } from '../../../hooks/useAuth';
 import { useTheme } from '../../../context/ThemeContext';
 import api from '../../../services/api';
 
-const S3_CSS = `
-  @keyframes s3-fadeup{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+const CSS = `
+  @keyframes s3-up{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes s3-cursor{0%,100%{opacity:1}50%{opacity:0}}
+  @keyframes s3-btn-glow{0%,100%{box-shadow:0 6px 40px rgba(124,58,237,0.45)}50%{box-shadow:0 6px 60px rgba(124,58,237,0.7),0 0 0 4px rgba(124,58,237,0.12)}}
   @keyframes s3-spin{to{transform:rotate(360deg)}}
-  @keyframes s3-card-glow{0%,100%{box-shadow:0 0 0 1px rgba(124,58,237,0.3),0 8px 30px rgba(124,58,237,0.15)}50%{box-shadow:0 0 0 2px rgba(124,58,237,0.5),0 8px 40px rgba(124,58,237,0.3)}}
-  .s3-fu1{animation:s3-fadeup 0.45s 0s ease both}
-  .s3-fu2{animation:s3-fadeup 0.45s 0.1s ease both}
-  .s3-fu3{animation:s3-fadeup 0.45s 0.2s ease both}
+  @keyframes s3-wave{0%{transform:rotate(0deg)}20%{transform:rotate(-15deg)}40%{transform:rotate(12deg)}60%{transform:rotate(-8deg)}80%{transform:rotate(5deg)}100%{transform:rotate(0deg)}}
+
+  .s3-a1{animation:s3-up 0.55s 0s cubic-bezier(0.16,1,0.3,1) both}
+  .s3-a2{animation:s3-up 0.55s 0.08s cubic-bezier(0.16,1,0.3,1) both}
+  .s3-a3{animation:s3-up 0.55s 0.16s cubic-bezier(0.16,1,0.3,1) both}
+  .s3-a4{animation:s3-up 0.55s 0.24s cubic-bezier(0.16,1,0.3,1) both}
+
+  .s3-wave{display:inline-block;animation:s3-wave 1.2s ease both}
+
   .s3-inp{
-    width:100%;border-radius:12px;padding:12px 14px 12px 40px;font-size:16px;
-    outline:none;transition:border-color 0.2s,box-shadow 0.2s;box-sizing:border-box;font-family:inherit;
+    width:100%;padding:0;font-size:clamp(1.8rem,5vw,2.6rem);
+    font-weight:800;letter-spacing:-1px;
+    background:none;border:none;outline:none;
+    box-sizing:border-box;font-family:inherit;
+    caret-color:#7c3aed;
   }
-  .s3-btn{transition:transform 0.15s,box-shadow 0.15s;}
-  .s3-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 30px rgba(124,58,237,0.5)!important;}
-  .s3-btn:active:not(:disabled){transform:scale(0.97);}
+  .s3-inp::placeholder{opacity:0.22}
+
+  .s3-underline{
+    height:3px;border-radius:99px;
+    background:linear-gradient(90deg,#7c3aed,#ec4899);
+    transition:opacity 0.2s;
+  }
+
+  .s3-btn{
+    transition:transform 0.2s cubic-bezier(0.34,1.56,0.64,1),
+               box-shadow 0.2s, opacity 0.2s;
+  }
+  .s3-btn.ready{animation:s3-btn-glow 2.4s ease-in-out infinite;}
+  .s3-btn:hover:not(:disabled){transform:translateY(-3px) scale(1.01)!important;}
+  .s3-btn:active:not(:disabled){transform:scale(0.97)!important;transition:transform 0.1s!important;}
+
+  .s3-ref-toggle{transition:color 0.15s,opacity 0.15s;}
+  .s3-ref-toggle:hover{opacity:0.8;}
 `;
-
-
-function InputField({ label, icon: Icon, error, children, hint }) {
-  const { isDark } = useTheme();
-  return (
-    <div>
-      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: isDark ? 'rgba(255,255,255,0.55)' : '#6b7280', marginBottom: 6 }}>
-        {label}
-      </label>
-      <div style={{ position: 'relative' }}>
-        {Icon && <Icon size={16} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: isDark ? 'rgba(255,255,255,0.3)' : '#9ca3af', pointerEvents: 'none' }} />}
-        {children}
-      </div>
-      {error && <p style={{ color: '#f87171', fontSize: 11, marginTop: 4, fontWeight: 500 }}>{error}</p>}
-      {hint && !error && <p style={{ color: isDark ? 'rgba(255,255,255,0.3)' : '#9ca3af', fontSize: 11, marginTop: 4 }}>{hint}</p>}
-    </div>
-  );
-}
 
 export default function Step3_ProfileSetup() {
   const { data, update, nextStep } = useOnboarding();
   const { updateProfile } = useAuth();
   const { isDark } = useTheme();
 
-  const [form, setForm]           = useState({ name: data.name || '', referral: data.referralCode || '' });
-  const [errors, setErrors]       = useState({});
-  const [loading, setLoading]     = useState(false);
+  const [name, setName]                 = useState(data.name || '');
+  const [referral, setReferral]         = useState(data.referralCode || '');
   const [referralOpen, setReferralOpen] = useState(false);
-  const [referralApplied, setReferralApplied] = useState(false);
+  const [error, setError]               = useState('');
+  const [loading, setLoading]           = useState(false);
+  const inputRef                        = useRef(null);
 
-  const patchForm = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  useEffect(() => {
+    const t = setTimeout(() => inputRef.current?.focus(), 500);
+    return () => clearTimeout(t);
+  }, []);
 
-  const validate = () => {
-    const e = {};
-    if (!form.name.trim() || form.name.trim().length < 2) e.name = 'Name must be at least 2 characters';
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  };
+  const isValid = name.trim().length >= 2;
 
   const handleSubmit = async () => {
-    if (!validate() || loading) return;
+    if (!isValid || loading) return;
+    if (name.trim().length < 2) { setError('At least 2 characters please'); return; }
     setLoading(true);
     try {
-      update({ name: form.name, referralCode: form.referral });
-      await updateProfile({ name: form.name.trim() });
-
-      // Apply referral code if provided (best-effort, non-blocking)
-      if (form.referral.trim()) {
-        try {
-          await api.post('/owner/referral/apply', { code: form.referral.trim().toUpperCase() });
-        } catch { /* ignore referral errors */ }
+      update({ name: name.trim(), referralCode: referral });
+      await updateProfile({ name: name.trim() });
+      if (referral.trim()) {
+        try { await api.post('/owner/referral/apply', { code: referral.trim().toUpperCase() }); } catch {}
       }
-
-      toast.success('Profile saved!');
+      toast.success('Nice to meet you! 👋');
       nextStep();
     } catch (err) {
-      toast.error(err.message || 'Registration failed');
+      toast.error(err.message || 'Something went wrong');
     } finally {
       setLoading(false);
     }
   };
 
-  const cardBg   = isDark ? 'rgba(255,255,255,0.04)' : '#fff';
-  const border   = isDark ? 'rgba(255,255,255,0.1)'  : '#e5e7eb';
-  const text     = isDark ? '#f1f5f9' : '#111827';
-  const sub      = isDark ? '#94a3b8' : '#6b7280';
-  const inpBg    = isDark ? 'rgba(255,255,255,0.06)' : '#f9fafb';
-  const inpBorderBase = isDark ? 'rgba(255,255,255,0.12)' : '#d1d5db';
+  const handleKey = (e) => { if (e.key === 'Enter' && isValid) handleSubmit(); };
 
-  const inpStyle = (hasErr) => ({
-    border: `1.5px solid ${hasErr ? '#f87171' : inpBorderBase}`,
-    background: inpBg, color: text,
-    boxShadow: hasErr ? '0 0 0 3px rgba(248,113,113,0.12)' : 'none',
-  });
+  const text   = isDark ? '#f1f5f9' : '#0f172a';
+  const sub    = isDark ? 'rgba(255,255,255,0.38)' : '#94a3b8';
+  const inpClr = isDark ? '#f1f5f9' : '#0f172a';
+  const inpBdr = isDark ? 'rgba(255,255,255,0.12)' : '#e2e8f0';
+  const refBg  = isDark ? 'rgba(255,255,255,0.05)' : '#f8f7ff';
+  const refBdr = isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0';
 
   return (
     <>
-      <style>{S3_CSS}</style>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <style>{CSS}</style>
 
-        {/* Header */}
-        <div className="s3-fu1">
-          <h1 style={{ fontSize: 'clamp(1.5rem,3vw,2rem)', fontWeight: 900, color: text, margin: '0 0 6px', letterSpacing: '-0.5px' }}>
-            Tell us a little about yourself
-          </h1>
-          <p style={{ color: sub, fontSize: 14, margin: 0, lineHeight: 1.5 }}>
-            This is your owner profile — only you and our team will see it.
-          </p>
+      <div style={{ display: 'flex', flexDirection: 'column', minHeight: 'calc(100dvh - 100px)', justifyContent: 'center', paddingBottom: 60 }}>
+
+        {/* Wave emoji */}
+        <div className="s3-a1" style={{ fontSize: 44, marginBottom: 24, lineHeight: 1 }}>
+          <span className="s3-wave">👋</span>
         </div>
 
-        {/* Form card */}
-        <div className="s3-fu2" style={{
-          background: cardBg, border: `1px solid ${border}`,
-          borderRadius: 24, padding: '28px 24px',
-          boxShadow: isDark ? 'none' : '0 8px 40px rgba(124,58,237,0.07)',
-          display: 'flex', flexDirection: 'column', gap: 18,
-        }}>
+        {/* Headline */}
+        <div className="s3-a2" style={{ marginBottom: 12 }}>
+          <h1 style={{ fontSize: 'clamp(2rem,5vw,3rem)', fontWeight: 900, color: text, margin: 0, lineHeight: 1.1, letterSpacing: '-1.5px' }}>
+            What's your name?
+          </h1>
+        </div>
 
-          {/* Name */}
-          <InputField label="Full Name *" icon={User} error={errors.name} hint="How should we address you?">
-            <input className="s3-inp" placeholder="Priya/John/etc."
-              value={form.name} onChange={e => patchForm('name', e.target.value)}
-              style={inpStyle(errors.name)} />
-          </InputField>
+        <p className="s3-a3" style={{ fontSize: 16, color: sub, margin: '0 0 48px', lineHeight: 1.5 }}>
+          This is how your customers and our team will address you.
+        </p>
 
-          {/* Referral */}
-          <div>
-            <button onClick={() => setReferralOpen(o => !o)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#7c3aed', fontSize: 13, fontWeight: 600, padding: 0, fontFamily: 'inherit' }}>
-              {referralOpen ? '▾' : '▸'} Have a referral code?
-            </button>
-            {referralOpen && (
-              <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-                <input
-                  className="s3-inp"
-                  placeholder="e.g. MSB123456"
-                  value={form.referral}
-                  onChange={e => patchForm('referral', e.target.value.toUpperCase())}
-                  style={{ ...inpStyle(false), paddingLeft: 14, flex: 1 }}
-                />
-                <button
-                  onClick={() => { if (form.referral.length >= 4) setReferralApplied(true); }}
-                  style={{
-                    padding: '12px 16px', borderRadius: 12, background: 'linear-gradient(135deg,#7c3aed,#a855f7)',
-                    color: '#fff', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                  }}>
-                  Apply
-                </button>
-              </div>
-            )}
-            {referralApplied && (
-              <p style={{ color: '#10b981', fontSize: 12, marginTop: 6, fontWeight: 600 }}>
-                ✅ Referral applied! 🎁
-              </p>
-            )}
-          </div>
+        {/* Big name input */}
+        <div className="s3-a3" style={{ marginBottom: error ? 10 : 40 }}>
+          <input
+            ref={inputRef}
+            className="s3-inp"
+            placeholder="Your full name"
+            value={name}
+            onChange={e => { setName(e.target.value); setError(''); }}
+            onKeyDown={handleKey}
+            style={{ color: inpClr }}
+          />
+          <div className="s3-underline" style={{ opacity: name ? 1 : 0.3 }} />
+          {error && <p style={{ fontSize: 12, color: '#f87171', marginTop: 8, fontWeight: 500 }}>{error}</p>}
+        </div>
 
-
-          {/* Submit */}
+        {/* Referral code — collapsible */}
+        <div className="s3-a4" style={{ marginBottom: 40 }}>
           <button
-            className="s3-btn"
-            onClick={handleSubmit}
-            disabled={loading}
-            style={{
-              width: '100%', padding: '15px 24px', borderRadius: 14,
-              background: loading ? (isDark ? 'rgba(255,255,255,0.07)' : '#e5e7eb') : 'linear-gradient(135deg,#7c3aed,#ec4899)',
-              color: loading ? sub : '#fff',
-              fontWeight: 700, fontSize: 16, border: 'none',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-              fontFamily: 'inherit',
-              boxShadow: !loading ? '0 4px 20px rgba(124,58,237,0.4)' : 'none',
-            }}
+            className="s3-ref-toggle"
+            onClick={() => setReferralOpen(o => !o)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: isDark ? '#a78bfa' : '#7c3aed', fontSize: 13, fontWeight: 600, padding: 0, fontFamily: 'inherit' }}
           >
-            {loading ? (
-              <><div style={{ width: 20, height: 20, border: '2.5px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 's3-spin 0.7s linear infinite' }} />Creating your account...</>
-            ) : (
-              <>Create My Account <ArrowRight size={18} /></>
-            )}
+            {referralOpen ? '▾' : '▸'} Have a referral code?
           </button>
 
-          <p style={{ textAlign: 'center', fontSize: 12, color: sub, margin: 0, lineHeight: 1.6 }}>
-            By continuing you agree to our{' '}
-            <a href="/legal/owner-terms" target="_blank" style={{ color: '#7c3aed', fontWeight: 600 }}>Terms of Service</a>
-            {' '}and{' '}
-            <a href="/legal/owner-privacy" target="_blank" style={{ color: '#7c3aed', fontWeight: 600 }}>Privacy Policy</a>
-          </p>
+          {referralOpen && (
+            <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+              <input
+                value={referral}
+                onChange={e => setReferral(e.target.value.toUpperCase())}
+                placeholder="e.g. GLX123456"
+                style={{
+                  flex: 1, padding: '12px 16px', borderRadius: 12, fontSize: 14, fontWeight: 600,
+                  background: refBg, border: `1.5px solid ${refBdr}`,
+                  color: inpClr, outline: 'none', fontFamily: 'inherit',
+                  transition: 'border-color 0.2s',
+                }}
+                onFocus={e => e.target.style.borderColor = '#7c3aed'}
+                onBlur={e => e.target.style.borderColor = refBdr}
+              />
+              <button
+                onClick={() => { if (referral.length >= 4) toast.success('Code saved!'); }}
+                style={{
+                  padding: '12px 18px', borderRadius: 12, background: 'linear-gradient(135deg,#7c3aed,#a855f7)',
+                  color: '#fff', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                }}
+              >Apply</button>
+            </div>
+          )}
         </div>
+
+        {/* CTA */}
+        <button
+          className={`s3-btn${isValid ? ' ready' : ''}`}
+          onClick={handleSubmit}
+          disabled={loading || !isValid}
+          style={{
+            width: '100%', padding: '18px 28px', borderRadius: 18,
+            background: isValid
+              ? 'linear-gradient(135deg,#7c3aed,#a855f7,#ec4899)'
+              : (isDark ? 'rgba(255,255,255,0.06)' : '#f1f0ff'),
+            color: isValid ? '#fff' : sub,
+            fontWeight: 800, fontSize: 17, border: 'none',
+            cursor: isValid ? 'pointer' : 'default',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
+            fontFamily: 'inherit', letterSpacing: '-0.3px',
+          }}
+        >
+          {loading ? (
+            <><div style={{ width: 20, height: 20, border: '2.5px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 's3-spin 0.7s linear infinite' }} />Saving...</>
+          ) : (
+            <>Let's go <ArrowRight size={20} /></>
+          )}
+        </button>
+
+        <p style={{ textAlign: 'center', fontSize: 12, color: sub, marginTop: 20 }}>
+          By continuing you agree to our{' '}
+          <a href="/legal/owner-terms" target="_blank" style={{ color: '#7c3aed', fontWeight: 600 }}>Terms</a>
+          {' '}&{' '}
+          <a href="/legal/owner-privacy" target="_blank" style={{ color: '#7c3aed', fontWeight: 600 }}>Privacy</a>
+        </p>
       </div>
     </>
   );
