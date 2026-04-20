@@ -1,65 +1,77 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { ArrowRight, Clock, ChevronDown } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import ReactDOM from 'react-dom';
+import { ArrowRight, Clock, ChevronDown, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import { useTheme } from '../../../context/ThemeContext';
 
 /* ─── CSS ─────────────────────────────────────────────────────────────────── */
 const S6_CSS = `
-  @keyframes s6-fadeup{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
-  @keyframes s6-row-slide{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
-  @keyframes s6-drop-in{from{opacity:0;transform:scale(0.94) translateY(-6px)}to{opacity:1;transform:scale(1) translateY(0)}}
-  @keyframes s6-closed-in{from{opacity:0;transform:scale(0.82)}to{opacity:1;transform:scale(1)}}
+  @keyframes s6-up   {from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes s6-row  {from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+  @keyframes s6-drop {from{opacity:0;transform:scale(0.92) translateY(-8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+  @keyframes s6-badge{from{opacity:0;transform:scale(0.75)}to{opacity:1;transform:scale(1)}}
 
-  .s6-fu1{animation:s6-fadeup 0.55s 0.00s cubic-bezier(0.16,1,0.3,1) both}
-  .s6-fu2{animation:s6-fadeup 0.55s 0.07s cubic-bezier(0.16,1,0.3,1) both}
-  .s6-fu3{animation:s6-fadeup 0.55s 0.14s cubic-bezier(0.16,1,0.3,1) both}
+  .s6-a1{animation:s6-up 0.5s 0.00s cubic-bezier(0.16,1,0.3,1) both}
+  .s6-a2{animation:s6-up 0.5s 0.06s cubic-bezier(0.16,1,0.3,1) both}
+  .s6-a3{animation:s6-up 0.5s 0.12s cubic-bezier(0.16,1,0.3,1) both}
 
-  .s6-row-0{animation:s6-row-slide 0.4s 0.08s cubic-bezier(0.16,1,0.3,1) both}
-  .s6-row-1{animation:s6-row-slide 0.4s 0.12s cubic-bezier(0.16,1,0.3,1) both}
-  .s6-row-2{animation:s6-row-slide 0.4s 0.16s cubic-bezier(0.16,1,0.3,1) both}
-  .s6-row-3{animation:s6-row-slide 0.4s 0.20s cubic-bezier(0.16,1,0.3,1) both}
-  .s6-row-4{animation:s6-row-slide 0.4s 0.24s cubic-bezier(0.16,1,0.3,1) both}
-  .s6-row-5{animation:s6-row-slide 0.4s 0.28s cubic-bezier(0.16,1,0.3,1) both}
-  .s6-row-6{animation:s6-row-slide 0.4s 0.32s cubic-bezier(0.16,1,0.3,1) both}
+  .s6-r0{animation:s6-row 0.38s 0.08s cubic-bezier(0.16,1,0.3,1) both}
+  .s6-r1{animation:s6-row 0.38s 0.12s cubic-bezier(0.16,1,0.3,1) both}
+  .s6-r2{animation:s6-row 0.38s 0.16s cubic-bezier(0.16,1,0.3,1) both}
+  .s6-r3{animation:s6-row 0.38s 0.20s cubic-bezier(0.16,1,0.3,1) both}
+  .s6-r4{animation:s6-row 0.38s 0.24s cubic-bezier(0.16,1,0.3,1) both}
+  .s6-r5{animation:s6-row 0.38s 0.28s cubic-bezier(0.16,1,0.3,1) both}
+  .s6-r6{animation:s6-row 0.38s 0.32s cubic-bezier(0.16,1,0.3,1) both}
 
+  /* Chip */
   .s6-chip{
     display:inline-flex;align-items:center;gap:5px;
-    cursor:pointer;user-select:none;border:none;outline:none;font-family:inherit;
-    transition:all 0.2s cubic-bezier(0.34,1.56,0.64,1);
+    cursor:pointer;border:none;outline:none;font-family:inherit;
+    transition:box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease, transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
   }
-  .s6-chip:hover{transform:translateY(-1px) scale(1.03);}
-  .s6-chip.open{transform:scale(0.97);}
+  .s6-chip:hover{transform:translateY(-1px);}
+  .s6-chip:active{transform:scale(0.96);transition:transform 0.07s ease;}
 
-  .s6-dropdown{
-    animation:s6-drop-in 0.22s cubic-bezier(0.34,1.56,0.64,1) both;
-    transform-origin:top left;
+  /* Dropdown portal */
+  .s6-drop{
+    animation:s6-drop 0.2s cubic-bezier(0.34,1.56,0.64,1) both;
+    transform-origin:top center;
   }
 
-  .s6-time-item{
+  /* Scrollable columns */
+  .s6-col{overflow-y:auto;scrollbar-width:none;}
+  .s6-col::-webkit-scrollbar{display:none;}
+
+  /* Time item */
+  .s6-ti{
     display:flex;align-items:center;justify-content:center;
-    padding:7px 0;border-radius:9px;cursor:pointer;
-    font-size:14px;font-weight:500;
-    transition:all 0.14s ease;user-select:none;
+    height:38px;border-radius:9px;cursor:pointer;
+    font-size:14.5px;font-weight:500;letter-spacing:0.2px;
+    transition:background 0.12s, color 0.12s, transform 0.12s;
+    user-select:none;
   }
-  .s6-time-item:hover{transform:scale(1.05);}
-  .s6-time-item.sel{font-weight:800;transform:scale(1.06);}
+  .s6-ti:hover:not(.s6-ti-sel){background:rgba(99,102,241,0.07);transform:scale(1.04);}
+  .s6-ti-sel{font-weight:800;transform:scale(1.06);}
 
-  .s6-scroll{overflow-y:auto;scrollbar-width:none;}
-  .s6-scroll::-webkit-scrollbar{display:none;}
+  /* Preset */
+  .s6-pre{border:none;outline:none;cursor:pointer;transition:all 0.2s cubic-bezier(0.34,1.56,0.64,1);}
+  .s6-pre:hover{transform:scale(1.02);}
 
-  .s6-preset-btn{border:none;outline:none;cursor:pointer;transition:all 0.2s cubic-bezier(0.34,1.56,0.64,1);}
-  .s6-preset-btn:hover{transform:scale(1.02);}
+  /* Toggle */
+  .s6-tog{cursor:pointer;transition:background 0.3s cubic-bezier(0.4,0,0.2,1);}
 
+  /* AM/PM */
+  .s6-ap{border:none;outline:none;cursor:pointer;font-family:inherit;transition:all 0.18s cubic-bezier(0.34,1.56,0.64,1);}
+  .s6-ap:hover{transform:scale(1.05);}
+  .s6-ap:active{transform:scale(0.93);}
+
+  /* CTA */
   .s6-cta{transition:all 0.22s cubic-bezier(0.16,1,0.3,1);}
   .s6-cta:hover{transform:translateY(-3px)!important;box-shadow:0 18px 50px rgba(124,58,237,0.55)!important;}
   .s6-cta:active{transform:scale(0.98)!important;}
 
-  .s6-closed-badge{animation:s6-closed-in 0.2s cubic-bezier(0.34,1.56,0.64,1) both}
-
-  .s6-ampm{border:none;outline:none;cursor:pointer;font-family:inherit;transition:all 0.18s cubic-bezier(0.34,1.56,0.64,1);}
-  .s6-ampm:hover{transform:scale(1.06);}
-  .s6-ampm:active{transform:scale(0.92);}
+  .s6-badge{animation:s6-badge 0.18s cubic-bezier(0.34,1.56,0.64,1) both}
 `;
 
 /* ─── Constants ───────────────────────────────────────────────────────────── */
@@ -73,15 +85,14 @@ const ALL_DAYS = [
   { key: 'Sun', full: 'Sunday'    },
 ];
 const ALL_DAY_KEYS = ALL_DAYS.map(d => d.key);
-
-const PRESETS = [
+const PRESETS      = [
   { label: 'Weekdays', days: ['Mon','Tue','Wed','Thu','Fri'] },
   { label: 'Mon–Sat',  days: ['Mon','Tue','Wed','Thu','Fri','Sat'] },
   { label: 'All 7',    days: ALL_DAY_KEYS },
 ];
-
 const HOURS_12 = ['01','02','03','04','05','06','07','08','09','10','11','12'];
 const MINUTES  = ['00','15','30','45'];
+const ROW_H    = 38;
 
 /* ─── Helpers ─────────────────────────────────────────────────────────────── */
 function fmt12(t) {
@@ -92,213 +103,268 @@ function fmt12(t) {
 function parse12(t) {
   const [h, m] = (t || '09:00').split(':').map(Number);
   return {
-    hr12: String(h % 12 || 12).padStart(2,'0'),
-    min:  String(m).padStart(2,'0'),
-    ampm: h >= 12 ? 'PM' : 'AM',
+    hr:  String(h % 12 || 12).padStart(2,'0'),
+    min: String(m).padStart(2,'0'),
+    ap:  h >= 12 ? 'PM' : 'AM',
   };
 }
-function build24(hr12, min, ampm) {
-  let h = parseInt(hr12) % 12;
-  if (ampm === 'PM') h += 12;
+function build24(hr, min, ap) {
+  let h = parseInt(hr) % 12;
+  if (ap === 'PM') h += 12;
   return `${String(h).padStart(2,'0')}:${min}`;
 }
-function calcDuration(open, close) {
-  const [oh, om] = open.split(':').map(Number);
-  const [ch, cm] = close.split(':').map(Number);
-  const mins = ch * 60 + cm - (oh * 60 + om);
-  if (mins <= 0) return null;
-  const h = Math.floor(mins / 60), r = mins % 60;
-  return `${h}h${r ? ` ${r}m` : ''}`;
+function calcDur(a, b) {
+  const [ah, am] = a.split(':').map(Number);
+  const [bh, bm] = b.split(':').map(Number);
+  const d = bh * 60 + bm - ah * 60 - am;
+  if (d <= 0) return null;
+  return `${Math.floor(d/60)}h${d%60 ? ` ${d%60}m` : ''}`;
 }
 
 /* ─── Toggle ──────────────────────────────────────────────────────────────── */
 function Toggle({ on, onChange }) {
   return (
-    <div onClick={e => { e.stopPropagation(); onChange(); }}
+    <div className="s6-tog" onClick={e => { e.stopPropagation(); onChange(); }}
       style={{
-        width: 46, height: 27, borderRadius: 99, position: 'relative', flexShrink: 0,
-        background: on ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : 'rgba(203,213,225,0.8)',
-        cursor: 'pointer',
-        transition: 'background 0.3s cubic-bezier(0.4,0,0.2,1)',
-        boxShadow: on ? '0 2px 14px rgba(99,102,241,0.45)' : 'inset 0 1px 3px rgba(0,0,0,0.08)',
+        width: 44, height: 26, borderRadius: 99, position: 'relative', flexShrink: 0,
+        background: on ? 'linear-gradient(135deg,#6366f1,#818cf8)' : 'rgba(209,213,219,0.9)',
+        boxShadow: on ? '0 2px 12px rgba(99,102,241,0.42)' : 'inset 0 1px 3px rgba(0,0,0,0.1)',
       }}>
       <div style={{
-        position: 'absolute', top: 3.5,
-        left: on ? 22 : 3.5,
+        position: 'absolute', top: 3, left: on ? 21 : 3,
         width: 20, height: 20, borderRadius: '50%',
-        background: '#ffffff',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.22)',
-        transition: 'left 0.3s cubic-bezier(0.34,1.56,0.64,1)',
+        background: '#fff', boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+        transition: 'left 0.28s cubic-bezier(0.34,1.56,0.64,1)',
       }} />
     </div>
   );
 }
 
-/* ─── TimePickerDropdown ──────────────────────────────────────────────────── */
-function TimePickerDropdown({ time, onChange, isDark }) {
-  const { hr12, min: initMin, ampm: initAP } = parse12(time);
-  const [open,   setOpen]   = useState(false);
-  const [selHr,  setSelHr]  = useState(hr12);
-  const [selMin, setSelMin] = useState(initMin);
-  const [selAP,  setSelAP]  = useState(initAP);
-  const wrapRef  = useRef(null);
-  const hrRef    = useRef(null);
-  const minRef   = useRef(null);
+/* ─── Dropdown (portal, fixed pos) ───────────────────────────────────────── */
+function Dropdown({ anchor, time, onChange, onClose, isDark, label }) {
+  const { hr: ih, min: im, ap: ia } = parse12(time);
+  const [hr,  setHr]  = useState(ih);
+  const [min, setMin] = useState(im);
+  const [ap,  setAp]  = useState(ia);
+  const hrRef  = useRef(null);
+  const minRef = useRef(null);
+  const boxRef = useRef(null);
 
-  /* Close on outside click */
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
+  /* position relative to anchor rect */
+  const vw   = window.innerWidth;
+  const DBOX = 218;
+  let left   = anchor.left + anchor.width / 2 - DBOX / 2;
+  if (left < 8)            left = 8;
+  if (left + DBOX > vw - 8) left = vw - DBOX - 8;
 
-  /* Scroll selected hour/min into view when dropdown opens */
+  /* flip up if not enough space below */
+  const spaceBelow = window.innerHeight - anchor.bottom;
+  const dropH      = 292;
+  const top = spaceBelow > dropH + 12
+    ? anchor.bottom + 8
+    : anchor.top - dropH - 8;
+
+  /* scroll to selection on mount */
   useEffect(() => {
-    if (!open) return;
-    setTimeout(() => {
-      const hIdx = HOURS_12.indexOf(selHr);
-      const mIdx = MINUTES.indexOf(selMin);
-      if (hrRef.current)  hrRef.current.scrollTop  = hIdx  * 37 - 37;
-      if (minRef.current) minRef.current.scrollTop = mIdx  * 37 - 37;
-    }, 30);
+    const hIdx = HOURS_12.indexOf(hr);
+    const mIdx = MINUTES.indexOf(min);
+    if (hrRef.current)  hrRef.current.scrollTop  = Math.max(0, (hIdx - 1) * ROW_H);
+    if (minRef.current) minRef.current.scrollTop  = Math.max(0, (mIdx - 1) * ROW_H);
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* close on outside click or scroll */
+  useEffect(() => {
+    const onDown = (e) => { if (boxRef.current && !boxRef.current.contains(e.target)) onClose(); };
+    const onScroll = () => onClose();
+    document.addEventListener('mousedown', onDown);
+    window.addEventListener('scroll', onScroll, true);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      window.removeEventListener('scroll', onScroll, true);
+    };
+  }, [onClose]);
+
+  const pick = useCallback((h, m, a) => {
+    setHr(h); setMin(m); setAp(a);
+    onChange(build24(h, m, a));
+  }, [onChange]);
+
+  const bg     = isDark ? '#16172e' : '#fff';
+  const border = isDark ? 'rgba(99,102,241,0.28)' : 'rgba(99,102,241,0.18)';
+  const divBg  = isDark ? 'rgba(255,255,255,0.04)' : '#f5f6ff';
+  const selBg  = isDark ? 'rgba(99,102,241,0.22)' : '#eef2ff';
+  const selClr = isDark ? '#c4b5fd' : '#4338ca';
+  const dimClr = isDark ? '#475569'  : '#9ca3af';
+  const hdClr  = isDark ? '#64748b'  : '#94a3b8';
+
+  return ReactDOM.createPortal(
+    <div ref={boxRef} className="s6-drop"
+      style={{
+        position: 'fixed', top, left, zIndex: 99999,
+        width: DBOX,
+        background: bg,
+        border: `1.5px solid ${border}`,
+        borderRadius: 20,
+        boxShadow: isDark
+          ? '0 24px 80px rgba(0,0,0,0.65), 0 0 0 1px rgba(99,102,241,0.12)'
+          : '0 24px 80px rgba(99,102,241,0.18), 0 4px 16px rgba(0,0,0,0.07)',
+        overflow: 'hidden',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+      }}>
+
+      {/* Header strip */}
+      <div style={{
+        padding: '11px 14px 9px',
+        borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : '#eef0fb'}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1.8, textTransform: 'uppercase', color: hdClr }}>
+          {label}
+        </span>
+        <span style={{ fontSize: 15, fontWeight: 800, color: isDark ? '#c4b5fd' : '#4338ca', letterSpacing: -0.3, fontVariantNumeric: 'tabular-nums' }}>
+          {fmt12(build24(hr, min, ap))}
+        </span>
+      </div>
+
+      {/* Pickers row */}
+      <div style={{ display: 'flex', padding: '10px 10px 12px', gap: 6 }}>
+
+        {/* Hours */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1.4, textTransform: 'uppercase', color: hdClr, textAlign: 'center', margin: '0 0 4px' }}>Hr</p>
+          <div ref={hrRef} className="s6-col"
+            style={{ maxHeight: ROW_H * 4.5, borderRadius: 12, background: divBg, padding: '3px' }}>
+            {HOURS_12.map(h => (
+              <div key={h}
+                className={`s6-ti${hr === h ? ' s6-ti-sel' : ''}`}
+                onClick={() => pick(h, min, ap)}
+                style={{ color: hr === h ? selClr : dimClr, background: hr === h ? selBg : 'transparent' }}>
+                {h}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Colon */}
+        <div style={{ display: 'flex', alignItems: 'center', paddingTop: 24, flexShrink: 0 }}>
+          <span style={{ fontSize: 18, fontWeight: 900, color: isDark ? '#6366f1' : '#6366f1', lineHeight: 1 }}>:</span>
+        </div>
+
+        {/* Minutes */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1.4, textTransform: 'uppercase', color: hdClr, textAlign: 'center', margin: '0 0 4px' }}>Min</p>
+          <div ref={minRef} className="s6-col"
+            style={{ borderRadius: 12, background: divBg, padding: '3px' }}>
+            {MINUTES.map(m => (
+              <div key={m}
+                className={`s6-ti${min === m ? ' s6-ti-sel' : ''}`}
+                onClick={() => pick(hr, m, ap)}
+                style={{ color: min === m ? selClr : dimClr, background: min === m ? selBg : 'transparent' }}>
+                {m}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* AM / PM */}
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 6, paddingBottom: 3, flexShrink: 0 }}>
+          <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1.4, textTransform: 'uppercase', color: hdClr, textAlign: 'center', margin: '0 0 4px' }}>  </p>
+          {['AM','PM'].map(a => (
+            <button key={a} className="s6-ap"
+              onClick={() => pick(hr, min, a)}
+              style={{
+                width: 42, padding: '9px 0', borderRadius: 11,
+                fontSize: 11, fontWeight: 800, letterSpacing: 0.5,
+                background: ap === a
+                  ? 'linear-gradient(135deg,#6366f1,#818cf8)'
+                  : (isDark ? 'rgba(255,255,255,0.06)' : '#f0f1fb'),
+                color: ap === a ? '#fff' : dimClr,
+                boxShadow: ap === a ? '0 4px 14px rgba(99,102,241,0.45)' : 'none',
+                border: `1.5px solid ${ap === a ? 'transparent' : (isDark ? 'rgba(255,255,255,0.07)' : '#e5e7f0')}`,
+              }}>
+              {a}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Done */}
+      <div style={{ padding: '0 10px 12px' }}>
+        <button onClick={onClose}
+          style={{
+            width: '100%', padding: '11px 0', borderRadius: 12,
+            background: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+            color: '#fff', fontWeight: 700, fontSize: 13.5,
+            border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            boxShadow: '0 4px 18px rgba(99,102,241,0.4)',
+            transition: 'all 0.15s ease',
+          }}>
+          <Check size={14} strokeWidth={3} />
+          Done
+        </button>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+/* ─── TimeChip ────────────────────────────────────────────────────────────── */
+function TimeChip({ time, onChange, label, isDark }) {
+  const [open,   setOpen]   = useState(false);
+  const [anchor, setAnchor] = useState(null);
+  const chipRef = useRef(null);
+
+  const handleOpen = useCallback((e) => {
+    e.stopPropagation();
+    if (!open && chipRef.current) {
+      setAnchor(chipRef.current.getBoundingClientRect());
+    }
+    setOpen(o => !o);
   }, [open]);
 
-  const commit = (h, m, ap) => {
-    setSelHr(h); setSelMin(m); setSelAP(ap);
-    onChange(build24(h, m, ap));
-  };
-
-  const indigo  = isDark ? '#a5b4fc' : '#4338ca';
-  const sub     = isDark ? '#64748b'  : '#94a3b8';
-  const dropBg  = isDark ? '#1a1a2e'  : '#ffffff';
-  const selBg   = isDark ? 'rgba(99,102,241,0.2)'  : 'rgba(99,102,241,0.1)';
-  const selClr  = isDark ? '#c4b5fd'  : '#4338ca';
-  const dimClr  = isDark ? '#475569'  : '#94a3b8';
-  const divClr  = isDark ? 'rgba(255,255,255,0.06)' : '#f0f1f8';
+  const indigo = isDark ? '#a5b4fc' : '#4338ca';
 
   return (
-    <div ref={wrapRef} style={{ position: 'relative' }}>
-      {/* Chip trigger */}
-      <button
-        className={`s6-chip${open ? ' open' : ''}`}
-        onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
+    <>
+      <button ref={chipRef} className={`s6-chip${open ? '' : ''}`}
+        onClick={handleOpen}
         style={{
           padding: '7px 11px', borderRadius: 11,
           background: open
-            ? (isDark ? 'rgba(99,102,241,0.22)' : 'rgba(238,242,255,1)')
-            : (isDark ? 'rgba(99,102,241,0.1)'  : 'rgba(238,242,255,0.8)'),
+            ? (isDark ? 'rgba(99,102,241,0.2)' : '#eef2ff')
+            : (isDark ? 'rgba(99,102,241,0.1)' : 'rgba(238,242,255,0.85)'),
           border: `1.5px solid ${open
-            ? (isDark ? 'rgba(99,102,241,0.5)' : 'rgba(99,102,241,0.4)')
-            : (isDark ? 'rgba(99,102,241,0.25)' : 'rgba(99,102,241,0.2)')}`,
-          color: indigo, fontSize: 12.5, fontWeight: 600,
+            ? (isDark ? 'rgba(99,102,241,0.5)' : 'rgba(99,102,241,0.45)')
+            : (isDark ? 'rgba(99,102,241,0.22)' : 'rgba(99,102,241,0.18)')}`,
+          color: indigo,
+          fontSize: 12.5, fontWeight: 600,
           boxShadow: open
-            ? (isDark ? '0 4px 18px rgba(99,102,241,0.3)' : '0 4px 14px rgba(99,102,241,0.18)')
-            : (isDark ? '0 2px 8px rgba(99,102,241,0.12)' : '0 1px 4px rgba(99,102,241,0.08)'),
+            ? '0 4px 18px rgba(99,102,241,0.22)'
+            : '0 1px 4px rgba(99,102,241,0.08)',
         }}>
         <Clock size={11} color={isDark ? '#818cf8' : '#6366f1'} strokeWidth={2.2} style={{ flexShrink: 0 }} />
         <span style={{ fontVariantNumeric: 'tabular-nums', letterSpacing: 0.2 }}>{fmt12(time)}</span>
-        <ChevronDown
-          size={11}
+        <ChevronDown size={11}
           color={isDark ? 'rgba(165,180,252,0.6)' : 'rgba(99,102,241,0.55)'}
           strokeWidth={2.5}
-          style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.22s ease' }}
+          style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.22s ease', flexShrink: 0 }}
         />
       </button>
 
-      {/* Dropdown panel */}
-      {open && (
-        <div className="s6-dropdown" style={{
-          position: 'absolute',
-          top: 'calc(100% + 8px)',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 500,
-          background: dropBg,
-          border: `1.5px solid ${isDark ? 'rgba(99,102,241,0.3)' : 'rgba(99,102,241,0.18)'}`,
-          borderRadius: 18,
-          boxShadow: isDark
-            ? '0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(99,102,241,0.15)'
-            : '0 20px 60px rgba(99,102,241,0.18), 0 4px 12px rgba(0,0,0,0.06)',
-          padding: '14px 10px 12px',
-          width: 210,
-          userSelect: 'none',
-        }}>
-
-          {/* Column headers */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, padding: '0 4px' }}>
-            <span style={{ flex: 1, fontSize: 9, fontWeight: 800, letterSpacing: 1.6, textTransform: 'uppercase', color: sub, textAlign: 'center' }}>Hour</span>
-            <span style={{ width: 8 }} />
-            <span style={{ flex: 1, fontSize: 9, fontWeight: 800, letterSpacing: 1.6, textTransform: 'uppercase', color: sub, textAlign: 'center' }}>Min</span>
-            <span style={{ width: 52 }} />
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-
-            {/* Hours */}
-            <div ref={hrRef} className="s6-scroll"
-              style={{ flex: 1, maxHeight: 168, borderRadius: 12, background: isDark ? 'rgba(255,255,255,0.03)' : '#f8f9ff', border: `1px solid ${divClr}`, padding: '4px 2px' }}>
-              {HOURS_12.map(h => (
-                <div key={h} className={`s6-time-item${selHr === h ? ' sel' : ''}`}
-                  onClick={() => commit(h, selMin, selAP)}
-                  style={{
-                    color: selHr === h ? selClr : dimClr,
-                    background: selHr === h ? selBg : 'transparent',
-                  }}>
-                  {h}
-                </div>
-              ))}
-            </div>
-
-            {/* Colon */}
-            <div style={{ paddingTop: 20, fontSize: 18, fontWeight: 900, color: isDark ? '#a78bfa' : '#6366f1', flexShrink: 0, lineHeight: 1 }}>:</div>
-
-            {/* Minutes */}
-            <div ref={minRef} className="s6-scroll"
-              style={{ flex: 1, borderRadius: 12, background: isDark ? 'rgba(255,255,255,0.03)' : '#f8f9ff', border: `1px solid ${divClr}`, padding: '4px 2px' }}>
-              {MINUTES.map(m => (
-                <div key={m} className={`s6-time-item${selMin === m ? ' sel' : ''}`}
-                  onClick={() => commit(selHr, m, selAP)}
-                  style={{
-                    color: selMin === m ? selClr : dimClr,
-                    background: selMin === m ? selBg : 'transparent',
-                  }}>
-                  {m}
-                </div>
-              ))}
-            </div>
-
-            {/* AM / PM */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingTop: 4, flexShrink: 0, width: 46 }}>
-              {['AM','PM'].map(ap => (
-                <button key={ap} className="s6-ampm"
-                  onClick={() => commit(selHr, selMin, ap)}
-                  style={{
-                    padding: '9px 0', borderRadius: 11, fontSize: 11, fontWeight: 800, letterSpacing: 0.4,
-                    background: ap === selAP
-                      ? 'linear-gradient(135deg,#6366f1,#8b5cf6)'
-                      : (isDark ? 'rgba(255,255,255,0.05)' : '#f0f1f8'),
-                    color: ap === selAP ? '#fff' : sub,
-                    boxShadow: ap === selAP ? '0 3px 14px rgba(99,102,241,0.45)' : 'none',
-                    border: `1.5px solid ${ap === selAP ? 'transparent' : divClr}`,
-                    width: '100%',
-                  }}>
-                  {ap}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Current preview */}
-          <div style={{ marginTop: 10, textAlign: 'center', fontSize: 12, fontWeight: 700, color: isDark ? '#a78bfa' : '#6366f1', opacity: 0.9, letterSpacing: 0.3 }}>
-            {fmt12(build24(selHr, selMin, selAP))}
-          </div>
-        </div>
+      {open && anchor && (
+        <Dropdown
+          anchor={anchor}
+          time={time}
+          onChange={onChange}
+          onClose={() => setOpen(false)}
+          isDark={isDark}
+          label={label}
+        />
       )}
-    </div>
+    </>
   );
 }
 
@@ -307,8 +373,7 @@ export default function Step6_WorkingHours() {
   const { data, update, nextStep } = useOnboarding();
   const { isDark } = useTheme();
 
-  const initDays = data.workingDays?.length ? data.workingDays : ALL_DAY_KEYS;
-  const [days,      setDays]      = useState(initDays);
+  const [days,      setDays]      = useState(data.workingDays?.length ? data.workingDays : ALL_DAY_KEYS);
   const [openTime,  setOpenTime]  = useState(data.openTime  || '09:00');
   const [closeTime, setCloseTime] = useState(data.closeTime || '18:00');
 
@@ -318,15 +383,15 @@ export default function Step6_WorkingHours() {
   const handleNext = () => {
     if (!days.length) { toast.error('Select at least one working day'); return; }
     update({ workingDays: days, openTime, closeTime, hasLunchBreak: false });
-    toast.success('Your schedule is set! 🗓️');
+    toast.success('Schedule saved! 🗓️');
     nextStep();
   };
 
   const text   = isDark ? '#f1f5f9' : '#0f172a';
   const sub    = isDark ? '#64748b'  : '#94a3b8';
-  const cardBg = isDark ? 'rgba(255,255,255,0.03)' : '#ffffff';
-  const cardBd = isDark ? 'rgba(255,255,255,0.07)'  : '#e8eaf0';
-  const dur    = calcDuration(openTime, closeTime);
+  const cardBg = isDark ? 'rgba(255,255,255,0.025)' : '#ffffff';
+  const cardBd = isDark ? 'rgba(255,255,255,0.07)'   : '#e8eaf0';
+  const dur    = calcDur(openTime, closeTime);
 
   const matchPreset = PRESETS.find(p =>
     JSON.stringify([...p.days].sort()) === JSON.stringify([...days].sort())
@@ -337,40 +402,39 @@ export default function Step6_WorkingHours() {
       <style>{S6_CSS}</style>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-        {/* ── Header ── */}
-        <div className="s6-fu1">
+        {/* Header */}
+        <div className="s6-a1">
           <h1 style={{ fontSize: 'clamp(1.6rem,4vw,2.1rem)', fontWeight: 900, color: text, margin: '0 0 6px', letterSpacing: '-0.6px', lineHeight: 1.1 }}>
-            When are you open? <span style={{ fontSize: '1.4rem' }}>🕘</span>
+            When are you open? <span style={{ fontSize: '1.3rem' }}>🕘</span>
           </h1>
           <p style={{ color: sub, fontSize: 13.5, margin: 0 }}>
             Set your hours once — customers see real-time availability.
           </p>
         </div>
 
-        {/* ── Card (no overflow:hidden so dropdowns escape) ── */}
-        <div className="s6-fu2" style={{
-          background: cardBg,
-          border: `1px solid ${cardBd}`,
-          borderRadius: 28,
+        {/* Card */}
+        <div className="s6-a2" style={{
+          background: cardBg, border: `1px solid ${cardBd}`,
+          borderRadius: 26,
           boxShadow: isDark
-            ? '0 0 0 1px rgba(99,102,241,0.06), 0 24px 64px rgba(0,0,0,0.4)'
-            : '0 0 0 1px rgba(99,102,241,0.04), 0 20px 60px rgba(99,102,241,0.09)',
+            ? '0 0 0 1px rgba(99,102,241,0.06), 0 20px 60px rgba(0,0,0,0.4)'
+            : '0 0 0 1px rgba(99,102,241,0.04), 0 20px 56px rgba(99,102,241,0.09)',
         }}>
 
-          {/* Presets */}
-          <div style={{ padding: '18px 16px 14px' }}>
-            <div style={{ display: 'flex', gap: 3, background: isDark ? 'rgba(255,255,255,0.04)' : '#f4f5fb', borderRadius: 14, padding: 4 }}>
+          {/* Preset segmented control */}
+          <div style={{ padding: '16px 16px 12px' }}>
+            <div style={{ display: 'flex', gap: 3, background: isDark ? 'rgba(255,255,255,0.04)' : '#f2f3fb', borderRadius: 14, padding: 4 }}>
               {PRESETS.map(p => {
                 const active = matchPreset?.label === p.label;
                 return (
-                  <button key={p.label} className="s6-preset-btn"
+                  <button key={p.label} className="s6-pre"
                     onClick={() => setDays([...p.days])}
                     style={{
-                      flex: 1, padding: '8px 6px', borderRadius: 10,
+                      flex: 1, padding: '8px 4px', borderRadius: 10,
                       fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit',
-                      background: active ? (isDark ? 'rgba(99,102,241,0.3)' : '#ffffff') : 'transparent',
+                      background: active ? (isDark ? 'rgba(99,102,241,0.28)' : '#fff') : 'transparent',
                       color: active ? (isDark ? '#c4b5fd' : '#4338ca') : sub,
-                      boxShadow: active ? (isDark ? '0 2px 10px rgba(0,0,0,0.4)' : '0 2px 14px rgba(99,102,241,0.14)') : 'none',
+                      boxShadow: active ? (isDark ? '0 2px 10px rgba(0,0,0,0.35)' : '0 2px 12px rgba(99,102,241,0.14)') : 'none',
                     }}>
                     {p.label}
                   </button>
@@ -379,34 +443,34 @@ export default function Step6_WorkingHours() {
             </div>
           </div>
 
-          <div style={{ height: 1, background: isDark ? 'rgba(255,255,255,0.05)' : '#f0f1f8', margin: '0 16px' }} />
+          {/* Divider */}
+          <div style={{ height: 1, background: isDark ? 'rgba(255,255,255,0.05)' : '#f0f1f9', margin: '0 16px' }} />
 
-          {/* ── Day rows ── */}
-          <div style={{ padding: '4px 0' }}>
-            {ALL_DAYS.map(({ key, full }, idx) => {
+          {/* Day rows */}
+          <div>
+            {ALL_DAYS.map(({ key, full }, i) => {
               const on = days.includes(key);
               return (
-                <div key={key} className={`s6-row-${idx}`}
+                <div key={key} className={`s6-r${i}`}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 12,
-                    padding: '11px 18px',
+                    padding: '12px 18px',
                     background: on
-                      ? (isDark ? 'rgba(99,102,241,0.04)' : 'rgba(99,102,241,0.018)')
+                      ? (isDark ? 'rgba(99,102,241,0.035)' : 'rgba(99,102,241,0.016)')
                       : 'transparent',
-                    borderBottom: idx < ALL_DAYS.length - 1
-                      ? `1px solid ${isDark ? 'rgba(255,255,255,0.04)' : '#f3f4fa'}`
+                    borderBottom: i < 6
+                      ? `1px solid ${isDark ? 'rgba(255,255,255,0.04)' : '#f2f3fa'}`
                       : 'none',
-                    transition: 'background 0.25s',
-                    /* overflow visible so dropdown escapes */
-                    overflow: 'visible',
+                    transition: 'background 0.24s',
                   }}>
 
                   <Toggle on={on} onChange={() => toggleDay(key)} />
 
                   <span style={{
-                    flex: 1, fontSize: 14, fontWeight: on ? 600 : 500,
+                    flex: 1, minWidth: 0,
+                    fontSize: 14, fontWeight: on ? 600 : 500,
                     color: on ? text : sub,
-                    transition: 'color 0.22s',
+                    transition: 'color 0.2s, font-weight 0.2s',
                     userSelect: 'none',
                   }}>
                     {full}
@@ -414,17 +478,17 @@ export default function Step6_WorkingHours() {
 
                   {on ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                      <TimePickerDropdown time={openTime}  onChange={setOpenTime}  isDark={isDark} />
-                      <span style={{ fontSize: 11, color: sub, fontWeight: 500, userSelect: 'none' }}>to</span>
-                      <TimePickerDropdown time={closeTime} onChange={setCloseTime} isDark={isDark} />
+                      <TimeChip time={openTime}  onChange={setOpenTime}  label="Opens"  isDark={isDark} />
+                      <span style={{ fontSize: 10.5, color: sub, fontWeight: 500, userSelect: 'none', letterSpacing: 0.2 }}>to</span>
+                      <TimeChip time={closeTime} onChange={setCloseTime} label="Closes" isDark={isDark} />
                     </div>
                   ) : (
-                    <span className="s6-closed-badge" style={{
+                    <span className="s6-badge" style={{
                       fontSize: 11, fontWeight: 600,
-                      color: isDark ? '#475569' : '#c4c9d9',
+                      color: isDark ? '#3f4a60' : '#c4c9d9',
                       padding: '4px 10px', borderRadius: 99,
-                      background: isDark ? 'rgba(255,255,255,0.04)' : '#f8f9fc',
-                      border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : '#ebedf5'}`,
+                      background: isDark ? 'rgba(255,255,255,0.03)' : '#f7f8fc',
+                      border: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : '#eaedf5'}`,
                       userSelect: 'none',
                     }}>
                       Closed
@@ -435,36 +499,32 @@ export default function Step6_WorkingHours() {
             })}
           </div>
 
-          {/* ── Schedule summary ── */}
+          {/* Summary strip */}
           <div style={{
-            margin: '0 14px 14px',
-            borderRadius: 16,
-            background: isDark ? 'rgba(99,102,241,0.1)' : 'rgba(99,102,241,0.05)',
-            border: `1px solid ${isDark ? 'rgba(99,102,241,0.2)' : 'rgba(99,102,241,0.12)'}`,
-            padding: '12px 16px',
+            margin: '10px 14px 14px',
+            borderRadius: 14,
+            background: isDark ? 'rgba(99,102,241,0.09)' : 'rgba(99,102,241,0.05)',
+            border: `1px solid ${isDark ? 'rgba(99,102,241,0.18)' : 'rgba(99,102,241,0.11)'}`,
+            padding: '11px 15px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }} />
-              <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase', color: isDark ? '#a78bfa' : '#6366f1' }}>
-                Schedule Summary
-              </span>
-              {dur && (
-                <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: isDark ? '#a78bfa' : '#6366f1', background: isDark ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.08)', borderRadius: 99, padding: '2px 8px' }}>
-                  {dur} / day
-                </span>
-              )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+              <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', flexShrink: 0 }} />
+              <p style={{ fontSize: 12.5, color: isDark ? '#c4b5fd' : '#4338ca', margin: 0, fontWeight: 500, lineHeight: 1.5, minWidth: 0 }}>
+                <strong style={{ fontWeight: 800 }}>{days.length ? days.join(' · ') : 'No days'}</strong>
+                {days.length > 0 && <span style={{ opacity: 0.75 }}> &nbsp;·&nbsp; {fmt12(openTime)} – {fmt12(closeTime)}</span>}
+              </p>
             </div>
-            <p style={{ fontSize: 13, color: isDark ? '#c4b5fd' : '#4338ca', margin: 0, fontWeight: 500, lineHeight: 1.7 }}>
-              <strong style={{ fontWeight: 800 }}>{days.length ? days.join(' · ') : 'No days selected'}</strong>
-              {days.length > 0 && (
-                <><br /><span style={{ opacity: 0.8 }}>{fmt12(openTime)} → {fmt12(closeTime)}</span></>
-              )}
-            </p>
+            {dur && (
+              <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 700, color: isDark ? '#a78bfa' : '#6366f1', background: isDark ? 'rgba(99,102,241,0.14)' : 'rgba(99,102,241,0.08)', borderRadius: 99, padding: '3px 9px', whiteSpace: 'nowrap' }}>
+                {dur}
+              </span>
+            )}
           </div>
         </div>
 
-        {/* ── Continue ── */}
-        <button className="s6-cta s6-fu3" onClick={handleNext}
+        {/* Continue */}
+        <button className="s6-cta s6-a3" onClick={handleNext}
           style={{
             width: '100%', padding: '16px 24px', borderRadius: 16,
             background: 'linear-gradient(135deg,#7c3aed 0%,#9333ea 50%,#ec4899 100%)',
