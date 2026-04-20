@@ -95,6 +95,7 @@ export default function GlowLooxProfileScreen() {
   const [activeTab, setActiveTab] = useState('gallery');
   const [lightboxIdx, setLightboxIdx] = useState(null);
   const [bannerIdx, setBannerIdx] = useState(0);
+  const [expandedCat, setExpandedCat] = useState(null);
   const bannerTimer = useRef(null);
 
   const bizTheme = BIZ_THEME[salon?.businessType] || DEFAULT_BIZ;
@@ -177,10 +178,30 @@ export default function GlowLooxProfileScreen() {
   };
 
   // ── Tab: Services ─────────────────────────────────────────────────
+  const CAT_ICON_MAP = {
+    'Hair Services': 'cut-outline', 'Hair Services (Men)': 'cut-outline', 'Hair Services (Women)': 'cut-outline',
+    'Beard & Grooming': 'man-outline', 'Nail Services': 'color-palette-outline',
+    'Skin & Face / Beauty': 'sparkles-outline', 'Skin & Face (Men Grooming)': 'sparkles-outline',
+    'Skin & Beauty': 'sparkles-outline', 'Face & Skin': 'sparkles-outline',
+    'Spa & Massage': 'fitness-outline', 'Spa & Relaxation': 'fitness-outline',
+    'Body Grooming': 'body-outline', 'Men Dermatology': 'medkit-outline',
+    'Women Dermatology': 'medkit-outline', 'Bridal & Events': 'heart-outline',
+    'Kids Services': 'people-outline', 'At-Home Services': 'home-outline',
+  };
+
+  const CATEGORY_ORDER = [
+    'Hair Services', 'Hair Services (Men)', 'Hair Services (Women)',
+    'Beard & Grooming', 'Nail Services',
+    'Skin & Face / Beauty', 'Skin & Face (Men Grooming)', 'Skin & Beauty',
+    'Spa & Massage', 'Spa & Relaxation', 'Body Grooming',
+    'Men Dermatology', 'Women Dermatology',
+    'Bridal & Events', 'Kids Services', 'At-Home Services',
+  ];
+
   const renderServices = () => {
     if (loading) return (
       <View style={{ padding: 16, gap: 12 }}>
-        {[1,2,3,4].map(i => <SkeletonBox key={i} w="100%" h={64} r={12} />)}
+        {[1,2,3,4].map(i => <SkeletonBox key={i} w="100%" h={72} r={12} />)}
       </View>
     );
     if (!services.length) return (
@@ -190,7 +211,6 @@ export default function GlowLooxProfileScreen() {
       </View>
     );
 
-    // Group by category
     const grouped = services.reduce((acc, svc) => {
       const cat = svc.category || 'Other';
       if (!acc[cat]) acc[cat] = [];
@@ -198,26 +218,68 @@ export default function GlowLooxProfileScreen() {
       return acc;
     }, {});
 
+    const sortedEntries = Object.entries(grouped).sort(([a], [b]) => {
+      const ai = CATEGORY_ORDER.indexOf(a), bi = CATEGORY_ORDER.indexOf(b);
+      if (ai === -1 && bi === -1) return a.localeCompare(b);
+      if (ai === -1) return 1; if (bi === -1) return -1;
+      return ai - bi;
+    });
+
     return (
       <View style={{ padding: 12, gap: 8 }}>
-        {Object.entries(grouped).map(([cat, svcs]) => (
-          <View key={cat} style={[s.catBlock, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#f8f9fb', borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb' }]}>
-            <Text style={[s.catLabel, { color: bizTheme.p }]}>{cat}</Text>
-            {svcs.map((svc, i) => (
-              <View key={svc._id || i} style={[s.svcRow, i < svcs.length - 1 && { borderBottomWidth: 1, borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : '#f0f0f0' }]}>
-                <View style={{ flex: 1 }}>
-                  <Text style={[s.svcName, { color: theme.text }]}>{svc.name}</Text>
-                  {svc.duration > 0 && (
-                    <Text style={[s.svcDur, { color: theme.subText }]}>
-                      <Ionicons name="time-outline" size={10} /> {svc.duration} min
-                    </Text>
-                  )}
+        {sortedEntries.map(([cat, catServices]) => {
+          const icon = CAT_ICON_MAP[cat] || 'storefront-outline';
+          const isOpen = expandedCat === cat;
+          const minPrice = Math.min(...catServices.map(s => s.basePrice || s.price || 0));
+
+          return (
+            <View key={cat} style={[s.catBlock, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#f8f9fb', borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb' }]}>
+              {/* Category header */}
+              <TouchableOpacity onPress={() => setExpandedCat(isOpen ? null : cat)} activeOpacity={0.7}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 14 }}>
+                <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: bizTheme.p + '22', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name={icon} size={19} color={bizTheme.acc} />
                 </View>
-                <Text style={[s.svcPrice, { color: bizTheme.acc }]}>₹{svc.basePrice || svc.price || 0}</Text>
-              </View>
-            ))}
-          </View>
-        ))}
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>{cat}</Text>
+                  <Text style={{ fontSize: 11, color: theme.subText, marginTop: 1 }}>{catServices.length} service{catServices.length !== 1 ? 's' : ''}</Text>
+                </View>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: bizTheme.acc, marginRight: 6 }}>from ₹{minPrice}+</Text>
+                <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={16} color={theme.subText} />
+              </TouchableOpacity>
+
+              {/* Service rows */}
+              {isOpen && (
+                <View style={{ borderTopWidth: 1, borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb' }}>
+                  {catServices.map((svc, i) => (
+                    <View key={svc._id || i}
+                      style={[s.svcRow, i < catServices.length - 1 && { borderBottomWidth: 1, borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : '#f0f0f0' }]}>
+                      {svc.image && (
+                        <Image source={{ uri: svc.image }} style={s.svcThumb} resizeMode="cover" />
+                      )}
+                      <View style={{ flex: 1 }}>
+                        <Text style={[s.svcName, { color: theme.text }]}>{svc.name}</Text>
+                        {svc.duration > 0 && (
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 }}>
+                            <Ionicons name="time-outline" size={10} color={theme.subText} />
+                            <Text style={[s.svcDur, { color: theme.subText }]}>{svc.duration} min</Text>
+                          </View>
+                        )}
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={[s.svcPrice, { color: bizTheme.acc }]}>₹{svc.basePrice || svc.price || 0}</Text>
+                        {/* "+ ADD" visual (customer sees this) */}
+                        <View style={{ borderWidth: 1.5, borderColor: bizTheme.p, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
+                          <Text style={{ fontSize: 11, fontWeight: '800', color: bizTheme.acc }}>+ ADD</Text>
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          );
+        })}
       </View>
     );
   };
@@ -607,12 +669,13 @@ const s = StyleSheet.create({
   emptyTxt: { fontSize: 15, fontWeight: '600' },
   emptyHint: { fontSize: 12, opacity: 0.6, textAlign: 'center' },
 
-  catBlock: { borderRadius: 12, borderWidth: 1, overflow: 'hidden', marginBottom: 4 },
-  catLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase', padding: 10, paddingBottom: 6 },
-  svcRow:   { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 11 },
-  svcName:  { fontSize: 14, fontWeight: '500' },
-  svcDur:   { fontSize: 11, marginTop: 2 },
-  svcPrice: { fontSize: 15, fontWeight: '800', marginLeft: 12 },
+  catBlock:  { borderRadius: 12, borderWidth: 1, overflow: 'hidden', marginBottom: 4 },
+  catLabel:  { fontSize: 11, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase', padding: 10, paddingBottom: 6 },
+  svcRow:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 11, gap: 10 },
+  svcThumb:  { width: 44, height: 44, borderRadius: 10, flexShrink: 0 },
+  svcName:   { fontSize: 14, fontWeight: '500' },
+  svcDur:    { fontSize: 11, marginTop: 2 },
+  svcPrice:  { fontSize: 15, fontWeight: '800' },
 
   revSummary: { flexDirection: 'row', borderRadius: 12, borderWidth: 1, padding: 14, marginBottom: 4 },
   bigRating: { fontSize: 40, fontWeight: '900', lineHeight: 46 },

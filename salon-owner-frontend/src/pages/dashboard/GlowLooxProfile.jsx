@@ -3,7 +3,7 @@ import {
   MapPin, Clock, Star, Share2, Eye, Scissors, Sparkles,
   Waves, Wind, Activity, Crown, Baby, Home as HomeIcon,
   Palette, Shirt, Plus, Heart, Smile, Paintbrush,
-  Images, Info, Phone, Mail, BadgeCheck, ChevronLeft, ChevronRight, X,
+  Images, Info, Phone, Mail, BadgeCheck, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, X,
   Pencil, Trash2, Check, Camera, Upload, Film, Save,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -20,6 +20,11 @@ import {
   isGalleryVideo,
   normalizeOwnerGalleryPayload,
 } from '../../components/gallery/galleryUtils';
+import {
+  CATEGORY_CARD_IMAGE_MAP,
+  getServiceImage,
+  ALL_CATEGORY_ORDER,
+} from '../../constants/salonCategories';
 
 /* ─── helpers ────────────────────────────────────────────────────── */
 const WH_DAYS   = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
@@ -151,6 +156,9 @@ export default function GlowLooxProfile() {
   const [activeTab,    setActiveTab]    = useState('gallery');
   const [lightbox,     setLightbox]     = useState(null);
   const [bannerIdx,    setBannerIdx]    = useState(0);
+
+  /* ── service accordion ── */
+  const [expandedCats, setExpandedCats] = useState(() => new Set(['__all__']));
 
   /* ── service modal ── */
   const [svcModal,     setSvcModal]     = useState({ open: false, service: null });
@@ -394,13 +402,35 @@ export default function GlowLooxProfile() {
 
   /* ── Services ── */
   const renderServices = () => {
-    if (loading) return <div className="p-4 space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-16 w-full" />)}</div>;
+    if (loading) return (
+      <div className="p-4 space-y-3">
+        {[1,2,3].map(i => (
+          <div key={i} className="flex gap-3.5 p-3.5">
+            <Skeleton className="w-[90px] h-[90px] flex-shrink-0" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-3/5" />
+              <Skeleton className="h-3 w-2/5" />
+              <Skeleton className="h-3 w-1/4" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+
     const grouped = (services || []).reduce((acc, svc) => {
       const cat = svc.category || 'Other';
       if (!acc[cat]) acc[cat] = [];
       acc[cat].push(svc);
       return acc;
     }, {});
+
+    const sortedEntries = Object.entries(grouped).sort(([a], [b]) => {
+      const ai = ALL_CATEGORY_ORDER.indexOf(a), bi = ALL_CATEGORY_ORDER.indexOf(b);
+      if (ai === -1 && bi === -1) return a.localeCompare(b);
+      if (ai === -1) return 1; if (bi === -1) return -1;
+      return ai - bi;
+    });
+
     return (
       <>
         {/* Add service button */}
@@ -411,49 +441,114 @@ export default function GlowLooxProfile() {
           </button>
         </div>
 
-        {!(services || []).length ? (
+        {!sortedEntries.length ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-gray-400">
             <Scissors className="w-12 h-12 opacity-30" />
             <p className="font-semibold">No services added yet</p>
           </div>
         ) : (
-          <div className="p-3 space-y-3">
-            {Object.entries(grouped).map(([cat, svcs]) => {
+          <div>
+            {sortedEntries.map(([cat, catServices]) => {
+              const isOpen = expandedCats.has('__all__') || expandedCats.has(cat);
               const CatIcon = CAT_ICONS[cat] || Scissors;
+              const catImg = CATEGORY_CARD_IMAGE_MAP[cat] || null;
+              const minPrice = Math.min(...catServices.map(s => s.basePrice || s.price || 0));
+
+              const toggleCat = () => setExpandedCats(prev => {
+                const next = new Set(prev);
+                next.delete('__all__');
+                if (next.has(cat)) next.delete(cat); else next.add(cat);
+                return next;
+              });
+
               return (
-                <div key={cat} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
-                  <div className="flex items-center gap-2.5 px-4 py-3 border-b border-gray-50 dark:border-gray-800">
-                    <div style={{ backgroundColor: biz.p + '1a' }} className="w-7 h-7 rounded-lg flex items-center justify-center">
-                      <CatIcon style={{ color: biz.p, width: 14, height: 14 }} />
+                <div key={cat} className="overflow-hidden border-b border-gray-100 dark:border-white/[0.06]">
+                  {/* Category header */}
+                  <button onClick={toggleCat}
+                    className="flex items-stretch gap-3.5 p-3.5 w-full text-left bg-transparent hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+                    <div style={{ background: biz.p + '18', borderColor: 'rgba(156,163,175,0.2)' }}
+                      className="w-[90px] h-[90px] rounded-[14px] flex-shrink-0 overflow-hidden border flex items-center justify-center">
+                      {catImg
+                        ? <img src={catImg} alt={cat} className="w-full h-full object-cover block"
+                            onError={e => { e.currentTarget.style.display = 'none'; }} />
+                        : <CatIcon style={{ color: biz.acc, opacity: 0.6 }} className="w-8 h-8" />
+                      }
                     </div>
-                    <span style={{ color: biz.p }} className="text-xs font-extrabold uppercase tracking-wider flex-1">{cat}</span>
-                    <span className="text-xs text-gray-400">{svcs.length}</span>
-                  </div>
-                  {svcs.map((svc, i) => (
-                    <div key={svc._id || i} className={`flex items-center px-4 py-3 gap-3 group ${i < svcs.length - 1 ? 'border-b border-gray-50 dark:border-gray-800/50' : ''}`}>
-                      {svc.image && <img src={svc.image} alt={svc.name} className="w-10 h-10 rounded-xl object-cover shrink-0" />}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{svc.name}</p>
-                        {svc.duration > 0 && (
-                          <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
-                            <Clock className="w-3 h-3" /> {svc.duration} min
-                          </p>
-                        )}
+                    <div className="flex-1 min-w-0 flex flex-col justify-between">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-[15px] font-extrabold text-gray-900 dark:text-white leading-snug">{cat}</p>
+                        <span style={{ color: biz.acc }} className="text-[15px] font-extrabold shrink-0 whitespace-nowrap">from ₹{minPrice}+</span>
                       </div>
-                      <span style={{ color: biz.acc }} className="text-sm font-bold shrink-0 mr-2">₹{svc.basePrice || svc.price || 0}</span>
-                      {/* Edit / Delete actions */}
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => setSvcModal({ open: true, service: svc })}
-                          className="w-7 h-7 rounded-lg flex items-center justify-center bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors">
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        <button onClick={() => handleDeleteService(svc)}
-                          className="w-7 h-7 rounded-lg flex items-center justify-center bg-red-50 dark:bg-red-950/30 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                      <p className="text-xs text-gray-400 mt-1 font-medium">{catServices.length} service{catServices.length !== 1 ? 's' : ''}</p>
+                      <div className="flex items-center justify-end mt-2">
+                        <div style={{ color: biz.acc }} className="flex items-center gap-1 text-xs font-bold">
+                          {isOpen ? 'Hide' : 'View All'}
+                          {isOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                        </div>
                       </div>
                     </div>
-                  ))}
+                  </button>
+
+                  {/* Service rows */}
+                  {isOpen && (
+                    <div>
+                      {catServices.map((svc, svcIdx) => {
+                        const svcImg = getServiceImage(svc);
+                        const price = svc.basePrice || svc.price || 0;
+                        return (
+                          <div key={svc._id || svcIdx}
+                            className="flex items-stretch gap-3.5 p-3.5 border-t border-gray-100 dark:border-white/[0.06] group">
+                            {/* Service image */}
+                            <div style={{ background: biz.p + '18', borderColor: 'rgba(156,163,175,0.2)' }}
+                              className="w-[90px] h-[90px] rounded-[14px] flex-shrink-0 overflow-hidden border flex items-center justify-center">
+                              {svcImg
+                                ? <img src={svcImg} alt={svc.name}
+                                    className="w-full h-full object-cover opacity-0 transition-opacity duration-200"
+                                    onLoad={e => { e.currentTarget.style.opacity = '1'; }}
+                                    onError={e => { e.currentTarget.style.display = 'none'; }} />
+                                : <CatIcon style={{ color: biz.acc, opacity: 0.45 }} className="w-8 h-8" />
+                              }
+                            </div>
+                            {/* Info */}
+                            <div className="flex-1 min-w-0 flex flex-col justify-between">
+                              <div className="flex items-start justify-between gap-2">
+                                <p className="text-[15px] font-bold text-gray-900 dark:text-white leading-snug">{svc.name}</p>
+                                <span style={{ color: biz.acc }} className="text-[15px] font-extrabold shrink-0 whitespace-nowrap">₹{price}+</span>
+                              </div>
+                              <div className="flex items-center justify-between mt-2">
+                                <div className="flex items-center gap-1">
+                                  {svc.duration > 0 && (
+                                    <span className="flex items-center gap-1 text-xs text-gray-400">
+                                      <Clock className="w-3 h-3" />
+                                      {svc.duration >= 60 ? `${(svc.duration / 60).toFixed(1).replace('.0', '')} hrs` : `${svc.duration} min`}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  {/* Owner edit/delete — hover only */}
+                                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onClick={() => setSvcModal({ open: true, service: svc })}
+                                      className="w-7 h-7 rounded-lg flex items-center justify-center bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors">
+                                      <Pencil className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button onClick={() => handleDeleteService(svc)}
+                                      className="w-7 h-7 rounded-lg flex items-center justify-center bg-red-50 dark:bg-red-950/30 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors">
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                  {/* "+ ADD" as customer sees it (visual only) */}
+                                  <div style={{ border: `1.5px solid ${biz.p}`, color: biz.acc }}
+                                    className="rounded-lg text-[11px] font-extrabold tracking-wider px-3 py-1.5 select-none opacity-70">
+                                    + ADD
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             })}
