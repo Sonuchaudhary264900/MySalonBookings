@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ActivityIndicator, RefreshControl, Modal, TextInput,
-  Alert, Switch, ScrollView, Animated, Image,
+  Alert, Switch, ScrollView, Animated, Image, BackHandler,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -812,7 +812,7 @@ export default function ServicesScreen() {
   const [refreshing, setRefreshing]     = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingService, setEditingService] = useState(null);
-  const [expandedCat, setExpandedCat]   = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [search, setSearch]             = useState('');
   const [showMenuSection, setShowMenuSection] = useState(false);
 
@@ -827,6 +827,15 @@ export default function ServicesScreen() {
   }, []);
 
   useEffect(() => { fetchServices(); }, []);
+
+  useEffect(() => {
+    const onBack = () => {
+      if (selectedCategory) { setSelectedCategory(null); return true; }
+      return false;
+    };
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBack);
+    return () => sub.remove();
+  }, [selectedCategory]);
 
   const onRefresh = async () => { setRefreshing(true); await fetchServices(); setRefreshing(false); };
 
@@ -886,15 +895,37 @@ export default function ServicesScreen() {
 
   const isUnisex = salon?.servedGender === 'unisex';
 
-  const renderAccordionGroup = ([cat, svcs]) => {
-    const isOpen = expandedCat === cat;
-    const isMaleOnly   = MALE_ONLY_CATS.includes(cat);
-    const isFemaleOnly = FEMALE_ONLY_CATS.includes(cat);
-    const showSplit = isUnisex && !isMaleOnly && !isFemaleOnly;
+  const renderCategoryCard = ([cat, svcs]) => (
+    <TouchableOpacity
+      key={cat}
+      style={[styles.catNavCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+      onPress={() => setSelectedCategory(cat)}
+      activeOpacity={0.7}
+    >
+      <Text style={styles.catNavEmoji}>{CAT_ICON[cat] || '✨'}</Text>
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.catNavTitle, { color: theme.text }]}>{cat}</Text>
+        <Text style={[styles.catNavSub, { color: theme.subText }]}>
+          {svcs.length} service{svcs.length !== 1 ? 's' : ''}
+        </Text>
+      </View>
+      {isUnisex && MALE_ONLY_CATS.includes(cat)   && <Text style={styles.genderTagM}>👨 Men</Text>}
+      {isUnisex && FEMALE_ONLY_CATS.includes(cat) && <Text style={styles.genderTagF}>👩 Women</Text>}
+      <View style={[styles.countBadge, { backgroundColor: theme.bg }]}>
+        <Text style={[styles.countBadgeText, { color: theme.subText }]}>{svcs.length}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={16} color={theme.subText} />
+    </TouchableOpacity>
+  );
 
-    const menSvcs   = showSplit ? svcs.filter(s => classifySvc(s) === 'male')   : [];
-    const womenSvcs = showSplit ? svcs.filter(s => classifySvc(s) === 'female') : [];
-    const bothSvcs  = showSplit ? svcs.filter(s => classifySvc(s) === 'both')   : [];
+  const renderCategoryDetail = () => {
+    const catSvcs = grouped.find(([c]) => c === selectedCategory)?.[1] || [];
+    const isMaleOnly   = MALE_ONLY_CATS.includes(selectedCategory);
+    const isFemaleOnly = FEMALE_ONLY_CATS.includes(selectedCategory);
+    const showSplit    = isUnisex && !isMaleOnly && !isFemaleOnly;
+    const menSvcs   = showSplit ? catSvcs.filter(s => classifySvc(s) === 'male')   : [];
+    const womenSvcs = showSplit ? catSvcs.filter(s => classifySvc(s) === 'female') : [];
+    const bothSvcs  = showSplit ? catSvcs.filter(s => classifySvc(s) === 'both')   : [];
 
     const renderCards = (list) => list.map(svc => (
       <ServiceCard
@@ -907,54 +938,52 @@ export default function ServicesScreen() {
       />
     ));
 
-    return (
-      <View key={cat} style={[styles.accordionCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        {/* Category header */}
-        <TouchableOpacity
-          style={styles.accordionHeader}
-          onPress={() => setExpandedCat(isOpen ? null : cat)}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.accordionEmoji}>{CAT_ICON[cat] || '✨'}</Text>
-          <Text style={[styles.accordionTitle, { color: theme.text }]}>{cat}</Text>
-          {isUnisex && isMaleOnly   && <Text style={styles.genderTagM}>👨 Men</Text>}
-          {isUnisex && isFemaleOnly && <Text style={styles.genderTagF}>👩 Women</Text>}
-          <View style={[styles.countBadge, { backgroundColor: theme.bg }]}>
-            <Text style={[styles.countBadgeText, { color: theme.subText }]}>{svcs.length}</Text>
+    if (catSvcs.length === 0) {
+      return (
+        <View style={[styles.emptyCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <View style={styles.emptyIconWrap}>
+            <Ionicons name="cut-outline" size={36} color="#a5b4fc" />
           </View>
-          <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={16} color={theme.subText} />
-        </TouchableOpacity>
+          <Text style={[styles.emptyTitle, { color: theme.text }]}>No services in this category</Text>
+          <Text style={[styles.emptyDesc, { color: theme.subText }]}>
+            {search ? `No results for "${search}"` : 'Add your first service to this category.'}
+          </Text>
+          {!!search && (
+            <TouchableOpacity onPress={() => setSearch('')} style={{ marginBottom: 12 }}>
+              <Text style={styles.clearSearchText}>Clear search</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={styles.emptyBtn} onPress={() => { setEditingService(null); setModalVisible(true); }} activeOpacity={0.85}>
+            <Ionicons name="add" size={16} color="#fff" />
+            <Text style={styles.emptyBtnText}>Add Service</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
 
-        {/* Expanded services */}
-        {isOpen && (
-          <View style={[styles.accordionBody, { borderTopColor: theme.border }]}>
-            {!showSplit ? (
-              renderCards(svcs)
-            ) : (
-              <View style={{ gap: 12 }}>
-                {bothSvcs.length > 0 && renderCards(bothSvcs)}
-                {menSvcs.length > 0 && (
-                  <View>
-                    <View style={styles.genderSeparator}>
-                      <View style={[styles.genderLine, { backgroundColor: '#bfdbfe' }]} />
-                      <Text style={styles.genderSepTextM}>👨 Men</Text>
-                      <View style={[styles.genderLine, { backgroundColor: '#bfdbfe' }]} />
-                    </View>
-                    {renderCards(menSvcs)}
-                  </View>
-                )}
-                {womenSvcs.length > 0 && (
-                  <View>
-                    <View style={styles.genderSeparator}>
-                      <View style={[styles.genderLine, { backgroundColor: '#fbcfe8' }]} />
-                      <Text style={styles.genderSepTextF}>👩 Women</Text>
-                      <View style={[styles.genderLine, { backgroundColor: '#fbcfe8' }]} />
-                    </View>
-                    {renderCards(womenSvcs)}
-                  </View>
-                )}
-              </View>
-            )}
+    if (!showSplit) return <View style={{ gap: 10 }}>{renderCards(catSvcs)}</View>;
+
+    return (
+      <View style={{ gap: 12 }}>
+        {bothSvcs.length > 0 && <View style={{ gap: 10 }}>{renderCards(bothSvcs)}</View>}
+        {menSvcs.length > 0 && (
+          <View>
+            <View style={styles.genderSeparator}>
+              <View style={[styles.genderLine, { backgroundColor: '#bfdbfe' }]} />
+              <Text style={styles.genderSepTextM}>👨 Men</Text>
+              <View style={[styles.genderLine, { backgroundColor: '#bfdbfe' }]} />
+            </View>
+            <View style={{ gap: 10 }}>{renderCards(menSvcs)}</View>
+          </View>
+        )}
+        {womenSvcs.length > 0 && (
+          <View>
+            <View style={styles.genderSeparator}>
+              <View style={[styles.genderLine, { backgroundColor: '#fbcfe8' }]} />
+              <Text style={styles.genderSepTextF}>👩 Women</Text>
+              <View style={[styles.genderLine, { backgroundColor: '#fbcfe8' }]} />
+            </View>
+            <View style={{ gap: 10 }}>{renderCards(womenSvcs)}</View>
           </View>
         )}
       </View>
@@ -966,33 +995,60 @@ export default function ServicesScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: 14 + insets.top, backgroundColor: theme.card, borderBottomColor: theme.border }]}>
         <View style={styles.headerRow}>
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name="cut" size={14} color="#fff" />
+          {selectedCategory ? (
+            <>
+              <TouchableOpacity onPress={() => setSelectedCategory(null)} style={styles.backBtn} activeOpacity={0.7}>
+                <Ionicons name="arrow-back" size={22} color={theme.text} />
+              </TouchableOpacity>
+              <View style={{ flex: 1, marginLeft: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={{ fontSize: 18 }}>{CAT_ICON[selectedCategory] || '✨'}</Text>
+                  <Text style={[styles.headerTitle, { color: theme.text }]}>{selectedCategory}</Text>
+                </View>
+                <Text style={[styles.headerSub, { color: theme.subText }]}>
+                  {grouped.find(([c]) => c === selectedCategory)?.[1].length ?? 0} services
+                </Text>
               </View>
-              <Text style={[styles.headerTitle, { color: theme.text }]}>Services</Text>
-            </View>
-            <Text style={[styles.headerSub, { color: theme.subText, marginTop: 1, marginLeft: 36 }]}>Manage your salon services and pricing</Text>
-          </View>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <TouchableOpacity
-              style={[styles.menuBtn, { borderColor: theme.border, backgroundColor: theme.bg }]}
-              onPress={() => navigation.navigate('ServiceMenu')}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="list-outline" size={14} color={theme.text} />
-              <Text style={[styles.menuBtnText, { color: theme.text }]}>Service Menu</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.addBtn}
-              onPress={() => { setEditingService(null); setModalVisible(true); }}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="add" size={16} color="#fff" />
-              <Text style={styles.addBtnText}>Add Service</Text>
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity
+                style={styles.addBtn}
+                onPress={() => { setEditingService(null); setModalVisible(true); }}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="add" size={16} color="#fff" />
+                <Text style={styles.addBtnText}>Add</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' }}>
+                    <Ionicons name="cut" size={14} color="#fff" />
+                  </View>
+                  <Text style={[styles.headerTitle, { color: theme.text }]}>Services</Text>
+                </View>
+                <Text style={[styles.headerSub, { color: theme.subText, marginTop: 1, marginLeft: 36 }]}>Manage your salon services and pricing</Text>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TouchableOpacity
+                  style={[styles.menuBtn, { borderColor: theme.border, backgroundColor: theme.bg }]}
+                  onPress={() => navigation.navigate('ServiceMenu')}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="list-outline" size={14} color={theme.text} />
+                  <Text style={[styles.menuBtnText, { color: theme.text }]}>Service Menu</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.addBtn}
+                  onPress={() => { setEditingService(null); setModalVisible(true); }}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="add" size={16} color="#fff" />
+                  <Text style={styles.addBtnText}>Add Service</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
         </View>
       </View>
 
@@ -1004,13 +1060,13 @@ export default function ServicesScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           showsVerticalScrollIndicator={false}
         >
-          {/* Stats bar */}
-          {services.length > 0 && (
+          {/* Stats bar — only in categories view */}
+          {!selectedCategory && services.length > 0 && (
             <StatsBar total={services.length} active={activeCount} inactive={inactiveCount} theme={theme} />
           )}
 
-          {/* View offered service categories toggle */}
-          {salon?.offeredCategories?.length > 0 && (
+          {/* View offered service categories toggle — only in categories view */}
+          {!selectedCategory && salon?.offeredCategories?.length > 0 && (
             <View style={{ gap: 10 }}>
               <TouchableOpacity
                 style={styles.menuToggleBtn}
@@ -1033,7 +1089,7 @@ export default function ServicesScreen() {
               <Ionicons name="search-outline" size={16} color={theme.subText} />
               <TextInput
                 style={[styles.searchInput, { color: theme.text }]}
-                placeholder="Search services by name or category…"
+                placeholder={selectedCategory ? `Search in ${selectedCategory}…` : 'Search services by name or category…'}
                 placeholderTextColor={theme.subText}
                 value={search}
                 onChangeText={setSearch}
@@ -1049,7 +1105,9 @@ export default function ServicesScreen() {
           {/* Content */}
           {services.length === 0 ? (
             <EmptyState onAdd={() => { setEditingService(null); setModalVisible(true); }} theme={theme} />
-          ) : filteredServices.length === 0 ? (
+          ) : selectedCategory ? (
+            renderCategoryDetail()
+          ) : grouped.length === 0 ? (
             <View style={styles.noResultsWrap}>
               <Ionicons name="search-outline" size={40} color={theme.border} />
               <Text style={[styles.noResultsText, { color: theme.subText }]}>No services match "{search}"</Text>
@@ -1059,7 +1117,7 @@ export default function ServicesScreen() {
             </View>
           ) : (
             <View style={{ gap: 10 }}>
-              {grouped.map(renderAccordionGroup)}
+              {grouped.map(renderCategoryCard)}
             </View>
           )}
         </ScrollView>
@@ -1125,14 +1183,14 @@ const styles = StyleSheet.create({
   searchBar: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 10 },
   searchInput: { flex: 1, fontSize: 13, padding: 0 },
 
-  // Accordion
-  accordionCard: { borderRadius: 14, borderWidth: 1, overflow: 'hidden' },
-  accordionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 14 },
-  accordionEmoji: { fontSize: 18 },
-  accordionTitle: { flex: 1, fontSize: 14, fontWeight: '700' },
+  // Category nav cards (replaces accordion)
+  catNavCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 14, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 14 },
+  catNavEmoji: { fontSize: 22 },
+  catNavTitle: { fontSize: 14, fontWeight: '700' },
+  catNavSub: { fontSize: 11, fontWeight: '500', marginTop: 2 },
+  backBtn: { padding: 4, marginRight: 2 },
   countBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999 },
   countBadgeText: { fontSize: 11, fontWeight: '600' },
-  accordionBody: { borderTopWidth: 1, padding: 12, gap: 10 },
 
   // Gender separator
   genderSeparator: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },

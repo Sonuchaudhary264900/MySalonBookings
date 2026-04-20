@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Plus, LayoutList, ChevronDown, Scissors, Search,
+  Plus, LayoutList, ChevronDown, ChevronLeft, ChevronRight, Scissors, Search,
   Layers, CheckCircle2, XCircle, Sparkles,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -341,6 +341,7 @@ const Services = () => {
   const [search,            setSearch]             = useState('');
   const [showMenuSection,   setShowMenuSection]    = useState(false);
   const [expandedGender,    setExpandedGender]     = useState({});
+  const [selectedCategory,  setSelectedCategory]   = useState(null);
 
   useEffect(() => {
     const load = async () => {
@@ -638,7 +639,13 @@ const Services = () => {
                   {/* Category header */}
                   <button
                     type="button"
-                    onClick={() => setCollapsedCats(prev => { const next = new Set(prev); if (next.has(cat)) next.delete(cat); else next.add(cat); return next; })}
+                    onClick={() => {
+                      if (window.innerWidth < 768) {
+                        setSelectedCategory(cat);
+                      } else {
+                        setCollapsedCats(prev => { const next = new Set(prev); if (next.has(cat)) next.delete(cat); else next.add(cat); return next; });
+                      }
+                    }}
                     className="w-full flex items-center gap-3 px-5 py-4
                       hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-left"
                   >
@@ -655,7 +662,8 @@ const Services = () => {
                     <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800">
                       {svcs.length}
                     </span>
-                    <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                    <ChevronRight className="w-4 h-4 text-gray-400 md:hidden" />
+                    <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 hidden md:block ${isOpen ? 'rotate-180' : ''}`} />
                   </button>
 
                   {/* Expanded services */}
@@ -732,6 +740,102 @@ const Services = () => {
           </div>
         )}
       </div>
+
+      {/* Mobile category detail overlay */}
+      {selectedCategory && (
+        <div className="fixed inset-0 z-40 bg-white dark:bg-gray-950 flex flex-col md:hidden">
+          {/* Header */}
+          <div className="flex items-center gap-3 px-4 py-4 border-b border-gray-100 dark:border-gray-800 sticky top-0 bg-white dark:bg-gray-950 z-10">
+            <button
+              onClick={() => setSelectedCategory(null)}
+              className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+            </button>
+            <span className="text-lg shrink-0">{CATEGORY_ICON_MAP[selectedCategory] || '✨'}</span>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-base font-bold text-gray-900 dark:text-white truncate">{selectedCategory}</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {grouped.find(([c]) => c === selectedCategory)?.[1].length ?? 0} services
+              </p>
+            </div>
+            <button
+              onClick={() => handleOpenModal(null)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold
+                bg-gradient-to-r from-indigo-600 to-violet-600 text-white"
+            >
+              <Plus className="w-3.5 h-3.5" /> Add
+            </button>
+          </div>
+
+          {/* Services in this category */}
+          <div className="flex-1 overflow-y-auto p-4">
+            {(() => {
+              const catSvcs = grouped.find(([c]) => c === selectedCategory)?.[1] || [];
+              const isMaleOnly   = MALE_ONLY_CAT_LABELS.has(selectedCategory);
+              const isFemaleOnly = FEMALE_ONLY_CAT_LABELS.has(selectedCategory);
+              const showSplit    = isUnisex && !isMaleOnly && !isFemaleOnly;
+              const menSvcs   = showSplit ? catSvcs.filter(s => svcGenders(s, selectedCategory).includes('male'))   : [];
+              const womenSvcs = showSplit ? catSvcs.filter(s => svcGenders(s, selectedCategory).includes('female')) : [];
+
+              const renderCards = (list) => (
+                <div className="grid grid-cols-2 gap-3">
+                  {list.map(svc => (
+                    <ServiceCard
+                      key={svc._id || svc.id}
+                      service={svc}
+                      onEdit={handleOpenModal}
+                      onDelete={handleDelete}
+                      onToggle={handleToggle}
+                      loading={loading}
+                    />
+                  ))}
+                </div>
+              );
+
+              if (catSvcs.length === 0) return (
+                <div className="flex flex-col items-center py-20 px-6 text-center">
+                  <Scissors className="w-10 h-10 text-indigo-300 dark:text-indigo-600 mb-4" />
+                  <p className="font-semibold text-gray-700 dark:text-gray-300 mb-1">No services in this category</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500 mb-6">Add your first service here.</p>
+                  <button onClick={() => handleOpenModal(null)}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold
+                      bg-gradient-to-r from-indigo-600 to-violet-600 text-white">
+                    <Plus className="w-4 h-4" /> Add Service
+                  </button>
+                </div>
+              );
+
+              if (!showSplit) return renderCards(catSvcs);
+
+              return (
+                <div className="space-y-5">
+                  {menSvcs.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="h-px flex-1 bg-blue-100 dark:bg-blue-900/40" />
+                        <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">👨 Male</span>
+                        <div className="h-px flex-1 bg-blue-100 dark:bg-blue-900/40" />
+                      </div>
+                      {renderCards(menSvcs)}
+                    </div>
+                  )}
+                  {womenSvcs.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="h-px flex-1 bg-pink-100 dark:bg-pink-900/40" />
+                        <span className="text-xs font-semibold text-pink-600 dark:text-pink-400">👩 Female</span>
+                        <div className="h-px flex-1 bg-pink-100 dark:bg-pink-900/40" />
+                      </div>
+                      {renderCards(womenSvcs)}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* Service Modal */}
       <ServiceModal
