@@ -78,7 +78,7 @@ export default function Step10_Preview() {
   const checklist = [
     { label: 'Your name',                                               done: !!data.name,                            step: 1 },
     { label: `Business type — ${data.businessType || '—'}`,             done: !!data.businessType,                    step: 2 },
-    { label: `Salon name — ${data.salonName || '—'}`,                   done: !!data.salonName,                       step: 3 },
+    { label: `${getBizLabel(data.businessType)} name — ${data.salonName || '—'}`, done: !!data.salonName,                step: 3 },
     { label: `Location — ${data.city || data.district || '—'}`,         done: !!(data.address && data.state),         step: 4 },
     { label: `Hours — ${formatTime12(data.openTime) || '—'}`,           done: data.workingDays.length > 0,            step: 5 },
     { label: `${data.photos.length} photo${data.photos.length !== 1 ? 's' : ''} added`, done: data.photos.length > 0, step: 6 },

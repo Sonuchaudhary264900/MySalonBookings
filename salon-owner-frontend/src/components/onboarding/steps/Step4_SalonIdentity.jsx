@@ -286,7 +286,7 @@ export default function Step4_SalonIdentity() {
             <span style={{ fontSize: 22 }}>⚡</span>
             <div style={{ flex: 1 }}>
               <p style={{ fontSize: 13, fontWeight: 700, color: isDark ? '#c4b5fd' : '#6d28d9', margin: '0 0 2px' }}>Quick Setup (Recommended)</p>
-              <p style={{ fontSize: 12, color: sub, margin: 0, lineHeight: 1.4 }}>We'll pre-select services and suggest prices based on your salon type. You can customize everything.</p>
+              <p style={{ fontSize: 12, color: sub, margin: 0, lineHeight: 1.4 }}>We'll pre-select services and suggest prices based on your business type. You can customize everything.</p>
             </div>
             <label style={{ position: 'relative', display: 'inline-flex', cursor: 'pointer' }}>
               <input type="checkbox" checked={data.quickSetup} onChange={e => update({ quickSetup: e.target.checked })} style={{ opacity: 0, width: 0 }} />
