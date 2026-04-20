@@ -921,7 +921,6 @@ export const BARBERSHOP_CATEGORIES = [
     label: 'Packages & Combos',
     icon: '🎁',
     tabIcon: 'package',
-    suggested: true,
     sections: [
       {
         label: 'Basic Combos',
@@ -947,7 +946,6 @@ export const BARBERSHOP_CATEGORIES = [
     label: 'Memberships',
     icon: '⭐',
     tabIcon: 'membership',
-    suggested: true,
     sections: [
       {
         label: 'Subscription Plans',
@@ -1764,7 +1762,6 @@ export const SALON_MALE_CATEGORIES = [
     label: 'Packages & Combos',
     icon: '🎁',
     tabIcon: 'package',
-    suggested: true,
     sections: [
       {
         label: 'Basic Combos',
@@ -1790,7 +1787,6 @@ export const SALON_MALE_CATEGORIES = [
     label: 'Memberships',
     icon: '⭐',
     tabIcon: 'membership',
-    suggested: true,
     sections: [
       {
         label: 'Plans',
