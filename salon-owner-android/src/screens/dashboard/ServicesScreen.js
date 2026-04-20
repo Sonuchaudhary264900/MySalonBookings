@@ -393,10 +393,16 @@ const UNISEX_CAT_OPTIONS = [
   { icon: '🏠', label: 'At-Home Services' },
 ];
 
-function getCategoryOptions(servedGender) {
-  if (servedGender === 'male')   return MALE_CAT_OPTIONS;
-  if (servedGender === 'female') return FEMALE_CAT_OPTIONS;
-  return UNISEX_CAT_OPTIONS;
+function getCategoryOptions(servedGender, offeredCategories) {
+  const all = servedGender === 'male'   ? MALE_CAT_OPTIONS
+            : servedGender === 'female' ? FEMALE_CAT_OPTIONS
+            : UNISEX_CAT_OPTIONS;
+  if (offeredCategories && offeredCategories.length > 0) {
+    const offeredNames = new Set(offeredCategories.map(c => c.name));
+    const filtered = all.filter(o => offeredNames.has(o.label));
+    if (filtered.length > 0) return filtered;
+  }
+  return all;
 }
 
 // ── Service Modal ───────────────────────────────────────────────
@@ -404,7 +410,7 @@ function ServiceModal({ visible, service, salon, onClose, onSaved }) {
   const editing = !!service?._id;
   const { theme } = useTheme();
   const servedGender = salon?.servedGender || 'male';
-  const categoryOptions = getCategoryOptions(servedGender);
+  const categoryOptions = getCategoryOptions(servedGender, salon?.offeredCategories);
 
   const [name, setName]                   = useState('');
   const [description, setDescription]     = useState('');

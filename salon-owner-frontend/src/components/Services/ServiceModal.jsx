@@ -24,15 +24,22 @@ const getCategoryDefaultImage = (category) => {
 
 const GENDER_LABELS = { male: 'Male', female: 'Female' };
 
-const getCategoryOptions = (servedGender) => {
-  if (servedGender === 'male')   return MALE_CATEGORIES.map(c => ({ icon: c.icon, label: c.label }));
-  if (servedGender === 'female') return FEMALE_CATEGORIES.map(c => ({ icon: c.icon, label: c.label }));
-  return UNISEX_CATEGORIES.map(c => ({ icon: c.icon, label: c.label }));
+const getCategoryOptions = (servedGender, offeredCategories) => {
+  const allCats = servedGender === 'male'   ? MALE_CATEGORIES
+               : servedGender === 'female' ? FEMALE_CATEGORIES
+               : UNISEX_CATEGORIES;
+  const opts = allCats.map(c => ({ icon: c.icon, label: c.label }));
+  if (offeredCategories && offeredCategories.length > 0) {
+    const offeredNames = new Set(offeredCategories.map(c => c.name));
+    const filtered = opts.filter(o => offeredNames.has(o.label));
+    if (filtered.length > 0) return filtered;
+  }
+  return opts;
 };
 
 const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = false, error = '', salon }) => {
   const servedGender = salon?.servedGender || 'male';
-  const categoryOptions = getCategoryOptions(servedGender);
+  const categoryOptions = getCategoryOptions(servedGender, salon?.offeredCategories);
 
   const [catOpen, setCatOpen] = useState(false);
   const [customCategory, setCustomCategory] = useState('');
