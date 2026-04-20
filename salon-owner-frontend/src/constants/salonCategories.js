@@ -916,46 +916,6 @@ export const BARBERSHOP_CATEGORIES = [
       'Express Pedicure', 'Foot Cleaning', 'Heel Repair',
     ],
   },
-  {
-    key: 'packages',
-    label: 'Packages & Combos',
-    icon: '🎁',
-    tabIcon: 'package',
-    sections: [
-      {
-        label: 'Basic Combos',
-        services: ['Haircut + Beard Trim', 'Haircut + Shave'],
-      },
-      {
-        label: 'Premium Combos',
-        services: ['Haircut + Beard + Facial', 'Haircut + Colour + Styling', 'Full Grooming Package'],
-      },
-      {
-        label: 'Event Packages',
-        services: ['Groom Wedding Package', 'Party Grooming Package', 'Photoshoot Styling'],
-      },
-    ],
-    subServices: [
-      'Haircut + Beard Trim', 'Haircut + Shave',
-      'Haircut + Beard + Facial', 'Haircut + Colour + Styling', 'Full Grooming Package',
-      'Groom Wedding Package', 'Party Grooming Package', 'Photoshoot Styling',
-    ],
-  },
-  {
-    key: 'memberships',
-    label: 'Memberships',
-    icon: '⭐',
-    tabIcon: 'membership',
-    sections: [
-      {
-        label: 'Subscription Plans',
-        services: ['Monthly Grooming Plan', 'Unlimited Haircut Plan', 'Unlimited Beard Line-up Plan', 'VIP Membership', 'Priority Service Membership'],
-      },
-    ],
-    subServices: [
-      'Monthly Grooming Plan', 'Unlimited Haircut Plan', 'Unlimited Beard Line-up Plan', 'VIP Membership', 'Priority Service Membership',
-    ],
-  },
 ];
 
 export const MAKEUP_BRIDAL_CATEGORIES = [
@@ -1757,46 +1717,6 @@ export const SALON_MALE_CATEGORIES = [
       'Express Manicure', 'Nail Cleaning', 'Nail Shaping', 'Express Pedicure', 'Foot Cleaning', 'Heel Repair',
     ],
   },
-  {
-    key: 'salon_m_packages',
-    label: 'Packages & Combos',
-    icon: '🎁',
-    tabIcon: 'package',
-    sections: [
-      {
-        label: 'Basic Combos',
-        services: ['Haircut + Beard Trim', 'Haircut + Shave'],
-      },
-      {
-        label: 'Premium Combos',
-        services: ['Haircut + Beard + Facial', 'Haircut + Colour + Styling', 'Full Grooming Package'],
-      },
-      {
-        label: 'Event Packages',
-        services: ['Groom Wedding Package', 'Party Grooming Package', 'Photoshoot Styling'],
-      },
-    ],
-    subServices: [
-      'Haircut + Beard Trim', 'Haircut + Shave',
-      'Haircut + Beard + Facial', 'Haircut + Colour + Styling', 'Full Grooming Package',
-      'Groom Wedding Package', 'Party Grooming Package', 'Photoshoot Styling',
-    ],
-  },
-  {
-    key: 'salon_m_memberships',
-    label: 'Memberships',
-    icon: '⭐',
-    tabIcon: 'membership',
-    sections: [
-      {
-        label: 'Plans',
-        services: ['Monthly Grooming Plan', 'Unlimited Haircut Plan', 'VIP Membership', 'Priority Service Membership'],
-      },
-    ],
-    subServices: [
-      'Monthly Grooming Plan', 'Unlimited Haircut Plan', 'VIP Membership', 'Priority Service Membership',
-    ],
-  },
 ];
 
 // ─── Salon → Women ────────────────────────────────────────────────────────────
@@ -1996,19 +1916,6 @@ export const SALON_FEMALE_CATEGORIES = [
       'Nail Repair', 'Nail Strengthening', 'Gel Removal', 'Acrylic Removal', 'Extension Removal', 'Refill / Touch-Up',
     ],
   },
-  {
-    key: 'salon_f_packages',
-    label: 'Packages',
-    icon: '🎁',
-    tabIcon: 'package',
-    sections: [
-      {
-        label: 'Special Services',
-        services: ['Pre-Bridal Package', 'Grooming Package'],
-      },
-    ],
-    subServices: ['Pre-Bridal Package', 'Grooming Package'],
-  },
 ];
 
 // ─── Salon → Unisex ───────────────────────────────────────────────────────────
@@ -2147,23 +2054,6 @@ export const SALON_UNISEX_CATEGORIES = [
       'Gel Nails', 'Acrylic Nails', 'Polygel Nails', 'Nail Extensions', 'Gel Extensions', 'Acrylic Extensions',
       'Nail Repair', 'Nail Strengthening', 'Gel Removal', 'Acrylic Removal', 'Extension Removal', 'Refill / Touch-Up',
     ],
-  },
-  {
-    key: 'salon_u_packages',
-    label: 'Packages',
-    icon: '🎁',
-    tabIcon: 'package',
-    sections: [
-      {
-        label: 'Men',
-        services: ['Grooming Package'],
-      },
-      {
-        label: 'Female',
-        services: ['Pre-Bridal Package', 'Grooming Package'],
-      },
-    ],
-    subServices: ['Grooming Package', 'Pre-Bridal Package'],
   },
 ];
 

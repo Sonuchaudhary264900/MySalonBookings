@@ -48,25 +48,6 @@ const MALE_CATEGORIES = [
       'Threading (optional)','Nose Wax','Ear Cleaning',
     ],
   },
-  {
-    key: 'packages',
-    label: 'Packages & Combos',
-    icon: '🎁',
-    subServices: [
-      'Haircut + Beard Trim','Haircut + Shave',
-      'Haircut + Beard + Facial','Haircut + Colour + Styling','Full Grooming Package',
-      'Groom Wedding Package','Party Grooming Package','Photoshoot Styling',
-    ],
-  },
-  {
-    key: 'memberships',
-    label: 'Memberships',
-    icon: '⭐',
-    subServices: [
-      'Monthly Grooming Plan','Unlimited Haircut Plan','Unlimited Beard Line-up Plan',
-      'VIP Membership','Priority Service Membership',
-    ],
-  },
 ];
 
 const FEMALE_CATEGORIES = [
@@ -123,24 +104,6 @@ const FEMALE_CATEGORIES = [
     subServices: [
       'Bridal Makeup','Engagement Makeup','Party Makeup',
       'Hairstyling','Saree Draping',
-    ],
-  },
-  {
-    key: 'packages_women',
-    label: 'Packages & Combos',
-    icon: '🎁',
-    subServices: [
-      'Haircut + Facial','Haircut + Hair Spa','Manicure + Pedicure Combo',
-      'Bridal Package','Full Beauty Package','Party Ready Package',
-    ],
-  },
-  {
-    key: 'memberships_women',
-    label: 'Memberships',
-    icon: '⭐',
-    subServices: [
-      'Monthly Beauty Plan','Unlimited Haircut Plan','Unlimited Facial Plan',
-      'VIP Membership','Priority Service Membership',
     ],
   },
 ];
@@ -217,25 +180,6 @@ const UNISEX_CATEGORIES = [
     subServices: [
       "Kids' Haircut (Boys)","Kids' Haircut (Girls)",
       "Kids' Hair Styling","Kids' Hair Wash",
-    ],
-  },
-  {
-    key: 'packages_unisex',
-    label: 'Packages & Combos',
-    icon: '🎁',
-    subServices: [
-      'Haircut + Beard Trim','Haircut + Facial','Manicure + Pedicure Combo',
-      'Full Grooming Package','Bridal Package','Party Ready Package',
-      'Groom Wedding Package','Full Beauty Package',
-    ],
-  },
-  {
-    key: 'memberships_unisex',
-    label: 'Memberships',
-    icon: '⭐',
-    subServices: [
-      'Monthly Grooming Plan','Monthly Beauty Plan','Unlimited Haircut Plan',
-      'VIP Membership','Priority Service Membership',
     ],
   },
 ];
