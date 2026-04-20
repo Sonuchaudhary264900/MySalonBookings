@@ -51,9 +51,9 @@ const INITIAL_DATA = {
   pincode:  '',
 
   // Step 6 — working hours
-  workingDays:    ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+  workingDays:    ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
   openTime:       '09:00',
-  closeTime:      '21:00',
+  closeTime:      '18:00',
   hasLunchBreak:  false,
   lunchStart:     '13:00',
   lunchEnd:       '14:00',
