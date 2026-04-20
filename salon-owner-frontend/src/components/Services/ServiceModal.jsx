@@ -2,10 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import Modal from '../common/Modal';
 import {
-  MALE_CATEGORIES,
-  FEMALE_CATEGORIES,
-  UNISEX_CATEGORIES,
   CATEGORY_IMAGES,
+  getCategoriesForSalonType,
 } from '../../constants/salonCategories';
 import { uploadServicePhoto } from '../../services/salonService';
 
@@ -24,22 +22,19 @@ const getCategoryDefaultImage = (category) => {
 
 const GENDER_LABELS = { male: 'Male', female: 'Female' };
 
-const getCategoryOptions = (servedGender, offeredCategories) => {
-  const allCats = servedGender === 'male'   ? MALE_CATEGORIES
-               : servedGender === 'female' ? FEMALE_CATEGORIES
-               : UNISEX_CATEGORIES;
-  const opts = allCats.map(c => ({ icon: c.icon, label: c.label }));
+const getCategoryOptions = (businessType, servedGender, offeredCategories) => {
+  const allCats = getCategoriesForSalonType(businessType || 'salon', servedGender);
   if (offeredCategories && offeredCategories.length > 0) {
-    const offeredNames = new Set(offeredCategories.map(c => c.name));
-    const filtered = opts.filter(o => offeredNames.has(o.label));
-    if (filtered.length > 0) return filtered;
+    const iconMap = Object.fromEntries(allCats.map(c => [c.label, c.icon]));
+    return offeredCategories.map(c => ({ icon: iconMap[c.name] || '✨', label: c.name }));
   }
-  return opts;
+  return allCats.map(c => ({ icon: c.icon, label: c.label }));
 };
 
 const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = false, error = '', salon }) => {
-  const servedGender = salon?.servedGender || 'male';
-  const categoryOptions = getCategoryOptions(servedGender, salon?.offeredCategories);
+  const servedGender  = salon?.servedGender  || 'male';
+  const businessType  = salon?.businessType  || 'salon';
+  const categoryOptions = getCategoryOptions(businessType, servedGender, salon?.offeredCategories);
 
   const [catOpen, setCatOpen] = useState(false);
   const [customCategory, setCustomCategory] = useState('');

@@ -394,15 +394,12 @@ const UNISEX_CAT_OPTIONS = [
 ];
 
 function getCategoryOptions(servedGender, offeredCategories) {
-  const all = servedGender === 'male'   ? MALE_CAT_OPTIONS
-            : servedGender === 'female' ? FEMALE_CAT_OPTIONS
-            : UNISEX_CAT_OPTIONS;
   if (offeredCategories && offeredCategories.length > 0) {
-    const offeredNames = new Set(offeredCategories.map(c => c.name));
-    const filtered = all.filter(o => offeredNames.has(o.label));
-    if (filtered.length > 0) return filtered;
+    return offeredCategories.map(c => ({ icon: CAT_ICON[c.name] || '✨', label: c.name }));
   }
-  return all;
+  if (servedGender === 'male')   return MALE_CAT_OPTIONS;
+  if (servedGender === 'female') return FEMALE_CAT_OPTIONS;
+  return UNISEX_CAT_OPTIONS;
 }
 
 // ── Service Modal ───────────────────────────────────────────────
