@@ -14,11 +14,9 @@ const Step3 = lazy(() => import('../../components/onboarding/steps/Step4_SalonId
 const Step4 = lazy(() => import('../../components/onboarding/steps/Step5_Location'));
 const Step5 = lazy(() => import('../../components/onboarding/steps/Step6_WorkingHours'));
 const Step6 = lazy(() => import('../../components/onboarding/steps/Step7_MediaUpload'));
-const Step7 = lazy(() => import('../../components/onboarding/steps/Step8_ServicesSelect'));
-const Step8 = lazy(() => import('../../components/onboarding/steps/Step9_Pricing'));
-const Step9 = lazy(() => import('../../components/onboarding/steps/Step10_Preview'));
+const Step7 = lazy(() => import('../../components/onboarding/steps/Step10_Preview'));
 
-const STEPS = [Step1, Step2, Step3, Step4, Step5, Step6, Step7, Step8, Step9];
+const STEPS = [Step1, Step2, Step3, Step4, Step5, Step6, Step7];
 
 const variants = {
   enter: (dir) => ({ x: dir > 0 ? '60%' : '-60%', opacity: 0 }),
