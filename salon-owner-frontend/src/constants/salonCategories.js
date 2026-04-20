@@ -921,6 +921,7 @@ export const BARBERSHOP_CATEGORIES = [
     label: 'Packages & Combos',
     icon: '🎁',
     tabIcon: 'package',
+    suggested: true,
     sections: [
       {
         label: 'Basic Combos',
@@ -946,6 +947,7 @@ export const BARBERSHOP_CATEGORIES = [
     label: 'Memberships',
     icon: '⭐',
     tabIcon: 'membership',
+    suggested: true,
     sections: [
       {
         label: 'Subscription Plans',
@@ -954,21 +956,6 @@ export const BARBERSHOP_CATEGORIES = [
     ],
     subServices: [
       'Monthly Grooming Plan', 'Unlimited Haircut Plan', 'Unlimited Beard Line-up Plan', 'VIP Membership', 'Priority Service Membership',
-    ],
-  },
-  {
-    key: 'premium_services',
-    label: 'Premium / Modern Services',
-    icon: '🤖',
-    tabIcon: 'premium',
-    sections: [
-      {
-        label: 'Smart Services',
-        services: ['AI Hairstyle Recommendation', 'Smart Mirror Consultation', 'Scalp Analysis (Digital)', 'Personalized Grooming Plan', 'Hair & Beard Health Tracking'],
-      },
-    ],
-    subServices: [
-      'AI Hairstyle Recommendation', 'Smart Mirror Consultation', 'Scalp Analysis (Digital)', 'Personalized Grooming Plan', 'Hair & Beard Health Tracking',
     ],
   },
 ];
@@ -1777,6 +1764,7 @@ export const SALON_MALE_CATEGORIES = [
     label: 'Packages & Combos',
     icon: '🎁',
     tabIcon: 'package',
+    suggested: true,
     sections: [
       {
         label: 'Basic Combos',
@@ -1802,6 +1790,7 @@ export const SALON_MALE_CATEGORIES = [
     label: 'Memberships',
     icon: '⭐',
     tabIcon: 'membership',
+    suggested: true,
     sections: [
       {
         label: 'Plans',

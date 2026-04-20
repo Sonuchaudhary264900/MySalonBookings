@@ -281,6 +281,7 @@ const CategoryCard = ({
   cat, sel, isExpanded, gender,
   onToggle, onExpand, onToggleSub,
   customImage, onCatImageChange,
+  suggested = false,
 }) => {
   const count    = sel.subServices.length;
   const isActive = sel.enabled;
@@ -312,18 +313,23 @@ const CategoryCard = ({
 
   const displayImg = customImage || CATEGORY_CARD_IMAGE_MAP[cat.label];
 
+  const accentActive   = suggested ? 'border-amber-300 dark:border-amber-700/60 shadow-md shadow-amber-100/50 dark:shadow-amber-900/20' : 'border-indigo-200 dark:border-indigo-800/60 shadow-md shadow-indigo-100/50 dark:shadow-indigo-900/30';
+  const accentInactive = suggested ? 'border-dashed border-amber-200 dark:border-amber-800/40 hover:border-amber-300 dark:hover:border-amber-700/50' : 'border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700';
+  const headerActive   = suggested ? 'bg-gradient-to-r from-amber-50/80 to-orange-50/40 dark:from-amber-950/25 dark:to-orange-950/10' : 'bg-gradient-to-r from-indigo-50/80 to-violet-50/40 dark:from-indigo-950/25 dark:to-violet-950/10';
+  const headerBorder   = suggested ? 'border-amber-100 dark:border-amber-900/40' : 'border-indigo-100 dark:border-indigo-900/40';
+  const thumbActive    = suggested ? 'bg-gradient-to-br from-amber-400 to-orange-500' : 'bg-gradient-to-br from-indigo-500 to-violet-600';
+  const countColor     = suggested ? 'text-amber-600 dark:text-amber-400' : 'text-indigo-600 dark:text-indigo-400';
+  const chevColor      = suggested ? 'text-amber-400' : 'text-indigo-400';
+
   return (
     <div className={`rounded-2xl border transition-all duration-200 overflow-hidden
-      ${isActive
-        ? 'border-indigo-200 dark:border-indigo-800/60 shadow-md shadow-indigo-100/50 dark:shadow-indigo-900/30'
-        : 'border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700'
-      }
-      bg-white dark:bg-gray-900`}>
+      ${isActive ? accentActive : accentInactive}
+      ${suggested ? 'bg-gradient-to-br from-amber-50/40 to-orange-50/20 dark:from-amber-950/15 dark:to-orange-950/10' : 'bg-white dark:bg-gray-900'}`}>
 
       {/* Card header */}
       <div className={`flex items-center gap-3 px-4 py-3.5 transition-colors cursor-pointer
-        ${isActive ? 'bg-gradient-to-r from-indigo-50/80 to-violet-50/40 dark:from-indigo-950/25 dark:to-violet-950/10' : 'bg-white dark:bg-gray-900'}
-        ${isActive && isExpanded ? 'border-b border-indigo-100 dark:border-indigo-900/40' : ''}`}
+        ${isActive ? headerActive : suggested ? 'bg-transparent' : 'bg-white dark:bg-gray-900'}
+        ${isActive && isExpanded ? `border-b ${headerBorder}` : ''}`}
         onClick={() => isActive && onExpand(isExpanded ? null : cat.key)}>
 
         {/* Category thumbnail with camera overlay */}
@@ -336,10 +342,7 @@ const CategoryCard = ({
             />
           ) : (
             <div className={`w-full h-full flex items-center justify-center text-lg
-              ${isActive
-                ? 'bg-gradient-to-br from-indigo-500 to-violet-600'
-                : 'bg-gray-100 dark:bg-gray-800'
-              }`}>
+              ${isActive ? thumbActive : 'bg-gray-100 dark:bg-gray-800'}`}>
               <span>{cat.icon || '✨'}</span>
             </div>
           )}
@@ -364,14 +367,22 @@ const CategoryCard = ({
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className={`text-sm font-bold truncate ${isActive ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>
-            {cat.label}
-          </p>
+          <div className="flex items-center gap-2">
+            <p className={`text-sm font-bold truncate ${isActive ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>
+              {cat.label}
+            </p>
+            {suggested && (
+              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0
+                bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400">
+                Suggested
+              </span>
+            )}
+          </div>
           {isActive ? (
             <div className="flex items-center gap-1.5 mt-0.5">
               {count > 0 ? (
                 <>
-                  <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">{count} selected</span>
+                  <span className={`text-xs font-semibold ${countColor}`}>{count} selected</span>
                   <span className="text-[10px] text-gray-400 dark:text-gray-600">/ {totalServices}</span>
                 </>
               ) : (
@@ -385,7 +396,7 @@ const CategoryCard = ({
 
         {/* Expand chevron */}
         {isActive && (
-          <ChevronDown className={`w-4 h-4 text-indigo-400 transition-transform duration-200 shrink-0 ${isExpanded ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`w-4 h-4 ${chevColor} transition-transform duration-200 shrink-0 ${isExpanded ? 'rotate-180' : ''}`} />
         )}
 
         <div onClick={e => e.stopPropagation()}>
@@ -442,8 +453,12 @@ const CategoryCard = ({
                       onClick={() => setActiveSec(isSecActive ? null : section.label)}
                       className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-left transition-all duration-150
                         ${isSecActive
-                          ? 'bg-indigo-600 shadow-md shadow-indigo-500/20'
-                          : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-700 hover:bg-indigo-50/60 dark:hover:bg-indigo-950/20'
+                          ? suggested
+                            ? 'bg-amber-500 shadow-md shadow-amber-400/20'
+                            : 'bg-indigo-600 shadow-md shadow-indigo-500/20'
+                          : suggested
+                            ? 'bg-white/70 dark:bg-gray-900/70 border border-amber-200 dark:border-amber-800/40 hover:border-amber-400 dark:hover:border-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20'
+                            : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-700 hover:bg-indigo-50/60 dark:hover:bg-indigo-950/20'
                         }`}
                     >
                       <span className={`flex-1 text-xs font-semibold ${isSecActive ? 'text-white' : 'text-gray-700 dark:text-gray-300'}`}>
@@ -451,7 +466,11 @@ const CategoryCard = ({
                       </span>
                       {selectedInSection > 0 && (
                         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center
-                          ${isSecActive ? 'bg-white/25 text-white' : 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400'}`}>
+                          ${isSecActive
+                            ? 'bg-white/25 text-white'
+                            : suggested
+                              ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400'
+                              : 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400'}`}>
                           {selectedInSection}
                         </span>
                       )}
@@ -464,7 +483,7 @@ const CategoryCard = ({
 
                     {isSecActive && (
                       <div className="mt-1.5 mb-0.5 px-1">
-                        <div className="bg-white dark:bg-gray-900 border border-indigo-100 dark:border-indigo-900/40 rounded-xl p-3">
+                        <div className={`bg-white dark:bg-gray-900 rounded-xl p-3 border ${suggested ? 'border-amber-100 dark:border-amber-900/40' : 'border-indigo-100 dark:border-indigo-900/40'}`}>
                           <p className="text-[10px] text-gray-400 dark:text-gray-600 font-medium tracking-wide mb-2">
                             Tap to select · set price & duration
                           </p>
@@ -892,11 +911,10 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, onSaved, salon, updateS
               </button>
             )}
 
-            {/* ── Search bar ── */}
             {/* ── Category cards ── */}
             {gender && currentCats.length > 0 && (
               <div className="space-y-2">
-                {currentCats.map(cat => {
+                {currentCats.filter(c => !c.suggested).map(cat => {
                   const sel = currentSels[cat.key] || { enabled: false, subServices: [] };
                   const isExpanded = expandedKey === cat.key && sel.enabled;
                   return (
@@ -914,6 +932,44 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, onSaved, salon, updateS
                     />
                   );
                 })}
+
+                {/* ── Suggested: Packages & Memberships ── */}
+                {currentCats.some(c => c.suggested) && (
+                  <div className="pt-2 space-y-2">
+                    <div className="flex items-center gap-2 px-1">
+                      <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-300/60 dark:via-amber-600/30 to-transparent" />
+                      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full
+                        bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/30
+                        border border-amber-200/70 dark:border-amber-700/40">
+                        <Sparkles className="w-3 h-3 text-amber-500" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.15em] text-amber-600 dark:text-amber-400">Boost Revenue</span>
+                      </div>
+                      <div className="h-px flex-1 bg-gradient-to-l from-transparent via-amber-300/60 dark:via-amber-600/30 to-transparent" />
+                    </div>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 text-center px-2">
+                      Shops with packages earn <span className="font-bold text-amber-600 dark:text-amber-400">2–3× more</span> per visit
+                    </p>
+                    {currentCats.filter(c => c.suggested).map(cat => {
+                      const sel = currentSels[cat.key] || { enabled: false, subServices: [] };
+                      const isExpanded = expandedKey === cat.key && sel.enabled;
+                      return (
+                        <CategoryCard
+                          key={cat.key}
+                          cat={cat}
+                          sel={sel}
+                          isExpanded={isExpanded}
+                          gender={gender}
+                          onToggle={toggleCat}
+                          onExpand={setExpandedKey}
+                          onToggleSub={toggleSub}
+                          customImage={customCatImages[cat.label] || null}
+                          onCatImageChange={handleCatImageChange}
+                          suggested
+                        />
+                      );
+                    })}
+                  </div>
+                )}
 
                 {/* Optional add-ons */}
                 {(gender === 'male' || gender === 'female') && currentOptionals.length > 0 && (
