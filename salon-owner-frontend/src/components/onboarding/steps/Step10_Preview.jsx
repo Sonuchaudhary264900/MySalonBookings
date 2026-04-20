@@ -118,42 +118,106 @@ export default function Step10_Preview() {
         {/* Split layout: preview phone + checklist */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
 
-          {/* Phone mockup */}
+          {/* Phone mockup — mirrors SalonDetails profile card */}
           <div className="s10-phone" style={{ display: 'flex', justifyContent: 'center' }}>
             <div style={{
-              width: 220, borderRadius: 34,
-              background: '#0a0a1a', border: '7px solid #1e1e3f',
+              width: 224,
+              borderRadius: 38,
+              background: '#0d0d22',
+              border: '7px solid #1a1a3a',
               animation: 's10-glow 4s ease-in-out infinite',
-              overflow: 'hidden', position: 'relative',
+              overflow: 'hidden',
+              position: 'relative',
+              boxShadow: '0 0 0 1px rgba(139,92,246,0.15)',
             }}>
-              <div style={{ position: 'absolute', top: 7, left: '50%', transform: 'translateX(-50%)', width: 60, height: 16, background: '#1e1e3f', borderRadius: 99, zIndex: 5 }} />
+              {/* Dynamic island */}
+              <div style={{ position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', width: 56, height: 14, background: '#0d0d22', borderRadius: 99, zIndex: 10 }} />
 
-              <div style={{ height: 110, background: coverPhoto ? `url(${coverPhoto}) center/cover` : 'linear-gradient(135deg,rgba(124,58,237,0.5),rgba(236,72,153,0.4))', position: 'relative', flexShrink: 0 }}>
-                {!coverPhoto && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>✂️</div>}
-                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 30, background: 'linear-gradient(to top,#0a0a1a,transparent)' }} />
+              {/* Cover photo */}
+              <div style={{ height: 118, background: coverPhoto ? `url(${coverPhoto}) center/cover no-repeat` : 'linear-gradient(160deg,#1e1250 0%,#2d1060 50%,#1a0840 100%)', position: 'relative', flexShrink: 0 }}>
+                {!coverPhoto && (
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ fontSize: 30, filter: 'drop-shadow(0 2px 8px rgba(124,58,237,0.6))' }}>✂️</div>
+                  </div>
+                )}
+                {/* gradient fade into card */}
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 48, background: 'linear-gradient(to top,#0d0d22 0%,transparent 100%)' }} />
+                {/* Top status bar */}
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 22, background: 'linear-gradient(to bottom,rgba(0,0,0,0.45),transparent)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '4px 10px 0', gap: 4 }}>
+                  <div style={{ width: 20, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.6)' }} />
+                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'rgba(255,255,255,0.6)' }} />
+                </div>
               </div>
 
-              <div style={{ padding: '8px 12px 14px', display: 'flex', flexDirection: 'column', gap: 7 }}>
-                <div>
-                  <p style={{ fontSize: 13, fontWeight: 800, color: '#f1f5f9', margin: 0, lineHeight: 1.2 }}>{data.salonName || 'Your Salon'}</p>
-                  <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
-                    {data.servedGender && (
-                      <span style={{ fontSize: 8, fontWeight: 700, padding: '2px 6px', borderRadius: 99, background: 'rgba(139,92,246,0.2)', color: '#c4b5fd', border: '1px solid rgba(139,92,246,0.3)' }}>
-                        {data.servedGender === 'male' ? '✂️ Men' : data.servedGender === 'female' ? '💅 Women' : '✨ Unisex'}
-                      </span>
-                    )}
-                    <span style={{ fontSize: 8, padding: '2px 6px', borderRadius: 99, background: 'rgba(34,197,94,0.15)', color: '#4ade80', fontWeight: 600 }}>⭐ New</span>
-                  </div>
-                </div>
-                <p style={{ fontSize: 9, color: '#94a3b8', margin: 0 }}>📍 {[data.district, data.city, data.state].filter(Boolean).join(', ') || 'Location set'}</p>
-                <p style={{ fontSize: 9, color: '#94a3b8', margin: 0 }}>🕘 {data.workingDays.join('·')} · {formatTime12(data.openTime)} – {formatTime12(data.closeTime)}</p>
+              {/* Card body */}
+              <div style={{ padding: '10px 13px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
 
-                {/* Services placeholder */}
-                <div style={{ padding: '7px 10px', borderRadius: 10, background: 'rgba(124,58,237,0.12)', border: '1px dashed rgba(139,92,246,0.4)', textAlign: 'center' }}>
-                  <p style={{ fontSize: 8, color: '#a78bfa', margin: 0, fontWeight: 600 }}>✨ Services added after approval</p>
+                {/* Name */}
+                <p style={{ fontSize: 15, fontWeight: 900, color: '#f8fafc', margin: 0, lineHeight: 1.15, letterSpacing: '-0.3px' }}>
+                  {data.salonName || 'Your Business'}
+                </p>
+
+                {/* Badges row */}
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                  {data.servedGender && (
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 3,
+                      fontSize: 8.5, fontWeight: 700,
+                      padding: '3px 7px', borderRadius: 99,
+                      background: 'rgba(139,92,246,0.22)',
+                      color: '#c4b5fd',
+                      border: '1px solid rgba(139,92,246,0.4)',
+                    }}>
+                      {data.servedGender === 'male' ? '✂' : data.servedGender === 'female' ? '💅' : '✨'}
+                      {' '}{data.servedGender === 'male' ? 'Men' : data.servedGender === 'female' ? 'Women' : 'Unisex'}
+                    </span>
+                  )}
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 3,
+                    fontSize: 8.5, fontWeight: 700,
+                    padding: '3px 7px', borderRadius: 99,
+                    background: 'rgba(234,179,8,0.18)',
+                    color: '#fcd34d',
+                    border: '1px solid rgba(234,179,8,0.35)',
+                  }}>⭐ New</span>
                 </div>
 
-                <div style={{ background: 'linear-gradient(135deg,#7c3aed,#ec4899)', borderRadius: 8, padding: '7px', textAlign: 'center', fontSize: 10, fontWeight: 700, color: '#fff', opacity: 0.85 }}>
+                {/* Location */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 4 }}>
+                  <span style={{ fontSize: 9, lineHeight: 1.3, flexShrink: 0 }}>📍</span>
+                  <span style={{ fontSize: 9, color: '#94a3b8', lineHeight: 1.3 }}>
+                    {[data.district, data.city, data.state].filter(Boolean).join(', ') || 'Location set'}
+                  </span>
+                </div>
+
+                {/* Hours */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 4 }}>
+                  <span style={{ fontSize: 9, lineHeight: 1.3, flexShrink: 0 }}>🕐</span>
+                  <span style={{ fontSize: 9, color: '#94a3b8', lineHeight: 1.4 }}>
+                    {data.workingDays.join('·')} · {formatTime12(data.openTime)} – {formatTime12(data.closeTime)}
+                  </span>
+                </div>
+
+                {/* Services placeholder — dashed border like screenshot */}
+                <div style={{
+                  padding: '7px 10px', borderRadius: 12,
+                  background: 'rgba(124,58,237,0.1)',
+                  border: '1.5px dashed rgba(139,92,246,0.45)',
+                  textAlign: 'center',
+                }}>
+                  <span style={{ fontSize: 8.5, color: '#a78bfa', fontWeight: 700, letterSpacing: 0.2 }}>
+                    ✨ Services added after approval
+                  </span>
+                </div>
+
+                {/* Book Now pill — matches SalonDetails */}
+                <div style={{
+                  background: 'linear-gradient(135deg,#7c3aed,#a855f7,#ec4899)',
+                  borderRadius: 12, padding: '9px 0',
+                  textAlign: 'center', fontSize: 11, fontWeight: 800,
+                  color: '#fff', letterSpacing: 0.3,
+                  boxShadow: '0 4px 16px rgba(124,58,237,0.5)',
+                }}>
                   Book Now
                 </div>
               </div>
