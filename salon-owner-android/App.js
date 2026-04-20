@@ -50,6 +50,7 @@ import GalleryScreen           from './src/screens/dashboard/GalleryScreen';
 import ServiceMenuScreen       from './src/screens/dashboard/ServiceMenuScreen';
 import BillingScreen           from './src/screens/dashboard/BillingScreen';
 import MessagesScreen          from './src/screens/dashboard/MessagesScreen';
+import GlowLooxProfileScreen   from './src/screens/dashboard/GlowLooxProfileScreen';
 import LegalScreen             from './src/screens/legal/LegalScreen';
 
 const RootStack = createNativeStackNavigator();
@@ -93,7 +94,7 @@ const NAV_SECTIONS = [
   },
 ];
 
-const TAB_SCREENS = ['Home', 'Reports', 'Services', 'Messages', 'Settings'];
+const TAB_SCREENS = ['Home', 'Reports', 'Services', 'Messages', 'GlowLoox', 'Settings'];
 
 // ── Custom animated drawer layout (no react-native-reanimated) ────
 function CustomDrawerLayout({ children, drawerContent }) {
@@ -268,15 +269,16 @@ function CustomDrawer({ navigation }) {
 }
 
 const TAB_ICONS = {
-  Home:     { off: 'grid-outline',          on: 'grid' },
-  Reports:  { off: 'bar-chart-outline',     on: 'bar-chart' },
-  Services: { off: 'cut-outline',           on: 'cut' },
-  Messages: { off: 'chatbubbles-outline',   on: 'chatbubbles' },
-  Settings: { off: 'settings-outline',      on: 'settings' },
+  Home:      { off: 'grid-outline',          on: 'grid' },
+  Reports:   { off: 'bar-chart-outline',     on: 'bar-chart' },
+  Services:  { off: 'cut-outline',           on: 'cut' },
+  Messages:  { off: 'chatbubbles-outline',   on: 'chatbubbles' },
+  GlowLoox:  { off: 'storefront-outline',    on: 'storefront' },
+  Settings:  { off: 'settings-outline',      on: 'settings' },
 };
 
 const TAB_LABELS = {
-  Home: 'Home', Reports: 'Analytics', Services: 'Services', Messages: 'Messages', Settings: 'Settings',
+  Home: 'Home', Reports: 'Analytics', Services: 'Services', Messages: 'Messages', GlowLoox: 'GlowLoox', Settings: 'Settings',
 };
 
 // ── 5-tab swipeable navigator ──────────────────────────────────────
@@ -317,11 +319,12 @@ function MainTabs() {
         },
       })}
     >
-      <Tab.Screen name="Home"     component={HomeScreen}     options={{ tabBarLabel: TAB_LABELS.Home }} />
-      <Tab.Screen name="Reports"  component={ReportsScreen}  options={{ tabBarLabel: TAB_LABELS.Reports }} />
-      <Tab.Screen name="Services" component={ServicesScreen} options={{ tabBarLabel: TAB_LABELS.Services }} />
-      <Tab.Screen name="Messages" component={MessagesScreen} options={{ tabBarLabel: TAB_LABELS.Messages }} />
-      <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarLabel: TAB_LABELS.Settings }} />
+      <Tab.Screen name="Home"      component={HomeScreen}           options={{ tabBarLabel: TAB_LABELS.Home }} />
+      <Tab.Screen name="Reports"   component={ReportsScreen}         options={{ tabBarLabel: TAB_LABELS.Reports }} />
+      <Tab.Screen name="Services"  component={ServicesScreen}        options={{ tabBarLabel: TAB_LABELS.Services }} />
+      <Tab.Screen name="Messages"  component={MessagesScreen}        options={{ tabBarLabel: TAB_LABELS.Messages }} />
+      <Tab.Screen name="GlowLoox"  component={GlowLooxProfileScreen} options={{ tabBarLabel: TAB_LABELS.GlowLoox }} />
+      <Tab.Screen name="Settings"  component={SettingsScreen}        options={{ tabBarLabel: TAB_LABELS.Settings }} />
     </Tab.Navigator>
   );
 }
