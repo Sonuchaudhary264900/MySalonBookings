@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import {
   X, Save, AlertTriangle, Check,
-  IndianRupee, Clock, ChevronDown, Sparkles, Zap, Users, ChevronRight,
+  IndianRupee, Clock, ChevronDown, Sparkles, Zap, Users, ChevronRight, ChevronLeft,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { uploadServicePhoto } from '../../services/salonService';
@@ -282,6 +282,7 @@ const CategoryCard = ({
   onToggle, onExpand, onToggleSub,
   customImage, onCatImageChange,
   suggested = false,
+  onNavigate, alwaysExpand = false,
 }) => {
   const count    = sel.subServices.length;
   const isActive = sel.enabled;
@@ -324,8 +325,12 @@ const CategoryCard = ({
       {/* Card header */}
       <div className={`flex items-center gap-3 px-4 py-3.5 transition-colors cursor-pointer
         ${isActive ? 'bg-gradient-to-r from-indigo-50/80 to-violet-50/40 dark:from-indigo-950/25 dark:to-violet-950/10' : 'bg-white dark:bg-gray-900'}
-        ${isActive && isExpanded ? 'border-b border-indigo-100 dark:border-indigo-900/40' : ''}`}
-        onClick={() => isActive && onExpand(isExpanded ? null : cat.key)}>
+        ${isActive && (isExpanded || alwaysExpand) ? 'border-b border-indigo-100 dark:border-indigo-900/40' : ''}`}
+        onClick={() => {
+          if (!isActive) return;
+          if (!alwaysExpand && window.innerWidth < 768 && onNavigate) { onNavigate(cat.key); return; }
+          onExpand(isExpanded ? null : cat.key);
+        }}>
 
         {/* Category thumbnail with camera overlay */}
         <div className="relative w-10 h-10 rounded-xl shrink-0 overflow-hidden group">
@@ -390,8 +395,11 @@ const CategoryCard = ({
         </div>
 
         {/* Expand chevron */}
-        {isActive && (
-          <ChevronDown className="w-4 h-4 text-indigo-400 transition-transform duration-200 shrink-0" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+        {isActive && !alwaysExpand && (
+          <>
+            <ChevronRight className="w-4 h-4 text-indigo-400 shrink-0 md:hidden" />
+            <ChevronDown className="hidden md:block w-4 h-4 text-indigo-400 transition-transform duration-200 shrink-0" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+          </>
         )}
 
         <div onClick={e => e.stopPropagation()}>
@@ -400,7 +408,7 @@ const CategoryCard = ({
       </div>
 
       {/* Expanded body */}
-      {isActive && isExpanded && (
+      {isActive && (isExpanded || alwaysExpand) && (
         <div className="bg-gray-50/60 dark:bg-gray-800/20">
 
           {/* Unisex gender split — keeps existing flat layout */}
@@ -563,6 +571,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, onSaved, salon, updateS
   const [genderModalOpen, setGenderModalOpen] = useState(false);
   const [loading,         setLoading]        = useState(false);
   const [expandedKey,     setExpandedKey]    = useState(null);
+  const [selectedCatKey,  setSelectedCatKey] = useState(null);
   const [priceModal,      setPriceModal]     = useState(EMPTY_MODAL);
   const [photoUploading,  setPhotoUploading] = useState(false);
   const priceRef        = useRef(null);
@@ -600,6 +609,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, onSaved, salon, updateS
     const saved = salon.categoryImages;
     setCustomCatImages(saved ? (saved instanceof Map ? Object.fromEntries(saved) : { ...saved }) : {});
     setExpandedKey(null);
+    setSelectedCatKey(null);
     setPendingGender(null);
     setPriceModal(EMPTY_MODAL);
   }, [isOpen, salon]);
@@ -759,7 +769,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, onSaved, salon, updateS
         animate-[slidein_0.28s_cubic-bezier(0.16,1,0.3,1)_both]">
         <style>{`@keyframes slidein{from{transform:translateX(100%)}to{transform:translateX(0)}}`}</style>
 
-        <div className="flex flex-col h-full rounded-l-3xl overflow-hidden shadow-2xl
+        <div className="relative flex flex-col h-full rounded-l-3xl overflow-hidden shadow-2xl
           bg-white dark:bg-gray-950
           border-l border-t border-b border-gray-200 dark:border-gray-800">
 
@@ -917,6 +927,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, onSaved, salon, updateS
                       customImage={customCatImages[cat.label] || null}
                       onCatImageChange={handleCatImageChange}
                       suggested={!!cat.suggested}
+                      onNavigate={setSelectedCatKey}
                     />
                   );
                 })}
@@ -958,6 +969,61 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, onSaved, salon, updateS
               </div>
             )}
           </div>
+
+          {/* ── Mobile category detail overlay ── */}
+          {selectedCatKey && (() => {
+            const cat = currentCats.find(c => c.key === selectedCatKey);
+            if (!cat) return null;
+            const sel = currentSels[cat.key] || { enabled: false, subServices: [] };
+            return (
+              <div className="absolute inset-0 z-10 flex flex-col bg-white dark:bg-gray-950 md:hidden">
+                {/* Back header */}
+                <div className="shrink-0 flex items-center gap-3 px-4 py-4
+                  border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-950">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCatKey(null)}
+                    className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors">
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                      {cat.icon} {cat.label}
+                    </p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
+                      {sel.subServices.length > 0 ? `${sel.subServices.length} selected` : 'Tap services to add'}
+                    </p>
+                  </div>
+                  <div onClick={e => e.stopPropagation()}>
+                    <Toggle checked={sel.enabled} onChange={() => toggleCat(cat.key)} />
+                  </div>
+                </div>
+                {/* Detail content */}
+                <div className="flex-1 overflow-y-auto">
+                  {sel.enabled ? (
+                    <CategoryCard
+                      cat={cat}
+                      sel={sel}
+                      isExpanded={true}
+                      alwaysExpand={true}
+                      gender={gender}
+                      onToggle={toggleCat}
+                      onExpand={() => {}}
+                      onToggleSub={toggleSub}
+                      customImage={customCatImages[cat.label] || null}
+                      onCatImageChange={handleCatImageChange}
+                      onNavigate={() => {}}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                      <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">Category disabled</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-600">Enable the toggle above to add services</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* ── Sticky footer ── */}
           <div className="shrink-0 px-5 py-4 border-t border-gray-100 dark:border-gray-800

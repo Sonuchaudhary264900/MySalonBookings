@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   Switch, Modal, TextInput, Alert, ActivityIndicator,
-  KeyboardAvoidingView, Platform,
+  KeyboardAvoidingView, Platform, BackHandler,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -115,9 +115,10 @@ export default function ServiceMenuScreen() {
   const { salon, updateSalon } = useSalon();
   const st = getSt(theme, isDark);
 
-  const [gender,       setGender]       = useState(salon?.servedGender || '');
-  const [expandedKey,  setExpandedKey]  = useState(null);
-  const [saving,       setSaving]       = useState(false);
+  const [gender,          setGender]          = useState(salon?.servedGender || '');
+  const [expandedKey,     setExpandedKey]     = useState(null);
+  const [selectedCatKey,  setSelectedCatKey]  = useState(null);
+  const [saving,          setSaving]          = useState(false);
 
   const [maleSelections,   setMaleSelections]   = useState(() => buildSelections(MALE_CATEGORIES,   salon?.offeredCategories));
   const [femaleSelections, setFemaleSelections] = useState(() => buildSelections(FEMALE_CATEGORIES, salon?.offeredCategories));
@@ -129,6 +130,16 @@ export default function ServiceMenuScreen() {
   const [priceModal, setPriceModal] = useState({ open: false, catKey: '', subName: '', price: '', duration: '', genderContext: null });
   const priceRef    = useRef(null);
   const durationRef = useRef(null);
+
+  // Back handler: navigate from category detail back to category list
+  React.useEffect(() => {
+    const onBack = () => {
+      if (selectedCatKey) { setSelectedCatKey(null); return true; }
+      return false;
+    };
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBack);
+    return () => sub.remove();
+  }, [selectedCatKey]);
 
   const getSels = () => gender === 'male' ? maleSelections : gender === 'female' ? femaleSelections : unisexSelections;
   const setSels = (update) => {
@@ -254,13 +265,30 @@ export default function ServiceMenuScreen() {
       {/* Header */}
       <View style={[st.header, { paddingTop: 14 + insets.top, backgroundColor: theme.card, borderBottomColor: theme.border }]}>
         <View style={st.headerRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="arrow-back" size={24} color={theme.text} />
-          </TouchableOpacity>
-          <View style={{ flex: 1, marginLeft: 12 }}>
-            <Text style={[st.headerTitle, { color: theme.text }]}>Service Menu</Text>
-            <Text style={[st.headerSub, { color: theme.subText }]}>Configure categories, services & pricing</Text>
-          </View>
+          {selectedCatKey ? (
+            <>
+              <TouchableOpacity onPress={() => setSelectedCatKey(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name="arrow-back" size={24} color={theme.text} />
+              </TouchableOpacity>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={[st.headerTitle, { color: theme.text }]}>
+                  {currentCats.find(c => c.key === selectedCatKey)?.icon}{' '}
+                  {currentCats.find(c => c.key === selectedCatKey)?.label}
+                </Text>
+                <Text style={[st.headerSub, { color: theme.subText }]}>Select sub-services & set pricing</Text>
+              </View>
+            </>
+          ) : (
+            <>
+              <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name="arrow-back" size={24} color={theme.text} />
+              </TouchableOpacity>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={[st.headerTitle, { color: theme.text }]}>Service Menu</Text>
+                <Text style={[st.headerSub, { color: theme.subText }]}>Configure categories, services & pricing</Text>
+              </View>
+            </>
+          )}
           <TouchableOpacity style={[st.saveBtn, { backgroundColor: theme.accent }, (saving || !gender) && { opacity: 0.55 }]} onPress={handleSave} disabled={saving || !gender}>
             {saving
               ? <ActivityIndicator size="small" color="#fff" />
@@ -299,30 +327,25 @@ export default function ServiceMenuScreen() {
           <View style={{ gap: 8 }}>
             <Text style={[st.secLabel, { color: theme.subText, paddingHorizontal: 2 }]}>SELECT CATEGORIES & SUB-SERVICES</Text>
 
-            {currentCats.map(cat => {
-              const sel        = currentSels[cat.key] || { enabled: false, subServices: [] };
-              const isExpanded = expandedKey === cat.key && sel.enabled;
-              const isUnisex   = gender === 'unisex';
-
+            {selectedCatKey ? (() => {
+              /* ── Category detail view ── */
+              const cat     = currentCats.find(c => c.key === selectedCatKey);
+              const sel     = currentSels[selectedCatKey] || { enabled: false, subServices: [] };
+              const isUnisex = gender === 'unisex';
+              if (!cat) return null;
               return (
-                <View key={cat.key} style={[st.catCard, { backgroundColor: theme.card, borderColor: sel.enabled ? '#3b82f6' : theme.border }]}>
-                  {/* Row */}
-                  <View style={[st.catRow, sel.enabled && { backgroundColor: theme.bg }]}>
-                    <Text style={st.catEmoji}>{cat.icon}</Text>
-                    <Text style={[st.catLabel, { color: theme.text }]}>{cat.label}</Text>
-                    {sel.enabled && (
-                      <TouchableOpacity onPress={() => setExpandedKey(isExpanded ? null : cat.key)} style={st.expandBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                        <Text style={st.expandCount}>{sel.subServices.length}</Text>
-                        <Ionicons name={isExpanded ? 'chevron-up' : 'chevron-down'} size={14} color="#6b7280" />
-                      </TouchableOpacity>
-                    )}
+                <View style={{ gap: 10 }}>
+                  {/* Enable toggle */}
+                  <View style={[st.card, { backgroundColor: theme.card, borderColor: theme.border, flexDirection: 'row', alignItems: 'center' }]}>
+                    <Text style={{ flex: 1, fontSize: 13, fontWeight: '600', color: theme.text }}>
+                      Enable "{cat.label}"
+                    </Text>
                     <Switch value={sel.enabled} onValueChange={() => toggleCat(cat.key)}
                       trackColor={{ false: '#d1d5db', true: '#93c5fd' }} thumbColor={sel.enabled ? '#6366f1' : '#9ca3af'} />
                   </View>
 
-                  {/* Sub-service chips */}
-                  {isExpanded && (
-                    <View style={[st.subBody, { backgroundColor: theme.card, borderTopColor: theme.border }]}>
+                  {sel.enabled ? (
+                    <View style={[st.subBody, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1, borderRadius: 12, gap: 10 }]}>
                       <Text style={st.subHint}>Tap to select · enter price & duration</Text>
 
                       {isUnisex && cat.maleSubServices ? (
@@ -364,7 +387,7 @@ export default function ServiceMenuScreen() {
                         </View>
                       ) : (
                         <View style={st.chipsWrap}>
-                          {cat.subServices.map(sub => {
+                          {(cat.subServices || []).map(sub => {
                             const active = sel.subServices.find(s => s.name === sub);
                             return (
                               <TouchableOpacity key={sub} onPress={() => toggleSub(cat.key, sub)}
@@ -391,10 +414,51 @@ export default function ServiceMenuScreen() {
                         </View>
                       )}
                     </View>
+                  ) : (
+                    <View style={[st.card, { backgroundColor: theme.card, borderColor: theme.border, alignItems: 'center', paddingVertical: 20 }]}>
+                      <Text style={{ color: theme.subText, fontSize: 13, textAlign: 'center' }}>
+                        Enable this category above to start selecting sub-services
+                      </Text>
+                    </View>
                   )}
                 </View>
               );
-            })}
+            })() : (
+              /* ── Category navigation cards ── */
+              currentCats.map(cat => {
+                const sel   = currentSels[cat.key] || { enabled: false, subServices: [] };
+                const count = sel.subServices.length;
+                return (
+                  <View key={cat.key} style={[st.catNavCard, { backgroundColor: theme.card, borderColor: sel.enabled ? '#6366f1' : theme.border }]}>
+                    <TouchableOpacity
+                      style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }}
+                      onPress={() => setSelectedCatKey(cat.key)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={st.catEmoji}>{cat.icon}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[st.catLabel, { color: theme.text }]}>{cat.label}</Text>
+                        <Text style={[st.catDetailSub, { color: theme.subText }]}>
+                          {sel.enabled
+                            ? count > 0 ? `${count} selected` : 'Tap to select services'
+                            : 'Not enabled'}
+                        </Text>
+                      </View>
+                      {sel.enabled && count > 0 && (
+                        <View style={[st.navCountBadge, { backgroundColor: '#eef2ff' }]}>
+                          <Text style={[st.navCountText, { color: '#6366f1' }]}>{count}</Text>
+                        </View>
+                      )}
+                      <Ionicons name="chevron-forward" size={16} color={theme.subText} />
+                    </TouchableOpacity>
+                    <View style={{ marginLeft: 6 }}>
+                      <Switch value={sel.enabled} onValueChange={() => toggleCat(cat.key)}
+                        trackColor={{ false: '#d1d5db', true: '#93c5fd' }} thumbColor={sel.enabled ? '#6366f1' : '#9ca3af'} />
+                    </View>
+                  </View>
+                );
+              })
+            )}
 
             {/* Optional add-ons (male / female only) */}
             {(gender === 'male' || gender === 'female') && (
@@ -539,6 +603,11 @@ const getSt = (theme, isDark) => StyleSheet.create({
   genderOptRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 14, borderRadius: 14, borderWidth: 1.5 },
   genderOptLabel: { fontSize: 14, fontWeight: '700' },
   genderOptDesc: { fontSize: 12, marginTop: 1 },
+
+  catNavCard: { borderRadius: 12, borderWidth: 1.5, flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 14, marginBottom: 10 },
+  catDetailSub: { fontSize: 12, marginTop: 1 },
+  navCountBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999 },
+  navCountText: { fontSize: 11, fontWeight: '700' },
 
   catCard: { borderRadius: 12, borderWidth: 1.5, overflow: 'hidden' },
   catRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, gap: 10 },
