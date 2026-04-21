@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Calendar, Clock, Phone, User, IndianRupee, Scissors, X, Plus,
   ShieldOff, ShieldCheck, CalendarOff, ChevronDown, MoreHorizontal,
-  CheckCircle, XCircle, PlayCircle, Loader2, MessageSquare,
+  CheckCircle, XCircle, PlayCircle, Loader2, MessageSquare, AlertTriangle, Users,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { io } from 'socket.io-client';
@@ -389,7 +389,15 @@ const BookingRow = ({ booking, updating, onStatusChange, isBlocked, blockLoading
           <Scissors className="w-3.5 h-3.5 text-gray-400 dark:text-gray-600 shrink-0" />
           <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{booking.serviceName || '—'}</span>
         </div>
-        <div className="flex gap-1 mt-1">
+        <div className="flex gap-1 mt-1 flex-wrap">
+          {!booking.barberId && (
+            <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-400 font-semibold ring-1 ring-red-300 dark:ring-red-800">
+              <AlertTriangle className="w-2.5 h-2.5" /> UNASSIGNED
+            </span>
+          )}
+          {booking.barberName && booking.barberId && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-950/50 text-violet-700 dark:text-violet-400 font-medium">{booking.barberName}</span>
+          )}
           {booking.isWalkIn && (
             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 font-medium">Walk-in</span>
           )}
@@ -492,6 +500,11 @@ const BookingCard = ({ booking, updating, onStatusChange, isBlocked, blockLoadin
         </span>
       </div>
 
+      {!booking.barberId && (
+        <div className="mb-2 inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-400 font-semibold ring-1 ring-red-300 dark:ring-red-800">
+          <AlertTriangle className="w-2.5 h-2.5" /> UNASSIGNED — needs staff assignment
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-2 mb-3 text-sm text-gray-600 dark:text-gray-400">
         <div className="flex items-center gap-1.5"><Scissors className="w-3.5 h-3.5 text-gray-400" /><span className="truncate">{booking.serviceName||'—'}</span></div>
         <div className="flex items-center gap-1.5"><IndianRupee className="w-3.5 h-3.5 text-gray-400" /><span className="font-semibold text-gray-900 dark:text-white">{booking.totalAmount??'—'}</span></div>
@@ -737,7 +750,9 @@ const Bookings = () => {
   const [blocking, setBlocking]         = useState(null);
   const [pageLoading, setPageLoading]   = useState(false);
   const [chatBooking, setChatBooking]   = useState(null);
-  const [unreadChats, setUnreadChats]   = useState(new Set()); // bookingIds with unread msgs
+  const [unreadChats, setUnreadChats]   = useState(new Set());
+  const [staffList, setStaffList]       = useState([]);
+  const [staffFilter, setStaffFilter]   = useState('all'); // 'all' | staffId | 'unassigned'
 
   const handleOpenChat = useCallback((booking) => {
     setChatBooking(booking);
@@ -781,6 +796,12 @@ const Bookings = () => {
   }, [selectedDate]);
 
   useEffect(() => {
+    api.get('/owner/team')
+      .then(res => setStaffList(res.data.data?.staff?.filter(s => s.isActive) || []))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     api.get('/owner/blocked-customers')
       .then(res => {
         const ids = new Set(
@@ -793,7 +814,12 @@ const Bookings = () => {
       .catch(() => {});
   }, []);
 
-  const filteredBookings = bookings.filter(b => filter === 'all' ? true : b.status === filter);
+  const filteredBookings = bookings.filter(b => {
+    if (filter !== 'all' && b.status !== filter) return false;
+    if (staffFilter === 'unassigned') return !b.barberId;
+    if (staffFilter !== 'all') return String(b.barberId) === staffFilter;
+    return true;
+  });
 
   const handleStatusChange = async (bookingId, newStatus) => {
     setUpdating(bookingId);
@@ -865,6 +891,30 @@ const Bookings = () => {
               />
               <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             </div>
+
+            {/* Staff filter — only shown when salon has staff */}
+            {staffList.length > 1 && (
+              <div className="relative">
+                <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <select
+                  value={staffFilter}
+                  onChange={e => setStaffFilter(e.target.value)}
+                  className="pl-8 pr-8 py-2 rounded-xl border text-sm appearance-none
+                    bg-white dark:bg-gray-900
+                    border-gray-200 dark:border-gray-700
+                    text-gray-700 dark:text-gray-300
+                    focus:outline-none focus:ring-2 focus:ring-indigo-500
+                    transition-colors cursor-pointer"
+                >
+                  <option value="all">All Staff</option>
+                  <option value="unassigned">Unassigned</option>
+                  {staffList.map(s => (
+                    <option key={s._id} value={s._id}>{s.name}{s.isOwner ? ' (You)' : ''}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+              </div>
+            )}
 
             {/* Add Walk-in */}
             <button
