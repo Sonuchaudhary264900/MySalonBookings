@@ -199,13 +199,15 @@ const Reports = () => {
 
   /* ── Fetch team stats — only shown when real staff exist ── */
   useEffect(() => {
-    api.get(`/owner/team/stats?from=${startDate}&to=${endDate}`)
+    const controller = new AbortController();
+    api.get(`/owner/team/stats?from=${startDate}&to=${endDate}`, { signal: controller.signal })
       .then(res => {
         const team = res.data.data?.team || [];
         const hasRealStaff = team.filter(s => !s.isOwner && !s.isUnassigned).length > 0;
         setTeamStats(hasRealStaff ? team : []);
       })
-      .catch(() => setTeamStats([]));
+      .catch(err => { if (err?.name !== 'CanceledError' && err?.name !== 'AbortError') setTeamStats([]); });
+    return () => controller.abort();
   }, [startDate, endDate]);
 
   /* ── Fetch analytics ── */
@@ -333,8 +335,10 @@ const Reports = () => {
 
   /* ── Export PDF ── */
   const exportPDF = () => {
+    const escHtml = (s) => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const salonName = escHtml(salon?.name || 'My Salon');
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
-<title>${salon?.name || 'Salon'} — Analytics</title>
+<title>${salonName} — Analytics</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:Arial,sans-serif;color:#1f2937;padding:32px;font-size:13px}
@@ -360,7 +364,7 @@ const Reports = () => {
   .footer{margin-top:28px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center}
   @media print{body{padding:0}@page{margin:10mm}}
 </style></head><body>
-<h1>✂ ${salon?.name || 'My Salon'}</h1>
+<h1>✂ ${salonName}</h1>
 <p class="sub">Analytics Report &nbsp;·&nbsp; ${formatDate(startDate)} – ${formatDate(endDate)} &nbsp;·&nbsp; Generated ${new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})}</p>
 <div class="stats">
   <div class="stat blue"><div class="stat-label">Total Revenue</div><div class="stat-value">₹${totalRevenue.toLocaleString()}</div></div>

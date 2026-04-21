@@ -415,7 +415,7 @@ export default function Team() {
                   {inactiveStaff.map(m => (
                     <StaffCard key={m._id} member={m}
                       onEdit={member => setModal({ mode: 'edit', initial: member })}
-                      onRemove={() => {}}
+                      onRemove={() => setRemoving(m)}
                       onToggleActive={handleToggleActive} />
                   ))}
                 </div>

@@ -42,6 +42,7 @@ function Booking() {
   const [couponLoading, setCouponLoading] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [barberAvailability, setBarberAvailability] = useState({}); // barberId → true (has free slots) / false (fully busy)
+  const [barberAvailabilityLoading, setBarberAvailabilityLoading] = useState(false);
 
   const localDate = (offset = 0) => { const d = new Date(); d.setDate(d.getDate() + offset); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
   const today      = localDate(0);
@@ -126,6 +127,7 @@ function Booking() {
     if (!date || !salonId || !totalDuration || barbers.length === 0) return;
     let cancelled = false;
     const checkAll = async () => {
+      setBarberAvailabilityLoading(true);
       const results = {};
       await Promise.all(barbers.map(async b => {
         try {
@@ -139,7 +141,10 @@ function Booking() {
           results[b._id] = true; // assume available on error
         }
       }));
-      if (!cancelled) setBarberAvailability(results);
+      if (!cancelled) {
+        setBarberAvailability(results);
+        setBarberAvailabilityLoading(false);
+      }
     };
     checkAll();
     return () => { cancelled = true; };
@@ -385,22 +390,26 @@ function Booking() {
                   </button>
                   {barbers.map(b => {
                     const isBusy    = barberAvailability[b._id] === false;
+                    const isLoading = barberAvailabilityLoading;
                     const isSelected = barberId === b._id;
                     return (
                       <button
                         key={b._id}
                         type="button"
-                        disabled={isBusy}
-                        onClick={() => { if (!isBusy) setBarberId(b._id); }}
+                        disabled={isBusy || isLoading}
+                        onClick={() => { if (!isBusy && !isLoading) setBarberId(b._id); }}
                         className="px-3 py-2.5 rounded-xl border text-sm font-medium transition-all text-left relative"
                         style={
+                          isLoading ? { background: 'var(--t-bg-2)', color: 'var(--t-text-3)', borderColor: 'var(--t-border)', opacity: 0.5, cursor: 'wait' } :
                           isBusy    ? { background: 'var(--t-bg-2)', color: 'var(--t-text-3)', borderColor: 'var(--t-border)', opacity: 0.6, cursor: 'not-allowed' } :
                           isSelected? { background: 'var(--t-accent)', color: '#fff', borderColor: 'var(--t-accent)' } :
                                       { background: 'var(--t-input-bg)', color: 'var(--t-text-2)', borderColor: 'var(--t-border)' }
                         }
                       >
                         <span className="block font-semibold">{b.name}</span>
-                        {isBusy ? (
+                        {isLoading ? (
+                          <span className="text-xs" style={{ color: 'var(--t-text-3)' }}>Checking...</span>
+                        ) : isBusy ? (
                           <span className="text-xs font-bold" style={{ color: '#f87171' }}>Fully booked</span>
                         ) : (
                           b.experience > 0 && <span className="text-xs" style={{ color: isSelected ? 'rgba(255,255,255,0.7)' : 'var(--t-text-3)' }}>{b.experience} yr exp</span>

@@ -479,9 +479,10 @@ const Dashboard = () => {
     setShowWelcomeBack(false);
   };
 
-  /* ── Fetch team stats (cached 60s, skipped for solo owners) ── */
+  /* ── Fetch team stats (cached 60s per salon, skipped for solo owners) ── */
   useEffect(() => {
-    const CACHE_KEY = 'msb_team_stats_cache';
+    if (!salon?._id) return; // wait until salon loaded so cache key is salon-specific
+    const CACHE_KEY = `msb_team_stats_${salon._id}`;
     const CACHE_TTL = 60_000; // 60 seconds
     const cached = (() => { try { return JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null'); } catch { return null; } })();
     if (cached && Date.now() - cached.ts < CACHE_TTL) {
@@ -499,7 +500,7 @@ const Dashboard = () => {
         }
       })
       .catch(() => {});
-  }, []);
+  }, [salon?._id]);
 
   /* ── Fetch queue ── */
   const fetchQueue = useCallback(async () => {

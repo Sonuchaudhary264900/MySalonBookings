@@ -975,8 +975,8 @@ const Bookings = () => {
               <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             </div>
 
-            {/* Staff filter — only shown when salon has staff */}
-            {staffList.length > 1 && (
+            {/* Staff filter — only shown when salon has at least one non-owner staff member */}
+            {staffList.filter(s => !s.isOwner).length > 0 && (
               <div className="relative">
                 <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 <select
