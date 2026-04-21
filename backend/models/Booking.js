@@ -21,8 +21,9 @@ const bookingSchema = new mongoose.Schema(
         duration:     Number,
       }
     ],
-    barberId: { type: mongoose.Schema.Types.ObjectId, ref: 'Barber' },
-    barberName: String,
+    barberId:  { type: mongoose.Schema.Types.ObjectId, ref: 'Barber' },
+    barberName: String, // legacy field — kept for backward compatibility
+    staffName:  String, // canonical alias used across all business types
     appointmentDate: Date,
     appointmentTime: String,
     appointmentEndTime: String,
@@ -68,6 +69,7 @@ bookingSchema.index({ salonId: 1, appointmentDate: 1, status: 1 }); // slot-chec
 bookingSchema.index({ customerId: 1, createdAt: -1 });               // customer booking list
 bookingSchema.index({ salonId: 1, createdAt: -1 });                  // owner booking list (analytics)
 bookingSchema.index({ bookingId: 1 }, { unique: true, sparse: true });
+bookingSchema.index({ salonId: 1, barberId: 1, appointmentDate: 1 }); // barber availability checks (auto-assign + overlap)
 
 // DB-level race condition guard — prevents double booking even under concurrent requests
 bookingSchema.index(

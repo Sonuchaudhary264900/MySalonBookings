@@ -4068,12 +4068,12 @@ router.post(  '/admin/catalog/seed',           authenticateAdmin, asyncHandler(c
    OWNER — TEAM MANAGEMENT
 ===================================================== */
 const staffController = require('../controllers/owner/staffController');
-router.get(   '/owner/team',                          authenticateOwner, asyncHandler(staffController.getTeam));
-router.post(  '/owner/team',                          authenticateOwner, asyncHandler(staffController.addStaff));
-router.get(   '/owner/team/stats',                    authenticateOwner, asyncHandler(staffController.getTeamStats));
-router.put(   '/owner/team/:staffId',                 authenticateOwner, asyncHandler(staffController.updateStaff));
-router.delete('/owner/team/:staffId',                 authenticateOwner, asyncHandler(staffController.removeStaff));
-router.put(   '/owner/team/:staffId/assign-booking',  authenticateOwner, asyncHandler(staffController.assignBooking));
+router.get(   '/owner/team',                         authenticateOwner,                                  asyncHandler(staffController.getTeam));
+router.post(  '/owner/team',                         authenticateOwner, checkSubscription,               asyncHandler(staffController.addStaff));
+router.get(   '/owner/team/stats',                   authenticateOwner,                                  asyncHandler(staffController.getTeamStats));
+router.put(   '/owner/team/:staffId',                authenticateOwner, validateObjectId('staffId'),     asyncHandler(staffController.updateStaff));
+router.delete('/owner/team/:staffId',                authenticateOwner, validateObjectId('staffId'),     asyncHandler(staffController.removeStaff));
+router.put(   '/owner/team/:staffId/assign-booking', authenticateOwner, validateObjectId('staffId'),     asyncHandler(staffController.assignBooking));
 
 /* =====================================================
    OWNER — CATALOG (read-only, returns tree for their business type)

@@ -38,5 +38,8 @@ const barberSchema = new mongoose.Schema(
 
 barberSchema.index({ salonId: 1 });
 barberSchema.index({ isActive: 1 });
+barberSchema.index({ salonId: 1, isActive: 1 });           // team list — most common query
+barberSchema.index({ salonId: 1, isOwner: 1 });            // find owner virtual record fast
+barberSchema.index({ ownerId: 1 });                        // owner → all their staff
 
 module.exports = mongoose.model('Barber', barberSchema);

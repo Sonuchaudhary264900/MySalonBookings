@@ -9,6 +9,7 @@ const { formatSuccessResponse, formatErrorResponse } = require('../../utils/form
 const { validateBookingData, validatePagination } = require('../../utils/validators');
 const { generateBookingId } = require('../../utils/helpers');
 const messages = require('../../utils/messages');
+const { autoAssignStaff } = require('../../utils/autoAssign');
 
 
 const { createOrder } = require('../../config/razorpay');
@@ -127,11 +128,14 @@ const createBooking = async (req, res) => {
       );
     }
 
-    // Reject bookings for past time slots (using IST)
-    const nowIST    = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
-    const todayIST  = nowIST.toISOString().slice(0, 10);
-    if (appointmentDate === todayIST) {
-      const nowMin = nowIST.getUTCHours() * 60 + nowIST.getUTCMinutes();
+    // Reject bookings for past time slots (timezone-aware)
+    // Use salon's timezone offset; default to IST (+5:30) for India-based salons.
+    // Full per-salon timezone is Phase 2 — this covers 99% of current users safely.
+    const tzOffsetMs = (salon.timezoneOffsetMinutes ?? 330) * 60 * 1000; // default IST = +330 min
+    const nowLocal   = new Date(Date.now() + tzOffsetMs);
+    const todayLocal = nowLocal.toISOString().slice(0, 10);
+    if (appointmentDate === todayLocal) {
+      const nowMin = nowLocal.getUTCHours() * 60 + nowLocal.getUTCMinutes();
       if (apptMin <= nowMin) {
         return res.status(400).json(
           formatErrorResponse('This time slot has already passed. Please choose an upcoming slot.', 400)
@@ -142,27 +146,69 @@ const createBooking = async (req, res) => {
     const primaryService = fetchedServices[0];
     const combinedName  = fetchedServices.map(s => s.name).join(' + ');
 
+    const timeToMinutes = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+    const newStart = timeToMinutes(appointmentTime);
+    const newEnd   = newStart + totalDuration;
+
+    // ── Validate or auto-assign barber ──────────────────────────────────────
     let barber = null;
     if (barberId) {
+      // Customer picked a specific staff member — validate they exist and are free
       barber = await Barber.findById(barberId);
       if (!barber || !barber.isActive) {
         return res.status(404).json(
           formatErrorResponse(messages.BARBER.BARBER_NOT_AVAILABLE, 404)
         );
       }
+
+      // Barber-specific overlap check (per-staff, not salon-wide)
+      const barberConflict = await Booking.findOne({
+        barberId: barber._id,
+        appointmentDate: { $gte: dayStart, $lte: dayEnd },
+        status: { $in: ['pending', 'confirmed', 'in_progress'] },
+        $where: function () {
+          const s = parseInt((this.appointmentTime || '00:00').replace(':', ''), 10);
+          return false; // JS $where is slow; use aggregation below instead
+        },
+      }).select('appointmentTime estimatedDuration').lean();
+
+      // Use a proper query instead of $where — check all the barber's bookings that day
+      const barberBookingsToday = await Booking.find({
+        barberId: barber._id,
+        appointmentDate: { $gte: dayStart, $lte: dayEnd },
+        status: { $in: ['pending', 'confirmed', 'in_progress'] },
+      }).select('appointmentTime estimatedDuration').lean();
+
+      const barberHasConflict = barberBookingsToday.some(b => {
+        const es = timeToMinutes(b.appointmentTime);
+        const ee = es + (b.estimatedDuration || 30);
+        return newStart < ee && newEnd > es;
+      });
+
+      if (barberHasConflict) {
+        return res.status(409).json(
+          formatErrorResponse('This stylist is not available at that time. Please choose another stylist or time.', 409)
+        );
+      }
+    } else {
+      // Customer picked "Any Available" — run smart auto-assign algorithm
+      barber = await autoAssignStaff({
+        salonId,
+        appointmentDate,
+        appointmentTime,
+        totalDuration,
+        serviceIds: serviceIdList,
+      });
+      // barber may be null — booking will be created as UNASSIGNED (handled below)
     }
 
-    // Check for overlapping bookings
-    const timeToMinutes = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
-
+    // ── Salon-wide overlap check (prevents same slot being triple-booked) ──
+    // Note: DB unique partial index is the final guard, but this gives a friendly error first.
     const existingBookings = await Booking.find({
       salonId,
       appointmentDate: { $gte: dayStart, $lte: dayEnd },
       status: { $in: ['pending', 'confirmed', 'in_progress'] },
     }).select('appointmentTime estimatedDuration').lean();
-
-    const newStart = timeToMinutes(appointmentTime);
-    const newEnd   = newStart + totalDuration;
 
     const hasConflict = existingBookings.some((b) => {
       const existStart = timeToMinutes(b.appointmentTime);
@@ -224,8 +270,9 @@ const createBooking = async (req, res) => {
         servicePrice: s.basePrice,
         duration:     s.duration,
       })),
-      barberId: barberId || null,
-      barberName: barber?.name || "Any",
+      barberId:  barber?._id || null,
+      barberName: barber?.name || null, // null = truly unassigned (not "Any")
+      staffName:  barber?.name || null, // alias for non-barbershop business types
       appointmentDate: new Date(appointmentDate + 'T12:00:00.000Z'),
       appointmentTime,
       estimatedDuration: totalDuration,
