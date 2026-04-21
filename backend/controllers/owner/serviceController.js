@@ -46,6 +46,14 @@ exports.createService = async (req, res) => {
 
     const normalizedApplicableFor = normalizeApplicableFor(applicableFor, salon.servedGender);
 
+    // Prevent duplicate service name within same salon
+    const dupe = await Service.findOne({ salonId: salon._id, name: name.trim() });
+    if (dupe) {
+      return res.status(409).json(
+        formatErrorResponse('A service with this name already exists. Update the existing one instead.', 409)
+      );
+    }
+
     const service = await Service.create({
       name,
       description: description || '',
@@ -168,6 +176,8 @@ exports.bulkUpsertServices = async (req, res) => {
           await Service.findByIdAndUpdate(existing._id, {
             ...(u.basePrice !== undefined && { basePrice: u.basePrice }),
             ...(u.duration  !== undefined && { duration:  u.duration  }),
+            ...(u.isActive  !== undefined && { isActive:  u.isActive  }),
+            ...(u.photos    !== undefined && { photos:    Array.isArray(u.photos) ? u.photos.slice(0,1) : [] }),
           });
           updated++;
         } else {
@@ -180,7 +190,7 @@ exports.bulkUpsertServices = async (req, res) => {
             duration: u.duration || 30,
             isActive: true,
             applicableFor: normalizeApplicableFor(u.applicableFor, salon.servedGender),
-            photos: [],
+            photos: Array.isArray(u.photos) ? u.photos.slice(0,1) : [],
           });
           if (!salon.services.includes(svc._id)) salon.services.push(svc._id);
           created++;

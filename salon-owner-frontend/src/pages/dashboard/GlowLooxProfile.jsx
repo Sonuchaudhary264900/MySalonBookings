@@ -208,6 +208,9 @@ export default function GlowLooxProfile() {
   const [lightbox,     setLightbox]     = useState(null);
   const [bannerIdx,    setBannerIdx]    = useState(0);
 
+  /* ── service catalog (from API, fallback to hardcoded) ── */
+  const [catalogCats, setCatalogCats] = useState(null); // null = not yet loaded
+
   /* ── service drill-down nav ── */
   const [svcNavStack, setSvcNavStack] = useState([]);
 
@@ -305,16 +308,31 @@ export default function GlowLooxProfile() {
   useEffect(() => { loadAll(); }, [loadAll]);
   useEffect(() => { if (lastCompletedAt) loadGallery(); }, [lastCompletedAt, loadGallery]);
 
+  /* fetch catalog from API; fall back to hardcoded if empty or error */
+  useEffect(() => {
+    if (!salon?._id) return;
+    api.get('/owner/catalog').then(res => {
+      const cats = res.data?.data?.categories;
+      if (cats && cats.length > 0) {
+        setCatalogCats(cats);
+      } else {
+        setCatalogCats(getCategoriesForSalonType(salon.businessType || 'salon', salon.servedGender || 'unisex'));
+      }
+    }).catch(() => {
+      setCatalogCats(getCategoriesForSalonType(salon?.businessType || 'salon', salon?.servedGender || 'unisex'));
+    });
+  }, [salon?._id, salon?.businessType, salon?.servedGender]); // eslint-disable-line
+
   /* auto-launch quick setup when owner has zero services */
   useEffect(() => {
     if (!loading && Array.isArray(services) && services.length === 0 && activeTab === 'services' && !quickSetup) {
-      const menuCats = getCategoriesForSalonType(salon?.businessType || 'salon', salon?.servedGender || 'unisex');
+      const cats = catalogCats || getCategoriesForSalonType(salon?.businessType || 'salon', salon?.servedGender || 'unisex');
       const top = new Set();
-      menuCats.forEach(c => (c.sections?.[0]?.services || c.subServices || []).slice(0, 3).forEach(s => top.add(`${s}||${c.label}`)));
+      cats.forEach(c => (c.sections?.[0]?.services || c.subServices || []).slice(0, 3).forEach(s => top.add(`${s}||${c.label}`)));
       setSetupSelected(top);
       setQuickSetup(true);
     }
-  }, [loading, services, activeTab]); // eslint-disable-line
+  }, [loading, services, activeTab, catalogCats]); // eslint-disable-line
 
   /* banner auto-advance */
   useEffect(() => {
@@ -668,7 +686,7 @@ export default function GlowLooxProfile() {
       if (!catSvcMap[cat]) catSvcMap[cat] = {};
       catSvcMap[cat][svc.name] = svc;
     });
-    const menuCats   = getCategoriesForSalonType(salon?.businessType || 'salon', salon?.servedGender || 'unisex');
+    const menuCats   = catalogCats || getCategoriesForSalonType(salon?.businessType || 'salon', salon?.servedGender || 'unisex');
     const menuLabels = menuCats.map(c => c.label);
 
     /* ── reusable price/duration chip rows ── */
@@ -878,9 +896,15 @@ export default function GlowLooxProfile() {
               const isToggling   = isAdded && togglingId === (svc._id || svc.id);
               const isSaving     = savingSvc === svcName;
               const isUploadImg  = isAdded && uploadingSvcImg === (svc._id || svc.id);
-              const imgUrl       = isAdded ? getServiceImage(svc) : getServiceImage({ name: svcName, category: cat });
+              const catalogDetail = menuCats.find(mc => mc.label === cat)?.serviceDetails?.[svcName];
+              const imgUrl       = isAdded
+                ? (svc.photos?.[0] || catalogDetail?.defaultImage || getServiceImage(svc))
+                : (catalogDetail?.defaultImage || getServiceImage({ name: svcName, category: cat }));
               const isChecked    = bulkSelected.has(svcName);
-              const hint         = SUGGESTED_PRICES[svcName];
+              const catalogHints = catalogDetail?.priceHints;
+              const hint         = catalogHints?.length >= 2
+                ? [catalogHints[0], catalogHints[catalogHints.length - 1]]
+                : SUGGESTED_PRICES[svcName];
 
               return (
                 <div key={svcName}

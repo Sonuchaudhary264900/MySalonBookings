@@ -4048,4 +4048,70 @@ router.delete('/admin/site-settings/hero-images/:imageId', authenticateAdmin, as
   res.json({ success: true, data: { heroImages: settings.heroImages } });
 }));
 
+/* =====================================================
+   ADMIN — SERVICE CATALOG
+===================================================== */
+const catalogController = require('../controllers/admin/catalogController');
+
+router.get(   '/admin/catalog/business-types', authenticateAdmin, asyncHandler(catalogController.getBusinessTypes));
+router.get(   '/admin/catalog/tree',           authenticateAdmin, asyncHandler(catalogController.getTree));
+router.get(   '/admin/catalog/entries',        authenticateAdmin, asyncHandler(catalogController.getEntries));
+router.post(  '/admin/catalog/entries',        authenticateAdmin, asyncHandler(catalogController.createEntry));
+router.put(   '/admin/catalog/entries/:id',    authenticateAdmin, asyncHandler(catalogController.updateEntry));
+router.delete('/admin/catalog/entries/:id',    authenticateAdmin, asyncHandler(catalogController.deleteEntry));
+router.delete('/admin/catalog/batch',          authenticateAdmin, asyncHandler(catalogController.deleteBatch));
+router.put(   '/admin/catalog/rename',         authenticateAdmin, asyncHandler(catalogController.renameLevel));
+router.post(  '/admin/catalog/upload-image',   authenticateAdmin, multerUpload.single('image'), asyncHandler(catalogController.uploadImage));
+router.post(  '/admin/catalog/seed',           authenticateAdmin, asyncHandler(catalogController.seed));
+
+/* =====================================================
+   OWNER — CATALOG (read-only, returns tree for their business type)
+===================================================== */
+router.get('/owner/catalog', authenticateOwner, asyncHandler(async (req, res) => {
+  const CatalogEntry = require('../models/CatalogEntry');
+  const Business     = require('../models/Business');
+
+  const salon = await Business.findOne({ ownerId: req.owner._id }).lean();
+  if (!salon) return res.status(404).json({ success: false, message: 'Business not found' });
+
+  const businessType = salon.businessType || 'salon';
+  const entries = await CatalogEntry.find({ businessType, isActive: true })
+    .sort({ order: 1, name: 1 })
+    .lean();
+
+  if (!entries.length) {
+    return res.json({ success: true, data: { categories: [], empty: true } });
+  }
+
+  const catMap = {};
+  for (const e of entries) {
+    if (!catMap[e.category]) {
+      catMap[e.category] = { label: e.category, categoryImage: e.categoryImage || '', sections: {}, subServices: [] };
+    }
+    const cat = catMap[e.category];
+    if (e.categoryImage && !cat.categoryImage) cat.categoryImage = e.categoryImage;
+    const sec = e.subCategory || 'All Services';
+    if (!cat.sections[sec]) cat.sections[sec] = [];
+    cat.sections[sec].push(e.name);
+    if (!cat.subServices.includes(e.name)) cat.subServices.push(e.name);
+  }
+
+  const categories = Object.values(catMap).map(c => ({
+    key: c.label.toLowerCase().replace(/[^a-z0-9]+/g, '_'),
+    label: c.label,
+    categoryImage: c.categoryImage,
+    sections: Object.entries(c.sections).map(([label, services]) => ({ label, services })),
+    subServices: c.subServices,
+    serviceDetails: (() => {
+      const map = {};
+      for (const e of entries.filter(e2 => e2.category === c.label)) {
+        map[e.name] = { defaultImage: e.defaultImage || '', priceHints: e.priceHints || [], durationHints: e.durationHints || [], defaultDuration: e.defaultDuration || 30 };
+      }
+      return map;
+    })(),
+  }));
+
+  res.json({ success: true, data: { categories } });
+}));
+
 module.exports = router;
