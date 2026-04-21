@@ -415,7 +415,7 @@ export default function GlowLooxProfile() {
 
   /* ── Gallery ── */
   const renderGallery = () => {
-    if (loading) return <div className="p-4 grid grid-cols-3 gap-0.5">{[1,2,3,4,5,6].map(i => <Skeleton key={i} className="aspect-square" />)}</div>;
+    if (loading) return <div className="p-4 grid grid-cols-3 lg:grid-cols-4 gap-0.5">{[1,2,3,4,5,6,7,8].map(i => <Skeleton key={i} className="aspect-square" />)}</div>;
     return (
       <>
         {/* Upload buttons */}
@@ -439,7 +439,7 @@ export default function GlowLooxProfile() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-0.5 sm:gap-1">
+          <div className="grid grid-cols-3 lg:grid-cols-4 gap-0.5 sm:gap-1">
             {galleryItems.map((item, i) => (
               <div key={item._id || i} className="relative aspect-square overflow-hidden group cursor-pointer">
                 <img src={getGalleryMediaUrl(item)} alt="" onClick={() => setLightbox(i)}
@@ -969,12 +969,136 @@ export default function GlowLooxProfile() {
   };
 
   /* ══════════════════════════════════════════════════════════ */
+
+  /* shared profile info block — used in both mobile stacked and desktop sidebar */
+  const renderProfileInfo = () => (
+    <>
+      {/* Avatar row */}
+      <div className="flex items-end justify-between mb-3">
+        <div className="relative">
+          <div style={{ borderColor: biz.p, boxShadow: `0 4px 20px ${biz.ring}` }}
+            className="w-[72px] h-[72px] lg:w-20 lg:h-20 rounded-full border-[3px] overflow-hidden bg-white dark:bg-gray-900 shrink-0">
+            {coverPhoto
+              ? <img src={coverPhoto} alt={salon?.name} className="w-full h-full object-cover" />
+              : <div style={{ backgroundColor: biz.p + '22', color: biz.acc }}
+                  className="w-full h-full flex items-center justify-center text-2xl font-black">
+                  {(salon?.name || 'B').charAt(0)}
+                </div>
+            }
+          </div>
+          <button onClick={() => avatarInputRef.current?.click()}
+            style={{ backgroundColor: biz.p }}
+            className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center shadow-md border-2 border-white dark:border-[#0d0520]">
+            <Camera className="w-3 h-3 text-white" />
+          </button>
+          <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+        </div>
+        {/* Stats: horizontal on mobile, vertical on desktop sidebar */}
+        <div className="flex gap-5 pb-1 lg:hidden">
+          {[
+            { val: (services || []).length, label: 'Services' },
+            { val: salon?.totalBookings >= 1000 ? `${(salon.totalBookings/1000).toFixed(1)}k` : (salon?.totalBookings || 0), label: 'Customers' },
+            { val: salon?.followersCount || 0, label: 'Followers' },
+          ].map(({ val, label }) => (
+            <div key={label} className="text-center">
+              <p className="text-base font-black text-gray-900 dark:text-white">{val}</p>
+              <p className="text-[10px] text-gray-400 mt-0.5">{label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Stats: shown only on desktop, below avatar */}
+      <div className="hidden lg:flex gap-4 mb-4 border border-gray-100 dark:border-white/[0.08] rounded-2xl p-3">
+        {[
+          { val: (services || []).length, label: 'Services' },
+          { val: salon?.totalBookings >= 1000 ? `${(salon.totalBookings/1000).toFixed(1)}k` : (salon?.totalBookings || 0), label: 'Customers' },
+          { val: salon?.followersCount || 0, label: 'Followers' },
+        ].map(({ val, label }, idx, arr) => (
+          <div key={label} className={`flex-1 text-center ${idx < arr.length - 1 ? 'border-r border-gray-100 dark:border-white/[0.08]' : ''}`}>
+            <p className="text-[15px] font-black text-gray-900 dark:text-white">{val}</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">{label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Name / tagline edit */}
+      {headerEdit ? (
+        <div className="mb-3 p-3 bg-gray-50 dark:bg-gray-900/60 rounded-2xl border border-gray-200 dark:border-gray-700 space-y-2">
+          <label className="block">
+            <span className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Business Name</span>
+            <input value={headerForm.name} onChange={e => setHeaderForm(p => ({ ...p, name: e.target.value }))}
+              className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-semibold text-gray-900 dark:text-white focus:outline-none focus:border-indigo-400" />
+          </label>
+          <label className="block">
+            <span className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Tagline</span>
+            <input value={headerForm.tagline} onChange={e => setHeaderForm(p => ({ ...p, tagline: e.target.value }))}
+              placeholder="e.g. Precision cuts. Defined character."
+              className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-indigo-400" />
+          </label>
+          <div className="flex gap-2">
+            <button onClick={() => setHeaderEdit(false)}
+              className="flex-1 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              Cancel
+            </button>
+            <button onClick={saveHeader} disabled={headerSaving}
+              style={{ backgroundColor: biz.p }} className="flex-1 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition-opacity flex items-center justify-center gap-1.5 disabled:opacity-60">
+              {headerSaving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <><Check className="w-3.5 h-3.5" /> Save</>}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="text-[18px] font-black text-gray-900 dark:text-white tracking-tight leading-tight">{salon?.name || '—'}</h1>
+            {avgRating >= 4.5 && <BadgeCheck style={{ color: biz.p }} className="w-4 h-4 shrink-0" />}
+            <EditBtn onClick={openHeaderEdit} label="Edit" />
+          </div>
+          <div style={{ backgroundColor: biz.p + '18', borderColor: biz.p + '40', color: biz.acc }}
+            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border mb-2">
+            <Scissors className="w-2.5 h-2.5" /> {biz.label}
+          </div>
+          {salon?.tagline && <p style={{ color: biz.acc }} className="text-xs mb-2">{salon.tagline}</p>}
+        </>
+      )}
+
+      {/* Location + open */}
+      <div className="flex flex-wrap gap-2 mb-2">
+        {(salon?.locality || salon?.city) && (
+          <span className="flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-400">
+            <MapPin className="w-3 h-3" />
+            {salon?.locality && salon?.city ? `${salon.locality}, ${salon.city}` : salon?.locality || salon?.city}
+          </span>
+        )}
+        {salon?.workingHours && (
+          <span style={{
+            backgroundColor: openStatus ? 'rgba(74,222,128,0.1)' : 'rgba(248,113,113,0.1)',
+            borderColor:     openStatus ? 'rgba(74,222,128,0.3)' : 'rgba(248,113,113,0.3)',
+            color:           openStatus ? '#4ADE80' : '#F87171',
+          }} className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border">
+            <span style={{ backgroundColor: openStatus ? '#4ADE80' : '#F87171' }} className="w-1.5 h-1.5 rounded-full" />
+            {openStatus ? `Open · ${todayHours || ''}` : opensAt ? `Opens ${opensAt}` : 'Closed today'}
+          </span>
+        )}
+      </div>
+
+      {avgRating && (
+        <div className="flex items-center gap-2 mb-1">
+          <StarRow rating={avgRating} size={13} />
+          <span className="text-sm font-bold text-yellow-300">{avgRating.toFixed(1)}</span>
+          <span className="text-xs text-gray-400">({reviews.length})</span>
+        </div>
+      )}
+    </>
+  );
+
   return (
     <DashboardLayout>
-      <div className="max-w-[480px] mx-auto bg-white dark:bg-[#0d0520] min-h-screen relative shadow-xl dark:shadow-none">
+      {/* ── outer shell: phone-width on mobile, full-width card on desktop ── */}
+      <div className="max-w-[480px] lg:max-w-5xl mx-auto bg-white dark:bg-[#0d0520] min-h-screen relative shadow-xl dark:shadow-none">
 
         {/* ── BANNER ── */}
-        <div className="relative h-52 overflow-hidden bg-gray-100 dark:bg-gray-900">
+        <div className="relative h-52 lg:h-64 overflow-hidden bg-gray-100 dark:bg-gray-900">
           {bannerItems.length > 0 ? (
             <img src={getGalleryMediaUrl(bannerItems[bannerIdx % bannerItems.length]) || ''} alt=""
               className="w-full h-full object-cover" />
@@ -991,9 +1115,8 @@ export default function GlowLooxProfile() {
             <Eye className="w-3 h-3" /> Customer View
           </div>
 
-          {/* Cover photo change button */}
-          <button onClick={() => coverInputRef.current?.click()}
-            disabled={coverUploading}
+          {/* Cover photo change */}
+          <button onClick={() => coverInputRef.current?.click()} disabled={coverUploading}
             className="absolute top-3 right-12 w-8 h-8 rounded-full bg-black/55 backdrop-blur-sm border border-white/15 flex items-center justify-center text-white hover:bg-black/70 transition-colors">
             {coverUploading ? <div className="w-3.5 h-3.5 border border-white border-t-transparent rounded-full animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
           </button>
@@ -1015,140 +1138,76 @@ export default function GlowLooxProfile() {
           )}
         </div>
 
-        {/* ── PROFILE INFO ── */}
-        <div className="px-4 -mt-8 relative z-10">
-          <div className="flex items-end justify-between mb-3">
-            {/* Avatar — clickable to change */}
-            <div className="relative">
-              <div style={{ borderColor: biz.p, boxShadow: `0 4px 20px ${biz.ring}` }}
-                className="w-[72px] h-[72px] rounded-full border-[3px] overflow-hidden bg-white dark:bg-gray-900 shrink-0">
-                {coverPhoto
-                  ? <img src={coverPhoto} alt={salon?.name} className="w-full h-full object-cover" />
-                  : <div style={{ backgroundColor: biz.p + '22', color: biz.acc }}
-                      className="w-full h-full flex items-center justify-center text-2xl font-black">
-                      {(salon?.name || 'B').charAt(0)}
-                    </div>
-                }
-              </div>
-              <button onClick={() => avatarInputRef.current?.click()}
-                style={{ backgroundColor: biz.p }}
-                className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center shadow-md border-2 border-white dark:border-[#0d0520]">
-                <Camera className="w-3 h-3 text-white" />
-              </button>
-              <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+        {/* ══ BODY: mobile=stacked, desktop=two-column ══ */}
+        <div className="lg:flex lg:items-start">
+
+          {/* ── LEFT SIDEBAR (desktop) / stacked profile info (mobile) ── */}
+          <div className="lg:w-72 lg:shrink-0 lg:sticky lg:top-0 lg:self-start lg:border-r lg:border-gray-100 dark:lg:border-white/[0.08] lg:min-h-screen">
+
+            {/* Profile info */}
+            <div className="px-4 -mt-8 relative z-10 lg:mt-0 lg:pt-5 lg:px-5 lg:pb-4">
+              {renderProfileInfo()}
             </div>
 
-            {/* Stats */}
-            <div className="flex gap-5 pb-1">
-              {[
-                { val: (services || []).length, label: 'Services' },
-                { val: salon?.totalBookings >= 1000 ? `${(salon.totalBookings/1000).toFixed(1)}k` : (salon?.totalBookings || 0), label: 'Customers' },
-                { val: salon?.followersCount || 0, label: 'Followers' },
-              ].map(({ val, label }) => (
-                <div key={label} className="text-center">
-                  <p className="text-base font-black text-gray-900 dark:text-white">{val}</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">{label}</p>
-                </div>
+            {/* Divider: mobile only */}
+            <div className="h-px bg-gray-100 dark:bg-white/[0.08] lg:hidden" />
+
+            {/* Vertical tab nav: desktop only */}
+            <div className="hidden lg:block px-3 py-2 border-t border-gray-100 dark:border-white/[0.08]">
+              {TABS.map(tab => (
+                <button key={tab.key}
+                  onClick={() => { setActiveTab(tab.key); setInfoEdit(null); setSvcNavStack([]); }}
+                  style={activeTab === tab.key ? { backgroundColor: biz.p + '12', color: biz.acc } : {}}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-1 transition-colors text-left
+                    ${activeTab === tab.key ? '' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/[0.04]'}`}>
+                  <tab.Icon className="w-[18px] h-[18px] shrink-0" style={activeTab === tab.key ? { color: biz.acc } : {}} />
+                  <span className={`text-[13px] font-bold ${activeTab === tab.key ? '' : ''}`}>{tab.label}</span>
+                  {activeTab === tab.key && (
+                    <span style={{ backgroundColor: biz.p }} className="ml-auto w-1 h-5 rounded-full" />
+                  )}
+                </button>
               ))}
             </div>
           </div>
 
-          {/* Header edit panel */}
-          {headerEdit ? (
-            <div className="mb-3 p-3 bg-gray-50 dark:bg-gray-900/60 rounded-2xl border border-gray-200 dark:border-gray-700 space-y-2">
-              <label className="block">
-                <span className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Business Name</span>
-                <input value={headerForm.name} onChange={e => setHeaderForm(p => ({ ...p, name: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-semibold text-gray-900 dark:text-white focus:outline-none focus:border-indigo-400" />
-              </label>
-              <label className="block">
-                <span className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Tagline</span>
-                <input value={headerForm.tagline} onChange={e => setHeaderForm(p => ({ ...p, tagline: e.target.value }))}
-                  placeholder="e.g. Precision cuts. Defined character."
-                  className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-indigo-400" />
-              </label>
-              <div className="flex gap-2">
-                <button onClick={() => setHeaderEdit(false)}
-                  className="flex-1 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                  Cancel
+          {/* ── RIGHT CONTENT PANEL ── */}
+          <div className="flex-1 min-w-0">
+
+            {/* Horizontal tab bar: mobile only */}
+            <div className="lg:hidden sticky top-0 z-30 bg-white/90 dark:bg-[#0d0520]/95 backdrop-blur-2xl border-b border-gray-100 dark:border-white/[0.08] flex">
+              {TABS.map(tab => (
+                <button key={tab.key} onClick={() => { setActiveTab(tab.key); setInfoEdit(null); setSvcNavStack([]); }}
+                  className="flex-1 flex flex-col items-center justify-center py-2.5 gap-0.5 relative transition-colors">
+                  <tab.Icon style={{ width: 18, height: 18, color: activeTab === tab.key ? biz.p : undefined }}
+                    className={activeTab === tab.key ? '' : 'text-gray-400 dark:text-gray-500'} />
+                  <span style={{ color: activeTab === tab.key ? biz.p : undefined }}
+                    className={`text-[9px] font-bold uppercase tracking-wide ${activeTab === tab.key ? '' : 'text-gray-400 dark:text-gray-500'}`}>
+                    {tab.label}
+                  </span>
+                  {activeTab === tab.key && (
+                    <span style={{ backgroundColor: biz.p }} className="absolute bottom-0 left-[15%] right-[15%] h-[2px] rounded-full" />
+                  )}
                 </button>
-                <button onClick={saveHeader} disabled={headerSaving}
-                  style={{ backgroundColor: biz.p }} className="flex-1 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition-opacity flex items-center justify-center gap-1.5 disabled:opacity-60">
-                  {headerSaving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <><Check className="w-3.5 h-3.5" /> Save</>}
-                </button>
+              ))}
+            </div>
+
+            {/* Desktop tab header */}
+            <div className="hidden lg:flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-white/[0.08]">
+              <div>
+                <p className="text-[15px] font-black text-gray-900 dark:text-white">
+                  {TABS.find(t => t.key === activeTab)?.label}
+                </p>
               </div>
             </div>
-          ) : (
-            <>
-              <div className="flex items-center gap-2 mb-1">
-                <h1 className="text-[18px] font-black text-gray-900 dark:text-white tracking-tight">{salon?.name || '—'}</h1>
-                {avgRating >= 4.5 && <BadgeCheck style={{ color: biz.p }} className="w-4 h-4 shrink-0" />}
-                <EditBtn onClick={openHeaderEdit} label="Edit" />
-              </div>
-              <div style={{ backgroundColor: biz.p + '18', borderColor: biz.p + '40', color: biz.acc }}
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border mb-2">
-                <Scissors className="w-2.5 h-2.5" /> {biz.label}
-              </div>
-              {salon?.tagline && <p style={{ color: biz.acc }} className="text-xs mb-2">{salon.tagline}</p>}
-            </>
-          )}
 
-          {/* Location + open */}
-          <div className="flex flex-wrap gap-2 mb-2">
-            {(salon?.locality || salon?.city) && (
-              <span className="flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-400">
-                <MapPin className="w-3 h-3" />
-                {salon?.locality && salon?.city ? `${salon.locality}, ${salon.city}` : salon?.locality || salon?.city}
-              </span>
-            )}
-            {salon?.workingHours && (
-              <span style={{
-                backgroundColor: openStatus ? 'rgba(74,222,128,0.1)' : 'rgba(248,113,113,0.1)',
-                borderColor:     openStatus ? 'rgba(74,222,128,0.3)' : 'rgba(248,113,113,0.3)',
-                color:           openStatus ? '#4ADE80' : '#F87171',
-              }} className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border">
-                <span style={{ backgroundColor: openStatus ? '#4ADE80' : '#F87171' }} className="w-1.5 h-1.5 rounded-full" />
-                {openStatus ? `Open · ${todayHours || ''}` : opensAt ? `Opens ${opensAt}` : 'Closed today'}
-              </span>
-            )}
+            {/* Tab content */}
+            <div className="min-h-64 pb-8">
+              {activeTab === 'gallery'  && renderGallery()}
+              {activeTab === 'services' && renderServices()}
+              {activeTab === 'reviews'  && renderReviews()}
+              {activeTab === 'info'     && renderInfo()}
+            </div>
           </div>
-
-          {avgRating && (
-            <div className="flex items-center gap-2 mb-4">
-              <StarRow rating={avgRating} size={13} />
-              <span className="text-sm font-bold text-yellow-300">{avgRating.toFixed(1)}</span>
-              <span className="text-xs text-gray-400">({reviews.length})</span>
-            </div>
-          )}
-        </div>
-
-        {/* ── DIVIDER ── */}
-        <div className="h-px bg-gray-100 dark:bg-white/[0.08]" />
-
-        {/* ── STICKY TAB BAR ── */}
-        <div className="sticky top-0 z-30 bg-white/90 dark:bg-[#0d0520]/95 backdrop-blur-2xl border-b border-gray-100 dark:border-white/[0.08] flex">
-          {TABS.map(tab => (
-            <button key={tab.key} onClick={() => { setActiveTab(tab.key); setInfoEdit(null); setSvcNavStack([]); }}
-              className="flex-1 flex flex-col items-center justify-center py-2.5 gap-0.5 relative transition-colors">
-              <tab.Icon style={{ width: 18, height: 18, color: activeTab === tab.key ? biz.p : undefined }}
-                className={activeTab === tab.key ? '' : 'text-gray-400 dark:text-gray-500'} />
-              <span style={{ color: activeTab === tab.key ? biz.p : undefined }}
-                className={`text-[9px] font-bold uppercase tracking-wide ${activeTab === tab.key ? '' : 'text-gray-400 dark:text-gray-500'}`}>
-                {tab.label}
-              </span>
-              {activeTab === tab.key && (
-                <span style={{ backgroundColor: biz.p }} className="absolute bottom-0 left-[15%] right-[15%] h-[2px] rounded-full" />
-              )}
-            </button>
-          ))}
-        </div>
-
-        {/* ── TAB CONTENT ── */}
-        <div className="min-h-64 pb-8">
-          {activeTab === 'gallery'  && renderGallery()}
-          {activeTab === 'services' && renderServices()}
-          {activeTab === 'reviews'  && renderReviews()}
-          {activeTab === 'info'     && renderInfo()}
         </div>
       </div>
 
