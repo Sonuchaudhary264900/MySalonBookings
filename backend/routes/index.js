@@ -939,6 +939,9 @@ router.post("/owner/reels/comments/:commentId/reply", authenticateOwner, asyncHa
 router.get("/public/salons/:salonId/booked-slots", validateObjectId("salonId"), asyncHandler(async (req, res) => {
   const { date, duration, barberId } = req.query;
   if (!date) return res.status(400).json({ success: false, message: "date is required" });
+  if (barberId && !mongoose.isValidObjectId(barberId)) {
+    return res.status(400).json({ success: false, message: "Invalid barberId" });
+  }
 
   const serviceDuration = Math.max(5, parseInt(duration) || 30);
 
@@ -4080,9 +4083,9 @@ const staffController = require('../controllers/owner/staffController');
 router.get(   '/owner/team',                         authenticateOwner,                                  asyncHandler(staffController.getTeam));
 router.post(  '/owner/team',                         authenticateOwner, checkSubscription,               asyncHandler(staffController.addStaff));
 router.get(   '/owner/team/stats',                   authenticateOwner,                                  asyncHandler(staffController.getTeamStats));
-router.put(   '/owner/team/:staffId',                authenticateOwner, validateObjectId('staffId'),     asyncHandler(staffController.updateStaff));
-router.delete('/owner/team/:staffId',                authenticateOwner, validateObjectId('staffId'),     asyncHandler(staffController.removeStaff));
-router.put(   '/owner/team/:staffId/assign-booking', authenticateOwner, validateObjectId('staffId'),     asyncHandler(staffController.assignBooking));
+router.put(   '/owner/team/:staffId',                authenticateOwner, checkSubscription, validateObjectId('staffId'), asyncHandler(staffController.updateStaff));
+router.delete('/owner/team/:staffId',                authenticateOwner, checkSubscription, validateObjectId('staffId'), asyncHandler(staffController.removeStaff));
+router.put(   '/owner/team/:staffId/assign-booking', authenticateOwner, checkSubscription, validateObjectId('staffId'), asyncHandler(staffController.assignBooking));
 
 /* =====================================================
    OWNER — CATALOG (read-only, returns tree for their business type)

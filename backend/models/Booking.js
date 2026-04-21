@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 
 const bookingSchema = new mongoose.Schema(
   {
-    bookingId: { type: String, unique: true },
+    bookingId: { type: String, unique: true, sparse: true },
     isWalkIn: { type: Boolean, default: false },
     customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer' },
     customerName: String,
@@ -71,11 +71,13 @@ bookingSchema.index({ salonId: 1, createdAt: -1 });                  // owner bo
 bookingSchema.index({ bookingId: 1 }, { unique: true, sparse: true });
 bookingSchema.index({ salonId: 1, barberId: 1, appointmentDate: 1 }); // barber availability checks (auto-assign + overlap)
 
-// DB-level race condition guard — prevents double booking even under concurrent requests
+// DB-level race condition guard — prevents double booking per barber under concurrent requests.
+// Scoped to (salonId, barberId, date, time) so multiple barbers CAN take the same time slot.
 bookingSchema.index(
-  { salonId: 1, appointmentDate: 1, appointmentTime: 1 },
+  { salonId: 1, barberId: 1, appointmentDate: 1, appointmentTime: 1 },
   {
     unique: true,
+    sparse: true, // barberId can be null for UNASSIGNED bookings — sparse lets multiple nulls exist
     partialFilterExpression: { status: { $in: ['pending', 'confirmed', 'in_progress'] } },
   }
 );

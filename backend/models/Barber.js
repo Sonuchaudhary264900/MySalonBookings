@@ -26,7 +26,7 @@ const barberSchema = new mongoose.Schema(
     isOwner:            { type: Boolean, default: false },   // auto-created owner virtual record
     staffRole:          { type: String, enum: ['owner', 'manager', 'receptionist', 'stylist'], default: 'stylist' },
     loginEnabled:       { type: Boolean, default: false },
-    firebaseUid:        { type: String, sparse: true },
+    firebaseUid:        { type: String, sparse: true, unique: true },
     inviteToken:        String,
     inviteSentAt:       Date,
     showEarningsToStaff:{ type: Boolean, default: false },
@@ -41,5 +41,13 @@ barberSchema.index({ isActive: 1 });
 barberSchema.index({ salonId: 1, isActive: 1 });           // team list — most common query
 barberSchema.index({ salonId: 1, isOwner: 1 });            // find owner virtual record fast
 barberSchema.index({ ownerId: 1 });                        // owner → all their staff
+
+// Keep only the last 5 refresh tokens to prevent unbounded array growth
+barberSchema.pre('save', function (next) {
+  if (this.isModified('refreshTokens') && this.refreshTokens.length > 5) {
+    this.refreshTokens = this.refreshTokens.slice(-5);
+  }
+  next();
+});
 
 module.exports = mongoose.model('Barber', barberSchema);

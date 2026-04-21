@@ -21,6 +21,9 @@ const cycleEndFromStart = (start) => {
 
 const checkSubscription = async (req, res, next) => {
   try {
+    if (!req.owner?._id) {
+      return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
     const owner = await Owner.findById(req.owner._id);
     if (!owner) {
       return res.status(404).json({ success: false, message: 'Owner not found' });

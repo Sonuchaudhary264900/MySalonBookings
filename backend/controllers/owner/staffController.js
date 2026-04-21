@@ -212,11 +212,16 @@ exports.removeStaff = async (req, res) => {
     if (!member) return res.status(404).json(formatErrorResponse('Staff member not found', 404));
     if (member.isOwner) return res.status(400).json(formatErrorResponse('Cannot remove owner record', 400));
 
-    // Block deactivation if staff has active or upcoming bookings
+    // Block deactivation if staff has active or upcoming bookings.
+    // Use start of today in salon timezone so evening bookings aren't incorrectly treated as past.
+    const salonForTz = await Business.findById(business._id).select('timezoneOffsetMinutes').lean();
+    const tzOffsetMs = ((salonForTz?.timezoneOffsetMinutes) ?? 330) * 60 * 1000;
+    const nowLocal   = new Date(Date.now() + tzOffsetMs);
+    const todayStart = new Date(nowLocal.toISOString().slice(0, 10) + 'T00:00:00.000Z');
     const activeBookings = await Booking.countDocuments({
       barberId:        member._id,
       status:          { $in: ['pending', 'confirmed', 'in_progress'] },
-      appointmentDate: { $gte: new Date() },
+      appointmentDate: { $gte: todayStart },
     });
     if (activeBookings > 0) {
       return res.status(409).json(formatErrorResponse(

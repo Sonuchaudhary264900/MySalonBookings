@@ -40,8 +40,8 @@ async function autoAssignStaff({ salonId, appointmentDate, appointmentTime, tota
 
     if (!staff.length) return null;
 
-    // Step 2 — filter by working day
-    const dayName = DAY_NAMES[new Date(appointmentDate + 'T12:00:00').getDay()];
+    // Step 2 — filter by working day (UTC noon avoids any timezone day-boundary shift)
+    const dayName = DAY_NAMES[new Date(appointmentDate + 'T12:00:00Z').getUTCDay()];
     const worksToday = staff.filter(s => (s.workingDays || []).includes(dayName));
     if (!worksToday.length) return null;
 
@@ -65,12 +65,16 @@ async function autoAssignStaff({ salonId, appointmentDate, appointmentTime, tota
           s.servicesOffered.some(so => so.toString() === sid.toString())
         );
       });
-      if (!serviceFiltered.length) serviceFiltered = shiftCovered; // graceful fallback: ignore service filter
+      if (!serviceFiltered.length) return null; // no staff offers this service — stay UNASSIGNED, owner assigns
     }
 
     // Step 5 — no overlapping active booking at that time slot
-    const dayStart = new Date(appointmentDate + 'T00:00:00.000Z');
-    const dayEnd   = new Date(appointmentDate + 'T23:59:59.999Z');
+    // Load the salon to get timezone offset so day boundaries are correct for the salon's locale.
+    const Business = require('../models/Business');
+    const salonDoc  = await Business.findById(salonId).select('timezoneOffsetMinutes').lean();
+    const tzOffsetMs = ((salonDoc?.timezoneOffsetMinutes) ?? 330) * 60 * 1000;
+    const dayStart  = new Date(new Date(appointmentDate + 'T00:00:00Z').getTime() - tzOffsetMs);
+    const dayEnd    = new Date(new Date(appointmentDate + 'T23:59:59.999Z').getTime() - tzOffsetMs);
 
     const existingBookings = await Booking.find({
       salonId,
