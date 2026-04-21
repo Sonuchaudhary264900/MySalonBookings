@@ -5,6 +5,7 @@ import {
   Palette, Shirt, Plus, Heart, Smile, Paintbrush,
   Images, Info, Phone, Mail, BadgeCheck, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, X,
   Pencil, Trash2, Check, Camera, Upload, Film, Save,
+  Zap, FileText, Layers, AlignLeft, Square, CheckSquare, Wand2, RefreshCw,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -139,11 +140,60 @@ const TABS = [
   { key: 'info',     label: 'Info',     Icon: Info     },
 ];
 
+const PRICE_CHIPS    = [50, 100, 150, 200, 300, 500, 800, 1000, 1500, 2000];
+const DURATION_CHIPS = [10, 15, 20, 30, 45, 60, 90, 120];
+
+const SUGGESTED_PRICES = {
+  'Classic Haircut': [100,300], 'Trim / Maintenance Cut': [80,200], 'Kids Haircut': [80,200], 'Senior Citizen Haircut': [80,180],
+  'Low Fade': [150,400], 'Mid Fade': [150,400], 'High Fade': [150,400], 'Taper Fade': [150,350],
+  'Skin Fade / Bald Fade': [200,500], 'Buzz Cut': [100,250], 'Crew Cut': [100,280], 'Caesar Cut': [100,280],
+  'Undercut': [200,500], 'Hair Tattoo / Design': [200,600], 'Line-up / Edge-up': [100,300],
+  'Blow Dry': [100,300], 'Hair Wax Styling': [100,250], 'Party / Event Styling': [300,1000],
+  'Beard Trim': [80,200], 'Beard Shaping': [100,250], 'Beard Fade': [150,350], 'Beard Sculpting': [150,400],
+  'Basic Shave': [80,200], 'Hot Towel Shave': [150,400], 'Straight Razor Shave': [200,500], 'Royal Shave': [300,700],
+  'Beard Spa': [300,800], 'Beard Smoothening': [500,1500],
+  'Global Hair Colour': [400,2000], 'Highlights': [600,3000], 'Grey Coverage': [200,800], 'Balayage': [800,4000],
+  'Hair Smoothening': [1500,6000], 'Keratin Treatment': [2000,8000], 'Hair Rebonding': [2000,8000],
+  'Hair Spa': [400,1500], 'Deep Conditioning Treatment': [300,800], 'Anti-Dandruff Treatment': [300,1000],
+  'Haircut (Layer / Step / Trim)': [200,800], 'Advanced Haircut': [500,2000], 'Fringe / Bangs Cut': [150,500],
+  'Bridal Hairstyle': [1500,8000], 'Party Hairstyle': [500,2000],
+  'Manicure': [200,600], 'Pedicure': [250,800], 'Gel Nails': [500,2000], 'Nail Art': [300,1500],
+  'Nail Extensions': [800,3000], 'Acrylic Nails': [600,2500],
+  'Clean-up': [150,400], 'Basic Facial': [300,800], 'Gold Facial': [800,2500],
+  'Hydra Facial': [1500,5000], 'Anti-Aging Facial': [1000,4000], 'Diamond Facial': [800,2500],
+  'Eyebrow Threading': [30,100], 'Upper Lip Threading': [20,60], 'Full Face Threading': [80,200],
+  'Full Body Wax': [800,2500], 'Full Legs Wax': [300,900], 'Underarms Wax': [100,250],
+  'Head Massage': [200,600], 'Full Body Massage': [800,3000], 'Swedish Massage': [1000,3500],
+  'Deep Tissue Massage': [1200,4000], 'Thai Massage': [1000,3500], 'Hot Stone Massage': [1500,5000],
+  'Body Spa': [1000,4000], 'Body Polishing': [800,2500], 'Body Scrub': [600,2000],
+  'Bridal Makeup': [5000,25000], 'Party Makeup': [1500,8000], 'Engagement Makeup': [3000,15000],
+  'General Skin Consultation': [500,2000], 'PRP Hair Therapy': [3000,10000],
+};
+
+function parseImportText(text) {
+  const lines = text.split('\n').filter(l => l.trim());
+  return lines.map(line => {
+    const raw = line.trim();
+    const durMatch   = raw.match(/(\d{1,3})\s*(?:min|mins|minutes|m\b)/i);
+    const priceMatch = raw.match(/(?:₹|rs\.?|inr|price[:\s]*)?(\d{2,5})(?=\s|$|\/|-|₹)/i);
+    const duration   = durMatch  ? parseInt(durMatch[1])  : '';
+    const price      = priceMatch ? parseInt(priceMatch[1]) : '';
+    let name = raw
+      .replace(/(?:₹|rs\.?|inr)\s*\d+/gi, '')
+      .replace(/\d+\s*(?:min|mins|minutes|m\b)/gi, '')
+      .replace(/\d{3,5}/g, '')
+      .replace(/[-–|\/,]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return { name, price, duration };
+  }).filter(s => s.name.length > 2);
+}
+
 /* ══════════════════════════════════════════════════════════════════
    Main Page
 ══════════════════════════════════════════════════════════════════ */
 export default function GlowLooxProfile() {
-  const { salon, services, fetchSalon, fetchServices, updateSalon, createService, updateService, deleteService } = useSalon();
+  const { salon, services, fetchSalon, fetchServices, updateSalon, createService, updateService, deleteService, bulkUpsertServices } = useSalon();
   const { enqueueUploads, lastCompletedAt } = useGalleryUpload();
 
   const biz = BIZ_THEME[salon?.businessType] || DEFAULT_BIZ;
@@ -178,6 +228,28 @@ export default function GlowLooxProfile() {
   const svcImgInputRef    = useRef(null);
   const secImgInputRef    = useRef(null);
   const svcInputRefs      = useRef({});
+
+  /* ── quick setup ── */
+  const [quickSetup,      setQuickSetup]      = useState(false);
+  const [setupStep,       setSetupStep]       = useState(1);
+  const [setupSelected,   setSetupSelected]   = useState(new Set());
+  const [setupPrice,      setSetupPrice]      = useState('');
+  const [setupDuration,   setSetupDuration]   = useState('');
+  const [setupSaving,     setSetupSaving]     = useState(false);
+
+  /* ── bulk apply (level 1 & 2) ── */
+  const [bulkPanel,       setBulkPanel]       = useState(false);
+  const [bulkSelected,    setBulkSelected]    = useState(new Set()); // Set of svcName
+  const [bulkPrice,       setBulkPrice]       = useState('');
+  const [bulkDuration,    setBulkDuration]    = useState('');
+  const [bulkApplying,    setBulkApplying]    = useState(false);
+
+  /* ── import modal ── */
+  const [importOpen,      setImportOpen]      = useState(false);
+  const [importText,      setImportText]      = useState('');
+  const [importParsed,    setImportParsed]    = useState([]);
+  const [importStep,      setImportStep]      = useState('input'); // 'input' | 'preview'
+  const [importSaving,    setImportSaving]    = useState(false);
 
   /* ── profile header edit panel ── */
   const [headerEdit,   setHeaderEdit]   = useState(false);
@@ -230,6 +302,17 @@ export default function GlowLooxProfile() {
   useEffect(() => { loadAll(); }, [loadAll]);
   useEffect(() => { if (lastCompletedAt) loadGallery(); }, [lastCompletedAt, loadGallery]);
 
+  /* auto-launch quick setup when owner has zero services */
+  useEffect(() => {
+    if (!loading && Array.isArray(services) && services.length === 0 && activeTab === 'services' && !quickSetup) {
+      const menuCats = getCategoriesForSalonType(salon?.businessType || 'salon', salon?.servedGender || 'unisex');
+      const top = new Set();
+      menuCats.forEach(c => (c.sections?.[0]?.services || c.subServices || []).slice(0, 3).forEach(s => top.add(`${s}||${c.label}`)));
+      setSetupSelected(top);
+      setQuickSetup(true);
+    }
+  }, [loading, services, activeTab]); // eslint-disable-line
+
   /* banner auto-advance */
   useEffect(() => {
     if (bannerItems.length <= 1) return;
@@ -241,6 +324,84 @@ export default function GlowLooxProfile() {
   const handleShare = () => {
     if (navigator.share) navigator.share({ title: salon?.name || 'GlowLoox', url: window.location.href });
     else navigator.clipboard?.writeText(window.location.href);
+  };
+
+  /* ── quick setup submit ── */
+  const handleQuickSetupApply = async () => {
+    const price    = parseFloat(setupPrice);
+    const duration = parseInt(setupDuration);
+    if (!price || price <= 0)    return toast.error('Enter a valid price');
+    if (!duration || duration <= 0) return toast.error('Enter a valid duration');
+    setSetupSaving(true);
+    try {
+      const updates = [...setupSelected].map(key => {
+        const [name, category] = key.split('||');
+        return { name, category, basePrice: price, duration };
+      });
+      await bulkUpsertServices(updates);
+      await fetchServices();
+      setQuickSetup(false);
+      toast.success(`${updates.length} services added!`);
+    } catch { toast.error('Setup failed'); }
+    finally { setSetupSaving(false); }
+  };
+
+  /* ── bulk apply ── */
+  const handleBulkApply = async (catSvcMap, cat) => {
+    const price    = parseFloat(bulkPrice);
+    const duration = parseInt(bulkDuration);
+    if (!price || price <= 0)    return toast.error('Enter a valid price');
+    if (!duration || duration <= 0) return toast.error('Enter a valid duration');
+    if (bulkSelected.size === 0) return toast.error('Select at least one service');
+    setBulkApplying(true);
+    try {
+      const catMap  = catSvcMap[cat] || {};
+      const updates = [...bulkSelected].map(name => {
+        const existing = catMap[name];
+        return existing
+          ? { id: existing._id || existing.id, basePrice: price, duration }
+          : { name, category: cat, basePrice: price, duration };
+      });
+      await bulkUpsertServices(updates);
+      await fetchServices();
+      setBulkPanel(false);
+      setBulkSelected(new Set());
+      setBulkPrice('');
+      setBulkDuration('');
+      toast.success(`${updates.length} services updated`);
+    } catch { toast.error('Bulk apply failed'); }
+    finally { setBulkApplying(false); }
+  };
+
+  /* ── import save ── */
+  const handleImportSave = async () => {
+    const valid = importParsed.filter(r => r.name && r.price && r.category);
+    if (!valid.length) return toast.error('No valid services to import');
+    setImportSaving(true);
+    try {
+      const updates = valid.map(r => ({ name: r.name, category: r.category, basePrice: parseFloat(r.price), duration: parseInt(r.duration) || 30 }));
+      await bulkUpsertServices(updates);
+      await fetchServices();
+      setImportOpen(false);
+      setImportText('');
+      setImportParsed([]);
+      setImportStep('input');
+      toast.success(`${updates.length} services imported`);
+    } catch { toast.error('Import failed'); }
+    finally { setImportSaving(false); }
+  };
+
+  /* ── apply section image to all services ── */
+  const handleApplySectionImgToAll = async (secImgUrl, svcNames, cat, catSvcMap) => {
+    if (!secImgUrl) return toast.error('No section image set');
+    const catMap = catSvcMap[cat] || {};
+    const toUpdate = svcNames.map(name => catMap[name]).filter(Boolean);
+    if (!toUpdate.length) return toast.error('No added services in this section');
+    try {
+      await Promise.all(toUpdate.map(svc => updateService(svc._id || svc.id, { photos: [secImgUrl] })));
+      await fetchServices();
+      toast.success('Image applied to all services');
+    } catch { toast.error('Failed'); }
   };
 
   /* ── delete gallery item ── */
@@ -493,27 +654,206 @@ export default function GlowLooxProfile() {
     const menuCats   = getCategoriesForSalonType(salon?.businessType || 'salon', salon?.servedGender || 'unisex');
     const menuLabels = menuCats.map(c => c.label);
 
+    /* ── reusable price/duration chip rows ── */
+    const PriceChips = ({ value, onChange }) => (
+      <div className="flex flex-wrap gap-1.5 mt-1.5">
+        {PRICE_CHIPS.map(v => (
+          <button key={v} type="button" onClick={() => onChange(String(v))}
+            className="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all"
+            style={String(value) === String(v)
+              ? { backgroundColor: biz.p, color: '#fff', borderColor: biz.p }
+              : { backgroundColor: biz.p + '10', color: biz.acc, borderColor: biz.p + '30' }}>
+            ₹{v}
+          </button>
+        ))}
+      </div>
+    );
+    const DurChips = ({ value, onChange }) => (
+      <div className="flex flex-wrap gap-1.5 mt-1.5">
+        {DURATION_CHIPS.map(v => (
+          <button key={v} type="button" onClick={() => onChange(String(v))}
+            className="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all"
+            style={String(value) === String(v)
+              ? { backgroundColor: biz.p, color: '#fff', borderColor: biz.p }
+              : { backgroundColor: biz.p + '10', color: biz.acc, borderColor: biz.p + '30' }}>
+            {v}m
+          </button>
+        ))}
+      </div>
+    );
+
+    /* ══ QUICK SETUP WIZARD ══ */
+    if (quickSetup) {
+      const allMenuSvcs = menuCats.flatMap(c =>
+        (c.sections || []).flatMap(s => s.services.map(n => ({ name: n, cat: c.label })))
+        || (c.subServices || []).map(n => ({ name: n, cat: c.label }))
+      );
+      const toggleSetup = (key) => setSetupSelected(prev => {
+        const next = new Set(prev);
+        next.has(key) ? next.delete(key) : next.add(key);
+        return next;
+      });
+      const toggleCat = (catLabel) => {
+        const catSvcs = allMenuSvcs.filter(s => s.cat === catLabel).map(s => `${s.name}||${s.cat}`);
+        const allIn = catSvcs.every(k => setupSelected.has(k));
+        setSetupSelected(prev => {
+          const next = new Set(prev);
+          catSvcs.forEach(k => allIn ? next.delete(k) : next.add(k));
+          return next;
+        });
+      };
+
+      return (
+        <div className="flex flex-col min-h-[70vh]">
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 dark:border-white/[0.06]">
+            <div>
+              <p className="text-[14px] font-black text-gray-900 dark:text-white flex items-center gap-2">
+                <Wand2 style={{ color: biz.p }} className="w-4 h-4" />
+                {setupStep === 1 ? 'Pick your services' : 'Set your base price'}
+              </p>
+              <p className="text-[11px] text-gray-400 mt-0.5">
+                {setupStep === 1 ? `${setupSelected.size} selected · uncheck services you don't offer` : 'You can change individual prices later'}
+              </p>
+            </div>
+            <button onClick={() => setQuickSetup(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Step indicators */}
+          <div className="flex gap-1.5 px-4 pt-3">
+            {[1,2].map(s => (
+              <div key={s} className="h-1 flex-1 rounded-full transition-all"
+                style={{ backgroundColor: s <= setupStep ? biz.p : '#e5e7eb' }} />
+            ))}
+          </div>
+
+          {setupStep === 1 ? (
+            <>
+              <div className="flex-1 overflow-y-auto p-3 space-y-2 pb-4">
+                {menuCats.map(mc => {
+                  const svcs = (mc.sections || []).flatMap(s => s.services.map(n => ({ name: n, cat: mc.label })))
+                    .concat((mc.subServices || []).filter(n => !(mc.sections || []).flatMap(s => s.services).includes(n)).map(n => ({ name: n, cat: mc.label })));
+                  const keys = svcs.map(s => `${s.name}||${s.cat}`);
+                  const allIn = keys.length > 0 && keys.every(k => setupSelected.has(k));
+                  const someIn = keys.some(k => setupSelected.has(k));
+                  return (
+                    <div key={mc.label} className="rounded-2xl bg-white dark:bg-gray-900/50 border border-gray-100 dark:border-white/[0.07] overflow-hidden" style={{ boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
+                      <button onClick={() => toggleCat(mc.label)}
+                        className="w-full flex items-center gap-3 px-3.5 py-3 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+                        <div style={allIn ? { color: biz.p } : someIn ? { color: biz.acc, opacity: 0.6 } : { color: '#9ca3af' }}>
+                          {allIn ? <CheckSquare className="w-4.5 h-4.5" /> : <Square className="w-4.5 h-4.5" />}
+                        </div>
+                        <p className="flex-1 text-[13px] font-extrabold text-gray-900 dark:text-white text-left">{mc.label}</p>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                          style={{ backgroundColor: biz.p + '18', color: biz.acc }}>
+                          {keys.filter(k => setupSelected.has(k)).length}/{keys.length}
+                        </span>
+                      </button>
+                      <div className="px-3.5 pb-3 flex flex-wrap gap-1.5">
+                        {svcs.map(({ name, cat }) => {
+                          const key = `${name}||${cat}`;
+                          const on  = setupSelected.has(key);
+                          return (
+                            <button key={key} onClick={() => toggleSetup(key)}
+                              className="px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all"
+                              style={on
+                                ? { backgroundColor: biz.p, color: '#fff', borderColor: biz.p }
+                                : { backgroundColor: '#f9fafb', color: '#6b7280', borderColor: '#e5e7eb' }}>
+                              {name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="px-4 py-3 border-t border-gray-100 dark:border-white/[0.06]">
+                <button onClick={() => setSetupStep(2)} disabled={setupSelected.size === 0}
+                  style={{ backgroundColor: biz.p }}
+                  className="w-full py-3 rounded-2xl text-white font-bold text-[14px] disabled:opacity-40 flex items-center justify-center gap-2">
+                  Continue with {setupSelected.size} services <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 p-4 space-y-5">
+              <div>
+                <p className="text-[12px] font-bold text-gray-500 dark:text-gray-400 mb-1">Base Price (₹)</p>
+                <div className="flex items-center gap-2 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/[0.1] rounded-xl px-3 py-2.5">
+                  <span className="text-gray-400 font-bold">₹</span>
+                  <input type="number" inputMode="numeric" value={setupPrice} onChange={e => setSetupPrice(e.target.value)}
+                    placeholder="e.g. 200" className="flex-1 bg-transparent text-[15px] font-black text-gray-900 dark:text-white outline-none" />
+                </div>
+                <PriceChips value={setupPrice} onChange={setSetupPrice} />
+              </div>
+              <div>
+                <p className="text-[12px] font-bold text-gray-500 dark:text-gray-400 mb-1">Duration (minutes)</p>
+                <div className="flex items-center gap-2 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/[0.1] rounded-xl px-3 py-2.5">
+                  <Clock className="w-4 h-4 text-gray-400" />
+                  <input type="number" inputMode="numeric" value={setupDuration} onChange={e => setSetupDuration(e.target.value)}
+                    placeholder="e.g. 30" className="flex-1 bg-transparent text-[15px] font-black text-gray-900 dark:text-white outline-none" />
+                </div>
+                <DurChips value={setupDuration} onChange={setSetupDuration} />
+              </div>
+              <p className="text-[11px] text-gray-400 bg-gray-50 dark:bg-white/[0.04] rounded-xl px-3 py-2.5">
+                This sets the same price for all {setupSelected.size} selected services. You can edit individual prices after.
+              </p>
+              <div className="flex gap-2 pt-2">
+                <button onClick={() => setSetupStep(1)}
+                  className="flex-1 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 text-[13px] font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  Back
+                </button>
+                <button onClick={handleQuickSetupApply} disabled={setupSaving || !setupPrice || !setupDuration}
+                  style={{ backgroundColor: biz.p }}
+                  className="flex-[2] py-3 rounded-2xl text-white font-bold text-[14px] disabled:opacity-40 flex items-center justify-center gap-2">
+                  {setupSaving
+                    ? <><RefreshCw className="w-4 h-4 animate-spin" /> Setting up…</>
+                    : <><Zap className="w-4 h-4" /> Add {setupSelected.size} services</>
+                  }
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
     /* ══ LEVEL 2 — services in a section ══ */
     if (svcNavStack.length === 2) {
       const { cat, menuCat } = svcNavStack[0];
       const { section }      = svcNavStack[1];
       const catByName        = catSvcMap[cat] || {};
       const CatIcon          = CAT_ICONS[cat] || Scissors;
+      const allSvcNames      = section.services;
+      const allSelected      = allSvcNames.length > 0 && allSvcNames.every(n => bulkSelected.has(n));
 
       return (
         <div>
           <div className="flex items-center gap-3 px-4 py-3.5 border-b border-gray-100 dark:border-white/[0.06] sticky top-[49px] bg-white/95 dark:bg-[#0d0520]/95 backdrop-blur-xl z-20">
-            <button onClick={() => setSvcNavStack(prev => prev.slice(0, 1))}
+            <button onClick={() => { setSvcNavStack(prev => prev.slice(0, 1)); setBulkPanel(false); setBulkSelected(new Set()); }}
               className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-white/[0.08] flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity">
               <ChevronLeft className="w-4 h-4 text-gray-600 dark:text-gray-300" />
             </button>
             <div className="min-w-0 flex-1">
               <p className="text-[14px] font-extrabold text-gray-900 dark:text-white truncate">{section.label}</p>
-              <p className="text-[11px] text-gray-400">{section.services.length} services · set price &amp; duration</p>
+              <p className="text-[11px] text-gray-400">{section.services.length} services</p>
             </div>
+            {/* Bulk select all toggle */}
+            <button onClick={() => {
+              if (allSelected) { setBulkSelected(new Set()); }
+              else { setBulkSelected(new Set(allSvcNames)); }
+            }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[11px] font-bold transition-all"
+              style={allSelected
+                ? { backgroundColor: biz.p, color: '#fff', borderColor: biz.p }
+                : { color: biz.acc, borderColor: biz.p + '40', backgroundColor: biz.p + '0d' }}>
+              <Layers className="w-3.5 h-3.5" /> {allSelected ? 'Deselect' : 'Select all'}
+            </button>
           </div>
 
-          <div className="p-3 space-y-2 pb-8">
+          <div className="p-3 space-y-2 pb-28">
             {section.services.map(svcName => {
               const svc          = catByName[svcName];
               const isAdded      = !!svc;
@@ -522,58 +862,69 @@ export default function GlowLooxProfile() {
               const isSaving     = savingSvc === svcName;
               const isUploadImg  = isAdded && uploadingSvcImg === (svc._id || svc.id);
               const imgUrl       = isAdded ? getServiceImage(svc) : getServiceImage({ name: svcName, category: cat });
+              const isChecked    = bulkSelected.has(svcName);
+              const hint         = SUGGESTED_PRICES[svcName];
 
               return (
                 <div key={svcName}
-                  className={`rounded-2xl bg-white dark:bg-gray-900/50 border border-gray-100 dark:border-white/[0.07] overflow-hidden transition-opacity ${isAdded && !isActive ? 'opacity-60' : ''}`}
-                  style={{ boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
+                  className={`rounded-2xl bg-white dark:bg-gray-900/50 border overflow-hidden transition-all ${isChecked ? '' : ''} ${isAdded && !isActive ? 'opacity-60' : ''}`}
+                  style={{ borderColor: isChecked ? biz.p : undefined, boxShadow: isChecked ? `0 0 0 2px ${biz.p}40` : '0 1px 8px rgba(0,0,0,0.04)' }}>
                   <div className="flex items-center gap-3 p-3.5">
 
+                    {/* Checkbox */}
+                    <button onClick={() => setBulkSelected(prev => { const n = new Set(prev); n.has(svcName) ? n.delete(svcName) : n.add(svcName); return n; })}
+                      className="shrink-0 transition-colors" style={{ color: isChecked ? biz.p : '#d1d5db' }}>
+                      {isChecked ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
+                    </button>
+
                     {/* Thumb + camera overlay */}
-                    <div className="relative w-14 h-14 rounded-xl flex-shrink-0 overflow-hidden group/img border"
+                    <div className="relative w-12 h-12 rounded-xl flex-shrink-0 overflow-hidden group/img border"
                       style={{ background: biz.p + '14', borderColor: biz.p + '20' }}>
                       {imgUrl
                         ? <img src={imgUrl} alt={svcName}
                             className="w-full h-full object-cover opacity-0 transition-opacity duration-200"
                             onLoad={e => { e.currentTarget.style.opacity = '1'; }}
                             onError={e => { e.currentTarget.style.display = 'none'; }} />
-                        : <CatIcon style={{ color: biz.acc, opacity: 0.5 }} className="w-6 h-6 absolute inset-0 m-auto" />
+                        : <CatIcon style={{ color: biz.acc, opacity: 0.5 }} className="w-5 h-5 absolute inset-0 m-auto" />
                       }
                       {isAdded && (
                         <button onClick={() => { pendingImgSvcRef.current = svc._id || svc.id; svcImgInputRef.current?.click(); }}
                           className="absolute inset-0 bg-black/55 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity">
                           {isUploadImg
-                            ? <div className="w-3.5 h-3.5 border border-white border-t-transparent rounded-full animate-spin" />
-                            : <Camera className="w-3.5 h-3.5 text-white" />}
+                            ? <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+                            : <Camera className="w-3 h-3 text-white" />}
                         </button>
                       )}
                     </div>
 
                     {/* Name + inputs */}
                     <div className="flex-1 min-w-0">
-                      <p className={`text-[13px] font-bold truncate mb-2 ${isAdded && !isActive ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>{svcName}</p>
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1 flex-1 min-w-0 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/[0.1] rounded-lg px-2 py-1.5">
-                          <span className="text-[11px] text-gray-400 shrink-0">₹</span>
+                      <p className={`text-[12px] font-bold truncate mb-1.5 ${isAdded && !isActive ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>{svcName}</p>
+                      <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1 flex-1 min-w-0 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/[0.1] rounded-lg px-2 py-1">
+                          <span className="text-[10px] text-gray-400 shrink-0">₹</span>
                           <input
                             key={isAdded ? `${svc._id}-p-${svc.basePrice}` : `${svcName}-p`}
                             ref={el => { if (el) svcInputRefs.current[`${svcName}_price`] = el; }}
                             type="number" inputMode="numeric"
                             defaultValue={isAdded ? String(svc.basePrice || svc.price || '') : ''}
-                            placeholder="Price"
-                            className="w-full bg-transparent text-[12px] font-bold text-gray-900 dark:text-white outline-none min-w-0" />
+                            placeholder={hint ? `${hint[0]}–${hint[1]}` : 'Price'}
+                            className="w-full bg-transparent text-[11px] font-bold text-gray-900 dark:text-white outline-none min-w-0" />
                         </div>
-                        <div className="flex items-center gap-1 flex-1 min-w-0 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/[0.1] rounded-lg px-2 py-1.5">
-                          <Clock className="w-3 h-3 text-gray-400 shrink-0" />
+                        <div className="flex items-center gap-1 flex-1 min-w-0 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/[0.1] rounded-lg px-2 py-1">
+                          <Clock className="w-2.5 h-2.5 text-gray-400 shrink-0" />
                           <input
                             key={isAdded ? `${svc._id}-d-${svc.duration}` : `${svcName}-d`}
                             ref={el => { if (el) svcInputRefs.current[`${svcName}_duration`] = el; }}
                             type="number" inputMode="numeric"
                             defaultValue={isAdded ? String(svc.duration || '') : ''}
                             placeholder="min"
-                            className="w-full bg-transparent text-[12px] font-bold text-gray-900 dark:text-white outline-none min-w-0" />
+                            className="w-full bg-transparent text-[11px] font-bold text-gray-900 dark:text-white outline-none min-w-0" />
                         </div>
                       </div>
+                      {hint && !isAdded && (
+                        <p className="text-[10px] text-gray-400 mt-1">Avg ₹{hint[0]}–₹{hint[1]}</p>
+                      )}
                     </div>
 
                     {/* Right controls */}
@@ -590,11 +941,8 @@ export default function GlowLooxProfile() {
                       )}
                       <button onClick={() => handleSaveInline(svcName, cat, svc)} disabled={isSaving}
                         style={{ backgroundColor: biz.p }}
-                        className="px-3 py-1 rounded-lg text-white text-[11px] font-bold hover:opacity-90 transition-opacity disabled:opacity-60 min-w-[48px] flex items-center justify-center gap-1">
-                        {isSaving
-                          ? <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
-                          : isAdded ? 'Save' : 'Add'
-                        }
+                        className="px-3 py-1 rounded-lg text-white text-[11px] font-bold hover:opacity-90 transition-opacity disabled:opacity-60 min-w-[44px] flex items-center justify-center gap-1">
+                        {isSaving ? <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" /> : isAdded ? 'Save' : 'Add'}
                       </button>
                       {isAdded && (
                         <button onClick={() => handleDeleteService(svc)}
@@ -609,6 +957,51 @@ export default function GlowLooxProfile() {
             })}
           </div>
           <input ref={svcImgInputRef} type="file" accept="image/*" className="hidden" onChange={handleServiceImgUpload} />
+
+          {/* ── Sticky bulk bar ── */}
+          {bulkSelected.size > 0 && (
+            <div className="fixed bottom-0 left-0 right-0 z-50 px-3 pb-4 pt-2 bg-white/95 dark:bg-[#0d0520]/95 backdrop-blur-xl border-t border-gray-200 dark:border-white/[0.08] shadow-2xl">
+              <div className="max-w-[480px] mx-auto space-y-2.5">
+                <p className="text-[12px] font-black text-gray-700 dark:text-gray-200">
+                  Apply to <span style={{ color: biz.p }}>{bulkSelected.size}</span> selected services
+                </p>
+                <div className="flex gap-2">
+                  <div className="flex-1 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/[0.1] rounded-xl px-3 py-2 flex items-center gap-1.5">
+                    <span className="text-[11px] text-gray-400 font-bold shrink-0">₹</span>
+                    <input type="number" inputMode="numeric" value={bulkPrice} onChange={e => setBulkPrice(e.target.value)}
+                      placeholder="Price" className="w-full bg-transparent text-[13px] font-black text-gray-900 dark:text-white outline-none" />
+                  </div>
+                  <div className="flex-1 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/[0.1] rounded-xl px-3 py-2 flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                    <input type="number" inputMode="numeric" value={bulkDuration} onChange={e => setBulkDuration(e.target.value)}
+                      placeholder="min" className="w-full bg-transparent text-[13px] font-black text-gray-900 dark:text-white outline-none" />
+                  </div>
+                  <button onClick={() => handleBulkApply(catSvcMap, cat)} disabled={bulkApplying}
+                    style={{ backgroundColor: biz.p }}
+                    className="px-4 py-2 rounded-xl text-white text-[13px] font-black disabled:opacity-60 flex items-center gap-1.5">
+                    {bulkApplying ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                    Apply
+                  </button>
+                </div>
+                <div className="flex gap-1.5 flex-wrap">
+                  {PRICE_CHIPS.slice(0,6).map(v => (
+                    <button key={v} onClick={() => setBulkPrice(String(v))}
+                      className="px-2 py-0.5 rounded-lg text-[10px] font-bold border transition-all"
+                      style={bulkPrice === String(v) ? { backgroundColor: biz.p, color:'#fff', borderColor: biz.p } : { color: biz.acc, borderColor: biz.p+'30', backgroundColor: biz.p+'0d' }}>
+                      ₹{v}
+                    </button>
+                  ))}
+                  {DURATION_CHIPS.slice(0,5).map(v => (
+                    <button key={`d${v}`} onClick={() => setBulkDuration(String(v))}
+                      className="px-2 py-0.5 rounded-lg text-[10px] font-bold border transition-all"
+                      style={bulkDuration === String(v) ? { backgroundColor: biz.p, color:'#fff', borderColor: biz.p } : { color: biz.acc, borderColor: biz.p+'30', backgroundColor: biz.p+'0d' }}>
+                      {v}m
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       );
     }
@@ -619,11 +1012,12 @@ export default function GlowLooxProfile() {
       const catByName  = catSvcMap[cat] || {};
       const sections   = menuCat?.sections || (menuCat?.subServices ? [{ label: 'All Services', services: menuCat.subServices }] : []);
       const orphanSvcs = Object.values(catByName).filter(s => !menuCat?.subServices?.includes(s.name));
+      const allSecSvcs = sections.flatMap(s => s.services);
 
       return (
         <div>
           <div className="flex items-center gap-3 px-4 py-3.5 border-b border-gray-100 dark:border-white/[0.06] sticky top-[49px] bg-white/95 dark:bg-[#0d0520]/95 backdrop-blur-xl z-20">
-            <button onClick={() => setSvcNavStack([])}
+            <button onClick={() => { setSvcNavStack([]); setBulkPanel(false); }}
               className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-white/[0.08] flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity">
               <ChevronLeft className="w-4 h-4 text-gray-600 dark:text-gray-300" />
             </button>
@@ -631,7 +1025,61 @@ export default function GlowLooxProfile() {
               <p className="text-[14px] font-extrabold text-gray-900 dark:text-white truncate">{cat}</p>
               <p className="text-[11px] text-gray-400">{sections.length} sections · {Object.keys(catByName).length} added</p>
             </div>
+            <button onClick={() => { setBulkPanel(p => !p); setBulkSelected(new Set(allSecSvcs)); setBulkPrice(''); setBulkDuration(''); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[11px] font-bold transition-all"
+              style={bulkPanel ? { backgroundColor: biz.p, color:'#fff', borderColor: biz.p } : { color: biz.acc, borderColor: biz.p+'40', backgroundColor: biz.p+'0d' }}>
+              <Layers className="w-3.5 h-3.5" /> Bulk Apply
+            </button>
           </div>
+
+          {/* ── Bulk Apply Panel (Level 1) ── */}
+          {bulkPanel && (
+            <div className="mx-3 mt-3 rounded-2xl border p-4 space-y-3" style={{ borderColor: biz.p + '30', backgroundColor: biz.p + '08' }}>
+              <p className="text-[12px] font-black" style={{ color: biz.acc }}>Apply to whole category</p>
+              <div className="flex gap-2">
+                <div className="flex-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 flex items-center gap-1.5">
+                  <span className="text-[11px] text-gray-400 font-bold">₹</span>
+                  <input type="number" inputMode="numeric" value={bulkPrice} onChange={e => setBulkPrice(e.target.value)}
+                    placeholder="Price for all" className="flex-1 bg-transparent text-[13px] font-black text-gray-900 dark:text-white outline-none" />
+                </div>
+                <div className="flex-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-gray-400" />
+                  <input type="number" inputMode="numeric" value={bulkDuration} onChange={e => setBulkDuration(e.target.value)}
+                    placeholder="min" className="flex-1 bg-transparent text-[13px] font-black text-gray-900 dark:text-white outline-none" />
+                </div>
+              </div>
+              <PriceChips value={bulkPrice} onChange={setBulkPrice} />
+              <DurChips  value={bulkDuration} onChange={setBulkDuration} />
+              {/* Service selection */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[11px] font-bold text-gray-500 dark:text-gray-400">Select services to apply to:</p>
+                  <button onClick={() => setBulkSelected(prev => prev.size === allSecSvcs.length ? new Set() : new Set(allSecSvcs))}
+                    className="text-[10px] font-bold" style={{ color: biz.acc }}>
+                    {bulkSelected.size === allSecSvcs.length ? 'Deselect all' : 'Select all'}
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                  {allSecSvcs.map(name => {
+                    const on = bulkSelected.has(name);
+                    return (
+                      <button key={name} onClick={() => setBulkSelected(prev => { const n = new Set(prev); on ? n.delete(name) : n.add(name); return n; })}
+                        className="px-2.5 py-1 rounded-lg text-[10px] font-semibold border transition-all"
+                        style={on ? { backgroundColor: biz.p, color: '#fff', borderColor: biz.p } : { backgroundColor: '#f9fafb', color: '#6b7280', borderColor: '#e5e7eb' }}>
+                        {name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <button onClick={() => handleBulkApply(catSvcMap, cat)} disabled={bulkApplying || bulkSelected.size === 0}
+                style={{ backgroundColor: biz.p }}
+                className="w-full py-2.5 rounded-xl text-white text-[13px] font-black disabled:opacity-40 flex items-center justify-center gap-2">
+                {bulkApplying ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                Apply to {bulkSelected.size} services
+              </button>
+            </div>
+          )}
 
           <div className="p-3 space-y-2 pb-8">
             {sections.map(sec => {
@@ -645,43 +1093,39 @@ export default function GlowLooxProfile() {
                   className="w-full flex items-center gap-3.5 px-3.5 py-3 rounded-2xl bg-white dark:bg-gray-900/50 border border-gray-100 dark:border-white/[0.07] text-left cursor-pointer hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors"
                   style={{ boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}
                   onClick={() => setSvcNavStack(prev => [...prev, { section: sec }])}>
-
-                  {/* Section thumbnail with camera overlay */}
                   <div className="relative w-12 h-12 rounded-xl flex-shrink-0 overflow-hidden group/secimg border"
                     style={{ background: biz.p + '14', borderColor: biz.p + '20' }}
                     onClick={e => e.stopPropagation()}>
                     {isUploadingSec
-                      ? <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
-                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin opacity-50" />
-                        </div>
+                      ? <div className="w-full h-full flex items-center justify-center"><div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin opacity-50" /></div>
                       : secImgUrl
-                        ? <img src={secImgUrl} alt={sec.label}
-                            className="w-full h-full object-cover opacity-0 transition-opacity duration-200"
-                            onLoad={e => { e.target.style.opacity = 1; }} />
-                        : <div className="w-full h-full flex items-center justify-center">
-                            <Camera className="w-5 h-5 opacity-30" style={{ color: biz.acc }} />
-                          </div>
+                        ? <img src={secImgUrl} alt={sec.label} className="w-full h-full object-cover opacity-0 transition-opacity duration-200" onLoad={e => { e.target.style.opacity = 1; }} />
+                        : <div className="w-full h-full flex items-center justify-center"><Camera className="w-5 h-5 opacity-30" style={{ color: biz.acc }} /></div>
                     }
-                    <button
-                      className="absolute inset-0 bg-black/40 opacity-0 group-hover/secimg:opacity-100 transition-opacity flex items-center justify-center"
-                      onClick={() => { pendingImgSecRef.current = sec.label; secImgInputRef.current?.click(); }}>
-                      <Camera className="w-4 h-4 text-white" />
-                    </button>
+                    <div className="absolute bottom-0 right-0 flex flex-col gap-1 p-1" onClick={e => e.stopPropagation()}>
+                      <button title="Upload photo"
+                        className="w-5 h-5 bg-black/55 rounded-md flex items-center justify-center opacity-0 group-hover/secimg:opacity-100 transition-opacity"
+                        onClick={() => { pendingImgSecRef.current = sec.label; secImgInputRef.current?.click(); }}>
+                        <Camera className="w-3 h-3 text-white" />
+                      </button>
+                      {salon?.sectionImages?.[sec.label] && addedCount > 0 && (
+                        <button title="Apply image to all services"
+                          className="w-5 h-5 bg-black/55 rounded-md flex items-center justify-center opacity-0 group-hover/secimg:opacity-100 transition-opacity"
+                          onClick={() => handleApplySectionImgToAll(salon.sectionImages[sec.label], sec.services, cat, catSvcMap)}>
+                          <Layers className="w-3 h-3 text-white" />
+                        </button>
+                      )}
+                    </div>
                   </div>
-
                   <div className="flex-1 min-w-0">
                     <p className="text-[13px] font-extrabold text-gray-900 dark:text-white">{sec.label}</p>
                     <p className="text-[11px] text-gray-400 mt-0.5">
-                      {addedCount > 0
-                        ? <>{activeCount} active · {addedCount}/{sec.services.length} added</>
-                        : <span className="italic">Tap to set prices</span>
-                      }
+                      {addedCount > 0 ? <>{activeCount} active · {addedCount}/{sec.services.length} added</> : <span className="italic">Tap to set prices</span>}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {addedCount > 0 && (
-                      <span style={{ backgroundColor: biz.p + '18', color: biz.acc }}
-                        className="text-[10px] font-extrabold px-2 py-0.5 rounded-full">
+                      <span style={{ backgroundColor: biz.p + '18', color: biz.acc }} className="text-[10px] font-extrabold px-2 py-0.5 rounded-full">
                         {addedCount}/{sec.services.length}
                       </span>
                     )}
@@ -691,8 +1135,7 @@ export default function GlowLooxProfile() {
               );
             })}
             {orphanSvcs.length > 0 && (
-              <button
-                onClick={() => setSvcNavStack(prev => [...prev, { section: { label: 'Custom Services', services: orphanSvcs.map(s => s.name) } }])}
+              <button onClick={() => setSvcNavStack(prev => [...prev, { section: { label: 'Custom Services', services: orphanSvcs.map(s => s.name) } }])}
                 className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl bg-white dark:bg-gray-900/50 border border-gray-100 dark:border-white/[0.07] text-left hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors"
                 style={{ boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
                 <div style={{ backgroundColor: biz.p }} className="w-1 h-8 rounded-full shrink-0" />
@@ -710,25 +1153,63 @@ export default function GlowLooxProfile() {
     }
 
     /* ══ LEVEL 0 — category list ══ */
-    const allCatLabels = [
-      ...menuLabels,
-      ...Object.keys(catSvcMap).filter(l => !menuLabels.includes(l)),
-    ];
-    const totalActive = (services || []).filter(s => s.isActive !== false).length;
+    const allCatLabels = [...menuLabels, ...Object.keys(catSvcMap).filter(l => !menuLabels.includes(l))];
+    const totalAdded   = (services || []).length;
+    const totalActive  = (services || []).filter(s => s.isActive !== false).length;
+    const totalInMenu  = menuCats.reduce((s, c) => s + (c.subServices?.length || 0), 0);
+    const pct          = totalInMenu > 0 ? Math.round((totalAdded / totalInMenu) * 100) : 0;
 
     return (
       <>
-        <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 dark:border-white/[0.06]">
+        {/* ── Header row ── */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-white/[0.06]">
           <div>
-            <p className="text-[13px] font-black text-gray-900 dark:text-white">{(services || []).length} Services Added</p>
-            <p className="text-[11px] text-gray-400 mt-0.5">{totalActive} active · {(services || []).length - totalActive} off</p>
+            <p className="text-[13px] font-black text-gray-900 dark:text-white">{totalAdded} Services Added</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">{totalActive} active · {totalAdded - totalActive} off</p>
           </div>
-          <button onClick={() => setSvcModal({ open: true, service: null })}
-            style={{ color: biz.p, borderColor: biz.p + '50', backgroundColor: biz.p + '0d' }}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-bold border transition-all hover:opacity-80 active:scale-95">
-            <Plus className="w-3.5 h-3.5" /> Custom
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setImportOpen(true)}
+              style={{ color: biz.acc, borderColor: biz.p + '40', backgroundColor: biz.p + '0d' }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all hover:opacity-80">
+              <FileText className="w-3.5 h-3.5" /> Import
+            </button>
+            <button onClick={() => setSvcModal({ open: true, service: null })}
+              style={{ color: biz.p, borderColor: biz.p + '50', backgroundColor: biz.p + '0d' }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all hover:opacity-80">
+              <Plus className="w-3.5 h-3.5" /> Custom
+            </button>
+          </div>
         </div>
+
+        {/* ── Progress bar ── */}
+        {totalInMenu > 0 && (
+          <div className="px-4 py-2.5 border-b border-gray-100 dark:border-white/[0.06]">
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 font-semibold">Menu completion</p>
+              <p className="text-[11px] font-black" style={{ color: biz.acc }}>{pct}%</p>
+            </div>
+            <div className="h-1.5 bg-gray-100 dark:bg-white/[0.08] rounded-full overflow-hidden">
+              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: biz.p }} />
+            </div>
+            {pct < 50 && (
+              <p className="text-[10px] text-gray-400 mt-1">{totalInMenu - totalAdded} services still need prices</p>
+            )}
+          </div>
+        )}
+
+        {/* ── Quick setup banner (if < 5 services) ── */}
+        {totalAdded < 5 && totalInMenu > 0 && (
+          <button onClick={() => { setSetupStep(1); setQuickSetup(true); }}
+            className="mx-3 mt-3 w-[calc(100%-1.5rem)] flex items-center gap-3 px-4 py-3.5 rounded-2xl border text-left transition-all hover:opacity-90"
+            style={{ borderColor: biz.p + '40', backgroundColor: biz.p + '0a' }}>
+            <Wand2 style={{ color: biz.p }} className="w-5 h-5 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-extrabold" style={{ color: biz.acc }}>Quick Setup</p>
+              <p className="text-[11px] text-gray-400">Add all your services with one base price in 60 seconds</p>
+            </div>
+            <ChevronRight style={{ color: biz.acc }} className="w-4 h-4 shrink-0" />
+          </button>
+        )}
 
         <div className="p-3 space-y-2.5 pb-8">
           {allCatLabels.map(cat => {
@@ -737,7 +1218,7 @@ export default function GlowLooxProfile() {
             const addedInCat = Object.values(catByName);
             const activeCount = addedInCat.filter(s => s.isActive !== false).length;
             const minPrice    = addedInCat.length ? Math.min(...addedInCat.map(s => s.basePrice || s.price || 0)) : null;
-            const totalInMenu = menuCat?.subServices?.length || 0;
+            const catTotal    = menuCat?.subServices?.length || 0;
             const CatIcon     = CAT_ICONS[cat] || Scissors;
             const catImg      = CATEGORY_CARD_IMAGE_MAP[cat] || null;
             const hasAny      = addedInCat.length > 0;
@@ -751,8 +1232,7 @@ export default function GlowLooxProfile() {
                 <div style={{ background: biz.p + '18', borderColor: biz.p + '25' }}
                   className="w-11 h-11 rounded-xl flex-shrink-0 overflow-hidden border flex items-center justify-center">
                   {catImg
-                    ? <img src={catImg} alt={cat} className="w-full h-full object-cover"
-                        onError={e => { e.currentTarget.style.display = 'none'; }} />
+                    ? <img src={catImg} alt={cat} className="w-full h-full object-cover" onError={e => { e.currentTarget.style.display = 'none'; }} />
                     : <CatIcon style={{ color: biz.acc, opacity: 0.7 }} className="w-5 h-5" />
                   }
                 </div>
@@ -760,7 +1240,7 @@ export default function GlowLooxProfile() {
                   <p className={`text-[14px] font-extrabold leading-tight ${!hasAny ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>{cat}</p>
                   <p className="text-[11px] text-gray-400 mt-0.5">
                     {hasAny
-                      ? <>{activeCount} active · {addedInCat.length}{totalInMenu > 0 ? `/${totalInMenu}` : ''} added · <span style={{ color: biz.acc }} className="font-semibold">from ₹{minPrice}</span></>
+                      ? <>{activeCount} active · {addedInCat.length}{catTotal > 0 ? `/${catTotal}` : ''} added · <span style={{ color: biz.acc }} className="font-semibold">from ₹{minPrice}</span></>
                       : <span className="italic">Tap to add services</span>
                     }
                   </p>
@@ -770,6 +1250,97 @@ export default function GlowLooxProfile() {
             );
           })}
         </div>
+
+        {/* ══ IMPORT MODAL ══ */}
+        {importOpen && (
+          <div className="fixed inset-0 z-[9998] bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div className="w-full sm:max-w-md bg-white dark:bg-[#0d0520] rounded-t-3xl sm:rounded-3xl overflow-hidden max-h-[85vh] flex flex-col shadow-2xl">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-white/[0.08] shrink-0">
+                <p className="text-[15px] font-black text-gray-900 dark:text-white flex items-center gap-2">
+                  <FileText style={{ color: biz.p }} className="w-4 h-4" /> Import Price List
+                </p>
+                <button onClick={() => { setImportOpen(false); setImportStep('input'); setImportText(''); setImportParsed([]); }}
+                  className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+              </div>
+
+              {importStep === 'input' ? (
+                <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                  <p className="text-[12px] text-gray-500 dark:text-gray-400">
+                    Paste your price list in any format — WhatsApp message, notes, anything.
+                  </p>
+                  <div className="bg-gray-50 dark:bg-white/[0.04] rounded-xl p-3 text-[11px] text-gray-400 space-y-0.5 font-mono">
+                    <p>Classic Haircut - ₹200 - 30min</p>
+                    <p>Beard Trim Rs150 20 min</p>
+                    <p>Low Fade | 350 | 45</p>
+                  </div>
+                  <textarea
+                    value={importText}
+                    onChange={e => setImportText(e.target.value)}
+                    placeholder="Paste your price list here…"
+                    rows={8}
+                    className="w-full px-3.5 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white outline-none focus:border-indigo-400 resize-none font-medium"
+                  />
+                  <button onClick={() => {
+                    const parsed = parseImportText(importText);
+                    if (!parsed.length) return toast.error('Nothing found to parse');
+                    // Auto-match to menu service names
+                    const allNames = menuCats.flatMap(c => c.subServices || []);
+                    const allCatMap = {};
+                    menuCats.forEach(c => (c.subServices || []).forEach(n => { allCatMap[n.toLowerCase()] = { name: n, cat: c.label }; }));
+                    const matched = parsed.map(row => {
+                      const exact = allCatMap[row.name.toLowerCase()];
+                      if (exact) return { ...row, name: exact.name, category: exact.cat };
+                      const partial = Object.keys(allCatMap).find(k => k.includes(row.name.toLowerCase()) || row.name.toLowerCase().includes(k.split(' ')[0]));
+                      return partial ? { ...row, name: allCatMap[partial].name, category: allCatMap[partial].cat } : { ...row, category: 'General' };
+                    });
+                    setImportParsed(matched);
+                    setImportStep('preview');
+                  }} disabled={!importText.trim()}
+                    style={{ backgroundColor: biz.p }}
+                    className="w-full py-3 rounded-xl text-white font-bold text-[14px] disabled:opacity-40 flex items-center justify-center gap-2">
+                    <AlignLeft className="w-4 h-4" /> Parse & Preview
+                  </button>
+                </div>
+              ) : (
+                <div className="flex-1 overflow-y-auto p-5 space-y-3">
+                  <p className="text-[12px] text-gray-500 dark:text-gray-400">{importParsed.length} services found · review and edit before saving</p>
+                  <div className="space-y-2">
+                    {importParsed.map((row, i) => (
+                      <div key={i} className="flex items-center gap-2 bg-gray-50 dark:bg-white/[0.04] rounded-xl px-3 py-2.5">
+                        <div className="flex-1 min-w-0">
+                          <input value={row.name} onChange={e => setImportParsed(prev => prev.map((r,j) => j===i ? {...r, name: e.target.value} : r))}
+                            className="w-full bg-transparent text-[12px] font-bold text-gray-900 dark:text-white outline-none" />
+                          <p className="text-[10px] text-gray-400">{row.category || 'General'}</p>
+                        </div>
+                        <input value={row.price} onChange={e => setImportParsed(prev => prev.map((r,j) => j===i ? {...r, price: e.target.value} : r))}
+                          placeholder="₹" type="number"
+                          className="w-16 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 text-[12px] font-bold text-gray-900 dark:text-white outline-none text-center" />
+                        <input value={row.duration} onChange={e => setImportParsed(prev => prev.map((r,j) => j===i ? {...r, duration: e.target.value} : r))}
+                          placeholder="min" type="number"
+                          className="w-14 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 text-[12px] font-bold text-gray-900 dark:text-white outline-none text-center" />
+                        <button onClick={() => setImportParsed(prev => prev.filter((_,j) => j !== i))} className="text-red-400 hover:text-red-600">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button onClick={() => setImportStep('input')}
+                      className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-[13px] font-bold text-gray-600 dark:text-gray-300">
+                      Back
+                    </button>
+                    <button onClick={handleImportSave} disabled={importSaving}
+                      style={{ backgroundColor: biz.p }}
+                      className="flex-[2] py-2.5 rounded-xl text-white font-bold text-[13px] disabled:opacity-40 flex items-center justify-center gap-2">
+                      {importSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                      Save {importParsed.filter(r => r.name && r.price).length} services
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </>
     );
   };

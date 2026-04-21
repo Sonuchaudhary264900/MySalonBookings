@@ -194,6 +194,11 @@ export const deleteService = async (serviceId) => {
   return { success: true, message: 'Service deleted', data: response.data };
 };
 
+export const bulkUpsertServices = async (updates) => {
+  const response = await api.post('/owner/services/bulk', { updates });
+  return { success: true, data: response.data.data };
+};
+
 // ── GET BOOKINGS ────────────────────────────────────────────────
 export const getBookings = async (filters = {}) => {
   const params = new URLSearchParams();

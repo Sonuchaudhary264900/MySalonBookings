@@ -1509,6 +1509,12 @@ router.post(
 );
 
 router.post(
+  "/owner/services/bulk",
+  authenticateOwner,
+  asyncHandler(serviceController.bulkUpsertServices)
+);
+
+router.post(
   "/owner/services/upload-photo",
   authenticateOwner,
   multerUpload.single("photo"),

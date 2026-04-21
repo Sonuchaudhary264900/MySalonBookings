@@ -237,6 +237,18 @@ export const SalonProvider = ({ children }) => {
     }
   }, [services]);
 
+  // ✅ BULK UPSERT SERVICES
+  const bulkUpsertServices = useCallback(async (updates) => {
+    try {
+      setError(null);
+      const response = await salonService.bulkUpsertServices(updates);
+      return response;
+    } catch (err) {
+      setError(err.message || 'Failed to bulk update services');
+      throw err;
+    }
+  }, []);
+
   // ✅ GET BOOKINGS
   const fetchBookings = useCallback(async (filters = {}) => {
     try {
@@ -396,6 +408,7 @@ export const SalonProvider = ({ children }) => {
     fetchServices,
     updateService,
     deleteService,
+    bulkUpsertServices,
 
     // Booking methods
     fetchBookings,
@@ -416,7 +429,7 @@ export const SalonProvider = ({ children }) => {
     salon, services, bookings, analytics, loading, salonInitialized, salonFetchFailed, error,
     subscription, subscriptionLoading,
     createSalon, fetchSalon, updateSalon, fetchSalonStatus,
-    createService, fetchServices, updateService, deleteService,
+    createService, fetchServices, updateService, deleteService, bulkUpsertServices,
     fetchBookings, updateBookingStatus, createWalkInBooking,
     fetchAnalytics, fetchRevenueReport, fetchCustomerCount,
     fetchSubscription,

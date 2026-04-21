@@ -139,6 +139,63 @@ exports.updateService = async (req, res) => {
 };
 
 // ===================================================
+// BULK UPSERT SERVICES
+// ===================================================
+exports.bulkUpsertServices = async (req, res) => {
+  try {
+    const { updates } = req.body;
+    if (!Array.isArray(updates) || updates.length === 0) {
+      return res.status(400).json(formatErrorResponse('No updates provided', 400));
+    }
+
+    const salon = await Business.findOne({ ownerId: req.owner._id });
+    if (!salon) return res.status(404).json(formatErrorResponse(messages.SALON.SALON_NOT_FOUND, 404));
+
+    let created = 0, updated = 0;
+    for (const u of updates) {
+      if (u.id) {
+        await Service.findOneAndUpdate(
+          { _id: u.id, salonId: salon._id },
+          { ...(u.basePrice !== undefined && { basePrice: u.basePrice }),
+            ...(u.duration  !== undefined && { duration:  u.duration  }),
+            ...(u.isActive  !== undefined && { isActive:  u.isActive  }),
+            ...(u.photos    !== undefined && { photos:    u.photos    }) }
+        );
+        updated++;
+      } else {
+        const existing = await Service.findOne({ salonId: salon._id, name: u.name });
+        if (existing) {
+          await Service.findByIdAndUpdate(existing._id, {
+            ...(u.basePrice !== undefined && { basePrice: u.basePrice }),
+            ...(u.duration  !== undefined && { duration:  u.duration  }),
+          });
+          updated++;
+        } else {
+          const svc = await Service.create({
+            name: u.name,
+            description: '',
+            salonId: salon._id,
+            category: u.category || 'General',
+            basePrice: u.basePrice || 0,
+            duration: u.duration || 30,
+            isActive: true,
+            applicableFor: normalizeApplicableFor(u.applicableFor, salon.servedGender),
+            photos: [],
+          });
+          if (!salon.services.includes(svc._id)) salon.services.push(svc._id);
+          created++;
+        }
+      }
+    }
+    await salon.save();
+    res.json(formatSuccessResponse({ created, updated }, `${created + updated} services updated`));
+  } catch (error) {
+    console.error('Bulk upsert error:', error);
+    res.status(500).json(formatErrorResponse(messages.GENERIC.ERROR, 500));
+  }
+};
+
+// ===================================================
 // DELETE SERVICE
 // ===================================================
 exports.deleteService = async (req, res) => {
