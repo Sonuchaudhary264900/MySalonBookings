@@ -5,7 +5,7 @@ import {
   Palette, Shirt, Plus, Heart, Smile, Paintbrush,
   Images, Info, Phone, Mail, BadgeCheck, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, X,
   Pencil, Trash2, Check, Camera, Upload, Film, Save,
-  Zap, FileText, Layers, AlignLeft, Square, CheckSquare, Wand2, RefreshCw,
+  Zap, FileText, Layers, AlignLeft, Square, CheckSquare, Wand2, RefreshCw, ImageIcon,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -242,7 +242,10 @@ export default function GlowLooxProfile() {
   const [bulkSelected,    setBulkSelected]    = useState(new Set()); // Set of svcName
   const [bulkPrice,       setBulkPrice]       = useState('');
   const [bulkDuration,    setBulkDuration]    = useState('');
+  const [bulkImage,       setBulkImage]       = useState(''); // URL after upload
+  const [bulkImgUploading, setBulkImgUploading] = useState(false);
   const [bulkApplying,    setBulkApplying]    = useState(false);
+  const bulkImgInputRef   = useRef(null);
 
   /* ── import modal ── */
   const [importOpen,      setImportOpen]      = useState(false);
@@ -358,9 +361,11 @@ export default function GlowLooxProfile() {
       const catMap  = catSvcMap[cat] || {};
       const updates = [...bulkSelected].map(name => {
         const existing = catMap[name];
-        return existing
+        const base = existing
           ? { id: existing._id || existing.id, basePrice: price, duration }
           : { name, category: cat, basePrice: price, duration };
+        if (bulkImage) base.photos = [bulkImage];
+        return base;
       });
       await bulkUpsertServices(updates);
       await fetchServices();
@@ -368,6 +373,7 @@ export default function GlowLooxProfile() {
       setBulkSelected(new Set());
       setBulkPrice('');
       setBulkDuration('');
+      setBulkImage('');
       toast.success(`${updates.length} services updated`);
     } catch { toast.error('Bulk apply failed'); }
     finally { setBulkApplying(false); }
@@ -486,6 +492,17 @@ export default function GlowLooxProfile() {
       toast.success('Section image updated');
     } catch { toast.error('Failed to upload'); }
     finally { setUploadingSecImg(null); pendingImgSecRef.current = null; e.target.value = ''; }
+  };
+
+  const handleBulkImgUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBulkImgUploading(true);
+    try {
+      const [url] = await uploadSalonPhotos([file]);
+      setBulkImage(url);
+    } catch { toast.error('Failed to upload image'); }
+    finally { setBulkImgUploading(false); e.target.value = ''; }
   };
 
   const handleSaveInline = async (svcName, cat, existingSvc) => {
@@ -833,7 +850,7 @@ export default function GlowLooxProfile() {
       return (
         <div>
           <div className="flex items-center gap-3 px-4 py-3.5 border-b border-gray-100 dark:border-white/[0.06] sticky top-[49px] bg-white/95 dark:bg-[#0d0520]/95 backdrop-blur-xl z-20">
-            <button onClick={() => { setSvcNavStack(prev => prev.slice(0, 1)); setBulkPanel(false); setBulkSelected(new Set()); }}
+            <button onClick={() => { setSvcNavStack(prev => prev.slice(0, 1)); setBulkPanel(false); setBulkSelected(new Set()); setBulkImage(''); }}
               className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-white/[0.08] flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity">
               <ChevronLeft className="w-4 h-4 text-gray-600 dark:text-gray-300" />
             </button>
@@ -957,6 +974,7 @@ export default function GlowLooxProfile() {
             })}
           </div>
           <input ref={svcImgInputRef} type="file" accept="image/*" className="hidden" onChange={handleServiceImgUpload} />
+          <input ref={bulkImgInputRef} type="file" accept="image/*" className="hidden" onChange={handleBulkImgUpload} />
 
           {/* ── Sticky bulk bar ── */}
           {bulkSelected.size > 0 && (
@@ -976,6 +994,15 @@ export default function GlowLooxProfile() {
                     <input type="number" inputMode="numeric" value={bulkDuration} onChange={e => setBulkDuration(e.target.value)}
                       placeholder="min" className="w-full bg-transparent text-[13px] font-black text-gray-900 dark:text-white outline-none" />
                   </div>
+                  <button onClick={() => bulkImgInputRef.current?.click()}
+                    className="w-10 h-10 shrink-0 rounded-xl border flex items-center justify-center overflow-hidden relative"
+                    style={{ borderColor: biz.p + '40', backgroundColor: bulkImage ? 'transparent' : biz.p + '0d' }}>
+                    {bulkImgUploading
+                      ? <RefreshCw className="w-3.5 h-3.5 animate-spin" style={{ color: biz.acc }} />
+                      : bulkImage
+                        ? <img src={bulkImage} alt="" className="w-full h-full object-cover" />
+                        : <ImageIcon className="w-3.5 h-3.5" style={{ color: biz.acc }} />}
+                  </button>
                   <button onClick={() => handleBulkApply(catSvcMap, cat)} disabled={bulkApplying}
                     style={{ backgroundColor: biz.p }}
                     className="px-4 py-2 rounded-xl text-white text-[13px] font-black disabled:opacity-60 flex items-center gap-1.5">
@@ -1025,7 +1052,7 @@ export default function GlowLooxProfile() {
               <p className="text-[14px] font-extrabold text-gray-900 dark:text-white truncate">{cat}</p>
               <p className="text-[11px] text-gray-400">{sections.length} sections · {Object.keys(catByName).length} added</p>
             </div>
-            <button onClick={() => { setBulkPanel(p => !p); setBulkSelected(new Set(allSecSvcs)); setBulkPrice(''); setBulkDuration(''); }}
+            <button onClick={() => { setBulkPanel(p => !p); setBulkSelected(new Set(allSecSvcs)); setBulkPrice(''); setBulkDuration(''); setBulkImage(''); }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[11px] font-bold transition-all"
               style={bulkPanel ? { backgroundColor: biz.p, color:'#fff', borderColor: biz.p } : { color: biz.acc, borderColor: biz.p+'40', backgroundColor: biz.p+'0d' }}>
               <Layers className="w-3.5 h-3.5" /> Bulk Apply
@@ -1050,6 +1077,26 @@ export default function GlowLooxProfile() {
               </div>
               <PriceChips value={bulkPrice} onChange={setBulkPrice} />
               <DurChips  value={bulkDuration} onChange={setBulkDuration} />
+              {/* Bulk image */}
+              <div className="flex items-center gap-2.5">
+                <button onClick={() => bulkImgInputRef.current?.click()}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl border text-[11px] font-bold transition-all"
+                  style={{ borderColor: biz.p + '40', color: biz.acc, backgroundColor: biz.p + '0d' }}>
+                  {bulkImgUploading
+                    ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    : <ImageIcon className="w-3.5 h-3.5" />}
+                  {bulkImage ? 'Change image' : 'Add image (optional)'}
+                </button>
+                {bulkImage && (
+                  <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-gray-200 dark:border-white/10 shrink-0">
+                    <img src={bulkImage} alt="" className="w-full h-full object-cover" />
+                    <button onClick={() => setBulkImage('')}
+                      className="absolute top-0 right-0 w-4 h-4 bg-black/60 flex items-center justify-center rounded-bl-lg">
+                      <X className="w-2.5 h-2.5 text-white" />
+                    </button>
+                  </div>
+                )}
+              </div>
               {/* Service selection */}
               <div>
                 <div className="flex items-center justify-between mb-2">
