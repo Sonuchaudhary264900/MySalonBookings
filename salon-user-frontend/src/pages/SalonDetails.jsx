@@ -189,6 +189,8 @@ function SalonDetails({ salonId: propId, onClose }) {
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [bookingStatus, setBookingStatus] = useState("confirmed");
   const [bookError, setBookError]         = useState("");
+  const [barberAvailability, setBarberAvailability] = useState({}); // barberId → true/false
+  const [assignedStaff, setAssignedStaff] = useState(null);
 
   const [serviceView,         setServiceView]         = useState(() => localStorage.getItem('svc_view') || 'grid');
   const [favServices,         setFavServices]         = useState(() => JSON.parse(localStorage.getItem('svc_favs') || '[]'));
@@ -273,7 +275,9 @@ function SalonDetails({ salonId: propId, onClose }) {
     const fetchSlots = async () => {
       setSlotsLoading(true);
       try {
-        const res = await API.get(`/public/salons/${id}/booked-slots?date=${bookDate}&duration=${totalDuration}`);
+        // When a specific barber is chosen, fetch slots scoped to that barber's availability
+        const barberParam = barberId ? `&barberId=${barberId}` : '';
+        const res = await API.get(`/public/salons/${id}/booked-slots?date=${bookDate}&duration=${totalDuration}${barberParam}`);
         if (stale) return;
         const data = res.data.data || {};
         const mode = data.bookingMode || "sequential";
@@ -283,7 +287,27 @@ function SalonDetails({ salonId: propId, onClose }) {
     };
     fetchSlots();
     return () => { stale = true; };
-  }, [bookDate, id, totalDuration, showBooking, slotsKey]);
+  }, [bookDate, id, totalDuration, showBooking, slotsKey, barberId]);
+
+  // ── Pre-check each barber's availability for the selected date ──────────
+  useEffect(() => {
+    if (!showBooking || !totalDuration || !id || barbers.length === 0) return;
+    let cancelled = false;
+    const checkAll = async () => {
+      const results = {};
+      await Promise.all(barbers.map(async b => {
+        try {
+          const res = await API.get(`/public/salons/${id}/booked-slots?date=${bookDate}&duration=${totalDuration}&barberId=${b._id}`);
+          const data = res.data.data || {};
+          const freeSlots = (data.slots || []).filter(s => !(data.blockedSlots || []).includes(s));
+          results[b._id] = freeSlots.length > 0;
+        } catch { results[b._id] = true; }
+      }));
+      if (!cancelled) setBarberAvailability(results);
+    };
+    checkAll();
+    return () => { cancelled = true; };
+  }, [bookDate, id, totalDuration, showBooking, barbers]);
 
   // ── Hero slides: videos only ──
   const heroSlides = useMemo(() => {
@@ -477,8 +501,10 @@ function SalonDetails({ salonId: propId, onClose }) {
         appointmentDate: bookDate, appointmentTime: slot, paymentMethod: "cash",
         couponCode: appliedCoupon?.code || undefined,
       });
-      const status = res.data.data?.booking?.status || res.data.data?.status || "confirmed";
+      const booking = res.data.data?.booking || res.data.data;
+      const status  = booking?.status || "confirmed";
       setBookingStatus(status);
+      setAssignedStaff(booking?.staffName || booking?.barberName || null);
       if (status === "confirmed") {
         addToast("success", "Booking confirmed!");
         addNotification({ type: "booking", title: "Booking Confirmed", message: `${selectedServices.map(s => s.name).join(" + ")} at ${salon?.name} on ${bookDate} at ${slot}` });
@@ -1586,16 +1612,31 @@ function SalonDetails({ salonId: propId, onClose }) {
                           </div>
                           <span className="text-xs font-medium" style={{ color: barberId === '' ? theme.p : dm.fg45 }}>No Pref</span>
                         </button>
-                        {barbers.map(b => (
-                          <button key={b._id} type="button" onClick={() => setBarberId(b._id)} className="flex flex-col items-center gap-1.5 shrink-0 transition-all hover:scale-105">
-                            <div className="w-14 h-14 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden"
-                              style={barberId === b._id ? { border: `3px solid ${theme.p}`, background: theme.p, color: '#fff', boxShadow: `0 4px 12px ${theme.p}50` } : { background: dm.formInp, color: dm.fg55, border: `2px solid ${dm.b10}` }}>
-                              {b.photo ? <img src={b.photo} alt={b.name} className="w-full h-full object-cover" /> : (b.name?.charAt(0)?.toUpperCase() || '?')}
-                            </div>
-                            <span className="text-xs font-medium text-center max-w-[60px] truncate" style={{ color: barberId === b._id ? theme.p : dm.fg45 }}>{b.name}</span>
-                            {b.experience > 0 && <span className="text-[10px]" style={{ color: dm.fg25, marginTop: -4 }}>{b.experience}yr</span>}
-                          </button>
-                        ))}
+                        {barbers.map(b => {
+                          const isBusy    = barberAvailability[b._id] === false;
+                          const isSelected = barberId === b._id;
+                          return (
+                            <button key={b._id} type="button" disabled={isBusy}
+                              onClick={() => { if (!isBusy) setBarberId(b._id); }}
+                              className="flex flex-col items-center gap-1.5 shrink-0 transition-all"
+                              style={{ opacity: isBusy ? 0.5 : 1, cursor: isBusy ? 'not-allowed' : 'pointer' }}>
+                              <div className="w-14 h-14 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden relative"
+                                style={isSelected ? { border: `3px solid ${theme.p}`, background: theme.p, color: '#fff', boxShadow: `0 4px 12px ${theme.p}50` } : { background: dm.formInp, color: dm.fg55, border: `2px solid ${dm.b10}` }}>
+                                {b.photo ? <img src={b.photo} alt={b.name} className="w-full h-full object-cover" /> : (b.name?.charAt(0)?.toUpperCase() || '?')}
+                                {isBusy && (
+                                  <div className="absolute inset-0 rounded-full flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.55)' }}>
+                                    <span style={{ fontSize: 8, fontWeight: 900, color: '#fca5a5', textAlign: 'center', lineHeight: 1.2 }}>FULLY{'\n'}BOOKED</span>
+                                  </div>
+                                )}
+                              </div>
+                              <span className="text-xs font-medium text-center max-w-[60px] truncate" style={{ color: isSelected ? theme.p : dm.fg45 }}>{b.name}</span>
+                              {isBusy
+                                ? <span style={{ fontSize: 9, fontWeight: 700, color: '#f87171', marginTop: -4 }}>Busy</span>
+                                : b.experience > 0 && <span className="text-[10px]" style={{ color: dm.fg25, marginTop: -4 }}>{b.experience}yr</span>
+                              }
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   )}

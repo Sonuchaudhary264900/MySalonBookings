@@ -934,9 +934,10 @@ router.post("/owner/reels/comments/:commentId/reply", authenticateOwner, asyncHa
   res.status(201).json({ success: true, data: savedReply });
 }));
 
-// GET /public/salons/:salonId/booked-slots?date=YYYY-MM-DD&duration=N
+// GET /public/salons/:salonId/booked-slots?date=YYYY-MM-DD&duration=N[&barberId=ID]
+// If barberId is supplied, blocked slots are calculated per that barber only (not salon-wide).
 router.get("/public/salons/:salonId/booked-slots", validateObjectId("salonId"), asyncHandler(async (req, res) => {
-  const { date, duration } = req.query;
+  const { date, duration, barberId } = req.query;
   if (!date) return res.status(400).json({ success: false, message: "date is required" });
 
   const serviceDuration = Math.max(5, parseInt(duration) || 30);
@@ -986,15 +987,23 @@ router.get("/public/salons/:salonId/booked-slots", validateObjectId("salonId"), 
     return res.json({ success: true, data: { slots: [], blockedSlots: [], closedDay: true } });
   }
 
-  // Fetch existing bookings for this day
+  // Fetch existing bookings for this day — scoped to a specific barber if barberId provided
   const dayStart = new Date(date + "T00:00:00.000Z");
   const dayEnd   = new Date(date + "T23:59:59.999Z");
 
-  const bookings = await Booking.find({
+  const mongoose = require("mongoose");
+  const bookingQuery = {
     salonId: req.params.salonId,
     appointmentDate: { $gte: dayStart, $lte: dayEnd },
     status: { $in: ["pending", "confirmed", "in_progress"] },
-  }).select("appointmentTime estimatedDuration").lean();
+  };
+  // When a specific barber is chosen, only block slots where THAT barber is busy
+  if (barberId && mongoose.isValidObjectId(barberId)) {
+    bookingQuery.barberId = new mongoose.Types.ObjectId(barberId);
+  }
+
+  const bookings = await Booking.find(bookingQuery)
+    .select("appointmentTime estimatedDuration").lean();
 
   const bookingMode = salon.bookingMode || "flexible";
 

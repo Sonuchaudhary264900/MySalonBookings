@@ -34,12 +34,14 @@ function Booking() {
   const [success, setSuccess]     = useState(false);
   const [bookingStatus, setBookingStatus] = useState("confirmed");
   const [error, setError]         = useState("");
-  const [slotPopup, setSlotPopup] = useState(null);
+  const [slotPopup, setSlotPopup]     = useState(null);
+  const [assignedStaff, setAssignedStaff] = useState(null); // name of staff assigned after booking
   const [couponInput, setCouponInput]     = useState("");
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [couponError, setCouponError]     = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [barberAvailability, setBarberAvailability] = useState({}); // barberId → true (has free slots) / false (fully busy)
 
   const localDate = (offset = 0) => { const d = new Date(); d.setDate(d.getDate() + offset); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
   const today      = localDate(0);
@@ -118,7 +120,34 @@ function Booking() {
     setCouponError("");
   };
 
-  // ── Re-fetch slots whenever date or services change ────────
+  // ── Pre-check availability for each barber when date changes ────────────
+  // Runs a lightweight per-barber slot check so we can show BUSY before customer taps.
+  useEffect(() => {
+    if (!date || !salonId || !totalDuration || barbers.length === 0) return;
+    let cancelled = false;
+    const checkAll = async () => {
+      const results = {};
+      await Promise.all(barbers.map(async b => {
+        try {
+          const res = await API.get(
+            `/public/salons/${salonId}/booked-slots?date=${date}&duration=${totalDuration}&barberId=${b._id}`
+          );
+          const data = res.data.data || {};
+          const freeSlots = (data.slots || []).filter(s => !(data.blockedSlots || []).includes(s));
+          results[b._id] = freeSlots.length > 0;
+        } catch {
+          results[b._id] = true; // assume available on error
+        }
+      }));
+      if (!cancelled) setBarberAvailability(results);
+    };
+    checkAll();
+    return () => { cancelled = true; };
+  }, [date, salonId, totalDuration, barbers]);
+
+  // ── Re-fetch slots whenever date, services, or barber selection changes ──
+  // When a specific barber is selected, slots are filtered to THAT barber's availability.
+  // This prevents showing a slot as free when the barber is actually busy.
   useEffect(() => {
     if (!date || !salonId || !totalDuration) return;
     setSlot("");
@@ -130,8 +159,9 @@ function Booking() {
     const fetchSlots = async () => {
       setSlotsLoading(true);
       try {
+        const barberParam = barberId ? `&barberId=${barberId}` : '';
         const res = await API.get(
-          `/public/salons/${salonId}/booked-slots?date=${date}&duration=${totalDuration}`
+          `/public/salons/${salonId}/booked-slots?date=${date}&duration=${totalDuration}${barberParam}`
         );
         if (stale) return;
         const data = res.data.data || {};
@@ -154,7 +184,7 @@ function Booking() {
     };
     fetchSlots();
     return () => { stale = true; };
-  }, [date, salonId, totalDuration]);
+  }, [date, salonId, totalDuration, barberId]);
 
   const handleBooking = async (e) => {
     e.preventDefault();
@@ -185,8 +215,10 @@ function Booking() {
         paymentMethod: "cash",
         couponCode: appliedCoupon?.code || undefined,
       });
-      const status = res.data.data?.booking?.status || res.data.data?.status || "confirmed";
+      const booking = res.data.data?.booking || res.data.data;
+      const status  = booking?.status || "confirmed";
       setBookingStatus(status);
+      setAssignedStaff(booking?.staffName || booking?.barberName || null);
       if (status === "confirmed") {
         addNotification({ type: "booking", title: "Booking Confirmed", message: `${services.map(s => s.name).join(" + ")} at ${salon?.name} on ${date} at ${slot}` });
       } else {
@@ -245,7 +277,17 @@ function Booking() {
           <p className="text-sm mb-1" style={{ color: 'var(--t-text-2)' }}>
             <strong style={{ color: 'var(--t-text)' }}>{services.map(s => s.name).join(" + ")}</strong> at <strong style={{ color: 'var(--t-text)' }}>{salon?.name}</strong>
           </p>
-          <p className="text-sm mb-6" style={{ color: 'var(--t-text-2)' }}>{date} at {slot}</p>
+          <p className="text-sm mb-1" style={{ color: 'var(--t-text-2)' }}>{date} at {slot}</p>
+          {assignedStaff && (
+            <p className="text-sm mb-5 font-semibold" style={{ color: 'var(--t-accent)' }}>
+              Your stylist: {assignedStaff}
+            </p>
+          )}
+          {!assignedStaff && (
+            <p className="text-xs mb-5" style={{ color: 'var(--t-text-3)' }}>
+              Staff will be assigned shortly by the salon.
+            </p>
+          )}
           <div className="flex flex-col gap-2">
             <button onClick={() => navigate("/dashboard")} className="btn-primary w-full">
               View My Bookings
@@ -341,18 +383,31 @@ function Booking() {
                     <span className="block text-xs opacity-75 mb-0.5">Any</span>
                     <span>No preference</span>
                   </button>
-                  {barbers.map(b => (
-                    <button
-                      key={b._id}
-                      type="button"
-                      onClick={() => setBarberId(b._id)}
-                      className="px-3 py-2.5 rounded-xl border text-sm font-medium transition-all text-left"
-                      style={barberId === b._id ? { background: 'var(--t-accent)', color: '#fff', borderColor: 'var(--t-accent)' } : { background: 'var(--t-input-bg)', color: 'var(--t-text-2)', borderColor: 'var(--t-border)' }}
-                    >
-                      <span className="block font-semibold">{b.name}</span>
-                      {b.experience > 0 && <span className="text-xs" style={{ color: barberId === b._id ? 'rgba(255,255,255,0.7)' : 'var(--t-text-3)' }}>{b.experience} yr exp</span>}
-                    </button>
-                  ))}
+                  {barbers.map(b => {
+                    const isBusy    = barberAvailability[b._id] === false;
+                    const isSelected = barberId === b._id;
+                    return (
+                      <button
+                        key={b._id}
+                        type="button"
+                        disabled={isBusy}
+                        onClick={() => { if (!isBusy) setBarberId(b._id); }}
+                        className="px-3 py-2.5 rounded-xl border text-sm font-medium transition-all text-left relative"
+                        style={
+                          isBusy    ? { background: 'var(--t-bg-2)', color: 'var(--t-text-3)', borderColor: 'var(--t-border)', opacity: 0.6, cursor: 'not-allowed' } :
+                          isSelected? { background: 'var(--t-accent)', color: '#fff', borderColor: 'var(--t-accent)' } :
+                                      { background: 'var(--t-input-bg)', color: 'var(--t-text-2)', borderColor: 'var(--t-border)' }
+                        }
+                      >
+                        <span className="block font-semibold">{b.name}</span>
+                        {isBusy ? (
+                          <span className="text-xs font-bold" style={{ color: '#f87171' }}>Fully booked</span>
+                        ) : (
+                          b.experience > 0 && <span className="text-xs" style={{ color: isSelected ? 'rgba(255,255,255,0.7)' : 'var(--t-text-3)' }}>{b.experience} yr exp</span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
