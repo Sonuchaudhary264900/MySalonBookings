@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
 import { Search, ToggleLeft, ToggleRight, MapPin, Star, ChevronDown, X, Play, FileText, Image, QrCode, Download, Copy, CheckCircle2 } from 'lucide-react';
-import { QRCodeCanvas } from 'react-qr-code';
+import { QRCodeSVG } from 'react-qr-code';
 
 const CUSTOMER_URL = (import.meta.env.VITE_CUSTOMER_APP_URL || 'https://mysalonbookings.com').replace(/\/$/, '');
 
@@ -161,31 +161,40 @@ function QRModal({ salon, onClose, isReady, onToggleReady }) {
   };
 
   const handleDownload = () => {
-    const canvas = canvasRef.current?.querySelector('canvas');
-    if (!canvas) return;
-    const out = document.createElement('canvas');
-    out.width = 400; out.height = 500;
-    const ctx = out.getContext('2d');
-    ctx.fillStyle = '#0d0d2b';
-    ctx.fillRect(0, 0, 400, 500);
-    ctx.fillStyle = '#ffffff';
-    ctx.roundRect(40, 40, 320, 320, 16);
-    ctx.fill();
-    ctx.drawImage(canvas, 50, 50, 300, 300);
-    ctx.fillStyle = '#f1f5f9';
-    ctx.font = 'bold 22px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(salon.name, 200, 405);
-    ctx.fillStyle = '#6366f1';
-    ctx.font = '13px sans-serif';
-    ctx.fillText('GlowLoox', 200, 430);
-    ctx.fillStyle = '#64748b';
-    ctx.font = '11px sans-serif';
-    ctx.fillText(salonUrl.slice(0, 48), 200, 460);
-    const link = document.createElement('a');
-    link.download = `${salon.name.replace(/\s+/g, '_')}_QR.png`;
-    link.href = out.toDataURL('image/png');
-    link.click();
+    const svg = canvasRef.current?.querySelector('svg');
+    if (!svg) return;
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+    const img = new Image();
+    img.onload = () => {
+      const out = document.createElement('canvas');
+      out.width = 400; out.height = 500;
+      const ctx = out.getContext('2d');
+      ctx.fillStyle = '#0d0d2b';
+      ctx.fillRect(0, 0, 400, 500);
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.roundRect(40, 40, 320, 320, 16);
+      ctx.fill();
+      ctx.drawImage(img, 50, 50, 300, 300);
+      ctx.fillStyle = '#f1f5f9';
+      ctx.font = 'bold 22px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(salon.name, 200, 405);
+      ctx.fillStyle = '#6366f1';
+      ctx.font = '13px sans-serif';
+      ctx.fillText('GlowLoox', 200, 430);
+      ctx.fillStyle = '#64748b';
+      ctx.font = '11px sans-serif';
+      ctx.fillText(salonUrl.slice(0, 48), 200, 460);
+      URL.revokeObjectURL(url);
+      const link = document.createElement('a');
+      link.download = `${salon.name.replace(/\s+/g, '_')}_QR.png`;
+      link.href = out.toDataURL('image/png');
+      link.click();
+    };
+    img.src = url;
   };
 
   const sc = STATUS_COLORS[d.approvalStatus] || STATUS_COLORS.pending;
@@ -219,7 +228,7 @@ function QRModal({ salon, onClose, isReady, onToggleReady }) {
           {/* Left — QR */}
           <div style={{ width: 240, flexShrink: 0, padding: '20px 20px', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
             <div ref={canvasRef} style={{ background: '#fff', borderRadius: 14, padding: 12 }}>
-              <QRCodeCanvas value={salonUrl} size={180} bgColor="#ffffff" fgColor="#0d0d2b" level="H" />
+              <QRCodeSVG value={salonUrl} size={180} bgColor="#ffffff" fgColor="#0d0d2b" level="H" />
             </div>
             <div style={{ fontSize: 10, color: 'var(--text3)', textAlign: 'center', wordBreak: 'break-all' }}>{salonUrl}</div>
             <button onClick={handleCopy}
