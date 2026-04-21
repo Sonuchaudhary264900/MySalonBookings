@@ -479,12 +479,24 @@ const Dashboard = () => {
     setShowWelcomeBack(false);
   };
 
-  /* ── Fetch team stats (only when staff exist) ── */
+  /* ── Fetch team stats (cached 60s, skipped for solo owners) ── */
   useEffect(() => {
+    const CACHE_KEY = 'msb_team_stats_cache';
+    const CACHE_TTL = 60_000; // 60 seconds
+    const cached = (() => { try { return JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null'); } catch { return null; } })();
+    if (cached && Date.now() - cached.ts < CACHE_TTL) {
+      if (cached.team.length > 1) setTeamStats(cached.team);
+      return;
+    }
     api.get('/owner/team/stats')
       .then(res => {
         const team = res.data.data?.team || [];
-        if (team.length > 1) setTeamStats(team);
+        // Only show team section when there are real staff (not just the owner virtual record)
+        const hasRealStaff = team.filter(s => !s.isOwner && !s.isUnassigned).length > 0;
+        if (hasRealStaff) {
+          setTeamStats(team);
+          try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ team, ts: Date.now() })); } catch {}
+        }
       })
       .catch(() => {});
   }, []);

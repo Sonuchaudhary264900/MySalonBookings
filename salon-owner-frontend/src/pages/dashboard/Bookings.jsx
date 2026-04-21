@@ -358,7 +358,7 @@ const WalkInModal = ({ salon, services, onClose, onSuccess }) => {
 };
 
 /* ─── Booking Table Row ──────────────────────────────────────── */
-const BookingRow = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock, onOpenChat, hasUnread }) => {
+const BookingRow = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock, onOpenChat, hasUnread, staffList, onReload }) => {
   const cfg = STATUS_CFG[booking.status] || { label: booking.status, dot: 'bg-gray-400', badge: 'bg-gray-100 text-gray-600' };
   const dateStr = booking.appointmentDate ? formatDate(booking.appointmentDate) : '—';
 
@@ -391,12 +391,10 @@ const BookingRow = ({ booking, updating, onStatusChange, isBlocked, blockLoading
         </div>
         <div className="flex gap-1 mt-1 flex-wrap">
           {!booking.barberId && (
-            <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-400 font-semibold ring-1 ring-red-300 dark:ring-red-800">
-              <AlertTriangle className="w-2.5 h-2.5" /> UNASSIGNED
-            </span>
+            <AssignPopover booking={booking} staffList={staffList} onAssigned={onReload} />
           )}
           {booking.barberName && booking.barberId && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-950/50 text-violet-700 dark:text-violet-400 font-medium">{booking.barberName}</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-950/50 text-violet-700 dark:text-violet-400 font-medium">{booking.staffName || booking.barberName}</span>
           )}
           {booking.isWalkIn && (
             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 font-medium">Walk-in</span>
@@ -473,7 +471,7 @@ const BookingRow = ({ booking, updating, onStatusChange, isBlocked, blockLoading
 };
 
 /* ─── Mobile Booking Card ────────────────────────────────────── */
-const BookingCard = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock, onOpenChat, hasUnread }) => {
+const BookingCard = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock, onOpenChat, hasUnread, staffList, onReload }) => {
   const cfg = STATUS_CFG[booking.status] || { label: booking.status, dot: 'bg-gray-400', badge: 'bg-gray-100 text-gray-600' };
   const dateStr = booking.appointmentDate ? formatDate(booking.appointmentDate) : '—';
 
@@ -501,8 +499,9 @@ const BookingCard = ({ booking, updating, onStatusChange, isBlocked, blockLoadin
       </div>
 
       {!booking.barberId && (
-        <div className="mb-2 inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-400 font-semibold ring-1 ring-red-300 dark:ring-red-800">
-          <AlertTriangle className="w-2.5 h-2.5" /> UNASSIGNED — needs staff assignment
+        <div className="mb-2">
+          <AssignPopover booking={booking} staffList={staffList} onAssigned={onReload} />
+          <span className="ml-2 text-[10px] text-red-600 dark:text-red-400">needs assignment</span>
         </div>
       )}
       <div className="grid grid-cols-2 gap-2 mb-3 text-sm text-gray-600 dark:text-gray-400">
@@ -738,6 +737,81 @@ const ChatPanel = ({ booking, onClose }) => {
   );
 };
 
+/* ─── Inline Assign Popover ──────────────────────────────────── */
+const AssignPopover = ({ booking, staffList, onAssigned }) => {
+  const [open, setOpen]       = useState(false);
+  const [assigning, setAssigning] = useState(false);
+  const btnRef = useRef(null);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+
+  const handleOpen = () => {
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setPos({ top: r.bottom + 4, left: Math.min(r.left, window.innerWidth - 200) });
+    }
+    setOpen(v => !v);
+  };
+
+  const handleAssign = async (staffId) => {
+    setAssigning(true);
+    setOpen(false);
+    try {
+      await api.put(`/owner/team/${staffId}/assign-booking`, { bookingId: booking._id });
+      toast.success('Booking assigned');
+      onAssigned();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Assignment failed');
+    } finally {
+      setAssigning(false);
+    }
+  };
+
+  return (
+    <div className="relative inline-flex">
+      <button
+        ref={btnRef}
+        onClick={handleOpen}
+        disabled={assigning}
+        className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full
+          bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-400
+          font-semibold ring-1 ring-red-300 dark:ring-red-800
+          hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors disabled:opacity-50"
+      >
+        {assigning
+          ? <Loader2 className="w-2.5 h-2.5 animate-spin" />
+          : <AlertTriangle className="w-2.5 h-2.5" />}
+        UNASSIGNED {staffList.length > 0 && <ChevronDown className="w-2.5 h-2.5" />}
+      </button>
+
+      {open && staffList.length > 0 && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div
+            className="fixed z-50 w-48 rounded-xl shadow-2xl
+              bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700
+              py-1.5 animate-[fadeup_0.12s_ease_both]"
+            style={{ top: pos.top, left: pos.left }}
+          >
+            <p className="px-3.5 py-1 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Assign to</p>
+            {staffList.map(s => (
+              <button
+                key={s._id}
+                onClick={() => handleAssign(s._id)}
+                className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left"
+              >
+                <div className="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-950 flex items-center justify-center text-[10px] font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
+                  {s.name?.[0]?.toUpperCase()}
+                </div>
+                <span className="text-gray-700 dark:text-gray-300 text-sm">{s.name}{s.isOwner ? ' (You)' : ''}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 /* ─── Main Bookings Page ─────────────────────────────────────── */
 const Bookings = () => {
   const { salon, services, bookings, fetchBookings, fetchServices, updateBookingStatus, createWalkInBooking } = useSalon();
@@ -790,6 +864,11 @@ const Bookings = () => {
     finally { setPageLoading(false); }
   }, [fetchBookings]);
 
+  // Called after inline booking assignment so the row updates without a full reload
+  const handleAssigned = useCallback(() => {
+    loadBookings(selectedDate);
+  }, [loadBookings, selectedDate]);
+
   useEffect(() => {
     loadBookings(selectedDate);
     fetchServices();
@@ -797,7 +876,11 @@ const Bookings = () => {
 
   useEffect(() => {
     api.get('/owner/team')
-      .then(res => setStaffList(res.data.data?.staff?.filter(s => s.isActive) || []))
+      .then(res => {
+        // Only show active staff in the dropdown; exclude owner-only salons from showing the dropdown
+        const active = (res.data.data?.staff || []).filter(s => s.isActive);
+        setStaffList(active);
+      })
       .catch(() => {});
   }, []);
 
@@ -1025,6 +1108,8 @@ const Bookings = () => {
                       onToggleBlock={handleToggleBlock}
                       onOpenChat={handleOpenChat}
                       hasUnread={unreadChats.has(String(booking._id))}
+                      staffList={staffList}
+                      onReload={handleAssigned}
                     />
                   ))}
                 </tbody>
@@ -1044,6 +1129,8 @@ const Bookings = () => {
                   onToggleBlock={handleToggleBlock}
                   onOpenChat={handleOpenChat}
                   hasUnread={unreadChats.has(String(booking._id))}
+                  staffList={staffList}
+                  onReload={handleAssigned}
                 />
               ))}
             </div>

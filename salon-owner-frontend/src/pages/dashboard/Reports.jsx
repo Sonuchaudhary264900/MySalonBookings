@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   TrendingUp, Users, RefreshCw, ChevronLeft, ChevronRight,
   Download, FileText, IndianRupee, Calendar, BarChart3,
-  Target, Award, Clock,
+  Target, Award, Clock, AlertTriangle,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -197,13 +197,13 @@ const Reports = () => {
   const [goalInput,      setGoalInput]      = useState('');
   const [teamStats,      setTeamStats]      = useState([]);
 
-  /* ── Fetch team stats ── */
+  /* ── Fetch team stats — only shown when real staff exist ── */
   useEffect(() => {
     api.get(`/owner/team/stats?from=${startDate}&to=${endDate}`)
       .then(res => {
         const team = res.data.data?.team || [];
-        if (team.length > 1) setTeamStats(team);
-        else setTeamStats([]);
+        const hasRealStaff = team.filter(s => !s.isOwner && !s.isUnassigned).length > 0;
+        setTeamStats(hasRealStaff ? team : []);
       })
       .catch(() => setTeamStats([]));
   }, [startDate, endDate]);
@@ -828,21 +828,30 @@ ${recentBookings.map(b=>`<tr><td>${b.customerName||'—'}</td><td>${b.serviceNam
                       {teamStats.map(s => {
                         const completionRate = s.bookings > 0 ? Math.round((s.completed / s.bookings) * 100) : 0;
                         return (
-                          <tr key={s._id} className="border-b border-gray-50 dark:border-gray-800/60 hover:bg-gray-50/60 dark:hover:bg-gray-800/30 transition-colors last:border-0">
+                          <tr key={s._id ?? 'unassigned'} className={`border-b border-gray-50 dark:border-gray-800/60 hover:bg-gray-50/60 dark:hover:bg-gray-800/30 transition-colors last:border-0 ${s.isUnassigned ? 'bg-red-50/40 dark:bg-red-950/10' : ''}`}>
                             <td className="px-5 py-3">
                               <div className="flex items-center gap-2.5">
-                                <div className="w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-950 flex items-center justify-center text-xs font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
-                                  {s.name?.[0]?.toUpperCase()}
-                                </div>
-                                <span className="font-medium text-gray-800 dark:text-gray-200">{s.name}</span>
+                                {s.isUnassigned ? (
+                                  <div className="w-7 h-7 rounded-full bg-red-100 dark:bg-red-950/50 flex items-center justify-center shrink-0">
+                                    <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
+                                  </div>
+                                ) : (
+                                  <div className="w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-950 flex items-center justify-center text-xs font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
+                                    {s.name?.[0]?.toUpperCase()}
+                                  </div>
+                                )}
+                                <span className={`font-medium ${s.isUnassigned ? 'text-red-600 dark:text-red-400' : 'text-gray-800 dark:text-gray-200'}`}>{s.name}</span>
                                 {s.isOwner && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-950/50 text-violet-600 dark:text-violet-400 font-semibold">Owner</span>}
+                                {s.isUnassigned && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400 font-semibold">Needs Assignment</span>}
                               </div>
                             </td>
                             <td className="px-4 py-3 text-right text-gray-700 dark:text-gray-300 font-medium">{s.bookings}</td>
                             <td className="px-4 py-3 text-right">
-                              <span className={`text-xs font-semibold ${completionRate >= 80 ? 'text-emerald-600 dark:text-emerald-400' : completionRate >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-500'}`}>
-                                {s.completed} <span className="text-gray-400 font-normal">({completionRate}%)</span>
-                              </span>
+                              {s.isUnassigned ? <span className="text-gray-400">—</span> : (
+                                <span className={`text-xs font-semibold ${completionRate >= 80 ? 'text-emerald-600 dark:text-emerald-400' : completionRate >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-500'}`}>
+                                  {s.completed} <span className="text-gray-400 font-normal">({completionRate}%)</span>
+                                </span>
+                              )}
                             </td>
                             <td className="px-4 py-3 text-right text-emerald-600 dark:text-emerald-400 font-semibold">₹{(s.revenue || 0).toLocaleString()}</td>
                             <td className="px-4 py-3 text-right text-gray-700 dark:text-gray-300">
