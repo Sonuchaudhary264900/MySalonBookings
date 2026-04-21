@@ -171,9 +171,12 @@ export default function GlowLooxProfile() {
   const [deleting,        setDeleting]        = useState(null);
   const [togglingId,      setTogglingId]      = useState(null);
   const [uploadingSvcImg, setUploadingSvcImg] = useState(null);
+  const [uploadingSecImg, setUploadingSecImg] = useState(null);
   const [savingSvc,       setSavingSvc]       = useState(null);
   const pendingImgSvcRef  = useRef(null);
+  const pendingImgSecRef  = useRef(null);
   const svcImgInputRef    = useRef(null);
+  const secImgInputRef    = useRef(null);
   const svcInputRefs      = useRef({});
 
   /* ── profile header edit panel ── */
@@ -307,6 +310,21 @@ export default function GlowLooxProfile() {
       toast.success('Image updated');
     } catch { toast.error('Failed to upload'); }
     finally { setUploadingSvcImg(null); pendingImgSvcRef.current = null; e.target.value = ''; }
+  };
+
+  const handleSectionImgUpload = async (e) => {
+    const file = e.target.files?.[0];
+    const secLabel = pendingImgSecRef.current;
+    if (!file || !secLabel) return;
+    setUploadingSecImg(secLabel);
+    try {
+      const [url] = await uploadSalonPhotos([file]);
+      const existing = salon?.sectionImages || {};
+      await updateSalon({ sectionImages: { ...existing, [secLabel]: url } });
+      await fetchSalon();
+      toast.success('Section image updated');
+    } catch { toast.error('Failed to upload'); }
+    finally { setUploadingSecImg(null); pendingImgSecRef.current = null; e.target.value = ''; }
   };
 
   const handleSaveInline = async (svcName, cat, existingSvc) => {
@@ -619,12 +637,38 @@ export default function GlowLooxProfile() {
             {sections.map(sec => {
               const addedCount  = sec.services.filter(n => catByName[n]).length;
               const activeCount = sec.services.filter(n => catByName[n] && catByName[n].isActive !== false).length;
+              const secImgUrl   = salon?.sectionImages?.[sec.label]
+                || getServiceImage({ name: sec.services[0] || '', category: cat });
+              const isUploadingSec = uploadingSecImg === sec.label;
               return (
-                <button key={sec.label}
-                  onClick={() => setSvcNavStack(prev => [...prev, { section: sec }])}
-                  className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl bg-white dark:bg-gray-900/50 border border-gray-100 dark:border-white/[0.07] text-left hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors"
-                  style={{ boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
-                  <div style={{ backgroundColor: addedCount > 0 ? biz.p : '#d1d5db' }} className="w-1 h-8 rounded-full shrink-0" />
+                <div key={sec.label}
+                  className="w-full flex items-center gap-3.5 px-3.5 py-3 rounded-2xl bg-white dark:bg-gray-900/50 border border-gray-100 dark:border-white/[0.07] text-left cursor-pointer hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors"
+                  style={{ boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}
+                  onClick={() => setSvcNavStack(prev => [...prev, { section: sec }])}>
+
+                  {/* Section thumbnail with camera overlay */}
+                  <div className="relative w-12 h-12 rounded-xl flex-shrink-0 overflow-hidden group/secimg border"
+                    style={{ background: biz.p + '14', borderColor: biz.p + '20' }}
+                    onClick={e => e.stopPropagation()}>
+                    {isUploadingSec
+                      ? <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin opacity-50" />
+                        </div>
+                      : secImgUrl
+                        ? <img src={secImgUrl} alt={sec.label}
+                            className="w-full h-full object-cover opacity-0 transition-opacity duration-200"
+                            onLoad={e => { e.target.style.opacity = 1; }} />
+                        : <div className="w-full h-full flex items-center justify-center">
+                            <Camera className="w-5 h-5 opacity-30" style={{ color: biz.acc }} />
+                          </div>
+                    }
+                    <button
+                      className="absolute inset-0 bg-black/40 opacity-0 group-hover/secimg:opacity-100 transition-opacity flex items-center justify-center"
+                      onClick={() => { pendingImgSecRef.current = sec.label; secImgInputRef.current?.click(); }}>
+                      <Camera className="w-4 h-4 text-white" />
+                    </button>
+                  </div>
+
                   <div className="flex-1 min-w-0">
                     <p className="text-[13px] font-extrabold text-gray-900 dark:text-white">{sec.label}</p>
                     <p className="text-[11px] text-gray-400 mt-0.5">
@@ -643,7 +687,7 @@ export default function GlowLooxProfile() {
                     )}
                     <ChevronRight style={{ color: biz.acc }} className="w-4 h-4" />
                   </div>
-                </button>
+                </div>
               );
             })}
             {orphanSvcs.length > 0 && (
@@ -660,6 +704,7 @@ export default function GlowLooxProfile() {
               </button>
             )}
           </div>
+          <input ref={secImgInputRef} type="file" accept="image/*" className="hidden" onChange={handleSectionImgUpload} />
         </div>
       );
     }

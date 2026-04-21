@@ -424,6 +424,13 @@ exports.updateSalon = async (req, res) => {
       salon.autoConfirmBookings = Boolean(req.body.autoConfirmBookings);
     }
 
+    if (req.body.sectionImages && typeof req.body.sectionImages === 'object') {
+      for (const [key, val] of Object.entries(req.body.sectionImages)) {
+        salon.sectionImages.set(key, val);
+      }
+      salon.markModified('sectionImages');
+    }
+
     await salon.save();
 
     // Sync offeredCategories sub-services → Service collection

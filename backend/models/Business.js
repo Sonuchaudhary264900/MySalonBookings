@@ -198,6 +198,11 @@ locality: { type: String, default: null }, // reverse-geocoded suburb/village fr
       type: String, // Cloudinary URL
       default: null,
     },
+    sectionImages: {
+      type: Map,
+      of: String,
+      default: {},
+    },
     // Onboarding-uploaded salon tour video
     videoUrl: {
       type: String,
