@@ -448,6 +448,9 @@ const Dashboard = () => {
   /* Walk-in modal */
   const [walkInOpen, setWalkInOpen] = useState(false);
 
+  /* Team stats */
+  const [teamStats, setTeamStats] = useState([]);
+
   /* First-time celebration vs. welcome-back overlay */
   const celebrationKey   = user?._id ? `glx_cel_${user._id}`  : null;
   const welcomeBackKey   = user?._id ? `glx_wb_${user._id}`   : null;
@@ -475,6 +478,16 @@ const Dashboard = () => {
     if (welcomeBackKey) sessionStorage.setItem(welcomeBackKey, '1');
     setShowWelcomeBack(false);
   };
+
+  /* ── Fetch team stats (only when staff exist) ── */
+  useEffect(() => {
+    api.get('/owner/team/stats')
+      .then(res => {
+        const team = res.data.data?.team || [];
+        if (team.length > 1) setTeamStats(team);
+      })
+      .catch(() => {});
+  }, []);
 
   /* ── Fetch queue ── */
   const fetchQueue = useCallback(async () => {
@@ -692,6 +705,46 @@ const Dashboard = () => {
             loading={bookingsLoading}
           />
         </div>
+
+        {/* ══════════════════════════════════════════════════════════
+            TEAM TODAY  (only shown when salon has staff)
+        ══════════════════════════════════════════════════════════ */}
+        {teamStats.length > 1 && (
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 dark:border-gray-800">
+              <h2 className="text-sm font-bold text-gray-900 dark:text-white">Team — This Month</h2>
+              <a href="/dashboard/team" className="text-xs text-indigo-500 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium transition-colors">Manage →</a>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide border-b border-gray-100 dark:border-gray-800">
+                    <th className="px-4 py-2.5 text-left">Staff</th>
+                    <th className="px-4 py-2.5 text-right">Bookings</th>
+                    <th className="px-4 py-2.5 text-right">Revenue</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {teamStats.map(s => (
+                    <tr key={s._id} className="border-b border-gray-50 dark:border-gray-800/60 hover:bg-gray-50/60 dark:hover:bg-gray-800/30 transition-colors">
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-950 flex items-center justify-center text-xs font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
+                            {s.name?.[0]?.toUpperCase()}
+                          </div>
+                          <span className="font-medium text-gray-800 dark:text-gray-200">{s.name}</span>
+                          {s.isOwner && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-950/50 text-violet-600 dark:text-violet-400 font-semibold">You</span>}
+                        </div>
+                      </td>
+                      <td className="px-4 py-2.5 text-right text-gray-700 dark:text-gray-300 font-medium">{s.bookings}</td>
+                      <td className="px-4 py-2.5 text-right text-emerald-600 dark:text-emerald-400 font-semibold">₹{s.revenue?.toLocaleString() || 0}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* ══════════════════════════════════════════════════════════
             QUEUE + CHARTS  (side-by-side on desktop)
