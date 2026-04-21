@@ -1056,6 +1056,16 @@ export const SPA_WELLNESS_MALE_CATEGORIES = [
     label: 'Basic Massage',
     icon: '💆',
     tabIcon: 'massage',
+    sections: [
+      {
+        label: 'Head & Upper Body',
+        services: ['Head Massage', 'Neck & Shoulder Massage', 'Back Massage'],
+      },
+      {
+        label: 'Hand & Foot',
+        services: ['Foot Massage', 'Hand Massage'],
+      },
+    ],
     subServices: ['Head Massage', 'Neck & Shoulder Massage', 'Back Massage', 'Foot Massage', 'Hand Massage'],
   },
   {
@@ -1063,6 +1073,16 @@ export const SPA_WELLNESS_MALE_CATEGORIES = [
     label: 'Full Body Massage',
     icon: '🛌',
     tabIcon: 'massage',
+    sections: [
+      {
+        label: 'Classic Full Body',
+        services: ['Full Body Massage', 'Relaxation Massage'],
+      },
+      {
+        label: 'Deep Tissue',
+        services: ['Deep Tissue Massage', 'Swedish Massage'],
+      },
+    ],
     subServices: ['Full Body Massage', 'Relaxation Massage', 'Deep Tissue Massage', 'Swedish Massage'],
   },
   {
@@ -1070,6 +1090,16 @@ export const SPA_WELLNESS_MALE_CATEGORIES = [
     label: 'Premium Therapies',
     icon: '✨',
     tabIcon: 'therapy',
+    sections: [
+      {
+        label: 'Asian Therapies',
+        services: ['Thai Massage', 'Balinese Massage'],
+      },
+      {
+        label: 'Signature Therapies',
+        services: ['Aroma Therapy Massage', 'Hot Stone Massage'],
+      },
+    ],
     subServices: ['Aroma Therapy Massage', 'Hot Stone Massage', 'Thai Massage', 'Balinese Massage'],
   },
   {
@@ -1077,6 +1107,16 @@ export const SPA_WELLNESS_MALE_CATEGORIES = [
     label: 'Body Spa',
     icon: '🛁',
     tabIcon: 'spa',
+    sections: [
+      {
+        label: 'Spa Treatments',
+        services: ['Body Spa', 'Body Wrap'],
+      },
+      {
+        label: 'Scrubs & Polish',
+        services: ['Body Polishing', 'Body Scrub'],
+      },
+    ],
     subServices: ['Body Spa', 'Body Polishing', 'Body Scrub', 'Body Wrap'],
   },
   {
@@ -1084,6 +1124,12 @@ export const SPA_WELLNESS_MALE_CATEGORIES = [
     label: 'Wellness Therapy',
     icon: '🧘',
     tabIcon: 'wellness',
+    sections: [
+      {
+        label: 'Therapy Services',
+        services: ['Stress Relief Therapy', 'Muscle Recovery Therapy', 'Detox Therapy'],
+      },
+    ],
     subServices: ['Stress Relief Therapy', 'Muscle Recovery Therapy', 'Detox Therapy'],
   },
 ];
@@ -1094,6 +1140,16 @@ export const SPA_WELLNESS_FEMALE_CATEGORIES = [
     label: 'Basic Massage',
     icon: '💆',
     tabIcon: 'massage',
+    sections: [
+      {
+        label: 'Head & Upper Body',
+        services: ['Head Massage', 'Neck & Shoulder Massage', 'Back Massage'],
+      },
+      {
+        label: 'Hand & Foot',
+        services: ['Foot Massage', 'Hand Massage'],
+      },
+    ],
     subServices: ['Head Massage', 'Neck & Shoulder Massage', 'Back Massage', 'Foot Massage', 'Hand Massage'],
   },
   {
@@ -1101,6 +1157,16 @@ export const SPA_WELLNESS_FEMALE_CATEGORIES = [
     label: 'Full Body Massage',
     icon: '🛌',
     tabIcon: 'massage',
+    sections: [
+      {
+        label: 'Classic Full Body',
+        services: ['Full Body Massage', 'Relaxation Massage'],
+      },
+      {
+        label: 'Deep Tissue',
+        services: ['Deep Tissue Massage', 'Swedish Massage'],
+      },
+    ],
     subServices: ['Full Body Massage', 'Relaxation Massage', 'Deep Tissue Massage', 'Swedish Massage'],
   },
   {
@@ -1108,6 +1174,16 @@ export const SPA_WELLNESS_FEMALE_CATEGORIES = [
     label: 'Premium Therapies',
     icon: '✨',
     tabIcon: 'therapy',
+    sections: [
+      {
+        label: 'Asian Therapies',
+        services: ['Thai Massage', 'Balinese Massage'],
+      },
+      {
+        label: 'Signature Therapies',
+        services: ['Aromatherapy Massage', 'Hot Stone Massage', 'Signature Spa Therapy'],
+      },
+    ],
     subServices: ['Aromatherapy Massage', 'Hot Stone Massage', 'Thai Massage', 'Balinese Massage', 'Signature Spa Therapy'],
   },
   {
@@ -1115,6 +1191,16 @@ export const SPA_WELLNESS_FEMALE_CATEGORIES = [
     label: 'Body Spa',
     icon: '🛁',
     tabIcon: 'spa',
+    sections: [
+      {
+        label: 'Spa Treatments',
+        services: ['Body Spa', 'Body Wrap'],
+      },
+      {
+        label: 'Scrubs & Polish',
+        services: ['Body Polishing', 'Body Scrub'],
+      },
+    ],
     subServices: ['Body Spa', 'Body Polishing', 'Body Scrub', 'Body Wrap'],
   },
   {
@@ -1122,6 +1208,12 @@ export const SPA_WELLNESS_FEMALE_CATEGORIES = [
     label: 'Wellness Therapy',
     icon: '🧘',
     tabIcon: 'wellness',
+    sections: [
+      {
+        label: 'Therapy Services',
+        services: ['Stress Relief Therapy', 'Muscle Relaxation Therapy', 'Detox Therapy', 'Sleep Therapy'],
+      },
+    ],
     subServices: ['Stress Relief Therapy', 'Muscle Relaxation Therapy', 'Detox Therapy', 'Sleep Therapy'],
   },
   {
@@ -1129,6 +1221,12 @@ export const SPA_WELLNESS_FEMALE_CATEGORIES = [
     label: 'Special Care',
     icon: '🌸',
     tabIcon: 'care',
+    sections: [
+      {
+        label: 'Bridal & Wellness',
+        services: ['Pre-Bridal Spa', 'Post-Bridal Relaxation', 'Pregnancy Safe Massage'],
+      },
+    ],
     subServices: ['Pre-Bridal Spa', 'Post-Bridal Relaxation', 'Pregnancy Safe Massage'],
   },
 ];
@@ -1246,6 +1344,16 @@ export const SKIN_DERMA_MALE_CATEGORIES = [
     label: 'Hair & Scalp',
     icon: '🧬',
     tabIcon: 'hair',
+    sections: [
+      {
+        label: 'Hair Loss Treatments',
+        services: ['Hair Fall Consultation', 'Hair Regrowth Therapy', 'Male Pattern Baldness Treatment', 'Alopecia Treatment'],
+      },
+      {
+        label: 'Scalp & Advanced',
+        services: ['PRP Hair Therapy', 'Scalp Infection Treatment'],
+      },
+    ],
     subServices: [
       'Hair Fall Consultation', 'Hair Regrowth Therapy', 'Male Pattern Baldness Treatment',
       'Alopecia Treatment', 'PRP Hair Therapy', 'Scalp Infection Treatment',
@@ -1256,6 +1364,16 @@ export const SKIN_DERMA_MALE_CATEGORIES = [
     label: 'Skin (Face)',
     icon: '🧴',
     tabIcon: 'face',
+    sections: [
+      {
+        label: 'Acne & Scars',
+        services: ['Acne Treatment', 'Acne Scar Treatment'],
+      },
+      {
+        label: 'Skin Correction',
+        services: ['Detan Treatment', 'Open Pores Treatment', 'Skin Brightening Treatment'],
+      },
+    ],
     subServices: [
       'Acne Treatment', 'Acne Scar Treatment', 'Detan Treatment',
       'Open Pores Treatment', 'Skin Brightening Treatment',
@@ -1266,6 +1384,12 @@ export const SKIN_DERMA_MALE_CATEGORIES = [
     label: 'Advanced Treatments',
     icon: '✨',
     tabIcon: 'advanced',
+    sections: [
+      {
+        label: 'Clinical Procedures',
+        services: ['Chemical Peel', 'Laser Treatment', 'Skin Tightening'],
+      },
+    ],
     subServices: ['Chemical Peel', 'Laser Treatment', 'Skin Tightening'],
   },
   {
@@ -1273,6 +1397,15 @@ export const SKIN_DERMA_MALE_CATEGORIES = [
     label: 'Body Skin',
     icon: '🧍',
     tabIcon: 'body',
+    sections: [
+      {
+        label: 'Body Treatments',
+        services: [
+          'Back Acne Treatment', 'Body Acne Treatment',
+          'Skin Allergy Treatment', 'Stretch Marks Treatment',
+        ],
+      },
+    ],
     subServices: [
       'Back Acne Treatment', 'Body Acne Treatment',
       'Skin Allergy Treatment', 'Stretch Marks Treatment',
@@ -1283,6 +1416,16 @@ export const SKIN_DERMA_MALE_CATEGORIES = [
     label: 'Beard & Face Issues',
     icon: '🧔',
     tabIcon: 'beard',
+    sections: [
+      {
+        label: 'Beard & Ingrown Hair',
+        services: ['Beard Growth Therapy', 'Beard Patch Treatment', 'Ingrown Hair Treatment'],
+      },
+      {
+        label: 'Post-Shave Care',
+        services: ['Razor Bumps Treatment', 'Skin Irritation Treatment (After Shaving)'],
+      },
+    ],
     subServices: [
       'Beard Growth Therapy', 'Beard Patch Treatment', 'Ingrown Hair Treatment',
       'Razor Bumps Treatment', 'Skin Irritation Treatment (After Shaving)',
@@ -1293,6 +1436,15 @@ export const SKIN_DERMA_MALE_CATEGORIES = [
     label: 'Consultation',
     icon: '🩺',
     tabIcon: 'consult',
+    sections: [
+      {
+        label: 'Consultation Services',
+        services: [
+          'General Skin Consultation', 'Follow-up Consultation',
+          'Hair Specialist Consultation', 'Online Dermatologist Consultation',
+        ],
+      },
+    ],
     subServices: [
       'General Skin Consultation', 'Follow-up Consultation',
       'Hair Specialist Consultation', 'Online Dermatologist Consultation',
@@ -1306,6 +1458,16 @@ export const SKIN_DERMA_FEMALE_CATEGORIES = [
     label: 'Hair & Scalp',
     icon: '🧬',
     tabIcon: 'hair',
+    sections: [
+      {
+        label: 'Hair Loss Treatments',
+        services: ['Hair Fall Treatment', 'Hair Thinning Treatment', 'Hormonal Hair Loss Treatment', 'Alopecia Treatment'],
+      },
+      {
+        label: 'Scalp & Advanced',
+        services: ['PRP Hair Therapy', 'Scalp Infection Treatment', 'Dandruff Treatment'],
+      },
+    ],
     subServices: [
       'Hair Fall Treatment', 'Hair Thinning Treatment', 'Hormonal Hair Loss Treatment',
       'Alopecia Treatment', 'PRP Hair Therapy', 'Scalp Infection Treatment', 'Dandruff Treatment',
@@ -1316,6 +1478,19 @@ export const SKIN_DERMA_FEMALE_CATEGORIES = [
     label: 'Skin (Face)',
     icon: '🧴',
     tabIcon: 'face',
+    sections: [
+      {
+        label: 'Acne & Scars',
+        services: ['Acne Treatment', 'Acne Scar Treatment'],
+      },
+      {
+        label: 'Skin Correction',
+        services: [
+          'Dark Circles Treatment', 'Detan Treatment', 'Open Pores Treatment',
+          'Pigmentation Treatment', 'Skin Brightening Treatment', 'Uneven Skin Tone Treatment',
+        ],
+      },
+    ],
     subServices: [
       'Acne Treatment', 'Acne Scar Treatment', 'Dark Circles Treatment',
       'Detan Treatment', 'Open Pores Treatment', 'Pigmentation Treatment',
@@ -1327,6 +1502,16 @@ export const SKIN_DERMA_FEMALE_CATEGORIES = [
     label: 'Advanced Treatments',
     icon: '✨',
     tabIcon: 'advanced',
+    sections: [
+      {
+        label: 'Clinical Procedures',
+        services: ['Chemical Peel', 'Hydrafacial (Medical Grade)', 'Laser Skin Treatment'],
+      },
+      {
+        label: 'Skin Rejuvenation',
+        services: ['Skin Rejuvenation', 'Skin Tightening'],
+      },
+    ],
     subServices: [
       'Chemical Peel', 'Hydrafacial (Medical Grade)', 'Laser Skin Treatment',
       'Skin Rejuvenation', 'Skin Tightening',
@@ -1337,6 +1522,15 @@ export const SKIN_DERMA_FEMALE_CATEGORIES = [
     label: 'Anti-Aging',
     icon: '🕰️',
     tabIcon: 'antiaging',
+    sections: [
+      {
+        label: 'Anti-Aging Treatments',
+        services: [
+          'Anti-Aging Treatment', 'Collagen Boost Therapy', 'Fine Line Treatment',
+          'Skin Lifting Treatment', 'Wrinkle Reduction',
+        ],
+      },
+    ],
     subServices: [
       'Anti-Aging Treatment', 'Collagen Boost Therapy', 'Fine Line Treatment',
       'Skin Lifting Treatment', 'Wrinkle Reduction',
@@ -1347,6 +1541,15 @@ export const SKIN_DERMA_FEMALE_CATEGORIES = [
     label: 'Body Skin',
     icon: '🧍',
     tabIcon: 'body',
+    sections: [
+      {
+        label: 'Body Treatments',
+        services: [
+          'Back Acne Treatment', 'Body Acne Treatment', 'Skin Allergy Treatment',
+          'Stretch Marks Treatment', 'Underarm Pigmentation Treatment',
+        ],
+      },
+    ],
     subServices: [
       'Back Acne Treatment', 'Body Acne Treatment', 'Skin Allergy Treatment',
       'Stretch Marks Treatment', 'Underarm Pigmentation Treatment',
@@ -1357,6 +1560,15 @@ export const SKIN_DERMA_FEMALE_CATEGORIES = [
     label: 'Consultation',
     icon: '🩺',
     tabIcon: 'consult',
+    sections: [
+      {
+        label: 'Consultation Services',
+        services: [
+          'General Skin Consultation', 'Follow-up Consultation',
+          'Hair Specialist Consultation', 'Online Dermatologist Consultation',
+        ],
+      },
+    ],
     subServices: [
       'General Skin Consultation', 'Follow-up Consultation',
       'Hair Specialist Consultation', 'Online Dermatologist Consultation',
