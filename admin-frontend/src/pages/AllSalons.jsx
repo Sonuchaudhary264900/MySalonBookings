@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
 import { Search, ToggleLeft, ToggleRight, MapPin, Star, ChevronDown, X, Play, FileText, Image, QrCode, Download, Copy, CheckCircle2 } from 'lucide-react';
-import { QRCodeSVG } from 'react-qr-code';
+import QRCode from 'react-qr-code';
 
 const CUSTOMER_URL = (import.meta.env.VITE_CUSTOMER_APP_URL || 'https://mysalonbookings.com').replace(/\/$/, '');
 
@@ -228,7 +228,7 @@ function QRModal({ salon, onClose, isReady, onToggleReady }) {
           {/* Left — QR */}
           <div style={{ width: 240, flexShrink: 0, padding: '20px 20px', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
             <div ref={canvasRef} style={{ background: '#fff', borderRadius: 14, padding: 12 }}>
-              <QRCodeSVG value={salonUrl} size={180} bgColor="#ffffff" fgColor="#0d0d2b" level="H" />
+              <QRCode value={salonUrl} size={180} bgColor="#ffffff" fgColor="#0d0d2b" level="H" />
             </div>
             <div style={{ fontSize: 10, color: 'var(--text3)', textAlign: 'center', wordBreak: 'break-all' }}>{salonUrl}</div>
             <button onClick={handleCopy}
