@@ -3,6 +3,7 @@ import {
   Calendar, Clock, Phone, User, IndianRupee, Scissors, X, Plus,
   ShieldOff, ShieldCheck, CalendarOff, ChevronDown, MoreHorizontal,
   CheckCircle, XCircle, PlayCircle, Loader2, MessageSquare, AlertTriangle, Users,
+  Timer, Banknote, Info, WifiOff, UserX,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { io } from 'socket.io-client';
@@ -29,6 +30,7 @@ const STATUS_CFG = {
   in_progress: { label: 'In Progress', dot: 'bg-violet-500',  badge: 'bg-violet-50 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300 ring-1 ring-violet-200 dark:ring-violet-800/60' },
   completed:   { label: 'Completed',   dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 ring-1 ring-emerald-200 dark:ring-emerald-800/60' },
   cancelled:   { label: 'Cancelled',   dot: 'bg-red-500',     badge: 'bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300 ring-1 ring-red-200 dark:ring-red-800/60' },
+  no_show:     { label: 'No Show',     dot: 'bg-orange-500',  badge: 'bg-orange-50 text-orange-700 dark:bg-orange-950/50 dark:text-orange-300 ring-1 ring-orange-200 dark:ring-orange-800/60' },
 };
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_BASE_URL?.replace('/api/v1', '') || 'http://localhost:5000';
@@ -41,7 +43,16 @@ const FILTERS = [
   { id: 'in_progress', label: 'In Progress' },
   { id: 'completed',   label: 'Completed' },
   { id: 'cancelled',   label: 'Cancelled' },
+  { id: 'no_show',     label: 'No Show' },
 ];
+
+/* ─── InfoTip (Fix 13) ───────────────────────────────────────── */
+const InfoTip = ({ children }) => (
+  <span className="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
+    <Info className="w-3.5 h-3.5 shrink-0" />
+    {children}
+  </span>
+);
 
 /* ─── Skeleton row ───────────────────────────────────────────── */
 const SkeletonRow = () => (
@@ -91,24 +102,32 @@ const EmptyState = ({ filter, onAddWalkIn }) => (
 );
 
 /* ─── Row action dropdown ────────────────────────────────────── */
-const ActionDropdown = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock }) => {
+const ActionDropdown = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock, onMarkLate, onCollectCash, lateLoading, cashLoading }) => {
   const [open, setOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   const btnRef = useRef(null);
 
   const NEXT = {
-    pending:     [{ status:'confirmed', label:'Confirm',       icon: CheckCircle, cls:'text-indigo-600 dark:text-indigo-400' },
-                  { status:'cancelled', label:'Cancel',        icon: XCircle,     cls:'text-red-600 dark:text-red-400' }],
-    confirmed:   [{ status:'in_progress', label:'Start',       icon: PlayCircle,  cls:'text-violet-600 dark:text-violet-400' },
-                  { status:'cancelled',   label:'Cancel',      icon: XCircle,     cls:'text-red-600 dark:text-red-400' }],
-    in_progress: [{ status:'completed', label:'Mark Complete', icon: CheckCircle, cls:'text-emerald-600 dark:text-emerald-400' }],
+    pending:     [{ status:'confirmed',   label:'Confirm',       icon: CheckCircle, cls:'text-indigo-600 dark:text-indigo-400' },
+                  { status:'cancelled',   label:'Cancel',        icon: XCircle,     cls:'text-red-600 dark:text-red-400' },
+                  { status:'no_show',     label:'No-show',       icon: UserX,       cls:'text-orange-600 dark:text-orange-400' }],
+    confirmed:   [{ status:'in_progress', label:'Start',         icon: PlayCircle,  cls:'text-violet-600 dark:text-violet-400' },
+                  { status:'cancelled',   label:'Cancel',        icon: XCircle,     cls:'text-red-600 dark:text-red-400' },
+                  { status:'no_show',     label:'No-show',       icon: UserX,       cls:'text-orange-600 dark:text-orange-400' }],
+    in_progress: [{ status:'completed',   label:'Mark Complete', icon: CheckCircle, cls:'text-emerald-600 dark:text-emerald-400' }],
     completed:   [],
     cancelled:   [],
+    no_show:     [],
   };
 
   const actions = NEXT[booking.status] || [];
-  const showBlock = !booking.isWalkIn && booking.customerId;
-  if (!actions.length && !showBlock) return <span className="text-xs text-gray-400 dark:text-gray-600">—</span>;
+  const showBlock   = !booking.isWalkIn && booking.customerId;
+  const showLate    = ['pending','confirmed'].includes(booking.status) && !booking.lateMarkedAt;
+  const showCash    = booking.paymentMethod === 'cash' && !booking.cashCollected && booking.status !== 'cancelled';
+  const showPushWarn = booking.pushFailures?.length > 0;
+
+  const hasExtras   = showBlock || showLate || showCash;
+  if (!actions.length && !hasExtras) return <span className="text-xs text-gray-400 dark:text-gray-600">—</span>;
 
   const handleOpen = () => {
     if (btnRef.current) {
@@ -132,11 +151,16 @@ const ActionDropdown = ({ booking, updating, onStatusChange, isBlocked, blockLoa
           : <MoreHorizontal className="w-4 h-4" />}
       </button>
 
+      {/* Fix 9: push failure indicator */}
+      {showPushWarn && (
+        <span title="Push notification failed" className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-orange-500 rounded-full" />
+      )}
+
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div
-            className="fixed z-50 w-48 rounded-xl shadow-2xl
+            className="fixed z-50 w-52 rounded-xl shadow-2xl
               bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700
               py-1 animate-[fadeup_0.12s_ease_both]"
             style={{ top: menuPos.top, right: menuPos.right }}
@@ -145,15 +169,53 @@ const ActionDropdown = ({ booking, updating, onStatusChange, isBlocked, blockLoa
               <button key={status}
                 onClick={() => { onStatusChange(booking._id, status); setOpen(false); }}
                 className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm font-medium
-                  hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left rounded-lg mx-0">
+                  hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left">
                 <Icon className={`w-4 h-4 shrink-0 ${cls}`} />
                 <span className="text-gray-700 dark:text-gray-300">{label}</span>
               </button>
             ))}
 
-            {showBlock && (
+            {/* Fix 8: Mark Late */}
+            {showLate && (
               <>
                 {actions.length > 0 && <div className="border-t border-gray-100 dark:border-gray-800 my-1" />}
+                <button
+                  onClick={() => { onMarkLate(booking._id); setOpen(false); }}
+                  disabled={lateLoading}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm font-medium
+                    hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left disabled:opacity-50"
+                >
+                  <Timer className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span className="text-amber-700 dark:text-amber-400">Mark Late</span>
+                </button>
+              </>
+            )}
+            {booking.lateMarkedAt && (
+              <p className="px-3.5 py-1 text-[10px] text-orange-500 dark:text-orange-400 font-medium">Late — moved to end</p>
+            )}
+
+            {/* Fix 10: Collect Cash */}
+            {showCash && (
+              <>
+                <div className="border-t border-gray-100 dark:border-gray-800 my-1" />
+                <button
+                  onClick={() => { onCollectCash(booking._id); setOpen(false); }}
+                  disabled={cashLoading}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm font-medium
+                    hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left disabled:opacity-50"
+                >
+                  <Banknote className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span className="text-emerald-700 dark:text-emerald-400">Mark Cash Collected</span>
+                </button>
+              </>
+            )}
+            {booking.cashCollected && (
+              <p className="px-3.5 py-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Cash collected</p>
+            )}
+
+            {showBlock && (
+              <>
+                <div className="border-t border-gray-100 dark:border-gray-800 my-1" />
                 <button
                   onClick={() => { onToggleBlock(booking.customerId, isBlocked); setOpen(false); }}
                   disabled={blockLoading}
@@ -164,6 +226,17 @@ const ActionDropdown = ({ booking, updating, onStatusChange, isBlocked, blockLoa
                     ? <><ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" /><span className="text-gray-700 dark:text-gray-300">Unblock Customer</span></>
                     : <><ShieldOff className="w-4 h-4 text-red-500 shrink-0" /><span className="text-red-600 dark:text-red-400">Block Customer</span></>}
                 </button>
+              </>
+            )}
+
+            {/* Fix 9: push failure warning */}
+            {showPushWarn && (
+              <>
+                <div className="border-t border-gray-100 dark:border-gray-800 my-1" />
+                <div className="flex items-center gap-2 px-3.5 py-2">
+                  <WifiOff className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                  <span className="text-[11px] text-orange-500 dark:text-orange-400">Push notification failed ({booking.pushFailures.length}x)</span>
+                </div>
               </>
             )}
           </div>
@@ -358,7 +431,7 @@ const WalkInModal = ({ salon, services, onClose, onSuccess }) => {
 };
 
 /* ─── Booking Table Row ──────────────────────────────────────── */
-const BookingRow = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock, onOpenChat, hasUnread, staffList, onReload }) => {
+const BookingRow = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock, onOpenChat, hasUnread, staffList, onReload, onMarkLate, onCollectCash, lateLoading, cashLoading }) => {
   const cfg = STATUS_CFG[booking.status] || { label: booking.status, dot: 'bg-gray-400', badge: 'bg-gray-100 text-gray-600' };
   const dateStr = booking.appointmentDate ? formatDate(booking.appointmentDate) : '—';
 
@@ -463,6 +536,10 @@ const BookingRow = ({ booking, updating, onStatusChange, isBlocked, blockLoading
             isBlocked={isBlocked}
             blockLoading={blockLoading}
             onToggleBlock={onToggleBlock}
+            onMarkLate={onMarkLate}
+            onCollectCash={onCollectCash}
+            lateLoading={lateLoading}
+            cashLoading={cashLoading}
           />
         </div>
       </td>
@@ -471,7 +548,7 @@ const BookingRow = ({ booking, updating, onStatusChange, isBlocked, blockLoading
 };
 
 /* ─── Mobile Booking Card ────────────────────────────────────── */
-const BookingCard = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock, onOpenChat, hasUnread, staffList, onReload }) => {
+const BookingCard = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock, onOpenChat, hasUnread, staffList, onReload, onMarkLate, onCollectCash, lateLoading, cashLoading }) => {
   const cfg = STATUS_CFG[booking.status] || { label: booking.status, dot: 'bg-gray-400', badge: 'bg-gray-100 text-gray-600' };
   const dateStr = booking.appointmentDate ? formatDate(booking.appointmentDate) : '—';
 
@@ -513,15 +590,23 @@ const BookingCard = ({ booking, updating, onStatusChange, isBlocked, blockLoadin
 
       <div className="flex gap-2 flex-wrap pt-3 border-t border-gray-100 dark:border-gray-800">
         {booking.status === 'pending' && <>
-          <ActionBtn label="Confirm" cls="bg-indigo-600 hover:bg-indigo-700 text-white" loading={updating} onClick={() => onStatusChange(booking._id,'confirmed')} />
-          <ActionBtn label="Cancel"  cls="bg-red-50 dark:bg-red-950/30 hover:bg-red-100 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800" loading={updating} onClick={() => onStatusChange(booking._id,'cancelled')} />
+          <ActionBtn label="Confirm"  cls="bg-indigo-600 hover:bg-indigo-700 text-white" loading={updating} onClick={() => onStatusChange(booking._id,'confirmed')} />
+          <ActionBtn label="Cancel"   cls="bg-red-50 dark:bg-red-950/30 hover:bg-red-100 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800" loading={updating} onClick={() => onStatusChange(booking._id,'cancelled')} />
+          <ActionBtn label="No-show"  cls="bg-orange-50 dark:bg-orange-950/30 hover:bg-orange-100 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800" loading={updating} onClick={() => onStatusChange(booking._id,'no_show')} />
         </>}
         {booking.status === 'confirmed' && <>
-          <ActionBtn label="Start"  cls="bg-violet-600 hover:bg-violet-700 text-white" loading={updating} onClick={() => onStatusChange(booking._id,'in_progress')} />
-          <ActionBtn label="Cancel" cls="bg-red-50 dark:bg-red-950/30 hover:bg-red-100 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800" loading={updating} onClick={() => onStatusChange(booking._id,'cancelled')} />
+          <ActionBtn label="Start"   cls="bg-violet-600 hover:bg-violet-700 text-white" loading={updating} onClick={() => onStatusChange(booking._id,'in_progress')} />
+          <ActionBtn label="Cancel"  cls="bg-red-50 dark:bg-red-950/30 hover:bg-red-100 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800" loading={updating} onClick={() => onStatusChange(booking._id,'cancelled')} />
+          <ActionBtn label="No-show" cls="bg-orange-50 dark:bg-orange-950/30 hover:bg-orange-100 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800" loading={updating} onClick={() => onStatusChange(booking._id,'no_show')} />
         </>}
         {booking.status === 'in_progress' && (
           <ActionBtn label="Mark Complete" cls="bg-emerald-600 hover:bg-emerald-700 text-white" loading={updating} onClick={() => onStatusChange(booking._id,'completed')} />
+        )}
+        {['pending','confirmed'].includes(booking.status) && !booking.lateMarkedAt && (
+          <ActionBtn label="Mark Late" cls="bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800" loading={lateLoading} onClick={() => onMarkLate(booking._id)} />
+        )}
+        {booking.paymentMethod === 'cash' && !booking.cashCollected && booking.status !== 'cancelled' && (
+          <ActionBtn label="Cash Collected" cls="bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800" loading={cashLoading} onClick={() => onCollectCash(booking._id)} />
         )}
         {CHAT_OPEN.has(booking.status) && (
           <button
@@ -827,6 +912,8 @@ const Bookings = () => {
   const [unreadChats, setUnreadChats]   = useState(new Set());
   const [staffList, setStaffList]       = useState([]);
   const [staffFilter, setStaffFilter]   = useState('all'); // 'all' | staffId | 'unassigned'
+  const [lateLoading, setLateLoading]   = useState(null);
+  const [cashLoading, setCashLoading]   = useState(null);
 
   const handleOpenChat = useCallback((booking) => {
     setChatBooking(booking);
@@ -940,6 +1027,40 @@ const Bookings = () => {
       setBlocking(null);
     }
   };
+
+  // Fix 8: Mark Late
+  const handleMarkLate = async (bookingId) => {
+    setLateLoading(bookingId);
+    try {
+      await api.post(`/owner/bookings/${bookingId}/late`);
+      toast.success('Booking marked as late — moved to end of queue');
+      await loadBookings(selectedDate);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to mark late');
+    } finally { setLateLoading(null); }
+  };
+
+  // Fix 10: Collect Cash
+  const handleCollectCash = async (bookingId) => {
+    setCashLoading(bookingId);
+    try {
+      await api.post(`/owner/bookings/${bookingId}/collect-cash`);
+      toast.success('Cash collected');
+      await loadBookings(selectedDate);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed');
+    } finally { setCashLoading(null); }
+  };
+
+  // Fix 11: multi-device sync — listen for booking-updated from other owner tabs
+  useEffect(() => {
+    if (!salon?._id) return;
+    const SOCKET_URL2 = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_BASE_URL?.replace('/api/v1', '') || 'http://localhost:5000';
+    const syncSocket = io(SOCKET_URL2, { transports: ['polling', 'websocket'] });
+    syncSocket.on('connect', () => syncSocket.emit('join-salon', { salonId: salon._id }));
+    syncSocket.on('booking-updated', () => { loadBookings(selectedDate); });
+    return () => syncSocket.disconnect();
+  }, [salon?._id, selectedDate]);
 
   const dateLabel = selectedDate === today
     ? 'today'
@@ -1110,6 +1231,10 @@ const Bookings = () => {
                       hasUnread={unreadChats.has(String(booking._id))}
                       staffList={staffList}
                       onReload={handleAssigned}
+                      onMarkLate={handleMarkLate}
+                      onCollectCash={handleCollectCash}
+                      lateLoading={lateLoading === booking._id}
+                      cashLoading={cashLoading === booking._id}
                     />
                   ))}
                 </tbody>
@@ -1131,6 +1256,10 @@ const Bookings = () => {
                   hasUnread={unreadChats.has(String(booking._id))}
                   staffList={staffList}
                   onReload={handleAssigned}
+                  onMarkLate={handleMarkLate}
+                  onCollectCash={handleCollectCash}
+                  lateLoading={lateLoading === booking._id}
+                  cashLoading={cashLoading === booking._id}
                 />
               ))}
             </div>

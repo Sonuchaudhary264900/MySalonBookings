@@ -48,6 +48,26 @@ const createBooking = async (req, res) => {
       );
     }
 
+    // Fix 2: phone verified check
+    const customer = await Customer.findById(req.customer._id);
+    if (!customer.phoneVerified) {
+      return res.status(403).json(
+        formatErrorResponse('Please verify your phone number before booking.', 403)
+      );
+    }
+
+    // Fix 2: per-phone 3/day limit (across all salons)
+    const phoneBookingsToday = await Booking.countDocuments({
+      customerPhone: customer.phone,
+      appointmentDate: { $gte: new Date(appointmentDate + 'T00:00:00.000Z'), $lte: new Date(appointmentDate + 'T23:59:59.999Z') },
+      status: { $in: ['pending', 'confirmed', 'in_progress'] },
+    });
+    if (phoneBookingsToday >= 3) {
+      return res.status(429).json(
+        formatErrorResponse('You can only book 3 appointments per day. Try again tomorrow.', 429)
+      );
+    }
+
     // Check if customer is blocked by this salon
     const isBlocked = salon.blockedCustomers?.some(
       bc => bc.customerId?.toString() === req.customer._id.toString()
@@ -131,10 +151,10 @@ const createBooking = async (req, res) => {
     // Reject bookings for past time slots (timezone-aware)
     // Use salon's timezone offset; default to IST (+5:30) for India-based salons.
     // Full per-salon timezone is Phase 2 — this covers 99% of current users safely.
-    const tzOffsetMs = (salon.timezoneOffsetMinutes ?? 330) * 60 * 1000; // default IST = +330 min
-    const nowLocal   = new Date(Date.now() + tzOffsetMs);
-    const todayLocal = nowLocal.toISOString().slice(0, 10);
-    if (appointmentDate === todayLocal) {
+    const tzOffsetMs  = (salon.timezoneOffsetMinutes ?? 330) * 60 * 1000; // default IST = +330 min
+    const nowLocal    = new Date(Date.now() + tzOffsetMs);
+    const todayISTStr = nowLocal.toISOString().slice(0, 10);
+    if (appointmentDate === todayISTStr) {
       const nowMin = nowLocal.getUTCHours() * 60 + nowLocal.getUTCMinutes();
       if (apptMin < nowMin) { // strict <: allow booking at the exact current minute
         return res.status(400).json(
@@ -190,8 +210,6 @@ const createBooking = async (req, res) => {
       });
       // barber may be null — booking will be created as UNASSIGNED (handled below)
     }
-
-    const customer = await Customer.findById(req.customer._id);
 
     // Apply coupon if provided
     let discountAmount = 0;
@@ -441,10 +459,24 @@ const cancelBooking = async (req, res) => {
       );
     }
 
-    if (['completed', 'cancelled'].includes(booking.status)) {
+    if (['completed', 'cancelled', 'no_show'].includes(booking.status)) {
       return res.status(400).json(
         formatErrorResponse(`Cannot cancel a booking that is already ${booking.status}`, 400)
       );
+    }
+
+    // Fix 7: cancellation cutoff
+    const salon = await Business.findById(booking.salonId).select('cancellationCutoffHours').lean();
+    const cutoffHours = salon?.cancellationCutoffHours ?? 2;
+    if (cutoffHours > 0 && booking.appointmentDate && booking.appointmentTime) {
+      const [h, m] = booking.appointmentTime.split(':').map(Number);
+      const apptMs = new Date(booking.appointmentDate).setUTCHours(h, m, 0, 0);
+      const minsUntil = (apptMs - Date.now()) / 60000;
+      if (minsUntil < cutoffHours * 60) {
+        return res.status(400).json(
+          formatErrorResponse(`Cancellations are not allowed within ${cutoffHours} hour(s) of the appointment.`, 400)
+        );
+      }
     }
 
     booking.status = "cancelled";

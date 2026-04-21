@@ -410,6 +410,12 @@ locality: { type: String, default: null }, // reverse-geocoded suburb/village fr
     // ==========================================
     // BUSINESS POLICIES
     // ==========================================
+    cancellationCutoffHours: {
+      type: Number,
+      default: 2,  // 0 = no cutoff, N = cannot cancel within N hours of appointment
+      min: 0,
+      max: 72,
+    },
     cancellationPolicy: {
       type: String,
       default: '100% refund if cancelled 24+ hours before appointment',

@@ -3,6 +3,7 @@ import {
   Users, Plus, Edit2, Trash2, Star, IndianRupee, Calendar,
   Phone, Mail, Clock, Scissors, ChevronDown, ChevronUp,
   ToggleLeft, ToggleRight, UserCheck, X, Loader2, Eye, EyeOff,
+  CalendarOff, CalendarCheck,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -192,7 +193,7 @@ function StaffModal({ mode, initial, onSave, onClose }) {
 }
 
 /* ─── Staff Card ─────────────────────────────────────────────────────────── */
-function StaffCard({ member, onEdit, onRemove, onToggleActive }) {
+function StaffCard({ member, onEdit, onRemove, onToggleActive, onMarkAbsent, isAbsent, absentLoading }) {
   const [expanded, setExpanded] = useState(false);
   const role = ROLE_LABELS[member.staffRole] || ROLE_LABELS.stylist;
 
@@ -294,6 +295,25 @@ function StaffCard({ member, onEdit, onRemove, onToggleActive }) {
               {member.showEarningsToStaff ? 'Shown to staff' : 'Hidden from staff'}
             </span>
           </div>
+          {/* Fix 5: Mark Absent Today */}
+          {!member.isOwner && member.isActive && (
+            <button
+              onClick={() => onMarkAbsent(member._id, isAbsent)}
+              disabled={absentLoading}
+              className={`w-full mt-1 py-2 rounded-xl border text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 ${
+                isAbsent
+                  ? 'border-emerald-200 dark:border-emerald-900/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30'
+                  : 'border-amber-200 dark:border-amber-900/40 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30'
+              }`}
+            >
+              {absentLoading
+                ? <Loader2 size={12} className="animate-spin" />
+                : isAbsent
+                  ? <><CalendarCheck size={12} /> Mark Present</>
+                  : <><CalendarOff size={12} /> Mark Absent Today</>
+              }
+            </button>
+          )}
           {!member.isOwner && (
             <button onClick={() => onRemove(member)}
               className="w-full mt-1 py-2 rounded-xl border border-red-200 dark:border-red-900/40 text-red-500 text-xs font-semibold hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors flex items-center justify-center gap-1.5">
@@ -308,10 +328,12 @@ function StaffCard({ member, onEdit, onRemove, onToggleActive }) {
 
 /* ─── Main Page ──────────────────────────────────────────────────────────── */
 export default function Team() {
-  const [staff, setStaff]     = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [modal, setModal]     = useState(null); // null | { mode: 'add'|'edit', initial: {} }
-  const [removing, setRemoving] = useState(null);
+  const [staff, setStaff]         = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [modal, setModal]         = useState(null); // null | { mode: 'add'|'edit', initial: {} }
+  const [removing, setRemoving]   = useState(null);
+  const [absentIds, setAbsentIds] = useState(new Set()); // staffIds absent today
+  const [absentLoading, setAbsentLoading] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -323,6 +345,33 @@ export default function Team() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Load today's absences
+  useEffect(() => {
+    api.get('/owner/team/absences')
+      .then(res => {
+        const ids = new Set((res.data.data?.absences || []).map(a => String(a.barberId)));
+        setAbsentIds(ids);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleMarkAbsent = async (staffId, currentlyAbsent) => {
+    setAbsentLoading(staffId);
+    try {
+      if (currentlyAbsent) {
+        await api.delete(`/owner/team/${staffId}/absent`);
+        setAbsentIds(prev => { const s = new Set(prev); s.delete(String(staffId)); return s; });
+        toast.success('Staff marked present');
+      } else {
+        const res = await api.post(`/owner/team/${staffId}/absent`);
+        setAbsentIds(prev => new Set([...prev, String(staffId)]));
+        toast.success(res.data?.message || 'Staff marked absent, bookings reassigned');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed');
+    } finally { setAbsentLoading(null); }
+  };
 
   const handleSave = async (form) => {
     try {
@@ -404,7 +453,10 @@ export default function Team() {
                 <StaffCard key={m._id} member={m}
                   onEdit={member => setModal({ mode: 'edit', initial: member })}
                   onRemove={() => setRemoving(m)}
-                  onToggleActive={handleToggleActive} />
+                  onToggleActive={handleToggleActive}
+                  onMarkAbsent={handleMarkAbsent}
+                  isAbsent={absentIds.has(String(m._id))}
+                  absentLoading={absentLoading === m._id} />
               ))}
             </div>
 

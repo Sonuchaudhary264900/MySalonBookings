@@ -960,6 +960,100 @@ const paymentDueReminder = cron.schedule('0 9 * * *', async () => {
 
 /*
 ====================================================
+FIX 6 — UNASSIGNED BOOKING ESCALATION
+Runs every 15 minutes — pushes owner if a booking is
+unassigned within 60 minutes of the appointment time.
+====================================================
+*/
+const unassignedEscalation = cron.schedule('*/15 * * * *', async () => {
+  try {
+    const { sendExpoPush } = require('../utils/pushNotification');
+    const nowIST    = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+    const todayIST  = nowIST.toISOString().slice(0, 10);
+    const nowMins   = nowIST.getUTCHours() * 60 + nowIST.getUTCMinutes();
+    const window60  = nowMins + 60;
+
+    const bookings = await Booking.find({
+      barberId: null,
+      status: { $in: ['pending', 'confirmed'] },
+    }).lean();
+
+    for (const bk of bookings) {
+      try {
+        const bookingDate = bk.appointmentDate?.toISOString().slice(0, 10);
+        if (bookingDate !== todayIST || !bk.appointmentTime) continue;
+        const [h, m] = bk.appointmentTime.split(':').map(Number);
+        const slotMins = h * 60 + m;
+        if (slotMins > window60 || slotMins < nowMins) continue;
+
+        const salon = await Business.findById(bk.salonId).select('ownerId').lean();
+        if (!salon) continue;
+        const owner = await Owner.findById(salon.ownerId).select('pushToken').lean();
+        if (!owner?.pushToken) continue;
+
+        await sendExpoPush(
+          owner.pushToken,
+          'Unassigned Booking Alert',
+          `Booking at ${bk.appointmentTime} for ${bk.customerName || 'a customer'} has no assigned staff. Assign now!`,
+          { bookingId: bk._id.toString(), type: 'unassigned_escalation' },
+          { channelId: 'bookings' }
+        ).catch(() => {});
+      } catch (err) {
+        console.error('Unassigned escalation single error:', err.message);
+      }
+    }
+  } catch (err) {
+    console.error('Unassigned escalation cron error:', err.message);
+  }
+});
+
+
+/*
+====================================================
+FIX 8 — LATE → NO-SHOW ESCALATION
+Runs every 5 minutes — escalates bookings marked late
+more than 30 minutes ago to no-show if still not started.
+====================================================
+*/
+const lateToNoShowEscalation = cron.schedule('*/5 * * * *', async () => {
+  try {
+    const cutoff = new Date(Date.now() - 30 * 60 * 1000);
+    const lateBookings = await Booking.find({
+      lateMarkedAt: { $lt: cutoff },
+      status: { $in: ['pending', 'confirmed'] },
+    }).lean();
+
+    for (const bk of lateBookings) {
+      try {
+        await Booking.updateOne(
+          { _id: bk._id },
+          { $set: { status: 'no_show', noShowMarkedAt: new Date() } }
+        );
+        if (bk.customerId) {
+          const Customer = require('../models/Customer');
+          const cust = await Customer.findById(bk.customerId);
+          if (cust) {
+            cust.noShowCount = (cust.noShowCount || 0) + 1;
+            if (cust.noShowCount >= 3 && !cust.isBanned) {
+              cust.isBanned  = true;
+              cust.banReason = 'Auto-banned: 3 or more no-shows';
+              cust.bannedAt  = new Date();
+            }
+            await cust.save();
+          }
+        }
+      } catch (err) {
+        console.error('Late→no-show single error:', err.message);
+      }
+    }
+  } catch (err) {
+    console.error('Late→no-show escalation error:', err.message);
+  }
+});
+
+
+/*
+====================================================
 CHAT CLEANUP — delete messages for completed/cancelled bookings
 Runs every hour. Deletes messages for bookings that finished
 more than 1 hour ago, so the chat stays live briefly after completion.
@@ -1012,6 +1106,8 @@ module.exports = {
   monthlyBillingReset,
   paymentDueReminder,
   cleanupChatMessages,
+  unassignedEscalation,
+  lateToNoShowEscalation,
 
   stopAllJobs: () => {
 
@@ -1030,6 +1126,8 @@ module.exports = {
     monthlyBillingReset.stop();
     paymentDueReminder.stop();
     cleanupChatMessages.stop();
+    unassignedEscalation.stop();
+    lateToNoShowEscalation.stop();
 
     console.log("🛑 All cron jobs stopped");
 

@@ -185,6 +185,10 @@ const customerSchema = new mongoose.Schema(
     // ==========================================
     // STATS & HISTORY
     // ==========================================
+    noShowCount: {
+      type: Number,
+      default: 0,
+    },
     totalBookings: {
       type: Number,
       default: 0,

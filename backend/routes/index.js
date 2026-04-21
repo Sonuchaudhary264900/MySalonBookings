@@ -1610,20 +1610,49 @@ router.post("/owner/bookings", authenticateOwner, checkSubscription, asyncHandle
   const dayStart = new Date(appointmentDate + "T00:00:00.000Z");
   const dayEnd   = new Date(appointmentDate + "T23:59:59.999Z");
 
-  const existingBookings = await Booking.find({
-    salonId: salon._id,
-    appointmentDate: { $gte: dayStart, $lte: dayEnd },
-    status: { $in: ["pending", "confirmed", "in_progress"] },
-  }).select("appointmentTime estimatedDuration").lean();
+  // Fix 3: per-barber overlap (same logic as online path)
+  const { barberId: walkInBarberId } = req.body;
+  let assignedBarberId = null;
+  if (walkInBarberId) {
+    const Barber = require("../models/Barber");
+    const barber = await Barber.findOne({ _id: walkInBarberId, salonId: salon._id, isActive: true });
+    if (!barber) return res.status(404).json({ success: false, message: "Staff not found" });
+    assignedBarberId = barber._id;
+  } else {
+    // Auto-pick least-busy active barber (or null = unassigned)
+    const Barber = require("../models/Barber");
+    const barbers = await Barber.find({ salonId: salon._id, isActive: true }).select('_id').lean();
+    for (const b of barbers) {
+      const conflict = await Booking.findOne({
+        barberId: b._id,
+        appointmentDate: { $gte: dayStart, $lte: dayEnd },
+        status: { $in: ["pending", "confirmed", "in_progress"] },
+        appointmentTime: { $exists: true },
+      }).select("appointmentTime estimatedDuration").lean();
+      const newStart2 = timeToMinutes(appointmentTime);
+      const newEnd2   = newStart2 + service.duration;
+      if (!conflict || !overlaps(conflict, newStart2, newEnd2)) {
+        assignedBarberId = b._id; break;
+      }
+    }
+  }
 
-  const newStart = timeToMinutes(appointmentTime);
-  const newEnd   = newStart + service.duration;
+  function overlaps(b, ns, ne) {
+    const bs = timeToMinutes(b.appointmentTime);
+    const be = bs + (b.estimatedDuration || 30);
+    return ns < be && bs < ne;
+  }
 
-  for (const b of existingBookings) {
-    const bStart = timeToMinutes(b.appointmentTime);
-    const bEnd   = bStart + (b.estimatedDuration || 30);
-    if (newStart < bEnd && bStart < newEnd) {
-      return res.status(409).json({ success: false, message: "This time slot is already booked" });
+  if (assignedBarberId) {
+    const barberBooks = await Booking.find({
+      barberId: assignedBarberId,
+      appointmentDate: { $gte: dayStart, $lte: dayEnd },
+      status: { $in: ["pending", "confirmed", "in_progress"] },
+    }).select("appointmentTime estimatedDuration").lean();
+    const ns = timeToMinutes(appointmentTime);
+    const ne = ns + service.duration;
+    if (barberBooks.some(b => overlaps(b, ns, ne))) {
+      return res.status(409).json({ success: false, message: "This stylist is already booked at that time" });
     }
   }
 
@@ -1633,8 +1662,10 @@ router.post("/owner/bookings", authenticateOwner, checkSubscription, asyncHandle
     salonName:        salon.name,
     serviceId:        service._id,
     serviceName:      service.name,
+    services: [{ serviceId: service._id, serviceName: service.name, servicePrice: service.basePrice, duration: service.duration }],
     customerName:     customerName.trim(),
     customerPhone:    customerPhone.trim(),
+    barberId:         assignedBarberId || null,
     appointmentDate:  new Date(appointmentDate + "T12:00:00.000Z"),
     appointmentTime,
     estimatedDuration: service.duration,
@@ -1682,25 +1713,59 @@ router.put("/owner/bookings/:bookingId", authenticateOwner, validateObjectId("bo
   const booking = await Booking.findOne({ _id: req.params.bookingId, salonId: salon._id });
   if (!booking) return res.status(404).json({ success: false, message: "Booking not found" });
 
-  const { status } = req.body;
-  if (!["confirmed", "completed", "cancelled", "in_progress"].includes(status)) {
+  const { status, cancellationReason } = req.body;
+  if (!["confirmed", "completed", "cancelled", "in_progress", "no_show"].includes(status)) {
     return res.status(400).json({ success: false, message: "Invalid status" });
+  }
+
+  // Fix 4: completed must come from in_progress + 50% duration elapsed
+  if (status === "completed") {
+    if (booking.status !== "in_progress") {
+      return res.status(400).json({ success: false, message: "Booking must be in_progress before marking complete" });
+    }
+    if (booking.startedAt && booking.estimatedDuration) {
+      const elapsedMin = (Date.now() - new Date(booking.startedAt).getTime()) / 60000;
+      const required   = booking.estimatedDuration * 0.5;
+      if (elapsedMin < required) {
+        return res.status(400).json({ success: false, message: `Service must be at least 50% done. Wait ${Math.ceil(required - elapsedMin)} more minute(s).` });
+      }
+    }
+  }
+
+  // Fix 1: no_show — must come from pending/confirmed; increment customer noShowCount; auto-ban at 3
+  if (status === "no_show") {
+    if (!["pending", "confirmed"].includes(booking.status)) {
+      return res.status(400).json({ success: false, message: "Can only mark as no-show from pending or confirmed" });
+    }
+    if (booking.customerId) {
+      const Customer = require("../models/Customer");
+      const cust = await Customer.findById(booking.customerId);
+      if (cust) {
+        cust.noShowCount = (cust.noShowCount || 0) + 1;
+        if (cust.noShowCount >= 3 && !cust.isBanned) {
+          cust.isBanned  = true;
+          cust.banReason = "Auto-banned: 3 or more no-shows";
+          cust.bannedAt  = new Date();
+        }
+        await cust.save();
+      }
+    }
+    booking.noShowMarkedAt = new Date();
   }
 
   booking.status = status;
   if (status === "confirmed")   booking.confirmedAt  = new Date();
   if (status === "completed")   booking.completedAt  = new Date();
-  if (status === "cancelled")   booking.cancelledAt  = new Date();
+  if (status === "cancelled")   { booking.cancelledAt = new Date(); if (cancellationReason) booking.cancellationReason = cancellationReason; }
   if (status === "in_progress") booking.startedAt    = new Date();
   await booking.save();
 
-  // Emit real-time update to the customer's socket room
+  // Fix 11: broadcast to all owner tabs + customer room
   const io = req.app.get("io");
-  if (io && booking.customerId) {
-    io.to(`customer-${booking.customerId}`).emit("booking-status-changed", {
-      bookingId: booking._id,
-      status,
-    });
+  if (io) {
+    const updatePayload = { bookingId: booking._id, status };
+    if (booking.customerId) io.to(`customer-${booking.customerId}`).emit("booking-status-changed", updatePayload);
+    io.to(`salon-${salon._id}`).emit("booking-updated", { ...updatePayload, booking: booking.toObject() });
   }
 
   // Send push notification to customer on all status changes
@@ -1732,6 +1797,11 @@ router.put("/owner/bookings/:bookingId", authenticateOwner, validateObjectId("bo
               title: "How was your experience? ⭐",
               body: `Your service at ${salon.name} is complete. Tap to leave a review!`,
               type: "review_prompt",
+            },
+            no_show: {
+              title: "Booking Marked as No-Show",
+              body: `Your appointment at ${salon.name} was marked as no-show. Please contact the salon for assistance.`,
+              type: "booking_no_show",
             },
           };
           const push = pushMap[status];
@@ -4135,6 +4205,194 @@ router.get('/owner/catalog', authenticateOwner, asyncHandler(async (req, res) =>
   }));
 
   res.json({ success: true, data: { categories } });
+}));
+
+/* =====================================================
+   FIX 5 — STAFF ABSENCE
+===================================================== */
+// POST /owner/team/:staffId/absent — mark a staff member absent today, auto-reassign their bookings
+router.post('/owner/team/:staffId/absent', authenticateOwner, validateObjectId('staffId'), asyncHandler(async (req, res) => {
+  const StaffAbsence = require('../models/StaffAbsence');
+  const Barber       = require('../models/Barber');
+  const salon = await Business.findOne({ ownerId: req.owner._id }).lean();
+  if (!salon) return res.status(404).json({ success: false, message: 'Business not found' });
+
+  const staff = await Barber.findOne({ _id: req.params.staffId, salonId: salon._id }).lean();
+  if (!staff) return res.status(404).json({ success: false, message: 'Staff not found' });
+
+  const nowIST  = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+  const todayStr = nowIST.toISOString().slice(0, 10);
+  const { reason = '' } = req.body;
+
+  // Upsert absence record
+  await StaffAbsence.findOneAndUpdate(
+    { salonId: salon._id, barberId: staff._id, date: todayStr },
+    { salonId: salon._id, barberId: staff._id, date: todayStr, reason },
+    { upsert: true, new: true }
+  );
+
+  // Auto-reassign today's bookings for this staff to other available staff
+  const dayStart = new Date(todayStr + 'T00:00:00.000Z');
+  const dayEnd   = new Date(todayStr + 'T23:59:59.999Z');
+  const affectedBookings = await Booking.find({
+    salonId:   salon._id,
+    barberId:  staff._id,
+    appointmentDate: { $gte: dayStart, $lte: dayEnd },
+    status: { $in: ['pending', 'confirmed'] },
+  }).lean();
+
+  const otherStaff = await Barber.find({ salonId: salon._id, isActive: true, _id: { $ne: staff._id } }).select('_id').lean();
+
+  const { sendWithRetry } = require('../utils/sendWithRetry');
+  let reassigned = 0;
+
+  for (const bk of affectedBookings) {
+    // Pick first available staff for this slot
+    let newBarber = null;
+    for (const ob of otherStaff) {
+      const conflict = await Booking.exists({
+        barberId: ob._id,
+        appointmentDate: { $gte: dayStart, $lte: dayEnd },
+        status: { $in: ['pending', 'confirmed', 'in_progress'] },
+        appointmentTime: bk.appointmentTime,
+      });
+      if (!conflict) { newBarber = ob; break; }
+    }
+    await Booking.updateOne(
+      { _id: bk._id },
+      { $set: { barberId: newBarber?._id || null, staffName: null, barberName: null } }
+    );
+    // Notify customer
+    if (bk.customerId) {
+      const cust = await Customer.findById(bk.customerId).select('pushToken').lean();
+      if (cust?.pushToken) {
+        sendWithRetry(
+          cust.pushToken,
+          'Appointment Update',
+          `Your ${bk.appointmentTime} appointment staff has changed due to absence. We apologise for the inconvenience.`,
+          { bookingId: bk._id.toString(), type: 'staff_reassigned' },
+          { channelId: 'booking_confirmed' },
+          bk._id
+        ).catch(() => {});
+      }
+    }
+    reassigned++;
+  }
+
+  res.json({ success: true, message: `${staff.name} marked absent. ${reassigned} booking(s) reassigned.`, reassigned });
+}));
+
+// DELETE /owner/team/:staffId/absent — remove absence for today
+router.delete('/owner/team/:staffId/absent', authenticateOwner, validateObjectId('staffId'), asyncHandler(async (req, res) => {
+  const StaffAbsence = require('../models/StaffAbsence');
+  const salon = await Business.findOne({ ownerId: req.owner._id }).lean();
+  if (!salon) return res.status(404).json({ success: false, message: 'Business not found' });
+
+  const todayStr = new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  await StaffAbsence.deleteOne({ salonId: salon._id, barberId: req.params.staffId, date: todayStr });
+  res.json({ success: true, message: 'Absence removed' });
+}));
+
+// GET /owner/team/absences?date=YYYY-MM-DD — list absent staff for a day
+router.get('/owner/team/absences', authenticateOwner, asyncHandler(async (req, res) => {
+  const StaffAbsence = require('../models/StaffAbsence');
+  const salon = await Business.findOne({ ownerId: req.owner._id }).lean();
+  if (!salon) return res.status(404).json({ success: false, message: 'Business not found' });
+
+  const date = req.query.date || new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const absences = await StaffAbsence.find({ salonId: salon._id, date }).lean();
+  res.json({ success: true, data: { absences } });
+}));
+
+/* =====================================================
+   FIX 8 — LATE ARRIVAL
+===================================================== */
+// POST /owner/bookings/:bookingId/late — mark customer as late, move to end of queue
+router.post('/owner/bookings/:bookingId/late', authenticateOwner, validateObjectId('bookingId'), asyncHandler(async (req, res) => {
+  const salon = await Business.findOne({ ownerId: req.owner._id }).lean();
+  if (!salon) return res.status(404).json({ success: false, message: 'Business not found' });
+
+  const booking = await Booking.findOne({ _id: req.params.bookingId, salonId: salon._id });
+  if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+  if (!['pending', 'confirmed'].includes(booking.status)) {
+    return res.status(400).json({ success: false, message: 'Can only mark late on pending/confirmed bookings' });
+  }
+
+  booking.lateMarkedAt = new Date();
+  await booking.save();
+
+  // Move to end of queue
+  const Queue = require('../models/Queue');
+  const queue = await Queue.findOne({ salonId: salon._id });
+  if (queue) {
+    const idx = queue.queue.findIndex(q => q.bookingId?.toString() === booking._id.toString());
+    if (idx > -1) {
+      const [entry] = queue.queue.splice(idx, 1);
+      queue.queue.push(entry);
+      await queue.save();
+    }
+  }
+
+  // Push to customer
+  if (booking.customerId) {
+    const cust = await Customer.findById(booking.customerId).select('pushToken').lean();
+    if (cust?.pushToken) {
+      const { sendWithRetry } = require('../utils/sendWithRetry');
+      sendWithRetry(
+        cust.pushToken,
+        'Late Arrival Notice',
+        `You have been marked as late for your ${booking.appointmentTime} appointment at ${salon.name}. Your slot has been moved to the end of the queue.`,
+        { bookingId: booking._id.toString(), type: 'late_arrival' },
+        { channelId: 'bookings' },
+        booking._id
+      ).catch(() => {});
+    }
+  }
+
+  res.json({ success: true, message: 'Booking marked as late and moved to end of queue' });
+}));
+
+/* =====================================================
+   FIX 10 — CASH RECONCILIATION
+===================================================== */
+// POST /owner/bookings/:bookingId/collect-cash
+router.post('/owner/bookings/:bookingId/collect-cash', authenticateOwner, validateObjectId('bookingId'), asyncHandler(async (req, res) => {
+  const salon = await Business.findOne({ ownerId: req.owner._id }).lean();
+  if (!salon) return res.status(404).json({ success: false, message: 'Business not found' });
+
+  const booking = await Booking.findOne({ _id: req.params.bookingId, salonId: salon._id });
+  if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+  if (booking.paymentMethod !== 'cash') {
+    return res.status(400).json({ success: false, message: 'This booking is not a cash payment' });
+  }
+
+  booking.cashCollected    = true;
+  booking.cashCollectedAt  = new Date();
+  booking.paymentStatus    = 'completed';
+  await booking.save();
+
+  res.json({ success: true, message: 'Cash collected', data: booking });
+}));
+
+/* =====================================================
+   FIX 7 — GET CANCELLATION POLICY (for customer)
+===================================================== */
+router.get('/public/salons/:salonId/cancellation-policy', validateObjectId('salonId'), asyncHandler(async (req, res) => {
+  const salon = await Business.findById(req.params.salonId)
+    .select('cancellationCutoffHours cancellationPolicy')
+    .lean();
+  if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
+  res.json({ success: true, data: { cutoffHours: salon.cancellationCutoffHours ?? 2, policy: salon.cancellationPolicy } });
+}));
+
+/* =====================================================
+   FIX 14 — PERFORMANCE: ownerId index on Business
+===================================================== */
+// (Index is added at model level — this is a one-time migration endpoint for existing data)
+router.post('/admin/maintenance/ensure-indexes', authenticateAdmin, asyncHandler(async (req, res) => {
+  await Business.collection.createIndex({ ownerId: 1 });
+  await Booking.collection.createIndex({ customerPhone: 1, appointmentDate: 1 });
+  res.json({ success: true, message: 'Indexes ensured' });
 }));
 
 module.exports = router;
