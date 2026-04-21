@@ -158,8 +158,8 @@ export default function GlowLooxProfile() {
   const [lightbox,     setLightbox]     = useState(null);
   const [bannerIdx,    setBannerIdx]    = useState(0);
 
-  /* ── service accordion ── */
-  const [expandedCats, setExpandedCats] = useState(() => new Set(['__all__']));
+  /* ── service drill-down nav ── */
+  const [svcNavStack, setSvcNavStack] = useState([]);
 
   /* ── service modal ── */
   const [svcModal,     setSvcModal]     = useState({ open: false, service: null });
@@ -171,8 +171,10 @@ export default function GlowLooxProfile() {
   const [deleting,        setDeleting]        = useState(null);
   const [togglingId,      setTogglingId]      = useState(null);
   const [uploadingSvcImg, setUploadingSvcImg] = useState(null);
+  const [savingSvc,       setSavingSvc]       = useState(null);
   const pendingImgSvcRef  = useRef(null);
   const svcImgInputRef    = useRef(null);
+  const svcInputRefs      = useRef({});
 
   /* ── profile header edit panel ── */
   const [headerEdit,   setHeaderEdit]   = useState(false);
@@ -307,6 +309,25 @@ export default function GlowLooxProfile() {
     finally { setUploadingSvcImg(null); pendingImgSvcRef.current = null; e.target.value = ''; }
   };
 
+  const handleSaveInline = async (svcName, cat, existingSvc) => {
+    const price    = parseFloat(svcInputRefs.current[`${svcName}_price`]?.value    || '0');
+    const duration = parseInt(svcInputRefs.current[`${svcName}_duration`]?.value || '0', 10);
+    if (!price || price < 0)     return toast.error('Enter a valid price');
+    if (!duration || duration < 1) return toast.error('Enter a valid duration');
+    setSavingSvc(svcName);
+    try {
+      if (existingSvc) {
+        await updateService(existingSvc._id || existingSvc.id, { basePrice: price, duration });
+        toast.success('Updated');
+      } else {
+        await createService({ name: svcName, category: cat, basePrice: price, duration });
+        toast.success('Added');
+      }
+      await fetchServices();
+    } catch { toast.error('Failed to save'); }
+    finally { setSavingSvc(null); }
+  };
+
   /* ── header edit ── */
   const openHeaderEdit = () => {
     setHeaderForm({ name: salon?.name || '', tagline: salon?.tagline || '' });
@@ -432,146 +453,229 @@ export default function GlowLooxProfile() {
   /* ── Services ── */
   const renderServices = () => {
     if (loading) return (
-      <div className="p-4 space-y-3">
-        {[1,2,3].map(i => (
-          <div key={i} className="rounded-2xl overflow-hidden border border-gray-100 dark:border-white/[0.06]">
-            <div className="flex items-center gap-3 p-3.5">
-              <Skeleton className="w-10 h-10 rounded-xl flex-shrink-0" />
-              <div className="flex-1 space-y-2"><Skeleton className="h-3.5 w-2/5" /><Skeleton className="h-2.5 w-1/3" /></div>
-            </div>
-            {[1,2,3].map(j => (
-              <div key={j} className="flex items-center gap-3 px-3.5 py-2.5 border-t border-gray-50 dark:border-white/[0.04]">
-                <Skeleton className="w-12 h-12 rounded-xl flex-shrink-0" />
-                <div className="flex-1 space-y-1.5"><Skeleton className="h-3 w-3/5" /><Skeleton className="h-2.5 w-2/5" /></div>
-                <Skeleton className="w-9 h-5 rounded-full flex-shrink-0" />
-              </div>
-            ))}
+      <div className="p-4 space-y-2.5">
+        {[1,2,3,4].map(i => (
+          <div key={i} className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-white dark:bg-gray-900/50 border border-gray-100 dark:border-white/[0.06]">
+            <Skeleton className="w-1 h-9 rounded-full flex-shrink-0" style={{ width: 4 }} />
+            <Skeleton className="w-11 h-11 rounded-xl flex-shrink-0" />
+            <div className="flex-1 space-y-2"><Skeleton className="h-3.5 w-2/5" /><Skeleton className="h-2.5 w-1/3" /></div>
+            <Skeleton className="w-5 h-5 rounded-full flex-shrink-0" />
           </div>
         ))}
       </div>
     );
 
-    /* ── build lookup: catLabel → { svcName → svc } ── */
+    /* ── shared lookup ── */
     const catSvcMap = {};
     (services || []).forEach(svc => {
       const cat = svc.category || 'Other';
       if (!catSvcMap[cat]) catSvcMap[cat] = {};
       catSvcMap[cat][svc.name] = svc;
     });
-
-    /* ── full menu categories in order ── */
-    const menuCats = getCategoriesForSalonType(salon?.businessType || 'salon', salon?.servedGender || 'unisex');
+    const menuCats   = getCategoriesForSalonType(salon?.businessType || 'salon', salon?.servedGender || 'unisex');
     const menuLabels = menuCats.map(c => c.label);
-    const allCatLabels = [
-      ...menuLabels,
-      ...Object.keys(catSvcMap).filter(l => !menuLabels.includes(l)).sort((a, b) => {
-        const ai = ALL_CATEGORY_ORDER.indexOf(a), bi = ALL_CATEGORY_ORDER.indexOf(b);
-        if (ai === -1 && bi === -1) return a.localeCompare(b);
-        if (ai === -1) return 1; if (bi === -1) return -1;
-        return ai - bi;
-      }),
-    ];
 
-    const totalActive = (services || []).filter(s => s.isActive !== false).length;
-
-    /* ── single service row renderer ── */
-    const renderSvcRow = (svcName, cat, CatIcon) => {
-      const catByName = catSvcMap[cat] || {};
-      const svc = catByName[svcName];
-      const isAdded = !!svc;
-      const isActive = isAdded ? svc.isActive !== false : false;
-      const isToggling = isAdded && togglingId === (svc._id || svc.id);
-      const isUploadingImg = isAdded && uploadingSvcImg === (svc._id || svc.id);
-      const price = isAdded ? (svc.basePrice || svc.price || 0) : null;
-      const imgUrl = isAdded ? getServiceImage(svc) : getServiceImage({ name: svcName, category: cat });
+    /* ══ LEVEL 2 — services in a section ══ */
+    if (svcNavStack.length === 2) {
+      const { cat, menuCat } = svcNavStack[0];
+      const { section }      = svcNavStack[1];
+      const catByName        = catSvcMap[cat] || {};
+      const CatIcon          = CAT_ICONS[cat] || Scissors;
 
       return (
-        <div key={svcName}
-          className={`flex items-center gap-3 px-4 py-2.5 border-t border-gray-50 dark:border-white/[0.03] transition-opacity ${isAdded && !isActive ? 'opacity-50' : !isAdded ? 'opacity-40' : ''}`}>
-
-          {/* Thumbnail w/ camera overlay */}
-          <div className="relative w-12 h-12 rounded-xl flex-shrink-0 overflow-hidden group/img border"
-            style={{ background: biz.p + '14', borderColor: biz.p + '20' }}>
-            {imgUrl
-              ? <img src={imgUrl} alt={svcName}
-                  className="w-full h-full object-cover opacity-0 transition-opacity duration-200"
-                  onLoad={e => { e.currentTarget.style.opacity = '1'; }}
-                  onError={e => { e.currentTarget.style.display = 'none'; }} />
-              : <CatIcon style={{ color: biz.acc, opacity: 0.5 }} className="w-5 h-5 absolute inset-0 m-auto" />
-            }
-            {isAdded && (
-              <button
-                onClick={() => { pendingImgSvcRef.current = svc._id || svc.id; svcImgInputRef.current?.click(); }}
-                className="absolute inset-0 bg-black/55 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity">
-                {isUploadingImg
-                  ? <div className="w-3.5 h-3.5 border border-white border-t-transparent rounded-full animate-spin" />
-                  : <Camera className="w-3.5 h-3.5 text-white" />
-                }
-              </button>
-            )}
-          </div>
-
-          {/* Name + meta */}
-          <div className="flex-1 min-w-0">
-            <p className={`text-[13px] font-bold leading-snug truncate ${!isAdded ? 'text-gray-400 dark:text-gray-500' : !isActive ? 'text-gray-400 dark:text-gray-500 line-through' : 'text-gray-900 dark:text-white'}`}>
-              {svcName}
-            </p>
-            {isAdded ? (
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span style={{ color: biz.acc }} className="text-[12px] font-extrabold">₹{price}</span>
-                {svc.duration > 0 && (
-                  <span className="flex items-center gap-0.5 text-[11px] text-gray-400">
-                    <Clock className="w-3 h-3" />
-                    {svc.duration >= 60 ? `${(svc.duration/60).toFixed(1).replace('.0','')}h` : `${svc.duration}m`}
-                  </span>
-                )}
-              </div>
-            ) : (
-              <p className="text-[11px] text-gray-400 mt-0.5 italic">Not added</p>
-            )}
-          </div>
-
-          {/* Controls */}
-          {isAdded ? (
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button onClick={() => handleToggleActive(svc)} disabled={isToggling}
-                title={isActive ? 'Disable' : 'Enable'}
-                className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 disabled:opacity-50"
-                style={{ backgroundColor: isActive ? biz.p : '#d1d5db' }}>
-                {isToggling
-                  ? <span className="absolute inset-0 flex items-center justify-center">
-                      <span className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
-                    </span>
-                  : <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform duration-200 ${isActive ? 'translate-x-[18px]' : 'translate-x-[3px]'}`} />
-                }
-              </button>
-              <button onClick={() => setSvcModal({ open: true, service: svc })}
-                style={{ backgroundColor: biz.p + '12', color: biz.p }}
-                className="w-7 h-7 rounded-lg flex items-center justify-center hover:opacity-80 transition-opacity">
-                <Pencil className="w-3.5 h-3.5" />
-              </button>
-              <button onClick={() => handleDeleteService(svc)}
-                className="w-7 h-7 rounded-lg flex items-center justify-center bg-red-50 dark:bg-red-950/30 text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors">
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ) : (
-            <button onClick={() => setSvcModal({ open: true, service: { name: svcName, category: cat } })}
-              style={{ color: biz.p, borderColor: biz.p + '40', backgroundColor: biz.p + '0d' }}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold border shrink-0 hover:opacity-80 active:scale-95 transition-all">
-              <Plus className="w-3 h-3" /> Add
+        <div>
+          <div className="flex items-center gap-3 px-4 py-3.5 border-b border-gray-100 dark:border-white/[0.06] sticky top-[49px] bg-white/95 dark:bg-[#0d0520]/95 backdrop-blur-xl z-20">
+            <button onClick={() => setSvcNavStack(prev => prev.slice(0, 1))}
+              className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-white/[0.08] flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity">
+              <ChevronLeft className="w-4 h-4 text-gray-600 dark:text-gray-300" />
             </button>
-          )}
+            <div className="min-w-0 flex-1">
+              <p className="text-[14px] font-extrabold text-gray-900 dark:text-white truncate">{section.label}</p>
+              <p className="text-[11px] text-gray-400">{section.services.length} services · set price &amp; duration</p>
+            </div>
+          </div>
+
+          <div className="p-3 space-y-2 pb-8">
+            {section.services.map(svcName => {
+              const svc          = catByName[svcName];
+              const isAdded      = !!svc;
+              const isActive     = isAdded ? svc.isActive !== false : false;
+              const isToggling   = isAdded && togglingId === (svc._id || svc.id);
+              const isSaving     = savingSvc === svcName;
+              const isUploadImg  = isAdded && uploadingSvcImg === (svc._id || svc.id);
+              const imgUrl       = isAdded ? getServiceImage(svc) : getServiceImage({ name: svcName, category: cat });
+
+              return (
+                <div key={svcName}
+                  className={`rounded-2xl bg-white dark:bg-gray-900/50 border border-gray-100 dark:border-white/[0.07] overflow-hidden transition-opacity ${isAdded && !isActive ? 'opacity-60' : ''}`}
+                  style={{ boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
+                  <div className="flex items-center gap-3 p-3.5">
+
+                    {/* Thumb + camera overlay */}
+                    <div className="relative w-14 h-14 rounded-xl flex-shrink-0 overflow-hidden group/img border"
+                      style={{ background: biz.p + '14', borderColor: biz.p + '20' }}>
+                      {imgUrl
+                        ? <img src={imgUrl} alt={svcName}
+                            className="w-full h-full object-cover opacity-0 transition-opacity duration-200"
+                            onLoad={e => { e.currentTarget.style.opacity = '1'; }}
+                            onError={e => { e.currentTarget.style.display = 'none'; }} />
+                        : <CatIcon style={{ color: biz.acc, opacity: 0.5 }} className="w-6 h-6 absolute inset-0 m-auto" />
+                      }
+                      {isAdded && (
+                        <button onClick={() => { pendingImgSvcRef.current = svc._id || svc.id; svcImgInputRef.current?.click(); }}
+                          className="absolute inset-0 bg-black/55 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity">
+                          {isUploadImg
+                            ? <div className="w-3.5 h-3.5 border border-white border-t-transparent rounded-full animate-spin" />
+                            : <Camera className="w-3.5 h-3.5 text-white" />}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Name + inputs */}
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-[13px] font-bold truncate mb-2 ${isAdded && !isActive ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>{svcName}</p>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1 flex-1 min-w-0 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/[0.1] rounded-lg px-2 py-1.5">
+                          <span className="text-[11px] text-gray-400 shrink-0">₹</span>
+                          <input
+                            key={isAdded ? `${svc._id}-p-${svc.basePrice}` : `${svcName}-p`}
+                            ref={el => { if (el) svcInputRefs.current[`${svcName}_price`] = el; }}
+                            type="number" inputMode="numeric"
+                            defaultValue={isAdded ? String(svc.basePrice || svc.price || '') : ''}
+                            placeholder="Price"
+                            className="w-full bg-transparent text-[12px] font-bold text-gray-900 dark:text-white outline-none min-w-0" />
+                        </div>
+                        <div className="flex items-center gap-1 flex-1 min-w-0 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/[0.1] rounded-lg px-2 py-1.5">
+                          <Clock className="w-3 h-3 text-gray-400 shrink-0" />
+                          <input
+                            key={isAdded ? `${svc._id}-d-${svc.duration}` : `${svcName}-d`}
+                            ref={el => { if (el) svcInputRefs.current[`${svcName}_duration`] = el; }}
+                            type="number" inputMode="numeric"
+                            defaultValue={isAdded ? String(svc.duration || '') : ''}
+                            placeholder="min"
+                            className="w-full bg-transparent text-[12px] font-bold text-gray-900 dark:text-white outline-none min-w-0" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right controls */}
+                    <div className="flex flex-col items-end gap-1.5 shrink-0">
+                      {isAdded && (
+                        <button onClick={() => handleToggleActive(svc)} disabled={isToggling}
+                          className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 disabled:opacity-50"
+                          style={{ backgroundColor: isActive ? biz.p : '#d1d5db' }}>
+                          {isToggling
+                            ? <span className="absolute inset-0 flex items-center justify-center"><span className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" /></span>
+                            : <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform duration-200 ${isActive ? 'translate-x-[18px]' : 'translate-x-[3px]'}`} />
+                          }
+                        </button>
+                      )}
+                      <button onClick={() => handleSaveInline(svcName, cat, svc)} disabled={isSaving}
+                        style={{ backgroundColor: biz.p }}
+                        className="px-3 py-1 rounded-lg text-white text-[11px] font-bold hover:opacity-90 transition-opacity disabled:opacity-60 min-w-[48px] flex items-center justify-center gap-1">
+                        {isSaving
+                          ? <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+                          : isAdded ? 'Save' : 'Add'
+                        }
+                      </button>
+                      {isAdded && (
+                        <button onClick={() => handleDeleteService(svc)}
+                          className="w-6 h-6 rounded-lg flex items-center justify-center bg-red-50 dark:bg-red-950/30 text-red-400 hover:bg-red-100 transition-colors">
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <input ref={svcImgInputRef} type="file" accept="image/*" className="hidden" onChange={handleServiceImgUpload} />
         </div>
       );
-    };
+    }
+
+    /* ══ LEVEL 1 — sections in a category ══ */
+    if (svcNavStack.length === 1) {
+      const { cat, menuCat } = svcNavStack[0];
+      const catByName  = catSvcMap[cat] || {};
+      const sections   = menuCat?.sections || (menuCat?.subServices ? [{ label: 'All Services', services: menuCat.subServices }] : []);
+      const orphanSvcs = Object.values(catByName).filter(s => !menuCat?.subServices?.includes(s.name));
+
+      return (
+        <div>
+          <div className="flex items-center gap-3 px-4 py-3.5 border-b border-gray-100 dark:border-white/[0.06] sticky top-[49px] bg-white/95 dark:bg-[#0d0520]/95 backdrop-blur-xl z-20">
+            <button onClick={() => setSvcNavStack([])}
+              className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-white/[0.08] flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity">
+              <ChevronLeft className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+            </button>
+            <div className="flex-1 min-w-0">
+              <p className="text-[14px] font-extrabold text-gray-900 dark:text-white truncate">{cat}</p>
+              <p className="text-[11px] text-gray-400">{sections.length} sections · {Object.keys(catByName).length} added</p>
+            </div>
+          </div>
+
+          <div className="p-3 space-y-2 pb-8">
+            {sections.map(sec => {
+              const addedCount  = sec.services.filter(n => catByName[n]).length;
+              const activeCount = sec.services.filter(n => catByName[n] && catByName[n].isActive !== false).length;
+              return (
+                <button key={sec.label}
+                  onClick={() => setSvcNavStack(prev => [...prev, { section: sec }])}
+                  className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl bg-white dark:bg-gray-900/50 border border-gray-100 dark:border-white/[0.07] text-left hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors"
+                  style={{ boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
+                  <div style={{ backgroundColor: addedCount > 0 ? biz.p : '#d1d5db' }} className="w-1 h-8 rounded-full shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-extrabold text-gray-900 dark:text-white">{sec.label}</p>
+                    <p className="text-[11px] text-gray-400 mt-0.5">
+                      {addedCount > 0
+                        ? <>{activeCount} active · {addedCount}/{sec.services.length} added</>
+                        : <span className="italic">Tap to set prices</span>
+                      }
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {addedCount > 0 && (
+                      <span style={{ backgroundColor: biz.p + '18', color: biz.acc }}
+                        className="text-[10px] font-extrabold px-2 py-0.5 rounded-full">
+                        {addedCount}/{sec.services.length}
+                      </span>
+                    )}
+                    <ChevronRight style={{ color: biz.acc }} className="w-4 h-4" />
+                  </div>
+                </button>
+              );
+            })}
+            {orphanSvcs.length > 0 && (
+              <button
+                onClick={() => setSvcNavStack(prev => [...prev, { section: { label: 'Custom Services', services: orphanSvcs.map(s => s.name) } }])}
+                className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl bg-white dark:bg-gray-900/50 border border-gray-100 dark:border-white/[0.07] text-left hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors"
+                style={{ boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
+                <div style={{ backgroundColor: biz.p }} className="w-1 h-8 rounded-full shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-extrabold text-gray-900 dark:text-white">Custom Services</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">{orphanSvcs.length} added manually</p>
+                </div>
+                <ChevronRight style={{ color: biz.acc }} className="w-4 h-4 shrink-0" />
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    /* ══ LEVEL 0 — category list ══ */
+    const allCatLabels = [
+      ...menuLabels,
+      ...Object.keys(catSvcMap).filter(l => !menuLabels.includes(l)),
+    ];
+    const totalActive = (services || []).filter(s => s.isActive !== false).length;
 
     return (
       <>
-        {/* Section header */}
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 dark:border-white/[0.06]">
           <div>
-            <p className="text-[13px] font-black text-gray-900 dark:text-white">{(services || []).length} Added · {menuCats.reduce((n, c) => n + (c.subServices?.length || 0), 0)} in menu</p>
+            <p className="text-[13px] font-black text-gray-900 dark:text-white">{(services || []).length} Services Added</p>
             <p className="text-[11px] text-gray-400 mt-0.5">{totalActive} active · {(services || []).length - totalActive} off</p>
           </div>
           <button onClick={() => setSvcModal({ open: true, service: null })}
@@ -581,89 +685,46 @@ export default function GlowLooxProfile() {
           </button>
         </div>
 
-        <div className="p-3 space-y-3">
+        <div className="p-3 space-y-2.5 pb-8">
           {allCatLabels.map(cat => {
-            const menuCat = menuCats.find(c => c.label === cat);
-            const catByName = catSvcMap[cat] || {};
+            const menuCat    = menuCats.find(c => c.label === cat);
+            const catByName  = catSvcMap[cat] || {};
             const addedInCat = Object.values(catByName);
             const activeCount = addedInCat.filter(s => s.isActive !== false).length;
-            const minPrice = addedInCat.length ? Math.min(...addedInCat.map(s => s.basePrice || s.price || 0)) : null;
-            const allMenuNames = menuCat?.subServices || [];
-            const orphanSvcs = addedInCat.filter(s => !allMenuNames.includes(s.name));
-            const sections = menuCat?.sections || null;
-            const isOpen = expandedCats.has('__all__') || expandedCats.has(cat);
-            const CatIcon = CAT_ICONS[cat] || Scissors;
-            const catImg = CATEGORY_CARD_IMAGE_MAP[cat] || null;
-            const hasAny = addedInCat.length > 0;
-
-            const toggleCat = () => setExpandedCats(prev => {
-              const next = new Set(prev);
-              next.delete('__all__');
-              if (next.has(cat)) next.delete(cat); else next.add(cat);
-              return next;
-            });
+            const minPrice    = addedInCat.length ? Math.min(...addedInCat.map(s => s.basePrice || s.price || 0)) : null;
+            const totalInMenu = menuCat?.subServices?.length || 0;
+            const CatIcon     = CAT_ICONS[cat] || Scissors;
+            const catImg      = CATEGORY_CARD_IMAGE_MAP[cat] || null;
+            const hasAny      = addedInCat.length > 0;
 
             return (
-              <div key={cat} className="rounded-2xl overflow-hidden bg-white dark:bg-gray-900/50 border border-gray-100 dark:border-white/[0.07]"
+              <button key={cat}
+                onClick={() => setSvcNavStack([{ cat, menuCat }])}
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-white dark:bg-gray-900/50 border border-gray-100 dark:border-white/[0.07] text-left transition-colors hover:bg-gray-50/80 dark:hover:bg-white/[0.02]"
                 style={{ boxShadow: '0 1px 12px rgba(0,0,0,0.04)' }}>
-
-                {/* Category header */}
-                <button onClick={toggleCat}
-                  className="w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-gray-50/80 dark:hover:bg-white/[0.02]">
-                  <div style={{ backgroundColor: hasAny ? biz.p : '#d1d5db' }} className="w-1 h-9 rounded-full shrink-0" />
-                  <div style={{ background: biz.p + '18', borderColor: biz.p + '25' }}
-                    className="w-11 h-11 rounded-xl flex-shrink-0 overflow-hidden border flex items-center justify-center">
-                    {catImg
-                      ? <img src={catImg} alt={cat} className="w-full h-full object-cover"
-                          onError={e => { e.currentTarget.style.display = 'none'; }} />
-                      : <CatIcon style={{ color: biz.acc, opacity: 0.7 }} className="w-5 h-5" />
+                <div style={{ backgroundColor: hasAny ? biz.p : '#d1d5db' }} className="w-1 h-9 rounded-full shrink-0" />
+                <div style={{ background: biz.p + '18', borderColor: biz.p + '25' }}
+                  className="w-11 h-11 rounded-xl flex-shrink-0 overflow-hidden border flex items-center justify-center">
+                  {catImg
+                    ? <img src={catImg} alt={cat} className="w-full h-full object-cover"
+                        onError={e => { e.currentTarget.style.display = 'none'; }} />
+                    : <CatIcon style={{ color: biz.acc, opacity: 0.7 }} className="w-5 h-5" />
+                  }
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-[14px] font-extrabold leading-tight ${!hasAny ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>{cat}</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">
+                    {hasAny
+                      ? <>{activeCount} active · {addedInCat.length}{totalInMenu > 0 ? `/${totalInMenu}` : ''} added · <span style={{ color: biz.acc }} className="font-semibold">from ₹{minPrice}</span></>
+                      : <span className="italic">Tap to add services</span>
                     }
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-[14px] font-extrabold leading-tight ${!hasAny ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>{cat}</p>
-                    <p className="text-[11px] text-gray-400 mt-0.5">
-                      {hasAny
-                        ? <>{activeCount}/{addedInCat.length} active · <span style={{ color: biz.acc }} className="font-semibold">from ₹{minPrice}</span></>
-                        : <span className="italic">Tap to add services</span>
-                      }
-                    </p>
-                  </div>
-                  <ChevronDown style={{ color: biz.acc }}
-                    className={`w-4 h-4 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
-                </button>
-
-                {/* Expanded: sections + service rows */}
-                {isOpen && (
-                  <div>
-                    {sections
-                      ? sections.map(sec => (
-                          <div key={sec.label}>
-                            <div className="px-4 py-1.5 border-t border-gray-50 dark:border-white/[0.04] bg-gray-50/60 dark:bg-white/[0.015]">
-                              <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">{sec.label}</p>
-                            </div>
-                            {sec.services.map(name => renderSvcRow(name, cat, CatIcon))}
-                          </div>
-                        ))
-                      : allMenuNames.map(name => renderSvcRow(name, cat, CatIcon))
-                    }
-                    {/* Orphan services added manually (not in menu) */}
-                    {orphanSvcs.length > 0 && (
-                      <div>
-                        <div className="px-4 py-1.5 border-t border-gray-50 dark:border-white/[0.04] bg-gray-50/60 dark:bg-white/[0.015]">
-                          <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Custom</p>
-                        </div>
-                        {orphanSvcs.map(svc => renderSvcRow(svc.name, cat, CatIcon))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                  </p>
+                </div>
+                <ChevronRight style={{ color: biz.acc }} className="w-4 h-4 shrink-0" />
+              </button>
             );
           })}
         </div>
-
-        {/* Hidden input for service image upload */}
-        <input ref={svcImgInputRef} type="file" accept="image/*" className="hidden" onChange={handleServiceImgUpload} />
       </>
     );
   };
@@ -1022,7 +1083,7 @@ export default function GlowLooxProfile() {
         {/* ── STICKY TAB BAR ── */}
         <div className="sticky top-0 z-30 bg-white/90 dark:bg-[#0d0520]/95 backdrop-blur-2xl border-b border-gray-100 dark:border-white/[0.08] flex">
           {TABS.map(tab => (
-            <button key={tab.key} onClick={() => { setActiveTab(tab.key); setInfoEdit(null); }}
+            <button key={tab.key} onClick={() => { setActiveTab(tab.key); setInfoEdit(null); setSvcNavStack([]); }}
               className="flex-1 flex flex-col items-center justify-center py-2.5 gap-0.5 relative transition-colors">
               <tab.Icon style={{ width: 18, height: 18, color: activeTab === tab.key ? biz.p : undefined }}
                 className={activeTab === tab.key ? '' : 'text-gray-400 dark:text-gray-500'} />
