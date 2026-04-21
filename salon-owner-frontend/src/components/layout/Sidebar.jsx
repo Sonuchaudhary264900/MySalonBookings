@@ -27,6 +27,7 @@ const NAV_SECTIONS = [
       { id: 'bookings',  label: 'Bookings',  path: ROUTES.BOOKINGS,  icon: Calendar        },
       { id: 'services',  label: 'Services',  path: ROUTES.SERVICES,  icon: Scissors        },
       { id: 'customers', label: 'Customers', path: ROUTES.CUSTOMERS, icon: Users           },
+      { id: 'team',      label: 'Team',      path: ROUTES.TEAM,      icon: Users           },
       { id: 'messages',  label: 'Messages',  path: ROUTES.MESSAGES,  icon: MessageSquare, badge: 'chat' },
       { id: 'analytics', label: 'Analytics', path: ROUTES.ANALYTICS, icon: BarChart2       },
     ],

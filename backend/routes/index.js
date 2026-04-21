@@ -4065,6 +4065,17 @@ router.post(  '/admin/catalog/upload-image',   authenticateAdmin, multerUpload.s
 router.post(  '/admin/catalog/seed',           authenticateAdmin, asyncHandler(catalogController.seed));
 
 /* =====================================================
+   OWNER — TEAM MANAGEMENT
+===================================================== */
+const staffController = require('../controllers/owner/staffController');
+router.get(   '/owner/team',                          authenticateOwner, asyncHandler(staffController.getTeam));
+router.post(  '/owner/team',                          authenticateOwner, asyncHandler(staffController.addStaff));
+router.get(   '/owner/team/stats',                    authenticateOwner, asyncHandler(staffController.getTeamStats));
+router.put(   '/owner/team/:staffId',                 authenticateOwner, asyncHandler(staffController.updateStaff));
+router.delete('/owner/team/:staffId',                 authenticateOwner, asyncHandler(staffController.removeStaff));
+router.put(   '/owner/team/:staffId/assign-booking',  authenticateOwner, asyncHandler(staffController.assignBooking));
+
+/* =====================================================
    OWNER — CATALOG (read-only, returns tree for their business type)
 ===================================================== */
 router.get('/owner/catalog', authenticateOwner, asyncHandler(async (req, res) => {

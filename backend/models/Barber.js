@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const barberSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
-    phone: String,
+    phone: { type: String, sparse: true },
     email: String,
     gender: { type: String, enum: ['male', 'female'] },
     profilePhoto: String,
@@ -13,7 +13,7 @@ const barberSchema = new mongoose.Schema(
     specializations: [String],
     bio: String,
     isActive: { type: Boolean, default: true },
-    workingDays: [String],
+    workingDays: { type: [String], default: ['monday','tuesday','wednesday','thursday','friday','saturday'] },
     shiftStart: { type: String, default: '09:00' },
     shiftEnd: { type: String, default: '18:00' },
     breakTime: { start: String, end: String },
@@ -21,8 +21,17 @@ const barberSchema = new mongoose.Schema(
     averageRating: { type: Number, default: 0, min: 0, max: 5 },
     totalReviews: { type: Number, default: 0 },
     totalBookings: { type: Number, default: 0 },
-    createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now },
+
+    // Staff management fields
+    isOwner:            { type: Boolean, default: false },   // auto-created owner virtual record
+    staffRole:          { type: String, enum: ['owner', 'manager', 'receptionist', 'stylist'], default: 'stylist' },
+    loginEnabled:       { type: Boolean, default: false },
+    firebaseUid:        { type: String, sparse: true },
+    inviteToken:        String,
+    inviteSentAt:       Date,
+    showEarningsToStaff:{ type: Boolean, default: false },
+    ownerId:            { type: mongoose.Schema.Types.ObjectId, ref: 'Owner' }, // the Owner who added this staff
+    refreshTokens:      [{ token: String, createdAt: { type: Date, default: Date.now } }],
   },
   { timestamps: true }
 );

@@ -34,6 +34,7 @@ const ROUTES = {
   PROMOTIONS:    '/dashboard/promotions',
   MESSAGES:      '/dashboard/messages',
   GLOWLOOX:      '/dashboard/glowloox',
+  TEAM:          '/dashboard/team',
 
   // Legal (public)
   PRIVACY:       '/privacy-policy',

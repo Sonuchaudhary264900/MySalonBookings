@@ -45,6 +45,7 @@ const Billing          = lazy(() => import('./pages/dashboard/Billing'));
 const Promotions       = lazy(() => import('./pages/dashboard/Promotions'));
 const Messages         = lazy(() => import('./pages/dashboard/Messages'));
 const GlowLooxProfile  = lazy(() => import('./pages/dashboard/GlowLooxProfile'));
+const Team             = lazy(() => import('./pages/dashboard/Team'));
 const PrivacyPolicy        = lazy(() => import('./pages/PrivacyPolicy'));
 const TermsAndConditions   = lazy(() => import('./pages/TermsAndConditions'));
 const LegalIndex           = lazy(() => import('./pages/legal/LegalIndex'));
@@ -1043,6 +1044,7 @@ function App() {
                     <Route path={ROUTES.PROMOTIONS}    element={<Promotions />} />
                     <Route path={ROUTES.MESSAGES}      element={<Messages />} />
                     <Route path={ROUTES.GLOWLOOX}      element={<GlowLooxProfile />} />
+                    <Route path={ROUTES.TEAM}          element={<Team />} />
                   </Route>
 
                   {/* 404 */}

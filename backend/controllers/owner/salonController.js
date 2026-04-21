@@ -226,6 +226,18 @@ exports.createSalon = async (req, res) => {
       }
     );
 
+    // Auto-create the owner's virtual barber record so every booking always has an assignee
+    await Barber.create({
+      name:        ownerRecord?.name || (await Owner.findById(req.owner._id).select('name')).name || 'Owner',
+      salonId:     salon._id,
+      ownerId:     req.owner._id,
+      isOwner:     true,
+      staffRole:   'owner',
+      loginEnabled: false,
+      isActive:    true,
+      workingDays: ['monday','tuesday','wednesday','thursday','friday','saturday'],
+    });
+
     res.status(201).json(
       formatSuccessResponse(
         salon,
