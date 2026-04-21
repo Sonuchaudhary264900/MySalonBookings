@@ -162,17 +162,6 @@ const createBooking = async (req, res) => {
       }
 
       // Barber-specific overlap check (per-staff, not salon-wide)
-      const barberConflict = await Booking.findOne({
-        barberId: barber._id,
-        appointmentDate: { $gte: dayStart, $lte: dayEnd },
-        status: { $in: ['pending', 'confirmed', 'in_progress'] },
-        $where: function () {
-          const s = parseInt((this.appointmentTime || '00:00').replace(':', ''), 10);
-          return false; // JS $where is slow; use aggregation below instead
-        },
-      }).select('appointmentTime estimatedDuration').lean();
-
-      // Use a proper query instead of $where — check all the barber's bookings that day
       const barberBookingsToday = await Booking.find({
         barberId: barber._id,
         appointmentDate: { $gte: dayStart, $lte: dayEnd },
