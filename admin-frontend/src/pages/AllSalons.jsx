@@ -1,7 +1,10 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
-import { Search, ToggleLeft, ToggleRight, MapPin, Star, ChevronDown, X, Play, FileText, Image, Loader } from 'lucide-react';
+import { Search, ToggleLeft, ToggleRight, MapPin, Star, ChevronDown, X, Play, FileText, Image, QrCode, Download, Copy, CheckCircle2 } from 'lucide-react';
+import { QRCodeCanvas } from 'react-qr-code';
+
+const CUSTOMER_URL = (import.meta.env.VITE_CUSTOMER_APP_URL || 'https://mysalonbookings.com').replace(/\/$/, '');
 
 const STATUS_COLORS = {
   approved: { color: '#10b981' },
@@ -124,6 +127,144 @@ function MediaModal({ salon, onClose }) {
   );
 }
 
+const BIZ_TYPE_LABELS = {
+  barbershop: 'Barbershop', salon: 'Salon', spa_wellness: 'Spa & Wellness',
+  makeup_bridal: 'Makeup & Bridal', skin_derma: 'Skin & Derma',
+};
+
+function DetailRow({ label, value }) {
+  if (!value) return null;
+  return (
+    <div style={{ display: 'flex', gap: 8, padding: '7px 0', borderBottom: '1px solid var(--border2)' }}>
+      <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600, minWidth: 100, textTransform: 'uppercase', letterSpacing: '0.04em', flexShrink: 0 }}>{label}</span>
+      <span style={{ fontSize: 13, color: 'var(--text)', wordBreak: 'break-word' }}>{value}</span>
+    </div>
+  );
+}
+
+function QRModal({ salon, onClose, isReady, onToggleReady }) {
+  const canvasRef = useRef(null);
+  const [detail, setDetail] = useState(null);
+  const salonUrl = `${CUSTOMER_URL}/salon/${salon._id}`;
+
+  useEffect(() => {
+    api.get(`/admin/salons/${salon._id}/detail`)
+      .then(r => setDetail(r.data.data.salon))
+      .catch(() => {});
+  }, [salon._id]);
+
+  const d = detail || salon;
+  const owner = d.ownerId || {};
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(salonUrl).then(() => toast.success('Link copied'));
+  };
+
+  const handleDownload = () => {
+    const canvas = canvasRef.current?.querySelector('canvas');
+    if (!canvas) return;
+    const out = document.createElement('canvas');
+    out.width = 400; out.height = 500;
+    const ctx = out.getContext('2d');
+    ctx.fillStyle = '#0d0d2b';
+    ctx.fillRect(0, 0, 400, 500);
+    ctx.fillStyle = '#ffffff';
+    ctx.roundRect(40, 40, 320, 320, 16);
+    ctx.fill();
+    ctx.drawImage(canvas, 50, 50, 300, 300);
+    ctx.fillStyle = '#f1f5f9';
+    ctx.font = 'bold 22px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(salon.name, 200, 405);
+    ctx.fillStyle = '#6366f1';
+    ctx.font = '13px sans-serif';
+    ctx.fillText('GlowLoox', 200, 430);
+    ctx.fillStyle = '#64748b';
+    ctx.font = '11px sans-serif';
+    ctx.fillText(salonUrl.slice(0, 48), 200, 460);
+    const link = document.createElement('a');
+    link.download = `${salon.name.replace(/\s+/g, '_')}_QR.png`;
+    link.href = out.toDataURL('image/png');
+    link.click();
+  };
+
+  const sc = STATUS_COLORS[d.approvalStatus] || STATUS_COLORS.pending;
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}
+      onClick={onClose}>
+      <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 20, padding: 0, width: '100%', maxWidth: 680, maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--shadow)', display: 'flex', flexDirection: 'column' }}
+        onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {(d.logo || (d.photos && d.photos[0])) && (
+              <img src={d.logo || d.photos[0]?.url || d.photos[0]} alt="" style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover', border: '1px solid var(--border)' }} />
+            )}
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 17, color: 'var(--text)' }}>{d.name}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: `${sc.color}22`, color: sc.color, border: `1px solid ${sc.color}44` }}>{d.approvalStatus?.toUpperCase()}</span>
+                <span style={{ fontSize: 11, color: 'var(--text3)' }}>{BIZ_TYPE_LABELS[d.businessType] || d.businessType}</span>
+              </div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text2)' }}><X size={20} /></button>
+        </div>
+
+        {/* Body — two columns */}
+        <div style={{ display: 'flex', gap: 0, flex: 1 }}>
+
+          {/* Left — QR */}
+          <div style={{ width: 240, flexShrink: 0, padding: '20px 20px', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+            <div ref={canvasRef} style={{ background: '#fff', borderRadius: 14, padding: 12 }}>
+              <QRCodeCanvas value={salonUrl} size={180} bgColor="#ffffff" fgColor="#0d0d2b" level="H" />
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--text3)', textAlign: 'center', wordBreak: 'break-all' }}>{salonUrl}</div>
+            <button onClick={handleCopy}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 0', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text2)', cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>
+              <Copy size={13} /> Copy Link
+            </button>
+            <button onClick={handleDownload}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 0', borderRadius: 10, border: '1px solid rgba(99,102,241,0.4)', background: 'rgba(99,102,241,0.1)', color: 'var(--accent)', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+              <Download size={13} /> Download QR
+            </button>
+            <button onClick={() => onToggleReady(salon._id)}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 0', borderRadius: 10, border: `1px solid ${isReady ? 'rgba(16,185,129,0.4)' : 'var(--border)'}`, background: isReady ? 'rgba(16,185,129,0.12)' : 'var(--surface)', color: isReady ? '#10b981' : 'var(--text3)', cursor: 'pointer', fontSize: 12, fontWeight: 600, transition: 'all 0.2s' }}>
+              <CheckCircle2 size={13} /> {isReady ? 'Ready to Send' : 'Mark Ready'}
+            </button>
+          </div>
+
+          {/* Right — Details */}
+          <div style={{ flex: 1, padding: '20px 24px', overflowY: 'auto' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>Owner Details</div>
+            <DetailRow label="Name"   value={owner.name} />
+            <DetailRow label="Phone"  value={owner.phone} />
+            <DetailRow label="Email"  value={owner.email} />
+            <DetailRow label="Owner Status" value={owner.approvalStatus || owner.status} />
+
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '16px 0 10px' }}>Business Details</div>
+            <DetailRow label="Type"      value={BIZ_TYPE_LABELS[d.businessType] || d.businessType} />
+            <DetailRow label="Address"   value={d.address} />
+            <DetailRow label="City"      value={d.city} />
+            <DetailRow label="District"  value={d.district} />
+            <DetailRow label="State"     value={d.state} />
+            <DetailRow label="Pincode"   value={d.pincode} />
+            <DetailRow label="Gender"    value={d.servedGender} />
+
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '16px 0 10px' }}>Stats</div>
+            <DetailRow label="Bookings"  value={d.totalBookings != null ? String(d.totalBookings) : null} />
+            <DetailRow label="Rating"    value={d.averageRating != null ? `${d.averageRating.toFixed(1)} / 5` : null} />
+            <DetailRow label="Active"    value={d.isActive ? 'Yes' : 'No'} />
+            <DetailRow label="Joined"    value={d.createdAt ? new Date(d.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AllSalons() {
   const [salons, setSalons] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -137,6 +278,8 @@ export default function AllSalons() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [mediaModal, setMediaModal] = useState(null);
+  const [qrModal, setQrModal] = useState(null);
+  const [qrReady, setQrReady] = useState(new Set());
 
   useEffect(() => {
     api.get('/admin/salons/filter-options')
@@ -197,6 +340,8 @@ export default function AllSalons() {
     setPage(1);
     load(1, '', '', '', '');
   };
+
+  const toggleQrReady = (id) => setQrReady(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
 
   const hasFilters = search || status || state || city;
 
@@ -306,14 +451,14 @@ export default function AllSalons() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'var(--surface2)', borderBottom: '1px solid var(--border)' }}>
-                {['Business', 'Owner', 'State', 'District', 'Status', 'Rating', 'Media', 'Active', 'Bookings'].map(h => (
+                {['Business', 'Owner', 'State', 'District', 'Status', 'Rating', 'Media', 'QR', 'Active', 'Bookings'].map(h => (
                   <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {salons.length === 0 ? (
-                <tr><td colSpan={9} style={{ padding: 40, textAlign: 'center', color: 'var(--text3)' }}>No businesses found</td></tr>
+                <tr><td colSpan={10} style={{ padding: 40, textAlign: 'center', color: 'var(--text3)' }}>No businesses found</td></tr>
               ) : salons.map(salon => {
                 const sc = STATUS_COLORS[salon.approvalStatus] || STATUS_COLORS.pending;
                 return (
@@ -334,7 +479,7 @@ export default function AllSalons() {
                     <td style={{ padding: '14px 16px', fontSize: 13, color: 'var(--text2)' }}>{salon.ownerId?.name || '—'}</td>
                     <td style={{ padding: '14px 16px', fontSize: 13, color: 'var(--text2)' }}>{salon.state || '—'}</td>
                     <td style={{ padding: '14px 16px', fontSize: 13, color: 'var(--text2)' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><MapPin size={12} />{salon.city || '—'}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><MapPin size={12} />{salon.district || '—'}</span>
                     </td>
                     <td style={{ padding: '14px 16px' }}>
                       <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: `${sc.color}22`, color: sc.color, border: `1px solid ${sc.color}44` }}>
@@ -357,6 +502,22 @@ export default function AllSalons() {
                         }}
                       >
                         <Image size={12} /> View
+                      </button>
+                    </td>
+                    <td style={{ padding: '14px 16px' }}>
+                      <button
+                        onClick={() => setQrModal(salon)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 5,
+                          padding: '5px 10px', borderRadius: 8,
+                          border: `1px solid ${qrReady.has(salon._id) ? 'rgba(16,185,129,0.4)' : 'rgba(99,102,241,0.3)'}`,
+                          background: qrReady.has(salon._id) ? 'rgba(16,185,129,0.12)' : 'rgba(99,102,241,0.1)',
+                          color: qrReady.has(salon._id) ? '#10b981' : 'var(--accent)',
+                          cursor: 'pointer', fontSize: 11, fontWeight: 600, transition: 'all 0.2s',
+                        }}
+                      >
+                        {qrReady.has(salon._id) ? <CheckCircle2 size={12} /> : <QrCode size={12} />}
+                        {qrReady.has(salon._id) ? 'Ready' : 'QR'}
                       </button>
                     </td>
                     <td style={{ padding: '14px 16px' }}>
@@ -383,6 +544,8 @@ export default function AllSalons() {
 
       {/* Media Modal */}
       {mediaModal && <MediaModal salon={mediaModal} onClose={() => setMediaModal(null)} />}
+      {/* QR Modal */}
+      {qrModal && <QRModal salon={qrModal} onClose={() => setQrModal(null)} isReady={qrReady.has(qrModal._id)} onToggleReady={toggleQrReady} />}
     </div>
   );
 }

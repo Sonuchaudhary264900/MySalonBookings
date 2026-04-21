@@ -117,7 +117,7 @@ const getAllSalons = async (req, res) => {
     const [salons, total] = await Promise.all([
       Business.find(query)
         .populate('ownerId', 'name phone email')
-        .select('name city state address approvalStatus isActive isApproved createdAt photos logo videoUrl businessLicenseUrl businessRegistrationUrl totalBookings averageRating ownerId businessType description')
+        .select('name city district state address approvalStatus isActive isApproved createdAt photos logo videoUrl businessLicenseUrl businessRegistrationUrl totalBookings averageRating ownerId businessType description')
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(parseInt(limit))
