@@ -229,7 +229,7 @@ router.get("/public/salons", asyncHandler(async (req, res) => {
     }
 
     const coupons = await Coupon.find({
-      salonId: { $in: salonIds }, isActive: true,
+      salonId: { $in: salonIds }, isActive: true, deletedAt: null,
       $or: [{ validUntil: null }, { validUntil: { $gte: now } }],
     }).sort({ discountValue: -1 }).select("salonId code discountType discountValue minAmount maxDiscount description").lean();
     console.log(`[salons] salonIds=${salonIds.length}, coupons found=${coupons.length}`);
@@ -322,7 +322,7 @@ router.get("/public/salons/nearby", asyncHandler(async (req, res) => {
     }
 
     const coupons = await Coupon.find({
-      salonId: { $in: salonIds }, isActive: true,
+      salonId: { $in: salonIds }, isActive: true, deletedAt: null,
       $or: [{ validUntil: null }, { validUntil: { $gte: now } }],
     }).sort({ discountValue: -1 }).select("salonId code discountType discountValue minAmount maxDiscount description").lean();
     console.log(`[nearby] salonIds=${salonIds.length}, coupons found=${coupons.length}`);
@@ -402,12 +402,12 @@ router.get("/public/salons/:salonId", validateObjectId("salonId"), asyncHandler(
   if (!salon.isApproved) return res.status(403).json({ success: false, message: "Salon not approved" });
   const now = new Date();
   const [topCoupon, barberCount, mediaItems] = await Promise.all([
-    Coupon.findOne({ salonId: salon._id, isActive: true, $or: [{ validUntil: null }, { validUntil: { $gte: now } }] })
+    Coupon.findOne({ salonId: salon._id, isActive: true, deletedAt: null, $or: [{ validUntil: null }, { validUntil: { $gte: now } }] })
       .sort({ discountValue: -1 })
       .select("code discountType discountValue minAmount maxDiscount description validUntil maxUsageCount usageCount")
       .lean(),
     Barber.countDocuments({ salonId: salon._id, isActive: true }),
-    BusinessMedia.find({ businessId: salon._id, type: { $in: ['photo', 'video'] } })
+    BusinessMedia.find({ businessId: salon._id, type: { $in: ['photo', 'video'] }, deletedAt: null })
       .select('type url isCover').sort({ isCover: -1, createdAt: 1 }).lean(),
   ]);
   const photos = mediaItems.filter(m => m.type === 'photo').map(m => m.url);
@@ -453,7 +453,7 @@ router.get("/public/salons/:salonId", validateObjectId("salonId"), asyncHandler(
 
 // GET /public/salons/:salonId/services
 router.get("/public/salons/:salonId/services", validateObjectId("salonId"), asyncHandler(async (req, res) => {
-  const services = await Service.find({ salonId: req.params.salonId, isActive: true })
+  const services = await Service.find({ salonId: req.params.salonId, isActive: true, deletedAt: null })
     .select("name description category basePrice duration applicableFor photos averageRating")
     .sort({ basePrice: 1 })
     .lean();
@@ -1135,7 +1135,7 @@ router.post("/customer/coupons/validate", authenticateCustomer, asyncHandler(asy
   const { code, salonId, totalAmount } = req.body;
   if (!code) return res.status(400).json({ success: false, message: "Coupon code is required" });
 
-  const coupon = await Coupon.findOne({ code: code.toUpperCase().trim(), isActive: true });
+  const coupon = await Coupon.findOne({ code: code.toUpperCase().trim(), isActive: true, deletedAt: null });
   if (!coupon) return res.status(404).json({ success: false, message: "Invalid coupon code" });
 
   const now = new Date();
@@ -1764,6 +1764,7 @@ router.get("/owner/bookings", authenticateOwner, validatePaginationParams, async
     };
   }
 
+  query.deletedAt = null;
   const p = Math.max(1, parseInt(page));
   const l = Math.min(50, Math.max(1, parseInt(limit)));
   const bookings = await Booking.find(query).sort({ createdAt: -1 }).skip((p - 1) * l).limit(l).lean();
@@ -2696,7 +2697,11 @@ router.get("/owner/coupons", authenticateOwner, asyncHandler(async (req, res) =>
   const Coupon = require("../models/Coupon");
   const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
-  const coupons = await Coupon.find({ salonId: salon._id }).sort({ createdAt: -1 }).lean();
+  const { page: cpPage = 1, limit: cpLimit = 50 } = req.query;
+  const cpP = Math.max(1, parseInt(cpPage));
+  const cpL = Math.min(100, Math.max(1, parseInt(cpLimit)));
+  const coupons = await Coupon.find({ salonId: salon._id, deletedAt: null }).sort({ createdAt: -1 }).skip((cpP - 1) * cpL).limit(cpL).lean();
+  const couponTotal = await Coupon.countDocuments({ salonId: salon._id, deletedAt: null });
   const nowTs = new Date();
   const mapped = coupons.map(c => {
     const remaining = c.maxUsageCount ? Math.max(0, c.maxUsageCount - (c.usageCount || 0)) : null;
@@ -2713,7 +2718,7 @@ router.get("/owner/coupons", authenticateOwner, asyncHandler(async (req, res) =>
       isLimited: remaining !== null && remaining <= 10,
     };
   });
-  res.json({ success: true, data: mapped });
+  res.json({ success: true, data: { coupons: mapped, total: couponTotal, page: cpP, limit: cpL } });
 }));
 
 // POST /owner/coupons
@@ -2779,7 +2784,11 @@ router.delete("/owner/coupons/:id", authenticateOwner, validateObjectId("id"), a
   const Coupon = require("../models/Coupon");
   const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
-  const coupon = await Coupon.findOneAndDelete({ _id: req.params.id, salonId: salon._id });
+  const coupon = await Coupon.findOneAndUpdate(
+    { _id: req.params.id, salonId: salon._id, deletedAt: null },
+    { deletedAt: new Date() },
+    { new: true }
+  );
   if (!coupon) return res.status(404).json({ success: false, message: "Coupon not found" });
   res.json({ success: true, message: "Coupon deleted" });
 }));
@@ -2921,11 +2930,13 @@ router.get("/owner/customers", authenticateOwner, asyncHandler(async (req, res) 
   const Customer = require("../models/Customer");
   const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
-  const { q } = req.query;
+  const { page: custPage = 1, limit: custLimit = 50, q } = req.query;
+  const custP = Math.max(1, parseInt(custPage));
+  const custL = Math.min(200, Math.max(1, parseInt(custLimit)));
 
   // 1. Registered customers (have customerId)
   const registered = await Booking.aggregate([
-    { $match: { salonId: salon._id, customerId: { $exists: true, $ne: null } } },
+    { $match: { salonId: salon._id, customerId: { $exists: true, $ne: null }, deletedAt: null } },
     {
       $group: {
         _id:               "$customerId",
@@ -2937,6 +2948,7 @@ router.get("/owner/customers", authenticateOwner, asyncHandler(async (req, res) 
     },
     { $lookup: { from: "customers", localField: "_id", foreignField: "_id", as: "customer" } },
     { $unwind: "$customer" },
+    { $match: { "customer.deletedAt": null } },
     {
       $project: {
         _id:               "$customer._id",
@@ -2960,6 +2972,7 @@ router.get("/owner/customers", authenticateOwner, asyncHandler(async (req, res) 
         salonId:       salon._id,
         customerId:    { $exists: false },
         customerPhone: { $exists: true, $nin: [null, ""] },
+        deletedAt:     null,
       }
     },
     {
@@ -3002,7 +3015,10 @@ router.get("/owner/customers", authenticateOwner, asyncHandler(async (req, res) 
       c.name?.toLowerCase().includes(safeQ) || c.phone?.includes(safeQ)
     );
   }
-  res.json({ success: true, data: { customers } });
+
+  const total = customers.length;
+  const paginated = customers.slice((custP - 1) * custL, custP * custL);
+  res.json({ success: true, data: { customers: paginated, total, page: custP, limit: custL } });
 }));
 
 // POST /owner/customers — manually add a customer
@@ -3045,7 +3061,11 @@ router.put("/owner/customers/:customerId", authenticateOwner, asyncHandler(async
 // DELETE /owner/customers/:customerId — remove a customer record
 router.delete("/owner/customers/:customerId", authenticateOwner, asyncHandler(async (req, res) => {
   const Customer = require("../models/Customer");
-  const customer = await Customer.findByIdAndDelete(req.params.customerId);
+  const customer = await Customer.findOneAndUpdate(
+    { _id: req.params.customerId, deletedAt: null },
+    { deletedAt: new Date() },
+    { new: true }
+  );
   if (!customer) return res.status(404).json({ success: false, message: "Customer not found" });
   res.json({ success: true, message: "Customer deleted" });
 }));

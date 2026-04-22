@@ -91,12 +91,21 @@ exports.getSalonServices = async (req, res) => {
       return res.status(404).json(formatErrorResponse(messages.SALON.SALON_NOT_FOUND, 404));
     }
 
-    const services = await Service.find({ salonId: salon._id })
-      .sort({ isActive: -1, createdAt: -1 })
-      .lean();
+    const { page = 1, limit = 100 } = req.query;
+    const p = Math.max(1, parseInt(page));
+    const l = Math.min(200, Math.max(1, parseInt(limit)));
+
+    const [services, total] = await Promise.all([
+      Service.find({ salonId: salon._id, deletedAt: null })
+        .sort({ isActive: -1, createdAt: -1 })
+        .skip((p - 1) * l)
+        .limit(l)
+        .lean(),
+      Service.countDocuments({ salonId: salon._id, deletedAt: null }),
+    ]);
 
     res.json(
-      formatSuccessResponse({ services, total: services.length }, messages.GENERIC.RETRIEVED)
+      formatSuccessResponse({ services, total, page: p, limit: l }, messages.GENERIC.RETRIEVED)
     );
   } catch (error) {
     console.error('Error fetching services:', error);
@@ -223,7 +232,7 @@ exports.deleteService = async (req, res) => {
     }
 
     await Business.findByIdAndUpdate(service.salonId, { $pull: { services: serviceId } });
-    await Service.findByIdAndDelete(serviceId);
+    await Service.findByIdAndUpdate(serviceId, { deletedAt: new Date() });
 
     res.json(formatSuccessResponse(null, messages.SERVICE.SERVICE_DELETED));
   } catch (error) {
