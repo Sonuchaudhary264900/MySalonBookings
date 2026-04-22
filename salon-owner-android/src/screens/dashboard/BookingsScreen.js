@@ -7,6 +7,8 @@ import {
 import { io } from 'socket.io-client';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import api from '../../services/api';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
@@ -613,6 +615,47 @@ export default function BookingsScreen() {
     } finally { setRsSubmitting(false); }
   };
 
+  const handlePrintReceipt = async (bookingId) => {
+    try {
+      const res = await api.get(`/owner/bookings/${bookingId}/receipt`);
+      const r = res.data.data;
+      const fmt = (iso) => iso ? new Date(iso).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) : '—';
+      const fmtTime = (t) => { if (!t) return '—'; const [h,m] = t.split(':').map(Number); const ampm = h >= 12 ? 'PM' : 'AM'; return `${h%12||12}:${String(m).padStart(2,'0')} ${ampm}`; };
+      const servicesRows = (r.services || []).map(s =>
+        `<tr><td>${s.name}</td><td>${s.duration} min</td><td style="text-align:right">₹${s.price}</td></tr>`
+      ).join('');
+      const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Receipt</title>
+      <style>body{font-family:sans-serif;max-width:380px;margin:20px auto;padding:16px;color:#111}
+      h2{text-align:center;margin:0 0 4px;font-size:18px}.sub{text-align:center;color:#555;font-size:12px;margin-bottom:16px}
+      hr{border:none;border-top:1px solid #e5e7eb;margin:12px 0}
+      .row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0}.label{color:#555}
+      table{width:100%;border-collapse:collapse;font-size:12px}th{text-align:left;border-bottom:1px solid #e5e7eb;padding:5px 0;color:#555}
+      td{padding:4px 0;border-bottom:1px solid #f3f4f6}.total{font-weight:700;font-size:14px}
+      .footer{margin-top:20px;text-align:center;font-size:11px;color:#9ca3af}</style></head><body>
+      <h2>${r.salon.name}</h2>
+      <div class="sub">${r.salon.address||''}<br/>${r.salon.phone||''}</div><hr/>
+      <div class="row"><span class="label">Receipt #</span><span>${r.receiptNumber}</span></div>
+      <div class="row"><span class="label">Date</span><span>${fmt(r.appointment.date)} ${fmtTime(r.appointment.time)}</span></div><hr/>
+      <div class="row"><span class="label">Customer</span><span>${r.customer.name}</span></div>
+      ${r.staff.name?`<div class="row"><span class="label">Staff</span><span>${r.staff.name}</span></div>`:''}
+      <hr/><table><thead><tr><th>Service</th><th>Dur</th><th style="text-align:right">Price</th></tr></thead>
+      <tbody>${servicesRows}</tbody></table>
+      ${r.discount?`<div class="row"><span class="label">Discount</span><span>-₹${r.discount}</span></div>`:''}
+      <div class="row total"><span>Total</span><span>₹${r.total}</span></div>
+      <div class="row"><span class="label">Payment</span><span>${r.paymentMethod||'—'} · ${r.paymentStatus}</span></div>
+      ${r.salon.gstNumber?`<div class="row"><span class="label">GST</span><span>${r.salon.gstNumber}</span></div>`:''}
+      <div class="footer">Thank you for visiting ${r.salon.name}!</div></body></html>`;
+      const { uri } = await Print.printToFileAsync({ html });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Receipt' });
+      } else {
+        await Print.printAsync({ uri });
+      }
+    } catch (err) {
+      showError('Error', 'Could not generate receipt');
+    }
+  };
+
   const createWalkIn = async (data) => {
     await api.post('/owner/bookings', data);
     showSuccess('Booked', 'Walk-in booking created!');
@@ -746,6 +789,15 @@ export default function BookingsScreen() {
                   >
                     <Ionicons name="chatbubble-outline" size={12} color="#6366f1" />
                     <Text style={[bStyles.actionBtnText, { color: '#6366f1' }]}>Chat</Text>
+                  </TouchableOpacity>
+                )}
+                {b.status === 'completed' && (
+                  <TouchableOpacity
+                    style={[bStyles.actionBtn, { backgroundColor: '#d1fae5', borderColor: '#6ee7b7' }]}
+                    onPress={() => handlePrintReceipt(b._id)}
+                  >
+                    <Ionicons name="receipt-outline" size={12} color="#059669" />
+                    <Text style={[bStyles.actionBtnText, { color: '#059669' }]}>Receipt</Text>
                   </TouchableOpacity>
                 )}
               </>

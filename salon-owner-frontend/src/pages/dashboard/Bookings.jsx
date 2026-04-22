@@ -618,7 +618,7 @@ const RescheduleModal = ({ booking, salon, services, onClose, onSuccess }) => {
 };
 
 /* ─── Booking Table Row ──────────────────────────────────────── */
-const BookingRow = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock, onOpenChat, hasUnread, staffList, onReload, onMarkLate, onCollectCash, lateLoading, cashLoading, onReschedule }) => {
+const BookingRow = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock, onOpenChat, hasUnread, staffList, onReload, onMarkLate, onCollectCash, lateLoading, cashLoading, onReschedule, onPrintReceipt }) => {
   const cfg = STATUS_CFG[booking.status] || { label: booking.status, dot: 'bg-gray-400', badge: 'bg-gray-100 text-gray-600' };
   const dateStr = booking.appointmentDate ? formatDate(booking.appointmentDate) : '—';
 
@@ -707,6 +707,17 @@ const BookingRow = ({ booking, updating, onStatusChange, isBlocked, blockLoading
       {/* Actions */}
       <td className="px-4 py-3.5">
         <div className="flex items-center justify-end gap-1.5">
+          {booking.status === 'completed' && onPrintReceipt && (
+            <button
+              onClick={() => onPrintReceipt(booking._id)}
+              title="Download receipt"
+              className="p-1.5 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-950/30
+                text-emerald-400 dark:text-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400
+                transition-colors"
+            >
+              <Receipt className="w-4 h-4" />
+            </button>
+          )}
           {CHAT_OPEN.has(booking.status) && (
             <button
               onClick={() => onOpenChat(booking)}
@@ -739,7 +750,7 @@ const BookingRow = ({ booking, updating, onStatusChange, isBlocked, blockLoading
 };
 
 /* ─── Mobile Booking Card ────────────────────────────────────── */
-const BookingCard = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock, onOpenChat, hasUnread, staffList, onReload, onMarkLate, onCollectCash, lateLoading, cashLoading, onReschedule }) => {
+const BookingCard = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock, onOpenChat, hasUnread, staffList, onReload, onMarkLate, onCollectCash, lateLoading, cashLoading, onReschedule, onPrintReceipt }) => {
   const cfg = STATUS_CFG[booking.status] || { label: booking.status, dot: 'bg-gray-400', badge: 'bg-gray-100 text-gray-600' };
   const dateStr = booking.appointmentDate ? formatDate(booking.appointmentDate) : '—';
 
@@ -804,6 +815,9 @@ const BookingCard = ({ booking, updating, onStatusChange, isBlocked, blockLoadin
         )}
         {['pending','confirmed'].includes(booking.status) && (booking.rescheduleCount || 0) < 2 && onReschedule && (
           <ActionBtn label="Reschedule" cls="bg-violet-50 dark:bg-violet-950/30 hover:bg-violet-100 text-violet-700 dark:text-violet-400 border border-violet-200 dark:border-violet-800" loading={false} onClick={() => onReschedule(booking)} />
+        )}
+        {booking.status === 'completed' && onPrintReceipt && (
+          <ActionBtn label="Receipt" cls="bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800" loading={false} onClick={() => onPrintReceipt(booking._id)} />
         )}
         {CHAT_OPEN.has(booking.status) && (
           <button
@@ -1258,6 +1272,70 @@ const Bookings = () => {
     } finally { setCashLoading(null); }
   };
 
+  const handlePrintReceipt = async (bookingId) => {
+    try {
+      const res = await api.get(`/owner/bookings/${bookingId}/receipt`);
+      const r = res.data.data;
+      const fmt = (iso) => iso ? new Date(iso).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) : '—';
+      const fmtTime = (t) => { if (!t) return '—'; const [h,m] = t.split(':').map(Number); const ampm = h >= 12 ? 'PM' : 'AM'; return `${h%12||12}:${String(m).padStart(2,'0')} ${ampm}`; };
+      const servicesRows = (r.services || []).map(s =>
+        `<tr><td>${s.name}</td><td>${s.duration} min</td><td style="text-align:right">₹${s.price}</td></tr>`
+      ).join('');
+      const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Receipt</title>
+      <style>
+        body{font-family:sans-serif;max-width:400px;margin:40px auto;padding:20px;color:#111}
+        .logo{text-align:center;margin-bottom:16px}
+        .logo img{height:60px;object-fit:contain}
+        h2{text-align:center;margin:0 0 4px;font-size:20px}
+        .sub{text-align:center;color:#555;font-size:13px;margin-bottom:20px}
+        .section{margin-bottom:16px}
+        .row{display:flex;justify-content:space-between;font-size:13px;padding:3px 0}
+        .label{color:#555}
+        table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:8px}
+        th{text-align:left;border-bottom:1px solid #e5e7eb;padding:6px 0;font-size:12px;color:#555}
+        td{padding:5px 0;border-bottom:1px solid #f3f4f6}
+        .total{font-weight:700;font-size:15px}
+        .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;
+          background:${r.paymentStatus==='completed'?'#d1fae5':'#fee2e2'};color:${r.paymentStatus==='completed'?'#065f46':'#991b1b'}}
+        .footer{margin-top:24px;text-align:center;font-size:12px;color:#9ca3af}
+        @media print{body{margin:0}}
+      </style></head><body>
+        ${r.salon.logoUrl ? `<div class="logo"><img src="${r.salon.logoUrl}" alt="logo"/></div>` : ''}
+        <h2>${r.salon.name}</h2>
+        <div class="sub">${r.salon.address || ''}<br/>${r.salon.phone || ''}${r.salon.email ? ' · '+r.salon.email : ''}</div>
+        <hr/>
+        <div class="section">
+          <div class="row"><span class="label">Receipt #</span><span>${r.receiptNumber}</span></div>
+          <div class="row"><span class="label">Date Issued</span><span>${fmt(r.issuedAt)}</span></div>
+          <div class="row"><span class="label">Appointment</span><span>${fmt(r.appointment.date)} at ${fmtTime(r.appointment.time)}</span></div>
+          <div class="row"><span class="label">Booking ID</span><span>${r.appointment.bookingId||'—'}</span></div>
+        </div>
+        <hr/>
+        <div class="section">
+          <div class="row"><span class="label">Customer</span><span>${r.customer.name}</span></div>
+          ${r.customer.phone ? `<div class="row"><span class="label">Phone</span><span>${r.customer.phone}</span></div>` : ''}
+          ${r.staff.name ? `<div class="row"><span class="label">Staff</span><span>${r.staff.name}</span></div>` : ''}
+        </div>
+        <hr/>
+        <table><thead><tr><th>Service</th><th>Duration</th><th style="text-align:right">Price</th></tr></thead>
+        <tbody>${servicesRows}</tbody></table>
+        <div class="row"><span class="label">Subtotal</span><span>₹${r.subtotal}</span></div>
+        ${r.discount ? `<div class="row"><span class="label">Discount${r.couponApplied?' ('+r.couponApplied+')':''}</span><span>-₹${r.discount}</span></div>` : ''}
+        <div class="row total"><span>Total</span><span>₹${r.total}</span></div>
+        <div class="row"><span class="label">Payment</span><span>${r.paymentMethod||'—'} <span class="badge">${r.paymentStatus}</span></span></div>
+        ${r.salon.gstNumber ? `<div class="row"><span class="label">GST No.</span><span>${r.salon.gstNumber}</span></div>` : ''}
+        <div class="footer">Thank you for visiting ${r.salon.name}!</div>
+      </body></html>`;
+      const w = window.open('', '_blank');
+      w.document.write(html);
+      w.document.close();
+      w.focus();
+      setTimeout(() => { w.print(); }, 400);
+    } catch (err) {
+      toast.error('Could not load receipt');
+    }
+  };
+
   // Fix 11: multi-device sync — listen for booking-updated from other owner tabs
   useEffect(() => {
     if (!salon?._id) return;
@@ -1468,6 +1546,7 @@ const Bookings = () => {
                       lateLoading={lateLoading === booking._id}
                       cashLoading={cashLoading === booking._id}
                       onReschedule={setRescheduleBooking}
+                      onPrintReceipt={handlePrintReceipt}
                     />
                   ))}
                 </tbody>
@@ -1494,6 +1573,7 @@ const Bookings = () => {
                   lateLoading={lateLoading === booking._id}
                   cashLoading={cashLoading === booking._id}
                   onReschedule={setRescheduleBooking}
+                  onPrintReceipt={handlePrintReceipt}
                 />
               ))}
             </div>

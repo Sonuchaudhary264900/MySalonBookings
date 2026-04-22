@@ -117,6 +117,12 @@ pincode: {
   trim: true,
 },
 
+gstNumber: {
+  type: String,
+  trim: true,
+  default: null,
+},
+
 // Latitude from Google Maps
 latitude: {
   type: Number,

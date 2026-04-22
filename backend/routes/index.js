@@ -4375,6 +4375,60 @@ router.post('/owner/bookings/:bookingId/collect-cash', authenticateOwner, valida
 }));
 
 /* =====================================================
+   RECEIPT — GET /owner/bookings/:bookingId/receipt
+===================================================== */
+router.get('/owner/bookings/:bookingId/receipt', authenticateOwner, validateObjectId('bookingId'), asyncHandler(async (req, res) => {
+  const salon = await Business.findOne({ ownerId: req.owner._id })
+    .select('name phone email address city state pincode gstNumber photos')
+    .lean();
+  if (!salon) return res.status(404).json({ success: false, message: 'Business not found' });
+
+  const booking = await Booking.findOne({ _id: req.params.bookingId, salonId: salon._id })
+    .populate('customerId', 'name phone email')
+    .populate('barberId', 'name')
+    .lean();
+  if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+
+  const logoUrl = salon.photos?.find(p => p.isCover)?.url || salon.photos?.[0]?.url || null;
+
+  const receipt = {
+    receiptNumber: `RCP-${booking.bookingId || booking._id.toString().slice(-8).toUpperCase()}`,
+    issuedAt: new Date().toISOString(),
+    salon: {
+      name: salon.name,
+      phone: salon.phone,
+      email: salon.email,
+      address: [salon.address, salon.city, salon.state, salon.pincode].filter(Boolean).join(', '),
+      gstNumber: salon.gstNumber || null,
+      logoUrl,
+    },
+    customer: {
+      name: booking.customerName || booking.customerId?.name || 'Walk-in Customer',
+      phone: booking.customerPhone || booking.customerId?.phone || null,
+    },
+    staff: { name: booking.staffName || booking.barberName || booking.barberId?.name || null },
+    appointment: {
+      date: booking.appointmentDate,
+      time: booking.appointmentTime,
+      bookingId: booking.bookingId,
+    },
+    services: (booking.services || []).map(s => ({
+      name: s.serviceName,
+      duration: s.duration,
+      price: s.servicePrice,
+    })),
+    subtotal: booking.totalAmount + (booking.discount || 0),
+    discount: booking.discount || 0,
+    couponApplied: booking.couponApplied || null,
+    total: booking.totalAmount,
+    paymentMethod: booking.paymentMethod,
+    paymentStatus: booking.paymentStatus,
+  };
+
+  res.json({ success: true, data: receipt });
+}));
+
+/* =====================================================
    RESCHEDULE — PUT /owner/bookings/:bookingId/reschedule
 ===================================================== */
 router.put('/owner/bookings/:bookingId/reschedule', authenticateOwner, validateObjectId('bookingId'), asyncHandler(async (req, res) => {
