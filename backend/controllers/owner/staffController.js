@@ -118,16 +118,16 @@ exports.addStaff = async (req, res) => {
       name:       name.trim(),
       phone:      phone?.trim() || undefined,
       email:      email?.trim().toLowerCase() || undefined,
-      gender,
-      profilePhoto,
-      bio,
+      gender:     gender && ['male', 'female'].includes(gender) ? gender : undefined,
+      profilePhoto: profilePhoto || undefined,
+      bio:        bio?.trim() || undefined,
       salonId:    business._id,
       ownerId:    req.owner._id,
       staffRole,
       experience: Math.max(0, parseInt(experience) || 0),
-      specializations,
-      servicesOffered,
-      workingDays,
+      specializations: specializations || [],
+      servicesOffered: servicesOffered || [],
+      workingDays: workingDays && workingDays.length > 0 ? workingDays : ['monday','tuesday','wednesday','thursday','friday','saturday'],
       shiftStart,
       shiftEnd,
       showEarningsToStaff,
@@ -140,7 +140,8 @@ exports.addStaff = async (req, res) => {
     res.status(201).json(formatSuccessResponse({ staff: member }, 'Staff added', 201));
   } catch (err) {
     console.error('[addStaff]', err);
-    res.status(500).json(formatErrorResponse('Server error', 500));
+    const msg = err.message || 'Failed to add staff member';
+    res.status(500).json(formatErrorResponse(msg, 500));
   }
 };
 
@@ -189,7 +190,17 @@ exports.updateStaff = async (req, res) => {
     const allowed = ['name','phone','email','gender','profilePhoto','bio','staffRole',
                      'experience','specializations','servicesOffered','workingDays',
                      'shiftStart','shiftEnd','showEarningsToStaff','isActive'];
-    allowed.forEach(k => { if (req.body[k] !== undefined) member[k] = req.body[k]; });
+    allowed.forEach(k => {
+      if (req.body[k] !== undefined) {
+        if (k === 'gender' && req.body[k]) {
+          member[k] = ['male', 'female'].includes(req.body[k]) ? req.body[k] : undefined;
+        } else if (k === 'bio' || k === 'profilePhoto') {
+          member[k] = req.body[k]?.trim() || undefined;
+        } else {
+          member[k] = req.body[k];
+        }
+      }
+    });
     if (email?.trim()) member.email = email.trim().toLowerCase();
     await member.save();
 
@@ -197,7 +208,8 @@ exports.updateStaff = async (req, res) => {
     res.json(formatSuccessResponse({ staff: member }, 'Staff updated'));
   } catch (err) {
     console.error('[updateStaff]', err);
-    res.status(500).json(formatErrorResponse('Server error', 500));
+    const msg = err.message || 'Failed to update staff member';
+    res.status(500).json(formatErrorResponse(msg, 500));
   }
 };
 
@@ -236,7 +248,8 @@ exports.removeStaff = async (req, res) => {
     res.json(formatSuccessResponse({}, 'Staff member deactivated'));
   } catch (err) {
     console.error('[removeStaff]', err);
-    res.status(500).json(formatErrorResponse('Server error', 500));
+    const msg = err.message || 'Failed to deactivate staff member';
+    res.status(500).json(formatErrorResponse(msg, 500));
   }
 };
 
