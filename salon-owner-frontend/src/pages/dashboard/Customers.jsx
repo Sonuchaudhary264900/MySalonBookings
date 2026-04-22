@@ -427,10 +427,11 @@ export default function Customers() {
   const [sort,         setSort]         = useState({ field: 'totalBookings', dir: 'desc' });
   const [selected,     setSelected]     = useState(null);
   const [editing,      setEditing]      = useState(null);    // null | customer | 'new'
-  const [blockedIds,   setBlockedIds]   = useState(new Set());
-  const [blockLoading, setBlockLoading] = useState(null);
-  const [page,         setPage]         = useState(1);
-  const [selectedCIds, setSelectedCIds] = useState(new Set());
+  const [blockedIds,      setBlockedIds]      = useState(new Set());
+  const [blockLoading,    setBlockLoading]    = useState(null);
+  const [page,            setPage]            = useState(1);
+  const [selectedCIds,    setSelectedCIds]    = useState(new Set());
+  const [activityFilter,  setActivityFilter]  = useState('all'); // all | active30 | active90 | inactive90
   const PAGE_SIZE = 20;
 
   const toggleSelectC = (id) => setSelectedCIds(prev => {
@@ -541,6 +542,20 @@ export default function Customers() {
       list = list.filter(c => getTag(c).label.toLowerCase() === filter);
     }
 
+    // Activity / recency filter
+    if (activityFilter !== 'all') {
+      const now = Date.now();
+      const day = 86400000;
+      list = list.filter(c => {
+        const last = c.lastVisit ? new Date(c.lastVisit).getTime() : 0;
+        const daysSince = last ? (now - last) / day : Infinity;
+        if (activityFilter === 'active30')   return daysSince <= 30;
+        if (activityFilter === 'active90')   return daysSince <= 90;
+        if (activityFilter === 'inactive90') return daysSince > 90;
+        return true;
+      });
+    }
+
     // Sort
     list = [...list].sort((a, b) => {
       const va = a[sort.field] ?? 0;
@@ -549,7 +564,7 @@ export default function Customers() {
     });
 
     return list;
-  }, [searchFiltered, filter, sort]);
+  }, [searchFiltered, filter, activityFilter, sort]);
 
   const paginated  = processed.slice(0, page * PAGE_SIZE);
   const hasMore    = processed.length > page * PAGE_SIZE;
@@ -632,7 +647,7 @@ export default function Customers() {
 
         {/* ── Filter pills ── */}
         {customers.length > 0 && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {FILTERS.map(f => {
               const active = filter === f.id;
               return (
@@ -651,6 +666,22 @@ export default function Customers() {
                 </button>
               );
             })}
+
+            {/* Activity segmentation */}
+            <div className="ml-auto">
+              <select
+                value={activityFilter}
+                onChange={e => { setActivityFilter(e.target.value); setPage(1); }}
+                className="text-sm px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700
+                  bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400
+                  focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+              >
+                <option value="all">All activity</option>
+                <option value="active30">Active last 30 days</option>
+                <option value="active90">Active last 90 days</option>
+                <option value="inactive90">Inactive 90+ days</option>
+              </select>
+            </div>
           </div>
         )}
 

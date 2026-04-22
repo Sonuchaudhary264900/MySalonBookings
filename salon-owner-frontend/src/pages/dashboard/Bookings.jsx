@@ -4,7 +4,7 @@ import {
   ShieldOff, ShieldCheck, CalendarOff, ChevronDown, MoreHorizontal,
   CheckCircle, XCircle, PlayCircle, Loader2, MessageSquare, AlertTriangle, Users,
   Timer, Banknote, Info, WifiOff, UserX, Search, CreditCard, RotateCcw, Receipt,
-  Square, CheckSquare, Ban,
+  Square, CheckSquare, Ban, Download,
 } from 'lucide-react';
 import BulkActionBar from '../../components/BulkActionBar';
 import { showUndoToast } from '../../components/UndoToast';
@@ -1199,11 +1199,21 @@ const Bookings = () => {
     return () => window.removeEventListener('new-chat-message', handler);
   }, []);
 
-  const loadBookings = useCallback(async (date) => {
+  const loadBookings = useCallback(async (date, q = '') => {
     setPageLoading(true);
-    try { await fetchBookings({ date }); }
+    try { await fetchBookings({ date: q ? undefined : date, q: q || undefined }); }
     finally { setPageLoading(false); }
   }, [fetchBookings]);
+
+  // Debounced search — fires backend query 350ms after user stops typing
+  const searchDebounceRef = useRef(null);
+  const handleSearchChange = (val) => {
+    setSearchQuery(val);
+    clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      loadBookings(val.trim() ? undefined : selectedDate, val.trim());
+    }, 350);
+  };
 
   // Called after inline booking assignment so the row updates without a full reload
   const handleAssigned = useCallback(() => {
@@ -1238,17 +1248,11 @@ const Bookings = () => {
       .catch(() => {});
   }, []);
 
+  // search is handled by backend; only client-side filter remaining is status + staff
   const filteredBookings = bookings.filter(b => {
     if (filter !== 'all' && b.status !== filter) return false;
     if (staffFilter === 'unassigned') return !b.barberId;
     if (staffFilter !== 'all') return String(b.barberId) === staffFilter;
-    if (searchQuery.trim()) {
-      const q = searchQuery.trim().toLowerCase();
-      const name  = (b.customerName  || '').toLowerCase();
-      const phone = (b.customerPhone || '').toLowerCase();
-      const id    = (b.bookingId     || '').toLowerCase();
-      if (!name.includes(q) && !phone.includes(q) && !id.includes(q)) return false;
-    }
     return true;
   });
 
@@ -1445,6 +1449,37 @@ const Bookings = () => {
               </div>
             )}
 
+            {/* Export CSV */}
+            <button
+              onClick={() => {
+                const rows = [
+                  ['Customer', 'Phone', 'Service', 'Date', 'Time', 'Status', 'Amount', 'Payment'],
+                  ...filteredBookings.map(b => [
+                    b.customerName || '',
+                    b.customerPhone || '',
+                    b.serviceName || '',
+                    formatDate(b.appointmentDate),
+                    formatTime(b.appointmentTime),
+                    b.status,
+                    b.totalAmount ?? '',
+                    b.paymentMethod || '',
+                  ]),
+                ];
+                const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+                a.download = `bookings-${selectedDate || 'all'}.csv`;
+                a.click();
+              }}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
+                border border-gray-200 dark:border-gray-700
+                text-gray-600 dark:text-gray-300
+                hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              Export
+            </button>
+
             {/* Add Walk-in */}
             <button
               onClick={() => setShowModal(true)}
@@ -1472,7 +1507,7 @@ const Bookings = () => {
           <input
             type="text"
             value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
+            onChange={e => handleSearchChange(e.target.value)}
             placeholder="Search by name, phone or booking ID…"
             className="w-full pl-9 pr-9 py-2 rounded-xl border text-sm
               bg-white dark:bg-gray-900
@@ -1484,7 +1519,7 @@ const Bookings = () => {
           />
           {searchQuery && (
             <button
-              onClick={() => setSearchQuery('')}
+              onClick={() => handleSearchChange('')}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
             >
               <X className="w-3.5 h-3.5" />
@@ -1552,7 +1587,7 @@ const Bookings = () => {
           </>
         ) : filteredBookings.length === 0 ? (
           <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm">
-            <EmptyState filter={filter} onAddWalkIn={() => setShowModal(true)} searchQuery={searchQuery} onClearSearch={() => setSearchQuery('')} />
+            <EmptyState filter={filter} onAddWalkIn={() => setShowModal(true)} searchQuery={searchQuery} onClearSearch={() => handleSearchChange('')} />
           </div>
         ) : (
           <>

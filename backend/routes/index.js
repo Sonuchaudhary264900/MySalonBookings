@@ -1754,21 +1754,33 @@ router.get("/owner/bookings", authenticateOwner, validatePaginationParams, async
   const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.json({ success: true, data: { bookings: [], total: 0, page: 1, limit: 20 } });
 
-  const { status, date, page = 1, limit = 20 } = req.query;
-  const query = { salonId: salon._id };
+  const { status, date, page = 1, limit = 20, q } = req.query;
+  const query = { salonId: salon._id, deletedAt: null };
   if (status && status !== "all") query.status = status;
-  if (date) {
+
+  if (q && q.trim()) {
+    const safe = q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const rx = new RegExp(safe, 'i');
+    query.$or = [
+      { customerName:  rx },
+      { customerPhone: rx },
+      { bookingId:     rx },
+      { serviceName:   rx },
+    ];
+    // cross-date search — ignore date filter when q is set
+  } else if (date) {
     query.appointmentDate = {
       $gte: new Date(date + "T00:00:00.000Z"),
       $lte: new Date(date + "T23:59:59.999Z"),
     };
   }
 
-  query.deletedAt = null;
   const p = Math.max(1, parseInt(page));
-  const l = Math.min(50, Math.max(1, parseInt(limit)));
-  const bookings = await Booking.find(query).sort({ createdAt: -1 }).skip((p - 1) * l).limit(l).lean();
-  const total = await Booking.countDocuments(query);
+  const l = Math.min(100, Math.max(1, parseInt(limit)));
+  const [bookings, total] = await Promise.all([
+    Booking.find(query).sort({ appointmentDate: -1, createdAt: -1 }).skip((p - 1) * l).limit(l).lean(),
+    Booking.countDocuments(query),
+  ]);
 
   res.json({ success: true, data: { bookings, total, page: p, limit: l } });
 }));

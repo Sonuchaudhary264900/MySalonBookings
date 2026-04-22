@@ -205,9 +205,12 @@ export const getBookings = async (filters = {}) => {
   if (filters.status) params.append('status', filters.status);
   if (filters.date)   params.append('date',   filters.date);
   if (filters.page)   params.append('page',   filters.page);
+  if (filters.limit)  params.append('limit',  filters.limit);
+  if (filters.q)      params.append('q',      filters.q);
 
   const response = await api.get(`/owner/bookings?${params.toString()}`);
-  return { success: true, data: response.data.data?.bookings ?? [] };
+  const d = response.data.data;
+  return { success: true, data: d?.bookings ?? (Array.isArray(d) ? d : []), total: d?.total, page: d?.page };
 };
 
 // ── UPDATE BOOKING STATUS ───────────────────────────────────────
