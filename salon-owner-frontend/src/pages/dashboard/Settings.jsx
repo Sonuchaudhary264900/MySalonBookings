@@ -1738,6 +1738,8 @@ const SettingsPage = () => {
   const { salon, updateSalon, fetchSalon } = useSalon();
   const [activeId, setActiveId] = useState(null);
 
+  useEffect(() => { document.title = 'Settings — GlowLoox'; }, []);
+
   const toggle = (id) => setActiveId(prev => prev === id ? null : id);
 
   const pageBizTypeDef = SALON_TYPES.find(t => t.key === salon?.businessType);

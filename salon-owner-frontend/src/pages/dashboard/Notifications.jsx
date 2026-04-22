@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Bell, Trash2, Check, BellOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { useNotifications } from '../../context/NotificationContext';
+import ConfirmModal from '../../components/common/ConfirmModal';
 
 const TYPE_STYLES = {
   booking: 'bg-indigo-100 text-indigo-700',
@@ -31,20 +32,26 @@ const NotificationsPage = () => {
     clearAll,
   } = useNotifications();
 
+  const [confirmClear, setConfirmClear] = useState(false);
+  useEffect(() => { document.title = 'Notifications — GlowLoox'; }, []);
+
   const handleRequestPermission = async () => {
     await requestPermission();
     toast.success('Notification permission updated');
   };
 
-  const handleClearAll = () => {
-    if (window.confirm('Clear all notifications?')) {
-      clearAll();
-      toast.success('All notifications cleared');
-    }
-  };
+  const handleClearAll = () => setConfirmClear(true);
 
   return (
     <DashboardLayout>
+      <ConfirmModal
+        isOpen={confirmClear}
+        title="Clear all notifications?"
+        message="This will permanently remove all notifications and cannot be undone."
+        confirmLabel="Clear all"
+        onConfirm={() => { setConfirmClear(false); clearAll(); toast.success('All notifications cleared'); }}
+        onCancel={() => setConfirmClear(false)}
+      />
       <div className="max-w-2xl space-y-6">
 
         {/* Header */}

@@ -435,6 +435,7 @@ export default function Messages() {
   const [loading,         setLoading]         = useState(true);
   const [search,          setSearch]          = useState('');
   const [activeThread,    setActiveThread]    = useState(null);
+  useEffect(() => { document.title = 'Messages — GlowLoox'; }, []);
   const [mobileView,      setMobileView]      = useState('list'); // 'list' | 'chat'
   const { markChatRead }                      = useNotifications();
 

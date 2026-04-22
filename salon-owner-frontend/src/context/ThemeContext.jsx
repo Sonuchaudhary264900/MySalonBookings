@@ -9,25 +9,23 @@ function getSystemTheme() {
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
-    // Session-only override — cleared automatically when tab/browser closes
-    const manual = sessionStorage.getItem('salon-theme-manual');
+    const manual = localStorage.getItem('salon-theme-manual');
     if (!manual) return getSystemTheme();
-    return sessionStorage.getItem('salon-theme') || getSystemTheme();
+    return localStorage.getItem('salon-theme') || getSystemTheme();
   });
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
-    // Write to sessionStorage only (never localStorage — no forever persistence)
-    if (sessionStorage.getItem('salon-theme-manual')) {
-      sessionStorage.setItem('salon-theme', theme);
+    if (localStorage.getItem('salon-theme-manual')) {
+      localStorage.setItem('salon-theme', theme);
     }
   }, [theme]);
 
-  // Follow system preference changes when user hasn't manually overridden this session
+  // Follow system preference changes when user hasn't manually overridden
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const handler = (e) => {
-      const manual = sessionStorage.getItem('salon-theme-manual');
+      const manual = localStorage.getItem('salon-theme-manual');
       if (!manual) setTheme(e.matches ? 'dark' : 'light');
     };
     mq.addEventListener('change', handler);
@@ -37,9 +35,8 @@ export function ThemeProvider({ children }) {
   const toggleTheme = () => {
     setTheme(t => {
       const next = t === 'dark' ? 'light' : 'dark';
-      // Mark as manually overridden for this session only
-      sessionStorage.setItem('salon-theme-manual', '1');
-      sessionStorage.setItem('salon-theme', next);
+      localStorage.setItem('salon-theme-manual', '1');
+      localStorage.setItem('salon-theme', next);
       return next;
     });
   };

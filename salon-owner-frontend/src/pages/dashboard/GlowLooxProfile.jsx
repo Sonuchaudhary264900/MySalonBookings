@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import ConfirmModal from '../../components/common/ConfirmModal';
 import ServiceModal from '../../components/Services/ServiceModal';
 import UploadModal from '../../components/gallery/UploadModal';
 import { useSalon } from '../../hooks/useSalon';
@@ -198,6 +199,8 @@ export default function GlowLooxProfile() {
 
   const biz = BIZ_THEME[salon?.businessType] || DEFAULT_BIZ;
 
+  useEffect(() => { document.title = 'GlowLoox Profile — GlowLoox'; }, []);
+
   /* ── data ── */
   const [galleryItems, setGalleryItems] = useState([]);
   const [reviews,      setReviews]      = useState([]);
@@ -221,6 +224,7 @@ export default function GlowLooxProfile() {
 
   /* ── gallery upload modal ── */
   const [uploadOpen,      setUploadOpen]      = useState(false);
+  const [confirmState,    setConfirmState]    = useState(null); // { type: 'media'|'service', item }
   const [deleting,        setDeleting]        = useState(null);
   const [togglingId,      setTogglingId]      = useState(null);
   const [uploadingSvcImg, setUploadingSvcImg] = useState(null);
@@ -429,8 +433,11 @@ export default function GlowLooxProfile() {
   };
 
   /* ── delete gallery item ── */
-  const handleDeleteMedia = async (item) => {
-    if (!window.confirm('Delete this media?')) return;
+  const handleDeleteMedia = (item) => setConfirmState({ type: 'media', item });
+  const executeDeleteMedia = async () => {
+    const item = confirmState?.item;
+    setConfirmState(null);
+    if (!item) return;
     setDeleting(item._id);
     try {
       await api.delete(`/owner/gallery/${item._id}`);
@@ -464,8 +471,11 @@ export default function GlowLooxProfile() {
     finally { setSvcLoading(false); }
   };
 
-  const handleDeleteService = async (svc) => {
-    if (!window.confirm(`Delete "${svc.name}"?`)) return;
+  const handleDeleteService = (svc) => setConfirmState({ type: 'service', item: svc });
+  const executeDeleteService = async () => {
+    const svc = confirmState?.item;
+    setConfirmState(null);
+    if (!svc) return;
     try {
       await deleteService(svc._id || svc.id);
       toast.success('Service deleted');
@@ -1899,6 +1909,17 @@ export default function GlowLooxProfile() {
         onClose={() => setUploadOpen(false)}
         onSubmit={handleUploadSubmit}
         salon={salon}
+      />
+
+      <ConfirmModal
+        isOpen={!!confirmState}
+        title={confirmState?.type === 'service'
+          ? `Delete "${confirmState?.item?.name}"?`
+          : 'Delete this media?'}
+        message="This will be permanently removed and cannot be recovered."
+        confirmLabel="Delete"
+        onConfirm={confirmState?.type === 'service' ? executeDeleteService : executeDeleteMedia}
+        onCancel={() => setConfirmState(null)}
       />
     </DashboardLayout>
   );

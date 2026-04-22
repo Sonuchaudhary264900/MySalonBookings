@@ -6,6 +6,7 @@ import {
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import ConfirmModal from '../../components/common/ConfirmModal';
 import MembershipBuilder from '../../components/MembershipBuilder';
 import { PkgIcon } from '../../components/MembershipBuilder/IconSelector';
 import PackageBuilder from '../../components/PackageBuilder';
@@ -55,6 +56,7 @@ export default function Packages() {
   const [saving, setSaving]               = useState(false);
   const [expandedReq, setExpandedReq]     = useState(null);
   const [confirmingId, setConfirmingId]   = useState(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [notifyTarget, setNotifyTarget]     = useState(null); // { _id, name, type }
   const [showNotifSettings, setShowNotifSettings] = useState(false);
 
@@ -185,8 +187,10 @@ export default function Packages() {
       setItems(prev => prev.map(p => p._id === pkg._id ? { ...p, isActive: !p.isActive } : p));
     } catch { toast.error('Failed to update'); }
   };
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this item?')) return;
+  const handleDelete = (id) => setDeleteConfirmId(id);
+  const confirmDelete = async () => {
+    const id = deleteConfirmId;
+    setDeleteConfirmId(null);
     try {
       await api.delete(`/owner/packages/${id}`);
       setItems(prev => prev.filter(p => p._id !== id));
@@ -420,6 +424,15 @@ export default function Packages() {
       {showNotifSettings && (
         <NotifSettingsModal onClose={() => setShowNotifSettings(false)} />
       )}
+
+      <ConfirmModal
+        isOpen={!!deleteConfirmId}
+        title="Delete this item?"
+        message="This package or membership will be permanently removed and cannot be recovered."
+        confirmLabel="Delete"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirmId(null)}
+      />
     </DashboardLayout>
   );
 }

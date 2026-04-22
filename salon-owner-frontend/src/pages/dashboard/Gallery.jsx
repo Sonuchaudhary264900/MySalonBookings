@@ -276,6 +276,7 @@ export default function Gallery() {
   const [analytics,     setAnalytics]     = useState([]);
   const [loading,       setLoading]       = useState(true);
   const [analyticsLoad, setAnalyticsLoad] = useState(true);
+  useEffect(() => { document.title = 'Gallery — GlowLoox'; }, []);
   const [coverId,       setCoverId]       = useState(null);
   const [ctaPhotoUrl,   setCtaPhotoUrl]   = useState(null);
   const [activeFilter,  setActiveFilter]  = useState('all');

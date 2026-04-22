@@ -354,6 +354,7 @@ export default function Team() {
   const [loading, setLoading]     = useState(true);
   const [modal, setModal]         = useState(null); // null | { mode: 'add'|'edit', initial: {} }
   const [removing, setRemoving]   = useState(null);
+  useEffect(() => { document.title = 'Team — GlowLoox'; }, []);
   const [absentIds, setAbsentIds] = useState(new Set()); // staffIds absent today
   const [absentLoading, setAbsentLoading] = useState(null);
   const [loginLoading, setLoginLoading] = useState(null);

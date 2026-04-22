@@ -357,6 +357,8 @@ const Services = () => {
   const [expandedGender,    setExpandedGender]     = useState({});
   const [selectedCategory,  setSelectedCategory]   = useState(null);
 
+  useEffect(() => { document.title = 'Services — GlowLoox'; }, []);
+
   useEffect(() => {
     const load = async () => {
       setLoading(true);

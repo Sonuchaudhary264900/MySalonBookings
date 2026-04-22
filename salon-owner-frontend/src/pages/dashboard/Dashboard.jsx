@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { io } from "socket.io-client";
 import CelebrationOverlay from "../../components/onboarding/CelebrationOverlay";
 import WelcomeBackOverlay from "../../components/onboarding/WelcomeBackOverlay";
 import { useNavigate } from "react-router-dom";
@@ -11,9 +12,11 @@ import ROUTES from "../../routes";
 import {
   ChevronLeft, ChevronRight, Plus, X, MoreVertical, ShieldOff, ShieldCheck,
   RefreshCw, Users, CalendarCheck, IndianRupee, Clock, TrendingUp, TrendingDown,
-  Scissors, CheckCircle2, XCircle, Loader2, Activity, Zap, ArrowRight,
+  Scissors, CheckCircle2, XCircle, Loader2, Activity, Zap, ArrowRight, Copy, Check,
 } from "lucide-react";
 import { formatDate, formatTime } from "../../utils/exportHelpers";
+
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_BASE_URL?.replace('/api/v1', '') || 'http://localhost:5000';
 
 /* ─── Helpers ───────────────────────────────────────────────────────────── */
 const localDate = (offset = 0) => {
@@ -448,6 +451,11 @@ const Dashboard = () => {
   /* Walk-in modal */
   const [walkInOpen, setWalkInOpen] = useState(false);
 
+  /* Live updates */
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [copied, setCopied] = useState(false);
+  const socketRef = useRef(null);
+
   /* Team stats */
   const [teamStats, setTeamStats] = useState([]);
 
@@ -552,8 +560,25 @@ const Dashboard = () => {
     } finally { setAnalyticsLoading(false); }
   }, []);
 
-  useEffect(() => { fetchServices(); fetchQueue(); fetchWeeklyAnalytics(); }, []);
+  useEffect(() => { fetchServices(); fetchQueue(); fetchWeeklyAnalytics(); setLastUpdated(new Date()); }, []);
   useEffect(() => { fetchBookings(selectedDate); }, [selectedDate]);
+
+  /* ── Live socket: re-fetch queue/bookings on booking events ── */
+  useEffect(() => {
+    if (!salon?._id) return;
+    const socket = io(SOCKET_URL, { transports: ['polling', 'websocket'] });
+    socketRef.current = socket;
+    socket.on('connect', () => socket.emit('join-salon', salon._id));
+    const refresh = () => {
+      fetchQueue();
+      fetchBookings(selectedDate);
+      setLastUpdated(new Date());
+    };
+    socket.on('booking-updated', refresh);
+    socket.on('new-booking', refresh);
+    socket.on('queue-updated', refresh);
+    return () => { socket.disconnect(); socketRef.current = null; };
+  }, [salon?._id]);
 
   /* ── Date navigator ── */
   const shiftDate = (days) => {
@@ -561,6 +586,25 @@ const Dashboard = () => {
     d.setDate(d.getDate() + days);
     setSelectedDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
   };
+
+  /* ── Copy profile link ── */
+  const handleCopyLink = () => {
+    const userAppUrl = import.meta.env.VITE_USER_APP_URL || window.location.origin.replace('owner.', '').replace(':5174', ':5173');
+    const url = `${userAppUrl}/salon/${salon?._id}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  /* ── Humanize last-updated ── */
+  const updatedLabel = useMemo(() => {
+    if (!lastUpdated) return null;
+    const sec = Math.round((Date.now() - lastUpdated.getTime()) / 1000);
+    if (sec < 10) return 'Updated just now';
+    if (sec < 60) return `Updated ${sec}s ago`;
+    return `Updated ${Math.round(sec / 60)}m ago`;
+  }, [lastUpdated, queue]); // re-derive when queue changes so it stays fresh
 
   /* ── Status change / block ── */
   const handleStatusChange = async (bookingId, status) => {
@@ -595,6 +639,8 @@ const Dashboard = () => {
     const revTrend    = yestRev ? Math.round(((todayRev - yestRev) / yestRev) * 100) : 0;
     return { todayBookings: bookings.length, todayRevenue, activeQueue: queue.length, upcoming, bkTrend, revTrend };
   }, [bookings, queue, weeklyBookings, weeklyRevenue]);
+
+  useEffect(() => { document.title = 'Dashboard — GlowLoox'; }, []);
 
   const isToday      = selectedDate === today;
   const displayLabel = isToday ? "Today" : formatDate(selectedDate + "T12:00:00");
@@ -654,8 +700,16 @@ const Dashboard = () => {
               </p>
             </div>
 
-            <div className="flex items-center gap-2.5 shrink-0">
-              <button onClick={fetchQueue} disabled={queueLoading}
+            <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+              {updatedLabel && (
+                <span className="text-white/40 text-[11px] font-medium hidden sm:block">{updatedLabel}</span>
+              )}
+              <button onClick={handleCopyLink}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-all border border-white/15">
+                {copied ? <Check className="w-3.5 h-3.5 text-green-300" /> : <Copy className="w-3.5 h-3.5" />}
+                <span className="hidden sm:inline">{copied ? 'Copied!' : 'Share Link'}</span>
+              </button>
+              <button onClick={() => { fetchQueue(); fetchBookings(selectedDate); fetchWeeklyAnalytics(); setLastUpdated(new Date()); }} disabled={queueLoading}
                 className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-all border border-white/15 disabled:opacity-50">
                 <RefreshCw className={`w-3.5 h-3.5 ${queueLoading ? "animate-spin" : ""}`} />
                 <span className="hidden sm:inline">Refresh</span>

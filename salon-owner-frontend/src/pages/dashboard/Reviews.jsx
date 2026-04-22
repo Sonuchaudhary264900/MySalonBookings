@@ -151,6 +151,7 @@ export default function Reviews() {
   const [loading,  setLoading]  = useState(true);
   const [filter,   setFilter]   = useState('all');   // all | unreplied | replied
   const [sort,     setSort]     = useState('newest');
+  useEffect(() => { document.title = 'Reviews — GlowLoox'; }, []);
 
   const load = async (silent = false) => {
     if (!silent) setLoading(true);

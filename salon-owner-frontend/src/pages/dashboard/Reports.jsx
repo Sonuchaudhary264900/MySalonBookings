@@ -181,6 +181,8 @@ const Reports = () => {
   const { isDark }  = useTheme();
   const today       = localDate(0);
 
+  useEffect(() => { document.title = 'Reports — GlowLoox'; }, []);
+
   /* ── State ── */
   const [startDate,      setStartDate]      = useState(localDate(-29));
   const [endDate,        setEndDate]        = useState(today);

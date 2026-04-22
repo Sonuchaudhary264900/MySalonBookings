@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Scissors, Calendar, Star, Settings,
   ChevronRight, ChevronLeft, X, Images, Users, Tag,
   Store, BarChart2, Gift, MessageSquare, Megaphone, Crown, Eye,
-  Shield, Code2,
+  Shield, Code2, ListOrdered,
 } from 'lucide-react';
 import ROUTES from '../../routes';
 import { useNotifications } from '../../context/NotificationContext';
@@ -26,6 +26,7 @@ const NAV_SECTIONS = [
     items: [
       { id: 'dashboard', label: 'Dashboard', path: ROUTES.DASHBOARD, icon: LayoutDashboard },
       { id: 'bookings',  label: 'Bookings',  path: ROUTES.BOOKINGS,  icon: Calendar        },
+      { id: 'queue',     label: 'Live Queue', path: ROUTES.QUEUE,    icon: ListOrdered     },
       { id: 'services',  label: 'Services',  path: ROUTES.SERVICES,  icon: Scissors        },
       { id: 'customers', label: 'Customers', path: ROUTES.CUSTOMERS, icon: Users           },
       { id: 'team',      label: 'Team',      path: ROUTES.TEAM,      icon: Users           },

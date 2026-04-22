@@ -83,6 +83,8 @@ const WeekView = ({ weekStart, bookingsByDate, selectedDate, onDateSelect }) => 
 export default function CalendarPage() {
   const { salon, services, fetchServices } = useSalon();
 
+  useEffect(() => { document.title = 'Calendar — GlowLoox'; }, []);
+
   const [currentMonth, setCurrentMonth] = useState(() => {
     const d = new Date(); d.setDate(1); d.setHours(0,0,0,0); return d;
   });

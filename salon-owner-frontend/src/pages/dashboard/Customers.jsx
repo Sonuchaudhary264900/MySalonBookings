@@ -11,6 +11,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import api from '../../services/api';
 import { formatDate } from '../../utils/exportHelpers';
 import BulkActionBar from '../../components/BulkActionBar';
+import ConfirmModal from '../../components/common/ConfirmModal';
 
 /* ─── Helpers ────────────────────────────────────────────────── */
 const initials = (name) =>
@@ -432,6 +433,8 @@ export default function Customers() {
   const [page,            setPage]            = useState(1);
   const [selectedCIds,    setSelectedCIds]    = useState(new Set());
   const [activityFilter,  setActivityFilter]  = useState('all'); // all | active30 | active90 | inactive90
+  const [confirmDelete,   setConfirmDelete]   = useState(null); // null | { type: 'single', id } | { type: 'bulk', ids }
+  useEffect(() => { document.title = 'Customers — GlowLoox'; }, []);
   const PAGE_SIZE = 20;
 
   const toggleSelectC = (id) => setSelectedCIds(prev => {
@@ -451,17 +454,7 @@ export default function Customers() {
     }
   };
 
-  const bulkDeleteCustomers = async (ids) => {
-    if (!window.confirm(`Delete ${ids.length} customer${ids.length > 1 ? 's' : ''}? This cannot be undone.`)) return;
-    try {
-      await api.patch('/owner/customers/bulk', { ids, action: 'delete' });
-      setCustomers(prev => prev.filter(c => !ids.includes(c._id)));
-      setSelectedCIds(new Set());
-      toast.success(`${ids.length} customer${ids.length > 1 ? 's' : ''} deleted`);
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Bulk delete failed');
-    }
-  };
+  const bulkDeleteCustomers = (ids) => setConfirmDelete({ type: 'bulk', ids });
 
   const fetchCustomers = useCallback(async () => {
     try {
@@ -504,13 +497,24 @@ export default function Customers() {
     } finally { setBlockLoading(null); }
   };
 
-  const handleDelete = async (customerId) => {
-    if (!window.confirm('Delete this customer? This cannot be undone.')) return;
+  const handleDelete = (customerId) => setConfirmDelete({ type: 'single', id: customerId });
+
+  const executeDelete = async () => {
+    const d = confirmDelete;
+    setConfirmDelete(null);
+    if (!d) return;
     try {
-      await api.delete(`/owner/customers/${customerId}`);
-      setCustomers(prev => prev.filter(c => c._id !== customerId));
-      if (selected?._id === customerId) setSelected(null);
-      toast.success('Customer deleted');
+      if (d.type === 'bulk') {
+        await api.patch('/owner/customers/bulk', { ids: d.ids, action: 'delete' });
+        setCustomers(prev => prev.filter(c => !d.ids.includes(c._id)));
+        setSelectedCIds(new Set());
+        toast.success(`${d.ids.length} customer${d.ids.length > 1 ? 's' : ''} deleted`);
+      } else {
+        await api.delete(`/owner/customers/${d.id}`);
+        setCustomers(prev => prev.filter(c => c._id !== d.id));
+        if (selected?._id === d.id) setSelected(null);
+        toast.success('Customer deleted');
+      }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to delete');
     }
@@ -911,6 +915,17 @@ export default function Customers() {
           { label: 'Block',  icon: Ban,   variant: 'danger',  onClick: bulkBlockCustomers },
           { label: 'Delete', icon: Trash2, variant: 'danger', onClick: bulkDeleteCustomers },
         ]}
+      />
+
+      <ConfirmModal
+        isOpen={!!confirmDelete}
+        title={confirmDelete?.type === 'bulk'
+          ? `Delete ${confirmDelete?.ids?.length} customer${confirmDelete?.ids?.length > 1 ? 's' : ''}?`
+          : 'Delete this customer?'}
+        message="This cannot be undone. All associated data will be permanently removed."
+        confirmLabel="Delete"
+        onConfirm={executeDelete}
+        onCancel={() => setConfirmDelete(null)}
       />
     </DashboardLayout>
   );

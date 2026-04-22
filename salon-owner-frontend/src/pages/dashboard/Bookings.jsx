@@ -1129,6 +1129,7 @@ const AssignPopover = ({ booking, staffList, onAssigned }) => {
 const Bookings = () => {
   const { salon, services, bookings, fetchBookings, fetchServices, updateBookingStatus, createWalkInBooking } = useSalon();
   const location = useLocation();
+  useEffect(() => { document.title = 'Bookings — GlowLoox'; }, []);
   const [filter, setFilter]             = useState('all');
   const [updating, setUpdating]         = useState(null);
   const [showModal, setShowModal]       = useState(false);
