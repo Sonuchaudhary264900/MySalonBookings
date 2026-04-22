@@ -165,6 +165,8 @@ const Booking           = require("../models/Booking");
 const Promotion         = require("../models/Promotion");
 const Queue             = require("../models/Queue");
 
+const { formatSuccessResponse, formatErrorResponse } = require("../utils/formatters");
+
 /* =====================================================
    EXTRA ROUTES (MERGED OWNER ROUTES)
 ===================================================== */
