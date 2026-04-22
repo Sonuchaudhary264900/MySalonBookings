@@ -1062,6 +1062,65 @@ router.get("/public/salons/:salonId/booked-slots", validateObjectId("salonId"), 
   res.json({ success: true, data: { slots, blockedSlots: Array.from(blockedSlots), closedDay: false, bookingMode: "flexible" } });
 }));
 
+// GET /public/salons/:salonId/next-available — first available slot today + next 2 days
+router.get("/public/salons/:salonId/next-available", validateObjectId("salonId"), asyncHandler(async (req, res) => {
+  const salon = await Business.findById(req.params.salonId).select("workingHours").lean();
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+
+  const DAY_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  const timeToMin = t => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+  const minToTime = m => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+  const slotDuration = 30;
+
+  const nowIST = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+  const nowMin = nowIST.getUTCHours() * 60 + nowIST.getUTCMinutes();
+
+  for (let dayOffset = 0; dayOffset < 3; dayOffset++) {
+    const d = new Date(Date.now() + 5.5 * 60 * 60 * 1000 + dayOffset * 86400000);
+    const dateStr = d.toISOString().slice(0, 10);
+    const dayName = DAY_NAMES[d.getUTCDay()];
+    const dayHours = salon.workingHours?.[dayName];
+    if (!dayHours || dayHours.isClosed) continue;
+
+    const isHoliday = (salon.workingHours?.holidays || []).some(h =>
+      new Date(h.date).toISOString().slice(0, 10) === dateStr
+    );
+    if (isHoliday) continue;
+
+    const openMin  = timeToMin(dayHours.open  || "09:00");
+    const closeMin = timeToMin(dayHours.close || "18:00");
+
+    const dayStart = new Date(dateStr + "T00:00:00.000Z");
+    const dayEnd   = new Date(dateStr + "T23:59:59.999Z");
+    const bookings = await Booking.find({
+      salonId: req.params.salonId,
+      appointmentDate: { $gte: dayStart, $lte: dayEnd },
+      status: { $in: ["pending", "confirmed", "in_progress"] },
+    }).select("appointmentTime estimatedDuration").lean();
+
+    const blocked = new Set();
+    const allSlots = [];
+    for (let t = openMin; t + slotDuration <= closeMin; t += slotDuration) allSlots.push(t);
+    for (const slot of allSlots) {
+      const slotEnd = slot + slotDuration;
+      for (const b of bookings) {
+        const bStart = timeToMin(b.appointmentTime);
+        const bEnd   = bStart + (b.estimatedDuration || 30);
+        if (slot < bEnd && bStart < slotEnd) { blocked.add(slot); break; }
+      }
+    }
+
+    const minStart = dayOffset === 0 ? Math.max(openMin, nowMin + 5) : openMin;
+    const available = allSlots.filter(t => t >= minStart && !blocked.has(t));
+    if (available.length > 0) {
+      const label = dayOffset === 0 ? 'Today' : dayOffset === 1 ? 'Tomorrow' : dateStr;
+      return res.json({ success: true, data: { date: dateStr, time: minToTime(available[0]), label, available: true } });
+    }
+  }
+
+  res.json({ success: true, data: { available: false } });
+}));
+
 /* =====================================================
    COUPON VALIDATION ROUTE
 ===================================================== */

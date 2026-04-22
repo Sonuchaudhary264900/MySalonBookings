@@ -191,6 +191,7 @@ function SalonDetails({ salonId: propId, onClose }) {
   const [bookError, setBookError]         = useState("");
   const [barberAvailability, setBarberAvailability] = useState({}); // barberId → true/false
   const [assignedStaff, setAssignedStaff] = useState(null);
+  const [todaySlots,    setTodaySlots]    = useState(null); // {slots, blocked, closedDay} or null=loading
 
   const [serviceView,         setServiceView]         = useState(() => localStorage.getItem('svc_view') || 'grid');
   const [favServices,         setFavServices]         = useState(() => JSON.parse(localStorage.getItem('svc_favs') || '[]'));
@@ -236,6 +237,11 @@ function SalonDetails({ salonId: propId, onClose }) {
   }, [activeTab, id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    API.get(`/public/salons/${id}/booked-slots?date=${todayStr}&duration=30`)
+      .then(r => setTodaySlots(r.data.data || null))
+      .catch(() => setTodaySlots({ slots: [], blockedSlots: [], closedDay: true }));
+
     Promise.all([loadSalon(), loadServices(), loadReviews(), loadBarbers(), loadOffers(), loadPackages()]).finally(() => setLoading(false));
     if (token) {
       API.get(`/customer/salons/${id}/follow-status`)
@@ -868,6 +874,58 @@ function SalonDetails({ salonId: propId, onClose }) {
               <Share2 style={{ width: 14, height: 14 }} /> Share
             </motion.button>
           </div>
+
+          {/* ════ TODAY'S AVAILABILITY STRIP ════ */}
+          {(() => {
+            if (!todaySlots) return null;
+            if (todaySlots.closedDay) return (
+              <div style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: `1px solid ${theme.p}12` }}>
+                <Clock style={{ width: 13, height: 13, color: dm.fg38, flexShrink: 0 }} />
+                <span style={{ fontSize: 12, color: dm.fg38 }}>Closed today</span>
+              </div>
+            );
+            const todayStr = new Date().toISOString().slice(0, 10);
+            const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+            const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+            const avail = (todaySlots.slots || []).filter(s =>
+              !(todaySlots.blockedSlots || []).includes(s) && toMin(s) > nowMin
+            ).slice(0, 8);
+            if (avail.length === 0) return (
+              <div style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: `1px solid ${theme.p}12` }}>
+                <Calendar style={{ width: 13, height: 13, color: dm.fg38, flexShrink: 0 }} />
+                <span style={{ fontSize: 12, color: dm.fg38 }}>Fully booked today — check back tomorrow</span>
+              </div>
+            );
+            const nextSlot = avail[0];
+            const [h, m] = nextSlot.split(':').map(Number);
+            const label = `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+            return (
+              <div style={{ padding: '10px 16px', borderBottom: `1px solid ${theme.p}12` }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                  <Zap style={{ width: 12, height: 12, color: '#10b981', flexShrink: 0 }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#10b981' }}>Next available: Today {label}</span>
+                </div>
+                <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
+                  {avail.map(t => {
+                    const [th, tm] = t.split(':').map(Number);
+                    const fmt = `${th % 12 || 12}:${String(tm).padStart(2, '0')} ${th >= 12 ? 'PM' : 'AM'}`;
+                    return (
+                      <button key={t}
+                        onClick={() => {
+                          if (!isCustomer()) { clearCustomerAuth(); navigate('/login', { state: { from: location.pathname } }); return; }
+                          openBooking();
+                          // openBooking resets slot, set it after on next tick
+                          setTimeout(() => { setBookDate(todayStr); setSlot(t); }, 0);
+                        }}
+                        style={{ flexShrink: 0, padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${theme.p}55`, background: `${theme.p}12`, color: theme.acc }}>
+                        {fmt}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* ════ E. STICKY TAB BAR ════ */}
           <div style={{ position: 'sticky', top: 0, zIndex: 40, background: darkMode ? 'rgba(13,5,32,.88)' : 'rgba(249,250,251,.95)', backdropFilter: 'blur(24px)', borderBottom: `1px solid ${theme.p}1a`, display: 'flex' }}>
