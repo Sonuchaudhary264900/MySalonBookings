@@ -1545,8 +1545,13 @@ router.post("/staff/auth/firebase-login", rateLimiter(10, 900000), asyncHandler(
     { expiresIn: '90d' }
   );
 
-  barber.refreshTokens = [...(barber.refreshTokens || []), { token: refreshToken }];
-  await barber.save();
+  barber.refreshTokens = [...(barber.refreshTokens || []).slice(-4), { token: refreshToken }];
+  try {
+    await barber.save();
+  } catch (saveErr) {
+    console.error('[staff auth] save error:', saveErr.message);
+    return res.status(500).json(formatErrorResponse('Failed to update login. Please try again.', 500));
+  }
 
   res.json(formatSuccessResponse({
     token,
