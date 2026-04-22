@@ -470,6 +470,8 @@ export default function ReportsScreen() {
   const [bookingsList,    setBookingsList]    = useState([]);
   const [bookingsLoading, setBookingsLoading] = useState(false);
 
+  const [compare,     setCompare]     = useState(false);
+
   const [revenueGoal, setRevenueGoal] = useState(0);
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalInput,   setGoalInput]   = useState('');
@@ -495,7 +497,9 @@ export default function ReportsScreen() {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const res = await api.get(`/owner/analytics/dashboard?startDate=${startDate}&endDate=${endDate}`);
+      const res = await api.get(
+        `/owner/analytics/dashboard?startDate=${startDate}&endDate=${endDate}${compare ? '&compare=true' : ''}`
+      );
       setData(res.data.data || null);
     } catch (err) {
       setError(err?.message || 'Failed to load analytics. Pull down to retry.');
@@ -503,7 +507,7 @@ export default function ReportsScreen() {
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate]);
+  }, [startDate, endDate, compare]);
 
   const fetchBookingsByDate = useCallback(async (date) => {
     setBookingsLoading(true);
@@ -518,14 +522,14 @@ export default function ReportsScreen() {
     }
   }, []);
 
-  // Debounced fetch when dates change (avoids firing on every keystroke)
+  // Debounced fetch when dates/compare change
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       fetchAnalytics();
     }, 600);
     return () => clearTimeout(debounceRef.current);
-  }, [startDate, endDate]);
+  }, [startDate, endDate, compare]);
 
   useEffect(() => { fetchBookingsByDate(bookingsDate); }, [bookingsDate]);
 
@@ -567,6 +571,16 @@ export default function ReportsScreen() {
 
   const revSparkline  = dailyRevenue.slice(-10).map(d => ({ v: d.revenue  || 0 }));
   const bookSparkline = dailyRevenue.slice(-10).map(d => ({ v: d.bookings || 0 }));
+
+  // Compare deltas
+  const calcDelta = (cur, prev) => {
+    if (prev === null || prev === undefined) return null;
+    if (prev === 0) return cur > 0 ? 100 : 0;
+    return Math.round(((cur - prev) / prev) * 100);
+  };
+  const revDelta  = compare && data?.previous ? calcDelta(totalRevenue,   data.previous.totalRevenue)   : null;
+  const bkgDelta  = compare && data?.previous ? calcDelta(totalBookings,  data.previous.totalBookings)  : null;
+  const custDelta = compare && data?.previous ? calcDelta(activeCustomers, data.previous.activeCustomers) : null;
 
   const goalPct = revenueGoal > 0
     ? Math.min(100, Math.round((totalRevenue / revenueGoal) * 100))
@@ -754,7 +768,7 @@ export default function ReportsScreen() {
               </TouchableOpacity>
             ))}
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
             <Ionicons name="calendar-outline" size={13} color={theme.subText} />
             <TextInput
               style={[styles.dateInput, { backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }]}
@@ -774,6 +788,19 @@ export default function ReportsScreen() {
               keyboardType="numeric"
             />
           </View>
+          <TouchableOpacity
+            onPress={() => setCompare(c => !c)}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
+              paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, borderWidth: 1.5,
+              backgroundColor: compare ? '#4f46e5' : 'transparent',
+              borderColor: compare ? '#4f46e5' : (isDark ? '#374151' : '#d1d5db'),
+            }}
+          >
+            <Ionicons name="git-compare-outline" size={12} color={compare ? '#fff' : theme.subText} />
+            <Text style={{ fontSize: 11, fontWeight: '600', color: compare ? '#fff' : theme.subText }}>
+              Compare
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* ── Revenue goal ── */}
@@ -848,7 +875,16 @@ export default function ReportsScreen() {
                 </View>
                 <Text style={{ fontSize: 10, fontWeight: '600', color: KPI.revenue.icon, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Total Revenue</Text>
                 <Text style={{ fontSize: 22, fontWeight: '900', color: KPI.revenue.text, marginBottom: 2 }}>₹{totalRevenue.toLocaleString()}</Text>
-                <Text style={{ fontSize: 10, color: KPI.revenue.sub }}>{formatDate(startDate)} – {formatDate(endDate)}</Text>
+                {revDelta !== null ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 1 }}>
+                    <Ionicons name={revDelta >= 0 ? 'arrow-up-outline' : 'arrow-down-outline'} size={10} color={revDelta >= 0 ? '#10b981' : '#ef4444'} />
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: revDelta >= 0 ? '#10b981' : '#ef4444' }}>
+                      {revDelta >= 0 ? '+' : ''}{revDelta}% vs prev
+                    </Text>
+                  </View>
+                ) : (
+                  <Text style={{ fontSize: 10, color: KPI.revenue.sub }}>{formatDate(startDate)} – {formatDate(endDate)}</Text>
+                )}
                 <Text style={{ fontSize: 10, color: KPI.revenue.sub, marginTop: 1 }}>period total</Text>
                 <Sparkline data={revSparkline} color={KPI.revenue.icon} />
               </View>
@@ -860,7 +896,16 @@ export default function ReportsScreen() {
                 </View>
                 <Text style={{ fontSize: 10, fontWeight: '600', color: KPI.bookings.icon, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Total Bookings</Text>
                 <Text style={{ fontSize: 22, fontWeight: '900', color: KPI.bookings.text, marginBottom: 2 }}>{totalBookings}</Text>
-                <Text style={{ fontSize: 10, color: KPI.bookings.sub }}>{completed} done · {pending} pending</Text>
+                {bkgDelta !== null ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 1 }}>
+                    <Ionicons name={bkgDelta >= 0 ? 'arrow-up-outline' : 'arrow-down-outline'} size={10} color={bkgDelta >= 0 ? '#10b981' : '#ef4444'} />
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: bkgDelta >= 0 ? '#10b981' : '#ef4444' }}>
+                      {bkgDelta >= 0 ? '+' : ''}{bkgDelta}% vs prev
+                    </Text>
+                  </View>
+                ) : (
+                  <Text style={{ fontSize: 10, color: KPI.bookings.sub }}>{completed} done · {pending} pending</Text>
+                )}
                 <Text style={{ fontSize: 10, color: KPI.bookings.sub, marginTop: 1 }}>in period</Text>
                 <Sparkline data={bookSparkline} color={KPI.bookings.icon} />
               </View>
@@ -872,7 +917,16 @@ export default function ReportsScreen() {
                 </View>
                 <Text style={{ fontSize: 10, fontWeight: '600', color: KPI.customers.icon, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Active Customers</Text>
                 <Text style={{ fontSize: 22, fontWeight: '900', color: KPI.customers.text, marginBottom: 2 }}>{activeCustomers}</Text>
-                <Text style={{ fontSize: 10, color: KPI.customers.sub }}>unique visitors</Text>
+                {custDelta !== null ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 1 }}>
+                    <Ionicons name={custDelta >= 0 ? 'arrow-up-outline' : 'arrow-down-outline'} size={10} color={custDelta >= 0 ? '#10b981' : '#ef4444'} />
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: custDelta >= 0 ? '#10b981' : '#ef4444' }}>
+                      {custDelta >= 0 ? '+' : ''}{custDelta}% vs prev
+                    </Text>
+                  </View>
+                ) : (
+                  <Text style={{ fontSize: 10, color: KPI.customers.sub }}>unique visitors</Text>
+                )}
                 <Text style={{ fontSize: 10, color: KPI.customers.sub, marginTop: 1 }}> </Text>
               </View>
 
