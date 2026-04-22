@@ -2,9 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   Plus, LayoutList, ChevronDown, ChevronLeft, ChevronRight, Scissors, Search,
   Layers, CheckCircle2, XCircle, Sparkles, Baby, Home, User, UserRound,
+  TrendingUp, X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import api from '../../services/api';
 import ServiceCard from '../../components/Services/ServiceCard';
 import ServiceModal from '../../components/Services/ServiceModal';
 import EditCategoriesDrawer from '../../components/salon/EditCategoriesDrawer';
@@ -356,6 +358,10 @@ const Services = () => {
   const [showMenuSection,   setShowMenuSection]    = useState(false);
   const [expandedGender,    setExpandedGender]     = useState({});
   const [selectedCategory,  setSelectedCategory]   = useState(null);
+  const [pricingSuggestions, setPricingSuggestions] = useState([]);
+  const [dismissedPricing,   setDismissedPricing]   = useState(() => {
+    try { return JSON.parse(localStorage.getItem('msb_dismissed_pricing') || '[]'); } catch { return []; }
+  });
 
   useEffect(() => { document.title = 'Services — GlowLoox'; }, []);
 
@@ -368,6 +374,12 @@ const Services = () => {
       try { await fetchSalon(); } catch {}
     };
     load();
+  }, []);
+
+  useEffect(() => {
+    api.get('/owner/analytics/smart-pricing')
+      .then(res => setPricingSuggestions(res.data?.data?.suggestions || []))
+      .catch(() => {});
   }, []);
 
   const handleOpenModal = (service = null) => {
@@ -547,6 +559,47 @@ const Services = () => {
         {/* ── Stats bar ── */}
         {allServices.length > 0 && !loading && (
           <StatsBar total={allServices.length} active={activeCount} inactive={inactiveCount} />
+        )}
+
+        {/* Smart Pricing Suggestions */}
+        {pricingSuggestions.filter(s => !dismissedPricing.includes(String(s.serviceId))).length > 0 && (
+          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border border-emerald-100 dark:border-emerald-900/40 rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                <TrendingUp className="w-3.5 h-3.5 text-white" />
+              </div>
+              <p className="text-sm font-bold text-gray-900 dark:text-white">Smart Pricing Suggestions</p>
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 font-semibold">
+                {pricingSuggestions.filter(s => !dismissedPricing.includes(String(s.serviceId))).length} services
+              </span>
+            </div>
+            <div className="flex flex-col gap-2">
+              {pricingSuggestions
+                .filter(s => !dismissedPricing.includes(String(s.serviceId)))
+                .map(s => (
+                  <div key={s.serviceId} className="flex items-center justify-between gap-3 bg-white dark:bg-gray-900 rounded-xl p-3 border border-emerald-100 dark:border-emerald-900/30">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{s.serviceName}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">
+                        Booked {s.bookingsLast30}× last 30 days · Current ₹{s.currentPrice}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">→ ₹{s.suggestedPrice}</span>
+                      <button
+                        onClick={() => {
+                          const next = [...dismissedPricing, String(s.serviceId)];
+                          setDismissedPricing(next);
+                          localStorage.setItem('msb_dismissed_pricing', JSON.stringify(next));
+                        }}
+                        className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 transition-colors">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
         )}
 
         {/* ── Service Menu preview (inline toggle — only when individual services also exist) ── */}

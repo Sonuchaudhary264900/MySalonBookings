@@ -4,7 +4,7 @@ import {
   Phone, Mail, Calendar, IndianRupee, Star, ShieldOff,
   ShieldCheck, Edit2, Trash2, Eye, TrendingUp, Clock,
   ArrowUpDown, Loader2, MessageSquare, UserCheck,
-  Square, CheckSquare, Ban,
+  Square, CheckSquare, Ban, Send, Megaphone, Tag,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -66,6 +66,90 @@ const EmptyState = ({ search, onAdd }) => (
     </p>
   </div>
 );
+
+/* ─── Re-engagement Modal ────────────────────────────────────────────────── */
+const ReengagementModal = ({ inactiveCount, onClose, onSent }) => {
+  const [message, setMessage]   = useState('');
+  const [sending, setSending]   = useState(false);
+  const estimatedBookings       = Math.round(inactiveCount * 0.12); // 12% CTR estimate
+
+  const handleSend = async () => {
+    if (!message.trim()) return;
+    setSending(true);
+    try {
+      await api.post('/owner/notifications/broadcast', {
+        message: message.trim(),
+        audience: 'my_customers',
+        title: 'Special offer for you!',
+      });
+      toast.success(`Re-engagement message sent to ${inactiveCount} customers!`);
+      onSent();
+      onClose();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to send');
+    } finally { setSending(false); }
+  };
+
+  const INP2 = `w-full px-3.5 py-2.5 rounded-xl border text-sm bg-white dark:bg-gray-800/70 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors`;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-4 pb-4 sm:pb-0">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl w-full max-w-md animate-[scalein_0.2s_ease_both]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-violet-100 dark:bg-violet-950 flex items-center justify-center">
+              <Megaphone className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+            </div>
+            <h2 className="text-base font-bold text-gray-900 dark:text-white">Re-engage Inactive Customers</h2>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="p-5 space-y-4">
+          {/* Audience preview */}
+          <div className="flex items-center gap-3 p-3 bg-violet-50 dark:bg-violet-950/30 rounded-xl border border-violet-100 dark:border-violet-800">
+            <Users className="w-5 h-5 text-violet-600 dark:text-violet-400 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">{inactiveCount} inactive customers</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">Haven't visited in 30+ days · Est. {estimatedBookings} bookings from this message</p>
+            </div>
+          </div>
+          {/* Message */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Your message</label>
+            <textarea value={message} onChange={e => setMessage(e.target.value)}
+              rows={3} placeholder="e.g. We miss you! Book this week and get 10% off…"
+              className={`${INP2} resize-none`} />
+            <p className="text-[11px] text-gray-400">{message.length}/200 characters</p>
+          </div>
+          {/* Quick templates */}
+          <div className="space-y-1.5">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Quick templates</p>
+            <div className="flex flex-col gap-1.5">
+              {[
+                "We miss you! Book this week and get 10% off your next visit.",
+                "It's been a while! Your favourite style is waiting. Book now.",
+                "Special offer for our valued customers — come back this week!",
+              ].map(t => (
+                <button key={t} type="button" onClick={() => setMessage(t)}
+                  className="text-left text-xs px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors border border-gray-100 dark:border-gray-700">
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* Send */}
+          <button onClick={handleSend} disabled={sending || !message.trim()}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-sm transition-all shadow-md shadow-violet-300/20 disabled:opacity-50 disabled:cursor-not-allowed">
+            {sending ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending…</> : <><Send className="w-4 h-4" /> Send to {inactiveCount} customers</>}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 /* ─── Sort header cell ───────────────────────────────────────── */
 const SortTh = ({ label, field, sort, onSort }) => {
@@ -187,13 +271,22 @@ const CustomerFormModal = ({ customer, onClose, onSaved }) => {
             </div>
           </div>
 
-          {/* Notes */}
+          {/* Notes + Memory Tags */}
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              <span className="flex items-center gap-1.5"><MessageSquare className="w-3.5 h-3.5" /> Notes <span className="text-gray-400">(optional)</span></span>
+              <span className="flex items-center gap-1.5"><Tag className="w-3.5 h-3.5" /> Customer Memory <span className="text-gray-400">(optional)</span></span>
             </label>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {['Prefers: Low fade','Prefers: Keratin','Allergy: Ammonia','Allergy: Hair dye','Sensitive scalp','Prefers: Cash','Regular: Sundays'].map(tag => (
+                <button key={tag} type="button"
+                  onClick={() => setForm(p => ({ ...p, notes: p.notes ? `${p.notes}, ${tag}` : tag }))}
+                  className="text-[11px] px-2 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors font-medium">
+                  + {tag}
+                </button>
+              ))}
+            </div>
             <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-              rows={3} placeholder="Any notes about this customer…"
+              rows={3} placeholder="e.g. Prefers low fade, allergic to ammonia, visits every Sunday…"
               className={`${INP} resize-none`} />
           </div>
 
@@ -434,6 +527,7 @@ export default function Customers() {
   const [selectedCIds,    setSelectedCIds]    = useState(new Set());
   const [activityFilter,  setActivityFilter]  = useState('all'); // all | active30 | active90 | inactive90
   const [confirmDelete,   setConfirmDelete]   = useState(null); // null | { type: 'single', id } | { type: 'bulk', ids }
+  const [reengageOpen,    setReengageOpen]    = useState(false);
   useEffect(() => { document.title = 'Customers — GlowLoox'; }, []);
   const PAGE_SIZE = 20;
 
@@ -672,7 +766,7 @@ export default function Customers() {
             })}
 
             {/* Activity segmentation */}
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-2">
               <select
                 value={activityFilter}
                 onChange={e => { setActivityFilter(e.target.value); setPage(1); }}
@@ -685,6 +779,12 @@ export default function Customers() {
                 <option value="active90">Active last 90 days</option>
                 <option value="inactive90">Inactive 90+ days</option>
               </select>
+              {activityFilter === 'inactive90' && processed.length > 0 && (
+                <button onClick={() => setReengageOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold transition-colors shadow-sm">
+                  <Megaphone className="w-3.5 h-3.5" /> Message {processed.length}
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -927,6 +1027,14 @@ export default function Customers() {
         onConfirm={executeDelete}
         onCancel={() => setConfirmDelete(null)}
       />
+
+      {reengageOpen && (
+        <ReengagementModal
+          inactiveCount={processed.length}
+          onClose={() => setReengageOpen(false)}
+          onSent={() => setReengageOpen(false)}
+        />
+      )}
     </DashboardLayout>
   );
 }

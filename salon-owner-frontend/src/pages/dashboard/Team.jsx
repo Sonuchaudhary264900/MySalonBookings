@@ -3,7 +3,7 @@ import {
   Users, Plus, Edit2, Trash2, Star, IndianRupee, Calendar,
   Phone, Mail, Clock, Scissors, ChevronDown, ChevronUp,
   ToggleLeft, ToggleRight, UserCheck, X, Loader2, Eye, EyeOff,
-  CalendarOff, CalendarCheck, Smartphone,
+  CalendarOff, CalendarCheck, Smartphone, Link, Copy, Check,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -193,7 +193,7 @@ function StaffModal({ mode, initial, onSave, onClose }) {
 }
 
 /* ─── Staff Card ─────────────────────────────────────────────────────────── */
-function StaffCard({ member, onEdit, onRemove, onToggleActive, onMarkAbsent, onToggleLogin, isAbsent, absentLoading, loginLoading }) {
+function StaffCard({ member, onEdit, onRemove, onToggleActive, onMarkAbsent, onToggleLogin, onGetInviteLink, isAbsent, absentLoading, loginLoading, inviteLoading }) {
   const [expanded, setExpanded] = useState(false);
   const role = ROLE_LABELS[member.staffRole] || ROLE_LABELS.stylist;
 
@@ -337,6 +337,15 @@ function StaffCard({ member, onEdit, onRemove, onToggleActive, onMarkAbsent, onT
             </div>
           )}
           {!member.isOwner && (
+            <button
+              onClick={() => onGetInviteLink(member._id, member.name)}
+              disabled={inviteLoading}
+              className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors border border-indigo-100 dark:border-indigo-800 disabled:opacity-50 w-full justify-center mt-1">
+              {inviteLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Link className="w-3 h-3" />}
+              Invite Link
+            </button>
+          )}
+          {!member.isOwner && (
             <button onClick={() => onRemove(member)}
               className="w-full mt-1 py-2 rounded-xl border border-red-200 dark:border-red-900/40 text-red-500 text-xs font-semibold hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors flex items-center justify-center gap-1.5">
               <Trash2 size={12} /> Remove from Team
@@ -348,6 +357,29 @@ function StaffCard({ member, onEdit, onRemove, onToggleActive, onMarkAbsent, onT
   );
 }
 
+/* ─── Invite Link Modal ──────────────────────────────────────────────────── */
+const InviteLinkModal = ({ link, name, copied, onCopy, onClose }) => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-2xl w-full max-w-md p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-base font-bold text-gray-900 dark:text-white">Invite Link for {name}</h3>
+        <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 transition-colors">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Share this link with {name}. They can use it to join your team on the GlowLoox Partner app.</p>
+      <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 mb-4">
+        <p className="flex-1 text-xs text-gray-600 dark:text-gray-400 truncate font-mono">{link}</p>
+        <button onClick={onCopy}
+          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors">
+          {copied ? <><Check className="w-3.5 h-3.5" /> Copied!</> : <><Copy className="w-3.5 h-3.5" /> Copy</>}
+        </button>
+      </div>
+      <p className="text-[11px] text-gray-400 text-center">Link expires in 48 hours. Generate a new one if needed.</p>
+    </div>
+  </div>
+);
+
 /* ─── Main Page ──────────────────────────────────────────────────────────── */
 export default function Team() {
   const [staff, setStaff]         = useState([]);
@@ -358,6 +390,10 @@ export default function Team() {
   const [absentIds, setAbsentIds] = useState(new Set()); // staffIds absent today
   const [absentLoading, setAbsentLoading] = useState(null);
   const [loginLoading, setLoginLoading] = useState(null);
+  const [inviteLink, setInviteLink]     = useState(null);
+  const [inviteName, setInviteName]     = useState('');
+  const [inviteCopied, setInviteCopied] = useState(false);
+  const [inviteLoading, setInviteLoading] = useState(null); // staffId being loaded
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -438,6 +474,18 @@ export default function Team() {
     } catch { toast.error('Failed to update'); }
   };
 
+  const handleGetInviteLink = async (staffId, staffName) => {
+    setInviteLoading(staffId);
+    try {
+      const res = await api.post(`/owner/team/${staffId}/invite-link`);
+      setInviteLink(res.data?.data?.inviteLink || '');
+      setInviteName(staffName);
+      setInviteCopied(false);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to generate invite link');
+    } finally { setInviteLoading(null); }
+  };
+
   const activeStaff   = staff.filter(s => s.isActive);
   const inactiveStaff = staff.filter(s => !s.isActive);
   const hasTeam       = activeStaff.filter(s => !s.isOwner).length > 0;
@@ -492,9 +540,11 @@ export default function Team() {
                   onToggleActive={handleToggleActive}
                   onMarkAbsent={handleMarkAbsent}
                   onToggleLogin={handleToggleLogin}
+                  onGetInviteLink={handleGetInviteLink}
                   isAbsent={absentIds.has(String(m._id))}
                   absentLoading={absentLoading === m._id}
-                  loginLoading={loginLoading === m._id} />
+                  loginLoading={loginLoading === m._id}
+                  inviteLoading={inviteLoading === m._id} />
               ))}
             </div>
 
@@ -536,6 +586,19 @@ export default function Team() {
             </div>
           </div>
         </div>
+      )}
+      {inviteLink && (
+        <InviteLinkModal
+          link={inviteLink}
+          name={inviteName}
+          copied={inviteCopied}
+          onCopy={() => {
+            navigator.clipboard.writeText(inviteLink);
+            setInviteCopied(true);
+            setTimeout(() => setInviteCopied(false), 2000);
+          }}
+          onClose={() => setInviteLink(null)}
+        />
       )}
     </DashboardLayout>
   );

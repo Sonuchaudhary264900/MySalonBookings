@@ -13,9 +13,10 @@ import {
   ChevronLeft, ChevronRight, Plus, X, MoreVertical, ShieldOff, ShieldCheck,
   RefreshCw, Users, CalendarCheck, IndianRupee, Clock, TrendingUp, TrendingDown,
   Scissors, CheckCircle2, XCircle, Loader2, Activity, Zap, ArrowRight, Copy, Check,
-  AlertTriangle, UserX, Lightbulb,
+  AlertTriangle, UserX, Lightbulb, Crown, Flame, Trophy, Keyboard,
 } from "lucide-react";
 import { formatDate, formatTime } from "../../utils/exportHelpers";
+import toast from 'react-hot-toast';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_BASE_URL?.replace('/api/v1', '') || 'http://localhost:5000';
 
@@ -142,6 +143,67 @@ const InsightCard = ({ icon: Icon, iconBg, iconColor, title, value, subtitle, ct
     )}
   </div>
 );
+
+/* ─── Milestone Modal ────────────────────────────────────────────────────── */
+const MILESTONES = [10, 25, 50, 100, 250, 500, 1000];
+const MilestoneModal = ({ count, onClose }) => {
+  const milestone = MILESTONES.slice().reverse().find(m => count >= m) || null;
+  if (!milestone) return null;
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+      <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-2xl w-full max-w-sm p-8 flex flex-col items-center gap-4 text-center animate-[scalein_0.25s_ease_both]">
+        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-300/40">
+          <Trophy className="w-10 h-10 text-white" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-amber-500 uppercase tracking-widest mb-1">Milestone Reached!</p>
+          <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">{milestone} Bookings</h2>
+          <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">You've completed {count.toLocaleString()} bookings total. Keep up the great work!</p>
+        </div>
+        <button onClick={onClose}
+          className="mt-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-sm hover:from-amber-400 hover:to-orange-400 transition-all shadow-md shadow-amber-300/30">
+          Awesome!
+        </button>
+      </div>
+    </div>
+  );
+};
+
+/* ─── Keyboard Shortcuts Modal ───────────────────────────────────────────── */
+const KeyboardShortcutsModal = ({ onClose }) => {
+  const shortcuts = [
+    { key: 'B', desc: 'Add Walk-in booking' },
+    { key: 'C', desc: 'Go to Customers' },
+    { key: 'S', desc: 'Go to Services' },
+    { key: 'R', desc: 'Go to Reviews' },
+    { key: 'T', desc: 'Go to Today' },
+    { key: '?', desc: 'Show / hide shortcuts' },
+  ];
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Keyboard className="w-5 h-5 text-indigo-500" />
+            <h3 className="text-base font-bold text-gray-900 dark:text-white">Keyboard Shortcuts</h3>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="space-y-2">
+          {shortcuts.map(({ key, desc }) => (
+            <div key={key} className="flex items-center justify-between py-1.5">
+              <span className="text-sm text-gray-600 dark:text-gray-400">{desc}</span>
+              <kbd className="px-2.5 py-1 text-xs font-bold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg border border-gray-200 dark:border-gray-700 font-mono">{key}</kbd>
+            </div>
+          ))}
+        </div>
+        <p className="text-[11px] text-gray-400 dark:text-gray-600 text-center mt-4">Press any key to dismiss</p>
+      </div>
+    </div>
+  );
+};
 
 /* ─── Walk-in Modal ─────────────────────────────────────────────────────── */
 const WalkInModal = ({ salon, services, onClose, onSuccess }) => {
@@ -350,7 +412,14 @@ const QueueCard = ({ booking, index, onStatusChange, onBlock, onUnblock }) => {
 
       {/* Customer info */}
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-gray-900 dark:text-white truncate">{booking.customerName || "—"}</p>
+        <div className="flex items-center gap-1.5">
+          <p className="font-semibold text-gray-900 dark:text-white truncate">{booking.customerName || "—"}</p>
+          {booking.isVip && (
+            <span className="shrink-0 flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">
+              <Crown className="w-2.5 h-2.5" /> VIP
+            </span>
+          )}
+        </div>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           <Scissors className="w-3 h-3 inline mr-1 opacity-60" />
           {booking.serviceName} · {formatTime(booking.appointmentTime)}
@@ -484,6 +553,10 @@ const Dashboard = () => {
   const [insights, setInsights]               = useState(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
 
+  /* Milestone + shortcuts */
+  const [showMilestone, setShowMilestone]   = useState(false);
+  const [showShortcuts, setShowShortcuts]   = useState(false);
+
   /* Team stats */
   const [teamStats, setTeamStats] = useState([]);
 
@@ -592,7 +665,21 @@ const Dashboard = () => {
     setInsightsLoading(true);
     try {
       const res = await api.get('/owner/analytics/insights');
-      setInsights(res.data?.data || null);
+      const data = res.data?.data;
+      setInsights(data || null);
+      // Milestone detection
+      if (data?.totalBookings) {
+        const MILESTONES = [10, 25, 50, 100, 250, 500, 1000];
+        const reached = MILESTONES.filter(m => data.totalBookings >= m);
+        if (reached.length > 0) {
+          const top = reached[reached.length - 1];
+          const key = `msb_milestone_${user?._id}_${top}`;
+          if (!localStorage.getItem(key)) {
+            localStorage.setItem(key, '1');
+            setShowMilestone(true);
+          }
+        }
+      }
     } catch { setInsights(null); }
     finally { setInsightsLoading(false); }
   }, []);
@@ -612,7 +699,16 @@ const Dashboard = () => {
       setLastUpdated(new Date());
     };
     socket.on('booking-updated', refresh);
-    socket.on('new-booking', refresh);
+    socket.on('new-booking', (data) => {
+      refresh();
+      if (data?.customerPhone && vipSet.has(data.customerPhone)) {
+        toast.success(`VIP customer just booked — ${data.customerName || 'VIP'}`, {
+          icon: '👑',
+          duration: 5000,
+          style: { background: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d' },
+        });
+      }
+    });
     socket.on('queue-updated', refresh);
     return () => { socket.disconnect(); socketRef.current = null; };
   }, [salon?._id]);
@@ -678,6 +774,25 @@ const Dashboard = () => {
   }, [bookings, queue, weeklyBookings, weeklyRevenue]);
 
   useEffect(() => { document.title = 'Dashboard — GlowLoox'; }, []);
+
+  useEffect(() => {
+    const handle = (e) => {
+      const tag = document.activeElement?.tagName;
+      if (['INPUT','TEXTAREA','SELECT'].includes(tag)) return;
+      if (e.key === '?') { setShowShortcuts(v => !v); return; }
+      if (e.key === 'Escape') { setShowShortcuts(false); setWalkInOpen(false); return; }
+      if (showShortcuts) { setShowShortcuts(false); return; }
+      if (e.key === 'b' || e.key === 'B') { setWalkInOpen(true); return; }
+      if (e.key === 'c' || e.key === 'C') { navigate(ROUTES.CUSTOMERS); return; }
+      if (e.key === 's' || e.key === 'S') { navigate(ROUTES.SERVICES); return; }
+      if (e.key === 'r' || e.key === 'R') { navigate(ROUTES.REVIEWS); return; }
+      if (e.key === 't' || e.key === 'T') { setSelectedDate(today); return; }
+    };
+    window.addEventListener('keydown', handle);
+    return () => window.removeEventListener('keydown', handle);
+  }, [showShortcuts, navigate]);
+
+  const vipSet = useMemo(() => new Set(insights?.vipCustomerPhones || []), [insights]);
 
   const isToday      = selectedDate === today;
   const displayLabel = isToday ? "Today" : formatDate(selectedDate + "T12:00:00");
@@ -882,6 +997,43 @@ const Dashboard = () => {
         </div>
 
         {/* ══════════════════════════════════════════════════════════
+            STREAK + GAMIFICATION BANNER
+        ══════════════════════════════════════════════════════════ */}
+        {insights && (insights.streak > 0 || insights.totalBookings > 0) && (
+          <div className="flex flex-wrap items-center gap-3 px-5 py-3.5 bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-950/30 dark:to-indigo-950/30 rounded-2xl border border-violet-100 dark:border-violet-900/40">
+            {insights.streak > 1 && (
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center">
+                  <Flame className="w-3.5 h-3.5 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-extrabold text-gray-900 dark:text-white leading-tight">{insights.streak}-day streak</p>
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500">Consecutive booking days</p>
+                </div>
+              </div>
+            )}
+            {insights.streak > 1 && insights.totalBookings > 0 && <div className="w-px h-8 bg-gray-200 dark:bg-gray-700 hidden sm:block" />}
+            {insights.totalBookings > 0 && (
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+                  <Trophy className="w-3.5 h-3.5 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-extrabold text-gray-900 dark:text-white leading-tight">{insights.totalBookings.toLocaleString()} bookings</p>
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500">All-time completed</p>
+                </div>
+              </div>
+            )}
+            <div className="ml-auto">
+              <button onClick={() => setShowShortcuts(true)}
+                className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-200 transition-colors">
+                <Keyboard className="w-3.5 h-3.5" /> Shortcuts
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════
             TEAM TODAY  (only shown when salon has staff)
         ══════════════════════════════════════════════════════════ */}
         {teamStats.length > 1 && (
@@ -958,7 +1110,7 @@ const Dashboard = () => {
                   {queue.map((booking, i) => (
                     <QueueCard
                       key={booking._id}
-                      booking={booking}
+                      booking={{ ...booking, isVip: vipSet.has(booking.customerPhone) }}
                       index={i}
                       onStatusChange={handleStatusChange}
                       onBlock={handleBlock}
@@ -1113,9 +1265,16 @@ const Dashboard = () => {
                       </span>
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                        {booking.customerName || "—"}
-                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                          {booking.customerName || "—"}
+                        </p>
+                        {vipSet.has(booking.customerPhone) && (
+                          <span className="shrink-0 flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">
+                            <Crown className="w-2.5 h-2.5" /> VIP
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate flex items-center gap-1.5">
                         <Scissors className="w-3 h-3 shrink-0" />
                         {booking.serviceName}
@@ -1126,8 +1285,16 @@ const Dashboard = () => {
                     </div>
                   </div>
 
-                  {/* Amount + Status */}
-                  <div className="flex items-center gap-3 shrink-0">
+                  {/* Amount + Status + Rebook */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => {
+                        setWalkInOpen(true);
+                      }}
+                      title="Rebook this customer"
+                      className="hidden sm:flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">
+                      <RefreshCw className="w-3 h-3" /> Rebook
+                    </button>
                     {booking.totalAmount ? (
                       <span className="text-sm font-bold text-gray-800 dark:text-gray-200 hidden sm:block">
                         ₹{booking.totalAmount}
@@ -1243,6 +1410,12 @@ const Dashboard = () => {
           onClose={() => setWalkInOpen(false)}
           onSuccess={handleWalkInSuccess}
         />
+      )}
+      {showMilestone && insights?.totalBookings && (
+        <MilestoneModal count={insights.totalBookings} onClose={() => setShowMilestone(false)} />
+      )}
+      {showShortcuts && (
+        <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />
       )}
     </DashboardLayout>
   );
