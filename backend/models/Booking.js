@@ -63,6 +63,17 @@ const bookingSchema = new mongoose.Schema(
       oneHour:   { type: Boolean, default: false },
     },
     ownerNotes: String,
+    rescheduleCount: { type: Number, default: 0 },
+    rescheduleHistory: [
+      {
+        fromDate: Date,
+        fromTime: String,
+        toDate: Date,
+        toTime: String,
+        rescheduledAt: { type: Date, default: Date.now },
+        rescheduledBy: { type: String, enum: ['owner', 'customer'], default: 'owner' },
+      }
+    ],
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
   },

@@ -139,7 +139,7 @@ const EmptyState = ({ filter, onAddWalkIn, searchQuery, onClearSearch }) => (
 );
 
 /* ─── Row action dropdown ────────────────────────────────────── */
-const ActionDropdown = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock, onMarkLate, onCollectCash, lateLoading, cashLoading }) => {
+const ActionDropdown = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock, onMarkLate, onCollectCash, lateLoading, cashLoading, onReschedule }) => {
   const [open, setOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   const btnRef = useRef(null);
@@ -248,6 +248,24 @@ const ActionDropdown = ({ booking, updating, onStatusChange, isBlocked, blockLoa
             )}
             {booking.cashCollected && (
               <p className="px-3.5 py-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Cash collected</p>
+            )}
+
+            {/* Reschedule */}
+            {['pending','confirmed'].includes(booking.status) && (booking.rescheduleCount || 0) < 2 && onReschedule && (
+              <>
+                <div className="border-t border-gray-100 dark:border-gray-800 my-1" />
+                <button
+                  onClick={() => { onReschedule(booking); setOpen(false); }}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm font-medium
+                    hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left"
+                >
+                  <Calendar className="w-4 h-4 text-violet-600 dark:text-violet-400 shrink-0" />
+                  <span className="text-violet-700 dark:text-violet-400">Reschedule</span>
+                  {(booking.rescheduleCount || 0) > 0 && (
+                    <span className="ml-auto text-[10px] text-gray-400">{booking.rescheduleCount}/2</span>
+                  )}
+                </button>
+              </>
             )}
 
             {showBlock && (
@@ -467,8 +485,140 @@ const WalkInModal = ({ salon, services, onClose, onSuccess }) => {
   );
 };
 
+/* ─── Reschedule Modal ───────────────────────────────────────── */
+const RescheduleModal = ({ booking, salon, services, onClose, onSuccess }) => {
+  const [date, setDate]           = useState(today);
+  const [slot, setSlot]           = useState('');
+  const [slots, setSlots]         = useState([]);
+  const [blockedSlots, setBlockedSlots] = useState([]);
+  const [closedDay, setClosedDay] = useState(false);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError]         = useState('');
+
+  const serviceDuration = (booking.services?.[0]?.duration) || (booking.estimatedDuration) || 30;
+  const timeToMinutes   = t => { const [h,m] = t.split(':').map(Number); return h*60+m; };
+  const isPastSlot      = s => date === today && timeToMinutes(s) <= new Date().getHours()*60+new Date().getMinutes();
+
+  useEffect(() => {
+    if (!date || !salon?._id) return;
+    setSlot(''); setSlots([]); setBlockedSlots([]); setClosedDay(false);
+    setSlotsLoading(true);
+    salonService.getBookedSlots(String(salon._id), date, serviceDuration)
+      .then(data => { setSlots(data.slots||[]); setBlockedSlots(data.blockedSlots||[]); setClosedDay(data.closedDay||false); })
+      .catch(() => { setSlots([]); setBlockedSlots([]); })
+      .finally(() => setSlotsLoading(false));
+  }, [date, salon?._id]);
+
+  const handleSubmit = async e => {
+    e.preventDefault();
+    if (!slot) { setError('Please select a time slot'); return; }
+    setError(''); setSubmitting(true);
+    try {
+      await onSuccess({ newDate: date, newTime: slot });
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Failed to reschedule');
+    } finally { setSubmitting(false); }
+  };
+
+  const INP = `w-full px-3.5 py-2.5 rounded-xl border text-sm
+    bg-white dark:bg-gray-800/70 border-gray-200 dark:border-gray-700
+    text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors`;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-6 overflow-y-auto">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl w-full max-w-md my-auto">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-violet-100 dark:bg-violet-950 flex items-center justify-center">
+              <Calendar className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-gray-900 dark:text-white">Reschedule Booking</h2>
+              <p className="text-xs text-gray-400 dark:text-gray-500">{booking.customerName} · {booking.serviceName}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center transition-colors">
+            <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+          </button>
+        </div>
+
+        {(booking.rescheduleCount || 0) > 0 && (
+          <div className="mx-5 mt-4 px-3.5 py-2.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl text-xs text-amber-700 dark:text-amber-400">
+            Reschedule {booking.rescheduleCount}/2 used — {2 - (booking.rescheduleCount || 0)} remaining
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {error && (
+            <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 text-red-600 dark:text-red-400 rounded-xl text-sm">
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">New Date</label>
+            <input type="date" min={today} max={maxDate} value={date} onChange={e => setDate(e.target.value)} required className={INP} />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              New Time Slot
+              <span className="ml-2 text-xs font-normal text-gray-400">({serviceDuration} min)</span>
+            </label>
+            {slotsLoading ? (
+              <div className="flex items-center gap-2 py-3 text-gray-400 text-sm">
+                <div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                Loading slots…
+              </div>
+            ) : closedDay ? (
+              <p className="text-sm text-amber-600 dark:text-amber-400 py-2">Salon is closed on this day.</p>
+            ) : slots.length === 0 ? (
+              <p className="text-sm text-gray-400 dark:text-gray-500 py-2">No slots available for this date.</p>
+            ) : (
+              <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1">
+                {slots.map(s => {
+                  const past    = isPastSlot(s);
+                  const blocked = !past && blockedSlots.includes(s);
+                  const selected = slot === s;
+                  const endMin  = timeToMinutes(s) + serviceDuration;
+                  const endTime = `${String(Math.floor(endMin/60)).padStart(2,'0')}:${String(endMin%60).padStart(2,'0')}`;
+                  return (
+                    <button key={s} type="button"
+                      onClick={() => { if (!past && !blocked) setSlot(s); }}
+                      className={`py-2 px-1 text-xs rounded-xl border transition-all font-medium text-center leading-tight ${
+                        past    ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 border-gray-200 cursor-not-allowed'
+                        : blocked ? 'bg-red-50 dark:bg-red-950/30 text-red-400 border-red-200 cursor-not-allowed'
+                        : selected ? 'bg-violet-600 text-white border-violet-600'
+                        : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-violet-400 hover:text-violet-600'
+                      }`}>
+                      <span className="block">{s}</span>
+                      <span className="block opacity-60">– {endTime}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <button type="submit" disabled={submitting || !slot}
+            className="w-full py-3 rounded-xl font-semibold text-sm transition-all duration-200
+              bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500
+              text-white shadow-lg shadow-violet-500/25
+              disabled:opacity-50 disabled:cursor-not-allowed
+              flex items-center justify-center gap-2">
+            {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+            {submitting ? 'Rescheduling…' : 'Confirm Reschedule'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 /* ─── Booking Table Row ──────────────────────────────────────── */
-const BookingRow = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock, onOpenChat, hasUnread, staffList, onReload, onMarkLate, onCollectCash, lateLoading, cashLoading }) => {
+const BookingRow = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock, onOpenChat, hasUnread, staffList, onReload, onMarkLate, onCollectCash, lateLoading, cashLoading, onReschedule }) => {
   const cfg = STATUS_CFG[booking.status] || { label: booking.status, dot: 'bg-gray-400', badge: 'bg-gray-100 text-gray-600' };
   const dateStr = booking.appointmentDate ? formatDate(booking.appointmentDate) : '—';
 
@@ -580,6 +730,7 @@ const BookingRow = ({ booking, updating, onStatusChange, isBlocked, blockLoading
             onCollectCash={onCollectCash}
             lateLoading={lateLoading}
             cashLoading={cashLoading}
+            onReschedule={onReschedule}
           />
         </div>
       </td>
@@ -588,7 +739,7 @@ const BookingRow = ({ booking, updating, onStatusChange, isBlocked, blockLoading
 };
 
 /* ─── Mobile Booking Card ────────────────────────────────────── */
-const BookingCard = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock, onOpenChat, hasUnread, staffList, onReload, onMarkLate, onCollectCash, lateLoading, cashLoading }) => {
+const BookingCard = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock, onOpenChat, hasUnread, staffList, onReload, onMarkLate, onCollectCash, lateLoading, cashLoading, onReschedule }) => {
   const cfg = STATUS_CFG[booking.status] || { label: booking.status, dot: 'bg-gray-400', badge: 'bg-gray-100 text-gray-600' };
   const dateStr = booking.appointmentDate ? formatDate(booking.appointmentDate) : '—';
 
@@ -650,6 +801,9 @@ const BookingCard = ({ booking, updating, onStatusChange, isBlocked, blockLoadin
         )}
         {booking.paymentMethod === 'cash' && !booking.cashCollected && booking.status !== 'cancelled' && (
           <ActionBtn label="Cash Collected" cls="bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800" loading={cashLoading} onClick={() => onCollectCash(booking._id)} />
+        )}
+        {['pending','confirmed'].includes(booking.status) && (booking.rescheduleCount || 0) < 2 && onReschedule && (
+          <ActionBtn label="Reschedule" cls="bg-violet-50 dark:bg-violet-950/30 hover:bg-violet-100 text-violet-700 dark:text-violet-400 border border-violet-200 dark:border-violet-800" loading={false} onClick={() => onReschedule(booking)} />
         )}
         {CHAT_OPEN.has(booking.status) && (
           <button
@@ -958,6 +1112,7 @@ const Bookings = () => {
   const [searchQuery, setSearchQuery]   = useState('');
   const [lateLoading, setLateLoading]   = useState(null);
   const [cashLoading, setCashLoading]   = useState(null);
+  const [rescheduleBooking, setRescheduleBooking] = useState(null);
 
   const handleOpenChat = useCallback((booking) => {
     setChatBooking(booking);
@@ -1312,6 +1467,7 @@ const Bookings = () => {
                       onCollectCash={handleCollectCash}
                       lateLoading={lateLoading === booking._id}
                       cashLoading={cashLoading === booking._id}
+                      onReschedule={setRescheduleBooking}
                     />
                   ))}
                 </tbody>
@@ -1337,6 +1493,7 @@ const Bookings = () => {
                   onCollectCash={handleCollectCash}
                   lateLoading={lateLoading === booking._id}
                   cashLoading={cashLoading === booking._id}
+                  onReschedule={setRescheduleBooking}
                 />
               ))}
             </div>
@@ -1359,6 +1516,21 @@ const Bookings = () => {
         <ChatPanel
           booking={chatBooking}
           onClose={() => setChatBooking(null)}
+        />
+      )}
+
+      {/* Reschedule Modal */}
+      {rescheduleBooking && (
+        <RescheduleModal
+          booking={rescheduleBooking}
+          salon={salon}
+          services={services}
+          onClose={() => setRescheduleBooking(null)}
+          onSuccess={async ({ newDate, newTime }) => {
+            await api.put(`/owner/bookings/${rescheduleBooking._id}/reschedule`, { newDate, newTime });
+            toast.success('Booking rescheduled');
+            loadBookings(selectedDate);
+          }}
         />
       )}
     </DashboardLayout>

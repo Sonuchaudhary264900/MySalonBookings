@@ -422,6 +422,15 @@ export default function BookingsScreen() {
   const [actionSheet, setActionSheet] = useState(null);
   const [confirm, setConfirm] = useState(null);
   const [chatBooking, setChatBooking] = useState(null);
+  const [rescheduleBooking, setRescheduleBooking] = useState(null);
+  const [rsDate, setRsDate] = useState(today);
+  const [rsSlot, setRsSlot] = useState('');
+  const [rsSlots, setRsSlots] = useState([]);
+  const [rsBlockedSlots, setRsBlockedSlots] = useState([]);
+  const [rsClosedDay, setRsClosedDay] = useState(false);
+  const [rsSlotsLoading, setRsSlotsLoading] = useState(false);
+  const [rsSubmitting, setRsSubmitting] = useState(false);
+  const [rsError, setRsError] = useState('');
 
   // Fetch upcoming bookings by date
   const fetchBookings = useCallback(async (date) => {
@@ -571,6 +580,37 @@ export default function BookingsScreen() {
       confirmLabel: labels[newStatus] || 'Confirm',
       onConfirm: () => { setConfirm(null); handleStatusChange(booking._id, newStatus); },
     });
+  };
+
+  // Fetch slots when reschedule sheet opens or date changes
+  useEffect(() => {
+    if (!rescheduleBooking || !salon?._id) return;
+    setRsSlot(''); setRsSlots([]); setRsBlockedSlots([]); setRsClosedDay(false);
+    setRsSlotsLoading(true);
+    const dur = rescheduleBooking.estimatedDuration || rescheduleBooking.services?.[0]?.duration || 30;
+    api.get(`/public/salons/${salon._id}/slots?date=${rsDate}&duration=${dur}`)
+      .then(res => {
+        const d = res.data.data || res.data;
+        setRsSlots(d.slots || []);
+        setRsBlockedSlots(d.blockedSlots || []);
+        setRsClosedDay(d.closedDay || false);
+      })
+      .catch(() => { setRsSlots([]); setRsBlockedSlots([]); })
+      .finally(() => setRsSlotsLoading(false));
+  }, [rescheduleBooking, rsDate, salon?._id]);
+
+  const handleReschedule = async () => {
+    if (!rsSlot) { setRsError('Please select a time slot'); return; }
+    setRsError(''); setRsSubmitting(true);
+    try {
+      await api.put(`/owner/bookings/${rescheduleBooking._id}/reschedule`, { newDate: rsDate, newTime: rsSlot });
+      showSuccess('Rescheduled', 'Booking has been rescheduled');
+      setRescheduleBooking(null);
+      if (viewMode === 'upcoming') fetchBookings(selectedDate);
+      else fetchAllBookings(1, filter, true);
+    } catch (err) {
+      setRsError(err.response?.data?.message || 'Failed to reschedule');
+    } finally { setRsSubmitting(false); }
   };
 
   const createWalkIn = async (data) => {
@@ -901,6 +941,25 @@ export default function BookingsScreen() {
                 </Text>
               </TouchableOpacity>
             )}
+            {['pending','confirmed'].includes(actionSheet?.status) && (actionSheet?.rescheduleCount || 0) < 2 && (
+              <TouchableOpacity
+                style={bStyles.sheetOption}
+                onPress={() => {
+                  setRescheduleBooking(actionSheet);
+                  setRsDate(today);
+                  setRsSlot('');
+                  setRsError('');
+                  setActionSheet(null);
+                }}
+              >
+                <View style={[bStyles.sheetOptionIcon, { backgroundColor: '#ede9fe' }]}>
+                  <Ionicons name="calendar-outline" size={20} color="#7c3aed" />
+                </View>
+                <Text style={[bStyles.sheetOptionText, { color: '#7c3aed' }]}>
+                  Reschedule{(actionSheet?.rescheduleCount || 0) > 0 ? ` (${actionSheet.rescheduleCount}/2 used)` : ''}
+                </Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity style={bStyles.sheetOption} onPress={() => setActionSheet(null)}>
               <View style={[bStyles.sheetOptionIcon, { backgroundColor: '#374151' }]}>
                 <Ionicons name="close-outline" size={20} color="#9ca3af" />
@@ -936,6 +995,97 @@ export default function BookingsScreen() {
       {chatBooking && (
         <ChatModal booking={chatBooking} onClose={() => setChatBooking(null)} />
       )}
+
+      {/* ── Reschedule Sheet ── */}
+      <Modal visible={!!rescheduleBooking} transparent animationType="slide" onRequestClose={() => setRescheduleBooking(null)}>
+        <Pressable style={bStyles.modalOverlay} onPress={() => setRescheduleBooking(null)}>
+          <Pressable style={[bStyles.sheetBox, { backgroundColor: theme.card, maxHeight: '85%' }]} onPress={() => {}}>
+            <View style={bStyles.sheetHandle} />
+            <Text style={[{ fontSize: 16, fontWeight: '700', color: theme.text, marginBottom: 4 }]}>Reschedule Booking</Text>
+            <Text style={{ color: theme.subText, fontSize: 13, marginBottom: 16 }}>
+              {rescheduleBooking?.customerName} · {rescheduleBooking?.serviceName}
+            </Text>
+
+            {(rescheduleBooking?.rescheduleCount || 0) > 0 && (
+              <View style={{ backgroundColor: '#fef3c7', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 12 }}>
+                <Text style={{ fontSize: 12, color: '#92400e' }}>
+                  Reschedule {rescheduleBooking.rescheduleCount}/2 used
+                </Text>
+              </View>
+            )}
+
+            {rsError ? (
+              <View style={{ backgroundColor: '#fee2e2', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 12 }}>
+                <Text style={{ fontSize: 13, color: '#dc2626' }}>{rsError}</Text>
+              </View>
+            ) : null}
+
+            <Text style={{ fontSize: 13, fontWeight: '600', color: theme.subText, marginBottom: 6 }}>New Date</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+              {[0,1,2,3,4,5,6,7,8,9,10,11,12,13].map(offset => {
+                const d = localDate(offset);
+                const label = offset === 0 ? 'Today' : new Date(d + 'T12:00:00').toLocaleDateString('en-IN', { weekday:'short', day:'numeric', month:'short' });
+                const active = rsDate === d;
+                return (
+                  <TouchableOpacity
+                    key={d}
+                    onPress={() => setRsDate(d)}
+                    style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, marginRight: 8,
+                      backgroundColor: active ? '#7c3aed' : (theme.card === '#fff' ? '#f3f4f6' : '#1e293b') }}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: active ? '#fff' : theme.subText }}>{label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            <Text style={{ fontSize: 13, fontWeight: '600', color: theme.subText, marginBottom: 8 }}>Available Slots</Text>
+            {rsSlotsLoading ? (
+              <ActivityIndicator size="small" color="#7c3aed" style={{ marginBottom: 16 }} />
+            ) : rsClosedDay ? (
+              <Text style={{ color: '#f59e0b', fontSize: 13, marginBottom: 16 }}>Salon is closed on this day.</Text>
+            ) : rsSlots.length === 0 ? (
+              <Text style={{ color: theme.subText, fontSize: 13, marginBottom: 16 }}>No slots available for this date.</Text>
+            ) : (
+              <ScrollView style={{ maxHeight: 160, marginBottom: 16 }}>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {rsSlots.map(s => {
+                    const past = rsDate === today && (() => { const [h,m] = s.split(':').map(Number); const now = new Date(); return h*60+m <= now.getHours()*60+now.getMinutes(); })();
+                    const blocked = !past && rsBlockedSlots.includes(s);
+                    const selected = rsSlot === s;
+                    return (
+                      <TouchableOpacity
+                        key={s}
+                        onPress={() => { if (!past && !blocked) setRsSlot(s); }}
+                        style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, borderWidth: 1,
+                          backgroundColor: past ? '#f3f4f6' : blocked ? '#fee2e2' : selected ? '#7c3aed' : (theme.card === '#fff' ? '#f9fafb' : '#1e293b'),
+                          borderColor: past ? '#e5e7eb' : blocked ? '#fca5a5' : selected ? '#7c3aed' : '#e5e7eb',
+                        }}
+                      >
+                        <Text style={{ fontSize: 13, fontWeight: '600',
+                          color: past ? '#9ca3af' : blocked ? '#ef4444' : selected ? '#fff' : theme.text }}>
+                          {s}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </ScrollView>
+            )}
+
+            <TouchableOpacity
+              style={{ backgroundColor: rsSubmitting || !rsSlot ? '#a78bfa' : '#7c3aed', borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}
+              onPress={handleReschedule}
+              disabled={rsSubmitting || !rsSlot}
+            >
+              {rsSubmitting
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Confirm Reschedule</Text>
+              }
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
     </View>
   );

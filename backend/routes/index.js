@@ -4375,6 +4375,158 @@ router.post('/owner/bookings/:bookingId/collect-cash', authenticateOwner, valida
 }));
 
 /* =====================================================
+   RESCHEDULE — PUT /owner/bookings/:bookingId/reschedule
+===================================================== */
+router.put('/owner/bookings/:bookingId/reschedule', authenticateOwner, validateObjectId('bookingId'), asyncHandler(async (req, res) => {
+  const salon = await Business.findOne({ ownerId: req.owner._id }).lean();
+  if (!salon) return res.status(404).json({ success: false, message: 'Business not found' });
+
+  const booking = await Booking.findOne({ _id: req.params.bookingId, salonId: salon._id });
+  if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+
+  // Policy: only pending/confirmed can be rescheduled
+  if (!['pending', 'confirmed'].includes(booking.status)) {
+    return res.status(400).json({ success: false, message: `Cannot reschedule a ${booking.status} booking` });
+  }
+  // Policy: max 2 reschedules per booking
+  if ((booking.rescheduleCount || 0) >= 2) {
+    return res.status(400).json({ success: false, message: 'This booking has already been rescheduled the maximum number of times (2)' });
+  }
+
+  const { newDate, newTime, barberId: newBarberId } = req.body;
+  if (!newDate || !newTime) return res.status(400).json({ success: false, message: 'newDate and newTime are required' });
+
+  // Policy: new date/time must be in the future
+  const newDt = new Date(`${newDate}T${newTime}:00`);
+  if (newDt <= new Date()) {
+    return res.status(400).json({ success: false, message: 'New appointment time must be in the future' });
+  }
+
+  // Policy: must be rescheduled ≥1h before original appointment
+  const origDt = new Date(booking.appointmentDate);
+  origDt.setHours(0, 0, 0, 0);
+  const [oh, om] = (booking.appointmentTime || '00:00').split(':').map(Number);
+  const originalFull = new Date(origDt.getTime() + oh * 3600000 + om * 60000);
+  const msUntilOriginal = originalFull.getTime() - Date.now();
+  if (msUntilOriginal < 3600000) {
+    return res.status(400).json({ success: false, message: 'Reschedule must be done at least 1 hour before the original appointment time' });
+  }
+
+  const targetBarberId = newBarberId || booking.barberId;
+
+  // Barber absence check on new date
+  if (targetBarberId) {
+    const StaffAbsence = require('../models/StaffAbsence');
+    const absence = await StaffAbsence.findOne({ staffId: targetBarberId, salonId: salon._id, date: newDate }).lean();
+    if (absence) {
+      const Barber = require('../models/Barber');
+      const barber = await Barber.findById(targetBarberId).select('name').lean();
+      return res.status(409).json({ success: false, message: `${barber?.name || 'Staff'} is marked absent on that date. Please choose a different date or another staff member.` });
+    }
+  }
+
+  // Overlap check on new slot (exclude this booking itself)
+  const timeToMinutes = (t) => { const [h, m] = (t || '00:00').split(':').map(Number); return h * 60 + m; };
+  function overlapsSlot(b, ns, ne) {
+    const bs = timeToMinutes(b.appointmentTime);
+    const be = bs + (b.estimatedDuration || 30);
+    return ns < be && bs < ne;
+  }
+
+  if (targetBarberId) {
+    const dayStart = new Date(newDate + 'T00:00:00.000Z');
+    const dayEnd   = new Date(newDate + 'T23:59:59.999Z');
+    const existingBooks = await Booking.find({
+      _id: { $ne: booking._id },
+      barberId: targetBarberId,
+      salonId: salon._id,
+      appointmentDate: { $gte: dayStart, $lte: dayEnd },
+      status: { $in: ['pending', 'confirmed', 'in_progress'] },
+    }).select('appointmentTime estimatedDuration').lean();
+
+    const ns = timeToMinutes(newTime);
+    const ne = ns + (booking.estimatedDuration || 30);
+    const conflict = existingBooks.find(b => overlapsSlot(b, ns, ne));
+    if (conflict) {
+      // Find next available slot hint
+      const takenEnds = existingBooks.map(b => timeToMinutes(b.appointmentTime) + (b.estimatedDuration || 30)).sort((a, b) => a - b);
+      const slotDur = booking.estimatedDuration || 30;
+      let nextMins = ns;
+      for (const end of takenEnds) {
+        if (nextMins < end && end + slotDur <= 1380) nextMins = end; // up to 11 PM
+      }
+      const nextH = String(Math.floor(nextMins / 60)).padStart(2, '0');
+      const nextM = String(nextMins % 60).padStart(2, '0');
+      return res.status(409).json({
+        success: false,
+        message: `That slot is already taken. Next available: ${nextH}:${nextM}`,
+        nextAvailableTime: `${nextH}:${nextM}`,
+      });
+    }
+  }
+
+  // Save history and update booking
+  const fromDate = booking.appointmentDate;
+  const fromTime = booking.appointmentTime;
+  booking.rescheduleHistory = booking.rescheduleHistory || [];
+  booking.rescheduleHistory.push({ fromDate, fromTime, toDate: new Date(newDate + 'T12:00:00.000Z'), toTime: newTime, rescheduledBy: 'owner' });
+  booking.rescheduleCount  = (booking.rescheduleCount || 0) + 1;
+  booking.appointmentDate  = new Date(newDate + 'T12:00:00.000Z');
+  booking.appointmentTime  = newTime;
+  if (targetBarberId && String(targetBarberId) !== String(booking.barberId)) {
+    booking.barberId = targetBarberId;
+  }
+  // Reset reminder flags so new reminders fire
+  booking.remindersSent = { tenMin: false, thirtyMin: false, oneHour: false };
+  await booking.save();
+
+  // Cancel old BullMQ reminder jobs
+  try {
+    const { queues } = require('../queues');
+    const reminderQ = queues.bookingReminder;
+    if (reminderQ) {
+      const bookingIdStr = booking._id.toString();
+      await Promise.allSettled([
+        reminderQ.remove(`reminder:24h:${bookingIdStr}`),
+        reminderQ.remove(`reminder:1h:${bookingIdStr}`),
+        reminderQ.remove(`reminder:30min:${bookingIdStr}`),
+      ]);
+      // Schedule new reminders
+      const { addReminderJob } = require('../queues');
+      const newAppointmentMs = new Date(`${newDate}T${newTime}:00`).getTime();
+      if (newAppointmentMs - Date.now() > 24 * 3600000) {
+        await addReminderJob(bookingIdStr, '24h', new Date(newAppointmentMs - 24 * 3600000)).catch(() => {});
+      }
+      if (newAppointmentMs - Date.now() > 3600000) {
+        await addReminderJob(bookingIdStr, '1h', new Date(newAppointmentMs - 3600000)).catch(() => {});
+      }
+      if (newAppointmentMs - Date.now() > 1800000) {
+        await addReminderJob(bookingIdStr, '30min', new Date(newAppointmentMs - 1800000)).catch(() => {});
+      }
+    }
+  } catch { /* non-fatal */ }
+
+  // Push notification to customer
+  if (booking.customerId) {
+    const cust = await Customer.findById(booking.customerId).select('pushToken').lean();
+    if (cust?.pushToken) {
+      const { sendWithRetry } = require('../utils/sendWithRetry');
+      const dateLabel = new Date(newDate + 'T12:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+      sendWithRetry(
+        cust.pushToken,
+        'Appointment Rescheduled',
+        `Your booking at ${salon.name} has been moved to ${dateLabel} at ${newTime}.`,
+        { bookingId: booking._id.toString(), type: 'rescheduled' },
+        { channelId: 'bookings' },
+        booking._id
+      ).catch(() => {});
+    }
+  }
+
+  res.json({ success: true, message: 'Booking rescheduled', data: booking });
+}));
+
+/* =====================================================
    FIX 7 — GET CANCELLATION POLICY (for customer)
 ===================================================== */
 router.get('/public/salons/:salonId/cancellation-policy', validateObjectId('salonId'), asyncHandler(async (req, res) => {
