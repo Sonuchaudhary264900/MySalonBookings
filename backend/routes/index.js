@@ -1479,6 +1479,124 @@ router.post(
   asyncHandler(ownerAuthController.firebaseLogin)
 );
 
+// ── STAFF login (same Firebase OTP, looks in Barber collection) ──
+router.post("/staff/auth/firebase-login", rateLimiter(10, 900000), asyncHandler(async (req, res) => {
+  const Barber = require('../models/Barber');
+  const { firebaseToken, phone: clientPhone } = req.body;
+  if (!firebaseToken) return res.status(400).json(formatErrorResponse('Firebase token is required', 400));
+
+  const { verifyFirebaseToken } = require('../config/firebaseAdmin');
+  let firebaseUser;
+  try {
+    firebaseUser = await verifyFirebaseToken(firebaseToken);
+  } catch {
+    return res.status(401).json(formatErrorResponse('Invalid or expired Firebase token', 401));
+  }
+
+  const rawPhone = firebaseUser.phone.trim();
+  const digits   = rawPhone.replace(/\D/g, '');
+  const tenDigit = digits.length >= 10 ? digits.slice(-10) : digits;
+
+  const variants = new Set([rawPhone, `+91${tenDigit}`, `91${tenDigit}`, tenDigit, `0${tenDigit}`]);
+  if (clientPhone) {
+    const cd = String(clientPhone).replace(/\D/g, '');
+    const ct = cd.length >= 10 ? cd.slice(-10) : cd;
+    [clientPhone.trim(), `+91${ct}`, `91${ct}`, ct, `0${ct}`].forEach(v => variants.add(v));
+  }
+
+  // Find barber by phone
+  let barber = await Barber.findOne({ phone: { $in: [...variants] } });
+  if (!barber) {
+    // brute-force last-10-digits match
+    const all = await Barber.find({}).select('phone loginEnabled salonId staffRole name').lean();
+    const matched = all.find(b => {
+      if (!b.phone) return false;
+      const d = String(b.phone).replace(/\D/g, '');
+      return d.length >= 10 && d.slice(-10) === tenDigit;
+    });
+    if (matched) barber = await Barber.findById(matched._id);
+  }
+
+  if (!barber) {
+    return res.status(404).json(formatErrorResponse('No staff account found for this number. Ask your salon owner to add you as staff.', 404));
+  }
+
+  if (!barber.loginEnabled) {
+    return res.status(403).json(formatErrorResponse('Login is not enabled for your account. Ask your salon owner to enable app access.', 403));
+  }
+
+  if (!barber.isActive) {
+    return res.status(403).json(formatErrorResponse('Your staff account has been deactivated.', 403));
+  }
+
+  const token = jwt.sign(
+    { _id: barber._id, salonId: barber.salonId, role: 'staff', staffRole: barber.staffRole },
+    process.env.JWT_SECRET,
+    { expiresIn: '30d' }
+  );
+
+  const refreshToken = jwt.sign(
+    { _id: barber._id, type: 'staff_refresh' },
+    process.env.JWT_SECRET,
+    { expiresIn: '90d' }
+  );
+
+  barber.refreshTokens = [...(barber.refreshTokens || []), { token: refreshToken }];
+  await barber.save();
+
+  res.json(formatSuccessResponse({
+    token,
+    refreshToken,
+    staff: {
+      _id: barber._id,
+      name: barber.name,
+      phone: barber.phone,
+      profilePhoto: barber.profilePhoto,
+      staffRole: barber.staffRole,
+      salonId: barber.salonId,
+      role: 'staff',
+    },
+  }, 'Staff login successful'));
+}));
+
+// ── GET /staff/auth/me ──
+router.get("/staff/auth/me", asyncHandler(async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) return res.status(401).json(formatErrorResponse('Unauthorized', 401));
+  try {
+    const decoded = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET);
+    if (decoded.role !== 'staff') return res.status(403).json(formatErrorResponse('Forbidden', 403));
+    const barber = await Barber.findById(decoded._id).select('-refreshTokens -firebaseUid -inviteToken').lean();
+    if (!barber) return res.status(404).json(formatErrorResponse('Staff not found', 404));
+    res.json(formatSuccessResponse({ ...barber, role: 'staff' }));
+  } catch {
+    res.status(401).json(formatErrorResponse('Invalid token', 401));
+  }
+}));
+
+// ── GET /staff/bookings/today ──
+router.get("/staff/bookings/today", asyncHandler(async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) return res.status(401).json(formatErrorResponse('Unauthorized', 401));
+  try {
+    const decoded = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET);
+    if (decoded.role !== 'staff') return res.status(403).json(formatErrorResponse('Forbidden', 403));
+
+    const todayStart = new Date(); todayStart.setUTCHours(0, 0, 0, 0);
+    const todayEnd   = new Date(); todayEnd.setUTCHours(23, 59, 59, 999);
+
+    const bookings = await Booking.find({
+      barberId:        decoded._id,
+      appointmentDate: { $gte: todayStart, $lte: todayEnd },
+      status:          { $ne: 'cancelled' },
+    }).sort({ appointmentTime: 1 }).lean();
+
+    res.json(formatSuccessResponse({ bookings, total: bookings.length }));
+  } catch {
+    res.status(401).json(formatErrorResponse('Invalid token', 401));
+  }
+}));
+
 router.post(
   "/owner/auth/refresh-token",
   rateLimiter(10, 900000),
@@ -4215,6 +4333,19 @@ router.get(   '/owner/team/stats',                   authenticateOwner,         
 router.put(   '/owner/team/:staffId',                authenticateOwner, checkSubscription, validateObjectId('staffId'), asyncHandler(staffController.updateStaff));
 router.delete('/owner/team/:staffId',                authenticateOwner, checkSubscription, validateObjectId('staffId'), asyncHandler(staffController.removeStaff));
 router.put(   '/owner/team/:staffId/assign-booking', authenticateOwner, checkSubscription, validateObjectId('staffId'), asyncHandler(staffController.assignBooking));
+
+// Toggle staff app login on/off
+router.put('/owner/team/:staffId/toggle-login', authenticateOwner, validateObjectId('staffId'), asyncHandler(async (req, res) => {
+  const Barber = require('../models/Barber');
+  const business = await Business.findOne({ ownerId: req.owner._id }).select('_id');
+  if (!business) return res.status(404).json(formatErrorResponse('Business not found', 404));
+  const member = await Barber.findOne({ _id: req.params.staffId, salonId: business._id });
+  if (!member) return res.status(404).json(formatErrorResponse('Staff member not found', 404));
+  if (member.isOwner) return res.status(400).json(formatErrorResponse('Owner record cannot be toggled', 400));
+  member.loginEnabled = !member.loginEnabled;
+  await member.save();
+  res.json(formatSuccessResponse({ staffId: member._id, loginEnabled: member.loginEnabled }, `Login ${member.loginEnabled ? 'enabled' : 'disabled'} for ${member.name}`));
+}));
 
 /* =====================================================
    OWNER — CATALOG (read-only, returns tree for their business type)

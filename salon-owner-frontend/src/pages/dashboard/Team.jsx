@@ -3,7 +3,7 @@ import {
   Users, Plus, Edit2, Trash2, Star, IndianRupee, Calendar,
   Phone, Mail, Clock, Scissors, ChevronDown, ChevronUp,
   ToggleLeft, ToggleRight, UserCheck, X, Loader2, Eye, EyeOff,
-  CalendarOff, CalendarCheck,
+  CalendarOff, CalendarCheck, Smartphone,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -193,7 +193,7 @@ function StaffModal({ mode, initial, onSave, onClose }) {
 }
 
 /* ─── Staff Card ─────────────────────────────────────────────────────────── */
-function StaffCard({ member, onEdit, onRemove, onToggleActive, onMarkAbsent, isAbsent, absentLoading }) {
+function StaffCard({ member, onEdit, onRemove, onToggleActive, onMarkAbsent, onToggleLogin, isAbsent, absentLoading, loginLoading }) {
   const [expanded, setExpanded] = useState(false);
   const role = ROLE_LABELS[member.staffRole] || ROLE_LABELS.stylist;
 
@@ -314,6 +314,28 @@ function StaffCard({ member, onEdit, onRemove, onToggleActive, onMarkAbsent, isA
               }
             </button>
           )}
+          {!member.isOwner && member.phone && (
+            <button
+              onClick={() => onToggleLogin(member)}
+              disabled={loginLoading}
+              className={`w-full mt-1 py-2 rounded-xl border text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 ${
+                member.loginEnabled
+                  ? 'border-indigo-200 dark:border-indigo-900/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30'
+                  : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+              }`}
+            >
+              {loginLoading
+                ? <Loader2 size={12} className="animate-spin" />
+                : <><Smartphone size={12} /> {member.loginEnabled ? 'App Login Enabled — Tap to Disable' : 'Enable App Login'}</>
+              }
+            </button>
+          )}
+          {!member.isOwner && !member.phone && (
+            <div className="flex items-center gap-2 text-xs text-amber-500 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-xl px-3 py-2">
+              <Smartphone size={12} />
+              Add a phone number to enable app login
+            </div>
+          )}
           {!member.isOwner && (
             <button onClick={() => onRemove(member)}
               className="w-full mt-1 py-2 rounded-xl border border-red-200 dark:border-red-900/40 text-red-500 text-xs font-semibold hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors flex items-center justify-center gap-1.5">
@@ -334,6 +356,7 @@ export default function Team() {
   const [removing, setRemoving]   = useState(null);
   const [absentIds, setAbsentIds] = useState(new Set()); // staffIds absent today
   const [absentLoading, setAbsentLoading] = useState(null);
+  const [loginLoading, setLoginLoading] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -387,6 +410,18 @@ export default function Team() {
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to save');
     }
+  };
+
+  const handleToggleLogin = async (member) => {
+    setLoginLoading(member._id);
+    try {
+      const r = await api.put(`/owner/team/${member._id}/toggle-login`);
+      const enabled = r.data.data?.loginEnabled;
+      toast.success(enabled ? `App login enabled for ${member.name}` : `App login disabled for ${member.name}`);
+      setStaff(prev => prev.map(s => s._id === member._id ? { ...s, loginEnabled: enabled } : s));
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to update login access');
+    } finally { setLoginLoading(null); }
   };
 
   const handleToggleActive = async (member) => {
@@ -455,8 +490,10 @@ export default function Team() {
                   onRemove={() => setRemoving(m)}
                   onToggleActive={handleToggleActive}
                   onMarkAbsent={handleMarkAbsent}
+                  onToggleLogin={handleToggleLogin}
                   isAbsent={absentIds.has(String(m._id))}
-                  absentLoading={absentLoading === m._id} />
+                  absentLoading={absentLoading === m._id}
+                  loginLoading={loginLoading === m._id} />
               ))}
             </div>
 

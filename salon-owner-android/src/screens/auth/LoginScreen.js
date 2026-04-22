@@ -12,7 +12,7 @@ import { useAuth } from '../../context/AuthContext';
 const { width: W, height: H } = Dimensions.get('window');
 
 export default function LoginScreen({ navigation }) {
-  const { firebaseLogin } = useAuth();
+  const { firebaseLogin, staffFirebaseLogin } = useAuth();
   const insets = useSafeAreaInsets();
 
   const [step, setStep] = useState(1);
@@ -78,19 +78,52 @@ export default function LoginScreen({ navigation }) {
     if (code.length !== 6) { setOtpError('Enter the complete 6-digit code'); return; }
     if (!confirmationRef.current) { setOtpError('Session expired. Please resend OTP.'); return; }
     setLoading(true);
+    let firebaseToken;
     try {
       const result = await confirmationRef.current.confirm(code);
-      const firebaseToken = await result.user.getIdToken();
-      await firebaseLogin(firebaseToken, formatPhone(phone));
+      firebaseToken = await result.user.getIdToken();
     } catch (err) {
       const msg = err?.message || '';
-      if (msg.toLowerCase().includes('not found') || (msg.toLowerCase().includes('no') && msg.toLowerCase().includes('account'))) {
-        // Phone verified but owner not registered — go directly to profile step
-        navigation.navigate('Onboarding', { initialStep: 3, prefillPhone: formatPhone(phone), prefillToken: firebaseToken });
-      } else if (msg.toLowerCase().includes('invalid') || msg.toLowerCase().includes('otp')) {
+      if (msg.toLowerCase().includes('invalid') || msg.toLowerCase().includes('otp') || msg.toLowerCase().includes('wrong-code')) {
         setOtpError('Invalid OTP. Please check and try again.');
       } else {
-        Alert.alert('Login Failed', msg || 'Something went wrong. Please try again.');
+        setOtpError('OTP verification failed. Please try again.');
+      }
+      setLoading(false);
+      return;
+    }
+
+    // Try owner login first, then staff login, then redirect to onboarding
+    try {
+      await firebaseLogin(firebaseToken, formatPhone(phone));
+      // Success — AuthContext sets user, navigation updates automatically
+    } catch (ownerErr) {
+      const ownerMsg = ownerErr?.message || '';
+      const isNotFound = ownerMsg.toLowerCase().includes('not found') || ownerMsg.toLowerCase().includes('no glowloox');
+      if (isNotFound) {
+        // Try staff login
+        try {
+          await staffFirebaseLogin(firebaseToken, formatPhone(phone));
+          // Staff login success — user is set, navigation updates
+        } catch (staffErr) {
+          const staffMsg = staffErr?.message || '';
+          const staffNotFound = staffMsg.toLowerCase().includes('not found');
+          const loginDisabled = staffMsg.toLowerCase().includes('not enabled') || staffMsg.toLowerCase().includes('disabled');
+          if (loginDisabled) {
+            Alert.alert(
+              'Login Not Enabled',
+              'Your salon owner needs to enable app access for your account. Contact them to turn on "App Login" for your profile.',
+              [{ text: 'OK' }]
+            );
+          } else if (staffNotFound) {
+            // Neither owner nor staff — go to registration
+            navigation.navigate('Onboarding', { initialStep: 3, prefillPhone: formatPhone(phone), prefillToken: firebaseToken });
+          } else {
+            Alert.alert('Login Failed', staffMsg || 'Something went wrong. Please try again.');
+          }
+        }
+      } else {
+        Alert.alert('Login Failed', ownerMsg || 'Something went wrong. Please try again.');
       }
     } finally { setLoading(false); }
   };

@@ -13,29 +13,28 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const [[, token], [, cachedUser]] = await AsyncStorage.multiGet(['token', 'ownerUser']);
+        const [[, token], [, cachedUser], [, userRole]] = await AsyncStorage.multiGet(['token', 'ownerUser', 'userRole']);
         if (!token) { setLoading(false); return; }
-        // Restore from cache immediately so app opens without logout
         if (cachedUser) {
           try { setUser(JSON.parse(cachedUser)); } catch {}
         }
-        // Try to refresh from server
+        // Refresh from server based on role
         try {
-          const response = await api.get('/owner/auth/me');
+          const endpoint = userRole === 'staff' ? '/staff/auth/me' : '/owner/auth/me';
+          const response = await api.get(endpoint);
           const u = response.data.data;
           setUser(u);
           await AsyncStorage.setItem('ownerUser', JSON.stringify(u));
         } catch (err) {
           const status = err.response?.status ?? err.status;
           if (status === 401 || status === 403) {
-            await AsyncStorage.multiRemove(['token', 'refreshToken', 'ownerUser']);
+            await AsyncStorage.multiRemove(['token', 'refreshToken', 'ownerUser', 'userRole']);
             try { await auth().signOut(); } catch {}
             setUser(null);
           }
-          // Network error — keep cached session, don't log out
         }
       } catch {
-        await AsyncStorage.multiRemove(['token', 'refreshToken', 'ownerUser']);
+        await AsyncStorage.multiRemove(['token', 'refreshToken', 'ownerUser', 'userRole']);
         try { await auth().signOut(); } catch {}
         setUser(null);
       } finally {
@@ -53,6 +52,21 @@ export const AuthProvider = ({ children }) => {
     await AsyncStorage.setItem('token', token);
     if (refreshToken) await AsyncStorage.setItem('refreshToken', refreshToken);
     await AsyncStorage.setItem('ownerUser', JSON.stringify(userData));
+    await AsyncStorage.setItem('userRole', 'owner');
+    setUser(userData);
+    return response.data;
+  }, []);
+
+  // Staff login — called when owner login returns 404
+  const staffFirebaseLogin = useCallback(async (firebaseToken, phone) => {
+    setError(null);
+    const response = await api.post('/staff/auth/firebase-login', { firebaseToken, phone });
+    if (!response.data.success) throw new Error(response.data.message || 'Staff login failed');
+    const { token, refreshToken, staff: userData } = response.data.data;
+    await AsyncStorage.setItem('token', token);
+    if (refreshToken) await AsyncStorage.setItem('refreshToken', refreshToken);
+    await AsyncStorage.setItem('ownerUser', JSON.stringify(userData));
+    await AsyncStorage.setItem('userRole', 'staff');
     setUser(userData);
     return response.data;
   }, []);
@@ -75,14 +89,14 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const logout = useCallback(async () => {
-    await AsyncStorage.multiRemove(['token', 'refreshToken', 'ownerUser']);
+    await AsyncStorage.multiRemove(['token', 'refreshToken', 'ownerUser', 'userRole']);
     try { await auth().signOut(); } catch {}
     setUser(null);
     setError(null);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, isAuthenticated: !!user, firebaseLogin, updateProfile, refreshUser, logout }}>
+    <AuthContext.Provider value={{ user, loading, error, isAuthenticated: !!user, firebaseLogin, staffFirebaseLogin, updateProfile, refreshUser, logout }}>
       {children}
     </AuthContext.Provider>
   );
