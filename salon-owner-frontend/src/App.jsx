@@ -1,6 +1,7 @@
 import React, { lazy, Suspense, useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import CommandPalette from './components/CommandPalette';
 import {
   Calendar, BarChart2, Sparkles, Bell, Users, Image as LucideImage, Target, UserCheck,
   Clock, CreditCard, Shield, Bot, PhoneCall, UserX, TrendingDown, Zap, RotateCcw,
@@ -53,6 +54,8 @@ const CustomerPrivacyPolicy = lazy(() => import('./pages/legal/CustomerPrivacyPo
 const OwnerPrivacyPolicy   = lazy(() => import('./pages/legal/OwnerPrivacyPolicy'));
 const CustomerTerms        = lazy(() => import('./pages/legal/CustomerTerms'));
 const OwnerTerms           = lazy(() => import('./pages/legal/OwnerTerms'));
+const AuditLog             = lazy(() => import('./pages/dashboard/AuditLog'));
+const Developer            = lazy(() => import('./pages/dashboard/Developer'));
 
 // ── Page loading fallback ──────────────────────────────────────
 function PageLoader() {
@@ -995,6 +998,7 @@ function App() {
             <GalleryUploadProvider>
             <NotificationProvider>
               <Toaster position="top-right" />
+              <CommandPalette />
               <BookingAlertModal />
               <FloatingUploadBar />
               <Suspense fallback={<PageLoader />}>
@@ -1045,6 +1049,8 @@ function App() {
                     <Route path={ROUTES.MESSAGES}      element={<Messages />} />
                     <Route path={ROUTES.GLOWLOOX}      element={<GlowLooxProfile />} />
                     <Route path={ROUTES.TEAM}          element={<Team />} />
+                    <Route path={ROUTES.AUDIT}         element={<AuditLog />} />
+                    <Route path={ROUTES.DEVELOPER}     element={<Developer />} />
                   </Route>
 
                   {/* 404 */}

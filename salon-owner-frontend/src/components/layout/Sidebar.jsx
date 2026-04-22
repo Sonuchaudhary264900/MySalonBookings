@@ -4,6 +4,7 @@ import {
   LayoutDashboard, Scissors, Calendar, Star, Settings,
   ChevronRight, ChevronLeft, X, Images, Users, Tag,
   Store, BarChart2, Gift, MessageSquare, Megaphone, Crown, Eye,
+  Shield, Code2,
 } from 'lucide-react';
 import ROUTES from '../../routes';
 import { useNotifications } from '../../context/NotificationContext';
@@ -47,6 +48,8 @@ const NAV_SECTIONS = [
     items: [
       { id: 'promotions',   label: 'Promote Salon',   path: ROUTES.PROMOTIONS, icon: Megaphone },
       { id: 'subscription', label: 'My Subscription', path: ROUTES.BILLING,    icon: Crown      },
+      { id: 'audit',        label: 'Audit Log',        path: ROUTES.AUDIT,      icon: Shield     },
+      { id: 'developer',    label: 'Developer',        path: ROUTES.DEVELOPER,  icon: Code2      },
       { id: 'settings',     label: 'Settings',         path: ROUTES.SETTINGS,   icon: Settings   },
     ],
   },

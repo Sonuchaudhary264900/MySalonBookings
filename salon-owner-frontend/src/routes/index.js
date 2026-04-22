@@ -35,6 +35,9 @@ const ROUTES = {
   MESSAGES:      '/dashboard/messages',
   GLOWLOOX:      '/dashboard/glowloox',
   TEAM:          '/dashboard/team',
+  AUDIT:         '/dashboard/audit',
+  DEVELOPER:     '/dashboard/developer',
+  TEAM_CHAT:     '/dashboard/team-chat',
 
   // Legal (public)
   PRIVACY:       '/privacy-policy',

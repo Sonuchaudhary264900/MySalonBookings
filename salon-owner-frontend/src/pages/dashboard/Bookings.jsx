@@ -4,7 +4,10 @@ import {
   ShieldOff, ShieldCheck, CalendarOff, ChevronDown, MoreHorizontal,
   CheckCircle, XCircle, PlayCircle, Loader2, MessageSquare, AlertTriangle, Users,
   Timer, Banknote, Info, WifiOff, UserX, Search, CreditCard, RotateCcw, Receipt,
+  Square, CheckSquare, Ban,
 } from 'lucide-react';
+import BulkActionBar from '../../components/BulkActionBar';
+import { showUndoToast } from '../../components/UndoToast';
 import toast from 'react-hot-toast';
 import { io } from 'socket.io-client';
 import { useLocation } from 'react-router-dom';
@@ -618,12 +621,21 @@ const RescheduleModal = ({ booking, salon, services, onClose, onSuccess }) => {
 };
 
 /* ─── Booking Table Row ──────────────────────────────────────── */
-const BookingRow = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock, onOpenChat, hasUnread, staffList, onReload, onMarkLate, onCollectCash, lateLoading, cashLoading, onReschedule, onPrintReceipt }) => {
+const BookingRow = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock, onOpenChat, hasUnread, staffList, onReload, onMarkLate, onCollectCash, lateLoading, cashLoading, onReschedule, onPrintReceipt, selected, onToggleSelect }) => {
   const cfg = STATUS_CFG[booking.status] || { label: booking.status, dot: 'bg-gray-400', badge: 'bg-gray-100 text-gray-600' };
   const dateStr = booking.appointmentDate ? formatDate(booking.appointmentDate) : '—';
 
   return (
-    <tr className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/80 dark:hover:bg-gray-800/40 transition-colors group">
+    <tr className={`border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/80 dark:hover:bg-gray-800/40 transition-colors group ${selected ? 'bg-indigo-50/60 dark:bg-indigo-950/20' : ''}`}>
+      {/* Checkbox */}
+      <td className="pl-4 pr-2 py-3.5 w-8">
+        <button
+          onClick={() => onToggleSelect(booking._id)}
+          className="text-gray-400 dark:text-gray-600 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+        >
+          {selected ? <CheckSquare className="w-4 h-4 text-indigo-600 dark:text-indigo-400" /> : <Square className="w-4 h-4" />}
+        </button>
+      </td>
       {/* Customer */}
       <td className="px-4 py-3.5 min-w-[180px]">
         <div className="flex items-center gap-3">
@@ -750,14 +762,19 @@ const BookingRow = ({ booking, updating, onStatusChange, isBlocked, blockLoading
 };
 
 /* ─── Mobile Booking Card ────────────────────────────────────── */
-const BookingCard = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock, onOpenChat, hasUnread, staffList, onReload, onMarkLate, onCollectCash, lateLoading, cashLoading, onReschedule, onPrintReceipt }) => {
+const BookingCard = ({ booking, updating, onStatusChange, isBlocked, blockLoading, onToggleBlock, onOpenChat, hasUnread, staffList, onReload, onMarkLate, onCollectCash, lateLoading, cashLoading, onReschedule, onPrintReceipt, selected, onToggleSelect }) => {
   const cfg = STATUS_CFG[booking.status] || { label: booking.status, dot: 'bg-gray-400', badge: 'bg-gray-100 text-gray-600' };
   const dateStr = booking.appointmentDate ? formatDate(booking.appointmentDate) : '—';
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 hover:shadow-md dark:hover:shadow-gray-900 transition-all duration-200">
+    <div className={`bg-white dark:bg-gray-900 border rounded-2xl p-4 hover:shadow-md dark:hover:shadow-gray-900 transition-all duration-200 ${selected ? 'border-indigo-300 dark:border-indigo-700 bg-indigo-50/40 dark:bg-indigo-950/20' : 'border-gray-100 dark:border-gray-800'}`}>
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-3">
+          <button onClick={() => onToggleSelect(booking._id)} className="shrink-0">
+            {selected
+              ? <CheckSquare className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+              : <Square className="w-5 h-5 text-gray-300 dark:text-gray-600" />}
+          </button>
           <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-950 flex items-center justify-center shrink-0 text-sm font-bold text-indigo-600 dark:text-indigo-400">
             {(booking.customerName || '?')[0].toUpperCase()}
           </div>
@@ -1127,6 +1144,30 @@ const Bookings = () => {
   const [lateLoading, setLateLoading]   = useState(null);
   const [cashLoading, setCashLoading]   = useState(null);
   const [rescheduleBooking, setRescheduleBooking] = useState(null);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+
+  const toggleSelect = (id) => setSelectedIds((prev) => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+
+  const bulkCancel = async (ids) => {
+    // Optimistic update
+    const prev = [...ids].map((id) => bookings?.find((b) => b._id === id));
+    setSelectedIds(new Set());
+
+    const { dismiss } = showUndoToast(`Cancelling ${ids.length} booking(s)...`, async () => {
+      dismiss();
+      setSelectedIds(new Set(ids));
+    });
+
+    try {
+      await api.patch('/owner/bookings/bulk', { ids: [...ids], action: 'cancel' });
+      await fetchBookings();
+      toast.success(`${ids.length} bookings cancelled`);
+    } catch { toast.error('Bulk cancel failed'); }
+  };
 
   const handleOpenChat = useCallback((booking) => {
     setChatBooking(booking);
@@ -1520,6 +1561,20 @@ const Bookings = () => {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-800/40">
+                    <th className="pl-4 pr-2 py-3 w-8">
+                      <button
+                        onClick={() => {
+                          const allIds = filteredBookings.map(b => b._id);
+                          const allSelected = allIds.every(id => selectedIds.has(id));
+                          setSelectedIds(allSelected ? new Set() : new Set(allIds));
+                        }}
+                        className="text-gray-400 dark:text-gray-600 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                      >
+                        {filteredBookings.length > 0 && filteredBookings.every(b => selectedIds.has(b._id))
+                          ? <CheckSquare className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                          : <Square className="w-4 h-4" />}
+                      </button>
+                    </th>
                     {['Customer','Service','Date & Time','Amount','Status','Actions'].map(h => (
                       <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                         {h}
@@ -1547,6 +1602,8 @@ const Bookings = () => {
                       cashLoading={cashLoading === booking._id}
                       onReschedule={setRescheduleBooking}
                       onPrintReceipt={handlePrintReceipt}
+                      selected={selectedIds.has(booking._id)}
+                      onToggleSelect={toggleSelect}
                     />
                   ))}
                 </tbody>
@@ -1574,12 +1631,23 @@ const Bookings = () => {
                   cashLoading={cashLoading === booking._id}
                   onReschedule={setRescheduleBooking}
                   onPrintReceipt={handlePrintReceipt}
+                  selected={selectedIds.has(booking._id)}
+                  onToggleSelect={toggleSelect}
                 />
               ))}
             </div>
           </>
         )}
       </div>
+
+      {/* Bulk Action Bar */}
+      <BulkActionBar
+        selectedIds={[...selectedIds]}
+        onClear={() => setSelectedIds(new Set())}
+        actions={[
+          { label: 'Cancel', icon: Ban, variant: 'danger', onClick: bulkCancel },
+        ]}
+      />
 
       {/* Walk-in Modal */}
       {showModal && (

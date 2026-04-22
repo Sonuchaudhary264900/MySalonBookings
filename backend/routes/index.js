@@ -19,6 +19,10 @@ const {
 } = require("../middleware/validationMiddleware");
 
 const { checkSubscription } = require("../middleware/subscriptionMiddleware");
+const { idempotency }    = require("../middleware/idempotency");
+const { requireRole }    = require("../middleware/requireRole");
+const { auditLogger }    = require("../middleware/auditLogger");
+const { resolveSalon }   = require("../middleware/resolveSalon");
 
 const multer = require("multer");
 const multerUpload = multer({
@@ -1768,7 +1772,7 @@ router.get("/owner/bookings", authenticateOwner, validatePaginationParams, async
   res.json({ success: true, data: { bookings, total, page: p, limit: l } });
 }));
 
-router.post("/owner/bookings", authenticateOwner, checkSubscription, asyncHandler(async (req, res) => {
+router.post("/owner/bookings", authenticateOwner, idempotency, checkSubscription, asyncHandler(async (req, res) => {
   const Booking = require("../models/Booking");
   const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
@@ -1882,7 +1886,7 @@ router.post("/owner/bookings", authenticateOwner, checkSubscription, asyncHandle
   res.status(201).json({ success: true, data: booking });
 }));
 
-router.put("/owner/bookings/:bookingId", authenticateOwner, validateObjectId("bookingId"), asyncHandler(async (req, res) => {
+router.put("/owner/bookings/:bookingId", authenticateOwner, validateObjectId("bookingId"), auditLogger('booking.status_changed', 'Booking', (req) => req.params.bookingId), asyncHandler(async (req, res) => {
   const Booking = require("../models/Booking");
   const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
   if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
@@ -4789,6 +4793,315 @@ router.post('/admin/maintenance/ensure-indexes', authenticateAdmin, asyncHandler
   await Business.collection.createIndex({ ownerId: 1 });
   await Booking.collection.createIndex({ customerPhone: 1, appointmentDate: 1 });
   res.json({ success: true, message: 'Indexes ensured' });
+}));
+
+/* =====================================================
+   SESSION MANAGEMENT
+===================================================== */
+const ownerAuthCtrl = require('../controllers/auth/ownerAuthController');
+
+router.get('/owner/auth/sessions', authenticateOwner, asyncHandler(ownerAuthCtrl.getSessions));
+router.delete('/owner/auth/sessions/:sessionId', authenticateOwner, asyncHandler(ownerAuthCtrl.revokeSession));
+
+/* =====================================================
+   AUDIT LOGS
+===================================================== */
+const AuditLog = require('../models/AuditLog');
+
+router.get('/owner/audit', authenticateOwner, validatePaginationParams, asyncHandler(async (req, res) => {
+  const { page = 1, limit = 30 } = req.query;
+  const { action, entity, from, to } = req.query;
+  const businessId = req.owner.businessId;
+
+  const filter = { businessId };
+  if (action) filter.action = action;
+  if (entity) filter.entity = entity;
+  if (from || to) {
+    filter.createdAt = {};
+    if (from) filter.createdAt.$gte = new Date(from);
+    if (to)   filter.createdAt.$lte = new Date(to);
+  }
+
+  const [logs, total] = await Promise.all([
+    AuditLog.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(Number(limit)).lean(),
+    AuditLog.countDocuments(filter),
+  ]);
+
+  res.json({ success: true, data: { logs, total, page: Number(page), totalPages: Math.ceil(total / limit) } });
+}));
+
+/* =====================================================
+   BULK BOOKING ACTIONS
+===================================================== */
+const { validate } = require('../middleware/validate');
+const bookingSchema = require('../validation/booking.schema');
+
+router.patch('/owner/bookings/bulk', authenticateOwner, validate(bookingSchema.bulkBookingAction), asyncHandler(async (req, res) => {
+  const { ids, action, payload } = req.body;
+  const businessId = req.owner.businessId;
+
+  const filter = { _id: { $in: ids }, salonId: businessId, deletedAt: null };
+  let updateOp = {};
+
+  if (action === 'cancel') {
+    updateOp = { $set: { status: 'cancelled', cancelledAt: new Date(), cancelReason: payload?.reason || 'Bulk cancelled' } };
+  } else if (action === 'complete') {
+    updateOp = { $set: { status: 'completed', completedAt: new Date() } };
+  } else if (action === 'reassign' && payload?.barberId) {
+    updateOp = { $set: { barberId: payload.barberId } };
+  }
+
+  const result = await Booking.updateMany(filter, updateOp);
+  res.json({ success: true, message: `${result.modifiedCount} bookings updated`, data: { modifiedCount: result.modifiedCount } });
+}));
+
+/* =====================================================
+   BULK CUSTOMER ACTIONS
+===================================================== */
+const customerSchema = require('../validation/customer.schema');
+
+router.patch('/owner/customers/bulk', authenticateOwner, validate(customerSchema.bulkCustomerAction), asyncHandler(async (req, res) => {
+  const { ids, action, payload } = req.body;
+  const businessId = req.owner.businessId;
+
+  if (action === 'block') {
+    await Customer.updateMany({ _id: { $in: ids } }, { $addToSet: { blockedSalons: businessId } });
+  } else if (action === 'unblock') {
+    await Customer.updateMany({ _id: { $in: ids } }, { $pull: { blockedSalons: businessId } });
+  } else if (action === 'tag' && payload?.tag) {
+    await Customer.updateMany({ _id: { $in: ids } }, { $set: { tag: payload.tag } });
+  } else if (action === 'delete') {
+    await Customer.updateMany({ _id: { $in: ids } }, { $set: { deletedAt: new Date() } });
+  }
+
+  res.json({ success: true, message: `Bulk ${action} applied to ${ids.length} customers` });
+}));
+
+/* =====================================================
+   STAFF NOTES
+===================================================== */
+const StaffNote = require('../models/StaffNote');
+
+router.get('/owner/bookings/:bookingId/notes', authenticateOwner, validateObjectId('bookingId'), asyncHandler(async (req, res) => {
+  const notes = await StaffNote.find({ bookingId: req.params.bookingId }).sort({ createdAt: -1 }).lean();
+  res.json({ success: true, data: notes });
+}));
+
+router.post('/owner/bookings/:bookingId/notes', authenticateOwner, validateObjectId('bookingId'), asyncHandler(async (req, res) => {
+  const { content, isPinned } = req.body;
+  if (!content?.trim()) return res.status(400).json({ success: false, message: 'Note content required' });
+
+  const booking = await Booking.findOne({ _id: req.params.bookingId, salonId: req.owner.businessId });
+  if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+
+  const note = await StaffNote.create({
+    bookingId:  req.params.bookingId,
+    salonId:    req.owner.businessId,
+    authorId:   req.owner._id,
+    authorName: req.user?.name || 'Owner',
+    authorRole: 'owner',
+    content:    content.trim(),
+    isPinned:   isPinned || false,
+  });
+
+  res.status(201).json({ success: true, data: note });
+}));
+
+router.delete('/owner/bookings/:bookingId/notes/:noteId', authenticateOwner, asyncHandler(async (req, res) => {
+  await StaffNote.deleteOne({ _id: req.params.noteId, salonId: req.owner.businessId });
+  res.json({ success: true, message: 'Note deleted' });
+}));
+
+/* =====================================================
+   TEAM CHAT (REST fallback for non-socket clients)
+===================================================== */
+router.get('/owner/team/chat', authenticateOwner, asyncHandler(async (req, res) => {
+  const { before, limit = 50 } = req.query;
+  const filter = { salonId: req.owner.businessId, type: 'team' };
+  if (before) filter.createdAt = { $lt: new Date(before) };
+  const messages = await Message.find(filter).sort({ createdAt: -1 }).limit(Number(limit)).lean();
+  res.json({ success: true, data: messages.reverse() });
+}));
+
+router.post('/owner/team/chat', authenticateOwner, asyncHandler(async (req, res) => {
+  const { text } = req.body;
+  if (!text?.trim()) return res.status(400).json({ success: false, message: 'Text required' });
+  const msg = await Message.create({
+    salonId:    req.owner.businessId,
+    type:       'team',
+    senderId:   req.owner._id,
+    senderName: req.user?.name || 'Owner',
+    senderRole: 'owner',
+    text:       text.trim().slice(0, 1000),
+  });
+  const io = req.app.get('io');
+  if (io) io.to(`team-${req.owner.businessId}`).emit('team-chat-message', msg);
+  res.status(201).json({ success: true, data: msg });
+}));
+
+/* =====================================================
+   WALK-IN WAIT TIME (REST fallback + socket triggers)
+===================================================== */
+router.get('/owner/queue/:salonId/wait-time', authenticateOwner, validateObjectId('salonId'), asyncHandler(async (req, res) => {
+  const { salonId } = req.params;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const queue = await Queue.findOne({ salonId, date: { $gte: today } }).lean();
+
+  if (!queue) return res.json({ success: true, data: { estimatedMinutes: 0, queueLength: 0 } });
+
+  const activeItems = (queue.queue || []).filter(i => i.status === 'waiting' || i.status === 'in_progress');
+  const estimatedMinutes = activeItems.reduce((sum, i) => sum + (i.estimatedDuration || 30), 0);
+
+  res.json({
+    success: true,
+    data: { estimatedMinutes, queueLength: activeItems.filter(i => i.status === 'waiting').length },
+  });
+}));
+
+/* =====================================================
+   DEVELOPER — API KEY MANAGEMENT
+===================================================== */
+const ApiKey = require('../models/ApiKey');
+const { apiKeyAuth } = require('../middleware/apiKeyAuth');
+const webhookSchema = require('../validation/webhook.schema');
+const WebhookEndpoint = require('../models/WebhookEndpoint');
+
+router.get('/owner/developer/api-keys', authenticateOwner, asyncHandler(async (req, res) => {
+  const keys = await ApiKey.find({ ownerId: req.owner._id }).lean();
+  res.json({ success: true, data: keys });
+}));
+
+router.post('/owner/developer/api-keys', authenticateOwner, asyncHandler(async (req, res) => {
+  const { label, permissions } = req.body;
+  if (!label?.trim()) return res.status(400).json({ success: false, message: 'Label required' });
+
+  const { rawKey, keyHash, keyPrefix } = ApiKey.generateKey();
+  const apiKey = await ApiKey.create({
+    ownerId:    req.owner._id,
+    businessId: req.owner.businessId,
+    label:      label.trim(),
+    keyHash,
+    keyPrefix,
+    permissions: permissions || ['bookings:read'],
+  });
+
+  res.status(201).json({ success: true, data: { ...apiKey.toObject(), rawKey } }); // rawKey shown once only
+}));
+
+router.delete('/owner/developer/api-keys/:keyId', authenticateOwner, asyncHandler(async (req, res) => {
+  await ApiKey.findOneAndDelete({ _id: req.params.keyId, ownerId: req.owner._id });
+  res.json({ success: true, message: 'API key revoked' });
+}));
+
+/* =====================================================
+   DEVELOPER — WEBHOOK ENDPOINTS
+===================================================== */
+router.get('/owner/developer/webhooks', authenticateOwner, asyncHandler(async (req, res) => {
+  const webhooks = await WebhookEndpoint.find({ ownerId: req.owner._id }).lean();
+  res.json({ success: true, data: webhooks });
+}));
+
+router.post('/owner/developer/webhooks', authenticateOwner, validate(webhookSchema.createWebhook), asyncHandler(async (req, res) => {
+  const { url, events, label } = req.body;
+  const secret = WebhookEndpoint.generateSecret();
+  const webhook = await WebhookEndpoint.create({
+    ownerId:    req.owner._id,
+    businessId: req.owner.businessId,
+    url, events,
+    label: label || '',
+    secret,
+  });
+
+  const doc = webhook.toObject();
+  delete doc.secret; // never expose secret in GET — only at creation time
+  res.status(201).json({ success: true, data: { ...doc, secret } }); // show secret once
+}));
+
+router.patch('/owner/developer/webhooks/:webhookId', authenticateOwner, validate(webhookSchema.updateWebhook), asyncHandler(async (req, res) => {
+  const webhook = await WebhookEndpoint.findOneAndUpdate(
+    { _id: req.params.webhookId, ownerId: req.owner._id },
+    { $set: req.body },
+    { new: true }
+  );
+  if (!webhook) return res.status(404).json({ success: false, message: 'Webhook not found' });
+  res.json({ success: true, data: webhook });
+}));
+
+router.delete('/owner/developer/webhooks/:webhookId', authenticateOwner, asyncHandler(async (req, res) => {
+  await WebhookEndpoint.findOneAndDelete({ _id: req.params.webhookId, ownerId: req.owner._id });
+  res.json({ success: true, message: 'Webhook deleted' });
+}));
+
+// Retry a specific failed delivery
+router.post('/owner/developer/webhooks/:webhookId/retry', authenticateOwner, asyncHandler(async (req, res) => {
+  const webhook = await WebhookEndpoint.findOne({ _id: req.params.webhookId, ownerId: req.owner._id }).select('+secret');
+  if (!webhook) return res.status(404).json({ success: false, message: 'Webhook not found' });
+  webhook.isActive = true;
+  webhook.failureCount = 0;
+  await webhook.save();
+  res.json({ success: true, message: 'Webhook re-enabled for delivery' });
+}));
+
+/* =====================================================
+   PUBLIC API (for 3rd-party integrations via API key)
+===================================================== */
+router.get('/public/v1/bookings', apiKeyAuth('bookings:read'), asyncHandler(async (req, res) => {
+  const { page = 1, limit = 20, status, date } = req.query;
+  const filter = { salonId: req.activeSalonId, deletedAt: null };
+  if (status) filter.status = status;
+  if (date)   filter.appointmentDate = { $gte: new Date(date), $lt: new Date(new Date(date).getTime() + 86400000) };
+
+  const [bookings, total] = await Promise.all([
+    Booking.find(filter).sort({ appointmentDate: -1 }).skip((page - 1) * limit).limit(Number(limit)).lean(),
+    Booking.countDocuments(filter),
+  ]);
+  res.json({ success: true, data: { bookings, total, page: Number(page), totalPages: Math.ceil(total / limit) } });
+}));
+
+router.get('/public/v1/customers', apiKeyAuth('customers:read'), asyncHandler(async (req, res) => {
+  const { page = 1, limit = 20 } = req.query;
+  const filter = { deletedAt: null };
+  const bookingFilter = { salonId: req.activeSalonId };
+  const customerIds = await Booking.distinct('customerId', bookingFilter);
+  filter._id = { $in: customerIds };
+
+  const [customers, total] = await Promise.all([
+    Customer.find(filter).select('-__v').skip((page - 1) * limit).limit(Number(limit)).lean(),
+    Customer.countDocuments(filter),
+  ]);
+  res.json({ success: true, data: { customers, total, page: Number(page), totalPages: Math.ceil(total / limit) } });
+}));
+
+/* =====================================================
+   BEFORE/AFTER PORTFOLIO
+===================================================== */
+const BusinessMedia = require('../models/BusinessMedia');
+
+router.post('/owner/gallery/before-after', authenticateOwner, asyncHandler(async (req, res) => {
+  const { beforeUrl, afterUrl, beforePublicId, afterPublicId, caption, tags } = req.body;
+  if (!beforeUrl || !afterUrl) return res.status(400).json({ success: false, message: 'Both before and after URLs required' });
+
+  const [before, after] = await Promise.all([
+    BusinessMedia.create({ businessId: req.owner.businessId, type: 'photo', url: beforeUrl, publicId: beforePublicId || '', caption: caption || '', tags: tags || [], role: 'before' }),
+    BusinessMedia.create({ businessId: req.owner.businessId, type: 'photo', url: afterUrl, publicId: afterPublicId || '', caption: caption || '', tags: tags || [], role: 'after' }),
+  ]);
+
+  // Link the pair
+  before.pairedWith = after._id;
+  after.pairedWith  = before._id;
+  await Promise.all([before.save(), after.save()]);
+
+  res.status(201).json({ success: true, data: { before, after } });
+}));
+
+router.get('/owner/gallery/before-after', authenticateOwner, asyncHandler(async (req, res) => {
+  const befores = await BusinessMedia.find({
+    businessId: req.owner.businessId,
+    role:       'before',
+    deletedAt:  null,
+  }).populate('pairedWith').lean();
+  res.json({ success: true, data: befores });
 }));
 
 module.exports = router;

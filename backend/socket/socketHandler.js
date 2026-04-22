@@ -1,20 +1,77 @@
 // socket/socketHandler.js
-/*
-  Socket.IO Event Handlers
-  Real-time updates for:
-  - Queue updates
-  - Booking status changes
-  - Notifications
-  - Live customer location
-  - Per-booking chat
-*/
-
-const Queue = require('../models/Queue');
+const Queue   = require('../models/Queue');
 const Booking = require('../models/Booking');
 const Business = require('../models/Business');
-const Message = require('../models/Message');
+const Message  = require('../models/Message');
+const StaffNote = require('../models/StaffNote');
+const { verifyToken } = require('../middleware/authMiddleware');
+const { logger } = require('../config/logger');
+
+// ── Socket authentication ──────────────────────────────────────
+// Clients must send token in auth.token or cookie
+const authenticateSocket = (socket) => {
+  try {
+    const token = socket.handshake.auth?.token || socket.handshake.headers?.cookie
+      ?.split(';').find(c => c.trim().startsWith('token='))
+      ?.split('=')[1];
+    if (!token) return null;
+    return verifyToken(token);
+  } catch {
+    return null;
+  }
+};
+
+// Per-socket event throttle (max 20 events / 5 seconds)
+const createThrottle = () => {
+  let count = 0;
+  const reset = setInterval(() => { count = 0; }, 5000);
+  return {
+    check: () => { count++; return count <= 20; },
+    clear: () => clearInterval(reset),
+  };
+};
+
+// Helper: recalculate walk-in wait time and broadcast
+const broadcastWaitTime = async (io, salonId) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const queue = await Queue.findOne({ salonId, date: { $gte: today } }).lean();
+    if (!queue) return;
+
+    const activeItems = (queue.queue || []).filter(
+      (item) => item.status === 'waiting' || item.status === 'in_progress'
+    );
+    const estimatedMinutes = activeItems.reduce((sum, item) => sum + (item.estimatedDuration || 30), 0);
+
+    io.to(`queue-${salonId}`).emit('wait-time-updated', {
+      salonId,
+      estimatedMinutes,
+      queueLength: activeItems.filter(i => i.status === 'waiting').length,
+    });
+
+    // Also emit to salon room (owner dashboard)
+    io.to(`salon-${salonId}`).emit('wait-time-updated', {
+      salonId,
+      estimatedMinutes,
+      queueLength: activeItems.filter(i => i.status === 'waiting').length,
+    });
+  } catch (err) {
+    logger.warn('[Socket] broadcastWaitTime error', { error: err.message });
+  }
+};
 
 module.exports = (socket, io) => {
+  const throttle = createThrottle();
+  socket.on('disconnect', () => throttle.clear());
+
+  // Throttle guard for all events
+  socket.use(([event], next) => {
+    if (!throttle.check()) {
+      return next(new Error('Rate limit exceeded'));
+    }
+    next();
+  });
   // ===================================================
   // CUSTOMER JOINS PERSONAL ROOM (for direct notifications)
   // ===================================================
@@ -426,11 +483,85 @@ module.exports = (socket, io) => {
   socket.on('leave-salon', (data) => {
     try {
       const { salonId } = data;
-      const salonRoom = `salon-${salonId}`;
-      socket.leave(salonRoom);
-      console.log(`👨‍💼 Owner left salon room: ${salonRoom}`);
-    } catch (error) {
-      console.error('Error leaving salon:', error);
+      socket.leave(`salon-${salonId}`);
+    } catch {}
+  });
+
+  // ===================================================
+  // TEAM CHAT — JOIN STAFF CHANNEL
+  // ===================================================
+  socket.on('join-team-chat', async (data) => {
+    try {
+      const { salonId, token } = data;
+      if (!salonId) return;
+      const decoded = authenticateSocket(socket) || (token ? verifyToken(token) : null);
+      if (!decoded) return socket.emit('error', { message: 'Authentication required for team chat' });
+
+      socket.join(`team-${salonId}`);
+
+      // Send last 50 messages
+      const messages = await Message.find({ salonId, type: 'team' })
+        .sort({ createdAt: -1 }).limit(50).lean();
+      socket.emit('team-chat-history', messages.reverse());
+    } catch (err) {
+      logger.warn('[Socket] join-team-chat error', { error: err.message });
     }
   });
+
+  // ===================================================
+  // TEAM CHAT — SEND MESSAGE
+  // ===================================================
+  socket.on('team-chat-send', async (data) => {
+    try {
+      const { salonId, senderId, senderName, senderRole, text } = data;
+      if (!salonId || !text?.trim()) return;
+
+      const msg = await Message.create({
+        salonId,
+        type:       'team',
+        senderId,
+        senderName,
+        senderRole: senderRole || 'owner',
+        text:       text.trim().slice(0, 1000),
+      });
+
+      io.to(`team-${salonId}`).emit('team-chat-message', msg);
+    } catch (err) {
+      logger.warn('[Socket] team-chat-send error', { error: err.message });
+    }
+  });
+
+  // ===================================================
+  // WAIT TIME — REQUEST CURRENT ESTIMATE
+  // ===================================================
+  socket.on('get-wait-time', async (data) => {
+    try {
+      const { salonId } = data;
+      if (salonId) await broadcastWaitTime(io, salonId);
+    } catch {}
+  });
+
+  // ===================================================
+  // STAFF NOTES — GET/ADD ON BOOKING
+  // ===================================================
+  socket.on('get-staff-notes', async (data) => {
+    try {
+      const { bookingId } = data;
+      if (!bookingId) return;
+      const notes = await StaffNote.find({ bookingId }).sort({ createdAt: -1 }).lean();
+      socket.emit('staff-notes', { bookingId, notes });
+    } catch {}
+  });
+
+  socket.on('add-staff-note', async (data) => {
+    try {
+      const { bookingId, salonId, authorId, authorName, authorRole, content } = data;
+      if (!bookingId || !content?.trim()) return;
+      const note = await StaffNote.create({ bookingId, salonId, authorId, authorName, authorRole: authorRole || 'owner', content: content.trim() });
+      io.to(`salon-${salonId}`).emit('new-staff-note', { bookingId, note });
+    } catch {}
+  });
 };
+
+// Export broadcastWaitTime so booking controllers can call it after status changes
+module.exports.broadcastWaitTime = broadcastWaitTime;

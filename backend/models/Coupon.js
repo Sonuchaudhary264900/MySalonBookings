@@ -26,15 +26,17 @@ const couponSchema = new mongoose.Schema(
     maxUsagePerCustomer: { type: Number, default: 1 },
     isActive: { type: Boolean, default: true },
     usageCount: { type: Number, default: 0 },
-    usedBy: [mongoose.Schema.Types.ObjectId],
+    usedBy:       [mongoose.Schema.Types.ObjectId],
     usageHistory: [usageHistorySchema],
-    createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now },
+    createdAt:    { type: Date, default: Date.now },
+    updatedAt:    { type: Date, default: Date.now },
+    deletedAt:    { type: Date, default: null },
   },
   { timestamps: true }
 );
 
-couponSchema.index({ code: 1, salonId: 1 }, { unique: true }); // unique per salon
+couponSchema.index({ code: 1, salonId: 1 }, { unique: true });
 couponSchema.index({ salonId: 1 });
+couponSchema.index({ deletedAt: 1 }, { sparse: true });
 
 module.exports = mongoose.model('Coupon', couponSchema);

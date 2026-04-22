@@ -1089,6 +1089,115 @@ EXPORT
 ====================================================
 */
 
+/* ====================================================
+   BIRTHDAY CAMPAIGN — daily at 10:00 AM IST
+   Sends a birthday push + optional coupon to customers
+==================================================== */
+const birthdayCampaign = cron.schedule('30 4 * * *', async () => {
+  // 4:30 UTC = 10:00 IST
+  try {
+    const { Expo } = require('expo-server-sdk');
+    const expo = new Expo();
+
+    const now    = new Date();
+    const month  = now.getMonth() + 1;
+    const day    = now.getDate();
+
+    // Customers whose birthday is today (any year)
+    const customers = await Customer.find({
+      dateOfBirth: { $exists: true, $ne: null },
+      expoPushToken: { $exists: true, $ne: null },
+    }).lean();
+
+    const birthdayCustomers = customers.filter((c) => {
+      const dob = new Date(c.dateOfBirth);
+      return dob.getMonth() + 1 === month && dob.getDate() === day;
+    });
+
+    const messages = birthdayCustomers
+      .filter((c) => Expo.isExpoPushToken(c.expoPushToken))
+      .map((c) => ({
+        to:    c.expoPushToken,
+        title: `Happy Birthday, ${c.name?.split(' ')[0] || 'there'}! 🎂`,
+        body:  'Treat yourself today — your favourite salon has a special offer waiting for you.',
+        data:  { type: 'birthday' },
+      }));
+
+    if (messages.length) {
+      const chunks = expo.chunkPushNotifications(messages);
+      for (const chunk of chunks) {
+        await expo.sendPushNotificationsAsync(chunk).catch(() => {});
+      }
+      console.log(`🎂 Birthday campaigns sent: ${messages.length}`);
+    }
+  } catch (err) {
+    console.error('Birthday campaign cron error:', err.message);
+  }
+});
+
+/* ====================================================
+   RE-ENGAGEMENT CAMPAIGN — every Sunday at 11:00 AM IST
+   Targets customers who haven't visited in 30+ days
+==================================================== */
+const reEngagementCampaign = cron.schedule('30 5 * * 0', async () => {
+  // 5:30 UTC Sunday = 11:00 IST Sunday
+  try {
+    const { Expo } = require('expo-server-sdk');
+    const expo = new Expo();
+
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    const inactiveCustomers = await Customer.find({
+      lastVisitAt:   { $lt: thirtyDaysAgo },
+      expoPushToken: { $exists: true, $ne: null },
+      deletedAt:     null,
+    }).limit(500).lean();
+
+    const messages = inactiveCustomers
+      .filter((c) => Expo.isExpoPushToken(c.expoPushToken))
+      .map((c) => ({
+        to:    c.expoPushToken,
+        title: `We miss you, ${c.name?.split(' ')[0] || 'there'}!`,
+        body:  "It's been a while — book your next appointment and look your best.",
+        data:  { type: 're-engagement' },
+      }));
+
+    if (messages.length) {
+      const chunks = expo.chunkPushNotifications(messages);
+      for (const chunk of chunks) {
+        await expo.sendPushNotificationsAsync(chunk).catch(() => {});
+      }
+      console.log(`💌 Re-engagement campaigns sent: ${messages.length}`);
+    }
+  } catch (err) {
+    console.error('Re-engagement campaign cron error:', err.message);
+  }
+});
+
+/* ====================================================
+   HARD-DELETE SOFT-DELETED RECORDS — daily at 2:00 AM
+   Permanently removes records deleted 30+ days ago
+==================================================== */
+const hardDeleteExpired = cron.schedule('0 2 * * *', async () => {
+  try {
+    const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const Service  = require('../models/Service');
+    const Coupon   = require('../models/Coupon');
+    const BookingM = require('../models/Booking');
+
+    const [b, s, c, cu] = await Promise.all([
+      BookingM.deleteMany({ deletedAt: { $lt: cutoff } }),
+      Service.deleteMany({ deletedAt: { $lt: cutoff } }),
+      Customer.deleteMany({ deletedAt: { $lt: cutoff } }),
+      Coupon.deleteMany({ deletedAt: { $lt: cutoff } }),
+    ]);
+    const total = b.deletedCount + s.deletedCount + c.deletedCount + cu.deletedCount;
+    if (total > 0) console.log(`🗑️ Hard-deleted ${total} expired soft-deleted records`);
+  } catch (err) {
+    console.error('Hard-delete cron error:', err.message);
+  }
+});
+
 module.exports = {
 
   cleanupOldQueues,
@@ -1108,6 +1217,9 @@ module.exports = {
   cleanupChatMessages,
   unassignedEscalation,
   lateToNoShowEscalation,
+  birthdayCampaign,
+  reEngagementCampaign,
+  hardDeleteExpired,
 
   stopAllJobs: () => {
 
@@ -1128,6 +1240,9 @@ module.exports = {
     cleanupChatMessages.stop();
     unassignedEscalation.stop();
     lateToNoShowEscalation.stop();
+    birthdayCampaign.stop();
+    reEngagementCampaign.stop();
+    hardDeleteExpired.stop();
 
     console.log("🛑 All cron jobs stopped");
 

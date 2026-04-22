@@ -6,15 +6,32 @@ const api = axios.create({
   baseURL: BASE_URL,
   timeout: parseInt(import.meta.env.VITE_API_TIMEOUT) || 30000,
   headers: { 'Content-Type': 'application/json' },
+  withCredentials: true, // send httpOnly auth cookies automatically
 });
 
-// ── Request: attach token + clear Content-Type for FormData ───
+// Read CSRF token from cookie (non-httpOnly, set by server on GET requests)
+const getCSRFToken = () => {
+  const match = document.cookie.match(/(?:^|;\s*)csrf-token=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : null;
+};
+
+// ── Request: attach CSRF header + clear Content-Type for FormData ──
 api.interceptors.request.use(
   (config) => {
+    // Attach CSRF token for all mutating requests (cookies are sent automatically)
+    const SAFE = ['get', 'head', 'options'];
+    if (!SAFE.includes((config.method || 'get').toLowerCase())) {
+      const csrfToken = getCSRFToken();
+      if (csrfToken) config.headers['X-CSRF-Token'] = csrfToken;
+    }
+
+    // Bearer token fallback — kept for backward-compat with Android deep links / API clients
+    // that might call web endpoints. Prefer cookie auth on web.
     const token = localStorage.getItem('token');
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-    // If body is FormData, remove the default application/json header
-    // so axios can set multipart/form-data with the correct boundary
+    if (token && !document.cookie.includes('token=')) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type'];
     }
@@ -23,30 +40,28 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// ── Response: auto-refresh token on 401, then retry ───────────
+// ── Response: auto-refresh token on 401, then retry ───────────────
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const original = error.config;
 
-    // Try refresh once before giving up
-    // Skip retry for auth endpoints (login/refresh) — they should surface errors directly
     const isAuthEndpoint = original.url?.includes('/auth/login') || original.url?.includes('/auth/refresh-token');
     if (error.response?.status === 401 && !original._retry && !isAuthEndpoint) {
       original._retry = true;
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (!refreshToken) throw new Error('no refresh token');
+        // Cookie-based refresh: server reads refreshToken cookie automatically
+        const { data } = await axios.post(
+          `${BASE_URL}/owner/auth/refresh-token`,
+          {},
+          { withCredentials: true }
+        );
 
-        const { data } = await axios.post(`${BASE_URL}/owner/auth/refresh-token`, { refreshToken });
-        const newToken        = data.data?.token        ?? data.token;
-        const newRefreshToken = data.data?.refreshToken ?? data.refreshToken;
+        // Also update localStorage for any legacy Bearer-token path
+        const newToken = data.data?.token ?? data.token;
+        if (newToken) localStorage.setItem('token', newToken);
 
-        localStorage.setItem('token', newToken);
-        if (newRefreshToken) localStorage.setItem('refreshToken', newRefreshToken);
-
-        original.headers.Authorization = `Bearer ${newToken}`;
-        return api(original); // retry with new token
+        return api(original);
       } catch {
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
@@ -55,7 +70,6 @@ api.interceptors.response.use(
       }
     }
 
-    // ── Normalise error shape ──────────────────────────────────
     const message =
       error.response?.data?.message ||
       (error.code === 'ECONNABORTED' ? 'Request timeout. Check your connection.' :

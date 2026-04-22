@@ -85,6 +85,11 @@ const ownerSchema = new mongoose.Schema(
       ref: 'Business',
       default: null,
     },
+    // Multi-location: array of all businesses owned
+    businessIds: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Business',
+    }],
     ownerType: {
       type: String,
       enum: ['BARBERSHOP_OWNER', 'SALON_OWNER', 'SPA_WELLNESS_OWNER', 'MAKEUP_BRIDAL_OWNER', 'SKIN_DERMA_OWNER', null],
@@ -264,11 +269,12 @@ const ownerSchema = new mongoose.Schema(
     },
     refreshTokens: [
       {
-        token: String,
-        createdAt: {
-          type: Date,
-          default: Date.now,
-        },
+        token:      String,
+        deviceName: { type: String, default: 'Unknown device' },
+        ip:         { type: String, default: null },
+        userAgent:  { type: String, default: null },
+        createdAt:  { type: Date, default: Date.now },
+        lastUsedAt: { type: Date, default: Date.now },
       },
     ],
 

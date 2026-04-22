@@ -19,6 +19,7 @@ const { validateOwnerRegistration, validatePhone, validatePassword } = require('
 const { generateOTP, generateUniqueId } = require('../../utils/helpers');
 const messages = require('../../utils/messages');
 const { sendOTPEmail } = require('../../config/emailConfig');
+const { setAuthCookies, clearAuthCookies } = require('../../utils/cookies');
 
 // ===================================================
 // SEND OTP FOR REGISTRATION
@@ -271,6 +272,7 @@ exports.verifyOTPAndRegister = async (req, res) => {
       console.error('Error sending welcome email:', error);
     }
 
+    setAuthCookies(res, token, refreshToken);
     res.status(201).json(
       formatSuccessResponse(
         {
@@ -406,6 +408,7 @@ exports.login = async (req, res) => {
     // ==========================================
     // RESPONSE
     // ==========================================
+    setAuthCookies(res, token, refreshToken);
     res.json(
       formatSuccessResponse(
         {
@@ -757,6 +760,7 @@ exports.firebaseRegister = async (req, res) => {
         );
         existingOwner.refreshTokens.push({ token: refreshToken });
         await existingOwner.save();
+        setAuthCookies(res, token, refreshToken);
         return res.status(200).json(
           formatSuccessResponse(
             { owner: existingOwner.getPublicProfile(), token, refreshToken },
@@ -805,6 +809,7 @@ exports.firebaseRegister = async (req, res) => {
     owner.refreshTokens.push({ token: refreshToken });
     await owner.save();
 
+    setAuthCookies(res, token, refreshToken);
     res.status(201).json(
       formatSuccessResponse(
         {
@@ -835,7 +840,7 @@ exports.firebaseRegister = async (req, res) => {
 // ===================================================
 exports.refreshToken = async (req, res) => {
   try {
-    const { refreshToken } = req.body;
+    const refreshToken = req.cookies?.refreshToken || req.body.refreshToken;
 
     if (!refreshToken) {
       return res.status(400).json(
@@ -877,6 +882,7 @@ exports.refreshToken = async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRE || '24h' }
     );
 
+    setAuthCookies(res, newToken, refreshToken);
     res.json(
       formatSuccessResponse(
         { token: newToken },
@@ -1091,6 +1097,7 @@ exports.firebaseLogin = async (req, res) => {
     if (!owner.firebaseUid) owner.firebaseUid = firebaseUid;
     await owner.save();
 
+    setAuthCookies(res, token, refreshToken);
     return res.status(200).json(
       formatSuccessResponse({ owner: owner.getPublicProfile(), token, refreshToken }, 'Login successful')
     );
@@ -1102,20 +1109,57 @@ exports.firebaseLogin = async (req, res) => {
 
 exports.logout = async (req, res) => {
   try {
-    const { refreshToken } = req.body;
+    const refreshToken = req.body.refreshToken || req.cookies?.refreshToken;
 
     const update = { expoPushToken: null };
     if (refreshToken) update.$pull = { refreshTokens: { token: refreshToken } };
 
     await Owner.findByIdAndUpdate(req.owner._id, update);
 
-    res.json(
-      formatSuccessResponse(null, messages.AUTH.LOGOUT_SUCCESS)
-    );
+    clearAuthCookies(res);
+    res.json(formatSuccessResponse(null, messages.AUTH.LOGOUT_SUCCESS));
   } catch (error) {
     console.error('Error during logout:', error);
-    res.status(500).json(
-      formatErrorResponse(messages.GENERIC.ERROR, 500)
-    );
+    res.status(500).json(formatErrorResponse(messages.GENERIC.ERROR, 500));
+  }
+};
+
+// ===================================================
+// LIST ACTIVE SESSIONS
+// ===================================================
+exports.getSessions = async (req, res) => {
+  try {
+    const owner = await Owner.findById(req.owner._id).select('refreshTokens');
+    if (!owner) return res.status(404).json(formatErrorResponse('Owner not found', 404));
+
+    const sessions = (owner.refreshTokens || []).map((rt) => ({
+      id:          rt._id,
+      deviceName:  rt.deviceName  || 'Unknown device',
+      ip:          rt.ip          || null,
+      userAgent:   rt.userAgent   || null,
+      createdAt:   rt.createdAt,
+      lastUsedAt:  rt.lastUsedAt  || rt.createdAt,
+    }));
+
+    res.json(formatSuccessResponse(sessions, 'Sessions retrieved'));
+  } catch (error) {
+    console.error('Error getting sessions:', error);
+    res.status(500).json(formatErrorResponse(messages.GENERIC.ERROR, 500));
+  }
+};
+
+// ===================================================
+// REVOKE A SESSION
+// ===================================================
+exports.revokeSession = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    await Owner.findByIdAndUpdate(req.owner._id, {
+      $pull: { refreshTokens: { _id: sessionId } },
+    });
+    res.json(formatSuccessResponse(null, 'Session revoked'));
+  } catch (error) {
+    console.error('Error revoking session:', error);
+    res.status(500).json(formatErrorResponse(messages.GENERIC.ERROR, 500));
   }
 };

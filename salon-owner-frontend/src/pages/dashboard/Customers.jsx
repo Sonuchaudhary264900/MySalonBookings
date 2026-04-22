@@ -4,11 +4,13 @@ import {
   Phone, Mail, Calendar, IndianRupee, Star, ShieldOff,
   ShieldCheck, Edit2, Trash2, Eye, TrendingUp, Clock,
   ArrowUpDown, Loader2, MessageSquare, UserCheck,
+  Square, CheckSquare, Ban,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import api from '../../services/api';
 import { formatDate } from '../../utils/exportHelpers';
+import BulkActionBar from '../../components/BulkActionBar';
 
 /* ─── Helpers ────────────────────────────────────────────────── */
 const initials = (name) =>
@@ -428,7 +430,37 @@ export default function Customers() {
   const [blockedIds,   setBlockedIds]   = useState(new Set());
   const [blockLoading, setBlockLoading] = useState(null);
   const [page,         setPage]         = useState(1);
+  const [selectedCIds, setSelectedCIds] = useState(new Set());
   const PAGE_SIZE = 20;
+
+  const toggleSelectC = (id) => setSelectedCIds(prev => {
+    const n = new Set(prev);
+    n.has(id) ? n.delete(id) : n.add(id);
+    return n;
+  });
+
+  const bulkBlockCustomers = async (ids) => {
+    try {
+      await api.patch('/owner/customers/bulk', { ids, action: 'block' });
+      setBlockedIds(prev => new Set([...prev, ...ids]));
+      setSelectedCIds(new Set());
+      toast.success(`${ids.length} customer${ids.length > 1 ? 's' : ''} blocked`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Bulk block failed');
+    }
+  };
+
+  const bulkDeleteCustomers = async (ids) => {
+    if (!window.confirm(`Delete ${ids.length} customer${ids.length > 1 ? 's' : ''}? This cannot be undone.`)) return;
+    try {
+      await api.patch('/owner/customers/bulk', { ids, action: 'delete' });
+      setCustomers(prev => prev.filter(c => !ids.includes(c._id)));
+      setSelectedCIds(new Set());
+      toast.success(`${ids.length} customer${ids.length > 1 ? 's' : ''} deleted`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Bulk delete failed');
+    }
+  };
 
   const fetchCustomers = useCallback(async () => {
     try {
@@ -674,6 +706,20 @@ export default function Customers() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-800/40">
+                    <th className="pl-4 pr-2 py-3 w-8">
+                      <button
+                        onClick={() => {
+                          const allIds = paginated.map(c => c._id);
+                          const allSel = allIds.every(id => selectedCIds.has(id));
+                          setSelectedCIds(allSel ? new Set() : new Set(allIds));
+                        }}
+                        className="text-gray-400 dark:text-gray-600 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                      >
+                        {paginated.length > 0 && paginated.every(c => selectedCIds.has(c._id))
+                          ? <CheckSquare className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                          : <Square className="w-4 h-4" />}
+                      </button>
+                    </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Customer</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Phone</th>
                     <SortTh label="Visits"    field="totalBookings" sort={sort} onSort={toggleSort} />
@@ -688,10 +734,18 @@ export default function Customers() {
                     const tag       = getTag(customer);
                     const ini       = initials(customer.name);
                     const isBlocked = blockedIds.has(String(customer._id));
+                    const isSel     = selectedCIds.has(customer._id);
                     return (
                       <tr key={customer._id}
-                        className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/80 dark:hover:bg-gray-800/40 transition-colors cursor-pointer group"
+                        className={`border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/80 dark:hover:bg-gray-800/40 transition-colors cursor-pointer group ${isSel ? 'bg-indigo-50/60 dark:bg-indigo-950/20' : ''}`}
                         onClick={() => setSelected(customer)}>
+
+                        {/* Checkbox */}
+                        <td className="pl-4 pr-2 py-3.5 w-8" onClick={e => { e.stopPropagation(); toggleSelectC(customer._id); }}>
+                          {isSel
+                            ? <CheckSquare className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                            : <Square className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-gray-400" />}
+                        </td>
 
                         {/* Name */}
                         <td className="px-4 py-3.5">
@@ -817,6 +871,16 @@ export default function Customers() {
           onSaved={fetchCustomers}
         />
       )}
+
+      {/* Bulk Action Bar */}
+      <BulkActionBar
+        selectedIds={[...selectedCIds]}
+        onClear={() => setSelectedCIds(new Set())}
+        actions={[
+          { label: 'Block',  icon: Ban,   variant: 'danger',  onClick: bulkBlockCustomers },
+          { label: 'Delete', icon: Trash2, variant: 'danger', onClick: bulkDeleteCustomers },
+        ]}
+      />
     </DashboardLayout>
   );
 }

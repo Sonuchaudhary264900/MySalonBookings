@@ -237,14 +237,11 @@ const customerSchema = new mongoose.Schema(
     // ==========================================
     // TIMESTAMPS
     // ==========================================
-    createdAt: {
-      type: Date,
-      default: Date.now,
-    },
-    updatedAt: {
-      type: Date,
-      default: Date.now,
-    },
+    createdAt:   { type: Date, default: Date.now },
+    updatedAt:   { type: Date, default: Date.now },
+    deletedAt:   { type: Date, default: null },    // soft-delete
+    dateOfBirth: { type: Date, default: null },    // birthday campaigns
+    lastVisitAt: { type: Date, default: null },    // re-engagement campaigns
   },
   {
     timestamps: true,
@@ -259,6 +256,10 @@ const customerSchema = new mongoose.Schema(
 customerSchema.index({ phone: 1, sparse: true });
 customerSchema.index({ createdAt: -1 });
 customerSchema.index({ totalBookings: -1 });
+customerSchema.index({ salonId: 1, totalBookings: -1 });
+customerSchema.index({ dateOfBirth: 1 }, { sparse: true });
+customerSchema.index({ lastVisitAt: 1 }, { sparse: true });
+customerSchema.index({ deletedAt: 1 }, { sparse: true });
 customerSchema.index({ 'savedLocations.coordinates': '2dsphere' }, { sparse: true });
 customerSchema.index({ lastLocation: '2dsphere' }, { sparse: true });
 

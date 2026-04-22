@@ -74,8 +74,9 @@ const bookingSchema = new mongoose.Schema(
         rescheduledBy: { type: String, enum: ['owner', 'customer'], default: 'owner' },
       }
     ],
-    createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now },
+    createdAt:  { type: Date, default: Date.now },
+    updatedAt:  { type: Date, default: Date.now },
+    deletedAt:  { type: Date, default: null },    // soft-delete
   },
   { timestamps: true }
 );
@@ -84,6 +85,8 @@ const bookingSchema = new mongoose.Schema(
 bookingSchema.index({ salonId: 1, appointmentDate: 1, status: 1 }); // slot-checking & owner bookings filter
 bookingSchema.index({ customerId: 1, createdAt: -1 });               // customer booking list
 bookingSchema.index({ salonId: 1, createdAt: -1 });                  // owner booking list (analytics)
+bookingSchema.index({ salonId: 1, appointmentTime: -1 });            // wait time calculation
+bookingSchema.index({ deletedAt: 1 }, { sparse: true });             // soft-delete filter
 bookingSchema.index({ bookingId: 1 }, { unique: true, sparse: true });
 bookingSchema.index({ salonId: 1, barberId: 1, appointmentDate: 1 }); // barber availability checks (auto-assign + overlap)
 bookingSchema.index({ customerPhone: 1, appointmentDate: 1 });        // Fix 2: per-phone spam check

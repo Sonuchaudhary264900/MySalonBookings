@@ -15,14 +15,17 @@ const serviceSchema = new mongoose.Schema(
     barberIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Barber' }],
     photos: [String],
     averageRating: { type: Number, default: 0, min: 0, max: 5 },
-    totalReviews: { type: Number, default: 0 },
+    totalReviews:  { type: Number, default: 0 },
     totalBookings: { type: Number, default: 0 },
-    createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now },
+    createdAt:     { type: Date, default: Date.now },
+    updatedAt:     { type: Date, default: Date.now },
+    deletedAt:     { type: Date, default: null },
   },
   { timestamps: true }
 );
 
-serviceSchema.index({ salonId: 1, isActive: 1 }); // get active services for a salon (most common query)
+serviceSchema.index({ salonId: 1, isActive: 1 });
+serviceSchema.index({ salonId: 1, category: 1 });
+serviceSchema.index({ deletedAt: 1 }, { sparse: true });
 
 module.exports = mongoose.model('Service', serviceSchema);
