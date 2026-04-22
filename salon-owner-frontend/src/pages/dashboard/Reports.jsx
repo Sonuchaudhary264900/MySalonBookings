@@ -196,6 +196,7 @@ const Reports = () => {
   const [editingGoal,    setEditingGoal]    = useState(false);
   const [goalInput,      setGoalInput]      = useState('');
   const [teamStats,      setTeamStats]      = useState([]);
+  const [compare,        setCompare]        = useState(false);
 
   /* ── Fetch team stats — only shown when real staff exist ── */
   useEffect(() => {
@@ -214,7 +215,9 @@ const Reports = () => {
   const fetchAnalytics = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const res = await api.get(`/owner/analytics/dashboard?startDate=${startDate}&endDate=${endDate}`);
+      const res = await api.get(
+        `/owner/analytics/dashboard?startDate=${startDate}&endDate=${endDate}${compare ? '&compare=true' : ''}`
+      );
       setData(res.data.data);
     } catch {
       toast.error('Failed to load analytics');
@@ -222,7 +225,7 @@ const Reports = () => {
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate]);
+  }, [startDate, endDate, compare]);
 
   /* ── Fetch bookings by date ── */
   const fetchBookingsByDate = useCallback(async (date) => {
@@ -272,6 +275,19 @@ const Reports = () => {
   /* ── Sparklines (last 10 data points) ── */
   const revSparkline  = dailyRevenue.slice(-10).map(d => ({ v: d.revenue  || 0 }));
   const bookSparkline = dailyRevenue.slice(-10).map(d => ({ v: d.bookings || 0 }));
+
+  /* ── Compare deltas (vs previous period) ── */
+  const prevRevenue   = data?.previous?.totalRevenue   ?? null;
+  const prevBookings  = data?.previous?.totalBookings  ?? null;
+  const prevCustomers = data?.previous?.activeCustomers ?? null;
+  const calcDelta = (cur, prev) => {
+    if (prev === null || prev === undefined) return null;
+    if (prev === 0) return cur > 0 ? 100 : 0;
+    return Math.round(((cur - prev) / prev) * 100);
+  };
+  const revDelta  = compare ? calcDelta(totalRevenue,   prevRevenue)   : null;
+  const bkgDelta  = compare ? calcDelta(totalBookings,  prevBookings)  : null;
+  const custDelta = compare ? calcDelta(activeCustomers, prevCustomers) : null;
 
   /* ── Top customers derived from recentBookings ── */
   const topCustomers = useMemo(() =>
@@ -458,6 +474,19 @@ ${recentBookings.map(b=>`<tr><td>${b.customerName||'—'}</td><td>${b.serviceNam
         {/* ── Date filter + quick presets ── */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            {/* Compare toggle */}
+            <button
+              onClick={() => setCompare(v => !v)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
+                compare
+                  ? 'bg-violet-600 text-white border-violet-600 shadow-sm shadow-violet-500/30'
+                  : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-violet-400 hover:text-violet-600'
+              }`}
+            >
+              <TrendingUp className="w-3.5 h-3.5" />
+              Compare
+            </button>
+
             {/* Quick presets */}
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mr-1">
@@ -561,36 +590,43 @@ ${recentBookings.map(b=>`<tr><td>${b.customerName||'—'}</td><td>${b.serviceNam
               <StatsCard
                 label="Total Revenue"
                 value={`₹${totalRevenue.toLocaleString()}`}
-                sub={`${formatDate(startDate)} – ${formatDate(endDate)}`}
+                sub={revDelta !== null
+                  ? `${revDelta >= 0 ? '+' : ''}${revDelta}% vs prev period`
+                  : `${formatDate(startDate)} – ${formatDate(endDate)}`}
                 icon={IndianRupee}
                 colorClass="text-indigo-600 dark:text-indigo-400"
                 bgClass="bg-indigo-50 dark:bg-indigo-950/40"
                 borderClass="border-indigo-100 dark:border-indigo-900/40"
-                trend={null}
-                trendLabel="period total"
+                trend={revDelta}
+                trendLabel="vs prev period"
                 sparkline={revSparkline}
               />
               <StatsCard
                 label="Total Bookings"
                 value={totalBookings}
-                sub={`${completed} done · ${pending} pending`}
+                sub={bkgDelta !== null
+                  ? `${bkgDelta >= 0 ? '+' : ''}${bkgDelta}% vs prev period`
+                  : `${completed} done · ${pending} pending`}
                 icon={Calendar}
                 colorClass="text-emerald-600 dark:text-emerald-400"
                 bgClass="bg-emerald-50 dark:bg-emerald-950/40"
                 borderClass="border-emerald-100 dark:border-emerald-900/40"
-                trend={null}
-                trendLabel="in period"
+                trend={bkgDelta}
+                trendLabel="vs prev period"
                 sparkline={bookSparkline}
               />
               <StatsCard
                 label="Active Customers"
                 value={activeCustomers}
-                sub="unique visitors"
+                sub={custDelta !== null
+                  ? `${custDelta >= 0 ? '+' : ''}${custDelta}% vs prev period`
+                  : 'unique visitors'}
                 icon={Users}
                 colorClass="text-blue-600 dark:text-blue-400"
                 bgClass="bg-blue-50 dark:bg-blue-950/40"
                 borderClass="border-blue-100 dark:border-blue-900/40"
-                trend={null}
+                trend={custDelta}
+                trendLabel="vs prev period"
               />
               <StatsCard
                 label="Growth Rate"
@@ -606,7 +642,12 @@ ${recentBookings.map(b=>`<tr><td>${b.customerName||'—'}</td><td>${b.serviceNam
             </div>
 
             {/* ── Revenue chart ── */}
-            <RevenueChart data={dailyRevenue} isDark={isDark} goal={revenueGoal} />
+            <RevenueChart
+              data={dailyRevenue}
+              isDark={isDark}
+              goal={revenueGoal}
+              previousData={compare && data?.previous ? data.previous.dailyRevenue : null}
+            />
 
             {/* ── Booking status + Top services ── */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
