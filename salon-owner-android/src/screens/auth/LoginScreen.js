@@ -98,17 +98,28 @@ export default function LoginScreen({ navigation }) {
       await firebaseLogin(firebaseToken, formatPhone(phone));
       // Success — AuthContext sets user, navigation updates automatically
     } catch (ownerErr) {
-      const ownerMsg = ownerErr?.message || '';
-      const isNotFound = ownerMsg.toLowerCase().includes('not found') || ownerMsg.toLowerCase().includes('no glowloox');
+      // axios throws with err.message = "Request failed with status code 4xx"
+      // The actual backend message is in err.response?.data?.message — check both
+      const ownerStatus     = ownerErr.response?.status;
+      const ownerBackendMsg = (ownerErr.response?.data?.message || ownerErr?.message || '').toLowerCase();
+      const isNotFound      = ownerStatus === 404
+        || ownerBackendMsg.includes('not found')
+        || ownerBackendMsg.includes('no glowloox');
+
       if (isNotFound) {
         // Try staff login
         try {
           await staffFirebaseLogin(firebaseToken, formatPhone(phone));
           // Staff login success — user is set, navigation updates
         } catch (staffErr) {
-          const staffMsg = staffErr?.message || '';
-          const staffNotFound = staffMsg.toLowerCase().includes('not found');
-          const loginDisabled = staffMsg.toLowerCase().includes('not enabled') || staffMsg.toLowerCase().includes('disabled');
+          const staffStatus     = staffErr.response?.status;
+          const staffBackendMsg = (staffErr.response?.data?.message || staffErr?.message || '').toLowerCase();
+          const staffNotFound   = staffStatus === 404 || staffBackendMsg.includes('not found');
+          const loginDisabled   = staffStatus === 403
+            || staffBackendMsg.includes('not enabled')
+            || staffBackendMsg.includes('disabled')
+            || staffBackendMsg.includes('deactivated');
+
           if (loginDisabled) {
             Alert.alert(
               'Login Not Enabled',
@@ -119,11 +130,11 @@ export default function LoginScreen({ navigation }) {
             // Neither owner nor staff — go to registration
             navigation.navigate('Onboarding', { initialStep: 3, prefillPhone: formatPhone(phone), prefillToken: firebaseToken });
           } else {
-            Alert.alert('Login Failed', staffMsg || 'Something went wrong. Please try again.');
+            Alert.alert('Login Failed', staffErr.response?.data?.message || staffErr?.message || 'Something went wrong. Please try again.');
           }
         }
       } else {
-        Alert.alert('Login Failed', ownerMsg || 'Something went wrong. Please try again.');
+        Alert.alert('Login Failed', ownerErr.response?.data?.message || ownerErr?.message || 'Something went wrong. Please try again.');
       }
     } finally { setLoading(false); }
   };
