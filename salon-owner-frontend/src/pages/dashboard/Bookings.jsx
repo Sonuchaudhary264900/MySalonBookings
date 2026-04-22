@@ -3,7 +3,7 @@ import {
   Calendar, Clock, Phone, User, IndianRupee, Scissors, X, Plus,
   ShieldOff, ShieldCheck, CalendarOff, ChevronDown, MoreHorizontal,
   CheckCircle, XCircle, PlayCircle, Loader2, MessageSquare, AlertTriangle, Users,
-  Timer, Banknote, Info, WifiOff, UserX,
+  Timer, Banknote, Info, WifiOff, UserX, Search, CreditCard, RotateCcw, Receipt,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { io } from 'socket.io-client';
@@ -54,6 +54,34 @@ const InfoTip = ({ children }) => (
   </span>
 );
 
+/* ─── Payment Badge ──────────────────────────────────────────── */
+const getPaymentBadge = (b) => {
+  if (b.refundStatus === 'full')
+    return { label: 'Refunded', icon: RotateCcw, cls: 'bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:ring-blue-800/50' };
+  if (b.paymentStatus === 'failed')
+    return { label: 'Pay Failed', icon: XCircle, cls: 'bg-red-50 text-red-700 ring-red-200 dark:bg-red-950/40 dark:text-red-300 dark:ring-red-800/50' };
+  if (b.refundStatus === 'partial')
+    return { label: 'Part Refund', icon: RotateCcw, cls: 'bg-cyan-50 text-cyan-700 ring-cyan-200 dark:bg-cyan-950/40 dark:text-cyan-300 dark:ring-cyan-800/50' };
+  if (b.paymentMethod === 'cash' && b.cashCollected)
+    return { label: 'Cash Collected', icon: Banknote, cls: 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-800/50' };
+  if (b.paymentMethod === 'cash' && !b.cashCollected)
+    return { label: 'Cash Due', icon: Banknote, cls: 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:ring-amber-800/50' };
+  if (b.paymentStatus === 'completed')
+    return { label: 'Paid Online', icon: CreditCard, cls: 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-800/50' };
+  return { label: 'Unpaid', icon: CreditCard, cls: 'bg-red-50 text-red-700 ring-red-200 dark:bg-red-950/40 dark:text-red-300 dark:ring-red-800/50' };
+};
+
+const PaymentBadge = ({ booking }) => {
+  if (!booking.totalAmount) return null;
+  const { label, icon: Icon, cls } = getPaymentBadge(booking);
+  return (
+    <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ring-1 ${cls}`}>
+      <Icon className="w-2.5 h-2.5 shrink-0" />
+      {label}
+    </span>
+  );
+};
+
 /* ─── Skeleton row ───────────────────────────────────────────── */
 const SkeletonRow = () => (
   <tr className="animate-pulse border-b border-gray-100 dark:border-gray-800">
@@ -66,26 +94,35 @@ const SkeletonRow = () => (
 );
 
 /* ─── Empty State ────────────────────────────────────────────── */
-const EmptyState = ({ filter, onAddWalkIn }) => (
+const EmptyState = ({ filter, onAddWalkIn, searchQuery, onClearSearch }) => (
   <div className="flex flex-col items-center justify-center py-20 px-6 animate-[fadeup_0.4s_ease_both]">
     <style>{`@keyframes fadeup{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}`}</style>
     <div className="relative mb-6">
-      {/* Glow rings */}
       <div className="absolute inset-0 rounded-full bg-indigo-400/10 dark:bg-indigo-400/5 scale-150 blur-xl" />
       <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-100 to-violet-100 dark:from-indigo-950 dark:to-violet-950
         flex items-center justify-center shadow-inner">
-        <CalendarOff className="w-9 h-9 text-indigo-400 dark:text-indigo-500" />
+        {searchQuery ? <Search className="w-9 h-9 text-indigo-400 dark:text-indigo-500" /> : <CalendarOff className="w-9 h-9 text-indigo-400 dark:text-indigo-500" />}
       </div>
     </div>
     <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-      {filter === 'all' ? 'No bookings yet' : `No ${filter.replace('_', ' ')} bookings`}
+      {searchQuery ? `No results for "${searchQuery}"` : filter === 'all' ? 'No bookings yet' : `No ${filter.replace('_', ' ')} bookings`}
     </h3>
     <p className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-xs mb-8">
-      {filter === 'all'
-        ? 'Bookings will appear here once customers start scheduling appointments.'
-        : `There are no ${filter.replace('_', ' ')} bookings for this date.`}
+      {searchQuery
+        ? 'Try a different name, phone number, or booking ID.'
+        : filter === 'all'
+          ? 'Bookings will appear here once customers start scheduling appointments.'
+          : `There are no ${filter.replace('_', ' ')} bookings for this date.`}
     </p>
-    {filter === 'all' && (
+    {searchQuery ? (
+      <button
+        onClick={onClearSearch}
+        className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700
+          text-gray-600 dark:text-gray-400 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+      >
+        <X className="w-4 h-4" /> Clear search
+      </button>
+    ) : filter === 'all' && (
       <button
         onClick={onAddWalkIn}
         className="flex items-center gap-2 px-5 py-2.5 rounded-xl
@@ -502,6 +539,9 @@ const BookingRow = ({ booking, updating, onStatusChange, isBlocked, blockLoading
           <IndianRupee className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
           {booking.totalAmount ?? '—'}
         </div>
+        <div className="mt-1">
+          <PaymentBadge booking={booking} />
+        </div>
       </td>
 
       {/* Status */}
@@ -583,7 +623,10 @@ const BookingCard = ({ booking, updating, onStatusChange, isBlocked, blockLoadin
       )}
       <div className="grid grid-cols-2 gap-2 mb-3 text-sm text-gray-600 dark:text-gray-400">
         <div className="flex items-center gap-1.5"><Scissors className="w-3.5 h-3.5 text-gray-400" /><span className="truncate">{booking.serviceName||'—'}</span></div>
-        <div className="flex items-center gap-1.5"><IndianRupee className="w-3.5 h-3.5 text-gray-400" /><span className="font-semibold text-gray-900 dark:text-white">{booking.totalAmount??'—'}</span></div>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-1.5"><IndianRupee className="w-3.5 h-3.5 text-gray-400" /><span className="font-semibold text-gray-900 dark:text-white">{booking.totalAmount??'—'}</span></div>
+          <PaymentBadge booking={booking} />
+        </div>
         <div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-gray-400" /><span>{dateStr}</span></div>
         <div className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-gray-400" /><span>{formatTime(booking.appointmentTime)}</span></div>
       </div>
@@ -912,6 +955,7 @@ const Bookings = () => {
   const [unreadChats, setUnreadChats]   = useState(new Set());
   const [staffList, setStaffList]       = useState([]);
   const [staffFilter, setStaffFilter]   = useState('all'); // 'all' | staffId | 'unassigned'
+  const [searchQuery, setSearchQuery]   = useState('');
   const [lateLoading, setLateLoading]   = useState(null);
   const [cashLoading, setCashLoading]   = useState(null);
 
@@ -988,6 +1032,13 @@ const Bookings = () => {
     if (filter !== 'all' && b.status !== filter) return false;
     if (staffFilter === 'unassigned') return !b.barberId;
     if (staffFilter !== 'all') return String(b.barberId) === staffFilter;
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      const name  = (b.customerName  || '').toLowerCase();
+      const phone = (b.customerPhone || '').toLowerCase();
+      const id    = (b.bookingId     || '').toLowerCase();
+      if (!name.includes(q) && !phone.includes(q) && !id.includes(q)) return false;
+    }
     return true;
   });
 
@@ -1141,6 +1192,32 @@ const Bookings = () => {
           booking{filteredBookings.length !== 1 ? 's' : ''} · {dateLabel}
         </p>
 
+        {/* ── Search ── */}
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search by name, phone or booking ID…"
+            className="w-full pl-9 pr-9 py-2 rounded-xl border text-sm
+              bg-white dark:bg-gray-900
+              border-gray-200 dark:border-gray-700
+              text-gray-700 dark:text-gray-300
+              placeholder-gray-400 dark:placeholder-gray-600
+              focus:outline-none focus:ring-2 focus:ring-indigo-500
+              transition-colors"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
         {/* ── Filter Tabs ── */}
         <div className="flex flex-wrap gap-2">
           {FILTERS.map(f => {
@@ -1201,7 +1278,7 @@ const Bookings = () => {
           </>
         ) : filteredBookings.length === 0 ? (
           <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm">
-            <EmptyState filter={filter} onAddWalkIn={() => setShowModal(true)} />
+            <EmptyState filter={filter} onAddWalkIn={() => setShowModal(true)} searchQuery={searchQuery} onClearSearch={() => setSearchQuery('')} />
           </div>
         ) : (
           <>

@@ -17,6 +17,29 @@ import { localDate, formatDate, formatTime, STATUS_COLORS } from '../../utils/he
 const today = localDate(0);
 const maxDate = localDate(30);
 const PAGE_SIZE = 10;
+
+const getPaymentState = (b) => {
+  if (b.refundStatus === 'full')    return { label: 'Refunded',       icon: 'refresh-outline',      color: '#0ea5e9', bg: '#e0f2fe' };
+  if (b.paymentStatus === 'failed') return { label: 'Pay Failed',     icon: 'close-circle-outline', color: '#ef4444', bg: '#fee2e2' };
+  if (b.refundStatus === 'partial') return { label: 'Part Refund',    icon: 'refresh-outline',      color: '#06b6d4', bg: '#cffafe' };
+  if (b.paymentMethod === 'cash' && b.cashCollected)  return { label: 'Cash Collected', icon: 'cash-outline',         color: '#10b981', bg: '#d1fae5' };
+  if (b.paymentMethod === 'cash' && !b.cashCollected) return { label: 'Cash Due',       icon: 'cash-outline',         color: '#f59e0b', bg: '#fef3c7' };
+  if (b.paymentStatus === 'completed') return { label: 'Paid Online', icon: 'card-outline',         color: '#10b981', bg: '#d1fae5' };
+  return { label: 'Unpaid', icon: 'card-outline', color: '#ef4444', bg: '#fee2e2' };
+};
+
+const PaymentBadgeRN = ({ booking }) => {
+  if (!booking.totalAmount) return null;
+  const { label, icon, color, bg } = getPaymentState(booking);
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4,
+      alignSelf: 'flex-start', paddingHorizontal: 7, paddingVertical: 3,
+      borderRadius: 20, backgroundColor: bg }}>
+      <Ionicons name={icon} size={11} color={color} />
+      <Text style={{ fontSize: 11, fontWeight: '600', color }}>{label}</Text>
+    </View>
+  );
+};
 const SOCKET_URL_RN = 'https://mysalonbookings.onrender.com';
 const CHAT_OPEN_STATUSES = ['pending', 'confirmed', 'in_progress'];
 const UPCOMING_STATUSES = ['pending', 'confirmed', 'in_progress'];
@@ -391,6 +414,7 @@ export default function BookingsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [updating, setUpdating] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [blockedIds, setBlockedIds] = useState(new Set());
@@ -568,14 +592,26 @@ export default function BookingsScreen() {
   const isMinDate  = selectedDate <= localDate(-90);
   const displayLabel = isToday ? 'Today' : formatDate(selectedDate + 'T12:00:00');
 
-  const filtered = viewMode === 'upcoming'
-    ? bookings.filter((b) => {
-        const matchStatus = filter === 'all'
-          ? UPCOMING_STATUSES.includes(b.status)
-          : b.status === filter;
-        return matchStatus;
-      })
-    : allBookings.filter((b) => filter === 'all' ? true : b.status === filter);
+  const applySearch = (list) => {
+    if (!searchQuery.trim()) return list;
+    const q = searchQuery.trim().toLowerCase();
+    return list.filter(b =>
+      (b.customerName  || '').toLowerCase().includes(q) ||
+      (b.customerPhone || '').toLowerCase().includes(q) ||
+      (b.bookingId     || '').toLowerCase().includes(q)
+    );
+  };
+
+  const filtered = applySearch(
+    viewMode === 'upcoming'
+      ? bookings.filter((b) => {
+          const matchStatus = filter === 'all'
+            ? UPCOMING_STATUSES.includes(b.status)
+            : b.status === filter;
+          return matchStatus;
+        })
+      : allBookings.filter((b) => filter === 'all' ? true : b.status === filter)
+  );
 
   const getNextStatuses = (status) => {
     const transitions = {
@@ -642,6 +678,7 @@ export default function BookingsScreen() {
               <Text style={[bStyles.detailText, { color: theme.subText }]}>{d.text}</Text>
             </View>
           ))}
+          {b.totalAmount ? <PaymentBadgeRN booking={b} /> : null}
         </View>
 
         {/* Actions */}
@@ -726,6 +763,25 @@ export default function BookingsScreen() {
           </View>
         )}
 
+        {/* Search */}
+        <View style={bStyles.searchRow}>
+          <Ionicons name="search-outline" size={16} color="#9ca3af" style={{ marginRight: 6 }} />
+          <TextInput
+            style={[bStyles.searchInput, { color: theme.text }]}
+            placeholder="Search name, phone or booking ID…"
+            placeholderTextColor="#9ca3af"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            clearButtonMode="while-editing"
+            returnKeyType="search"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="close-circle" size={16} color="#9ca3af" />
+            </TouchableOpacity>
+          )}
+        </View>
+
         {/* Status filter */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={bStyles.filterRow}>
           {(viewMode === 'upcoming' ? UPCOMING_FILTERS : ALL_STATUS_FILTERS).map((f) => (
@@ -760,12 +816,19 @@ export default function BookingsScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           ListEmptyComponent={
             <View style={{ alignItems: 'center', paddingVertical: 48 }}>
-              <Ionicons name="calendar-outline" size={48} color="#d1d5db" />
-              <Text style={{ color: '#9ca3af', marginTop: 8, fontSize: 14 }}>
-                {viewMode === 'upcoming'
-                  ? `No upcoming bookings for ${displayLabel}`
-                  : 'No bookings found'}
+              <Ionicons name={searchQuery ? 'search-outline' : 'calendar-outline'} size={48} color="#d1d5db" />
+              <Text style={{ color: '#9ca3af', marginTop: 8, fontSize: 14, textAlign: 'center', paddingHorizontal: 24 }}>
+                {searchQuery
+                  ? `No results for "${searchQuery}"`
+                  : viewMode === 'upcoming'
+                    ? `No upcoming bookings for ${displayLabel}`
+                    : 'No bookings found'}
               </Text>
+              {searchQuery ? (
+                <TouchableOpacity onPress={() => setSearchQuery('')} style={{ marginTop: 12, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#f3f4f6' }}>
+                  <Text style={{ color: '#6366f1', fontWeight: '600', fontSize: 13 }}>Clear search</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
           }
           ListFooterComponent={
@@ -895,6 +958,8 @@ const bStyles = StyleSheet.create({
   dateRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 12 },
   navBtn: { width: 28, height: 28, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   dateLabel: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  searchRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, marginBottom: 10 },
+  searchInput: { flex: 1, fontSize: 13, color: '#fff', paddingVertical: 0 },
   filterRow: { flexDirection: 'row' },
   filterChip: { paddingHorizontal: 14, paddingVertical: 6, marginRight: 8, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },
   filterChipActive: { backgroundColor: '#fff' },
