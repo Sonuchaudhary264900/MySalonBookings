@@ -2065,6 +2065,12 @@ router.get(
   asyncHandler(barberController.getSmartInsights)
 );
 
+router.get(
+  "/owner/analytics/smart-pricing",
+  authenticateOwner,
+  asyncHandler(barberController.getSmartPricing)
+);
+
 /* =====================================================
    CUSTOMER AUTH - ADDITIONAL LOGIN METHODS
 ===================================================== */
@@ -4976,6 +4982,26 @@ router.post('/owner/team/chat', authenticateOwner, asyncHandler(async (req, res)
   if (io) io.to(`team-${req.owner.businessId}`).emit('team-chat-message', msg);
   res.status(201).json({ success: true, data: msg });
 }));
+
+router.post(
+  "/owner/team/:id/invite-link",
+  authenticateOwner,
+  validateObjectId("id"),
+  asyncHandler(async (req, res) => {
+    const Barber = require('../models/Barber');
+    const crypto = require('crypto');
+    const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+    if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
+    const staff = await Barber.findOne({ _id: req.params.id, salonId: salon._id });
+    if (!staff) return res.status(404).json({ success: false, message: 'Staff not found' });
+    const token = crypto.randomBytes(20).toString('hex');
+    staff.inviteToken = token;
+    staff.inviteSentAt = new Date();
+    await staff.save();
+    const baseUrl = process.env.OWNER_APP_URL || 'https://owner.glowloox.com';
+    res.json({ success: true, data: { inviteLink: `${baseUrl}/join?token=${token}`, token } });
+  })
+);
 
 /* =====================================================
    WALK-IN WAIT TIME (REST fallback + socket triggers)

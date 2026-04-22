@@ -1,5 +1,6 @@
 const Business = require('../../models/Business');
 const Booking = require('../../models/Booking');
+const Service = require('../../models/Service');
 
 const { formatSuccessResponse, formatErrorResponse } = require('../../utils/formatters');
 const messages = require('../../utils/messages');
@@ -182,6 +183,9 @@ const getSmartInsights = async (req, res) => {
       missedThisWeek,
       recentPhones,
       allPhones,
+      totalCompletedBookings,
+      vipAgg,
+      last30AllStatuses,
     ] = await Promise.all([
       Booking.find({ salonId, appointmentDate: { $gte: todayStart, $lte: todayEnd }, status: 'completed' }).select('totalAmount').lean(),
       Booking.find({ salonId, appointmentDate: { $gte: yestStart,  $lte: yestEnd  }, status: 'completed' }).select('totalAmount').lean(),
@@ -189,6 +193,14 @@ const getSmartInsights = async (req, res) => {
       Booking.find({ salonId, status: { $in: ['no_show', 'cancelled'] }, appointmentDate: { $gte: weekAgo, $lte: todayEnd } }).select('totalAmount').lean(),
       Booking.distinct('customerPhone', { salonId, createdAt: { $gte: monthAgo }, customerPhone: { $ne: null } }),
       Booking.distinct('customerPhone', { salonId, customerPhone: { $ne: null } }),
+      Booking.find({ salonId, status: 'completed' }).countDocuments(),
+      Booking.aggregate([
+        { $match: { salonId, customerPhone: { $ne: null } } },
+        { $group: { _id: '$customerPhone', totalSpent: { $sum: '$totalAmount' }, totalBookings: { $sum: 1 } } },
+        { $match: { $or: [{ totalSpent: { $gte: 2000 } }, { totalBookings: { $gte: 10 } }] } },
+        { $project: { _id: 1 } },
+      ]),
+      Booking.find({ salonId, status: { $in: ['completed','pending','confirmed','in_progress'] }, createdAt: { $gte: monthAgo } }).select('appointmentDate').lean(),
     ]);
 
     // 1. Revenue snapshot
@@ -221,6 +233,23 @@ const getSmartInsights = async (req, res) => {
     const recentSet     = new Set(recentPhones);
     const inactiveCount = allPhones.filter(p => !recentSet.has(p)).length;
 
+    // 5. Streak: consecutive days with >=1 booking ending today (or yesterday)
+    const bookedDays = new Set(last30AllStatuses.map(b => {
+      const d = new Date(b.appointmentDate);
+      return d.toISOString().split('T')[0];
+    }));
+    let streak = 0;
+    const checkDate = new Date(now);
+    for (let i = 0; i < 30; i++) {
+      const ds = checkDate.toISOString().split('T')[0];
+      if (bookedDays.has(ds)) { streak++; checkDate.setDate(checkDate.getDate() - 1); }
+      else if (i === 0) { checkDate.setDate(checkDate.getDate() - 1); } // skip today if no bookings yet
+      else break;
+    }
+
+    // 6. VIP customers
+    const vipCustomerPhones = new Set(vipAgg.map(v => v._id));
+
     res.json(formatSuccessResponse({
       todayRevenue,
       yestRevenue,
@@ -230,6 +259,9 @@ const getSmartInsights = async (req, res) => {
       missedRevenue,
       noShowCount,
       inactiveCustomers: inactiveCount,
+      streak,
+      totalBookings: totalCompletedBookings,
+      vipCustomerPhones: Array.from(vipCustomerPhones),
     }));
   } catch (err) {
     console.error('Smart insights error:', err);
@@ -237,8 +269,52 @@ const getSmartInsights = async (req, res) => {
   }
 };
 
+// ===================================================
+// SMART PRICING
+// ===================================================
+const getSmartPricing = async (req, res) => {
+  try {
+    if (!req.owner || !req.owner._id) return res.status(401).json(formatErrorResponse('Unauthorized', 401));
+    const salon = await getOwnerSalon(req.owner._id);
+    if (!salon) return res.status(404).json(formatErrorResponse('Salon not found', 404));
+
+    const monthAgo = new Date(); monthAgo.setDate(monthAgo.getDate() - 30);
+
+    const [services, bookingCounts] = await Promise.all([
+      Service.find({ salonId: salon._id, isActive: true, deletedAt: null }).select('_id name basePrice').lean(),
+      Booking.aggregate([
+        { $match: { salonId: salon._id, createdAt: { $gte: monthAgo }, status: { $in: ['completed', 'confirmed', 'pending'] } } },
+        { $unwind: '$services' },
+        { $group: { _id: '$services.serviceId', count: { $sum: 1 } } },
+      ]),
+    ]);
+
+    const countMap = {};
+    for (const b of bookingCounts) if (b._id) countMap[String(b._id)] = b.count;
+
+    const suggestions = services
+      .map(s => ({ ...s, bookingsLast30: countMap[String(s._id)] || 0 }))
+      .filter(s => s.bookingsLast30 >= 8 && s.basePrice > 0)
+      .sort((a, b) => b.bookingsLast30 - a.bookingsLast30)
+      .slice(0, 5)
+      .map(s => ({
+        serviceId: s._id,
+        serviceName: s.name,
+        currentPrice: s.basePrice,
+        suggestedPrice: Math.ceil(s.basePrice * 1.15 / 10) * 10,
+        bookingsLast30: s.bookingsLast30,
+      }));
+
+    res.json(formatSuccessResponse({ suggestions }));
+  } catch (err) {
+    console.error('Smart pricing error:', err);
+    res.status(500).json(formatErrorResponse('Failed to load pricing suggestions', 500));
+  }
+};
+
 module.exports = {
   getDashboardAnalytics,
   getBookingStats,
   getSmartInsights,
+  getSmartPricing,
 };
