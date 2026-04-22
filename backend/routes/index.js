@@ -2059,6 +2059,12 @@ router.get(
   asyncHandler(barberController.getBookingStats)
 );
 
+router.get(
+  "/owner/analytics/insights",
+  authenticateOwner,
+  asyncHandler(barberController.getSmartInsights)
+);
+
 /* =====================================================
    CUSTOMER AUTH - ADDITIONAL LOGIN METHODS
 ===================================================== */

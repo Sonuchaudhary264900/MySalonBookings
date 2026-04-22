@@ -13,6 +13,7 @@ import {
   ChevronLeft, ChevronRight, Plus, X, MoreVertical, ShieldOff, ShieldCheck,
   RefreshCw, Users, CalendarCheck, IndianRupee, Clock, TrendingUp, TrendingDown,
   Scissors, CheckCircle2, XCircle, Loader2, Activity, Zap, ArrowRight, Copy, Check,
+  AlertTriangle, UserX, Lightbulb,
 } from "lucide-react";
 import { formatDate, formatTime } from "../../utils/exportHelpers";
 
@@ -118,6 +119,29 @@ const StatCard = ({ label, value, icon: Icon, iconColor, iconBg, trend, trendLab
     </div>
   );
 };
+
+/* ─── Insight Card ───────────────────────────────────────────────────────── */
+const InsightCard = ({ icon: Icon, iconBg, iconColor, title, value, subtitle, cta, ctaAction, loading, accent }) => (
+  <div className={`bg-white dark:bg-gray-900 rounded-2xl border shadow-sm p-4 flex flex-col gap-2 transition-all hover:shadow-md hover:-translate-y-0.5 ${accent || "border-gray-100 dark:border-gray-800"}`}>
+    <div className="flex items-center gap-2">
+      <div className={`w-8 h-8 rounded-xl ${iconBg} flex items-center justify-center shrink-0`}>
+        <Icon className={`w-4 h-4 ${iconColor}`} />
+      </div>
+      <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide leading-tight">{title}</p>
+    </div>
+    {loading
+      ? <Skeleton className="h-7 w-24 mt-0.5" />
+      : <p className="text-xl font-extrabold text-gray-900 dark:text-white leading-tight">{value}</p>
+    }
+    <p className="text-xs text-gray-400 dark:text-gray-500 leading-snug">{subtitle}</p>
+    {cta && ctaAction && (
+      <button onClick={ctaAction}
+        className="mt-0.5 self-start text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-200 flex items-center gap-1 transition-colors">
+        {cta} <ArrowRight className="w-3 h-3" />
+      </button>
+    )}
+  </div>
+);
 
 /* ─── Walk-in Modal ─────────────────────────────────────────────────────── */
 const WalkInModal = ({ salon, services, onClose, onSuccess }) => {
@@ -456,6 +480,10 @@ const Dashboard = () => {
   const [copied, setCopied] = useState(false);
   const socketRef = useRef(null);
 
+  /* Smart insights */
+  const [insights, setInsights]               = useState(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+
   /* Team stats */
   const [teamStats, setTeamStats] = useState([]);
 
@@ -560,7 +588,16 @@ const Dashboard = () => {
     } finally { setAnalyticsLoading(false); }
   }, []);
 
-  useEffect(() => { fetchServices(); fetchQueue(); fetchWeeklyAnalytics(); setLastUpdated(new Date()); }, []);
+  const fetchInsights = useCallback(async () => {
+    setInsightsLoading(true);
+    try {
+      const res = await api.get('/owner/analytics/insights');
+      setInsights(res.data?.data || null);
+    } catch { setInsights(null); }
+    finally { setInsightsLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchServices(); fetchQueue(); fetchWeeklyAnalytics(); fetchInsights(); setLastUpdated(new Date()); }, []);
   useEffect(() => { fetchBookings(selectedDate); }, [selectedDate]);
 
   /* ── Live socket: re-fetch queue/bookings on booking events ── */
@@ -770,6 +807,77 @@ const Dashboard = () => {
             trendLabel="pending/confirmed"
             trend={0}
             loading={bookingsLoading}
+          />
+        </div>
+
+        {/* ══════════════════════════════════════════════════════════
+            INTELLIGENCE STRIP  (smart insights)
+        ══════════════════════════════════════════════════════════ */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Today's earnings snapshot */}
+          <InsightCard
+            icon={IndianRupee}
+            iconBg="bg-gradient-to-br from-emerald-500 to-teal-600"
+            iconColor="text-white"
+            title="Today's Earnings"
+            loading={insightsLoading}
+            value={insights ? `₹${(insights.todayRevenue || 0).toLocaleString()}` : "₹0"}
+            subtitle={
+              insights?.revDelta != null
+                ? `${insights.revDelta >= 0 ? "+" : ""}${insights.revDelta}% vs yesterday (₹${(insights.yestRevenue || 0).toLocaleString()})`
+                : "No completed bookings yesterday to compare"
+            }
+            accent={
+              insights?.revDelta != null
+                ? insights.revDelta >= 0
+                  ? "border-emerald-100 dark:border-emerald-900/40"
+                  : "border-red-100 dark:border-red-900/40"
+                : "border-gray-100 dark:border-gray-800"
+            }
+          />
+
+          {/* Peak hour */}
+          <InsightCard
+            icon={Clock}
+            iconBg="bg-gradient-to-br from-violet-500 to-purple-600"
+            iconColor="text-white"
+            title="Peak Hour"
+            loading={insightsLoading}
+            value={insights?.peakHourLabel || "Not enough data"}
+            subtitle="Busiest time slot in the last 30 days"
+          />
+
+          {/* Missed revenue */}
+          <InsightCard
+            icon={AlertTriangle}
+            iconBg="bg-gradient-to-br from-orange-400 to-red-500"
+            iconColor="text-white"
+            title="Missed Revenue"
+            loading={insightsLoading}
+            value={insights ? `₹${(insights.missedRevenue || 0).toLocaleString()}` : "₹0"}
+            subtitle={
+              insights
+                ? `From ${insights.noShowCount || 0} no-show${insights.noShowCount !== 1 ? "s" : ""} & cancellation${insights.noShowCount !== 1 ? "s" : ""} this week`
+                : "No cancellations this week"
+            }
+            accent={
+              insights?.missedRevenue > 0
+                ? "border-orange-100 dark:border-orange-900/40"
+                : "border-gray-100 dark:border-gray-800"
+            }
+          />
+
+          {/* Inactive customers */}
+          <InsightCard
+            icon={UserX}
+            iconBg="bg-gradient-to-br from-sky-500 to-blue-600"
+            iconColor="text-white"
+            title="Need Re-engagement"
+            loading={insightsLoading}
+            value={insights ? `${insights.inactiveCustomers || 0} customer${insights.inactiveCustomers !== 1 ? "s" : ""}` : "0 customers"}
+            subtitle="Haven't visited in the last 30 days"
+            cta={insights?.inactiveCustomers > 0 ? "Message them" : null}
+            ctaAction={() => navigate(ROUTES.CUSTOMERS)}
           />
         </div>
 

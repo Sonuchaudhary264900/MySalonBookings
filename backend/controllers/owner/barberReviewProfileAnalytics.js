@@ -149,7 +149,96 @@ const getBookingStats = async (req, res) => {
   }
 };
 
+// ===================================================
+// SMART INSIGHTS  (Phase 1 Intelligence Layer)
+// ===================================================
+const getSmartInsights = async (req, res) => {
+  try {
+    if (!req.owner || !req.owner._id) {
+      return res.status(401).json(formatErrorResponse('Unauthorized', 401));
+    }
+    const salon = await getOwnerSalon(req.owner._id);
+    if (!salon) return res.status(404).json(formatErrorResponse('Salon not found', 404));
+
+    const salonId = salon._id;
+    const now     = new Date();
+
+    // Date helpers — UTC midnight boundaries matching how appointmentDate is stored
+    const dayStart  = (d) => new Date(d.toISOString().split('T')[0] + 'T00:00:00.000Z');
+    const dayEnd    = (d) => new Date(d.toISOString().split('T')[0] + 'T23:59:59.999Z');
+
+    const todayStart  = dayStart(now);
+    const todayEnd    = dayEnd(now);
+    const yestDate    = new Date(now); yestDate.setDate(yestDate.getDate() - 1);
+    const yestStart   = dayStart(yestDate);
+    const yestEnd     = dayEnd(yestDate);
+    const weekAgo     = new Date(now); weekAgo.setDate(weekAgo.getDate() - 7);
+    const monthAgo    = new Date(now); monthAgo.setDate(monthAgo.getDate() - 30);
+
+    const [
+      todayBookings,
+      yestBookings,
+      last30Completed,
+      missedThisWeek,
+      recentPhones,
+      allPhones,
+    ] = await Promise.all([
+      Booking.find({ salonId, appointmentDate: { $gte: todayStart, $lte: todayEnd }, status: 'completed' }).select('totalAmount').lean(),
+      Booking.find({ salonId, appointmentDate: { $gte: yestStart,  $lte: yestEnd  }, status: 'completed' }).select('totalAmount').lean(),
+      Booking.find({ salonId, status: 'completed', createdAt: { $gte: monthAgo } }).select('appointmentTime').lean(),
+      Booking.find({ salonId, status: { $in: ['no_show', 'cancelled'] }, appointmentDate: { $gte: weekAgo, $lte: todayEnd } }).select('totalAmount').lean(),
+      Booking.distinct('customerPhone', { salonId, createdAt: { $gte: monthAgo }, customerPhone: { $ne: null } }),
+      Booking.distinct('customerPhone', { salonId, customerPhone: { $ne: null } }),
+    ]);
+
+    // 1. Revenue snapshot
+    const todayRevenue = todayBookings.reduce((s, b) => s + (b.totalAmount || 0), 0);
+    const yestRevenue  = yestBookings.reduce((s, b)  => s + (b.totalAmount || 0), 0);
+    const revDelta     = yestRevenue > 0
+      ? Math.round(((todayRevenue - yestRevenue) / yestRevenue) * 100)
+      : null;
+
+    // 2. Peak hour from last 30 days
+    const hourMap = {};
+    for (const b of last30Completed) {
+      if (!b.appointmentTime) continue;
+      const hour = parseInt(b.appointmentTime.split(':')[0], 10);
+      if (!isNaN(hour)) hourMap[hour] = (hourMap[hour] || 0) + 1;
+    }
+    let peakHour = null;
+    let peakHourLabel = null;
+    if (Object.keys(hourMap).length > 0) {
+      peakHour = parseInt(Object.entries(hourMap).sort((a, b) => b[1] - a[1])[0][0], 10);
+      const fmtH = (h) => h === 0 ? '12 AM' : h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`;
+      peakHourLabel = `${fmtH(peakHour)}–${fmtH(peakHour + 2)}`;
+    }
+
+    // 3. Missed revenue (no-shows + cancellations this week)
+    const missedRevenue = missedThisWeek.reduce((s, b) => s + (b.totalAmount || 0), 0);
+    const noShowCount   = missedThisWeek.length;
+
+    // 4. Inactive customers (ever booked but not in last 30 days)
+    const recentSet     = new Set(recentPhones);
+    const inactiveCount = allPhones.filter(p => !recentSet.has(p)).length;
+
+    res.json(formatSuccessResponse({
+      todayRevenue,
+      yestRevenue,
+      revDelta,
+      peakHour,
+      peakHourLabel,
+      missedRevenue,
+      noShowCount,
+      inactiveCustomers: inactiveCount,
+    }));
+  } catch (err) {
+    console.error('Smart insights error:', err);
+    res.status(500).json(formatErrorResponse('Failed to load insights', 500));
+  }
+};
+
 module.exports = {
   getDashboardAnalytics,
   getBookingStats,
+  getSmartInsights,
 };
