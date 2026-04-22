@@ -5076,8 +5076,6 @@ router.get('/public/v1/customers', apiKeyAuth('customers:read'), asyncHandler(as
 /* =====================================================
    BEFORE/AFTER PORTFOLIO
 ===================================================== */
-const BusinessMedia = require('../models/BusinessMedia');
-
 router.post('/owner/gallery/before-after', authenticateOwner, asyncHandler(async (req, res) => {
   const { beforeUrl, afterUrl, beforePublicId, afterPublicId, caption, tags } = req.body;
   if (!beforeUrl || !afterUrl) return res.status(400).json({ success: false, message: 'Both before and after URLs required' });
