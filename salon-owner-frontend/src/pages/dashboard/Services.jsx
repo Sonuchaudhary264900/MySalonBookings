@@ -425,16 +425,22 @@ const CircleButton = ({ label, imgSrc, isSelected, isUploading, onSelect, onImag
     return 'translateY(0px) scale(1)';
   };
 
+  // For image circles: no background (image fills it). For icon-only: dark bg.
+  const hasImg = !isAll && !!imgSrc;
   const circleStyle = {
     width: 54, height: 54, borderRadius: '50%', overflow: 'hidden',
     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     position: 'relative',
-    background: isSelected
+    background: hasImg ? 'transparent' : isSelected
       ? 'linear-gradient(145deg,#818cf8 0%,#6366f1 40%,#4f46e5 100%)'
       : 'rgba(26,26,46,0.9)',
-    border: isSelected ? 'none' : '1.5px solid rgba(255,255,255,0.08)',
+    // Ring: visible border on the circle edge only — no square
+    outline: isSelected
+      ? '3.5px solid #818cf8'
+      : '1.5px solid rgba(255,255,255,0.10)',
+    outlineOffset: isSelected ? '4px' : '0px',
     boxShadow: isSelected
-      ? '0 0 0 4px rgba(99,102,241,0.18),0 8px 28px rgba(99,102,241,0.55),inset 0 1px 1px rgba(255,255,255,0.22)'
+      ? '0 0 0 8px rgba(99,102,241,0.18), 0 8px 28px rgba(99,102,241,0.50)'
       : 'none',
     transition: 'all 0.22s cubic-bezier(0.4,0,0.2,1)',
   };
@@ -443,7 +449,8 @@ const CircleButton = ({ label, imgSrc, isSelected, isUploading, onSelect, onImag
     <div
       ref={setRef}
       style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-        cursor: 'pointer', flexShrink: 0, padding: '4px 8px',
+        cursor: 'pointer', flexShrink: 0, padding: '0 8px',
+        overflow: 'visible',
         opacity: isSelected || hovered ? 1 : 0.65,
         transform: getTransform(),
         transition: 'transform 0.22s cubic-bezier(0.4,0,0.2,1), opacity 0.18s ease',
@@ -464,12 +471,7 @@ const CircleButton = ({ label, imgSrc, isSelected, isUploading, onSelect, onImag
         {isAll ? (
           <LayoutGrid style={{ width: 22, height: 22, color: '#fff' }} />
         ) : imgSrc ? (
-          <>
-            <img src={imgSrc} alt={label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            {isSelected && (
-              <div style={{ position: 'absolute', inset: 0, background: 'rgba(79,70,229,0.35)', borderRadius: '50%' }} />
-            )}
-          </>
+          <img src={imgSrc} alt={label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
           <div style={{ color: isSelected ? '#fff' : '#6366f1', display: 'flex' }}>
             <CategoryIcon label={label} className="w-[22px] h-[22px]" />
@@ -548,103 +550,77 @@ const CircleButton = ({ label, imgSrc, isSelected, isUploading, onSelect, onImag
   );
 };
 
-/* ─── Category Nav (Level 1 — sticky) ───────────────────────────── */
+/* ─── Category Nav (Level 1) ─────────────────────────────────────── */
 const CategoryNav = ({ categories, selectedCatLabel, onSelect, salon, onImageChange, uploadingMap, catRefs, scrollRef }) => (
-  <div className="sticky top-0 z-20 bg-white dark:bg-gray-950 pt-2 pb-1
-    border-b border-gray-100 dark:border-gray-800 -mx-4 sm:-mx-6 px-4 sm:px-6
-    shadow-sm dark:shadow-gray-900/40">
+  <>
     <style>{`
       @keyframes fadeSlideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
       .cat-scroll-owner::-webkit-scrollbar{display:none}
     `}</style>
-    <div className="relative">
-      <div
-        ref={scrollRef}
-        className="cat-scroll-owner flex overflow-x-auto pb-2"
-        style={{ gap: 0, scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
-      >
-        {/* All */}
+    <div
+      ref={scrollRef}
+      className="cat-scroll-owner"
+      style={{
+        display: 'flex', flexDirection: 'row', flexWrap: 'nowrap',
+        overflowX: 'auto', overflowY: 'visible',
+        scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch',
+        paddingTop: 10, paddingBottom: 4,
+      }}
+    >
+      <CircleButton
+        label="All"
+        isAll
+        isSelected={!selectedCatLabel}
+        onSelect={() => onSelect(null)}
+        showEdit={false}
+        btnRef={el => { if (catRefs) catRefs.current['__all__'] = el; }}
+      />
+      {categories.map(label => (
         <CircleButton
-          label="All"
-          isAll
-          isSelected={!selectedCatLabel}
-          onSelect={() => onSelect(null)}
-          showEdit={false}
-          btnRef={el => { if (catRefs) catRefs.current['__all__'] = el; }}
+          key={label}
+          label={label}
+          imgSrc={getCatImg(label, salon)}
+          isSelected={selectedCatLabel === label}
+          isUploading={!!uploadingMap[label]}
+          onSelect={() => onSelect(label)}
+          onImageChange={onImageChange}
+          showEdit
+          btnRef={el => { if (catRefs) catRefs.current[label] = el; }}
         />
-        {categories.map(label => (
-          <CircleButton
-            key={label}
-            label={label}
-            imgSrc={getCatImg(label, salon)}
-            isSelected={selectedCatLabel === label}
-            isUploading={!!uploadingMap[label]}
-            onSelect={() => onSelect(label)}
-            onImageChange={onImageChange}
-            showEdit
-            btnRef={el => { if (catRefs) catRefs.current[label] = el; }}
-          />
-        ))}
-      </div>
-      {/* Right fade hint */}
-      <div className="absolute right-0 top-0 bottom-2 w-10
-        bg-gradient-to-l from-white dark:from-gray-950 to-transparent pointer-events-none" />
+      ))}
     </div>
-  </div>
+  </>
 );
 
 /* ─── Subcategory Row (Level 2 — same-size circles) ─────────────── */
-const SubcategoryRow = ({ catLabel, subs, selectedSubLabel, onSelect, salon, services, svgData }) => (
-  <div style={{ animation: 'fadeSlideDown 0.22s ease both' }}>
-    {/* Mind-map SVG connector */}
-    {svgData && (
-      <div style={{ position: 'relative', height: 32, overflow: 'visible', pointerEvents: 'none' }}>
-        <svg
-          width="100%" height="32"
-          style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible', opacity: 0.5 }}
-        >
-          <path
-            d={`M ${svgData.x} 0 Q ${svgData.x} 20 ${svgData.cw / 2} 32`}
-            fill="none"
-            stroke="rgba(99,102,241,0.5)"
-            strokeWidth="1.5"
-            strokeDasharray="4 3"
-            strokeLinecap="round"
-          />
-        </svg>
-      </div>
-    )}
-
-    <div className="relative">
-      <div
-        className="cat-scroll-owner flex overflow-x-auto pb-1 px-4 sm:px-6"
-        style={{ gap: 0, scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
-      >
-        {/* "All" uses the parent category image */}
-        <CircleButton
-          label="All"
-          imgSrc={getCatImg(catLabel, salon)}
-          isSelected={!selectedSubLabel}
-          onSelect={() => onSelect(null)}
-          showEdit={false}
-        />
-
-        {subs.map(sub => (
-          <CircleButton
-            key={sub}
-            label={sub}
-            imgSrc={getSubImg(catLabel, sub, salon, services)}
-            isSelected={selectedSubLabel === sub}
-            onSelect={() => onSelect(sub)}
-            showEdit={false}
-          />
-        ))}
-      </div>
-
-      {/* Right fade hint */}
-      <div className="absolute right-0 top-0 bottom-1 w-10
-        bg-gradient-to-l from-white dark:from-gray-950 to-transparent pointer-events-none" />
-    </div>
+const SubcategoryRow = ({ catLabel, subs, selectedSubLabel, onSelect, salon, services }) => (
+  <div
+    className="cat-scroll-owner"
+    style={{
+      display: 'flex', flexDirection: 'row', flexWrap: 'nowrap',
+      overflowX: 'auto', overflowY: 'visible',
+      scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch',
+      paddingTop: 10, paddingBottom: 4,
+      animation: 'fadeSlideDown 0.22s ease both',
+    }}
+  >
+    <CircleButton
+      label="All"
+      imgSrc={getCatImg(catLabel, salon)}
+      isSelected={!selectedSubLabel}
+      onSelect={() => onSelect(null)}
+      showEdit={false}
+    />
+    {subs.map(sub => (
+      <CircleButton
+        key={sub}
+        label={sub}
+        imgSrc={getSubImg(catLabel, sub, salon, services)}
+        isSelected={selectedSubLabel === sub}
+        onSelect={() => onSelect(sub)}
+        showEdit={false}
+      />
+    ))}
   </div>
 );
 
@@ -1013,6 +989,7 @@ const Services = () => {
 
         {/* ── Level 2: Subcategory Row ── */}
         {selectedCatLabel && subcategoriesForSelected.length > 0 && (
+          <div className="mt-4">
           <SubcategoryRow
             key={selectedCatLabel}
             catLabel={selectedCatLabel}
@@ -1021,8 +998,8 @@ const Services = () => {
             onSelect={handleSubSelect}
             salon={salon}
             services={allServices}
-            svgData={svgData}
           />
+          </div>
         )}
 
         {/* ── Active path breadcrumb ── */}
