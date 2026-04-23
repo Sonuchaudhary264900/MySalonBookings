@@ -1585,6 +1585,25 @@ router.get("/staff/auth/me", asyncHandler(async (req, res) => {
   }
 }));
 
+// ── GET /staff/salon — returns the salon the staff member belongs to ──
+router.get("/staff/salon", asyncHandler(async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) return res.status(401).json(formatErrorResponse('Unauthorized', 401));
+  try {
+    const decoded = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET);
+    if (decoded.role !== 'staff') return res.status(403).json(formatErrorResponse('Forbidden', 403));
+    if (!decoded.salonId) return res.status(404).json(formatErrorResponse('No salon linked to this staff account', 404));
+    const salon = await Business.findById(decoded.salonId)
+      .populate('services')
+      .populate('barbers')
+      .lean();
+    if (!salon) return res.status(404).json(formatErrorResponse('Salon not found', 404));
+    res.json(formatSuccessResponse(salon));
+  } catch {
+    res.status(401).json(formatErrorResponse('Invalid token', 401));
+  }
+}));
+
 // ── GET /staff/bookings/today ──
 router.get("/staff/bookings/today", asyncHandler(async (req, res) => {
   const authHeader = req.headers.authorization;
@@ -4392,7 +4411,7 @@ router.put(   '/owner/team/:staffId/assign-booking', authenticateOwner, checkSub
 // Toggle staff app login on/off
 router.put('/owner/team/:staffId/toggle-login', authenticateOwner, validateObjectId('staffId'), asyncHandler(async (req, res) => {
   const Barber = require('../models/Barber');
-  const business = await Business.findOne({ ownerId: req.owner._id }).select('_id');
+  const business = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] }).select('_id');
   if (!business) return res.status(404).json(formatErrorResponse('Business not found', 404));
   const member = await Barber.findOne({ _id: req.params.staffId, salonId: business._id });
   if (!member) return res.status(404).json(formatErrorResponse('Staff member not found', 404));

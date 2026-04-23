@@ -82,7 +82,9 @@ export const AuthProvider = ({ children }) => {
 
   const refreshUser = useCallback(async () => {
     try {
-      const response = await api.get('/owner/auth/me');
+      const userRole = await AsyncStorage.getItem('userRole');
+      const endpoint = userRole === 'staff' ? '/staff/auth/me' : '/owner/auth/me';
+      const response = await api.get(endpoint);
       setUser(response.data.data);
       return response.data.data;
     } catch { /* silent */ }

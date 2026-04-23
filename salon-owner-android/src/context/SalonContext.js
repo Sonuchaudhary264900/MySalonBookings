@@ -8,7 +8,7 @@ const SOCKET_URL = 'https://mysalonbookings.onrender.com';
 export const SalonContext = createContext();
 
 export const SalonProvider = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [salon, setSalon] = useState(null);
   const [loading, setLoading] = useState(true);
   const [salonFetchDone, setSalonFetchDone] = useState(false);
@@ -33,19 +33,21 @@ export const SalonProvider = ({ children }) => {
     if (!isAuthenticated) return;
     setLoading(true);
     try {
-      const res = await api.get('/owner/salon');
+      const isStaff = user?.role === 'staff';
+      const res = await api.get(isStaff ? '/staff/salon' : '/owner/salon');
       setSalon(res.data.data || null);
-      // Load subscription alongside salon
-      api.get('/owner/subscription/status').then(r => {
-        if (r.data.success) setSubscription(r.data.data);
-      }).catch(() => {});
+      if (!isStaff) {
+        api.get('/owner/subscription/status').then(r => {
+          if (r.data.success) setSubscription(r.data.data);
+        }).catch(() => {});
+      }
     } catch {
       setSalon(null);
     } finally {
       setLoading(false);
       setSalonFetchDone(true);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user?.role]);
 
   const createSalon = useCallback(async (data) => {
     const res = await api.post('/owner/salon', data);
