@@ -604,27 +604,25 @@ const Services = () => {
     });
   }, [filteredServices]);
 
-  // Level 1: categories that have services
-  const categoriesWithServices = useMemo(() => grouped.map(([label]) => label), [grouped]);
+  // Level 1: ALL categories for this business type (not just ones with services)
+  const categoriesWithServices = useMemo(() => {
+    const fromDefs = getCategoriesForSalonType(salon?.businessType, salon?.servedGender).map(c => c.label);
+    const fromSvcs = grouped.map(([label]) => label);
+    // Merge: defined categories first (in order), then any extra from actual services
+    const seen = new Set(fromDefs);
+    return [...fromDefs, ...fromSvcs.filter(l => !seen.has(l))];
+  }, [salon?.businessType, salon?.servedGender, grouped]);
 
-  // Level 2: subcategories for selected category
+  // Level 2: ALL subcategories for selected category (on and off)
   const subcategoriesForSelected = useMemo(() => {
     if (!selectedCatLabel) return [];
     const catDefs = getCategoriesForSalonType(salon?.businessType, salon?.servedGender);
     const catDef  = catDefs.find(d => d.label === selectedCatLabel);
     if (!catDef) return [];
-    const catSvcs  = grouped.find(([l]) => l === selectedCatLabel)?.[1] || [];
-    const svcNames = new Set(catSvcs.map(s => s.name));
-    if (catDef.sections?.length) {
-      return catDef.sections
-        .filter(sec => sec.services?.some(n => svcNames.has(n)))
-        .map(sec => sec.label);
-    }
-    if (catDef.subServices?.length) {
-      return catDef.subServices.filter(name => svcNames.has(name));
-    }
+    if (catDef.sections?.length)    return catDef.sections.map(sec => sec.label);
+    if (catDef.subServices?.length) return catDef.subServices;
     return [];
-  }, [selectedCatLabel, salon?.businessType, salon?.servedGender, grouped]);
+  }, [selectedCatLabel, salon?.businessType, salon?.servedGender]);
 
   // Level 3: displayed services after drill-down filtering
   const displayedServices = useMemo(() => {
