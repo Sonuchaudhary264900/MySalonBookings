@@ -3,7 +3,7 @@ import {
   Plus, LayoutList, ChevronDown, Scissors, Search,
   Layers, CheckCircle2, XCircle, Sparkles, Baby, Home, User, UserRound,
   TrendingUp, X, Pencil, Loader2, SlidersHorizontal, ArrowUpDown,
-  LayoutGrid, Camera,
+  LayoutGrid, Camera, ChevronRight,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -353,7 +353,28 @@ const FilterSortButtons = () => (
 
 /* ─── Circle Button (user-frontend style, 54px) ─────────────────── */
 const CircleButton = ({ label, imgSrc, isSelected, isUploading, onSelect, onImageChange, showEdit, isAll, btnRef }) => {
-  const [pressed, setPressed] = React.useState(false);
+  const [pressed,  setPressed]  = React.useState(false);
+  const [hovered,  setHovered]  = React.useState(false);
+  const selfRef = React.useRef(null);
+
+  const setRef = React.useCallback(el => {
+    selfRef.current = el;
+    if (typeof btnRef === 'function') btnRef(el);
+  }, [btnRef]);
+
+  const handleClick = () => {
+    onSelect();
+    requestAnimationFrame(() => {
+      selfRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    });
+  };
+
+  const getTransform = () => {
+    if (isSelected) return 'translateY(-6px) scale(1.05)';
+    if (pressed)    return 'scale(0.95)';
+    if (hovered)    return 'scale(1.03)';
+    return 'translateY(0px) scale(1)';
+  };
 
   const circleStyle = {
     width: 54, height: 54, borderRadius: '50%', overflow: 'hidden',
@@ -371,18 +392,20 @@ const CircleButton = ({ label, imgSrc, isSelected, isUploading, onSelect, onImag
 
   return (
     <div
-      ref={btnRef}
+      ref={setRef}
       className="group"
       style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
         cursor: 'pointer', flexShrink: 0, padding: '4px 8px',
-        transform: isSelected ? 'translateY(-6px)' : pressed ? 'scale(0.92)' : 'translateY(0px)',
-        transition: 'transform 0.22s cubic-bezier(0.4,0,0.2,1)',
+        opacity: isSelected || hovered ? 1 : 0.65,
+        transform: getTransform(),
+        transition: 'transform 0.22s cubic-bezier(0.4,0,0.2,1), opacity 0.18s ease',
       }}
-      onClick={onSelect}
+      onClick={handleClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => { setHovered(false); setPressed(false); }}
       onMouseDown={() => setPressed(true)}
       onMouseUp={() => setPressed(false)}
-      onMouseLeave={() => setPressed(false)}
       onTouchStart={() => setPressed(true)}
       onTouchEnd={() => setPressed(false)}
     >
@@ -935,6 +958,23 @@ const Services = () => {
             services={allServices}
             svgData={svgData}
           />
+        )}
+
+        {/* ── Active path breadcrumb ── */}
+        {selectedCatLabel && (
+          <div className="flex items-center gap-1.5 px-1 -mt-1 animate-[fadeup_0.18s_ease_both]">
+            <ChevronRight className="w-3 h-3 text-gray-400 dark:text-gray-600 shrink-0" />
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{selectedCatLabel}</span>
+            {selectedSubLabel && (
+              <>
+                <ChevronRight className="w-3 h-3 text-gray-400 dark:text-gray-600 shrink-0" />
+                <span className="text-xs font-semibold text-indigo-500 dark:text-indigo-400">{selectedSubLabel}</span>
+              </>
+            )}
+            <span className="ml-auto text-xs text-gray-400 dark:text-gray-500 shrink-0">
+              {displayedServices.length} service{displayedServices.length !== 1 ? 's' : ''}
+            </span>
+          </div>
         )}
 
         {/* ── Smart Pricing Suggestions ── */}
