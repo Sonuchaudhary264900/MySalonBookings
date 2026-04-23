@@ -429,42 +429,91 @@ const CategoryNav = ({ categories, selectedCatLabel, onSelect, salon, onImageCha
   </div>
 );
 
-/* ─── Subcategory Nav (Level 2) ──────────────────────────────────── */
-const SubcategoryNav = ({ catLabel, subs, selectedSubLabel, onSelect, salon, onImageChange, uploadingMap, services }) => (
-  <div
-    key={catLabel}
-    className="animate-[fadeSlideDown_0.22s_ease_both]"
-  >
-    <div className="relative">
-      <div className="flex gap-4 overflow-x-scroll pb-1 scrollbar-none
-        [scroll-snap-type:x_mandatory] [scroll-behavior:smooth] [-webkit-overflow-scrolling:touch]
-        bg-indigo-50/40 dark:bg-indigo-950/10 rounded-2xl px-4 py-3">
-        {/* All [catLabel] */}
-        <RoundCategoryButton
-          label={`All`}
-          imgSrc={getCatImg(catLabel, salon)}
-          isSelected={!selectedSubLabel}
-          onSelect={() => onSelect(null)}
-          showEdit={false}
-        />
-        {subs.map(sub => (
-          <RoundCategoryButton
-            key={sub}
-            label={sub}
-            imgSrc={getSubImg(catLabel, sub, salon, services)}
-            isSelected={selectedSubLabel === sub}
-            isUploading={!!uploadingMap[`${catLabel}::${sub}`]}
-            onSelect={() => onSelect(sub)}
-            onImageChange={(_, file) => onImageChange(`${catLabel}::${sub}`, file)}
-            showEdit
-          />
-        ))}
+/* ─── Subcategory Mind Map (Level 2) ────────────────────────────── */
+const SubcategoryMindMap = ({ catLabel, subs, selectedSubLabel, onSelect, salon }) => {
+  const items    = [null, ...subs];  // null = "All"
+  const PILL_H   = 36;               // px — h-9
+  const PILL_GAP = 8;                // px — gap-2
+  const SVG_W    = 68;               // px — connector width
+  const totalH   = items.length * PILL_H + (items.length - 1) * PILL_GAP;
+  const midY     = totalH / 2;       // origin Y for all lines
+
+  return (
+    <div className="animate-[fadeSlideDown_0.22s_ease_both]">
+      <div className="bg-indigo-50/40 dark:bg-indigo-950/10 border border-indigo-100
+        dark:border-indigo-900/30 rounded-2xl px-5 py-4">
+        <div className="flex items-center gap-0">
+
+          {/* Parent category circle */}
+          <div className="shrink-0 flex flex-col items-center gap-1.5 w-[72px]">
+            <div className="w-14 h-14 rounded-full overflow-hidden
+              ring-2 ring-indigo-500 ring-offset-2
+              shadow-lg shadow-indigo-200/40 dark:shadow-indigo-900/40">
+              {getCatImg(catLabel, salon)
+                ? <img src={getCatImg(catLabel, salon)} alt={catLabel} className="w-full h-full object-cover" />
+                : <div className="w-full h-full bg-indigo-100 dark:bg-indigo-950 flex items-center justify-center">
+                    <CategoryIcon label={catLabel} className="w-6 h-6 text-indigo-500 dark:text-indigo-400" />
+                  </div>
+              }
+            </div>
+            <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400
+              text-center leading-tight line-clamp-2 max-w-[68px]">
+              {catLabel}
+            </span>
+          </div>
+
+          {/* SVG curved branch lines */}
+          <svg
+            width={SVG_W}
+            height={totalH}
+            viewBox={`0 0 ${SVG_W} ${totalH}`}
+            className="shrink-0"
+            style={{ overflow: 'visible' }}
+          >
+            {items.map((sub, idx) => {
+              const endY     = idx * (PILL_H + PILL_GAP) + PILL_H / 2;
+              const isActive = sub === null ? !selectedSubLabel : selectedSubLabel === sub;
+              return (
+                <path
+                  key={sub ?? '__all__'}
+                  d={`M 0,${midY} C ${SVG_W * 0.5},${midY} ${SVG_W * 0.5},${endY} ${SVG_W},${endY}`}
+                  fill="none"
+                  stroke={isActive ? '#6366f1' : '#c7d2fe'}
+                  strokeWidth={isActive ? 2.5 : 1.5}
+                  strokeLinecap="round"
+                  style={{ transition: 'stroke 0.15s, stroke-width 0.15s' }}
+                />
+              );
+            })}
+          </svg>
+
+          {/* Pill buttons */}
+          <div className="flex flex-col flex-1 min-w-0" style={{ gap: PILL_GAP }}>
+            {items.map(sub => {
+              const label    = sub === null ? 'All' : sub;
+              const isActive = sub === null ? !selectedSubLabel : selectedSubLabel === sub;
+              return (
+                <button
+                  key={sub ?? '__all__'}
+                  onClick={() => onSelect(sub)}
+                  className={`h-9 px-4 rounded-xl text-sm font-semibold text-left truncate
+                    transition-all duration-150
+                    ${isActive
+                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-300/30 dark:shadow-indigo-900/40 scale-[1.01]'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-indigo-400 dark:hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50/60 dark:hover:bg-indigo-950/30'
+                    }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+
+        </div>
       </div>
-      <div className="absolute right-0 top-0 bottom-0 w-10
-        bg-gradient-to-l from-white dark:from-gray-950 to-transparent pointer-events-none rounded-r-2xl" />
     </div>
-  </div>
-);
+  );
+};
 
 /* ─── Services Page ──────────────────────────────────────────────── */
 const Services = () => {
@@ -805,18 +854,15 @@ const Services = () => {
           />
         )}
 
-        {/* ── Level 2: Subcategory Navigation ── */}
+        {/* ── Level 2: Subcategory Mind Map ── */}
         {selectedCatLabel && subcategoriesForSelected.length > 0 && (
-          <SubcategoryNav
+          <SubcategoryMindMap
             key={selectedCatLabel}
             catLabel={selectedCatLabel}
             subs={subcategoriesForSelected}
             selectedSubLabel={selectedSubLabel}
             onSelect={handleSubSelect}
             salon={salon}
-            onImageChange={handleCatImageChange}
-            uploadingMap={catImgUploading}
-            services={allServices}
           />
         )}
 
