@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Plus, LayoutList, ChevronDown, Scissors, Search,
   Layers, CheckCircle2, XCircle, Sparkles, Baby, Home, User, UserRound,
@@ -54,7 +55,7 @@ const getSubImg = (catLabel, subLabel, salon, services) => {
   }
   const svc = services?.find(s => s.name === subLabel && s.photo);
   if (svc?.photo) return svc.photo;
-  return getCatImg(catLabel, salon);
+  return null;
 };
 
 /* ─── Skeleton card ──────────────────────────────────────────────── */
@@ -356,7 +357,9 @@ const CircleButton = ({ label, imgSrc, isSelected, isUploading, onSelect, onImag
   const [pressed,       setPressed]       = React.useState(false);
   const [hovered,       setHovered]       = React.useState(false);
   const [showPhotoMenu, setShowPhotoMenu] = React.useState(false);
+  const [popupPos,      setPopupPos]      = React.useState(null);
   const selfRef       = React.useRef(null);
+  const portalRef     = React.useRef(null);
   const timerRef      = React.useRef(null);
   const longFiredRef  = React.useRef(false);
   const touchOrigin   = React.useRef({ x: 0, y: 0 });
@@ -380,6 +383,10 @@ const CircleButton = ({ label, imgSrc, isSelected, isUploading, onSelect, onImag
     timerRef.current = setTimeout(() => {
       longFiredRef.current = true;
       setPressed(false);
+      if (selfRef.current) {
+        const r = selfRef.current.getBoundingClientRect();
+        setPopupPos({ x: r.left + r.width / 2, y: r.bottom + 8 });
+      }
       setShowPhotoMenu(true);
     }, 600);
   };
@@ -406,7 +413,12 @@ const CircleButton = ({ label, imgSrc, isSelected, isUploading, onSelect, onImag
   React.useEffect(() => {
     if (!showPhotoMenu) return;
     let id;
-    const close = (e) => { if (!selfRef.current?.contains(e.target)) setShowPhotoMenu(false); };
+    const close = (e) => {
+      if (!selfRef.current?.contains(e.target) && !portalRef.current?.contains(e.target)) {
+        setShowPhotoMenu(false);
+        setPopupPos(null);
+      }
+    };
     id = setTimeout(() => {
       document.addEventListener('mousedown', close);
       document.addEventListener('touchstart', close);
@@ -506,13 +518,14 @@ const CircleButton = ({ label, imgSrc, isSelected, isUploading, onSelect, onImag
         {label}
       </span>
 
-      {/* Long-press photo menu */}
-      {showPhotoMenu && showEdit && onImageChange && (
+      {/* Long-press photo menu — rendered via portal to escape overflow:auto clipping */}
+      {showPhotoMenu && showEdit && onImageChange && popupPos && createPortal(
         <div
+          ref={portalRef}
           style={{
-            position: 'absolute', top: 'calc(100% + 8px)', left: '50%',
+            position: 'fixed', top: popupPos.y, left: popupPos.x,
             transform: 'translateX(-50%)',
-            zIndex: 50, minWidth: 140,
+            zIndex: 9999, minWidth: 140,
             background: '#1e1e36',
             border: '1px solid rgba(99,102,241,0.25)',
             borderRadius: 12,
@@ -542,10 +555,12 @@ const CircleButton = ({ label, imgSrc, isSelected, isUploading, onSelect, onImag
                 if (f) onImageChange(label, f);
                 e.target.value = '';
                 setShowPhotoMenu(false);
+                setPopupPos(null);
               }}
             />
           </label>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -594,7 +609,7 @@ const CategoryNav = ({ categories, selectedCatLabel, onSelect, salon, onImageCha
 );
 
 /* ─── Subcategory Row (Level 2 — same-size circles) ─────────────── */
-const SubcategoryRow = ({ catLabel, subs, selectedSubLabel, onSelect, salon, services }) => (
+const SubcategoryRow = ({ catLabel, subs, selectedSubLabel, onSelect, salon, services, onImageChange, uploadingMap = {} }) => (
   <div
     className="cat-scroll-owner"
     style={{
@@ -612,16 +627,21 @@ const SubcategoryRow = ({ catLabel, subs, selectedSubLabel, onSelect, salon, ser
       onSelect={() => onSelect(null)}
       showEdit={false}
     />
-    {subs.map(sub => (
-      <CircleButton
-        key={sub}
-        label={sub}
-        imgSrc={getSubImg(catLabel, sub, salon, services)}
-        isSelected={selectedSubLabel === sub}
-        onSelect={() => onSelect(sub)}
-        showEdit={false}
-      />
-    ))}
+    {subs.map(sub => {
+      const key = `${catLabel}::${sub}`;
+      return (
+        <CircleButton
+          key={sub}
+          label={sub}
+          imgSrc={getSubImg(catLabel, sub, salon, services)}
+          isSelected={selectedSubLabel === sub}
+          isUploading={!!uploadingMap[key]}
+          onSelect={() => onSelect(sub)}
+          showEdit={!!onImageChange}
+          onImageChange={onImageChange ? (_, file) => onImageChange(key, file) : undefined}
+        />
+      );
+    })}
   </div>
 );
 
@@ -999,6 +1019,8 @@ const Services = () => {
             onSelect={handleSubSelect}
             salon={salon}
             services={allServices}
+            onImageChange={handleCatImageChange}
+            uploadingMap={catImgUploading}
           />
           </div>
         )}
