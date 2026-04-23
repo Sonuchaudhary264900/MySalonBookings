@@ -425,23 +425,20 @@ const CircleButton = ({ label, imgSrc, isSelected, isUploading, onSelect, onImag
     return 'translateY(0px) scale(1)';
   };
 
-  // For image circles: no background (image fills it). For icon-only: dark bg.
-  const hasImg = !isAll && !!imgSrc;
+  const [imgBroken, setImgBroken] = React.useState(false);
+  const showImg = !isAll && !!imgSrc && !imgBroken;
+
   const circleStyle = {
     width: 54, height: 54, borderRadius: '50%', overflow: 'hidden',
     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     position: 'relative',
-    background: hasImg ? 'transparent' : isSelected
+    background: showImg ? '#111' : isSelected
       ? 'linear-gradient(145deg,#818cf8 0%,#6366f1 40%,#4f46e5 100%)'
       : 'rgba(26,26,46,0.9)',
-    // Ring: visible border on the circle edge only — no square
-    outline: isSelected
-      ? '3.5px solid #818cf8'
-      : '1.5px solid rgba(255,255,255,0.10)',
-    outlineOffset: isSelected ? '4px' : '0px',
+    // Use box-shadow for ring — outline gets clipped by overflow:auto on parent
     boxShadow: isSelected
-      ? '0 0 0 8px rgba(99,102,241,0.18), 0 8px 28px rgba(99,102,241,0.50)'
-      : 'none',
+      ? '0 0 0 3px #818cf8, 0 0 0 6px rgba(99,102,241,0.28), 0 8px 24px rgba(99,102,241,0.45)'
+      : '0 0 0 1.5px rgba(255,255,255,0.09)',
     transition: 'all 0.22s cubic-bezier(0.4,0,0.2,1)',
   };
 
@@ -470,8 +467,12 @@ const CircleButton = ({ label, imgSrc, isSelected, isUploading, onSelect, onImag
       <div style={circleStyle}>
         {isAll ? (
           <LayoutGrid style={{ width: 22, height: 22, color: '#fff' }} />
-        ) : imgSrc ? (
-          <img src={imgSrc} alt={label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : showImg ? (
+          <img
+            src={imgSrc} alt=""
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            onError={() => setImgBroken(true)}
+          />
         ) : (
           <div style={{ color: isSelected ? '#fff' : '#6366f1', display: 'flex' }}>
             <CategoryIcon label={label} className="w-[22px] h-[22px]" />
@@ -564,7 +565,7 @@ const CategoryNav = ({ categories, selectedCatLabel, onSelect, salon, onImageCha
         display: 'flex', flexDirection: 'row', flexWrap: 'nowrap',
         overflowX: 'auto', overflowY: 'visible',
         scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch',
-        paddingTop: 10, paddingBottom: 4,
+        paddingTop: 18, paddingBottom: 8,
       }}
     >
       <CircleButton
