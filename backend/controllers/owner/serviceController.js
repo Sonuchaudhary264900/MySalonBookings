@@ -86,7 +86,7 @@ exports.createService = async (req, res) => {
 // ===================================================
 exports.getSalonServices = async (req, res) => {
   try {
-    const salon = await Business.findOne({ ownerId: req.owner._id });
+    const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
     if (!salon) {
       return res.status(404).json(formatErrorResponse(messages.SALON.SALON_NOT_FOUND, 404));
     }

@@ -624,7 +624,7 @@ const Services = () => {
     return [];
   }, [selectedCatLabel, salon?.businessType, salon?.servedGender]);
 
-  // Level 3: displayed services after drill-down filtering
+  // Level 3: displayed services — active AND inactive always included
   const displayedServices = useMemo(() => {
     let base = filteredServices;
     if (selectedCatLabel) {
@@ -634,10 +634,17 @@ const Services = () => {
       const catDefs = getCategoriesForSalonType(salon?.businessType, salon?.servedGender);
       const catDef  = catDefs.find(d => d.label === selectedCatLabel);
       const secDef  = catDef?.sections?.find(s => s.label === selectedSubLabel);
-      const svcNames = secDef
-        ? new Set(secDef.services)
-        : new Set([selectedSubLabel]);
-      base = base.filter(s => svcNames.has(s.name));
+
+      if (secDef) {
+        // Section path: show services matching the section + any service in this category
+        // whose name doesn't appear in ANY section (owner typed a custom name)
+        const sectionNames  = new Set(secDef.services);
+        const allSecNames   = new Set((catDef.sections || []).flatMap(s => s.services));
+        base = base.filter(s => sectionNames.has(s.name) || !allSecNames.has(s.name));
+      } else {
+        // subServices path: service name IS the sub-service label
+        base = base.filter(s => s.name === selectedSubLabel);
+      }
     }
     return base;
   }, [filteredServices, selectedCatLabel, selectedSubLabel, salon?.businessType, salon?.servedGender]);
