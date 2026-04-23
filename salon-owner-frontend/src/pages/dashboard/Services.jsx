@@ -333,64 +333,66 @@ const CatalogCard = ({ name, onAdd }) => (
 );
 
 /* ─── Round Category Button ──────────────────────────────────────── */
-const RoundCategoryButton = ({ label, imgSrc, isSelected, isUploading, onSelect, onImageChange, showEdit, isAll }) => (
-  <div
-    className="flex flex-col items-center gap-1.5 cursor-pointer shrink-0 group [scroll-snap-align:start]"
-    onClick={onSelect}
-  >
-    <div className={`relative w-20 h-20 rounded-full overflow-hidden
-      transition-all duration-200
-      ${isSelected
-        ? 'ring-2 ring-indigo-500 ring-offset-2 shadow-lg shadow-indigo-200/50 dark:shadow-indigo-900/40 scale-105'
-        : 'ring-1 ring-gray-200 dark:ring-gray-700 hover:scale-105 hover:ring-indigo-300 dark:hover:ring-indigo-700'
-      }
-      active:scale-95`}
+const RoundCategoryButton = ({ label, imgSrc, isSelected, isUploading, onSelect, onImageChange, showEdit, isAll, sm }) => {
+  const circleSize = sm ? 'w-16 h-16' : 'w-20 h-20';
+  const iconSize   = sm ? 'w-6 h-6'   : 'w-8 h-8';
+  const labelW     = sm ? 'max-w-[64px]' : 'max-w-[80px]';
+  const labelSize  = sm ? 'text-[11px]' : 'text-xs';
+  return (
+    <div
+      className="flex flex-col items-center gap-1.5 cursor-pointer shrink-0 group [scroll-snap-align:start]"
+      onClick={onSelect}
     >
-      {isAll ? (
-        <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
-          <Layers className="w-8 h-8 text-white" />
-        </div>
-      ) : imgSrc ? (
-        <img src={imgSrc} alt={label} className="w-full h-full object-cover" />
-      ) : (
-        <div className="w-full h-full bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center">
-          <CategoryIcon label={label} className="w-8 h-8 text-indigo-400 dark:text-indigo-500" />
-        </div>
-      )}
+      <div className={`relative ${circleSize} rounded-full overflow-hidden
+        transition-all duration-200
+        ${isSelected
+          ? 'ring-2 ring-indigo-500 ring-offset-2 shadow-lg shadow-indigo-200/50 dark:shadow-indigo-900/40 scale-105'
+          : 'ring-1 ring-gray-200 dark:ring-gray-700 hover:scale-105 hover:ring-indigo-300 dark:hover:ring-indigo-700'
+        }
+        active:scale-95`}
+      >
+        {isAll ? (
+          <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
+            <Layers className={`${iconSize} text-white`} />
+          </div>
+        ) : imgSrc ? (
+          <img src={imgSrc} alt={label} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center">
+            <CategoryIcon label={label} className={`${iconSize} text-indigo-400 dark:text-indigo-500`} />
+          </div>
+        )}
 
-      {/* Uploading spinner */}
-      {isUploading && (
-        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-          <Loader2 className="w-6 h-6 text-white animate-spin" />
-        </div>
-      )}
+        {isUploading && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+            <Loader2 className="w-5 h-5 text-white animate-spin" />
+          </div>
+        )}
 
-      {/* Edit pencil overlay */}
-      {showEdit && onImageChange && !isUploading && (
-        <label
-          className="absolute bottom-0.5 right-0.5 w-6 h-6 rounded-full
-            bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700
-            flex items-center justify-center cursor-pointer shadow-sm
-            opacity-0 group-hover:opacity-100 transition-opacity duration-150"
-          onClick={e => e.stopPropagation()}
-        >
-          <Pencil className="w-3 h-3 text-gray-600 dark:text-gray-400" />
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={e => { const f = e.target.files?.[0]; if (f) onImageChange(label, f); e.target.value = ''; }}
-          />
-        </label>
-      )}
+        {showEdit && onImageChange && !isUploading && (
+          <label
+            className="absolute bottom-0.5 right-0.5 w-6 h-6 rounded-full
+              bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700
+              flex items-center justify-center cursor-pointer shadow-sm
+              opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+            onClick={e => e.stopPropagation()}
+          >
+            <Pencil className="w-3 h-3 text-gray-600 dark:text-gray-400" />
+            <input
+              type="file" accept="image/*" className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) onImageChange(label, f); e.target.value = ''; }}
+            />
+          </label>
+        )}
+      </div>
+
+      <span className={`${labelSize} font-semibold text-center truncate ${labelW} transition-colors duration-200
+        ${isSelected ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-600 dark:text-gray-400'}`}>
+        {label}
+      </span>
     </div>
-
-    <span className={`text-xs font-semibold text-center truncate max-w-[80px] transition-colors duration-150
-      ${isSelected ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-600 dark:text-gray-400'}`}>
-      {label}
-    </span>
-  </div>
-);
+  );
+};
 
 /* ─── Category Nav (Level 1 — sticky) ───────────────────────────── */
 const CategoryNav = ({ categories, selectedCatLabel, onSelect, salon, onImageChange, uploadingMap }) => (
@@ -429,91 +431,45 @@ const CategoryNav = ({ categories, selectedCatLabel, onSelect, salon, onImageCha
   </div>
 );
 
-/* ─── Subcategory Mind Map (Level 2) ────────────────────────────── */
-const SubcategoryMindMap = ({ catLabel, subs, selectedSubLabel, onSelect, salon }) => {
-  const items    = [null, ...subs];  // null = "All"
-  const PILL_H   = 36;               // px — h-9
-  const PILL_GAP = 8;                // px — gap-2
-  const SVG_W    = 68;               // px — connector width
-  const totalH   = items.length * PILL_H + (items.length - 1) * PILL_GAP;
-  const midY     = totalH / 2;       // origin Y for all lines
+/* ─── Subcategory Row (Level 2 — horizontal circles, Instamart style) */
+const SubcategoryRow = ({ catLabel, subs, selectedSubLabel, onSelect, salon }) => (
+  <div className="mt-2 animate-[fadeSlideDown_0.22s_ease_both]">
+    <div className="bg-indigo-50/40 dark:bg-indigo-950/10 border border-indigo-100
+      dark:border-indigo-900/30 rounded-2xl px-4 py-3">
+      <div className="relative">
+        <div className="flex gap-3 overflow-x-scroll pb-1 scrollbar-none
+          [scroll-snap-type:x_mandatory] [scroll-behavior:smooth] [-webkit-overflow-scrolling:touch]">
 
-  return (
-    <div className="animate-[fadeSlideDown_0.22s_ease_both]">
-      <div className="bg-indigo-50/40 dark:bg-indigo-950/10 border border-indigo-100
-        dark:border-indigo-900/30 rounded-2xl px-5 py-4">
-        <div className="flex items-center gap-0">
+          {/* "All" uses the parent category image */}
+          <RoundCategoryButton
+            sm
+            label="All"
+            imgSrc={getCatImg(catLabel, salon)}
+            isSelected={!selectedSubLabel}
+            onSelect={() => onSelect(null)}
+            showEdit={false}
+          />
 
-          {/* Parent category circle */}
-          <div className="shrink-0 flex flex-col items-center gap-1.5 w-[72px]">
-            <div className="w-14 h-14 rounded-full overflow-hidden
-              ring-2 ring-indigo-500 ring-offset-2
-              shadow-lg shadow-indigo-200/40 dark:shadow-indigo-900/40">
-              {getCatImg(catLabel, salon)
-                ? <img src={getCatImg(catLabel, salon)} alt={catLabel} className="w-full h-full object-cover" />
-                : <div className="w-full h-full bg-indigo-100 dark:bg-indigo-950 flex items-center justify-center">
-                    <CategoryIcon label={catLabel} className="w-6 h-6 text-indigo-500 dark:text-indigo-400" />
-                  </div>
-              }
-            </div>
-            <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400
-              text-center leading-tight line-clamp-2 max-w-[68px]">
-              {catLabel}
-            </span>
-          </div>
-
-          {/* SVG curved branch lines */}
-          <svg
-            width={SVG_W}
-            height={totalH}
-            viewBox={`0 0 ${SVG_W} ${totalH}`}
-            className="shrink-0"
-            style={{ overflow: 'visible' }}
-          >
-            {items.map((sub, idx) => {
-              const endY     = idx * (PILL_H + PILL_GAP) + PILL_H / 2;
-              const isActive = sub === null ? !selectedSubLabel : selectedSubLabel === sub;
-              return (
-                <path
-                  key={sub ?? '__all__'}
-                  d={`M 0,${midY} C ${SVG_W * 0.5},${midY} ${SVG_W * 0.5},${endY} ${SVG_W},${endY}`}
-                  fill="none"
-                  stroke={isActive ? '#6366f1' : '#c7d2fe'}
-                  strokeWidth={isActive ? 2.5 : 1.5}
-                  strokeLinecap="round"
-                  style={{ transition: 'stroke 0.15s, stroke-width 0.15s' }}
-                />
-              );
-            })}
-          </svg>
-
-          {/* Pill buttons */}
-          <div className="flex flex-col flex-1 min-w-0" style={{ gap: PILL_GAP }}>
-            {items.map(sub => {
-              const label    = sub === null ? 'All' : sub;
-              const isActive = sub === null ? !selectedSubLabel : selectedSubLabel === sub;
-              return (
-                <button
-                  key={sub ?? '__all__'}
-                  onClick={() => onSelect(sub)}
-                  className={`h-9 px-4 rounded-xl text-sm font-semibold text-left truncate
-                    transition-all duration-150
-                    ${isActive
-                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-300/30 dark:shadow-indigo-900/40 scale-[1.01]'
-                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-indigo-400 dark:hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50/60 dark:hover:bg-indigo-950/30'
-                    }`}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-
+          {subs.map(sub => (
+            <RoundCategoryButton
+              sm
+              key={sub}
+              label={sub}
+              imgSrc={CATEGORY_CARD_IMAGE_MAP[sub] || getCatImg(sub, salon) || getCatImg(catLabel, salon)}
+              isSelected={selectedSubLabel === sub}
+              onSelect={() => onSelect(sub)}
+              showEdit={false}
+            />
+          ))}
         </div>
+
+        {/* Right fade hint */}
+        <div className="absolute right-0 top-0 bottom-1 w-8
+          bg-gradient-to-l from-white dark:from-gray-950 to-transparent pointer-events-none" />
       </div>
     </div>
-  );
-};
+  </div>
+);
 
 /* ─── Services Page ──────────────────────────────────────────────── */
 const Services = () => {
@@ -854,9 +810,9 @@ const Services = () => {
           />
         )}
 
-        {/* ── Level 2: Subcategory Mind Map ── */}
+        {/* ── Level 2: Subcategory Row (horizontal circles) ── */}
         {selectedCatLabel && subcategoriesForSelected.length > 0 && (
-          <SubcategoryMindMap
+          <SubcategoryRow
             key={selectedCatLabel}
             catLabel={selectedCatLabel}
             subs={subcategoriesForSelected}
