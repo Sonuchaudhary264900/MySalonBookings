@@ -353,21 +353,70 @@ const FilterSortButtons = () => (
 
 /* ─── Circle Button (user-frontend style, 54px) ─────────────────── */
 const CircleButton = ({ label, imgSrc, isSelected, isUploading, onSelect, onImageChange, showEdit, isAll, btnRef }) => {
-  const [pressed,  setPressed]  = React.useState(false);
-  const [hovered,  setHovered]  = React.useState(false);
-  const selfRef = React.useRef(null);
+  const [pressed,       setPressed]       = React.useState(false);
+  const [hovered,       setHovered]       = React.useState(false);
+  const [showPhotoMenu, setShowPhotoMenu] = React.useState(false);
+  const selfRef       = React.useRef(null);
+  const timerRef      = React.useRef(null);
+  const longFiredRef  = React.useRef(false);
+  const touchOrigin   = React.useRef({ x: 0, y: 0 });
+  const fileInputRef  = React.useRef(null);
 
   const setRef = React.useCallback(el => {
     selfRef.current = el;
     if (typeof btnRef === 'function') btnRef(el);
   }, [btnRef]);
 
+  const clearTimer = () => clearTimeout(timerRef.current);
+
+  // ── Long-press detection ──────────────────────────────────────
+  const startPress = (e) => {
+    longFiredRef.current = false;
+    setPressed(true);
+    if (e.touches) {
+      touchOrigin.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+    if (!showEdit || !onImageChange || isAll) return;
+    timerRef.current = setTimeout(() => {
+      longFiredRef.current = true;
+      setPressed(false);
+      setShowPhotoMenu(true);
+    }, 600);
+  };
+
+  const handleTouchMove = (e) => {
+    // Only cancel if finger moved > 10px — allows micro-wobble without breaking hold
+    const dx = Math.abs(e.touches[0].clientX - touchOrigin.current.x);
+    const dy = Math.abs(e.touches[0].clientY - touchOrigin.current.y);
+    if (dx > 10 || dy > 10) { clearTimer(); setPressed(false); }
+  };
+
+  const endPress = () => { clearTimer(); setPressed(false); };
+
   const handleClick = () => {
+    if (longFiredRef.current) { longFiredRef.current = false; return; }
     onSelect();
     requestAnimationFrame(() => {
       selfRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     });
   };
+
+  // Close photo menu when clicking outside — delay attachment to avoid
+  // the same touch event that opened the menu from immediately closing it
+  React.useEffect(() => {
+    if (!showPhotoMenu) return;
+    let id;
+    const close = (e) => { if (!selfRef.current?.contains(e.target)) setShowPhotoMenu(false); };
+    id = setTimeout(() => {
+      document.addEventListener('mousedown', close);
+      document.addEventListener('touchstart', close);
+    }, 50);
+    return () => {
+      clearTimeout(id);
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('touchstart', close);
+    };
+  }, [showPhotoMenu]);
 
   const getTransform = () => {
     if (isSelected) return 'translateY(-6px) scale(1.05)';
@@ -393,29 +442,27 @@ const CircleButton = ({ label, imgSrc, isSelected, isUploading, onSelect, onImag
   return (
     <div
       ref={setRef}
-      className="group"
-      style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+      style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
         cursor: 'pointer', flexShrink: 0, padding: '4px 8px',
         opacity: isSelected || hovered ? 1 : 0.65,
         transform: getTransform(),
         transition: 'transform 0.22s cubic-bezier(0.4,0,0.2,1), opacity 0.18s ease',
+        userSelect: 'none', WebkitUserSelect: 'none',
       }}
       onClick={handleClick}
       onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => { setHovered(false); setPressed(false); }}
-      onMouseDown={() => setPressed(true)}
-      onMouseUp={() => setPressed(false)}
-      onTouchStart={() => setPressed(true)}
-      onTouchEnd={() => setPressed(false)}
+      onMouseLeave={() => { setHovered(false); endPress(); }}
+      onMouseDown={startPress}
+      onMouseUp={endPress}
+      onTouchStart={startPress}
+      onTouchEnd={endPress}
+      onTouchMove={handleTouchMove}
+      onContextMenu={e => e.preventDefault()}
     >
       {/* Circle */}
       <div style={circleStyle}>
         {isAll ? (
-          <>
-            <LayoutGrid style={{ width: 22, height: 22, color: '#fff' }} />
-            {/* subtle tint when image shown */}
-          </>
+          <LayoutGrid style={{ width: 22, height: 22, color: '#fff' }} />
         ) : imgSrc ? (
           <>
             <img src={imgSrc} alt={label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -433,27 +480,6 @@ const CircleButton = ({ label, imgSrc, isSelected, isUploading, onSelect, onImag
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Loader2 style={{ width: 16, height: 16, color: '#fff' }} className="animate-spin" />
           </div>
-        )}
-
-        {/* Camera edit overlay */}
-        {showEdit && onImageChange && !isUploading && (
-          <label
-            style={{
-              position: 'absolute', bottom: 2, right: 2,
-              width: 18, height: 18, borderRadius: '50%',
-              background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.2)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer',
-            }}
-            className="opacity-0 group-hover:opacity-100 transition-opacity duration-150"
-            onClick={e => e.stopPropagation()}
-          >
-            <Camera style={{ width: 10, height: 10, color: '#fff' }} />
-            <input
-              type="file" accept="image/*" style={{ display: 'none' }}
-              onChange={e => { const f = e.target.files?.[0]; if (f) onImageChange(label, f); e.target.value = ''; }}
-            />
-          </label>
         )}
       </div>
 
@@ -476,6 +502,48 @@ const CircleButton = ({ label, imgSrc, isSelected, isUploading, onSelect, onImag
       }}>
         {label}
       </span>
+
+      {/* Long-press photo menu */}
+      {showPhotoMenu && showEdit && onImageChange && (
+        <div
+          style={{
+            position: 'absolute', top: 'calc(100% + 8px)', left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 50, minWidth: 140,
+            background: '#1e1e36',
+            border: '1px solid rgba(99,102,241,0.25)',
+            borderRadius: 12,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04)',
+            overflow: 'hidden',
+            animation: 'scaleIn 0.15s cubic-bezier(0.34,1.56,0.64,1) both',
+          }}
+          onClick={e => e.stopPropagation()}
+        >
+          <style>{`@keyframes scaleIn{from{opacity:0;transform:translateX(-50%) scale(0.85)}to{opacity:1;transform:translateX(-50%) scale(1)}}`}</style>
+          <label
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '10px 14px', cursor: 'pointer',
+              color: '#e0e0ff', fontSize: 13, fontWeight: 600,
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.15)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
+            <Camera style={{ width: 14, height: 14, color: '#818cf8', flexShrink: 0 }} />
+            Change photo
+            <input
+              ref={fileInputRef}
+              type="file" accept="image/*" style={{ display: 'none' }}
+              onChange={e => {
+                const f = e.target.files?.[0];
+                if (f) onImageChange(label, f);
+                e.target.value = '';
+                setShowPhotoMenu(false);
+              }}
+            />
+          </label>
+        </div>
+      )}
     </div>
   );
 };
@@ -547,38 +615,35 @@ const SubcategoryRow = ({ catLabel, subs, selectedSubLabel, onSelect, salon, ser
       </div>
     )}
 
-    <div className="bg-indigo-50/40 dark:bg-indigo-950/10 border border-indigo-100
-      dark:border-indigo-900/30 rounded-2xl px-4 py-3">
-      <div className="relative">
-        <div
-          className="cat-scroll-owner flex overflow-x-auto pb-1"
-          style={{ gap: 0, scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
-        >
-          {/* "All" uses the parent category image */}
+    <div className="relative">
+      <div
+        className="cat-scroll-owner flex overflow-x-auto pb-1 px-4 sm:px-6"
+        style={{ gap: 0, scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+      >
+        {/* "All" uses the parent category image */}
+        <CircleButton
+          label="All"
+          imgSrc={getCatImg(catLabel, salon)}
+          isSelected={!selectedSubLabel}
+          onSelect={() => onSelect(null)}
+          showEdit={false}
+        />
+
+        {subs.map(sub => (
           <CircleButton
-            label="All"
-            imgSrc={getCatImg(catLabel, salon)}
-            isSelected={!selectedSubLabel}
-            onSelect={() => onSelect(null)}
+            key={sub}
+            label={sub}
+            imgSrc={getSubImg(catLabel, sub, salon, services)}
+            isSelected={selectedSubLabel === sub}
+            onSelect={() => onSelect(sub)}
             showEdit={false}
           />
-
-          {subs.map(sub => (
-            <CircleButton
-              key={sub}
-              label={sub}
-              imgSrc={getSubImg(catLabel, sub, salon, services)}
-              isSelected={selectedSubLabel === sub}
-              onSelect={() => onSelect(sub)}
-              showEdit={false}
-            />
-          ))}
-        </div>
-
-        {/* Right fade hint */}
-        <div className="absolute right-0 top-0 bottom-1 w-8
-          bg-gradient-to-l from-indigo-50/40 dark:from-gray-950 to-transparent pointer-events-none" />
+        ))}
       </div>
+
+      {/* Right fade hint */}
+      <div className="absolute right-0 top-0 bottom-1 w-10
+        bg-gradient-to-l from-white dark:from-gray-950 to-transparent pointer-events-none" />
     </div>
   </div>
 );
