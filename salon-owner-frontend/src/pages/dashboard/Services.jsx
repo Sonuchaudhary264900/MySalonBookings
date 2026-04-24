@@ -778,7 +778,7 @@ const Services = () => {
 
   const handleBulkSet = async () => {
     if (bulkSaving) return;
-    const targets = (displayedServices || []).filter(s => s._id || s.id);
+    const targets = (displayedServices || []).filter(s => (s._id || s.id) && s.isActive !== false);
     if (!targets.length || !canApply) return;
 
     const patch = buildBulkPatch();
@@ -970,7 +970,7 @@ const Services = () => {
   }, [filteredServices, selectedCatLabel, selectedSubLabel, salon?.businessType, salon?.servedGender]);
 
   const bulkTargetCount = useMemo(
-    () => displayedServices.filter(s => s._id || s.id).length,
+    () => displayedServices.filter(s => (s._id || s.id) && s.isActive !== false).length,
     [displayedServices]
   );
 
