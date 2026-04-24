@@ -28,6 +28,7 @@ import {
   ALL_CATEGORY_ORDER,
   getCategoriesForSalonType,
 } from '../../constants/salonCategories';
+import { getCatImg, CategoryNav, SubcategoryRow } from '../../components/common/CategoryCircles';
 
 /* ─── helpers ────────────────────────────────────────────────────── */
 const WH_DAYS   = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
@@ -135,8 +136,8 @@ function WHEditor({ wh, onChange }) {
 }
 
 const TABS = [
-  { key: 'gallery',  label: 'Gallery',  Icon: Images  },
   { key: 'services', label: 'Services', Icon: Scissors },
+  { key: 'gallery',  label: 'Gallery',  Icon: Images  },
   { key: 'reviews',  label: 'Reviews',  Icon: Star     },
   { key: 'info',     label: 'Info',     Icon: Info     },
 ];
@@ -207,7 +208,7 @@ export default function GlowLooxProfile() {
   const [loading,      setLoading]      = useState(true);
 
   /* ── UI state ── */
-  const [activeTab,    setActiveTab]    = useState('gallery');
+  const [activeTab,    setActiveTab]    = useState('services');
   const [lightbox,     setLightbox]     = useState(null);
   const [bannerIdx,    setBannerIdx]    = useState(0);
 
@@ -216,6 +217,10 @@ export default function GlowLooxProfile() {
 
   /* ── service drill-down nav ── */
   const [svcNavStack, setSvcNavStack] = useState([]);
+
+  /* ── circle category filter (Level 0) ── */
+  const [profCat, setProfCat] = useState(null);
+  const [profSub, setProfSub] = useState(null);
 
   /* ── service modal ── */
   const [svcModal,     setSvcModal]     = useState({ open: false, service: null });
@@ -1235,6 +1240,8 @@ export default function GlowLooxProfile() {
 
     /* ══ LEVEL 0 — category list ══ */
     const allCatLabels = [...menuLabels, ...Object.keys(catSvcMap).filter(l => !menuLabels.includes(l))];
+    const visibleCatLabels = profCat ? allCatLabels.filter(l => l === profCat) : allCatLabels;
+    const profCatSubs = profCat ? (menuCats.find(c => c.label === profCat)?.subServices || []) : [];
     const totalAdded   = (services || []).length;
     const totalActive  = (services || []).filter(s => s.isActive !== false).length;
     const totalInMenu  = menuCats.reduce((s, c) => s + (c.subServices?.length || 0), 0);
@@ -1292,8 +1299,28 @@ export default function GlowLooxProfile() {
           </button>
         )}
 
+        {/* ── Category circles ── */}
+        <div style={{ paddingLeft: 8, paddingRight: 8 }}>
+          <CategoryNav
+            categories={allCatLabels}
+            selectedCatLabel={profCat}
+            onSelect={cat => { setProfCat(cat); setProfSub(null); }}
+            salon={salon}
+          />
+          {profCat && profCatSubs.length > 0 && (
+            <SubcategoryRow
+              catLabel={profCat}
+              subs={profCatSubs}
+              selectedSubLabel={profSub}
+              onSelect={setProfSub}
+              salon={salon}
+              services={services}
+            />
+          )}
+        </div>
+
         <div className="p-3 space-y-2.5 pb-8">
-          {allCatLabels.map(cat => {
+          {visibleCatLabels.map(cat => {
             const menuCat    = menuCats.find(c => c.label === cat);
             const catByName  = catSvcMap[cat] || {};
             const addedInCat = Object.values(catByName);
