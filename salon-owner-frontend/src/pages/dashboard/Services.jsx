@@ -754,11 +754,6 @@ const Services = () => {
   };
 
   // ── Bulk control panel ───────────────────────────────────────────
-  const bulkTargetCount = useMemo(
-    () => (displayedServices || []).filter(s => s._id || s.id).length,
-    [displayedServices]
-  );
-
   const priceValid    = bulkPrice    === '' || (Number(bulkPrice)    >= 0 && !isNaN(Number(bulkPrice)));
   const durationValid = bulkDuration === '' || (Number(bulkDuration) >= 1 && !isNaN(Number(bulkDuration)));
 
@@ -771,11 +766,6 @@ const Services = () => {
     return patch;
   };
 
-  const canApply = !bulkSaving
-    && bulkTargetCount > 0
-    && bulkEnabled.size > 0
-    && (!bulkEnabled.has('price')    || (bulkPrice    !== '' && priceValid))
-    && (!bulkEnabled.has('duration') || (bulkDuration !== '' && durationValid));
 
   const toggleBulkField = (key) => {
     setBulkEnabled(prev => {
@@ -977,6 +967,17 @@ const Services = () => {
     }
     return base;
   }, [filteredServices, selectedCatLabel, selectedSubLabel, salon?.businessType, salon?.servedGender]);
+
+  const bulkTargetCount = useMemo(
+    () => displayedServices.filter(s => s._id || s.id).length,
+    [displayedServices]
+  );
+
+  const canApply = !bulkSaving
+    && bulkTargetCount > 0
+    && bulkEnabled.size > 0
+    && (!bulkEnabled.has('price')    || (bulkPrice    !== '' && priceValid))
+    && (!bulkEnabled.has('duration') || (bulkDuration !== '' && durationValid));
 
   const displayedGrouped = useMemo(() => {
     const g = displayedServices.reduce((acc, svc) => {
