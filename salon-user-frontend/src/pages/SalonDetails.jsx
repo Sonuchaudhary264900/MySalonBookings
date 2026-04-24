@@ -1029,17 +1029,24 @@ function SalonDetails({ salonId: propId, onClose }) {
                   {/* Category circles */}
                   {services.length > 0 && !loading && (() => {
                     const allCats = [...new Set(services.map(s => s.category || 'Other').filter(Boolean))];
-                    const selCatSubs = selCat
-                      ? [...new Set(services.filter(s => (s.category || 'Other') === selCat).map(s => s.name).filter(Boolean))]
+                    // Get catalog subcategories for the selected category, filtered to only names present in the salon
+                    const catalogCat = selCat ? UNISEX_CATEGORIES.find(c => c.label === selCat) : null;
+                    const catalogSubs = catalogCat
+                      ? [...new Set([...(catalogCat.maleSubServices || []), ...(catalogCat.femaleSubServices || [])])]
                       : [];
+                    const salonServiceNames = new Set(services.filter(s => (s.category || 'Other') === selCat).map(s => s.name));
+                    const selCatSubs = catalogSubs.length > 0
+                      ? catalogSubs.filter(n => salonServiceNames.has(n))
+                      : [...salonServiceNames];
                     return (
-                      <div style={{ paddingLeft: 8, paddingRight: 8, paddingBottom: 4 }}>
+                      <div style={{ paddingLeft: 8, paddingRight: 8 }}>
                         <CategoryCircleNav
                           categories={allCats}
                           selected={selCat}
                           onSelect={cat => { setSelCat(cat); setSelSub(null); }}
                           salon={salon}
                           accentColor={theme.p}
+                          iconMap={CAT_ICON_COMPONENTS}
                         />
                         {selCat && selCatSubs.length > 1 && (
                           <SubCircleNav
@@ -1050,6 +1057,7 @@ function SalonDetails({ salonId: propId, onClose }) {
                             salon={salon}
                             services={services}
                             accentColor={theme.p}
+                            iconMap={CAT_ICON_COMPONENTS}
                           />
                         )}
                       </div>

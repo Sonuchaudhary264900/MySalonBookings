@@ -2,14 +2,6 @@ import { useState, useRef, useCallback } from 'react';
 import { LayoutGrid } from 'lucide-react';
 import { CATEGORY_CARD_IMAGE_MAP } from '../constants/salonCategories';
 
-// Map category label → simple icon character (fallback when no image)
-const CAT_CHAR = {
-  'Hair Services': '✂', 'Hair Services (Men)': '✂', 'Hair Services (Women)': '✂',
-  'Beard & Grooming': '🧔', 'Nail Services': '💅', 'Skin & Face / Beauty': '✨',
-  'Spa & Massage': '💆', 'Body Grooming': '🧴', 'Makeup Services': '💄',
-  'Bridal & Events': '👑', 'Kids Services': '🧒', 'At-Home Services': '🏠',
-};
-
 export const getCatImg = (label, salon) => {
   const saved = salon?.categoryImages;
   if (saved) {
@@ -30,13 +22,14 @@ export const getSubImg = (catLabel, subLabel, salon, services) => {
   return svc?.photo || null;
 };
 
-const CircleBtn = ({ label, imgSrc, isSelected, isAll, onSelect, accentColor }) => {
-  const [pressed, setPressed] = useState(false);
-  const [hovered, setHovered] = useState(false);
+const CircleBtn = ({ label, imgSrc, isSelected, isAll, onSelect, accentColor, IconComponent }) => {
+  const [pressed, setPressed]     = useState(false);
+  const [hovered, setHovered]     = useState(false);
   const [imgBroken, setImgBroken] = useState(false);
   const ref = useRef(null);
 
   const showImg = !isAll && !!imgSrc && !imgBroken;
+  const accent  = accentColor || '#7c3aed';
 
   const getTransform = () => {
     if (isSelected) return 'translateY(-6px) scale(1.05)';
@@ -44,8 +37,6 @@ const CircleBtn = ({ label, imgSrc, isSelected, isAll, onSelect, accentColor }) 
     if (hovered)    return 'scale(1.03)';
     return 'translateY(0px) scale(1)';
   };
-
-  const accent = accentColor || '#7c3aed';
 
   const handleClick = useCallback(() => {
     onSelect();
@@ -77,8 +68,8 @@ const CircleBtn = ({ label, imgSrc, isSelected, isAll, onSelect, accentColor }) 
         width: 54, height: 54, borderRadius: '50%', overflow: 'hidden',
         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
         background: showImg ? '#111' : isSelected
-          ? `linear-gradient(145deg,${accent}cc 0%,${accent} 100%)`
-          : 'rgba(26,26,46,0.85)',
+          ? `linear-gradient(145deg,${accent}bb 0%,${accent} 100%)`
+          : 'rgba(26,26,46,0.9)',
         boxShadow: isSelected
           ? `0 0 0 3px ${accent}, 0 0 0 6px ${accent}44, 0 8px 24px ${accent}66`
           : '0 0 0 1.5px rgba(255,255,255,0.09)',
@@ -92,10 +83,10 @@ const CircleBtn = ({ label, imgSrc, isSelected, isAll, onSelect, accentColor }) 
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             onError={() => setImgBroken(true)}
           />
+        ) : IconComponent ? (
+          <IconComponent style={{ width: 22, height: 22, color: isSelected ? '#fff' : accent }} />
         ) : (
-          <span style={{ fontSize: 20, lineHeight: 1 }}>
-            {CAT_CHAR[label] || '✦'}
-          </span>
+          <LayoutGrid style={{ width: 22, height: 22, color: isSelected ? '#fff' : accent }} />
         )}
       </div>
 
@@ -122,7 +113,7 @@ const CircleBtn = ({ label, imgSrc, isSelected, isAll, onSelect, accentColor }) 
   );
 };
 
-export const CategoryCircleNav = ({ categories, selected, onSelect, salon, accentColor }) => (
+export const CategoryCircleNav = ({ categories, selected, onSelect, salon, accentColor, iconMap = {} }) => (
   <>
     <style>{`
       .glw-cat-scroll::-webkit-scrollbar{display:none}
@@ -132,7 +123,7 @@ export const CategoryCircleNav = ({ categories, selected, onSelect, salon, accen
       display: 'flex', flexDirection: 'row', flexWrap: 'nowrap',
       overflowX: 'auto', overflowY: 'visible',
       scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch',
-      paddingTop: 16, paddingBottom: 8,
+      paddingTop: 18, paddingBottom: 8,
     }}>
       <CircleBtn label="All" isAll isSelected={!selected} onSelect={() => onSelect(null)} accentColor={accentColor} />
       {categories.map(cat => (
@@ -143,18 +134,19 @@ export const CategoryCircleNav = ({ categories, selected, onSelect, salon, accen
           isSelected={selected === cat}
           onSelect={() => onSelect(cat)}
           accentColor={accentColor}
+          IconComponent={iconMap[cat]}
         />
       ))}
     </div>
   </>
 );
 
-export const SubCircleNav = ({ catLabel, subs, selected, onSelect, salon, services, accentColor }) => (
+export const SubCircleNav = ({ catLabel, subs, selected, onSelect, salon, services, accentColor, iconMap = {} }) => (
   <div className="glw-cat-scroll" style={{
     display: 'flex', flexDirection: 'row', flexWrap: 'nowrap',
     overflowX: 'auto', overflowY: 'visible',
     scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch',
-    paddingTop: 8, paddingBottom: 4,
+    paddingTop: 10, paddingBottom: 4,
     animation: 'glwFadeDown 0.22s ease both',
   }}>
     <CircleBtn label="All" isAll isSelected={!selected} onSelect={() => onSelect(null)} accentColor={accentColor} />
@@ -166,6 +158,7 @@ export const SubCircleNav = ({ catLabel, subs, selected, onSelect, salon, servic
         isSelected={selected === sub}
         onSelect={() => onSelect(sub)}
         accentColor={accentColor}
+        IconComponent={iconMap[catLabel]}
       />
     ))}
   </div>
