@@ -657,7 +657,7 @@ const Services = () => {
 
   // Bulk control panel
   const [showBulkSet,    setShowBulkSet]    = useState(false);
-  const [bulkEnabled,    setBulkEnabled]    = useState(new Set());
+  const [bulkEnabled,    setBulkEnabled]    = useState(new Set(['price', 'duration', 'status', 'gender']));
   const [bulkPrice,      setBulkPrice]      = useState('');
   const [bulkDuration,   setBulkDuration]   = useState('');
   const [bulkActive,     setBulkActive]     = useState(true);
@@ -708,7 +708,7 @@ const Services = () => {
 
   // Auto-close bulk panel when subcategory changes
   useEffect(() => {
-    setShowBulkSet(false); setBulkEnabled(new Set());
+    setShowBulkSet(false); setBulkEnabled(new Set(['price', 'duration', 'status', 'gender']));
     setBulkPrice(''); setBulkDuration(''); setBulkActive(true); setBulkGender('both');
     setOptimisticMap(null);
   }, [selectedSubLabel]);
@@ -803,7 +803,7 @@ const Services = () => {
       if (!res?.data?.success) throw new Error('Unexpected response from server');
       await fetchServices();
       setOptimisticMap(null);
-      setShowBulkSet(false); setBulkEnabled(new Set());
+      setShowBulkSet(false); setBulkEnabled(new Set(['price', 'duration', 'status', 'gender']));
       setBulkPrice(''); setBulkDuration(''); setBulkActive(true); setBulkGender('both');
       setTimeout(() => setHighlightedIds(new Set()), 500);
 
@@ -977,8 +977,7 @@ const Services = () => {
   const canApply = !bulkSaving
     && bulkTargetCount > 0
     && bulkEnabled.size > 0
-    && (!bulkEnabled.has('price')    || (bulkPrice    !== '' && priceValid))
-    && (!bulkEnabled.has('duration') || (bulkDuration !== '' && durationValid));
+    && priceValid && durationValid;
 
   const displayedGrouped = useMemo(() => {
     const g = displayedServices.reduce((acc, svc) => {
