@@ -4,7 +4,7 @@ import {
   Plus, LayoutList, ChevronDown, Scissors, Search,
   Layers, CheckCircle2, XCircle, Sparkles, Baby, Home, User, UserRound,
   TrendingUp, X, Pencil, Loader2, SlidersHorizontal,
-  LayoutGrid, Camera, ChevronRight, Zap, Clock,
+  LayoutGrid, Camera, ChevronRight, Clock, AlertTriangle, Undo2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -754,6 +754,11 @@ const Services = () => {
   };
 
   // ── Bulk control panel ───────────────────────────────────────────
+  const bulkTargetCount = useMemo(
+    () => (displayedServices || []).filter(s => s._id || s.id).length,
+    [displayedServices]
+  );
+
   const priceValid    = bulkPrice    === '' || (Number(bulkPrice)    >= 0 && !isNaN(Number(bulkPrice)));
   const durationValid = bulkDuration === '' || (Number(bulkDuration) >= 1 && !isNaN(Number(bulkDuration)));
 
@@ -767,6 +772,7 @@ const Services = () => {
   };
 
   const canApply = !bulkSaving
+    && bulkTargetCount > 0
     && bulkEnabled.size > 0
     && (!bulkEnabled.has('price')    || (bulkPrice    !== '' && priceValid))
     && (!bulkEnabled.has('duration') || (bulkDuration !== '' && durationValid));
@@ -817,7 +823,7 @@ const Services = () => {
           <button
             style={{ fontWeight:700, color:'#818cf8', background:'rgba(99,102,241,0.12)',
               border:'1px solid rgba(99,102,241,0.3)', borderRadius:8, padding:'3px 10px',
-              cursor:'pointer', fontSize:13 }}
+              cursor:'pointer', fontSize:13, display:'flex', alignItems:'center', gap:4 }}
             onClick={async () => {
               if (undone) return;
               undone = true;
@@ -832,7 +838,7 @@ const Services = () => {
               if (failed) toast.error(`${failed} service${failed > 1 ? 's' : ''} failed to undo`);
               else toast.success('Changes undone');
             }}
-          >↩ Undo</button>
+          ><Undo2 style={{ width:12, height:12 }} /> Undo</button>
         </div>,
         { duration: 5000 }
       );
@@ -1046,14 +1052,6 @@ const Services = () => {
   const isUnisex = salon?.servedGender === 'unisex';
   const isSalon  = salon?.businessType === 'salon';
 
-  const renderCards = (list) => (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-      {list.map(svc => (
-        <ServiceCard key={svc._id || svc.id} service={svc} onEdit={handleOpenModal} onDelete={handleDelete} onToggle={handleToggle} loading={loading} />
-      ))}
-    </div>
-  );
-
   return (
     <DashboardLayout>
       <div className="space-y-4">
@@ -1212,8 +1210,8 @@ const Services = () => {
                   }}
                   className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-semibold shrink-0 transition-all duration-200"
                 >
-                  <Zap style={{ width:14, height:14 }} />
-                  <span className="hidden sm:inline">Apply to all</span>
+                  <Pencil style={{ width:14, height:14 }} />
+                  <span className="hidden sm:inline">Set price &amp; time</span>
                 </button>
               )}
             </div>
@@ -1222,7 +1220,7 @@ const Services = () => {
 
         {/* ── Bulk Control Panel ── */}
         {showBulkSet && selectedSubLabel && (() => {
-          const n = (displayedServices || []).filter(s => s._id || s.id).length;
+          const n = bulkTargetCount;
           const patch = buildBulkPatch();
           const previewParts = [
             patch.basePrice    !== undefined ? `₹${patch.basePrice}`                        : null,
@@ -1283,7 +1281,7 @@ const Services = () => {
               {/* Header */}
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                  <Zap style={{ width:13, height:13, color:'#818cf8' }} />
+                  <Pencil style={{ width:13, height:13, color:'#818cf8' }} />
                   <span style={{ fontWeight:700, fontSize:13, color:'#c7d2fe' }}>{selectedSubLabel}</span>
                   <span style={{ fontSize:11, color:'rgba(156,163,175,0.6)' }}>· {n} service{n !== 1 ? 's' : ''}</span>
                 </div>
@@ -1300,7 +1298,7 @@ const Services = () => {
                     border: (!priceValid && bulkPrice !== '') ? '1px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.08)',
                     borderRadius:8, padding:'6px 10px' }}>
                     <span style={{ color:'#818cf8', fontSize:13, fontWeight:700, flexShrink:0 }}>₹</span>
-                    <input className="bk-num" autoFocus type="number" min="0" placeholder="e.g. 500"
+                    <input className="bk-num" type="number" min="0" placeholder="e.g. 500"
                       value={bulkPrice} onChange={e => setBulkPrice(e.target.value)}
                       onFocus={e => e.target.select()}
                       onKeyDown={e => { if (e.key === 'Enter' && canApply) handleBulkSet(); }}
@@ -1360,9 +1358,10 @@ const Services = () => {
               )}
 
               {/* Warning */}
-              <p style={{ fontSize:11, color:'rgba(251,191,36,0.7)', marginBottom:10 }}>
-                ⚠ This will update {n} service{n !== 1 ? 's' : ''}
-              </p>
+              <div style={{ display:'flex', alignItems:'center', gap:5, fontSize:11, color:'rgba(251,191,36,0.7)', marginBottom:10 }}>
+                <AlertTriangle style={{ width:12, height:12, flexShrink:0 }} />
+                <span>This will update {n} service{n !== 1 ? 's' : ''}</span>
+              </div>
 
               {/* Apply */}
               <button onClick={handleBulkSet} disabled={!canApply} style={{

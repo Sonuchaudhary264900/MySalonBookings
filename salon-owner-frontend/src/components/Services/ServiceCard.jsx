@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Clock, MoreVertical, Edit2, Trash2, Power } from 'lucide-react';
+import { Clock, MoreVertical, Edit2, Trash2, Power, Scissors } from 'lucide-react';
 import { getServiceImage } from '../../constants/salonCategories';
 
 const ServiceCard = ({ service, onEdit, onDelete, onToggle, loading = false }) => {
@@ -47,7 +47,7 @@ const ServiceCard = ({ service, onEdit, onDelete, onToggle, loading = false }) =
           ) : (
             <div className="w-full h-full flex items-center justify-center
               bg-gradient-to-br from-indigo-900/50 to-violet-900/50">
-              <span className="text-4xl opacity-30">✂</span>
+              <Scissors className="w-10 h-10 text-gray-500 opacity-30" />
             </div>
           )}
 
