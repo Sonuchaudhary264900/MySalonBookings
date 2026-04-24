@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { motion } from 'framer-motion';
 import {
   MapPin, Clock, Star, Share2, Eye, Scissors, Sparkles,
   Waves, Wind, Activity, Crown, Baby, Home as HomeIcon,
@@ -1777,17 +1778,18 @@ export default function GlowLooxProfile() {
       <div className="max-w-[480px] lg:max-w-5xl mx-auto bg-white dark:bg-[#0d0520] min-h-screen relative shadow-xl dark:shadow-none">
 
         {/* ── BANNER ── */}
-        <div className="relative h-52 lg:h-64 overflow-hidden bg-gray-100 dark:bg-gray-900">
+        <div className="relative overflow-hidden bg-gray-100 dark:bg-gray-900"
+          style={{ height: 'clamp(180px,50vw,220px)' }}>
           {bannerItems.length > 0 ? (
             <img src={getGalleryMediaUrl(bannerItems[bannerIdx % bannerItems.length]) || ''} alt=""
               className="w-full h-full object-cover" />
           ) : (
-            <div style={{ background: `radial-gradient(ellipse 70% 60% at 20% 40%, ${biz.p}44 0%, transparent 55%), ${biz.p}15` }}
+            <div style={{ background: `radial-gradient(ellipse 70% 60% at 20% 40%, ${biz.p}47 0%, transparent 55%), linear-gradient(135deg,#0d0520 0%,#0d0520 100%)` }}
               className="w-full h-full flex items-center justify-center">
               <Scissors style={{ color: biz.acc }} className="w-16 h-16 opacity-20" />
             </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/60" />
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(13,5,32,.05) 0%, rgba(13,5,32,.55) 75%, #0D0520 100%)' }} />
 
           {/* Customer View badge */}
           <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/55 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1.5 rounded-full border border-white/15">
@@ -1824,7 +1826,7 @@ export default function GlowLooxProfile() {
           <div className="lg:w-72 lg:shrink-0 lg:sticky lg:top-0 lg:self-start lg:border-r lg:border-gray-100 dark:lg:border-white/[0.08] lg:min-h-screen">
 
             {/* Profile info */}
-            <div className="px-4 -mt-8 relative z-10 lg:mt-0 lg:pt-5 lg:px-5 lg:pb-4">
+            <div className="px-4 -mt-9 relative z-10 lg:mt-0 lg:pt-5 lg:px-5 lg:pb-4">
               {renderProfileInfo()}
             </div>
 
@@ -1835,7 +1837,7 @@ export default function GlowLooxProfile() {
             <div className="hidden lg:block px-3 py-2 border-t border-gray-100 dark:border-white/[0.08]">
               {TABS.map(tab => (
                 <button key={tab.key}
-                  onClick={() => { setActiveTab(tab.key); setInfoEdit(null); setSvcNavStack([]); }}
+                  onClick={() => { setActiveTab(tab.key); setInfoEdit(null); setSvcNavStack([]); setProfCat(null); setProfSub(null); }}
                   style={activeTab === tab.key ? { backgroundColor: biz.p + '12', color: biz.acc } : {}}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-1 transition-colors text-left
                     ${activeTab === tab.key ? '' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/[0.04]'}`}>
@@ -1855,7 +1857,7 @@ export default function GlowLooxProfile() {
             {/* Horizontal tab bar: mobile only */}
             <div className="lg:hidden sticky top-0 z-30 bg-white/90 dark:bg-[#0d0520]/95 backdrop-blur-2xl border-b border-gray-100 dark:border-white/[0.08] flex">
               {TABS.map(tab => (
-                <button key={tab.key} onClick={() => { setActiveTab(tab.key); setInfoEdit(null); setSvcNavStack([]); }}
+                <button key={tab.key} onClick={() => { setActiveTab(tab.key); setInfoEdit(null); setSvcNavStack([]); setProfCat(null); setProfSub(null); }}
                   className="flex-1 flex flex-col items-center justify-center py-2.5 gap-0.5 relative transition-colors">
                   <tab.Icon style={{ width: 18, height: 18, color: activeTab === tab.key ? biz.p : undefined }}
                     className={activeTab === tab.key ? '' : 'text-gray-400 dark:text-gray-500'} />
@@ -1864,7 +1866,9 @@ export default function GlowLooxProfile() {
                     {tab.label}
                   </span>
                   {activeTab === tab.key && (
-                    <span style={{ backgroundColor: biz.p }} className="absolute bottom-0 left-[15%] right-[15%] h-[2px] rounded-full" />
+                    <motion.div layoutId="glwProfTabLine"
+                      style={{ position: 'absolute', bottom: 0, left: '15%', right: '15%', height: 2, background: biz.p, borderRadius: 1 }}
+                    />
                   )}
                 </button>
               ))}
