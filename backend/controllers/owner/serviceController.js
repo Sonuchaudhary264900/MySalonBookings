@@ -240,3 +240,61 @@ exports.deleteService = async (req, res) => {
     res.status(500).json(formatErrorResponse(messages.GENERIC.ERROR, 500));
   }
 };
+
+// ===================================================
+// BULK UPDATE SERVICES (price, duration, status, availability)
+// ===================================================
+exports.bulkUpdateServices = async (req, res) => {
+  try {
+    const { ids, patch } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0)
+      return res.status(400).json(formatErrorResponse('ids must be a non-empty array', 400));
+    if (!patch || typeof patch !== 'object' || Array.isArray(patch))
+      return res.status(400).json(formatErrorResponse('patch is required', 400));
+    if (!Object.keys(patch).length)
+      return res.status(400).json(formatErrorResponse('patch must have at least one field', 400));
+
+    const safeFields = ['basePrice', 'duration', 'isActive', 'applicableFor'];
+    for (const k of Object.keys(patch)) {
+      if (!safeFields.includes(k))
+        return res.status(400).json(formatErrorResponse(`Field '${k}' not allowed in bulk update`, 400));
+    }
+
+    if (patch.basePrice !== undefined) {
+      const p = Number(patch.basePrice);
+      if (isNaN(p) || p < 0)
+        return res.status(400).json(formatErrorResponse('basePrice must be a number ≥ 0', 400));
+      patch.basePrice = p;
+    }
+    if (patch.duration !== undefined) {
+      const d = Number(patch.duration);
+      if (isNaN(d) || d < 1)
+        return res.status(400).json(formatErrorResponse('duration must be a number ≥ 1', 400));
+      patch.duration = d;
+    }
+    if (patch.isActive !== undefined && typeof patch.isActive !== 'boolean')
+      return res.status(400).json(formatErrorResponse('isActive must be boolean', 400));
+    if (patch.applicableFor !== undefined) {
+      const validGenders = ['male', 'female'];
+      if (!Array.isArray(patch.applicableFor) || !patch.applicableFor.length
+          || patch.applicableFor.some(g => !validGenders.includes(g)))
+        return res.status(400).json(formatErrorResponse('applicableFor must be a non-empty array of male/female', 400));
+    }
+
+    const salon = await Business.findOne({
+      $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }],
+    });
+    if (!salon) return res.status(404).json(formatErrorResponse('Salon not found', 404));
+
+    const result = await Service.updateMany(
+      { _id: { $in: ids }, salonId: salon._id, deletedAt: null },
+      { $set: patch }
+    );
+
+    res.json({ success: true, updated: result.modifiedCount });
+  } catch (error) {
+    console.error('Error bulk updating services:', error);
+    res.status(500).json(formatErrorResponse('Failed to update services', 500));
+  }
+};

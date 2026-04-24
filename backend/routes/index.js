@@ -1733,6 +1733,12 @@ router.post(
   asyncHandler(serviceController.bulkUpsertServices)
 );
 
+router.patch(
+  "/owner/services/bulk",
+  authenticateOwner,
+  asyncHandler(serviceController.bulkUpdateServices)
+);
+
 router.post(
   "/owner/services/upload-photo",
   authenticateOwner,

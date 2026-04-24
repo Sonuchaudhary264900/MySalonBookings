@@ -3,8 +3,8 @@ import { createPortal } from 'react-dom';
 import {
   Plus, LayoutList, ChevronDown, Scissors, Search,
   Layers, CheckCircle2, XCircle, Sparkles, Baby, Home, User, UserRound,
-  TrendingUp, X, Pencil, Loader2, SlidersHorizontal, ArrowUpDown,
-  LayoutGrid, Camera, ChevronRight,
+  TrendingUp, X, Pencil, Loader2, SlidersHorizontal,
+  LayoutGrid, Camera, ChevronRight, Zap, Clock,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -329,27 +329,16 @@ const CatalogCard = ({ name, onAdd }) => (
 );
 
 /* ─── Filter + Sort buttons ─────────────────────────────────────── */
-const FilterSortButtons = () => (
-  <div className="flex items-center gap-2 shrink-0">
-    <button className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-medium
-      border border-gray-200 dark:border-gray-700
-      bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300
-      hover:border-indigo-300 dark:hover:border-indigo-700
-      hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-150">
-      <SlidersHorizontal className="w-4 h-4" />
-      <span className="hidden sm:inline">Filter</span>
-      <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
-    </button>
-    <button className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-medium
-      border border-gray-200 dark:border-gray-700
-      bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300
-      hover:border-indigo-300 dark:hover:border-indigo-700
-      hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-150">
-      <ArrowUpDown className="w-4 h-4" />
-      <span className="hidden sm:inline">Sort by</span>
-      <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
-    </button>
-  </div>
+const FilterButton = () => (
+  <button className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-medium shrink-0
+    border border-gray-200 dark:border-gray-700
+    bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300
+    hover:border-indigo-300 dark:hover:border-indigo-700
+    hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-150">
+    <SlidersHorizontal className="w-4 h-4" />
+    <span className="hidden sm:inline">Filter</span>
+    <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+  </button>
 );
 
 /* ─── Circle Button (user-frontend style, 54px) ─────────────────── */
@@ -665,6 +654,17 @@ const Services = () => {
   const [selectedSubLabel, setSelectedSubLabel] = useState(null);
   const [catImgUploading,  setCatImgUploading]  = useState({});
 
+  // Bulk control panel
+  const [showBulkSet,    setShowBulkSet]    = useState(false);
+  const [bulkEnabled,    setBulkEnabled]    = useState(new Set());
+  const [bulkPrice,      setBulkPrice]      = useState('');
+  const [bulkDuration,   setBulkDuration]   = useState('');
+  const [bulkActive,     setBulkActive]     = useState(true);
+  const [bulkGender,     setBulkGender]     = useState('both');
+  const [bulkSaving,     setBulkSaving]     = useState(false);
+  const [highlightedIds, setHighlightedIds] = useState(new Set());
+  const [optimisticMap,  setOptimisticMap]  = useState(null);
+
   // Mind-map SVG state
   const [svgData, setSvgData] = useState(null);
   const catRefs    = useRef({});
@@ -705,6 +705,13 @@ const Services = () => {
     return () => clearTimeout(filterTimerRef.current);
   }, [selectedCatLabel, selectedSubLabel]);
 
+  // Auto-close bulk panel when subcategory changes
+  useEffect(() => {
+    setShowBulkSet(false); setBulkEnabled(new Set());
+    setBulkPrice(''); setBulkDuration(''); setBulkActive(true); setBulkGender('both');
+    setOptimisticMap(null);
+  }, [selectedSubLabel]);
+
   // ── Handlers ──────────────────────────────────────────────────
   const handleOpenModal = (service = null) => { setSelectedService(service); setIsModalOpen(true); setError(''); };
   const handleCloseModal = () => { setIsModalOpen(false); setSelectedService(null); setError(''); };
@@ -744,6 +751,96 @@ const Services = () => {
       toast.success('Image updated');
     } catch { toast.error('Failed to upload image'); }
     finally { setCatImgUploading(prev => ({ ...prev, [key]: false })); }
+  };
+
+  // ── Bulk control panel ───────────────────────────────────────────
+  const priceValid    = bulkPrice    === '' || (Number(bulkPrice)    >= 0 && !isNaN(Number(bulkPrice)));
+  const durationValid = bulkDuration === '' || (Number(bulkDuration) >= 1 && !isNaN(Number(bulkDuration)));
+
+  const buildBulkPatch = () => {
+    const patch = {};
+    if (bulkEnabled.has('price')    && bulkPrice    !== '' && priceValid)    patch.basePrice = Number(bulkPrice);
+    if (bulkEnabled.has('duration') && bulkDuration !== '' && durationValid) patch.duration  = Number(bulkDuration);
+    if (bulkEnabled.has('status'))  patch.isActive     = bulkActive;
+    if (bulkEnabled.has('gender'))  patch.applicableFor = bulkGender === 'both' ? ['male','female'] : [bulkGender];
+    return patch;
+  };
+
+  const canApply = !bulkSaving
+    && bulkEnabled.size > 0
+    && (!bulkEnabled.has('price')    || (bulkPrice    !== '' && priceValid))
+    && (!bulkEnabled.has('duration') || (bulkDuration !== '' && durationValid));
+
+  const toggleBulkField = (key) => {
+    setBulkEnabled(prev => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  };
+
+  const handleBulkSet = async () => {
+    if (bulkSaving) return;
+    const targets = (displayedServices || []).filter(s => s._id || s.id);
+    if (!targets.length || !canApply) return;
+
+    const patch = buildBulkPatch();
+    if (!Object.keys(patch).length) return;
+
+    const ids       = targets.map(s => s._id || s.id);
+    const idSet     = new Set(ids);
+    const snapshots = targets.map(s => ({
+      id: s._id || s.id,
+      basePrice: s.basePrice ?? s.price,
+      duration: s.duration,
+      isActive: s.isActive,
+      applicableFor: s.applicableFor,
+    }));
+
+    setOptimisticMap(new Map(ids.map(id => [id, patch])));
+    setHighlightedIds(idSet);
+    setBulkSaving(true);
+
+    try {
+      const res = await api.patch('/owner/services/bulk', { ids, patch });
+      if (!res?.data?.success) throw new Error('Unexpected response from server');
+      await fetchServices();
+      setOptimisticMap(null);
+      setShowBulkSet(false); setBulkEnabled(new Set());
+      setBulkPrice(''); setBulkDuration(''); setBulkActive(true); setBulkGender('both');
+      setTimeout(() => setHighlightedIds(new Set()), 500);
+
+      let undone = false;
+      toast.success(
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, minWidth:240 }}>
+          <span style={{ fontWeight:500 }}>Updated {targets.length} service{targets.length !== 1 ? 's' : ''}</span>
+          <button
+            style={{ fontWeight:700, color:'#818cf8', background:'rgba(99,102,241,0.12)',
+              border:'1px solid rgba(99,102,241,0.3)', borderRadius:8, padding:'3px 10px',
+              cursor:'pointer', fontSize:13 }}
+            onClick={async () => {
+              if (undone) return;
+              undone = true;
+              const results = await Promise.allSettled(
+                snapshots.map(snap => updateService(snap.id, {
+                  basePrice: snap.basePrice, duration: snap.duration,
+                  isActive: snap.isActive, applicableFor: snap.applicableFor,
+                }))
+              );
+              const failed = results.filter(r => r.status === 'rejected').length;
+              await fetchServices();
+              if (failed) toast.error(`${failed} service${failed > 1 ? 's' : ''} failed to undo`);
+              else toast.success('Changes undone');
+            }}
+          >↩ Undo</button>
+        </div>,
+        { duration: 5000 }
+      );
+    } catch {
+      setOptimisticMap(null);
+      setHighlightedIds(new Set());
+      toast.error('Failed to update services');
+    } finally { setBulkSaving(false); }
   };
 
   const handleCatSelect = useCallback((label) => {
@@ -1103,9 +1200,187 @@ const Services = () => {
                   focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-500 transition-colors"
               />
             </div>
-            <FilterSortButtons />
+            <div className="flex items-center gap-2 shrink-0">
+              <FilterButton />
+              {selectedSubLabel && (
+                <button
+                  onClick={() => setShowBulkSet(v => !v)}
+                  style={{
+                    border: showBulkSet ? '1px solid #6366f1' : '1px solid rgba(99,102,241,0.35)',
+                    background: showBulkSet ? 'linear-gradient(135deg,#6366f1,#818cf8)' : 'rgba(99,102,241,0.08)',
+                    color: showBulkSet ? '#fff' : '#818cf8',
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-semibold shrink-0 transition-all duration-200"
+                >
+                  <Zap style={{ width:14, height:14 }} />
+                  <span className="hidden sm:inline">Apply to all</span>
+                </button>
+              )}
+            </div>
           </div>
         )}
+
+        {/* ── Bulk Control Panel ── */}
+        {showBulkSet && selectedSubLabel && (() => {
+          const n = (displayedServices || []).filter(s => s._id || s.id).length;
+          const patch = buildBulkPatch();
+          const previewParts = [
+            patch.basePrice    !== undefined ? `₹${patch.basePrice}`                        : null,
+            patch.duration     !== undefined ? `${patch.duration} min`                      : null,
+            patch.isActive     !== undefined ? (patch.isActive ? 'Active' : 'Inactive')     : null,
+            patch.applicableFor !== undefined
+              ? (patch.applicableFor.length === 2 ? 'Men & Women'
+                : patch.applicableFor[0] === 'male' ? 'Men only' : 'Women only')
+              : null,
+          ].filter(Boolean);
+
+          const fieldRow = (key, label, control) => {
+            const checked = bulkEnabled.has(key);
+            return (
+              <div key={key} style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'8px 0',
+                borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
+                {/* Checkbox */}
+                <div
+                  onClick={() => toggleBulkField(key)}
+                  style={{ marginTop:2, width:16, height:16, borderRadius:4, flexShrink:0, cursor:'pointer',
+                    border: checked ? 'none' : '1.5px solid rgba(99,102,241,0.4)',
+                    background: checked ? '#6366f1' : 'transparent',
+                    display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.15s',
+                  }}
+                >
+                  {checked && <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                    <path d="M1 4L3.5 6.5L9 1" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>}
+                </div>
+                {/* Label */}
+                <span style={{ fontSize:13, fontWeight:500, color: checked ? '#c7d2fe' : 'rgba(156,163,175,0.5)',
+                  minWidth:80, paddingTop:1, transition:'color 0.15s', cursor:'pointer', userSelect:'none' }}
+                  onClick={() => toggleBulkField(key)}
+                >{label}</span>
+                {/* Control */}
+                <div style={{ flex:1, opacity: checked ? 1 : 0.3, transition:'opacity 0.15s', pointerEvents: checked ? 'auto' : 'none' }}>
+                  {control}
+                </div>
+              </div>
+            );
+          };
+
+          return (
+            <div style={{
+              background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.18)',
+              borderRadius: 14, padding: '14px 16px',
+              animation: 'slideDown 0.18s cubic-bezier(0.4,0,0.2,1) both',
+              opacity: bulkSaving ? 0.65 : 1, pointerEvents: bulkSaving ? 'none' : 'auto',
+              transition: 'opacity 0.2s',
+            }}>
+              <style>{`
+                @keyframes slideDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+                .bk-num::-webkit-inner-spin-button,.bk-num::-webkit-outer-spin-button{-webkit-appearance:none}
+                .bk-num{-moz-appearance:textfield}
+                .bk-pill{display:inline-flex;align-items:center;padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;border:1.5px solid transparent;user-select:none}
+              `}</style>
+
+              {/* Header */}
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <Zap style={{ width:13, height:13, color:'#818cf8' }} />
+                  <span style={{ fontWeight:700, fontSize:13, color:'#c7d2fe' }}>{selectedSubLabel}</span>
+                  <span style={{ fontSize:11, color:'rgba(156,163,175,0.6)' }}>· {n} service{n !== 1 ? 's' : ''}</span>
+                </div>
+                <button onClick={() => setShowBulkSet(false)} style={{ background:'none', border:'none', cursor:'pointer', color:'rgba(156,163,175,0.5)', padding:2, lineHeight:1 }}>
+                  <X style={{ width:14, height:14 }} />
+                </button>
+              </div>
+
+              {/* Field rows */}
+              <div style={{ marginBottom:10 }}>
+                {fieldRow('price', 'Price', (
+                  <div style={{ display:'flex', alignItems:'center', gap:6,
+                    background:'rgba(15,15,30,0.5)',
+                    border: (!priceValid && bulkPrice !== '') ? '1px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.08)',
+                    borderRadius:8, padding:'6px 10px' }}>
+                    <span style={{ color:'#818cf8', fontSize:13, fontWeight:700, flexShrink:0 }}>₹</span>
+                    <input className="bk-num" autoFocus type="number" min="0" placeholder="e.g. 500"
+                      value={bulkPrice} onChange={e => setBulkPrice(e.target.value)}
+                      onFocus={e => e.target.select()}
+                      onKeyDown={e => { if (e.key === 'Enter' && canApply) handleBulkSet(); }}
+                      style={{ background:'none', border:'none', outline:'none', color:'#e0e0ff', fontSize:13, width:'100%' }} />
+                    {!priceValid && bulkPrice !== '' && <span style={{ fontSize:10, color:'#f87171', flexShrink:0 }}>≥ 0</span>}
+                  </div>
+                ))}
+                {fieldRow('duration', 'Duration', (
+                  <div style={{ display:'flex', alignItems:'center', gap:6,
+                    background:'rgba(15,15,30,0.5)',
+                    border: (!durationValid && bulkDuration !== '') ? '1px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.08)',
+                    borderRadius:8, padding:'6px 10px' }}>
+                    <Clock style={{ width:12, height:12, color:'#818cf8', flexShrink:0 }} />
+                    <input className="bk-num" type="number" min="1" placeholder="e.g. 45"
+                      value={bulkDuration} onChange={e => setBulkDuration(e.target.value)}
+                      onFocus={e => e.target.select()}
+                      onKeyDown={e => { if (e.key === 'Enter' && canApply) handleBulkSet(); }}
+                      style={{ background:'none', border:'none', outline:'none', color:'#e0e0ff', fontSize:13, width:'100%' }} />
+                    <span style={{ color:'rgba(156,163,175,0.4)', fontSize:11, flexShrink:0 }}>min</span>
+                    {!durationValid && bulkDuration !== '' && <span style={{ fontSize:10, color:'#f87171', flexShrink:0 }}>≥ 1</span>}
+                  </div>
+                ))}
+                {fieldRow('status', 'Status', (
+                  <div style={{ display:'flex', gap:6 }}>
+                    {[{ v:true, label:'Active' }, { v:false, label:'Inactive' }].map(({ v, label }) => (
+                      <span key={String(v)} className="bk-pill"
+                        onClick={() => setBulkActive(v)}
+                        style={{
+                          background: bulkActive === v ? 'linear-gradient(135deg,#6366f1,#818cf8)' : 'rgba(99,102,241,0.08)',
+                          border: bulkActive === v ? '1.5px solid #6366f1' : '1.5px solid rgba(99,102,241,0.25)',
+                          color: bulkActive === v ? '#fff' : 'rgba(156,163,175,0.7)',
+                        }}>{label}</span>
+                    ))}
+                  </div>
+                ))}
+                {fieldRow('gender', 'For', (
+                  <div style={{ display:'flex', gap:6 }}>
+                    {[{ v:'male', label:'Men' }, { v:'female', label:'Women' }, { v:'both', label:'Both' }].map(({ v, label }) => (
+                      <span key={v} className="bk-pill"
+                        onClick={() => setBulkGender(v)}
+                        style={{
+                          background: bulkGender === v ? 'linear-gradient(135deg,#6366f1,#818cf8)' : 'rgba(99,102,241,0.08)',
+                          border: bulkGender === v ? '1.5px solid #6366f1' : '1.5px solid rgba(99,102,241,0.25)',
+                          color: bulkGender === v ? '#fff' : 'rgba(156,163,175,0.7)',
+                        }}>{label}</span>
+                    ))}
+                  </div>
+                ))}
+              </div>
+
+              {/* Preview */}
+              {previewParts.length > 0 && (
+                <p style={{ fontSize:11, color:'rgba(156,163,175,0.6)', marginBottom:8, lineHeight:1.5 }}>
+                  Preview: <span style={{ color:'#a5b4fc', fontWeight:600 }}>{previewParts.join(' · ')}</span>
+                  {' '}will be set on all {n} service{n !== 1 ? 's' : ''}
+                </p>
+              )}
+
+              {/* Warning */}
+              <p style={{ fontSize:11, color:'rgba(251,191,36,0.7)', marginBottom:10 }}>
+                ⚠ This will update {n} service{n !== 1 ? 's' : ''}
+              </p>
+
+              {/* Apply */}
+              <button onClick={handleBulkSet} disabled={!canApply} style={{
+                width:'100%', padding:'9px 16px', borderRadius:10, border:'none',
+                cursor: canApply ? 'pointer' : 'not-allowed',
+                background: canApply ? 'linear-gradient(135deg,#6366f1,#818cf8)' : 'rgba(99,102,241,0.15)',
+                color: canApply ? '#fff' : 'rgba(255,255,255,0.25)',
+                fontWeight:700, fontSize:13, display:'flex', alignItems:'center', justifyContent:'center', gap:7,
+                boxShadow: canApply ? '0 4px 14px rgba(99,102,241,0.35)' : 'none',
+                transition:'all 0.2s',
+              }}>
+                {bulkSaving
+                  ? <><Loader2 style={{ width:13, height:13 }} className="animate-spin" /> Applying…</>
+                  : <>Apply to all {n} service{n !== 1 ? 's' : ''} →</>}
+              </button>
+            </div>
+          );
+        })()}
 
         {/* ── Service Grid ── */}
         <div ref={gridScrollRef}>
@@ -1154,16 +1429,24 @@ const Services = () => {
                   const menSvcs      = showSplit ? realSvcs.filter(s => svcGenders(s, cat).includes('male'))   : [];
                   const womenSvcs    = showSplit ? realSvcs.filter(s => svcGenders(s, cat).includes('female')) : [];
 
+                  const renderSvc = (svc) => {
+                    const id = svc._id || svc.id;
+                    const displaySvc = optimisticMap?.has(id) ? { ...svc, ...optimisticMap.get(id) } : svc;
+                    return (
+                      <div key={id} style={{
+                        borderRadius: 16,
+                        boxShadow: highlightedIds.has(id) ? '0 0 0 2px #6366f1, 0 0 18px rgba(99,102,241,0.45)' : 'none',
+                        transition: 'box-shadow 0.25s ease',
+                      }}>
+                        <ServiceCard service={displaySvc} onEdit={handleOpenModal} onDelete={handleDelete} onToggle={handleToggle} loading={loading} />
+                      </div>
+                    );
+                  };
+
                   const allCards = [
-                    ...(!showSplit ? realSvcs.map(svc => (
-                      <ServiceCard key={svc._id || svc.id} service={svc} onEdit={handleOpenModal} onDelete={handleDelete} onToggle={handleToggle} loading={loading} />
-                    )) : [
-                      ...(menSvcs.length > 0 ? menSvcs.map(svc => (
-                        <ServiceCard key={svc._id || svc.id} service={svc} onEdit={handleOpenModal} onDelete={handleDelete} onToggle={handleToggle} loading={loading} />
-                      )) : []),
-                      ...(womenSvcs.length > 0 ? womenSvcs.map(svc => (
-                        <ServiceCard key={svc._id || svc.id} service={svc} onEdit={handleOpenModal} onDelete={handleDelete} onToggle={handleToggle} loading={loading} />
-                      )) : []),
+                    ...(!showSplit ? realSvcs.map(svc => renderSvc(svc)) : [
+                      ...(menSvcs.length > 0 ? menSvcs.map(svc => renderSvc(svc)) : []),
+                      ...(womenSvcs.length > 0 ? womenSvcs.map(svc => renderSvc(svc)) : []),
                     ]),
                     ...notAdded.map(cs => (
                       <CatalogCard
