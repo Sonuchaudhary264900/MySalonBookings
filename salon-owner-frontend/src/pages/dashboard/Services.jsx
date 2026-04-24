@@ -5,6 +5,7 @@ import {
   Layers, CheckCircle2, XCircle, Sparkles, Baby, Home, User, UserRound,
   TrendingUp, X, Pencil, Loader2, SlidersHorizontal,
   LayoutGrid, Camera, ChevronRight, Clock, AlertTriangle, Undo2,
+  IndianRupee, Users, Power,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -1208,6 +1209,7 @@ const Services = () => {
                     border: showBulkSet ? '1px solid #6366f1' : '1px solid rgba(99,102,241,0.35)',
                     background: showBulkSet ? 'linear-gradient(135deg,#6366f1,#818cf8)' : 'rgba(99,102,241,0.08)',
                     color: showBulkSet ? '#fff' : '#818cf8',
+                    boxShadow: showBulkSet ? '0 4px 14px rgba(99,102,241,0.3)' : 'none',
                   }}
                   className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-semibold shrink-0 transition-all duration-200"
                 >
@@ -1224,40 +1226,49 @@ const Services = () => {
           const n = bulkTargetCount;
           const patch = buildBulkPatch();
           const previewParts = [
-            patch.basePrice    !== undefined ? `₹${patch.basePrice}`                        : null,
-            patch.duration     !== undefined ? `${patch.duration} min`                      : null,
-            patch.isActive     !== undefined ? (patch.isActive ? 'Active' : 'Inactive')     : null,
+            patch.basePrice     !== undefined ? `₹${patch.basePrice}`                                                                  : null,
+            patch.duration      !== undefined ? `${patch.duration} min`                                                                : null,
+            patch.isActive      !== undefined ? (patch.isActive ? 'Active' : 'Inactive')                                               : null,
             patch.applicableFor !== undefined
-              ? (patch.applicableFor.length === 2 ? 'Men & Women'
-                : patch.applicableFor[0] === 'male' ? 'Men only' : 'Women only')
+              ? (patch.applicableFor.length === 2 ? 'Men & Women' : patch.applicableFor[0] === 'male' ? 'Men only' : 'Women only')
               : null,
           ].filter(Boolean);
+
+          const FIELD_ICONS = {
+            price:    <IndianRupee style={{ width:14, height:14, flexShrink:0 }} />,
+            duration: <Clock       style={{ width:14, height:14, flexShrink:0 }} />,
+            status:   <Power       style={{ width:14, height:14, flexShrink:0 }} />,
+            gender:   <Users       style={{ width:14, height:14, flexShrink:0 }} />,
+          };
 
           const fieldRow = (key, label, control) => {
             const checked = bulkEnabled.has(key);
             return (
-              <div key={key} style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'8px 0',
-                borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
-                {/* Checkbox */}
+              <div
+                key={key}
+                className={`bk-row${checked ? ' bk-row--checked' : ''}`}
+                style={{
+                  display:'flex', alignItems:'center', gap:12,
+                  padding:'10px 12px', borderRadius:10, marginBottom:5, cursor:'pointer',
+                  background: checked ? 'rgba(99,102,241,0.1)' : 'rgba(255,255,255,0.02)',
+                  border: checked ? '1px solid rgba(99,102,241,0.25)' : '1px solid rgba(255,255,255,0.04)',
+                  borderLeft: checked ? '2px solid rgba(99,102,241,0.65)' : '1px solid rgba(255,255,255,0.04)',
+                  transition:'background 0.15s, border-color 0.15s',
+                }}
+              >
+                {/* Left: icon + label — click toggles the row */}
                 <div
                   onClick={() => toggleBulkField(key)}
-                  style={{ marginTop:2, width:16, height:16, borderRadius:4, flexShrink:0, cursor:'pointer',
-                    border: checked ? 'none' : '1.5px solid rgba(99,102,241,0.4)',
-                    background: checked ? '#6366f1' : 'transparent',
-                    display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.15s',
-                  }}
+                  style={{ display:'flex', alignItems:'center', gap:7, minWidth:90, userSelect:'none',
+                    color: checked ? '#818cf8' : 'rgba(99,102,241,0.3)' }}
                 >
-                  {checked && <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                    <path d="M1 4L3.5 6.5L9 1" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>}
+                  {FIELD_ICONS[key]}
+                  <span style={{ fontSize:13, fontWeight:600, transition:'color 0.15s',
+                    color: checked ? '#c7d2fe' : 'rgba(99,102,241,0.4)' }}>{label}</span>
                 </div>
-                {/* Label */}
-                <span style={{ fontSize:13, fontWeight:500, color: checked ? '#c7d2fe' : 'rgba(156,163,175,0.5)',
-                  minWidth:80, paddingTop:1, transition:'color 0.15s', cursor:'pointer', userSelect:'none' }}
-                  onClick={() => toggleBulkField(key)}
-                >{label}</span>
-                {/* Control */}
-                <div style={{ flex:1, opacity: checked ? 1 : 0.3, transition:'opacity 0.15s', pointerEvents: checked ? 'auto' : 'none' }}>
+                {/* Right: control */}
+                <div style={{ flex:1, opacity: checked ? 1 : 0.2, transition:'opacity 0.18s',
+                  pointerEvents: checked ? 'auto' : 'none' }}>
                   {control}
                 </div>
               </div>
@@ -1266,39 +1277,48 @@ const Services = () => {
 
           return (
             <div style={{
-              background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.18)',
-              borderRadius: 14, padding: '14px 16px',
-              animation: 'slideDown 0.18s cubic-bezier(0.4,0,0.2,1) both',
+              background:'rgba(14,12,38,0.96)', border:'1px solid rgba(99,102,241,0.2)',
+              borderRadius:16, padding:'14px 16px',
+              boxShadow:'0 12px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.03)',
+              animation:'slideDown 0.18s cubic-bezier(0.4,0,0.2,1) both',
               opacity: bulkSaving ? 0.65 : 1, pointerEvents: bulkSaving ? 'none' : 'auto',
-              transition: 'opacity 0.2s',
+              transition:'opacity 0.2s',
             }}>
               <style>{`
                 @keyframes slideDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
                 .bk-num::-webkit-inner-spin-button,.bk-num::-webkit-outer-spin-button{-webkit-appearance:none}
                 .bk-num{-moz-appearance:textfield}
-                .bk-pill{display:inline-flex;align-items:center;padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;border:1.5px solid transparent;user-select:none}
+                .bk-pill{display:inline-flex;align-items:center;padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid transparent;user-select:none}
+                .bk-pill:hover{filter:brightness(1.08);transform:translateY(-1px)}
+                .bk-pill:active{transform:scale(0.96)}
+                .bk-row:hover{background:rgba(99,102,241,0.04) !important}
+                .bk-row.bk-row--checked:hover{background:rgba(99,102,241,0.14) !important}
+                .bk-input{display:flex;align-items:center;gap:6px;background:rgba(8,7,25,0.6);border:1px solid rgba(99,102,241,0.2);border-radius:9px;padding:7px 11px;transition:border-color 0.15s,box-shadow 0.15s}
+                .bk-input:focus-within{border-color:rgba(99,102,241,0.55) !important;box-shadow:0 0 0 3px rgba(99,102,241,0.12)}
+                .bk-apply{transition:transform 0.15s,box-shadow 0.15s}
+                .bk-apply:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px rgba(99,102,241,0.5) !important}
+                .bk-apply:active:not(:disabled){transform:scale(0.98)}
               `}</style>
 
               {/* Header */}
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
-                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:7 }}>
                   <Pencil style={{ width:13, height:13, color:'#818cf8' }} />
-                  <span style={{ fontWeight:700, fontSize:13, color:'#c7d2fe' }}>{selectedSubLabel}</span>
-                  <span style={{ fontSize:11, color:'rgba(156,163,175,0.6)' }}>· {n} service{n !== 1 ? 's' : ''}</span>
+                  <span style={{ fontWeight:700, fontSize:14, color:'#e0e7ff' }}>{selectedSubLabel}</span>
+                  <span style={{ fontSize:11, fontWeight:500, color:'rgba(156,163,175,0.6)',
+                    background:'rgba(99,102,241,0.1)', border:'1px solid rgba(99,102,241,0.15)',
+                    borderRadius:999, padding:'2px 7px' }}>{n} service{n !== 1 ? 's' : ''}</span>
                 </div>
-                <button onClick={() => setShowBulkSet(false)} style={{ background:'none', border:'none', cursor:'pointer', color:'rgba(156,163,175,0.5)', padding:2, lineHeight:1 }}>
+                <button onClick={() => setShowBulkSet(false)} style={{ background:'none', border:'none', cursor:'pointer', color:'rgba(156,163,175,0.4)', padding:2, lineHeight:1 }}>
                   <X style={{ width:14, height:14 }} />
                 </button>
               </div>
 
               {/* Field rows */}
-              <div style={{ marginBottom:10 }}>
+              <div style={{ marginBottom:8 }}>
                 {fieldRow('price', 'Price', (
-                  <div style={{ display:'flex', alignItems:'center', gap:6,
-                    background:'rgba(15,15,30,0.5)',
-                    border: (!priceValid && bulkPrice !== '') ? '1px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.08)',
-                    borderRadius:8, padding:'6px 10px' }}>
-                    <span style={{ color:'#818cf8', fontSize:13, fontWeight:700, flexShrink:0 }}>₹</span>
+                  <div className="bk-input" style={(!priceValid && bulkPrice !== '') ? { borderColor:'rgba(239,68,68,0.5)' } : {}}>
+                    <IndianRupee style={{ width:13, height:13, color:'#818cf8', flexShrink:0 }} />
                     <input className="bk-num" type="number" min="0" placeholder="e.g. 500"
                       value={bulkPrice} onChange={e => setBulkPrice(e.target.value)}
                       onFocus={e => e.target.select()}
@@ -1308,10 +1328,7 @@ const Services = () => {
                   </div>
                 ))}
                 {fieldRow('duration', 'Duration', (
-                  <div style={{ display:'flex', alignItems:'center', gap:6,
-                    background:'rgba(15,15,30,0.5)',
-                    border: (!durationValid && bulkDuration !== '') ? '1px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.08)',
-                    borderRadius:8, padding:'6px 10px' }}>
+                  <div className="bk-input" style={(!durationValid && bulkDuration !== '') ? { borderColor:'rgba(239,68,68,0.5)' } : {}}>
                     <Clock style={{ width:12, height:12, color:'#818cf8', flexShrink:0 }} />
                     <input className="bk-num" type="number" min="1" placeholder="e.g. 45"
                       value={bulkDuration} onChange={e => setBulkDuration(e.target.value)}
@@ -1331,6 +1348,7 @@ const Services = () => {
                           background: bulkActive === v ? 'linear-gradient(135deg,#6366f1,#818cf8)' : 'rgba(99,102,241,0.08)',
                           border: bulkActive === v ? '1.5px solid #6366f1' : '1.5px solid rgba(99,102,241,0.25)',
                           color: bulkActive === v ? '#fff' : 'rgba(156,163,175,0.7)',
+                          boxShadow: bulkActive === v ? '0 2px 8px rgba(99,102,241,0.35)' : 'none',
                         }}>{label}</span>
                     ))}
                   </div>
@@ -1344,35 +1362,48 @@ const Services = () => {
                           background: bulkGender === v ? 'linear-gradient(135deg,#6366f1,#818cf8)' : 'rgba(99,102,241,0.08)',
                           border: bulkGender === v ? '1.5px solid #6366f1' : '1.5px solid rgba(99,102,241,0.25)',
                           color: bulkGender === v ? '#fff' : 'rgba(156,163,175,0.7)',
+                          boxShadow: bulkGender === v ? '0 2px 8px rgba(99,102,241,0.35)' : 'none',
                         }}>{label}</span>
                     ))}
                   </div>
                 ))}
               </div>
 
-              {/* Preview */}
+              {/* Preview — indigo card, informational */}
               {previewParts.length > 0 && (
-                <p style={{ fontSize:11, color:'rgba(156,163,175,0.6)', marginBottom:8, lineHeight:1.5 }}>
-                  Preview: <span style={{ color:'#a5b4fc', fontWeight:600 }}>{previewParts.join(' · ')}</span>
-                  {' '}will be set on all {n} service{n !== 1 ? 's' : ''}
-                </p>
+                <div style={{ display:'flex', flexWrap:'wrap', alignItems:'center', gap:6,
+                  padding:'9px 12px', background:'rgba(99,102,241,0.07)',
+                  border:'1px solid rgba(99,102,241,0.14)', borderRadius:10, marginBottom:8 }}>
+                  <span style={{ fontSize:11, color:'rgba(156,163,175,0.45)', marginRight:2 }}>Changes:</span>
+                  {previewParts.map((p,i) => (
+                    <span key={i} style={{
+                      fontSize:12, fontWeight:600, color:'#a5b4fc',
+                      background:'rgba(99,102,241,0.14)', border:'1px solid rgba(99,102,241,0.22)',
+                      borderRadius:999, padding:'2px 9px',
+                    }}>{p}</span>
+                  ))}
+                </div>
               )}
 
-              {/* Warning */}
-              <div style={{ display:'flex', alignItems:'center', gap:5, fontSize:11, color:'rgba(251,191,36,0.7)', marginBottom:10 }}>
-                <AlertTriangle style={{ width:12, height:12, flexShrink:0 }} />
-                <span>This will update {n} service{n !== 1 ? 's' : ''}</span>
+              {/* Warning — amber card, stronger than preview */}
+              <div style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 12px',
+                background:'rgba(251,191,36,0.08)', border:'1px solid rgba(251,191,36,0.22)',
+                borderRadius:10, marginBottom:12 }}>
+                <AlertTriangle style={{ width:13, height:13, color:'rgba(251,191,36,0.85)', flexShrink:0 }} />
+                <span style={{ fontSize:12, fontWeight:500, color:'rgba(251,191,36,0.8)' }}>
+                  This will update {n} service{n !== 1 ? 's' : ''}
+                </span>
               </div>
 
               {/* Apply */}
-              <button onClick={handleBulkSet} disabled={!canApply} style={{
-                width:'100%', padding:'9px 16px', borderRadius:10, border:'none',
+              <button onClick={handleBulkSet} disabled={!canApply} className="bk-apply" style={{
+                width:'100%', padding:'11px 16px', borderRadius:11, border:'none',
                 cursor: canApply ? 'pointer' : 'not-allowed',
                 background: canApply ? 'linear-gradient(135deg,#6366f1,#818cf8)' : 'rgba(99,102,241,0.15)',
                 color: canApply ? '#fff' : 'rgba(255,255,255,0.25)',
-                fontWeight:700, fontSize:13, display:'flex', alignItems:'center', justifyContent:'center', gap:7,
-                boxShadow: canApply ? '0 4px 14px rgba(99,102,241,0.35)' : 'none',
-                transition:'all 0.2s',
+                fontWeight:700, fontSize:13, letterSpacing:'0.01em',
+                display:'flex', alignItems:'center', justifyContent:'center', gap:7,
+                boxShadow: canApply ? '0 4px 16px rgba(99,102,241,0.38)' : 'none',
               }}>
                 {bulkSaving
                   ? <><Loader2 style={{ width:13, height:13 }} className="animate-spin" /> Applying…</>
