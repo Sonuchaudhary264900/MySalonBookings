@@ -40,6 +40,7 @@ const CAT_ICON_COMPONENTS = {
 import API from "../services/api";
 import ServiceCard from "../components/ServiceCard";
 import ReviewCard from "../components/ReviewCard";
+import { CategoryCircleNav, SubCircleNav } from "../components/CategoryCircles";
 import { isCustomer, clearCustomerAuth } from "../utils/auth";
 import { formatDate, salonPath } from "../utils/formatters";
 import { useNotifications } from "../context/NotificationContext";
@@ -199,6 +200,8 @@ function SalonDetails({ salonId: propId, onClose }) {
   const [catClickCounts,      setCatClickCounts]      = useState(() => JSON.parse(localStorage.getItem('svc_cat_clicks') || '{}'));
   const [membershipDismissed, setMembershipDismissed] = useState(() => !!localStorage.getItem('svc_membership_dismissed'));
   const [showFavsOnly,        setShowFavsOnly]        = useState(false);
+  const [selCat, setSelCat] = useState(null);
+  const [selSub, setSelSub] = useState(null);
   const [activeTab, setActiveTab] = useState('services');
   const [followed, setFollowed] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
@@ -1023,6 +1026,36 @@ function SalonDetails({ salonId: propId, onClose }) {
                     </div>
                   )}
 
+                  {/* Category circles */}
+                  {services.length > 0 && !loading && (() => {
+                    const allCats = [...new Set(services.map(s => s.category || 'Other').filter(Boolean))];
+                    const selCatSubs = selCat
+                      ? [...new Set(services.filter(s => (s.category || 'Other') === selCat).map(s => s.name).filter(Boolean))]
+                      : [];
+                    return (
+                      <div style={{ paddingLeft: 8, paddingRight: 8, paddingBottom: 4 }}>
+                        <CategoryCircleNav
+                          categories={allCats}
+                          selected={selCat}
+                          onSelect={cat => { setSelCat(cat); setSelSub(null); }}
+                          salon={salon}
+                          accentColor={theme.p}
+                        />
+                        {selCat && selCatSubs.length > 1 && (
+                          <SubCircleNav
+                            catLabel={selCat}
+                            subs={selCatSubs}
+                            selected={selSub}
+                            onSelect={setSelSub}
+                            salon={salon}
+                            services={services}
+                            accentColor={theme.p}
+                          />
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   {/* Services accordion */}
                   {services.length === 0 && !loading
                     ? <p style={{ color: dm.fg30, padding: '24px 16px' }}>No services listed yet.</p>
@@ -1059,6 +1092,12 @@ function SalonDetails({ salonId: propId, onClose }) {
                                 <p>Heart services you love ♥</p>
                               </div>
                             );
+                          }
+                        }
+                        if (selCat) {
+                          visibleServices = visibleServices.filter(s => (s.category || 'Other') === selCat);
+                          if (selSub) {
+                            visibleServices = visibleServices.filter(s => s.name === selSub);
                           }
                         }
                         const grouped = visibleServices.reduce((acc, svc) => {
