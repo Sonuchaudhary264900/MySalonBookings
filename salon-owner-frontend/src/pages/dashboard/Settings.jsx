@@ -5,7 +5,7 @@ import {
   Save, Edit2, X, ChevronDown, Plus,
   CheckCircle2, BellOff, Camera, Trash2, ImagePlus, GitBranch,
   Eye, EyeOff, Info, Clock, Video,
-  Mail, Phone, QrCode, ShieldCheck, KeyRound,
+  Mail, Phone, QrCode, ShieldCheck, KeyRound, Ban, RefreshCw,
 } from 'lucide-react';
 import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 import { auth } from '../../config/firebase';
@@ -1614,17 +1614,19 @@ const PrivacyContent = () => {
   };
 
   const SHIELDS = [
-    { icon: '🔒', title: 'Data Encryption',  desc: 'All your data is encrypted end-to-end and stored securely.' },
-    { icon: '🚫', title: 'No Data Sharing',  desc: 'We never share your information with third parties.' },
-    { icon: '🛡️', title: 'Security Updates', desc: 'Regular patches and security updates are applied automatically.' },
-    { icon: '🔑', title: 'Token Security',   desc: 'Auth tokens expire automatically and refresh securely.' },
+    { Icon: Lock,       title: 'Data Encryption',  desc: 'All your data is encrypted end-to-end and stored securely.',   color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/40' },
+    { Icon: Ban,        title: 'No Data Sharing',  desc: 'We never share your information with third parties.',           color: 'text-red-500 dark:text-red-400',    bg: 'bg-red-50 dark:bg-red-950/30'     },
+    { Icon: ShieldCheck,title: 'Security Updates', desc: 'Regular patches and security updates are applied automatically.',color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/30' },
+    { Icon: KeyRound,   title: 'Token Security',   desc: 'Auth tokens expire automatically and refresh securely.',        color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-950/30' },
   ];
 
   return (
     <div className="space-y-3 mt-3">
-      {SHIELDS.map(({ icon, title, desc }) => (
+      {SHIELDS.map(({ Icon, title, desc, color, bg }) => (
         <div key={title} className="flex items-start gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700/50">
-          <span className="text-2xl shrink-0">{icon}</span>
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${bg}`}>
+            <Icon className={`w-4 h-4 ${color}`} />
+          </div>
           <div>
             <p className="text-sm font-semibold text-gray-900 dark:text-white">{title}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{desc}</p>

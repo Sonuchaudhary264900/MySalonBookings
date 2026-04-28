@@ -269,8 +269,8 @@ export default function Coupons() {
     try {
       const res = await api.post('/owner/coupons/broadcast', { couponId: coupon._id });
       const { sent, total } = res.data.data || {};
-      if (sent > 0) toast.success(`📣 Sent to ${sent} of ${total} customers!`);
-      else toast(`No customers with push notifications enabled yet.`, { icon: 'ℹ️' });
+      if (sent > 0) toast.success(`Sent to ${sent} of ${total} customers!`);
+      else toast(`No customers with push notifications enabled yet.`);
     } catch {
       toast.error('Failed to send notification');
     } finally {

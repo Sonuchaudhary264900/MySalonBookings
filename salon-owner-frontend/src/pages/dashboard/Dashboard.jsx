@@ -703,7 +703,6 @@ const Dashboard = () => {
       refresh();
       if (data?.customerPhone && vipSet.has(data.customerPhone)) {
         toast.success(`VIP customer just booked — ${data.customerName || 'VIP'}`, {
-          icon: '👑',
           duration: 5000,
           style: { background: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d' },
         });

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   TrendingUp, Users, RefreshCw, ChevronLeft, ChevronRight,
   Download, FileText, IndianRupee, Calendar, BarChart3,
-  Target, Award, Clock, AlertTriangle,
+  Target, Award, Clock, AlertTriangle, Scissors,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -82,7 +82,7 @@ const TopServicesBar = ({ services, isDark }) => {
   if (!services.length) {
     return (
       <div className="flex flex-col items-center justify-center h-44 gap-3 text-sm text-gray-400 dark:text-gray-500">
-        <span className="text-4xl">✂️</span>
+        <Scissors size={28} className="text-gray-300 dark:text-gray-700" />
         No service data yet
       </div>
     );
@@ -382,7 +382,7 @@ const Reports = () => {
   .footer{margin-top:28px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center}
   @media print{body{padding:0}@page{margin:10mm}}
 </style></head><body>
-<h1>✂ ${salonName}</h1>
+<h1>${salonName}</h1>
 <p class="sub">Analytics Report &nbsp;·&nbsp; ${formatDate(startDate)} – ${formatDate(endDate)} &nbsp;·&nbsp; Generated ${new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})}</p>
 <div class="stats">
   <div class="stat blue"><div class="stat-label">Total Revenue</div><div class="stat-value">₹${totalRevenue.toLocaleString()}</div></div>
