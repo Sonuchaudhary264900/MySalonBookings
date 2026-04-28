@@ -1,5 +1,4 @@
 // controllers/owner/staffController.js
-// Owner manages their team members (Phase 1 — no staff login yet)
 
 const Barber   = require('../../models/Barber');
 const Booking  = require('../../models/Booking');
@@ -36,7 +35,7 @@ exports.getTeam = async (req, res) => {
     if (!business) return res.status(404).json(formatErrorResponse('Business not found', 404));
 
     const staff = await Barber.find({ salonId: business._id })
-      .select('-refreshTokens -firebaseUid -inviteToken -inviteSentAt') // never expose auth internals
+      .select('-refreshTokens -firebaseUid') // never expose auth internals
       .populate('servicesOffered', 'name category')
       .sort({ isOwner: -1, createdAt: 1 })
       .lean();
@@ -64,6 +63,7 @@ exports.getTeam = async (req, res) => {
 
     const enriched = staff.map(s => ({
       ...s,
+      hasJoined:     s.status === 'active' || s.status === 'blocked',
       monthBookings: statsMap[String(s._id)]?.bookings || 0,
       monthRevenue:  statsMap[String(s._id)]?.revenue  || 0,
     }));
@@ -131,9 +131,9 @@ exports.addStaff = async (req, res) => {
       shiftStart,
       shiftEnd,
       showEarningsToStaff,
-      isOwner:      false,
-      loginEnabled: false,
-      isActive:     true,
+      isOwner:  false,
+      status:   'invited',
+      isActive: true,
     });
 
     audit('STAFF_ADDED', req.owner._id, { staffId: member._id, staffName: member.name, role: staffRole });
@@ -189,7 +189,7 @@ exports.updateStaff = async (req, res) => {
 
     const allowed = ['name','phone','email','gender','profilePhoto','bio','staffRole',
                      'experience','specializations','servicesOffered','workingDays',
-                     'shiftStart','shiftEnd','showEarningsToStaff','isActive'];
+                     'shiftStart','shiftEnd','showEarningsToStaff','isActive','status'];
     allowed.forEach(k => {
       if (req.body[k] !== undefined) {
         if (k === 'gender' && req.body[k]) {
@@ -242,6 +242,7 @@ exports.removeStaff = async (req, res) => {
     }
 
     member.isActive = false;
+    member.status   = 'blocked';
     await member.save();
 
     audit('STAFF_DEACTIVATED', req.owner._id, { staffId: member._id, staffName: member.name });

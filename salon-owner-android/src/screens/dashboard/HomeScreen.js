@@ -4,6 +4,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, RefreshControl, Modal, Pressable, TextInput, Image, Share,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
@@ -136,6 +137,7 @@ export default function HomeScreen() {
   const [weeklyBookings,  setWeeklyBookings]  = useState([]);
   const [weeklyRevenue,   setWeeklyRevenue]   = useState([]);
   const [analyticsLoading,setAnalyticsLoading]= useState(false);
+  const [showWelcome,      setShowWelcome]     = useState(false);
   const queueRef = useRef([]);
   queueRef.current = queue;
 
@@ -403,6 +405,16 @@ img.onload=function(){
   useEffect(() => { fetchBlockedIds(); fetchServices(); fetchTodayBookings(); fetchWeeklyAnalytics(); }, []);
   useFocusEffect(useCallback(() => { fetchQueue(); fetchTodayBookings(); }, []));
 
+  // Show welcome banner once on first staff login
+  useEffect(() => {
+    AsyncStorage.getItem('staffFirstLogin').then(val => {
+      if (val === '1') {
+        setShowWelcome(true);
+        AsyncStorage.removeItem('staffFirstLogin');
+      }
+    });
+  }, []);
+
   /* ── Derived stats ── */
   const stats = useMemo(() => {
     const todayRevenue = todayBookings
@@ -437,6 +449,27 @@ img.onload=function(){
       contentContainerStyle={{ paddingBottom: 28 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6366f1" />}
     >
+      {/* ══ FIRST-LOGIN WELCOME BANNER (staff) ══════════════════ */}
+      {showWelcome && (
+        <View style={{ marginHorizontal: 16, marginTop: 12, marginBottom: 2, borderRadius: 14, overflow: 'hidden',
+          backgroundColor: isDark ? 'rgba(99,102,241,0.18)' : '#eef2ff',
+          borderWidth: 1, borderColor: isDark ? 'rgba(99,102,241,0.35)' : '#c7d2fe',
+          flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 }}>
+          <Ionicons name="sparkles" size={22} color="#6366f1" />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontWeight: '700', fontSize: 14, color: isDark ? '#c7d2fe' : '#3730a3' }}>
+              Welcome to {user?.salonName || 'the team'}!
+            </Text>
+            <Text style={{ fontSize: 12, color: isDark ? '#a5b4fc' : '#4f46e5', marginTop: 2 }}>
+              Your account is active. Complete your profile anytime from Settings.
+            </Text>
+          </View>
+          <TouchableOpacity onPress={() => setShowWelcome(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="close" size={18} color={isDark ? '#a5b4fc' : '#6366f1'} />
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* ══ HEADER ══════════════════════════════════════════════ */}
       <View style={[styles.header, { paddingTop: insets.top + 14, backgroundColor: theme.card, borderBottomColor: theme.border }]}>
         <DrawerMenuButton color={theme.text} />

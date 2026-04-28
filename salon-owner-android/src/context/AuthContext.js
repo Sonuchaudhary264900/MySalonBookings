@@ -62,11 +62,12 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     const response = await api.post('/staff/auth/firebase-login', { firebaseToken, phone });
     if (!response.data.success) throw new Error(response.data.message || 'Staff login failed');
-    const { token, refreshToken, staff: userData } = response.data.data;
+    const { token, refreshToken, staff: userData, isFirstLogin } = response.data.data;
     await AsyncStorage.setItem('token', token);
     if (refreshToken) await AsyncStorage.setItem('refreshToken', refreshToken);
     await AsyncStorage.setItem('ownerUser', JSON.stringify(userData));
     await AsyncStorage.setItem('userRole', 'staff');
+    if (isFirstLogin) await AsyncStorage.setItem('staffFirstLogin', '1');
     setUser(userData);
     return response.data;
   }, []);

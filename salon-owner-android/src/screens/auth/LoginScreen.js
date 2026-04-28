@@ -115,15 +115,12 @@ export default function LoginScreen({ navigation }) {
           const staffStatus     = staffErr.response?.status;
           const staffBackendMsg = (staffErr.response?.data?.message || staffErr?.message || '').toLowerCase();
           const staffNotFound   = staffStatus === 404 || staffBackendMsg.includes('not found');
-          const loginDisabled   = staffStatus === 403
-            || staffBackendMsg.includes('not enabled')
-            || staffBackendMsg.includes('disabled')
-            || staffBackendMsg.includes('deactivated');
+          const isBlocked       = staffStatus === 403 || staffBackendMsg.includes('deactivated');
 
-          if (loginDisabled) {
+          if (isBlocked) {
             Alert.alert(
-              'Login Not Enabled',
-              'Your salon owner needs to enable app access for your account. Contact them to turn on "App Login" for your profile.',
+              'Account Deactivated',
+              'Your account has been deactivated. Please contact your salon owner.',
               [{ text: 'OK' }]
             );
           } else if (staffNotFound) {

@@ -1485,7 +1485,7 @@ router.post(
   asyncHandler(ownerAuthController.firebaseLogin)
 );
 
-// ── STAFF login (same Firebase OTP, looks in Barber collection) ──
+// ── STAFF login — phone OTP, auto-detects role, auto-activates on first login ──
 router.post("/staff/auth/firebase-login", rateLimiter(10, 900000), asyncHandler(async (req, res) => {
   const Barber = require('../models/Barber');
   const { firebaseToken, phone: clientPhone } = req.body;
@@ -1499,7 +1499,7 @@ router.post("/staff/auth/firebase-login", rateLimiter(10, 900000), asyncHandler(
     return res.status(401).json(formatErrorResponse('Invalid or expired Firebase token', 401));
   }
 
-  const rawPhone = firebaseUser.phone.trim();
+  const rawPhone = (firebaseUser.phone || '').trim();
   const digits   = rawPhone.replace(/\D/g, '');
   const tenDigit = digits.length >= 10 ? digits.slice(-10) : digits;
 
@@ -1507,14 +1507,14 @@ router.post("/staff/auth/firebase-login", rateLimiter(10, 900000), asyncHandler(
   if (clientPhone) {
     const cd = String(clientPhone).replace(/\D/g, '');
     const ct = cd.length >= 10 ? cd.slice(-10) : cd;
-    [clientPhone.trim(), `+91${ct}`, `91${ct}`, ct, `0${ct}`].forEach(v => variants.add(v));
+    [String(clientPhone).trim(), `+91${ct}`, `91${ct}`, ct, `0${ct}`].forEach(v => variants.add(v));
   }
 
-  // Find barber by phone
-  let barber = await Barber.findOne({ phone: { $in: [...variants] } });
+  // Primary lookup by phone variants
+  let barber = await Barber.findOne({ phone: { $in: [...variants] }, isOwner: false });
   if (!barber) {
-    // brute-force last-10-digits match
-    const all = await Barber.find({}).select('phone loginEnabled salonId staffRole name').lean();
+    // Fallback: last-10-digits match scoped to non-owner records
+    const all = await Barber.find({ isOwner: false }).select('phone status isActive salonId staffRole name').lean();
     const matched = all.find(b => {
       if (!b.phone) return false;
       const d = String(b.phone).replace(/\D/g, '');
@@ -1524,16 +1524,25 @@ router.post("/staff/auth/firebase-login", rateLimiter(10, 900000), asyncHandler(
   }
 
   if (!barber) {
-    return res.status(404).json(formatErrorResponse('No staff account found for this number. Ask your salon owner to add you as staff.', 404));
+    return res.status(404).json(formatErrorResponse(
+      'No staff account found for this number. Ask your salon owner to add you as a team member.', 404
+    ));
   }
 
-  if (!barber.loginEnabled) {
-    return res.status(403).json(formatErrorResponse('Login is not enabled for your account. Ask your salon owner to enable app access.', 403));
+  if (barber.status === 'blocked' || !barber.isActive) {
+    return res.status(403).json(formatErrorResponse('Your account has been deactivated. Contact your salon owner.', 403));
   }
 
-  if (!barber.isActive) {
-    return res.status(403).json(formatErrorResponse('Your staff account has been deactivated.', 403));
+  const now = new Date();
+  const isFirstLogin = barber.status === 'invited';
+
+  // Auto-activate on first login — owner adding the phone IS the access grant
+  if (isFirstLogin) {
+    barber.status   = 'active';
+    barber.joinedAt = now;
   }
+  barber.lastLogin   = now;
+  barber.firebaseUid = firebaseUser.uid;
 
   const token = jwt.sign(
     { _id: barber._id, salonId: barber.salonId, role: 'staff', staffRole: barber.staffRole },
@@ -1558,14 +1567,16 @@ router.post("/staff/auth/firebase-login", rateLimiter(10, 900000), asyncHandler(
   res.json(formatSuccessResponse({
     token,
     refreshToken,
+    isFirstLogin,
     staff: {
-      _id: barber._id,
-      name: barber.name,
-      phone: barber.phone,
+      _id:          barber._id,
+      name:         barber.name,
+      phone:        barber.phone,
       profilePhoto: barber.profilePhoto,
-      staffRole: barber.staffRole,
-      salonId: barber.salonId,
-      role: 'staff',
+      staffRole:    barber.staffRole,
+      salonId:      barber.salonId,
+      status:       barber.status,
+      role:         'staff',
     },
   }, 'Staff login successful'));
 }));
@@ -1577,7 +1588,7 @@ router.get("/staff/auth/me", asyncHandler(async (req, res) => {
   try {
     const decoded = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET);
     if (decoded.role !== 'staff') return res.status(403).json(formatErrorResponse('Forbidden', 403));
-    const barber = await Barber.findById(decoded._id).select('-refreshTokens -firebaseUid -inviteToken').lean();
+    const barber = await Barber.findById(decoded._id).select('-refreshTokens -firebaseUid').lean();
     if (!barber) return res.status(404).json(formatErrorResponse('Staff not found', 404));
     res.json(formatSuccessResponse({ ...barber, role: 'staff' }));
   } catch {
@@ -4414,18 +4425,6 @@ router.put(   '/owner/team/:staffId',                authenticateOwner, checkSub
 router.delete('/owner/team/:staffId',                authenticateOwner, checkSubscription, validateObjectId('staffId'), asyncHandler(staffController.removeStaff));
 router.put(   '/owner/team/:staffId/assign-booking', authenticateOwner, checkSubscription, validateObjectId('staffId'), asyncHandler(staffController.assignBooking));
 
-// Toggle staff app login on/off
-router.put('/owner/team/:staffId/toggle-login', authenticateOwner, validateObjectId('staffId'), asyncHandler(async (req, res) => {
-  const Barber = require('../models/Barber');
-  const business = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] }).select('_id');
-  if (!business) return res.status(404).json(formatErrorResponse('Business not found', 404));
-  const member = await Barber.findOne({ _id: req.params.staffId, salonId: business._id });
-  if (!member) return res.status(404).json(formatErrorResponse('Staff member not found', 404));
-  if (member.isOwner) return res.status(400).json(formatErrorResponse('Owner record cannot be toggled', 400));
-  member.loginEnabled = !member.loginEnabled;
-  await member.save();
-  res.json(formatSuccessResponse({ staffId: member._id, loginEnabled: member.loginEnabled }, `Login ${member.loginEnabled ? 'enabled' : 'disabled'} for ${member.name}`));
-}));
 
 /* =====================================================
    OWNER — CATALOG (read-only, returns tree for their business type)
@@ -5015,25 +5014,6 @@ router.post('/owner/team/chat', authenticateOwner, asyncHandler(async (req, res)
   res.status(201).json({ success: true, data: msg });
 }));
 
-router.post(
-  "/owner/team/:id/invite-link",
-  authenticateOwner,
-  validateObjectId("id"),
-  asyncHandler(async (req, res) => {
-    const Barber = require('../models/Barber');
-    const crypto = require('crypto');
-    const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
-    if (!salon) return res.status(404).json({ success: false, message: 'Salon not found' });
-    const staff = await Barber.findOne({ _id: req.params.id, salonId: salon._id });
-    if (!staff) return res.status(404).json({ success: false, message: 'Staff not found' });
-    const token = crypto.randomBytes(20).toString('hex');
-    staff.inviteToken = token;
-    staff.inviteSentAt = new Date();
-    await staff.save();
-    const baseUrl = process.env.OWNER_APP_URL || 'https://owner.glowloox.com';
-    res.json({ success: true, data: { inviteLink: `${baseUrl}/join?token=${token}`, token } });
-  })
-);
 
 /* =====================================================
    WALK-IN WAIT TIME (REST fallback + socket triggers)

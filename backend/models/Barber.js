@@ -25,10 +25,10 @@ const barberSchema = new mongoose.Schema(
     // Staff management fields
     isOwner:            { type: Boolean, default: false },   // auto-created owner virtual record
     staffRole:          { type: String, enum: ['owner', 'manager', 'receptionist', 'stylist'], default: 'stylist' },
-    loginEnabled:       { type: Boolean, default: false },
+    status:             { type: String, enum: ['invited', 'active', 'blocked'], default: 'invited' },
     firebaseUid:        { type: String, sparse: true, unique: true },
-    inviteToken:        String,
-    inviteSentAt:       Date,
+    joinedAt:           { type: Date, default: null },
+    lastLogin:          { type: Date, default: null },
     showEarningsToStaff:{ type: Boolean, default: false },
     ownerId:            { type: mongoose.Schema.Types.ObjectId, ref: 'Owner' }, // the Owner who added this staff
     refreshTokens:      [{ token: String, createdAt: { type: Date, default: Date.now } }],
