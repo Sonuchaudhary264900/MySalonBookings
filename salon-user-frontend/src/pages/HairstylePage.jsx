@@ -136,9 +136,13 @@ export default function HairstylePage() {
   };
 
   const handleBookTop = () => {
-    if (!hairstyles[0] || !stylists[0]) return;
-    trackEvent({ hairstyleId: hairstyles[0]._id, event_type: 'book_cta', faceShape });
-    navigate(`/salon/${stylists[0].salonId}/book?service=${encodeURIComponent(hairstyles[0].suggestedService)}&barberId=${stylists[0].barberId}`);
+    if (!hairstyles[0]) return;
+    trackEvent({ hairstyleId: hairstyles[0]._id, event_type: 'book_cta', faceShape }).catch(() => {});
+    if (stylists[0]?.salonId) {
+      navigate(`/salon/${stylists[0].salonId}/book?service=${encodeURIComponent(hairstyles[0].suggestedService)}&barberId=${stylists[0].barberId}`);
+    } else {
+      navigate(`/explore?service=${encodeURIComponent(hairstyles[0].suggestedService)}`);
+    }
   };
 
   const lowConfidence = confidence != null && confidence < 0.5;

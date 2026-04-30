@@ -14,9 +14,46 @@ require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const mongoose = require('mongoose');
 const HairstyleCatalog = require('../models/HairstyleCatalog');
 
-// Stable, deterministic placeholder images via picsum.photos (seed-based, always same image per seed)
-// Replace with real Cloudinary hairstyle URLs when available.
-const img = (seed) => `https://picsum.photos/seed/${seed}/400/500`;
+// Real Unsplash hairstyle photos — keyed by entry name slug.
+// Replace with Cloudinary URLs when available.
+const IMAGES = {
+  // OVAL
+  'oval-taper-fade':       'https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=400&h=500&fit=crop',
+  'oval-textured-fringe':  'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=400&h=500&fit=crop',
+  'oval-side-part':        'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=400&h=500&fit=crop',
+  'oval-layered-bob':      'https://images.unsplash.com/photo-1580618672591-eb180b1a973f?w=400&h=500&fit=crop',
+  'oval-loose-waves':      'https://images.unsplash.com/photo-1519699047748-de8e457a634e?w=400&h=500&fit=crop',
+  'oval-buzz-cut':         'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=400&h=500&fit=crop',
+  // ROUND
+  'round-high-fade-quiff': 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=400&h=500&fit=crop',
+  'round-pompadour':       'https://images.unsplash.com/photo-1567894340315-735d7c361db0?w=400&h=500&fit=crop',
+  'round-long-layers':     'https://images.unsplash.com/photo-1492106087820-71f1a00d2b11?w=400&h=500&fit=crop',
+  'round-side-swept-bangs':'https://images.unsplash.com/photo-1523263685509-57c1d050d19b?w=400&h=500&fit=crop',
+  'round-faux-hawk':       'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=500&fit=crop',
+  'round-shag-haircut':    'https://images.unsplash.com/photo-1620122830785-a9b117c00c97?w=400&h=500&fit=crop',
+  // SQUARE
+  'square-soft-waves':     'https://images.unsplash.com/photo-1595959183082-7b570b7e08e2?w=400&h=500&fit=crop',
+  'square-undercut-texture':'https://images.unsplash.com/photo-1551195706-4be69284d4d9?w=400&h=500&fit=crop',
+  'square-curly-shag':     'https://images.unsplash.com/photo-1616683693504-3ea7e9ad6fec?w=400&h=500&fit=crop',
+  'square-crew-cut':       'https://images.unsplash.com/photo-1596728325488-58c87691e9af?w=400&h=500&fit=crop',
+  'square-lob':            'https://images.unsplash.com/photo-1582095133179-bfd08e2195ef?w=400&h=500&fit=crop',
+  'square-slicked-back':   'https://images.unsplash.com/photo-1534297635766-a262cdcb8ee4?w=400&h=500&fit=crop',
+  // HEART
+  'heart-chin-bob':        'https://images.unsplash.com/photo-1529736576495-1ed4b2ff1272?w=400&h=500&fit=crop',
+  'heart-blunt-fringe':    'https://images.unsplash.com/photo-1562322140-8baeececf3df?w=400&h=500&fit=crop',
+  'heart-side-part-fade':  'https://images.unsplash.com/photo-1593702288056-f5834cfb6fbd?w=400&h=500&fit=crop',
+  'heart-curtain-bangs':   'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=400&h=500&fit=crop',
+  'heart-french-crop':     'https://images.unsplash.com/photo-1580537659466-0a9bfa916a54?w=400&h=500&fit=crop',
+  'heart-wavy-shoulder':   'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400&h=500&fit=crop',
+  // OBLONG
+  'oblong-medium-textured':'https://images.unsplash.com/photo-1512864084360-7c0c4d0a0416?w=400&h=500&fit=crop',
+  'oblong-blunt-bob':      'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=400&h=500&fit=crop',
+  'oblong-disconnected-undercut': 'https://images.unsplash.com/photo-1518020382113-a7e8fc38eac9?w=400&h=500&fit=crop',
+  'oblong-bangs-volume':   'https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=400&h=500&fit=crop',
+  'oblong-caesar-cut':     'https://images.unsplash.com/photo-1617196034183-421b4040ed20?w=400&h=500&fit=crop',
+  'oblong-collarbone-waves':'https://images.unsplash.com/photo-1554519515-242161f8f889?w=400&h=500&fit=crop',
+};
+const img = (seed) => IMAGES[seed] || `https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400&h=500&fit=crop`;
 
 const entries = [
   // ── OVAL ──────────────────────────────────────────────────────
@@ -274,14 +311,17 @@ async function seed() {
   await mongoose.connect(process.env.MONGODB_URI || process.env.MONGO_URI);
   console.log('Connected to MongoDB');
 
-  const existing = await HairstyleCatalog.countDocuments();
-  if (existing > 0) {
-    console.log(`${existing} entries already exist. Skipping seed. Delete collection to re-seed.`);
-    process.exit(0);
+  // Upsert by name so re-running updates image URLs without duplicating
+  let upserted = 0;
+  for (const entry of entries) {
+    await HairstyleCatalog.findOneAndUpdate(
+      { name: entry.name },
+      { $set: entry },
+      { upsert: true, new: true }
+    );
+    upserted++;
   }
-
-  await HairstyleCatalog.insertMany(entries);
-  console.log(`Seeded ${entries.length} hairstyle catalog entries.`);
+  console.log(`Upserted ${upserted} hairstyle catalog entries.`);
   process.exit(0);
 }
 
