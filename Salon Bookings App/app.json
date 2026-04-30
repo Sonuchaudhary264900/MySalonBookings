@@ -53,6 +53,13 @@
           "locationAlwaysAndWhenInUsePermission": "Allow My Salon Bookings to use your location to find nearby salons."
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "GlowLoox analyzes your face shape to recommend hairstyles. Photos are never stored.",
+          "photosPermission": "GlowLoox needs gallery access to analyze your face shape for hairstyle recommendations."
+        }
+      ],
       "expo-asset",
       "expo-font"
     ],

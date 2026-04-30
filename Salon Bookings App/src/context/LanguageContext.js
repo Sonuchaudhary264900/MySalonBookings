@@ -19,7 +19,7 @@ const translations = {
     customerApp: 'Customer App',
     // Bottom tabs
     tabHome: 'Home',
-    tabReels: 'Reels',
+    tabStyleAI: 'StyleAI',
     tabBookings: 'Bookings',
     tabFavorites: 'Favorites',
     tabSettings: 'Settings',
@@ -80,7 +80,7 @@ const translations = {
     appName: 'My Salon Bookings',
     customerApp: 'ग्राहक ऐप',
     tabHome: 'होम',
-    tabReels: 'रील्स',
+    tabStyleAI: 'StyleAI',
     tabBookings: 'बुकिंग्स',
     tabFavorites: 'पसंदीदा',
     tabSettings: 'सेटिंग्स',
