@@ -4,7 +4,7 @@ import { useNotifications } from "../context/NotificationContext";
 import { useTheme } from "../context/ThemeContext";
 import {
   Home, Play, CalendarDays, Heart, Bell, CheckCircle, ChevronLeft,
-  Sun, Moon, LogOut, User, Bookmark, Scissors, Settings, Menu, X, Crown, MapPin,
+  Sun, Moon, LogOut, User, Bookmark, Scissors, Settings, Menu, X, Crown, MapPin, Sparkles,
 } from "lucide-react";
 
 function getUserInitial() {
@@ -301,6 +301,7 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
     { to: "/",               label: "Home",            Icon: Home,        auth: false },
     { to: "/reels",          label: "Reels",           Icon: Play,        auth: false },
     { to: "/map",            label: "Map",             Icon: MapPin,      auth: false },
+    { to: "/style-ai",       label: "StyleAI",         Icon: Sparkles,    auth: false, ai: true },
     { to: "/dashboard",      label: "Bookings",        Icon: CalendarDays,auth: true  },
     { to: "/favorites",      label: "Saved",           Icon: Heart,       auth: true  },
     { to: "/my-subscription",label: "My Subscription", Icon: Crown,       auth: true  },
@@ -679,9 +680,33 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
 
       {/* Nav items */}
       <nav style={{ padding: "10px 8px", flex: 1, overflowY: "auto" }}>
-        {DESKTOP_NAV.map(({ to, label, Icon, auth }) => {
-          const active = location.pathname === to;
+        {DESKTOP_NAV.map(({ to, label, Icon, auth, ai }) => {
+          const active = location.pathname === to || (ai && location.pathname.startsWith('/style-ai'));
           const locked = auth && !token;
+          if (ai) return (
+            <Link key={label} to={to}
+              style={{
+                display:"flex", alignItems:"center", gap:14,
+                padding:"11px 14px", borderRadius:12,
+                textDecoration:"none", marginBottom:2, marginTop:4,
+                background: active
+                  ? "linear-gradient(135deg,rgba(245,158,11,0.18),rgba(236,72,153,0.18))"
+                  : "linear-gradient(135deg,rgba(245,158,11,0.08),rgba(236,72,153,0.08))",
+                border: "1px solid rgba(245,158,11,0.2)",
+                color: "#f59e0b",
+                fontWeight: 700, fontSize:14,
+                transition:"background 0.15s",
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = "linear-gradient(135deg,rgba(245,158,11,0.22),rgba(236,72,153,0.22))"}
+              onMouseLeave={e => e.currentTarget.style.background = active
+                ? "linear-gradient(135deg,rgba(245,158,11,0.18),rgba(236,72,153,0.18))"
+                : "linear-gradient(135deg,rgba(245,158,11,0.08),rgba(236,72,153,0.08))"}
+            >
+              <Sparkles size={18} strokeWidth={2.2} style={{ flexShrink:0, color:"#f59e0b" }} />
+              <span style={{ flex:1, background:"linear-gradient(135deg,#f59e0b,#ec4899)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text" }}>StyleAI</span>
+              <span style={{ fontSize:9,fontWeight:800,color:"#fff",background:"linear-gradient(135deg,#f59e0b,#ec4899)",padding:"2px 6px",borderRadius:99,letterSpacing:"0.04em" }}>NEW</span>
+            </Link>
+          );
           return (
             <Link key={label} to={locked ? "/login" : to}
               style={{
