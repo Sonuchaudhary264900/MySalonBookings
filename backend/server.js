@@ -368,6 +368,15 @@ const startServer = async () => {
       pid: process.pid,
     });
 
+    // Warm up Python AI service (sends a harmless health request after 5s so MediaPipe is ready)
+    if (process.env.PYTHON_AI_URL) {
+      setTimeout(() => {
+        const http = require(process.env.PYTHON_AI_URL.startsWith('https') ? 'https' : 'http');
+        http.get(`${process.env.PYTHON_AI_URL}/health`, (res) => res.resume()).on('error', () => {});
+        logger.info('StyleAI: Python warmup ping sent');
+      }, 5000);
+    }
+
     // Keep-alive ping for Render free tier
     if (process.env.NODE_ENV === "production") {
       const selfUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;

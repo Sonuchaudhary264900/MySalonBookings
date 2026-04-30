@@ -13,7 +13,7 @@ import {
   ChevronLeft, ChevronRight, Plus, X, MoreVertical, ShieldOff, ShieldCheck,
   RefreshCw, Users, CalendarCheck, IndianRupee, Clock, TrendingUp, TrendingDown,
   Scissors, CheckCircle2, XCircle, Loader2, Activity, Zap, ArrowRight, Copy, Check,
-  AlertTriangle, UserX, Lightbulb, Crown, Flame, Trophy, Keyboard,
+  AlertTriangle, UserX, Lightbulb, Crown, Flame, Trophy, Keyboard, Sparkles,
 } from "lucide-react";
 import { formatDate, formatTime } from "../../utils/exportHelpers";
 import toast from 'react-hot-toast';
@@ -553,6 +553,10 @@ const Dashboard = () => {
   const [insights, setInsights]               = useState(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
 
+  /* StyleAI stats */
+  const [styleAIStats, setStyleAIStats]         = useState(null);
+  const [styleAILoading, setStyleAILoading]     = useState(false);
+
   /* Milestone + shortcuts */
   const [showMilestone, setShowMilestone]   = useState(false);
   const [showShortcuts, setShowShortcuts]   = useState(false);
@@ -661,6 +665,15 @@ const Dashboard = () => {
     } finally { setAnalyticsLoading(false); }
   }, []);
 
+  const fetchStyleAIStats = useCallback(async () => {
+    setStyleAILoading(true);
+    try {
+      const res = await api.get('/owner/hairstyle/stats');
+      setStyleAIStats(res.data || null);
+    } catch { setStyleAIStats(null); }
+    finally { setStyleAILoading(false); }
+  }, []);
+
   const fetchInsights = useCallback(async () => {
     setInsightsLoading(true);
     try {
@@ -684,7 +697,7 @@ const Dashboard = () => {
     finally { setInsightsLoading(false); }
   }, []);
 
-  useEffect(() => { fetchServices(); fetchQueue(); fetchWeeklyAnalytics(); fetchInsights(); setLastUpdated(new Date()); }, []);
+  useEffect(() => { fetchServices(); fetchQueue(); fetchWeeklyAnalytics(); fetchInsights(); fetchStyleAIStats(); setLastUpdated(new Date()); }, []);
   useEffect(() => { fetchBookings(selectedDate); }, [selectedDate]);
 
   /* ── Live socket: re-fetch queue/bookings on booking events ── */
@@ -994,6 +1007,64 @@ const Dashboard = () => {
             ctaAction={() => navigate(ROUTES.CUSTOMERS)}
           />
         </div>
+
+        {/* ══════════════════════════════════════════════════════════
+            STYLEAI STATS CARD
+        ══════════════════════════════════════════════════════════ */}
+        {(styleAIStats || styleAILoading) && (
+          <div className="bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-950/20 dark:to-yellow-950/20 rounded-2xl border border-amber-200 dark:border-amber-900/40 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-gray-900 dark:text-white">StyleAI</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">This week</p>
+                </div>
+              </div>
+              {!styleAIStats?.hasPromotedStyles && !styleAILoading && (
+                <a
+                  href="mailto:support@glowloox.com?subject=StyleAI Promotion"
+                  className="text-xs font-semibold text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 transition-colors flex items-center gap-1"
+                >
+                  Promote your styles <ArrowRight className="w-3 h-3" />
+                </a>
+              )}
+            </div>
+            {styleAILoading ? (
+              <div className="flex gap-6">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="flex-1 h-10 bg-amber-100 dark:bg-amber-900/20 rounded-lg animate-pulse" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div>
+                  <p className="text-2xl font-extrabold text-gray-900 dark:text-white">{(styleAIStats?.impressionsThisWeek || 0).toLocaleString()}</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Customers saw your styles</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-extrabold text-gray-900 dark:text-white">{(styleAIStats?.clicksThisWeek || 0).toLocaleString()}</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Explored your styles</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-extrabold text-amber-600 dark:text-amber-400">{(styleAIStats?.bookCtasThisWeek || 0).toLocaleString()}</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Tapped Book via StyleAI</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">{(styleAIStats?.conversionsThisWeek || 0).toLocaleString()}</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Bookings from StyleAI</p>
+                </div>
+              </div>
+            )}
+            {!styleAILoading && styleAIStats?.impressionsThisWeek > 100 && !styleAIStats?.hasPromotedStyles && (
+              <p className="mt-3 text-xs text-amber-700 dark:text-amber-400 border-t border-amber-200 dark:border-amber-900/40 pt-3">
+                You're getting strong StyleAI traffic — promote your styles to appear first and reach 3× more customers.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* ══════════════════════════════════════════════════════════
             STREAK + GAMIFICATION BANNER

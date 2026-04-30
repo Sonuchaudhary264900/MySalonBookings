@@ -29,6 +29,8 @@ const Owner = require('../models/Owner');
 const Customer = require('../models/Customer');
 const Subscription = require('../models/Subscription');
 const Message = require('../models/Message');
+const HairstyleInteraction = require('../models/HairstyleInteraction');
+const HairstyleCatalog     = require('../models/HairstyleCatalog');
 
 
 
@@ -1198,6 +1200,57 @@ const hardDeleteExpired = cron.schedule('0 2 * * *', async () => {
   }
 });
 
+/*
+====================================================
+STYLEAI — MONTHLY IMPRESSION CLEANUP
+Deletes high-volume impression events older than 90 days.
+Other event types (save, book_cta, converted_booking, outcome_*, manual_override)
+are kept permanently for ML training and attribution — NO TTL index on the collection.
+Runs: 1st of every month at 3:00 AM
+====================================================
+*/
+const cleanupOldImpressions = cron.schedule('0 3 1 * *', async () => {
+  try {
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 3600 * 1000);
+    const result = await HairstyleInteraction.deleteMany({
+      event_type: 'impression',
+      createdAt:  { $lt: ninetyDaysAgo },
+    });
+    if (result.deletedCount > 0) {
+      console.log(`StyleAI: deleted ${result.deletedCount} old impression events`);
+    }
+  } catch (err) {
+    console.error('StyleAI impression cleanup cron error:', err.message);
+  }
+});
+
+/*
+====================================================
+STYLEAI — WEEKLY TRENDING SCORE DECAY
+Decays trendingScore by 30% each week to prevent old styles from
+dominating trending forever. Styles with no recent interactions fade out.
+Runs: Every Sunday at 2:30 AM
+====================================================
+*/
+const decayTrendingScores = cron.schedule('30 2 * * 0', async () => {
+  try {
+    const result = await HairstyleCatalog.updateMany(
+      { trendingScore: { $gt: 0 } },
+      [{ $set: { trendingScore: { $floor: { $multiply: ['$trendingScore', 0.7] } } } }]
+    );
+    // Reset trending flag on styles whose score dropped to 0
+    await HairstyleCatalog.updateMany(
+      { trendingScore: 0, trending: true },
+      { $set: { trending: false } }
+    );
+    if (result.modifiedCount > 0) {
+      console.log(`StyleAI: decayed trendingScore on ${result.modifiedCount} styles`);
+    }
+  } catch (err) {
+    console.error('StyleAI trending decay cron error:', err.message);
+  }
+});
+
 module.exports = {
 
   cleanupOldQueues,
@@ -1220,6 +1273,8 @@ module.exports = {
   birthdayCampaign,
   reEngagementCampaign,
   hardDeleteExpired,
+  cleanupOldImpressions,
+  decayTrendingScores,
 
   stopAllJobs: () => {
 
@@ -1243,6 +1298,8 @@ module.exports = {
     birthdayCampaign.stop();
     reEngagementCampaign.stop();
     hardDeleteExpired.stop();
+    cleanupOldImpressions.stop();
+    decayTrendingScores.stop();
 
     console.log("🛑 All cron jobs stopped");
 
