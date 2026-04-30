@@ -1997,6 +1997,13 @@ router.put("/owner/bookings/:bookingId", authenticateOwner, validateObjectId("bo
   if (status === "in_progress") booking.startedAt    = new Date();
   await booking.save();
 
+  // StyleAI attribution — fire on booking completion to record converted_booking event
+  if (status === "completed" && booking.customerId) {
+    const hairstyleAttr = require('../utils/hairstyleAttribution');
+    const svcNames = (booking.services || []).map(s => s.serviceName || s.name || '').filter(Boolean);
+    hairstyleAttr.checkAndFireAttribution(booking.customerId, booking._id, svcNames).catch(() => {});
+  }
+
   // Fix 11: broadcast to all owner tabs + customer room
   const io = req.app.get("io");
   if (io) {
@@ -5177,5 +5184,45 @@ router.get('/owner/gallery/before-after', authenticateOwner, asyncHandler(async 
   }).populate('pairedWith').lean();
   res.json({ success: true, data: befores });
 }));
+
+
+// ══════════════════════════════════════════════════════════════
+// STYLE AI — Hairstyle Recommendation
+// ══════════════════════════════════════════════════════════════
+const multerHair = multer({
+  storage: multer.memoryStorage(),
+  limits:  { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (['image/jpeg','image/jpg','image/png','image/webp'].includes(file.mimetype)) cb(null, true);
+    else cb(new Error('Only JPEG/PNG/WebP images are allowed'), false);
+  },
+});
+const hairCtrl      = require('../controllers/customer/hairstyleController');
+const adminHairCtrl = require('../controllers/admin/hairstyleAdminController');
+
+// Customer routes
+router.post('/customer/hairstyle/recommend',
+  rateLimiter(30, 3600000),            // pre-auth IP rate limit
+  authenticateCustomer,
+  rateLimiter(10, 3600000),            // per-user limit: 10 uploads/hour
+  multerHair.single('image'),
+  asyncHandler(hairCtrl.recommend)
+);
+router.get('/customer/hairstyle/by-shape',       authenticateCustomer, asyncHandler(hairCtrl.byShape));
+router.post('/customer/hairstyle/interact',      authenticateCustomer, rateLimiter(60, 60000), asyncHandler(hairCtrl.trackInteraction));
+router.get('/customer/hairstyle/saved',          authenticateCustomer, asyncHandler(hairCtrl.getSaved));
+router.get('/customer/hairstyle/trending',       asyncHandler(hairCtrl.getTrending));   // public
+router.post('/customer/hairstyle/stylist-match', authenticateCustomer, rateLimiter(30, 60000), asyncHandler(hairCtrl.getStylistMatch));
+
+// Owner route
+router.get('/owner/hairstyle/stats', authenticateOwner, asyncHandler(hairCtrl.getOwnerStats));
+
+// Admin routes
+router.get('/admin/v1/hairstyle-catalog',           authenticateAdmin, asyncHandler(adminHairCtrl.listCatalog));
+router.post('/admin/v1/hairstyle-catalog',          authenticateAdmin, asyncHandler(adminHairCtrl.createEntry));
+router.patch('/admin/v1/hairstyle-catalog/:id',     authenticateAdmin, asyncHandler(adminHairCtrl.updateEntry));
+router.delete('/admin/v1/hairstyle-catalog/:id',    authenticateAdmin, asyncHandler(adminHairCtrl.deleteEntry));
+router.patch('/admin/v1/hairstyle-catalog/:id/promote', authenticateAdmin, asyncHandler(adminHairCtrl.togglePromotion));
+router.get('/admin/v1/hairstyle/analytics',         authenticateAdmin, asyncHandler(adminHairCtrl.getAnalytics));
 
 module.exports = router;

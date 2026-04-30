@@ -41,6 +41,7 @@ const MySubscription          = lazy(() => import("./pages/MySubscription"));
 const MapView                 = lazy(() => import("./pages/MapView"));
 const Notifications           = lazy(() => import("./pages/Notifications"));
 const Chat                    = lazy(() => import("./pages/Chat"));
+const HairstylePage           = lazy(() => import("./pages/HairstylePage"));
 
 // ── Page loading fallback ──────────────────────────────────────
 function PageLoader() {
@@ -135,6 +136,7 @@ function AppLayout({ notifOpen, setNotifOpen }) {
             <Route path="/my-subscription"             element={<MySubscription />} />
             <Route path="/notifications"               element={<Notifications />} />
             <Route path="/chat/:bookingId"             element={<Chat />} />
+            <Route path="/style-ai"                    element={<HairstylePage />} />
 
             {/* 404 */}
             <Route path="*" element={

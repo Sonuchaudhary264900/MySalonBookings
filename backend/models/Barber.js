@@ -41,6 +41,7 @@ barberSchema.index({ isActive: 1 });
 barberSchema.index({ salonId: 1, isActive: 1 });           // team list — most common query
 barberSchema.index({ salonId: 1, isOwner: 1 });            // find owner virtual record fast
 barberSchema.index({ ownerId: 1 });                        // owner → all their staff
+barberSchema.index({ salonId: 1, specializations: 1 });    // StyleAI Stylist Match query
 
 // Keep only the last 5 refresh tokens to prevent unbounded array growth
 barberSchema.pre('save', function (next) {
