@@ -18,6 +18,7 @@ import {
 import { classifyFromContour } from '../../utils/faceShapeClassifier';
 import FaceShapeReveal  from '../../components/FaceShapeReveal';
 import BeforeAfterModal from '../../components/BeforeAfterModal';
+import ScanTipsModal    from '../../components/ScanTipsModal';
 
 const { width: SW } = Dimensions.get('window');
 const CARD_W = (SW - 48) / 2;
@@ -56,6 +57,8 @@ export default function StyleAIScreen() {
   const s              = styles(theme);
 
   const [phase, setPhase]           = useState('idle');   // idle | detecting | reveal | results | error
+  const [showTips,   setShowTips]   = useState(false);
+  const [tipsTarget, setTipsTarget] = useState('camera'); // 'camera' | 'gallery'
   const [hairstyles, setHairstyles] = useState([]);
   const [trending,   setTrending]   = useState([]);
   const [stylists,   setStylists]   = useState([]);
@@ -527,6 +530,15 @@ export default function StyleAIScreen() {
   // ── IDLE ────────────────────────────────────────────────────────
   return (
     <View style={s.root}>
+      <ScanTipsModal
+        visible={showTips}
+        onClose={() => setShowTips(false)}
+        onContinue={() => {
+          setShowTips(false);
+          if (tipsTarget === 'camera') pickFromCamera();
+          else pickFromGallery();
+        }}
+      />
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         {/* Hero */}
         <View style={s.idleHero}>
@@ -536,11 +548,11 @@ export default function StyleAIScreen() {
           <Text style={s.idleTitle}>StyleAI</Text>
           <Text style={s.idleSub}>Find hairstyles that suit your face shape — book in one tap.</Text>
 
-          <TouchableOpacity onPress={pickFromCamera} style={s.primaryBtn}>
+          <TouchableOpacity onPress={() => { setTipsTarget('camera'); setShowTips(true); }} style={s.primaryBtn}>
             <Ionicons name="camera-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
             <Text style={s.primaryBtnText}>Take a selfie</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={pickFromGallery} style={s.secondaryBtn}>
+          <TouchableOpacity onPress={() => { setTipsTarget('gallery'); setShowTips(true); }} style={s.secondaryBtn}>
             <Ionicons name="images-outline" size={18} color={theme.accent} style={{ marginRight: 8 }} />
             <Text style={[s.secondaryBtnText, { color: theme.accent }]}>Choose from gallery</Text>
           </TouchableOpacity>

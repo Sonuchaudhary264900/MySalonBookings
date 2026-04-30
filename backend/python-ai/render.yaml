@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: glowloox-styleai
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter          # upgrade to standard for production load
+    region: singapore      # closest to India
+    envVars:
+      - key: HAIRSTYLE_INTERNAL_SECRET
+        sync: false        # set manually in Render dashboard
+    healthCheckPath: /health
+    autoDeploy: true

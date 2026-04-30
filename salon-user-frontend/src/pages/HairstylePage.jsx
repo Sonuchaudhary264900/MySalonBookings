@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Camera, Upload, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 import FaceShapeReveal from '../components/FaceShapeReveal';
 import HairstyleCard   from '../components/HairstyleCard';
+import ScanTipsModal   from '../components/ScanTipsModal';
 import { analyzePhoto, getByShape, getTrending, trackEvent } from '../services/hairstyleService';
 
 const SHAPES       = ['oval','round','square','heart','oblong'];
@@ -39,6 +40,7 @@ export default function HairstylePage() {
   const [showGrid,       setShowGrid]      = useState(false);
   const [showAnalysis,   setShowAnalysis]  = useState(false);
   const [location,       setLocation]      = useState({ lat: null, lng: null });
+  const [showTips,       setShowTips]      = useState(false);
 
   // Load trending on mount
   useEffect(() => {
@@ -150,6 +152,12 @@ export default function HairstylePage() {
 
   return (
     <>
+      {showTips && (
+        <ScanTipsModal
+          onContinue={() => { setShowTips(false); fileRef.current?.click(); }}
+          onClose={() => setShowTips(false)}
+        />
+      )}
       <style>{`
         @keyframes shimmer {
           0%   { background-position: 200% 0; }
@@ -194,7 +202,7 @@ export default function HairstylePage() {
           {/* Upload prompt */}
           {state === 'idle' && (
             <div
-              onClick={() => fileRef.current?.click()}
+              onClick={() => setShowTips(true)}
               style={{
                 marginTop: 8, padding: '32px 16px',
                 border: '2px dashed #333', borderRadius: 20,
@@ -469,7 +477,7 @@ export default function HairstylePage() {
 
               {/* Rescan */}
               <button
-                onClick={() => fileRef.current?.click()}
+                onClick={() => setShowTips(true)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8, margin: '16px auto 0',
                   background: 'transparent', border: '1px solid #333',
