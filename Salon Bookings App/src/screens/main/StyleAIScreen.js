@@ -15,6 +15,7 @@ import { useAuth }     from '../../context/AuthContext';
 import {
   analyzePhoto, getByShape, getTrending, trackEvent, getStylists,
 } from '../../services/hairstyleApi';
+import { classifyFromContour } from '../../utils/faceShapeClassifier';
 import FaceShapeReveal  from '../../components/FaceShapeReveal';
 import BeforeAfterModal from '../../components/BeforeAfterModal';
 
@@ -122,10 +123,44 @@ export default function StyleAIScreen() {
     const { lat, lng } = await getLocation();
 
     try {
-      const res = await analyzePhoto(uri, gender, lat, lng);
-      stopLoadingCycle();
-      const { faceShape: shape, confidence: conf, hairstyles: styles, stylists: stls } = res.data;
+      let shape, conf, styles, stls;
 
+      // ML Kit on-device path — only on devices with >= 2.5 GB RAM
+      const totalRAM   = await Device.getTotalMemoryAsync();
+      const useOnDevice = totalRAM >= 2.5 * 1024 * 1024 * 1024;
+      let onDeviceSuccess = false;
+
+      if (useOnDevice) {
+        try {
+          const FaceDetection = require('@react-native-ml-kit/face-detection').default;
+          const mlResult = await FaceDetection.process(uri, {
+            performanceModeType: 'accurate',
+            contourModeType: 'all',
+          });
+          if (mlResult.faces?.length > 0) {
+            const contour = mlResult.faces[0].contours?.face;
+            const classification = classifyFromContour(contour);
+            if (classification) {
+              // Got on-device shape — fetch catalog from server (no image upload)
+              const catalogRes = await getByShape(classification.faceShape, gender);
+              shape  = classification.faceShape;
+              conf   = classification.confidence;
+              styles = catalogRes.data?.hairstyles || [];
+              stls   = catalogRes.data?.stylists   || [];
+              onDeviceSuccess = true;
+            }
+          }
+        } catch (_) {
+          // Fall through to server path
+        }
+      }
+
+      if (!onDeviceSuccess) {
+        const res = await analyzePhoto(uri, gender, lat, lng);
+        ({ faceShape: shape, confidence: conf, hairstyles: styles, stylists: stls } = res.data);
+      }
+
+      stopLoadingCycle();
       setFaceShape(shape);
       setConfidence(conf);
       setHairstyles(styles || []);
