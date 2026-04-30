@@ -11,14 +11,16 @@ require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const mongoose = require('mongoose');
 const HairstyleCatalog = require('../models/HairstyleCatalog');
 
-const PLACEHOLDER_IMG = 'https://res.cloudinary.com/demo/image/upload/v1/hairstyles/placeholder.jpg';
+// Stable, deterministic placeholder images via picsum.photos (seed-based, always same image per seed)
+// Replace with real Cloudinary hairstyle URLs when available.
+const img = (seed) => `https://picsum.photos/seed/${seed}/400/500`;
 
 const entries = [
   // ── OVAL ──────────────────────────────────────────────────────
   {
     name: 'Classic Taper Fade',
     faceShapes: ['oval'], gender: 'male',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('oval-taper-fade'),
     description: 'Short on sides, volume on top.',
     whyItWorks: 'Oval faces suit almost any cut. The fade adds clean structure without widening.',
     suggestedService: 'Fade', hairType: 'any', trending: true, order: 1,
@@ -26,7 +28,7 @@ const entries = [
   {
     name: 'Textured Fringe',
     faceShapes: ['oval'], gender: 'male',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('oval-textured-fringe'),
     description: 'Messy fringe with textured finish.',
     whyItWorks: 'Adds horizontal interest without altering the face balance.',
     suggestedService: 'Haircut', hairType: 'any', trending: false, order: 2,
@@ -34,7 +36,7 @@ const entries = [
   {
     name: 'Side Part',
     faceShapes: ['oval'], gender: 'male',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('oval-side-part'),
     description: 'Classic side-parted style, polished and sharp.',
     whyItWorks: 'Enhances natural symmetry of oval faces.',
     suggestedService: 'Haircut', hairType: 'straight', trending: false, order: 3,
@@ -42,7 +44,7 @@ const entries = [
   {
     name: 'Layered Bob',
     faceShapes: ['oval'], gender: 'female',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('oval-layered-bob'),
     description: 'Chin-length layered bob with movement.',
     whyItWorks: 'Frames the face beautifully without adding width.',
     suggestedService: 'Hair Treatment', hairType: 'any', trending: true, order: 4,
@@ -50,7 +52,7 @@ const entries = [
   {
     name: 'Loose Waves',
     faceShapes: ['oval'], gender: 'female',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('oval-loose-waves'),
     description: 'Medium-length loose beach waves.',
     whyItWorks: 'Oval faces carry flowing styles effortlessly.',
     suggestedService: 'Hair Treatment', hairType: 'wavy', trending: true, order: 5,
@@ -58,7 +60,7 @@ const entries = [
   {
     name: 'Buzz Cut',
     faceShapes: ['oval'], gender: 'male',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('oval-buzz-cut'),
     description: 'Short all-over buzz with clean lines.',
     whyItWorks: 'Oval faces have the bone structure to pull off a buzz cut cleanly.',
     suggestedService: 'Fade', hairType: 'any', trending: false, order: 6,
@@ -68,7 +70,7 @@ const entries = [
   {
     name: 'High Fade Quiff',
     faceShapes: ['round'], gender: 'male',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('round-high-fade-quiff'),
     description: 'High fade with a voluminous quiff on top.',
     whyItWorks: 'Height on top elongates the face and counters roundness.',
     suggestedService: 'Fade', hairType: 'any', trending: true, order: 7,
@@ -76,7 +78,7 @@ const entries = [
   {
     name: 'Pompadour',
     faceShapes: ['round'], gender: 'male',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('round-pompadour'),
     description: 'Swept-back volume on top, tight sides.',
     whyItWorks: 'Vertical volume slims and lengthens a round face.',
     suggestedService: 'Haircut', hairType: 'straight', trending: false, order: 8,
@@ -84,7 +86,7 @@ const entries = [
   {
     name: 'Long Layers with Volume',
     faceShapes: ['round'], gender: 'female',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('round-long-layers'),
     description: 'Long layers that fall past the chin with lift at roots.',
     whyItWorks: 'Length and layers create an illusion of a longer, slimmer face.',
     suggestedService: 'Hair Treatment', hairType: 'any', trending: true, order: 9,
@@ -92,7 +94,7 @@ const entries = [
   {
     name: 'Side-Swept Bangs',
     faceShapes: ['round'], gender: 'female',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('round-side-swept-bangs'),
     description: 'Long side-swept fringe across the forehead.',
     whyItWorks: 'Diagonal lines break the symmetry of a round face, adding angles.',
     suggestedService: 'Hair Treatment', hairType: 'any', trending: false, order: 10,
@@ -100,7 +102,7 @@ const entries = [
   {
     name: 'Faux Hawk',
     faceShapes: ['round'], gender: 'male',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('round-faux-hawk'),
     description: 'Center strip of longer hair with shaved sides.',
     whyItWorks: 'Strong vertical centerline elongates a round face dramatically.',
     suggestedService: 'Fade', hairType: 'any', trending: false, order: 11,
@@ -108,7 +110,7 @@ const entries = [
   {
     name: 'Shag Haircut',
     faceShapes: ['round'], gender: 'female',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('round-shag-haircut'),
     description: 'Layered shag with curtain bangs.',
     whyItWorks: 'Layered texture adds angles; curtain bangs narrow the forehead.',
     suggestedService: 'Hair Treatment', hairType: 'wavy', trending: true, order: 12,
@@ -118,7 +120,7 @@ const entries = [
   {
     name: 'Soft Waves',
     faceShapes: ['square'], gender: 'female',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('square-soft-waves'),
     description: 'Soft shoulder-length waves with a center part.',
     whyItWorks: 'Waves soften angular jaw lines; center part balances a strong forehead.',
     suggestedService: 'Hair Treatment', hairType: 'wavy', trending: true, order: 13,
@@ -126,7 +128,7 @@ const entries = [
   {
     name: 'Undercut with Texture',
     faceShapes: ['square'], gender: 'male',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('square-undercut-texture'),
     description: 'Shaved undercut with textured, pushed-back top.',
     whyItWorks: 'Draws attention upward and away from the jaw.',
     suggestedService: 'Fade', hairType: 'any', trending: true, order: 14,
@@ -134,7 +136,7 @@ const entries = [
   {
     name: 'Curly Shag',
     faceShapes: ['square'], gender: 'unisex',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('square-curly-shag'),
     description: 'Natural curls in a shag cut with layers.',
     whyItWorks: 'Rounded curls counter sharp angular features.',
     suggestedService: 'Hair Treatment', hairType: 'curly', trending: false, order: 15,
@@ -142,7 +144,7 @@ const entries = [
   {
     name: 'Crew Cut',
     faceShapes: ['square'], gender: 'male',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('square-crew-cut'),
     description: 'Military-style short cut, slightly longer on top.',
     whyItWorks: 'Complements a strong jaw and masculine bone structure.',
     suggestedService: 'Haircut', hairType: 'any', trending: false, order: 16,
@@ -150,7 +152,7 @@ const entries = [
   {
     name: 'Lob (Long Bob)',
     faceShapes: ['square'], gender: 'female',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('square-lob'),
     description: 'Shoulder-grazing bob with soft ends.',
     whyItWorks: 'Length past the jaw softens its angularity.',
     suggestedService: 'Hair Treatment', hairType: 'any', trending: true, order: 17,
@@ -158,9 +160,9 @@ const entries = [
   {
     name: 'Slicked Back Fade',
     faceShapes: ['square'], gender: 'male',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('square-slicked-back'),
     description: 'Hair slicked back with a tight fade on sides.',
-    whyItWorks: 'Clean lines complement a square face\'s natural definition.',
+    whyItWorks: "Clean lines complement a square face's natural definition.",
     suggestedService: 'Fade', hairType: 'straight', trending: false, order: 18,
   },
 
@@ -168,7 +170,7 @@ const entries = [
   {
     name: 'Chin-Length Bob',
     faceShapes: ['heart'], gender: 'female',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('heart-chin-bob'),
     description: 'Bob that ends at the chin with slight outward curve.',
     whyItWorks: 'Adds width at the chin to balance a wider forehead.',
     suggestedService: 'Hair Treatment', hairType: 'any', trending: true, order: 19,
@@ -176,7 +178,7 @@ const entries = [
   {
     name: 'Blunt Fringe',
     faceShapes: ['heart'], gender: 'female',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('heart-blunt-fringe'),
     description: 'Full, straight fringe across the forehead.',
     whyItWorks: 'Minimizes the appearance of a wide forehead.',
     suggestedService: 'Hair Treatment', hairType: 'any', trending: false, order: 20,
@@ -184,15 +186,15 @@ const entries = [
   {
     name: 'Side Part Fade',
     faceShapes: ['heart'], gender: 'male',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('heart-side-part-fade'),
     description: 'Tight fade with hair swept to one side.',
-    whyItWorks: 'Asymmetry balances a heart face\'s wider top half.',
+    whyItWorks: "Asymmetry balances a heart face's wider top half.",
     suggestedService: 'Fade', hairType: 'any', trending: false, order: 21,
   },
   {
     name: 'Curtain Bangs + Layers',
     faceShapes: ['heart'], gender: 'female',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('heart-curtain-bangs'),
     description: 'Center-parted curtain bangs with long flowing layers.',
     whyItWorks: 'Curtain bangs break up the forehead; layers add chin-area volume.',
     suggestedService: 'Hair Treatment', hairType: 'any', trending: true, order: 22,
@@ -200,7 +202,7 @@ const entries = [
   {
     name: 'French Crop',
     faceShapes: ['heart'], gender: 'male',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('heart-french-crop'),
     description: 'Short crop with a textured fringe, faded sides.',
     whyItWorks: 'Fringe reduces forehead prominence on heart faces.',
     suggestedService: 'Haircut', hairType: 'any', trending: true, order: 23,
@@ -208,7 +210,7 @@ const entries = [
   {
     name: 'Wavy Shoulder Length',
     faceShapes: ['heart'], gender: 'female',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('heart-wavy-shoulder'),
     description: 'Shoulder-length waves with volume at the ends.',
     whyItWorks: 'Volume below the jaw balances a narrow chin.',
     suggestedService: 'Hair Treatment', hairType: 'wavy', trending: false, order: 24,
@@ -218,7 +220,7 @@ const entries = [
   {
     name: 'Medium Textured Cut',
     faceShapes: ['oblong'], gender: 'male',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('oblong-medium-textured'),
     description: 'Medium-length hair with textured styling, no height.',
     whyItWorks: 'Width is added at the sides; avoid adding height on oblong faces.',
     suggestedService: 'Haircut', hairType: 'any', trending: true, order: 25,
@@ -226,7 +228,7 @@ const entries = [
   {
     name: 'Straight Blunt Bob',
     faceShapes: ['oblong'], gender: 'female',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('oblong-blunt-bob'),
     description: 'Blunt-cut bob ending at the jaw with zero layers.',
     whyItWorks: 'Horizontal line at jaw level visually shortens an oblong face.',
     suggestedService: 'Hair Treatment', hairType: 'straight', trending: false, order: 26,
@@ -234,7 +236,7 @@ const entries = [
   {
     name: 'Disconnected Undercut',
     faceShapes: ['oblong'], gender: 'male',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('oblong-disconnected-undercut'),
     description: 'Long top disconnected from short sides.',
     whyItWorks: 'Side volume from disconnection adds width without adding height.',
     suggestedService: 'Fade', hairType: 'any', trending: false, order: 27,
@@ -242,7 +244,7 @@ const entries = [
   {
     name: 'Bangs with Volume',
     faceShapes: ['oblong'], gender: 'female',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('oblong-bangs-volume'),
     description: 'Full fringe with volume around the sides.',
     whyItWorks: 'Bangs shorten the visual face length; side volume adds width.',
     suggestedService: 'Hair Treatment', hairType: 'any', trending: true, order: 28,
@@ -250,7 +252,7 @@ const entries = [
   {
     name: 'Caesar Cut',
     faceShapes: ['oblong'], gender: 'male',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('oblong-caesar-cut'),
     description: 'Short horizontal fringe with tight back and sides.',
     whyItWorks: 'Horizontal fringe line shortens the face and adds visual width.',
     suggestedService: 'Haircut', hairType: 'any', trending: false, order: 29,
@@ -258,7 +260,7 @@ const entries = [
   {
     name: 'Collarbone Waves',
     faceShapes: ['oblong'], gender: 'female',
-    imageUrl: PLACEHOLDER_IMG,
+    imageUrl: img('oblong-collarbone-waves'),
     description: 'Wavy hair ending at the collarbone with volume on sides.',
     whyItWorks: 'Width at the sides and the natural weight of collarbone length balance an elongated face.',
     suggestedService: 'Hair Treatment', hairType: 'wavy', trending: true, order: 30,
@@ -266,7 +268,7 @@ const entries = [
 ];
 
 async function seed() {
-  await mongoose.connect(process.env.MONGO_URI);
+  await mongoose.connect(process.env.MONGODB_URI || process.env.MONGO_URI);
   console.log('Connected to MongoDB');
 
   const existing = await HairstyleCatalog.countDocuments();
