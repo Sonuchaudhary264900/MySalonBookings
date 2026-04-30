@@ -1,3 +1,6 @@
+const dns = require('dns');
+dns.setServers(['8.8.8.8', '8.8.4.4']);
+
 /**
  * Seed 30 hairstyle catalog entries (6 per face shape).
  * Run: node backend/scripts/seedHairstyles.js
