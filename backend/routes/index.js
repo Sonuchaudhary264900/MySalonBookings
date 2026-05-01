@@ -4436,7 +4436,9 @@ router.delete('/admin/catalog/entries/:id',    authenticateAdmin, asyncHandler(c
 router.delete('/admin/catalog/batch',          authenticateAdmin, asyncHandler(catalogController.deleteBatch));
 router.put(   '/admin/catalog/rename',         authenticateAdmin, asyncHandler(catalogController.renameLevel));
 router.post(  '/admin/catalog/upload-image',   authenticateAdmin, multerUpload.single('image'), asyncHandler(catalogController.uploadImage));
-router.post(  '/admin/catalog/seed',           authenticateAdmin, asyncHandler(catalogController.seed));
+router.post(  '/admin/catalog/seed',             authenticateAdmin, asyncHandler(catalogController.seed));
+router.post(  '/admin/catalog/overwrite-images', authenticateAdmin, asyncHandler(catalogController.overwriteImages));
+router.post(  '/admin/catalog/force-overwrite-images', authenticateAdmin, asyncHandler(catalogController.forceOverwriteImages));
 
 /* =====================================================
    OWNER — TEAM MANAGEMENT

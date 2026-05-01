@@ -1,4 +1,5 @@
 const CatalogEntry = require('../../models/CatalogEntry');
+const Business     = require('../../models/Business');
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 const toKey = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_');
@@ -192,6 +193,91 @@ exports.uploadImage = async (req, res) => {
 
 // ─── POST /admin/catalog/seed ─────────────────────────────────────────────────
 // Body: { entries: [...] } OR { useDefaults: true } to seed from built-in data
+// ─── POST /admin/catalog/overwrite-images ─────────────────────────────────────
+// Pushes admin catalog images (categoryImage + defaultImage) into every matching
+// owner's Business.categoryImages map. Only images — prices/durations untouched.
+exports.overwriteImages = async (req, res) => {
+  try {
+    const { businessType } = req.body;
+    if (!businessType) return res.status(400).json({ success: false, message: 'businessType required' });
+
+    // Collect all images from admin catalog for this business type
+    const entries = await CatalogEntry.find({ businessType, isActive: true },
+      'category name categoryImage defaultImage').lean();
+
+    // Build the categoryImages patch map
+    // Keys: category label (for category images) + service name (for service images as 'cat::name' convention)
+    const imageMap = {};
+    for (const e of entries) {
+      if (e.categoryImage && !imageMap[e.category]) {
+        imageMap[e.category] = e.categoryImage;
+      }
+      // Service-level images use the service name as key directly
+      // (owner frontend stores them as plain name keys in serviceImages, not categoryImages)
+    }
+
+    if (!Object.keys(imageMap).length) {
+      return res.json({ success: true, updated: 0, message: 'No category images found in catalog for this business type' });
+    }
+
+    // Find all businesses of this type and merge image map (never removes existing owner custom images)
+    const businesses = await Business.find({ businessType }, '_id categoryImages').lean();
+    let updated = 0;
+    for (const biz of businesses) {
+      const existing = biz.categoryImages instanceof Map
+        ? Object.fromEntries(biz.categoryImages)
+        : (biz.categoryImages || {});
+
+      // Merge: admin images fill in missing keys; existing owner custom images are preserved
+      const merged = { ...imageMap, ...existing };
+
+      await Business.updateOne({ _id: biz._id }, { $set: { categoryImages: merged } });
+      updated++;
+    }
+
+    res.json({ success: true, updated, categoriesOverwritten: Object.keys(imageMap).length });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+};
+
+// ─── POST /admin/catalog/force-overwrite-images ────────────────────────────────
+// Same as overwriteImages but admin images WIN over owner custom images.
+exports.forceOverwriteImages = async (req, res) => {
+  try {
+    const { businessType } = req.body;
+    if (!businessType) return res.status(400).json({ success: false, message: 'businessType required' });
+
+    const entries = await CatalogEntry.find({ businessType, isActive: true },
+      'category name categoryImage defaultImage').lean();
+
+    const imageMap = {};
+    for (const e of entries) {
+      if (e.categoryImage && !imageMap[e.category]) imageMap[e.category] = e.categoryImage;
+    }
+
+    if (!Object.keys(imageMap).length) {
+      return res.json({ success: true, updated: 0, message: 'No category images found' });
+    }
+
+    const businesses = await Business.find({ businessType }, '_id categoryImages').lean();
+    let updated = 0;
+    for (const biz of businesses) {
+      const existing = biz.categoryImages instanceof Map
+        ? Object.fromEntries(biz.categoryImages)
+        : (biz.categoryImages || {});
+      // Admin images override owner's; non-category keys (custom ones) preserved
+      const merged = { ...existing, ...imageMap };
+      await Business.updateOne({ _id: biz._id }, { $set: { categoryImages: merged } });
+      updated++;
+    }
+
+    res.json({ success: true, updated, categoriesOverwritten: Object.keys(imageMap).length });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+};
+
 exports.seed = async (req, res) => {
   try {
     let entries = req.body?.entries;

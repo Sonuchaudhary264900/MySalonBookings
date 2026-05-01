@@ -95,13 +95,14 @@ function ImgUploadCell({ value, onChange }) {
 
 // ─── main page ────────────────────────────────────────────────────────────────
 export default function ServiceCatalog() {
-  const [activeType, setActiveType] = useState('barbershop');
-  const [tree,       setTree]       = useState([]);
-  const [loading,    setLoading]    = useState(false);
-  const [seeding,    setSeeding]    = useState(false);
-  const [nav,        setNav]        = useState(null);  // null | {cat} | {cat, sub}
-  const [modal,      setModal]      = useState(null);
-  const [search,     setSearch]     = useState('');
+  const [activeType,   setActiveType]   = useState('barbershop');
+  const [tree,         setTree]         = useState([]);
+  const [loading,      setLoading]      = useState(false);
+  const [seeding,      setSeeding]      = useState(false);
+  const [overwriting,  setOverwriting]  = useState(false);
+  const [nav,          setNav]          = useState(null);  // null | {cat} | {cat, sub}
+  const [modal,        setModal]        = useState(null);
+  const [search,       setSearch]       = useState('');
 
   const fetchTree = async (bt = activeType) => {
     setLoading(true);
@@ -124,6 +125,22 @@ export default function ServiceCatalog() {
       fetchTree(activeType);
     } catch { toast.error('Seed failed'); }
     finally { setSeeding(false); }
+  };
+
+  // ── overwrite images ──────────────────────────────────────────────────────
+  const handleOverwrite = async (force = false) => {
+    const label = BUSINESS_TYPES.find(b => b.value === activeType)?.label || activeType;
+    const msg = force
+      ? `Force overwrite: admin images will REPLACE owner custom images for all "${label}" salons. Continue?`
+      : `Set admin catalog images as default for all "${label}" salons (owner custom images kept). Continue?`;
+    if (!confirm(msg)) return;
+    setOverwriting(true);
+    try {
+      const endpoint = force ? '/admin/catalog/force-overwrite-images' : '/admin/catalog/overwrite-images';
+      const res = await api.post(endpoint, { businessType: activeType });
+      toast.success(`Updated ${res.data.updated} salon${res.data.updated !== 1 ? 's' : ''} · ${res.data.categoriesOverwritten} categories`);
+    } catch { toast.error('Overwrite failed'); }
+    finally { setOverwriting(false); }
   };
 
   // ── delete handlers ───────────────────────────────────────────────────────
@@ -180,12 +197,31 @@ export default function ServiceCatalog() {
             Master catalog — admin sets defaults. Owners inherit and can customise.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button style={{ ...S.ghost, padding: '9px 16px', fontSize: 13, color: '#a78bfa', borderColor: 'rgba(167,139,250,0.3)' }}
             onClick={handleSeed} disabled={seeding}>
             {seeding ? <RefreshCw size={14} style={{ animation: 'spin .7s linear infinite' }} /> : <Database size={14} />}
             Seed defaults
           </button>
+
+          {/* Overwrite images — fills in missing owner images, keeps custom ones */}
+          <button
+            onClick={() => handleOverwrite(false)}
+            disabled={overwriting}
+            style={{ ...S.ghost, padding: '9px 16px', fontSize: 13, color: '#34d399', borderColor: 'rgba(52,211,153,0.3)' }}>
+            {overwriting ? <RefreshCw size={14} style={{ animation: 'spin .7s linear infinite' }} /> : <ImageIcon size={14} />}
+            Set as default images
+          </button>
+
+          {/* Force overwrite — admin images override owner custom images */}
+          <button
+            onClick={() => handleOverwrite(true)}
+            disabled={overwriting}
+            style={{ ...S.ghost, padding: '9px 16px', fontSize: 13, color: '#fb923c', borderColor: 'rgba(251,146,60,0.3)' }}>
+            {overwriting ? <RefreshCw size={14} style={{ animation: 'spin .7s linear infinite' }} /> : <ImageIcon size={14} />}
+            Force overwrite images
+          </button>
+
           <button style={{ ...S.btn(), padding: '9px 16px' }}
             onClick={() => setModal({ mode: 'add-cat', data: {} })}>
             <Plus size={14} /> Add Category
