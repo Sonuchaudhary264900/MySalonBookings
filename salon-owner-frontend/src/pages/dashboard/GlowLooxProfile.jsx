@@ -14,6 +14,7 @@ import ConfirmModal from '../../components/common/ConfirmModal';
 import ServiceModal from '../../components/Services/ServiceModal';
 import UploadModal from '../../components/gallery/UploadModal';
 import { useSalon } from '../../hooks/useSalon';
+import { useCatalogImages } from '../../hooks/useCatalogImages';
 import { useGalleryUpload } from '../../context/GalleryUploadContext';
 import api from '../../services/api';
 import { uploadSalonPhotos } from '../../services/salonService';
@@ -215,7 +216,7 @@ export default function GlowLooxProfile() {
 
   /* ── service catalog (from API, fallback to hardcoded) ── */
   const [catalogCats,    setCatalogCats]    = useState(null); // null = not yet loaded
-  const [adminCatalogMap, setAdminCatalogMap] = useState(null); // { categoryImages:{}, serviceImages:{} }
+  const adminCatalogMap = useCatalogImages(salon?.businessType);
 
   /* ── service drill-down nav ── */
   const [svcNavStack, setSvcNavStack] = useState([]);
@@ -324,21 +325,8 @@ export default function GlowLooxProfile() {
     if (!salon?._id) return;
     api.get('/owner/catalog').then(res => {
       const cats = res.data?.data?.categories;
-      if (cats && cats.length > 0) {
-        setCatalogCats(cats);
-        // Build admin image map
-        const categoryImages = {};
-        const serviceImages  = {};
-        for (const cat of cats) {
-          if (cat.categoryImage) categoryImages[cat.label] = cat.categoryImage;
-          for (const [name, detail] of Object.entries(cat.serviceDetails || {})) {
-            if (detail.defaultImage) serviceImages[name] = detail.defaultImage;
-          }
-        }
-        setAdminCatalogMap({ categoryImages, serviceImages });
-      } else {
-        setCatalogCats(getCategoriesForSalonType(salon.businessType || 'salon', salon.servedGender || 'unisex'));
-      }
+      if (cats && cats.length > 0) setCatalogCats(cats);
+      else setCatalogCats(getCategoriesForSalonType(salon.businessType || 'salon', salon.servedGender || 'unisex'));
     }).catch(() => {
       setCatalogCats(getCategoriesForSalonType(salon?.businessType || 'salon', salon?.servedGender || 'unisex'));
     });

@@ -41,6 +41,7 @@ import API from "../services/api";
 import ServiceCard from "../components/ServiceCard";
 import ReviewCard from "../components/ReviewCard";
 import { CategoryCircleNav, SubCircleNav } from "../components/CategoryCircles";
+import { useCatalogImages } from "../hooks/useCatalogImages";
 import { isCustomer, clearCustomerAuth } from "../utils/auth";
 import { formatDate, salonPath } from "../utils/formatters";
 import { useNotifications } from "../context/NotificationContext";
@@ -145,6 +146,7 @@ function SalonDetails({ salonId: propId, onClose }) {
   const token = localStorage.getItem("customerToken");
 
   const [salon, setSalon]           = useState(null);
+  const adminCatalogMap             = useCatalogImages(salon?.businessType);
   const [services, setServices]     = useState([]);
   const [reviews, setReviews]       = useState([]);
   const [offers, setOffers]         = useState([]);
@@ -1047,6 +1049,7 @@ function SalonDetails({ salonId: propId, onClose }) {
                           salon={salon}
                           accentColor={theme.p}
                           iconMap={CAT_ICON_COMPONENTS}
+                          adminCatalogMap={adminCatalogMap}
                         />
                         {selCat && selCatSubs.length > 1 && (
                           <SubCircleNav
@@ -1057,6 +1060,7 @@ function SalonDetails({ salonId: propId, onClose }) {
                             salon={salon}
                             services={services}
                             accentColor={theme.p}
+                            adminCatalogMap={adminCatalogMap}
                             iconMap={CAT_ICON_COMPONENTS}
                           />
                         )}

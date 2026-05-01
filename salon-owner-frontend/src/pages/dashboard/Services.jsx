@@ -15,6 +15,7 @@ import ServiceModal from '../../components/Services/ServiceModal';
 import EditCategoriesDrawer from '../../components/salon/EditCategoriesDrawer';
 import CategoryIcon from '../../components/common/CategoryIcon';
 import { useSalon } from '../../hooks/useSalon';
+import { useCatalogImages } from '../../hooks/useCatalogImages';
 import { uploadServicePhoto } from '../../services/salonService';
 import {
   UNISEX_CATEGORIES,
@@ -338,7 +339,7 @@ const Services = () => {
   const [selectedCatLabel, setSelectedCatLabel] = useState(null);
   const [selectedSubLabel, setSelectedSubLabel] = useState(null);
   const [catImgUploading,  setCatImgUploading]  = useState({});
-  const [adminCatalogMap,  setAdminCatalogMap]  = useState(null); // { categoryImages:{}, serviceImages:{} }
+  const adminCatalogMap = useCatalogImages(salon?.businessType);
 
   // Subcategory quick-enable popover
   const [subEnablePopover,  setSubEnablePopover]  = useState(null); // { cat } | null
@@ -482,20 +483,6 @@ const Services = () => {
       catch { setError('Failed to load services'); }
       finally { setLoading(false); }
       try { await fetchSalon(); } catch {}
-      // Load admin-uploaded catalog images as defaults
-      try {
-        const res = await api.get('/owner/catalog');
-        const cats = res.data?.data?.categories || [];
-        const categoryImages = {};
-        const serviceImages  = {};
-        for (const cat of cats) {
-          if (cat.categoryImage) categoryImages[cat.label] = cat.categoryImage;
-          for (const [name, detail] of Object.entries(cat.serviceDetails || {})) {
-            if (detail.defaultImage) serviceImages[name] = detail.defaultImage;
-          }
-        }
-        setAdminCatalogMap({ categoryImages, serviceImages });
-      } catch {}
     };
     load();
   }, []);

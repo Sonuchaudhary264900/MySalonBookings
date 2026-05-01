@@ -4410,6 +4410,23 @@ router.delete('/admin/site-settings/hero-images/:imageId', authenticateAdmin, as
 ===================================================== */
 const catalogController = require('../controllers/admin/catalogController');
 
+// Public — returns only images, no auth needed (used by owner + user frontends as defaults)
+router.get('/public/catalog-images', asyncHandler(async (req, res) => {
+  const CatalogEntry = require('../models/CatalogEntry');
+  const { businessType } = req.query;
+  const filter = { isActive: true };
+  if (businessType) filter.businessType = businessType;
+  const entries = await CatalogEntry.find(filter, 'category subCategory name categoryImage defaultImage').lean();
+  const categoryImages = {};
+  const serviceImages  = {};
+  for (const e of entries) {
+    if (e.categoryImage && !categoryImages[e.category]) categoryImages[e.category] = e.categoryImage;
+    if (e.defaultImage) serviceImages[e.name] = e.defaultImage;
+  }
+  res.set('Cache-Control', 'public, max-age=300');
+  res.json({ success: true, data: { categoryImages, serviceImages } });
+}));
+
 router.get(   '/admin/catalog/business-types', authenticateAdmin, asyncHandler(catalogController.getBusinessTypes));
 router.get(   '/admin/catalog/tree',           authenticateAdmin, asyncHandler(catalogController.getTree));
 router.get(   '/admin/catalog/entries',        authenticateAdmin, asyncHandler(catalogController.getEntries));

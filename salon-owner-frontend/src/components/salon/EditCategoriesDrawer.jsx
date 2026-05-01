@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
+import { useCatalogImages } from '../../hooks/useCatalogImages';
 import {
   X, Save, AlertTriangle, Check,
   IndianRupee, Clock, ChevronDown, Sparkles, Zap, Users, ChevronRight, ChevronLeft,
@@ -596,24 +597,10 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, onSaved, salon, updateS
     return { ...saved };
   });
   const [catImgUploading,  setCatImgUploading]  = useState(false);
-  const [adminCatalogMap,  setAdminCatalogMap]  = useState(null);
+  const adminCatalogMap = useCatalogImages(businessType);
 
   useEffect(() => {
     if (isOpen && onOpen) onOpen();
-    if (isOpen) {
-      api.get('/owner/catalog').then(res => {
-        const cats = res.data?.data?.categories || [];
-        const categoryImages = {};
-        const serviceImages  = {};
-        for (const cat of cats) {
-          if (cat.categoryImage) categoryImages[cat.label] = cat.categoryImage;
-          for (const [name, detail] of Object.entries(cat.serviceDetails || {})) {
-            if (detail.defaultImage) serviceImages[name] = detail.defaultImage;
-          }
-        }
-        setAdminCatalogMap({ categoryImages, serviceImages });
-      }).catch(() => {});
-    }
   }, [isOpen]); // eslint-disable-line
 
   useEffect(() => {

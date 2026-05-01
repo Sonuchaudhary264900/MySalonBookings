@@ -2,16 +2,17 @@ import { useState, useRef, useCallback } from 'react';
 import { LayoutGrid } from 'lucide-react';
 import { CATEGORY_CARD_IMAGE_MAP } from '../constants/salonCategories';
 
-export const getCatImg = (label, salon) => {
+export const getCatImg = (label, salon, adminCatalogMap) => {
   const saved = salon?.categoryImages;
   if (saved) {
     const custom = saved instanceof Map ? saved.get(label) : saved[label];
     if (custom) return custom;
   }
+  if (adminCatalogMap?.categoryImages?.[label]) return adminCatalogMap.categoryImages[label];
   return CATEGORY_CARD_IMAGE_MAP[label] || null;
 };
 
-export const getSubImg = (catLabel, subLabel, salon, services) => {
+export const getSubImg = (catLabel, subLabel, salon, services, adminCatalogMap) => {
   const key = `${catLabel}::${subLabel}`;
   const saved = salon?.categoryImages;
   if (saved) {
@@ -19,7 +20,9 @@ export const getSubImg = (catLabel, subLabel, salon, services) => {
     if (custom) return custom;
   }
   const svc = services?.find(s => s.name === subLabel && s.photo);
-  return svc?.photo || null;
+  if (svc?.photo) return svc.photo;
+  if (adminCatalogMap?.serviceImages?.[subLabel]) return adminCatalogMap.serviceImages[subLabel];
+  return null;
 };
 
 const CircleBtn = ({ label, imgSrc, isSelected, isAll, onSelect, accentColor, IconComponent }) => {
@@ -113,7 +116,7 @@ const CircleBtn = ({ label, imgSrc, isSelected, isAll, onSelect, accentColor, Ic
   );
 };
 
-export const CategoryCircleNav = ({ categories, selected, onSelect, salon, accentColor, iconMap = {} }) => (
+export const CategoryCircleNav = ({ categories, selected, onSelect, salon, accentColor, iconMap = {}, adminCatalogMap }) => (
   <>
     <style>{`
       .glw-cat-scroll::-webkit-scrollbar{display:none}
@@ -130,7 +133,7 @@ export const CategoryCircleNav = ({ categories, selected, onSelect, salon, accen
         <CircleBtn
           key={cat}
           label={cat}
-          imgSrc={getCatImg(cat, salon)}
+          imgSrc={getCatImg(cat, salon, adminCatalogMap)}
           isSelected={selected === cat}
           onSelect={() => onSelect(cat)}
           accentColor={accentColor}
@@ -141,7 +144,7 @@ export const CategoryCircleNav = ({ categories, selected, onSelect, salon, accen
   </>
 );
 
-export const SubCircleNav = ({ catLabel, subs, selected, onSelect, salon, services, accentColor, iconMap = {} }) => (
+export const SubCircleNav = ({ catLabel, subs, selected, onSelect, salon, services, accentColor, iconMap = {}, adminCatalogMap }) => (
   <div className="glw-cat-scroll" style={{
     display: 'flex', flexDirection: 'row', flexWrap: 'nowrap',
     overflowX: 'auto', overflowY: 'visible',
@@ -154,7 +157,7 @@ export const SubCircleNav = ({ catLabel, subs, selected, onSelect, salon, servic
       <CircleBtn
         key={sub}
         label={sub}
-        imgSrc={getSubImg(catLabel, sub, salon, services)}
+        imgSrc={getSubImg(catLabel, sub, salon, services, adminCatalogMap)}
         isSelected={selected === sub}
         onSelect={() => onSelect(sub)}
         accentColor={accentColor}
