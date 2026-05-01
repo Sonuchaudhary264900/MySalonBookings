@@ -301,7 +301,6 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
     { to: "/",               label: "Home",            Icon: Home,        auth: false },
     { to: "/reels",          label: "Reels",           Icon: Play,        auth: false },
     { to: "/map",            label: "Map",             Icon: MapPin,      auth: false },
-    { to: "/style-ai",       label: "StyleAI",         Icon: Sparkles,    auth: false, ai: true },
     { to: "/dashboard",      label: "Bookings",        Icon: CalendarDays,auth: true  },
     { to: "/favorites",      label: "Saved",           Icon: Heart,       auth: true  },
     { to: "/my-subscription",label: "My Subscription", Icon: Crown,       auth: true  },
