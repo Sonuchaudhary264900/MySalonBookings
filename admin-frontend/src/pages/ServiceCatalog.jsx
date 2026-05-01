@@ -99,10 +99,12 @@ export default function ServiceCatalog() {
   const [tree,         setTree]         = useState([]);
   const [loading,      setLoading]      = useState(false);
   const [seeding,      setSeeding]      = useState(false);
+  const [seedMenuOpen, setSeedMenuOpen] = useState(false);
   const [overwriting,  setOverwriting]  = useState(false);
   const [nav,          setNav]          = useState(null);  // null | {cat} | {cat, sub}
   const [modal,        setModal]        = useState(null);
   const [search,       setSearch]       = useState('');
+  const seedMenuRef = useRef(null);
 
   const fetchTree = async (bt = activeType) => {
     setLoading(true);
@@ -115,13 +117,29 @@ export default function ServiceCatalog() {
 
   useEffect(() => { fetchTree(activeType); setNav(null); setSearch(''); }, [activeType]);
 
+  useEffect(() => {
+    if (!seedMenuOpen) return;
+    const handler = (e) => { if (seedMenuRef.current && !seedMenuRef.current.contains(e.target)) setSeedMenuOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [seedMenuOpen]);
+
   // ── seed from built-in defaults ───────────────────────────────────────────
-  const handleSeed = async () => {
-    if (!confirm(`Seed default services for "${BUSINESS_TYPES.find(b=>b.value===activeType)?.label}"? Existing entries won't be overwritten.`)) return;
+  const handleSeed = async (overwrite = false) => {
+    setSeedMenuOpen(false);
+    const label = BUSINESS_TYPES.find(b => b.value === activeType)?.label || activeType;
+    const msg = overwrite
+      ? `Seed defaults for "${label}" and OVERWRITE existing entries with default values?`
+      : `Seed defaults for "${label}"? Existing entries will NOT be overwritten.`;
+    if (!confirm(msg)) return;
     setSeeding(true);
     try {
-      const res = await api.post('/admin/catalog/seed', { useDefaults: true });
-      toast.success(`Seeded: ${res.data.data?.inserted} new · ${res.data.data?.skipped} already existed`);
+      const res = await api.post('/admin/catalog/seed', { useDefaults: true, overwrite });
+      const d = res.data.data;
+      const parts = [`${d.inserted} new`];
+      if (d.updated)  parts.push(`${d.updated} updated`);
+      if (d.skipped)  parts.push(`${d.skipped} skipped`);
+      toast.success(`Seeded: ${parts.join(' · ')}`);
       fetchTree(activeType);
     } catch { toast.error('Seed failed'); }
     finally { setSeeding(false); }
@@ -198,11 +216,58 @@ export default function ServiceCatalog() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button style={{ ...S.ghost, padding: '9px 16px', fontSize: 13, color: '#a78bfa', borderColor: 'rgba(167,139,250,0.3)' }}
-            onClick={handleSeed} disabled={seeding}>
-            {seeding ? <RefreshCw size={14} style={{ animation: 'spin .7s linear infinite' }} /> : <Database size={14} />}
-            Seed defaults
-          </button>
+          {/* Seed split button */}
+          <div style={{ position: 'relative' }} ref={seedMenuRef}>
+            <div style={{ display: 'flex' }}>
+              <button
+                onClick={() => handleSeed(false)}
+                disabled={seeding}
+                style={{ ...S.ghost, padding: '9px 14px', fontSize: 13, color: '#a78bfa', borderColor: 'rgba(167,139,250,0.3)', borderRadius: '8px 0 0 8px', borderRight: 'none' }}>
+                {seeding ? <RefreshCw size={14} style={{ animation: 'spin .7s linear infinite' }} /> : <Database size={14} />}
+                Seed defaults
+              </button>
+              <button
+                onClick={() => setSeedMenuOpen(v => !v)}
+                disabled={seeding}
+                style={{ ...S.ghost, padding: '9px 10px', fontSize: 13, color: '#a78bfa', borderColor: 'rgba(167,139,250,0.3)', borderRadius: '0 8px 8px 0' }}>
+                <ChevronRight size={13} style={{ transform: seedMenuOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform .15s' }} />
+              </button>
+            </div>
+            {seedMenuOpen && (
+              <div style={{
+                position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 100,
+                background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 10, overflow: 'hidden', minWidth: 220,
+                boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+              }}>
+                <button
+                  onClick={() => handleSeed(false)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '11px 16px', background: 'none', border: 'none', color: '#e2e8f0', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                >
+                  <Database size={14} color="#a78bfa" />
+                  <div>
+                    <div style={{ fontWeight: 600 }}>Seed — keep existing</div>
+                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>Adds missing entries only</div>
+                  </div>
+                </button>
+                <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
+                <button
+                  onClick={() => handleSeed(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '11px 16px', background: 'none', border: 'none', color: '#fca5a5', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                >
+                  <RefreshCw size={14} color="#f87171" />
+                  <div>
+                    <div style={{ fontWeight: 600 }}>Seed — overwrite existing</div>
+                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>Updates all entries with defaults</div>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* Overwrite images — fills in missing owner images, keeps custom ones */}
           <button

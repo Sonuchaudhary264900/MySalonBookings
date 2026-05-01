@@ -281,22 +281,40 @@ exports.forceOverwriteImages = async (req, res) => {
 exports.seed = async (req, res) => {
   try {
     let entries = req.body?.entries;
+    const overwrite = !!req.body?.overwrite;
     if (!entries && req.body?.useDefaults) {
       entries = require('../../data/defaultCatalog');
     }
     if (!Array.isArray(entries) || !entries.length) {
       return res.status(400).json({ success: false, message: 'entries[] required or use useDefaults:true' });
     }
-    let inserted = 0, skipped = 0;
+    let inserted = 0, updated = 0, skipped = 0;
     for (const item of entries) {
       try {
-        await CatalogEntry.create({ ...item, createdBy: req.admin?._id });
-        inserted++;
+        if (overwrite) {
+          // Upsert: match on businessType + category + subCategory + name
+          const filter = {
+            businessType: item.businessType,
+            category:     item.category,
+            ...(item.subCategory ? { subCategory: item.subCategory } : {}),
+            name:         item.name,
+          };
+          const result = await CatalogEntry.updateOne(
+            filter,
+            { $set: { ...item, createdBy: req.admin?._id } },
+            { upsert: true }
+          );
+          if (result.upsertedCount) inserted++;
+          else updated++;
+        } else {
+          await CatalogEntry.create({ ...item, createdBy: req.admin?._id });
+          inserted++;
+        }
       } catch (e) {
         if (e.code === 11000) { skipped++; } else { throw e; }
       }
     }
-    res.json({ success: true, data: { inserted, skipped } });
+    res.json({ success: true, data: { inserted, updated, skipped } });
   } catch (e) {
     res.status(500).json({ success: false, message: e.message });
   }
