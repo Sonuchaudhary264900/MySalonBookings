@@ -2,6 +2,15 @@
 node_modules/
 **/node_modules/
 
+# Python
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+
+# ML model files (large binary, downloaded at runtime)
+*.task
+
 # Environment variables - NEVER commit these
 .env
 .env.*
