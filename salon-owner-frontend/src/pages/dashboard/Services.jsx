@@ -346,6 +346,64 @@ const Services = () => {
   const [subEnableDuration, setSubEnableDuration] = useState('');
   const [subEnableSaving,   setSubEnableSaving]   = useState(false);
 
+  // Select-specific mode: pick individual services to enable
+  const [selectModeCat,    setSelectModeCat]    = useState(null);  // category label in select mode
+  const [selectedSvcNames, setSelectedSvcNames] = useState(new Set()); // names (existing _id or catalog name)
+  const [selPrice,         setSelPrice]         = useState('');
+  const [selDuration,      setSelDuration]      = useState('');
+  const [selSaving,        setSelSaving]        = useState(false);
+
+  const allSelectableNamesRef = useRef([]);
+
+  const toggleSelectMode = (cat) => {
+    if (selectModeCat === cat) { setSelectModeCat(null); setSelectedSvcNames(new Set()); setSelPrice(''); setSelDuration(''); }
+    else { setSelectModeCat(cat); setSelectedSvcNames(new Set()); setSelPrice(''); setSelDuration(''); setSubEnablePopover(null); }
+  };
+
+  const toggleSelectSvc = (name) => {
+    setSelectedSvcNames(prev => {
+      const next = new Set(prev);
+      next.has(name) ? next.delete(name) : next.add(name);
+      return next;
+    });
+  };
+
+  const handleEnableSelected = async () => {
+    if (selSaving || selectedSvcNames.size === 0) return;
+    setSelSaving(true);
+    const price    = selPrice    !== '' && !isNaN(Number(selPrice))    && Number(selPrice)    >= 0 ? Number(selPrice)    : null;
+    const duration = selDuration !== '' && !isNaN(Number(selDuration)) && Number(selDuration) >= 1 ? Number(selDuration) : null;
+    try {
+      // Existing services to patch
+      const existingIds = (allServices || [])
+        .filter(s => selectedSvcNames.has(s.name) && (s._id || s.id))
+        .map(s => s._id || s.id);
+      if (existingIds.length) {
+        const patch = { isActive: true };
+        if (price    !== null) patch.basePrice = price;
+        if (duration !== null) patch.duration  = duration;
+        await api.patch('/owner/services/bulk', { ids: existingIds, patch });
+      }
+      // Catalog services not yet added
+      const toCreate = (catalogMap[selectModeCat] || [])
+        .filter(cs => selectedSvcNames.has(cs.name) && !addedServiceNames.has(cs.name));
+      if (toCreate.length) {
+        await Promise.all(toCreate.map(cs => createService({
+          name:          cs.name,
+          category:      selectModeCat,
+          isActive:      true,
+          basePrice:     price    ?? cs.defaultPrice    ?? 0,
+          duration:      duration ?? cs.defaultDuration ?? 30,
+          applicableFor: salon?.servedGender === 'male' ? ['male'] : salon?.servedGender === 'female' ? ['female'] : ['male', 'female'],
+        })));
+      }
+      await fetchServices();
+      toast.success(`Enabled ${selectedSvcNames.size} service${selectedSvcNames.size !== 1 ? 's' : ''}`);
+      setSelectModeCat(null); setSelectedSvcNames(new Set()); setSelPrice(''); setSelDuration('');
+    } catch { toast.error('Failed to enable selected services'); }
+    finally { setSelSaving(false); }
+  };
+
   const handleSubcategoryEnableAll = async (cat) => {
     if (subEnableSaving) return;
     setSubEnableSaving(true);
@@ -1214,13 +1272,40 @@ const Services = () => {
                   const renderSvc = (svc) => {
                     const id = svc._id || svc.id;
                     const displaySvc = optimisticMap?.has(id) ? { ...svc, ...optimisticMap.get(id) } : svc;
+                    const isSel = isSelectMode && selectedSvcNames.has(svc.name);
                     return (
-                      <div key={id} style={{
-                        borderRadius: 16,
-                        boxShadow: highlightedIds.has(id) ? '0 0 0 2px #6366f1, 0 0 18px rgba(99,102,241,0.45)' : 'none',
-                        transition: 'box-shadow 0.25s ease',
-                      }}>
-                        <ServiceCard service={displaySvc} onEdit={handleOpenModal} onDelete={handleDelete} onToggle={handleToggle} loading={loading} />
+                      <div
+                        key={id}
+                        style={{
+                          borderRadius: 16, position: 'relative',
+                          boxShadow: isSel
+                            ? '0 0 0 2px #f59e0b, 0 0 18px rgba(245,158,11,0.35)'
+                            : highlightedIds.has(id) ? '0 0 0 2px #6366f1, 0 0 18px rgba(99,102,241,0.45)' : 'none',
+                          transition: 'box-shadow 0.2s ease',
+                          cursor: isSelectMode ? 'pointer' : undefined,
+                        }}
+                        onClick={isSelectMode ? () => toggleSelectSvc(svc.name) : undefined}
+                      >
+                        {/* Checkbox overlay */}
+                        {isSelectMode && (
+                          <div style={{
+                            position: 'absolute', top: 8, left: 8, zIndex: 10,
+                            width: 22, height: 22, borderRadius: 6,
+                            background: isSel ? '#f59e0b' : 'rgba(0,0,0,0.55)',
+                            border: `2px solid ${isSel ? '#f59e0b' : 'rgba(255,255,255,0.4)'}`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            transition: 'all 0.15s',
+                          }}>
+                            {isSel && <CheckCircle2 style={{ width: 13, height: 13, color: '#fff' }} />}
+                          </div>
+                        )}
+                        <ServiceCard
+                          service={displaySvc}
+                          onEdit={isSelectMode ? undefined : handleOpenModal}
+                          onDelete={isSelectMode ? undefined : handleDelete}
+                          onToggle={isSelectMode ? undefined : handleToggle}
+                          loading={loading}
+                        />
                       </div>
                     );
                   };
@@ -1230,17 +1315,53 @@ const Services = () => {
                       ...(menSvcs.length > 0 ? menSvcs.map(svc => renderSvc(svc)) : []),
                       ...(womenSvcs.length > 0 ? womenSvcs.map(svc => renderSvc(svc)) : []),
                     ]),
-                    ...notAdded.map(cs => (
-                      <CatalogCard
-                        key={cs.name}
-                        name={cs.name}
-                        onAdd={() => handleOpenModal({ name: cs.name, category: cat, basePrice: cs.defaultPrice || 0, duration: cs.defaultDuration || 30 })}
-                      />
-                    )),
+                    ...notAdded.map(cs => {
+                      const isSel = isSelectMode && selectedSvcNames.has(cs.name);
+                      return isSelectMode ? (
+                        // In select mode: show as selectable tile instead of + add card
+                        <div
+                          key={cs.name}
+                          onClick={() => toggleSelectSvc(cs.name)}
+                          style={{
+                            borderRadius: 16, position: 'relative', cursor: 'pointer',
+                            background: 'var(--t-card)',
+                            border: `2px solid ${isSel ? '#f59e0b' : 'rgba(255,255,255,0.06)'}`,
+                            boxShadow: isSel ? '0 0 0 1px #f59e0b44' : 'none',
+                            padding: '14px 12px',
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            transition: 'all 0.15s',
+                          }}
+                        >
+                          <div style={{
+                            width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+                            background: isSel ? '#f59e0b' : 'rgba(0,0,0,0.4)',
+                            border: `2px solid ${isSel ? '#f59e0b' : 'rgba(255,255,255,0.3)'}`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}>
+                            {isSel && <CheckCircle2 style={{ width: 13, height: 13, color: '#fff' }} />}
+                          </div>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: isSel ? 'var(--t-text)' : 'var(--t-text-3)' }}>{cs.name}</span>
+                        </div>
+                      ) : (
+                        <CatalogCard
+                          key={cs.name}
+                          name={cs.name}
+                          onAdd={() => handleOpenModal({ name: cs.name, category: cat, basePrice: cs.defaultPrice || 0, duration: cs.defaultDuration || 30 })}
+                        />
+                      );
+                    }),
                   ];
 
-                  const inactiveCount = realSvcs.filter(s => !s.isActive).length;
-                  const isPopoverOpen = subEnablePopover?.cat === cat;
+                  const inactiveCount  = realSvcs.filter(s => !s.isActive).length;
+                  const isPopoverOpen  = subEnablePopover?.cat === cat;
+                  const isSelectMode   = selectModeCat === cat;
+                  // All selectable names for this cat: existing + catalog not added
+                  const allSelectableNames = [
+                    ...(allServices || []).filter(s => s.category === cat).map(s => s.name),
+                    ...(catalogMap[cat] || []).filter(cs => !addedServiceNames.has(cs.name)).map(cs => cs.name),
+                  ];
+                  // Keep ref updated for current select-mode cat
+                  if (isSelectMode) allSelectableNamesRef.current = allSelectableNames;
 
                   return (
                     <div key={cat}>
@@ -1265,7 +1386,7 @@ const Services = () => {
                         </div>
                       )}
 
-                      {/* Enable all subcategory services row */}
+                      {/* Enable all / Select row */}
                       {realSvcs.length > 0 && (
                         <div style={{ position: 'relative', marginBottom: 10 }}>
                           <div className="flex items-center gap-2">
@@ -1274,21 +1395,37 @@ const Services = () => {
                                 {inactiveCount} off
                               </span>
                             )}
+                            {/* Select specific button */}
                             <button
-                              onClick={() => {
-                                if (isPopoverOpen) { setSubEnablePopover(null); setSubEnablePrice(''); }
-                                else { setSubEnablePopover({ cat }); setSubEnablePrice(''); }
-                              }}
+                              onClick={() => toggleSelectMode(cat)}
                               className="ml-auto flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg transition-colors"
                               style={{
-                                background: isPopoverOpen ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.08)',
-                                color: '#818cf8',
-                                border: '1px solid rgba(99,102,241,0.2)',
+                                background: isSelectMode ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.07)',
+                                color: '#f59e0b',
+                                border: `1px solid ${isSelectMode ? 'rgba(245,158,11,0.4)' : 'rgba(245,158,11,0.2)'}`,
                               }}
                             >
-                              <Power className="w-3 h-3" />
-                              Enable all + set price
+                              <CheckCircle2 className="w-3 h-3" />
+                              {isSelectMode ? 'Cancel select' : 'Select'}
                             </button>
+                            {/* Enable all button */}
+                            {!isSelectMode && (
+                              <button
+                                onClick={() => {
+                                  if (isPopoverOpen) { setSubEnablePopover(null); setSubEnablePrice(''); }
+                                  else { setSubEnablePopover({ cat }); setSubEnablePrice(''); }
+                                }}
+                                className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                                style={{
+                                  background: isPopoverOpen ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.08)',
+                                  color: '#818cf8',
+                                  border: '1px solid rgba(99,102,241,0.2)',
+                                }}
+                              >
+                                <Power className="w-3 h-3" />
+                                Enable all
+                              </button>
+                            )}
                           </div>
 
                           {/* Inline popover */}
@@ -1397,6 +1534,88 @@ const Services = () => {
         </div>
 
       </div>
+
+      {/* ── Select mode action bar ───────────────────────────── */}
+      {selectModeCat && (
+        <div style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+          background: 'var(--t-card)', borderTop: '1px solid rgba(245,158,11,0.3)',
+          boxShadow: '0 -8px 32px rgba(0,0,0,0.2)',
+          padding: '14px 20px 20px',
+        }}>
+          <div style={{ maxWidth: 900, margin: '0 auto' }}>
+            {/* Header row */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t-text)' }}>
+                  {selectedSvcNames.size} selected
+                </span>
+                {selectedSvcNames.size > 0 && (
+                  <button
+                    onClick={() => setSelectedSvcNames(new Set())}
+                    style={{ fontSize: 11, color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer' }}
+                  >
+                    Clear
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    const all = new Set(allSelectableNamesRef.current);
+                    setSelectedSvcNames(all);
+                  }}
+                  style={{ fontSize: 11, color: '#f59e0b', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                >
+                  Select all
+                </button>
+              </div>
+              <button
+                onClick={() => { setSelectModeCat(null); setSelectedSvcNames(new Set()); setSelPrice(''); setSelDuration(''); }}
+                style={{ fontSize: 12, color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+            </div>
+
+            {/* Inputs + confirm */}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ flex: '1 1 120px', display: 'flex', alignItems: 'center', gap: 8, background: 'var(--t-input-bg)', border: '1px solid var(--t-border)', borderRadius: 10, padding: '8px 12px' }}>
+                <IndianRupee className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                <input
+                  type="number" min="0"
+                  placeholder="Price (optional)"
+                  value={selPrice}
+                  onChange={e => setSelPrice(e.target.value)}
+                  style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: 13, color: 'var(--t-text)' }}
+                />
+              </div>
+              <div style={{ flex: '1 1 120px', display: 'flex', alignItems: 'center', gap: 8, background: 'var(--t-input-bg)', border: '1px solid var(--t-border)', borderRadius: 10, padding: '8px 12px' }}>
+                <Clock className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                <input
+                  type="number" min="1"
+                  placeholder="Duration mins (optional)"
+                  value={selDuration}
+                  onChange={e => setSelDuration(e.target.value)}
+                  style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: 13, color: 'var(--t-text)' }}
+                />
+              </div>
+              <button
+                onClick={handleEnableSelected}
+                disabled={selSaving || selectedSvcNames.size === 0}
+                style={{
+                  flex: '0 0 auto', padding: '10px 20px', borderRadius: 10,
+                  background: selectedSvcNames.size > 0 ? 'linear-gradient(135deg,#f59e0b,#d97706)' : '#374151',
+                  color: '#fff', border: 'none', fontWeight: 800, fontSize: 13, cursor: selectedSvcNames.size > 0 ? 'pointer' : 'not-allowed',
+                  display: 'flex', alignItems: 'center', gap: 6, opacity: selSaving ? 0.7 : 1,
+                  transition: 'all 0.15s',
+                }}
+              >
+                {selSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Power className="w-3.5 h-3.5" />}
+                Enable {selectedSvcNames.size > 0 ? selectedSvcNames.size : ''} selected
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Service Modal */}
       <ServiceModal
