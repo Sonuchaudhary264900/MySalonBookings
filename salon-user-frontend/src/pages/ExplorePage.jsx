@@ -66,16 +66,62 @@ const BIZ_TYPES = [
   },
 ];
 
+/* ─── Label alias map ──────────────────────────────────────────
+   Maps every label variant from getCategoryOrderForBusinessType
+   to a base UNISEX_CATEGORIES entry + which genders to show.
+───────────────────────────────────────────────────────────── */
+const LABEL_ALIAS = {
+  'Hair Services (Men)':          { base: 'Hair Services',       gender: 'male'   },
+  'Hair Services (Women)':        { base: 'Hair Services',       gender: 'female' },
+  'Skin & Face (Men Grooming)':   { base: 'Skin & Face / Beauty', gender: 'male'  },
+  'Skin & Beauty':                { base: 'Skin & Face / Beauty', gender: 'female'},
+  'Face & Skin':                  { base: 'Skin & Face / Beauty', gender: 'both'  },
+  'Spa & Relaxation':             { base: 'Spa & Massage',       gender: 'female' },
+  'Skin & Derma':                 { base: 'Men Dermatology',     gender: 'both'   },
+  'Makeup Services':              { base: 'Bridal & Events',     gender: 'both'   },
+  'Hairstyling':                  { base: 'Hair Services',       gender: 'both'   },
+  'Draping & Dressing':           { base: 'Bridal & Events',     gender: 'female' },
+  'Pre-Bridal':                   { base: 'Bridal & Events',     gender: 'female' },
+  'Grooming Add-ons':             { base: 'Body Grooming',       gender: 'both'   },
+  'Premium Add-ons':              { base: 'Bridal & Events',     gender: 'both'   },
+};
+
+// Build lookup: base label → UNISEX_CATEGORIES entry
+const BASE_CAT_MAP = {};
+for (const c of UNISEX_CATEGORIES) BASE_CAT_MAP[c.label] = c;
+
+// Resolve any label to its sub-services list
+function resolveSubServices(label) {
+  // Direct match
+  if (BASE_CAT_MAP[label]) {
+    const c = BASE_CAT_MAP[label];
+    return [...new Set([...(c.maleSubServices || []), ...(c.femaleSubServices || [])])];
+  }
+  // Alias match
+  const alias = LABEL_ALIAS[label];
+  if (alias && BASE_CAT_MAP[alias.base]) {
+    const c = BASE_CAT_MAP[alias.base];
+    if (alias.gender === 'male')   return [...(c.maleSubServices   || [])];
+    if (alias.gender === 'female') return [...(c.femaleSubServices || [])];
+    return [...new Set([...(c.maleSubServices || []), ...(c.femaleSubServices || [])])];
+  }
+  // Fallback: empty (still shows the category tile, just 0 subs)
+  return [];
+}
+
+// Resolve icon for a label
+function resolveIcon(label) {
+  if (BASE_CAT_MAP[label]) return BASE_CAT_MAP[label].icon;
+  const alias = LABEL_ALIAS[label];
+  if (alias && BASE_CAT_MAP[alias.base]) return BASE_CAT_MAP[alias.base].icon;
+  return '💈';
+}
+
 /* ─── Helpers ───────────────────────────────────────────────── */
 function getCatImg(label) {
   const imgs = CATEGORY_IMAGES[label];
   if (!imgs) return CATEGORY_CARD_IMAGE_MAP[label] || null;
   return Array.isArray(imgs) ? imgs[0] : imgs;
-}
-
-function getSubServices(cat) {
-  const all = [...(cat.maleSubServices || []), ...(cat.femaleSubServices || [])];
-  return [...new Set(all)];
 }
 
 function SkeletonCard() {
@@ -144,20 +190,27 @@ export default function ExplorePage() {
   const [loading,     setLoading]     = useState(false);
   const [search,      setSearch]      = useState('');
 
-  /* When biz type selected → build category list */
+  /* When biz type selected → build category list from order directly */
   useEffect(() => {
     if (!selBiz) return;
     const order = getCategoryOrderForBusinessType(selBiz.key, 'unisex');
-    const cats  = UNISEX_CATEGORIES.filter(c => order.includes(c.label))
-      .sort((a, b) => order.indexOf(a.label) - order.indexOf(b.label));
-    // Fallback: show all if none match
-    setCats(cats.length ? cats : UNISEX_CATEGORIES);
+    // Use every label from order — even those not in UNISEX_CATEGORIES directly
+    const dedupSeen = new Set();
+    const built = order
+      .filter(label => { if (dedupSeen.has(label)) return false; dedupSeen.add(label); return true; })
+      .map(label => ({
+        key:   label.toLowerCase().replace(/[^a-z0-9]+/g, '_'),
+        label,
+        icon:  resolveIcon(label),
+        subs:  resolveSubServices(label),
+      }));
+    setCats(built);
   }, [selBiz]);
 
   /* When category selected → build sub list */
   useEffect(() => {
     if (!selCat) return;
-    setSubs(getSubServices(selCat));
+    setSubs(selCat.subs || []);
   }, [selCat]);
 
   /* Fetch salons when subcategory selected */
@@ -326,14 +379,14 @@ export default function ExplorePage() {
                   <div style={{ height: 100, overflow: 'hidden', background: '#1a1a1a' }}>
                     {img
                       ? <img src={img} alt={cat.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      : <div style={{ width: '100%', height: '100%', background: `linear-gradient(135deg,${selBiz.bg},${selBiz.border})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>{cat.icon}</div>
+                      : <div style={{ width: '100%', height: '100%', background: `linear-gradient(135deg,${selBiz.bg},${selBiz.border})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>{cat.icon || '💈'}</div>
                     }
                   </div>
                   <div style={{ padding: '10px 12px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t-text)', lineHeight: 1.3 }}>{cat.label}</div>
                       <div style={{ fontSize: 11, color: 'var(--t-text-3)', marginTop: 2 }}>
-                        {getSubServices(cat).length} services
+                        {(cat.subs || []).length} services
                       </div>
                     </div>
                     <ChevronRight size={14} color="var(--t-text-3)" />
@@ -364,7 +417,7 @@ export default function ExplorePage() {
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 36, height: 36, borderRadius: 10, background: selBiz.bg, border: `1px solid ${selBiz.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>
-                    {selCat.icon}
+                    {selCat.icon || '💈'}
                   </div>
                   <span style={{ fontSize: 14, fontWeight: 600 }}>{sub}</span>
                 </div>
