@@ -488,8 +488,9 @@ function Modal({ modal, businessType, onClose, onDone }) {
   const { mode, data } = modal;
   const [saving, setSaving] = useState(false);
   const [name,            setName]            = useState(data.label || data.name || '');
-  const [categoryImage,   setCategoryImage]   = useState(data.categoryImage || '');
-  const [defaultImage,    setDefaultImage]    = useState(data.defaultImage || '');
+  const [categoryImage,    setCategoryImage]    = useState(data.categoryImage || '');
+  const [subCategoryImage, setSubCategoryImage] = useState(data.subCategoryImage || '');
+  const [defaultImage,     setDefaultImage]     = useState(data.defaultImage || '');
   const [priceHints,      setPriceHints]      = useState((data.priceHints || []).join(', '));
   const [durationHints,   setDurationHints]   = useState((data.durationHints || []).join(', '));
   const [defaultDuration, setDefaultDuration] = useState(data.defaultDuration || 30);
@@ -531,7 +532,7 @@ function Modal({ modal, businessType, onClose, onDone }) {
         toast.success('Category updated');
       } else if (isSub && !isEdit) {
         await api.post('/admin/catalog/entries', {
-          businessType, category: data.cat, subCategory: name.trim(),
+          businessType, category: data.cat, subCategory: name.trim(), subCategoryImage,
           name: '__placeholder__', isActive: false, order: 9999,
         });
         toast.success('Sub-category created');
@@ -539,6 +540,9 @@ function Modal({ modal, businessType, onClose, onDone }) {
         const oldSub = data.sub?.label || data.sub;
         if (name.trim() !== oldSub) {
           await api.put('/admin/catalog/rename', { businessType, field: 'subCategory', oldValue: oldSub, newValue: name.trim(), category: data.cat });
+        }
+        if (subCategoryImage !== (data.subCategoryImage || '')) {
+          await api.put('/admin/catalog/rename', { businessType, field: 'subCategoryImage', oldValue: data.subCategoryImage || '', newValue: subCategoryImage, category: data.cat, subCategory: name.trim() });
         }
         toast.success('Sub-category updated');
       } else if (isSvc && !isEdit) {
@@ -580,10 +584,19 @@ function Modal({ modal, businessType, onClose, onDone }) {
             <input style={S.input} value={name} onChange={e => setName(e.target.value)} placeholder="Enter name…" autoFocus />
           </div>
 
-          {(isCat || isSub) && (
+          {isCat && (
             <div>
-              <label style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: 6 }}>Image</label>
+              <label style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: 6 }}>Category Image</label>
               <ImgUploadCell value={categoryImage} onChange={setCategoryImage} />
+            </div>
+          )}
+
+          {isSub && (
+            <div>
+              <label style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: 6 }}>
+                Sub-category Image <span style={{ color: '#64748b', fontWeight: 400 }}>(shown on circle button — different from service images)</span>
+              </label>
+              <ImgUploadCell value={subCategoryImage} onChange={setSubCategoryImage} />
             </div>
           )}
 

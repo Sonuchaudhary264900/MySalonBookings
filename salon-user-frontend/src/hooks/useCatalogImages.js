@@ -15,14 +15,15 @@ export function useCatalogImages(businessType) {
     api.get('/public/catalog-images', { params })
       .then(res => {
         const map = {
-          categoryImages: res.data?.data?.categoryImages || {},
-          serviceImages:  res.data?.data?.serviceImages  || {},
+          categoryImages:    res.data?.data?.categoryImages    || {},
+          subCategoryImages: res.data?.data?.subCategoryImages || {},
+          serviceImages:     res.data?.data?.serviceImages     || {},
         };
         _cache[key] = map;
         setAdminCatalogMap(map);
       })
       .catch(() => {
-        const empty = { categoryImages: {}, serviceImages: {} };
+        const empty = { categoryImages: {}, subCategoryImages: {}, serviceImages: {} };
         _cache[key] = empty;
         setAdminCatalogMap(empty);
       });

@@ -3,10 +3,11 @@ const mongoose = require('mongoose');
 const catalogEntrySchema = new mongoose.Schema({
   businessType:  { type: String, required: true, trim: true },
   category:      { type: String, required: true, trim: true },
-  categoryImage: { type: String, default: '' },
-  subCategory:   { type: String, default: '', trim: true },
-  name:          { type: String, required: true, trim: true },
-  defaultImage:  { type: String, default: '' },
+  categoryImage:    { type: String, default: '' },
+  subCategory:      { type: String, default: '', trim: true },
+  subCategoryImage: { type: String, default: '' }, // image for the subcategory circle (distinct from service card image)
+  name:             { type: String, required: true, trim: true },
+  defaultImage:     { type: String, default: '' },
   priceHints:    [{ type: Number }],
   durationHints: [{ type: Number }],
   defaultDuration: { type: Number, default: 30 },

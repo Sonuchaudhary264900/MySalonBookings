@@ -160,13 +160,24 @@ exports.deleteBatch = async (req, res) => {
 // body: { businessType, field: 'category'|'subCategory'|'categoryImage', oldValue, newValue, category? }
 exports.renameLevel = async (req, res) => {
   try {
-    const { businessType, field, oldValue, newValue, category } = req.body;
+    const { businessType, field, oldValue, newValue, category, subCategory } = req.body;
     if (!businessType || !field || oldValue === undefined || newValue === undefined) {
       return res.status(400).json({ success: false, message: 'businessType, field, oldValue, newValue required' });
     }
-    const filter = { businessType, [field]: oldValue };
-    if (category) filter.category = category;
-    const result = await CatalogEntry.updateMany(filter, { [field]: newValue });
+    // Image-only fields: update by matching category (+ subCategory if provided)
+    const imageOnlyFields = ['categoryImage', 'subCategoryImage'];
+    let filter, update;
+    if (imageOnlyFields.includes(field)) {
+      filter = { businessType };
+      if (category)    filter.category    = category;
+      if (subCategory) filter.subCategory = subCategory;
+      update = { $set: { [field]: newValue } };
+    } else {
+      filter = { businessType, [field]: oldValue };
+      if (category) filter.category = category;
+      update = { $set: { [field]: newValue } };
+    }
+    const result = await CatalogEntry.updateMany(filter, update);
     res.json({ success: true, updated: result.modifiedCount });
   } catch (e) {
     res.status(500).json({ success: false, message: e.message });

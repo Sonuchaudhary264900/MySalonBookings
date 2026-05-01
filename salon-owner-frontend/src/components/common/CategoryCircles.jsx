@@ -22,9 +22,8 @@ export const getSubImg = (catLabel, subLabel, salon, services, adminCatalogMap) 
     const custom = saved instanceof Map ? saved.get(key) : saved[key];
     if (custom) return custom;
   }
-  const svc = services?.find(s => s.name === subLabel && s.photo);
-  if (svc?.photo) return svc.photo;
-  if (adminCatalogMap?.serviceImages?.[subLabel]) return adminCatalogMap.serviceImages[subLabel];
+  // Use dedicated subcategory image first (distinct from service card image)
+  if (adminCatalogMap?.subCategoryImages?.[subLabel]) return adminCatalogMap.subCategoryImages[subLabel];
   return null;
 };
 

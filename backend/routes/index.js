@@ -4416,15 +4416,17 @@ router.get('/public/catalog-images', asyncHandler(async (req, res) => {
   const { businessType } = req.query;
   const filter = { isActive: true };
   if (businessType) filter.businessType = businessType;
-  const entries = await CatalogEntry.find(filter, 'category subCategory name categoryImage defaultImage').lean();
-  const categoryImages = {};
-  const serviceImages  = {};
+  const entries = await CatalogEntry.find(filter, 'category subCategory name categoryImage subCategoryImage defaultImage').lean();
+  const categoryImages    = {};
+  const subCategoryImages = {}; // key: subCategory label
+  const serviceImages     = {};
   for (const e of entries) {
     if (e.categoryImage && !categoryImages[e.category]) categoryImages[e.category] = e.categoryImage;
+    if (e.subCategory && e.subCategoryImage && !subCategoryImages[e.subCategory]) subCategoryImages[e.subCategory] = e.subCategoryImage;
     if (e.defaultImage) serviceImages[e.name] = e.defaultImage;
   }
   res.set('Cache-Control', 'public, max-age=300');
-  res.json({ success: true, data: { categoryImages, serviceImages } });
+  res.json({ success: true, data: { categoryImages, subCategoryImages, serviceImages } });
 }));
 
 router.get(   '/admin/catalog/business-types', authenticateAdmin, asyncHandler(catalogController.getBusinessTypes));
@@ -4472,12 +4474,14 @@ router.get('/owner/catalog', authenticateOwner, asyncHandler(async (req, res) =>
   }
 
   const catMap = {};
+  const subCatImageMap = {}; // subCategory label → image
   for (const e of entries) {
     if (!catMap[e.category]) {
       catMap[e.category] = { label: e.category, categoryImage: e.categoryImage || '', sections: {}, subServices: [] };
     }
     const cat = catMap[e.category];
     if (e.categoryImage && !cat.categoryImage) cat.categoryImage = e.categoryImage;
+    if (e.subCategory && e.subCategoryImage && !subCatImageMap[e.subCategory]) subCatImageMap[e.subCategory] = e.subCategoryImage;
     const sec = e.subCategory || 'All Services';
     if (!cat.sections[sec]) cat.sections[sec] = [];
     cat.sections[sec].push(e.name);
@@ -4499,7 +4503,7 @@ router.get('/owner/catalog', authenticateOwner, asyncHandler(async (req, res) =>
     })(),
   }));
 
-  res.json({ success: true, data: { categories } });
+  res.json({ success: true, data: { categories, subCategoryImages: subCatImageMap } });
 }));
 
 /* =====================================================
