@@ -340,26 +340,52 @@ const Services = () => {
   const [catImgUploading,  setCatImgUploading]  = useState({});
   const [adminCatalogMap,  setAdminCatalogMap]  = useState(null); // { categoryImages:{}, serviceImages:{} }
 
-  // Subcategory quick-enable popover: { cat, price }
-  const [subEnablePopover, setSubEnablePopover] = useState(null); // { cat } | null
-  const [subEnablePrice,   setSubEnablePrice]   = useState('');
-  const [subEnableSaving,  setSubEnableSaving]  = useState(false);
+  // Subcategory quick-enable popover
+  const [subEnablePopover,  setSubEnablePopover]  = useState(null); // { cat } | null
+  const [subEnablePrice,    setSubEnablePrice]    = useState('');
+  const [subEnableDuration, setSubEnableDuration] = useState('');
+  const [subEnableSaving,   setSubEnableSaving]   = useState(false);
 
   const handleSubcategoryEnableAll = async (cat) => {
     if (subEnableSaving) return;
-    const targets = (displayedServices || []).filter(s => (s._id || s.id) && s.category === cat);
-    if (!targets.length) return;
-    const ids   = targets.map(s => s._id || s.id);
-    const patch = { isActive: true };
-    if (subEnablePrice !== '' && !isNaN(Number(subEnablePrice)) && Number(subEnablePrice) >= 0)
-      patch.basePrice = Number(subEnablePrice);
     setSubEnableSaving(true);
+
+    const price    = subEnablePrice    !== '' && !isNaN(Number(subEnablePrice))    && Number(subEnablePrice)    >= 0 ? Number(subEnablePrice)    : null;
+    const duration = subEnableDuration !== '' && !isNaN(Number(subEnableDuration)) && Number(subEnableDuration) >= 1 ? Number(subEnableDuration) : null;
+
     try {
-      await api.patch('/owner/services/bulk', { ids, patch });
+      // 1. Patch existing services in this category → enable + optional price/duration
+      const existing = (allServices || []).filter(s => (s._id || s.id) && s.category === cat);
+      if (existing.length) {
+        const patch = { isActive: true };
+        if (price    !== null) patch.basePrice = price;
+        if (duration !== null) patch.duration  = duration;
+        await api.patch('/owner/services/bulk', { ids: existing.map(s => s._id || s.id), patch });
+      }
+
+      // 2. Create catalog services that haven't been added yet
+      const notAddedNames = (catalogMap[cat] || []).filter(cs => !addedServiceNames.has(cs.name));
+      if (notAddedNames.length) {
+        await Promise.all(
+          notAddedNames.map(cs =>
+            createService({
+              name:          cs.name,
+              category:      cat,
+              isActive:      true,
+              basePrice:     price    ?? cs.defaultPrice    ?? 0,
+              duration:      duration ?? cs.defaultDuration ?? 30,
+              applicableFor: salon?.servedGender === 'male' ? ['male'] : salon?.servedGender === 'female' ? ['female'] : ['male', 'female'],
+            })
+          )
+        );
+      }
+
+      const total = existing.length + notAddedNames.length;
       await fetchServices();
       setSubEnablePopover(null);
       setSubEnablePrice('');
-      toast.success(`Enabled ${targets.length} service${targets.length !== 1 ? 's' : ''}`);
+      setSubEnableDuration('');
+      toast.success(`Enabled ${total} service${total !== 1 ? 's' : ''}`);
     } catch {
       toast.error('Failed to enable services');
     } finally { setSubEnableSaving(false); }
@@ -1279,28 +1305,51 @@ const Services = () => {
                               <div className="text-[13px] font-bold mb-3" style={{ color: 'var(--t-text, #e5e7eb)' }}>
                                 Enable all in <span style={{ color: '#818cf8' }}>{cat}</span>
                               </div>
-                              <div className="flex items-center gap-2 mb-3">
-                                <div className="flex items-center gap-1.5 flex-1 rounded-lg px-3 py-2 border" style={{ background: 'var(--t-input-bg, #111)', borderColor: 'rgba(255,255,255,0.08)' }}>
-                                  <IndianRupee className="w-3.5 h-3.5 text-gray-500 shrink-0" />
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    placeholder="Price (optional)"
-                                    value={subEnablePrice}
-                                    onChange={e => setSubEnablePrice(e.target.value)}
-                                    className="flex-1 bg-transparent text-[13px] outline-none"
-                                    style={{ color: 'var(--t-text, #e5e7eb)' }}
-                                    autoFocus
-                                  />
-                                </div>
+
+                              {/* Price input */}
+                              <div className="flex items-center gap-1.5 rounded-lg px-3 py-2 border mb-2" style={{ background: 'var(--t-input-bg, #111)', borderColor: 'rgba(255,255,255,0.08)' }}>
+                                <IndianRupee className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                                <input
+                                  type="number" min="0"
+                                  placeholder="Price for all (optional)"
+                                  value={subEnablePrice}
+                                  onChange={e => setSubEnablePrice(e.target.value)}
+                                  className="flex-1 bg-transparent text-[13px] outline-none"
+                                  style={{ color: 'var(--t-text, #e5e7eb)' }}
+                                  autoFocus
+                                />
                               </div>
+
+                              {/* Duration input */}
+                              <div className="flex items-center gap-1.5 rounded-lg px-3 py-2 border mb-3" style={{ background: 'var(--t-input-bg, #111)', borderColor: 'rgba(255,255,255,0.08)' }}>
+                                <Clock className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                                <input
+                                  type="number" min="1"
+                                  placeholder="Duration in mins (optional)"
+                                  value={subEnableDuration}
+                                  onChange={e => setSubEnableDuration(e.target.value)}
+                                  className="flex-1 bg-transparent text-[13px] outline-none"
+                                  style={{ color: 'var(--t-text, #e5e7eb)' }}
+                                />
+                              </div>
+
                               <div className="text-[11px] mb-3" style={{ color: 'var(--t-text-3, #6b7280)' }}>
-                                Turns on all {realSvcs.length} services in this group.
-                                {subEnablePrice !== '' ? ' Sets price to ₹' + subEnablePrice + ' for each.' : ' Existing prices kept.'}
+                                {(() => {
+                                  const existCount   = (allServices || []).filter(s => s.category === cat).length;
+                                  const newCount     = (catalogMap[cat] || []).filter(cs => !addedServiceNames.has(cs.name)).length;
+                                  const total        = existCount + newCount;
+                                  return <>
+                                    Turns on <strong style={{ color: 'var(--t-text)' }}>{total} service{total !== 1 ? 's' : ''}</strong>
+                                    {newCount > 0 && <> · creates <strong style={{ color: '#a78bfa' }}>{newCount} new</strong></>}
+                                    {subEnablePrice    !== '' && <> · ₹{subEnablePrice} each</>}
+                                    {subEnableDuration !== '' && <> · {subEnableDuration} min</>}
+                                  </>;
+                                })()}
                               </div>
+
                               <div className="flex gap-2">
                                 <button
-                                  onClick={() => { setSubEnablePopover(null); setSubEnablePrice(''); }}
+                                  onClick={() => { setSubEnablePopover(null); setSubEnablePrice(''); setSubEnableDuration(''); }}
                                   className="flex-1 py-2 rounded-lg text-[13px] font-medium"
                                   style={{ background: 'rgba(255,255,255,0.05)', color: '#9ca3af' }}
                                 >
