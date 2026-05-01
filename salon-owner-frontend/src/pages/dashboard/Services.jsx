@@ -339,6 +339,31 @@ const Services = () => {
   const [selectedSubLabel, setSelectedSubLabel] = useState(null);
   const [catImgUploading,  setCatImgUploading]  = useState({});
 
+  // Subcategory quick-enable popover: { cat, price }
+  const [subEnablePopover, setSubEnablePopover] = useState(null); // { cat } | null
+  const [subEnablePrice,   setSubEnablePrice]   = useState('');
+  const [subEnableSaving,  setSubEnableSaving]  = useState(false);
+
+  const handleSubcategoryEnableAll = async (cat) => {
+    if (subEnableSaving) return;
+    const targets = (displayedServices || []).filter(s => (s._id || s.id) && s.category === cat);
+    if (!targets.length) return;
+    const ids   = targets.map(s => s._id || s.id);
+    const patch = { isActive: true };
+    if (subEnablePrice !== '' && !isNaN(Number(subEnablePrice)) && Number(subEnablePrice) >= 0)
+      patch.basePrice = Number(subEnablePrice);
+    setSubEnableSaving(true);
+    try {
+      await api.patch('/owner/services/bulk', { ids, patch });
+      await fetchServices();
+      setSubEnablePopover(null);
+      setSubEnablePrice('');
+      toast.success(`Enabled ${targets.length} service${targets.length !== 1 ? 's' : ''}`);
+    } catch {
+      toast.error('Failed to enable services');
+    } finally { setSubEnableSaving(false); }
+  };
+
   // Bulk control panel
   const [showBulkSet,    setShowBulkSet]    = useState(false);
   const [bulkEnabled,    setBulkEnabled]    = useState(new Set(['price', 'duration', 'status', 'gender']));
@@ -1171,6 +1196,9 @@ const Services = () => {
                     )),
                   ];
 
+                  const inactiveCount = realSvcs.filter(s => !s.isActive).length;
+                  const isPopoverOpen = subEnablePopover?.cat === cat;
+
                   return (
                     <div key={cat}>
                       {/* Category label — only when showing All (no category selected) */}
@@ -1194,10 +1222,93 @@ const Services = () => {
                         </div>
                       )}
 
+                      {/* Enable all subcategory services row */}
+                      {realSvcs.length > 0 && (
+                        <div style={{ position: 'relative', marginBottom: 10 }}>
+                          <div className="flex items-center gap-2">
+                            {inactiveCount > 0 && (
+                              <span className="text-[11px] text-gray-500 dark:text-gray-500">
+                                {inactiveCount} off
+                              </span>
+                            )}
+                            <button
+                              onClick={() => {
+                                if (isPopoverOpen) { setSubEnablePopover(null); setSubEnablePrice(''); }
+                                else { setSubEnablePopover({ cat }); setSubEnablePrice(''); }
+                              }}
+                              className="ml-auto flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                              style={{
+                                background: isPopoverOpen ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.08)',
+                                color: '#818cf8',
+                                border: '1px solid rgba(99,102,241,0.2)',
+                              }}
+                            >
+                              <Power className="w-3 h-3" />
+                              Enable all + set price
+                            </button>
+                          </div>
+
+                          {/* Inline popover */}
+                          {isPopoverOpen && (
+                            <div
+                              className="absolute right-0 z-20 mt-1 rounded-xl shadow-xl border"
+                              style={{
+                                top: '100%', minWidth: 280,
+                                background: 'var(--t-card, #1a1a2e)',
+                                borderColor: 'rgba(99,102,241,0.25)',
+                                padding: '14px 16px',
+                              }}
+                            >
+                              <div className="text-[13px] font-bold mb-3" style={{ color: 'var(--t-text, #e5e7eb)' }}>
+                                Enable all in <span style={{ color: '#818cf8' }}>{cat}</span>
+                              </div>
+                              <div className="flex items-center gap-2 mb-3">
+                                <div className="flex items-center gap-1.5 flex-1 rounded-lg px-3 py-2 border" style={{ background: 'var(--t-input-bg, #111)', borderColor: 'rgba(255,255,255,0.08)' }}>
+                                  <IndianRupee className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    placeholder="Price (optional)"
+                                    value={subEnablePrice}
+                                    onChange={e => setSubEnablePrice(e.target.value)}
+                                    className="flex-1 bg-transparent text-[13px] outline-none"
+                                    style={{ color: 'var(--t-text, #e5e7eb)' }}
+                                    autoFocus
+                                  />
+                                </div>
+                              </div>
+                              <div className="text-[11px] mb-3" style={{ color: 'var(--t-text-3, #6b7280)' }}>
+                                Turns on all {realSvcs.length} services in this group.
+                                {subEnablePrice !== '' ? ' Sets price to ₹' + subEnablePrice + ' for each.' : ' Existing prices kept.'}
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => { setSubEnablePopover(null); setSubEnablePrice(''); }}
+                                  className="flex-1 py-2 rounded-lg text-[13px] font-medium"
+                                  style={{ background: 'rgba(255,255,255,0.05)', color: '#9ca3af' }}
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  onClick={() => handleSubcategoryEnableAll(cat)}
+                                  disabled={subEnableSaving}
+                                  className="flex-1 py-2 rounded-lg text-[13px] font-bold flex items-center justify-center gap-1.5"
+                                  style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', opacity: subEnableSaving ? 0.6 : 1 }}
+                                >
+                                  {subEnableSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                                  Enable all
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {/* Flat card grid */}
                       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                         {allCards}
                       </div>
+
                     </div>
                   );
                 }).filter(Boolean)}
