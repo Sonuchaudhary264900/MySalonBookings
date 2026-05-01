@@ -1256,6 +1256,15 @@ const Services = () => {
                   const menSvcs      = showSplit ? realSvcs.filter(s => svcGenders(s, cat).includes('male'))   : [];
                   const womenSvcs    = showSplit ? realSvcs.filter(s => svcGenders(s, cat).includes('female')) : [];
 
+                  const inactiveCount  = realSvcs.filter(s => !s.isActive).length;
+                  const isPopoverOpen  = subEnablePopover?.cat === cat;
+                  const isSelectMode   = selectModeCat === cat;
+                  const allSelectableNames = [
+                    ...(allServices || []).filter(s => s.category === cat).map(s => s.name),
+                    ...(catalogMap[cat] || []).filter(cs => !addedServiceNames.has(cs.name)).map(cs => cs.name),
+                  ];
+                  if (isSelectMode) allSelectableNamesRef.current = allSelectableNames;
+
                   const renderSvc = (svc) => {
                     const id = svc._id || svc.id;
                     const displaySvc = optimisticMap?.has(id) ? { ...svc, ...optimisticMap.get(id) } : svc;
@@ -1338,17 +1347,6 @@ const Services = () => {
                       );
                     }),
                   ];
-
-                  const inactiveCount  = realSvcs.filter(s => !s.isActive).length;
-                  const isPopoverOpen  = subEnablePopover?.cat === cat;
-                  const isSelectMode   = selectModeCat === cat;
-                  // All selectable names for this cat: existing + catalog not added
-                  const allSelectableNames = [
-                    ...(allServices || []).filter(s => s.category === cat).map(s => s.name),
-                    ...(catalogMap[cat] || []).filter(cs => !addedServiceNames.has(cs.name)).map(cs => cs.name),
-                  ];
-                  // Keep ref updated for current select-mode cat
-                  if (isSelectMode) allSelectableNamesRef.current = allSelectableNames;
 
                   return (
                     <div key={cat}>
