@@ -4,16 +4,18 @@ import { LayoutGrid, Camera, Loader2 } from 'lucide-react';
 import CategoryIcon from './CategoryIcon';
 import { CATEGORY_CARD_IMAGE_MAP } from '../../constants/salonCategories';
 
-export const getCatImg = (label, salon) => {
+// adminCatalogMap: { categoryImages: { 'Hair Services (Men)': url }, serviceImages: { 'Haircut': url } }
+export const getCatImg = (label, salon, adminCatalogMap) => {
   const saved = salon?.categoryImages;
   if (saved) {
     const custom = saved instanceof Map ? saved.get(label) : saved[label];
     if (custom) return custom;
   }
+  if (adminCatalogMap?.categoryImages?.[label]) return adminCatalogMap.categoryImages[label];
   return CATEGORY_CARD_IMAGE_MAP[label] || null;
 };
 
-export const getSubImg = (catLabel, subLabel, salon, services) => {
+export const getSubImg = (catLabel, subLabel, salon, services, adminCatalogMap) => {
   const key = `${catLabel}::${subLabel}`;
   const saved = salon?.categoryImages;
   if (saved) {
@@ -22,6 +24,7 @@ export const getSubImg = (catLabel, subLabel, salon, services) => {
   }
   const svc = services?.find(s => s.name === subLabel && s.photo);
   if (svc?.photo) return svc.photo;
+  if (adminCatalogMap?.serviceImages?.[subLabel]) return adminCatalogMap.serviceImages[subLabel];
   return null;
 };
 
@@ -229,7 +232,7 @@ export const CircleButton = ({ label, imgSrc, isSelected, isUploading, onSelect,
   );
 };
 
-export const CategoryNav = ({ categories, selectedCatLabel, onSelect, salon, onImageChange, uploadingMap = {}, catRefs, scrollRef }) => (
+export const CategoryNav = ({ categories, selectedCatLabel, onSelect, salon, onImageChange, uploadingMap = {}, catRefs, scrollRef, adminCatalogMap }) => (
   <>
     <style>{`
       @keyframes fadeSlideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
@@ -257,7 +260,7 @@ export const CategoryNav = ({ categories, selectedCatLabel, onSelect, salon, onI
         <CircleButton
           key={label}
           label={label}
-          imgSrc={getCatImg(label, salon)}
+          imgSrc={getCatImg(label, salon, adminCatalogMap)}
           isSelected={selectedCatLabel === label}
           isUploading={!!uploadingMap[label]}
           onSelect={() => onSelect(label)}
@@ -270,7 +273,7 @@ export const CategoryNav = ({ categories, selectedCatLabel, onSelect, salon, onI
   </>
 );
 
-export const SubcategoryRow = ({ catLabel, subs, selectedSubLabel, onSelect, salon, services, onImageChange, uploadingMap = {} }) => (
+export const SubcategoryRow = ({ catLabel, subs, selectedSubLabel, onSelect, salon, services, onImageChange, uploadingMap = {}, adminCatalogMap }) => (
   <div
     className="cat-scroll-owner"
     style={{
@@ -283,7 +286,7 @@ export const SubcategoryRow = ({ catLabel, subs, selectedSubLabel, onSelect, sal
   >
     <CircleButton
       label="All"
-      imgSrc={getCatImg(catLabel, salon)}
+      imgSrc={getCatImg(catLabel, salon, adminCatalogMap)}
       isSelected={!selectedSubLabel}
       onSelect={() => onSelect(null)}
       showEdit={false}
@@ -294,7 +297,7 @@ export const SubcategoryRow = ({ catLabel, subs, selectedSubLabel, onSelect, sal
         <CircleButton
           key={sub}
           label={sub}
-          imgSrc={getSubImg(catLabel, sub, salon, services)}
+          imgSrc={getSubImg(catLabel, sub, salon, services, adminCatalogMap)}
           isSelected={selectedSubLabel === sub}
           isUploading={!!uploadingMap[key]}
           onSelect={() => onSelect(sub)}

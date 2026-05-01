@@ -118,7 +118,7 @@ const ServiceMenuSection = ({ salon }) => {
   const Chip = ({ sub, catName }) => {
     const name  = typeof sub === 'string' ? sub : sub.name;
     const price = typeof sub === 'string' ? null : sub.price;
-    const img   = (typeof sub === 'object' ? sub.photo : null) || (catName ? getCatImg(catName, salon) : null);
+    const img   = (typeof sub === 'object' ? sub.photo : null) || (catName ? getCatImg(catName, salon, adminCatalogMap) : null);
     return (
       <span className="text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full flex items-center gap-1.5 font-medium">
         {img && <span className="w-4 h-4 rounded-full overflow-hidden shrink-0"><img src={img} alt="" className="w-full h-full object-cover" /></span>}
@@ -179,9 +179,9 @@ const ServiceMenuSection = ({ salon }) => {
             <div key={idx}>
               <button type="button" onClick={() => setExpanded(isOpen ? null : idx)}
                 className="w-full flex items-center gap-3 px-5 py-3.5 text-left hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                {getCatImg(cat.name, salon) ? (
+                {getCatImg(cat.name, salon, adminCatalogMap) ? (
                   <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0">
-                    <img src={getCatImg(cat.name, salon)} alt={cat.name} className="w-full h-full object-cover" />
+                    <img src={getCatImg(cat.name, salon, adminCatalogMap)} alt={cat.name} className="w-full h-full object-cover" />
                   </div>
                 ) : (
                   <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center shrink-0">
@@ -338,6 +338,7 @@ const Services = () => {
   const [selectedCatLabel, setSelectedCatLabel] = useState(null);
   const [selectedSubLabel, setSelectedSubLabel] = useState(null);
   const [catImgUploading,  setCatImgUploading]  = useState({});
+  const [adminCatalogMap,  setAdminCatalogMap]  = useState(null); // { categoryImages:{}, serviceImages:{} }
 
   // Subcategory quick-enable popover: { cat, price }
   const [subEnablePopover, setSubEnablePopover] = useState(null); // { cat } | null
@@ -397,6 +398,20 @@ const Services = () => {
       catch { setError('Failed to load services'); }
       finally { setLoading(false); }
       try { await fetchSalon(); } catch {}
+      // Load admin-uploaded catalog images as defaults
+      try {
+        const res = await api.get('/owner/catalog');
+        const cats = res.data?.data?.categories || [];
+        const categoryImages = {};
+        const serviceImages  = {};
+        for (const cat of cats) {
+          if (cat.categoryImage) categoryImages[cat.label] = cat.categoryImage;
+          for (const [name, detail] of Object.entries(cat.serviceDetails || {})) {
+            if (detail.defaultImage) serviceImages[name] = detail.defaultImage;
+          }
+        }
+        setAdminCatalogMap({ categoryImages, serviceImages });
+      } catch {}
     };
     load();
   }, []);
@@ -810,6 +825,7 @@ const Services = () => {
             uploadingMap={catImgUploading}
             catRefs={catRefs}
             scrollRef={catNavRef}
+            adminCatalogMap={adminCatalogMap}
           />
         )}
 
@@ -826,6 +842,7 @@ const Services = () => {
             services={allServices}
             onImageChange={handleCatImageChange}
             uploadingMap={catImgUploading}
+            adminCatalogMap={adminCatalogMap}
           />
           </div>
         )}
@@ -1204,9 +1221,9 @@ const Services = () => {
                       {/* Category label — only when showing All (no category selected) */}
                       {!selectedCatLabel && (
                         <div className="flex items-center gap-2.5 mb-3">
-                          {getCatImg(cat, salon) ? (
+                          {getCatImg(cat, salon, adminCatalogMap) ? (
                             <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 ring-1 ring-white/10">
-                              <img src={getCatImg(cat, salon)} alt={cat} className="w-full h-full object-cover" />
+                              <img src={getCatImg(cat, salon, adminCatalogMap)} alt={cat} className="w-full h-full object-cover" />
                             </div>
                           ) : (
                             <div className="w-7 h-7 rounded-full bg-indigo-900/40 flex items-center justify-center shrink-0">
