@@ -42,6 +42,7 @@ const MapView                 = lazy(() => import("./pages/MapView"));
 const Notifications           = lazy(() => import("./pages/Notifications"));
 const Chat                    = lazy(() => import("./pages/Chat"));
 const HairstylePage           = lazy(() => import("./pages/HairstylePage"));
+const ExplorePage             = lazy(() => import("./pages/ExplorePage"));
 
 // ── Page loading fallback ──────────────────────────────────────
 function PageLoader() {
@@ -137,6 +138,7 @@ function AppLayout({ notifOpen, setNotifOpen }) {
             <Route path="/notifications"               element={<Notifications />} />
             <Route path="/chat/:bookingId"             element={<Chat />} />
             <Route path="/style-ai"                    element={<HairstylePage />} />
+            <Route path="/explore"                     element={<ExplorePage />} />
 
             {/* 404 */}
             <Route path="*" element={

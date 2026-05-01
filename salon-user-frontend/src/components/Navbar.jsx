@@ -4,7 +4,7 @@ import { useNotifications } from "../context/NotificationContext";
 import { useTheme } from "../context/ThemeContext";
 import {
   Home, Play, CalendarDays, Heart, Bell, CheckCircle, ChevronLeft,
-  Sun, Moon, LogOut, User, Bookmark, Scissors, Settings, Menu, X, Crown, MapPin, Sparkles,
+  Sun, Moon, LogOut, User, Bookmark, Scissors, Settings, Menu, X, Crown, MapPin, Sparkles, Compass,
 } from "lucide-react";
 
 function getUserInitial() {
@@ -299,6 +299,7 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
 
   const NAV_LINKS = [
     { to: "/",               label: "Home",            Icon: Home,        auth: false },
+    { to: "/explore",        label: "Explore",         Icon: Compass,     auth: false },
     { to: "/reels",          label: "Reels",           Icon: Play,        auth: false },
     { to: "/map",            label: "Map",             Icon: MapPin,      auth: false },
     { to: "/dashboard",      label: "Bookings",        Icon: CalendarDays,auth: true  },
