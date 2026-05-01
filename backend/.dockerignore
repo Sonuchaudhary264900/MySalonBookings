@@ -1,8 +1,0 @@
-node_modules
-.env
-*.log
-.git
-tests
-scripts
-README.md
-*.md
