@@ -491,9 +491,6 @@ function Modal({ modal, businessType, onClose, onDone }) {
   const [categoryImage,    setCategoryImage]    = useState(data.categoryImage || '');
   const [subCategoryImage, setSubCategoryImage] = useState(data.subCategoryImage || '');
   const [defaultImage,     setDefaultImage]     = useState(data.defaultImage || '');
-  const [priceHints,      setPriceHints]      = useState((data.priceHints || []).join(', '));
-  const [durationHints,   setDurationHints]   = useState((data.durationHints || []).join(', '));
-  const [defaultDuration, setDefaultDuration] = useState(data.defaultDuration || 30);
 
   const isEdit = mode.startsWith('edit');
   const isCat  = mode.includes('cat');
@@ -509,7 +506,6 @@ function Modal({ modal, businessType, onClose, onDone }) {
     'edit-svc': `Edit Service`,
   };
 
-  const parseNums = s => (s||'').split(',').map(v=>parseFloat(v.trim())).filter(n=>!isNaN(n));
 
   const handleSave = async () => {
     if (!name.trim()) return toast.error('Name is required');
@@ -548,15 +544,12 @@ function Modal({ modal, businessType, onClose, onDone }) {
       } else if (isSvc && !isEdit) {
         await api.post('/admin/catalog/entries', {
           businessType, category: data.cat, subCategory: data.sub, name: name.trim(),
-          defaultImage, priceHints: parseNums(priceHints), durationHints: parseNums(durationHints),
-          defaultDuration: parseInt(defaultDuration) || 30,
+          defaultImage,
         });
         toast.success('Service created');
       } else if (isSvc && isEdit) {
         await api.put(`/admin/catalog/entries/${data._id}`, {
           name: name.trim(), defaultImage,
-          priceHints: parseNums(priceHints), durationHints: parseNums(durationHints),
-          defaultDuration: parseInt(defaultDuration) || 30,
         });
         toast.success('Service updated');
       }
@@ -601,26 +594,10 @@ function Modal({ modal, businessType, onClose, onDone }) {
           )}
 
           {isSvc && (
-            <>
-              <div>
-                <label style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: 6 }}>Default Image</label>
-                <ImgUploadCell value={defaultImage} onChange={setDefaultImage} />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div>
-                  <label style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: 6 }}>Price Hints ₹ (comma-sep.)</label>
-                  <input style={S.input} value={priceHints} onChange={e => setPriceHints(e.target.value)} placeholder="100, 200, 500" />
-                </div>
-                <div>
-                  <label style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: 6 }}>Duration Hints min (comma-sep.)</label>
-                  <input style={S.input} value={durationHints} onChange={e => setDurationHints(e.target.value)} placeholder="15, 30, 45" />
-                </div>
-              </div>
-              <div>
-                <label style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: 6 }}>Default Duration (min)</label>
-                <input type="number" style={{ ...S.input, maxWidth: 120 }} value={defaultDuration} onChange={e => setDefaultDuration(e.target.value)} />
-              </div>
-            </>
+            <div>
+              <label style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: 6 }}>Default Image</label>
+              <ImgUploadCell value={defaultImage} onChange={setDefaultImage} />
+            </div>
           )}
         </div>
 
