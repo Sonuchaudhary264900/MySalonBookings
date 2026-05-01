@@ -214,7 +214,8 @@ export default function GlowLooxProfile() {
   const [bannerIdx,    setBannerIdx]    = useState(0);
 
   /* ── service catalog (from API, fallback to hardcoded) ── */
-  const [catalogCats, setCatalogCats] = useState(null); // null = not yet loaded
+  const [catalogCats,    setCatalogCats]    = useState(null); // null = not yet loaded
+  const [adminCatalogMap, setAdminCatalogMap] = useState(null); // { categoryImages:{}, serviceImages:{} }
 
   /* ── service drill-down nav ── */
   const [svcNavStack, setSvcNavStack] = useState([]);
@@ -325,6 +326,16 @@ export default function GlowLooxProfile() {
       const cats = res.data?.data?.categories;
       if (cats && cats.length > 0) {
         setCatalogCats(cats);
+        // Build admin image map
+        const categoryImages = {};
+        const serviceImages  = {};
+        for (const cat of cats) {
+          if (cat.categoryImage) categoryImages[cat.label] = cat.categoryImage;
+          for (const [name, detail] of Object.entries(cat.serviceDetails || {})) {
+            if (detail.defaultImage) serviceImages[name] = detail.defaultImage;
+          }
+        }
+        setAdminCatalogMap({ categoryImages, serviceImages });
       } else {
         setCatalogCats(getCategoriesForSalonType(salon.businessType || 'salon', salon.servedGender || 'unisex'));
       }
@@ -1307,6 +1318,7 @@ export default function GlowLooxProfile() {
             selectedCatLabel={profCat}
             onSelect={cat => { setProfCat(cat); setProfSub(null); }}
             salon={salon}
+            adminCatalogMap={adminCatalogMap}
           />
           {profCat && profCatSubs.length > 0 && (
             <SubcategoryRow
@@ -1316,6 +1328,7 @@ export default function GlowLooxProfile() {
               onSelect={setProfSub}
               salon={salon}
               services={services}
+              adminCatalogMap={adminCatalogMap}
             />
           )}
         </div>
@@ -1329,7 +1342,7 @@ export default function GlowLooxProfile() {
             const minPrice    = addedInCat.length ? Math.min(...addedInCat.map(s => s.basePrice || s.price || 0)) : null;
             const catTotal    = menuCat?.subServices?.length || 0;
             const CatIcon     = CAT_ICONS[cat] || Scissors;
-            const catImg      = CATEGORY_CARD_IMAGE_MAP[cat] || null;
+            const catImg      = getCatImg(cat, salon, adminCatalogMap);
             const hasAny      = addedInCat.length > 0;
 
             return (

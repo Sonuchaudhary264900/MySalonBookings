@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import CategoryIcon from '../common/CategoryIcon';
 import toast from 'react-hot-toast';
+import api from '../../services/api';
 import { uploadServicePhoto } from '../../services/salonService';
 import {
   MALE_CATEGORIES, MALE_OPTIONALS,
@@ -285,6 +286,7 @@ const CategoryCard = ({
   customImage, onCatImageChange,
   suggested = false,
   onNavigate, alwaysExpand = false,
+  adminCatalogMap,
 }) => {
   const count    = sel.subServices.length;
   const isActive = sel.enabled;
@@ -294,7 +296,7 @@ const CategoryCard = ({
   const catFileRef = useRef(null);
   const [activeSec, setActiveSec] = useState(null);
 
-  const chipImg = customImage || CATEGORY_CARD_IMAGE_MAP[cat.label] || null;
+  const chipImg = customImage || adminCatalogMap?.categoryImages?.[cat.label] || CATEGORY_CARD_IMAGE_MAP[cat.label] || null;
 
   const renderChips = (subs, genderCtx = null) =>
     subs.map(sub => {
@@ -314,7 +316,7 @@ const CategoryCard = ({
       );
     });
 
-  const displayImg = customImage || CATEGORY_CARD_IMAGE_MAP[cat.label];
+  const displayImg = customImage || adminCatalogMap?.categoryImages?.[cat.label] || CATEGORY_CARD_IMAGE_MAP[cat.label];
 
   return (
     <div className={`rounded-2xl border transition-all duration-200 overflow-hidden
@@ -593,9 +595,26 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, onSaved, salon, updateS
     if (saved instanceof Map) return Object.fromEntries(saved);
     return { ...saved };
   });
-  const [catImgUploading, setCatImgUploading] = useState(false);
+  const [catImgUploading,  setCatImgUploading]  = useState(false);
+  const [adminCatalogMap,  setAdminCatalogMap]  = useState(null);
 
-  useEffect(() => { if (isOpen && onOpen) onOpen(); }, [isOpen]);
+  useEffect(() => {
+    if (isOpen && onOpen) onOpen();
+    if (isOpen) {
+      api.get('/owner/catalog').then(res => {
+        const cats = res.data?.data?.categories || [];
+        const categoryImages = {};
+        const serviceImages  = {};
+        for (const cat of cats) {
+          if (cat.categoryImage) categoryImages[cat.label] = cat.categoryImage;
+          for (const [name, detail] of Object.entries(cat.serviceDetails || {})) {
+            if (detail.defaultImage) serviceImages[name] = detail.defaultImage;
+          }
+        }
+        setAdminCatalogMap({ categoryImages, serviceImages });
+      }).catch(() => {});
+    }
+  }, [isOpen]); // eslint-disable-line
 
   useEffect(() => {
     if (!isOpen || !salon) return;
@@ -649,7 +668,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, onSaved, salon, updateS
       }));
     } else {
       const cat = currentCats.find(c => c.key === catKey);
-      const catDefaultImage = cat ? (customCatImages[cat.label] || CATEGORY_CARD_IMAGE_MAP[cat.label] || null) : null;
+      const catDefaultImage = cat ? (customCatImages[cat.label] || adminCatalogMap?.categoryImages?.[cat.label] || CATEGORY_CARD_IMAGE_MAP[cat.label] || null) : null;
       setPriceModal({ open: true, catKey, subName: sub, price: '', duration: '', genderContext, catDefaultImage });
       setTimeout(() => priceRef.current?.focus(), 80);
     }
@@ -845,9 +864,9 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, onSaved, salon, updateS
                 {/* Changeable bridal image */}
                 <div className="relative w-10 h-10 rounded-xl overflow-hidden shrink-0 shadow-md shadow-pink-500/25 group cursor-pointer"
                   onClick={() => bridalBadgeRef.current?.click()}>
-                  {(customCatImages['Bridal & Events'] || CATEGORY_CARD_IMAGE_MAP['Bridal & Events']) ? (
+                  {(customCatImages['Bridal & Events'] || adminCatalogMap?.categoryImages?.['Bridal & Events'] || CATEGORY_CARD_IMAGE_MAP['Bridal & Events']) ? (
                     <img
-                      src={customCatImages['Bridal & Events'] || CATEGORY_CARD_IMAGE_MAP['Bridal & Events']}
+                      src={customCatImages['Bridal & Events'] || adminCatalogMap?.categoryImages?.['Bridal & Events'] || CATEGORY_CARD_IMAGE_MAP['Bridal & Events']}
                       alt="Bridal"
                       className="w-full h-full object-cover"
                     />
@@ -930,6 +949,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, onSaved, salon, updateS
                       onCatImageChange={handleCatImageChange}
                       suggested={!!cat.suggested}
                       onNavigate={setSelectedCatKey}
+                      adminCatalogMap={adminCatalogMap}
                     />
                   );
                 })}
@@ -1015,6 +1035,7 @@ const EditCategoriesDrawer = ({ isOpen, onClose, onOpen, onSaved, salon, updateS
                       customImage={customCatImages[cat.label] || null}
                       onCatImageChange={handleCatImageChange}
                       onNavigate={() => {}}
+                      adminCatalogMap={adminCatalogMap}
                     />
                   ) : (
                     <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
