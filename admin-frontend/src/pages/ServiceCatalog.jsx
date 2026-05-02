@@ -1,15 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  Plus, Pencil, Trash2, Check, X, RefreshCw,
-  Layers, Image as ImageIcon, Database, AlertTriangle,
-  ChevronRight, Camera, Scissors, User, Sparkles, Droplets,
-  Leaf, Star, Palette, Baby, Home, Zap, Activity,
-  Stethoscope, Heart, Tag, LayoutGrid,
+  Plus, Pencil, Trash2, Check, X, RefreshCw, ChevronDown, ChevronRight,
+  Layers, ImageIcon, Database, Camera, Scissors, User, Sparkles, Droplets,
+  Leaf, Star, Palette, Baby, Home, Zap, Activity, Stethoscope, Heart, Tag,
+  FolderOpen, FolderClosed, LayoutGrid,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../api';
 
-/* ─── Category icon map ──────────────────────────────────────────────────────── */
+/* ── icon map ────────────────────────────────────────────────────────────────── */
 const ICON_MAP = {
   'Hair Services': Scissors, 'Hair Services (Men)': Scissors, 'Hair Services (Women)': Scissors,
   'Beard & Grooming': User,
@@ -19,297 +18,159 @@ const ICON_MAP = {
   'Spa & Massage': Leaf, 'Spa & Relaxation': Leaf, 'Spa & Wellness': Leaf,
   'Body Grooming': Activity,
   'Bridal & Events': Star, 'Bridal Makeup': Star,
-  'Makeup & Styling': Palette, 'Makeup': Palette,
-  'Hair Coloring & Highlights': Palette,
-  'Kids Services': Baby,
-  'At-Home Services': Home,
+  'Makeup & Styling': Palette, 'Makeup': Palette, 'Hair Coloring & Highlights': Palette,
+  'Kids Services': Baby, 'At-Home Services': Home,
   'Advanced Hair Treatments': Zap, 'Advanced Skin Treatments': Zap,
   'Wellness & Therapy': Heart,
 };
 const getCatIcon = (label) => ICON_MAP[label] || Tag;
 
 const BUSINESS_TYPES = [
-  { value: 'barbershop',    label: 'Barbershop',      emoji: '✂️' },
-  { value: 'salon',         label: 'Salon',            emoji: '💇' },
-  { value: 'spa_wellness',  label: 'Spa & Wellness',   emoji: '🌿' },
-  { value: 'makeup_bridal', label: 'Makeup & Bridal',  emoji: '💄' },
-  { value: 'skin_derma',    label: 'Skin & Derma',     emoji: '🧴' },
+  { value: 'barbershop',    label: 'Barbershop',     icon: Scissors },
+  { value: 'salon',         label: 'Salon',           icon: Sparkles },
+  { value: 'spa_wellness',  label: 'Spa & Wellness',  icon: Leaf     },
+  { value: 'makeup_bridal', label: 'Makeup & Bridal', icon: Star     },
+  { value: 'skin_derma',    label: 'Skin & Derma',    icon: Droplets },
 ];
 
-/* ─── Style tokens ───────────────────────────────────────────────────────────── */
+/* ── style tokens ────────────────────────────────────────────────────────────── */
 const S = {
   input: {
     background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
     borderRadius: 10, padding: '8px 12px', color: '#f1f5f9', fontSize: 13,
     outline: 'none', width: '100%', boxSizing: 'border-box',
   },
-  btn: (color = '#6366f1') => ({
-    background: color, border: 'none', borderRadius: 10, padding: '8px 16px',
+  btn: (c = '#6366f1') => ({
+    background: c, border: 'none', borderRadius: 10, padding: '8px 16px',
     color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
     display: 'flex', alignItems: 'center', gap: 6,
   }),
   ghost: {
-    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: 8, padding: '6px 12px', color: '#94a3b8', fontSize: 12,
-    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)',
+    borderRadius: 7, padding: '4px 10px', color: '#94a3b8', fontSize: 11,
+    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
   },
   danger: {
-    background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)',
-    borderRadius: 8, padding: '6px 12px', color: '#f87171', fontSize: 12,
+    background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)',
+    borderRadius: 7, padding: '4px 8px', color: '#f87171', fontSize: 11,
     cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
   },
 };
 
-/* ─── Image upload helper (used in modal) ────────────────────────────────────── */
+/* ── branch colour ───────────────────────────────────────────────────────────── */
+const BRANCH = 'rgba(99,102,241,0.28)';
+const BRANCH_STRONG = 'rgba(99,102,241,0.55)';
+
+/* ── inline image upload ─────────────────────────────────────────────────────── */
 function ImgUploadCell({ value, onChange }) {
   const ref = useRef();
-  const [uploading, setUploading] = useState(false);
-  const [preview,   setPreview]   = useState(value || '');
-  const handleFile = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
+  const [up, setUp] = useState(false);
+  const [prev, setPrev] = useState(value || '');
+  const pick = async (e) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    setUp(true);
     try {
-      const form = new FormData();
-      form.append('image', file);
-      const res = await api.post('/admin/catalog/upload-image', form, { headers: { 'Content-Type': 'multipart/form-data' } });
-      const url = res.data.data?.url;
-      setPreview(url); onChange(url);
+      const fd = new FormData(); fd.append('image', file);
+      const r = await api.post('/admin/catalog/upload-image', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const url = r.data.data?.url; setPrev(url); onChange(url);
     } catch { toast.error('Upload failed'); }
-    finally { setUploading(false); e.target.value = ''; }
+    finally { setUp(false); e.target.value = ''; }
   };
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      {preview
-        ? <img src={preview} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', border: '1px solid rgba(255,255,255,0.15)', flexShrink: 0 }} />
-        : <div style={{ width: 44, height: 44, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <ImageIcon size={16} color="#64748b" />
+      {prev
+        ? <img src={prev} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', border: '1px solid rgba(255,255,255,0.12)', flexShrink: 0 }} />
+        : <div style={{ width: 44, height: 44, borderRadius: 8, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <ImageIcon size={15} color="#475569" />
           </div>}
-      <button style={S.ghost} onClick={() => ref.current?.click()} disabled={uploading}>
-        {uploading ? <RefreshCw size={12} style={{ animation: 'spin .7s linear infinite' }} /> : <Camera size={12} />}
-        {preview ? 'Change' : 'Upload'}
+      <button style={S.ghost} onClick={() => ref.current?.click()} disabled={up}>
+        {up ? <RefreshCw size={11} style={{ animation: 'spin .7s linear infinite' }} /> : <Camera size={11} />}
+        {prev ? 'Change' : 'Upload'}
       </button>
-      {preview && <button style={{ ...S.ghost, padding: '6px 8px' }} onClick={() => { setPreview(''); onChange(''); }}><X size={12} /></button>}
-      <input ref={ref} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} />
+      {prev && <button style={{ ...S.ghost, padding: '4px 7px' }} onClick={() => { setPrev(''); onChange(''); }}><X size={11} /></button>}
+      <input ref={ref} type="file" accept="image/*" style={{ display: 'none' }} onChange={pick} />
     </div>
   );
 }
 
-/* ─── AdminCircle — matches owner CircleButton style exactly ─────────────────── */
-function AdminCircle({ label, imgSrc, isSelected, onClick, onUpload, onEdit, onDelete, uploading }) {
-  const [hovered, setHovered] = useState(false);
-  const [broken,  setBroken]  = useState(false);
-  const fileRef = useRef(null);
-  const showImg = !!imgSrc && !broken;
+/* ── circle thumbnail (small, tree-sized) ────────────────────────────────────── */
+function NodeCircle({ label, imgSrc, size = 34, selected }) {
+  const [broken, setBroken] = useState(false);
   const Icon = getCatIcon(label);
-
+  const showImg = !!imgSrc && !broken;
   return (
-    <div
-      style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center',
-        gap: 0, padding: '0 10px', flexShrink: 0, cursor: 'pointer', overflow: 'visible',
-        opacity: isSelected || hovered ? 1 : 0.68,
-        transform: isSelected ? 'translateY(-6px) scale(1.06)' : hovered ? 'scale(1.03)' : 'scale(1)',
-        transition: 'transform 0.22s cubic-bezier(0.4,0,0.2,1), opacity 0.18s ease',
-        userSelect: 'none',
-      }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      {/* Circle with badges */}
-      <div style={{ position: 'relative' }}>
-        {/* Main circle */}
-        <div
-          onClick={onClick}
-          style={{
-            width: 54, height: 54, borderRadius: '50%', overflow: 'hidden',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            background: showImg ? '#111' : isSelected
-              ? 'linear-gradient(145deg,#818cf8 0%,#6366f1 40%,#4f46e5 100%)'
-              : 'rgba(26,26,46,0.9)',
-            boxShadow: isSelected
-              ? '0 0 0 3px #818cf8, 0 0 0 6px rgba(99,102,241,0.28), 0 8px 24px rgba(99,102,241,0.45)'
-              : '0 0 0 1.5px rgba(255,255,255,0.09)',
-            transition: 'all 0.22s cubic-bezier(0.4,0,0.2,1)',
-          }}>
-          {showImg
-            ? <img src={imgSrc} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => setBroken(true)} />
-            : <Icon size={20} color={isSelected ? '#fff' : '#6366f1'} />}
-          {uploading && (
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <RefreshCw size={14} color="#fff" style={{ animation: 'spin .7s linear infinite' }} />
-            </div>
-          )}
-        </div>
-
-        {/* Camera badge — bottom right */}
-        <button
-          onClick={e => { e.stopPropagation(); fileRef.current?.click(); }}
-          title="Set photo"
-          style={{
-            position: 'absolute', bottom: -2, right: -3, width: 20, height: 20,
-            borderRadius: '50%', background: '#6366f1', border: '2px solid #0a0f1e',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', opacity: hovered ? 1 : 0.55,
-            transition: 'opacity .15s',
-          }}>
-          <Camera size={9} color="#fff" />
-        </button>
-
-        {/* Edit badge — top left (only if onEdit provided) */}
-        {onEdit && (
-          <button
-            onClick={e => { e.stopPropagation(); onEdit(); }}
-            title="Rename"
-            style={{
-              position: 'absolute', top: -3, left: -3, width: 18, height: 18,
-              borderRadius: '50%', background: '#1e293b', border: '1.5px solid rgba(255,255,255,0.18)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', opacity: hovered ? 1 : 0, transition: 'opacity .15s',
-            }}>
-            <Pencil size={8} color="#94a3b8" />
-          </button>
-        )}
-
-        {/* Delete badge — top right */}
-        <button
-          onClick={e => { e.stopPropagation(); onDelete(); }}
-          title="Delete"
-          style={{
-            position: 'absolute', top: -3, right: -3, width: 18, height: 18,
-            borderRadius: '50%', background: 'rgba(239,68,68,0.9)', border: '2px solid #0a0f1e',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', opacity: hovered ? 1 : 0, transition: 'opacity .15s',
-          }}>
-          <X size={8} color="#fff" />
-        </button>
-
-        <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
-          onChange={e => { const f = e.target.files?.[0]; if (f) onUpload(f); e.target.value = ''; }} />
-      </div>
-
-      {/* Selection indicator dot */}
-      <div style={{
-        width: 20, height: 3, borderRadius: 999, marginTop: 6,
-        background: isSelected ? 'linear-gradient(90deg,#818cf8,#6366f1)' : 'transparent',
-        boxShadow: isSelected ? '0 0 8px rgba(99,102,241,0.8)' : 'none',
-        transition: 'all 0.22s',
-      }} />
-
-      {/* Label */}
-      <span style={{
-        fontSize: 11, fontWeight: isSelected ? 700 : 500, marginTop: 4,
-        color: isSelected ? '#fff' : '#94a3b8',
-        whiteSpace: 'nowrap', maxWidth: 72, overflow: 'hidden', textOverflow: 'ellipsis',
-        textAlign: 'center', lineHeight: 1.2, transition: 'color 0.22s',
-      }}>
-        {label}
-      </span>
+    <div style={{
+      width: size, height: size, borderRadius: '50%', flexShrink: 0, overflow: 'hidden',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: showImg ? '#111' : selected
+        ? 'linear-gradient(145deg,#818cf8,#6366f1,#4f46e5)'
+        : 'rgba(26,26,48,0.95)',
+      boxShadow: selected
+        ? '0 0 0 2px #818cf8, 0 0 0 4px rgba(99,102,241,0.25), 0 4px 16px rgba(99,102,241,0.4)'
+        : '0 0 0 1.5px rgba(255,255,255,0.08)',
+      transition: 'all .2s',
+    }}>
+      {showImg
+        ? <img src={imgSrc} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => setBroken(true)} />
+        : <Icon size={size * 0.42} color={selected ? '#fff' : '#6366f1'} />}
     </div>
   );
 }
 
-/* ─── Horizontal scroll row for circles ─────────────────────────────────────── */
-function CircleRow({ children }) {
+/* ── service thumbnail ───────────────────────────────────────────────────────── */
+function SvcThumb({ imgSrc }) {
+  const [broken, setBroken] = useState(false);
   return (
-    <>
-      <style>{`.circle-scroll::-webkit-scrollbar{display:none}`}</style>
-      <div className="circle-scroll" style={{
-        display: 'flex', flexDirection: 'row', flexWrap: 'nowrap',
-        overflowX: 'auto', overflowY: 'visible', scrollbarWidth: 'none',
-        WebkitOverflowScrolling: 'touch', paddingBottom: 8, paddingTop: 4,
-      }}>
-        {children}
-      </div>
-    </>
-  );
-}
-
-/* ─── Tree branch connector between levels ───────────────────────────────────── */
-function TreeBranch({ from, to, count }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', margin: '4px 0 4px 36px' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 16, flexShrink: 0 }}>
-        <div style={{ width: 2, height: 14, background: 'linear-gradient(to bottom, rgba(99,102,241,0.7), rgba(99,102,241,0.4))' }} />
-        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#6366f1', boxShadow: '0 0 6px rgba(99,102,241,0.6)', flexShrink: 0 }} />
-        <div style={{ width: 2, height: 10, background: 'linear-gradient(to bottom, rgba(99,102,241,0.4), transparent)' }} />
-      </div>
-      <div style={{ height: 1, width: 18, background: 'rgba(99,102,241,0.4)', flexShrink: 0 }} />
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 6, marginLeft: 8,
-        padding: '4px 12px', borderRadius: 20,
-        background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)',
-      }}>
-        <ChevronRight size={11} color="#6366f1" />
-        <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>
-          {from} <span style={{ color: '#6366f1', fontWeight: 700 }}>›</span> {to}
-        </span>
-        {count !== undefined && (
-          <span style={{ fontSize: 11, color: '#475569', background: 'rgba(255,255,255,0.06)', padding: '1px 6px', borderRadius: 10 }}>
-            {count}
-          </span>
-        )}
-      </div>
+    <div style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, overflow: 'hidden', background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 1px rgba(255,255,255,0.07)' }}>
+      {imgSrc && !broken
+        ? <img src={imgSrc} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => setBroken(true)} />
+        : <Layers size={14} color="rgba(99,102,241,0.4)" />}
     </div>
   );
 }
 
-/* ─── Section header ─────────────────────────────────────────────────────────── */
-function SectionHeader({ label, sub, actions }) {
+/* ── expand toggle ───────────────────────────────────────────────────────────── */
+function Chevron({ open, onClick }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-      <div style={{ flex: 1 }}>
-        <span style={{ fontWeight: 800, color: '#f1f5f9', fontSize: 14 }}>{label}</span>
-        {sub && <span style={{ fontSize: 12, color: '#475569', marginLeft: 8 }}>{sub}</span>}
-      </div>
-      {actions}
-    </div>
+    <button onClick={onClick} style={{ background: 'none', border: 'none', padding: 2, cursor: 'pointer', color: '#475569', display: 'flex', alignItems: 'center', flexShrink: 0, borderRadius: 4 }}>
+      {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+    </button>
   );
 }
 
-/* ─── Service card ───────────────────────────────────────────────────────────── */
-function SvcCard({ svc, onEdit, onDelete }) {
+/* ── badge ───────────────────────────────────────────────────────────────────── */
+function Badge({ n, color = '#6366f1' }) {
+  if (!n) return null;
+  return (
+    <span style={{ fontSize: 10, fontWeight: 700, background: `${color}1a`, color, border: `1px solid ${color}33`, borderRadius: 999, padding: '1px 7px', flexShrink: 0 }}>{n}</span>
+  );
+}
+
+/* ── "add" row ───────────────────────────────────────────────────────────────── */
+function AddRow({ label, onClick, indent = false }) {
   const [hov, setHov] = useState(false);
   return (
-    <div
-      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-      style={{
-        background: 'rgba(255,255,255,0.04)', border: `1px solid ${hov ? 'rgba(99,102,241,0.45)' : 'rgba(255,255,255,0.07)'}`,
-        borderRadius: 16, overflow: 'hidden', transition: 'border-color .15s, transform .15s',
-        transform: hov ? 'translateY(-2px)' : 'none', cursor: 'pointer',
-      }}>
-      {/* Image */}
-      <div style={{ width: '100%', aspectRatio: '4/3', background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-        {svc.defaultImage
-          ? <img src={svc.defaultImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          : <Layers size={28} color="rgba(99,102,241,0.4)" />}
-      </div>
-      {/* Info */}
-      <div style={{ padding: '10px 12px 12px' }}>
-        <div style={{ fontWeight: 700, color: '#f1f5f9', fontSize: 13, marginBottom: 8 }}>{svc.name}</div>
-        <div style={{ display: 'flex', gap: 6 }}>
-          <button style={{ ...S.ghost, flex: 1, justifyContent: 'center', fontSize: 11, padding: '5px 8px' }}
-            onClick={() => onEdit(svc)}><Pencil size={10} /> Edit</button>
-          <button style={{ ...S.danger, padding: '5px 8px', fontSize: 11 }}
-            onClick={() => onDelete(svc._id, svc.name)}><Trash2 size={10} /></button>
-        </div>
-      </div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 0, margin: indent ? '2px 0' : '4px 0' }}>
+      {/* Connector */}
+      <div style={{ width: 28, height: 2, background: hov ? BRANCH_STRONG : BRANCH, flexShrink: 0, transition: 'background .15s' }} />
+      <div style={{ width: 7, height: 7, borderRadius: '50%', background: hov ? '#6366f1' : BRANCH, flexShrink: 0, margin: '0 -3.5px', zIndex: 1, transition: 'background .15s' }} />
+      <button
+        onClick={onClick}
+        onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+        style={{
+          background: hov ? 'rgba(99,102,241,0.1)' : 'transparent',
+          border: `1px dashed ${hov ? 'rgba(99,102,241,0.45)' : 'rgba(255,255,255,0.1)'}`,
+          borderRadius: 8, padding: '4px 12px', color: hov ? '#818cf8' : '#475569',
+          fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center',
+          gap: 5, marginLeft: 10, transition: 'all .15s',
+        }}>
+        <Plus size={10} /> {label}
+      </button>
     </div>
   );
 }
 
-/* ─── Empty placeholder ──────────────────────────────────────────────────────── */
-function Empty({ label, sub }) {
-  return (
-    <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-      <AlertTriangle size={28} color="#1e293b" style={{ marginBottom: 10 }} />
-      <p style={{ color: '#475569', fontWeight: 700, fontSize: 14, margin: '0 0 4px' }}>{label}</p>
-      {sub && <p style={{ color: '#334155', fontSize: 12, margin: 0, maxWidth: 320, marginLeft: 'auto', marginRight: 'auto' }}>{sub}</p>}
-    </div>
-  );
-}
-
-/* ─── CRUD Modal ─────────────────────────────────────────────────────────────── */
+/* ── CRUD modal ──────────────────────────────────────────────────────────────── */
 function Modal({ modal, businessType, onClose, onDone }) {
   const { mode, data } = modal;
   const [saving, setSaving] = useState(false);
@@ -318,21 +179,19 @@ function Modal({ modal, businessType, onClose, onDone }) {
   const [subImg, setSubImg] = useState(data.subCategoryImage || '');
   const [svcImg, setSvcImg] = useState(data.defaultImage || '');
 
-  const isCat = mode.includes('cat');
-  const isSub = mode.includes('sub');
-  const isSvc = mode.includes('svc');
+  const isCat  = mode.includes('cat');
+  const isSub  = mode.includes('sub');
+  const isSvc  = mode.includes('svc');
   const isEdit = mode.startsWith('edit');
 
   const TITLES = {
-    'add-cat':  'Add Category',
-    'edit-cat': `Edit — ${data.label || ''}`,
-    'add-sub':  `Add Sub-category to "${data.cat}"`,
-    'add-svc':  `Add Service to "${data.sub}"`,
-    'edit-svc': 'Edit Service',
+    'add-cat': 'Add Category', 'edit-cat': `Edit — ${data.label || ''}`,
+    'add-sub': `Add Sub-category in "${data.cat}"`,
+    'add-svc': `Add Service in "${data.sub}"`, 'edit-svc': 'Edit Service',
   };
 
-  const handleSave = async () => {
-    if (!name.trim()) return toast.error('Name is required');
+  const save = async () => {
+    if (!name.trim()) return toast.error('Name required');
     setSaving(true);
     try {
       if (isCat && !isEdit) {
@@ -362,10 +221,10 @@ function Modal({ modal, businessType, onClose, onDone }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{ background: '#0f1729', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, padding: 28, width: '100%', maxWidth: 460, boxShadow: '0 25px 60px rgba(0,0,0,0.6)' }}>
+      <div style={{ background: '#0f1729', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, padding: 28, width: '100%', maxWidth: 440, boxShadow: '0 25px 60px rgba(0,0,0,0.6)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 }}>
-          <h3 style={{ margin: 0, fontWeight: 800, color: '#f1f5f9', fontSize: 16 }}>{TITLES[mode]}</h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={18} /></button>
+          <h3 style={{ margin: 0, fontWeight: 800, color: '#f1f5f9', fontSize: 15 }}>{TITLES[mode]}</h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#475569' }}><X size={17} /></button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
@@ -374,29 +233,14 @@ function Modal({ modal, businessType, onClose, onDone }) {
             </label>
             <input style={S.input} value={name} onChange={e => setName(e.target.value)} placeholder="Enter name…" autoFocus />
           </div>
-          {isCat && (
-            <div>
-              <label style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: 6 }}>Category Image</label>
-              <ImgUploadCell value={catImg} onChange={setCatImg} />
-            </div>
-          )}
-          {isSub && (
-            <div>
-              <label style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: 6 }}>Sub-category Image <span style={{ color: '#475569', fontWeight: 400 }}>(circle photo)</span></label>
-              <ImgUploadCell value={subImg} onChange={setSubImg} />
-            </div>
-          )}
-          {isSvc && (
-            <div>
-              <label style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: 6 }}>Service Image</label>
-              <ImgUploadCell value={svcImg} onChange={setSvcImg} />
-            </div>
-          )}
+          {isCat && <div><label style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: 6 }}>Category Image</label><ImgUploadCell value={catImg} onChange={setCatImg} /></div>}
+          {isSub && <div><label style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: 6 }}>Circle Photo</label><ImgUploadCell value={subImg} onChange={setSubImg} /></div>}
+          {isSvc && <div><label style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: 6 }}>Service Image</label><ImgUploadCell value={svcImg} onChange={setSvcImg} /></div>}
         </div>
         <div style={{ display: 'flex', gap: 10, marginTop: 24, justifyContent: 'flex-end' }}>
-          <button style={{ ...S.ghost, padding: '10px 18px', fontSize: 13 }} onClick={onClose}>Cancel</button>
-          <button style={{ ...S.btn(), padding: '10px 22px' }} onClick={handleSave} disabled={saving}>
-            {saving ? <RefreshCw size={14} style={{ animation: 'spin .7s linear infinite' }} /> : <Check size={14} />}
+          <button style={{ ...S.ghost, padding: '9px 16px', fontSize: 12 }} onClick={onClose}>Cancel</button>
+          <button style={{ ...S.btn(), padding: '9px 20px', fontSize: 13 }} onClick={save} disabled={saving}>
+            {saving ? <RefreshCw size={13} style={{ animation: 'spin .7s linear infinite' }} /> : <Check size={13} />}
             {isEdit ? 'Save' : 'Create'}
           </button>
         </div>
@@ -405,353 +249,474 @@ function Modal({ modal, businessType, onClose, onDone }) {
   );
 }
 
-/* ─── Main Page ──────────────────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════════
+   TREE NODES
+═══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Service row (leaf) ──────────────────────────────────────────────────────── */
+function ServiceRow({ svc, onEdit, onDelete, isLast }) {
+  const [hov, setHov] = useState(false);
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 0, padding: '3px 0', position: 'relative' }}>
+      {/* Horizontal branch */}
+      <div style={{ width: 28, height: 2, background: hov ? BRANCH_STRONG : BRANCH, flexShrink: 0, transition: 'background .15s' }} />
+      {/* Leaf dot */}
+      <div style={{ width: 6, height: 6, borderRadius: '50%', background: hov ? '#6366f1' : 'rgba(99,102,241,0.45)', flexShrink: 0, margin: '0 -3px', zIndex: 1, transition: 'background .15s' }} />
+      {/* Row content */}
+      <div
+        onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+        style={{
+          flex: 1, display: 'flex', alignItems: 'center', gap: 10, marginLeft: 10,
+          padding: '6px 10px', borderRadius: 10, transition: 'background .15s',
+          background: hov ? 'rgba(99,102,241,0.06)' : 'transparent',
+        }}>
+        <SvcThumb imgSrc={svc.defaultImage} />
+        <span style={{ fontSize: 13, color: '#e2e8f0', fontWeight: 500, flex: 1 }}>{svc.name}</span>
+        {hov && (
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', animation: 'fadeIn .1s ease' }}>
+            <button style={S.ghost} onClick={() => onEdit(svc)}><Pencil size={10} /> Edit</button>
+            <button style={S.danger} onClick={() => onDelete(svc._id, svc.name)}><Trash2 size={10} /></button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Subcategory node ────────────────────────────────────────────────────────── */
+function SubNode({ sec, catLabel, businessType, onDelete, onAddSvc, onEditSvc, onDeleteSvc, onUpload, uploading }) {
+  const [open, setOpen] = useState(true);
+  const [hov,  setHov]  = useState(false);
+  const services = (sec.services || []).filter(s => s.name !== '__placeholder__');
+
+  return (
+    <div style={{ padding: '2px 0' }}>
+      {/* Sub row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+        {/* Branch horizontal */}
+        <div style={{ width: 28, height: 2, background: hov ? BRANCH_STRONG : BRANCH, flexShrink: 0, transition: 'background .15s' }} />
+        {/* Junction dot */}
+        <div style={{ width: 8, height: 8, borderRadius: '50%', background: hov ? '#6366f1' : BRANCH_STRONG, flexShrink: 0, margin: '0 -4px', zIndex: 1, transition: 'background .15s' }} />
+
+        <div
+          onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+          style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, marginLeft: 10, padding: '6px 10px', borderRadius: 10, transition: 'background .15s', background: hov ? 'rgba(99,102,241,0.07)' : 'transparent' }}>
+          <Chevron open={open} onClick={() => setOpen(v => !v)} />
+          {/* Inline photo upload on circle click */}
+          <InlineCircleUpload
+            label={sec.label} imgSrc={sec.subCategoryImage}
+            size={32} uploading={uploading}
+            onUpload={onUpload}
+          />
+          <span style={{ fontSize: 13, color: '#e2e8f0', fontWeight: 600, flex: 1 }}>{sec.label}</span>
+          <Badge n={services.length} color="#8b5cf6" />
+          {hov && (
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', animation: 'fadeIn .1s ease' }}>
+              <button style={S.ghost} onClick={() => onAddSvc(catLabel, sec.label)}><Plus size={10} /> Service</button>
+              <button style={S.danger} onClick={() => onDelete(catLabel, sec.label)}><Trash2 size={10} /></button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Children: services */}
+      {open && (
+        <div style={{ marginLeft: 62, borderLeft: `2px solid ${BRANCH}`, paddingLeft: 0 }}>
+          {services.map((svc, i) => (
+            <ServiceRow key={svc._id || svc.name} svc={svc} isLast={i === services.length - 1}
+              onEdit={onEditSvc} onDelete={onDeleteSvc} />
+          ))}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 0, padding: '3px 0' }}>
+            <div style={{ width: 28, height: 2, background: BRANCH, flexShrink: 0 }} />
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: BRANCH, flexShrink: 0, margin: '0 -3px' }} />
+            <div style={{ marginLeft: 10 }}>
+              <AddRow label="Add Service" onClick={() => onAddSvc(catLabel, sec.label)} />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Inline circle upload (click circle → file picker) ───────────────────────── */
+function InlineCircleUpload({ label, imgSrc, size, uploading, onUpload }) {
+  const [broken, setBroken] = useState(false);
+  const [hov,    setHov]    = useState(false);
+  const ref  = useRef(null);
+  const Icon = getCatIcon(label);
+  const showImg = !!imgSrc && !broken;
+
+  return (
+    <div style={{ position: 'relative', flexShrink: 0 }}
+      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}>
+      {/* Circle */}
+      <div
+        onClick={() => ref.current?.click()}
+        title="Click to change photo"
+        style={{
+          width: size, height: size, borderRadius: '50%', overflow: 'hidden', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: showImg ? '#111' : 'rgba(26,26,48,0.95)',
+          boxShadow: '0 0 0 1.5px rgba(255,255,255,0.1)',
+          transition: 'box-shadow .15s',
+          ...(hov ? { boxShadow: '0 0 0 2px #6366f1' } : {}),
+        }}>
+        {uploading
+          ? <RefreshCw size={size * 0.35} color="#6366f1" style={{ animation: 'spin .7s linear infinite' }} />
+          : showImg
+          ? <img src={imgSrc} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => setBroken(true)} />
+          : <Icon size={size * 0.42} color="#6366f1" />}
+        {/* Hover overlay */}
+        {hov && !uploading && (
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(99,102,241,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' }}>
+            <Camera size={size * 0.35} color="#fff" />
+          </div>
+        )}
+      </div>
+      <input ref={ref} type="file" accept="image/*" style={{ display: 'none' }}
+        onChange={e => { const f = e.target.files?.[0]; if (f) onUpload(f); e.target.value = ''; }} />
+    </div>
+  );
+}
+
+/* ── Category node ───────────────────────────────────────────────────────────── */
+function CatNode({ cat, businessType, onEdit, onDelete, onAddSub, onAddSvc, onEditSvc, onDeleteSvc, onUploadSub, onUploadCat, uploadingMap }) {
+  const [open, setOpen] = useState(true);
+  const [hov,  setHov]  = useState(false);
+  const subs = (cat.sections || []).filter(s => s.label !== '__placeholder__');
+
+  return (
+    <div style={{ marginBottom: 6 }}>
+      {/* Category row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+        {/* Junction dot (root level — no horizontal branch, just the dot) */}
+        <div style={{ width: 12, height: 12, borderRadius: '50%', background: hov ? '#6366f1' : BRANCH_STRONG, flexShrink: 0, border: `2px solid rgba(6,8,20,1)`, boxShadow: `0 0 0 2px ${BRANCH_STRONG}`, transition: 'background .15s' }} />
+
+        <div
+          onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+          style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 9, marginLeft: 12, padding: '7px 12px', borderRadius: 12, transition: 'background .15s', background: hov ? 'rgba(99,102,241,0.09)' : 'rgba(255,255,255,0.03)', border: `1px solid ${hov ? 'rgba(99,102,241,0.3)' : 'rgba(255,255,255,0.06)'}` }}>
+          <Chevron open={open} onClick={() => setOpen(v => !v)} />
+          {/* Category circle — click to upload */}
+          <InlineCircleUpload
+            label={cat.label} imgSrc={cat.categoryImage}
+            size={38} uploading={!!uploadingMap[cat.label]}
+            onUpload={f => onUploadCat(cat.label, f)}
+          />
+          <span style={{ fontSize: 14, color: '#f1f5f9', fontWeight: 800, flex: 1 }}>{cat.label}</span>
+          <Badge n={subs.length} color="#6366f1" />
+          {hov && (
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', animation: 'fadeIn .1s ease' }}>
+              <button style={S.ghost} onClick={() => onEdit(cat)}><Pencil size={10} /> Rename</button>
+              <button style={S.ghost} onClick={() => onAddSub(cat.label)}><Plus size={10} /> Sub</button>
+              <button style={S.danger} onClick={() => onDelete(cat.label)}><Trash2 size={10} /></button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Children: subcategories */}
+      {open && (
+        <div style={{ marginLeft: 18, borderLeft: `2px solid ${BRANCH}`, paddingLeft: 0, marginTop: 2 }}>
+          {subs.map(sec => (
+            <SubNode
+              key={sec.label}
+              sec={sec}
+              catLabel={cat.label}
+              businessType={businessType}
+              onDelete={onDeleteSvc ? (c, s) => onDeleteSvc(c, s) : () => {}}
+              onAddSvc={onAddSvc}
+              onEditSvc={onEditSvc}
+              onDeleteSvc={onDeleteSvc}
+              onUpload={f => onUploadSub(cat.label, sec.label, f)}
+              uploading={!!uploadingMap[`sub::${cat.label}::${sec.label}`]}
+            />
+          ))}
+          {/* Add sub-category row */}
+          <div style={{ paddingLeft: 0, margin: '4px 0 6px 0' }}>
+            <AddRow label="Add Sub-category" onClick={() => onAddSub(cat.label)} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   MAIN PAGE
+═══════════════════════════════════════════════════════════════════════════════ */
 export default function ServiceCatalog() {
-  const [activeType,    setActiveType]    = useState('barbershop');
-  const [tree,          setTree]          = useState([]);
-  const [loading,       setLoading]       = useState(false);
-  const [seeding,       setSeeding]       = useState(false);
-  const [seedMenuOpen,  setSeedMenuOpen]  = useState(false);
-  const [overwriting,   setOverwriting]   = useState(false);
-  const [selCat,        setSelCat]        = useState(null);  // category label
-  const [selSub,        setSelSub]        = useState(null);  // subcategory label
-  const [modal,         setModal]         = useState(null);
-  const [uploading,     setUploading]     = useState({});    // { [label]: true }
-  const seedMenuRef = useRef(null);
+  const [activeType,   setActiveType]   = useState('barbershop');
+  const [tree,         setTree]         = useState([]);
+  const [loading,      setLoading]      = useState(false);
+  const [seeding,      setSeeding]      = useState(false);
+  const [seedOpen,     setSeedOpen]     = useState(false);
+  const [overwriting,  setOverwriting]  = useState(false);
+  const [modal,        setModal]        = useState(null);
+  const [uploading,    setUploading]    = useState({});
+  const seedRef = useRef(null);
 
   const fetchTree = async (bt = activeType) => {
     setLoading(true);
     try {
-      const res = await api.get(`/admin/catalog/tree?businessType=${bt}`);
-      setTree(res.data.data || []);
-    } catch { toast.error('Failed to load catalog'); }
+      const r = await api.get(`/admin/catalog/tree?businessType=${bt}`);
+      setTree(r.data.data || []);
+    } catch { toast.error('Failed to load'); }
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchTree(activeType); setSelCat(null); setSelSub(null); }, [activeType]);
+  useEffect(() => { fetchTree(activeType); }, [activeType]);
 
   useEffect(() => {
-    if (!seedMenuOpen) return;
-    const h = (e) => { if (seedMenuRef.current && !seedMenuRef.current.contains(e.target)) setSeedMenuOpen(false); };
+    if (!seedOpen) return;
+    const h = (e) => { if (seedRef.current && !seedRef.current.contains(e.target)) setSeedOpen(false); };
     document.addEventListener('mousedown', h);
     return () => document.removeEventListener('mousedown', h);
-  }, [seedMenuOpen]);
+  }, [seedOpen]);
 
-  /* ── upload image for a circle ─────────────────────────────────── */
-  const uploadCircleImage = async (field, key, file, extra = {}) => {
+  /* ── image upload ─────────────────────────────────────────────── */
+  const uploadImg = async (key, field, file, extra = {}) => {
     setUploading(u => ({ ...u, [key]: true }));
     try {
-      const form = new FormData();
-      form.append('image', file);
-      const res  = await api.post('/admin/catalog/upload-image', form, { headers: { 'Content-Type': 'multipart/form-data' } });
-      const url  = res.data.data?.url;
-      await api.put('/admin/catalog/rename', { businessType: activeType, field, oldValue: '', newValue: url, ...extra });
+      const fd = new FormData(); fd.append('image', file);
+      const r = await api.post('/admin/catalog/upload-image', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await api.put('/admin/catalog/rename', { businessType: activeType, field, oldValue: '', newValue: r.data.data?.url, ...extra });
       toast.success('Photo updated');
       fetchTree(activeType);
     } catch { toast.error('Upload failed'); }
     finally { setUploading(u => ({ ...u, [key]: false })); }
   };
 
-  /* ── seed ──────────────────────────────────────────────────────── */
+  const uploadCat = (catLabel, file) => uploadImg(catLabel, 'categoryImage', file, { category: catLabel });
+  const uploadSub = (catLabel, subLabel, file) => uploadImg(`sub::${catLabel}::${subLabel}`, 'subCategoryImage', file, { category: catLabel, subCategory: subLabel });
+
+  /* ── seed ─────────────────────────────────────────────────────── */
   const handleSeed = async (overwrite = false) => {
-    setSeedMenuOpen(false);
-    const label = BUSINESS_TYPES.find(b => b.value === activeType)?.label || activeType;
-    if (!confirm(`Seed defaults for "${label}"${overwrite ? ' — OVERWRITE existing' : ''}?`)) return;
+    setSeedOpen(false);
+    const lbl = BUSINESS_TYPES.find(b => b.value === activeType)?.label || activeType;
+    if (!confirm(`Seed defaults for "${lbl}"${overwrite ? ' — OVERWRITE existing' : ''}?`)) return;
     setSeeding(true);
     try {
-      const res = await api.post('/admin/catalog/seed', { useDefaults: true, overwrite });
-      const d = res.data.data;
+      const r = await api.post('/admin/catalog/seed', { useDefaults: true, overwrite });
+      const d = r.data.data;
       toast.success(`Seeded: ${d.inserted} new · ${d.updated || 0} updated · ${d.skipped || 0} skipped`);
       fetchTree(activeType);
     } catch { toast.error('Seed failed'); }
     finally { setSeeding(false); }
   };
 
-  /* ── overwrite images ──────────────────────────────────────────── */
+  /* ── overwrite images ─────────────────────────────────────────── */
   const handleOverwrite = async (force = false) => {
-    const label = BUSINESS_TYPES.find(b => b.value === activeType)?.label || activeType;
-    if (!confirm(`${force ? 'Force overwrite' : 'Set default'} images for "${label}" salons?`)) return;
+    const lbl = BUSINESS_TYPES.find(b => b.value === activeType)?.label || activeType;
+    if (!confirm(`${force ? 'Force overwrite' : 'Set default'} images for "${lbl}" salons?`)) return;
     setOverwriting(true);
     try {
-      const ep = force ? '/admin/catalog/force-overwrite-images' : '/admin/catalog/overwrite-images';
-      const res = await api.post(ep, { businessType: activeType });
-      toast.success(`Updated ${res.data.updated} salons`);
-    } catch { toast.error('Overwrite failed'); }
+      const r = await api.post(force ? '/admin/catalog/force-overwrite-images' : '/admin/catalog/overwrite-images', { businessType: activeType });
+      toast.success(`Updated ${r.data.updated} salons`);
+    } catch { toast.error('Failed'); }
     finally { setOverwriting(false); }
   };
 
-  /* ── delete ────────────────────────────────────────────────────── */
-  const deleteCategory = async (catLabel) => {
-    if (!confirm(`Delete category "${catLabel}" and all its services?`)) return;
+  /* ── delete ───────────────────────────────────────────────────── */
+  const deleteCat = async (catLabel) => {
+    if (!confirm(`Delete category "${catLabel}" and all its contents?`)) return;
     try {
       await api.delete('/admin/catalog/batch', { data: { businessType: activeType, category: catLabel } });
-      toast.success('Category deleted');
-      if (selCat === catLabel) { setSelCat(null); setSelSub(null); }
-      fetchTree(activeType);
+      toast.success('Deleted'); fetchTree(activeType);
     } catch { toast.error('Delete failed'); }
   };
 
-  const deleteSubCategory = async (catLabel, subLabel) => {
+  const deleteSub = async (catLabel, subLabel) => {
     if (!confirm(`Delete sub-category "${subLabel}" and all its services?`)) return;
     try {
       await api.delete('/admin/catalog/batch', { data: { businessType: activeType, category: catLabel, subCategory: subLabel } });
-      toast.success('Sub-category deleted');
-      if (selSub === subLabel) setSelSub(null);
-      fetchTree(activeType);
+      toast.success('Deleted'); fetchTree(activeType);
     } catch { toast.error('Delete failed'); }
   };
 
-  const deleteService = async (id, name) => {
+  const deleteSvc = async (id, name) => {
     if (!confirm(`Delete service "${name}"?`)) return;
     try {
       await api.delete(`/admin/catalog/entries/${id}`);
-      toast.success('Service deleted');
-      fetchTree(activeType);
+      toast.success('Deleted'); fetchTree(activeType);
     } catch { toast.error('Delete failed'); }
   };
 
-  /* ── derived data ──────────────────────────────────────────────── */
-  const selectedCat = tree.find(c => c.label === selCat) || null;
-  const subs        = (selectedCat?.sections || []).filter(s => s.label !== '__placeholder__');
-  const selectedSub = subs.find(s => s.label === selSub) || null;
-  const services    = (selectedSub?.services || []).filter(sv => sv.name !== '__placeholder__');
+  /* ── modal openers ────────────────────────────────────────────── */
+  const openAddSub = (cat)       => setModal({ mode: 'add-sub', data: { cat } });
+  const openAddSvc = (cat, sub)  => setModal({ mode: 'add-svc', data: { cat, sub } });
+  const openEditSvc = (svc, cat, sub) => setModal({ mode: 'edit-svc', data: { ...svc, cat, sub } });
 
-  const btLabel = BUSINESS_TYPES.find(b => b.value === activeType)?.label || activeType;
+  const BT = BUSINESS_TYPES.find(b => b.value === activeType);
+
+  /* ── stats ────────────────────────────────────────────────────── */
+  const totalSubs = tree.reduce((n, c) => n + (c.sections || []).filter(s => s.label !== '__placeholder__').length, 0);
+  const totalSvcs = tree.reduce((n, c) => n + (c.sections || []).reduce((m, s) => m + (s.services || []).filter(sv => sv.name !== '__placeholder__').length, 0), 0);
 
   return (
     <div style={{ padding: '24px 28px', minHeight: '100vh' }}>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes fadedown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}`}</style>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+      `}</style>
 
-      {/* ── Header ─────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+      {/* ── Header ─────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 22, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: '#f1f5f9', margin: 0 }}>Service Catalog</h1>
           <p style={{ fontSize: 13, color: '#475569', margin: '4px 0 0' }}>Master catalog — owners inherit and can customise</p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           {/* Seed split button */}
-          <div style={{ position: 'relative' }} ref={seedMenuRef}>
+          <div style={{ position: 'relative' }} ref={seedRef}>
             <div style={{ display: 'flex' }}>
               <button onClick={() => handleSeed(false)} disabled={seeding}
-                style={{ ...S.ghost, padding: '8px 13px', color: '#a78bfa', borderColor: 'rgba(167,139,250,0.3)', borderRadius: '8px 0 0 8px', borderRight: 'none' }}>
-                {seeding ? <RefreshCw size={13} style={{ animation: 'spin .7s linear infinite' }} /> : <Database size={13} />} Seed
+                style={{ ...S.ghost, padding: '8px 12px', color: '#a78bfa', borderColor: 'rgba(167,139,250,0.3)', borderRadius: '8px 0 0 8px', borderRight: 'none', fontSize: 12 }}>
+                {seeding ? <RefreshCw size={12} style={{ animation: 'spin .7s linear infinite' }} /> : <Database size={12} />} Seed
               </button>
-              <button onClick={() => setSeedMenuOpen(v => !v)} disabled={seeding}
-                style={{ ...S.ghost, padding: '8px 9px', color: '#a78bfa', borderColor: 'rgba(167,139,250,0.3)', borderRadius: '0 8px 8px 0' }}>
-                <ChevronRight size={12} style={{ transform: seedMenuOpen ? 'rotate(90deg)' : 'none', transition: 'transform .15s' }} />
+              <button onClick={() => setSeedOpen(v => !v)} disabled={seeding}
+                style={{ ...S.ghost, padding: '8px 8px', color: '#a78bfa', borderColor: 'rgba(167,139,250,0.3)', borderRadius: '0 8px 8px 0' }}>
+                <ChevronDown size={11} style={{ transform: seedOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
               </button>
             </div>
-            {seedMenuOpen && (
-              <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 100, background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden', minWidth: 200, boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
-                {[
-                  { label: 'Keep existing', sub: 'Adds missing entries only', ow: false, color: '#e2e8f0' },
-                  { label: 'Overwrite existing', sub: 'Updates all with defaults', ow: true, color: '#fca5a5' },
-                ].map(opt => (
-                  <button key={opt.label} onClick={() => handleSeed(opt.ow)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px', background: 'none', border: 'none', color: opt.color, fontSize: 12, cursor: 'pointer', textAlign: 'left' }}
+            {seedOpen && (
+              <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 100, background: '#1a2035', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden', minWidth: 210, boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
+                {[{ label: 'Keep existing', sub: 'Adds missing entries only', ow: false }, { label: 'Overwrite all', sub: 'Updates all with defaults', ow: true }].map(o => (
+                  <button key={o.label} onClick={() => handleSeed(o.ow)}
+                    style={{ display: 'flex', alignItems: 'flex-start', gap: 10, width: '100%', padding: '10px 14px', background: 'none', border: 'none', color: o.ow ? '#fca5a5' : '#e2e8f0', fontSize: 12, cursor: 'pointer', textAlign: 'left' }}
                     onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                    <Database size={13} color={opt.ow ? '#f87171' : '#a78bfa'} />
-                    <div>
-                      <div style={{ fontWeight: 600 }}>Seed — {opt.label}</div>
-                      <div style={{ fontSize: 10, color: '#64748b', marginTop: 1 }}>{opt.sub}</div>
-                    </div>
+                    <Database size={12} color={o.ow ? '#f87171' : '#a78bfa'} style={{ marginTop: 2 }} />
+                    <div><div style={{ fontWeight: 600 }}>Seed — {o.label}</div><div style={{ fontSize: 10, color: '#64748b', marginTop: 1 }}>{o.sub}</div></div>
                   </button>
                 ))}
               </div>
             )}
           </div>
           <button onClick={() => handleOverwrite(false)} disabled={overwriting}
-            style={{ ...S.ghost, padding: '8px 13px', color: '#34d399', borderColor: 'rgba(52,211,153,0.3)' }}>
-            {overwriting ? <RefreshCw size={13} style={{ animation: 'spin .7s linear infinite' }} /> : <ImageIcon size={13} />} Set images
+            style={{ ...S.ghost, padding: '8px 12px', color: '#34d399', borderColor: 'rgba(52,211,153,0.3)', fontSize: 12 }}>
+            {overwriting ? <RefreshCw size={12} style={{ animation: 'spin .7s linear infinite' }} /> : <ImageIcon size={12} />} Set images
           </button>
           <button onClick={() => handleOverwrite(true)} disabled={overwriting}
-            style={{ ...S.ghost, padding: '8px 13px', color: '#fb923c', borderColor: 'rgba(251,146,60,0.3)' }}>
-            {overwriting ? <RefreshCw size={13} style={{ animation: 'spin .7s linear infinite' }} /> : <ImageIcon size={13} />} Force images
+            style={{ ...S.ghost, padding: '8px 12px', color: '#fb923c', borderColor: 'rgba(251,146,60,0.3)', fontSize: 12 }}>
+            {overwriting ? <RefreshCw size={12} style={{ animation: 'spin .7s linear infinite' }} /> : <ImageIcon size={12} />} Force images
           </button>
-          <button style={{ ...S.btn(), padding: '8px 14px' }}
-            onClick={() => setModal({ mode: 'add-cat', data: {} })}>
-            <Plus size={13} /> Add Category
+          <button style={{ ...S.btn(), padding: '8px 14px', fontSize: 12 }} onClick={() => setModal({ mode: 'add-cat', data: {} })}>
+            <Plus size={12} /> Add Category
           </button>
         </div>
       </div>
 
-      {/* ── Business type pills ─────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 28 }}>
+      {/* ── Business type pills (round) ─────────────────────────── */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 24 }}>
         {BUSINESS_TYPES.map(bt => {
           const active = activeType === bt.value;
+          const Icon = bt.icon;
           return (
             <button key={bt.value} onClick={() => setActiveType(bt.value)}
               style={{
-                padding: '9px 20px', borderRadius: 999, border: '1.5px solid',
+                display: 'flex', alignItems: 'center', gap: 7,
+                padding: '8px 18px', borderRadius: 999, border: '1.5px solid',
                 fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'all .2s',
                 borderColor: active ? '#6366f1' : 'rgba(255,255,255,0.1)',
                 background:  active ? 'linear-gradient(135deg,#6366f1,#4f46e5)' : 'rgba(255,255,255,0.04)',
-                color:       active ? '#fff' : '#94a3b8',
-                boxShadow:   active ? '0 4px 18px rgba(99,102,241,0.4)' : 'none',
+                color:       active ? '#fff' : '#64748b',
+                boxShadow:   active ? '0 4px 20px rgba(99,102,241,0.4)' : 'none',
                 transform:   active ? 'translateY(-1px)' : 'none',
               }}>
-              {bt.emoji} {bt.label}
+              <Icon size={13} />
+              {bt.label}
             </button>
           );
         })}
       </div>
 
-      {loading
-        ? <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}>
-            <RefreshCw size={24} color="#6366f1" style={{ animation: 'spin .7s linear infinite' }} />
+      {/* ── Stats strip ─────────────────────────────────────────── */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 22 }}>
+        {[
+          { label: 'Categories',    n: tree.length,  color: '#6366f1' },
+          { label: 'Sub-categories', n: totalSubs,   color: '#8b5cf6' },
+          { label: 'Services',      n: totalSvcs,    color: '#06b6d4' },
+        ].map(s => (
+          <div key={s.label} style={{ padding: '8px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: `1px solid ${s.color}22`, display: 'flex', gap: 8, alignItems: 'center' }}>
+            <span style={{ fontSize: 18, fontWeight: 900, color: s.color }}>{s.n}</span>
+            <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>{s.label}</span>
           </div>
+        ))}
+      </div>
+
+      {/* ── Tree ────────────────────────────────────────────────── */}
+      {loading
+        ? <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><RefreshCw size={22} color="#6366f1" style={{ animation: 'spin .7s linear infinite' }} /></div>
         : (
-        <div style={{ animation: 'fadedown .25s ease both' }}>
+        <div style={{ animation: 'slideDown .25s ease both' }}>
+          {/* Tree root panel */}
+          <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '20px 20px 16px' }}>
+            {/* Root node (business type) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 14, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              {BT && <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 3px rgba(99,102,241,0.25)' }}><BT.icon size={16} color="#fff" /></div>}
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: '#f1f5f9' }}>{BT?.label}</div>
+                <div style={{ fontSize: 11, color: '#475569' }}>root · {tree.length} categories</div>
+              </div>
+            </div>
 
-          {/* ── LEVEL 0: Categories ──────────────────────────────────── */}
-          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '16px 20px', marginBottom: 0 }}>
-            <SectionHeader
-              label="Categories"
-              sub={`${tree.length} categories · ${btLabel}`}
-              actions={
-                <button style={{ ...S.btn(), padding: '7px 13px', fontSize: 12 }}
-                  onClick={() => setModal({ mode: 'add-cat', data: {} })}>
-                  <Plus size={12} /> Add
-                </button>
-              }
-            />
+            {/* Category nodes */}
             {!tree.length
-              ? <Empty label="No categories yet" sub='Click "Seed" to import the built-in catalog, or "Add Category".' />
-              : <CircleRow>
-                  {/* All button */}
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, padding: '0 10px', flexShrink: 0, cursor: 'pointer', opacity: !selCat ? 1 : 0.65, transition: 'opacity .18s' }}
-                    onClick={() => { setSelCat(null); setSelSub(null); }}>
-                    <div style={{ width: 54, height: 54, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: !selCat ? 'linear-gradient(145deg,#818cf8,#6366f1,#4f46e5)' : 'rgba(26,26,46,0.9)', boxShadow: !selCat ? '0 0 0 3px #818cf8, 0 0 0 6px rgba(99,102,241,0.28)' : '0 0 0 1.5px rgba(255,255,255,0.09)', transition: 'all .22s' }}>
-                      <LayoutGrid size={20} color="#fff" />
-                    </div>
-                    <div style={{ width: 20, height: 3, borderRadius: 999, marginTop: 6, background: !selCat ? 'linear-gradient(90deg,#818cf8,#6366f1)' : 'transparent', transition: 'all .22s' }} />
-                    <span style={{ fontSize: 11, fontWeight: !selCat ? 700 : 500, color: !selCat ? '#fff' : '#94a3b8', marginTop: 4 }}>All</span>
-                  </div>
-
-                  {tree.map(cat => (
-                    <AdminCircle
+              ? (
+                <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                  <FolderOpen size={32} color="#1e293b" style={{ marginBottom: 10 }} />
+                  <p style={{ color: '#475569', fontWeight: 700, fontSize: 14, margin: '0 0 4px' }}>No categories yet</p>
+                  <p style={{ color: '#334155', fontSize: 12, margin: '0 0 16px' }}>Seed the catalog or add categories manually.</p>
+                </div>
+              )
+              : (
+                <div style={{ paddingLeft: 6 }}>
+                  {tree.map((cat, ci) => (
+                    <CatNode
                       key={cat.label}
-                      label={cat.label}
-                      imgSrc={cat.categoryImage}
-                      isSelected={selCat === cat.label}
-                      uploading={!!uploading[cat.label]}
-                      onClick={() => { setSelCat(cat.label); setSelSub(null); }}
-                      onUpload={f => uploadCircleImage('categoryImage', cat.label, f, { category: cat.label })}
-                      onEdit={() => setModal({ mode: 'edit-cat', data: cat })}
-                      onDelete={() => deleteCategory(cat.label)}
+                      cat={cat}
+                      businessType={activeType}
+                      onEdit={c => setModal({ mode: 'edit-cat', data: c })}
+                      onDelete={deleteCat}
+                      onAddSub={openAddSub}
+                      onAddSvc={openAddSvc}
+                      onEditSvc={(svc) => {
+                        const catLabel = cat.label;
+                        const sub = (cat.sections || []).find(s => s.services?.some(sv => sv._id === svc._id));
+                        openEditSvc(svc, catLabel, sub?.label || '');
+                      }}
+                      onDeleteSvc={deleteSvc}
+                      onUploadCat={uploadCat}
+                      onUploadSub={uploadSub}
+                      uploadingMap={uploading}
                     />
                   ))}
-                </CircleRow>
+                </div>
+              )
             }
-          </div>
 
-          {/* ── LEVEL 1: Subcategories (shown when cat selected) ─────── */}
-          {selCat && selectedCat && (
-            <>
-              <TreeBranch from={selCat} to="Subcategories" count={subs.length} />
-
-              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '16px 20px', animation: 'fadedown .2s ease both' }}>
-                <SectionHeader
-                  label="Subcategories"
-                  sub={`inside ${selCat}`}
-                  actions={
-                    <button style={{ ...S.btn(), padding: '7px 13px', fontSize: 12 }}
-                      onClick={() => setModal({ mode: 'add-sub', data: { cat: selCat } })}>
-                      <Plus size={12} /> Add
-                    </button>
-                  }
-                />
-                {!subs.length
-                  ? <Empty label="No sub-categories" sub="Add sub-categories to group services within this category." />
-                  : <CircleRow>
-                      {/* All subcategories */}
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, padding: '0 10px', flexShrink: 0, cursor: 'pointer', opacity: !selSub ? 1 : 0.65, transition: 'opacity .18s' }}
-                        onClick={() => setSelSub(null)}>
-                        <div style={{ width: 54, height: 54, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: !selSub ? 'transparent' : 'rgba(26,26,46,0.9)', boxShadow: !selSub ? '0 0 0 3px #818cf8, 0 0 0 6px rgba(99,102,241,0.28)' : '0 0 0 1.5px rgba(255,255,255,0.09)', transition: 'all .22s' }}>
-                          {selectedCat.categoryImage
-                            ? <img src={selectedCat.categoryImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            : (() => { const Icon = getCatIcon(selCat); return <Icon size={20} color={!selSub ? '#fff' : '#6366f1'} />; })()}
-                        </div>
-                        <div style={{ width: 20, height: 3, borderRadius: 999, marginTop: 6, background: !selSub ? 'linear-gradient(90deg,#818cf8,#6366f1)' : 'transparent', transition: 'all .22s' }} />
-                        <span style={{ fontSize: 11, fontWeight: !selSub ? 700 : 500, color: !selSub ? '#fff' : '#94a3b8', marginTop: 4 }}>All</span>
-                      </div>
-
-                      {subs.map(sec => (
-                        <AdminCircle
-                          key={sec.label}
-                          label={sec.label}
-                          imgSrc={sec.subCategoryImage}
-                          isSelected={selSub === sec.label}
-                          uploading={!!uploading[`sub::${sec.label}`]}
-                          onClick={() => setSelSub(sec.label)}
-                          onUpload={f => uploadCircleImage('subCategoryImage', `sub::${sec.label}`, f, { category: selCat, subCategory: sec.label })}
-                          onDelete={() => deleteSubCategory(selCat, sec.label)}
-                        />
-                      ))}
-                    </CircleRow>
-                }
+            {/* Add category */}
+            <div style={{ marginTop: 8, paddingLeft: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+                <div style={{ width: 12, height: 12, borderRadius: '50%', background: BRANCH, flexShrink: 0, border: '2px solid rgba(6,8,20,1)' }} />
+                <div style={{ marginLeft: 12 }}>
+                  <button
+                    onClick={() => setModal({ mode: 'add-cat', data: {} })}
+                    style={{
+                      background: 'transparent', border: '1px dashed rgba(255,255,255,0.12)',
+                      borderRadius: 10, padding: '6px 16px', color: '#475569', fontSize: 12,
+                      fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'; e.currentTarget.style.color = '#818cf8'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = '#475569'; }}>
+                    <Plus size={11} /> Add Category
+                  </button>
+                </div>
               </div>
-            </>
-          )}
-
-          {/* ── LEVEL 2: Services (shown when sub selected) ──────────── */}
-          {selSub && selectedSub && (
-            <>
-              <TreeBranch from={selSub} to="Services" count={services.length} />
-
-              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '16px 20px', animation: 'fadedown .2s ease both' }}>
-                <SectionHeader
-                  label="Services"
-                  sub={`inside ${selSub}`}
-                  actions={
-                    <button style={{ ...S.btn(), padding: '7px 13px', fontSize: 12 }}
-                      onClick={() => setModal({ mode: 'add-svc', data: { cat: selCat, sub: selSub } })}>
-                      <Plus size={12} /> Add Service
-                    </button>
-                  }
-                />
-                {!services.length
-                  ? <Empty label="No services yet" sub="Add services to this sub-category." />
-                  : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12, marginTop: 12 }}>
-                      {services.map(svc => (
-                        <SvcCard key={svc._id || svc.name} svc={svc}
-                          onEdit={s => setModal({ mode: 'edit-svc', data: { ...s, cat: selCat, sub: selSub } })}
-                          onDelete={deleteService} />
-                      ))}
-                    </div>
-                }
-              </div>
-            </>
-          )}
-
-          {/* ── Show all categories summary when none selected ───────── */}
-          {!selCat && tree.length > 0 && (
-            <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
-              {tree.map(cat => {
-                const catSubs = (cat.sections || []).filter(s => s.label !== '__placeholder__');
-                const svcCount = catSubs.reduce((n, s) => n + (s.services?.filter(sv => sv.name !== '__placeholder__').length || 0), 0);
-                return (
-                  <div key={cat.label}
-                    onClick={() => { setSelCat(cat.label); setSelSub(null); }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 14, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer', transition: 'border-color .15s' }}
-                    onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'}>
-                    <div style={{ width: 38, height: 38, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: cat.categoryImage ? '#111' : 'rgba(99,102,241,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 1.5px rgba(99,102,241,0.3)' }}>
-                      {cat.categoryImage
-                        ? <img src={cat.categoryImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        : (() => { const Icon = getCatIcon(cat.label); return <Icon size={16} color="#6366f1" />; })()}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cat.label}</div>
-                      <div style={{ fontSize: 11, color: '#475569', marginTop: 2 }}>{catSubs.length} subs · {svcCount} services</div>
-                    </div>
-                    <ChevronRight size={14} color="#6366f1" />
-                  </div>
-                );
-              })}
             </div>
-          )}
+          </div>
         </div>
       )}
 
