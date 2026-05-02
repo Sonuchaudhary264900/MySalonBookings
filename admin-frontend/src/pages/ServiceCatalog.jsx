@@ -367,14 +367,12 @@ export default function ServiceCatalog() {
     const W    = base.width;
 
     const makePair = (sx, sy, dy) => {
-      const gap   = dy - sy;               // vertical distance between rows
-      const pull  = Math.max(gap * 2, 160); // how far out CP1 sweeps horizontally
-      const ease  = gap * 0.12;            // small vertical ease on CP2
+      const gap = dy - sy;
+      const curl = gap * 0.38; // how much the tip curls down
 
-      // Left: CP1 sweeps far left at source height, CP2 arrives from inside at dest
-      const leftPath  = `M ${sx} ${sy} C ${sx - pull} ${sy} ${ease * 2} ${dy - ease} 0 ${dy}`;
-      // Right: mirror
-      const rightPath = `M ${sx} ${sy} C ${sx + pull} ${sy} ${W - ease * 2} ${dy - ease} ${W} ${dy}`;
+      // Mostly straight line left/right, only the very end curls downward
+      const leftPath  = `M ${sx} ${sy} C ${20} ${sy} ${0} ${dy - curl} ${0} ${dy}`;
+      const rightPath = `M ${sx} ${sy} C ${W - 20} ${sy} ${W} ${dy - curl} ${W} ${dy}`;
       return [leftPath, rightPath];
     };
 
