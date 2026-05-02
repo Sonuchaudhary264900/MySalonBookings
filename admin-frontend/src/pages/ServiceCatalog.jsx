@@ -367,12 +367,16 @@ export default function ServiceCatalog() {
     const W    = base.width;
 
     const makePair = (sx, sy, dy) => {
-      const gap = dy - sy;
-      const curl = gap * 0.38; // how much the tip curls down
+      const gap  = dy - sy;
+      const rise = gap * 0.55;   // how far above source the left arc peaks
+      const curl = gap * 0.42;   // how deep the end hook curls down
 
-      // Mostly straight line left/right, only the very end curls downward
-      const leftPath  = `M ${sx} ${sy} C ${20} ${sy} ${0} ${dy - curl} ${0} ${dy}`;
-      const rightPath = `M ${sx} ${sy} C ${W - 20} ${sy} ${W} ${dy - curl} ${W} ${dy}`;
+      // Left: arcs UP-LEFT first (above source), then hooks down at the left edge
+      const leftPath  = `M ${sx} ${sy} C ${sx - W * 0.55} ${sy - rise} ${0} ${dy - curl} ${0} ${dy}`;
+
+      // Right: shoots straight across to the right, hooks down at the right edge
+      const rightPath = `M ${sx} ${sy} C ${W} ${sy} ${W} ${dy - curl} ${W} ${dy}`;
+
       return [leftPath, rightPath];
     };
 
