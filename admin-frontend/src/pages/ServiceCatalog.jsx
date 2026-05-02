@@ -215,33 +215,37 @@ function AddBtn({ label, onClick }) {
 /* ─── SVG branch paths ───────────────────────────────────────────────────────── */
 function BranchSVG({ paths, color = '#6366f1', id = 'a' }) {
   if (!paths.length) return null;
-  const filterId = `glow-${id}`;
-  const gradId   = `grad-${id}`;
+  const fid = `glow-${id}`;
   return (
-    <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%', pointerEvents:'none', overflow:'visible', zIndex:2 }}>
+    <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%', pointerEvents:'none', overflow:'hidden', zIndex:2 }}>
       <defs>
-        <filter id={filterId} x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="3" result="blur" />
+        <filter id={fid} x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="5" result="blur" />
           <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
         </filter>
-        <linearGradient id={gradId} x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%"   stopColor={color} stopOpacity="0.9" />
-          <stop offset="100%" stopColor={color} stopOpacity="0.25" />
-        </linearGradient>
       </defs>
-      {paths.map((d, i) => (
-        <g key={i}>
-          {/* wide soft glow */}
-          <path d={d} fill="none" stroke={color} strokeWidth="6" opacity="0.12" filter={`url(#${filterId})`} />
-          {/* main branch line with gradient stroke via trick */}
-          <path d={d} fill="none" stroke={`url(#${gradId})`} strokeWidth="2" opacity="0.7"
-            strokeLinecap="round"
-            style={{ animation:`branchDraw .5s cubic-bezier(.4,0,.2,1) ${i * 0.07}s both` }} />
-          {/* bright core */}
-          <path d={d} fill="none" stroke={color} strokeWidth="0.8" opacity="0.5"
-            style={{ animation:`branchDraw .5s cubic-bezier(.4,0,.2,1) ${i * 0.07}s both` }} />
-        </g>
-      ))}
+      {paths.map((d, i) => {
+        const delay = `${i * 0.12}s`;
+        return (
+          <g key={i}>
+            {/* outermost halo — wide, very soft */}
+            <path d={d} fill="none" stroke={color} strokeWidth="18" opacity="0.06"
+              strokeLinecap="round" filter={`url(#${fid})`} />
+            {/* mid glow */}
+            <path d={d} fill="none" stroke={color} strokeWidth="8" opacity="0.13"
+              strokeLinecap="round" filter={`url(#${fid})`}
+              style={{ animation:`branchDraw .6s cubic-bezier(.4,0,.2,1) ${delay} both` }} />
+            {/* main line */}
+            <path d={d} fill="none" stroke={color} strokeWidth="1.8" opacity="0.65"
+              strokeLinecap="round"
+              style={{ animation:`branchDraw .6s cubic-bezier(.4,0,.2,1) ${delay} both` }} />
+            {/* bright thin core */}
+            <path d={d} fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="0.6" opacity="0.5"
+              strokeLinecap="round"
+              style={{ animation:`branchDraw .6s cubic-bezier(.4,0,.2,1) ${delay} both` }} />
+          </g>
+        );
+      })}
     </svg>
   );
 }
@@ -363,9 +367,14 @@ export default function ServiceCatalog() {
     const W    = base.width;
 
     const makePair = (sx, sy, dy) => {
-      /* control points fan outward from source */
-      const leftPath  = `M ${sx} ${sy} C ${sx} ${sy + 30} 0  ${dy} 0  ${dy}`;
-      const rightPath = `M ${sx} ${sy} C ${sx} ${sy + 30} ${W} ${dy} ${W} ${dy}`;
+      const gap   = dy - sy;               // vertical distance between rows
+      const pull  = Math.max(gap * 2, 160); // how far out CP1 sweeps horizontally
+      const ease  = gap * 0.12;            // small vertical ease on CP2
+
+      // Left: CP1 sweeps far left at source height, CP2 arrives from inside at dest
+      const leftPath  = `M ${sx} ${sy} C ${sx - pull} ${sy} ${ease * 2} ${dy - ease} 0 ${dy}`;
+      // Right: mirror
+      const rightPath = `M ${sx} ${sy} C ${sx + pull} ${sy} ${W - ease * 2} ${dy - ease} ${W} ${dy}`;
       return [leftPath, rightPath];
     };
 
