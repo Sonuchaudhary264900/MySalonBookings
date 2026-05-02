@@ -351,52 +351,44 @@ export default function ServiceCatalog() {
     return () => document.removeEventListener('mousedown', h);
   }, [seedOpen]);
 
-  /* ── recalculate SVG branch paths — exactly 3 branches ──────────
-     Pick: leftmost item, second-from-right item, rightmost item.
-     Sort all target refs by x-position so picks are always correct
-     regardless of object key order.
+  /* ── recalculate SVG branch paths ────────────────────────────────
+     Two branches spread to the FULL edges of the container —
+     left branch ends at x=0, right branch ends at x=containerWidth.
+     They do NOT connect to individual circles.
   ─────────────────────────────────────────────────────────────── */
   const recalc = useCallback(() => {
     const container = treeRef.current;
     if (!container) return;
     const base = container.getBoundingClientRect();
+    const W    = base.width;
 
-    const makePath = (sx, sy, el) => {
-      const dst = el.getBoundingClientRect();
-      const dx  = dst.left - base.left + dst.width / 2;
-      const dy  = dst.top  - base.top  - 6;
-      const my  = sy + (dy - sy) * 0.55;
-      return `M ${sx} ${sy} C ${sx} ${my} ${dx} ${my} ${dx} ${dy}`;
+    const makePair = (sx, sy, dy) => {
+      /* control points fan outward from source */
+      const leftPath  = `M ${sx} ${sy} C ${sx} ${sy + 30} 0  ${dy} 0  ${dy}`;
+      const rightPath = `M ${sx} ${sy} C ${sx} ${sy + 30} ${W} ${dy} ${W} ${dy}`;
+      return [leftPath, rightPath];
     };
 
-    const pick2 = (els) => {
-      /* sort left→right, then keep only the two ends */
-      const sorted = [...els]
-        .filter(Boolean)
-        .sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
-      if (!sorted.length) return [];
-      if (sorted.length === 1) return [sorted[0]];
-      return [sorted[0], sorted[sorted.length - 1]]; // leftmost + rightmost only
-    };
-
-    /* cat → sub: 3 branches */
+    /* cat → sub branches */
     if (selCat && catCircleRefs.current[selCat] && subRowRef.current) {
       const src = catCircleRefs.current[selCat].getBoundingClientRect();
-      const sx  = src.left - base.left + src.width / 2;
+      const sx  = src.left  - base.left + src.width / 2;
       const sy  = src.bottom - base.top + 6;
-      const targets = pick2(Object.values(subCircleRefs.current));
-      setCatPaths(targets.map(el => makePath(sx, sy, el)));
+      const subRow = subRowRef.current.getBoundingClientRect();
+      const dy  = subRow.top - base.top - 6;
+      setCatPaths(makePair(sx, sy, dy));
     } else {
       setCatPaths([]);
     }
 
-    /* sub → service: 3 branches */
+    /* sub → service branches */
     if (selSub && subCircleRefs.current[selSub] && svcRowRef.current) {
       const src = subCircleRefs.current[selSub].getBoundingClientRect();
-      const sx  = src.left - base.left + src.width / 2;
+      const sx  = src.left  - base.left + src.width / 2;
       const sy  = src.bottom - base.top + 6;
-      const targets = pick2(Object.values(svcCardRefs.current));
-      setSubPaths(targets.map(el => makePath(sx, sy, el)));
+      const svcRow = svcRowRef.current.getBoundingClientRect();
+      const dy  = svcRow.top - base.top - 6;
+      setSubPaths(makePair(sx, sy, dy));
     } else {
       setSubPaths([]);
     }
