@@ -369,17 +369,14 @@ export default function ServiceCatalog() {
       return `M ${sx} ${sy} C ${sx} ${my} ${dx} ${my} ${dx} ${dy}`;
     };
 
-    const pick3 = (els) => {
-      /* sort left→right by x position */
+    const pick2 = (els) => {
+      /* sort left→right, then keep only the two ends */
       const sorted = [...els]
         .filter(Boolean)
         .sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
       if (!sorted.length) return [];
-      const left      = sorted[0];                              // leftmost
-      const rightMost = sorted[sorted.length - 1];             // rightmost
-      const midRight  = sorted.length > 2                      // 2nd from right
-        ? sorted[sorted.length - 2] : null;
-      return [left, midRight, rightMost].filter(Boolean);
+      if (sorted.length === 1) return [sorted[0]];
+      return [sorted[0], sorted[sorted.length - 1]]; // leftmost + rightmost only
     };
 
     /* cat → sub: 3 branches */
@@ -387,7 +384,7 @@ export default function ServiceCatalog() {
       const src = catCircleRefs.current[selCat].getBoundingClientRect();
       const sx  = src.left - base.left + src.width / 2;
       const sy  = src.bottom - base.top + 6;
-      const targets = pick3(Object.values(subCircleRefs.current));
+      const targets = pick2(Object.values(subCircleRefs.current));
       setCatPaths(targets.map(el => makePath(sx, sy, el)));
     } else {
       setCatPaths([]);
@@ -398,7 +395,7 @@ export default function ServiceCatalog() {
       const src = subCircleRefs.current[selSub].getBoundingClientRect();
       const sx  = src.left - base.left + src.width / 2;
       const sy  = src.bottom - base.top + 6;
-      const targets = pick3(Object.values(svcCardRefs.current));
+      const targets = pick2(Object.values(svcCardRefs.current));
       setSubPaths(targets.map(el => makePath(sx, sy, el)));
     } else {
       setSubPaths([]);
