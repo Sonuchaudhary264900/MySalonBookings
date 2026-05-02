@@ -182,6 +182,21 @@ export default function ServiceCatalog() {
     } catch { toast.error('Delete failed'); }
   };
 
+  const handleSubPhotoChange = async (subLabel, imageUrl) => {
+    try {
+      await api.put('/admin/catalog/rename', {
+        businessType: activeType,
+        field: 'subCategoryImage',
+        oldValue: '',
+        newValue: imageUrl,
+        category: nav?.cat,
+        subCategory: subLabel,
+      });
+      toast.success('Photo updated');
+      fetchTree(activeType);
+    } catch { toast.error('Photo update failed'); }
+  };
+
   const deleteService = async (id, name) => {
     if (!confirm(`Delete service "${name}"?`)) return;
     try {
@@ -338,8 +353,8 @@ export default function ServiceCatalog() {
               onNav={sub => setNav({ cat: nav.cat, sub })}
               onEditCat={() => setModal({ mode: 'edit-cat', data: selectedCat })}
               onAddSub={() => setModal({ mode: 'add-sub', data: { cat: nav.cat } })}
-              onEditSub={sub => setModal({ mode: 'edit-sub', data: { cat: nav.cat, sub } })}
-              onDeleteSub={sub => deleteSubCategory(nav.cat, sub)} />
+              onDeleteSub={sub => deleteSubCategory(nav.cat, sub)}
+              onSubPhotoChange={handleSubPhotoChange} />
           : <SvcLevel cat={nav.cat} sub={selectedSub}
               onAdd={() => setModal({ mode: 'add-svc', data: { cat: nav.cat, sub: nav.sub } })}
               onEdit={svc => setModal({ mode: 'edit-svc', data: { ...svc, cat: nav.cat, sub: nav.sub } })}
@@ -397,12 +412,31 @@ function CatLevel({ tree, search, setSearch, onNav, onEdit, onDelete }) {
   );
 }
 
-// ─── Level 1: Sub-categories ──────────────────────────────────────────────────
-function SubLevel({ cat, onNav, onEditCat, onAddSub, onEditSub, onDeleteSub }) {
+// ─── Level 1: Sub-categories (circle view — matches owner experience) ─────────
+function SubLevel({ cat, onNav, onEditCat, onAddSub, onDeleteSub, onSubPhotoChange }) {
+  const fileRefs = useRef({});
+  const [uploading, setUploading] = useState(null);
+  const [hovered,   setHovered]   = useState(null);
+
+  const handleFileChange = async (e, label) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(label);
+    try {
+      const form = new FormData();
+      form.append('image', file);
+      const res = await api.post('/admin/catalog/upload-image', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      onSubPhotoChange(label, res.data.data?.url || '');
+    } catch { toast.error('Upload failed'); }
+    finally { setUploading(null); e.target.value = ''; }
+  };
+
   if (!cat) return null;
   return (
     <div>
-      <div style={{ display: 'flex', gap: 10, marginBottom: 20, alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 28, alignItems: 'center' }}>
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10 }}>
           {cat.categoryImage && <img src={cat.categoryImage} alt="" style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover' }} />}
           <span style={{ fontWeight: 700, color: '#f1f5f9', fontSize: 15 }}>{cat.label}</span>
@@ -412,29 +446,91 @@ function SubLevel({ cat, onNav, onEditCat, onAddSub, onEditSub, onDeleteSub }) {
         <button style={{ ...S.btn(), padding: '8px 14px', fontSize: 12 }} onClick={onAddSub}><Plus size={13} /> Add Sub-category</button>
       </div>
 
+      <div style={{ fontSize: 11, color: '#475569', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <Upload size={11} /> Click the <strong style={{ color: '#6366f1' }}>camera badge</strong> on any circle to set its photo · Click the circle itself to view services
+      </div>
+
       {!cat.sections?.length
         ? <Empty label="No sub-categories" sub="Add sub-categories to group services within this category." />
-        : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
-            {cat.sections.map(sec => (
-              <div key={sec.label} style={{ ...S.card, transition: 'border-color .15s' }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.45)'}
-                onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}>
-                <div style={{ display: 'flex', gap: 12, alignItems: 'center', cursor: 'pointer' }} onClick={() => onNav(sec.label)}>
-                  <div style={{ width: 40, height: 40, borderRadius: 9, background: 'rgba(99,102,241,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Tag size={17} color="#6366f1" />
+        : <div style={{ display: 'flex', flexWrap: 'wrap', gap: 28 }}>
+            {cat.sections.map(sec => {
+              const isUp  = uploading === sec.label;
+              const isHov = hovered  === sec.label;
+              return (
+                <div
+                  key={sec.label}
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, width: 96 }}
+                  onMouseEnter={() => setHovered(sec.label)}
+                  onMouseLeave={() => setHovered(null)}
+                >
+                  {/* Circle — matches owner view */}
+                  <div style={{ position: 'relative' }}>
+                    <div
+                      onClick={() => onNav(sec.label)}
+                      title={`Open ${sec.label}`}
+                      style={{
+                        width: 80, height: 80, borderRadius: '50%',
+                        background: sec.subCategoryImage ? 'transparent' : 'rgba(99,102,241,0.15)',
+                        border: `3px solid ${isHov ? '#6366f1' : 'rgba(99,102,241,0.35)'}`,
+                        overflow: 'hidden', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: isHov ? '0 0 0 4px rgba(99,102,241,0.18)' : '0 4px 16px rgba(0,0,0,0.3)',
+                        transition: 'border-color .15s, box-shadow .15s',
+                        flexShrink: 0,
+                      }}>
+                      {sec.subCategoryImage
+                        ? <img src={sec.subCategoryImage} alt={sec.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        : <Tag size={28} color="#6366f1" />}
+                    </div>
+
+                    {/* Camera badge — upload photo */}
+                    <button
+                      onClick={e => { e.stopPropagation(); fileRefs.current[sec.label]?.click(); }}
+                      disabled={isUp}
+                      title="Set photo"
+                      style={{
+                        position: 'absolute', bottom: 1, right: 1,
+                        width: 26, height: 26, borderRadius: '50%',
+                        background: '#6366f1', border: '2px solid #0a0f1e',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: 'pointer', transition: 'opacity .15s',
+                        opacity: isHov || isUp ? 1 : 0.6,
+                      }}>
+                      {isUp
+                        ? <RefreshCw size={11} color="#fff" style={{ animation: 'spin .7s linear infinite' }} />
+                        : <Upload size={11} color="#fff" />}
+                    </button>
+
+                    {/* Delete badge */}
+                    <button
+                      onClick={e => { e.stopPropagation(); onDeleteSub(sec.label); }}
+                      title={`Delete ${sec.label}`}
+                      style={{
+                        position: 'absolute', top: 1, right: -2,
+                        width: 22, height: 22, borderRadius: '50%',
+                        background: 'rgba(239,68,68,0.9)', border: '2px solid #0a0f1e',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: 'pointer', transition: 'opacity .15s',
+                        opacity: isHov ? 1 : 0,
+                      }}>
+                      <X size={10} color="#fff" />
+                    </button>
+
+                    <input
+                      ref={el => fileRefs.current[sec.label] = el}
+                      type="file" accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={e => handleFileChange(e, sec.label)} />
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, color: '#f1f5f9', fontSize: 13 }}>{sec.label}</div>
-                    <div style={{ fontSize: 12, color: '#64748b' }}>{sec.services?.length || 0} services</div>
+
+                  {/* Label */}
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#f1f5f9', lineHeight: 1.3, wordBreak: 'break-word' }}>{sec.label}</div>
+                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 3 }}>{sec.services?.length || 0} services</div>
                   </div>
-                  <ChevronRight size={15} color="#6366f1" />
                 </div>
-                <div style={{ display: 'flex', gap: 6, marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                  <button style={S.ghost} onClick={e => { e.stopPropagation(); onEditSub({ label: sec.label }); }}><Pencil size={11} /> Rename</button>
-                  <button style={S.danger} onClick={e => { e.stopPropagation(); onDeleteSub(sec.label); }}><Trash2 size={11} /> Delete all</button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>}
     </div>
   );
