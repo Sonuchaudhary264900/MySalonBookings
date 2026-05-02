@@ -18,16 +18,19 @@ function buildTree(entries) {
     const cat = catMap[e.category];
     if (e.categoryImage && !cat.categoryImage) cat.categoryImage = e.categoryImage;
     const sec = e.subCategory || 'All Services';
-    if (!cat.sections[sec]) cat.sections[sec] = [];
-    cat.sections[sec].push({
-      _id: e._id,
-      name: e.name,
-      defaultImage: e.defaultImage || '',
-      priceHints: e.priceHints || [],
-      durationHints: e.durationHints || [],
-      defaultDuration: e.defaultDuration || 30,
-      order: e.order || 0,
-    });
+    if (!cat.sections[sec]) cat.sections[sec] = { subCategoryImage: e.subCategoryImage || '', services: [] };
+    if (e.subCategoryImage && !cat.sections[sec].subCategoryImage) cat.sections[sec].subCategoryImage = e.subCategoryImage;
+    if (e.name !== '__placeholder__') {
+      cat.sections[sec].services.push({
+        _id: e._id,
+        name: e.name,
+        defaultImage: e.defaultImage || '',
+        priceHints: e.priceHints || [],
+        durationHints: e.durationHints || [],
+        defaultDuration: e.defaultDuration || 30,
+        order: e.order || 0,
+      });
+    }
     if (!cat.subServices.includes(e.name)) cat.subServices.push(e.name);
   }
 
@@ -36,9 +39,10 @@ function buildTree(entries) {
     label: c.label,
     categoryImage: c.categoryImage,
     sections: Object.entries(c.sections)
-      .map(([label, services]) => ({
+      .map(([label, sec]) => ({
         label,
-        services: services.sort((a, b) => a.order - b.order),
+        subCategoryImage: sec.subCategoryImage || '',
+        services: sec.services.sort((a, b) => a.order - b.order),
       })),
     subServices: c.subServices,
   }));
@@ -58,7 +62,7 @@ exports.getBusinessTypes = async (req, res) => {
 exports.getTree = async (req, res) => {
   try {
     const { businessType } = req.query;
-    const filter = { isActive: true };
+    const filter = {};
     if (businessType) filter.businessType = businessType;
     const entries = await CatalogEntry.find(filter).sort({ order: 1, name: 1 }).lean();
     res.json({ success: true, data: buildTree(entries) });
