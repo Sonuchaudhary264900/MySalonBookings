@@ -213,24 +213,33 @@ function AddBtn({ label, onClick }) {
 }
 
 /* ─── SVG branch paths ───────────────────────────────────────────────────────── */
-function BranchSVG({ paths, color = '#6366f1' }) {
+function BranchSVG({ paths, color = '#6366f1', id = 'a' }) {
   if (!paths.length) return null;
+  const filterId = `glow-${id}`;
+  const gradId   = `grad-${id}`;
   return (
     <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%', pointerEvents:'none', overflow:'visible', zIndex:2 }}>
       <defs>
-        <filter id="glow">
-          <feGaussianBlur stdDeviation="2.5" result="blur" />
+        <filter id={filterId} x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="3" result="blur" />
           <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
         </filter>
+        <linearGradient id={gradId} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%"   stopColor={color} stopOpacity="0.9" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.25" />
+        </linearGradient>
       </defs>
       {paths.map((d, i) => (
         <g key={i}>
-          {/* glow layer */}
-          <path d={d} fill="none" stroke={color} strokeWidth="3" opacity="0.2" filter="url(#glow)" />
-          {/* main line */}
-          <path d={d} fill="none" stroke={color} strokeWidth="1.8" opacity="0.55"
-            strokeDasharray="none" style={{ animation:'branchDraw .4s ease both' }} />
-          {/* dot at end */}
+          {/* wide soft glow */}
+          <path d={d} fill="none" stroke={color} strokeWidth="6" opacity="0.12" filter={`url(#${filterId})`} />
+          {/* main branch line with gradient stroke via trick */}
+          <path d={d} fill="none" stroke={`url(#${gradId})`} strokeWidth="2" opacity="0.7"
+            strokeLinecap="round"
+            style={{ animation:`branchDraw .5s cubic-bezier(.4,0,.2,1) ${i * 0.07}s both` }} />
+          {/* bright core */}
+          <path d={d} fill="none" stroke={color} strokeWidth="0.8" opacity="0.5"
+            style={{ animation:`branchDraw .5s cubic-bezier(.4,0,.2,1) ${i * 0.07}s both` }} />
         </g>
       ))}
     </svg>
@@ -342,48 +351,55 @@ export default function ServiceCatalog() {
     return () => document.removeEventListener('mousedown', h);
   }, [seedOpen]);
 
-  /* ── recalculate SVG branch paths ─────────────────────────────── */
+  /* ── recalculate SVG branch paths — exactly 3 branches ──────────
+     Pick: leftmost item, second-from-right item, rightmost item.
+     Sort all target refs by x-position so picks are always correct
+     regardless of object key order.
+  ─────────────────────────────────────────────────────────────── */
   const recalc = useCallback(() => {
     const container = treeRef.current;
     if (!container) return;
     const base = container.getBoundingClientRect();
 
-    /* cat → sub branches */
+    const makePath = (sx, sy, el) => {
+      const dst = el.getBoundingClientRect();
+      const dx  = dst.left - base.left + dst.width / 2;
+      const dy  = dst.top  - base.top  - 6;
+      const my  = sy + (dy - sy) * 0.55;
+      return `M ${sx} ${sy} C ${sx} ${my} ${dx} ${my} ${dx} ${dy}`;
+    };
+
+    const pick3 = (els) => {
+      /* sort left→right by x position */
+      const sorted = [...els]
+        .filter(Boolean)
+        .sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
+      if (!sorted.length) return [];
+      const left      = sorted[0];                              // leftmost
+      const rightMost = sorted[sorted.length - 1];             // rightmost
+      const midRight  = sorted.length > 2                      // 2nd from right
+        ? sorted[sorted.length - 2] : null;
+      return [left, midRight, rightMost].filter(Boolean);
+    };
+
+    /* cat → sub: 3 branches */
     if (selCat && catCircleRefs.current[selCat] && subRowRef.current) {
       const src = catCircleRefs.current[selCat].getBoundingClientRect();
       const sx  = src.left - base.left + src.width / 2;
-      const sy  = src.bottom - base.top + 4;
-
-      const subs = Object.entries(subCircleRefs.current);
-      const paths = subs.map(([, el]) => {
-        if (!el) return null;
-        const dst = el.getBoundingClientRect();
-        const dx  = dst.left - base.left + dst.width / 2;
-        const dy  = dst.top  - base.top  - 4;
-        const my  = (sy + dy) / 2;
-        return `M ${sx} ${sy} C ${sx} ${my} ${dx} ${my} ${dx} ${dy}`;
-      }).filter(Boolean);
-      setCatPaths(paths);
+      const sy  = src.bottom - base.top + 6;
+      const targets = pick3(Object.values(subCircleRefs.current));
+      setCatPaths(targets.map(el => makePath(sx, sy, el)));
     } else {
       setCatPaths([]);
     }
 
-    /* sub → service branches */
+    /* sub → service: 3 branches */
     if (selSub && subCircleRefs.current[selSub] && svcRowRef.current) {
       const src = subCircleRefs.current[selSub].getBoundingClientRect();
       const sx  = src.left - base.left + src.width / 2;
-      const sy  = src.bottom - base.top + 4;
-
-      const svcs = Object.entries(svcCardRefs.current);
-      const paths = svcs.map(([, el]) => {
-        if (!el) return null;
-        const dst = el.getBoundingClientRect();
-        const dx  = dst.left - base.left + dst.width / 2;
-        const dy  = dst.top  - base.top  - 4;
-        const my  = (sy + dy) / 2;
-        return `M ${sx} ${sy} C ${sx} ${my} ${dx} ${my} ${dx} ${dy}`;
-      }).filter(Boolean);
-      setSubPaths(paths);
+      const sy  = src.bottom - base.top + 6;
+      const targets = pick3(Object.values(svcCardRefs.current));
+      setSubPaths(targets.map(el => makePath(sx, sy, el)));
     } else {
       setSubPaths([]);
     }
@@ -558,8 +574,8 @@ export default function ServiceCatalog() {
         <div ref={treeRef} style={{ position:'relative', background:'rgba(255,255,255,0.025)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:20, padding:'24px 20px', animation:'fadeSlideDown .25s ease both' }}>
 
           {/* ── SVG branch overlay ─────────────────────────────── */}
-          <BranchSVG paths={catPaths} color="#6366f1" />
-          <BranchSVG paths={subPaths} color="#8b5cf6" />
+          <BranchSVG paths={catPaths} color="#6366f1" id="cat" />
+          <BranchSVG paths={subPaths} color="#8b5cf6" id="sub" />
 
           {/* ── LEVEL 0: Categories ───────────────────────────── */}
           <div style={{ marginBottom:0 }}>
