@@ -213,39 +213,37 @@ function AddBtn({ label, onClick }) {
 }
 
 /* ─── SVG branch paths ───────────────────────────────────────────────────────── */
-function BranchSVG({ paths, color = '#6366f1', id = 'a' }) {
+function BranchSVG({ paths, id = 'a' }) {
   if (!paths.length) return null;
-  const fid = `glow-${id}`;
+  const gid  = `branch-grad-${id}`;
+  const amid = `arrow-mid-${id}`;
   return (
     <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%', pointerEvents:'none', overflow:'hidden', zIndex:2 }}>
       <defs>
-        <filter id={fid} x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur stdDeviation="5" result="blur" />
-          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
+        {/* gradient: cyan at edges → purple at centre */}
+        <linearGradient id={gid} x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%"   stopColor="#06b6d4" stopOpacity="0.9" />
+          <stop offset="45%"  stopColor="#818cf8" stopOpacity="0.85" />
+          <stop offset="55%"  stopColor="#818cf8" stopOpacity="0.85" />
+          <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.9" />
+        </linearGradient>
+        {/* downward-pointing arrowhead marker */}
+        <marker id={amid} markerWidth="7" markerHeight="7"
+          refX="3.5" refY="0" orient="auto" markerUnits="strokeWidth">
+          <path d="M 0 0 L 3.5 5 L 7 0" fill="none"
+            stroke="#06b6d4" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+        </marker>
       </defs>
-      {paths.map((d, i) => {
-        const delay = `${i * 0.12}s`;
-        return (
-          <g key={i}>
-            {/* outermost halo — wide, very soft */}
-            <path d={d} fill="none" stroke={color} strokeWidth="18" opacity="0.06"
-              strokeLinecap="round" filter={`url(#${fid})`} />
-            {/* mid glow */}
-            <path d={d} fill="none" stroke={color} strokeWidth="8" opacity="0.13"
-              strokeLinecap="round" filter={`url(#${fid})`}
-              style={{ animation:`branchDraw .6s cubic-bezier(.4,0,.2,1) ${delay} both` }} />
-            {/* main line */}
-            <path d={d} fill="none" stroke={color} strokeWidth="1.8" opacity="0.65"
-              strokeLinecap="round"
-              style={{ animation:`branchDraw .6s cubic-bezier(.4,0,.2,1) ${delay} both` }} />
-            {/* bright thin core */}
-            <path d={d} fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="0.6" opacity="0.5"
-              strokeLinecap="round"
-              style={{ animation:`branchDraw .6s cubic-bezier(.4,0,.2,1) ${delay} both` }} />
-          </g>
-        );
-      })}
+
+      {paths.map((d, i) => (
+        <g key={i} style={{ animation:`branchDraw .55s cubic-bezier(.4,0,.2,1) ${i * 0.1}s both` }}>
+          {/* soft glow layer */}
+          <path d={d} fill="none" stroke={`url(#${gid})`} strokeWidth="6" opacity="0.12" strokeLinecap="round" />
+          {/* main visible line */}
+          <path d={d} fill="none" stroke={`url(#${gid})`} strokeWidth="1.6" opacity="0.85"
+            strokeLinecap="round" markerEnd={`url(#${amid})`} />
+        </g>
+      ))}
     </svg>
   );
 }
