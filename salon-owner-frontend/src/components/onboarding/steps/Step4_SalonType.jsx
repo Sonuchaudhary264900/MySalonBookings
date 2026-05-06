@@ -126,16 +126,18 @@ export default function Step4_SalonType() {
         {/* Type grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           {SALON_TYPES.map((type, idx) => {
-            const isActive = selected === type.key;
-            const Icon     = TYPE_ICONS[type.key];
-            const isLast   = idx === SALON_TYPES.length - 1;
-            const spanFull = isLast && SALON_TYPES.length % 2 !== 0;
+            const isActive     = selected === type.key;
+            const isComingSoon = !!type.comingSoon;
+            const Icon         = TYPE_ICONS[type.key];
+            const isLast       = idx === SALON_TYPES.length - 1;
+            const spanFull     = isLast && SALON_TYPES.length % 2 !== 0;
 
             return (
               <button
                 key={type.key}
                 className={`s4t-card s4t-card-${idx}${isActive ? ' selected-pop s4t-glow' : ''}`}
-                onClick={() => handleSelect(type)}
+                onClick={() => !isComingSoon && handleSelect(type)}
+                disabled={isComingSoon}
                 style={{
                   '--gc': type.color,
                   gridColumn: spanFull ? '1 / -1' : undefined,
@@ -145,11 +147,14 @@ export default function Step4_SalonType() {
                   padding: '22px 16px',
                   borderRadius: 20,
                   textAlign: 'center',
-                  border: `2px solid ${isActive ? type.color : border}`,
-                  background: isActive
-                    ? (isDark ? `${type.color}1a` : `${type.color}0f`)
-                    : (isDark ? 'rgba(255,255,255,0.03)' : '#fafafa'),
-                  cursor: 'pointer',
+                  border: `2px solid ${isComingSoon ? (isDark ? 'rgba(255,255,255,0.06)' : '#e5e7eb') : isActive ? type.color : border}`,
+                  background: isComingSoon
+                    ? (isDark ? 'rgba(255,255,255,0.02)' : '#f9fafb')
+                    : isActive
+                      ? (isDark ? `${type.color}1a` : `${type.color}0f`)
+                      : (isDark ? 'rgba(255,255,255,0.03)' : '#fafafa'),
+                  cursor: isComingSoon ? 'not-allowed' : 'pointer',
+                  opacity: isComingSoon ? 0.55 : 1,
                   fontFamily: 'inherit',
                   boxShadow: isActive
                     ? `0 0 0 3px ${type.color}33, 0 4px 20px ${type.color}22`
@@ -157,6 +162,21 @@ export default function Step4_SalonType() {
                   position: 'relative',
                 }}
               >
+                {/* Coming Soon badge */}
+                {isComingSoon && (
+                  <div style={{
+                    position: 'absolute', top: 10, right: 10,
+                    padding: '2px 8px', borderRadius: 99,
+                    background: isDark ? 'rgba(255,255,255,0.08)' : '#f3f4f6',
+                    border: `1px solid ${isDark ? 'rgba(255,255,255,0.12)' : '#e5e7eb'}`,
+                    fontSize: 9, fontWeight: 700, letterSpacing: '0.04em',
+                    color: isDark ? '#64748b' : '#9ca3af',
+                    textTransform: 'uppercase',
+                  }}>
+                    Coming Soon
+                  </div>
+                )}
+
                 {/* Animated check mark */}
                 {isActive && (
                   <div className="s4t-check" style={{
@@ -169,7 +189,7 @@ export default function Step4_SalonType() {
                   }}>✓</div>
                 )}
 
-                {/* Icon bubble — lifts on hover via .s4t-icon class */}
+                {/* Icon bubble */}
                 <div className="s4t-icon" style={{
                   width: 56, height: 56, borderRadius: '50%', margin: '0 auto 12px',
                   background: isActive
@@ -181,13 +201,15 @@ export default function Step4_SalonType() {
                   <Icon
                     size={24}
                     strokeWidth={1.5}
-                    color={isActive ? type.color : (isDark ? '#64748b' : '#9ca3af')}
+                    color={isComingSoon ? (isDark ? '#475569' : '#d1d5db') : isActive ? type.color : (isDark ? '#64748b' : '#9ca3af')}
                   />
                 </div>
 
                 <div style={{
                   fontSize: 14, fontWeight: 700,
-                  color: isActive ? (isDark ? '#fff' : '#111827') : (isDark ? '#94a3b8' : '#374151'),
+                  color: isComingSoon
+                    ? (isDark ? '#475569' : '#d1d5db')
+                    : isActive ? (isDark ? '#fff' : '#111827') : (isDark ? '#94a3b8' : '#374151'),
                   marginBottom: 4,
                   transition: 'color 0.18s',
                 }}>
@@ -195,13 +217,15 @@ export default function Step4_SalonType() {
                 </div>
                 <div style={{
                   fontSize: 11, lineHeight: 1.4,
-                  color: isActive ? (isDark ? '#cbd5e1' : '#6b7280') : (isDark ? '#64748b' : '#9ca3af'),
+                  color: isComingSoon
+                    ? (isDark ? '#334155' : '#e5e7eb')
+                    : isActive ? (isDark ? '#cbd5e1' : '#6b7280') : (isDark ? '#64748b' : '#9ca3af'),
                   transition: 'color 0.18s',
                 }}>
                   {type.description}
                 </div>
 
-                {/* Auto-gender badge — animated entrance */}
+                {/* Auto-gender badge */}
                 {isActive && type.autoGender && (
                   <div className="s4t-badge" style={{
                     marginTop: 10,

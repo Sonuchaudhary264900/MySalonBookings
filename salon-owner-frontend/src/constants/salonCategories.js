@@ -703,6 +703,7 @@ export const SALON_TYPES = [
     description: 'Relaxation, massage & holistic care',
     autoGender:  null,
     color:       '#10b981',
+    comingSoon:  true,
   },
   {
     key:         'makeup_bridal',
@@ -711,6 +712,7 @@ export const SALON_TYPES = [
     description: 'Bridal, party makeup & beauty services',
     autoGender:  'female',
     color:       '#ec4899',
+    comingSoon:  true,
   },
   {
     key:         'skin_derma',
@@ -719,6 +721,7 @@ export const SALON_TYPES = [
     description: 'Advanced skin treatments & dermatology',
     autoGender:  'unisex',
     color:       '#f59e0b',
+    comingSoon:  true,
   },
 ];
 
