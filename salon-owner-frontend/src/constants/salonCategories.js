@@ -582,76 +582,159 @@ export const CATEGORY_IMAGES = {
 
 // ── Category card images — shown on the category card header (owner service menu) ──
 export const CATEGORY_CARD_IMAGE_MAP = {
+  // ─── Barbershop categories ─────────────────────────────────────────────────
+  'Hair Services':              'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&h=300&fit=crop&q=85',
+  'Beard & Shaving':            'https://images.unsplash.com/photo-1599351431613-18ef1fdd27e5?w=600&h=300&fit=crop&q=85',
+  'Hair Colour & Chemical':     'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=600&h=300&fit=crop&q=85',
+  'Skincare & Face':            'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&h=300&fit=crop&q=85',
+  'Scalp & Hair Health':        'https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=600&h=300&fit=crop&q=85',
+  'Wellness & Relaxation':      'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&h=300&fit=crop&q=85',
+  'Hand & Foot Grooming':       'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=600&h=300&fit=crop&q=85',
+
+  // ─── Salon categories ──────────────────────────────────────────────────────
+  'Hair Services (Men)':        'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&h=300&fit=crop&q=85',
+  'Hair Services (Women)':      'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=600&h=300&fit=crop&q=85',
+  'Beard & Grooming (Men)':     'https://images.unsplash.com/photo-1599351431613-18ef1fdd27e5?w=600&h=300&fit=crop&q=85',
+  'Skin & Face (Women)':        'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&h=300&fit=crop&q=85',
+  'Skincare & Face (Men)':      'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&h=300&fit=crop&q=85',
+  'Threading':                  'https://images.unsplash.com/photo-1626954079673-f3c3b7dc0bce?w=600&h=300&fit=crop&q=85',
+  'Waxing':                     'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=600&h=300&fit=crop&q=85',
+  'Body Care':                  'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=600&h=300&fit=crop&q=85',
+  'Nail Services':              'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=600&h=300&fit=crop&q=85',
+  'Grooming & Body Care (Men)': 'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=600&h=300&fit=crop&q=85',
+
   // ─── Bridal & Makeup ───────────────────────────────────────────────────────
-  'Bridal & Events':          'https://images.unsplash.com/photo-1519741497674-611481863552?w=600&h=300&fit=crop&q=85',
-  'Makeup Services':          'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=600&h=300&fit=crop&q=85',
-  'Hairstyling':              'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=600&h=300&fit=crop&q=85',
-  'Draping & Dressing':       'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=600&h=300&fit=crop&q=85',
-  'Pre-Bridal':               'https://images.unsplash.com/photo-1526413232644-8a40f03cc03b?w=600&h=300&fit=crop&q=85',
-  'Grooming Add-ons':         'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=600&h=300&fit=crop&q=85',
-  'Premium Add-ons':          'https://images.unsplash.com/photo-1519699047748-de8e457a634e?w=600&h=300&fit=crop&q=85',
+  'Makeup Services':            'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=600&h=300&fit=crop&q=85',
+  'Hairstyling':                'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=600&h=300&fit=crop&q=85',
+  'Draping & Dressing':         'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=600&h=300&fit=crop&q=85',
+  'Pre-Bridal':                 'https://images.unsplash.com/photo-1526413232644-8a40f03cc03b?w=600&h=300&fit=crop&q=85',
+  'Grooming Add-ons':           'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=600&h=300&fit=crop&q=85',
+  'Premium Add-ons':            'https://images.unsplash.com/photo-1519699047748-de8e457a634e?w=600&h=300&fit=crop&q=85',
 
-  // ─── Hair ──────────────────────────────────────────────────────────────────
-  'Hair Services':            'https://images.unsplash.com/photo-1562322140-8baeececf3df?w=600&h=300&fit=crop&q=85',
-  'Hair Services (Men)':      'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&h=300&fit=crop&q=85',
-  'Hair Services (Women)':    'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=600&h=300&fit=crop&q=85',
+  // ─── Spa & Wellness ────────────────────────────────────────────────────────
+  'Basic Massage':              'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&h=300&fit=crop&q=85',
+  'Full Body Massage':          'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=300&fit=crop&q=85',
+  'Premium Therapies':          'https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?w=600&h=300&fit=crop&q=85',
+  'Body Spa':                   'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=600&h=300&fit=crop&q=85',
+  'Wellness Therapy':           'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&h=300&fit=crop&q=85',
+  'Special Care':               'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=600&h=300&fit=crop&q=85',
 
-  // ─── Beard ─────────────────────────────────────────────────────────────────
-  'Beard & Grooming':         'https://images.unsplash.com/photo-1599351431613-18ef1fdd27e5?w=600&h=300&fit=crop&q=85',
-  'Beard & Face Issues':      'https://images.unsplash.com/photo-1552058544-f2b08422138a?w=600&h=300&fit=crop&q=85',
+  // ─── Skin & Derma ──────────────────────────────────────────────────────────
+  'Hair & Scalp':               'https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=600&h=300&fit=crop&q=85',
+  'Skin (Face)':                'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&h=300&fit=crop&q=85',
+  'Advanced Treatments':        'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=600&h=300&fit=crop&q=85',
+  'Anti-Aging':                 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=600&h=300&fit=crop&q=85',
+  'Body Skin':                  'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=600&h=300&fit=crop&q=85',
+  'Beard & Face Issues':        'https://images.unsplash.com/photo-1552058544-f2b08422138a?w=600&h=300&fit=crop&q=85',
+  'Consultation':               'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=600&h=300&fit=crop&q=85',
 
-  // ─── Nails ─────────────────────────────────────────────────────────────────
-  'Nail Services':            'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=600&h=300&fit=crop&q=85',
+  // ─── Legacy / alternate names ──────────────────────────────────────────────
+  'Bridal & Events':            'https://images.unsplash.com/photo-1519741497674-611481863552?w=600&h=300&fit=crop&q=85',
+  'Beard & Grooming':           'https://images.unsplash.com/photo-1599351431613-18ef1fdd27e5?w=600&h=300&fit=crop&q=85',
+  'Spa & Massage':              'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&h=300&fit=crop&q=85',
+  'Spa & Relaxation':           'https://images.unsplash.com/photo-1498842812179-c81beecf902c?w=600&h=300&fit=crop&q=85',
+  'Skin & Face':                'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&h=300&fit=crop&q=85',
+  'Skin & Face / Beauty':       'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&h=300&fit=crop&q=85',
+  'Skin & Face (Men Grooming)': 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&h=300&fit=crop&q=85',
+  'Skin & Beauty':              'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=600&h=300&fit=crop&q=85',
+  'Face & Skin':                'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&h=300&fit=crop&q=85',
+  'Body Grooming':              'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=600&h=300&fit=crop&q=85',
+  'Grooming & Hair Removal':    'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=600&h=300&fit=crop&q=85',
+  'Grooming & Body Care':       'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=600&h=300&fit=crop&q=85',
+  'Men Dermatology':            'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=600&h=300&fit=crop&q=85',
+  'Women Dermatology':          'https://images.unsplash.com/photo-1614859324967-bdf413c35a2c?w=600&h=300&fit=crop&q=85',
+  'Kids Services':              'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=600&h=300&fit=crop&q=85',
+  'At-Home Services':           'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=600&h=300&fit=crop&q=85',
+  'Packages & Combos':          'https://images.unsplash.com/photo-1535016120720-40c646be5580?w=600&h=300&fit=crop&q=85',
+  'Memberships':                'https://images.unsplash.com/photo-1519699047748-de8e457a634e?w=600&h=300&fit=crop&q=85',
+  'Premium / Modern Services':  'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=600&h=300&fit=crop&q=85',
+  'Hair Colour & Highlights':   'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=600&h=300&fit=crop&q=85',
+};
 
-  // ─── Skin & Face ───────────────────────────────────────────────────────────
-  'Skin & Face / Beauty':     'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&h=300&fit=crop&q=85',
-  'Skin & Face (Men Grooming)':'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&h=300&fit=crop&q=85',
-  'Skin & Beauty':            'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=600&h=300&fit=crop&q=85',
-  'Face & Skin':              'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&h=300&fit=crop&q=85',
-  'Skin & Face':              'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&h=300&fit=crop&q=85',
-  'Skin (Face)':              'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&h=300&fit=crop&q=85',
+// Static fallback images for subcategories (used when admin hasn't uploaded a photo)
+export const SUBCATEGORY_IMAGE_MAP = {
+  // ─── Hair subcategories ────────────────────────────────────────────────────
+  'Basic Haircuts':           'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=400&h=400&fit=crop&q=80',
+  'Precision Cuts':           'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=400&h=400&fit=crop&q=80',
+  'Advanced / Trend Cuts':    'https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=400&h=400&fit=crop&q=80',
+  'Advanced Cuts':            'https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=400&h=400&fit=crop&q=80',
+  'Long Hair Services':       'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400&h=400&fit=crop&q=80',
+  'Hair Art & Detailing':     'https://images.unsplash.com/photo-1599351431613-18ef1fdd27e5?w=400&h=400&fit=crop&q=80',
+  'Hair Styling':             'https://images.unsplash.com/photo-1562322140-8baeececf3df?w=400&h=400&fit=crop&q=80',
+  'Haircuts':                 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400&h=400&fit=crop&q=80',
+  'Hair Color':               'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=400&h=400&fit=crop&q=80',
+  'Hair Treatments':          'https://images.unsplash.com/photo-1526413232644-8a40f03cc03b?w=400&h=400&fit=crop&q=80',
+  'Hair Care':                'https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=400&h=400&fit=crop&q=80',
 
-  // ─── Spa ───────────────────────────────────────────────────────────────────
-  'Spa & Massage':            'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&h=300&fit=crop&q=85',
-  'Spa & Relaxation':         'https://images.unsplash.com/photo-1498842812179-c81beecf902c?w=600&h=300&fit=crop&q=85',
-  'Basic Massage':            'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&h=300&fit=crop&q=85',
-  'Full Body Massage':        'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=300&fit=crop&q=85',
-  'Premium Therapies':        'https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?w=600&h=300&fit=crop&q=85',
-  'Body Spa':                 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=600&h=300&fit=crop&q=85',
-  'Wellness Therapy':         'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&h=300&fit=crop&q=85',
-  'Special Care':             'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=600&h=300&fit=crop&q=85',
+  // ─── Beard subcategories ───────────────────────────────────────────────────
+  'Shaving':                  'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=400&h=400&fit=crop&q=80',
+  'Beard Grooming':           'https://images.unsplash.com/photo-1599351431613-18ef1fdd27e5?w=400&h=400&fit=crop&q=80',
+  'Mustache Services':        'https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?w=400&h=400&fit=crop&q=80',
+  'Mustache':                 'https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?w=400&h=400&fit=crop&q=80',
+  'Beard Treatments':         'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=400&fit=crop&q=80',
 
-  // ─── Body ──────────────────────────────────────────────────────────────────
-  'Body Grooming':            'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=600&h=300&fit=crop&q=85',
-  'Grooming & Hair Removal':  'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=600&h=300&fit=crop&q=85',
+  // ─── Hair colour subcategories ─────────────────────────────────────────────
+  'Natural Colour':           'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=400&h=400&fit=crop&q=80',
+  'Fashion Colour':           'https://images.unsplash.com/photo-1522337660859-02fbefca4702?w=400&h=400&fit=crop&q=80',
+  'Creative Colour':          'https://images.unsplash.com/photo-1522337660859-02fbefca4702?w=400&h=400&fit=crop&q=80',
+  'Chemical Treatments':      'https://images.unsplash.com/photo-1526413232644-8a40f03cc03b?w=400&h=400&fit=crop&q=80',
 
-  // ─── Dermatology ───────────────────────────────────────────────────────────
-  'Men Dermatology':          'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=600&h=300&fit=crop&q=85',
-  'Women Dermatology':        'https://images.unsplash.com/photo-1614859324967-bdf413c35a2c?w=600&h=300&fit=crop&q=85',
-  'Hair & Scalp':             'https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=600&h=300&fit=crop&q=85',
-  'Advanced Treatments':      'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=600&h=300&fit=crop&q=85',
-  'Anti-Aging':               'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=600&h=300&fit=crop&q=85',
-  'Body Skin':                'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=600&h=300&fit=crop&q=85',
-  'Consultation':             'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=600&h=300&fit=crop&q=85',
+  // ─── Skin & Face subcategories ─────────────────────────────────────────────
+  'Facial Services':          'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=400&h=400&fit=crop&q=80',
+  'Skin Treatments':          'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&h=400&fit=crop&q=80',
+  'Grooming Details':         'https://images.unsplash.com/photo-1626954079673-f3c3b7dc0bce?w=400&h=400&fit=crop&q=80',
+  'Advanced Aesthetic':       'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&h=400&fit=crop&q=80',
+  'Basic Care':               'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=400&h=400&fit=crop&q=80',
+  'Premium Facials':          'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400&h=400&fit=crop&q=80',
+  'Advanced Skin Care':       'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&h=400&fit=crop&q=80',
 
-  // ─── Kids ──────────────────────────────────────────────────────────────────
-  'Kids Services':            'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=600&h=300&fit=crop&q=85',
+  // ─── Threading & Waxing ────────────────────────────────────────────────────
+  'Threading':                'https://images.unsplash.com/photo-1626954079673-f3c3b7dc0bce?w=400&h=400&fit=crop&q=80',
+  'Body Waxing':              'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=400&h=400&fit=crop&q=80',
 
-  // ─── At-Home ───────────────────────────────────────────────────────────────
-  'At-Home Services':         'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=600&h=300&fit=crop&q=85',
+  // ─── Body Care ─────────────────────────────────────────────────────────────
+  'Body Care':                'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=400&h=400&fit=crop&q=80',
 
-  // ─── Barbershop / Men's Salon new categories ───────────────────────────────
-  'Hair Services':            'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&h=300&fit=crop&q=85',
-  'Beard & Shaving':          'https://images.unsplash.com/photo-1599351431613-18ef1fdd27e5?w=600&h=300&fit=crop&q=85',
-  'Hair Colour & Chemical':   'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=600&h=300&fit=crop&q=85',
-  'Skincare & Face':          'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&h=300&fit=crop&q=85',
-  'Scalp & Hair Health':      'https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=600&h=300&fit=crop&q=85',
-  'Wellness & Relaxation':    'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&h=300&fit=crop&q=85',
-  'Hand & Foot Grooming':     'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=600&h=300&fit=crop&q=85',
-  'Packages & Combos':        'https://images.unsplash.com/photo-1535016120720-40c646be5580?w=600&h=300&fit=crop&q=85',
-  'Memberships':              'https://images.unsplash.com/photo-1519699047748-de8e457a634e?w=600&h=300&fit=crop&q=85',
-  'Premium / Modern Services':'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=600&h=300&fit=crop&q=85',
-  'Grooming & Body Care':     'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=600&h=300&fit=crop&q=85',
+  // ─── Nail subcategories ────────────────────────────────────────────────────
+  'Basic Nail Care':          'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&h=400&fit=crop&q=80',
+  'Nail Art':                 'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&h=400&fit=crop&q=80',
+  'Gel & Acrylic':            'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&h=400&fit=crop&q=80',
+  'Nail Repair & Removal':    'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&h=400&fit=crop&q=80',
+
+  // ─── Scalp subcategories ───────────────────────────────────────────────────
+  'Scalp Treatments':         'https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=400&h=400&fit=crop&q=80',
+  'Oil & Therapy':            'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=400&h=400&fit=crop&q=80',
+
+  // ─── Wellness subcategories ────────────────────────────────────────────────
+  'Massage Services':         'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=400&h=400&fit=crop&q=80',
+  'Relaxation Services':      'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=400&h=400&fit=crop&q=80',
+  'Massage':                  'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=400&h=400&fit=crop&q=80',
+  'Relaxation':               'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=400&h=400&fit=crop&q=80',
+
+  // ─── Hand & Foot ───────────────────────────────────────────────────────────
+  'Hand Care':                'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&h=400&fit=crop&q=80',
+  'Foot Care':                'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&h=400&fit=crop&q=80',
+  'Hand & Foot':              'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&h=400&fit=crop&q=80',
+
+  // ─── Bridal subcategories ──────────────────────────────────────────────────
+  'Bridal Makeup':            'https://images.unsplash.com/photo-1519741497674-611481863552?w=400&h=400&fit=crop&q=80',
+  'Event Makeup':             'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=400&h=400&fit=crop&q=80',
+  'Special Services':         'https://images.unsplash.com/photo-1519741497674-611481863552?w=400&h=400&fit=crop&q=80',
+  'Bridal & Events':          'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400&h=400&fit=crop&q=80',
+  'Styling':                  'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400&h=400&fit=crop&q=80',
+  'Draping':                  'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=400&h=400&fit=crop&q=80',
+  'Assistance':               'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=400&h=400&fit=crop&q=80',
+  'Skin & Hair Care':         'https://images.unsplash.com/photo-1526413232644-8a40f03cc03b?w=400&h=400&fit=crop&q=80',
+  'Packages & Consultation':  'https://images.unsplash.com/photo-1519699047748-de8e457a634e?w=400&h=400&fit=crop&q=80',
+  'Grooming':                 'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&h=400&fit=crop&q=80',
+  'Premium':                  'https://images.unsplash.com/photo-1519699047748-de8e457a634e?w=400&h=400&fit=crop&q=80',
+
+  // ─── Spa subcategories ─────────────────────────────────────────────────────
+  'Men':                      'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=400&h=400&fit=crop&q=80',
+  'Female':                   'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=400&fit=crop&q=80',
+
+  // ─── Skin Derma subcategories ──────────────────────────────────────────────
+  'Beard & Face Issues':      'https://images.unsplash.com/photo-1552058544-f2b08422138a?w=400&h=400&fit=crop&q=80',
 };
 
 // Priority: owner photo → deterministic pool pick → null

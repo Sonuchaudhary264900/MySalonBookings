@@ -2,7 +2,7 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { LayoutGrid, Camera, Loader2 } from 'lucide-react';
 import CategoryIcon from './CategoryIcon';
-import { CATEGORY_CARD_IMAGE_MAP } from '../../constants/salonCategories';
+import { CATEGORY_CARD_IMAGE_MAP, SUBCATEGORY_IMAGE_MAP } from '../../constants/salonCategories';
 
 // adminCatalogMap: { categoryImages: { 'Hair Services (Men)': url }, serviceImages: { 'Haircut': url } }
 export const getCatImg = (label, salon, adminCatalogMap) => {
@@ -22,15 +22,16 @@ export const getSubImg = (catLabel, subLabel, salon, services, adminCatalogMap) 
     const custom = saved instanceof Map ? saved.get(key) : saved[key];
     if (custom) return custom;
   }
-  // Dedicated subcategory image uploaded by admin (highest priority after owner custom)
+  // Admin-uploaded subcategory image
   if (adminCatalogMap?.subCategoryImages?.[subLabel]) return adminCatalogMap.subCategoryImages[subLabel];
-  // Fallback: first service photo in this subcategory (shows something until admin uploads subCategoryImage)
+  // First service photo in this subcategory
   const svc = services?.find(s => s.photo || s.photos?.[0]);
   if (svc?.photo) return svc.photo;
   if (svc?.photos?.[0]) return svc.photos[0];
-  // Fallback: admin service defaultImage for a service matching the subLabel name
+  // Admin service defaultImage
   if (adminCatalogMap?.serviceImages?.[subLabel]) return adminCatalogMap.serviceImages[subLabel];
-  return null;
+  // Static fallback map
+  return SUBCATEGORY_IMAGE_MAP[subLabel] || null;
 };
 
 export const CircleButton = ({ label, imgSrc, isSelected, isUploading, onSelect, onImageChange, showEdit, isAll, btnRef }) => {

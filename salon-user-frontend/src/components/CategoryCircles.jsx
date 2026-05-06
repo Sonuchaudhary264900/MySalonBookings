@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { LayoutGrid } from 'lucide-react';
-import { CATEGORY_CARD_IMAGE_MAP } from '../constants/salonCategories';
+import { CATEGORY_CARD_IMAGE_MAP, SUBCATEGORY_IMAGE_MAP } from '../constants/salonCategories';
 
 export const getCatImg = (label, salon, adminCatalogMap) => {
   const saved = salon?.categoryImages;
@@ -19,14 +19,12 @@ export const getSubImg = (catLabel, subLabel, salon, services, adminCatalogMap) 
     const custom = saved instanceof Map ? saved.get(key) : saved[key];
     if (custom) return custom;
   }
-  // Dedicated subcategory image uploaded by admin
   if (adminCatalogMap?.subCategoryImages?.[subLabel]) return adminCatalogMap.subCategoryImages[subLabel];
-  // Fallback: first service photo until admin uploads subCategoryImage
   const svc = services?.find(s => s.photo || s.photos?.[0]);
   if (svc?.photo) return svc.photo;
   if (svc?.photos?.[0]) return svc.photos[0];
   if (adminCatalogMap?.serviceImages?.[subLabel]) return adminCatalogMap.serviceImages[subLabel];
-  return null;
+  return SUBCATEGORY_IMAGE_MAP[subLabel] || null;
 };
 
 const CircleBtn = ({ label, imgSrc, isSelected, isAll, onSelect, accentColor, IconComponent }) => {
