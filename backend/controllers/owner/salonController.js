@@ -197,8 +197,9 @@ exports.createSalon = async (req, res) => {
       ...(businessRegistrationUrl   ? { businessRegistrationUrl }   : {}),
 
       ownerId:        req.owner._id,
-      approvalStatus: 'pending',
-      isApproved:     false,
+      approvalStatus: 'approved',
+      isApproved:     true,
+      approvedDate:   new Date(),
     });
 
     // Pull owner's current gender from DB (set during account creation)
@@ -217,12 +218,14 @@ exports.createSalon = async (req, res) => {
       {
         businessId:   salon._id,
         ownerType:    BIZ_TYPE_TO_OWNER_TYPE[resolvedBusinessType] || 'SALON_OWNER',
-        status:       'salon_registered',
-        // Mirror salon location to owner for admin filtering
+        status:       'approved',
         address: address || '',
         city:    city || district || '',
         state:   state || '',
         pincode: pincode || '',
+        'subscription.trialStartDate': new Date(),
+        'subscription.planType':       'free_trial',
+        'subscription.paymentStatus':  'trial',
       }
     );
 

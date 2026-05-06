@@ -29,21 +29,21 @@ export default function CustomerTerms() {
       <div style={S.wrap}>
         <span style={S.badge}>Legal Document</span>
         <h1 style={S.h1}>Terms & Conditions for Customers</h1>
-        <p style={S.meta}>MySalonBookings &nbsp;·&nbsp; Effective Date: March 26, 2025 &nbsp;·&nbsp; Last Updated: March 26, 2025</p>
+        <p style={S.meta}>GlowLoox &nbsp;·&nbsp; Effective Date: March 26, 2025 &nbsp;·&nbsp; Last Updated: March 26, 2025</p>
 
         <div style={S.highlight}>
           <p style={{ ...S.p, margin: 0, color: 'rgba(255,255,255,0.8)' }}>
-            Please read these Terms and Conditions ("Terms") carefully before using the MySalonBookings platform. By creating an account or booking an appointment, you agree to be legally bound by these Terms. If you do not agree, please do not use our services.
+            Please read these Terms and Conditions ("Terms") carefully before using the GlowLoox platform. By creating an account or booking an appointment, you agree to be legally bound by these Terms. If you do not agree, please do not use our services.
           </p>
         </div>
 
-        <Section title="1. About MySalonBookings">
-          <p style={S.p}>MySalonBookings ("we", "us", "the Platform") is an online marketplace that connects customers with salon service providers across India. We provide the technology platform — we are not a salon and do not directly provide beauty or grooming services.</p>
-          <p style={S.p}><strong style={{ color: '#fff' }}>Important:</strong> The actual salon service is provided by independent salon owners listed on our platform. MySalonBookings facilitates the booking — the quality and delivery of the service is the responsibility of the salon.</p>
+        <Section title="1. About GlowLoox">
+          <p style={S.p}>GlowLoox ("we", "us", "the Platform") is an online marketplace that connects customers with salon service providers across India. We provide the technology platform — we are not a salon and do not directly provide beauty or grooming services.</p>
+          <p style={S.p}><strong style={{ color: '#fff' }}>Important:</strong> The actual salon service is provided by independent salon owners listed on our platform. GlowLoox facilitates the booking — the quality and delivery of the service is the responsibility of the salon.</p>
         </Section>
 
         <Section title="2. Eligibility">
-          <p style={S.p}>To use MySalonBookings as a customer:</p>
+          <p style={S.p}>To use GlowLoox as a customer:</p>
           <ul style={S.ul}>
             <li style={S.li}>You must be at least <strong style={{ color: '#fff' }}>13 years of age</strong></li>
             <li style={S.li}>If you are between 13 and 18, you must have parental or guardian consent</li>
@@ -53,7 +53,7 @@ export default function CustomerTerms() {
         </Section>
 
         <Section title="3. Account Registration">
-          <p style={S.p}>When you create a MySalonBookings account:</p>
+          <p style={S.p}>When you create a GlowLoox account:</p>
           <ul style={S.ul}>
             <li style={S.li}>You agree to provide truthful, accurate, and current information</li>
             <li style={S.li}>You are responsible for maintaining the confidentiality of your account credentials</li>
@@ -65,7 +65,7 @@ export default function CustomerTerms() {
 
         <Section title="4. Booking Services">
           <h3 style={S.h3}>4.1 How Bookings Work</h3>
-          <p style={S.p}>MySalonBookings enables you to browse salons, view services and pricing, and book appointments. When you submit a booking request:</p>
+          <p style={S.p}>GlowLoox enables you to browse salons, view services and pricing, and book appointments. When you submit a booking request:</p>
           <ul style={S.ul}>
             <li style={S.li}>The booking is sent to the salon for confirmation</li>
             <li style={S.li}>A confirmed booking creates a commitment between you and the salon</li>
@@ -82,7 +82,7 @@ export default function CustomerTerms() {
           </ul>
 
           <h3 style={S.h3}>4.3 Cancellation Policy</h3>
-          <p style={S.p}>Cancellation policies for individual bookings are set by each salon owner. MySalonBookings displays the salon's cancellation terms at the time of booking. Please review these before confirming your appointment. MySalonBookings is not responsible for any cancellation fees charged by salons.</p>
+          <p style={S.p}>Cancellation policies for individual bookings are set by each salon owner. GlowLoox displays the salon's cancellation terms at the time of booking. Please review these before confirming your appointment. GlowLoox is not responsible for any cancellation fees charged by salons.</p>
         </Section>
 
         <Section title="5. Data Sharing with Salons">
@@ -92,10 +92,10 @@ export default function CustomerTerms() {
 
         <Section title="6. Payments">
           <h3 style={S.h3}>6.1 Payment Processing</h3>
-          <p style={S.p}>Payments on MySalonBookings are processed by <strong style={{ color: '#fff' }}>Razorpay</strong>, a licensed payment aggregator regulated by the Reserve Bank of India. Razorpay's Terms of Service and Privacy Policy apply to all payment transactions.</p>
+          <p style={S.p}>Payments on GlowLoox are processed by <strong style={{ color: '#fff' }}>Razorpay</strong>, a licensed payment aggregator regulated by the Reserve Bank of India. Razorpay's Terms of Service and Privacy Policy apply to all payment transactions.</p>
 
           <h3 style={S.h3}>6.2 Security</h3>
-          <p style={S.p}>MySalonBookings never stores your payment card details, UPI ID, or bank account information. All sensitive payment data is handled exclusively by Razorpay's PCI-DSS compliant systems.</p>
+          <p style={S.p}>GlowLoox never stores your payment card details, UPI ID, or bank account information. All sensitive payment data is handled exclusively by Razorpay's PCI-DSS compliant systems.</p>
 
           <h3 style={S.h3}>6.3 Payment Disputes</h3>
           <p style={S.p}>For any payment-related issues (failed payments, unauthorized charges), contact us at support@mysalonbookings.com. We will investigate and coordinate with Razorpay on your behalf. For disputes regarding service quality, please contact the salon directly first.</p>
@@ -104,14 +104,14 @@ export default function CustomerTerms() {
         <Section title="7. Service Limitations & Platform Role">
           <div style={S.warning}>
             <p style={{ ...S.p, margin: 0, color: 'rgba(255,255,255,0.8)' }}>
-              <strong style={{ color: '#fde68a' }}>Important Disclaimer:</strong> MySalonBookings is a technology marketplace — we connect customers with salons but do not control, employ, or supervise salon staff. We cannot guarantee the quality, safety, or outcome of any salon service.
+              <strong style={{ color: '#fde68a' }}>Important Disclaimer:</strong> GlowLoox is a technology marketplace — we connect customers with salons but do not control, employ, or supervise salon staff. We cannot guarantee the quality, safety, or outcome of any salon service.
             </p>
           </div>
           <ul style={S.ul}>
             <li style={S.li}>Service quality is the sole responsibility of the individual salon</li>
             <li style={S.li}>Salon information (pricing, hours, services) is provided by the salon owner and may occasionally be inaccurate or outdated</li>
             <li style={S.li}>We do not guarantee salon availability — a salon may reject a booking if they are fully booked or unavailable</li>
-            <li style={S.li}>MySalonBookings is not liable for any injury, damage, dissatisfaction, or loss arising from salon services</li>
+            <li style={S.li}>GlowLoox is not liable for any injury, damage, dissatisfaction, or loss arising from salon services</li>
           </ul>
         </Section>
 
@@ -130,7 +130,7 @@ export default function CustomerTerms() {
         </Section>
 
         <Section title="9. Reviews & Ratings">
-          <p style={S.p}>If MySalonBookings offers a review feature, you agree that:</p>
+          <p style={S.p}>If GlowLoox offers a review feature, you agree that:</p>
           <ul style={S.ul}>
             <li style={S.li}>Reviews must be based on genuine, personal experiences</li>
             <li style={S.li}>Reviews must not contain offensive language, hate speech, or personal attacks</li>
@@ -140,11 +140,11 @@ export default function CustomerTerms() {
         </Section>
 
         <Section title="10. Intellectual Property">
-          <p style={S.p}>All content on MySalonBookings — including the logo, app design, code, and platform features — is owned by MySalonBookings and protected by applicable intellectual property laws. You may not copy, reproduce, or distribute any part of our platform without written permission.</p>
+          <p style={S.p}>All content on GlowLoox — including the logo, app design, code, and platform features — is owned by GlowLoox and protected by applicable intellectual property laws. You may not copy, reproduce, or distribute any part of our platform without written permission.</p>
         </Section>
 
         <Section title="11. Account Suspension & Termination">
-          <p style={S.p}>MySalonBookings reserves the right to suspend or terminate your account without prior notice if:</p>
+          <p style={S.p}>GlowLoox reserves the right to suspend or terminate your account without prior notice if:</p>
           <ul style={S.ul}>
             <li style={S.li}>You violate these Terms or our Privacy Policy</li>
             <li style={S.li}>We detect fraudulent, abusive, or illegal activity</li>
@@ -155,22 +155,22 @@ export default function CustomerTerms() {
         </Section>
 
         <Section title="12. Limitation of Liability">
-          <p style={S.p}>To the maximum extent permitted by applicable Indian law, MySalonBookings shall not be liable for:</p>
+          <p style={S.p}>To the maximum extent permitted by applicable Indian law, GlowLoox shall not be liable for:</p>
           <ul style={S.ul}>
             <li style={S.li}>Any indirect, incidental, or consequential damages arising from your use of the platform</li>
             <li style={S.li}>Loss of data, business, or revenue resulting from platform downtime or technical issues</li>
             <li style={S.li}>Any damages resulting from salon services, including injury, dissatisfaction, or property damage</li>
             <li style={S.li}>Unauthorized access to your account due to your failure to secure your credentials</li>
           </ul>
-          <p style={S.p}>Our aggregate liability to you for any claim shall not exceed the amount (if any) you paid to MySalonBookings in the 3 months preceding the claim.</p>
+          <p style={S.p}>Our aggregate liability to you for any claim shall not exceed the amount (if any) you paid to GlowLoox in the 3 months preceding the claim.</p>
         </Section>
 
         <Section title="13. Dispute Resolution">
           <h3 style={S.h3}>13.1 With Salons</h3>
-          <p style={S.p}>If you have a dispute with a salon (e.g., service quality, overcharging), please first contact the salon directly. If unresolved, you may escalate to MySalonBookings support and we will mediate where possible.</p>
+          <p style={S.p}>If you have a dispute with a salon (e.g., service quality, overcharging), please first contact the salon directly. If unresolved, you may escalate to GlowLoox support and we will mediate where possible.</p>
 
-          <h3 style={S.h3}>13.2 With MySalonBookings</h3>
-          <p style={S.p}>For disputes with MySalonBookings, please contact support@mysalonbookings.com. We will attempt to resolve the matter within 15 business days. If unresolved, disputes shall be subject to the jurisdiction of courts in India, governed by Indian law.</p>
+          <h3 style={S.h3}>13.2 With GlowLoox</h3>
+          <p style={S.p}>For disputes with GlowLoox, please contact support@mysalonbookings.com. We will attempt to resolve the matter within 15 business days. If unresolved, disputes shall be subject to the jurisdiction of courts in India, governed by Indian law.</p>
         </Section>
 
         <Section title="14. Changes to These Terms">
@@ -179,7 +179,7 @@ export default function CustomerTerms() {
 
         <Section title="15. Contact Us">
           <p style={S.p}>
-            <strong style={{ color: '#fff' }}>MySalonBookings Support</strong><br />
+            <strong style={{ color: '#fff' }}>GlowLoox Support</strong><br />
             Email: <strong style={{ color: '#60a5fa' }}>support@mysalonbookings.com</strong><br />
             Platform: mysalonbookings.com<br />
             Response Time: Within 2 business days
