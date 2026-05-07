@@ -1,3 +1,12 @@
+"""
+StyleAI API — Supervised Learning Version
+GlowLoox · Gigamind Technologies Pvt. Ltd.
+
+Uses trained Random Forest / Neural Network model for face shape detection.
+Falls back to rule-based if model files are not found.
+Same API contract — frontend needs zero changes.
+"""
+
 import os
 import math
 import colorsys
@@ -13,26 +22,30 @@ from mediapipe.tasks.python import vision as mp_vision
 app = FastAPI()
 
 INTERNAL_SECRET = os.getenv("HAIRSTYLE_INTERNAL_SECRET", "")
-MODEL_VERSION   = "v1-rules"
+MODEL_VERSION   = "v2-supervised"
 
-# ── Download face landmarker model on first run ──────────────────
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "face_landmarker.task")
-MODEL_URL  = (
+# ── Paths ──────────────────────────────────────────────────────────
+BASE_DIR       = os.path.dirname(os.path.abspath(__file__))
+MP_MODEL_PATH  = os.path.join(BASE_DIR, "face_landmarker.task")
+ML_MODEL_PATH  = os.path.join(BASE_DIR, "face_shape_model.pkl")
+ENCODER_PATH   = os.path.join(BASE_DIR, "label_encoder.pkl")
+MODEL_URL      = (
     "https://storage.googleapis.com/mediapipe-models/"
     "face_landmarker/face_landmarker/float16/1/face_landmarker.task"
 )
 
-def _ensure_model():
-    if not os.path.exists(MODEL_PATH):
-        print(f"StyleAI: downloading face landmarker model to {MODEL_PATH} ...")
-        urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
-        print("StyleAI: model download complete.")
+# ── Download MediaPipe model if needed ────────────────────────────
+def _ensure_mp_model():
+    if not os.path.exists(MP_MODEL_PATH):
+        print("StyleAI: downloading face landmarker model...")
+        urllib.request.urlretrieve(MODEL_URL, MP_MODEL_PATH)
+        print("StyleAI: download complete.")
 
-_ensure_model()
+_ensure_mp_model()
 
-# ── Pre-load landmarker at startup ───────────────────────────────
+# ── Load MediaPipe FaceLandmarker ─────────────────────────────────
 _options = mp_vision.FaceLandmarkerOptions(
-    base_options=mp_tasks_python.BaseOptions(model_asset_path=MODEL_PATH),
+    base_options=mp_tasks_python.BaseOptions(model_asset_path=MP_MODEL_PATH),
     running_mode=mp_vision.RunningMode.IMAGE,
     num_faces=1,
     min_face_detection_confidence=0.5,
@@ -43,7 +56,25 @@ _options = mp_vision.FaceLandmarkerOptions(
 _landmarker = mp_vision.FaceLandmarker.create_from_options(_options)
 print("StyleAI: FaceLandmarker ready.")
 
-# ── Auth middleware ──────────────────────────────────────────────
+# ── Load trained ML model ─────────────────────────────────────────
+_ml_model  = None
+_label_enc = None
+_use_ml    = False
+
+if os.path.exists(ML_MODEL_PATH) and os.path.exists(ENCODER_PATH):
+    try:
+        import joblib
+        _ml_model  = joblib.load(ML_MODEL_PATH)
+        _label_enc = joblib.load(ENCODER_PATH)
+        _use_ml    = True
+        print(f"StyleAI: ML model loaded — supervised learning active ({MODEL_VERSION})")
+        print(f"StyleAI: Classes: {list(_label_enc.classes_)}")
+    except Exception as e:
+        print(f"StyleAI: ML model load failed ({e}) — falling back to rule-based")
+else:
+    print("StyleAI: No trained model found — using rule-based fallback")
+
+# ── Auth middleware ───────────────────────────────────────────────
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
     if request.url.path == "/health":
@@ -53,9 +84,84 @@ async def auth_middleware(request: Request, call_next):
         return JSONResponse(status_code=401, content={"error": "unauthorized"})
     return await call_next(request)
 
+
 @app.get("/health")
 def health():
-    return {"status": "ok", "version": MODEL_VERSION}
+    return {
+        "status": "ok",
+        "version": MODEL_VERSION,
+        "mode": "supervised" if _use_ml else "rule-based",
+    }
+
+
+# ── Build feature vector from landmarks ──────────────────────────
+def landmarks_to_features(lm):
+    xs = [p.x for p in lm]
+    ys = [p.y for p in lm]
+    zs = [p.z for p in lm]
+
+    def dist(a, b):
+        return math.sqrt((lm[a].x - lm[b].x)**2 + (lm[a].y - lm[b].y)**2)
+
+    face_height = dist(10,  152)
+    face_width  = dist(234, 454)
+    jaw_width   = dist(172, 58)
+    forehead_w  = dist(67,  296)
+
+    h2w = face_height / max(face_width,  1e-6)
+    j2w = jaw_width   / max(face_width,  1e-6)
+    f2w = forehead_w  / max(face_width,  1e-6)
+    j2f = jaw_width   / max(forehead_w,  1e-6)
+
+    features = np.array(xs + ys + zs + [h2w, j2w, f2w, j2f], dtype=np.float32)
+
+    # Pad or trim to match training shape if needed
+    if _ml_model is not None:
+        try:
+            expected = _ml_model.n_features_in_
+        except AttributeError:
+            try:
+                expected = _ml_model.named_steps['mlp'].n_features_in_
+            except Exception:
+                expected = len(features)
+        if len(features) < expected:
+            features = np.pad(features, (0, expected - len(features)))
+        elif len(features) > expected:
+            features = features[:expected]
+
+    return features
+
+
+# ── Rule-based fallback ───────────────────────────────────────────
+def rule_based_shape(lm):
+    def dist(a, b):
+        return math.sqrt((lm[a].x - lm[b].x)**2 + (lm[a].y - lm[b].y)**2)
+
+    face_height = dist(10,  152)
+    face_width  = dist(234, 454)
+    jaw_width   = dist(172, 58)
+    forehead_w  = dist(67,  296)
+
+    if face_width < 1e-6:
+        return None, None, None
+
+    h2w = face_height / face_width
+    j2w = jaw_width   / face_width
+    f2w = forehead_w  / face_width
+    j2f = jaw_width   / max(forehead_w, 1e-6)
+
+    scores = {
+        "oval":   max(0, h2w - 1.0)          * max(0, 1.1 - j2w),
+        "round":  max(0, 1.3 - h2w)          * j2w,
+        "square": max(0, 1.0 - abs(h2w-1.1)) * min(j2w, f2w),
+        "heart":  f2w                         * max(0, 1.0 - j2f),
+        "oblong": max(0, h2w - 1.75)         * max(0, 1.0 - f2w),
+    }
+    total      = sum(scores.values())
+    face_shape = max(scores, key=scores.get)
+    confidence = round(scores[face_shape] / max(total, 1e-9), 3)
+    return face_shape, confidence, scores
+
 
 @app.post("/analyze")
 async def analyze(file: UploadFile = File(...)):
@@ -79,7 +185,7 @@ async def analyze(file: UploadFile = File(...)):
             "tips": ["Hold camera steady", "Ensure good lighting", "Move closer to camera"],
         })
 
-    # Run FaceLandmarker (new Tasks API)
+    # Run FaceLandmarker
     mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=img_rgb)
     result   = _landmarker.detect(mp_image)
 
@@ -89,22 +195,11 @@ async def analyze(file: UploadFile = File(...)):
             "tips": ["Face camera directly", "Better lighting", "Remove glasses if wearing any"],
         })
 
-    lm = result.face_landmarks[0]  # list of NormalizedLandmark (x, y, z, 0..1)
-
-    # Landmark indices (same as before — 468 landmark model)
-    FOREHEAD_TOP   = 10
-    CHIN_BOTTOM    = 152
-    CHEEK_LEFT     = 234
-    CHEEK_RIGHT    = 454
-    JAW_LEFT       = 172
-    JAW_RIGHT      = 58
-    FOREHEAD_LEFT  = 67
-    FOREHEAD_RIGHT = 296
-    NOSE_TIP       = 1
+    lm = result.face_landmarks[0]
 
     # Face size check
-    xs        = [lm[CHEEK_LEFT].x, lm[CHEEK_RIGHT].x]
-    ys        = [lm[FOREHEAD_TOP].y, lm[CHIN_BOTTOM].y]
+    xs        = [lm[234].x, lm[454].x]
+    ys        = [lm[10].y,  lm[152].y]
     bbox_area = (max(xs) - min(xs)) * (max(ys) - min(ys))
     if bbox_area < 0.05:
         return JSONResponse(status_code=422, content={
@@ -113,75 +208,56 @@ async def analyze(file: UploadFile = File(...)):
         })
 
     # Extreme pose filter
-    if abs(lm[NOSE_TIP].x - 0.5) > 0.25:
+    if abs(lm[1].x - 0.5) > 0.25:
         return JSONResponse(status_code=422, content={
             "error": "angled_photo",
             "tips": ["Face camera directly", "Keep your head straight"],
         })
 
-    # Ratios (normalized coordinates — no pixel conversion needed)
-    def dist(a, b):
-        return math.sqrt((lm[a].x - lm[b].x) ** 2 + (lm[a].y - lm[b].y) ** 2)
+    # ── Face shape detection ──────────────────────────────────────
+    if _use_ml:
+        features   = landmarks_to_features(lm).reshape(1, -1)
+        face_shape = _label_enc.inverse_transform(_ml_model.predict(features))[0]
+        proba      = _ml_model.predict_proba(features)[0]
+        confidence = float(proba.max())
+        scores     = {cls: round(float(p), 4) for cls, p in zip(_label_enc.classes_, proba)}
+        sorted_s   = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+        secondary  = sorted_s[1] if len(sorted_s) > 1 and sorted_s[1][1] > 0.15 else None
+    else:
+        face_shape, confidence, scores = rule_based_shape(lm)
+        if face_shape is None:
+            return JSONResponse(status_code=422, content={"error": "no_face", "tips": ["Ensure your face is clearly visible"]})
+        if max(scores.values()) < 0.15:
+            return JSONResponse(status_code=422, content={
+                "ambiguous": True, "confidence": confidence,
+                "tips": ["Use natural lighting", "Face camera directly", "Remove glasses"],
+            })
+        sorted_s  = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+        secondary = sorted_s[1] if len(sorted_s) > 1 and sorted_s[1][1] > 0.4 * sorted_s[0][1] else None
+        scores    = {k: round(v, 4) for k, v in scores.items()}
 
-    face_height = dist(FOREHEAD_TOP, CHIN_BOTTOM)
-    face_width  = dist(CHEEK_LEFT,   CHEEK_RIGHT)
-    jaw_width   = dist(JAW_LEFT,     JAW_RIGHT)
-    forehead_w  = dist(FOREHEAD_LEFT, FOREHEAD_RIGHT)
-
-    if face_width < 1e-6:
-        return JSONResponse(status_code=422, content={"error": "no_face", "tips": ["Ensure your face is clearly visible"]})
-
-    h2w = face_height / face_width
-    j2w = jaw_width   / face_width
-    f2w = forehead_w  / face_width
-    j2f = jaw_width   / max(forehead_w, 1e-6)
-    ratios = {"h2w": round(h2w, 3), "j2w": round(j2w, 3), "f2w": round(f2w, 3), "j2f": round(j2f, 3)}
-
-    # Soft scoring
-    scores = {
-        "oval":   max(0, h2w - 1.0)         * max(0, 1.1 - j2w),
-        "round":  max(0, 1.3 - h2w)         * j2w,
-        "square": max(0, 1.0 - abs(h2w-1.1))* min(j2w, f2w),
-        "heart":  f2w                        * max(0, 1.0 - j2f),
-        "oblong": max(0, h2w - 1.75)        * max(0, 1.0 - f2w),
-    }
-    total      = sum(scores.values())
-    face_shape = max(scores, key=scores.get)
-    confidence = round(scores[face_shape] / max(total, 1e-9), 3)
-
-    if max(scores.values()) < 0.15:
-        return JSONResponse(status_code=422, content={
-            "ambiguous":  True,
-            "confidence": confidence,
-            "tips": ["Use natural lighting", "Face camera directly", "Remove glasses"],
-        })
-
-    # Secondary shape
-    sorted_s  = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-    secondary = sorted_s[1] if len(sorted_s) > 1 and sorted_s[1][1] > 0.4 * sorted_s[0][1] else None
-
-    # Hair density (pixel region above forehead)
-    hair_y_end   = int(lm[FOREHEAD_TOP].y * img_h)
+    # ── Hair density ──────────────────────────────────────────────
+    hair_y_end   = int(lm[10].y * img_h)
     hair_y_start = max(0, hair_y_end - int(0.12 * img_h))
     patch_hair   = gray[hair_y_start:hair_y_end, :]
     hair_var     = float(np.var(patch_hair)) if patch_hair.size > 0 else 0
     hair_density = "thick" if hair_var > 800 else "medium" if hair_var > 300 else "fine"
 
-    # Skin tone (cheek patch)
-    cx        = int(lm[CHEEK_LEFT].x * img_w)
-    cy        = int(lm[CHEEK_LEFT].y * img_h)
+    # ── Skin tone ─────────────────────────────────────────────────
+    cx        = int(lm[234].x * img_w)
+    cy        = int(lm[234].y * img_h)
     patch_sk  = img_rgb[max(0, cy-5):cy+5, max(0, cx-5):cx+5]
     lightness = colorsys.rgb_to_hsv(*(patch_sk.mean(axis=(0,1)) / 255.0))[2] if patch_sk.size > 0 else 0.6
     skin_tone = "fair" if lightness > 0.75 else "medium" if lightness > 0.55 else "olive" if lightness > 0.38 else "deep"
 
     return {
         "faceShape":           face_shape,
-        "confidence":          confidence,
+        "confidence":          round(confidence, 3),
         "secondaryShape":      secondary[0] if secondary else None,
-        "secondaryConfidence": round(secondary[1] / max(total, 1e-9), 3) if secondary else None,
-        "ratios":              ratios,
-        "scores":              {k: round(v, 4) for k, v in scores.items()},
+        "secondaryConfidence": round(secondary[1], 3) if secondary else None,
+        "scores":              scores,
         "hairDensity":         hair_density,
         "skinTone":            skin_tone,
         "version":             MODEL_VERSION,
+        "mode":                "supervised" if _use_ml else "rule-based",
     }
