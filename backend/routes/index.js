@@ -974,9 +974,12 @@ router.get("/public/salons/:salonId/booked-slots", validateObjectId("salonId"), 
     return res.json({ success: true, data: { slots: [], blockedSlots: [], closedDay: true, reason: "holiday" } });
   }
 
-  // Salon is closed on this day
-  if (!dayHours || dayHours.isClosed) {
+  // Salon is closed on this day — but if no working hours configured at all, use defaults (9am-8pm)
+  if (dayHours?.isClosed) {
     return res.json({ success: true, data: { slots: [], blockedSlots: [], closedDay: true } });
+  }
+  if (!dayHours) {
+    dayHours = { open: '09:00', close: '20:00', isClosed: false };
   }
 
   const parseMinutes = (t, fallback) => {

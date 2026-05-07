@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, ChevronUp, Pencil } from 'lucide-react';
+import { ChevronDown, ChevronUp, Pencil, User, Users, UserRound } from 'lucide-react';
 import Modal from '../common/Modal';
 import CategoryIcon from '../common/CategoryIcon';
 import {
@@ -180,20 +180,20 @@ const ServiceModal = ({ isOpen, onClose, service = null, onSubmit, loading = fal
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Applicable For *</label>
             <div className="flex gap-2">
-              {[['male', '👨 Men'], ['female', '👩 Women'], ['both', '👥 Both']].map(([val, label]) => (
+              {[['male', 'Men', User], ['female', 'Women', UserRound], ['both', 'Both', Users]].map(([val, label, Icon]) => (
                 <button key={val} type="button"
                   onClick={() => {
                     setForm(p => ({ ...p, applicableFor: val }));
                     if (errors.applicableFor) setErrors(p => ({ ...p, applicableFor: '' }));
                   }}
-                  className={`flex-1 py-2 rounded-xl border-2 text-sm font-medium transition ${
+                  className={`flex-1 py-2 rounded-xl border-2 text-sm font-medium transition flex items-center justify-center gap-1.5 ${
                     form.applicableFor === val
                       ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
                       : errors.applicableFor
                       ? 'border-red-300 text-gray-600'
                       : 'border-gray-200 text-gray-600 hover:border-gray-300'
                   }`}>
-                  {label}
+                  <Icon size={14} strokeWidth={1.8} />{label}
                 </button>
               ))}
             </div>

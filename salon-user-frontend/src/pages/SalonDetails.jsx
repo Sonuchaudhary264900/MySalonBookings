@@ -1070,7 +1070,13 @@ function SalonDetails({ salonId: propId, onClose }) {
 
                   {/* Services accordion */}
                   {services.length === 0 && !loading
-                    ? <p style={{ color: dm.fg30, padding: '24px 16px' }}>No services listed yet.</p>
+                    ? (
+                      <div style={{ margin: '24px 16px', padding: '28px 20px', borderRadius: 16, border: `1.5px dashed ${dm.b12}`, textAlign: 'center' }}>
+                        <div style={{ fontSize: 36, marginBottom: 10 }}>✂️</div>
+                        <p style={{ fontWeight: 700, fontSize: 15, color: dm.fg80, marginBottom: 6 }}>Services coming soon</p>
+                        <p style={{ fontSize: 13, color: dm.fg40, lineHeight: 1.5 }}>This salon is setting up their menu. Check back shortly or contact them directly.</p>
+                      </div>
+                    )
                     : (() => {
                         const isUnisex = salon.servedGender === 'unisex';
                         const classifySvc = (s) => {
