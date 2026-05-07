@@ -19,7 +19,7 @@ const AuthLayout = ({
           </div>
         </div>
         <p className="text-center text-gray-500 text-xs mt-6">
-          © 2026 GlowLoox. All rights reserved.
+          © 2026 GlowLoox · Gigamind Technologies Pvt. Ltd. All rights reserved.
         </p>
       </div>
     </div>

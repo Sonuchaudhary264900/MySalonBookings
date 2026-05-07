@@ -235,8 +235,16 @@ exports.verifyOTPAndRegister = async (req, res) => {
       name,
       email,
       password,
-      status: 'mobile_verified',
+      status: 'approved',
+      approvalStatus: 'approved',
+      isApproved: true,
       role: 'owner',
+      subscription: {
+        trialStartDate: new Date(),
+        planType: 'free_trial',
+        paymentStatus: 'trial',
+        monthlyBookingCount: 0,
+      },
     });
 
     // Delete OTP record
@@ -781,8 +789,16 @@ exports.firebaseRegister = async (req, res) => {
       phoneVerified: true,
       firebaseUid: firebaseUser.uid,
       ...(name && name.trim().length >= 2 ? { name: name.trim() } : {}),
-      status: 'mobile_verified',
+      status: 'approved',
+      approvalStatus: 'approved',
+      isApproved: true,
       role: 'owner',
+      subscription: {
+        trialStartDate: new Date(),
+        planType: 'free_trial',
+        paymentStatus: 'trial',
+        monthlyBookingCount: 0,
+      },
     };
     if (normalizedEmail) ownerData.email = normalizedEmail;
     const owner = await Owner.create(ownerData);
