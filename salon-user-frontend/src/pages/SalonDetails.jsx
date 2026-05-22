@@ -40,7 +40,7 @@ const CAT_ICON_COMPONENTS = {
 import API from "../services/api";
 import ServiceCard from "../components/ServiceCard";
 import ReviewCard from "../components/ReviewCard";
-import { CategoryCircleNav, SubCircleNav } from "../components/CategoryCircles";
+import { CategoryCircleNav } from "../components/CategoryCircles";
 import { useCatalogImages } from "../hooks/useCatalogImages";
 import { isCustomer, clearCustomerAuth } from "../utils/auth";
 import { formatDate, salonPath } from "../utils/formatters";
@@ -1031,39 +1031,17 @@ function SalonDetails({ salonId: propId, onClose }) {
                   {/* Category circles */}
                   {services.length > 0 && !loading && (() => {
                     const allCats = [...new Set(services.map(s => s.category || 'Other').filter(Boolean))];
-                    // Get catalog subcategories for the selected category, filtered to only names present in the salon
-                    const catalogCat = selCat ? UNISEX_CATEGORIES.find(c => c.label === selCat) : null;
-                    const catalogSubs = catalogCat
-                      ? [...new Set([...(catalogCat.maleSubServices || []), ...(catalogCat.femaleSubServices || [])])]
-                      : [];
-                    const salonServiceNames = new Set(services.filter(s => (s.category || 'Other') === selCat).map(s => s.name));
-                    const selCatSubs = catalogSubs.length > 0
-                      ? catalogSubs.filter(n => salonServiceNames.has(n))
-                      : [...salonServiceNames];
                     return (
                       <div style={{ paddingLeft: 8, paddingRight: 8 }}>
                         <CategoryCircleNav
                           categories={allCats}
                           selected={selCat}
-                          onSelect={cat => { setSelCat(cat); setSelSub(null); }}
+                          onSelect={cat => { setSelCat(cat); }}
                           salon={salon}
                           accentColor={theme.p}
                           iconMap={CAT_ICON_COMPONENTS}
                           adminCatalogMap={adminCatalogMap}
                         />
-                        {selCat && selCatSubs.length > 1 && (
-                          <SubCircleNav
-                            catLabel={selCat}
-                            subs={selCatSubs}
-                            selected={selSub}
-                            onSelect={setSelSub}
-                            salon={salon}
-                            services={services}
-                            accentColor={theme.p}
-                            adminCatalogMap={adminCatalogMap}
-                            iconMap={CAT_ICON_COMPONENTS}
-                          />
-                        )}
                       </div>
                     );
                   })()}
@@ -1114,9 +1092,6 @@ function SalonDetails({ salonId: propId, onClose }) {
                         }
                         if (selCat) {
                           visibleServices = visibleServices.filter(s => (s.category || 'Other') === selCat);
-                          if (selSub) {
-                            visibleServices = visibleServices.filter(s => s.name === selSub);
-                          }
                         }
                         const grouped = visibleServices.reduce((acc, svc) => {
                           const cat = svc.category || 'Other';
