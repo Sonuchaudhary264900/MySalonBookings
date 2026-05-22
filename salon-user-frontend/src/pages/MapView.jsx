@@ -1,23 +1,43 @@
 import { useState, useEffect, useLayoutEffect, useCallback, useRef, lazy, Suspense } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { MapContainer, TileLayer, useMap } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import { useJsApiLoader, GoogleMap, OverlayView, Polyline, Circle } from "@react-google-maps/api";
 import API from "../services/api";
 import { salonPath } from "../utils/formatters";
 import { useTheme } from "../context/ThemeContext";
 
 const SalonDetails = lazy(() => import("./SalonDetails"));
 
-import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
-import markerIcon   from "leaflet/dist/images/marker-icon.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({ iconUrl: markerIcon, iconRetinaUrl: markerIcon2x, shadowUrl: markerShadow });
-
 const NAV_H      = "calc(62px + env(safe-area-inset-bottom, 0px))";
 const SNAP_ORDER = ["peek", "mid", "full"];
 const lastSnapMemory = { current: "peek" };
+
+const lightMapStyles = [
+  { featureType: "poi",     stylers: [{ visibility: "off" }] },
+  { featureType: "transit", stylers: [{ visibility: "off" }] },
+  { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+  { featureType: "road",          elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+  { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#eeeeee" }] },
+  { featureType: "road.highway",  elementType: "geometry", stylers: [{ color: "#dadada" }] },
+  { featureType: "landscape",     elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
+  { featureType: "water",         elementType: "geometry", stylers: [{ color: "#c9d6e3" }] },
+];
+
+const darkMapStyles = [
+  { elementType: "geometry",           stylers: [{ color: "#212121" }] },
+  { elementType: "labels.text.fill",   stylers: [{ color: "#757575" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#212121" }] },
+  { elementType: "labels.icon",        stylers: [{ visibility: "off" }] },
+  { featureType: "poi",      stylers: [{ visibility: "off" }] },
+  { featureType: "transit",  stylers: [{ visibility: "off" }] },
+  { featureType: "road",          elementType: "geometry", stylers: [{ color: "#2c2c2c" }] },
+  { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#373737" }] },
+  { featureType: "road.highway",  elementType: "geometry", stylers: [{ color: "#3c3c3c" }] },
+  { featureType: "road",     elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
+  { featureType: "road.local", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
+  { featureType: "water",    elementType: "geometry",          stylers: [{ color: "#000000" }] },
+  { featureType: "landscape",elementType: "geometry",          stylers: [{ color: "#212121" }] },
+  { featureType: "administrative", elementType: "geometry",    stylers: [{ color: "#757575" }] },
+];
 
 function fmtDist(m) { return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`; }
 function bizLat(s)  { return s.location?.coordinates?.[1]; }
@@ -59,194 +79,121 @@ function getSnapY(snap) {
   return sheetH - Math.min(220, vh * 0.28);
 }
 
-/* ── Dynamic user location icon with heading cone ── */
-function createUserIcon(heading) {
+/* ── User location dot + heading cone ── */
+function UserLocationOverlay({ heading }) {
   const hasHeading = heading !== null && heading !== undefined && !isNaN(Number(heading));
   const deg = hasHeading ? Number(heading) : 0;
-  return L.divIcon({
-    className: "",
-    html: `
-      <style>
+  return (
+    <div style={{ position: "relative", width: 64, height: 64, pointerEvents: "none" }}>
+      <style>{`
         @keyframes gpsRingAnim {
           0%   { transform: translate(-50%,-50%) scale(0.8); opacity: 0.6; }
           100% { transform: translate(-50%,-50%) scale(3.2); opacity: 0; }
         }
-      </style>
-      <div style="position:relative;width:64px;height:64px;">
-        <div style="position:absolute;top:50%;left:50%;width:18px;height:18px;border-radius:50%;
-          background:rgba(66,133,244,0.22);
-          animation:gpsRingAnim 2.6s ease-out infinite;pointer-events:none;"></div>
-        ${hasHeading ? `
-          <svg style="position:absolute;top:0;left:0;overflow:visible;pointer-events:none;" width="64" height="64">
-            <defs>
-              <radialGradient id="coneGrad_${deg}" cx="50%" cy="100%" r="110%">
-                <stop offset="0%" stop-color="rgba(66,133,244,0.6)"/>
-                <stop offset="100%" stop-color="rgba(66,133,244,0.02)"/>
-              </radialGradient>
-            </defs>
-            <g transform="rotate(${deg},32,32)">
-              <path d="M32,32 L20,7 Q32,0 44,7 Z" fill="url(#coneGrad_${deg})"/>
-            </g>
-          </svg>
-        ` : ""}
-        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-          width:18px;height:18px;border-radius:50%;
-          background:linear-gradient(135deg,#4285f4,#1a73e8);
-          border:3.5px solid #fff;
-          box-shadow:0 3px 14px rgba(66,133,244,0.7);
-          z-index:2;pointer-events:none;"></div>
-      </div>`,
-    iconSize: [64, 64],
-    iconAnchor: [32, 32],
-  });
+      `}</style>
+      <div style={{
+        position: "absolute", top: "50%", left: "50%",
+        width: 18, height: 18, borderRadius: "50%",
+        background: "rgba(66,133,244,0.22)",
+        animation: "gpsRingAnim 2.6s ease-out infinite",
+      }} />
+      {hasHeading && (
+        <svg style={{ position: "absolute", top: 0, left: 0, overflow: "visible" }} width={64} height={64}>
+          <defs>
+            <radialGradient id="coneGrad" cx="50%" cy="100%" r="110%">
+              <stop offset="0%" stopColor="rgba(66,133,244,0.6)" />
+              <stop offset="100%" stopColor="rgba(66,133,244,0.02)" />
+            </radialGradient>
+          </defs>
+          <g transform={`rotate(${deg},32,32)`}>
+            <path d="M32,32 L20,7 Q32,0 44,7 Z" fill="url(#coneGrad)" />
+          </g>
+        </svg>
+      )}
+      <div style={{
+        position: "absolute", top: "50%", left: "50%",
+        transform: "translate(-50%,-50%)",
+        width: 18, height: 18, borderRadius: "50%",
+        background: "linear-gradient(135deg,#4285f4,#1a73e8)",
+        border: "3.5px solid #fff",
+        boxShadow: "0 3px 14px rgba(66,133,244,0.7)",
+        zIndex: 2,
+      }} />
+    </div>
+  );
 }
 
-/* ── Business pin icon ── */
-function salonIcon(isActive, name, photoUrl) {
+/* ── Salon pin marker (React, no Leaflet) ── */
+function SalonMarker({ salon, isActive, onClick }) {
   const size    = isActive ? 46 : 34;
-  const initial = (name || "S").charAt(0).toUpperCase();
-  const shortName = name ? (name.length > 14 ? name.slice(0, 13) + "\u2026" : name) : "";
-  const innerHtml = photoUrl
-    ? `<img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;" />`
-    : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:${Math.round(size / 2.6)}px;font-weight:900;color:#fff;border-radius:50%;">${initial}</div>`;
+  const name    = salon.name || "S";
+  const initial = name.charAt(0).toUpperCase();
+  const shortName = isActive ? (name.length > 14 ? name.slice(0, 13) + "…" : name) : "";
+  const photoUrl = salon.coverPhoto || salon.photos?.[0] || salon.logo || salon.profilePhoto;
+  const inner = photoUrl
+    ? <img src={photoUrl} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%", display: "block" }} />
+    : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: Math.round(size / 2.6), fontWeight: 900, color: "#fff" }}>{initial}</div>;
 
   if (!isActive) {
-    return L.divIcon({
-      className: "",
-      html: `<div style="display:flex;flex-direction:column;align-items:center;gap:0;">
-        <div style="width:${size}px;height:${size}px;border-radius:50%;overflow:hidden;
-          border:2.5px solid #fff;
-          box-shadow:0 2px 8px rgba(99,102,241,0.35),0 1px 3px rgba(0,0,0,0.2);
-          background:linear-gradient(135deg,#6366f1,#8b5cf6);flex-shrink:0;">${innerHtml}</div>
-        <div style="width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:6px solid #fff;margin-top:-1px;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.15));"></div>
-      </div>`,
-      iconSize: [size, size + 8],
-      iconAnchor: [size / 2, size + 8],
-      popupAnchor: [0, -(size + 8)],
-    });
-  }
-
-  return L.divIcon({
-    className: "",
-    html: `<style>
-      @keyframes mvPulse{0%{transform:scale(0.85);opacity:0.8}70%{transform:scale(1.35);opacity:0}100%{transform:scale(1.35);opacity:0}}
-      @keyframes markerPop{from{transform:scale(0.55);opacity:0}to{transform:scale(1);opacity:1}}
-    </style>
-    <div style="display:flex;flex-direction:column;align-items:center;gap:0;animation:markerPop 0.3s cubic-bezier(0.34,1.56,0.64,1) both;will-change:transform;">
-      ${shortName ? `<div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,0.25);white-space:nowrap;margin-bottom:4px;max-width:100px;overflow:hidden;text-overflow:ellipsis;">${shortName}</div>` : ""}
-      <div style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;flex-shrink:0;">
-        <div style="position:absolute;inset:-7px;border-radius:50%;border:2.5px solid rgba(99,102,241,0.5);animation:mvPulse 1.6s ease-out infinite;pointer-events:none;"></div>
-        <div style="position:absolute;inset:-14px;border-radius:50%;border:2px solid rgba(99,102,241,0.22);animation:mvPulse 1.6s ease-out 0.5s infinite;pointer-events:none;"></div>
-        <div style="width:100%;height:100%;border-radius:50%;overflow:hidden;
-          border:3px solid #6366f1;
-          box-shadow:0 4px 16px rgba(99,102,241,0.7),0 1px 4px rgba(0,0,0,0.2);
-          background:linear-gradient(135deg,#6366f1,#8b5cf6);">${innerHtml}</div>
+    return (
+      <div onClick={onClick} style={{ display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer" }}>
+        <div style={{
+          width: size, height: size, borderRadius: "50%", overflow: "hidden",
+          border: "2.5px solid #fff",
+          boxShadow: "0 2px 8px rgba(99,102,241,0.35),0 1px 3px rgba(0,0,0,0.2)",
+          background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
+        }}>{inner}</div>
+        <div style={{ width: 0, height: 0, borderLeft: "4px solid transparent", borderRight: "4px solid transparent", borderTop: "6px solid #fff", marginTop: -1, filter: "drop-shadow(0 1px 1px rgba(0,0,0,0.15))" }} />
       </div>
-      <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:8px solid #6366f1;margin-top:-1px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.25));"></div>
-    </div>`,
-    iconSize: [120, 100],
-    iconAnchor: [60, 88],
-    popupAnchor: [0, -95],
-  });
+    );
+  }
+  return (
+    <div onClick={onClick} style={{ display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer" }}>
+      <style>{`@keyframes markerPop{from{transform:scale(0.55);opacity:0}to{transform:scale(1);opacity:1}} @keyframes mvPulse{0%{transform:scale(0.85);opacity:0.8}70%{transform:scale(1.35);opacity:0}100%{transform:scale(1.35);opacity:0}}`}</style>
+      {shortName && (
+        <div style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 6, boxShadow: "0 2px 8px rgba(0,0,0,0.25)", whiteSpace: "nowrap", marginBottom: 4, maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis" }}>
+          {shortName}
+        </div>
+      )}
+      <div style={{ position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center", width: size, height: size, animation: "markerPop 0.3s cubic-bezier(0.34,1.56,0.64,1) both" }}>
+        <div style={{ position: "absolute", inset: -7, borderRadius: "50%", border: "2.5px solid rgba(99,102,241,0.5)", animation: "mvPulse 1.6s ease-out infinite", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", inset: -14, borderRadius: "50%", border: "2px solid rgba(99,102,241,0.22)", animation: "mvPulse 1.6s ease-out 0.5s infinite", pointerEvents: "none" }} />
+        <div style={{ width: "100%", height: "100%", borderRadius: "50%", overflow: "hidden", border: "3px solid #6366f1", boxShadow: "0 4px 16px rgba(99,102,241,0.7),0 1px 4px rgba(0,0,0,0.2)", background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}>{inner}</div>
+      </div>
+      <div style={{ width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderTop: "8px solid #6366f1", marginTop: -1, filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.25))" }} />
+    </div>
+  );
 }
 
-/* ── UserLocationLayer — imperatively manages marker + accuracy ring ── */
-function UserLocationLayer({ coords, heading, accuracy }) {
-  const map = useMap();
-  const markerRef = useRef(null);
-  const circleRef = useRef(null);
-
-  useEffect(() => {
-    if (!coords) return;
-    const pos = [coords.lat, coords.lng];
-    const icon = createUserIcon(heading);
-    if (markerRef.current) {
-      markerRef.current.setLatLng(pos);
-      markerRef.current.setIcon(icon);
-    } else {
-      markerRef.current = L.marker(pos, { icon, zIndexOffset: 900, interactive: false }).addTo(map);
-    }
-    if (accuracy && accuracy < 2000) {
-      if (circleRef.current) {
-        circleRef.current.setLatLng(pos);
-        circleRef.current.setRadius(accuracy);
-      } else {
-        circleRef.current = L.circle(pos, {
-          radius: accuracy,
-          color: "#4285f4", fillColor: "#4285f4", fillOpacity: 0.07,
-          weight: 1.5, opacity: 0.28, interactive: false,
-        }).addTo(map);
-      }
-    }
-  }, [coords?.lat, coords?.lng, heading, accuracy, map]); // eslint-disable-line
-
-  useEffect(() => () => {
-    if (markerRef.current) { map.removeLayer(markerRef.current); markerRef.current = null; }
-    if (circleRef.current) { map.removeLayer(circleRef.current); circleRef.current = null; }
-  }, [map]);
-
-  return null;
+/* ── Destination pin for route ── */
+function DestPin() {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", pointerEvents: "none" }}>
+      <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg,#ea4335,#c0392b)", border: "3px solid #fff", boxShadow: "0 4px 14px rgba(234,67,53,0.55)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <svg viewBox="0 0 24 24" width={15} height={15} fill="none" stroke="#fff" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </div>
+      <div style={{ width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderTop: "8px solid #ea4335", marginTop: -1 }} />
+    </div>
+  );
 }
 
-/* ── MapFollower — pans map to follow user ── */
-function MapFollower({ coords, active }) {
-  const map = useMap();
-  const prevRef = useRef(null);
-  useEffect(() => {
-    if (!active || !coords) return;
-    const key = `${coords.lat.toFixed(6)},${coords.lng.toFixed(6)}`;
-    if (prevRef.current === key) return;
-    prevRef.current = key;
-    map.panTo([coords.lat, coords.lng], { animate: true, duration: 0.55, easeLinearity: 0.3 });
-  }, [coords?.lat, coords?.lng, active, map]); // eslint-disable-line
-  return null;
-}
-
-/* ── FlyTo ── */
-function FlyTo({ coords }) {
-  const map = useMap();
-  const prevRef = useRef(null);
-  useEffect(() => {
-    if (!coords) return;
-    if (prevRef.current?.lat === coords.lat && prevRef.current?.lng === coords.lng) return;
-    prevRef.current = coords;
-    map.flyTo([coords.lat, coords.lng], 15, { animate: true, duration: 0.9 });
-  }, [coords, map]);
-  return null;
-}
-
-/* ── PanForCard ── */
-function PanForCard({ selectedId }) {
-  const map = useMap();
-  const prev = useRef(null);
-  useEffect(() => {
-    if (!selectedId || selectedId === prev.current) return;
-    prev.current = selectedId;
-    const peekH = Math.min(220, window.innerHeight * 0.28);
-    map.panBy([0, peekH * 0.8], { animate: true, duration: 0.4 });
-  }, [selectedId, map]);
-  return null;
-}
-
-/* ── MapControls — compass + locate/follow floating buttons ── */
-function MapControls({ coords, followMode, setFollowMode, onCompass, compassActive, heading }) {
-  const map = useMap();
-
-  useEffect(() => {
-    const onDrag = () => setFollowMode(false);
-    map.on("dragstart", onDrag);
-    return () => map.off("dragstart", onDrag);
-  }, [map, setFollowMode]);
-
+/* ── Floating compass + locate buttons ── */
+function MapControls({ mapRef, coords, followMode, setFollowMode, onCompass, compassActive, heading }) {
   const handleLocate = () => {
-    if (coords) {
-      map.flyTo([coords.lat, coords.lng], 16, { animate: true, duration: 0.9 });
+    if (coords && mapRef.current) {
+      mapRef.current.panTo({ lat: coords.lat, lng: coords.lng });
+      mapRef.current.setZoom(16);
       setFollowMode(true);
     } else {
       navigator.geolocation?.getCurrentPosition(
         (p) => {
-          map.flyTo([p.coords.latitude, p.coords.longitude], 16, { animate: true, duration: 0.9 });
-          setFollowMode(true);
+          if (mapRef.current) {
+            mapRef.current.panTo({ lat: p.coords.latitude, lng: p.coords.longitude });
+            mapRef.current.setZoom(16);
+            setFollowMode(true);
+          }
         },
         () => {}, { timeout: 6000, enableHighAccuracy: true }
       );
@@ -254,7 +201,6 @@ function MapControls({ coords, followMode, setFollowMode, onCompass, compassActi
   };
 
   const northAngle = compassActive && heading != null ? -heading : 0;
-
   const btnBase = {
     position: "absolute", right: 12, zIndex: 1000,
     width: 42, height: 42, border: "none", borderRadius: 12,
@@ -264,33 +210,19 @@ function MapControls({ coords, followMode, setFollowMode, onCompass, compassActi
 
   return (
     <>
-      {/* Compass */}
-      <button
-        onClick={onCompass}
-        title={compassActive ? "Disable compass" : "Enable compass"}
-        style={{ ...btnBase, top: 80, background: compassActive ? "#fff" : "#fff",
-          boxShadow: compassActive
-            ? "0 2px 16px rgba(234,67,53,0.35), 0 2px 8px rgba(0,0,0,0.12)"
-            : "0 2px 12px rgba(0,0,0,0.15)" }}
-      >
-        <svg viewBox="0 0 24 24" width={22} height={22}
-          style={{ transform: `rotate(${northAngle}deg)`, transition: "transform 0.12s linear" }}>
+      <button onClick={onCompass} title={compassActive ? "Disable compass" : "Enable compass"}
+        style={{ ...btnBase, top: 16, background: "#fff",
+          boxShadow: compassActive ? "0 2px 16px rgba(234,67,53,0.35),0 2px 8px rgba(0,0,0,0.12)" : "0 2px 12px rgba(0,0,0,0.15)" }}>
+        <svg viewBox="0 0 24 24" width={22} height={22} style={{ transform: `rotate(${northAngle}deg)`, transition: "transform 0.12s linear" }}>
           <path d="M12 2L14.5 10H9.5L12 2Z" fill={compassActive ? "#ea4335" : "#94a3b8"} />
           <path d="M12 22L9.5 14H14.5L12 22Z" fill={compassActive ? "#bdc1c6" : "#e2e8f0"} />
           <circle cx="12" cy="12" r="2.2" fill={compassActive ? "#5f6368" : "#cbd5e1"} />
         </svg>
       </button>
-
-      {/* Locate / Follow */}
-      <button
-        onClick={handleLocate}
-        title={followMode ? "Following" : "Locate me"}
-        style={{ ...btnBase, top: 132,
+      <button onClick={handleLocate} title={followMode ? "Following" : "Locate me"}
+        style={{ ...btnBase, top: 68,
           background: followMode ? "linear-gradient(135deg,#4285f4,#1a73e8)" : "#fff",
-          boxShadow: followMode
-            ? "0 2px 16px rgba(66,133,244,0.5)"
-            : "0 2px 12px rgba(0,0,0,0.15)" }}
-      >
+          boxShadow: followMode ? "0 2px 16px rgba(66,133,244,0.5)" : "0 2px 12px rgba(0,0,0,0.15)" }}>
         {followMode ? (
           <svg viewBox="0 0 24 24" width={19} height={19} fill="none" stroke="#fff" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/>
@@ -818,7 +750,7 @@ export default function MapView() {
   const [salons,        setSalons]        = useState([]);
   const [loading,       setLoading]       = useState(true);
   const [coords,        setCoords]        = useState(null);
-  const [center,        setCenter]        = useState([20.5937, 78.9629]);
+  const [defaultCenter] = useState({ lat: 20.5937, lng: 78.9629 });
   const [selected,      setSelected]      = useState(null);
   const [modalId,       setModalId]       = useState(null);
   const [sort,          setSort]          = useState("nearby");
@@ -828,10 +760,19 @@ export default function MapView() {
   const [compassActive, setCompassActive] = useState(false);
   const [routeData,     setRouteData]     = useState(null);
   const [routeLoading,  setRouteLoading]  = useState(false);
+  const [mapMounted,    setMapMounted]    = useState(false);
 
+  const mapRef           = useRef(null);
   const watchIdRef       = useRef(null);
   const compassHandlerRef = useRef(null);
   const coordsRef        = useRef(null);
+  const didInitialPanRef = useRef(false);
+  const prevSelectedRef  = useRef(null);
+
+  const { isLoaded } = useJsApiLoader({
+    id: "glowloox-map",
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+  });
 
   /* ── Fetch nearby salons ── */
   const fetchSalons = useCallback(async (lat, lng, sortBy) => {
@@ -852,7 +793,6 @@ export default function MapView() {
       (p) => {
         const c = { lat: p.coords.latitude, lng: p.coords.longitude };
         setCoords(c); coordsRef.current = c;
-        setCenter([c.lat, c.lng]);
         setAccuracy(p.coords.accuracy);
         fetchSalons(c.lat, c.lng, sort);
       },
@@ -891,6 +831,42 @@ export default function MapView() {
     fetchSalons(coordsRef.current.lat, coordsRef.current.lng, sort);
   }, [sort]); // eslint-disable-line
 
+  /* ── Initial pan to user location once map + coords are ready ── */
+  useEffect(() => {
+    if (didInitialPanRef.current || !coords || !mapMounted || !mapRef.current) return;
+    didInitialPanRef.current = true;
+    mapRef.current.panTo({ lat: coords.lat, lng: coords.lng });
+    mapRef.current.setZoom(15);
+  }, [coords, mapMounted]);
+
+  /* ── Follow mode: pan map as user moves ── */
+  useEffect(() => {
+    if (!followMode || !coords || !mapRef.current) return;
+    mapRef.current.panTo({ lat: coords.lat, lng: coords.lng });
+  }, [coords?.lat, coords?.lng, followMode]); // eslint-disable-line
+
+  /* ── Pan down when salon selected (to reveal card) ── */
+  useEffect(() => {
+    if (!selected?._id || selected._id === prevSelectedRef.current || !mapRef.current) return;
+    prevSelectedRef.current = selected._id;
+    const peekH = Math.min(220, window.innerHeight * 0.28);
+    mapRef.current.panBy(0, peekH * 0.8);
+  }, [selected?._id]); // eslint-disable-line
+
+  /* ── Fit bounds to show full route ── */
+  useEffect(() => {
+    if (!routeData || !mapRef.current || !window.google) return;
+    const bounds = new window.google.maps.LatLngBounds();
+    routeData.polyline.forEach(([lat, lng]) => bounds.extend({ lat, lng }));
+    mapRef.current.fitBounds(bounds, { top: 60, right: 60, bottom: 220, left: 60 });
+  }, [routeData]);
+
+  /* ── Update map styles when theme changes ── */
+  useEffect(() => {
+    if (!mapRef.current) return;
+    mapRef.current.setOptions({ styles: isDark ? darkMapStyles : lightMapStyles });
+  }, [isDark]);
+
   /* ── Compass request ── */
   const requestCompass = useCallback(async () => {
     if (compassHandlerRef.current) {
@@ -924,10 +900,10 @@ export default function MapView() {
     setCompassActive(true);
   }, []);
 
-  /* ── Fetch route from OSRM and show in-map ── */
+  /* ── Fetch route from OSRM ── */
   const fetchRoute = useCallback(async (salon) => {
     const from = coordsRef.current;
-    const to   = salon?.location?.coordinates; // [lng, lat]
+    const to   = salon?.location?.coordinates;
     if (!from || !to) return;
     setRouteLoading(true);
     setRouteData(null);
@@ -958,14 +934,13 @@ export default function MapView() {
         destLng: to[0],
       });
     } catch {
-      // fallback: open Google Maps externally
       window.open(`https://www.google.com/maps/dir/?api=1&origin=${from.lat},${from.lng}&destination=${to[1]},${to[0]}&travelmode=driving`, "_blank");
     } finally {
       setRouteLoading(false);
     }
   }, []);
 
-  /* ── Auto-route when opened from Dashboard "Directions" button ── */
+  /* ── Auto-route from URL params ── */
   const autoRoutedRef = useRef(false);
   useEffect(() => {
     if (autoRoutedRef.current) return;
@@ -993,7 +968,7 @@ export default function MapView() {
     }
   }, [searchParams, fetchRoute]); // eslint-disable-line
 
-  /* ── Intercept back button while modal open ── */
+  /* ── Back button while modal open ── */
   useEffect(() => {
     if (!modalId) return;
     window.history.pushState({ mvModal: true }, "");
@@ -1002,11 +977,7 @@ export default function MapView() {
     return () => window.removeEventListener("popstate", onPop);
   }, [modalId]);
 
-  /* ── Tile URLs ── */
-  const tileUrl = isDark
-    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-    : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
-  const tileAttr = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+  const routePath = routeData?.polyline.map(([lat, lng]) => ({ lat, lng })) || [];
 
   return (
     <>
@@ -1073,7 +1044,7 @@ export default function MapView() {
         {accuracy != null && (
           <div style={{
             position: "absolute",
-            bottom: "calc(24px + env(safe-area-inset-bottom,0px))",
+            bottom: "calc(80px + env(safe-area-inset-bottom,0px))",
             left: 12, zIndex: 1000,
             background: isDark ? "rgba(17,24,39,0.88)" : "rgba(255,255,255,0.92)",
             backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
@@ -1111,41 +1082,115 @@ export default function MapView() {
         )}
 
         {/* Map */}
-        <div style={{ position:"absolute", inset:0, top:72 }}>
-          <MapContainer
-            center={center} zoom={15} preferCanvas
-            style={{ width:"100%", height:"100%" }}
-            zoomControl={false}
-          >
-            <TileLayer url={tileUrl} attribution={tileAttr} />
+        <div style={{ position:"absolute", inset:0, top:72, overflow:"hidden" }}>
+          {isLoaded ? (
+            <GoogleMap
+              mapContainerStyle={{ width: "100%", height: "100%" }}
+              defaultCenter={defaultCenter}
+              defaultZoom={13}
+              options={{
+                disableDefaultUI: true,
+                gestureHandling: "greedy",
+                clickableIcons: false,
+                styles: isDark ? darkMapStyles : lightMapStyles,
+              }}
+              onLoad={(map) => { mapRef.current = map; setMapMounted(true); }}
+              onDragStart={() => setFollowMode(false)}
+            >
+              {/* User location dot + heading cone */}
+              {coords && (
+                <OverlayView
+                  position={{ lat: coords.lat, lng: coords.lng }}
+                  mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+                  getPixelPositionOffset={(w, h) => ({ x: -(w / 2), y: -(h / 2) })}
+                >
+                  <UserLocationOverlay heading={heading} />
+                </OverlayView>
+              )}
 
-            {/* Live user location with heading cone + accuracy ring */}
-            <UserLocationLayer coords={coords} heading={heading} accuracy={accuracy} />
+              {/* GPS accuracy ring */}
+              {coords && accuracy != null && accuracy < 2000 && (
+                <Circle
+                  center={{ lat: coords.lat, lng: coords.lng }}
+                  radius={accuracy}
+                  options={{
+                    fillColor: "#4285f4", fillOpacity: 0.07,
+                    strokeColor: "#4285f4", strokeOpacity: 0.28,
+                    strokeWeight: 1.5, clickable: false,
+                  }}
+                />
+              )}
 
-            {/* Auto-follow + compass controls */}
-            <MapFollower coords={coords} active={followMode} />
-            <MapControls
-              coords={coords}
-              followMode={followMode}
-              setFollowMode={setFollowMode}
-              onCompass={requestCompass}
-              compassActive={compassActive}
-              heading={heading}
-            />
+              {/* Route: casing + line */}
+              {routeData && routePath.length > 0 && (
+                <>
+                  <Polyline
+                    path={routePath}
+                    options={{ strokeColor: "#fff", strokeWeight: 10, strokeOpacity: 0.35, geodesic: true, clickable: false }}
+                  />
+                  <Polyline
+                    path={routePath}
+                    options={{ strokeColor: "#4285f4", strokeWeight: 6, strokeOpacity: 0.92, geodesic: true, clickable: false }}
+                  />
+                  <OverlayView
+                    position={{ lat: routeData.destLat, lng: routeData.destLng }}
+                    mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+                    getPixelPositionOffset={(w, h) => ({ x: -(w / 2), y: -h })}
+                  >
+                    <DestPin />
+                  </OverlayView>
+                </>
+              )}
 
-            <FlyTo coords={coords ? { lat: coords.lat, lng: coords.lng } : null} />
-            <PanForCard selectedId={selected?._id} />
+              {/* Salon markers */}
+              {salons.filter(s => bizLat(s) && bizLng(s)).map(s => (
+                <OverlayView
+                  key={s._id}
+                  position={{ lat: bizLat(s), lng: bizLng(s) }}
+                  mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+                  getPixelPositionOffset={(w, h) => ({ x: -(w / 2), y: -h })}
+                >
+                  <SalonMarker
+                    salon={s}
+                    isActive={selected?._id === s._id}
+                    onClick={() => { setRouteData(null); setSelected(s); setModalId(s._id); }}
+                  />
+                </OverlayView>
+              ))}
+            </GoogleMap>
+          ) : (
+            <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center",
+              background: isDark ? "#111827" : "#f1f5f9" }}>
+              <div style={{ width:36, height:36, borderRadius:"50%",
+                background:"conic-gradient(from 0deg,#6366f1,#a78bfa,transparent)",
+                animation:"mvSpin 0.85s linear infinite", padding:3 }}>
+                <div style={{ width:"100%", height:"100%", borderRadius:"50%", background: isDark ? "#111827" : "#f1f5f9" }} />
+              </div>
+            </div>
+          )}
 
-            {/* In-map route polyline + destination pin */}
-            {routeData && <RouteLayer routeData={routeData} isDark={isDark} />}
+          {/* Floating map controls (compass + locate) */}
+          <MapControls
+            mapRef={mapRef}
+            coords={coords}
+            followMode={followMode}
+            setFollowMode={setFollowMode}
+            onCompass={requestCompass}
+            compassActive={compassActive}
+            heading={heading}
+          />
 
-            {/* Salon markers */}
-            <SalonMarkersLayer
-              salons={salons}
-              selectedId={selected?._id}
-              onSelect={(s) => { setRouteData(null); setSelected(s); setModalId(s._id); }}
-            />
-          </MapContainer>
+          {/* GlowLoox watermark */}
+          <div style={{
+            position: "absolute", bottom: 90, left: 12, zIndex: 10,
+            pointerEvents: "none", display: "flex", alignItems: "center", gap: 4,
+          }}>
+            <span style={{
+              fontWeight: 900, fontSize: 13, letterSpacing: "-0.02em",
+              color: "#6366f1", opacity: 0.9,
+              textShadow: isDark ? "0 1px 6px rgba(0,0,0,0.6)" : "0 1px 4px rgba(255,255,255,0.9)",
+            }}>GlowLoox</span>
+          </div>
         </div>
 
         {/* Route loading spinner */}
@@ -1186,40 +1231,6 @@ export default function MapView() {
   );
 }
 
-/* ── Salon markers as imperative Leaflet layers ── */
-function SalonMarkersLayer({ salons, selectedId, onSelect }) {
-  const map = useMap();
-  const markersRef = useRef({});
-
-  useEffect(() => {
-    const existing = new Set(Object.keys(markersRef.current));
-    salons.filter(s => bizLat(s) && bizLng(s)).forEach(s => {
-      const icon = salonIcon(selectedId === s._id, s.name, s.coverPhoto || s.photos?.[0] || s.logo || s.profilePhoto);
-      if (markersRef.current[s._id]) {
-        markersRef.current[s._id].setIcon(icon);
-        existing.delete(s._id);
-      } else {
-        const m = L.marker([bizLat(s), bizLng(s)], { icon })
-          .addTo(map)
-          .on("click", () => onSelect(s));
-        markersRef.current[s._id] = m;
-        existing.delete(s._id);
-      }
-    });
-    existing.forEach(id => {
-      map.removeLayer(markersRef.current[id]);
-      delete markersRef.current[id];
-    });
-  }, [salons, selectedId, map, onSelect]); // eslint-disable-line
-
-  useEffect(() => () => {
-    Object.values(markersRef.current).forEach(m => map.removeLayer(m));
-    markersRef.current = {};
-  }, [map]);
-
-  return null;
-}
-
 /* ── Step instruction formatter ── */
 function formatStep(s) {
   const mod = s.maneuver?.modifier;
@@ -1236,7 +1247,7 @@ function formatStep(s) {
     if (mod === "uturn")       return `Make a U-turn${name ? ` on ${name}` : ""}`;
   }
   if (type === "roundabout" || type === "rotary") return `Enter roundabout${name ? `, take exit toward ${name}` : ""}`;
-  if (type === "merge")  return `Merge${name ? ` onto ${name}` : ""}`;
+  if (type === "merge")   return `Merge${name ? ` onto ${name}` : ""}`;
   if (type === "on ramp") return `Take the ramp${name ? ` onto ${name}` : ""}`;
   if (type === "off ramp") return `Exit${name ? ` toward ${name}` : ""}`;
   return `Continue${name ? ` on ${name}` : ""}`;
@@ -1255,61 +1266,10 @@ function StepIcon({ type, modifier }) {
     return <div style={s}><svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke={col} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>;
   if (modifier === "uturn")
     return <div style={s}><svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke={col} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><path d="M9 14l-4-4 4-4"/><path d="M5 10a7 7 0 107 7v-3"/></svg></div>;
-  // straight / slight
   return <div style={s}><svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke={col} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></div>;
 }
 
-/* ── RouteLayer — draws route polyline + destination pin inside map ── */
-function RouteLayer({ routeData, isDark }) {
-  const map = useMap();
-  const polyRef = useRef(null);
-  const destRef = useRef(null);
-
-  useEffect(() => {
-    if (!routeData) return;
-
-    // Route polyline
-    if (polyRef.current) map.removeLayer(polyRef.current);
-    polyRef.current = L.polyline(routeData.polyline, {
-      color: "#4285f4", weight: 6, opacity: 0.92,
-      lineCap: "round", lineJoin: "round",
-    }).addTo(map);
-
-    // Casing (white shadow under the line for contrast)
-    const casing = L.polyline(routeData.polyline, {
-      color: "#fff", weight: 10, opacity: 0.35,
-      lineCap: "round", lineJoin: "round",
-    }).addTo(map);
-
-    // Destination pin
-    if (destRef.current) map.removeLayer(destRef.current);
-    const destIcon = L.divIcon({
-      className: "",
-      html: `<div style="display:flex;flex-direction:column;align-items:center;">
-        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#ea4335,#c0392b);border:3px solid #fff;box-shadow:0 4px 14px rgba(234,67,53,0.55);display:flex;align-items:center;justify-content:center;">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        </div>
-        <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:8px solid #ea4335;margin-top:-1px;"></div>
-      </div>`,
-      iconSize: [36, 46], iconAnchor: [18, 46],
-    });
-    destRef.current = L.marker([routeData.destLat, routeData.destLng], { icon: destIcon, interactive: false }).addTo(map);
-
-    // Fit bounds to show full route
-    const bounds = L.latLngBounds(routeData.polyline);
-    map.fitBounds(bounds, { padding: [60, 60], maxZoom: 16, animate: true, duration: 0.8 });
-
-    return () => {
-      if (polyRef.current) { map.removeLayer(polyRef.current); polyRef.current = null; }
-      if (destRef.current) { map.removeLayer(destRef.current); destRef.current = null; }
-      try { map.removeLayer(casing); } catch {}
-    };
-  }, [routeData, map]); // eslint-disable-line
-
-  return null;
-}
-
-/* ── DirectionsPanel — bottom slide-up panel with route summary + steps ── */
+/* ── Directions panel (bottom slide-up) ── */
 function DirectionsPanel({ routeData, isDark, onClose }) {
   const [expanded, setExpanded] = useState(false);
   const bg  = isDark ? "#111827" : "#fff";
@@ -1325,25 +1285,17 @@ function DirectionsPanel({ routeData, isDark, onClose }) {
 
   return (
     <div style={{
-      position: "fixed", left: 0, right: 0,
-      bottom: 0,
-      zIndex: 500,
-      background: bg,
-      borderRadius: "20px 20px 0 0",
+      position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 500,
+      background: bg, borderRadius: "20px 20px 0 0",
       boxShadow: "0 -6px 32px rgba(0,0,0,0.22)",
       paddingBottom: "calc(12px + env(safe-area-inset-bottom,0px))",
       transition: "max-height 0.3s cubic-bezier(0.22,1,0.36,1)",
       maxHeight: expanded ? "70vh" : "auto",
-      overflow: "hidden",
-      display: "flex",
-      flexDirection: "column",
+      overflow: "hidden", display: "flex", flexDirection: "column",
     }}>
-      {/* Handle */}
       <div style={{ display:"flex", justifyContent:"center", padding:"10px 0 4px" }}>
         <div style={{ width:36, height:4, borderRadius:2, background: isDark ? "rgba(255,255,255,0.18)" : "#e2e8f0" }} />
       </div>
-
-      {/* Summary row */}
       <div style={{ display:"flex", alignItems:"center", gap:12, padding:"0 16px 12px" }}>
         <div style={{ flex:1 }}>
           <p style={{ margin:0, fontSize:13, color:fg2, fontWeight:600 }}>Route to</p>
@@ -1352,15 +1304,11 @@ function DirectionsPanel({ routeData, isDark, onClose }) {
             {routeData.salonName}
           </p>
         </div>
-        <div style={{ display:"flex", gap:10, alignItems:"center" }}>
-          <div style={{ textAlign:"center" }}>
-            <p style={{ margin:0, fontSize:22, fontWeight:900, color:"#4285f4", letterSpacing:"-0.03em" }}>{durStr}</p>
-            <p style={{ margin:0, fontSize:11, color:fg2, fontWeight:600 }}>{distKm}</p>
-          </div>
+        <div style={{ textAlign:"center" }}>
+          <p style={{ margin:0, fontSize:22, fontWeight:900, color:"#4285f4", letterSpacing:"-0.03em" }}>{durStr}</p>
+          <p style={{ margin:0, fontSize:11, color:fg2, fontWeight:600 }}>{distKm}</p>
         </div>
       </div>
-
-      {/* Action row */}
       <div style={{ display:"flex", gap:8, padding:"0 16px 14px" }}>
         <button
           onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${routeData.destLat},${routeData.destLng}&travelmode=driving`, "_blank")}
@@ -1391,8 +1339,6 @@ function DirectionsPanel({ routeData, isDark, onClose }) {
           </svg>
         </button>
       </div>
-
-      {/* Steps list */}
       {expanded && (
         <div style={{ overflowY:"auto", flex:1, borderTop:`1px solid ${brd}` }}>
           {routeData.steps.map((step, i) => (
