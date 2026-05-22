@@ -734,8 +734,7 @@ const Services = () => {
     const catDefs = getCategoriesForSalonType(salon?.businessType, salon?.servedGender);
     const catDef  = catDefs.find(d => d.label === selectedCatLabel);
     if (!catDef) return [];
-    if (catDef.sections?.length)    return catDef.sections.map(sec => sec.label);
-    if (catDef.subServices?.length) return catDef.subServices;
+    if (catDef.sections?.length) return catDef.sections.map(sec => sec.label);
     return [];
   }, [selectedCatLabel, salon?.businessType, salon?.servedGender]);
 
