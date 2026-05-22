@@ -1,5 +1,6 @@
 const CatalogEntry = require('../../models/CatalogEntry');
 const Business     = require('../../models/Business');
+const Service      = require('../../models/Service');
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 const toKey = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_');
@@ -288,6 +289,50 @@ exports.forceOverwriteImages = async (req, res) => {
     }
 
     res.json({ success: true, updated, categoriesOverwritten: Object.keys(imageMap).length });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+};
+
+// ─── POST /admin/catalog/reseed-slim ──────────────────────────────────────────
+// Clears ALL CatalogEntry docs, re-seeds from defaultCatalog.js, and
+// soft-deletes any salon Service whose name is not in the new slim catalog.
+exports.reseedSlim = async (req, res) => {
+  try {
+    const slimCatalog = require('../../data/defaultCatalog');
+
+    // 1. Delete all old catalog entries
+    const { deletedCount } = await CatalogEntry.deleteMany({});
+
+    // 2. Insert new slim entries
+    let inserted = 0, skipped = 0;
+    for (const item of slimCatalog) {
+      try {
+        await CatalogEntry.create(item);
+        inserted++;
+      } catch (e) {
+        if (e.code === 11000) skipped++;
+        else throw e;
+      }
+    }
+
+    // 3. Soft-delete salon services whose name is not in the slim catalog
+    const validNames = new Set(slimCatalog.map(e => e.name.trim().toLowerCase()));
+    const stale = await Service.find({ isActive: true, deletedAt: null }).select('_id name').lean();
+    const staleIds = stale.filter(s => !validNames.has(s.name.trim().toLowerCase())).map(s => s._id);
+    let softDeleted = 0;
+    if (staleIds.length) {
+      await Service.updateMany(
+        { _id: { $in: staleIds } },
+        { $set: { isActive: false, deletedAt: new Date() } }
+      );
+      softDeleted = staleIds.length;
+    }
+
+    res.json({
+      success: true,
+      data: { catalogDeleted: deletedCount, catalogInserted: inserted, catalogSkipped: skipped, servicesSoftDeleted: softDeleted },
+    });
   } catch (e) {
     res.status(500).json({ success: false, message: e.message });
   }

@@ -4442,6 +4442,7 @@ router.delete('/admin/catalog/batch',          authenticateAdmin, asyncHandler(c
 router.put(   '/admin/catalog/rename',         authenticateAdmin, asyncHandler(catalogController.renameLevel));
 router.post(  '/admin/catalog/upload-image',   authenticateAdmin, multerUpload.single('image'), asyncHandler(catalogController.uploadImage));
 router.post(  '/admin/catalog/seed',             authenticateAdmin, asyncHandler(catalogController.seed));
+router.post(  '/admin/catalog/reseed-slim',      authenticateAdmin, asyncHandler(catalogController.reseedSlim));
 router.post(  '/admin/catalog/overwrite-images', authenticateAdmin, asyncHandler(catalogController.overwriteImages));
 router.post(  '/admin/catalog/force-overwrite-images', authenticateAdmin, asyncHandler(catalogController.forceOverwriteImages));
 
