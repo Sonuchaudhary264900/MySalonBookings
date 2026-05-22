@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { LocateFixed, Search, X, SearchX, ArrowLeft } from "lucide-react";
+import { LocateFixed, Search, X, SearchX, ArrowLeft, Scissors, User, Sparkles, Wind, Baby, Crown, MapPin, Star, Flame } from "lucide-react";
 import API from "../services/api";
 import SalonCard from "../components/SalonCard";
 import { useTheme } from "../context/ThemeContext";
@@ -8,54 +8,54 @@ import { useTheme } from "../context/ThemeContext";
 // ── Config per gender ────────────────────────────────────────────
 const CONFIG = {
   male: {
-    title:    "Male Salons",
-    subtitle: "Haircuts, Beard, Spa & Grooming for Men",
-    emoji:    "🧔",
-    accent:   "#6366f1",
-    gradient: "linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%)",
-    heroBg:   "linear-gradient(135deg,rgba(99,102,241,0.14) 0%,rgba(139,92,246,0.10) 100%)",
-    glow:     "rgba(99,102,241,0.30)",
+    title:     "Male Salons",
+    subtitle:  "Haircuts, Beard, Spa & Grooming for Men",
+    emojiIcon: <User size={44} color="#fff" strokeWidth={1.5} />,
+    accent:    "#6366f1",
+    gradient:  "linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%)",
+    heroBg:    "linear-gradient(135deg,rgba(99,102,241,0.14) 0%,rgba(139,92,246,0.10) 100%)",
+    glow:      "rgba(99,102,241,0.30)",
     categories: [
-      { key: "all",                   label: "All",      icon: "✦" },
-      { key: "Hair Services",         label: "Hair",     icon: "✂️" },
-      { key: "Skin & Face / Beauty",  label: "Skin",     icon: "🧖" },
-      { key: "Beard & Grooming",      label: "Beard",    icon: "🧔" },
-      { key: "Spa & Massage",         label: "Spa",      icon: "💆" },
-      { key: "Kids Services",         label: "Kids",     icon: "👶" },
+      { key: "all",                   label: "All",      icon: null },
+      { key: "Hair Services",         label: "Hair",     icon: <Scissors size={14} /> },
+      { key: "Skin & Face / Beauty",  label: "Skin",     icon: <Sparkles size={14} /> },
+      { key: "Beard & Grooming",      label: "Beard",    icon: <User size={14} /> },
+      { key: "Spa & Massage",         label: "Spa",      icon: <Wind size={14} /> },
+      { key: "Kids Services",         label: "Kids",     icon: <Baby size={14} /> },
     ],
     quickActions: [
-      { icon: "✂️", label: "Haircut",  sub: "Fresh cut",     cat: "Hair Services" },
-      { icon: "🧔", label: "Beard",    sub: "Trim & style",  cat: "Beard & Grooming" },
-      { icon: "💆", label: "Spa",      sub: "Relax",         cat: "Spa & Massage" },
-      { icon: "🧖", label: "Facial",   sub: "Skin care",     cat: "Skin & Face / Beauty" },
-      { icon: "📍", label: "Near Me",  sub: "Within 5 km",   sort: "nearby" },
-      { icon: "⭐", label: "Top Rated",sub: "Best salons",   sort: "rated" },
+      { icon: <Scissors size={16} />, label: "Haircut",   sub: "Fresh cut",    cat: "Hair Services" },
+      { icon: <User size={16} />,     label: "Beard",     sub: "Trim & style", cat: "Beard & Grooming" },
+      { icon: <Wind size={16} />,     label: "Spa",       sub: "Relax",        cat: "Spa & Massage" },
+      { icon: <Sparkles size={16} />, label: "Facial",    sub: "Skin care",    cat: "Skin & Face / Beauty" },
+      { icon: <MapPin size={16} />,   label: "Near Me",   sub: "Within 5 km",  sort: "nearby" },
+      { icon: <Star size={16} />,     label: "Top Rated", sub: "Best salons",  sort: "rated" },
     ],
   },
   female: {
-    title:    "Female Salons",
-    subtitle: "Hair, Bridal, Nails, Makeup & more for Women",
-    emoji:    "💅",
-    accent:   "#ec4899",
-    gradient: "linear-gradient(135deg,#ec4899 0%,#f43f5e 100%)",
-    heroBg:   "linear-gradient(135deg,rgba(236,72,153,0.14) 0%,rgba(244,63,94,0.10) 100%)",
-    glow:     "rgba(236,72,153,0.30)",
+    title:     "Female Salons",
+    subtitle:  "Hair, Bridal, Nails, Makeup & more for Women",
+    emojiIcon: <Sparkles size={44} color="#fff" strokeWidth={1.5} />,
+    accent:    "#ec4899",
+    gradient:  "linear-gradient(135deg,#ec4899 0%,#f43f5e 100%)",
+    heroBg:    "linear-gradient(135deg,rgba(236,72,153,0.14) 0%,rgba(244,63,94,0.10) 100%)",
+    glow:      "rgba(236,72,153,0.30)",
     categories: [
-      { key: "all",                   label: "All",      icon: "✦" },
-      { key: "Hair Services",         label: "Hair",     icon: "✂️" },
-      { key: "Skin & Face / Beauty",  label: "Skin",     icon: "🧖" },
-      { key: "Nail Services",         label: "Nails",    icon: "💅" },
-      { key: "Bridal & Events",       label: "Bridal",   icon: "👰" },
-      { key: "Spa & Massage",         label: "Spa",      icon: "💆" },
-      { key: "Kids Services",         label: "Kids",     icon: "👶" },
+      { key: "all",                   label: "All",      icon: null },
+      { key: "Hair Services",         label: "Hair",     icon: <Scissors size={14} /> },
+      { key: "Skin & Face / Beauty",  label: "Skin",     icon: <Sparkles size={14} /> },
+      { key: "Nail Services",         label: "Nails",    icon: <Star size={14} /> },
+      { key: "Bridal & Events",       label: "Bridal",   icon: <Crown size={14} /> },
+      { key: "Spa & Massage",         label: "Spa",      icon: <Wind size={14} /> },
+      { key: "Kids Services",         label: "Kids",     icon: <Baby size={14} /> },
     ],
     quickActions: [
-      { icon: "✂️", label: "Hair",     sub: "Style & color",  cat: "Hair Services" },
-      { icon: "💅", label: "Nails",    sub: "Nail art",       cat: "Nail Services" },
-      { icon: "👰", label: "Bridal",   sub: "Wedding glam",   cat: "Bridal & Events" },
-      { icon: "🧖", label: "Skin",     sub: "Face & beauty",  cat: "Skin & Face / Beauty" },
-      { icon: "📍", label: "Near Me",  sub: "Within 5 km",    sort: "nearby" },
-      { icon: "⭐", label: "Top Rated",sub: "Best salons",    sort: "rated" },
+      { icon: <Scissors size={16} />, label: "Hair",      sub: "Style & color", cat: "Hair Services" },
+      { icon: <Star size={16} />,     label: "Nails",     sub: "Nail art",      cat: "Nail Services" },
+      { icon: <Crown size={16} />,    label: "Bridal",    sub: "Wedding glam",  cat: "Bridal & Events" },
+      { icon: <Sparkles size={16} />, label: "Skin",      sub: "Face & beauty", cat: "Skin & Face / Beauty" },
+      { icon: <MapPin size={16} />,   label: "Near Me",   sub: "Within 5 km",   sort: "nearby" },
+      { icon: <Star size={16} />,     label: "Top Rated", sub: "Best salons",   sort: "rated" },
     ],
   },
 };
@@ -237,7 +237,7 @@ export default function GenderHome({ gender }) {
 
           {/* Title */}
           <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 8 }}>
-            <div style={{ fontSize: 44, lineHeight: 1 }}>{cfg.emoji}</div>
+            <div style={{ display: "flex", flexShrink: 0 }}>{cfg.emojiIcon}</div>
             <div>
               <h1 style={{ fontSize: "clamp(1.6rem,5vw,2.4rem)", fontWeight: 900, color: "#fff", letterSpacing: "-1px", margin: 0, lineHeight: 1.1 }}>{cfg.title}</h1>
               <p style={{ fontSize: 14, color: "rgba(255,255,255,0.80)", margin: "6px 0 0", lineHeight: 1.5 }}>{cfg.subtitle}</p>
@@ -306,7 +306,7 @@ export default function GenderHome({ gender }) {
                     boxShadow: active ? `0 0 16px ${cfg.glow}` : "none",
                   }}
                 >
-                  <span style={{ fontSize: 15 }}>{icon}</span>{label}
+                  {icon && <span style={{ display: "flex" }}>{icon}</span>}{label}
                 </button>
               );
             })}
@@ -316,9 +316,9 @@ export default function GenderHome({ gender }) {
         {/* ── Sort + Open Now ── */}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 22, alignItems: "center" }}>
           {[
-            { key: "nearby", label: "Near You",   icon: "📍" },
-            { key: "rated",  label: "Top Rated",  icon: "⭐" },
-            { key: "booked", label: "Trending",   icon: "🔥" },
+            { key: "nearby", label: "Near You",  icon: <MapPin size={12} /> },
+            { key: "rated",  label: "Top Rated", icon: <Star size={12} /> },
+            { key: "booked", label: "Trending",  icon: <Flame size={12} /> },
           ].map(({ key, label, icon }) => {
             const active = sort === key;
             return (
@@ -327,8 +327,8 @@ export default function GenderHome({ gender }) {
               </button>
             );
           })}
-          <button onClick={() => { const next = !openNow; setOpenNow(next); setSalons(applyFilters(allSalons, selectedCats, next)); }} style={{ display: "flex", alignItems: "center", gap: 4, padding: "7px 14px", borderRadius: 999, fontSize: 12, fontWeight: 700, cursor: "pointer", transition: "all 0.18s ease", background: openNow ? "rgba(16,185,129,0.12)" : "transparent", border: openNow ? "1px solid rgba(16,185,129,0.35)" : "1px solid var(--t-border)", color: openNow ? "#10b981" : "var(--t-text-3)" }}>
-            🟢 Open Now
+          <button onClick={() => { const next = !openNow; setOpenNow(next); setSalons(applyFilters(allSalons, selectedCats, next)); }} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 999, fontSize: 12, fontWeight: 700, cursor: "pointer", transition: "all 0.18s ease", background: openNow ? "rgba(16,185,129,0.12)" : "transparent", border: openNow ? "1px solid rgba(16,185,129,0.35)" : "1px solid var(--t-border)", color: openNow ? "#10b981" : "var(--t-text-3)" }}>
+            <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#10b981", flexShrink: 0 }} /> Open Now
           </button>
         </div>
 
@@ -348,7 +348,7 @@ export default function GenderHome({ gender }) {
                 onMouseEnter={e => { e.currentTarget.style.borderColor = cfg.accent + "55"; e.currentTarget.style.boxShadow = `0 6px 20px ${cfg.glow}`; e.currentTarget.style.transform = "translateY(-2px)"; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--t-border)"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "translateY(0)"; }}
               >
-                <div style={{ width: 38, height: 38, borderRadius: 11, background: cfg.accent + "18", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{action.icon}</div>
+                <div style={{ width: 38, height: 38, borderRadius: 11, background: cfg.accent + "18", display: "flex", alignItems: "center", justifyContent: "center", color: cfg.accent, flexShrink: 0 }}>{action.icon}</div>
                 <div style={{ textAlign: "left" }}>
                   <p style={{ fontSize: 12, fontWeight: 700, color: "var(--t-text)", whiteSpace: "nowrap", marginBottom: 1 }}>{action.label}</p>
                   <p style={{ fontSize: 10, color: "var(--t-text-3)", whiteSpace: "nowrap" }}>{action.sub}</p>
@@ -370,7 +370,7 @@ export default function GenderHome({ gender }) {
               to={gender === "male" ? "/women" : "/men"}
               style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 16px", borderRadius: 999, fontSize: 12, fontWeight: 700, textDecoration: "none", background: gender === "male" ? "rgba(236,72,153,0.10)" : "rgba(99,102,241,0.10)", border: gender === "male" ? "1px solid rgba(236,72,153,0.28)" : "1px solid rgba(99,102,241,0.28)", color: gender === "male" ? "#ec4899" : "#6366f1" }}
             >
-              {gender === "male" ? "👩 Switch to Female" : "🧔 Switch to Male"}
+              {gender === "male" ? "Switch to Female" : "Switch to Male"}
             </Link>
           </div>
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Heart } from "lucide-react";
 import API from "../services/api";
 import SalonCard from "../components/SalonCard";
 
@@ -48,7 +49,7 @@ function Favorites() {
           </div>
         ) : favorites.length === 0 ? (
           <div className="text-center py-20">
-            <div className="text-6xl mb-4">♡</div>
+            <div className="flex justify-center mb-4"><Heart size={52} strokeWidth={1.5} className="text-slate-300" /></div>
             <h3 className="text-lg font-semibold text-slate-700 mb-2">No saved salons yet</h3>
             <p className="text-slate-400 text-sm mb-6">
               Tap the heart icon on any salon to save it here.

@@ -6,6 +6,9 @@ import API from "../services/api";
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_BASE_URL?.replace("/api/v1", "") || "http://localhost:5000";
 const CHAT_OPEN  = new Set(["pending", "confirmed", "in_progress"]);
 
+const IcLock = () => <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>;
+const IcMsg  = () => <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>;
+
 export default function Chat() {
   const { bookingId }               = useParams();
   const navigate                    = useNavigate();
@@ -179,7 +182,7 @@ export default function Chat() {
         {/* ── Chat closed banner ── */}
         {booking && !isChatOpen && (
           <div style={{ flexShrink: 0, margin: "10px 12px 0", padding: "9px 14px", background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.25)", borderRadius: 12, display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 14 }}>🔒</span>
+            <span style={{ display:"flex", color:"#f59e0b" }}><IcLock /></span>
             <p style={{ margin: 0, fontSize: 12, color: "#f59e0b", fontWeight: 600 }}>Chat closed — booking is {booking.status?.replace("_", " ")}</p>
           </div>
         )}
@@ -195,7 +198,7 @@ export default function Chat() {
             </div>
           ) : messages.length === 0 ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flex: 1, gap: 10, textAlign: "center" }}>
-              <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(99,102,241,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26 }}>💬</div>
+              <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(99,102,241,0.1)", display: "flex", alignItems: "center", justifyContent: "center", color: "#6366f1" }}><IcMsg /></div>
               <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "var(--t-text-2)" }}>No messages yet</p>
               <p style={{ margin: 0, fontSize: 12, color: "var(--t-text-3)" }}>Start the conversation with {salonName}</p>
             </div>
@@ -308,7 +311,7 @@ export default function Chat() {
               background: "var(--t-card)",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
             }}>
-              <span>🔒</span>
+              <span style={{ display:"flex", color:"var(--t-text-3)" }}><IcLock /></span>
               <span style={{ fontSize: 13, color: "var(--t-text-3)" }}>Chat is closed for this booking</span>
             </div>
           )
