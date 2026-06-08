@@ -41,11 +41,14 @@ const HERO_FEATURES = [
   { icon: Scissors,  color: '#f9a8d4', label: 'Service & Staff Control'     },
 ];
 
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
 const Login = () => {
   const navigate = useNavigate();
-  const { login, user } = useAuth();
+  const { login, loginWithGoogle, user } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const [showNoAccountModal, setShowNoAccountModal] = useState(false);
+  const googleBtnRef = React.useRef(null);
 
   useEffect(() => {
     if (!user) return;
@@ -53,6 +56,57 @@ const Login = () => {
     else if (user.status === 'pending_approval' || user.status === 'salon_registered') navigate(ROUTES.APPROVAL_WAITING, { replace: true });
     else navigate(ROUTES.DASHBOARD, { replace: true });
   }, [user, navigate]);
+
+  const handleGoogleCredential = async (credentialResponse) => {
+    try {
+      const idToken = credentialResponse?.credential;
+      if (!idToken) return;
+      const response = await loginWithGoogle(idToken);
+      toast.success('Welcome back!');
+      const status = response?.data?.owner?.status;
+      if (status === 'mobile_verified') navigate(ROUTES.ONBOARDING, { replace: true });
+      else if (status === 'pending_approval' || status === 'salon_registered') navigate(ROUTES.APPROVAL_WAITING, { replace: true });
+      else navigate(ROUTES.DASHBOARD, { replace: true });
+    } catch (err) {
+      const msg = err.message || '';
+      if (msg.toLowerCase().includes('no glowloox') || msg.toLowerCase().includes('not found')) {
+        setShowNoAccountModal(true);
+      } else {
+        toast.error(msg || 'Google sign-in failed. Please try again.');
+      }
+    }
+  };
+
+  // Load Google Identity Services and render the official sign-in button
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID) return;
+
+    const renderButton = () => {
+      if (!window.google?.accounts?.id || !googleBtnRef.current) return;
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleCredential,
+      });
+      window.google.accounts.id.renderButton(googleBtnRef.current, {
+        theme: isDark ? 'filled_black' : 'outline',
+        size: 'large',
+        shape: 'pill',
+        width: 360,
+        text: 'continue_with',
+      });
+    };
+
+    if (window.google?.accounts?.id) {
+      renderButton();
+    } else {
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.onload = renderButton;
+      document.body.appendChild(script);
+    }
+  }, [isDark]);
 
   const handleVerified = async (firebaseToken, phone) => {
     try {
@@ -158,6 +212,17 @@ const Login = () => {
                   </p>
                 }
               />
+
+              {GOOGLE_CLIENT_ID && (
+                <>
+                  <div style={{ display:'flex', alignItems:'center', gap:12, margin:'22px 0' }}>
+                    <div style={{ flex:1, height:1, background: c ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }} />
+                    <span style={{ fontSize:12, color: c ? '#475569' : '#94a3b8', fontWeight:600 }}>OR</span>
+                    <div style={{ flex:1, height:1, background: c ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }} />
+                  </div>
+                  <div ref={googleBtnRef} style={{ display:'flex', justifyContent:'center' }} />
+                </>
+              )}
 
             </div>
 

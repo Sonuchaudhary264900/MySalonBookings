@@ -2,6 +2,7 @@
   "expo": {
     "name": "GlowLoox",
     "slug": "salon-owner-android",
+    "scheme": "glowloox-owner",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/Icon-1024.png",
@@ -13,7 +14,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.mysalonbookings.owner",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -63,7 +66,8 @@
         }
       ],
       "expo-asset",
-      "expo-font"
+      "expo-font",
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {

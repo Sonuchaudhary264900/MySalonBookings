@@ -34,6 +34,11 @@ const ownerSchema = new mongoose.Schema(
       default: null,
       sparse: true,
     },
+    googleId: {
+      type: String,
+      default: null,
+      sparse: true,
+    },
     phoneVerified: {
       type: Boolean,
       default: false,

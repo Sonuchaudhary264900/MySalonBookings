@@ -7,13 +7,55 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import auth from '@react-native-firebase/auth';
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
 import { useAuth } from '../../context/AuthContext';
+
+WebBrowser.maybeCompleteAuthSession();
+
+const GOOGLE_WEB_CLIENT_ID = '806723346929-b9a3fsn63r4afls47qoa4f95ekihm38t.apps.googleusercontent.com';
+const GOOGLE_ANDROID_CLIENT_ID = '806723346929-k9ecpq13v8sn4p4ihkuv1cts59bsp6ri.apps.googleusercontent.com';
 
 const { width: W, height: H } = Dimensions.get('window');
 
 export default function LoginScreen({ navigation }) {
-  const { firebaseLogin, staffFirebaseLogin } = useAuth();
+  const { firebaseLogin, googleLogin, staffFirebaseLogin } = useAuth();
   const insets = useSafeAreaInsets();
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const [, googleResponse, promptGoogleSignIn] = Google.useAuthRequest({
+    webClientId: GOOGLE_WEB_CLIENT_ID,
+    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
+  });
+
+  useEffect(() => {
+    if (googleResponse?.type !== 'success') return;
+    const idToken = googleResponse.authentication?.idToken || googleResponse.params?.id_token;
+    if (!idToken) return;
+
+    (async () => {
+      setGoogleLoading(true);
+      try {
+        await googleLogin(idToken);
+      } catch (err) {
+        const msg = (err?.response?.data?.message || err?.message || '').toLowerCase();
+        if (msg.includes('not found') || msg.includes('no glowloox')) {
+          Alert.alert(
+            'No account found',
+            "We couldn't find a GlowLoox Partner account linked to this Google account. Would you like to register a new account?",
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Register', onPress: () => navigation.navigate('Onboarding', {}) },
+            ]
+          );
+        } else {
+          Alert.alert('Google Sign-In Failed', err?.response?.data?.message || err?.message || 'Something went wrong. Please try again.');
+        }
+      } finally {
+        setGoogleLoading(false);
+      }
+    })();
+  }, [googleResponse]);
 
   const [step, setStep] = useState(1);
   const [phone, setPhone] = useState('');
@@ -229,6 +271,26 @@ export default function LoginScreen({ navigation }) {
                   )}
                 </TouchableOpacity>
 
+                <View style={styles.dividerRow}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>OR</Text>
+                  <View style={styles.dividerLine} />
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.googleBtn, googleLoading && styles.btnDisabled]}
+                  onPress={() => promptGoogleSignIn()}
+                  disabled={googleLoading || !promptGoogleSignIn}
+                  activeOpacity={0.88}
+                >
+                  {googleLoading ? <ActivityIndicator color="#475569" /> : (
+                    <>
+                      <Ionicons name="logo-google" size={18} color="#ea4335" />
+                      <Text style={styles.googleBtnText}>Continue with Google</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+
               </>
             )}
 
@@ -346,6 +408,11 @@ const styles = StyleSheet.create({
 
   registerBtn: { borderWidth: 1.5, borderColor: 'rgba(99,102,241,0.4)', borderRadius: 14, height: 50, alignItems: 'center', justifyContent: 'center' },
   registerBtnText: { color: '#818cf8', fontSize: 15, fontWeight: '700' },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 18, gap: 12 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' },
+  dividerText: { color: '#475569', fontSize: 12, fontWeight: '700' },
+  googleBtn: { flexDirection: 'row', gap: 10, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.14)', borderRadius: 14, height: 50, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.04)' },
+  googleBtnText: { color: '#e2e8f0', fontSize: 15, fontWeight: '700' },
 
   otpBoxWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 20, justifyContent: 'center' },
   otpHint: { color: '#94a3b8', fontSize: 13 },
