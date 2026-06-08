@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Scissors, BarChart2, Users, Calendar, Sun, Moon } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -6,6 +6,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../context/ThemeContext';
 import ROUTES from '../../routes';
 import PhoneOtpForm from '../../components/auth/PhoneOtpForm';
+import ConfirmModal from '../../components/common/ConfirmModal';
 
 const LOGIN_CSS = `
   @keyframes lgn-orb1{0%,100%{transform:translate(0,0) scale(1);}40%{transform:translate(50px,-60px) scale(1.08);}70%{transform:translate(-30px,40px) scale(0.94);}}
@@ -44,6 +45,7 @@ const Login = () => {
   const navigate = useNavigate();
   const { login, user } = useAuth();
   const { isDark, toggleTheme } = useTheme();
+  const [showNoAccountModal, setShowNoAccountModal] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -63,8 +65,7 @@ const Login = () => {
     } catch (err) {
       const msg = err.message || '';
       if (msg.toLowerCase().includes('no glowloox') || msg.toLowerCase().includes('not found')) {
-        toast.error('No account found. Redirecting to register…');
-        navigate(ROUTES.REGISTER, { replace: true });
+        setShowNoAccountModal(true);
       } else {
         throw err;
       }
@@ -174,6 +175,17 @@ const Login = () => {
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showNoAccountModal}
+        title="No account found"
+        message="We couldn't find a GlowLoox Partner account with this number. Would you like to register a new account?"
+        confirmLabel="Register"
+        cancelLabel="Cancel"
+        variant="indigo"
+        onConfirm={() => navigate(ROUTES.REGISTER, { replace: true })}
+        onCancel={() => setShowNoAccountModal(false)}
+      />
     </>
   );
 };

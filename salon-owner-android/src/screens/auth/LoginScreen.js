@@ -124,8 +124,15 @@ export default function LoginScreen({ navigation }) {
               [{ text: 'OK' }]
             );
           } else if (staffNotFound) {
-            // Neither owner nor staff — go to registration
-            navigation.navigate('Onboarding', { initialStep: 3, prefillPhone: formatPhone(phone), prefillToken: firebaseToken });
+            // Neither owner nor staff — ask before sending to registration
+            Alert.alert(
+              'No account found',
+              "We couldn't find a GlowLoox Partner account with this number. Would you like to register a new account?",
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Register', onPress: () => navigation.navigate('Onboarding', { initialStep: 3, prefillPhone: formatPhone(phone), prefillToken: firebaseToken }) },
+              ]
+            );
           } else {
             Alert.alert('Login Failed', staffErr.response?.data?.message || staffErr?.message || 'Something went wrong. Please try again.');
           }
