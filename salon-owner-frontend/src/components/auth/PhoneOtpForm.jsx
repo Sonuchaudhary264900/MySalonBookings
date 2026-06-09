@@ -57,9 +57,10 @@ const PhoneOtpForm = ({
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState('');
 
-  const otpRefs     = useRef([]);
+  const otpRefs      = useRef([]);
   const recaptchaRef = useRef(null);
-  const confirmRef  = useRef(null);
+  const confirmRef   = useRef(null);
+  const verifyingRef = useRef(false);
 
   // Focus first OTP box when step changes
   useEffect(() => {
@@ -134,28 +135,36 @@ const PhoneOtpForm = ({
 
   const handleVerifyOtp = async (e, codeOverride) => {
     e?.preventDefault();
+    if (verifyingRef.current) return;
     const code = codeOverride ?? otp.join('');
     if (code.length < 6) { setError('Enter the 6-digit OTP.'); return; }
     if (!confirmRef.current) { setError('Session expired. Please resend OTP.'); return; }
+    verifyingRef.current = true;
     setError(''); setLoading(true);
     try {
-      const result = await confirmRef.current.confirm(code);
+      const confirmation = confirmRef.current;
+      confirmRef.current = null; // prevent any second call from reusing the same session
+      const result = await confirmation.confirm(code);
       const firebaseToken = await result.user.getIdToken();
       await onVerified(firebaseToken, normalizePhone(phone));
     } catch (err) {
+      confirmRef.current = null;
       const msg =
         err.code === 'auth/invalid-verification-code' ? 'Wrong OTP. Please check the code and try again.' :
         err.code === 'auth/code-expired'              ? 'OTP has expired. Please resend.' :
         err.code === 'auth/session-expired'           ? 'Session expired. Please resend OTP.' :
-        err.code === 'auth/invalid-app-credential'    ? 'Verification failed — open the app on an authorized domain and try again.' :
+        err.code === 'auth/invalid-app-credential'    ? 'Verification failed — please resend OTP and try again.' :
         err.code === 'auth/too-many-requests'         ? 'Too many attempts. Please wait a few minutes.' :
         err.message || 'Verification failed.';
       setError(msg);
-      if (err.code === 'auth/code-expired' || err.code === 'auth/session-expired') {
-        confirmRef.current = null;
+      if (err.code === 'auth/code-expired' || err.code === 'auth/session-expired' ||
+          err.code === 'auth/invalid-app-credential') {
         setStep(1); setOtp(['', '', '', '', '', '']);
       }
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+      verifyingRef.current = false;
+    }
   };
 
   const handleOtpKey = (i, e) => {
