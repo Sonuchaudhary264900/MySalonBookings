@@ -83,18 +83,30 @@ export default function Step5_Location() {
       const result = await geocode(lat, lng);
       if (result) fillFields(result);
     });
+
+    // If GPS already arrived before map finished initializing, pan to it now
+    if (geo.position) {
+      const { lat, lng } = geo.position;
+      mapInstance.current.panTo({ lat, lng });
+      mapInstance.current.setZoom(17);
+      markerRef.current.setPosition({ lat, lng });
+    }
   }, [mapsLoaded]);
 
   /* ─── When GPS position arrives ────────────────────────────── */
   useEffect(() => {
-    if (!geo.position || !mapInstance.current) return;
+    if (!geo.position) return;
     const { lat, lng } = geo.position;
     update({ lat, lng });
-    mapInstance.current.panTo({ lat, lng });
-    mapInstance.current.setZoom(17);
-    markerRef.current?.setPosition({ lat, lng });
-    markerRef.current?.setAnimation(window.google.maps.Animation.BOUNCE);
-    setTimeout(() => markerRef.current?.setAnimation(null), 1500);
+
+    // Pan map if it's already initialized; it will pan on init otherwise (above)
+    if (mapInstance.current) {
+      mapInstance.current.panTo({ lat, lng });
+      mapInstance.current.setZoom(17);
+      markerRef.current?.setPosition({ lat, lng });
+      markerRef.current?.setAnimation(window.google.maps.Animation.BOUNCE);
+      setTimeout(() => markerRef.current?.setAnimation(null), 1500);
+    }
 
     geocode(lat, lng).then(result => {
       if (result) fillFields(result, true);
