@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const { clearAuthCookies } = require('../utils/cookies');
 
 /* =====================================================
    MIDDLEWARE
@@ -1578,6 +1579,7 @@ router.post("/staff/auth/firebase-login", rateLimiter(10, 900000), asyncHandler(
     }
   }
 
+  clearAuthCookies(res); // clear any residual owner session cookies
   res.json(formatSuccessResponse({
     token,
     refreshToken,

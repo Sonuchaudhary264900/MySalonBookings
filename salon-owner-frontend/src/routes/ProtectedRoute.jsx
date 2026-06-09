@@ -38,12 +38,12 @@ const ProtectedRoute = () => {
   const needsApprovalCheck =
     user?.status === 'pending_approval' || user?.status === 'salon_registered';
 
-  // Fetch salon once on load for all authenticated owners
+  // Fetch salon once on load — only for owners, not staff
   useEffect(() => {
-    if (isAuthenticated && !salonInitialized) {
+    if (isAuthenticated && !salonInitialized && user?.role !== 'staff') {
       fetchSalon();
     }
-  }, [isAuthenticated, salonInitialized, fetchSalon]);
+  }, [isAuthenticated, salonInitialized, fetchSalon, user?.role]);
 
   // Wait for auth
   if (loading) return <Spinner />;
