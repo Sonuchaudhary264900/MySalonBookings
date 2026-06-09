@@ -1563,8 +1563,14 @@ router.post("/staff/auth/firebase-login", rateLimiter(10, 900000), asyncHandler(
   try {
     await barber.save();
   } catch (saveErr) {
-    console.error('[staff auth] save error:', saveErr.message);
-    return res.status(500).json(formatErrorResponse('Failed to update login. Please try again.', 500));
+    if (saveErr.code === 11000 && saveErr.message?.includes('firebaseUid')) {
+      // Another record holds this Firebase UID — clear it and retry
+      await Barber.updateOne({ firebaseUid: firebaseUser.uid, _id: { $ne: barber._id } }, { $unset: { firebaseUid: 1 } });
+      await barber.save();
+    } else {
+      console.error('[staff auth] save error:', saveErr.message);
+      return res.status(500).json(formatErrorResponse('Failed to update login. Please try again.', 500));
+    }
   }
 
   res.json(formatSuccessResponse({

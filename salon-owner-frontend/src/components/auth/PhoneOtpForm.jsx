@@ -99,6 +99,12 @@ const PhoneOtpForm = ({
     return recaptchaRef.current;
   };
 
+  const resetRecaptcha = () => {
+    try { recaptchaRef.current?.clear(); } catch {}
+    recaptchaRef.current = null;
+    try { document.getElementById(recaptchaId)?.remove(); } catch {}
+  };
+
   const handleSendOtp = async (e) => {
     e?.preventDefault();
     if (!phone.trim() || phone.replace(/\D/g, '').length < 10) {
@@ -112,9 +118,17 @@ const PhoneOtpForm = ({
       setStep(2); setOtpTimer(60);
       toast.success('OTP sent!');
     } catch (err) {
-      setError(err.message || 'Failed to send OTP.');
-      try { recaptchaRef.current?.clear(); } catch {}
-      recaptchaRef.current = null;
+      resetRecaptcha();
+      const msg = err.code === 'auth/quota-exceeded'
+        ? 'SMS quota exceeded. Please try again later.'
+        : err.code === 'auth/invalid-phone-number'
+        ? 'Invalid phone number. Enter a valid 10-digit number.'
+        : err.code === 'auth/too-many-requests'
+        ? 'Too many attempts. Please wait a few minutes and try again.'
+        : err.code === 'auth/captcha-check-failed'
+        ? 'reCAPTCHA verification failed. Please refresh the page and try again.'
+        : err.message || 'Failed to send OTP.';
+      setError(msg);
     } finally { setLoading(false); }
   };
 
