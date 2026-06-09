@@ -16,18 +16,15 @@ export const AuthProvider = ({ children }) => {
     const checkAuth = async () => {
       try {
         const token = localStorage.getItem('token');
-        
-        if (!token) {
-          setLoading(false);
-          return;
-        }
-
-        // Verify token by fetching user data
-        const response = await API.get('/owner/auth/me');
+        if (!token) { setLoading(false); return; }
+        const role = localStorage.getItem('userRole');
+        const endpoint = role === 'staff' ? '/staff/auth/me' : '/owner/auth/me';
+        const response = await API.get(endpoint);
         setUser(response.data.data);
       } catch {
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
+        localStorage.removeItem('userRole');
         setUser(null);
       } finally {
         setLoading(false);
@@ -87,25 +84,40 @@ export const AuthProvider = ({ children }) => {
   // ========== LOGIN (Firebase OTP) ==========
 
   const login = useCallback(async (firebaseToken, phone) => {
+    setError(null);
     try {
-      setError(null);
-
       const response = await API.post('/owner/auth/firebase-login', { firebaseToken, phone });
-
-      if (!response.data.success) {
-        throw new Error(response.data.message || 'Login failed');
-      }
-
+      if (!response.data.success) throw new Error(response.data.message || 'Login failed');
       const { token, refreshToken, owner: userData } = response.data.data;
-
       localStorage.setItem('token', token);
       localStorage.setItem('refreshToken', refreshToken);
-
+      localStorage.setItem('userRole', 'owner');
       setUser(userData);
-
       return response.data;
-    } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Login failed';
+    } catch (ownerErr) {
+      const ownerStatus = ownerErr.response?.status;
+      const ownerMsg = (ownerErr.response?.data?.message || ownerErr.message || '').toLowerCase();
+      const isNotFound = ownerStatus === 404 || ownerMsg.includes('not found') || ownerMsg.includes('no glowloox');
+
+      if (isNotFound) {
+        // Try staff login
+        try {
+          const staffRes = await API.post('/staff/auth/firebase-login', { firebaseToken, phone });
+          if (!staffRes.data.success) throw new Error(staffRes.data.message || 'Login failed');
+          const { token, refreshToken, staff: staffData } = staffRes.data.data;
+          localStorage.setItem('token', token);
+          localStorage.setItem('refreshToken', refreshToken);
+          localStorage.setItem('userRole', 'staff');
+          setUser(staffData);
+          return staffRes.data;
+        } catch (staffErr) {
+          const msg = staffErr.response?.data?.message || staffErr.message || 'Login failed';
+          setError(msg);
+          throw new Error(msg);
+        }
+      }
+
+      const errorMessage = ownerErr.response?.data?.message || ownerErr.message || 'Login failed';
       setError(errorMessage);
       throw new Error(errorMessage);
     }
@@ -161,7 +173,9 @@ export const AuthProvider = ({ children }) => {
 
   const refreshUser = useCallback(async () => {
     try {
-      const response = await API.get('/owner/auth/me');
+      const role = localStorage.getItem('userRole');
+      const endpoint = role === 'staff' ? '/staff/auth/me' : '/owner/auth/me';
+      const response = await API.get(endpoint);
       setUser(response.data.data);
       return response.data.data;
     } catch { /* silent */ }
@@ -172,6 +186,7 @@ export const AuthProvider = ({ children }) => {
   const logout = useCallback(() => {
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('userRole');
     setUser(null);
     setError(null);
   }, []);

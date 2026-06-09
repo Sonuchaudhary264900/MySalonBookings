@@ -369,8 +369,9 @@ function AuthNavigator() {
 
 // ── Root navigator ────────────────────────────────────────────────
 function RootNavigator() {
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated, loading: authLoading, user } = useAuth();
   const { salon, salonFetchDone } = useSalon();
+  const isStaff = user?.role === 'staff';
   const isLoading = authLoading || (isAuthenticated && !salonFetchDone);
 
   if (isLoading) {
@@ -390,6 +391,9 @@ function RootNavigator() {
       <RootStack.Navigator screenOptions={{ headerShown: false }}>
         {!isAuthenticated ? (
           <RootStack.Screen name="Auth" component={AuthNavigator} />
+        ) : isStaff ? (
+          // Staff skip onboarding and approval — go straight to dashboard
+          <RootStack.Screen name="Main" component={MainDrawer} />
         ) : !salon ? (
           <RootStack.Screen name="Onboarding" component={OnboardingScreen} initialParams={{ initialStep: 4 }} />
         ) : !isApproved ? (

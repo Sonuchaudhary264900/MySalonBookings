@@ -49,6 +49,7 @@ const Login = () => {
 
   useEffect(() => {
     if (!user) return;
+    if (user.role === 'staff') { navigate(ROUTES.DASHBOARD, { replace: true }); return; }
     if (user.status === 'mobile_verified') navigate(ROUTES.ONBOARDING, { replace: true });
     else if (user.status === 'pending_approval' || user.status === 'salon_registered') navigate(ROUTES.APPROVAL_WAITING, { replace: true });
     else navigate(ROUTES.DASHBOARD, { replace: true });
@@ -58,6 +59,9 @@ const Login = () => {
     try {
       const response = await login(firebaseToken, phone);
       toast.success('Welcome back!');
+      // Staff go directly to dashboard — no owner status checks needed
+      const staffData = response?.data?.staff;
+      if (staffData) { navigate(ROUTES.DASHBOARD, { replace: true }); return; }
       const status = response?.data?.owner?.status;
       if (status === 'mobile_verified') navigate(ROUTES.ONBOARDING, { replace: true });
       else if (status === 'pending_approval' || status === 'salon_registered') navigate(ROUTES.APPROVAL_WAITING, { replace: true });
