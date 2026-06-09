@@ -3,6 +3,7 @@ import {
   View, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, TextInput, Modal, Alert
 } from 'react-native';
+import * as Calendar from 'expo-calendar';
 import AppText from '../../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -68,6 +69,7 @@ export default function BookingScreen({ route, navigation }) {
   const [success, setSuccess]       = useState(false);
   const [bookingStatus, setBookingStatus] = useState('confirmed');
   const [bookingDetail, setBookingDetail] = useState(null);
+  const [addingToCalendar, setAddingToCalendar] = useState(false);
 
   const advanceDays = salon?.advanceBookingDays ?? 7;
   const totalDuration = services.reduce((s, x) => s + (x.duration || 0), 0);
@@ -178,6 +180,43 @@ export default function BookingScreen({ route, navigation }) {
     }
   };
 
+  const addToCalendar = async () => {
+    setAddingToCalendar(true);
+    try {
+      const { status } = await Calendar.requestCalendarPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Allow calendar access to save this appointment.');
+        return;
+      }
+      const [year, month, day] = date.split('-').map(Number);
+      const [hour, minute] = slot.split(':').map(Number);
+      const startDate = new Date(year, month - 1, day, hour, minute, 0);
+      const endDate   = new Date(startDate.getTime() + totalDuration * 60 * 1000);
+
+      const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+      const cal = calendars.find(c => c.isPrimary && c.allowsModifications)
+                || calendars.find(c => c.allowsModifications)
+                || calendars[0];
+      if (!cal) {
+        Alert.alert('No Calendar', 'No writable calendar found on this device.');
+        return;
+      }
+
+      await Calendar.createEventAsync(cal.id, {
+        title: `GlowLoox – ${salon?.name}`,
+        startDate,
+        endDate,
+        notes: `Services: ${services.map(s => s.name).join(', ')}\nAmount: ₹${finalPrice}`,
+        alarms: [{ relativeOffset: -60 }, { relativeOffset: -15 }],
+      });
+      Alert.alert('Added to Calendar!', 'Reminder set for 1 hour and 15 min before your appointment.');
+    } catch {
+      Alert.alert('Error', 'Could not add to calendar. Please try again.');
+    } finally {
+      setAddingToCalendar(false);
+    }
+  };
+
   if (dataLoading) {
     return (
       <View style={[styles.container, { paddingTop: insets.top, alignItems: 'center', justifyContent: 'center' }]}>
@@ -217,6 +256,19 @@ export default function BookingScreen({ route, navigation }) {
           </View>
           <TouchableOpacity style={styles.successBtn} onPress={() => navigation.getParent()?.navigate('BookingsTab')}>
             <AppText style={styles.successBtnText}>View My Bookings</AppText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.calendarBtn}
+            onPress={addToCalendar}
+            disabled={addingToCalendar}
+          >
+            {addingToCalendar
+              ? <ActivityIndicator size="small" color="#16a34a" />
+              : <>
+                  <Ionicons name="calendar-outline" size={18} color="#16a34a" />
+                  <AppText style={styles.calendarBtnText}>Add to Calendar + Set Alarm</AppText>
+                </>
+            }
           </TouchableOpacity>
           <TouchableOpacity style={styles.successBtnOutline} onPress={() => navigation.getParent()?.navigate('HomeTab')}>
             <AppText style={styles.successBtnOutlineText}>Browse More Salons</AppText>
@@ -550,6 +602,8 @@ const getStyles = (t) => StyleSheet.create({
   successBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
   successBtnOutline: { borderWidth: 1.5, borderColor: t.border, borderRadius: 12, height: 48, width: '100%', alignItems: 'center', justifyContent: 'center' },
   successBtnOutlineText: { color: t.text, fontWeight: '600', fontSize: 15 },
+  calendarBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1.5, borderColor: '#bbf7d0', borderRadius: 12, height: 48, width: '100%', backgroundColor: '#f0fdf4' },
+  calendarBtnText: { color: '#16a34a', fontWeight: '700', fontSize: 15 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', padding: 20 },
   modalCard: { backgroundColor: t.card, borderRadius: 20, padding: 24, width: '100%', maxWidth: 320, alignItems: 'center', gap: 12 },
   modalIcon: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center' },
