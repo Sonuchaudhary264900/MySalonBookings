@@ -46,6 +46,7 @@ const Login = () => {
   const { login, user } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const [showNoAccountModal, setShowNoAccountModal] = useState(false);
+  const [noAccountMsg, setNoAccountMsg] = useState('');
 
   useEffect(() => {
     if (!user) return;
@@ -69,6 +70,7 @@ const Login = () => {
     } catch (err) {
       const msg = err.message || '';
       if (msg.toLowerCase().includes('no glowloox') || msg.toLowerCase().includes('not found')) {
+        setNoAccountMsg(msg);
         setShowNoAccountModal(true);
       } else {
         throw err;
@@ -181,16 +183,41 @@ const Login = () => {
         </div>
       </div>
 
-      <ConfirmModal
-        isOpen={showNoAccountModal}
-        title="No account found"
-        message="We couldn't find a GlowLoox Partner account with this number. Would you like to register a new account?"
-        confirmLabel="Register"
-        cancelLabel="Cancel"
-        variant="indigo"
-        onConfirm={() => navigate(ROUTES.REGISTER, { replace: true })}
-        onCancel={() => setShowNoAccountModal(false)}
-      />
+      {showNoAccountModal && (
+        <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.55)', display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}
+          onClick={() => setShowNoAccountModal(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: isDark ? '#1e293b' : '#fff', borderRadius:20, padding:'28px 28px 24px', maxWidth:400, width:'100%', boxShadow:'0 24px 64px rgba(0,0,0,0.35)', border:`1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb'}` }}>
+            <div style={{ fontSize:17, fontWeight:800, color: isDark ? '#f1f5f9' : '#0f172a', marginBottom:10 }}>Number not registered</div>
+            <p style={{ fontSize:13.5, color: isDark ? '#94a3b8' : '#475569', lineHeight:1.65, margin:'0 0 8px' }}>
+              {noAccountMsg.toLowerCase().includes('staff')
+                ? 'Your salon owner hasn\'t added this number to their team yet. Ask them to add you in the Team section of their dashboard.'
+                : 'No GlowLoox Partner account found for this number.'}
+            </p>
+            {!noAccountMsg.toLowerCase().includes('staff') && (
+              <p style={{ fontSize:13, color: isDark ? '#64748b' : '#6b7280', margin:'0 0 20px' }}>
+                Are you a salon owner? Register to create your account.
+              </p>
+            )}
+            {noAccountMsg.toLowerCase().includes('staff') && (
+              <p style={{ fontSize:13, color: isDark ? '#64748b' : '#6b7280', margin:'0 0 20px' }}>
+                Once your owner adds your number, you can log in immediately.
+              </p>
+            )}
+            <div style={{ display:'flex', gap:10, justifyContent:'flex-end' }}>
+              <button onClick={() => setShowNoAccountModal(false)}
+                style={{ padding:'9px 18px', borderRadius:10, border:`1px solid ${isDark ? 'rgba(255,255,255,0.12)' : '#d1d5db'}`, background:'transparent', color: isDark ? '#94a3b8' : '#374151', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}>
+                Close
+              </button>
+              {!noAccountMsg.toLowerCase().includes('staff') && (
+                <button onClick={() => navigate(ROUTES.REGISTER, { replace: true })}
+                  style={{ padding:'9px 20px', borderRadius:10, border:'none', background:'linear-gradient(135deg,#7c3aed,#a855f7)', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+                  Register
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
