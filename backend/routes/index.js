@@ -1539,14 +1539,6 @@ router.post("/staff/auth/firebase-login", rateLimiter(10, 900000), asyncHandler(
   const now = new Date();
   const isFirstLogin = barber.status === 'invited';
 
-  // Auto-activate on first login — owner adding the phone IS the access grant
-  if (isFirstLogin) {
-    barber.status   = 'active';
-    barber.joinedAt = now;
-  }
-  barber.lastLogin   = now;
-  barber.firebaseUid = firebaseUser.uid;
-
   const token = jwt.sign(
     { _id: barber._id, salonId: barber.salonId, role: 'staff', staffRole: barber.staffRole },
     process.env.JWT_SECRET,
@@ -1559,29 +1551,30 @@ router.post("/staff/auth/firebase-login", rateLimiter(10, 900000), asyncHandler(
     { expiresIn: '90d' }
   );
 
-  barber.refreshTokens = [...(barber.refreshTokens || []).slice(-4), { token: refreshToken }];
-  let saved = false;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      await barber.save();
-      saved = true;
-      break;
-    } catch (saveErr) {
-      if (saveErr.code === 11000 && attempt === 0) {
-        try {
-          await Barber.updateOne({ firebaseUid: firebaseUser.uid, _id: { $ne: barber._id } }, { $unset: { firebaseUid: 1 } });
-        } catch (clearErr) {
-          console.error('[staff auth] clear uid error:', clearErr.message);
-          break;
-        }
-      } else {
-        console.error('[staff auth] save error:', saveErr.message, saveErr.code);
-        break;
+  // Use findByIdAndUpdate to avoid full-document Mongoose validation on legacy records
+  const updateFields = {
+    lastLogin:     now,
+    firebaseUid:   firebaseUser.uid,
+    refreshTokens: [...(barber.refreshTokens || []).slice(-4), { token: refreshToken }],
+    ...(isFirstLogin ? { status: 'active', joinedAt: now } : {}),
+  };
+
+  try {
+    await Barber.findByIdAndUpdate(barber._id, { $set: updateFields }, { runValidators: false });
+  } catch (updateErr) {
+    if (updateErr.code === 11000) {
+      // Another record has this Firebase UID — clear it and retry
+      try {
+        await Barber.updateOne({ firebaseUid: firebaseUser.uid, _id: { $ne: barber._id } }, { $unset: { firebaseUid: 1 } });
+        await Barber.findByIdAndUpdate(barber._id, { $set: updateFields }, { runValidators: false });
+      } catch (retryErr) {
+        console.error('[staff auth] update retry error:', retryErr.message);
+        return res.status(500).json(formatErrorResponse('Failed to update login. Please try again.', 500));
       }
+    } else {
+      console.error('[staff auth] update error:', updateErr.message, updateErr.code);
+      return res.status(500).json(formatErrorResponse('Failed to update login. Please try again.', 500));
     }
-  }
-  if (!saved) {
-    return res.status(500).json(formatErrorResponse('Failed to update login. Please try again.', 500));
   }
 
   res.json(formatSuccessResponse({
