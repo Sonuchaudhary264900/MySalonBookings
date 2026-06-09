@@ -1513,11 +1513,11 @@ router.post("/staff/auth/firebase-login", rateLimiter(10, 900000), asyncHandler(
     [String(clientPhone).trim(), `+91${ct}`, `91${ct}`, ct, `0${ct}`].forEach(v => variants.add(v));
   }
 
-  // Primary lookup by phone variants
-  let barber = await Barber.findOne({ phone: { $in: [...variants] }, isOwner: false });
+  // Primary lookup by phone variants — $ne:true catches records where field is absent
+  let barber = await Barber.findOne({ phone: { $in: [...variants] }, isOwner: { $ne: true } });
   if (!barber) {
     // Fallback: last-10-digits match scoped to non-owner records
-    const all = await Barber.find({ isOwner: false }).select('phone status isActive salonId staffRole name').lean();
+    const all = await Barber.find({ isOwner: { $ne: true } }).select('phone status isActive salonId staffRole name').lean();
     const matched = all.find(b => {
       if (!b.phone) return false;
       const d = String(b.phone).replace(/\D/g, '');
@@ -1560,17 +1560,28 @@ router.post("/staff/auth/firebase-login", rateLimiter(10, 900000), asyncHandler(
   );
 
   barber.refreshTokens = [...(barber.refreshTokens || []).slice(-4), { token: refreshToken }];
-  try {
-    await barber.save();
-  } catch (saveErr) {
-    if (saveErr.code === 11000 && saveErr.message?.includes('firebaseUid')) {
-      // Another record holds this Firebase UID — clear it and retry
-      await Barber.updateOne({ firebaseUid: firebaseUser.uid, _id: { $ne: barber._id } }, { $unset: { firebaseUid: 1 } });
+  let saved = false;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
       await barber.save();
-    } else {
-      console.error('[staff auth] save error:', saveErr.message);
-      return res.status(500).json(formatErrorResponse('Failed to update login. Please try again.', 500));
+      saved = true;
+      break;
+    } catch (saveErr) {
+      if (saveErr.code === 11000 && attempt === 0) {
+        try {
+          await Barber.updateOne({ firebaseUid: firebaseUser.uid, _id: { $ne: barber._id } }, { $unset: { firebaseUid: 1 } });
+        } catch (clearErr) {
+          console.error('[staff auth] clear uid error:', clearErr.message);
+          break;
+        }
+      } else {
+        console.error('[staff auth] save error:', saveErr.message, saveErr.code);
+        break;
+      }
     }
+  }
+  if (!saved) {
+    return res.status(500).json(formatErrorResponse('Failed to update login. Please try again.', 500));
   }
 
   res.json(formatSuccessResponse({
