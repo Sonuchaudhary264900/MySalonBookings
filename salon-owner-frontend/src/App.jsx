@@ -18,6 +18,14 @@ import { ThemeProvider, useTheme } from './context/ThemeContext';
 import ROUTES from './routes';
 import ProtectedRoute from './routes/ProtectedRoute';
 import PublicRoute from './routes/PublicRoute';
+import { Navigate, Outlet } from 'react-router-dom';
+import { useAuth } from './hooks/useAuth';
+
+const OwnerOnlyRoute = () => {
+  const { user } = useAuth();
+  if (user?.role === 'staff') return <Navigate to={ROUTES.DASHBOARD} replace />;
+  return <Outlet />;
+};
 import api from './services/api';
 
 // ── Eagerly loaded (critical path — shown immediately) ─────────
@@ -1032,27 +1040,32 @@ function App() {
 
                   {/* Protected dashboard routes */}
                   <Route element={<ProtectedRoute />}>
-                    <Route path={ROUTES.DASHBOARD}     element={<Dashboard />} />
-                    <Route path={ROUTES.SERVICES}      element={<Services />} />
-                    <Route path={ROUTES.BOOKINGS}      element={<Bookings />} />
-                    <Route path={ROUTES.ANALYTICS}     element={<Reports />} />
-                    <Route path={ROUTES.REVIEWS}       element={<Reviews />} />
-                    <Route path={ROUTES.PROFILE}       element={<Profile />} />
-                    <Route path={ROUTES.SETTINGS}      element={<Settings />} />
-                    <Route path={ROUTES.NOTIFICATIONS} element={<Notifications />} />
-                    <Route path={ROUTES.GALLERY}       element={<Gallery />} />
-                    <Route path={ROUTES.CALENDAR}      element={<CalendarPage />} />
-                    <Route path={ROUTES.CUSTOMERS}     element={<Customers />} />
-                    <Route path={ROUTES.COUPONS}       element={<Coupons />} />
-                    <Route path={ROUTES.PACKAGES}      element={<Packages />} />
-                    <Route path={ROUTES.BILLING}       element={<Billing />} />
-                    <Route path={ROUTES.PROMOTIONS}    element={<Promotions />} />
-                    <Route path={ROUTES.MESSAGES}      element={<Messages />} />
-                    <Route path={ROUTES.GLOWLOOX}      element={<GlowLooxProfile />} />
-                    <Route path={ROUTES.TEAM}          element={<Team />} />
-                    <Route path={ROUTES.AUDIT}         element={<AuditLog />} />
-                    <Route path={ROUTES.DEVELOPER}     element={<Developer />} />
-                    <Route path={ROUTES.QUEUE}         element={<QueuePage />} />
+                    {/* Staff can only access dashboard (renders StaffDashboard internally) */}
+                    <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
+
+                    {/* Owner-only routes — staff are redirected to dashboard */}
+                    <Route element={<OwnerOnlyRoute />}>
+                      <Route path={ROUTES.SERVICES}      element={<Services />} />
+                      <Route path={ROUTES.BOOKINGS}      element={<Bookings />} />
+                      <Route path={ROUTES.ANALYTICS}     element={<Reports />} />
+                      <Route path={ROUTES.REVIEWS}       element={<Reviews />} />
+                      <Route path={ROUTES.PROFILE}       element={<Profile />} />
+                      <Route path={ROUTES.SETTINGS}      element={<Settings />} />
+                      <Route path={ROUTES.NOTIFICATIONS} element={<Notifications />} />
+                      <Route path={ROUTES.GALLERY}       element={<Gallery />} />
+                      <Route path={ROUTES.CALENDAR}      element={<CalendarPage />} />
+                      <Route path={ROUTES.CUSTOMERS}     element={<Customers />} />
+                      <Route path={ROUTES.COUPONS}       element={<Coupons />} />
+                      <Route path={ROUTES.PACKAGES}      element={<Packages />} />
+                      <Route path={ROUTES.BILLING}       element={<Billing />} />
+                      <Route path={ROUTES.PROMOTIONS}    element={<Promotions />} />
+                      <Route path={ROUTES.MESSAGES}      element={<Messages />} />
+                      <Route path={ROUTES.GLOWLOOX}      element={<GlowLooxProfile />} />
+                      <Route path={ROUTES.TEAM}          element={<Team />} />
+                      <Route path={ROUTES.AUDIT}         element={<AuditLog />} />
+                      <Route path={ROUTES.DEVELOPER}     element={<Developer />} />
+                      <Route path={ROUTES.QUEUE}         element={<QueuePage />} />
+                    </Route>
                   </Route>
 
                   {/* 404 */}

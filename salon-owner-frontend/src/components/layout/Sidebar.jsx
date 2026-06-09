@@ -10,6 +10,7 @@ import ROUTES from '../../routes';
 import { useNotifications } from '../../context/NotificationContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useSalon } from '../../hooks/useSalon';
+import { useAuth } from '../../hooks/useAuth';
 
 const BIZ_NAME_MAP = {
   barbershop:    'Barbershop',
@@ -57,11 +58,15 @@ const NAV_SECTIONS = [
 ];
 
 /* ─── Sidebar ───────────────────────────────────────────────────────────── */
+const STAFF_NAV_IDS = new Set(['dashboard']);
+
 const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { chatUnreadCount } = useNotifications();
   const { salon, subscription } = useSalon();
+  const { user } = useAuth();
+  const isStaff = user?.role === 'staff';
   const bizName = BIZ_NAME_MAP[salon?.businessType] || 'Salon';
 
   const planLabel = {
@@ -137,7 +142,10 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
         {/* ── Navigation ── */}
         <nav className="flex-1 overflow-y-auto py-4 px-2 pb-20 md:pb-4 space-y-5
           scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800">
-          {NAV_SECTIONS.map((section) => (
+          {NAV_SECTIONS.map((section) => {
+            const visibleItems = isStaff ? section.items.filter(i => STAFF_NAV_IDS.has(i.id)) : section.items;
+            if (visibleItems.length === 0) return null;
+            return (
             <div key={section.label}>
               {!collapsed && (
                 <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest px-3 mb-1.5">
@@ -149,7 +157,7 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
               )}
 
               <div className="space-y-0.5">
-                {section.items.map((item) => {
+                {visibleItems.map((item) => {
                   const Icon    = item.icon;
                   const isActive = location.pathname === item.path;
                   const badgeCount = getBadge(item);
