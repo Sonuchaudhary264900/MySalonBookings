@@ -1488,12 +1488,6 @@ router.post(
   asyncHandler(ownerAuthController.firebaseLogin)
 );
 
-router.post(
-  "/owner/auth/google-login",
-  rateLimiter(10, 900000),
-  asyncHandler(ownerAuthController.googleLogin)
-);
-
 // ── STAFF login — phone OTP, auto-detects role, auto-activates on first login ──
 router.post("/staff/auth/firebase-login", rateLimiter(10, 900000), asyncHandler(async (req, res) => {
   const Barber = require('../models/Barber');

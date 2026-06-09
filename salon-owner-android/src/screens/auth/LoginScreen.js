@@ -7,55 +7,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import auth from '@react-native-firebase/auth';
-import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
 import { useAuth } from '../../context/AuthContext';
-
-WebBrowser.maybeCompleteAuthSession();
-
-const GOOGLE_WEB_CLIENT_ID = '806723346929-b9a3fsn63r4afls47qoa4f95ekihm38t.apps.googleusercontent.com';
-const GOOGLE_ANDROID_CLIENT_ID = '806723346929-k9ecpq13v8sn4p4ihkuv1cts59bsp6ri.apps.googleusercontent.com';
 
 const { width: W, height: H } = Dimensions.get('window');
 
 export default function LoginScreen({ navigation }) {
-  const { firebaseLogin, googleLogin, staffFirebaseLogin } = useAuth();
+  const { firebaseLogin, staffFirebaseLogin } = useAuth();
   const insets = useSafeAreaInsets();
-  const [googleLoading, setGoogleLoading] = useState(false);
-
-  const [, googleResponse, promptGoogleSignIn] = Google.useAuthRequest({
-    webClientId: GOOGLE_WEB_CLIENT_ID,
-    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
-  });
-
-  useEffect(() => {
-    if (googleResponse?.type !== 'success') return;
-    const idToken = googleResponse.authentication?.idToken || googleResponse.params?.id_token;
-    if (!idToken) return;
-
-    (async () => {
-      setGoogleLoading(true);
-      try {
-        await googleLogin(idToken);
-      } catch (err) {
-        const msg = (err?.response?.data?.message || err?.message || '').toLowerCase();
-        if (msg.includes('not found') || msg.includes('no glowloox')) {
-          Alert.alert(
-            'No account found',
-            "We couldn't find a GlowLoox Partner account linked to this Google account. Would you like to register a new account?",
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Register', onPress: () => navigation.navigate('Onboarding', {}) },
-            ]
-          );
-        } else {
-          Alert.alert('Google Sign-In Failed', err?.response?.data?.message || err?.message || 'Something went wrong. Please try again.');
-        }
-      } finally {
-        setGoogleLoading(false);
-      }
-    })();
-  }, [googleResponse]);
 
   const [step, setStep] = useState(1);
   const [phone, setPhone] = useState('');
@@ -271,25 +229,6 @@ export default function LoginScreen({ navigation }) {
                   )}
                 </TouchableOpacity>
 
-                <View style={styles.dividerRow}>
-                  <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>OR</Text>
-                  <View style={styles.dividerLine} />
-                </View>
-
-                <TouchableOpacity
-                  style={[styles.googleBtn, googleLoading && styles.btnDisabled]}
-                  onPress={() => promptGoogleSignIn()}
-                  disabled={googleLoading || !promptGoogleSignIn}
-                  activeOpacity={0.88}
-                >
-                  {googleLoading ? <ActivityIndicator color="#475569" /> : (
-                    <>
-                      <Ionicons name="logo-google" size={18} color="#ea4335" />
-                      <Text style={styles.googleBtnText}>Continue with Google</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
 
               </>
             )}

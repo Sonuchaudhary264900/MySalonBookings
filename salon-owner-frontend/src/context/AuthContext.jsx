@@ -111,33 +111,6 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  // ========== LOGIN (Google Sign-In) ==========
-
-  const loginWithGoogle = useCallback(async (idToken) => {
-    try {
-      setError(null);
-
-      const response = await API.post('/owner/auth/google-login', { idToken });
-
-      if (!response.data.success) {
-        throw new Error(response.data.message || 'Login failed');
-      }
-
-      const { token, refreshToken, owner: userData } = response.data.data;
-
-      localStorage.setItem('token', token);
-      localStorage.setItem('refreshToken', refreshToken);
-
-      setUser(userData);
-
-      return response.data;
-    } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Login failed';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    }
-  }, []);
-
   // ========== UPDATE PROFILE ==========
 
   const updateProfile = useCallback(async (profileData) => {
@@ -215,7 +188,6 @@ export const AuthProvider = ({ children }) => {
     // Methods
     register,
     login,
-    loginWithGoogle,
     updateProfile,
     changePassword,
     refreshUser,

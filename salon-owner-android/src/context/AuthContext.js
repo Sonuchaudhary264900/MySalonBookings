@@ -57,19 +57,6 @@ export const AuthProvider = ({ children }) => {
     return response.data;
   }, []);
 
-  const googleLogin = useCallback(async (idToken) => {
-    setError(null);
-    const response = await api.post('/owner/auth/google-login', { idToken });
-    if (!response.data.success) throw new Error(response.data.message || 'Login failed');
-    const { token, refreshToken, owner: userData } = response.data.data;
-    await AsyncStorage.setItem('token', token);
-    if (refreshToken) await AsyncStorage.setItem('refreshToken', refreshToken);
-    await AsyncStorage.setItem('ownerUser', JSON.stringify(userData));
-    await AsyncStorage.setItem('userRole', 'owner');
-    setUser(userData);
-    return response.data;
-  }, []);
-
   // Staff login — called when owner login returns 404
   const staffFirebaseLogin = useCallback(async (firebaseToken, phone) => {
     setError(null);
@@ -112,7 +99,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, isAuthenticated: !!user, firebaseLogin, googleLogin, staffFirebaseLogin, updateProfile, refreshUser, logout }}>
+    <AuthContext.Provider value={{ user, loading, error, isAuthenticated: !!user, firebaseLogin, staffFirebaseLogin, updateProfile, refreshUser, logout }}>
       {children}
     </AuthContext.Provider>
   );
