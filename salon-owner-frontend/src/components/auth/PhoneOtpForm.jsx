@@ -143,7 +143,18 @@ const PhoneOtpForm = ({
       const firebaseToken = await result.user.getIdToken();
       await onVerified(firebaseToken, normalizePhone(phone));
     } catch (err) {
-      setError(err.message || 'Verification failed.');
+      const msg =
+        err.code === 'auth/invalid-verification-code' ? 'Wrong OTP. Please check the code and try again.' :
+        err.code === 'auth/code-expired'              ? 'OTP has expired. Please resend.' :
+        err.code === 'auth/session-expired'           ? 'Session expired. Please resend OTP.' :
+        err.code === 'auth/invalid-app-credential'    ? 'Verification failed — open the app on an authorized domain and try again.' :
+        err.code === 'auth/too-many-requests'         ? 'Too many attempts. Please wait a few minutes.' :
+        err.message || 'Verification failed.';
+      setError(msg);
+      if (err.code === 'auth/code-expired' || err.code === 'auth/session-expired') {
+        confirmRef.current = null;
+        setStep(1); setOtp(['', '', '', '', '', '']);
+      }
     } finally { setLoading(false); }
   };
 
