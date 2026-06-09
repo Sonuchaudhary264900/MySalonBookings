@@ -521,10 +521,85 @@ const EmptyState = ({ icon: Icon = CalendarCheck, message = "Nothing here yet" }
 );
 
 /* ─── Dashboard ─────────────────────────────────────────────────────────── */
+/* ─── Staff Dashboard ────────────────────────────────────────────────────── */
+const StaffDashboard = ({ user }) => {
+  const [salonInfo, setSalonInfo] = useState(null);
+  const [loading, setLoading]     = useState(true);
+
+  useEffect(() => {
+    api.get('/staff/salon')
+      .then(r => setSalonInfo(r.data?.data || r.data || null))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const roleLabel = { owner: 'Owner', manager: 'Manager', receptionist: 'Receptionist', stylist: 'Stylist' }[user?.staffRole] || 'Staff';
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6 max-w-2xl mx-auto py-4">
+        {/* Greeting */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm">
+          <p className="text-sm font-medium text-indigo-500 dark:text-indigo-400 mb-1">{greeting}</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{user?.name || 'Staff Member'}</h1>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="inline-flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 text-xs font-semibold px-3 py-1 rounded-full">
+              <Users className="w-3 h-3" />{roleLabel}
+            </span>
+            {user?.phone && (
+              <span className="text-xs text-gray-400">{user.phone}</span>
+            )}
+          </div>
+        </div>
+
+        {/* Salon */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm">
+          <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+            <Scissors className="w-3.5 h-3.5" /> Your Salon
+          </p>
+          {loading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="h-4 w-64" />
+            </div>
+          ) : salonInfo ? (
+            <div>
+              <p className="text-lg font-bold text-gray-900 dark:text-white">{salonInfo.name || salonInfo.businessName}</p>
+              {salonInfo.address && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{salonInfo.address}</p>}
+              {salonInfo.phone && <p className="text-sm text-gray-400 mt-0.5">{salonInfo.phone}</p>}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400">Salon info unavailable</p>
+          )}
+        </div>
+
+        {/* Info */}
+        <div className="bg-indigo-50 dark:bg-indigo-950/30 rounded-2xl border border-indigo-100 dark:border-indigo-900/50 p-5">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center shrink-0 mt-0.5">
+              <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-indigo-900 dark:text-indigo-200">Staff portal</p>
+              <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-0.5 leading-relaxed">
+                You're logged in as {roleLabel.toLowerCase()}. Contact your owner to manage bookings and schedules.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+};
+
 const Dashboard = () => {
   const { salon, services, createWalkInBooking, fetchServices } = useSalon();
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  if (user?.role === 'staff') return <StaffDashboard user={user} />;
 
   /* Queue: today's active bookings */
   const [queue, setQueue]             = useState([]);
