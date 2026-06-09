@@ -945,6 +945,7 @@ router.post("/owner/reels/comments/:commentId/reply", authenticateOwner, asyncHa
 // GET /public/salons/:salonId/booked-slots?date=YYYY-MM-DD&duration=N[&barberId=ID]
 // If barberId is supplied, blocked slots are calculated per that barber only (not salon-wide).
 router.get("/public/salons/:salonId/booked-slots", validateObjectId("salonId"), asyncHandler(async (req, res) => {
+  const mongoose = require("mongoose");
   const { date, duration, barberId } = req.query;
   if (!date) return res.status(400).json({ success: false, message: "date is required" });
   if (barberId && !mongoose.isValidObjectId(barberId)) {
@@ -965,7 +966,7 @@ router.get("/public/salons/:salonId/booked-slots", validateObjectId("salonId"), 
   const DAY_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
   // Parse date at local noon to avoid UTC midnight flipping the day
   const dayName  = DAY_NAMES[new Date(date + "T12:00:00").getDay()];
-  const dayHours = salon.workingHours?.[dayName];
+  let dayHours = salon.workingHours?.[dayName];
 
   // Check if this date is a holiday / closed date
   const isHoliday = (salon.workingHours?.holidays || []).some(h => {
@@ -1005,7 +1006,6 @@ router.get("/public/salons/:salonId/booked-slots", validateObjectId("salonId"), 
   const dayStart = new Date(date + "T00:00:00.000Z");
   const dayEnd   = new Date(date + "T23:59:59.999Z");
 
-  const mongoose = require("mongoose");
   const bookingQuery = {
     salonId: req.params.salonId,
     appointmentDate: { $gte: dayStart, $lte: dayEnd },

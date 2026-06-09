@@ -95,8 +95,18 @@ export default function Chat() {
     try {
       await API.post(`/customer/bookings/${bookingId}/messages`, { text: t });
     } catch (err) {
-      alert(err?.message || "Failed to send message");
-      setText(t);
+      const msg = err?.message || "";
+      if (msg.toLowerCase().includes("closed") || err?.status === 400) {
+        // Booking may have been completed/cancelled — refresh status
+        API.get("/customer/bookings").then(r => {
+          const all = r.data.data?.bookings || r.data.data || [];
+          const found = Array.isArray(all) ? all.find(b => b._id === bookingId) : null;
+          if (found) setBooking(found);
+        }).catch(() => {});
+      } else {
+        setText(t);
+        alert(msg || "Failed to send message");
+      }
     } finally { setSending(false); }
   };
 
