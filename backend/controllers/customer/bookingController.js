@@ -308,10 +308,11 @@ const createBooking = async (req, res) => {
 
     await addToQueue(salonId, booking);
 
-    // Fire-and-forget push notifications — never block the response
+    // Fire-and-forget push + WhatsApp notifications — never block the response
     (async () => {
       try {
         const { sendExpoPush } = require('../../utils/pushNotification');
+        const { sendBookingConfirmation } = require('../../utils/whatsapp');
         const Owner = require('../../models/Owner');
         const owner = await Owner.findById(salon.ownerId).select('pushToken').lean();
 
@@ -323,6 +324,17 @@ const createBooking = async (req, res) => {
             { bookingId: booking._id.toString(), type: 'booking_confirmed' },
             { channelId: 'booking_confirmed' }
           ).catch(() => {});
+        }
+
+        if (customer.phone) {
+          sendBookingConfirmation({
+            phone: customer.phone,
+            customerName: customer.name || 'there',
+            salonName: salon.name,
+            serviceName: combinedName,
+            date: appointmentDate,
+            time: appointmentTime,
+          }).catch(() => {});
         }
 
         if (owner?.pushToken) {

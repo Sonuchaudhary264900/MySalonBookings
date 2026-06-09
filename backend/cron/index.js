@@ -127,6 +127,7 @@ const send24HourReminders = cron.schedule('30 3 * * *', async () => {
   try {
     console.log('📨 Sending 24 hour reminders');
     const { sendExpoPush } = require('../utils/pushNotification');
+    const { sendReminder24h } = require('../utils/whatsapp');
 
     const nowIST = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
     // Target: bookings on tomorrow (IST)
@@ -137,7 +138,7 @@ const send24HourReminders = cron.schedule('30 3 * * *', async () => {
     const bookings = await Booking.find({
       status: { $in: ['confirmed', 'pending'] },
       reminderSentAt: { $exists: false },
-    }).populate('customerId', 'pushToken name').lean();
+    }).populate('customerId', 'pushToken name phone').lean();
 
     let sent = 0;
 
@@ -155,6 +156,16 @@ const send24HourReminders = cron.schedule('30 3 * * *', async () => {
             { bookingId: booking._id.toString(), type: '24h_reminder' },
             { channelId: 'reminders' }
           ).catch(() => {});
+        }
+
+        if (booking.customerId?.phone) {
+          sendReminder24h({
+            phone: booking.customerId.phone,
+            customerName: booking.customerId.name || 'there',
+            serviceName: booking.serviceName || 'your appointment',
+            salonName: booking.salonName,
+            time: booking.appointmentTime,
+          }).catch(() => {});
         }
 
         await Booking.updateOne({ _id: booking._id }, { $set: { reminderSentAt: new Date() } });
@@ -185,6 +196,7 @@ const send1HourReminders = cron.schedule('*/5 * * * *', async () => {
 
   try {
     const { sendExpoPush } = require('../utils/pushNotification');
+    const { sendReminder1h } = require('../utils/whatsapp');
 
     const nowIST = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
     const todayIST = nowIST.toISOString().slice(0, 10);
@@ -196,7 +208,7 @@ const send1HourReminders = cron.schedule('*/5 * * * *', async () => {
     const bookings = await Booking.find({
       status: { $in: ['confirmed', 'pending'] },
       'remindersSent.oneHour': { $ne: true },
-    }).populate('customerId', 'pushToken name').lean();
+    }).populate('customerId', 'pushToken name phone').lean();
 
     let sent = 0;
 
@@ -218,6 +230,16 @@ const send1HourReminders = cron.schedule('*/5 * * * *', async () => {
             { bookingId: booking._id.toString(), type: '1h_reminder' },
             { channelId: 'reminders' }
           ).catch(() => {});
+        }
+
+        if (booking.customerId?.phone) {
+          sendReminder1h({
+            phone: booking.customerId.phone,
+            customerName: booking.customerId.name || 'there',
+            serviceName: booking.serviceName || 'your appointment',
+            salonName: booking.salonName,
+            time: booking.appointmentTime,
+          }).catch(() => {});
         }
 
         await Booking.updateOne({ _id: booking._id }, { $set: { 'remindersSent.oneHour': true } });
