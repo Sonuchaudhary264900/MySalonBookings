@@ -99,7 +99,7 @@ const StatsBar = ({ total, active, inactive }) => (
 );
 
 /* ─── Service Menu Section (unchanged) ──────────────────────────── */
-const ServiceMenuSection = ({ salon }) => {
+const ServiceMenuSection = ({ salon, adminCatalogMap }) => {
   const [expanded, setExpanded] = useState(null);
   const [expandedSection, setExpandedSection] = useState({});
   const [expandedSubSection, setExpandedSubSection] = useState({});
@@ -975,7 +975,7 @@ const Services = () => {
               {showMenuSection ? 'Hide' : 'View'} offered service categories
               <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showMenuSection ? 'rotate-180' : ''}`} />
             </button>
-            {showMenuSection && <div className="mt-3"><ServiceMenuSection salon={salon} /></div>}
+            {showMenuSection && <div className="mt-3"><ServiceMenuSection salon={salon} adminCatalogMap={adminCatalogMap} /></div>}
           </div>
         )}
 
