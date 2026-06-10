@@ -2182,8 +2182,14 @@ router.post(
    ADMIN AUTH
 ===================================================== */
 
-router.post("/admin/auth/setup", asyncHandler(adminAuthController.setupAdmin));
-router.post("/admin/auth/login", asyncHandler(adminAuthController.loginAdmin));
+router.post("/admin/auth/setup",
+  rateLimiter(3, 900000),
+  asyncHandler(adminAuthController.setupAdmin)
+);
+router.post("/admin/auth/login",
+  rateLimiter(5, 900000),
+  asyncHandler(adminAuthController.loginAdmin)
+);
 router.get("/admin/auth/me", authenticateAdmin, asyncHandler(adminAuthController.getMe));
 
 /* =====================================================

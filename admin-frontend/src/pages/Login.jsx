@@ -51,7 +51,7 @@ export default function Login() {
             <Scissors size={28} color="#fff" />
           </div>
           <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text)' }}>Admin Login</h1>
-          <p style={{ color: 'var(--text2)', fontSize: 14, marginTop: 4 }}>SmartSalon Management Panel</p>
+          <p style={{ color: 'var(--text2)', fontSize: 14, marginTop: 4 }}>GlowLoox Management Panel</p>
         </div>
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: 16 }}>

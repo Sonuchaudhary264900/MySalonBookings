@@ -51,6 +51,7 @@ const ROUTES = {
   OWNER_PRIVACY:          '/legal/owner-privacy',
   CUSTOMER_TERMS:         '/legal/customer-terms',
   OWNER_TERMS:            '/legal/owner-terms',
+  CUSTOMER_REFUND_POLICY: '/legal/customer-refund-policy',
 };
 
 export default ROUTES;

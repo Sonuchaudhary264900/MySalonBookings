@@ -1127,7 +1127,7 @@ function SalonDetails({ salonId: propId, onClose }) {
                                     {/* Category image — large left */}
                                     <div style={{ width: 90, height: 90, borderRadius: 14, flexShrink: 0, overflow: 'hidden', border: `1px solid ${dm.border1}`, background: 'rgba(124,58,237,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                       {catImg
-                                        ? <img src={catImg} alt={cat} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} onError={e => { e.currentTarget.style.display = 'none'; }} />
+                                        ? <img src={catImg} alt={cat} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} onError={e => { e.currentTarget.style.display = 'none'; }} />
                                         : <CatIcon style={{ width: 32, height: 32, color: theme.acc, strokeWidth: 2, opacity: .6 }} />
                                       }
                                     </div>
@@ -1282,7 +1282,7 @@ function SalonDetails({ salonId: propId, onClose }) {
                         const thumb = url.replace('/upload/', '/upload/so_0,f_jpg,q_60,w_400/').replace(/\.(mp4|mov|webm)$/, '.jpg');
                         return (
                           <div key={url} className="glw-reel-cell" onClick={() => setVideoViewerIdx(i)}>
-                            <img src={thumb} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} onError={e => { e.currentTarget.style.display = 'none'; }} />
+                            <img src={thumb} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} onError={e => { e.currentTarget.style.display = 'none'; }} />
                             <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.25)' }} />
                             <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,.18)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               <div style={{ width: 0, height: 0, borderTop: '8px solid transparent', borderBottom: '8px solid transparent', borderLeft: '14px solid #fff', marginLeft: 3 }} />
@@ -1408,7 +1408,7 @@ function SalonDetails({ salonId: propId, onClose }) {
                                 {r.photos?.length > 0 && (
                                   <div style={{ display: 'flex', gap: 6, marginTop: 10, overflowX: 'auto' }}>
                                     {r.photos.map((p, pi) => (
-                                      <img key={pi} src={typeof p === 'string' ? p : p?.url} alt="" style={{ width: 60, height: 60, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+                                      <img key={pi} src={typeof p === 'string' ? p : p?.url} alt="" loading="lazy" style={{ width: 60, height: 60, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
                                     ))}
                                   </div>
                                 )}

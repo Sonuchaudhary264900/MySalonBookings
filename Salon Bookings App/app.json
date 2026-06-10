@@ -2,6 +2,7 @@
   "expo": {
     "name": "Salon Bookings",
     "slug": "salon-user-android",
+    "scheme": "glowloox-user",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/original-icon.png",
@@ -52,7 +53,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow My Salon Bookings to use your location to find nearby salons."
+          "locationWhenInUsePermission": "Allow My Salon Bookings to use your location to find nearby salons."
         }
       ],
       [

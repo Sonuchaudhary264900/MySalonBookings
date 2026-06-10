@@ -219,6 +219,15 @@ export default function Footer() {
               >
                 Terms &amp; Conditions
               </Link>
+              <Link
+                to="/legal/customer-refund-policy"
+                className="block text-xs transition-colors duration-200"
+                style={{ color: 'var(--t-text-3)' }}
+                onMouseEnter={e => { e.currentTarget.style.color = "rgba(167,139,250,0.8)"; }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'var(--t-text-3)'; }}
+              >
+                Cancellation &amp; Refund Policy
+              </Link>
             </div>
           </div>
         </div>

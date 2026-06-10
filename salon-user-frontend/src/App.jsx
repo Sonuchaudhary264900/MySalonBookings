@@ -34,6 +34,7 @@ const PrivacyPolicy           = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsAndConditions      = lazy(() => import("./pages/TermsAndConditions"));
 const CustomerPrivacyPolicy   = lazy(() => import("./pages/legal/CustomerPrivacyPolicy"));
 const CustomerTerms           = lazy(() => import("./pages/legal/CustomerTerms"));
+const CustomerRefundPolicy    = lazy(() => import("./pages/legal/CustomerRefundPolicy"));
 const OwnerPrivacyPolicy      = lazy(() => import("./pages/legal/OwnerPrivacyPolicy"));
 const OwnerTerms              = lazy(() => import("./pages/legal/OwnerTerms"));
 const Reels                   = lazy(() => import("./pages/Reels"));
@@ -132,6 +133,7 @@ function AppLayout({ notifOpen, setNotifOpen }) {
             <Route path="/terms"                       element={<TermsAndConditions />} />
             <Route path="/legal/customer-privacy"      element={<CustomerPrivacyPolicy />} />
             <Route path="/legal/customer-terms"        element={<CustomerTerms />} />
+            <Route path="/legal/customer-refund-policy" element={<CustomerRefundPolicy />} />
             <Route path="/legal/owner-privacy"         element={<OwnerPrivacyPolicy />} />
             <Route path="/legal/owner-terms"           element={<OwnerTerms />} />
             <Route path="/reels"                       element={<Reels />} />

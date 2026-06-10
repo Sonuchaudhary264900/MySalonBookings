@@ -61,6 +61,7 @@ const LegalIndex           = lazy(() => import('./pages/legal/LegalIndex'));
 const CustomerPrivacyPolicy = lazy(() => import('./pages/legal/CustomerPrivacyPolicy'));
 const OwnerPrivacyPolicy   = lazy(() => import('./pages/legal/OwnerPrivacyPolicy'));
 const CustomerTerms        = lazy(() => import('./pages/legal/CustomerTerms'));
+const CustomerRefundPolicy = lazy(() => import('./pages/legal/CustomerRefundPolicy'));
 const OwnerTerms           = lazy(() => import('./pages/legal/OwnerTerms'));
 const AuditLog             = lazy(() => import('./pages/dashboard/AuditLog'));
 const Developer            = lazy(() => import('./pages/dashboard/Developer'));
@@ -1033,6 +1034,7 @@ function App() {
                   <Route path={ROUTES.OWNER_PRIVACY}    element={<OwnerPrivacyPolicy />} />
                   <Route path={ROUTES.CUSTOMER_TERMS}   element={<CustomerTerms />} />
                   <Route path={ROUTES.OWNER_TERMS}      element={<OwnerTerms />} />
+                  <Route path={ROUTES.CUSTOMER_REFUND_POLICY} element={<CustomerRefundPolicy />} />
 
                   {/* Semi-protected */}
                   <Route path={ROUTES.SALON_REGISTER}  element={<SalonRegistration />} />

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, FileText, Users, Store } from 'lucide-react';
+import { Shield, FileText, Users, Store, RotateCcw } from 'lucide-react';
 
 const docs = [
   {
@@ -38,6 +38,15 @@ const docs = [
     path: '/legal/owner-terms',
     accent: '#ec4899',
     accentLight: '#f472b6',
+  },
+  {
+    icon: <RotateCcw size={22} color="#fbbf24" />,
+    label: 'Customer',
+    title: 'Cancellation & Refund Policy',
+    subtitle: 'How booking cancellations and refunds are handled',
+    path: '/legal/customer-refund-policy',
+    accent: '#f59e0b',
+    accentLight: '#fbbf24',
   },
 ];
 

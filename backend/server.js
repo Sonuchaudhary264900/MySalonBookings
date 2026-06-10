@@ -115,14 +115,16 @@ const io = socketIO(server, { cors: { origin: allowedOrigins, credentials: true 
 app.set("io", io);
 
 // Redis Pub/Sub adapter — enables socket.io across multiple pods
+let socketPubClient = null;
+let socketSubClient = null;
 if (process.env.REDIS_URL) {
   try {
     const { createAdapter } = require("@socket.io/redis-adapter");
     const IORedis = require("ioredis");
     const redisTLS = process.env.REDIS_URL?.startsWith('rediss://') ? { tls: { rejectUnauthorized: false } } : {};
-    const pubClient = new IORedis(process.env.REDIS_URL, { maxRetriesPerRequest: null, ...redisTLS });
-    const subClient = pubClient.duplicate();
-    io.adapter(createAdapter(pubClient, subClient));
+    socketPubClient = new IORedis(process.env.REDIS_URL, { maxRetriesPerRequest: null, ...redisTLS });
+    socketSubClient = socketPubClient.duplicate();
+    io.adapter(createAdapter(socketPubClient, socketSubClient));
     logger.info("✅ Socket.io Redis adapter enabled (horizontal scaling ready)");
   } catch (e) {
     logger.warn("⚠️  Socket.io Redis adapter skipped (single-node mode)", { error: e.message });
@@ -404,6 +406,22 @@ const gracefulShutdown = async (signal) => {
       const { stopAllWorkers } = require("./queues/workers");
       await stopAllWorkers();
     } catch {}
+    try {
+      const mongoose = require("mongoose");
+      await mongoose.connection.close();
+      logger.info("✅ MongoDB connection closed");
+    } catch (e) {
+      logger.warn("⚠️  Error closing MongoDB connection", { error: e.message });
+    }
+    try {
+      const { redis } = require("./config/redis");
+      if (redis) await redis.quit();
+      if (socketPubClient) await socketPubClient.quit();
+      if (socketSubClient) await socketSubClient.quit();
+      logger.info("✅ Redis connections closed");
+    } catch (e) {
+      logger.warn("⚠️  Error closing Redis connections", { error: e.message });
+    }
     logger.info("✅ Graceful shutdown complete");
     process.exit(0);
   });
@@ -413,7 +431,13 @@ const gracefulShutdown = async (signal) => {
 process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 process.on("SIGINT",  () => gracefulShutdown("SIGINT"));
 
-process.on("uncaughtException",  (err) => { logger.error("Uncaught exception",  { error: err.message, stack: err.stack }); });
-process.on("unhandledRejection", (err) => { logger.error("Unhandled rejection", { error: err?.message }); });
+process.on("uncaughtException", (err) => {
+  logger.error("Uncaught exception — exiting", { error: err.message, stack: err.stack });
+  process.exit(1);
+});
+process.on("unhandledRejection", (err) => {
+  logger.error("Unhandled rejection — exiting", { error: err?.message, stack: err?.stack });
+  process.exit(1);
+});
 
 module.exports = { app, server, io };
