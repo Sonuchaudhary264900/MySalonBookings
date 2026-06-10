@@ -1361,6 +1361,22 @@ router.post("/customer/push-token", authenticateCustomer, asyncHandler(async (re
 }));
 
 /* =====================================================
+   FEEDBACK & BUG REPORTS
+===================================================== */
+const feedbackController = require("../controllers/feedbackController");
+
+router.post("/customer/feedback", authenticateCustomer, multerUpload.single("screenshot"), asyncHandler(feedbackController.submitFeedback));
+router.get("/customer/feedback", authenticateCustomer, asyncHandler(feedbackController.getMyFeedback));
+router.patch("/customer/feedback/:id/reopen", authenticateCustomer, asyncHandler(feedbackController.reopenFeedback));
+
+router.post("/owner/feedback", authenticateOwner, multerUpload.single("screenshot"), asyncHandler(feedbackController.submitFeedback));
+router.get("/owner/feedback", authenticateOwner, asyncHandler(feedbackController.getMyFeedback));
+router.patch("/owner/feedback/:id/reopen", authenticateOwner, asyncHandler(feedbackController.reopenFeedback));
+
+router.get("/admin/feedback", authenticateAdmin, asyncHandler(feedbackController.getAllFeedback));
+router.patch("/admin/feedback/:id", authenticateAdmin, asyncHandler(feedbackController.updateFeedbackStatus));
+
+/* =====================================================
    CUSTOMER REVIEW ROUTES
 ===================================================== */
 

@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Scissors, Calendar, Star, Settings,
   ChevronRight, ChevronLeft, X, Images, Users, Tag,
   Store, BarChart2, Gift, MessageSquare, Megaphone, Crown, Eye,
-  Shield, Code2, ListOrdered,
+  Shield, Code2, ListOrdered, MessageCircle,
 } from 'lucide-react';
 import ROUTES from '../../routes';
 import { useNotifications } from '../../context/NotificationContext';
@@ -53,6 +53,7 @@ const NAV_SECTIONS = [
       { id: 'audit',        label: 'Audit Log',        path: ROUTES.AUDIT,      icon: Shield     },
       { id: 'developer',    label: 'Developer',        path: ROUTES.DEVELOPER,  icon: Code2      },
       { id: 'settings',     label: 'Settings',         path: ROUTES.SETTINGS,   icon: Settings   },
+      { id: 'feedback',     label: 'Help & Feedback',  path: ROUTES.FEEDBACK,   icon: MessageCircle },
     ],
   },
 ];

@@ -14,6 +14,7 @@ import Subscriptions from './pages/Subscriptions';
 import Promotions from './pages/Promotions';
 import SiteSettings from './pages/SiteSettings';
 import ServiceCatalog from './pages/ServiceCatalog';
+import Feedback from './pages/Feedback';
 import Layout from './components/Layout';
 
 const isAuth = () => !!localStorage.getItem('admin_token');
@@ -40,6 +41,7 @@ export default function App() {
             <Route path="promotions"     element={<Promotions />} />
             <Route path="site-settings"  element={<SiteSettings />} />
             <Route path="catalog"        element={<ServiceCatalog />} />
+            <Route path="feedback"       element={<Feedback />} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

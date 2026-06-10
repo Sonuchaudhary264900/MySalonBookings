@@ -34,6 +34,7 @@ import SettingsScreen       from './src/screens/main/SettingsScreen';
 import NotificationsScreen  from './src/screens/main/NotificationsScreen';
 import ReferAndEarnScreen   from './src/screens/main/ReferAndEarnScreen';
 import LegalScreen          from './src/screens/legal/LegalScreen';
+import FeedbackScreen       from './src/screens/main/FeedbackScreen';
 
 const RootStack   = createNativeStackNavigator();
 const AuthStack   = createNativeStackNavigator();
@@ -82,6 +83,7 @@ function SettingsStackNav() {
       <SetgStack.Screen name="Profile"       component={ProfileScreen} />
       <SetgStack.Screen name="ReferAndEarn"  component={ReferAndEarnScreen} />
       <SetgStack.Screen name="Legal"         component={LegalScreen} />
+      <SetgStack.Screen name="Feedback"      component={FeedbackScreen} />
     </SetgStack.Navigator>
   );
 }

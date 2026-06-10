@@ -65,6 +65,7 @@ const OwnerTerms           = lazy(() => import('./pages/legal/OwnerTerms'));
 const AuditLog             = lazy(() => import('./pages/dashboard/AuditLog'));
 const Developer            = lazy(() => import('./pages/dashboard/Developer'));
 const QueuePage            = lazy(() => import('./pages/dashboard/QueuePage'));
+const Feedback             = lazy(() => import('./pages/dashboard/Feedback'));
 
 // ── Page loading fallback ──────────────────────────────────────
 function PageLoader() {
@@ -1065,6 +1066,7 @@ function App() {
                       <Route path={ROUTES.AUDIT}         element={<AuditLog />} />
                       <Route path={ROUTES.DEVELOPER}     element={<Developer />} />
                       <Route path={ROUTES.QUEUE}         element={<QueuePage />} />
+                      <Route path={ROUTES.FEEDBACK}      element={<Feedback />} />
                     </Route>
                   </Route>
 

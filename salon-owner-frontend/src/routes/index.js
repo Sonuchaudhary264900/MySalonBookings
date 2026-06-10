@@ -39,6 +39,7 @@ const ROUTES = {
   DEVELOPER:     '/dashboard/developer',
   TEAM_CHAT:     '/dashboard/team-chat',
   QUEUE:         '/dashboard/queue',
+  FEEDBACK:      '/dashboard/feedback',
 
   // Legal (public)
   PRIVACY:       '/privacy-policy',

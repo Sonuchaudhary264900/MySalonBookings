@@ -540,6 +540,8 @@ export default function SettingsScreen({ navigation }) {
           <SettingRow icon="globe-outline" iconColor="#059669" label="Website" rightEl={<AppText style={styles.valueText}>mysalonbookings.com</AppText>} onPress={() => Linking.openURL('https://mysalonbookings.com')} chevron />
           <Divider />
           <SettingRow icon="shield-checkmark-outline" iconColor="#7c3aed" label="Legal & Privacy" sublabel="Privacy Policy · Terms & Conditions" onPress={() => navigation.navigate('Legal')} chevron />
+          <Divider />
+          <SettingRow icon="bug-outline" iconColor="#d97706" label="Help & Feedback" sublabel="Report a bug or share feedback" onPress={() => navigation.navigate('Feedback')} chevron />
         </Card>
 
         {/* ── SIGN OUT ─────────────────────────────────────── */}
