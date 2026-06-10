@@ -2013,6 +2013,15 @@ router.put("/owner/bookings/:bookingId", authenticateOwner, validateObjectId("bo
   if (status === "in_progress") booking.startedAt    = new Date();
   await booking.save();
 
+  // Recalculate live tentative timing for this barber's remaining queue today
+  if (booking.barberId && ["in_progress", "completed", "cancelled", "no_show"].includes(status)) {
+    const { recalcQueueTiming } = require("../utils/queueTiming");
+    const dateStr = booking.appointmentDate.toISOString().slice(0, 10);
+    recalcQueueTiming(booking.salonId, booking.barberId, dateStr, req.app.get("io")).catch(err =>
+      console.error('recalcQueueTiming error:', err.message)
+    );
+  }
+
   // StyleAI attribution — fire on booking completion to record converted_booking event
   if (status === "completed" && booking.customerId) {
     const hairstyleAttr = require('../utils/hairstyleAttribution');

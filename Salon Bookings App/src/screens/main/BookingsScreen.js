@@ -687,6 +687,16 @@ function BookingCard({ booking: initialBooking, userCoords, onCancelled, theme, 
           </View>
         )}
 
+        {/* ── Tentative time badge (live queue delay) ── */}
+        {isUpcoming && booking.delayMinutes > 0 && booking.tentativeTime && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9, borderWidth: 1, backgroundColor: 'rgba(217,119,6,0.08)', borderColor: 'rgba(217,119,6,0.25)' }}>
+            <Ionicons name="time-outline" size={13} color="#d97706" />
+            <AppText style={{ fontSize: 12, color: '#d97706', fontWeight: '700' }}>
+              Tentative: {formatTimeLabel(booking.tentativeTime)} <AppText style={{ fontWeight: '500' }}>(running {booking.delayMinutes} min late)</AppText>
+            </AppText>
+          </View>
+        )}
+
         {/* ── Pay Now banner ── */}
         {booking.paymentStatus === 'pending' && booking.paymentMethod && booking.paymentMethod !== 'cash' && (
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 9, backgroundColor: 'rgba(251,191,36,0.08)', borderRadius: 9, borderWidth: 1, borderColor: 'rgba(251,191,36,0.25)' }}>

@@ -30,6 +30,11 @@ const bookingSchema = new mongoose.Schema(
     estimatedDuration: Number,
     queuePosition: Number,
     estimatedWaitTime: Number,
+    // Live tentative timing (queue-delay tracking, "Where is my Train" style ETA)
+    tentativeTime: String,                                  // "HH:MM", null when on-time
+    delayMinutes: { type: Number, default: 0 },
+    lastDelayNotifiedMinutes: { type: Number, default: 0 },
+    queueRecalcAt: Date,
     discount: { type: Number, default: 0 },
     couponApplied: String,
     totalAmount: Number,

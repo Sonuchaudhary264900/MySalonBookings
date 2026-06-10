@@ -501,6 +501,13 @@ const cancelBooking = async (req, res) => {
       { $pull: { queue: { bookingId } } }
     );
 
+    // Recalculate live tentative timing — cancellation may free up the barber's queue
+    if (booking.barberId) {
+      const { recalcQueueTiming } = require('../../utils/queueTiming');
+      const dateStr = booking.appointmentDate.toISOString().slice(0, 10);
+      recalcQueueTiming(booking.salonId, booking.barberId, dateStr, req.app.get('io')).catch(() => {});
+    }
+
     res.json(
       formatSuccessResponse(booking, messages.BOOKING.BOOKING_CANCELLED)
     );

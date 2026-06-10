@@ -119,4 +119,16 @@ async function sendReminder1h({ phone, customerName, serviceName, salonName, tim
   return sendTemplate(phone, template, [customerName, serviceName, salonName, time]);
 }
 
-module.exports = { sendBookingConfirmation, sendReminder24h, sendReminder1h };
+/**
+ * Delay alert WhatsApp message — sent when a customer's tentative
+ * appointment time shifts by >=10 min from the originally booked time.
+ *
+ * Template: appointment_delay_alert  (or WHATSAPP_DELAY_ALERT_TEMPLATE)
+ * Example body: "Hi {{1}}! Your {{2}} at {{3}} (originally {{4}}) is now expected around {{5}} — running about {{6}} min late. Sorry for the wait!"
+ */
+async function sendDelayAlert({ phone, customerName, serviceName, salonName, originalTime, tentativeTime, delayMinutes }) {
+  const template = process.env.WHATSAPP_DELAY_ALERT_TEMPLATE || 'appointment_delay_alert';
+  return sendTemplate(phone, template, [customerName, serviceName, salonName, originalTime, tentativeTime, String(delayMinutes)]);
+}
+
+module.exports = { sendBookingConfirmation, sendReminder24h, sendReminder1h, sendDelayAlert };

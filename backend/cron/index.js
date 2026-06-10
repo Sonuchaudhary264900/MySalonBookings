@@ -217,16 +217,19 @@ const send1HourReminders = cron.schedule('*/5 * * * *', async () => {
         const bookingDate = booking.appointmentDate?.toISOString().slice(0, 10);
         if (bookingDate !== todayIST || !booking.appointmentTime) continue;
 
-        const [h, m] = booking.appointmentTime.split(':');
+        const effectiveTime = booking.tentativeTime || booking.appointmentTime;
+        const [h, m] = effectiveTime.split(':');
         const slotMins = parseInt(h, 10) * 60 + parseInt(m, 10);
         if (slotMins < windowStart || slotMins > windowEnd) continue;
+
+        const lateNote = booking.delayMinutes > 0 ? ` Note: running ~${booking.delayMinutes} min late.` : '';
 
         const token = booking.customerId?.pushToken;
         if (token) {
           await sendExpoPush(
             token,
             '⏰ Appointment in 1 hour!',
-            `Your ${booking.serviceName || 'appointment'} at ${booking.salonName} is at ${booking.appointmentTime}. Get ready!`,
+            `Your ${booking.serviceName || 'appointment'} at ${booking.salonName} is at ${effectiveTime}. Get ready!${lateNote}`,
             { bookingId: booking._id.toString(), type: '1h_reminder' },
             { channelId: 'reminders' }
           ).catch(() => {});
@@ -238,7 +241,7 @@ const send1HourReminders = cron.schedule('*/5 * * * *', async () => {
             customerName: booking.customerId.name || 'there',
             serviceName: booking.serviceName || 'your appointment',
             salonName: booking.salonName,
-            time: booking.appointmentTime,
+            time: effectiveTime,
           }).catch(() => {});
         }
 
@@ -254,6 +257,60 @@ const send1HourReminders = cron.schedule('*/5 * * * *', async () => {
 
   } catch (error) {
     console.error('❌ 1 hour reminder system error', error);
+  }
+
+});
+
+
+/*
+====================================================
+LIVE QUEUE DELAY RECALCULATION
+Runs every 5 minutes — for every barber with a currently
+in_progress booking today, recompute tentative timing for
+the rest of that barber's queue (catches overruns that
+develop purely from elapsed time, without owner action)
+====================================================
+*/
+
+const recalcLiveQueueDelays = cron.schedule('*/5 * * * *', async () => {
+
+  try {
+    const { recalcQueueTiming } = require('../utils/queueTiming');
+
+    const nowIST = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+    const todayIST = nowIST.toISOString().slice(0, 10);
+
+    const inProgress = await Booking.find({
+      status: 'in_progress',
+      barberId: { $ne: null },
+    }).select('salonId barberId appointmentDate').lean();
+
+    const seen = new Set();
+    for (const bk of inProgress) {
+      const bookingDate = bk.appointmentDate?.toISOString().slice(0, 10);
+      if (bookingDate !== todayIST) continue;
+      seen.add(`${bk.salonId}_${bk.barberId}`);
+    }
+
+    if (seen.size === 0) return;
+
+    const { io } = require('../server');
+
+    let recalced = 0;
+    for (const key of seen) {
+      const [salonId, barberId] = key.split('_');
+      try {
+        await recalcQueueTiming(salonId, barberId, todayIST, io);
+        recalced++;
+      } catch (err) {
+        console.error('Live queue recalc single error:', err.message);
+      }
+    }
+
+    if (recalced > 0) console.log(`⏱️ Recalculated tentative timing for ${recalced} barber queue(s)`);
+
+  } catch (error) {
+    console.error('❌ Live queue recalc cron error:', error.message);
   }
 
 });
@@ -573,7 +630,7 @@ const send30MinReminders = cron.schedule('*/5 * * * *', async () => {
     const bookings = await Booking.find({
       status: { $in: ['confirmed', 'pending'] },
       'remindersSent.thirtyMin': { $ne: true },
-    }).populate('customerId', 'pushToken name').lean();
+    }).populate('customerId', 'pushToken name phone').lean();
 
     let sent = 0;
 
@@ -582,9 +639,12 @@ const send30MinReminders = cron.schedule('*/5 * * * *', async () => {
         const bookingDate = booking.appointmentDate?.toISOString().slice(0, 10);
         if (bookingDate !== todayIST || !booking.appointmentTime) continue;
 
-        const [h, m] = booking.appointmentTime.split(':');
+        const effectiveTime = booking.tentativeTime || booking.appointmentTime;
+        const [h, m] = effectiveTime.split(':');
         const slotMins = parseInt(h, 10) * 60 + parseInt(m, 10);
         if (slotMins < windowStart || slotMins > windowEnd) continue;
+
+        const lateNote = booking.delayMinutes > 0 ? ` Note: running ~${booking.delayMinutes} min late.` : '';
 
         // Push to customer
         const customerToken = booking.customerId?.pushToken;
@@ -592,7 +652,7 @@ const send30MinReminders = cron.schedule('*/5 * * * *', async () => {
           await sendExpoPush(
             customerToken,
             '🚶 Head over now!',
-            `Your ${booking.serviceName || 'appointment'} at ${booking.salonName} starts in 30 minutes at ${booking.appointmentTime}.`,
+            `Your ${booking.serviceName || 'appointment'} at ${booking.salonName} starts in 30 minutes at ${effectiveTime}.${lateNote}`,
             { bookingId: booking._id.toString(), type: '30min_reminder' },
             { channelId: 'reminders' }
           ).catch(() => {});
@@ -720,15 +780,18 @@ const send10MinReminders = cron.schedule('*/5 * * * *', async () => {
         const bookingDate = booking.appointmentDate?.toISOString().slice(0, 10);
         if (bookingDate !== todayIST || !booking.appointmentTime) continue;
 
-        const [h, m] = booking.appointmentTime.split(':');
+        const effectiveTime = booking.tentativeTime || booking.appointmentTime;
+        const [h, m] = effectiveTime.split(':');
         const slotMins = parseInt(h, 10) * 60 + parseInt(m, 10);
         if (slotMins < windowStart || slotMins > windowEnd) continue;
+
+        const lateNote = booking.delayMinutes > 0 ? ` Note: running ~${booking.delayMinutes} min late.` : '';
 
         if (booking.customerId?.pushToken) {
           await sendExpoPush(
             booking.customerId.pushToken,
             '⏰ Appointment in 10 minutes!',
-            `Your ${booking.serviceName} at ${booking.salonName} starts at ${booking.appointmentTime}. Please be on time.`,
+            `Your ${booking.serviceName} at ${booking.salonName} starts at ${effectiveTime}. Please be on time.${lateNote}`,
             { bookingId: booking._id.toString(), type: 'ten_min_reminder' },
             { channelId: 'ten_min_reminder' }
           );
@@ -1279,6 +1342,7 @@ module.exports = {
   cleanupExpiredOTPs,
   send24HourReminders,
   send1HourReminders,
+  recalcLiveQueueDelays,
   send30MinReminders,
   send10MinReminders,
   ownerDailySummary,
@@ -1304,6 +1368,7 @@ module.exports = {
     cleanupExpiredOTPs.stop();
     send24HourReminders.stop();
     send1HourReminders.stop();
+    recalcLiveQueueDelays.stop();
     send30MinReminders.stop();
     send10MinReminders.stop();
     ownerDailySummary.stop();

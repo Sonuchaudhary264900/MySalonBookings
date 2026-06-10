@@ -16,6 +16,15 @@ function getUserName() {
   } catch { return "there"; }
 }
 
+function getCustomerId() {
+  try {
+    const token = localStorage.getItem("customerToken");
+    if (!token) return null;
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload._id || payload.id || null;
+  } catch { return null; }
+}
+
 const FILTERS   = ['Upcoming', 'Completed', 'Cancelled', 'All'];
 const PAGE_SIZE = 5;
 
@@ -611,6 +620,20 @@ function BookingCard({ booking: initialBooking, userCoords, onCancelled, isNext 
   const status = booking.status || 'pending';
   const cfg    = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
 
+  // ── Live tentative-time updates (queue delay) ──
+  useEffect(() => {
+    if (!['pending', 'confirmed', 'in_progress'].includes(status)) return;
+    const customerId = getCustomerId();
+    if (!customerId) return;
+    const socket = io(SOCKET_URL_WEB, { transports: ['polling', 'websocket'] });
+    socket.on('connect', () => socket.emit('join-customer-room', customerId));
+    socket.on('tentative-time-updated', ({ bookingId, tentativeTime, delayMinutes }) => {
+      if (bookingId !== booking._id) return;
+      setBooking(prev => ({ ...prev, tentativeTime, delayMinutes }));
+    });
+    return () => socket.disconnect();
+  }, [booking._id, status]);
+
   const handleCancel = async () => {
     if (!window.confirm('Are you sure you want to cancel this booking?')) return;
     setCancelling(true);
@@ -734,6 +757,16 @@ function BookingCard({ booking: initialBooking, userCoords, onCancelled, isNext 
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10 }}>
             <span style={{ width: 5, height: 5, borderRadius: '50%', background: microcopy.color, flexShrink: 0, animation: 'bk-pulse-dot 2s infinite' }} />
             <p style={{ fontSize: 11, color: microcopy.color, fontWeight: 600 }}>{microcopy.text}</p>
+          </div>
+        )}
+
+        {/* ── Tentative time badge (live queue delay) ── */}
+        {isUpcoming && booking.delayMinutes > 0 && booking.tentativeTime && (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, padding: '5px 10px', background: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.25)', borderRadius: 8 }}>
+            <span style={{ color: '#d97706', display: 'flex' }}><IcClock /></span>
+            <p style={{ fontSize: 11.5, color: '#d97706', fontWeight: 700 }}>
+              Tentative: {formatTimeLabel(booking.tentativeTime)} <span style={{ fontWeight: 500 }}>(running {booking.delayMinutes} min late)</span>
+            </p>
           </div>
         )}
 
