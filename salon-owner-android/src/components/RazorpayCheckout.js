@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Modal, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, StyleSheet, ActivityIndicator, Linking } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -61,6 +61,15 @@ export default function RazorpayCheckout({ visible, order, prefill, description,
     }
   };
 
+  // UPI apps (GPay/PhonePe/Paytm) are launched via non-http deep links the
+  // WebView can't load — hand them to the OS and keep checkout open.
+  const handleShouldStartLoad = (request) => {
+    const url = request.url || '';
+    if (/^(https?:|about:|data:)/.test(url)) return true;
+    Linking.openURL(url).catch(() => {});
+    return false;
+  };
+
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onDismiss}>
       <View style={[styles.header, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
@@ -71,8 +80,11 @@ export default function RazorpayCheckout({ visible, order, prefill, description,
         <View style={{ width: 38 }} />
       </View>
       <WebView
-        source={{ html }}
+        source={{ html, baseUrl: 'https://mysalonbookings.com' }}
+        originWhitelist={['*']}
         onMessage={handleMessage}
+        onShouldStartLoadWithRequest={handleShouldStartLoad}
+        domStorageEnabled
         startInLoadingState
         renderLoading={() => (
           <View style={styles.loading}>
