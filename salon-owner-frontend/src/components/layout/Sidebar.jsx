@@ -218,7 +218,8 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
                 })}
               </div>
             </div>
-          ))}
+            );
+          })}
         </nav>
 
         {/* ── My Subscription ── */}
