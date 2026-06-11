@@ -77,6 +77,12 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow GlowLoox to access your camera to scan UPI QR codes for withdrawals."
+        }
       ]
     ],
     "extra": {

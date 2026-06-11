@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import RazorpayCheckout from '../../components/RazorpayCheckout';
+import QrScanModal from '../../components/QrScanModal';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { showError, showSuccess } from '../../utils/toast';
@@ -47,6 +48,7 @@ export default function WalletScreen({ navigation }) {
   const [withdrawUpi, setWithdrawUpi] = useState('');
   const [withdrawing, setWithdrawing] = useState(false);
   const [withdrawals, setWithdrawals] = useState([]);
+  const [showQrScan, setShowQrScan] = useState(false);
 
   const loadWallet = useCallback(async () => {
     try {
@@ -252,6 +254,12 @@ export default function WalletScreen({ navigation }) {
               style={[styles.input, { backgroundColor: theme.cardAlt, borderColor: theme.border, color: theme.text }]}
             />
             <TouchableOpacity
+              onPress={() => setShowQrScan(true)}
+              style={[styles.scanBtn, { borderColor: 'rgba(124,58,237,0.4)', backgroundColor: theme.cardAlt }]}
+            >
+              <Ionicons name="scan-outline" size={18} color="#7c3aed" />
+            </TouchableOpacity>
+            <TouchableOpacity
               onPress={handleWithdraw}
               disabled={withdrawing}
               style={[styles.withdrawBtn, { borderColor: 'rgba(124,58,237,0.4)', backgroundColor: theme.cardAlt, opacity: withdrawing ? 0.7 : 1 }]}
@@ -260,6 +268,12 @@ export default function WalletScreen({ navigation }) {
               <Text style={{ color: '#7c3aed', fontSize: 14, fontWeight: '700' }}>{withdrawing ? '...' : 'Withdraw'}</Text>
             </TouchableOpacity>
           </View>
+
+          <QrScanModal
+            visible={showQrScan}
+            onResult={(upi) => { setWithdrawUpi(upi); setShowQrScan(false); }}
+            onClose={() => setShowQrScan(false)}
+          />
 
           {withdrawals.length > 0 && (
             <View style={{ marginTop: 14, borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 10 }}>
@@ -368,6 +382,7 @@ const styles = StyleSheet.create({
   addBtn:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 18, borderRadius: 12, backgroundColor: '#7c3aed' },
   addBtnText:  { color: '#fff', fontSize: 14, fontWeight: '700' },
   withdrawBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1.5 },
+  scanBtn:     { width: 46, height: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 12, borderWidth: 1.5 },
   sectionTitle:{ fontSize: 13, fontWeight: '700', marginBottom: 10 },
   listCard:    { borderRadius: 14, borderWidth: 1, overflow: 'hidden' },
   txnRow:      { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 },

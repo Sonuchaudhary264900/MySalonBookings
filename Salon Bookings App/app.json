@@ -70,6 +70,12 @@
         {
           "calendarPermission": "GlowLoox needs calendar access to save your appointment and set a reminder."
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "GlowLoox needs camera access to scan UPI QR codes for withdrawals."
+        }
       ]
     ],
     "newArchEnabled": false,

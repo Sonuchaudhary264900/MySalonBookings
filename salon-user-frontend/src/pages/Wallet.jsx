@@ -4,8 +4,9 @@ import API from "../services/api";
 import { loadRazorpay, RAZORPAY_KEY_ID } from "../utils/razorpay";
 import { formatDate } from "../utils/formatters";
 import {
-  ChevronLeft, Wallet as WalletIcon, ArrowDownLeft, ArrowUpRight, Plus, Landmark,
+  ChevronLeft, Wallet as WalletIcon, ArrowDownLeft, ArrowUpRight, Plus, Landmark, ScanLine,
 } from "lucide-react";
+import QrScanModal from "../components/QrScanModal";
 
 const QUICK_AMOUNTS = [100, 200, 500, 1000];
 
@@ -59,6 +60,7 @@ export default function Wallet() {
   const [withdrawError, setWithdrawError] = useState("");
   const [withdrawSuccess, setWithdrawSuccess] = useState("");
   const [withdrawals, setWithdrawals] = useState([]);
+  const [showQrScan, setShowQrScan] = useState(false);
 
   const loadWallet = useCallback(async () => {
     try {
@@ -343,6 +345,18 @@ export default function Wallet() {
                 }}
               />
               <button
+                onClick={() => setShowQrScan(true)}
+                title="Scan a UPI QR code"
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  width: 46, height: 46, borderRadius: 12, flexShrink: 0,
+                  background: "var(--t-input-bg)", color: "#8b5cf6",
+                  border: "1.5px solid rgba(139,92,246,0.4)", cursor: "pointer",
+                }}
+              >
+                <ScanLine size={18} strokeWidth={2.2} />
+              </button>
+              <button
                 onClick={handleWithdraw}
                 disabled={withdrawing}
                 style={{
@@ -362,6 +376,13 @@ export default function Wallet() {
 
           {withdrawError && <p style={{ color: "#dc2626", fontSize: 12, marginTop: 8 }}>{withdrawError}</p>}
           {withdrawSuccess && <p style={{ color: "#059669", fontSize: 12, marginTop: 8 }}>{withdrawSuccess}</p>}
+
+          {showQrScan && (
+            <QrScanModal
+              onResult={(upi) => { setWithdrawUpi(upi); setWithdrawError(""); setWithdrawSuccess(""); setShowQrScan(false); }}
+              onClose={() => setShowQrScan(false)}
+            />
+          )}
 
           {withdrawals.length > 0 && (
             <div style={{ marginTop: 14, borderTop: "1px solid var(--t-border)", paddingTop: 10 }}>

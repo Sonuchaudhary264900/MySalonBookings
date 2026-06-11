@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Wallet as WalletIcon, ArrowDownLeft, ArrowUpRight, Plus, Loader2, Landmark,
+  Wallet as WalletIcon, ArrowDownLeft, ArrowUpRight, Plus, Loader2, Landmark, ScanLine,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import QrScanModal from '../../components/QrScanModal';
 import api from '../../services/api';
 
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
@@ -52,6 +53,7 @@ export default function Wallet() {
   const [withdrawUpi, setWithdrawUpi] = useState('');
   const [withdrawing, setWithdrawing] = useState(false);
   const [withdrawals, setWithdrawals] = useState([]);
+  const [showQrScan, setShowQrScan] = useState(false);
 
   useEffect(() => {
     document.title = 'Wallet — GlowLoox';
@@ -277,6 +279,13 @@ export default function Wallet() {
                 className="flex-1 h-11 rounded-xl px-3.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm outline-none focus:border-violet-500"
               />
               <button
+                onClick={() => setShowQrScan(true)}
+                title="Scan a UPI QR code"
+                className="flex items-center justify-center w-11 h-11 rounded-xl shrink-0 text-violet-600 dark:text-violet-400 border-[1.5px] border-violet-300 dark:border-violet-800 hover:bg-violet-50 dark:hover:bg-violet-950/40"
+              >
+                <ScanLine className="w-[18px] h-[18px]" strokeWidth={2.2} />
+              </button>
+              <button
                 onClick={handleWithdraw}
                 disabled={withdrawing}
                 className="flex items-center justify-center gap-1.5 px-4 rounded-xl text-sm font-semibold text-violet-600 dark:text-violet-400 border-[1.5px] border-violet-300 dark:border-violet-800 hover:bg-violet-50 dark:hover:bg-violet-950/40 disabled:opacity-60"
@@ -286,6 +295,13 @@ export default function Wallet() {
               </button>
             </div>
           </div>
+
+          {showQrScan && (
+            <QrScanModal
+              onResult={(upi) => { setWithdrawUpi(upi); setShowQrScan(false); }}
+              onClose={() => setShowQrScan(false)}
+            />
+          )}
 
           {withdrawals.length > 0 && (
             <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800">

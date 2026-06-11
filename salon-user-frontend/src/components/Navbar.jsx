@@ -732,14 +732,12 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
             </Link>
           );
         })}
-      </nav>
 
-      {/* Bottom section: notifications, theme, profile/sign-in */}
-      <div style={{ padding:"8px 8px 14px", borderTop:"1px solid var(--t-border)", display:"flex", flexDirection:"column", gap:2, flexShrink:0 }}>
+        <div style={{ height:1, background:"var(--t-border)", margin:"6px 6px" }} />
 
-        {/* Notifications */}
+        {/* Notifications — scrolls with the rest of the nav */}
         {token && (
-          <div style={{ position:"relative" }} ref={panelRef}>
+          <div ref={panelRef}>
             <button
               onClick={() => setPanelOpen(v => !v)}
               style={{ display:"flex",alignItems:"center",gap:14,width:"100%",padding:"9px 14px",borderRadius:12,border:"none",background:"transparent",color:"var(--t-text-2)",fontWeight:500,fontSize:14,cursor:"pointer",transition:"background 0.15s" }}
@@ -757,14 +755,14 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
               Notifications
             </button>
             {panelOpen && (
-              <div style={{ position:"absolute",bottom:"calc(100% + 8px)",left:0,right:0 }}>
+              <div style={{ position:"fixed", left:228, bottom:20, width:360, zIndex:70 }}>
                 <NotificationPanel onClose={() => setPanelOpen(false)} />
               </div>
             )}
           </div>
         )}
 
-        {/* Theme toggle */}
+        {/* Theme toggle — scrolls with the rest of the nav */}
         <button
           onClick={toggleTheme}
           style={{ display:"flex",alignItems:"center",gap:14,width:"100%",padding:"9px 14px",borderRadius:12,border:"none",background:"transparent",color:"var(--t-text-2)",fontWeight:500,fontSize:14,cursor:"pointer",transition:"background 0.15s" }}
@@ -774,6 +772,10 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
           {isDark ? <Sun size={18} strokeWidth={2} style={{ color:"var(--t-accent)" }} /> : <Moon size={18} strokeWidth={2} style={{ color:"var(--t-accent)" }} />}
           {isDark ? "Light Mode" : "Dark Mode"}
         </button>
+      </nav>
+
+      {/* Bottom pinned section: My Account only */}
+      <div style={{ padding:"8px 8px 14px", borderTop:"1px solid var(--t-border)", display:"flex", flexDirection:"column", gap:2, flexShrink:0 }}>
 
         {/* Profile or Sign In */}
         {token ? (
