@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
 import {
@@ -53,9 +53,12 @@ export default function Withdrawals() {
     finally { setLoading(false); }
   }, [status]);
 
-  useEffect(() => { load(page); }, [page, load]);
+  useEffect(() => { load(page); }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Changing the status filter resets to page 1 (and refetches exactly once)
+  const isFirstRender = useRef(true);
   useEffect(() => {
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
     if (page === 1) load(1);
     else setPage(1);
   }, [status]); // eslint-disable-line react-hooks/exhaustive-deps
