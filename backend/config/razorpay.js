@@ -53,7 +53,8 @@ const createOrder = async (amount, customerId, bookingId, customerEmail, custome
     const options = {
       amount: Math.round(amount * 100), // Convert to paise (smallest unit)
       currency: 'INR',
-      receipt: `order_${bookingId}_${Date.now()}`,
+      // Razorpay rejects receipts longer than 40 chars — keep id tail + base36 time
+      receipt: `rcpt_${String(bookingId).slice(-15)}_${Date.now().toString(36)}`,
       payment_capture: 1, // Auto capture payment
       notes: {
         customerId: customerId,
