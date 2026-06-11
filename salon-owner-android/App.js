@@ -53,6 +53,7 @@ import MessagesScreen          from './src/screens/dashboard/MessagesScreen';
 import GlowLooxProfileScreen   from './src/screens/dashboard/GlowLooxProfileScreen';
 import LegalScreen             from './src/screens/legal/LegalScreen';
 import FeedbackScreen          from './src/screens/dashboard/FeedbackScreen';
+import WalletScreen             from './src/screens/dashboard/WalletScreen';
 
 const RootStack = createNativeStackNavigator();
 const AuthStack = createNativeStackNavigator();
@@ -89,6 +90,7 @@ const NAV_SECTIONS = [
   {
     label: 'Account',
     items: [
+      { name: 'Wallet',   label: 'Wallet',          icon: 'wallet-outline',   iconFocused: 'wallet' },
       { name: 'Billing',  label: 'Billing & Plan', icon: 'card-outline',     iconFocused: 'card' },
       { name: 'Settings', label: 'Settings',        icon: 'settings-outline', iconFocused: 'settings' },
       { name: 'Feedback', label: 'Help & Feedback', icon: 'help-buoy-outline', iconFocused: 'help-buoy' },
@@ -354,6 +356,7 @@ function MainDrawer({ navigation }) {
         <MainStack.Screen name="ServiceMenu"   component={ServiceMenuScreen} />
         <MainStack.Screen name="Legal"         component={LegalScreen} />
         <MainStack.Screen name="Feedback"      component={FeedbackScreen} />
+        <MainStack.Screen name="Wallet"        component={WalletScreen} />
       </MainStack.Navigator>
     </CustomDrawerLayout>
   );
