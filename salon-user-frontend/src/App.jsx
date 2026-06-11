@@ -30,6 +30,7 @@ const Dashboard    = lazy(() => import("./pages/Dashboard"));
 const Favorites    = lazy(() => import("./pages/Favorites"));
 const Profile             = lazy(() => import("./pages/Profile"));
 const Feedback            = lazy(() => import("./pages/Feedback"));
+const Wallet              = lazy(() => import("./pages/Wallet"));
 const PrivacyPolicy           = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsAndConditions      = lazy(() => import("./pages/TermsAndConditions"));
 const CustomerPrivacyPolicy   = lazy(() => import("./pages/legal/CustomerPrivacyPolicy"));
@@ -129,6 +130,7 @@ function AppLayout({ notifOpen, setNotifOpen }) {
             <Route path="/favorites"                   element={<Favorites />} />
             <Route path="/profile"                     element={<Profile />} />
             <Route path="/feedback"                    element={<Feedback />} />
+            <Route path="/wallet"                      element={<Wallet />} />
             <Route path="/privacy-policy"              element={<PrivacyPolicy />} />
             <Route path="/terms"                       element={<TermsAndConditions />} />
             <Route path="/legal/customer-privacy"      element={<CustomerPrivacyPolicy />} />

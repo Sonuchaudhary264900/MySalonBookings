@@ -39,7 +39,7 @@ const bookingSchema = new mongoose.Schema(
     couponApplied: String,
     totalAmount: Number,
     paymentMethod: { type: String, enum: ['online', 'cash', 'wallet'] },
-    paymentStatus: { type: String, enum: ['pending', 'completed', 'failed'] },
+    paymentStatus: { type: String, enum: ['pending', 'completed', 'failed', 'refunded'] },
     transactionId: String,
     paidAt: Date,
     status: { type: String, enum: ['pending', 'confirmed', 'in_progress', 'completed', 'cancelled', 'no_show'], default: 'pending' },

@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Scissors, Calendar, Star, Settings,
   ChevronRight, ChevronLeft, X, Images, Users, Tag,
   Store, BarChart2, Gift, MessageSquare, Megaphone, Crown, Eye,
-  Shield, Code2, ListOrdered, MessageCircle,
+  Shield, Code2, ListOrdered, MessageCircle, Wallet,
 } from 'lucide-react';
 import ROUTES from '../../routes';
 import { useNotifications } from '../../context/NotificationContext';
@@ -48,6 +48,7 @@ const NAV_SECTIONS = [
   {
     label: 'Account',
     items: [
+      { id: 'wallet',       label: 'Wallet',          path: ROUTES.WALLET,     icon: Wallet     },
       { id: 'promotions',   label: 'Promote Salon',   path: ROUTES.PROMOTIONS, icon: Megaphone },
       { id: 'subscription', label: 'My Subscription', path: ROUTES.BILLING,    icon: Crown      },
       { id: 'audit',        label: 'Audit Log',        path: ROUTES.AUDIT,      icon: Shield     },

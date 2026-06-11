@@ -333,6 +333,10 @@ export default function SettingsScreen({ navigation }) {
           )}
         </View>
 
+        <Card>
+          <SettingRow icon="wallet-outline" iconColor="#7c3aed" label="Wallet" sublabel="Balance, recharge & transaction history" onPress={() => navigation.navigate('Wallet')} chevron />
+        </Card>
+
         {/* ── PREFERENCES ──────────────────────────────────── */}
         <SectionHeader title="Preferences" />
 

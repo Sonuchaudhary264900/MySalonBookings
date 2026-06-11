@@ -67,6 +67,7 @@ const AuditLog             = lazy(() => import('./pages/dashboard/AuditLog'));
 const Developer            = lazy(() => import('./pages/dashboard/Developer'));
 const QueuePage            = lazy(() => import('./pages/dashboard/QueuePage'));
 const Feedback             = lazy(() => import('./pages/dashboard/Feedback'));
+const Wallet               = lazy(() => import('./pages/dashboard/Wallet'));
 
 // ── Page loading fallback ──────────────────────────────────────
 function PageLoader() {
@@ -1069,6 +1070,7 @@ function App() {
                       <Route path={ROUTES.DEVELOPER}     element={<Developer />} />
                       <Route path={ROUTES.QUEUE}         element={<QueuePage />} />
                       <Route path={ROUTES.FEEDBACK}      element={<Feedback />} />
+                      <Route path={ROUTES.WALLET}        element={<Wallet />} />
                     </Route>
                   </Route>
 

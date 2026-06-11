@@ -4,15 +4,17 @@ const Service = require('../../models/Service');
 const Business = require('../../models/Business');
 const Barber = require('../../models/Barber');
 const Customer = require('../../models/Customer');
+const Transaction = require('../../models/Transaction');
 
 const { formatSuccessResponse, formatErrorResponse } = require('../../utils/formatters');
 const { validateBookingData, validatePagination } = require('../../utils/validators');
 const { generateBookingId } = require('../../utils/helpers');
 const messages = require('../../utils/messages');
 const { autoAssignStaff } = require('../../utils/autoAssign');
+const { credit, debit, reverseEarning } = require('../../utils/walletService');
 
 
-const { createOrder } = require('../../config/razorpay');
+const { createOrder, verifyPaymentSignature, getPaymentDetails } = require('../../config/razorpay');
 
 
 // ===================================================
@@ -296,9 +298,49 @@ const createBooking = async (req, res) => {
       return res.status(201).json(
         formatSuccessResponse({
           booking,
-          paymentOrder: order
+          paymentOrder: order,
+          razorpayKeyId: process.env.RAZORPAY_KEY_ID,
         }, messages.PAYMENT.PAYMENT_INITIATED)
       );
+    }
+
+    // Wallet payment — debit the customer's wallet immediately
+    if (paymentMethod === "wallet") {
+      try {
+        const walletResult = await debit(req.customer._id, 'Customer', booking.totalAmount, 'booking_payment', {
+          bookingId: booking._id,
+          description: `Payment for booking ${booking.bookingId}`,
+          status: 'success',
+        });
+
+        booking.transactionId = walletResult.transaction._id.toString();
+        booking.paidAt = new Date();
+
+        await Transaction.create({
+          transactionId: walletResult.transaction._id.toString(),
+          bookingId: booking._id,
+          customerId: req.customer._id,
+          salonId: salon._id,
+          amount: booking.totalAmount,
+          finalAmount: booking.totalAmount,
+          paymentMethod: 'wallet',
+          paymentStatus: 'success',
+        });
+
+        await credit(salon.ownerId, 'Owner', booking.totalAmount, 'booking_earning', {
+          bookingId: booking._id,
+          description: `Earnings from booking ${booking.bookingId}`,
+          status: 'success',
+        }).catch(() => {});
+      } catch (err) {
+        if (err.code === 'INSUFFICIENT_BALANCE') {
+          await Booking.deleteOne({ _id: booking._id });
+          return res.status(400).json(
+            formatErrorResponse(messages.PAYMENT.INSUFFICIENT_BALANCE, 400)
+          );
+        }
+        throw err;
+      }
     }
 
     const autoConfirm = salon.autoConfirmBookings !== false; // default true
@@ -371,6 +413,160 @@ const createBooking = async (req, res) => {
       formatErrorResponse(messages.GENERIC.ERROR, 500)
     );
   }
+};
+
+
+
+// ===================================================
+// VERIFY ONLINE PAYMENT (Razorpay) FOR A BOOKING
+// ===================================================
+const verifyBookingPayment = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json(
+        formatErrorResponse(messages.GENERIC.MISSING_REQUIRED_FIELDS, 400)
+      );
+    }
+
+    const booking = await Booking.findOne({ _id: bookingId, customerId: req.customer._id });
+    if (!booking) {
+      return res.status(404).json(
+        formatErrorResponse(messages.BOOKING.BOOKING_NOT_FOUND, 404)
+      );
+    }
+
+    if (booking.paymentStatus === 'completed') {
+      return res.status(200).json(
+        formatSuccessResponse(booking, messages.PAYMENT.PAYMENT_ALREADY_PROCESSED)
+      );
+    }
+
+    const verification = verifyPaymentSignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
+    if (!verification.success) {
+      booking.paymentStatus = 'failed';
+      await booking.save();
+      return res.status(400).json(
+        formatErrorResponse(messages.PAYMENT.PAYMENT_INVALID_SIGNATURE, 400)
+      );
+    }
+
+    const existingTxn = await Transaction.findOne({ transactionId: razorpay_payment_id });
+    if (existingTxn) {
+      return res.status(200).json(
+        formatSuccessResponse(booking, messages.PAYMENT.PAYMENT_ALREADY_PROCESSED)
+      );
+    }
+
+    const paymentDetails = await getPaymentDetails(razorpay_payment_id);
+    if (!paymentDetails.success) {
+      return res.status(400).json(
+        formatErrorResponse(messages.PAYMENT.PAYMENT_FAILED, 400)
+      );
+    }
+
+    const salon = await Business.findById(booking.salonId);
+    const customer = await Customer.findById(req.customer._id);
+
+    booking.transactionId = razorpay_payment_id;
+    booking.paidAt = new Date();
+
+    await finalizeBookingAfterPayment(booking, salon, customer);
+
+    await Transaction.create({
+      transactionId: razorpay_payment_id,
+      razorpayId: razorpay_order_id,
+      bookingId: booking._id,
+      customerId: customer._id,
+      salonId: salon._id,
+      amount: booking.totalAmount,
+      finalAmount: booking.totalAmount,
+      paymentMethod: 'online',
+      paymentStatus: 'success',
+      razorpayResponse: paymentDetails,
+    });
+
+    await credit(salon.ownerId, 'Owner', booking.totalAmount, 'booking_earning', {
+      bookingId: booking._id,
+      description: `Earnings from booking ${booking.bookingId}`,
+      status: 'success',
+    }).catch(() => {});
+
+    return res.status(200).json(
+      formatSuccessResponse(booking, messages.PAYMENT.PAYMENT_SUCCESSFUL)
+    );
+
+  } catch (error) {
+    console.error('Verify booking payment error:', error);
+    return res.status(500).json(
+      formatErrorResponse(messages.GENERIC.ERROR, 500)
+    );
+  }
+};
+
+
+
+// ===================================================
+// FINALIZE BOOKING AFTER PAYMENT CONFIRMATION
+// (shared by online-payment verification; mirrors the
+// confirm/queue/notify steps run for cash & wallet bookings)
+// ===================================================
+const finalizeBookingAfterPayment = async (booking, salon, customer) => {
+  const autoConfirm = salon.autoConfirmBookings !== false; // default true
+  booking.status = autoConfirm ? "confirmed" : "pending";
+  booking.paymentStatus = "completed";
+  await booking.save();
+
+  await addToQueue(salon._id, booking);
+
+  const combinedName = booking.services.map(s => s.serviceName).join(', ');
+  const appointmentDateStr = booking.appointmentDate.toISOString().split('T')[0];
+
+  (async () => {
+    try {
+      const { sendExpoPush } = require('../../utils/pushNotification');
+      const { sendBookingConfirmation } = require('../../utils/whatsapp');
+      const Owner = require('../../models/Owner');
+      const owner = await Owner.findById(salon.ownerId).select('pushToken').lean();
+
+      if (customer.pushToken) {
+        sendExpoPush(
+          customer.pushToken,
+          'Booking Confirmed! ✅',
+          `Your ${combinedName} at ${salon.name} is booked for ${appointmentDateStr} at ${booking.appointmentTime}`,
+          { bookingId: booking._id.toString(), type: 'booking_confirmed' },
+          { channelId: 'booking_confirmed' }
+        ).catch(() => {});
+      }
+
+      if (customer.phone) {
+        sendBookingConfirmation({
+          phone: customer.phone,
+          customerName: customer.name || 'there',
+          salonName: salon.name,
+          serviceName: combinedName,
+          date: appointmentDateStr,
+          time: booking.appointmentTime,
+        }).catch(() => {});
+      }
+
+      if (owner?.pushToken) {
+        sendExpoPush(
+          owner.pushToken,
+          '🔔 New Booking!',
+          `${customer.name} booked ${combinedName} on ${appointmentDateStr} at ${booking.appointmentTime}`,
+          { bookingId: booking._id.toString(), type: 'new_booking', autoConfirm: String(autoConfirm) },
+          { channelId: 'new_booking' }
+        ).catch(() => {});
+      }
+    } catch (err) {
+      console.error('[push:booking]', err.message, err.stack);
+    }
+  })();
+
+  return booking;
 };
 
 
@@ -494,6 +690,26 @@ const cancelBooking = async (req, res) => {
     booking.status = "cancelled";
     booking.cancelledAt = new Date();
 
+    // Refund online/wallet payments back to the customer's wallet
+    if (booking.paymentStatus === 'completed' && (booking.paymentMethod === 'online' || booking.paymentMethod === 'wallet')) {
+      await credit(booking.customerId, 'Customer', booking.totalAmount, 'booking_refund', {
+        bookingId: booking._id,
+        description: `Refund for cancelled booking ${booking.bookingId}`,
+        status: 'success',
+      }).catch(() => {});
+
+      const salonForRefund = await Business.findById(booking.salonId).select('ownerId').lean();
+      if (salonForRefund?.ownerId) {
+        await reverseEarning(salonForRefund.ownerId, 'Owner', booking.totalAmount, 'booking_refund', {
+          bookingId: booking._id,
+          description: `Refund deducted for cancelled booking ${booking.bookingId}`,
+          status: 'success',
+        }).catch(() => {});
+      }
+
+      booking.paymentStatus = 'refunded';
+    }
+
     await booking.save();
 
     await Queue.updateOne(
@@ -562,6 +778,7 @@ const addToQueue = async (salonId, booking) => {
 // ===================================================
 module.exports = {
   createBooking,
+  verifyBookingPayment,
   getMyBookings,
   getBookingDetails,
   cancelBooking,

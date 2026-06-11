@@ -35,6 +35,7 @@ import NotificationsScreen  from './src/screens/main/NotificationsScreen';
 import ReferAndEarnScreen   from './src/screens/main/ReferAndEarnScreen';
 import LegalScreen          from './src/screens/legal/LegalScreen';
 import FeedbackScreen       from './src/screens/main/FeedbackScreen';
+import WalletScreen         from './src/screens/main/WalletScreen';
 
 const RootStack   = createNativeStackNavigator();
 const AuthStack   = createNativeStackNavigator();
@@ -54,6 +55,7 @@ function HomeStackNav() {
       <HomeStack.Screen name="SalonDetails"   component={SalonDetailsScreen} />
       <HomeStack.Screen name="Booking"        component={BookingScreen} />
       <HomeStack.Screen name="Notifications"  component={NotificationsScreen} />
+      <HomeStack.Screen name="Wallet"         component={WalletScreen} />
     </HomeStack.Navigator>
   );
 }
@@ -72,6 +74,7 @@ function FavoritesStackNav() {
       <FavStack.Screen name="FavMain"      component={FavoritesScreen} />
       <FavStack.Screen name="SalonDetails" component={SalonDetailsScreen} />
       <FavStack.Screen name="Booking"      component={BookingScreen} />
+      <FavStack.Screen name="Wallet"       component={WalletScreen} />
     </FavStack.Navigator>
   );
 }
@@ -84,6 +87,7 @@ function SettingsStackNav() {
       <SetgStack.Screen name="ReferAndEarn"  component={ReferAndEarnScreen} />
       <SetgStack.Screen name="Legal"         component={LegalScreen} />
       <SetgStack.Screen name="Feedback"      component={FeedbackScreen} />
+      <SetgStack.Screen name="Wallet"        component={WalletScreen} />
     </SetgStack.Navigator>
   );
 }

@@ -10,6 +10,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../services/api';
 import { showError } from '../../utils/toast';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
+import RazorpayCheckout from '../../components/RazorpayCheckout';
 
 const localDate = (offset = 0) => {
   const d = new Date();
@@ -45,6 +47,7 @@ export default function BookingScreen({ route, navigation }) {
   const { salonId, serviceIds = [] } = route.params || {};
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const { user } = useAuth();
   const styles = getStyles(theme);
 
   const [salon, setSalon]           = useState(null);
@@ -70,6 +73,10 @@ export default function BookingScreen({ route, navigation }) {
   const [bookingStatus, setBookingStatus] = useState('confirmed');
   const [bookingDetail, setBookingDetail] = useState(null);
   const [addingToCalendar, setAddingToCalendar] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [walletBalance, setWalletBalance] = useState(null);
+  const [checkoutOrder, setCheckoutOrder] = useState(null);
+  const [pendingBooking, setPendingBooking] = useState(null);
 
   const advanceDays = salon?.advanceBookingDays ?? 7;
   const totalDuration = services.reduce((s, x) => s + (x.duration || 0), 0);
@@ -98,6 +105,12 @@ export default function BookingScreen({ route, navigation }) {
     };
     if (salonId) load();
   }, [salonId]);
+
+  useEffect(() => {
+    api.get('/customer/wallet')
+      .then(res => setWalletBalance(res.data?.data?.balance ?? 0))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!totalDuration || !salonId) return;
@@ -165,19 +178,78 @@ export default function BookingScreen({ route, navigation }) {
         barberId: barberId || undefined,
         appointmentDate: date,
         appointmentTime: slot,
-        paymentMethod: 'cash',
+        paymentMethod,
         couponCode: appliedCoupon?.code || undefined
       });
-      const booking = res.data.data?.booking || res.data.data;
-      const status  = booking?.status || 'confirmed';
+      const data = res.data.data || {};
+      const booking = data.booking || data;
+      const paymentOrder = data.paymentOrder;
+
+      if (paymentMethod === 'online' && paymentOrder) {
+        if (!paymentOrder.success) {
+          showError('Payment Unavailable', paymentOrder.message || 'Online payment is currently unavailable. Please choose another payment method.');
+          setLoading(false);
+          return;
+        }
+        setPendingBooking(booking);
+        setCheckoutOrder({
+          key: data.razorpayKeyId,
+          amount: paymentOrder.amount,
+          currency: paymentOrder.currency,
+          orderId: paymentOrder.orderId,
+        });
+        return;
+      }
+
+      const status = booking?.status || 'confirmed';
       setBookingStatus(status);
       setBookingDetail(booking);
+      if (paymentMethod === 'wallet') {
+        setWalletBalance(prev => (prev != null ? Math.max(0, prev - finalPrice) : prev));
+      }
       setSuccess(true);
     } catch (err) {
-      showError('Booking Failed', err?.message || 'Please try again.');
+      if (err?.message === 'Insufficient wallet balance.') {
+        showError('Insufficient Balance', 'Add money to your wallet or choose another payment method.');
+      } else {
+        showError('Booking Failed', err?.message || 'Please try again.');
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePaymentSuccess = async (response) => {
+    setCheckoutOrder(null);
+    try {
+      const verifyRes = await api.post(`/customer/bookings/${pendingBooking._id}/verify-payment`, {
+        razorpay_order_id: response.razorpay_order_id,
+        razorpay_payment_id: response.razorpay_payment_id,
+        razorpay_signature: response.razorpay_signature,
+      });
+      const verified = verifyRes.data.data?.booking || verifyRes.data.data || pendingBooking;
+      setBookingStatus(verified?.status || 'confirmed');
+      setBookingDetail(verified);
+      setSuccess(true);
+    } catch (err) {
+      showError('Verification Failed', err?.message || 'If money was deducted, please contact support.');
+    } finally {
+      setLoading(false);
+      setPendingBooking(null);
+    }
+  };
+
+  const handlePaymentFailure = () => {
+    setCheckoutOrder(null);
+    setLoading(false);
+    setPendingBooking(null);
+    showError('Payment Failed', 'Please try again.');
+  };
+
+  const handlePaymentDismiss = () => {
+    setCheckoutOrder(null);
+    setLoading(false);
+    setPendingBooking(null);
   };
 
   const addToCalendar = async () => {
@@ -251,7 +323,9 @@ export default function BookingScreen({ route, navigation }) {
             </View>
             <View style={styles.successRow}>
               <Ionicons name="cash-outline" size={14} color="#6b7280" />
-              <AppText style={styles.successMeta}>₹{finalPrice} · Pay at salon</AppText>
+              <AppText style={styles.successMeta}>
+                ₹{finalPrice} · {paymentMethod === 'online' ? 'Paid Online' : paymentMethod === 'wallet' ? 'Paid via Wallet' : 'Pay at salon'}
+              </AppText>
             </View>
           </View>
           <TouchableOpacity style={styles.successBtn} onPress={() => navigation.getParent()?.navigate('BookingsTab')}>
@@ -486,9 +560,57 @@ export default function BookingScreen({ route, navigation }) {
               </View>
             )}
             <View style={[styles.priceRow, { borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 8, marginTop: 4 }]}>
-              <AppText style={styles.priceTotalLabel}>Total (Pay at salon)</AppText>
+              <AppText style={styles.priceTotalLabel}>
+                Total ({paymentMethod === 'online' ? 'Pay Online' : paymentMethod === 'wallet' ? 'Pay via Wallet' : 'Pay at salon'})
+              </AppText>
               <AppText style={styles.priceTotalVal}>₹{finalPrice}</AppText>
             </View>
+          </View>
+        )}
+
+        {/* Payment Method */}
+        {slot && (
+          <View style={styles.section}>
+            <AppText style={styles.sectionTitle}>Payment Method</AppText>
+            <View style={styles.paymentRow}>
+              {[
+                { id: 'cash', label: 'Pay at Salon' },
+                { id: 'online', label: 'Pay Online' },
+                { id: 'wallet', label: 'Wallet' },
+              ].map(opt => {
+                const active = paymentMethod === opt.id;
+                return (
+                  <TouchableOpacity
+                    key={opt.id}
+                    onPress={() => setPaymentMethod(opt.id)}
+                    style={[
+                      styles.paymentChip,
+                      {
+                        borderColor: active ? '#8b5cf6' : theme.border,
+                        backgroundColor: active ? 'rgba(139,92,246,0.1)' : theme.cardAlt,
+                      },
+                    ]}
+                  >
+                    <AppText style={{ fontSize: 12.5, fontWeight: '600', color: active ? '#8b5cf6' : theme.subText, textAlign: 'center' }}>
+                      {opt.label}
+                    </AppText>
+                    {opt.id === 'wallet' && walletBalance != null && (
+                      <AppText style={{ fontSize: 10, marginTop: 2, opacity: 0.8, color: active ? '#8b5cf6' : theme.subText, textAlign: 'center' }}>
+                        ₹{walletBalance.toFixed(0)} avail.
+                      </AppText>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            {paymentMethod === 'wallet' && walletBalance != null && walletBalance < finalPrice && (
+              <View style={styles.walletWarning}>
+                <AppText style={styles.walletWarningText}>Insufficient wallet balance.</AppText>
+                <TouchableOpacity onPress={() => navigation.navigate('Wallet')}>
+                  <AppText style={styles.walletWarningLink}>Add money</AppText>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         )}
       </ScrollView>
@@ -498,13 +620,23 @@ export default function BookingScreen({ route, navigation }) {
         <TouchableOpacity
           style={[styles.confirmBtn, (!slot || loading) && { opacity: 0.5 }]}
           onPress={handleConfirm}
-          disabled={!slot || loading}
+          disabled={!slot || loading || (paymentMethod === 'wallet' && walletBalance != null && walletBalance < finalPrice)}
         >
           {loading ? <ActivityIndicator color="#fff" /> : (
             <><Ionicons name="checkmark-circle-outline" size={20} color="#fff" /><AppText style={styles.confirmBtnText}>Confirm Booking</AppText></>
           )}
         </TouchableOpacity>
       </View>
+
+      <RazorpayCheckout
+        visible={!!checkoutOrder}
+        order={checkoutOrder}
+        prefill={{ name: user?.name || '', contact: user?.phone || '', email: user?.email || '' }}
+        description={services.map(s => s.name).join(' + ')}
+        onSuccess={handlePaymentSuccess}
+        onFailure={handlePaymentFailure}
+        onDismiss={handlePaymentDismiss}
+      />
 
       {/* Slot Alert Modal */}
       <Modal transparent visible={!!slotAlert} animationType="fade" onRequestClose={() => setSlotAlert('')}>
@@ -584,6 +716,11 @@ const getStyles = (t) => StyleSheet.create({
   priceVal: { fontSize: 13, fontWeight: '600', color: t.text },
   priceTotalLabel: { fontSize: 14, fontWeight: '700', color: t.accent },
   priceTotalVal: { fontSize: 16, fontWeight: '800', color: t.accent },
+  paymentRow: { flexDirection: 'row', gap: 8 },
+  paymentChip: { flex: 1, borderRadius: 12, borderWidth: 1.5, paddingVertical: 10, paddingHorizontal: 6, alignItems: 'center' },
+  walletWarning: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
+  walletWarningText: { fontSize: 12, color: '#dc2626' },
+  walletWarningLink: { fontSize: 12, color: '#dc2626', fontWeight: '700', textDecorationLine: 'underline' },
   footer: { backgroundColor: t.card, borderTopWidth: 1, borderTopColor: t.border, paddingHorizontal: 16, paddingTop: 12 },
   confirmBtn: { backgroundColor: '#2563eb', borderRadius: 14, height: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   confirmBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },

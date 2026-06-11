@@ -149,6 +149,7 @@ const salonApprovalController = safeRequire("../controllers/admin/salonApprovalC
 const adminAuthController = safeRequire("../controllers/admin/adminAuthController");
 const adminManagementController = safeRequire("../controllers/admin/adminManagementController");
 const subscriptionController = safeRequire("../controllers/payment/subscriptionController");
+const walletController = safeRequire("../controllers/payment/walletController");
 const subscriptionAdminController = safeRequire("../controllers/admin/subscriptionAdminController");
 const promotionController = safeRequire("../controllers/promotion/promotionController");
 const promotionAdminController = safeRequire("../controllers/admin/promotionAdminController");
@@ -1295,6 +1296,12 @@ router.post("/customer/bookings/:bookingId/cancel",
   authenticateCustomer,
   validateObjectId("bookingId"),
   asyncHandler(bookingController.cancelBooking)
+);
+
+router.post("/customer/bookings/:bookingId/verify-payment",
+  authenticateCustomer,
+  validateObjectId("bookingId"),
+  asyncHandler(bookingController.verifyBookingPayment)
 );
 
 // PUT /customer/bookings/:bookingId/reschedule
@@ -3510,6 +3517,22 @@ router.post("/owner/subscription/create-order",        authenticateOwner, asyncH
 router.post("/owner/subscription/verify-payment",      authenticateOwner, asyncHandler(subscriptionController.verifyPayment));
 router.get("/owner/subscription/billing-history",      authenticateOwner, asyncHandler(subscriptionController.getBillingHistory));
 router.post("/owner/subscription/webhook",             asyncHandler(subscriptionController.razorpayWebhook));
+
+/* =====================================================
+   WALLET — CUSTOMER ROUTES
+===================================================== */
+router.get( "/customer/wallet",                  authenticateCustomer, asyncHandler(walletController.getCustomerWallet));
+router.get( "/customer/wallet/transactions",     authenticateCustomer, asyncHandler(walletController.getCustomerTransactions));
+router.post("/customer/wallet/recharge/order",   authenticateCustomer, rateLimiter(10, 900000), asyncHandler(walletController.createCustomerRechargeOrder));
+router.post("/customer/wallet/recharge/verify",  authenticateCustomer, asyncHandler(walletController.verifyCustomerRecharge));
+
+/* =====================================================
+   WALLET — OWNER ROUTES
+===================================================== */
+router.get( "/owner/wallet",                  authenticateOwner, asyncHandler(walletController.getOwnerWallet));
+router.get( "/owner/wallet/transactions",     authenticateOwner, asyncHandler(walletController.getOwnerTransactions));
+router.post("/owner/wallet/recharge/order",   authenticateOwner, rateLimiter(10, 900000), asyncHandler(walletController.createOwnerRechargeOrder));
+router.post("/owner/wallet/recharge/verify",  authenticateOwner, asyncHandler(walletController.verifyOwnerRecharge));
 
 /* =====================================================
    PROMOTIONS — PUBLIC

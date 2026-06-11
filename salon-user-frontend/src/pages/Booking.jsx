@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import API from "../services/api";
 import { isCustomer, clearCustomerAuth } from "../utils/auth";
 import { formatDate } from "../utils/formatters";
+import { loadRazorpay, RAZORPAY_KEY_ID } from "../utils/razorpay";
 import { useNotifications } from "../context/NotificationContext";
 import { useTheme } from "../context/ThemeContext";
 
@@ -43,6 +44,8 @@ function Booking() {
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [barberAvailability, setBarberAvailability] = useState({}); // barberId → true (has free slots) / false (fully busy)
   const [barberAvailabilityLoading, setBarberAvailabilityLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [walletBalance, setWalletBalance] = useState(null);
 
   const localDate = (offset = 0) => { const d = new Date(); d.setDate(d.getDate() + offset); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
   const today      = localDate(0);
@@ -64,6 +67,14 @@ function Booking() {
     const now = new Date();
     return timeToMinutes(s) <= now.getHours() * 60 + now.getMinutes();
   };
+
+  // ── Load customer wallet balance (for the wallet payment option) ──
+  useEffect(() => {
+    if (!isCustomer()) return;
+    API.get("/customer/wallet")
+      .then(res => setWalletBalance(res.data?.data?.balance ?? 0))
+      .catch(() => {});
+  }, []);
 
   // ── Load salon + all selected services + barbers ───────────
   useEffect(() => {
@@ -217,17 +228,79 @@ function Booking() {
         barberId: barberId || undefined,
         appointmentDate: date,
         appointmentTime: slot,
-        paymentMethod: "cash",
+        paymentMethod,
         couponCode: appliedCoupon?.code || undefined,
       });
-      const booking = res.data.data?.booking || res.data.data;
-      const status  = booking?.status || "confirmed";
+      const data = res.data.data || {};
+      const booking = data.booking || data;
+      const paymentOrder = data.paymentOrder;
+
+      // Online payment — open Razorpay checkout, then verify on success
+      if (paymentMethod === "online" && paymentOrder) {
+        if (!paymentOrder.success) {
+          setError(paymentOrder.message || "Online payment is currently unavailable. Please choose another payment method.");
+          setLoading(false);
+          return;
+        }
+
+        const ok = await loadRazorpay();
+        if (!ok) {
+          setError("Could not load payment gateway. Check your connection.");
+          setLoading(false);
+          return;
+        }
+
+        const rzp = new window.Razorpay({
+          key: RAZORPAY_KEY_ID,
+          amount: paymentOrder.amount,
+          currency: paymentOrder.currency,
+          order_id: paymentOrder.orderId,
+          name: "GlowLoox",
+          description: services.map(s => s.name).join(" + "),
+          theme: { color: "#8b5cf6" },
+          handler: async (response) => {
+            try {
+              const verifyRes = await API.post(`/customer/bookings/${booking._id}/verify-payment`, {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              });
+              const verified = verifyRes.data.data?.booking || verifyRes.data.data || booking;
+              const status = verified?.status || "confirmed";
+              setBookingStatus(status);
+              setAssignedStaff(verified?.staffName || verified?.barberName || null);
+              if (status === "confirmed") {
+                addNotification({ type: "booking", title: "Booking Confirmed", message: `${services.map(s => s.name).join(" + ")} at ${salon?.name} on ${date} at ${slot}` });
+              } else {
+                addNotification({ type: "booking", title: "Booking Pending", message: `Your booking at ${salon?.name} is awaiting confirmation.` });
+              }
+              setSuccess(true);
+            } catch {
+              setError("Payment verification failed. If money was deducted, please contact support.");
+            } finally {
+              setLoading(false);
+            }
+          },
+          modal: { ondismiss: () => setLoading(false) },
+        });
+        rzp.on("payment.failed", () => {
+          setError("Payment failed. Please try again.");
+          setLoading(false);
+        });
+        rzp.open();
+        return;
+      }
+
+      const status = booking?.status || "confirmed";
       setBookingStatus(status);
       setAssignedStaff(booking?.staffName || booking?.barberName || null);
       if (status === "confirmed") {
         addNotification({ type: "booking", title: "Booking Confirmed", message: `${services.map(s => s.name).join(" + ")} at ${salon?.name} on ${date} at ${slot}` });
       } else {
         addNotification({ type: "booking", title: "Booking Pending", message: `Your booking at ${salon?.name} is awaiting confirmation.` });
+      }
+      if (paymentMethod === "wallet") {
+        setWalletBalance(prev => (prev != null ? Math.max(0, prev - finalPrice) : prev));
       }
       setSuccess(true);
     } catch (err) {
@@ -247,12 +320,15 @@ function Booking() {
           setSlots(data.slots || []);
           setBlockedSlots(data.blockedSlots || []);
         } catch { /* silent */ }
+      } else if (message === "Insufficient wallet balance.") {
+        setError("Insufficient wallet balance. Please add money to your wallet or choose another payment method.");
+        addToast("error", "Insufficient wallet balance");
       } else {
         addToast("error", message);
         setError(message);
       }
     } finally {
-      setLoading(false);
+      if (paymentMethod !== "online") setLoading(false);
     }
   };
 
@@ -642,10 +718,48 @@ function Booking() {
                   )}
                   <div className="flex justify-between items-center px-3 py-2.5 rounded-xl mt-2"
                     style={{ background: 'rgba(99,102,241,.08)', border: '1px solid rgba(99,102,241,.2)' }}>
-                    <span className="font-bold text-sm" style={{ color: 'var(--t-text)' }}>Total · Pay at salon</span>
+                    <span className="font-bold text-sm" style={{ color: 'var(--t-text)' }}>
+                      Total · {paymentMethod === "cash" ? "Pay at salon" : paymentMethod === "wallet" ? "Pay via Wallet" : "Pay Online"}
+                    </span>
                     <span className="font-extrabold text-lg" style={{ color: 'var(--t-accent)' }}>₹{finalPrice}</span>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Payment method */}
+            {date && slot && (
+              <div>
+                <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--t-text-2)' }}>Payment Method</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: "cash", label: "Pay at Salon" },
+                    { id: "online", label: "Pay Online" },
+                    { id: "wallet", label: "Wallet" },
+                  ].map(opt => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setPaymentMethod(opt.id)}
+                      className="px-2 py-2.5 rounded-xl text-xs font-semibold text-center transition"
+                      style={{
+                        border: paymentMethod === opt.id ? "1.5px solid #8b5cf6" : "1px solid var(--t-border)",
+                        background: paymentMethod === opt.id ? "rgba(139,92,246,0.1)" : "var(--t-input-bg)",
+                        color: paymentMethod === opt.id ? "#8b5cf6" : "var(--t-text-2)",
+                      }}
+                    >
+                      {opt.label}
+                      {opt.id === "wallet" && walletBalance != null && (
+                        <span className="block mt-0.5" style={{ fontSize: 10, opacity: 0.8 }}>₹{walletBalance.toFixed(0)} avail.</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                {paymentMethod === "wallet" && walletBalance != null && walletBalance < finalPrice && (
+                  <p className="text-xs mt-2" style={{ color: 'var(--t-error-text)' }}>
+                    Insufficient wallet balance. <span onClick={() => navigate('/wallet')} className="font-semibold underline cursor-pointer">Add money</span> to continue.
+                  </p>
+                )}
               </div>
             )}
 
@@ -654,7 +768,7 @@ function Booking() {
             )}
             <button
               type="submit"
-              disabled={loading || !date || !slot || closedDay}
+              disabled={loading || !date || !slot || closedDay || (paymentMethod === "wallet" && walletBalance != null && walletBalance < finalPrice)}
               className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed py-3"
             >
               {loading

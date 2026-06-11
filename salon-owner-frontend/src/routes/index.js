@@ -40,6 +40,7 @@ const ROUTES = {
   TEAM_CHAT:     '/dashboard/team-chat',
   QUEUE:         '/dashboard/queue',
   FEEDBACK:      '/dashboard/feedback',
+  WALLET:        '/dashboard/wallet',
 
   // Legal (public)
   PRIVACY:       '/privacy-policy',
