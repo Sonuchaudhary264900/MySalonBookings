@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Clock, Store, Users, LogOut, Scissors, BookOpen, TrendingUp, UserCheck, CreditCard, Megaphone, Moon, Sun, ImageIcon, Layers, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, Clock, Store, Users, LogOut, Scissors, BookOpen, TrendingUp, UserCheck, CreditCard, Megaphone, Moon, Sun, ImageIcon, Layers, MessageSquare, Landmark } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 const nav = [
@@ -15,6 +15,7 @@ const nav = [
   { to: '/catalog',       icon: Layers,          label: 'Service Catalog'  },
   { to: '/site-settings', icon: ImageIcon,       label: 'Hero Images'      },
   { to: '/feedback',      icon: MessageSquare,   label: 'Feedback'         },
+  { to: '/withdrawals',   icon: Landmark,        label: 'Withdrawals'      },
 ];
 
 export default function Layout() {
