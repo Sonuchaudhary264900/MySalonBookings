@@ -15,6 +15,7 @@ import API from "../services/api";
 import { useTheme } from "../context/ThemeContext";
 import { salonPath } from "../utils/formatters";
 import { isCustomer } from "../utils/auth";
+import { loadRazorpay, RAZORPAY_KEY_ID } from "../utils/razorpay";
 import SalonCard from "../components/SalonCard";
 
 // ── Service image helpers (owner photo → category fallback → null) ──
@@ -584,6 +585,8 @@ function QuickBookSheet({ salon, selectedServiceCat, preSelectedServices = [], o
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [bookError, setBookError]     = useState("");
+  const [payMethod, setPayMethod]     = useState("cash");
+  const [walletBalance, setWalletBalance] = useState(null);
 
   const totalDuration = selectedSvcs.reduce((s, x) => s + (x.duration || 30), 0);
   const totalPrice    = selectedSvcs.reduce((s, x) => s + (x.basePrice || x.price || 0), 0);
@@ -611,6 +614,11 @@ function QuickBookSheet({ salon, selectedServiceCat, preSelectedServices = [], o
       .finally(() => setSlotsLoading(false));
   }, [bookDate, step, totalDuration]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (step !== "booking" || walletBalance != null || !isCustomer()) return;
+    API.get("/customer/wallet").then(r => setWalletBalance(r.data?.data?.balance ?? 0)).catch(() => {});
+  }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const toggleSvc = (svc) => setSelectedSvcs(prev =>
     prev.find(s => s._id === svc._id) ? prev.filter(s => s._id !== svc._id) : [...prev, svc]
   );
@@ -629,16 +637,70 @@ function QuickBookSheet({ salon, selectedServiceCat, preSelectedServices = [], o
 
   const handleConfirm = async () => {
     if (!slot) { setBookError("Please select a time slot."); return; }
+    if (payMethod === "wallet" && walletBalance != null && walletBalance < totalPrice) {
+      setBookError("Insufficient wallet balance. Add money to your wallet or choose another payment method.");
+      return;
+    }
     setBookError(""); setBookingLoading(true);
     try {
-      await API.post("/customer/bookings", {
+      const res = await API.post("/customer/bookings", {
         salonId: salon._id, serviceIds: selectedSvcs.map(s => s._id),
-        appointmentDate: bookDate, appointmentTime: slot, paymentMethod: "cash",
+        appointmentDate: bookDate, appointmentTime: slot, paymentMethod: payMethod,
       });
+      const data = res.data.data || {};
+      const booking = data.booking || data;
+      const paymentOrder = data.paymentOrder;
+
+      // Online payment — open Razorpay checkout, then verify on success
+      if (payMethod === "online" && paymentOrder) {
+        if (!paymentOrder.success) {
+          setBookError(paymentOrder.message || "Online payment is currently unavailable. Please choose another payment method.");
+          setBookingLoading(false);
+          return;
+        }
+        const ok = await loadRazorpay();
+        if (!ok) {
+          setBookError("Could not load payment gateway. Check your connection.");
+          setBookingLoading(false);
+          return;
+        }
+        const rzp = new window.Razorpay({
+          key: data.razorpayKeyId || RAZORPAY_KEY_ID,
+          amount: paymentOrder.amount,
+          currency: paymentOrder.currency,
+          order_id: paymentOrder.orderId,
+          name: "GlowLoox",
+          description: selectedSvcs.map(s => s.name).join(" + "),
+          theme: { color: "#8b5cf6" },
+          handler: async (response) => {
+            try {
+              await API.post(`/customer/bookings/${booking._id}/verify-payment`, {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              });
+              setBookingSuccess(true);
+            } catch {
+              setBookError("Payment verification failed. If money was deducted, please contact support.");
+            } finally { setBookingLoading(false); }
+          },
+          modal: { ondismiss: () => setBookingLoading(false) },
+        });
+        rzp.on("payment.failed", () => {
+          setBookError("Payment failed. Please try again.");
+          setBookingLoading(false);
+        });
+        rzp.open();
+        return;
+      }
+
       setBookingSuccess(true);
     } catch (err) {
       setBookError(err.response?.data?.message || "Booking failed. Please try again.");
-    } finally { setBookingLoading(false); }
+      setBookingLoading(false);
+    } finally {
+      if (payMethod !== "online") setBookingLoading(false);
+    }
   };
 
   const dateDays = Array.from({ length: 7 }, (_, i) => _qbLocalDate(i));
@@ -790,6 +852,40 @@ function QuickBookSheet({ salon, selectedServiceCat, preSelectedServices = [], o
                 </div>
               )}
 
+              {/* Payment method */}
+              {slot && (
+                <>
+                  <p style={{ fontSize:11, fontWeight:700, color:"var(--t-text-3)", margin:"16px 0 8px", textTransform:"uppercase", letterSpacing:"0.1em" }}>Payment Method</p>
+                  <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8 }}>
+                    {[
+                      { id: "cash",   label: "Pay at Salon" },
+                      { id: "online", label: "Pay Online" },
+                      { id: "wallet", label: "Wallet" },
+                    ].map(opt => {
+                      const active = payMethod === opt.id;
+                      return (
+                        <button key={opt.id} type="button" onClick={() => setPayMethod(opt.id)} style={{
+                          padding:"10px 4px", borderRadius:10, fontSize:12, fontWeight:700, textAlign:"center",
+                          background: active ? "rgba(99,102,241,0.1)" : "var(--t-input-bg)",
+                          border: active ? "1.5px solid #8b5cf6" : "1px solid var(--t-border)",
+                          color: active ? "#8b5cf6" : "var(--t-text-2)", cursor:"pointer",
+                        }}>
+                          {opt.label}
+                          {opt.id === "wallet" && walletBalance != null && (
+                            <span style={{ display:"block", marginTop:2, fontSize:10, opacity:0.8 }}>₹{walletBalance.toFixed(0)} avail.</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {payMethod === "wallet" && walletBalance != null && walletBalance < totalPrice && (
+                    <p style={{ color:"#f87171", fontSize:12, marginTop:8 }}>
+                      Insufficient wallet balance. <span onClick={() => navigate('/wallet')} style={{ fontWeight:700, textDecoration:"underline", cursor:"pointer" }}>Add money</span> to continue.
+                    </p>
+                  )}
+                </>
+              )}
+
               {bookError && <p style={{ color:"#f87171", fontSize:13, marginTop:10 }}>{bookError}</p>}
             </div>
           )}
@@ -816,7 +912,7 @@ function QuickBookSheet({ salon, selectedServiceCat, preSelectedServices = [], o
             )}
             <button
               onClick={step === "services" ? handleContinue : handleConfirm}
-              disabled={selectedSvcs.length === 0 || bookingLoading}
+              disabled={selectedSvcs.length === 0 || bookingLoading || (step === "booking" && payMethod === "wallet" && walletBalance != null && walletBalance < totalPrice)}
               style={{
                 flex:1, padding:"14px 20px", borderRadius:12, border:"none",
                 background: selectedSvcs.length === 0 ? "var(--t-input-bg)" : "linear-gradient(135deg,#6366f1,#8b5cf6)",

@@ -4,6 +4,7 @@ import {
   Image, ActivityIndicator, Linking, Alert, Modal, TextInput, Dimensions
 } from 'react-native';
 import AppText from '../../components/AppText';
+import RazorpayCheckout from '../../components/RazorpayCheckout';
 import { Video, ResizeMode } from 'expo-av';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -162,6 +163,10 @@ export default function SalonDetailsScreen({ route, navigation }) {
   const [galleryLightbox, setGalleryLightbox] = useState(null); // index into galleryItems
   const galleryVideoRef = useRef(null);
   const [bookingLoading, setBookingLoading] = useState(false);
+  const [payMethod, setPayMethod]         = useState('cash');
+  const [walletBalance, setWalletBalance] = useState(null);
+  const [checkoutOrder, setCheckoutOrder] = useState(null);
+  const [pendingBooking, setPendingBooking] = useState(null);
   const [couponInput, setCouponInput]     = useState('');
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [couponError, setCouponError]     = useState('');
@@ -301,7 +306,9 @@ export default function SalonDetailsScreen({ route, navigation }) {
     setCouponError('');
     setBookingSuccess(false);
     setBookingDetail(null);
+    setPayMethod('cash');
     setShowBooking(true);
+    api.get('/customer/wallet').then(r => setWalletBalance(r.data?.data?.balance ?? 0)).catch(() => {});
   };
 
   // ── Coupon ────────────────────────────────────────────────────────────────
@@ -335,6 +342,10 @@ export default function SalonDetailsScreen({ route, navigation }) {
   // ── Confirm booking ───────────────────────────────────────────────────────
   const handleConfirm = async () => {
     if (!slot) { showError('Select Time', 'Please select a time slot to continue.'); return; }
+    if (payMethod === 'wallet' && walletBalance != null && walletBalance < finalPrice) {
+      showError('Insufficient Balance', 'Add money to your wallet or choose another payment method.');
+      return;
+    }
     setBookingLoading(true);
     try {
       const res = await api.post('/customer/bookings', {
@@ -343,16 +354,77 @@ export default function SalonDetailsScreen({ route, navigation }) {
         barberId: barberId || undefined,
         appointmentDate: bookDate,
         appointmentTime: slot,
-        paymentMethod: 'cash',
+        paymentMethod: payMethod,
         couponCode: appliedCoupon?.code || undefined
       });
-      const booking = res.data.data?.booking || res.data.data;
+      const data = res.data.data || {};
+      const booking = data.booking || data;
+      const paymentOrder = data.paymentOrder;
+
+      if (payMethod === 'online' && paymentOrder) {
+        if (!paymentOrder.success) {
+          showError('Payment Unavailable', paymentOrder.message || 'Online payment is currently unavailable. Please choose another payment method.');
+          setBookingLoading(false);
+          return;
+        }
+        setPendingBooking(booking);
+        setCheckoutOrder({
+          key: data.razorpayKeyId,
+          amount: paymentOrder.amount,
+          currency: paymentOrder.currency,
+          orderId: paymentOrder.orderId,
+        });
+        return;
+      }
+
+      if (payMethod === 'wallet') {
+        setWalletBalance(prev => (prev != null ? Math.max(0, prev - finalPrice) : prev));
+      }
       setBookingStatus(booking?.status || 'confirmed');
       setBookingDetail(booking);
       setBookingSuccess(true);
     } catch (err) {
-      showError('Booking Failed', err?.message || 'Please try again.');
-    } finally { setBookingLoading(false); }
+      if (err?.message === 'Insufficient wallet balance.') {
+        showError('Insufficient Balance', 'Add money to your wallet or choose another payment method.');
+      } else {
+        showError('Booking Failed', err?.message || 'Please try again.');
+      }
+    } finally {
+      if (payMethod !== 'online') setBookingLoading(false);
+    }
+  };
+
+  const handlePaymentSuccess = async (response) => {
+    setCheckoutOrder(null);
+    try {
+      const verifyRes = await api.post(`/customer/bookings/${pendingBooking._id}/verify-payment`, {
+        razorpay_order_id: response.razorpay_order_id,
+        razorpay_payment_id: response.razorpay_payment_id,
+        razorpay_signature: response.razorpay_signature,
+      });
+      const verified = verifyRes.data.data?.booking || verifyRes.data.data || pendingBooking;
+      setBookingStatus(verified?.status || 'confirmed');
+      setBookingDetail(verified);
+      setBookingSuccess(true);
+    } catch (err) {
+      showError('Verification Failed', err?.message || 'If money was deducted, please contact support.');
+    } finally {
+      setBookingLoading(false);
+      setPendingBooking(null);
+    }
+  };
+
+  const handlePaymentFailure = () => {
+    setCheckoutOrder(null);
+    setBookingLoading(false);
+    setPendingBooking(null);
+    showError('Payment Failed', 'Please try again.');
+  };
+
+  const handlePaymentDismiss = () => {
+    setCheckoutOrder(null);
+    setBookingLoading(false);
+    setPendingBooking(null);
   };
 
   // ── Package request ───────────────────────────────────────────────────────
@@ -1396,7 +1468,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                   </View>
                   <View style={styles.successRow}>
                     <Ionicons name="cash-outline" size={14} color="#6b7280" />
-                    <AppText style={styles.successMeta}>₹{finalPrice} · Pay at salon</AppText>
+                    <AppText style={styles.successMeta}>₹{finalPrice} · {payMethod === 'online' ? 'Paid Online' : payMethod === 'wallet' ? 'Paid via Wallet' : 'Pay at salon'}</AppText>
                   </View>
                 </View>
                 <TouchableOpacity
@@ -1612,9 +1684,57 @@ export default function SalonDetailsScreen({ route, navigation }) {
                       </View>
                     )}
                     <View style={[styles.priceRow, { borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 8, marginTop: 4 }]}>
-                      <AppText style={styles.priceTotalLabel}>Total (Pay at salon)</AppText>
+                      <AppText style={styles.priceTotalLabel}>
+                        Total ({payMethod === 'online' ? 'Pay Online' : payMethod === 'wallet' ? 'Pay via Wallet' : 'Pay at salon'})
+                      </AppText>
                       <AppText style={styles.priceTotalVal}>₹{finalPrice}</AppText>
                     </View>
+                  </View>
+                )}
+
+                {/* Payment Method */}
+                {slot && (
+                  <View style={styles.bkSection}>
+                    <AppText style={styles.bkSectionTitle}>Payment Method</AppText>
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      {[
+                        { id: 'cash', label: 'Pay at Salon' },
+                        { id: 'online', label: 'Pay Online' },
+                        { id: 'wallet', label: 'Wallet' },
+                      ].map(opt => {
+                        const active = payMethod === opt.id;
+                        return (
+                          <TouchableOpacity
+                            key={opt.id}
+                            onPress={() => setPayMethod(opt.id)}
+                            style={{
+                              flex: 1, paddingVertical: 10, paddingHorizontal: 4, borderRadius: 10,
+                              borderWidth: active ? 1.5 : 1,
+                              borderColor: active ? '#8b5cf6' : theme.border,
+                              backgroundColor: active ? 'rgba(139,92,246,0.1)' : theme.cardAlt,
+                              alignItems: 'center', justifyContent: 'center',
+                            }}
+                          >
+                            <AppText style={{ fontSize: 12.5, fontWeight: '600', color: active ? '#8b5cf6' : theme.subText, textAlign: 'center' }}>
+                              {opt.label}
+                            </AppText>
+                            {opt.id === 'wallet' && walletBalance != null && (
+                              <AppText style={{ fontSize: 10, marginTop: 2, opacity: 0.8, color: active ? '#8b5cf6' : theme.subText, textAlign: 'center' }}>
+                                ₹{walletBalance.toFixed(0)} avail.
+                              </AppText>
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                    {payMethod === 'wallet' && walletBalance != null && walletBalance < finalPrice && (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                        <AppText style={{ fontSize: 12, color: '#ef4444' }}>Insufficient wallet balance.</AppText>
+                        <TouchableOpacity onPress={() => { setShowBooking(false); navigation.navigate('Wallet'); }}>
+                          <AppText style={{ fontSize: 12, color: '#8b5cf6', fontWeight: '700', textDecorationLine: 'underline' }}>Add money</AppText>
+                        </TouchableOpacity>
+                      </View>
+                    )}
                   </View>
                 )}
 
@@ -1625,7 +1745,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                 <TouchableOpacity
                   style={[styles.confirmBtn, (!slot || bookingLoading) && { opacity: 0.5 }]}
                   onPress={handleConfirm}
-                  disabled={!slot || bookingLoading}
+                  disabled={!slot || bookingLoading || (payMethod === 'wallet' && walletBalance != null && walletBalance < finalPrice)}
                 >
                   {bookingLoading
                     ? <ActivityIndicator color="#fff" />
@@ -1656,6 +1776,16 @@ export default function SalonDetailsScreen({ route, navigation }) {
 
         </View>
       </Modal>
+
+      <RazorpayCheckout
+        visible={!!checkoutOrder}
+        order={checkoutOrder}
+        prefill={{ name: user?.name || '', contact: user?.phone || '', email: user?.email || '' }}
+        description={selectedServices.map(s => s.name).join(' + ')}
+        onSuccess={handlePaymentSuccess}
+        onFailure={handlePaymentFailure}
+        onDismiss={handlePaymentDismiss}
+      />
 
       {/* ── Package Request Modal ─────────────────────────────────────── */}
       <Modal transparent visible={!!pkgReqItem} animationType="slide" onRequestClose={() => { setPkgReqItem(null); setPkgNote(''); }}>

@@ -43,6 +43,7 @@ import ReviewCard from "../components/ReviewCard";
 import { CategoryCircleNav } from "../components/CategoryCircles";
 import { useCatalogImages } from "../hooks/useCatalogImages";
 import { isCustomer, clearCustomerAuth } from "../utils/auth";
+import { loadRazorpay, RAZORPAY_KEY_ID } from "../utils/razorpay";
 import { formatDate, salonPath } from "../utils/formatters";
 import { useNotifications } from "../context/NotificationContext";
 import { useTheme } from "../context/ThemeContext";
@@ -192,6 +193,8 @@ function SalonDetails({ salonId: propId, onClose }) {
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [bookingStatus, setBookingStatus] = useState("confirmed");
   const [bookError, setBookError]         = useState("");
+  const [payMethod, setPayMethod]         = useState("cash");
+  const [walletBalance, setWalletBalance] = useState(null);
   const [barberAvailability, setBarberAvailability] = useState({}); // barberId → true/false
   const [assignedStaff, setAssignedStaff] = useState(null);
   const [todaySlots,    setTodaySlots]    = useState(null); // {slots, blocked, closedDay} or null=loading
@@ -451,7 +454,8 @@ function SalonDetails({ salonId: propId, onClose }) {
   const openBooking = () => {
     if (!isCustomer()) { clearCustomerAuth(); navigate("/login", { state: { from: location.pathname, bookingState: { pendingServices: selectedServices } } }); return; }
     setBookDate(todayStr); setSlot(""); setBarberId(""); setAppliedCoupon(null);
-    setCouponDiscount(0); setCouponInput(""); setCouponError(""); setBookingSuccess(false); setBookError(""); setShowBooking(true);
+    setCouponDiscount(0); setCouponInput(""); setCouponError(""); setBookingSuccess(false); setBookError(""); setPayMethod("cash"); setShowBooking(true);
+    API.get("/customer/wallet").then(r => setWalletBalance(r.data?.data?.balance ?? 0)).catch(() => {});
   };
 
   const handleBookNow   = () => { if (selectedServices.length === 0) { setActiveTab('services'); return; } openBooking(); };
@@ -501,38 +505,98 @@ function SalonDetails({ salonId: propId, onClose }) {
     } finally { setPkgReqLoading(false); }
   };
 
+  const finishBookingSuccess = (booking) => {
+    const status = booking?.status || "confirmed";
+    setBookingStatus(status);
+    setAssignedStaff(booking?.staffName || booking?.barberName || null);
+    if (status === "confirmed") {
+      addToast("success", "Booking confirmed!");
+      addNotification({ type: "booking", title: "Booking Confirmed", message: `${selectedServices.map(s => s.name).join(" + ")} at ${salon?.name} on ${bookDate} at ${slot}` });
+    } else {
+      addToast("info", "Booking received! Awaiting salon confirmation.");
+      addNotification({ type: "booking", title: "Booking Pending", message: `Your booking at ${salon?.name} is awaiting confirmation.` });
+    }
+    setBookingSuccess(true);
+    setRecentSvcIds(prev => {
+      const merged = [...new Set([...selectedServices.map(s => s._id), ...prev])].slice(0, 10);
+      localStorage.setItem('svc_recent', JSON.stringify(merged));
+      return merged;
+    });
+  };
+
   const handleConfirm = async (e) => {
     if (e?.preventDefault) e.preventDefault();
     if (!slot) { setBookError("Please select a time slot."); return; }
     if (isPastSlot(bookDate, slot)) { setSlot(""); setBookError("This time slot has just passed. Please select another."); return; }
+    if (payMethod === "wallet" && walletBalance != null && walletBalance < finalPrice) {
+      setBookError("Insufficient wallet balance. Add money to your wallet or choose another payment method.");
+      return;
+    }
     setBookError(""); setBookingLoading(true);
     try {
       const res = await API.post("/customer/bookings", {
         salonId: id, serviceIds: selectedServices.map(s => s._id), barberId: barberId || undefined,
-        appointmentDate: bookDate, appointmentTime: slot, paymentMethod: "cash",
+        appointmentDate: bookDate, appointmentTime: slot, paymentMethod: payMethod,
         couponCode: appliedCoupon?.code || undefined,
       });
-      const booking = res.data.data?.booking || res.data.data;
-      const status  = booking?.status || "confirmed";
-      setBookingStatus(status);
-      setAssignedStaff(booking?.staffName || booking?.barberName || null);
-      if (status === "confirmed") {
-        addToast("success", "Booking confirmed!");
-        addNotification({ type: "booking", title: "Booking Confirmed", message: `${selectedServices.map(s => s.name).join(" + ")} at ${salon?.name} on ${bookDate} at ${slot}` });
-      } else {
-        addToast("info", "Booking received! Awaiting salon confirmation.");
-        addNotification({ type: "booking", title: "Booking Pending", message: `Your booking at ${salon?.name} is awaiting confirmation.` });
+      const data = res.data.data || {};
+      const booking = data.booking || data;
+      const paymentOrder = data.paymentOrder;
+
+      // Online payment — open Razorpay checkout, then verify on success
+      if (payMethod === "online" && paymentOrder) {
+        if (!paymentOrder.success) {
+          setBookError(paymentOrder.message || "Online payment is currently unavailable. Please choose another payment method.");
+          setBookingLoading(false);
+          return;
+        }
+        const ok = await loadRazorpay();
+        if (!ok) {
+          setBookError("Could not load payment gateway. Check your connection.");
+          setBookingLoading(false);
+          return;
+        }
+        const rzp = new window.Razorpay({
+          key: data.razorpayKeyId || RAZORPAY_KEY_ID,
+          amount: paymentOrder.amount,
+          currency: paymentOrder.currency,
+          order_id: paymentOrder.orderId,
+          name: "GlowLoox",
+          description: selectedServices.map(s => s.name).join(" + "),
+          theme: { color: "#8b5cf6" },
+          handler: async (response) => {
+            try {
+              const verifyRes = await API.post(`/customer/bookings/${booking._id}/verify-payment`, {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              });
+              finishBookingSuccess(verifyRes.data.data?.booking || verifyRes.data.data || booking);
+            } catch {
+              setBookError("Payment verification failed. If money was deducted, please contact support.");
+            } finally { setBookingLoading(false); }
+          },
+          modal: { ondismiss: () => setBookingLoading(false) },
+        });
+        rzp.on("payment.failed", () => {
+          setBookError("Payment failed. Please try again.");
+          setBookingLoading(false);
+        });
+        rzp.open();
+        return;
       }
-      setBookingSuccess(true);
-      setRecentSvcIds(prev => {
-        const merged = [...new Set([...selectedServices.map(s => s._id), ...prev])].slice(0, 10);
-        localStorage.setItem('svc_recent', JSON.stringify(merged));
-        return merged;
-      });
+
+      if (payMethod === "wallet") {
+        setWalletBalance(prev => (prev != null ? Math.max(0, prev - finalPrice) : prev));
+      }
+      finishBookingSuccess(booking);
     } catch (err) {
       setBookError(err.message || "Booking failed. Please try again.");
       addToast("error", err.message || "Booking failed. Please try again.");
-    } finally { setBookingLoading(false); }
+      setBookingLoading(false);
+    } finally {
+      if (payMethod !== "online") setBookingLoading(false);
+    }
   };
 
   // These must be before early returns to satisfy Rules of Hooks
@@ -1620,7 +1684,7 @@ function SalonDetails({ salonId: propId, onClose }) {
                   <p className="font-bold" style={{ color: dm.fg }}>{salon.name}</p>
                   <p style={{ color: dm.fg55 }}>{selectedServices.map(s => s.name).join(' + ')}</p>
                   <p style={{ color: dm.fg35 }}>{formatDate(bookDate + 'T12:00:00')} · {slot}</p>
-                  <p style={{ color: theme.p }}>₹{finalPrice} · Pay at salon</p>
+                  <p style={{ color: theme.p }}>₹{finalPrice} · {payMethod === "cash" ? "Pay at salon" : payMethod === "wallet" ? "Paid via Wallet" : "Paid Online"}</p>
                 </div>
                 <div className="flex flex-col gap-2 w-full">
                   <button onClick={() => { setShowBooking(false); navigate('/dashboard'); }}
@@ -1860,10 +1924,46 @@ function SalonDetails({ salonId: propId, onClose }) {
                         )}
                         <div className="flex justify-between items-center px-3 py-2.5 rounded-xl mt-2"
                           style={{ background: `${theme.p}12`, border: `1px solid ${theme.p}25` }}>
-                          <span className="font-bold text-sm" style={{ color: dm.fg }}>Total · Pay at salon</span>
+                          <span className="font-bold text-sm" style={{ color: dm.fg }}>
+                            Total · {payMethod === "cash" ? "Pay at salon" : payMethod === "wallet" ? "Pay via Wallet" : "Pay Online"}
+                          </span>
                           <span className="font-extrabold text-lg" style={{ color: theme.p }}>₹{finalPrice}</span>
                         </div>
                       </div>
+                    </div>
+                  )}
+
+                  {/* Payment method */}
+                  {slot && (
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-bold mb-3" style={{ color: dm.fg }}>
+                        <CreditCard className="w-4 h-4" style={{ color: theme.p }} /> Payment Method
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { id: "cash",   label: "Pay at Salon" },
+                          { id: "online", label: "Pay Online" },
+                          { id: "wallet", label: "Wallet" },
+                        ].map(opt => (
+                          <button key={opt.id} type="button" onClick={() => setPayMethod(opt.id)}
+                            className="px-2 py-2.5 rounded-xl text-xs font-semibold text-center transition"
+                            style={{
+                              border: payMethod === opt.id ? `1.5px solid ${theme.p}` : `1px solid ${dm.b10}`,
+                              background: payMethod === opt.id ? `${theme.p}18` : dm.formInp,
+                              color: payMethod === opt.id ? theme.p : dm.fg55,
+                            }}>
+                            {opt.label}
+                            {opt.id === "wallet" && walletBalance != null && (
+                              <span className="block mt-0.5" style={{ fontSize: 10, opacity: 0.8 }}>₹{walletBalance.toFixed(0)} avail.</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                      {payMethod === "wallet" && walletBalance != null && walletBalance < finalPrice && (
+                        <p className="text-xs mt-2" style={{ color: '#f87171' }}>
+                          Insufficient wallet balance. <span onClick={() => navigate('/wallet')} className="font-semibold underline cursor-pointer">Add money</span> to continue.
+                        </p>
+                      )}
                     </div>
                   )}
                 </form>
@@ -1873,7 +1973,7 @@ function SalonDetails({ salonId: propId, onClose }) {
                   {slot && !bookingLoading && (
                     <p className="text-center text-xs font-semibold mb-2" style={{ color: dm.fg45 }}>You're all set! Just one tap to confirm ✨</p>
                   )}
-                  <button onClick={handleConfirm} disabled={bookingLoading || !slot || closedDay}
+                  <button onClick={handleConfirm} disabled={bookingLoading || !slot || closedDay || (payMethod === "wallet" && walletBalance != null && walletBalance < finalPrice)}
                     className="w-full py-3.5 text-base font-bold text-white rounded-2xl transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                     style={{ background: `linear-gradient(135deg,${theme.p},${theme.p}cc)`, boxShadow: slot && !closedDay ? `0 4px 20px ${theme.p}45` : 'none' }}>
                     {bookingLoading
@@ -1881,7 +1981,9 @@ function SalonDetails({ salonId: propId, onClose }) {
                       : closedDay ? 'Salon closed — pick another date'
                       : !slot ? 'Select a time slot' : 'Lock My Slot 🔒'}
                   </button>
-                  <p className="text-center mt-2" style={{ fontSize: 10, color: dm.fg30 }}>Instant confirmation • No payment now</p>
+                  <p className="text-center mt-2" style={{ fontSize: 10, color: dm.fg30 }}>
+                    {payMethod === "cash" ? "Instant confirmation • No payment now" : payMethod === "wallet" ? "Paid instantly from your wallet" : "Secure payment via Razorpay"}
+                  </p>
                 </div>
               </>
             )}
