@@ -94,13 +94,15 @@ export default function Wallet() {
     try {
       const orderRes = await API.post("/customer/wallet/recharge/order", { amount: amt });
       const order = orderRes.data?.data?.order;
+      const keyId = orderRes.data?.data?.razorpayKeyId || RAZORPAY_KEY_ID;
       if (!order?.orderId) throw new Error("Could not create payment order");
+      if (!keyId) throw new Error("Payments are temporarily unavailable. Please try again later.");
 
       const ok = await loadRazorpay();
       if (!ok) throw new Error("Could not load payment gateway. Check your connection.");
 
       const rzp = new window.Razorpay({
-        key: RAZORPAY_KEY_ID,
+        key: keyId,
         amount: order.amount,
         currency: order.currency,
         order_id: order.orderId,

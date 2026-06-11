@@ -5,6 +5,7 @@ import { useTheme } from "../context/ThemeContext";
 import {
   Home, Play, CalendarDays, Heart, Bell, CheckCircle, ChevronLeft,
   Sun, Moon, LogOut, User, Bookmark, Scissors, Settings, Menu, X, Crown, MapPin, Sparkles, Compass,
+  Wallet, LifeBuoy,
 } from "lucide-react";
 
 function getUserInitial() {
@@ -304,7 +305,9 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
     { to: "/map",            label: "Map",             Icon: MapPin,      auth: false },
     { to: "/dashboard",      label: "Bookings",        Icon: CalendarDays,auth: true  },
     { to: "/favorites",      label: "Saved",           Icon: Heart,       auth: true  },
+    { to: "/wallet",         label: "Wallet",          Icon: Wallet,      auth: true  },
     { to: "/my-subscription",label: "My Subscription", Icon: Crown,       auth: true  },
+    { to: "/feedback",       label: "Help & Feedback", Icon: LifeBuoy,    auth: true  },
     { to: "/profile",        label: "Settings",        Icon: Settings,    auth: true  },
   ];
   // Desktop center nav: only show auth items if logged in
@@ -444,8 +447,10 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
                   {[
                     { to: "/profile",          Icon: User,        label: "My Profile"       },
                     { to: "/dashboard",        Icon: CalendarDays, label: "My Bookings"     },
+                    { to: "/wallet",           Icon: Wallet,       label: "Wallet"          },
                     { to: "/favorites",        Icon: Bookmark,     label: "Saved Salons"    },
                     { to: "/my-subscription",  Icon: Crown,        label: "My Subscription" },
+                    { to: "/feedback",         Icon: LifeBuoy,     label: "Help & Feedback" },
                   ].map(({ to, Icon, label }) => (
                     <Link key={to} to={to}
                       onClick={() => setProfileOpen(false)}
@@ -787,8 +792,10 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
                 {[
                   { to:"/profile",         Icon:User,        label:"My Profile"       },
                   { to:"/dashboard",       Icon:CalendarDays,label:"My Bookings"      },
+                  { to:"/wallet",          Icon:Wallet,      label:"Wallet"           },
                   { to:"/favorites",       Icon:Bookmark,    label:"Saved Salons"     },
                   { to:"/my-subscription", Icon:Crown,       label:"My Subscription"  },
+                  { to:"/feedback",        Icon:LifeBuoy,    label:"Help & Feedback"  },
                 ].map(({ to, Icon, label }) => (
                   <Link key={to} to={to} onClick={() => setProfileOpen(false)}
                     style={{ textDecoration:"none",display:"flex",alignItems:"center",gap:10,padding:"10px 16px",fontSize:13,fontWeight:500,color:"var(--t-text-2)",transition:"background 0.15s" }}

@@ -251,7 +251,7 @@ function Booking() {
         }
 
         const rzp = new window.Razorpay({
-          key: RAZORPAY_KEY_ID,
+          key: data.razorpayKeyId || RAZORPAY_KEY_ID,
           amount: paymentOrder.amount,
           currency: paymentOrder.currency,
           order_id: paymentOrder.orderId,
