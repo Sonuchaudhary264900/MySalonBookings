@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import RazorpayCheckout from '../../components/RazorpayCheckout';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { showError, showSuccess } from '../../utils/toast';
 import api from '../../services/api';
 
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
@@ -17,7 +18,17 @@ const SOURCE_LABEL = {
   booking_refund: 'Booking Refund',
   booking_earning: 'Booking Earning',
   admin_adjustment: 'Adjustment',
+  withdrawal: 'Withdrawal to Bank',
+  withdrawal_refund: 'Withdrawal Refund',
 };
+
+const WITHDRAWAL_STATUS = {
+  pending:  { label: 'Pending',  color: '#d97706', bg: 'rgba(217,119,6,0.12)' },
+  paid:     { label: 'Paid',     color: '#059669', bg: 'rgba(5,150,105,0.12)' },
+  rejected: { label: 'Rejected', color: '#dc2626', bg: 'rgba(220,38,38,0.12)' },
+};
+
+const UPI_REGEX = /^[\w.\-]{2,256}@[a-zA-Z]{2,64}$/;
 
 export default function WalletScreen({ navigation }) {
   const { theme, isDark } = useTheme();
@@ -32,6 +43,10 @@ export default function WalletScreen({ navigation }) {
   const [amount, setAmount] = useState('');
   const [recharging, setRecharging] = useState(false);
   const [checkoutOrder, setCheckoutOrder] = useState(null);
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [withdrawUpi, setWithdrawUpi] = useState('');
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [withdrawals, setWithdrawals] = useState([]);
 
   const loadWallet = useCallback(async () => {
     try {
@@ -50,13 +65,40 @@ export default function WalletScreen({ navigation }) {
     } catch {}
   }, []);
 
+  const loadWithdrawals = useCallback(async () => {
+    try {
+      const res = await api.get('/owner/wallet/withdrawals?page=1&limit=5');
+      setWithdrawals(res.data?.data?.requests || []);
+    } catch {}
+  }, []);
+
   useEffect(() => {
     (async () => {
       setLoading(true);
-      await Promise.all([loadWallet(), loadTransactions(1)]);
+      await Promise.all([loadWallet(), loadTransactions(1), loadWithdrawals()]);
       setLoading(false);
     })();
-  }, [loadWallet, loadTransactions]);
+  }, [loadWallet, loadTransactions, loadWithdrawals]);
+
+  const handleWithdraw = async () => {
+    const amt = Number(withdrawAmount);
+    if (!amt || amt < 50) { showError('Invalid Amount', 'Minimum withdrawal amount is ₹50.'); return; }
+    if (balance != null && amt > balance) { showError('Invalid Amount', 'Amount exceeds your wallet balance.'); return; }
+    if (!UPI_REGEX.test(withdrawUpi.trim())) { showError('Invalid UPI ID', 'Enter a valid UPI ID (e.g. name@upi).'); return; }
+
+    setWithdrawing(true);
+    try {
+      const res = await api.post('/owner/wallet/withdraw', { amount: amt, upiId: withdrawUpi.trim() });
+      setBalance(res.data?.data?.balance ?? balance);
+      setWithdrawAmount('');
+      showSuccess('Withdrawal Requested', 'Money will reach your account within 1–3 business days.');
+      await Promise.all([loadTransactions(1), loadWithdrawals()]);
+    } catch (err) {
+      showError('Withdrawal Failed', err?.response?.data?.message || err?.message || 'Please try again.');
+    } finally {
+      setWithdrawing(false);
+    }
+  };
 
   const handleLoadMore = async () => {
     setLoadingMore(true);
@@ -182,6 +224,68 @@ export default function WalletScreen({ navigation }) {
           </View>
         </View>
 
+        {/* Withdraw */}
+        <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <Ionicons name="business-outline" size={15} color="#7c3aed" />
+            <Text style={[styles.cardTitle, { color: theme.text, marginBottom: 0 }]}>Withdraw to Bank (UPI)</Text>
+          </View>
+          <Text style={{ fontSize: 11, color: theme.subText, marginBottom: 12 }}>
+            Transfer wallet money to your own account. Minimum ₹50 · processed within 1–3 business days.
+          </Text>
+
+          <TextInput
+            value={withdrawAmount}
+            onChangeText={setWithdrawAmount}
+            placeholder="Amount to withdraw"
+            placeholderTextColor={theme.subText}
+            keyboardType="numeric"
+            style={[styles.input, { backgroundColor: theme.cardAlt, borderColor: theme.border, color: theme.text, flex: 0, marginBottom: 8 }]}
+          />
+          <View style={styles.rechargeRow}>
+            <TextInput
+              value={withdrawUpi}
+              onChangeText={setWithdrawUpi}
+              placeholder="Your UPI ID (e.g. name@upi)"
+              placeholderTextColor={theme.subText}
+              autoCapitalize="none"
+              style={[styles.input, { backgroundColor: theme.cardAlt, borderColor: theme.border, color: theme.text }]}
+            />
+            <TouchableOpacity
+              onPress={handleWithdraw}
+              disabled={withdrawing}
+              style={[styles.withdrawBtn, { borderColor: 'rgba(124,58,237,0.4)', backgroundColor: theme.cardAlt, opacity: withdrawing ? 0.7 : 1 }]}
+            >
+              {withdrawing ? <ActivityIndicator color="#7c3aed" size="small" /> : <Ionicons name="arrow-up" size={16} color="#7c3aed" />}
+              <Text style={{ color: '#7c3aed', fontSize: 14, fontWeight: '700' }}>{withdrawing ? '...' : 'Withdraw'}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {withdrawals.length > 0 && (
+            <View style={{ marginTop: 14, borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 10 }}>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: theme.subText, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>
+                Recent Withdrawals
+              </Text>
+              {withdrawals.map(w => {
+                const st = WITHDRAWAL_STATUS[w.status] || WITHDRAWAL_STATUS.pending;
+                return (
+                  <View key={w._id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '600', color: theme.text }}>₹{w.amount} → {w.upiId}</Text>
+                      <Text style={{ fontSize: 11, color: theme.subText, marginTop: 2 }}>
+                        {new Date(w.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </Text>
+                    </View>
+                    <View style={{ paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, backgroundColor: st.bg }}>
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: st.color }}>{st.label}</Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+        </View>
+
         {/* Transactions */}
         <Text style={[styles.sectionTitle, { color: theme.text }]}>Transaction History</Text>
         <View style={[styles.listCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
@@ -263,6 +367,7 @@ const styles = StyleSheet.create({
   input:       { flex: 1, height: 46, borderRadius: 12, borderWidth: 1, paddingHorizontal: 14, fontSize: 14 },
   addBtn:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 18, borderRadius: 12, backgroundColor: '#7c3aed' },
   addBtnText:  { color: '#fff', fontSize: 14, fontWeight: '700' },
+  withdrawBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1.5 },
   sectionTitle:{ fontSize: 13, fontWeight: '700', marginBottom: 10 },
   listCard:    { borderRadius: 14, borderWidth: 1, overflow: 'hidden' },
   txnRow:      { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 },

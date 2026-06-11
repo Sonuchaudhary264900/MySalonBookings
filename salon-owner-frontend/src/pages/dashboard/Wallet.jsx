@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Wallet as WalletIcon, ArrowDownLeft, ArrowUpRight, Plus, Loader2,
+  Wallet as WalletIcon, ArrowDownLeft, ArrowUpRight, Plus, Loader2, Landmark,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -14,6 +14,14 @@ const SOURCE_LABEL = {
   booking_refund: 'Booking Refund',
   booking_earning: 'Booking Earning',
   admin_adjustment: 'Adjustment',
+  withdrawal: 'Withdrawal to Bank',
+  withdrawal_refund: 'Withdrawal Refund',
+};
+
+const WITHDRAWAL_STATUS = {
+  pending:  { label: 'Pending',  cls: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40' },
+  paid:     { label: 'Paid',     cls: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40' },
+  rejected: { label: 'Rejected', cls: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40' },
 };
 
 const loadRazorpay = () =>
@@ -40,6 +48,10 @@ export default function Wallet() {
   const [amount, setAmount] = useState('');
   const [recharging, setRecharging] = useState(false);
   const [ownerInfo, setOwnerInfo] = useState(null);
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [withdrawUpi, setWithdrawUpi] = useState('');
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [withdrawals, setWithdrawals] = useState([]);
 
   useEffect(() => {
     document.title = 'Wallet — GlowLoox';
@@ -66,17 +78,46 @@ export default function Wallet() {
     }
   }, []);
 
+  const loadWithdrawals = useCallback(async () => {
+    try {
+      const res = await api.get('/owner/wallet/withdrawals?page=1&limit=5');
+      setWithdrawals(res.data?.data?.requests || []);
+    } catch {
+      // keep previous list on transient errors
+    }
+  }, []);
+
   useEffect(() => {
     (async () => {
       setLoading(true);
-      await Promise.all([loadWallet(), loadTransactions(1)]);
+      await Promise.all([loadWallet(), loadTransactions(1), loadWithdrawals()]);
       setLoading(false);
     })();
     api.get('/owner/auth/me').then(r => {
       const owner = r.data?.data;
       setOwnerInfo({ name: owner?.name, email: owner?.email, phone: owner?.phone });
     }).catch(() => {});
-  }, [loadWallet, loadTransactions]);
+  }, [loadWallet, loadTransactions, loadWithdrawals]);
+
+  const handleWithdraw = async () => {
+    const amt = Number(withdrawAmount);
+    if (!amt || amt < 50) { toast.error('Minimum withdrawal amount is ₹50.'); return; }
+    if (balance != null && amt > balance) { toast.error('Amount exceeds your wallet balance.'); return; }
+    if (!/^[\w.\-]{2,256}@[a-zA-Z]{2,64}$/.test(withdrawUpi.trim())) { toast.error('Enter a valid UPI ID (e.g. name@upi).'); return; }
+
+    setWithdrawing(true);
+    try {
+      const res = await api.post('/owner/wallet/withdraw', { amount: amt, upiId: withdrawUpi.trim() });
+      setBalance(res.data?.data?.balance ?? balance);
+      setWithdrawAmount('');
+      toast.success('Withdrawal requested. Money will reach your account within 1–3 business days.');
+      await Promise.all([loadTransactions(1), loadWithdrawals()]);
+    } catch (e) {
+      toast.error(e?.response?.data?.message || e.message || 'Withdrawal failed. Please try again.');
+    } finally {
+      setWithdrawing(false);
+    }
+  };
 
   const handleLoadMore = async () => {
     setLoadingMore(true);
@@ -206,6 +247,65 @@ export default function Wallet() {
               {recharging ? '...' : 'Add'}
             </button>
           </div>
+        </div>
+
+        {/* Withdraw */}
+        <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <Landmark className="w-4 h-4 text-violet-600 dark:text-violet-400" strokeWidth={2} />
+            <p className="text-sm font-bold text-gray-900 dark:text-white">Withdraw to Bank (UPI)</p>
+          </div>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
+            Transfer wallet money to your own account. Minimum ₹50 · processed within 1–3 business days.
+          </p>
+
+          <div className="flex flex-col gap-2">
+            <input
+              type="number"
+              min="50"
+              placeholder="Amount to withdraw"
+              value={withdrawAmount}
+              onChange={(e) => setWithdrawAmount(e.target.value)}
+              className="h-11 rounded-xl px-3.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm outline-none focus:border-violet-500"
+            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Your UPI ID (e.g. name@upi)"
+                value={withdrawUpi}
+                onChange={(e) => setWithdrawUpi(e.target.value)}
+                className="flex-1 h-11 rounded-xl px-3.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm outline-none focus:border-violet-500"
+              />
+              <button
+                onClick={handleWithdraw}
+                disabled={withdrawing}
+                className="flex items-center justify-center gap-1.5 px-4 rounded-xl text-sm font-semibold text-violet-600 dark:text-violet-400 border-[1.5px] border-violet-300 dark:border-violet-800 hover:bg-violet-50 dark:hover:bg-violet-950/40 disabled:opacity-60"
+              >
+                {withdrawing ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowUpRight className="w-4 h-4" />}
+                {withdrawing ? '...' : 'Withdraw'}
+              </button>
+            </div>
+          </div>
+
+          {withdrawals.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Recent Withdrawals</p>
+              {withdrawals.map(w => {
+                const st = WITHDRAWAL_STATUS[w.status] || WITHDRAWAL_STATUS.pending;
+                return (
+                  <div key={w._id} className="flex items-center gap-3 py-1.5">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">₹{w.amount} → {w.upiId}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                        {new Date(w.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </p>
+                    </div>
+                    <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full shrink-0 ${st.cls}`}>{st.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Transactions */}

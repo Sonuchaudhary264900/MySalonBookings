@@ -4,7 +4,7 @@ import API from "../services/api";
 import { loadRazorpay, RAZORPAY_KEY_ID } from "../utils/razorpay";
 import { formatDate } from "../utils/formatters";
 import {
-  ChevronLeft, Wallet as WalletIcon, ArrowDownLeft, ArrowUpRight, Plus,
+  ChevronLeft, Wallet as WalletIcon, ArrowDownLeft, ArrowUpRight, Plus, Landmark,
 } from "lucide-react";
 
 const QUICK_AMOUNTS = [100, 200, 500, 1000];
@@ -15,6 +15,14 @@ const SOURCE_LABEL = {
   booking_refund: "Booking Refund",
   booking_earning: "Booking Earning",
   admin_adjustment: "Adjustment",
+  withdrawal: "Withdrawal to Bank",
+  withdrawal_refund: "Withdrawal Refund",
+};
+
+const WITHDRAWAL_STATUS = {
+  pending:  { label: "Pending",  color: "#d97706", bg: "rgba(217,119,6,0.12)" },
+  paid:     { label: "Paid",     color: "#059669", bg: "rgba(5,150,105,0.12)" },
+  rejected: { label: "Rejected", color: "#dc2626", bg: "rgba(220,38,38,0.12)" },
 };
 
 function SkeletonRow() {
@@ -45,6 +53,12 @@ export default function Wallet() {
   const [recharging, setRecharging] = useState(false);
   const [error, setError] = useState("");
   const [user, setUser] = useState(null);
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [withdrawUpi, setWithdrawUpi] = useState("");
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [withdrawError, setWithdrawError] = useState("");
+  const [withdrawSuccess, setWithdrawSuccess] = useState("");
+  const [withdrawals, setWithdrawals] = useState([]);
 
   const loadWallet = useCallback(async () => {
     try {
@@ -67,14 +81,44 @@ export default function Wallet() {
     }
   }, []);
 
+  const loadWithdrawals = useCallback(async () => {
+    try {
+      const res = await API.get("/customer/wallet/withdrawals?page=1&limit=5");
+      setWithdrawals(res.data?.data?.requests || []);
+    } catch {
+      // keep previous list on transient errors
+    }
+  }, []);
+
   useEffect(() => {
     (async () => {
       setLoading(true);
-      await Promise.all([loadWallet(), loadTransactions(1)]);
+      await Promise.all([loadWallet(), loadTransactions(1), loadWithdrawals()]);
       setLoading(false);
     })();
     API.get("/customer/auth/me").then(res => setUser(res.data?.data || res.data)).catch(() => {});
-  }, [loadWallet, loadTransactions]);
+  }, [loadWallet, loadTransactions, loadWithdrawals]);
+
+  const handleWithdraw = async () => {
+    setWithdrawError(""); setWithdrawSuccess("");
+    const amt = Number(withdrawAmount);
+    if (!amt || amt < 50) { setWithdrawError("Minimum withdrawal amount is ₹50."); return; }
+    if (balance != null && amt > balance) { setWithdrawError("Amount exceeds your wallet balance."); return; }
+    if (!/^[\w.\-]{2,256}@[a-zA-Z]{2,64}$/.test(withdrawUpi.trim())) { setWithdrawError("Enter a valid UPI ID (e.g. name@upi)."); return; }
+
+    setWithdrawing(true);
+    try {
+      const res = await API.post("/customer/wallet/withdraw", { amount: amt, upiId: withdrawUpi.trim() });
+      setBalance(res.data?.data?.balance ?? balance);
+      setWithdrawAmount("");
+      setWithdrawSuccess("Withdrawal requested. Money will reach your account within 1–3 business days.");
+      await Promise.all([loadTransactions(1), loadWithdrawals()]);
+    } catch (e) {
+      setWithdrawError(e?.response?.data?.message || e.message || "Withdrawal failed. Please try again.");
+    } finally {
+      setWithdrawing(false);
+    }
+  };
 
   const handleLoadMore = async () => {
     setLoadingMore(true);
@@ -258,6 +302,91 @@ export default function Wallet() {
           </div>
 
           {error && <p style={{ color: "#dc2626", fontSize: 12, marginTop: 8 }}>{error}</p>}
+        </div>
+
+        {/* Withdraw */}
+        <div style={{
+          borderRadius: 14, border: "1px solid var(--t-border)", background: "var(--t-card)",
+          padding: 16, marginBottom: 18,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <Landmark size={15} strokeWidth={2} style={{ color: "#8b5cf6" }} />
+            <p style={{ fontSize: 13, fontWeight: 700, color: "var(--t-text)", margin: 0 }}>Withdraw to Bank (UPI)</p>
+          </div>
+          <p style={{ fontSize: 11, color: "var(--t-text-3)", marginBottom: 12 }}>
+            Transfer wallet money back to your own account. Minimum ₹50 · processed within 1–3 business days.
+          </p>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <input
+              type="number"
+              min="50"
+              placeholder="Amount to withdraw"
+              value={withdrawAmount}
+              onChange={(e) => { setWithdrawAmount(e.target.value); setWithdrawError(""); setWithdrawSuccess(""); }}
+              style={{
+                height: 46, borderRadius: 12, padding: "0 14px",
+                border: "1px solid var(--t-border)", background: "var(--t-input-bg)",
+                color: "var(--t-text)", fontSize: 14, fontFamily: "inherit", outline: "none",
+              }}
+            />
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                type="text"
+                placeholder="Your UPI ID (e.g. name@upi)"
+                value={withdrawUpi}
+                onChange={(e) => { setWithdrawUpi(e.target.value); setWithdrawError(""); setWithdrawSuccess(""); }}
+                style={{
+                  flex: 1, height: 46, borderRadius: 12, padding: "0 14px",
+                  border: "1px solid var(--t-border)", background: "var(--t-input-bg)",
+                  color: "var(--t-text)", fontSize: 14, fontFamily: "inherit", outline: "none",
+                }}
+              />
+              <button
+                onClick={handleWithdraw}
+                disabled={withdrawing}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  padding: "0 18px", borderRadius: 12, fontSize: 14, fontWeight: 600,
+                  background: "var(--t-input-bg)", color: "#8b5cf6",
+                  border: "1.5px solid rgba(139,92,246,0.4)",
+                  cursor: withdrawing ? "default" : "pointer",
+                  opacity: withdrawing ? 0.7 : 1,
+                }}
+              >
+                <ArrowUpRight size={16} strokeWidth={2.2} />
+                {withdrawing ? "..." : "Withdraw"}
+              </button>
+            </div>
+          </div>
+
+          {withdrawError && <p style={{ color: "#dc2626", fontSize: 12, marginTop: 8 }}>{withdrawError}</p>}
+          {withdrawSuccess && <p style={{ color: "#059669", fontSize: 12, marginTop: 8 }}>{withdrawSuccess}</p>}
+
+          {withdrawals.length > 0 && (
+            <div style={{ marginTop: 14, borderTop: "1px solid var(--t-border)", paddingTop: 10 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: "var(--t-text-3)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
+                Recent Withdrawals
+              </p>
+              {withdrawals.map(w => {
+                const st = WITHDRAWAL_STATUS[w.status] || WITHDRAWAL_STATUS.pending;
+                return (
+                  <div key={w._id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0" }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "var(--t-text)", margin: 0 }}>₹{w.amount} → {w.upiId}</p>
+                      <p style={{ fontSize: 11, color: "var(--t-text-3)", margin: "2px 0 0" }}>{formatDate(w.createdAt)}</p>
+                    </div>
+                    <span style={{
+                      fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999,
+                      color: st.color, background: st.bg, flexShrink: 0,
+                    }}>
+                      {st.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Transactions */}
