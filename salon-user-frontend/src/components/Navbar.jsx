@@ -684,7 +684,7 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
       </div>
 
       {/* Nav items */}
-      <nav style={{ padding: "10px 8px", flex: 1, overflowY: "auto" }}>
+      <nav className="scrollbar-hide" style={{ padding: "8px 8px", flex: 1, overflowY: "auto", minHeight: 0 }}>
         {DESKTOP_NAV.map(({ to, label, Icon, auth, ai }) => {
           const active = location.pathname === to || (ai && location.pathname.startsWith('/style-ai'));
           const locked = auth && !token;
@@ -716,7 +716,7 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
             <Link key={label} to={locked ? "/login" : to}
               style={{
                 display:"flex", alignItems:"center", gap:14,
-                padding:"11px 14px", borderRadius:12,
+                padding:"9px 14px", borderRadius:12,
                 textDecoration:"none", marginBottom:2,
                 background: active ? "rgba(99,102,241,0.1)" : "transparent",
                 color: active ? "var(--t-accent)" : "var(--t-text-2)",
@@ -735,14 +735,14 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
       </nav>
 
       {/* Bottom section: notifications, theme, profile/sign-in */}
-      <div style={{ padding:"12px 8px 20px", borderTop:"1px solid var(--t-border)", display:"flex", flexDirection:"column", gap:2 }}>
+      <div style={{ padding:"8px 8px 14px", borderTop:"1px solid var(--t-border)", display:"flex", flexDirection:"column", gap:2, flexShrink:0 }}>
 
         {/* Notifications */}
         {token && (
           <div style={{ position:"relative" }} ref={panelRef}>
             <button
               onClick={() => setPanelOpen(v => !v)}
-              style={{ display:"flex",alignItems:"center",gap:14,width:"100%",padding:"11px 14px",borderRadius:12,border:"none",background:"transparent",color:"var(--t-text-2)",fontWeight:500,fontSize:14,cursor:"pointer",transition:"background 0.15s" }}
+              style={{ display:"flex",alignItems:"center",gap:14,width:"100%",padding:"9px 14px",borderRadius:12,border:"none",background:"transparent",color:"var(--t-text-2)",fontWeight:500,fontSize:14,cursor:"pointer",transition:"background 0.15s" }}
               onMouseEnter={e => e.currentTarget.style.background = "var(--t-input-bg)"}
               onMouseLeave={e => e.currentTarget.style.background = "transparent"}
             >
@@ -767,7 +767,7 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
         {/* Theme toggle */}
         <button
           onClick={toggleTheme}
-          style={{ display:"flex",alignItems:"center",gap:14,width:"100%",padding:"11px 14px",borderRadius:12,border:"none",background:"transparent",color:"var(--t-text-2)",fontWeight:500,fontSize:14,cursor:"pointer",transition:"background 0.15s" }}
+          style={{ display:"flex",alignItems:"center",gap:14,width:"100%",padding:"9px 14px",borderRadius:12,border:"none",background:"transparent",color:"var(--t-text-2)",fontWeight:500,fontSize:14,cursor:"pointer",transition:"background 0.15s" }}
           onMouseEnter={e => e.currentTarget.style.background = "var(--t-input-bg)"}
           onMouseLeave={e => e.currentTarget.style.background = "transparent"}
         >

@@ -3525,6 +3525,8 @@ router.get( "/customer/wallet",                  authenticateCustomer, asyncHand
 router.get( "/customer/wallet/transactions",     authenticateCustomer, asyncHandler(walletController.getCustomerTransactions));
 router.post("/customer/wallet/recharge/order",   authenticateCustomer, rateLimiter(10, 900000), asyncHandler(walletController.createCustomerRechargeOrder));
 router.post("/customer/wallet/recharge/verify",  authenticateCustomer, asyncHandler(walletController.verifyCustomerRecharge));
+router.post("/customer/wallet/withdraw",         authenticateCustomer, rateLimiter(5, 900000), asyncHandler(walletController.requestCustomerWithdrawal));
+router.get( "/customer/wallet/withdrawals",      authenticateCustomer, asyncHandler(walletController.getCustomerWithdrawals));
 
 /* =====================================================
    WALLET — OWNER ROUTES
@@ -3533,6 +3535,14 @@ router.get( "/owner/wallet",                  authenticateOwner, asyncHandler(wa
 router.get( "/owner/wallet/transactions",     authenticateOwner, asyncHandler(walletController.getOwnerTransactions));
 router.post("/owner/wallet/recharge/order",   authenticateOwner, rateLimiter(10, 900000), asyncHandler(walletController.createOwnerRechargeOrder));
 router.post("/owner/wallet/recharge/verify",  authenticateOwner, asyncHandler(walletController.verifyOwnerRecharge));
+router.post("/owner/wallet/withdraw",         authenticateOwner, rateLimiter(5, 900000), asyncHandler(walletController.requestOwnerWithdrawal));
+router.get( "/owner/wallet/withdrawals",      authenticateOwner, asyncHandler(walletController.getOwnerWithdrawals));
+
+/* =====================================================
+   WALLET — ADMIN WITHDRAWAL PROCESSING
+===================================================== */
+router.get(  "/admin/withdrawals",     authenticateAdmin, asyncHandler(walletController.adminListWithdrawals));
+router.patch("/admin/withdrawals/:id", authenticateAdmin, asyncHandler(walletController.adminProcessWithdrawal));
 
 /* =====================================================
    PROMOTIONS — PUBLIC

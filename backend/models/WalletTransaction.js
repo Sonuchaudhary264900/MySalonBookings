@@ -15,6 +15,8 @@ const walletTransactionSchema = new mongoose.Schema(
         'booking_refund',     // refund credited back to customer wallet
         'booking_earning',    // owner earning from a customer's online/wallet booking payment
         'admin_adjustment',   // manual correction by admin
+        'withdrawal',         // money withdrawn back to the user's bank/UPI account
+        'withdrawal_refund',  // withdrawal request rejected — amount returned to wallet
       ],
       required: true,
     },
