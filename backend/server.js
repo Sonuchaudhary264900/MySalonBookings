@@ -122,8 +122,35 @@ if (process.env.REDIS_URL) {
     const { createAdapter } = require("@socket.io/redis-adapter");
     const IORedis = require("ioredis");
     const redisTLS = process.env.REDIS_URL?.startsWith('rediss://') ? { tls: { rejectUnauthorized: false } } : {};
-    socketPubClient = new IORedis(process.env.REDIS_URL, { maxRetriesPerRequest: null, ...redisTLS });
+    let socketQuotaHit = false;
+    const socketRedisOptions = {
+      maxRetriesPerRequest: null,
+      retryStrategy(times) {
+        if (socketQuotaHit) return null;
+        if (times > 8) return null;
+        return Math.min(times * 2000, 300000);
+      },
+      reconnectOnError(err) {
+        if (err.message.includes('max requests limit exceeded')) {
+          socketQuotaHit = true;
+          return false;
+        }
+        return false;
+      },
+      ...redisTLS,
+    };
+    socketPubClient = new IORedis(process.env.REDIS_URL, socketRedisOptions);
     socketSubClient = socketPubClient.duplicate();
+    const onSocketRedisError = (err) => {
+      if (err?.message?.includes('max requests limit exceeded')) {
+        socketQuotaHit = true;
+        logger.warn("⚠️  Upstash Redis quota exceeded — Socket.io adapter degraded to single-node mode");
+      } else {
+        logger.warn("⚠️  Socket.io Redis adapter error", { error: err?.message });
+      }
+    };
+    socketPubClient.on("error", onSocketRedisError);
+    socketSubClient.on("error", onSocketRedisError);
     io.adapter(createAdapter(socketPubClient, socketSubClient));
     logger.info("✅ Socket.io Redis adapter enabled (horizontal scaling ready)");
   } catch (e) {
