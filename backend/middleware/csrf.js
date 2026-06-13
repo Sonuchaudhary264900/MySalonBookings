@@ -34,7 +34,15 @@ const csrf = (req, res, next) => {
   const cookieToken  = req.cookies?.['csrf-token'];
   const headerToken  = req.headers['x-csrf-token'];
 
-  if (!cookieToken || !headerToken || cookieToken !== headerToken) {
+  // Constant-time comparison to avoid leaking the token via timing.
+  const tokensMatch = (a, b) => {
+    if (!a || !b) return false;
+    const ba = Buffer.from(String(a));
+    const bb = Buffer.from(String(b));
+    return ba.length === bb.length && crypto.timingSafeEqual(ba, bb);
+  };
+
+  if (!tokensMatch(cookieToken, headerToken)) {
     return res.status(403).json({ success: false, message: 'CSRF token mismatch. Refresh and try again.' });
   }
 

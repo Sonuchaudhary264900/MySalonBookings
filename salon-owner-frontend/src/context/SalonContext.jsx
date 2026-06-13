@@ -41,8 +41,10 @@ export const SalonProvider = ({ children }) => {
     const isApproved = salon.isApproved || salon.approvalStatus === 'approved';
     if (!isApproved) return;
 
-    // Connect socket and mark salon online
-    const socket = io(SOCKET_URL, { transports: ['polling', 'websocket'] });
+    // Connect socket and mark salon online.
+    // withCredentials sends the httpOnly auth cookie in the handshake so the
+    // server can verify this owner owns the salon before flipping isOnline.
+    const socket = io(SOCKET_URL, { transports: ['polling', 'websocket'], withCredentials: true });
     socketRef.current = socket;
 
     socket.on('connect', () => {

@@ -217,7 +217,7 @@ exports.verifyOTPAndRegister = async (req, res) => {
     );
 
     // Save refresh token
-    customer.refreshTokens.push({ token: refreshToken });
+    customer.refreshTokens = [...(customer.refreshTokens || []).slice(-4), { token: refreshToken }];
     await customer.save();
 
     res.status(201).json(
@@ -407,7 +407,7 @@ exports.firebaseRegister = async (req, res) => {
       { expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d' }
     );
 
-    customer.refreshTokens.push({ token: refreshToken });
+    customer.refreshTokens = [...(customer.refreshTokens || []).slice(-4), { token: refreshToken }];
     await customer.save();
 
     res.status(201).json(
@@ -457,7 +457,7 @@ exports.firebaseLogin = async (req, res) => {
       { expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d' }
     );
 
-    customer.refreshTokens.push({ token: refreshToken });
+    customer.refreshTokens = [...(customer.refreshTokens || []).slice(-4), { token: refreshToken }];
     await customer.save();
 
     res.status(200).json(
@@ -582,7 +582,7 @@ exports.loginWithPhone = async (req, res) => {
     );
 
     // Save refresh token
-    customer.refreshTokens.push({ token: refreshToken });
+    customer.refreshTokens = [...(customer.refreshTokens || []).slice(-4), { token: refreshToken }];
     await customer.save();
 
     res.json(
@@ -660,7 +660,7 @@ exports.loginWithEmail = async (req, res) => {
     );
 
     // Save refresh token
-    customer.refreshTokens.push({ token: refreshToken });
+    customer.refreshTokens = [...(customer.refreshTokens || []).slice(-4), { token: refreshToken }];
     await customer.save();
 
     res.json(

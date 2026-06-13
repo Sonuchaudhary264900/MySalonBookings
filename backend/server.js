@@ -246,6 +246,28 @@ app.get("/ping", (req, res) => res.json({ status: "ok", time: new Date().toISOSt
 app.use("/api/v1", routes);
 
 /* ============================================================
+   SOCKET IDENTITY (best-effort, non-blocking)
+   Attaches socket.user when a valid token is present (cookie for web,
+   auth.token for mobile). Never rejects — guests still connect for
+   read-only rooms; sensitive socket actions verify socket.user themselves.
+============================================================ */
+io.use((socket, next) => {
+  try {
+    const { verifyToken } = require("./middleware/authMiddleware");
+    const raw =
+      socket.handshake.auth?.token ||
+      socket.handshake.headers?.cookie
+        ?.split(";")
+        .find((c) => c.trim().startsWith("token="))
+        ?.split("=")[1];
+    if (raw) socket.user = verifyToken(raw);
+  } catch {
+    /* invalid/expired token → treat as guest */
+  }
+  next();
+});
+
+/* ============================================================
    SOCKET CONNECTION
 ============================================================ */
 io.on("connection", (socket) => {

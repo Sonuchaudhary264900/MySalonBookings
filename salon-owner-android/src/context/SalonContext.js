@@ -1,5 +1,6 @@
 import React, { createContext, useState, useCallback, useEffect, useRef, useContext } from 'react';
 import { io } from 'socket.io-client';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../services/api';
 import { useAuth } from './AuthContext';
 
@@ -89,15 +90,23 @@ export const SalonProvider = ({ children }) => {
     const isApproved = salon.isApproved || salon.approvalStatus === 'approved';
     if (!isApproved) return;
 
-    const socket = io(SOCKET_URL, { transports: ['websocket'] });
-    socketRef.current = socket;
-
-    socket.on('connect', () => {
-      socket.emit('join-salon', { salonId: salon._id, ownerId: salon.ownerId });
-    });
+    let socket;
+    let cancelled = false;
+    // Send the auth token in the handshake so the server can verify this owner
+    // owns the salon before marking it online.
+    (async () => {
+      const token = await AsyncStorage.getItem('token');
+      if (cancelled) return;
+      socket = io(SOCKET_URL, { transports: ['websocket'], auth: { token } });
+      socketRef.current = socket;
+      socket.on('connect', () => {
+        socket.emit('join-salon', { salonId: salon._id, ownerId: salon.ownerId });
+      });
+    })();
 
     return () => {
-      socket.disconnect();
+      cancelled = true;
+      if (socket) socket.disconnect();
       socketRef.current = null;
     };
   }, [salon?._id, salon?.isApproved, salon?.approvalStatus, salon?.ownerId]);

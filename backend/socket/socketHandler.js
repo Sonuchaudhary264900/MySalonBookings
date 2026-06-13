@@ -21,6 +21,20 @@ const authenticateSocket = (socket) => {
   }
 };
 
+// Verify the socket belongs to an authenticated owner of the given salon.
+// socket.user is attached (best-effort) by the io.use() middleware in server.js.
+const isSocketSalonOwner = async (socket, salonId) => {
+  try {
+    const u = socket.user;
+    if (!u || u.role !== 'owner' || !salonId) return false;
+    const uid = u.id || u._id;
+    if (!uid) return false;
+    return !!(await Business.exists({ _id: salonId, $or: [{ ownerId: uid }, { owner: uid }] }));
+  } catch {
+    return false;
+  }
+};
+
 // Per-socket event throttle (max 20 events / 5 seconds)
 const createThrottle = () => {
   let count = 0;
@@ -127,29 +141,25 @@ module.exports = (socket, io) => {
   // ===================================================
   socket.on('join-salon', async (data) => {
     try {
-      const { salonId, ownerId } = data;
+      // Payload may be a string (salonId) or an object { salonId, ownerId }
+      const salonId = typeof data === 'string' ? data : data?.salonId;
+      if (!salonId) return;
 
-      const salonRoom = `salon-${salonId}`;
-      socket.join(salonRoom);
+      // Joining the broadcast room is harmless (read-only updates)
+      socket.join(`salon-${salonId}`);
 
-      // Track salonId on this socket for disconnect cleanup
-      socket.salonId = salonId;
+      // Only an authenticated owner of THIS salon may flip the online flag.
+      // Prevents anyone from marking arbitrary salons online/offline.
+      if (await isSocketSalonOwner(socket, salonId)) {
+        socket.salonId = salonId; // track for offline-on-disconnect
+        await Business.findByIdAndUpdate(salonId, {
+          isOnline: true,
+          lastOnlineAt: new Date(),
+        });
+        io.emit('salon-online', { salonId });
+      }
 
-      // Mark salon as online in DB
-      await Business.findByIdAndUpdate(salonId, {
-        isOnline: true,
-        lastOnlineAt: new Date(),
-      });
-
-      // Broadcast to user frontend that this salon is now online
-      io.emit('salon-online', { salonId });
-
-      console.log(`👨‍💼 Owner ${ownerId} joined salon room: ${salonRoom} — salon marked ONLINE`);
-
-      socket.emit('salon-connected', {
-        message: 'Connected to salon room',
-        salonId,
-      });
+      socket.emit('salon-connected', { message: 'Connected to salon room', salonId });
     } catch (error) {
       console.error('Error joining salon:', error);
       socket.emit('error', { message: 'Failed to join salon' });
@@ -172,152 +182,11 @@ module.exports = (socket, io) => {
     }
   });
 
-  // ===================================================
-  // QUEUE POSITION UPDATED (from owner dashboard)
-  // ===================================================
-  socket.on('queue-updated', async (data) => {
-    try {
-      const { salonId, position, bookingId, status } = data;
-
-      const queueRoom = `queue-${salonId}`;
-
-      // Broadcast to all customers in this salon's queue
-      io.to(queueRoom).emit('queue-position-changed', {
-        bookingId,
-        position,
-        status,
-        timestamp: new Date().toISOString(),
-      });
-
-      console.log(`📍 Queue updated for salon ${salonId}: Position ${position}`);
-    } catch (error) {
-      console.error('Error updating queue:', error);
-    }
-  });
-
-  // ===================================================
-  // NEXT CUSTOMER NOTIFICATION
-  // ===================================================
-  socket.on('next-customer', async (data) => {
-    try {
-      const { salonId, bookingId, customerName, customerPhone } = data;
-
-      const queueRoom = `queue-${salonId}`;
-
-      // Notify all customers in queue
-      io.to(queueRoom).emit('you-are-next', {
-        message: 'You are next! Please come to the counter.',
-        bookingId,
-        timestamp: new Date().toISOString(),
-      });
-
-      console.log(`🔔 Notification: ${customerName} is next at salon ${salonId}`);
-    } catch (error) {
-      console.error('Error notifying next customer:', error);
-    }
-  });
-
-  // ===================================================
-  // BOOKING STATUS CHANGED
-  // ===================================================
-  socket.on('booking-status-changed', async (data) => {
-    try {
-      const { bookingId, status, salonId } = data;
-
-      // Notify customer
-      io.to(`booking-${bookingId}`).emit('status-updated', {
-        bookingId,
-        status,
-        timestamp: new Date().toISOString(),
-      });
-
-      // Also notify in salon queue room
-      io.to(`queue-${salonId}`).emit('booking-status-updated', {
-        bookingId,
-        status,
-      });
-
-      console.log(`📅 Booking ${bookingId} status changed to: ${status}`);
-    } catch (error) {
-      console.error('Error updating booking status:', error);
-    }
-  });
-
-  // ===================================================
-  // BOOKING CONFIRMATION
-  // ===================================================
-  socket.on('booking-confirmed', async (data) => {
-    try {
-      const { bookingId, customerId, salonId, serviceName, appointmentTime } = data;
-
-      // Notify customer
-      io.to(`customer-${customerId}`).emit('booking-confirmed', {
-        bookingId,
-        message: 'Your booking has been confirmed!',
-        serviceName,
-        appointmentTime,
-        timestamp: new Date().toISOString(),
-      });
-
-      // Notify salon
-      io.to(`salon-${salonId}`).emit('new-booking', {
-        bookingId,
-        message: 'New booking confirmed',
-      });
-
-      console.log(`✅ Booking ${bookingId} confirmed`);
-    } catch (error) {
-      console.error('Error confirming booking:', error);
-    }
-  });
-
-  // ===================================================
-  // BOOKING CANCELLED
-  // ===================================================
-  socket.on('booking-cancelled', async (data) => {
-    try {
-      const { bookingId, customerId, salonId, reason } = data;
-
-      // Notify customer
-      io.to(`customer-${customerId}`).emit('booking-cancelled', {
-        bookingId,
-        message: 'Your booking has been cancelled',
-        reason,
-        timestamp: new Date().toISOString(),
-      });
-
-      // Update queue for salon
-      io.to(`queue-${salonId}`).emit('booking-removed-from-queue', {
-        bookingId,
-      });
-
-      console.log(`❌ Booking ${bookingId} cancelled`);
-    } catch (error) {
-      console.error('Error cancelling booking:', error);
-    }
-  });
-
-  // ===================================================
-  // PAYMENT COMPLETED
-  // ===================================================
-  socket.on('payment-completed', async (data) => {
-    try {
-      const { bookingId, customerId, amount, transactionId } = data;
-
-      // Notify customer
-      io.to(`customer-${customerId}`).emit('payment-successful', {
-        bookingId,
-        amount,
-        transactionId,
-        message: 'Payment received successfully!',
-        timestamp: new Date().toISOString(),
-      });
-
-      console.log(`💰 Payment completed for booking ${bookingId}: ₹${amount}`);
-    } catch (error) {
-      console.error('Error notifying payment:', error);
-    }
-  });
+  // NOTE: The legacy inbound relay handlers (queue-updated, next-customer,
+  // booking-status-changed, booking-confirmed, booking-cancelled,
+  // payment-completed) were removed. No client emits them, and the backend
+  // emits these notifications itself from the REST controllers. Keeping them
+  // as inbound listeners allowed anyone to spoof customer notifications.
 
   // ===================================================
   // REAL-TIME QUEUE UPDATE (for owner dashboard)
@@ -347,46 +216,9 @@ module.exports = (socket, io) => {
     }
   });
 
-  // ===================================================
-  // BROADCAST NEW REVIEW
-  // ===================================================
-  socket.on('new-review', (data) => {
-    try {
-      const { salonId, rating, reviewText } = data;
-
-      // Broadcast to all connected clients for this salon
-      io.to(`salon-${salonId}`).emit('review-published', {
-        rating,
-        reviewText,
-        timestamp: new Date().toISOString(),
-      });
-
-      console.log(`⭐ New review for salon ${salonId}: ${rating} stars`);
-    } catch (error) {
-      console.error('Error broadcasting review:', error);
-    }
-  });
-
-  // ===================================================
-  // SEND MESSAGE / NOTIFICATION
-  // ===================================================
-  socket.on('send-notification', (data) => {
-    try {
-      const { recipientId, type, message, data: notificationData } = data;
-
-      // Send to specific recipient
-      io.to(`user-${recipientId}`).emit('notification', {
-        type,
-        message,
-        data: notificationData,
-        timestamp: new Date().toISOString(),
-      });
-
-      console.log(`📨 Notification sent to user ${recipientId}`);
-    } catch (error) {
-      console.error('Error sending notification:', error);
-    }
-  });
+  // NOTE: Legacy 'new-review' and 'send-notification' inbound relays removed —
+  // they let any connected client broadcast arbitrary reviews/notifications.
+  // Reviews and notifications are emitted server-side from REST controllers.
 
   // ===================================================
   // CHAT — JOIN BOOKING ROOM

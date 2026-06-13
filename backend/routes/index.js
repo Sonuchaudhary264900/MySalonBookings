@@ -237,7 +237,6 @@ router.get("/public/salons", asyncHandler(async (req, res) => {
       salonId: { $in: salonIds }, isActive: true, deletedAt: null,
       $or: [{ validUntil: null }, { validUntil: { $gte: now } }],
     }).sort({ discountValue: -1 }).select("salonId code discountType discountValue minAmount maxDiscount description").lean();
-    console.log(`[salons] salonIds=${salonIds.length}, coupons found=${coupons.length}`);
     const couponMap = {};
     for (const c of coupons) {
       const k = String(c.salonId);
@@ -330,7 +329,6 @@ router.get("/public/salons/nearby", asyncHandler(async (req, res) => {
       salonId: { $in: salonIds }, isActive: true, deletedAt: null,
       $or: [{ validUntil: null }, { validUntil: { $gte: now } }],
     }).sort({ discountValue: -1 }).select("salonId code discountType discountValue minAmount maxDiscount description").lean();
-    console.log(`[nearby] salonIds=${salonIds.length}, coupons found=${coupons.length}`);
     const couponMap = {};
     for (const c of coupons) {
       const k = String(c.salonId);

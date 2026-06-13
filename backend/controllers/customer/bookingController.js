@@ -218,30 +218,43 @@ const createBooking = async (req, res) => {
     let appliedCouponCode = null;
     if (couponCode) {
       const Coupon = require('../../models/Coupon');
-      const coupon = await Coupon.findOne({ code: couponCode.toUpperCase().trim(), isActive: true });
-      if (coupon) {
-        let discount = coupon.discountType === 'percentage'
-          ? Math.round((totalPrice * coupon.discountValue) / 100)
-          : coupon.discountValue;
-        if (coupon.maxDiscount) discount = Math.min(discount, coupon.maxDiscount);
-        discount = Math.min(discount, totalPrice);
-        discountAmount = discount;
-        appliedCouponCode = coupon.code;
-        coupon.usageCount += 1;
-        coupon.usedBy.push(req.customer._id);
-        // Track detailed usage history
-        coupon.usageHistory.push({
-          customerId: req.customer._id,
-          discountApplied: discount,
-          usedAt: new Date(),
-          // bookingId will be patched after booking creation below
-        });
-        // Auto-disable if usage limit reached
-        if (coupon.maxUsageCount && coupon.usageCount >= coupon.maxUsageCount) {
-          coupon.isActive = false;
-        }
-        await coupon.save();
+      const coupon = await Coupon.findOne({ code: couponCode.toUpperCase().trim(), isActive: true, deletedAt: null });
+
+      // Validate the coupon fully (mirrors POST /customer/coupons/validate).
+      // Previously this only checked code+isActive, letting customers apply
+      // expired / other-salon / already-used / below-min coupons → revenue leak.
+      const now = new Date();
+      const rejectCoupon = (msg) => res.status(400).json(formatErrorResponse(msg, 400));
+      if (!coupon) return rejectCoupon('Invalid coupon code');
+      if (coupon.salonId && coupon.salonId.toString() !== String(salonId)) return rejectCoupon('Coupon not valid for this salon');
+      if (coupon.validFrom && now < coupon.validFrom) return rejectCoupon('Coupon is not yet valid');
+      if (coupon.validUntil && now > coupon.validUntil) return rejectCoupon('Coupon has expired');
+      if (coupon.maxUsageCount && coupon.usageCount >= coupon.maxUsageCount) return rejectCoupon('Coupon usage limit reached');
+      if (coupon.minAmount && totalPrice < coupon.minAmount) return rejectCoupon(`Minimum order amount ₹${coupon.minAmount} required`);
+      const timesUsedByCustomer = (coupon.usedBy || []).filter(id => id.toString() === req.customer._id.toString()).length;
+      if (coupon.maxUsagePerCustomer && timesUsedByCustomer >= coupon.maxUsagePerCustomer) return rejectCoupon('You have already used this coupon');
+
+      let discount = coupon.discountType === 'percentage'
+        ? Math.round((totalPrice * coupon.discountValue) / 100)
+        : coupon.discountValue;
+      if (coupon.maxDiscount) discount = Math.min(discount, coupon.maxDiscount);
+      discount = Math.min(discount, totalPrice);
+      discountAmount = discount;
+      appliedCouponCode = coupon.code;
+      coupon.usageCount += 1;
+      coupon.usedBy.push(req.customer._id);
+      // Track detailed usage history
+      coupon.usageHistory.push({
+        customerId: req.customer._id,
+        discountApplied: discount,
+        usedAt: new Date(),
+        // bookingId will be patched after booking creation below
+      });
+      // Auto-disable if usage limit reached
+      if (coupon.maxUsageCount && coupon.usageCount >= coupon.maxUsageCount) {
+        coupon.isActive = false;
       }
+      await coupon.save();
     }
     const finalAmount = totalPrice - discountAmount;
 
@@ -281,6 +294,38 @@ const createBooking = async (req, res) => {
         { $set: { 'usageHistory.$[last].bookingId': booking._id } },
         { arrayFilters: [{ 'last.bookingId': { $exists: false } }] }
       ).catch(() => {}); // non-critical, don't fail booking
+    }
+
+    // Optimistic guard against the overlap race condition.
+    // The unique index only blocks identical (barber, date, time). Two concurrent
+    // requests for OVERLAPPING but different start times can both pass the JS
+    // overlap check above and both insert. Re-check after insert and roll back
+    // the loser so a stylist is never double-booked.
+    if (booking.barberId) {
+      const overlap = await Booking.findOne({
+        _id: { $ne: booking._id },
+        barberId: booking.barberId,
+        appointmentDate: { $gte: dayStart, $lte: dayEnd },
+        status: { $in: ['pending', 'confirmed', 'in_progress'] },
+      }).select('appointmentTime estimatedDuration').lean();
+      const hasConflict = overlap && (() => {
+        const es = parseMin(overlap.appointmentTime, '09:00');
+        const ee = es + (overlap.estimatedDuration || 30);
+        return newStart < ee && newEnd > es;
+      })();
+      if (hasConflict) {
+        await Booking.deleteOne({ _id: booking._id });
+        if (appliedCouponCode) {
+          const Coupon = require('../../models/Coupon');
+          await Coupon.updateOne(
+            { code: appliedCouponCode },
+            { $inc: { usageCount: -1 }, $pull: { usedBy: req.customer._id } }
+          ).catch(() => {});
+        }
+        return res.status(409).json(
+          formatErrorResponse('This stylist was just booked for an overlapping time. Please choose another slot.', 409)
+        );
+      }
     }
 
     // Razorpay payment
@@ -331,7 +376,7 @@ const createBooking = async (req, res) => {
           bookingId: booking._id,
           description: `Earnings from booking ${booking.bookingId}`,
           status: 'success',
-        }).catch(() => {});
+        }).catch((e) => console.error('[wallet] owner earning credit failed (customer was debited)', { bookingId: booking._id?.toString(), error: e.message }));
       } catch (err) {
         if (err.code === 'INSUFFICIENT_BALANCE') {
           await Booking.deleteOne({ _id: booking._id });
@@ -492,7 +537,7 @@ const verifyBookingPayment = async (req, res) => {
       bookingId: booking._id,
       description: `Earnings from booking ${booking.bookingId}`,
       status: 'success',
-    }).catch(() => {});
+    }).catch((e) => console.error('[wallet] owner earning credit failed after online payment', { bookingId: booking._id?.toString(), error: e.message }));
 
     return res.status(200).json(
       formatSuccessResponse(booking, messages.PAYMENT.PAYMENT_SUCCESSFUL)

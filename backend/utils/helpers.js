@@ -1,4 +1,5 @@
 // utils/helpers.js
+const crypto = require('crypto');
 
 // ===================================================
 // GENERATE RANDOM STRING (internal use)
@@ -25,10 +26,11 @@ const generateUniqueId = (prefix = '') => {
 // GENERATE OTP
 // ===================================================
 const generateOTP = (length = 6) => {
-  const digits = '0123456789';
+  // Cryptographically secure — crypto.randomInt is unbiased and unpredictable,
+  // unlike Math.random() which is not safe for security tokens.
   let otp = '';
   for (let i = 0; i < length; i++) {
-    otp += digits.charAt(Math.floor(Math.random() * digits.length));
+    otp += crypto.randomInt(0, 10).toString();
   }
   return otp;
 };
