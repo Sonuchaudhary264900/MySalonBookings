@@ -98,13 +98,13 @@ async function sendBookingConfirmation({ phone, customerName, salonName, service
 }
 
 /**
- * 24-hour reminder WhatsApp message.
+ * 10-minute reminder WhatsApp message.
  *
- * Template: appointment_reminder_24h  (or WHATSAPP_REMINDER_24H_TEMPLATE)
- * Example body: "Hi {{1}}! Just a reminder — your {{2}} at {{3}} is tomorrow at {{4}}. See you soon!"
+ * Template: appointment_reminder_10min  (or WHATSAPP_REMINDER_10MIN_TEMPLATE)
+ * Example body: "Hi {{1}}! Just a reminder — your {{2}} at {{3}} starts in 10 minutes at {{4}}. See you soon!"
  */
-async function sendReminder24h({ phone, customerName, serviceName, salonName, time }) {
-  const template = process.env.WHATSAPP_REMINDER_24H_TEMPLATE || 'appointment_reminder_24h';
+async function sendReminder10min({ phone, customerName, serviceName, salonName, time }) {
+  const template = process.env.WHATSAPP_REMINDER_10MIN_TEMPLATE || 'appointment_reminder_10min';
   return sendTemplate(phone, template, [customerName, serviceName, salonName, time]);
 }
 
@@ -131,4 +131,4 @@ async function sendDelayAlert({ phone, customerName, serviceName, salonName, ori
   return sendTemplate(phone, template, [customerName, serviceName, salonName, originalTime, tentativeTime, String(delayMinutes)]);
 }
 
-module.exports = { sendBookingConfirmation, sendReminder24h, sendReminder1h, sendDelayAlert };
+module.exports = { sendBookingConfirmation, sendReminder10min, sendReminder1h, sendDelayAlert };

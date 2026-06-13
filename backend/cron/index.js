@@ -116,77 +116,6 @@ const cleanupExpiredOTPs = cron.schedule('*/30 * * * *', async () => {
 
 /*
 ====================================================
-24 HOUR APPOINTMENT REMINDER
-Runs daily at 9 AM IST (3:30 AM UTC)
-Sends push to customer 24h before appointment
-====================================================
-*/
-
-const send24HourReminders = cron.schedule('30 3 * * *', async () => {
-
-  try {
-    console.log('📨 Sending 24 hour reminders');
-    const { sendExpoPush } = require('../utils/pushNotification');
-    const { sendReminder24h } = require('../utils/whatsapp');
-
-    const nowIST = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
-    // Target: bookings on tomorrow (IST)
-    const tomorrowIST = new Date(nowIST);
-    tomorrowIST.setUTCDate(tomorrowIST.getUTCDate() + 1);
-    const tomorrowStr = tomorrowIST.toISOString().slice(0, 10);
-
-    const bookings = await Booking.find({
-      status: { $in: ['confirmed', 'pending'] },
-      reminderSentAt: { $exists: false },
-    }).populate('customerId', 'pushToken name phone').lean();
-
-    let sent = 0;
-
-    for (const booking of bookings) {
-      try {
-        const bookingDate = booking.appointmentDate?.toISOString().slice(0, 10);
-        if (bookingDate !== tomorrowStr) continue;
-
-        const token = booking.customerId?.pushToken;
-        if (token) {
-          await sendExpoPush(
-            token,
-            '📅 Appointment Tomorrow',
-            `Reminder: ${booking.serviceName || 'your appointment'} at ${booking.salonName} tomorrow at ${booking.appointmentTime}.`,
-            { bookingId: booking._id.toString(), type: '24h_reminder' },
-            { channelId: 'reminders' }
-          ).catch(() => {});
-        }
-
-        if (booking.customerId?.phone) {
-          sendReminder24h({
-            phone: booking.customerId.phone,
-            customerName: booking.customerId.name || 'there',
-            serviceName: booking.serviceName || 'your appointment',
-            salonName: booking.salonName,
-            time: booking.appointmentTime,
-          }).catch(() => {});
-        }
-
-        await Booking.updateOne({ _id: booking._id }, { $set: { reminderSentAt: new Date() } });
-        sent++;
-
-      } catch (error) {
-        console.error(`Reminder error booking ${booking._id}`, error);
-      }
-    }
-
-    console.log(`✅ ${sent} 24h reminders sent`);
-
-  } catch (error) {
-    console.error('❌ 24 hour reminder error', error);
-  }
-
-});
-
-
-/*
-====================================================
 1 HOUR APPOINTMENT REMINDER
 Runs every 5 minutes — sends push 55-65 min before slot
 ====================================================
@@ -761,6 +690,7 @@ Runs every minute — sends push to customer 10 min before slot
 const send10MinReminders = cron.schedule('*/5 * * * *', async () => {
   try {
     const { sendExpoPush } = require('../utils/pushNotification');
+    const { sendReminder10min } = require('../utils/whatsapp');
 
     // Current IST time
     const nowIST = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
@@ -773,7 +703,7 @@ const send10MinReminders = cron.schedule('*/5 * * * *', async () => {
     const bookings = await Booking.find({
       status: { $in: ['pending', 'confirmed'] },
       'remindersSent.tenMin': { $ne: true },
-    }).populate('customerId', 'pushToken name').lean();
+    }).populate('customerId', 'pushToken name phone').lean();
 
     for (const booking of bookings) {
       try {
@@ -795,6 +725,16 @@ const send10MinReminders = cron.schedule('*/5 * * * *', async () => {
             { bookingId: booking._id.toString(), type: 'ten_min_reminder' },
             { channelId: 'ten_min_reminder' }
           );
+        }
+
+        if (booking.customerId?.phone) {
+          sendReminder10min({
+            phone: booking.customerId.phone,
+            customerName: booking.customerId.name || 'there',
+            serviceName: booking.serviceName || 'your appointment',
+            salonName: booking.salonName,
+            time: effectiveTime,
+          }).catch(() => {});
         }
 
         await Booking.updateOne({ _id: booking._id }, { $set: { 'remindersSent.tenMin': true } });
@@ -1340,7 +1280,6 @@ module.exports = {
 
   cleanupOldQueues,
   cleanupExpiredOTPs,
-  send24HourReminders,
   send1HourReminders,
   recalcLiveQueueDelays,
   send30MinReminders,
@@ -1366,7 +1305,6 @@ module.exports = {
 
     cleanupOldQueues.stop();
     cleanupExpiredOTPs.stop();
-    send24HourReminders.stop();
     send1HourReminders.stop();
     recalcLiveQueueDelays.stop();
     send30MinReminders.stop();
