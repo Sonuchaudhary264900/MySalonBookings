@@ -58,7 +58,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const navigation = useNavigation();
-  const { user, logout, updateProfile, changePassword, refreshUser } = useAuth();
+  const { user, logout, updateProfile, refreshUser } = useAuth();
   const { salon } = useSalon();
 
   const [activeSection, setActiveSection] = useState(null);
@@ -67,11 +67,6 @@ export default function ProfileScreen() {
   const [profileLoading, setProfileLoading] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
 
-  const [changingPw, setChangingPw] = useState(false);
-  const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
-  const [pwLoading, setPwLoading] = useState(false);
-  const [showPw, setShowPw] = useState({ current: false, next: false, confirm: false });
-
   const [showQR, setShowQR] = useState(false);
   const [capturing, setCapturing] = useState(false);
   const [capturingA4, setCapturingA4] = useState(false);
@@ -79,8 +74,6 @@ export default function ProfileScreen() {
   useFocusEffect(useCallback(() => {
     return () => {
       setEditing(false);
-      setChangingPw(false);
-      setPwForm({ current: '', next: '', confirm: '' });
     };
   }, []));
 
@@ -137,23 +130,6 @@ export default function ProfileScreen() {
       showError('Error', err.message || 'Something went wrong');
     } finally {
       setProfileLoading(false);
-    }
-  };
-
-  const handleChangePassword = async () => {
-    if (!pwForm.current) { showError('Error', 'Current password is required'); return; }
-    if (!pwForm.next || pwForm.next.length < 6) { showError('Error', 'New password must be at least 6 characters'); return; }
-    if (pwForm.next !== pwForm.confirm) { showError('Error', 'Passwords do not match'); return; }
-    setPwLoading(true);
-    try {
-      await changePassword(pwForm.current, pwForm.next);
-      setPwForm({ current: '', next: '', confirm: '' });
-      setChangingPw(false);
-      showSuccess('Saved', 'Password updated successfully!');
-    } catch (err) {
-      showError('Error', err.message || 'Something went wrong');
-    } finally {
-      setPwLoading(false);
     }
   };
 
@@ -416,8 +392,8 @@ img.src=${qrApiUrl};
         {/* Section 2: Security */}
         <Section
           id="security" activeSection={activeSection} setActiveSection={setActiveSection}
-          icon="lock-closed-outline" iconBg="#fee2e2" iconColor="#dc2626"
-          title="Security" subtitle="Password and login security"
+          icon="shield-checkmark-outline" iconBg="#d1fae5" iconColor="#059669"
+          title="Security" subtitle="Secured with phone OTP — no password needed"
         >
           <View style={[styles.infoCard, { backgroundColor: theme.bg }]}>
             <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#10b981' }} />
@@ -430,50 +406,9 @@ img.src=${qrApiUrl};
             <Ionicons name="phone-portrait-outline" size={16} color="#6b7280" />
             <View style={{ marginLeft: 10 }}>
               <Text style={styles.infoLabel}>Login Method</Text>
-              <Text style={[styles.infoValue, { color: theme.text }]}>Phone Number + Password</Text>
+              <Text style={[styles.infoValue, { color: theme.text }]}>Phone OTP (no password)</Text>
             </View>
           </View>
-          <View style={[styles.infoCard, { backgroundColor: theme.bg }]}>
-            <Ionicons name="key-outline" size={16} color="#6b7280" />
-            <View style={{ marginLeft: 10 }}>
-              <Text style={styles.infoLabel}>Last Password Changed</Text>
-              <Text style={[styles.infoValue, { color: theme.text }]}>
-                {user?.lastPasswordChange ? new Date(user.lastPasswordChange).toLocaleDateString('en-IN') : 'Never'}
-              </Text>
-            </View>
-          </View>
-
-          <View style={[styles.pwDivider, { borderTopColor: theme.border }]}>
-            <Text style={[styles.pwDividerLabel, { color: theme.text }]}>Change Password</Text>
-          </View>
-
-          {[
-            { label: 'Current Password', key: 'current' },
-            { label: 'New Password', key: 'next' },
-            { label: 'Confirm New Password', key: 'confirm' },
-          ].map((f) => (
-            <View style={styles.inputField} key={f.key}>
-              <Text style={styles.inputLabel}>{f.label}</Text>
-              <View style={[styles.inputRow, { borderColor: theme.border }]}>
-                <Ionicons name="lock-closed-outline" size={16} color="#9ca3af" style={{ marginRight: 8 }} />
-                <TextInput
-                  style={[styles.input, { flex: 1, color: theme.text }]}
-                  value={pwForm[f.key]}
-                  onChangeText={(v) => setPwForm((p) => ({ ...p, [f.key]: v }))}
-                  secureTextEntry={!showPw[f.key]}
-                  editable={!pwLoading}
-                  placeholderTextColor="#9ca3af"
-                  placeholder="••••••••"
-                />
-                <TouchableOpacity onPress={() => setShowPw((p) => ({ ...p, [f.key]: !p[f.key] }))}>
-                  <Ionicons name={showPw[f.key] ? 'eye-off-outline' : 'eye-outline'} size={16} color="#9ca3af" />
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))}
-          <TouchableOpacity style={[styles.btn, styles.btnPrimary, { marginTop: 4 }]} onPress={handleChangePassword} disabled={pwLoading}>
-            {pwLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.btnPrimaryText}>Update Password</Text>}
-          </TouchableOpacity>
         </Section>
 
         {/* Section 3: Account Information */}

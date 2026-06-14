@@ -1670,6 +1670,7 @@ router.put(
 
 router.post(
   "/owner/auth/delete-account",
+  authenticateOwner,
   asyncHandler(ownerAuthController.deleteAccount)
 );
 

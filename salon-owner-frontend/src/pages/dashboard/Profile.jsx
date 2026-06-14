@@ -128,138 +128,7 @@ const Profile = () => {
     }
   };
 
-  // ── Firebase SMS OTP Password Reset ──
-  const [secPhase, setSecPhase]             = useState('idle'); // 'idle' | 'sent' | 'success'
-  const [secOtp, setSecOtp]                 = useState(['', '', '', '', '', '']);
-  const [secNewPw, setSecNewPw]             = useState('');
-  const [secConfirmPw, setSecConfirmPw]     = useState('');
-  const [showNewPw, setShowNewPw]           = useState(false);
-  const [showConfirmPw, setShowConfirmPw]   = useState(false);
-  const [secErrors, setSecErrors]           = useState({});
-  const [secLoading, setSecLoading]         = useState(false);
-  const [otpTimer, setOtpTimer]             = useState(0);
-  const [confirmResult, setConfirmResult]   = useState(null);
-  const otpRefs       = useRef([]);
-  const recaptchaRef  = useRef(null);
-
-  useEffect(() => {
-    if (otpTimer <= 0) return;
-    const t = setTimeout(() => setOtpTimer(p => p - 1), 1000);
-    return () => clearTimeout(t);
-  }, [otpTimer]);
-
-  // Clean up recaptcha on unmount
-  useEffect(() => {
-    return () => { try { recaptchaRef.current?.clear(); } catch {} };
-  }, []);
-
-  const setupRecaptcha = () => {
-    if (recaptchaRef.current) return recaptchaRef.current;
-    const verifier = new RecaptchaVerifier(auth, 'pw-reset-recaptcha', {
-      size: 'invisible',
-      callback: () => {},
-    });
-    recaptchaRef.current = verifier;
-    return verifier;
-  };
-
-  const handleSendOtp = async () => {
-    if (!user?.phone) { toast.error('No phone number found on your account'); return; }
-    setSecLoading(true);
-    try {
-      const verifier = setupRecaptcha();
-      const result   = await signInWithPhoneNumber(auth, user.phone, verifier);
-      setConfirmResult(result);
-      setSecPhase('sent');
-      setOtpTimer(60);
-      setSecOtp(['', '', '', '', '', '']);
-      setSecErrors({});
-      setTimeout(() => otpRefs.current[0]?.focus(), 100);
-      toast.success(`OTP sent to ${user.phone}`);
-    } catch (err) {
-      toast.error('Failed to send OTP. Try again.');
-      try { recaptchaRef.current?.clear(); recaptchaRef.current = null; } catch {}
-    } finally {
-      setSecLoading(false);
-    }
-  };
-
-  const handleOtpChange = (idx, val) => {
-    if (!/^\d?$/.test(val)) return;
-    const next = [...secOtp];
-    next[idx] = val;
-    setSecOtp(next);
-    if (secErrors.otp) setSecErrors(p => ({ ...p, otp: '' }));
-    if (val && idx < 5) otpRefs.current[idx + 1]?.focus();
-    // Auto-submit when all 6 digits entered
-    if (val && idx === 5 && next.every(d => d)) {
-      verifyAndReset(next.join(''));
-    }
-  };
-
-  const handleOtpPaste = (e) => {
-    e.preventDefault();
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (!pasted) return;
-    const next = ['', '', '', '', '', ''];
-    pasted.split('').forEach((ch, i) => { next[i] = ch; });
-    setSecOtp(next);
-    if (secErrors.otp) setSecErrors(p => ({ ...p, otp: '' }));
-    otpRefs.current[Math.min(pasted.length, 5)]?.focus();
-    if (pasted.length === 6) verifyAndReset(pasted);
-  };
-
-  const handleOtpKeyDown = (idx, e) => {
-    if (e.key === 'Backspace' && !secOtp[idx] && idx > 0) otpRefs.current[idx - 1]?.focus();
-    if (e.key === 'ArrowLeft'  && idx > 0) otpRefs.current[idx - 1]?.focus();
-    if (e.key === 'ArrowRight' && idx < 5) otpRefs.current[idx + 1]?.focus();
-  };
-
-  // Step 1: verify Firebase OTP → store idToken, move to password entry
-  const [firebaseIdToken, setFirebaseIdToken] = useState(null);
-
-  const verifyAndReset = async (code) => {
-    if (!confirmResult || secLoading) return;
-    // If passwords aren't set yet, just verify the OTP and show password fields
-    const errs = {};
-    if (!secNewPw)                errs.newPw = 'Enter your new password';
-    else if (secNewPw.length < 8) errs.newPw = 'Minimum 8 characters';
-    if (secNewPw !== secConfirmPw) errs.confirmPw = 'Passwords do not match';
-    if (Object.keys(errs).length) { setSecErrors(errs); return; }
-
-    setSecLoading(true);
-    try {
-      const result  = await confirmResult.confirm(code);
-      const idToken = await result.user.getIdToken();
-      await API.post('/owner/auth/firebase-reset-password', {
-        firebaseToken: idToken,
-        newPassword: secNewPw,
-      });
-      setSecPhase('success');
-      setSecOtp(['', '', '', '', '', '']);
-      setSecNewPw('');
-      setSecConfirmPw('');
-      toast.success('Password updated successfully!');
-    } catch (err) {
-      const msg = err?.message || err?.response?.data?.message || '';
-      if (msg.toLowerCase().includes('invalid') || msg.toLowerCase().includes('code')) {
-        setSecErrors(p => ({ ...p, otp: 'Incorrect OTP — try again' }));
-        setSecOtp(['', '', '', '', '', '']);
-        otpRefs.current[0]?.focus();
-      } else {
-        toast.error(msg || 'Failed to reset password');
-      }
-    } finally {
-      setSecLoading(false);
-    }
-  };
-
-  const handleResetPassword = (e) => {
-    e.preventDefault();
-    const code = secOtp.join('');
-    if (code.length < 6) { setSecErrors(p => ({ ...p, otp: 'Enter all 6 digits' })); return; }
-    verifyAndReset(code);
-  };
+  // OTP-only: owners have no password, so the password-reset flow was removed.
 
   const memberSince = user?.createdAt
     ? new Date(user.createdAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })
@@ -444,24 +313,21 @@ const Profile = () => {
           )}
         </Section>
 
-        {/* ── Section 2: Security ── */}
+        {/* ── Section 2: Security — OTP-only, no password ── */}
         <Section
           id="security"
           activeId={activeSection}
           onToggle={toggle}
-          icon={Lock}
-          iconColor="bg-red-100 text-red-600"
+          icon={ShieldCheck}
+          iconColor="bg-emerald-100 text-emerald-600"
           title="Security"
-          subtitle="Password and login security"
+          subtitle="Secured with phone OTP — no password needed"
         >
           <div className="pt-3 space-y-4">
-
-            {/* Status pills */}
             <div className="flex flex-wrap gap-2">
               {[
                 { icon: ShieldCheck, label: 'Active & Verified', color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200' },
-                { icon: Phone,       label: 'Phone Auth',        color: 'text-blue-600',    bg: 'bg-blue-50 border-blue-200' },
-                { icon: KeyRound,    label: 'Password Protected', color: 'text-violet-600',  bg: 'bg-violet-50 border-violet-200' },
+                { icon: Phone,       label: 'Phone OTP Auth',     color: 'text-blue-600',    bg: 'bg-blue-50 border-blue-200' },
               ].map(({ icon: Ic, label, color, bg }) => (
                 <span key={label} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold ${bg} ${color}`}>
                   <Ic className="w-3.5 h-3.5" />
@@ -469,179 +335,7 @@ const Profile = () => {
                 </span>
               ))}
             </div>
-
-            {/* Last changed */}
-            <div className="flex items-center justify-between py-1">
-              <span className="text-xs text-gray-400 flex items-center gap-1.5">
-                <KeyRound className="w-3.5 h-3.5" />
-                Last password changed
-              </span>
-              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                user?.lastPasswordChange
-                  ? 'bg-blue-50 text-blue-600'
-                  : 'bg-gray-100 text-gray-400'
-              }`}>
-                {user?.lastPasswordChange
-                  ? new Date(user.lastPasswordChange).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-                  : 'Never'}
-              </span>
-            </div>
-
-            {/* Invisible recaptcha container */}
-            <div id="pw-reset-recaptcha" />
-
-            {/* ── PHASE: idle ── */}
-            {secPhase === 'idle' && (
-              <button
-                onClick={handleSendOtp}
-                disabled={secLoading}
-                className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl font-semibold text-sm text-white transition-all disabled:opacity-60"
-                style={{ background: 'linear-gradient(135deg,#7c3aed,#db2777)', boxShadow: '0 4px 20px rgba(124,58,237,0.35)' }}
-              >
-                {secLoading
-                  ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  : <Phone className="w-4 h-4" />}
-                Send OTP to My Mobile
-              </button>
-            )}
-
-            {/* ── PHASE: otp sent ── */}
-            {secPhase === 'sent' && (
-              <form onSubmit={handleResetPassword} className="space-y-5">
-
-                {/* Phone hint */}
-                <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-violet-50 border border-violet-200">
-                  <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center shrink-0">
-                    <Phone className="w-4 h-4 text-violet-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-violet-500 font-medium">SMS OTP sent to</p>
-                    <p className="text-sm font-bold text-violet-800">
-                      {user?.phone?.replace(/(\+\d{2})(\d{4})(\d+)(\d{4})/, '$1 $2 XXXX $4')}
-                    </p>
-                  </div>
-                </div>
-
-                {/* 6-digit OTP boxes */}
-                <div>
-                  <p className="text-xs font-semibold text-gray-600 mb-2.5 uppercase tracking-wider">Enter OTP</p>
-                  <div className="flex gap-2 justify-center">
-                    {secOtp.map((digit, idx) => (
-                      <input
-                        key={idx}
-                        ref={el => otpRefs.current[idx] = el}
-                        type="text"
-                        inputMode="numeric"
-                        maxLength={1}
-                        autoComplete={idx === 0 ? 'one-time-code' : 'off'}
-                        value={digit}
-                        onChange={e => handleOtpChange(idx, e.target.value)}
-                        onKeyDown={e => handleOtpKeyDown(idx, e)}
-                        onPaste={handleOtpPaste}
-                        className={`w-11 text-center text-xl font-bold rounded-xl border-2 transition-all outline-none
-                          ${digit ? 'border-violet-500 bg-violet-50 text-violet-700' : 'border-gray-200 bg-gray-50 text-gray-800'}
-                          focus:border-violet-500 focus:bg-white focus:shadow-[0_0_0_3px_rgba(124,58,237,0.12)]`}
-                        style={{ height: 52 }}
-                      />
-                    ))}
-                  </div>
-                  {secErrors.otp && <p className="text-xs text-red-500 mt-1.5 text-center">{secErrors.otp}</p>}
-                </div>
-
-                {/* Resend */}
-                <div className="text-center">
-                  {otpTimer > 0 ? (
-                    <p className="text-xs text-gray-400">Resend OTP in <span className="font-semibold text-violet-600">{otpTimer}s</span></p>
-                  ) : (
-                    <button type="button" onClick={handleSendOtp} className="text-xs font-semibold text-violet-600 hover:text-violet-800 transition">
-                      Resend OTP
-                    </button>
-                  )}
-                </div>
-
-                {/* New password */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">New Password</label>
-                  <div className="relative">
-                    <input
-                      type={showNewPw ? 'text' : 'password'}
-                      value={secNewPw}
-                      onChange={e => { setSecNewPw(e.target.value); if (secErrors.newPw) setSecErrors(p => ({...p, newPw:''})); }}
-                      placeholder="Min 8 characters"
-                      className={`w-full px-4 py-3 pr-11 rounded-xl border-2 text-sm transition-all outline-none bg-gray-50
-                        ${secErrors.newPw ? 'border-red-400 bg-red-50' : 'border-gray-200 focus:border-violet-500 focus:bg-white focus:shadow-[0_0_0_3px_rgba(124,58,237,0.1)]'}`}
-                    />
-                    <button type="button" onClick={() => setShowNewPw(p => !p)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                      {showNewPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  {secErrors.newPw && <p className="text-xs text-red-500">{secErrors.newPw}</p>}
-                </div>
-
-                {/* Confirm password */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Confirm Password</label>
-                  <div className="relative">
-                    <input
-                      type={showConfirmPw ? 'text' : 'password'}
-                      value={secConfirmPw}
-                      onChange={e => { setSecConfirmPw(e.target.value); if (secErrors.confirmPw) setSecErrors(p => ({...p, confirmPw:''})); }}
-                      placeholder="Re-enter new password"
-                      className={`w-full px-4 py-3 pr-11 rounded-xl border-2 text-sm transition-all outline-none bg-gray-50
-                        ${secErrors.confirmPw ? 'border-red-400 bg-red-50' : 'border-gray-200 focus:border-violet-500 focus:bg-white focus:shadow-[0_0_0_3px_rgba(124,58,237,0.1)]'}`}
-                    />
-                    <button type="button" onClick={() => setShowConfirmPw(p => !p)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                      {showConfirmPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  {secErrors.confirmPw && <p className="text-xs text-red-500">{secErrors.confirmPw}</p>}
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2 pt-1">
-                  <button
-                    type="submit"
-                    disabled={secLoading}
-                    className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold text-sm text-white transition-all disabled:opacity-60"
-                    style={{ background: 'linear-gradient(135deg,#7c3aed,#db2777)', boxShadow: '0 4px 16px rgba(124,58,237,0.3)' }}
-                  >
-                    {secLoading
-                      ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      : <ShieldCheck className="w-4 h-4" />}
-                    Update Password
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setSecPhase('idle'); setSecErrors({}); }}
-                    className="px-5 py-3.5 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* ── PHASE: success ── */}
-            {secPhase === 'success' && (
-              <div className="flex flex-col items-center gap-3 py-6 text-center">
-                <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center">
-                  <CheckCircle2 className="w-7 h-7 text-emerald-600" />
-                </div>
-                <div>
-                  <p className="font-bold text-gray-900 text-base">Password Updated</p>
-                  <p className="text-sm text-gray-500 mt-0.5">Your account is secured with the new password.</p>
-                </div>
-                <button
-                  onClick={() => setSecPhase('idle')}
-                  className="mt-1 text-sm font-semibold text-violet-600 hover:text-violet-800 transition"
-                >
-                  Back to Security
-                </button>
-              </div>
-            )}
-
+            <p className="text-xs text-gray-500">You sign in with a one-time code sent to your phone. There's no password to manage.</p>
           </div>
         </Section>
 

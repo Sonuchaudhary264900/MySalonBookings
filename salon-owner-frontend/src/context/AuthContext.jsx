@@ -146,29 +146,6 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  // ========== CHANGE PASSWORD ==========
-
-  const changePassword = useCallback(async (currentPassword, newPassword) => {
-    try {
-      setError(null);
-
-      const response = await API.post('/owner/auth/change-password', {
-        currentPassword,
-        newPassword,
-      });
-
-      if (!response.data.success) {
-        throw new Error(response.data.message || 'Failed to change password');
-      }
-
-      return response.data;
-    } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to change password';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    }
-  }, []);
-
   // ========== REFRESH USER ==========
 
   const refreshUser = useCallback(async () => {
@@ -204,7 +181,6 @@ export const AuthProvider = ({ children }) => {
     register,
     login,
     updateProfile,
-    changePassword,
     refreshUser,
     logout,
 

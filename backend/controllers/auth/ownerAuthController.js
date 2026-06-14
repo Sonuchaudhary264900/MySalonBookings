@@ -561,35 +561,12 @@ exports.changePassword = async (req, res) => {
 // ===================================================
 exports.deleteAccount = async (req, res) => {
   try {
-    const { identifier, password } = req.body;
-
-    if (!identifier || !password) {
-      return res.status(400).json(
-        formatErrorResponse('Email/phone and password are required', 400)
-      );
-    }
-
-    // Find owner by email or phone (same logic as login)
-    let owner;
-    if (String(identifier).includes('@')) {
-      owner = await Owner.findOne({ email: identifier.toLowerCase().trim() }).select('+password');
-    } else {
-      let phone = String(identifier).replace(/\D/g, '');
-      if (phone.length === 10) phone = '+91' + phone;
-      else if (phone.length === 12 && phone.startsWith('91')) phone = '+' + phone;
-      owner = await Owner.findOne({ phone }).select('+password');
-    }
-
+    // OTP-only: deletion is authorized by the logged-in session (authenticateOwner),
+    // not a password. Owners no longer have passwords.
+    const owner = await Owner.findById(req.owner._id);
     if (!owner) {
       return res.status(404).json(
         formatErrorResponse('Account not found', 404)
-      );
-    }
-
-    const isMatch = await bcrypt.compare(password, owner.password);
-    if (!isMatch) {
-      return res.status(401).json(
-        formatErrorResponse('Incorrect password', 401)
       );
     }
 

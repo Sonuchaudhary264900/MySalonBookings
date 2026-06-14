@@ -207,122 +207,8 @@ const ProfileContent = () => {
     } finally { setProfileLoading(false); }
   };
 
-  // Security — Firebase OTP password reset
-  const [secPhase, setSecPhase]           = useState('idle');
-  const [secOtp, setSecOtp]               = useState(['', '', '', '', '', '']);
-  const [secNewPw, setSecNewPw]           = useState('');
-  const [secConfirmPw, setSecConfirmPw]   = useState('');
-  const [showNewPw, setShowNewPw]         = useState(false);
-  const [showConfirmPw, setShowConfirmPw] = useState(false);
-  const [secErrors, setSecErrors]         = useState({});
-  const [secLoading, setSecLoading]       = useState(false);
-  const [otpTimer, setOtpTimer]           = useState(0);
-  const [confirmResult, setConfirmResult] = useState(null);
-  const [secOpen, setSecOpen]             = useState(false);
-  const [accOpen, setAccOpen]             = useState(false);
-  const otpRefs      = useRef([]);
-  const recaptchaRef = useRef(null);
-
-  useEffect(() => {
-    if (otpTimer <= 0) return;
-    const t = setTimeout(() => setOtpTimer(p => p - 1), 1000);
-    return () => clearTimeout(t);
-  }, [otpTimer]);
-
-  useEffect(() => {
-    return () => { try { recaptchaRef.current?.clear(); } catch {} };
-  }, []);
-
-  const setupRecaptcha = () => {
-    if (recaptchaRef.current) return recaptchaRef.current;
-    const verifier = new RecaptchaVerifier(auth, 'profile-pw-reset-recaptcha', {
-      size: 'invisible', callback: () => {},
-    });
-    recaptchaRef.current = verifier;
-    return verifier;
-  };
-
-  const handleSendOtp = async () => {
-    if (!user?.phone) { toast.error('No phone number found on your account'); return; }
-    setSecLoading(true);
-    try {
-      const verifier = setupRecaptcha();
-      const result = await signInWithPhoneNumber(auth, user.phone, verifier);
-      setConfirmResult(result);
-      setSecPhase('sent');
-      setOtpTimer(60);
-      setSecOtp(['', '', '', '', '', '']);
-      setSecErrors({});
-      setTimeout(() => otpRefs.current[0]?.focus(), 100);
-      toast.success(`OTP sent to ${user.phone}`);
-    } catch {
-      toast.error('Failed to send OTP. Try again.');
-      try { recaptchaRef.current?.clear(); recaptchaRef.current = null; } catch {}
-    } finally { setSecLoading(false); }
-  };
-
-  const handleOtpChange = (idx, val) => {
-    if (!/^\d?$/.test(val)) return;
-    const next = [...secOtp];
-    next[idx] = val;
-    setSecOtp(next);
-    if (secErrors.otp) setSecErrors(p => ({ ...p, otp: '' }));
-    if (val && idx < 5) otpRefs.current[idx + 1]?.focus();
-    if (val && idx === 5 && next.every(d => d)) verifyAndReset(next.join(''));
-  };
-
-  const handleOtpPaste = (e) => {
-    e.preventDefault();
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (!pasted) return;
-    const next = ['', '', '', '', '', ''];
-    pasted.split('').forEach((ch, i) => { next[i] = ch; });
-    setSecOtp(next);
-    if (secErrors.otp) setSecErrors(p => ({ ...p, otp: '' }));
-    otpRefs.current[Math.min(pasted.length, 5)]?.focus();
-    if (pasted.length === 6) verifyAndReset(pasted);
-  };
-
-  const handleOtpKeyDown = (idx, e) => {
-    if (e.key === 'Backspace' && !secOtp[idx] && idx > 0) otpRefs.current[idx - 1]?.focus();
-    if (e.key === 'ArrowLeft'  && idx > 0) otpRefs.current[idx - 1]?.focus();
-    if (e.key === 'ArrowRight' && idx < 5) otpRefs.current[idx + 1]?.focus();
-  };
-
-  const verifyAndReset = async (code) => {
-    if (!confirmResult || secLoading) return;
-    const errs = {};
-    if (!secNewPw)               errs.newPw    = 'Enter your new password';
-    else if (secNewPw.length < 8) errs.newPw   = 'Minimum 8 characters';
-    if (secNewPw !== secConfirmPw) errs.confirmPw = 'Passwords do not match';
-    if (Object.keys(errs).length) { setSecErrors(errs); return; }
-    setSecLoading(true);
-    try {
-      const result  = await confirmResult.confirm(code);
-      const idToken = await result.user.getIdToken();
-      await api.post('/owner/auth/firebase-reset-password', { firebaseToken: idToken, newPassword: secNewPw });
-      setSecPhase('success');
-      setSecOtp(['', '', '', '', '', '']);
-      setSecNewPw(''); setSecConfirmPw('');
-      toast.success('Password updated successfully!');
-    } catch (err) {
-      const msg = err?.message || err?.response?.data?.message || '';
-      if (msg.toLowerCase().includes('invalid') || msg.toLowerCase().includes('code')) {
-        setSecErrors(p => ({ ...p, otp: 'Incorrect OTP — try again' }));
-        setSecOtp(['', '', '', '', '', '']);
-        otpRefs.current[0]?.focus();
-      } else {
-        toast.error(msg || 'Failed to reset password');
-      }
-    } finally { setSecLoading(false); }
-  };
-
-  const handleResetPassword = (e) => {
-    e.preventDefault();
-    const code = secOtp.join('');
-    if (code.length < 6) { setSecErrors(p => ({ ...p, otp: 'Enter all 6 digits' })); return; }
-    verifyAndReset(code);
-  };
+  // OTP-only: owners have no password, so the password-reset flow was removed.
+  const [accOpen, setAccOpen] = useState(false);
 
   const typeDef = SALON_TYPES.find(t => t.key === salon?.businessType);
 
@@ -447,179 +333,27 @@ const ProfileContent = () => {
         </div>
       )}
 
-      {/* Security sub-section */}
+      {/* Security sub-section — OTP-only, no password */}
       <div className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <button type="button" onClick={() => setSecOpen(p => !p)}
-          className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-          <div className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-950 flex items-center justify-center shrink-0">
-            <Lock className="w-4 h-4 text-red-600 dark:text-red-400" />
+        <div className="flex items-center gap-3 px-4 py-3.5">
+          <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center shrink-0">
+            <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-gray-900 dark:text-white">Security</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Password and login security</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Your account is secured with phone OTP — no password needed</p>
           </div>
-          <ChevronDown className={`w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0 transition-transform duration-200 ${secOpen ? 'rotate-180' : ''}`} />
-        </button>
-
-        {secOpen && (
-          <div className="px-4 pb-5 pt-2 border-t border-gray-100 dark:border-gray-800 space-y-4">
-
-            {/* Status pills */}
-            <div className="flex flex-wrap gap-2 pt-1">
-              {[
-                { icon: ShieldCheck, label: 'Active & Verified', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/50' },
-                { icon: Phone,       label: 'Phone Auth',        color: 'text-blue-600 dark:text-blue-400',    bg: 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800/50' },
-                { icon: KeyRound,    label: 'Password Protected', color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-950/30 border-violet-200 dark:border-violet-800/50' },
-              ].map(({ icon: Ic, label, color, bg }) => (
-                <span key={label} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold ${bg} ${color}`}>
-                  <Ic className="w-3.5 h-3.5" /> {label}
-                </span>
-              ))}
-            </div>
-
-            {/* Last changed */}
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1.5">
-                <KeyRound className="w-3.5 h-3.5" /> Last password changed
-              </span>
-              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                user?.lastPasswordChange
-                  ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500'
-              }`}>
-                {user?.lastPasswordChange
-                  ? new Date(user.lastPasswordChange).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-                  : 'Never'}
-              </span>
-            </div>
-
-            <div id="profile-pw-reset-recaptcha" />
-
-            {/* Phase: idle */}
-            {secPhase === 'idle' && (
-              <button onClick={handleSendOtp} disabled={secLoading}
-                className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl font-semibold text-sm text-white transition-all disabled:opacity-60"
-                style={{ background: 'linear-gradient(135deg,#7c3aed,#db2777)', boxShadow: '0 4px 20px rgba(124,58,237,0.35)' }}>
-                {secLoading
-                  ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  : <Phone className="w-4 h-4" />}
-                Send OTP to My Mobile
-              </button>
-            )}
-
-            {/* Phase: sent */}
-            {secPhase === 'sent' && (
-              <form onSubmit={handleResetPassword} className="space-y-5">
-                <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800/50">
-                  <div className="w-8 h-8 rounded-full bg-violet-100 dark:bg-violet-950 flex items-center justify-center shrink-0">
-                    <Phone className="w-4 h-4 text-violet-600 dark:text-violet-400" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-violet-500 dark:text-violet-400 font-medium">SMS OTP sent to</p>
-                    <p className="text-sm font-bold text-violet-800 dark:text-violet-200">
-                      {user?.phone?.replace(/(\+\d{2})(\d{4})(\d+)(\d{4})/, '$1 $2 XXXX $4')}
-                    </p>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2.5 uppercase tracking-wider">Enter OTP</p>
-                  <div className="flex gap-2 justify-center">
-                    {secOtp.map((digit, idx) => (
-                      <input key={idx}
-                        ref={el => otpRefs.current[idx] = el}
-                        type="text" inputMode="numeric" maxLength={1}
-                        autoComplete={idx === 0 ? 'one-time-code' : 'off'}
-                        value={digit}
-                        onChange={e => handleOtpChange(idx, e.target.value)}
-                        onKeyDown={e => handleOtpKeyDown(idx, e)}
-                        onPaste={handleOtpPaste}
-                        className={`w-10 text-center text-xl font-bold rounded-xl border-2 transition-all outline-none
-                          ${digit ? 'border-violet-500 bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300' : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200'}
-                          focus:border-violet-500 focus:bg-white dark:focus:bg-gray-900 focus:shadow-[0_0_0_3px_rgba(124,58,237,0.12)]`}
-                        style={{ height: 48 }}
-                      />
-                    ))}
-                  </div>
-                  {secErrors.otp && <p className="text-xs text-red-500 mt-1.5 text-center">{secErrors.otp}</p>}
-                </div>
-
-                <div className="text-center">
-                  {otpTimer > 0 ? (
-                    <p className="text-xs text-gray-400 dark:text-gray-500">Resend OTP in <span className="font-semibold text-violet-600 dark:text-violet-400">{otpTimer}s</span></p>
-                  ) : (
-                    <button type="button" onClick={handleSendOtp}
-                      className="text-xs font-semibold text-violet-600 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-200 transition">
-                      Resend OTP
-                    </button>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">New Password</label>
-                  <div className="relative">
-                    <input type={showNewPw ? 'text' : 'password'} value={secNewPw}
-                      onChange={e => { setSecNewPw(e.target.value); if (secErrors.newPw) setSecErrors(p => ({...p, newPw:''})); }}
-                      placeholder="Min 8 characters"
-                      className={`${INP} pr-11 ${secErrors.newPw ? 'border-red-400' : ''}`} />
-                    <button type="button" onClick={() => setShowNewPw(p => !p)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                      {showNewPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  {secErrors.newPw && <p className="text-xs text-red-500">{secErrors.newPw}</p>}
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Confirm Password</label>
-                  <div className="relative">
-                    <input type={showConfirmPw ? 'text' : 'password'} value={secConfirmPw}
-                      onChange={e => { setSecConfirmPw(e.target.value); if (secErrors.confirmPw) setSecErrors(p => ({...p, confirmPw:''})); }}
-                      placeholder="Re-enter new password"
-                      className={`${INP} pr-11 ${secErrors.confirmPw ? 'border-red-400' : ''}`} />
-                    <button type="button" onClick={() => setShowConfirmPw(p => !p)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                      {showConfirmPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  {secErrors.confirmPw && <p className="text-xs text-red-500">{secErrors.confirmPw}</p>}
-                </div>
-
-                <div className="flex gap-2 pt-1">
-                  <button type="submit" disabled={secLoading}
-                    className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold text-sm text-white transition-all disabled:opacity-60"
-                    style={{ background: 'linear-gradient(135deg,#7c3aed,#db2777)', boxShadow: '0 4px 16px rgba(124,58,237,0.3)' }}>
-                    {secLoading
-                      ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      : <ShieldCheck className="w-4 h-4" />}
-                    Update Password
-                  </button>
-                  <button type="button" onClick={() => { setSecPhase('idle'); setSecErrors({}); }}
-                    className="px-5 py-3.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* Phase: success */}
-            {secPhase === 'success' && (
-              <div className="flex flex-col items-center gap-3 py-6 text-center">
-                <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center">
-                  <CheckCircle2 className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                <div>
-                  <p className="font-bold text-gray-900 dark:text-white text-base">Password Updated</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Your account is secured with the new password.</p>
-                </div>
-                <button onClick={() => setSecPhase('idle')}
-                  className="mt-1 text-sm font-semibold text-violet-600 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-200 transition">
-                  Back to Security
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+        </div>
+        <div className="px-4 pb-4 flex flex-wrap gap-2">
+          {[
+            { icon: ShieldCheck, label: 'Active & Verified', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/50' },
+            { icon: Phone,       label: 'Phone OTP Auth',     color: 'text-blue-600 dark:text-blue-400',    bg: 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800/50' },
+          ].map(({ icon: Ic, label, color, bg }) => (
+            <span key={label} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold ${bg} ${color}`}>
+              <Ic className="w-3.5 h-3.5" /> {label}
+            </span>
+          ))}
+        </div>
       </div>
 
       {/* Account Information sub-section */}
@@ -1595,21 +1329,19 @@ const PrivacyContent = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [showDelete, setShowDelete] = useState(false);
-  const [password, setPassword]     = useState('');
   const [deleting, setDeleting]     = useState(false);
   const [step, setStep]             = useState(1);
 
   const handleDelete = async () => {
-    if (!password.trim()) { toast.error('Enter your password'); return; }
     setDeleting(true);
     try {
-      const identifier = user?.email || user?.phone;
-      await api.post('/owner/auth/delete-account', { identifier, password });
+      // OTP-only: authorized by the logged-in session, no password needed.
+      await api.post('/owner/auth/delete-account');
       toast.success('Account deleted. Goodbye!');
       logout();
       navigate('/login');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Incorrect password or error occurred');
+      toast.error(err.response?.data?.message || 'Could not delete account. Try again.');
     } finally { setDeleting(false); }
   };
 
@@ -1654,7 +1386,7 @@ const PrivacyContent = () => {
           <div className="rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 p-4 space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-bold text-red-700 dark:text-red-400">Delete Account Forever</p>
-              <button type="button" onClick={() => { setShowDelete(false); setStep(1); setPassword(''); }}
+              <button type="button" onClick={() => { setShowDelete(false); setStep(1); }}
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
                 <X className="w-4 h-4" />
               </button>
@@ -1681,12 +1413,7 @@ const PrivacyContent = () => {
 
             {step === 2 && (
               <>
-                <p className="text-sm text-red-700 dark:text-red-300">Enter your password to confirm deletion:</p>
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-                  placeholder="Your current password"
-                  className="w-full px-3 py-2.5 rounded-xl border-2 border-red-300 dark:border-red-700
-                    bg-white dark:bg-gray-900 text-gray-900 dark:text-white
-                    focus:outline-none focus:border-red-500 text-sm" />
+                <p className="text-sm text-red-700 dark:text-red-300">Are you sure? This will permanently delete your account and all its data.</p>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setStep(1)}
                     className="flex-1 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl
