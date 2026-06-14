@@ -832,7 +832,20 @@ exports.refreshToken = async (req, res) => {
       );
     }
 
-    // Generate new token
+    // Rotate the refresh token — invalidate the one just used and issue a fresh
+    // one so a stolen/leaked refresh token has a short useful life.
+    const newRefreshToken = jwt.sign(
+      { _id: customer._id },
+      process.env.JWT_REFRESH_SECRET,
+      { expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d' }
+    );
+    customer.refreshTokens = [
+      ...customer.refreshTokens.filter((rt) => rt.token !== refreshToken).slice(-4),
+      { token: newRefreshToken },
+    ];
+    await customer.save();
+
+    // Generate new access token
     const newToken = jwt.sign(
       {
         _id: customer._id,
@@ -846,7 +859,7 @@ exports.refreshToken = async (req, res) => {
 
     res.json(
       formatSuccessResponse(
-        { token: newToken },
+        { token: newToken, refreshToken: newRefreshToken },
         'Token refreshed successfully'
       )
     );

@@ -886,7 +886,19 @@ exports.refreshToken = async (req, res) => {
       );
     }
 
-    // Generate new token
+    // Rotate the refresh token — invalidate the used one and issue a fresh one.
+    const newRefreshToken = jwt.sign(
+      { _id: owner._id },
+      process.env.JWT_REFRESH_SECRET,
+      { expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d' }
+    );
+    owner.refreshTokens = [
+      ...owner.refreshTokens.filter((rt) => rt.token !== refreshToken).slice(-4),
+      { token: newRefreshToken },
+    ];
+    await owner.save();
+
+    // Generate new access token
     const newToken = jwt.sign(
       {
         _id: owner._id,
@@ -898,10 +910,12 @@ exports.refreshToken = async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRE || '24h' }
     );
 
-    setAuthCookies(res, newToken, refreshToken);
+    // Owner web reads the rotated refresh token from the cookie; mobile reads it
+    // from the response body.
+    setAuthCookies(res, newToken, newRefreshToken);
     res.json(
       formatSuccessResponse(
-        { token: newToken },
+        { token: newToken, refreshToken: newRefreshToken },
         'Token refreshed successfully'
       )
     );

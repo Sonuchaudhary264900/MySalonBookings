@@ -827,5 +827,6 @@ module.exports = {
   getMyBookings,
   getBookingDetails,
   cancelBooking,
-  addToQueue
+  addToQueue,
+  finalizeBookingAfterPayment, // reused by the Razorpay webhook reconciler
 };

@@ -202,7 +202,8 @@ app.use(cors({ origin: allowedOrigins, credentials: true }));
 /* ============================================================
    BODY PARSER + SANITIZATION
 ============================================================ */
-app.use(express.json({ limit: "1mb" }));
+// Keep the raw body so the Razorpay webhook can verify its HMAC signature.
+app.use(express.json({ limit: "1mb", verify: (req, _res, buf) => { req.rawBody = buf; } }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use("/uploads", express.static("uploads"));
 app.use(cookieParser());
