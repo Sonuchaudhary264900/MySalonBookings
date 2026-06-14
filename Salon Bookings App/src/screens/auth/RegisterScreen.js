@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, TextInput, TouchableOpacity, StyleSheet, Linking,
   ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image, Dimensions
@@ -7,12 +7,10 @@ import AppText from '../../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import auth from '@react-native-firebase/auth';
 import { showError, showSuccess } from '../../utils/toast';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import api, { setToken } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
-export default function RegisterScreen({ navigation }) {
-  const { refreshUser } = useAuth();
+export default function RegisterScreen({ navigation, route }) {
+  const { firebaseLogin } = useAuth();
   const [step, setStep]       = useState(1);
   const [name, setName]       = useState('');
   const [phone, setPhone]     = useState('');
@@ -21,6 +19,16 @@ export default function RegisterScreen({ navigation }) {
   const confirmationRef       = useRef(null);
   const firebaseTokenRef      = useRef('');
   const nameInputRef          = useRef(null);
+
+  // If LoginScreen verified a brand-new number, jump straight to the name step.
+  useEffect(() => {
+    if (route?.params?.firebaseToken) {
+      firebaseTokenRef.current = route.params.firebaseToken;
+      if (route.params.phone) setPhone(route.params.phone);
+      setStep(3);
+      setTimeout(() => nameInputRef.current?.focus(), 300);
+    }
+  }, [route?.params?.firebaseToken]);
 
   const normalizePhone = (p) => {
     const digits = p.replace(/\D/g, '');
@@ -66,22 +74,11 @@ export default function RegisterScreen({ navigation }) {
   const handleNameSubmit = async () => {
     setLoading(true);
     const finalName = name.trim().length >= 2 ? name.trim() : 'User';
-    const randomPass =
-      (Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4)).slice(0, 10) + 'Aa1!';
     try {
-      const res = await api.post('/customer/auth/firebase-register', {
-        firebaseToken: firebaseTokenRef.current,
-        name: finalName,
-        password: randomPass
-      });
-      if (!res.data.success) throw new Error(res.data.message || 'Registration failed');
-      const { token, refreshToken } = res.data.data || {};
-      if (!token) throw new Error('Registration failed — no token received');
-      await AsyncStorage.setItem('customerToken', token);
-      if (refreshToken) await AsyncStorage.setItem('customerRefreshToken', refreshToken);
-      setToken(token);
+      // OTP-only: the unified endpoint creates the account (no password).
+      await firebaseLogin(firebaseTokenRef.current, finalName);
       showSuccess('Welcome! 🎉', `You're all set${name.trim() ? `, ${finalName}` : ''}`);
-      await refreshUser();
+      // Auth state flips → app navigates automatically
     } catch (err) {
       const msg = err?.response?.data?.message || err?.message || 'Please try again.';
       showError('Registration Failed', msg);

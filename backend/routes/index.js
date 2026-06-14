@@ -1167,25 +1167,9 @@ router.post("/customer/coupons/validate", authenticateCustomer, asyncHandler(asy
    CUSTOMER AUTH ROUTES
 ===================================================== */
 
-router.post("/customer/auth/send-otp",
-  rateLimiter(5, 900000),
-  asyncHandler(customerAuthController.sendOTPToPhone)
-);
-
-router.post("/customer/auth/verify-otp",
-  rateLimiter(10, 900000),
-  asyncHandler(customerAuthController.verifyOTPOnly)
-);
-
-router.post("/customer/auth/register",
-  rateLimiter(5, 900000),
-  asyncHandler(customerAuthController.verifyOTPAndRegister)
-);
-
-router.post("/customer/auth/firebase-register",
-  rateLimiter(5, 900000),
-  asyncHandler(customerAuthController.firebaseRegister)
-);
+// OTP-only auth: legacy password/custom-OTP endpoints removed
+// (send-otp, verify-otp, register, firebase-register). Login + registration
+// now go exclusively through /customer/auth/firebase-auth.
 
 router.post("/customer/auth/firebase-login",
   rateLimiter(10, 900000),
@@ -1195,16 +1179,6 @@ router.post("/customer/auth/firebase-login",
 router.post("/customer/auth/firebase-auth",
   rateLimiter(10, 900000),
   asyncHandler(customerAuthController.firebaseAuth)
-);
-
-router.post("/customer/auth/firebase-reset-password",
-  rateLimiter(5, 900000),
-  asyncHandler(customerAuthController.firebaseResetPassword)
-);
-
-router.post("/customer/auth/login",
-  rateLimiter(10, 900000),
-  asyncHandler(customerAuthController.loginWithPhone)
 );
 
 router.post("/customer/auth/forgot-password/send-otp",
@@ -1225,11 +1199,6 @@ router.get("/customer/auth/me",
 router.put("/customer/auth/me",
   authenticateCustomer,
   asyncHandler(customerAuthController.updateProfile)
-);
-
-router.post("/customer/auth/change-password",
-  authenticateCustomer,
-  asyncHandler(customerAuthController.changePassword)
 );
 
 router.post("/customer/auth/upload-photo",

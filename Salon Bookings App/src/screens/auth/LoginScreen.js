@@ -1,78 +1,28 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, TextInput, TouchableOpacity, StyleSheet,
-  ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image, Dimensions, Alert
+  ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image, Dimensions
 } from 'react-native';
 import AppText from '../../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import auth from '@react-native-firebase/auth';
 import { useAuth } from '../../context/AuthContext';
-import { showError } from '../../utils/toast';
-import api from '../../services/api';
+import { showError, showSuccess } from '../../utils/toast';
 
 export default function LoginScreen({ navigation }) {
-  const { login } = useAuth();
-  const [phone, setPhone]             = useState('');
-  const [password, setPassword]       = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading]         = useState(false);
-
-  // Forgot password state
-  const [fpMode, setFpMode]     = useState(false);
-  const [fpStep, setFpStep]     = useState(1);
-  const [fpPhone, setFpPhone]   = useState('');
-  const [fpOtp, setFpOtp]       = useState('');
-  const [fpNewPw, setFpNewPw]   = useState('');
-  const [fpConfirm, setFpConfirm] = useState('');
-  const [fpShowPw, setFpShowPw] = useState(false);
-  const [fpLoading, setFpLoading] = useState(false);
-  const [fpTimer, setFpTimer]   = useState(0);
-  const fpConfirmationRef       = useRef(null);
+  const { firebaseLogin } = useAuth();
+  const [step, setStep]       = useState(1);
+  const [phone, setPhone]     = useState('');
+  const [otp, setOtp]         = useState('');
+  const [loading, setLoading] = useState(false);
+  const [timer, setTimer]     = useState(0);
+  const confirmationRef       = useRef(null);
 
   useEffect(() => {
-    if (fpTimer <= 0) return;
-    const id = setInterval(() => setFpTimer((t) => t - 1), 1000);
+    if (timer <= 0) return;
+    const id = setInterval(() => setTimer((t) => t - 1), 1000);
     return () => clearInterval(id);
-  }, [fpTimer]);
-
-  const normalizeFpPhone = (p) => {
-    const digits = p.replace(/\D/g, '');
-    if (digits.length === 10) return `+91${digits}`;
-    if (digits.length === 12 && digits.startsWith('91')) return `+${digits}`;
-    if (p.startsWith('+')) return p.trim();
-    return `+91${digits}`;
-  };
-
-  const handleFpSendOtp = async () => {
-    if (!fpPhone.trim()) { Alert.alert('Error', 'Please enter your phone number'); return; }
-    const normalized = normalizeFpPhone(fpPhone);
-    setFpLoading(true);
-    try {
-      const confirmation = await auth().signInWithPhoneNumber(normalized);
-      fpConfirmationRef.current = confirmation;
-      setFpStep(2); setFpTimer(60);
-      Alert.alert('OTP Sent', 'Enter the SMS code to reset your password');
-    } catch (err) {
-      Alert.alert('Error', err?.message || 'Failed to send OTP');
-    } finally { setFpLoading(false); }
-  };
-
-  const handleFpReset = async () => {
-    if (!fpOtp.trim() || fpOtp.length !== 6) { Alert.alert('Error', 'Please enter the 6-digit OTP'); return; }
-    if (!fpNewPw || fpNewPw.length < 6) { Alert.alert('Error', 'Password must be at least 6 characters'); return; }
-    if (fpNewPw !== fpConfirm) { Alert.alert('Error', 'Passwords do not match'); return; }
-    setFpLoading(true);
-    try {
-      const result = await fpConfirmationRef.current.confirm(fpOtp);
-      const idToken = await result.user.getIdToken();
-      await api.post('/customer/auth/firebase-reset-password', { firebaseToken: idToken, newPassword: fpNewPw });
-      Alert.alert('Success', 'Password reset successfully! Please log in.');
-      setFpMode(false); setFpStep(1); setFpPhone(''); setFpOtp(''); setFpNewPw(''); setFpConfirm('');
-      fpConfirmationRef.current = null;
-    } catch (err) {
-      Alert.alert('Error', err?.response?.data?.message || err?.message || 'Failed to reset password');
-    } finally { setFpLoading(false); }
-  };
+  }, [timer]);
 
   const normalizePhone = (p) => {
     const digits = p.replace(/\D/g, '');
@@ -82,16 +32,38 @@ export default function LoginScreen({ navigation }) {
     return `+91${digits}`;
   };
 
-  const handleLogin = async () => {
-    if (!phone.trim() || !password) {
-      showError('Error', 'Please fill in all fields.');
-      return;
-    }
+  const handleSendOtp = async () => {
+    const cleaned = phone.replace(/\D/g, '');
+    if (cleaned.length < 10) { showError('Error', 'Enter a valid 10-digit phone number'); return; }
     setLoading(true);
     try {
-      await login(normalizePhone(phone), password);
+      const confirmation = await auth().signInWithPhoneNumber(normalizePhone(phone));
+      confirmationRef.current = confirmation;
+      setStep(2);
+      setTimer(60);
+      showSuccess('OTP Sent', `Code sent to ${normalizePhone(phone)}`);
     } catch (err) {
-      showError('Login Failed', err?.message || 'Check your credentials and try again.');
+      showError('Error', err?.message || 'Failed to send OTP. Try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerify = async () => {
+    if (otp.length !== 6) { showError('Error', 'Enter the 6-digit OTP'); return; }
+    setLoading(true);
+    try {
+      const result = await confirmationRef.current.confirm(otp);
+      const idToken = await result.user.getIdToken();
+      const res = await firebaseLogin(idToken);
+      if (res?.needsName) {
+        // Brand-new number — send them to Register to add their name
+        showSuccess('Verified! 🎉', 'Just one more step');
+        navigation.navigate('Register', { phone, firebaseToken: idToken });
+      }
+      // On success the auth state flips and the app navigates automatically
+    } catch (err) {
+      showError('Invalid OTP', err?.response?.data?.message || err?.message || 'Please try again.');
     } finally {
       setLoading(false);
     }
@@ -109,74 +81,90 @@ export default function LoginScreen({ navigation }) {
 
         {/* Card */}
         <View style={styles.card}>
-          <AppText style={styles.cardTitle}>Welcome Back</AppText>
-          <AppText style={styles.cardSubtitle}>Sign in to your account</AppText>
+          {step === 1 ? (
+            <>
+              <AppText style={styles.cardTitle}>Welcome</AppText>
+              <AppText style={styles.cardSubtitle}>Sign in with your phone number</AppText>
 
-          {/* Phone */}
-          <View style={styles.field}>
-            <AppText style={styles.label}>Phone Number</AppText>
-            <View style={styles.inputRow}>
-              <Ionicons name="call-outline" size={18} color="#6b7280" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="+91 98765 43210"
-                placeholderTextColor="#9ca3af"
-                keyboardType="phone-pad"
-                value={phone}
-                onChangeText={setPhone}
-                editable={!loading}
-                autoCapitalize="none"
-              />
-            </View>
-          </View>
-
-          {/* Password */}
-          <View style={styles.field}>
-            <AppText style={styles.label}>Password</AppText>
-            <View style={styles.inputRow}>
-              <Ionicons name="lock-closed-outline" size={18} color="#6b7280" style={styles.inputIcon} />
-              <TextInput
-                style={[styles.input, { flex: 1 }]}
-                placeholder="Your password"
-                placeholderTextColor="#9ca3af"
-                secureTextEntry={!showPassword}
-                value={password}
-                onChangeText={setPassword}
-                editable={!loading}
-              />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color="#6b7280" />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.btn, loading && styles.btnDisabled]}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <>
-                <Ionicons name="log-in-outline" size={18} color="#fff" />
-                <AppText style={styles.btnText}>Sign In</AppText>
-              </>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.forgotBtn} onPress={() => { setFpMode(true); setFpPhone(phone); }}>
-            <AppText style={styles.forgotText}>Forgot Password?</AppText>
-          </TouchableOpacity>
-
-          {/* Features row */}
-          <View style={styles.featuresRow}>
-            {['Book Salons', 'Track History', 'Save Favorites'].map((f) => (
-              <View key={f} style={styles.featureChip}>
-                <AppText style={styles.featureText}>{f}</AppText>
+              <View style={styles.field}>
+                <AppText style={styles.label}>Phone Number</AppText>
+                <View style={styles.inputRow}>
+                  <Ionicons name="call-outline" size={18} color="#6b7280" style={styles.inputIcon} />
+                  <TextInput
+                    style={[styles.input, { fontSize: 17, height: 52 }]}
+                    placeholder="9876543210"
+                    placeholderTextColor="#9ca3af"
+                    keyboardType="phone-pad"
+                    maxLength={10}
+                    value={phone}
+                    onChangeText={(t) => setPhone(t.replace(/\D/g, '').slice(0, 10))}
+                    editable={!loading}
+                    autoFocus
+                  />
+                </View>
               </View>
-            ))}
-          </View>
+
+              <TouchableOpacity
+                style={[styles.btn, loading && styles.btnDisabled]}
+                onPress={handleSendOtp}
+                disabled={loading}
+                activeOpacity={0.85}
+              >
+                {loading ? <ActivityIndicator color="#fff" /> : <AppText style={styles.btnText}>Send OTP</AppText>}
+              </TouchableOpacity>
+
+              <AppText style={styles.trustSignal}>No password needed · We'll text you a code</AppText>
+            </>
+          ) : (
+            <>
+              <AppText style={styles.cardTitle}>Verify Phone</AppText>
+              <AppText style={styles.cardSubtitle}>Enter the 6-digit code sent to {normalizePhone(phone)}</AppText>
+
+              <View style={styles.field}>
+                <AppText style={styles.label}>OTP Code</AppText>
+                <View style={styles.inputRow}>
+                  <Ionicons name="key-outline" size={18} color="#6b7280" style={styles.inputIcon} />
+                  <TextInput
+                    style={[styles.input, { letterSpacing: 8, fontSize: 22, fontWeight: '700' }]}
+                    placeholder="• • • • • •"
+                    placeholderTextColor="#9ca3af"
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    value={otp}
+                    onChangeText={setOtp}
+                    editable={!loading}
+                    autoFocus
+                  />
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={[styles.btn, (loading || otp.length !== 6) && styles.btnDisabled]}
+                onPress={handleVerify}
+                disabled={loading || otp.length !== 6}
+                activeOpacity={0.85}
+              >
+                {loading ? <ActivityIndicator color="#fff" /> : (
+                  <><Ionicons name="checkmark-circle-outline" size={18} color="#fff" /><AppText style={styles.btnText}>Verify &amp; Continue</AppText></>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.linkBtn, { opacity: timer > 0 ? 0.5 : 1 }]}
+                onPress={timer === 0 ? handleSendOtp : undefined}
+                disabled={timer > 0}
+              >
+                <AppText style={styles.linkText}>{timer > 0 ? `Resend OTP in ${timer}s` : 'Resend OTP'}</AppText>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => { setStep(1); setOtp(''); confirmationRef.current = null; }}
+                style={styles.linkBtn}
+              >
+                <AppText style={styles.linkText}>← Change phone number</AppText>
+              </TouchableOpacity>
+            </>
+          )}
 
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
@@ -192,57 +180,6 @@ export default function LoginScreen({ navigation }) {
           </View>
         </View>
       </ScrollView>
-
-      {/* Forgot Password Overlay */}
-      {fpMode && (
-        <View style={styles.fpOverlay}>
-          <View style={styles.fpCard}>
-            <View style={styles.fpHeader}>
-              <AppText style={styles.fpTitle}>{fpStep === 1 ? 'Forgot Password' : 'Reset Password'}</AppText>
-              <TouchableOpacity onPress={() => { setFpMode(false); setFpStep(1); fpConfirmationRef.current = null; }}>
-                <Ionicons name="close" size={22} color="#6b7280" />
-              </TouchableOpacity>
-            </View>
-            {fpStep === 1 ? (
-              <>
-                <AppText style={styles.fpSub}>Enter your registered phone number</AppText>
-                <View style={[styles.inputRow, { marginBottom: 12 }]}>
-                  <Ionicons name="call-outline" size={18} color="#6b7280" style={styles.inputIcon} />
-                  <TextInput style={styles.input} placeholder="+91 98765 43210" placeholderTextColor="#9ca3af" keyboardType="phone-pad" value={fpPhone} onChangeText={setFpPhone} editable={!fpLoading} />
-                </View>
-                <TouchableOpacity style={[styles.btn, fpLoading && styles.btnDisabled, { marginBottom: 0 }]} onPress={handleFpSendOtp} disabled={fpLoading}>
-                  {fpLoading ? <ActivityIndicator color="#fff" /> : <AppText style={styles.btnText}>Send OTP</AppText>}
-                </TouchableOpacity>
-              </>
-            ) : (
-              <>
-                <AppText style={styles.fpSub}>OTP sent to {fpPhone}</AppText>
-                <View style={[styles.inputRow, { marginBottom: 10 }]}>
-                  <Ionicons name="key-outline" size={18} color="#6b7280" style={styles.inputIcon} />
-                  <TextInput style={styles.input} placeholder="6-digit OTP" placeholderTextColor="#9ca3af" keyboardType="number-pad" maxLength={6} value={fpOtp} onChangeText={setFpOtp} editable={!fpLoading} />
-                </View>
-                <View style={[styles.inputRow, { marginBottom: 10 }]}>
-                  <Ionicons name="lock-closed-outline" size={18} color="#6b7280" style={styles.inputIcon} />
-                  <TextInput style={[styles.input, { flex: 1 }]} placeholder="New password" placeholderTextColor="#9ca3af" secureTextEntry={!fpShowPw} value={fpNewPw} onChangeText={setFpNewPw} editable={!fpLoading} />
-                  <TouchableOpacity onPress={() => setFpShowPw(!fpShowPw)}>
-                    <Ionicons name={fpShowPw ? 'eye-off-outline' : 'eye-outline'} size={18} color="#6b7280" />
-                  </TouchableOpacity>
-                </View>
-                <View style={[styles.inputRow, { marginBottom: 12 }]}>
-                  <Ionicons name="lock-closed-outline" size={18} color="#6b7280" style={styles.inputIcon} />
-                  <TextInput style={styles.input} placeholder="Confirm new password" placeholderTextColor="#9ca3af" secureTextEntry value={fpConfirm} onChangeText={setFpConfirm} editable={!fpLoading} />
-                </View>
-                <TouchableOpacity style={[styles.btn, fpLoading && styles.btnDisabled, { marginBottom: 0 }]} onPress={handleFpReset} disabled={fpLoading}>
-                  {fpLoading ? <ActivityIndicator color="#fff" /> : <AppText style={styles.btnText}>Reset Password</AppText>}
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.forgotBtn, { opacity: fpTimer > 0 ? 0.5 : 1, marginTop: 10 }]} onPress={fpTimer === 0 ? handleFpSendOtp : undefined} disabled={fpTimer > 0}>
-                  <AppText style={styles.forgotText}>{fpTimer > 0 ? `Resend OTP in ${fpTimer}s` : 'Resend OTP'}</AppText>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
-        </View>
-      )}
     </KeyboardAvoidingView>
   );
 }
@@ -263,23 +200,16 @@ const styles = StyleSheet.create({
   inputRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: '#d1d5db', borderRadius: 10, paddingHorizontal: 12, height: 48 },
   inputIcon: { marginRight: 8 },
   input: { flex: 1, fontSize: 15, color: '#111827' },
-  btn: { backgroundColor: '#2563eb', borderRadius: 12, height: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 4, marginBottom: 16 },
+  btn: { backgroundColor: '#2563eb', borderRadius: 12, height: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 4, marginBottom: 12 },
   btnDisabled: { opacity: 0.5 },
   btnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  featuresRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginBottom: 16 },
-  featureChip: { backgroundColor: '#dbeafe', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999 },
-  featureText: { fontSize: 12, color: '#1d4ed8', fontWeight: '600' },
+  linkBtn: { alignItems: 'center', marginTop: 4, marginBottom: 6 },
+  linkText: { fontSize: 14, color: '#2563eb', fontWeight: '600' },
+  trustSignal: { fontSize: 12, color: '#9ca3af', textAlign: 'center', marginTop: 4, lineHeight: 18 },
   divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 16 },
   dividerLine: { flex: 1, height: 1, backgroundColor: '#e5e7eb' },
   dividerText: { marginHorizontal: 12, color: '#9ca3af', fontSize: 12 },
   registerRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   registerText: { fontSize: 14, color: '#6b7280' },
   registerLink: { fontSize: 14, color: '#2563eb', fontWeight: '700' },
-  forgotBtn: { alignItems: 'center', marginBottom: 14 },
-  forgotText: { fontSize: 14, color: '#2563eb', fontWeight: '600' },
-  fpOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  fpCard: { backgroundColor: '#fff', borderRadius: 20, padding: 24, width: '100%', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 16, elevation: 12 },
-  fpHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  fpTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
-  fpSub: { fontSize: 13, color: '#6b7280', marginBottom: 14 }
 });

@@ -53,17 +53,27 @@ export function AuthProvider({ children }) {
     })();
   }, []);
 
-  const login = async (phone, password) => {
-    const res = await api.post('/customer/auth/login', { phone, password });
-    const { token, refreshToken, customer } = res.data.data || {};
+  // OTP-only login/register. firebaseToken is the Firebase ID token obtained
+  // after phone-OTP verification. The unified backend endpoint logs in an
+  // existing user, asks for a name for a brand-new user (needsName), or creates
+  // the account when a name is supplied.
+  const firebaseLogin = async (firebaseToken, name) => {
+    const res = await api.post('/customer/auth/firebase-auth', {
+      firebaseToken,
+      ...(name ? { name } : {}),
+    });
+    const data = res.data?.data || {};
+    if (data.needsName) return { needsName: true };
+
+    const { token, refreshToken, customer } = data;
     if (!token) throw new Error('Login failed — no token received');
     await AsyncStorage.setItem('customerToken', token);
     if (refreshToken) await AsyncStorage.setItem('customerRefreshToken', refreshToken);
     setToken(token);
-    const u = customer || (await api.get('/customer/auth/me')).data.data?.customer;
-    if (u) await AsyncStorage.setItem('customerUser', JSON.stringify(u));
-    setUser(u);
+    if (customer) await AsyncStorage.setItem('customerUser', JSON.stringify(customer));
+    setUser(customer);
     setIsAuthenticated(true);
+    return { success: true, isNew: data.isNew };
   };
 
   const logout = async () => {
@@ -96,7 +106,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, loading, login, logout, refreshUser, updateProfile }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, loading, firebaseLogin, logout, refreshUser, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
