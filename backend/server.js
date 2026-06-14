@@ -326,8 +326,16 @@ const startupCatchUp = async () => {
     const todayIST  = nowIST.toISOString().slice(0, 10);
     const nowMinutes = nowIST.getUTCHours() * 60 + nowIST.getUTCMinutes();
 
+    // Bound the scan to bookings up to end of today (IST). appointmentDate is
+    // stored at noon UTC, so tomorrow-noon-UTC covers all of today IST.
+    // This keeps the catch-up off the (potentially large) set of future bookings.
+    const tomorrowNoonUTC = new Date();
+    tomorrowNoonUTC.setDate(tomorrowNoonUTC.getDate() + 1);
+    tomorrowNoonUTC.setUTCHours(12, 0, 0, 0);
+
     const pastBookings = await Booking.find({
       status: { $in: ["pending", "confirmed", "in_progress"] },
+      appointmentDate: { $lte: tomorrowNoonUTC },
     }).lean();
 
     const toComplete = pastBookings
@@ -363,8 +371,11 @@ const startServer = async () => {
   logger.info("🚀 MYSALONBOOKINGS BACKEND v2.0 STARTING");
   logger.info("══════════════════════════════════════════════");
 
+  // Only the DB is required before we start serving. Connect, then bring the
+  // server up immediately — everything else (external-service probes, one-time
+  // data fixups, booking catch-up) runs in the background so cold starts on
+  // Render's free tier respond to the first request as fast as possible.
   await initializeDatabase();
-  await testExternalServices();
 
   // Init BullMQ queues + workers
   try {
@@ -381,30 +392,34 @@ const startServer = async () => {
   cronJobs;
   logger.info("✅ Cron jobs started");
 
-  await startupCatchUp();
+  // Background maintenance — never blocks the server from accepting requests.
+  const runBackgroundMaintenance = async () => {
+    await testExternalServices().catch(() => {});
+    await startupCatchUp();
 
-  // Fix customers with broken lastLocation (type set but no coordinates)
-  try {
-    const Customer = require("./models/Customer");
-    const result = await Customer.updateMany(
-      { 'lastLocation.type': 'Point', 'lastLocation.coordinates': { $exists: false } },
-      { $unset: { lastLocation: '' } }
-    );
-    if (result.modifiedCount > 0)
-      logger.info(`✅ Fixed ${result.modifiedCount} customer(s) with broken lastLocation`);
-  } catch (e) {
-    logger.warn("lastLocation fix error", { error: e.message });
-  }
+    // Fix customers with broken lastLocation (type set but no coordinates)
+    try {
+      const Customer = require("./models/Customer");
+      const result = await Customer.updateMany(
+        { 'lastLocation.type': 'Point', 'lastLocation.coordinates': { $exists: false } },
+        { $unset: { lastLocation: '' } }
+      );
+      if (result.modifiedCount > 0)
+        logger.info(`✅ Fixed ${result.modifiedCount} customer(s) with broken lastLocation`);
+    } catch (e) {
+      logger.warn("lastLocation fix error", { error: e.message });
+    }
 
-  // Remove explicit email:null from owners so sparse unique index allows multiple email-less accounts
-  try {
-    const Owner = require("./models/Owner");
-    const result = await Owner.updateMany({ email: null }, { $unset: { email: "" } });
-    if (result.modifiedCount > 0)
-      logger.info(`✅ Cleared email:null from ${result.modifiedCount} owner(s) — sparse index fix`);
-  } catch (e) {
-    logger.warn("Owner email null-fix error", { error: e.message });
-  }
+    // Remove explicit email:null from owners so sparse unique index allows multiple email-less accounts
+    try {
+      const Owner = require("./models/Owner");
+      const result = await Owner.updateMany({ email: null }, { $unset: { email: "" } });
+      if (result.modifiedCount > 0)
+        logger.info(`✅ Cleared email:null from ${result.modifiedCount} owner(s) — sparse index fix`);
+    } catch (e) {
+      logger.warn("Owner email null-fix error", { error: e.message });
+    }
+  };
 
   // Allow up to 10 minutes for large uploads (Cloudinary direct-upload register calls are fast,
   // but keep this high so any legacy proxy path also gets sufficient time)
@@ -418,6 +433,11 @@ const startServer = async () => {
       env: process.env.NODE_ENV || "development",
       pid: process.pid,
     });
+
+    // Run maintenance after we're already accepting requests (non-blocking)
+    runBackgroundMaintenance().catch((e) =>
+      logger.warn("Background maintenance error", { error: e.message })
+    );
 
     // Warm up Python AI service (sends a harmless health request after 5s so MediaPipe is ready)
     if (process.env.PYTHON_AI_URL) {
