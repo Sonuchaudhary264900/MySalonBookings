@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { Eye, Bookmark, BookmarkCheck, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import BeforeAfterModal from './BeforeAfterModal';
 import { trackEvent, getStylistMatch } from '../services/hairstyleService';
 import { useNavigate } from 'react-router-dom';
 
-export default function HairstyleCard({ hairstyle, capturedBlobUrl, lat, lng, faceShape }) {
+function HairstyleCard({ hairstyle, capturedBlobUrl, lat, lng, faceShape }) {
   const navigate  = useNavigate();
   const [saved,        setSaved]        = useState(false);
   const [expanded,     setExpanded]     = useState(false);
@@ -194,3 +194,6 @@ export default function HairstyleCard({ hairstyle, capturedBlobUrl, lat, lng, fa
     </>
   );
 }
+
+// memo: rendered repeatedly in the hairstyle gallery list
+export default memo(HairstyleCard);
