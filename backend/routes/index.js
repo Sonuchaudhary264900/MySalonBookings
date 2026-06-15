@@ -2138,22 +2138,6 @@ router.get(
 );
 
 /* =====================================================
-   CUSTOMER AUTH - ADDITIONAL LOGIN METHODS
-===================================================== */
-
-router.post(
-  "/customer/auth/login-phone",
-  rateLimiter(5, 900000),
-  asyncHandler(customerAuthController.loginWithPhone)
-);
-
-router.post(
-  "/customer/auth/login-email",
-  rateLimiter(5, 900000),
-  asyncHandler(customerAuthController.loginWithEmail)
-);
-
-/* =====================================================
    ADMIN AUTH
 ===================================================== */
 
