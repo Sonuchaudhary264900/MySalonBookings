@@ -63,7 +63,7 @@ Render currently has TEST keys → "Test Mode" banner, no real money.
 
 ## 🟡 DO SOON (post-launch, week 1 — not blockers)
 
-- [ ] **WhatsApp notifications** (optional): create Meta app, get Phone Number ID + token, get 3 templates approved (`booking_confirmation`, `appointment_reminder_24h`, `appointment_reminder_1h`), set `WHATSAPP_*` env vars on Render, redeploy. (Code is done; no-ops until set.)
+- [ ] **WhatsApp notifications** — Meta side DONE (4 templates approved, permanent token + phone ID obtained). Remaining: set `WHATSAPP_TOKEN` (permanent token — in local memory) and `WHATSAPP_PHONE_NUMBER_ID=1130828416786832` on **RENDER** (backend, NOT Vercel) → verify template names match code defaults (`booking_confirmation`/`appointment_reminder_10min`/`appointment_reminder_1h`/`appointment_delay_alert`) and `{{n}}` counts (5/4/4/6) → redeploy → test a booking.
 - [ ] **Withdrawal OTP** (fraud guard): require Firebase phone re-verification before wallet withdrawals. Mitigated for now by manual admin approval of every payout. *(Agent can do this — code task.)*
 - [ ] **Automated tests** (Jest + supertest): booking/coupon/wallet/auth coverage. Biggest latent risk for a real-money app — currently zero tests. *(Agent can do this — code task.)*
 
