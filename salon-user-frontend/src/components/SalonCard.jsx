@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, memo } from "react";
 import {
   Heart, CheckCircle, Scissors, MapPin, Star,
   Megaphone, TrendingUp, Trophy, User, Users, Home as HomeIcon,
@@ -410,4 +410,5 @@ function SalonCard({ salon, userCoords }) {
   );
 }
 
-export default SalonCard;
+// memo: SalonCard is rendered many times in salon lists; skip re-renders when props are unchanged
+export default memo(SalonCard);
