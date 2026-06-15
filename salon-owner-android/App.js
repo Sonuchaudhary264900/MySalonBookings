@@ -19,6 +19,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 
+import ErrorBoundary from './src/components/ErrorBoundary';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { SalonProvider, useSalon } from './src/context/SalonContext';
 import { NotificationProvider, useNotifications } from './src/context/NotificationContext';
@@ -528,23 +529,25 @@ function NotificationTapHandler() {
 
 export default function App() {
   return (
-    <SafeAreaProvider>
-      <ThemeProvider>
-        <LanguageProvider>
-          <AuthProvider>
-            <SalonProvider>
-              <NotificationProvider>
-                <StatusBar style="light" />
-                <RootNavigator />
-                <BookingAlertModal />
-                <NotificationTapHandler />
-                <Toast />
-              </NotificationProvider>
-            </SalonProvider>
-          </AuthProvider>
-        </LanguageProvider>
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <LanguageProvider>
+            <AuthProvider>
+              <SalonProvider>
+                <NotificationProvider>
+                  <StatusBar style="light" />
+                  <RootNavigator />
+                  <BookingAlertModal />
+                  <NotificationTapHandler />
+                  <Toast />
+                </NotificationProvider>
+              </SalonProvider>
+            </AuthProvider>
+          </LanguageProvider>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }
 

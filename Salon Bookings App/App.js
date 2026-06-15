@@ -15,6 +15,7 @@ import Toast from 'react-native-toast-message';
 
 const navigationRef = createNavigationContainerRef();
 
+import ErrorBoundary from './src/components/ErrorBoundary';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { NotificationProvider, useNotifications } from './src/context/NotificationContext';
@@ -264,17 +265,19 @@ function ThemedApp() {
 
 export default function App() {
   return (
-    <SafeAreaProvider>
-      <ThemeProvider>
-        <LanguageProvider>
-          <AuthProvider>
-            <NotificationProvider>
-              <ThemedApp />
-            </NotificationProvider>
-          </AuthProvider>
-        </LanguageProvider>
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <LanguageProvider>
+            <AuthProvider>
+              <NotificationProvider>
+                <ThemedApp />
+              </NotificationProvider>
+            </AuthProvider>
+          </LanguageProvider>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }
 
