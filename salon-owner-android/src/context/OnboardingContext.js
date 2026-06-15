@@ -22,7 +22,6 @@ export const OnboardingProvider = ({ children, initialStep = 1, prefillPhone = '
   const [ownerName, setOwnerName]       = useState('');
   const [ownerEmail, setOwnerEmail]     = useState('');
   const [ownerGender, setOwnerGender]   = useState('');
-  const [password, setPassword]         = useState('');
   const [referralCode, setReferralCode] = useState('');
 
   // ── Step 4: Salon Identity ────────────────────────────────────
@@ -96,7 +95,6 @@ export const OnboardingProvider = ({ children, initialStep = 1, prefillPhone = '
       ownerName, setOwnerName,
       ownerEmail, setOwnerEmail,
       ownerGender, setOwnerGender,
-      password, setPassword,
       referralCode, setReferralCode,
 
       // Salon
