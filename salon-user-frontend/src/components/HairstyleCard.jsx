@@ -49,6 +49,8 @@ export default function HairstyleCard({ hairstyle, capturedBlobUrl, lat, lng, fa
           <img
             src={hairstyle.imageUrl}
             alt={hairstyle.name}
+            loading="lazy"
+            decoding="async"
             style={{ width: '100%', height: 220, objectFit: 'cover', display: 'block' }}
           />
           {/* Trending badge */}
@@ -153,7 +155,7 @@ export default function HairstyleCard({ hairstyle, capturedBlobUrl, lat, lng, fa
                         background: '#333', flexShrink: 0,
                       }}>
                         {s.photo
-                          ? <img src={s.photo} alt={s.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ? <img src={s.photo} alt={s.name} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', fontSize: 16, fontWeight: 700 }}>{s.name[0]}</div>
                         }
                       </div>

@@ -85,6 +85,8 @@ const CircleBtn = ({ label, imgSrc, isSelected, isAll, onSelect, accentColor, Ic
         ) : showImg ? (
           <img
             src={imgSrc} alt=""
+            loading="lazy"
+            decoding="async"
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             onError={() => setImgBroken(true)}
           />

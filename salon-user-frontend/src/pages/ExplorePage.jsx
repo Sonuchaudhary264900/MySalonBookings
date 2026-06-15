@@ -153,7 +153,7 @@ function SalonCard({ salon, subLabel }) {
     >
       <div style={{ height: 140, background: '#1a1a1a', overflow: 'hidden', position: 'relative' }}>
         {photo
-          ? <img src={photo} alt={salon.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ? <img src={photo} alt={salon.name} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg,#1e1b4b,#312e81)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Scissors size={28} color="#6366f1" />
             </div>
@@ -339,7 +339,7 @@ export default function ExplorePage() {
               >
                 {/* Cover image */}
                 <div style={{ height: 130, overflow: 'hidden' }}>
-                  <img src={biz.img} alt={biz.label} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }} />
+                  <img src={biz.img} alt={biz.label} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }} />
                   <div style={{ position: 'absolute', inset: 0, height: 130, background: `linear-gradient(to bottom, transparent 30%, ${biz.color}44)` }} />
                 </div>
                 <div style={{ padding: '16px 18px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -378,7 +378,7 @@ export default function ExplorePage() {
                 >
                   <div style={{ height: 100, overflow: 'hidden', background: '#1a1a1a' }}>
                     {img
-                      ? <img src={img} alt={cat.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ? <img src={img} alt={cat.label} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       : <div style={{ width: '100%', height: '100%', background: `linear-gradient(135deg,${selBiz.bg},${selBiz.border})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>{cat.icon || '💈'}</div>
                     }
                   </div>
