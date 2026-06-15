@@ -518,9 +518,8 @@ function InfoRow({ icon, label, value }) {
 // ── Notification tap handler ──────────────────────────────────────
 function NotificationTapHandler() {
   useEffect(() => {
-    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data || {};
-      console.log('Notification tapped:', data.type, data.bookingId);
+    const sub = Notifications.addNotificationResponseReceivedListener(() => {
+      // Tap handling is performed elsewhere; listener kept for future routing.
     });
     return () => sub.remove();
   }, []);
