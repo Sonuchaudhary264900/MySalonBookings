@@ -94,55 +94,7 @@ export default function SettingsScreen({ navigation }) {
   const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
   const [deletingAccount, setDeletingAccount] = useState(false);
 
-  // Change password via OTP
-  const [cpStep, setCpStep]     = useState(1);
-  const [cpOtp, setCpOtp]       = useState('');
-  const [cpNewPw, setCpNewPw]   = useState('');
-  const [cpConfirm, setCpConfirm] = useState('');
-  const [cpShowPw, setCpShowPw] = useState(false);
-  const [cpLoading, setCpLoading] = useState(false);
-  const [cpTimer, setCpTimer]   = useState(0);
-
-  useEffect(() => {
-    if (cpTimer <= 0) return;
-    const id = setInterval(() => setCpTimer((t) => t - 1), 1000);
-    return () => clearInterval(id);
-  }, [cpTimer]);
-
-  const normalizePhone = (p) => {
-    const d = (p || '').replace(/\D/g, '');
-    if (d.length === 10) return `+91${d}`;
-    if (d.length === 12 && d.startsWith('91')) return `+${d}`;
-    return p || '';
-  };
-
-  const handleCpSendOtp = async () => {
-    const phone = normalizePhone(user?.phone || '');
-    if (!phone) { showError('Error', 'No phone number linked to your account'); return; }
-    setCpLoading(true);
-    try {
-      await api.post('/customer/auth/forgot-password/send-otp', { phone });
-      setCpStep(2); setCpTimer(60);
-      showSuccess('OTP Sent', 'Enter the OTP to change your password');
-    } catch (err) {
-      showError('Error', err.response?.data?.message || 'Failed to send OTP');
-    } finally { setCpLoading(false); }
-  };
-
-  const handleCpReset = async () => {
-    if (!cpOtp.trim()) { showError('Error', 'Please enter the OTP'); return; }
-    if (!cpNewPw || cpNewPw.length < 6) { showError('Error', 'Password must be at least 6 characters'); return; }
-    if (cpNewPw !== cpConfirm) { showError('Error', 'Passwords do not match'); return; }
-    const phone = normalizePhone(user?.phone || '');
-    setCpLoading(true);
-    try {
-      await api.post('/customer/auth/forgot-password/reset', { phone, otp: cpOtp, newPassword: cpNewPw });
-      showSuccess('Success', 'Password changed successfully');
-      setCpStep(1); setCpOtp(''); setCpNewPw(''); setCpConfirm('');
-    } catch (err) {
-      showError('Error', err.response?.data?.message || 'Failed to change password');
-    } finally { setCpLoading(false); }
-  };
+  // OTP-only: no password, so the "change password" flow was removed.
 
   // Load persisted prefs on mount
   React.useEffect(() => {
@@ -386,58 +338,6 @@ export default function SettingsScreen({ navigation }) {
               <SettingRow icon="time-outline" iconColor="#0891b2" label={t('timeFormat')} rightEl={<AppText style={styles.valueText}>{timeFormat}</AppText>} onPress={() => showPicker('Select Time Format', TIME_FORMATS, timeFormat, async val => { setTimeFormat(val); await saveAppPref('timeFormat', val); })} chevron />
               <Divider />
               <SettingRow icon="calendar-outline" iconColor="#059669" label={t('dateFormat')} rightEl={<AppText style={styles.valueText}>{dateFormat}</AppText>} onPress={() => showPicker('Select Date Format', DATE_FORMATS, dateFormat, async val => { setDateFormat(val); await saveAppPref('dateFormat', val); })} chevron />
-            </View>
-          )}
-        </View>
-
-        {/* ── SECURITY ─────────────────────────────────────── */}
-        <SectionHeader title="Security" />
-
-        <View style={styles.accordionCard}>
-          <TouchableOpacity style={styles.accordionHeader} onPress={() => { toggleSection('password'); setCpStep(1); setCpOtp(''); setCpNewPw(''); setCpConfirm(''); }} activeOpacity={0.7}>
-            <View style={styles.accordionHeaderLeft}>
-              <View style={[styles.iconBox, { backgroundColor: '#6366f118' }]}>
-                <Ionicons name="lock-closed-outline" size={18} color="#6366f1" />
-              </View>
-              <AppText style={styles.accordionHeaderTitle}>Change Password</AppText>
-            </View>
-            <Ionicons name={expandedSection === 'password' ? 'chevron-up' : 'chevron-down'} size={18} color={theme.subText} />
-          </TouchableOpacity>
-          {expandedSection === 'password' && (
-            <View style={[styles.accordionBody, { padding: 14, gap: 10 }]}>
-              {cpStep === 1 ? (
-                <>
-                  <AppText style={styles.rowSublabel}>An OTP will be sent to your registered phone number</AppText>
-                  <TouchableOpacity style={[styles.cpBtn, cpLoading && { opacity: 0.7 }]} onPress={handleCpSendOtp} disabled={cpLoading}>
-                    {cpLoading ? <ActivityIndicator color="#fff" size="small" /> : <AppText style={styles.cpBtnText}>Send OTP to Phone</AppText>}
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <>
-                  <AppText style={styles.rowSublabel}>OTP sent to {user?.phone}</AppText>
-                  <View style={styles.cpInputRow}>
-                    <Ionicons name="key-outline" size={16} color={theme.subText} style={{ marginRight: 8 }} />
-                    <TextInput style={styles.cpInput} placeholder="Enter OTP" placeholderTextColor={theme.placeholder} keyboardType="number-pad" maxLength={6} value={cpOtp} onChangeText={setCpOtp} editable={!cpLoading} />
-                  </View>
-                  <View style={styles.cpInputRow}>
-                    <Ionicons name="lock-closed-outline" size={16} color={theme.subText} style={{ marginRight: 8 }} />
-                    <TextInput style={[styles.cpInput, { flex: 1 }]} placeholder="New password" placeholderTextColor={theme.placeholder} secureTextEntry={!cpShowPw} value={cpNewPw} onChangeText={setCpNewPw} editable={!cpLoading} />
-                    <TouchableOpacity onPress={() => setCpShowPw(!cpShowPw)}>
-                      <Ionicons name={cpShowPw ? 'eye-off-outline' : 'eye-outline'} size={18} color={theme.subText} />
-                    </TouchableOpacity>
-                  </View>
-                  <View style={styles.cpInputRow}>
-                    <Ionicons name="lock-closed-outline" size={16} color={theme.subText} style={{ marginRight: 8 }} />
-                    <TextInput style={styles.cpInput} placeholder="Confirm password" placeholderTextColor={theme.placeholder} secureTextEntry value={cpConfirm} onChangeText={setCpConfirm} editable={!cpLoading} />
-                  </View>
-                  <TouchableOpacity style={[styles.cpBtn, cpLoading && { opacity: 0.7 }]} onPress={handleCpReset} disabled={cpLoading}>
-                    {cpLoading ? <ActivityIndicator color="#fff" size="small" /> : <AppText style={styles.cpBtnText}>Reset Password</AppText>}
-                  </TouchableOpacity>
-                  <TouchableOpacity style={{ alignItems: 'center', opacity: cpTimer > 0 ? 0.5 : 1 }} onPress={cpTimer === 0 ? handleCpSendOtp : undefined} disabled={cpTimer > 0}>
-                    <AppText style={{ fontSize: 13, color: theme.accent }}>{cpTimer > 0 ? `Resend OTP in ${cpTimer}s` : 'Resend OTP'}</AppText>
-                  </TouchableOpacity>
-                </>
-              )}
             </View>
           )}
         </View>

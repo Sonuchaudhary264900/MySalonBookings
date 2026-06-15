@@ -12,12 +12,8 @@
 const Owner = require('../../models/Owner');
 const OTP = require('../../models/OTP');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
 const { formatSuccessResponse, formatErrorResponse } = require('../../utils/formatters');
-const { validateOwnerRegistration, validatePhone, validatePassword } = require('../../utils/validators');
-const { generateOTP, generateUniqueId } = require('../../utils/helpers');
 const messages = require('../../utils/messages');
-const { sendOTPEmail } = require('../../config/emailConfig');
 const { setAuthCookies, clearAuthCookies } = require('../../utils/cookies');
 
 // ===================================================

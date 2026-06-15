@@ -1181,16 +1181,6 @@ router.post("/customer/auth/firebase-auth",
   asyncHandler(customerAuthController.firebaseAuth)
 );
 
-router.post("/customer/auth/forgot-password/send-otp",
-  rateLimiter(5, 900000),
-  asyncHandler(customerAuthController.forgotPasswordSendOTP)
-);
-
-router.post("/customer/auth/forgot-password/reset",
-  rateLimiter(5, 900000),
-  asyncHandler(customerAuthController.forgotPasswordReset)
-);
-
 router.get("/customer/auth/me",
   authenticateCustomer,
   asyncHandler(customerAuthController.getCurrentCustomer)

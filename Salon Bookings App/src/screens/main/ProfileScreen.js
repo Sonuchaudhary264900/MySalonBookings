@@ -61,20 +61,7 @@ export default function ProfileScreen({ navigation }) {
   const [saving, setSaving]               = useState(false);
   const [genderSaving, setGenderSaving]   = useState(false);
 
-  // Change password (OTP-based)
-  const [cpStep, setCpStep]     = useState(0); // 0=locked, 1=send otp, 2=enter otp+new pw
-  const [cpOtp, setCpOtp]       = useState('');
-  const [cpNewPw, setCpNewPw]   = useState('');
-  const [cpConfirm, setCpConfirm] = useState('');
-  const [cpShowPw, setCpShowPw] = useState(false);
-  const [cpLoading, setCpLoading] = useState(false);
-  const [cpTimer, setCpTimer]   = useState(0);
-
-  useEffect(() => {
-    if (cpTimer <= 0) return;
-    const t = setTimeout(() => setCpTimer(v => v - 1), 1000);
-    return () => clearTimeout(t);
-  }, [cpTimer]);
+  // OTP-only: no password, so the "change password" flow was removed.
 
   const handleSaveProfile = async () => {
     if (!name.trim() || name.trim().length < 2) { showError('Error', 'Name must be at least 2 characters'); return; }
@@ -87,37 +74,6 @@ export default function ProfileScreen({ navigation }) {
       showError('Error', err?.message || 'Failed to save profile. Try again.');
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleCpSendOtp = async () => {
-    if (!user?.phone) { showError('Error', 'No phone number on file.'); return; }
-    setCpLoading(true);
-    try {
-      await api.post('/customer/auth/forgot-password/send-otp', { phone: user.phone });
-      setCpStep(2);
-      setCpTimer(60);
-      showSuccess('OTP Sent', 'Check your phone for the OTP.');
-    } catch (err) {
-      showError('Error', err?.message || 'Failed to send OTP. Try again.');
-    } finally {
-      setCpLoading(false);
-    }
-  };
-
-  const handleCpReset = async () => {
-    if (!cpOtp || !cpNewPw || !cpConfirm) { showError('Error', 'Please fill in all fields.'); return; }
-    if (cpNewPw !== cpConfirm) { showError('Error', 'Passwords do not match.'); return; }
-    if (cpNewPw.length < 8) { showError('Weak Password', 'Password must be at least 8 characters.'); return; }
-    setCpLoading(true);
-    try {
-      await api.post('/customer/auth/forgot-password/reset', { phone: user.phone, otp: cpOtp, newPassword: cpNewPw });
-      setCpStep(0); setCpOtp(''); setCpNewPw(''); setCpConfirm('');
-      showSuccess('Success', 'Password changed successfully.');
-    } catch (err) {
-      showError('Error', err?.message || 'Invalid OTP or request expired.');
-    } finally {
-      setCpLoading(false);
     }
   };
 
@@ -242,85 +198,6 @@ export default function ProfileScreen({ navigation }) {
                       </TouchableOpacity>
                       <TouchableOpacity style={[styles.saveBtn, saving && { opacity: 0.5 }]} onPress={handleSaveProfile} disabled={saving}>
                         {saving ? <ActivityIndicator color="#fff" size="small" /> : <AppText style={styles.saveBtnText}>Save</AppText>}
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                )}
-              </View>
-            )}
-          </View>
-
-          {/* ── Security (accordion) ── */}
-          <View style={styles.accordionCard}>
-            <SectionHeader
-              icon="shield-checkmark-outline"
-              title="Security"
-              expanded={expandedSection === 'security'}
-              onPress={() => { toggleSection('security'); setCpStep(0); setCpOtp(''); setCpNewPw(''); setCpConfirm(''); }}
-              theme={theme}
-              styles={styles}
-            />
-            {expandedSection === 'security' && (
-              <View style={styles.accordionBody}>
-                {cpStep === 0 && (
-                  <TouchableOpacity style={[styles.secRow, { borderBottomWidth: 0 }]} onPress={() => setCpStep(1)}>
-                    <Ionicons name="lock-closed-outline" size={16} color={theme.subText} />
-                    <AppText style={styles.secRowText}>Change Password</AppText>
-                    <Ionicons name="chevron-forward" size={15} color={theme.subText} style={{ marginLeft: 'auto' }} />
-                  </TouchableOpacity>
-                )}
-                {cpStep === 1 && (
-                  <View style={{ padding: 12, gap: 10 }}>
-                    <AppText style={[styles.fieldLabel, { color: theme.subText }]}>
-                      An OTP will be sent to {user?.phone}.
-                    </AppText>
-                    <View style={{ flexDirection: 'row', gap: 10 }}>
-                      <TouchableOpacity style={styles.cancelBtn} onPress={() => setCpStep(0)} disabled={cpLoading}>
-                        <AppText style={styles.cancelBtnText}>Cancel</AppText>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={[styles.saveBtn, cpLoading && { opacity: 0.5 }]} onPress={handleCpSendOtp} disabled={cpLoading}>
-                        {cpLoading ? <ActivityIndicator color="#fff" size="small" /> : <AppText style={styles.saveBtnText}>Send OTP</AppText>}
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                )}
-                {cpStep === 2 && (
-                  <View style={{ padding: 12, gap: 10 }}>
-                    <View style={styles.field}>
-                      <AppText style={styles.fieldLabel}>OTP Code</AppText>
-                      <View style={styles.inputRow}>
-                        <Ionicons name="key-outline" size={15} color={theme.subText} style={{ marginRight: 8 }} />
-                        <TextInput style={[styles.input, { flex: 1 }]} value={cpOtp} onChangeText={setCpOtp} placeholder="Enter OTP" placeholderTextColor={theme.placeholder} keyboardType="number-pad" editable={!cpLoading} />
-                        {cpTimer > 0
-                          ? <AppText style={{ fontSize: 12, color: theme.subText }}>{cpTimer}s</AppText>
-                          : <TouchableOpacity onPress={handleCpSendOtp} disabled={cpLoading}><AppText style={{ fontSize: 12, color: theme.accent, fontWeight: '600' }}>Resend</AppText></TouchableOpacity>
-                        }
-                      </View>
-                    </View>
-                    <View style={styles.field}>
-                      <AppText style={styles.fieldLabel}>New Password</AppText>
-                      <View style={styles.inputRow}>
-                        <Ionicons name="lock-closed-outline" size={15} color={theme.subText} style={{ marginRight: 8 }} />
-                        <TextInput style={[styles.input, { flex: 1 }]} value={cpNewPw} onChangeText={setCpNewPw} placeholder="Min 8 characters" placeholderTextColor={theme.placeholder} secureTextEntry={!cpShowPw} editable={!cpLoading} />
-                      </View>
-                    </View>
-                    <View style={styles.field}>
-                      <AppText style={styles.fieldLabel}>Confirm Password</AppText>
-                      <View style={styles.inputRow}>
-                        <Ionicons name="lock-closed-outline" size={15} color={theme.subText} style={{ marginRight: 8 }} />
-                        <TextInput style={[styles.input, { flex: 1 }]} value={cpConfirm} onChangeText={setCpConfirm} placeholder="Re-enter password" placeholderTextColor={theme.placeholder} secureTextEntry={!cpShowPw} editable={!cpLoading} />
-                      </View>
-                    </View>
-                    <TouchableOpacity style={styles.showPwBtn} onPress={() => setCpShowPw(v => !v)}>
-                      <Ionicons name={cpShowPw ? 'eye-off-outline' : 'eye-outline'} size={13} color={theme.subText} />
-                      <AppText style={styles.showPwText}>{cpShowPw ? 'Hide' : 'Show'} passwords</AppText>
-                    </TouchableOpacity>
-                    <View style={{ flexDirection: 'row', gap: 10 }}>
-                      <TouchableOpacity style={styles.cancelBtn} onPress={() => { setCpStep(0); setCpOtp(''); setCpNewPw(''); setCpConfirm(''); }} disabled={cpLoading}>
-                        <AppText style={styles.cancelBtnText}>Cancel</AppText>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={[styles.saveBtn, cpLoading && { opacity: 0.5 }]} onPress={handleCpReset} disabled={cpLoading}>
-                        {cpLoading ? <ActivityIndicator color="#fff" size="small" /> : <AppText style={styles.saveBtnText}>Update</AppText>}
                       </TouchableOpacity>
                     </View>
                   </View>
