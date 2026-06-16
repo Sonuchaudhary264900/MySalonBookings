@@ -22,6 +22,8 @@ const SiteSettings    = lazy(() => import('./pages/SiteSettings'));
 const ServiceCatalog  = lazy(() => import('./pages/ServiceCatalog'));
 const Feedback        = lazy(() => import('./pages/Feedback'));
 const Withdrawals     = lazy(() => import('./pages/Withdrawals'));
+const Credits         = lazy(() => import('./pages/Credits'));
+const Referrals       = lazy(() => import('./pages/Referrals'));
 
 const isAuth = () => !!localStorage.getItem('admin_token');
 
@@ -58,6 +60,8 @@ export default function App() {
                 <Route path="catalog"        element={<ServiceCatalog />} />
                 <Route path="feedback"       element={<Feedback />} />
                 <Route path="withdrawals"    element={<Withdrawals />} />
+                <Route path="credits"        element={<Credits />} />
+                <Route path="referrals"      element={<Referrals />} />
               </Route>
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
