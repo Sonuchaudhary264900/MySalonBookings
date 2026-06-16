@@ -149,6 +149,7 @@ const barberController = safeRequire("../controllers/owner/barberReviewProfileAn
 const salonApprovalController = safeRequire("../controllers/admin/salonApprovalController");
 const adminAuthController = safeRequire("../controllers/admin/adminAuthController");
 const adminManagementController = safeRequire("../controllers/admin/adminManagementController");
+const creditAdminController = safeRequire("../controllers/admin/creditAdminController");
 const subscriptionController = safeRequire("../controllers/payment/subscriptionController");
 const walletController = safeRequire("../controllers/payment/walletController");
 const subscriptionAdminController = safeRequire("../controllers/admin/subscriptionAdminController");
@@ -3508,6 +3509,16 @@ router.get( "/owner/wallet/withdrawals",      authenticateOwner, asyncHandler(wa
 ===================================================== */
 router.get(  "/admin/withdrawals",     authenticateAdmin, asyncHandler(walletController.adminListWithdrawals));
 router.patch("/admin/withdrawals/:id", authenticateAdmin, asyncHandler(walletController.adminProcessWithdrawal));
+
+/* =====================================================
+   ADMIN — BOOKING CREDITS + REFERRALS
+===================================================== */
+router.post("/admin/credits/grant",       authenticateAdmin, asyncHandler(creditAdminController.grantCredits));
+router.post("/admin/credits/remove",      authenticateAdmin, asyncHandler(creditAdminController.removeCredits));
+router.get( "/admin/credits/:customerId", authenticateAdmin, validateObjectId("customerId"), asyncHandler(creditAdminController.getCustomerCredits));
+router.get( "/admin/referrals",           authenticateAdmin, asyncHandler(creditAdminController.listReferrals));
+router.get( "/admin/referral-config",     authenticateAdmin, asyncHandler(creditAdminController.getReferralConfig));
+router.put( "/admin/referral-config",     authenticateAdmin, asyncHandler(creditAdminController.updateReferralConfig));
 
 /* =====================================================
    PROMOTIONS — PUBLIC

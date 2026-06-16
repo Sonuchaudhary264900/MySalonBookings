@@ -131,6 +131,31 @@ const restoreCredits = async (customerId, appliedSplit = [], source = 'booking_r
   }
 };
 
+// Admin: grant credits to a customer (platform-wide if scopeSalonId omitted).
+const adminGrant = async (customerId, amount, scopeSalonId = null, description = 'Admin grant') =>
+  earnCredit(customerId, amount, 'admin', { type: 'admin_grant', scopeSalonId, description });
+
+// Admin: remove credits from a customer (reduces available in that scope; never below 0).
+const adminRemove = async (customerId, amount, scopeSalonId = null, description = 'Admin removal') => {
+  if (!(amount > 0)) throw new Error('INVALID_AMOUNT');
+  const scope = norm(scopeSalonId);
+  const updated = await CreditBalance.findOneAndUpdate(
+    { customerId, scopeSalonId: scope, $expr: { $gte: [{ $subtract: ['$earned', '$used'] }, amount] } },
+    { $inc: { used: amount } },
+    { new: true }
+  );
+  if (!updated) {
+    const err = new Error('INSUFFICIENT_CREDITS');
+    err.code = 'INSUFFICIENT_CREDITS';
+    throw err;
+  }
+  const transaction = await CreditTransaction.create({
+    customerId, scopeSalonId: scope, type: 'admin_remove', source: 'admin',
+    amount, balanceAfter: updated.earned - updated.used, description,
+  });
+  return { balance: updated, transaction, available: updated.earned - updated.used };
+};
+
 module.exports = {
   getOrCreateBalance,
   earnCredit,
@@ -138,4 +163,6 @@ module.exports = {
   getBreakdown,
   redeemForSalon,
   restoreCredits,
+  adminGrant,
+  adminRemove,
 };
