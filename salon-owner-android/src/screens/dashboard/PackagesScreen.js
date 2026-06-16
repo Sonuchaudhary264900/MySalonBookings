@@ -9,7 +9,9 @@ import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
 import { showSuccess, showError } from '../../utils/toast';
+import RazorpayCheckout from '../../components/RazorpayCheckout';
 
 const BILLING_LABEL = { monthly: '/ month', quarterly: '/ quarter', yearly: '/ year' };
 
@@ -317,11 +319,207 @@ function PackageFormModal({ visible, editItem, type, onClose, onSaved, theme }) 
 /* ══════════════════════════════════════════════════════════════════
    MAIN SCREEN
 ══════════════════════════════════════════════════════════════════ */
+/* ── Notify (broadcast) modal ─────────────────────────────────── */
+const AUDIENCE_OPTIONS = [
+  { id: 'my_customers', label: 'My Customers', sub: 'Always free' },
+  { id: 'radius_5km',   label: 'Within 5 km',  sub: 'Nearby customers' },
+  { id: 'radius_10km',  label: 'Within 10 km', sub: 'Wider reach' },
+  { id: 'radius_25km',  label: 'Within 25 km', sub: 'Maximum reach' },
+];
+
+function NotifyModal({ pkg, visible, onClose, theme, isDark, user }) {
+  const [title, setTitle]       = useState('');
+  const [message, setMessage]   = useState('');
+  const [targetType, setTargetType] = useState('my_customers');
+  const [targetGender, setTargetGender] = useState('both');
+  const [settings, setSettings] = useState(null);
+  const [preview, setPreview]   = useState(null);
+  const [previewing, setPreviewing] = useState(false);
+  const [sending, setSending]   = useState(false);
+  const [checkoutOrder, setCheckoutOrder] = useState(null);
+  const pendingCampaign = React.useRef(null);
+
+  useEffect(() => {
+    if (!visible || !pkg) return;
+    setTitle(`Check out ${pkg.name}!`);
+    setMessage('');
+    setTargetType('my_customers');
+    setPreview(null);
+    api.get('/owner/notification-settings').then(r => {
+      const d = r.data.data;
+      setSettings(d);
+      if (d?.salonServedGender === 'male') setTargetGender('male');
+      else if (d?.salonServedGender === 'female') setTargetGender('female');
+      else setTargetGender('both');
+    }).catch(() => {});
+  }, [visible, pkg]);
+
+  // preview when audience changes
+  useEffect(() => {
+    if (!visible || !pkg) return;
+    setPreviewing(true);
+    setPreview(null);
+    api.post(`/owner/packages/${pkg._id}/notify`, { targetType, targetGender, preview: true })
+      .then(r => setPreview(r.data.data))
+      .catch(() => setPreview({ estimatedCount: 0, isFree: true, amount: 0 }))
+      .finally(() => setPreviewing(false));
+  }, [targetType, targetGender, visible, pkg]);
+
+  const priceLabel = (id) => {
+    if (id === 'my_customers') return 'Free';
+    if (!settings) return '';
+    const map = { radius_5km: settings.pricing?.radius5km, radius_10km: settings.pricing?.radius10km, radius_25km: settings.pricing?.radius25km };
+    const p = map[id];
+    if (p === 0 || settings.freeRadiusRemaining > 0) return 'Free';
+    return p != null ? `₹${p}` : '';
+  };
+
+  const finishCampaign = (notifiedCount) => {
+    showSuccess('Sent!', `Notified ${notifiedCount ?? 0} customer${notifiedCount === 1 ? '' : 's'}`);
+    setSending(false);
+    onClose();
+  };
+
+  const handleSend = async () => {
+    if (!title.trim() || !message.trim()) { showError('Required', 'Title and message are required'); return; }
+    setSending(true);
+    try {
+      const res = await api.post(`/owner/packages/${pkg._id}/notify`, { title: title.trim(), message: message.trim(), targetType, targetGender });
+      if (res.data.needsPayment) {
+        const { campaignId, orderId, amount, razorpayKeyId } = res.data.data;
+        pendingCampaign.current = campaignId;
+        setCheckoutOrder({ key: razorpayKeyId, amount: amount * 100, currency: 'INR', orderId });
+        return;
+      }
+      finishCampaign(res.data.notifiedCount);
+    } catch (err) {
+      showError('Failed', err.response?.data?.message || 'Failed to send');
+      setSending(false);
+    }
+  };
+
+  const onPaySuccess = async (response) => {
+    setCheckoutOrder(null);
+    try {
+      const vRes = await api.post(`/owner/notification-campaigns/${pendingCampaign.current}/verify-payment`, {
+        razorpayOrderId: response.razorpay_order_id,
+        razorpayPaymentId: response.razorpay_payment_id,
+        razorpaySignature: response.razorpay_signature,
+      });
+      finishCampaign(vRes.data.notifiedCount);
+    } catch {
+      showError('Verification failed', 'Payment done but notification failed. Contact support.');
+      setSending(false);
+    } finally {
+      pendingCampaign.current = null;
+    }
+  };
+
+  if (!pkg) return null;
+  const isUnisex = (settings?.salonServedGender || 'unisex') === 'unisex';
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={s.notifyOverlay}>
+        <TouchableOpacity style={{ flex: 1 }} onPress={onClose} />
+        <View style={[s.notifySheet, { backgroundColor: theme.bg }]}>
+          <View style={s.notifyHeader}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: isDark ? 'rgba(245,158,11,0.18)' : '#fffbeb', alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="megaphone-outline" size={16} color="#f59e0b" />
+              </View>
+              <View>
+                <Text style={{ fontSize: 15, fontWeight: '800', color: theme.text }}>Broadcast</Text>
+                <Text style={{ fontSize: 11, color: theme.subText }} numberOfLines={1}>{pkg.name}</Text>
+              </View>
+            </View>
+            <TouchableOpacity onPress={onClose}><Ionicons name="close" size={22} color={theme.subText} /></TouchableOpacity>
+          </View>
+
+          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <Text style={[s.notifyLabel, { color: theme.text }]}>Title</Text>
+            <TextInput style={[s.notifyInput, { backgroundColor: theme.input || theme.cardAlt, borderColor: theme.border, color: theme.text }]}
+              value={title} onChangeText={setTitle} placeholder="Notification title" placeholderTextColor={theme.subText} />
+
+            <Text style={[s.notifyLabel, { color: theme.text }]}>Message</Text>
+            <TextInput style={[s.notifyInput, { height: 80, textAlignVertical: 'top', backgroundColor: theme.input || theme.cardAlt, borderColor: theme.border, color: theme.text }]}
+              value={message} onChangeText={setMessage} placeholder="Write your offer message…" placeholderTextColor={theme.subText} multiline />
+
+            <Text style={[s.notifyLabel, { color: theme.text }]}>Audience</Text>
+            {AUDIENCE_OPTIONS.map(opt => {
+              const active = targetType === opt.id;
+              return (
+                <TouchableOpacity key={opt.id} onPress={() => setTargetType(opt.id)}
+                  style={[s.audienceRow, { borderColor: active ? '#f59e0b' : theme.border, backgroundColor: active ? (isDark ? 'rgba(245,158,11,0.12)' : '#fffbeb') : 'transparent' }]}>
+                  <Ionicons name={active ? 'radio-button-on' : 'radio-button-off'} size={18} color={active ? '#f59e0b' : theme.subText} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: theme.text }}>{opt.label}</Text>
+                    <Text style={{ fontSize: 11, color: theme.subText }}>{opt.sub}</Text>
+                  </View>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: priceLabel(opt.id) === 'Free' ? '#10b981' : '#f59e0b' }}>{priceLabel(opt.id)}</Text>
+                </TouchableOpacity>
+              );
+            })}
+
+            {isUnisex && (
+              <>
+                <Text style={[s.notifyLabel, { color: theme.text }]}>Send to</Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {[{ v: 'both', l: 'Everyone' }, { v: 'male', l: 'Men' }, { v: 'female', l: 'Women' }].map(g => (
+                    <TouchableOpacity key={g.v} onPress={() => setTargetGender(g.v)}
+                      style={[s.genderChip, { borderColor: targetGender === g.v ? '#f59e0b' : theme.border, backgroundColor: targetGender === g.v ? 'rgba(245,158,11,0.1)' : 'transparent' }]}>
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: targetGender === g.v ? '#f59e0b' : theme.subText }}>{g.l}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
+
+            <View style={[s.previewBox, { backgroundColor: theme.cardAlt || theme.card, borderColor: theme.border }]}>
+              {previewing ? (
+                <ActivityIndicator size="small" color="#f59e0b" />
+              ) : (
+                <Text style={{ fontSize: 12, color: theme.subText }}>
+                  Reaches ~<Text style={{ fontWeight: '800', color: theme.text }}>{preview?.estimatedCount ?? 0}</Text> customers
+                  {preview && !preview.isFree && preview.amount > 0 ? ` · ₹${preview.amount}` : ' · Free'}
+                </Text>
+              )}
+            </View>
+
+            <TouchableOpacity style={[s.notifySend, { opacity: sending ? 0.6 : 1 }]} onPress={handleSend} disabled={sending}>
+              {sending ? <ActivityIndicator size="small" color="#fff" /> : (
+                <>
+                  <Ionicons name="send" size={15} color="#fff" />
+                  <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>
+                    {preview && !preview.isFree && preview.amount > 0 ? `Pay ₹${preview.amount} & Send` : 'Send Notification'}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+      </View>
+
+      <RazorpayCheckout
+        visible={!!checkoutOrder}
+        order={checkoutOrder}
+        prefill={{ name: user?.name || '', contact: user?.phone || '', email: user?.email || '' }}
+        description={`Broadcast: ${pkg.name}`}
+        onSuccess={onPaySuccess}
+        onDismiss={() => { setCheckoutOrder(null); setSending(false); pendingCampaign.current = null; }}
+        onFailure={() => { setCheckoutOrder(null); setSending(false); showError('Payment failed'); }}
+      />
+    </Modal>
+  );
+}
+
 export default function PackagesScreen() {
   const navigation  = useNavigation();
-  const { theme }   = useTheme();
+  const { theme, isDark } = useTheme();
+  const { user }    = useAuth();
   const insets      = useSafeAreaInsets();
 
+  const [notifyTarget, setNotifyTarget] = useState(null);
   const [activeTab, setActiveTab]   = useState('packages');  // 'packages' | 'memberships' | 'requests'
   const [items, setItems]           = useState([]);
   const [requests, setRequests]     = useState([]);
@@ -442,6 +640,9 @@ export default function PackagesScreen() {
       <View style={{ flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: theme.border || '#f3f4f6', paddingTop: 8, gap: 8 }}>
         <Switch value={item.isActive} onValueChange={() => toggleActive(item)} trackColor={{ true: '#6366f1' }} style={{ transform: [{ scaleX: 0.85 }, { scaleY: 0.85 }] }} />
         <Text style={{ fontSize: 11, color: theme.subText, flex: 1 }}>{item.isActive ? 'Active' : 'Off'}</Text>
+        <TouchableOpacity onPress={() => setNotifyTarget(item)} style={s.iconBtn}>
+          <Ionicons name="megaphone-outline" size={18} color="#f59e0b" />
+        </TouchableOpacity>
         <TouchableOpacity onPress={() => { setEditItem(item); setFormType('package'); setShowForm(true); }} style={s.iconBtn}>
           <Ionicons name="create-outline" size={18} color="#6366f1" />
         </TouchableOpacity>
@@ -482,6 +683,9 @@ export default function PackagesScreen() {
       <View style={{ flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: theme.border || '#f3f4f6', paddingTop: 8, gap: 8 }}>
         <Switch value={item.isActive} onValueChange={() => toggleActive(item)} trackColor={{ true: '#7c3aed' }} style={{ transform: [{ scaleX: 0.85 }, { scaleY: 0.85 }] }} />
         <Text style={{ fontSize: 11, color: theme.subText, flex: 1 }}>{item.isActive ? 'Active' : 'Off'}</Text>
+        <TouchableOpacity onPress={() => setNotifyTarget(item)} style={s.iconBtn}>
+          <Ionicons name="megaphone-outline" size={18} color="#f59e0b" />
+        </TouchableOpacity>
         <TouchableOpacity onPress={() => { setEditItem(item); setFormType('membership'); setShowForm(true); }} style={s.iconBtn}>
           <Ionicons name="create-outline" size={18} color="#7c3aed" />
         </TouchableOpacity>
@@ -627,11 +831,31 @@ export default function PackagesScreen() {
         onSaved={fetchItems}
         theme={theme}
       />
+
+      {/* Notify Modal */}
+      <NotifyModal
+        pkg={notifyTarget}
+        visible={!!notifyTarget}
+        onClose={() => setNotifyTarget(null)}
+        theme={theme}
+        isDark={isDark}
+        user={user}
+      />
     </View>
   );
 }
 
 const s = StyleSheet.create({
+  notifyOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  notifySheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '90%' },
+  notifyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  notifyLabel: { fontSize: 13, fontWeight: '700', marginBottom: 6, marginTop: 12 },
+  notifyInput: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14 },
+  audienceRow: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 8 },
+  genderChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, borderWidth: 1 },
+  previewBox: { borderWidth: 1, borderRadius: 10, padding: 12, marginTop: 14, alignItems: 'center' },
+  notifySend: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#f59e0b', borderRadius: 12, paddingVertical: 14, marginTop: 14, marginBottom: 10 },
+
   root: { flex: 1 },
   header: { backgroundColor: '#6366f1', paddingHorizontal: 16, paddingBottom: 14 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
