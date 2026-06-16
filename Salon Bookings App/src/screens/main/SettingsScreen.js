@@ -287,6 +287,7 @@ export default function SettingsScreen({ navigation }) {
 
         <Card>
           <SettingRow icon="wallet-outline" iconColor="#7c3aed" label="Wallet" sublabel="Balance, recharge & transaction history" onPress={() => navigation.navigate('Wallet')} chevron />
+          <SettingRow icon="ribbon-outline" iconColor="#6366f1" label="My Subscription" sublabel="Packages & memberships you've purchased" onPress={() => navigation.navigate('MySubscription')} chevron />
         </Card>
 
         {/* ── PREFERENCES ──────────────────────────────────── */}

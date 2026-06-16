@@ -37,6 +37,9 @@ import ReferAndEarnScreen   from './src/screens/main/ReferAndEarnScreen';
 import LegalScreen          from './src/screens/legal/LegalScreen';
 import FeedbackScreen       from './src/screens/main/FeedbackScreen';
 import WalletScreen         from './src/screens/main/WalletScreen';
+import ReelsScreen          from './src/screens/main/ReelsScreen';
+import MySubscriptionScreen from './src/screens/main/MySubscriptionScreen';
+import ExploreScreen        from './src/screens/main/ExploreScreen';
 
 const RootStack   = createNativeStackNavigator();
 const AuthStack   = createNativeStackNavigator();
@@ -57,6 +60,8 @@ function HomeStackNav() {
       <HomeStack.Screen name="Booking"        component={BookingScreen} />
       <HomeStack.Screen name="Notifications"  component={NotificationsScreen} />
       <HomeStack.Screen name="Wallet"         component={WalletScreen} />
+      <HomeStack.Screen name="Reels"          component={ReelsScreen} />
+      <HomeStack.Screen name="Explore"        component={ExploreScreen} />
     </HomeStack.Navigator>
   );
 }
@@ -83,12 +88,13 @@ function FavoritesStackNav() {
 function SettingsStackNav() {
   return (
     <SetgStack.Navigator screenOptions={{ headerShown: false }}>
-      <SetgStack.Screen name="SettingsMain"  component={SettingsScreen} />
-      <SetgStack.Screen name="Profile"       component={ProfileScreen} />
-      <SetgStack.Screen name="ReferAndEarn"  component={ReferAndEarnScreen} />
-      <SetgStack.Screen name="Legal"         component={LegalScreen} />
-      <SetgStack.Screen name="Feedback"      component={FeedbackScreen} />
-      <SetgStack.Screen name="Wallet"        component={WalletScreen} />
+      <SetgStack.Screen name="SettingsMain"   component={SettingsScreen} />
+      <SetgStack.Screen name="Profile"        component={ProfileScreen} />
+      <SetgStack.Screen name="ReferAndEarn"   component={ReferAndEarnScreen} />
+      <SetgStack.Screen name="Legal"          component={LegalScreen} />
+      <SetgStack.Screen name="Feedback"       component={FeedbackScreen} />
+      <SetgStack.Screen name="Wallet"         component={WalletScreen} />
+      <SetgStack.Screen name="MySubscription" component={MySubscriptionScreen} />
     </SetgStack.Navigator>
   );
 }

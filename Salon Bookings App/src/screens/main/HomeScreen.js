@@ -705,6 +705,22 @@ export default function HomeScreen({ navigation }) {
               {locDenied ? t('homeSubLocDenied') : 'Where would you like to book today?'}
             </AppText>
           </View>
+          {/* Explore */}
+          <TouchableOpacity
+            style={styles.menuBtn}
+            onPress={() => navigation.navigate('Explore')}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="compass-outline" size={22} color={theme.subText} />
+          </TouchableOpacity>
+          {/* Reels */}
+          <TouchableOpacity
+            style={styles.menuBtn}
+            onPress={() => navigation.navigate('Reels')}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="play-circle-outline" size={22} color={theme.subText} />
+          </TouchableOpacity>
           {/* Theme toggle */}
           <TouchableOpacity
             style={styles.menuBtn}
