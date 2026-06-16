@@ -37,6 +37,16 @@ const bookingSchema = new mongoose.Schema(
     queueRecalcAt: Date,
     discount: { type: Number, default: 0 },
     couponApplied: String,
+    // Booking Credits redeemed against this booking (non-cash). Split records which
+    // credit scope each part came from, so a cancellation can restore to the right scope.
+    creditsApplied: { type: Number, default: 0 },
+    creditsAppliedSplit: [
+      {
+        scopeSalonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Business', default: null },
+        amount: Number,
+        _id: false,
+      },
+    ],
     totalAmount: Number,
     paymentMethod: { type: String, enum: ['online', 'cash', 'wallet'] },
     paymentStatus: { type: String, enum: ['pending', 'completed', 'failed', 'refunded'] },

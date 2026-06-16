@@ -12,6 +12,7 @@ const { generateBookingId } = require('../../utils/helpers');
 const messages = require('../../utils/messages');
 const { autoAssignStaff } = require('../../utils/autoAssign');
 const { credit, debit, reverseEarning } = require('../../utils/walletService');
+const creditService = require('../../utils/creditService');
 
 
 const { createOrder, verifyPaymentSignature, getPaymentDetails } = require('../../config/razorpay');
@@ -23,7 +24,7 @@ const { createOrder, verifyPaymentSignature, getPaymentDetails } = require('../.
 const createBooking = async (req, res) => {
   try {
 
-    const { salonId, serviceId, serviceIds, barberId, appointmentDate, appointmentTime, paymentMethod, couponCode } = req.body;
+    const { salonId, serviceId, serviceIds, barberId, appointmentDate, appointmentTime, paymentMethod, couponCode, creditsToApply } = req.body;
 
     // Support both single serviceId and multiple serviceIds array
     const serviceIdList = serviceIds?.length ? serviceIds : (serviceId ? [serviceId] : []);
@@ -328,6 +329,25 @@ const createBooking = async (req, res) => {
       }
     }
 
+    // Apply Booking Credits (non-cash) — shop-locked credits drawn first, then platform-wide.
+    // Redeemed after the booking exists (txns carry bookingId) and BEFORE payment so the
+    // online order / final amount reflect the reduced total.
+    if (Number(creditsToApply) > 0) {
+      const wanted = Math.min(Math.floor(Number(creditsToApply)), booking.totalAmount);
+      if (wanted > 0) {
+        const { redeemed, applied } = await creditService.redeemForSalon(
+          req.customer._id, salonId, wanted, 'booking',
+          { bookingId: booking._id, description: `Credits applied to booking ${booking.bookingId}` }
+        );
+        if (redeemed > 0) {
+          booking.creditsApplied = redeemed;
+          booking.creditsAppliedSplit = applied;
+          booking.totalAmount = booking.totalAmount - redeemed;
+          await booking.save();
+        }
+      }
+    }
+
     // Razorpay payment
     if (paymentMethod === "online") {
 
@@ -349,44 +369,8 @@ const createBooking = async (req, res) => {
       );
     }
 
-    // Wallet payment — debit the customer's wallet immediately
-    if (paymentMethod === "wallet") {
-      try {
-        const walletResult = await debit(req.customer._id, 'Customer', booking.totalAmount, 'booking_payment', {
-          bookingId: booking._id,
-          description: `Payment for booking ${booking.bookingId}`,
-          status: 'success',
-        });
-
-        booking.transactionId = walletResult.transaction._id.toString();
-        booking.paidAt = new Date();
-
-        await Transaction.create({
-          transactionId: walletResult.transaction._id.toString(),
-          bookingId: booking._id,
-          customerId: req.customer._id,
-          salonId: salon._id,
-          amount: booking.totalAmount,
-          finalAmount: booking.totalAmount,
-          paymentMethod: 'wallet',
-          paymentStatus: 'success',
-        });
-
-        await credit(salon.ownerId, 'Owner', booking.totalAmount, 'booking_earning', {
-          bookingId: booking._id,
-          description: `Earnings from booking ${booking.bookingId}`,
-          status: 'success',
-        }).catch((e) => console.error('[wallet] owner earning credit failed (customer was debited)', { bookingId: booking._id?.toString(), error: e.message }));
-      } catch (err) {
-        if (err.code === 'INSUFFICIENT_BALANCE') {
-          await Booking.deleteOne({ _id: booking._id });
-          return res.status(400).json(
-            formatErrorResponse(messages.PAYMENT.INSUFFICIENT_BALANCE, 400)
-          );
-        }
-        throw err;
-      }
-    }
+    // (Customer cash-wallet payment removed — customers pay 'online' or 'cash';
+    //  Booking Credits above are a discount, not a payment method.)
 
     const autoConfirm = salon.autoConfirmBookings !== false; // default true
     booking.status = autoConfirm ? "confirmed" : "pending";
@@ -753,6 +737,16 @@ const cancelBooking = async (req, res) => {
       }
 
       booking.paymentStatus = 'refunded';
+    }
+
+    // Restore any Booking Credits redeemed on this booking, back to their original scopes
+    if (booking.creditsApplied > 0 && booking.creditsAppliedSplit?.length) {
+      await creditService.restoreCredits(
+        booking.customerId,
+        booking.creditsAppliedSplit,
+        'booking_refund',
+        { bookingId: booking._id, description: `Credits restored — booking ${booking.bookingId} cancelled` }
+      ).catch(() => {});
     }
 
     await booking.save();

@@ -179,7 +179,7 @@ const validateBookingData = (data) => {
   const hasService = data.serviceId || (Array.isArray(data.serviceIds) && data.serviceIds.length > 0);
   if (!hasService) errors.push('At least one service is required');
   if (!data.appointmentTime) errors.push('Appointment time is required');
-  if (!data.paymentMethod || !['online', 'cash', 'wallet'].includes(data.paymentMethod)) {
+  if (!data.paymentMethod || !['online', 'cash'].includes(data.paymentMethod)) {
     errors.push('Valid payment method is required');
   }
 

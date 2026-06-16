@@ -142,6 +142,7 @@ const salonController = safeRequire("../controllers/owner/salonController");
 const serviceController = safeRequire("../controllers/owner/serviceController");
 
 const bookingController = safeRequire("../controllers/customer/bookingController");
+const creditController = safeRequire("../controllers/customer/creditController");
 
 const barberController = safeRequire("../controllers/owner/barberReviewProfileAnalytics");
 
@@ -3461,14 +3462,11 @@ router.get("/owner/subscription/billing-history",      authenticateOwner, asyncH
 router.post("/owner/subscription/webhook",             asyncHandler(subscriptionController.razorpayWebhook));
 
 /* =====================================================
-   WALLET — CUSTOMER ROUTES
+   BOOKING CREDITS — CUSTOMER ROUTES (non-cash; replaced the customer cash wallet)
 ===================================================== */
-router.get( "/customer/wallet",                  authenticateCustomer, asyncHandler(walletController.getCustomerWallet));
-router.get( "/customer/wallet/transactions",     authenticateCustomer, asyncHandler(walletController.getCustomerTransactions));
-router.post("/customer/wallet/recharge/order",   authenticateCustomer, rateLimiter(10, 900000), asyncHandler(walletController.createCustomerRechargeOrder));
-router.post("/customer/wallet/recharge/verify",  authenticateCustomer, asyncHandler(walletController.verifyCustomerRecharge));
-router.post("/customer/wallet/withdraw",         authenticateCustomer, rateLimiter(5, 900000), asyncHandler(walletController.requestCustomerWithdrawal));
-router.get( "/customer/wallet/withdrawals",      authenticateCustomer, asyncHandler(walletController.getCustomerWithdrawals));
+router.get("/customer/credits",              authenticateCustomer, asyncHandler(creditController.getCredits));
+router.get("/customer/credits/transactions", authenticateCustomer, validatePaginationParams, asyncHandler(creditController.getCreditTransactions));
+router.get("/customer/credits/available",    authenticateCustomer, asyncHandler(creditController.getAvailableForSalon));
 
 /* =====================================================
    WALLET — OWNER ROUTES
