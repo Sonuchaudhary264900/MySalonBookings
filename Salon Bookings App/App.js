@@ -40,6 +40,7 @@ import WalletScreen         from './src/screens/main/WalletScreen';
 import ReelsScreen          from './src/screens/main/ReelsScreen';
 import MySubscriptionScreen from './src/screens/main/MySubscriptionScreen';
 import ExploreScreen        from './src/screens/main/ExploreScreen';
+import MapScreen            from './src/screens/main/MapScreen';
 
 const RootStack   = createNativeStackNavigator();
 const AuthStack   = createNativeStackNavigator();
@@ -62,6 +63,7 @@ function HomeStackNav() {
       <HomeStack.Screen name="Wallet"         component={WalletScreen} />
       <HomeStack.Screen name="Reels"          component={ReelsScreen} />
       <HomeStack.Screen name="Explore"        component={ExploreScreen} />
+      <HomeStack.Screen name="Map"            component={MapScreen} />
     </HomeStack.Navigator>
   );
 }

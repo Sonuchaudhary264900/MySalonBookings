@@ -705,6 +705,14 @@ export default function HomeScreen({ navigation }) {
               {locDenied ? t('homeSubLocDenied') : 'Where would you like to book today?'}
             </AppText>
           </View>
+          {/* Map */}
+          <TouchableOpacity
+            style={styles.menuBtn}
+            onPress={() => navigation.navigate('Map')}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="map-outline" size={21} color={theme.subText} />
+          </TouchableOpacity>
           {/* Explore */}
           <TouchableOpacity
             style={styles.menuBtn}
