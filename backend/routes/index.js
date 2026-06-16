@@ -2430,6 +2430,18 @@ router.get("/owner/referral/status", authenticateOwner, asyncHandler(async (req,
   });
 }));
 
+// PUT /owner/salon/referral-program — owner configures their own customer-referral program
+router.put("/owner/salon/referral-program", authenticateOwner, asyncHandler(async (req, res) => {
+  const { enabled, rewardAmount } = req.body;
+  const salon = await Business.findOne({ $or: [{ ownerId: req.owner._id }, { owner: req.owner._id }] });
+  if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
+  if (!salon.referralProgram) salon.referralProgram = {};
+  if (typeof enabled === "boolean") salon.referralProgram.enabled = enabled;
+  if (rewardAmount != null) salon.referralProgram.rewardAmount = Math.max(0, Math.floor(Number(rewardAmount) || 0));
+  await salon.save();
+  res.json({ success: true, data: salon.referralProgram, message: "Referral program updated" });
+}));
+
 // POST /owner/push-token — save/update owner's Expo push token
 router.post("/owner/push-token", authenticateOwner, asyncHandler(async (req, res) => {
   const { token } = req.body;

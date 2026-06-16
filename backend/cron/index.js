@@ -1353,6 +1353,34 @@ const businessReferralReward = cron.schedule('0 4 * * *', async () => {
       }
     }
     if (rewarded > 0) console.log(`✅ Business referral rewards paid: ${rewarded}`);
+
+    // ── Owner-run shop referral rewards ──
+    const ShopReferral = require('../models/ShopReferral');
+    const pendingShop = await ShopReferral.find({ status: 'pending' }).lean();
+    let shopRewarded = 0;
+    for (const sr of pendingShop) {
+      try {
+        const completed = await Booking.countDocuments({
+          salonId: sr.shopId, customerId: sr.referredCustomerId, status: 'completed',
+        });
+        if (completed < 1) continue;
+        const claimed = await ShopReferral.findOneAndUpdate(
+          { _id: sr._id, status: 'pending' },
+          { $set: { status: 'rewarded', rewardedAt: new Date() } },
+          { new: true }
+        );
+        if (!claimed) continue;
+        const { transaction } = await earnCredit(sr.referrerCustomerId, sr.rewardAmount, 'shop_referral', {
+          scopeSalonId: sr.shopId,
+          description: 'Shop referral reward — usable only at this shop',
+        });
+        await ShopReferral.updateOne({ _id: sr._id }, { $set: { rewardTxnId: transaction._id } });
+        shopRewarded++;
+      } catch (e) {
+        console.error('[shop-referral] payout failed (claimed):', String(sr._id), e.message);
+      }
+    }
+    if (shopRewarded > 0) console.log(`✅ Shop referral rewards paid: ${shopRewarded}`);
   } catch (err) {
     console.error('Business referral reward cron error:', err.message);
   }

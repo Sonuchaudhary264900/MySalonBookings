@@ -534,6 +534,13 @@ locality: { type: String, default: null }, // reverse-geocoded suburb/village fr
       type: Boolean,
       default: false,
     },
+    // Owner-run customer referral program (owner-funded). When enabled, a customer
+    // who refers a new customer to THIS shop earns a shop-locked Booking Credit
+    // (usable only here) after the referred customer's first completed booking here.
+    referralProgram: {
+      enabled:      { type: Boolean, default: false },
+      rewardAmount: { type: Number, default: 0 },
+    },
 
     // ==========================================
     // BLOCKED CUSTOMERS

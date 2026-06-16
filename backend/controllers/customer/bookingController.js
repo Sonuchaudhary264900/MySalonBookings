@@ -24,7 +24,7 @@ const { createOrder, verifyPaymentSignature, getPaymentDetails } = require('../.
 const createBooking = async (req, res) => {
   try {
 
-    const { salonId, serviceId, serviceIds, barberId, appointmentDate, appointmentTime, paymentMethod, couponCode, creditsToApply } = req.body;
+    const { salonId, serviceId, serviceIds, barberId, appointmentDate, appointmentTime, paymentMethod, couponCode, creditsToApply, shopReferralCode } = req.body;
 
     // Support both single serviceId and multiple serviceIds array
     const serviceIdList = serviceIds?.length ? serviceIds : (serviceId ? [serviceId] : []);
@@ -345,6 +345,27 @@ const createBooking = async (req, res) => {
           booking.totalAmount = booking.totalAmount - redeemed;
           await booking.save();
         }
+      }
+    }
+
+    // Owner-run shop referral: record a pending reward for the referrer (best-effort).
+    // Rewarded by cron after this customer's first completed booking at this shop.
+    if (shopReferralCode && salon.referralProgram?.enabled && salon.referralProgram.rewardAmount > 0) {
+      try {
+        const refCode = String(shopReferralCode).trim().toUpperCase();
+        const referrer = await Customer.findOne({ referralCode: refCode }).select('_id').lean();
+        if (referrer && String(referrer._id) !== String(req.customer._id)) {
+          const ShopReferral = require('../../models/ShopReferral');
+          await ShopReferral.create({
+            shopId: salonId,
+            referrerCustomerId: referrer._id,
+            referredCustomerId: req.customer._id,
+            rewardAmount: salon.referralProgram.rewardAmount,
+            status: 'pending',
+          });
+        }
+      } catch (e) {
+        if (e.code !== 11000) console.error('[shop-referral] record failed', e.message);
       }
     }
 
