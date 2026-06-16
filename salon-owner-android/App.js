@@ -55,6 +55,11 @@ import GlowLooxProfileScreen   from './src/screens/dashboard/GlowLooxProfileScre
 import LegalScreen             from './src/screens/legal/LegalScreen';
 import FeedbackScreen          from './src/screens/dashboard/FeedbackScreen';
 import WalletScreen             from './src/screens/dashboard/WalletScreen';
+import TeamScreen               from './src/screens/dashboard/TeamScreen';
+import QueueScreen              from './src/screens/dashboard/QueueScreen';
+import PromotionsScreen         from './src/screens/dashboard/PromotionsScreen';
+import AuditLogScreen           from './src/screens/dashboard/AuditLogScreen';
+import DeveloperScreen          from './src/screens/dashboard/DeveloperScreen';
 
 const RootStack = createNativeStackNavigator();
 const AuthStack = createNativeStackNavigator();
@@ -73,8 +78,10 @@ const NAV_SECTIONS = [
     items: [
       { name: 'Home',      label: 'Dashboard',  icon: 'grid-outline',      iconFocused: 'grid' },
       { name: 'Bookings',  label: 'Bookings',   icon: 'calendar-outline',  iconFocused: 'calendar' },
+      { name: 'Queue',     label: 'Live Queue', icon: 'list-outline',      iconFocused: 'list' },
       { name: 'Services',  label: 'Services',   icon: 'cut-outline',       iconFocused: 'cut' },
       { name: 'Customers', label: 'Customers',  icon: 'people-outline',    iconFocused: 'people' },
+      { name: 'Team',      label: 'Team',       icon: 'people-circle-outline', iconFocused: 'people-circle' },
       { name: 'Reports',   label: 'Analytics',  icon: 'bar-chart-outline',   iconFocused: 'bar-chart'   },
       { name: 'Messages',  label: 'Messages',   icon: 'chatbubbles-outline', iconFocused: 'chatbubbles' },
     ],
@@ -91,10 +98,13 @@ const NAV_SECTIONS = [
   {
     label: 'Account',
     items: [
-      { name: 'Wallet',   label: 'Wallet',          icon: 'wallet-outline',   iconFocused: 'wallet' },
-      { name: 'Billing',  label: 'Billing & Plan', icon: 'card-outline',     iconFocused: 'card' },
-      { name: 'Settings', label: 'Settings',        icon: 'settings-outline', iconFocused: 'settings' },
-      { name: 'Feedback', label: 'Help & Feedback', icon: 'help-buoy-outline', iconFocused: 'help-buoy' },
+      { name: 'Wallet',     label: 'Wallet',          icon: 'wallet-outline',   iconFocused: 'wallet' },
+      { name: 'Promotions', label: 'Promote Salon',   icon: 'megaphone-outline', iconFocused: 'megaphone' },
+      { name: 'Billing',    label: 'Billing & Plan', icon: 'card-outline',     iconFocused: 'card' },
+      { name: 'Audit',      label: 'Audit Log',       icon: 'shield-outline',   iconFocused: 'shield' },
+      { name: 'Developer',  label: 'Developer',       icon: 'code-slash-outline', iconFocused: 'code-slash' },
+      { name: 'Settings',   label: 'Settings',        icon: 'settings-outline', iconFocused: 'settings' },
+      { name: 'Feedback',   label: 'Help & Feedback', icon: 'help-buoy-outline', iconFocused: 'help-buoy' },
     ],
   },
 ];
@@ -358,6 +368,11 @@ function MainDrawer({ navigation }) {
         <MainStack.Screen name="Legal"         component={LegalScreen} />
         <MainStack.Screen name="Feedback"      component={FeedbackScreen} />
         <MainStack.Screen name="Wallet"        component={WalletScreen} />
+        <MainStack.Screen name="Team"          component={TeamScreen} />
+        <MainStack.Screen name="Queue"         component={QueueScreen} />
+        <MainStack.Screen name="Promotions"    component={PromotionsScreen} />
+        <MainStack.Screen name="Audit"         component={AuditLogScreen} />
+        <MainStack.Screen name="Developer"     component={DeveloperScreen} />
       </MainStack.Navigator>
     </CustomDrawerLayout>
   );

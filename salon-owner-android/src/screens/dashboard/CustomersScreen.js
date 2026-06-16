@@ -10,6 +10,7 @@ import api from '../../services/api';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { formatDate } from '../../utils/helpers';
+import { showSuccess, showError } from '../../utils/toast';
 
 /* ── helpers ─────────────────────────────────────────────────── */
 function maskPhone(phone) {
@@ -368,6 +369,9 @@ export default function CustomersScreen() {
   const [blockedIds,   setBlockedIds]   = useState(new Set());
   const [blockLoading, setBlockLoading] = useState(null);
   const [showAdd,      setShowAdd]      = useState(false);
+  const [showBroadcast, setShowBroadcast] = useState(false);
+  const [broadcastMsg,  setBroadcastMsg]  = useState('');
+  const [sending,       setSending]       = useState(false);
 
   const fetchCustomers = useCallback(async () => {
     try {
@@ -430,6 +434,31 @@ export default function CustomersScreen() {
   const toggleSort = (field) => {
     if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortField(field); setSortDir('desc'); }
+  };
+
+  // Re-engagement broadcast to inactive (30+ days) customers
+  const inactiveCount = useMemo(() => {
+    const cutoff = Date.now() - 30 * 86400000;
+    return customers.filter(c => !c.lastVisit || new Date(c.lastVisit).getTime() < cutoff).length;
+  }, [customers]);
+
+  const handleBroadcast = async () => {
+    if (!broadcastMsg.trim()) return;
+    setSending(true);
+    try {
+      await api.post('/owner/notifications/broadcast', {
+        message: broadcastMsg.trim(),
+        audience: 'my_customers',
+        title: 'Special offer for you!',
+      });
+      showSuccess('Message sent', `Re-engagement message sent to ${inactiveCount} customers`);
+      setBroadcastMsg('');
+      setShowBroadcast(false);
+    } catch (err) {
+      showError('Failed', err.response?.data?.message || 'Failed to send');
+    } finally {
+      setSending(false);
+    }
   };
 
   /* Derived: search → filter → sort */
@@ -582,6 +611,9 @@ export default function CustomersScreen() {
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Customers</Text>
+          <TouchableOpacity onPress={() => setShowBroadcast(true)} style={[styles.addHeaderBtn, { marginRight: 8 }]}>
+            <Ionicons name="megaphone-outline" size={16} color="#fff" />
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => setShowAdd(true)} style={styles.addHeaderBtn}>
             <Ionicons name="add" size={18} color="#fff" />
             <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700', marginLeft: 3 }}>Add</Text>
@@ -662,6 +694,48 @@ export default function CustomersScreen() {
         theme={theme}
         isDark={isDark}
       />
+
+      {/* Re-engagement broadcast modal */}
+      <Modal visible={showBroadcast} transparent animationType="slide" onRequestClose={() => setShowBroadcast(false)}>
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity style={{ flex: 1 }} onPress={() => setShowBroadcast(false)} />
+          <View style={[styles.modalBox, { backgroundColor: theme.bg }]}>
+            <View style={styles.modalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={[styles.modalIconWrap, { backgroundColor: isDark ? 'rgba(99,102,241,0.2)' : '#e0e7ff' }]}>
+                  <Ionicons name="megaphone-outline" size={16} color="#6366f1" />
+                </View>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>Re-engage Customers</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowBroadcast(false)}>
+                <Ionicons name="close" size={22} color={theme.subText} />
+              </TouchableOpacity>
+            </View>
+            <Text style={{ color: theme.subText, fontSize: 12, marginBottom: 12 }}>
+              Send a push notification to {inactiveCount} customer{inactiveCount !== 1 ? 's' : ''} who haven't visited in 30+ days. Est. {Math.round(inactiveCount * 0.12)} bookings from this message.
+            </Text>
+            <Text style={[styles.fieldLabel, { color: theme.text }]}>Your message</Text>
+            <TextInput
+              style={[styles.input, styles.textarea, { backgroundColor: theme.input, borderColor: theme.inputBorder, color: theme.text }]}
+              placeholder="e.g. We miss you! Get 20% off your next visit this week 🎉"
+              placeholderTextColor={theme.placeholder}
+              value={broadcastMsg}
+              onChangeText={t => t.length <= 200 && setBroadcastMsg(t)}
+              multiline
+              numberOfLines={3}
+            />
+            <Text style={{ color: theme.subText, fontSize: 11, marginTop: 4, textAlign: 'right' }}>{broadcastMsg.length}/200</Text>
+            <View style={styles.formActions}>
+              <TouchableOpacity onPress={() => setShowBroadcast(false)} style={[styles.cancelBtn, { borderColor: theme.border }]}>
+                <Text style={[styles.cancelBtnText, { color: theme.text }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleBroadcast} style={styles.saveBtn} disabled={sending || !broadcastMsg.trim()}>
+                {sending ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.saveBtnText}>Send Message</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

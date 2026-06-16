@@ -7,6 +7,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../services/api';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
@@ -807,7 +808,7 @@ function ServiceModal({ visible, service, salon, onClose, onSaved }) {
 // ── Main Screen ─────────────────────────────────────────────────
 export default function ServicesScreen() {
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const navigation = useNavigation();
   const { salon } = useSalon();
 
@@ -819,6 +820,8 @@ export default function ServicesScreen() {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [search, setSearch]             = useState('');
   const [showMenuSection, setShowMenuSection] = useState(false);
+  const [pricingSuggestions, setPricingSuggestions] = useState([]);
+  const [dismissedPricing, setDismissedPricing]     = useState([]);
 
   const fetchServices = useCallback(async () => {
     try {
@@ -831,6 +834,24 @@ export default function ServicesScreen() {
   }, []);
 
   useEffect(() => { fetchServices(); }, []);
+
+  // Smart pricing suggestions + dismissed list (persisted)
+  useEffect(() => {
+    api.get('/owner/analytics/smart-pricing')
+      .then(res => setPricingSuggestions(res.data?.data?.suggestions || []))
+      .catch(() => {});
+    AsyncStorage.getItem('msb_dismissed_pricing')
+      .then(v => { if (v) { try { setDismissedPricing(JSON.parse(v)); } catch {} } })
+      .catch(() => {});
+  }, []);
+
+  const dismissPricing = (serviceId) => {
+    const next = [...dismissedPricing, String(serviceId)];
+    setDismissedPricing(next);
+    AsyncStorage.setItem('msb_dismissed_pricing', JSON.stringify(next)).catch(() => {});
+  };
+
+  const activeSuggestions = pricingSuggestions.filter(s => !dismissedPricing.includes(String(s.serviceId)));
 
   useEffect(() => {
     const onBack = () => {
@@ -1071,6 +1092,35 @@ export default function ServicesScreen() {
             <StatsBar total={services.length} active={activeCount} inactive={inactiveCount} theme={theme} />
           )}
 
+          {/* Smart pricing suggestions — only in categories view */}
+          {!selectedCategory && activeSuggestions.length > 0 && (
+            <View style={[styles.smartCard, { backgroundColor: isDark ? 'rgba(16,185,129,0.10)' : '#ecfdf5', borderColor: isDark ? 'rgba(16,185,129,0.3)' : '#a7f3d0' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <View style={styles.smartIcon}>
+                  <Ionicons name="trending-up" size={14} color="#fff" />
+                </View>
+                <Text style={[styles.smartTitle, { color: theme.text }]}>Smart Pricing Suggestions</Text>
+                <View style={styles.smartBadge}>
+                  <Text style={styles.smartBadgeText}>{activeSuggestions.length}</Text>
+                </View>
+              </View>
+              <View style={{ gap: 8 }}>
+                {activeSuggestions.map(s => (
+                  <View key={s.serviceId} style={[styles.smartRow, { backgroundColor: theme.card, borderColor: isDark ? 'rgba(16,185,129,0.2)' : '#d1fae5' }]}>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={[styles.smartSvc, { color: theme.text }]} numberOfLines={1}>{s.serviceName}</Text>
+                      <Text style={{ color: theme.subText, fontSize: 11 }}>Booked {s.bookingsLast30}× · Current ₹{s.currentPrice}</Text>
+                    </View>
+                    <Text style={styles.smartPrice}>→ ₹{s.suggestedPrice}</Text>
+                    <TouchableOpacity onPress={() => dismissPricing(s.serviceId)} style={{ padding: 4 }}>
+                      <Ionicons name="close" size={14} color={theme.subText} />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
           {/* View offered service categories toggle — only in categories view */}
           {!selectedCategory && salon?.offeredCategories?.length > 0 && (
             <View style={{ gap: 10 }}>
@@ -1141,6 +1191,16 @@ export default function ServicesScreen() {
 }
 
 const styles = StyleSheet.create({
+  // Smart pricing
+  smartCard: { borderRadius: 16, borderWidth: 1, padding: 14 },
+  smartIcon: { width: 28, height: 28, borderRadius: 9, backgroundColor: '#10b981', alignItems: 'center', justifyContent: 'center' },
+  smartTitle: { fontSize: 14, fontWeight: '800', flex: 1 },
+  smartBadge: { backgroundColor: '#10b981', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 99 },
+  smartBadgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  smartRow: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 12, borderWidth: 1, padding: 10 },
+  smartSvc: { fontSize: 13, fontWeight: '600' },
+  smartPrice: { fontSize: 14, fontWeight: '800', color: '#10b981' },
+
   // Header
   header: { paddingHorizontal: 14, paddingBottom: 14, borderBottomWidth: 1 },
   headerRow: { flexDirection: 'row', alignItems: 'center' },

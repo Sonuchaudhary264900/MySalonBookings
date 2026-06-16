@@ -615,6 +615,30 @@ export default function BookingsScreen() {
     } finally { setRsSubmitting(false); }
   };
 
+  // Mark late — moves booking to end of queue
+  const handleMarkLate = async (bookingId) => {
+    setActionSheet(null);
+    try {
+      await api.post(`/owner/bookings/${bookingId}/late`);
+      showSuccess('Marked late', 'Booking moved to end of queue');
+      await fetchBookings(selectedDate);
+    } catch (err) {
+      showError('Failed', err.response?.data?.message || 'Failed to mark late');
+    }
+  };
+
+  // Collect cash — cash reconciliation
+  const handleCollectCash = async (bookingId) => {
+    setActionSheet(null);
+    try {
+      await api.post(`/owner/bookings/${bookingId}/collect-cash`);
+      showSuccess('Cash collected');
+      await fetchBookings(selectedDate);
+    } catch (err) {
+      showError('Failed', err.response?.data?.message || 'Failed');
+    }
+  };
+
   const handlePrintReceipt = async (bookingId) => {
     try {
       const res = await api.get(`/owner/bookings/${bookingId}/receipt`);
@@ -1012,6 +1036,28 @@ export default function BookingsScreen() {
                 </Text>
               </TouchableOpacity>
             )}
+            {['pending','confirmed'].includes(actionSheet?.status) && !actionSheet?.lateMarkedAt && (
+              <TouchableOpacity style={bStyles.sheetOption} onPress={() => handleMarkLate(actionSheet._id)}>
+                <View style={[bStyles.sheetOptionIcon, { backgroundColor: '#fef3c7' }]}>
+                  <Ionicons name="timer-outline" size={20} color="#d97706" />
+                </View>
+                <Text style={[bStyles.sheetOptionText, { color: '#d97706' }]}>Mark Late</Text>
+              </TouchableOpacity>
+            )}
+            {actionSheet?.paymentMethod === 'cash' && !actionSheet?.cashCollected && actionSheet?.status !== 'cancelled' && (
+              <TouchableOpacity style={bStyles.sheetOption} onPress={() => handleCollectCash(actionSheet._id)}>
+                <View style={[bStyles.sheetOptionIcon, { backgroundColor: '#d1fae5' }]}>
+                  <Ionicons name="cash-outline" size={20} color="#10b981" />
+                </View>
+                <Text style={[bStyles.sheetOptionText, { color: '#10b981' }]}>Mark Cash Collected</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={bStyles.sheetOption} onPress={() => { handlePrintReceipt(actionSheet._id); setActionSheet(null); }}>
+              <View style={[bStyles.sheetOptionIcon, { backgroundColor: '#e0e7ff' }]}>
+                <Ionicons name="receipt-outline" size={20} color="#6366f1" />
+              </View>
+              <Text style={[bStyles.sheetOptionText, { color: '#6366f1' }]}>Print / Share Receipt</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={bStyles.sheetOption} onPress={() => setActionSheet(null)}>
               <View style={[bStyles.sheetOptionIcon, { backgroundColor: '#374151' }]}>
                 <Ionicons name="close-outline" size={20} color="#9ca3af" />
