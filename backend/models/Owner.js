@@ -129,6 +129,12 @@ const ownerSchema = new mongoose.Schema(
       enum: ['owner'],
       default: 'owner',
     },
+    // Shareable referral code (MSB + last 6 of phone). Set on creation.
+    referralCode: { type: String, index: true },
+    // Business-referral linkage (who referred this owner)
+    referredBy:        { type: mongoose.Schema.Types.ObjectId },
+    referredByType:    { type: String, enum: ['Customer', 'Owner'] },
+    referralAppliedAt: { type: Date },
     status: {
       type: String,
       enum: ['mobile_verified', 'salon_registered', 'approved', 'active', 'inactive', 'banned'],

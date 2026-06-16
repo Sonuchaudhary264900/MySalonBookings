@@ -58,6 +58,9 @@ const customerSchema = new mongoose.Schema(
       enum: ['customer'],
       default: 'customer',
     },
+    // Shareable referral code (MSB + last 6 of phone). Set on creation; used by the
+    // business-referral and shop-referral systems to resolve who referred whom.
+    referralCode: { type: String, index: true },
     isActive: {
       type: Boolean,
       default: true,

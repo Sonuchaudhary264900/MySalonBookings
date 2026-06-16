@@ -259,8 +259,10 @@ exports.firebaseRegister = async (req, res) => {
     }
 
     // Create owner (passwordless — Firebase OTP is the authentication factor)
+    const { referralCodeFromPhone } = require('../../utils/helpers');
     const ownerData = {
       phone,
+      referralCode: referralCodeFromPhone(phone),
       phoneVerified: true,
       firebaseUid: firebaseUser.uid,
       ...(name && name.trim().length >= 2 ? { name: name.trim() } : {}),

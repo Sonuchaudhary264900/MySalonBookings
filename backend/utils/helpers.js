@@ -44,6 +44,13 @@ const generateReferralCode = (customerId) => {
   return `REF_${idPart}_${random}`;
 };
 
+// Deterministic, shareable referral code derived from phone (matches what the apps display):
+// "MSB" + last 6 digits of the phone number. Used for both customers and owners.
+const referralCodeFromPhone = (phone) => {
+  const d = String(phone || '').replace(/\D/g, '');
+  return d.length >= 6 ? `MSB${d.slice(-6).toUpperCase()}` : null;
+};
+
 // ===================================================
 // GENERATE BOOKING ID
 // ===================================================
@@ -77,6 +84,7 @@ module.exports = {
   generateUniqueId,
   generateOTP,
   generateReferralCode,
+  referralCodeFromPhone,
   generateBookingId,
   calculateRefundAmount,
 };

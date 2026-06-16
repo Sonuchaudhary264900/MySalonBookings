@@ -13,6 +13,10 @@ const siteSettingsSchema = new mongoose.Schema(
         addedAt:   { type: Date, default: Date.now },
       },
     ],
+    // Company-funded business-referral reward config
+    referralRewardAmount: { type: Number, default: 50 },  // ₹ paid to referrer
+    referralMinBookings:  { type: Number, default: 20 },  // referred business must complete this many
+    referralMinDays:      { type: Number, default: 7 },   // ...and be active at least this long
   },
   { timestamps: true }
 );

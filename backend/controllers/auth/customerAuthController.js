@@ -14,7 +14,7 @@ const Customer = require('../../models/Customer');
 const OTP = require('../../models/OTP');
 const jwt = require('jsonwebtoken');
 const { formatSuccessResponse, formatErrorResponse } = require('../../utils/formatters');
-const { generateReferralCode } = require('../../utils/helpers');
+const { referralCodeFromPhone } = require('../../utils/helpers');
 const messages = require('../../utils/messages');
 
 
@@ -91,8 +91,8 @@ exports.firebaseAuth = async (req, res) => {
         phoneVerified: true,
         name: sanitizedName,
         role: 'customer',
+        referralCode: referralCodeFromPhone(phone),
       });
-      newCustomer.referralCode = generateReferralCode(newCustomer._id);
     } catch (err) {
       if (err.code === 11000) {
         // Race condition — another request already created the account

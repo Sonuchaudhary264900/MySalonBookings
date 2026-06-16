@@ -64,16 +64,22 @@ const connectDB = async () => {
       console.warn('⚠️  Migration (customers unused fields): ' + migErr.message);
     }
 
-    // ── One-time migration: drop unused referral fields from owners ─────────
+    // ── Backfill referralCode (MSB + last 6 of phone) on customers & owners ──
+    // (Referral fields are now in active use by the Booking Credits / referral system.)
     try {
-      const owners = conn.connection.db.collection('owners');
-      const sample = await owners.findOne({ $or: [{ referredBy: { $exists: true } }, { referralCode: { $exists: true } }, { referralAppliedAt: { $exists: true } }] });
-      if (sample) {
-        const { modifiedCount } = await owners.updateMany({}, { $unset: { referredBy: '', referralCode: '', referralAppliedAt: '' } });
-        console.log(`✅ Migration: removed referral fields from ${modifiedCount} owner(s)`);
+      const { referralCodeFromPhone } = require('../utils/helpers');
+      for (const col of ['customers', 'owners']) {
+        const coll = conn.connection.db.collection(col);
+        const cursor = coll.find({ referralCode: { $in: [null, ''] }, phone: { $exists: true, $ne: null } }).project({ phone: 1 });
+        let n = 0;
+        for await (const doc of cursor) {
+          const code = referralCodeFromPhone(doc.phone);
+          if (code) { await coll.updateOne({ _id: doc._id }, { $set: { referralCode: code } }); n++; }
+        }
+        if (n > 0) console.log(`✅ Migration: backfilled referralCode on ${n} ${col}`);
       }
     } catch (migErr) {
-      console.warn('⚠️  Migration (owners referral fields): ' + migErr.message);
+      console.warn('⚠️  Migration (referralCode backfill): ' + migErr.message);
     }
 
     // ── One-time migration: drop ctaPhoto from salons ───────────────────────

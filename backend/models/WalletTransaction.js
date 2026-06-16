@@ -17,6 +17,7 @@ const walletTransactionSchema = new mongoose.Schema(
         'admin_adjustment',   // manual correction by admin
         'withdrawal',         // money withdrawn back to the user's bank/UPI account
         'withdrawal_refund',  // withdrawal request rejected — amount returned to wallet
+        'referral_reward',    // company-funded ₹50 paid to an owner who referred a new business
       ],
       required: true,
     },

@@ -1276,10 +1276,93 @@ const decayTrendingScores = cron.schedule('30 2 * * 0', async () => {
   }
 });
 
+/*
+====================================================
+BUSINESS REFERRAL REWARD (company-funded)
+Pays the referrer once the referred business is active
+>= referralMinDays AND has >= referralMinBookings completed
+bookings. Owner referrer → cash to owner wallet;
+customer referrer → platform-wide Booking Credit.
+Claim-first (status→rewarded) before paying, so a re-run
+can never double-pay. Runs daily at 04:00.
+====================================================
+*/
+const businessReferralReward = cron.schedule('0 4 * * *', async () => {
+  try {
+    const BusinessReferral = require('../models/BusinessReferral');
+    const SiteSettings = require('../models/SiteSettings');
+    const AuditLog = require('../models/AuditLog');
+    const { credit } = require('../utils/walletService');
+    const { earnCredit } = require('../utils/creditService');
+
+    const settings = await SiteSettings.findOne({ key: 'global' }).lean();
+    const amount   = settings?.referralRewardAmount ?? 50;
+    const minBook  = settings?.referralMinBookings ?? 20;
+    const minDays  = settings?.referralMinDays ?? 7;
+    const minAgeMs = minDays * 24 * 60 * 60 * 1000;
+
+    const pending = await BusinessReferral.find({ status: 'pending' }).lean();
+    let rewarded = 0;
+
+    for (const ref of pending) {
+      try {
+        const owner = await Owner.findById(ref.referredOwnerId).select('businessId businessIds').lean();
+        const businessId = owner?.businessId || owner?.businessIds?.[0];
+        if (!businessId) continue;
+
+        const business = await Business.findById(businessId).select('createdAt').lean();
+        if (!business) continue;
+        if (Date.now() - new Date(business.createdAt).getTime() < minAgeMs) continue;
+
+        const completed = await Booking.countDocuments({ salonId: businessId, status: 'completed' });
+        if (completed < minBook) continue;
+
+        // Claim atomically BEFORE paying — prevents any double-payout on re-run.
+        const claimed = await BusinessReferral.findOneAndUpdate(
+          { _id: ref._id, status: 'pending' },
+          { $set: {
+            status: 'rewarded', rewardAmount: amount, referredBusinessId: businessId,
+            completedBookingsAtReward: completed, qualifiedAt: new Date(), rewardedAt: new Date(),
+          } },
+          { new: true }
+        );
+        if (!claimed) continue; // already claimed by a concurrent run
+
+        let rewardType, txnId;
+        if (ref.referrerType === 'Owner') {
+          const { transaction } = await credit(ref.referrerId, 'Owner', amount, 'referral_reward', {
+            description: `Referral reward — referred business completed ${completed} bookings`,
+            status: 'success',
+          });
+          rewardType = 'cash'; txnId = transaction._id;
+        } else {
+          const { transaction } = await earnCredit(ref.referrerId, amount, 'referral', {
+            description: 'Referral reward — your referred business is now active',
+          });
+          rewardType = 'credit'; txnId = transaction._id;
+        }
+        await BusinessReferral.updateOne({ _id: ref._id }, { $set: { rewardType, rewardTxnId: txnId } });
+        AuditLog.create({
+          ownerId: ref.referrerType === 'Owner' ? ref.referrerId : ref.referredOwnerId,
+          actorRole: 'admin', action: 'referral.rewarded', entity: 'BusinessReferral', entityId: ref._id,
+          meta: { referrerType: ref.referrerType, rewardType, amount, completed },
+        }).catch(() => {});
+        rewarded++;
+      } catch (e) {
+        console.error('[referral-reward] CLAIMED but payout failed (manual grant needed):', String(ref._id), e.message);
+      }
+    }
+    if (rewarded > 0) console.log(`✅ Business referral rewards paid: ${rewarded}`);
+  } catch (err) {
+    console.error('Business referral reward cron error:', err.message);
+  }
+});
+
 module.exports = {
 
   cleanupOldQueues,
   cleanupExpiredOTPs,
+  businessReferralReward,
   send1HourReminders,
   recalcLiveQueueDelays,
   send30MinReminders,
@@ -1305,6 +1388,7 @@ module.exports = {
 
     cleanupOldQueues.stop();
     cleanupExpiredOTPs.stop();
+    businessReferralReward.stop();
     send1HourReminders.stop();
     recalcLiveQueueDelays.stop();
     send30MinReminders.stop();

@@ -2353,65 +2353,78 @@ router.get("/public/services/search", asyncHandler(async (req, res) => {
    PUSH TOKEN ROUTES
 ===================================================== */
 
-// POST /owner/referral/apply — apply a user referral code
+// POST /owner/referral/apply — a NEW business owner applies a referrer's code.
+// The code resolves to ANY referrer (customer OR owner). The company pays the
+// referrer once this business hits the milestone (handled by the cron).
 router.post("/owner/referral/apply", authenticateOwner, asyncHandler(async (req, res) => {
   const Owner    = require("../models/Owner");
   const Customer = require("../models/Customer");
+  const BusinessReferral = require("../models/BusinessReferral");
 
   const { code } = req.body;
   if (!code || typeof code !== "string") {
     return res.status(400).json({ success: false, message: "Referral code is required" });
   }
-
   const trimmed = code.trim().toUpperCase();
   if (!/^MSB[0-9A-Z]{6}$/.test(trimmed)) {
     return res.status(400).json({ success: false, message: "Invalid referral code format" });
   }
 
-  // Check if owner already applied a code
-  const owner = await Owner.findById(req.owner._id).select("referredBy referralCode phone").lean();
+  const owner = await Owner.findById(req.owner._id).select("referredBy referralCode businessId").lean();
   if (owner.referredBy) {
     return res.status(400).json({ success: false, message: "You have already applied a referral code" });
   }
-
-  // Extract 6-char suffix and find matching customer by phone
-  const suffix = trimmed.slice(3); // last 6 digits of phone
-  const customers = await Customer.find({ phone: { $exists: true, $ne: null } })
-    .select("phone _id name").lean();
-
-  const matched = customers.find(c => {
-    const digits = (c.phone || "").replace(/\D/g, "");
-    return digits.slice(-6).toUpperCase() === suffix;
-  });
-
-  if (!matched) {
-    return res.status(404).json({ success: false, message: "Referral code not found. Please check and try again." });
-  }
-
-  // Prevent self-referral (owner phone matches customer phone)
-  const ownerDigits = (owner.phone || "").replace(/\D/g, "").slice(-6);
-  if (ownerDigits === suffix) {
+  if (owner.referralCode === trimmed) {
     return res.status(400).json({ success: false, message: "You cannot use your own referral code" });
   }
 
+  // Resolve the code to a referrer (customer first, then owner) — O(1) indexed lookup
+  let referrerId = null, referrerType = null;
+  const cust = await Customer.findOne({ referralCode: trimmed }).select("_id").lean();
+  if (cust) { referrerId = cust._id; referrerType = "Customer"; }
+  else {
+    const ownr = await Owner.findOne({ referralCode: trimmed }).select("_id").lean();
+    if (ownr) { referrerId = ownr._id; referrerType = "Owner"; }
+  }
+  if (!referrerId) {
+    return res.status(404).json({ success: false, message: "Referral code not found. Please check and try again." });
+  }
+  if (referrerType === "Owner" && String(referrerId) === String(req.owner._id)) {
+    return res.status(400).json({ success: false, message: "You cannot use your own referral code" });
+  }
+
+  // Record the referral (unique on referredOwnerId → one per new business)
+  try {
+    await BusinessReferral.create({
+      referrerId, referrerType, referrerCode: trimmed,
+      referredOwnerId: req.owner._id,
+      referredBusinessId: owner.businessId || null,
+      status: "pending",
+    });
+  } catch (e) {
+    if (e.code === 11000) {
+      return res.status(400).json({ success: false, message: "A referral is already recorded for your account" });
+    }
+    throw e;
+  }
+
   await Owner.findByIdAndUpdate(req.owner._id, {
-    referredBy: matched._id,
-    referralCode: trimmed,
+    referredBy: referrerId,
+    referredByType: referrerType,
     referralAppliedAt: new Date(),
   });
 
-  res.json({ success: true, message: `Referral code applied successfully! Referred by ${matched.name || "a user"}.` });
+  res.json({ success: true, message: "Referral applied! Your referrer earns a reward once your business completes its first bookings." });
 }));
 
-// GET /owner/referral/status — check if a referral code is already applied
+// GET /owner/referral/status — whether this owner applied a referral code
 router.get("/owner/referral/status", authenticateOwner, asyncHandler(async (req, res) => {
   const Owner = require("../models/Owner");
-  const owner = await Owner.findById(req.owner._id).select("referredBy referralCode referralAppliedAt").lean();
+  const owner = await Owner.findById(req.owner._id).select("referredBy referralAppliedAt").lean();
   res.json({
     success: true,
     data: {
       applied: !!owner.referredBy,
-      code: owner.referralCode || null,
       appliedAt: owner.referralAppliedAt || null,
     },
   });
