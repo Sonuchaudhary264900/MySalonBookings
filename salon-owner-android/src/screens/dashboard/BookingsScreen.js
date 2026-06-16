@@ -433,6 +433,31 @@ export default function BookingsScreen() {
   const [rsSlotsLoading, setRsSlotsLoading] = useState(false);
   const [rsSubmitting, setRsSubmitting] = useState(false);
   const [rsError, setRsError] = useState('');
+  const [staffList, setStaffList] = useState([]);
+  const [assigning, setAssigning] = useState(false);
+
+  // Fetch active team for booking assignment
+  const fetchStaff = useCallback(async () => {
+    try {
+      const res = await api.get('/owner/team');
+      setStaffList((res.data.data?.staff || []).filter(s => s.isActive));
+    } catch { /* silent */ }
+  }, []);
+
+  // Assign a booking to a staff member
+  const handleAssign = async (bookingId, staffId) => {
+    setAssigning(true);
+    try {
+      await api.put(`/owner/team/${staffId}/assign-booking`, { bookingId });
+      showSuccess('Assigned', 'Booking assigned to staff');
+      setActionSheet(null);
+      await fetchBookings(selectedDate);
+    } catch (err) {
+      showError('Failed', err.response?.data?.message || 'Assignment failed');
+    } finally {
+      setAssigning(false);
+    }
+  };
 
   // Fetch upcoming bookings by date
   const fetchBookings = useCallback(async (date) => {
@@ -484,7 +509,7 @@ export default function BookingsScreen() {
   }, []);
 
   useEffect(() => {
-    Promise.all([fetchBookings(selectedDate), fetchServices(), fetchBlockedIds()]);
+    Promise.all([fetchBookings(selectedDate), fetchServices(), fetchBlockedIds(), fetchStaff()]);
   }, []);
 
   useEffect(() => {
@@ -1035,6 +1060,28 @@ export default function BookingsScreen() {
                   Reschedule{(actionSheet?.rescheduleCount || 0) > 0 ? ` (${actionSheet.rescheduleCount}/2 used)` : ''}
                 </Text>
               </TouchableOpacity>
+            )}
+            {staffList.length > 0 && ['pending','confirmed','in_progress'].includes(actionSheet?.status) && (
+              <View style={{ paddingHorizontal: 4, paddingTop: 4 }}>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, marginLeft: 8 }}>
+                  {actionSheet?.barberName || actionSheet?.assignedStaffName ? `Assigned: ${actionSheet.barberName || actionSheet.assignedStaffName}` : 'Assign to staff'}
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 4, paddingBottom: 8 }}>
+                  {staffList.map(s => (
+                    <TouchableOpacity
+                      key={s._id}
+                      disabled={assigning}
+                      onPress={() => handleAssign(actionSheet._id, s._id)}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 99, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.bg }}
+                    >
+                      <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#e0e7ff', alignItems: 'center', justifyContent: 'center' }}>
+                        <Text style={{ fontSize: 10, fontWeight: '700', color: '#6366f1' }}>{s.name?.[0]?.toUpperCase() || '?'}</Text>
+                      </View>
+                      <Text style={{ fontSize: 13, color: theme.text }}>{s.name}{s.isOwner ? ' (You)' : ''}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
             )}
             {['pending','confirmed'].includes(actionSheet?.status) && !actionSheet?.lateMarkedAt && (
               <TouchableOpacity style={bStyles.sheetOption} onPress={() => handleMarkLate(actionSheet._id)}>
