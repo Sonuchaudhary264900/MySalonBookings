@@ -194,7 +194,8 @@ function SalonDetails({ salonId: propId, onClose }) {
   const [bookingStatus, setBookingStatus] = useState("confirmed");
   const [bookError, setBookError]         = useState("");
   const [payMethod, setPayMethod]         = useState("cash");
-  const [walletBalance, setWalletBalance] = useState(null);
+  const [creditsAvail, setCreditsAvail]   = useState(0);
+  const [useCredits, setUseCredits]       = useState(false);
   const [barberAvailability, setBarberAvailability] = useState({}); // barberId → true/false
   const [assignedStaff, setAssignedStaff] = useState(null);
   const [todaySlots,    setTodaySlots]    = useState(null); // {slots, blocked, closedDay} or null=loading
@@ -219,6 +220,8 @@ function SalonDetails({ salonId: propId, onClose }) {
   const totalPrice    = selectedServices.reduce((s, x) => s + (x.basePrice || x.price || 0), 0);
   const totalDuration = selectedServices.reduce((s, x) => s + (x.duration || 0), 0);
   const finalPrice    = Math.max(0, totalPrice - couponDiscount);
+  const creditsToUse  = useCredits ? Math.min(creditsAvail, finalPrice) : 0;
+  const payable       = Math.max(0, finalPrice - creditsToUse);
   const advanceDays   = salon?.advanceBookingDays ?? 7;
   const dateDays      = Array.from({ length: Math.max(advanceDays + 1, 8) }, (_, i) => localDate(i));
 
@@ -455,7 +458,7 @@ function SalonDetails({ salonId: propId, onClose }) {
     if (!isCustomer()) { clearCustomerAuth(); navigate("/login", { state: { from: location.pathname, bookingState: { pendingServices: selectedServices } } }); return; }
     setBookDate(todayStr); setSlot(""); setBarberId(""); setAppliedCoupon(null);
     setCouponDiscount(0); setCouponInput(""); setCouponError(""); setBookingSuccess(false); setBookError(""); setPayMethod("cash"); setShowBooking(true);
-    API.get("/customer/wallet").then(r => setWalletBalance(r.data?.data?.balance ?? 0)).catch(() => {});
+    API.get("/customer/credits/available", { params: { salonId: id } }).then(r => setCreditsAvail(r.data?.data?.available ?? 0)).catch(() => {});
   };
 
   const handleBookNow   = () => { if (selectedServices.length === 0) { setActiveTab('services'); return; } openBooking(); };
@@ -528,16 +531,13 @@ function SalonDetails({ salonId: propId, onClose }) {
     if (e?.preventDefault) e.preventDefault();
     if (!slot) { setBookError("Please select a time slot."); return; }
     if (isPastSlot(bookDate, slot)) { setSlot(""); setBookError("This time slot has just passed. Please select another."); return; }
-    if (payMethod === "wallet" && walletBalance != null && walletBalance < finalPrice) {
-      setBookError("Insufficient wallet balance. Add money to your wallet or choose another payment method.");
-      return;
-    }
     setBookError(""); setBookingLoading(true);
     try {
       const res = await API.post("/customer/bookings", {
         salonId: id, serviceIds: selectedServices.map(s => s._id), barberId: barberId || undefined,
         appointmentDate: bookDate, appointmentTime: slot, paymentMethod: payMethod,
         couponCode: appliedCoupon?.code || undefined,
+        creditsToApply: creditsToUse || undefined,
       });
       const data = res.data.data || {};
       const booking = data.booking || data;
@@ -586,9 +586,7 @@ function SalonDetails({ salonId: propId, onClose }) {
         return;
       }
 
-      if (payMethod === "wallet") {
-        setWalletBalance(prev => (prev != null ? Math.max(0, prev - finalPrice) : prev));
-      }
+      if (creditsToUse > 0) setCreditsAvail(prev => Math.max(0, prev - creditsToUse));
       finishBookingSuccess(booking);
     } catch (err) {
       setBookError(err.message || "Booking failed. Please try again.");
@@ -1684,7 +1682,7 @@ function SalonDetails({ salonId: propId, onClose }) {
                   <p className="font-bold" style={{ color: dm.fg }}>{salon.name}</p>
                   <p style={{ color: dm.fg55 }}>{selectedServices.map(s => s.name).join(' + ')}</p>
                   <p style={{ color: dm.fg35 }}>{formatDate(bookDate + 'T12:00:00')} · {slot}</p>
-                  <p style={{ color: theme.p }}>₹{finalPrice} · {payMethod === "cash" ? "Pay at salon" : payMethod === "wallet" ? "Paid via Wallet" : "Paid Online"}</p>
+                  <p style={{ color: theme.p }}>₹{payable} · {payMethod === "cash" ? "Pay at salon" : "Paid Online"}</p>
                 </div>
                 <div className="flex flex-col gap-2 w-full">
                   <button onClick={() => { setShowBooking(false); navigate('/dashboard'); }}
@@ -1922,12 +1920,24 @@ function SalonDetails({ salonId: propId, onClose }) {
                             <span className="font-medium">−₹{couponDiscount}</span>
                           </div>
                         )}
+                        {creditsAvail > 0 && (
+                          <label className="flex justify-between items-center cursor-pointer select-none">
+                            <span style={{ color: dm.fg55 }}>Use Booking Credits (₹{Math.min(creditsAvail, finalPrice)} available)</span>
+                            <input type="checkbox" checked={useCredits} onChange={e => setUseCredits(e.target.checked)} />
+                          </label>
+                        )}
+                        {creditsToUse > 0 && (
+                          <div className="flex justify-between" style={{ color: '#a78bfa' }}>
+                            <span>Booking Credits</span>
+                            <span className="font-medium">−₹{creditsToUse}</span>
+                          </div>
+                        )}
                         <div className="flex justify-between items-center px-3 py-2.5 rounded-xl mt-2"
                           style={{ background: `${theme.p}12`, border: `1px solid ${theme.p}25` }}>
                           <span className="font-bold text-sm" style={{ color: dm.fg }}>
-                            Total · {payMethod === "cash" ? "Pay at salon" : payMethod === "wallet" ? "Pay via Wallet" : "Pay Online"}
+                            Total · {payMethod === "cash" ? "Pay at salon" : "Pay Online"}
                           </span>
-                          <span className="font-extrabold text-lg" style={{ color: theme.p }}>₹{finalPrice}</span>
+                          <span className="font-extrabold text-lg" style={{ color: theme.p }}>₹{payable}</span>
                         </div>
                       </div>
                     </div>
@@ -1939,11 +1949,10 @@ function SalonDetails({ salonId: propId, onClose }) {
                       <label className="flex items-center gap-2 text-sm font-bold mb-3" style={{ color: dm.fg }}>
                         <CreditCard className="w-4 h-4" style={{ color: theme.p }} /> Payment Method
                       </label>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         {[
                           { id: "cash",   label: "Pay at Salon" },
                           { id: "online", label: "Pay Online" },
-                          { id: "wallet", label: "Wallet" },
                         ].map(opt => (
                           <button key={opt.id} type="button" onClick={() => setPayMethod(opt.id)}
                             className="px-2 py-2.5 rounded-xl text-xs font-semibold text-center transition"
@@ -1953,17 +1962,9 @@ function SalonDetails({ salonId: propId, onClose }) {
                               color: payMethod === opt.id ? theme.p : dm.fg55,
                             }}>
                             {opt.label}
-                            {opt.id === "wallet" && walletBalance != null && (
-                              <span className="block mt-0.5" style={{ fontSize: 10, opacity: 0.8 }}>₹{walletBalance.toFixed(0)} avail.</span>
-                            )}
                           </button>
                         ))}
                       </div>
-                      {payMethod === "wallet" && walletBalance != null && walletBalance < finalPrice && (
-                        <p className="text-xs mt-2" style={{ color: '#f87171' }}>
-                          Insufficient wallet balance. <span onClick={() => navigate('/wallet')} className="font-semibold underline cursor-pointer">Add money</span> to continue.
-                        </p>
-                      )}
                     </div>
                   )}
                 </form>
@@ -1973,7 +1974,7 @@ function SalonDetails({ salonId: propId, onClose }) {
                   {slot && !bookingLoading && (
                     <p className="text-center text-xs font-semibold mb-2" style={{ color: dm.fg45 }}>You're all set! Just one tap to confirm ✨</p>
                   )}
-                  <button onClick={handleConfirm} disabled={bookingLoading || !slot || closedDay || (payMethod === "wallet" && walletBalance != null && walletBalance < finalPrice)}
+                  <button onClick={handleConfirm} disabled={bookingLoading || !slot || closedDay}
                     className="w-full py-3.5 text-base font-bold text-white rounded-2xl transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                     style={{ background: `linear-gradient(135deg,${theme.p},${theme.p}cc)`, boxShadow: slot && !closedDay ? `0 4px 20px ${theme.p}45` : 'none' }}>
                     {bookingLoading
@@ -1982,7 +1983,7 @@ function SalonDetails({ salonId: propId, onClose }) {
                       : !slot ? 'Select a time slot' : 'Lock My Slot 🔒'}
                   </button>
                   <p className="text-center mt-2" style={{ fontSize: 10, color: dm.fg30 }}>
-                    {payMethod === "cash" ? "Instant confirmation • No payment now" : payMethod === "wallet" ? "Paid instantly from your wallet" : "Secure payment via Razorpay"}
+                    {payMethod === "cash" ? "Instant confirmation • No payment now" : "Secure payment via Razorpay"}
                   </p>
                 </div>
               </>
