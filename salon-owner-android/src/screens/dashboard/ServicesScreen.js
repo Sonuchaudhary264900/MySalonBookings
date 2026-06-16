@@ -12,6 +12,7 @@ import api from '../../services/api';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { useSalon } from '../../context/SalonContext';
+import { showSuccess, showError } from '../../utils/toast';
 
 // ── Category constants ──────────────────────────────────────────
 const CATEGORY_ORDER = [
@@ -822,6 +823,43 @@ export default function ServicesScreen() {
   const [showMenuSection, setShowMenuSection] = useState(false);
   const [pricingSuggestions, setPricingSuggestions] = useState([]);
   const [dismissedPricing, setDismissedPricing]     = useState([]);
+  const [showBulk,     setShowBulk]     = useState(false);
+  const [bulkEnabled,  setBulkEnabled]  = useState(new Set(['status']));
+  const [bulkPrice,    setBulkPrice]    = useState('');
+  const [bulkDuration, setBulkDuration] = useState('');
+  const [bulkActive,   setBulkActive]   = useState(true);
+  const [bulkGender,   setBulkGender]   = useState('both');
+  const [bulkSaving,   setBulkSaving]   = useState(false);
+
+  const toggleBulkField = (key) => setBulkEnabled(prev => {
+    const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n;
+  });
+
+  const handleBulkSet = async () => {
+    if (bulkSaving) return;
+    const targets = (grouped.find(([c]) => c === selectedCategory)?.[1] || []).filter(s => s._id || s.id);
+    if (!targets.length) { showError('No services', 'Nothing to update in this category'); return; }
+    const patch = {};
+    if (bulkEnabled.has('price')    && bulkPrice    !== '' && Number(bulkPrice)    >= 0) patch.basePrice = Number(bulkPrice);
+    if (bulkEnabled.has('duration') && bulkDuration !== '' && Number(bulkDuration) >= 1) patch.duration  = Number(bulkDuration);
+    if (bulkEnabled.has('status'))  patch.isActive      = bulkActive;
+    if (bulkEnabled.has('gender'))  patch.applicableFor = bulkGender === 'both' ? ['male', 'female'] : [bulkGender];
+    if (!Object.keys(patch).length) { showError('Nothing selected', 'Enable at least one field to apply'); return; }
+    const ids = targets.map(s => s._id || s.id);
+    setBulkSaving(true);
+    try {
+      const res = await api.patch('/owner/services/bulk', { ids, patch });
+      if (!res?.data?.success && res?.data?.success !== undefined) throw new Error('Failed');
+      await fetchServices();
+      setShowBulk(false);
+      setBulkEnabled(new Set(['status'])); setBulkPrice(''); setBulkDuration(''); setBulkActive(true); setBulkGender('both');
+      showSuccess('Updated', `${ids.length} service${ids.length !== 1 ? 's' : ''} updated`);
+    } catch (err) {
+      showError('Failed', err.response?.data?.message || 'Bulk update failed');
+    } finally {
+      setBulkSaving(false);
+    }
+  };
 
   const fetchServices = useCallback(async () => {
     try {
@@ -1036,6 +1074,16 @@ export default function ServicesScreen() {
                   {grouped.find(([c]) => c === selectedCategory)?.[1].length ?? 0} services
                 </Text>
               </View>
+              {(grouped.find(([c]) => c === selectedCategory)?.[1]?.length ?? 0) > 0 && (
+                <TouchableOpacity
+                  style={[styles.menuBtn, { borderColor: theme.border, backgroundColor: theme.bg, marginRight: 8 }]}
+                  onPress={() => setShowBulk(true)}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="options-outline" size={14} color={theme.text} />
+                  <Text style={[styles.menuBtnText, { color: theme.text }]}>Bulk</Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 style={styles.addBtn}
                 onPress={() => { setEditingService(null); setModalVisible(true); }}
@@ -1186,11 +1234,98 @@ export default function ServicesScreen() {
         onClose={() => { setModalVisible(false); setEditingService(null); }}
         onSaved={fetchServices}
       />
+
+      {/* Bulk control panel */}
+      <Modal visible={showBulk} transparent animationType="slide" onRequestClose={() => setShowBulk(false)}>
+        <View style={styles.bulkOverlay}>
+          <TouchableOpacity style={{ flex: 1 }} onPress={() => setShowBulk(false)} />
+          <View style={[styles.bulkSheet, { backgroundColor: theme.bg }]}>
+            <View style={styles.bulkHeader}>
+              <Text style={[styles.bulkTitle, { color: theme.text }]}>Bulk edit · {selectedCategory}</Text>
+              <TouchableOpacity onPress={() => setShowBulk(false)}>
+                <Ionicons name="close" size={22} color={theme.subText} />
+              </TouchableOpacity>
+            </View>
+            <Text style={[styles.bulkHint, { color: theme.subText }]}>
+              Applies to all {grouped.find(([c]) => c === selectedCategory)?.[1]?.length ?? 0} services in this category. Enable only the fields you want to change.
+            </Text>
+
+            <ScrollView keyboardShouldPersistTaps="handled">
+              {/* Price */}
+              <BulkField label="Set price (₹)" enabled={bulkEnabled.has('price')} onToggle={() => toggleBulkField('price')} theme={theme}>
+                <TextInput
+                  style={[styles.bulkInput, { backgroundColor: theme.input, borderColor: theme.inputBorder, color: theme.text }]}
+                  placeholder="e.g. 300" placeholderTextColor={theme.placeholder}
+                  keyboardType="number-pad" value={bulkPrice} onChangeText={setBulkPrice} editable={bulkEnabled.has('price')}
+                />
+              </BulkField>
+              {/* Duration */}
+              <BulkField label="Set duration (min)" enabled={bulkEnabled.has('duration')} onToggle={() => toggleBulkField('duration')} theme={theme}>
+                <TextInput
+                  style={[styles.bulkInput, { backgroundColor: theme.input, borderColor: theme.inputBorder, color: theme.text }]}
+                  placeholder="e.g. 30" placeholderTextColor={theme.placeholder}
+                  keyboardType="number-pad" value={bulkDuration} onChangeText={setBulkDuration} editable={bulkEnabled.has('duration')}
+                />
+              </BulkField>
+              {/* Status */}
+              <BulkField label="Set availability" enabled={bulkEnabled.has('status')} onToggle={() => toggleBulkField('status')} theme={theme}>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {[{ v: true, l: 'Active' }, { v: false, l: 'Inactive' }].map(o => (
+                    <TouchableOpacity key={o.l} disabled={!bulkEnabled.has('status')} onPress={() => setBulkActive(o.v)}
+                      style={[styles.bulkChip, { borderColor: bulkActive === o.v ? '#6366f1' : theme.border, backgroundColor: bulkActive === o.v ? 'rgba(99,102,241,0.1)' : 'transparent', opacity: bulkEnabled.has('status') ? 1 : 0.4 }]}>
+                      <Text style={{ color: bulkActive === o.v ? '#6366f1' : theme.subText, fontSize: 12, fontWeight: '600' }}>{o.l}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </BulkField>
+              {/* Gender */}
+              <BulkField label="Set available for" enabled={bulkEnabled.has('gender')} onToggle={() => toggleBulkField('gender')} theme={theme}>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {[{ v: 'both', l: 'Both' }, { v: 'male', l: 'Men' }, { v: 'female', l: 'Women' }].map(o => (
+                    <TouchableOpacity key={o.v} disabled={!bulkEnabled.has('gender')} onPress={() => setBulkGender(o.v)}
+                      style={[styles.bulkChip, { borderColor: bulkGender === o.v ? '#6366f1' : theme.border, backgroundColor: bulkGender === o.v ? 'rgba(99,102,241,0.1)' : 'transparent', opacity: bulkEnabled.has('gender') ? 1 : 0.4 }]}>
+                      <Text style={{ color: bulkGender === o.v ? '#6366f1' : theme.subText, fontSize: 12, fontWeight: '600' }}>{o.l}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </BulkField>
+
+              <TouchableOpacity style={[styles.bulkApply, { opacity: bulkSaving ? 0.6 : 1 }]} onPress={handleBulkSet} disabled={bulkSaving}>
+                {bulkSaving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.bulkApplyText}>Apply to category</Text>}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+}
+
+function BulkField({ label, enabled, onToggle, theme, children }) {
+  return (
+    <View style={styles.bulkFieldRow}>
+      <TouchableOpacity onPress={onToggle} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <Ionicons name={enabled ? 'checkbox' : 'square-outline'} size={20} color={enabled ? '#6366f1' : theme.subText} />
+        <Text style={{ color: theme.text, fontSize: 14, fontWeight: '600' }}>{label}</Text>
+      </TouchableOpacity>
+      {enabled && <View style={{ paddingLeft: 28 }}>{children}</View>}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // Bulk panel
+  bulkOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  bulkSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '85%' },
+  bulkHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  bulkTitle: { fontSize: 17, fontWeight: '800' },
+  bulkHint: { fontSize: 12, marginBottom: 16, lineHeight: 17 },
+  bulkFieldRow: { marginBottom: 16 },
+  bulkInput: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14 },
+  bulkChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, borderWidth: 1 },
+  bulkApply: { backgroundColor: '#6366f1', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 4, marginBottom: 10 },
+  bulkApplyText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+
   // Smart pricing
   smartCard: { borderRadius: 16, borderWidth: 1, padding: 14 },
   smartIcon: { width: 28, height: 28, borderRadius: 9, backgroundColor: '#10b981', alignItems: 'center', justifyContent: 'center' },

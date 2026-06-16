@@ -435,6 +435,39 @@ export default function BookingsScreen() {
   const [rsError, setRsError] = useState('');
   const [staffList, setStaffList] = useState([]);
   const [assigning, setAssigning] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
+
+  const toggleSelect = (id) => setSelectedIds(prev => {
+    const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n;
+  });
+  const enterSelection = (id) => { setSelectionMode(true); setSelectedIds(new Set([id])); };
+  const exitSelection = () => { setSelectionMode(false); setSelectedIds(new Set()); };
+
+  const bulkCancel = () => {
+    const ids = [...selectedIds];
+    if (!ids.length) return;
+    Alert.alert(`Cancel ${ids.length} booking${ids.length > 1 ? 's' : ''}?`, 'Customers will be notified.', [
+      { text: 'Keep', style: 'cancel' },
+      {
+        text: 'Cancel Bookings', style: 'destructive', onPress: async () => {
+          setBulkLoading(true);
+          try {
+            await api.patch('/owner/bookings/bulk', { ids, action: 'cancel' });
+            showSuccess('Done', `${ids.length} booking${ids.length > 1 ? 's' : ''} cancelled`);
+            exitSelection();
+            if (viewMode === 'upcoming') fetchBookings(selectedDate);
+            else fetchAllBookings(1, filter, true);
+          } catch {
+            showError('Failed', 'Bulk cancel failed');
+          } finally {
+            setBulkLoading(false);
+          }
+        },
+      },
+    ]);
+  };
 
   // Fetch active team for booking assignment
   const fetchStaff = useCallback(async () => {
@@ -761,11 +794,26 @@ export default function BookingsScreen() {
     const isBlocked = b.customerId && blockedIds.has(String(b.customerId));
     const isUpdating = updating === b._id;
     const nextStatuses = getNextStatuses(b.status);
+    const isSelected = selectedIds.has(b._id);
 
     return (
-      <View style={[bStyles.card, { backgroundColor: theme.card }]}>
+      <TouchableOpacity
+        activeOpacity={selectionMode ? 0.7 : 1}
+        onPress={() => { if (selectionMode) toggleSelect(b._id); }}
+        onLongPress={() => { if (!selectionMode) enterSelection(b._id); }}
+        delayLongPress={300}
+        style={[bStyles.card, { backgroundColor: theme.card }, isSelected && { borderWidth: 2, borderColor: '#6366f1' }]}
+      >
         {/* Top row */}
         <View style={bStyles.cardTop}>
+          {selectionMode && (
+            <Ionicons
+              name={isSelected ? 'checkmark-circle' : 'ellipse-outline'}
+              size={22}
+              color={isSelected ? '#6366f1' : theme.subText}
+              style={{ marginRight: 8 }}
+            />
+          )}
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Text style={[bStyles.customerName, { color: theme.text }]}>{b.customerName || '—'}</Text>
@@ -853,7 +901,7 @@ export default function BookingsScreen() {
             )}
           </View>
         )}
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -1232,11 +1280,28 @@ export default function BookingsScreen() {
         </Pressable>
       </Modal>
 
+      {/* Bulk action bar */}
+      {selectionMode && (
+        <View style={[bStyles.bulkBar, { backgroundColor: theme.card, borderTopColor: theme.border }]}>
+          <TouchableOpacity onPress={exitSelection} style={{ padding: 2 }}>
+            <Ionicons name="close" size={20} color={theme.text} />
+          </TouchableOpacity>
+          <Text style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>{selectedIds.size} selected</Text>
+          <View style={{ flex: 1 }} />
+          <TouchableOpacity onPress={bulkCancel} disabled={bulkLoading || selectedIds.size === 0} style={[bStyles.bulkBtn, { opacity: (bulkLoading || selectedIds.size === 0) ? 0.5 : 1 }]}>
+            {bulkLoading ? <ActivityIndicator size="small" color="#ef4444" /> : <Ionicons name="close-circle-outline" size={16} color="#ef4444" />}
+            <Text style={{ fontSize: 13, fontWeight: '700', color: '#ef4444' }}>Cancel Bookings</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
     </View>
   );
 }
 
 const bStyles = StyleSheet.create({
+  bulkBar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14, borderTopWidth: 1, elevation: 8 },
+  bulkBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
   header: { backgroundColor: '#6366f1', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   modeRow: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 10, padding: 3, marginBottom: 10 },

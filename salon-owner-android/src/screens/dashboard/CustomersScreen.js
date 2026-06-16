@@ -372,6 +372,9 @@ export default function CustomersScreen() {
   const [showBroadcast, setShowBroadcast] = useState(false);
   const [broadcastMsg,  setBroadcastMsg]  = useState('');
   const [sending,       setSending]       = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds,   setSelectedIds]   = useState(new Set());
+  const [bulkLoading,   setBulkLoading]   = useState(false);
 
   const fetchCustomers = useCallback(async () => {
     try {
@@ -434,6 +437,62 @@ export default function CustomersScreen() {
   const toggleSort = (field) => {
     if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortField(field); setSortDir('desc'); }
+  };
+
+  // Multi-select bulk actions
+  const toggleSelect = (id) => setSelectedIds(prev => {
+    const n = new Set(prev);
+    n.has(id) ? n.delete(id) : n.add(id);
+    return n;
+  });
+
+  const enterSelection = (id) => {
+    setSelectionMode(true);
+    setSelectedIds(new Set([id]));
+  };
+
+  const exitSelection = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const bulkBlock = async () => {
+    const ids = [...selectedIds];
+    if (!ids.length) return;
+    setBulkLoading(true);
+    try {
+      await api.patch('/owner/customers/bulk', { ids, action: 'block' });
+      setBlockedIds(prev => new Set([...prev, ...ids.map(String)]));
+      showSuccess('Done', `${ids.length} customer${ids.length > 1 ? 's' : ''} blocked`);
+      exitSelection();
+    } catch (err) {
+      showError('Failed', err.response?.data?.message || 'Bulk block failed');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const bulkDelete = () => {
+    const ids = [...selectedIds];
+    if (!ids.length) return;
+    Alert.alert(`Delete ${ids.length} customer${ids.length > 1 ? 's' : ''}?`, 'This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete', style: 'destructive', onPress: async () => {
+          setBulkLoading(true);
+          try {
+            await api.patch('/owner/customers/bulk', { ids, action: 'delete' });
+            setCustomers(prev => prev.filter(c => !ids.includes(c._id)));
+            showSuccess('Done', `${ids.length} customer${ids.length > 1 ? 's' : ''} deleted`);
+            exitSelection();
+          } catch (err) {
+            showError('Failed', err.response?.data?.message || 'Failed to delete');
+          } finally {
+            setBulkLoading(false);
+          }
+        },
+      },
+    ]);
   };
 
   // Re-engagement broadcast to inactive (30+ days) customers
@@ -503,11 +562,22 @@ export default function CustomersScreen() {
     const tag = getTag(item);
     const tagStyle = { bg: isDark ? tag.darkBg : tag.bg, text: isDark ? tag.darkText : tag.text };
     const isBlocked = blockedIds.has(String(item._id));
+    const isSelected = selectedIds.has(item._id);
     return (
       <TouchableOpacity
-        style={[styles.card, { backgroundColor: theme.card }]}
-        onPress={() => setSelected(item)}
+        style={[styles.card, { backgroundColor: theme.card }, isSelected && { borderWidth: 2, borderColor: '#6366f1' }]}
+        onPress={() => selectionMode ? toggleSelect(item._id) : setSelected(item)}
+        onLongPress={() => !selectionMode && enterSelection(item._id)}
+        delayLongPress={300}
       >
+        {selectionMode && (
+          <Ionicons
+            name={isSelected ? 'checkmark-circle' : 'ellipse-outline'}
+            size={22}
+            color={isSelected ? '#6366f1' : theme.subText}
+            style={{ marginRight: 10 }}
+          />
+        )}
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{ini}</Text>
         </View>
@@ -736,6 +806,25 @@ export default function CustomersScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Bulk action bar */}
+      {selectionMode && (
+        <View style={[styles.bulkBar, { backgroundColor: theme.card, borderTopColor: theme.border }]}>
+          <TouchableOpacity onPress={exitSelection} style={styles.bulkClose}>
+            <Ionicons name="close" size={20} color={theme.text} />
+          </TouchableOpacity>
+          <Text style={[styles.bulkCount, { color: theme.text }]}>{selectedIds.size} selected</Text>
+          <View style={{ flex: 1 }} />
+          <TouchableOpacity onPress={bulkBlock} disabled={bulkLoading || selectedIds.size === 0} style={[styles.bulkBtn, { opacity: (bulkLoading || selectedIds.size === 0) ? 0.5 : 1 }]}>
+            <Ionicons name="ban-outline" size={16} color="#d97706" />
+            <Text style={[styles.bulkBtnText, { color: '#d97706' }]}>Block</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={bulkDelete} disabled={bulkLoading || selectedIds.size === 0} style={[styles.bulkBtn, { opacity: (bulkLoading || selectedIds.size === 0) ? 0.5 : 1 }]}>
+            {bulkLoading ? <ActivityIndicator size="small" color="#ef4444" /> : <Ionicons name="trash-outline" size={16} color="#ef4444" />}
+            <Text style={[styles.bulkBtnText, { color: '#ef4444' }]}>Delete</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -766,6 +855,12 @@ const styles = StyleSheet.create({
   sortBtn: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99, borderWidth: 1 },
   sortBtnActive: { backgroundColor: 'rgba(99,102,241,0.08)' },
   sortBtnText: { fontSize: 11, fontWeight: '600' },
+
+  bulkBar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14, borderTopWidth: 1, elevation: 8 },
+  bulkClose: { padding: 2 },
+  bulkCount: { fontSize: 14, fontWeight: '700' },
+  bulkBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
+  bulkBtnText: { fontSize: 13, fontWeight: '700' },
 
   card: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 12, marginBottom: 8, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4 },
   avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#e0e7ff', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
