@@ -731,11 +731,9 @@ function Booking() {
             {date && slot && (
               <div>
                 <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--t-text-2)' }}>Payment Method</label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 gap-2">
                   {[
                     { id: "cash", label: "Pay at Salon" },
-                    { id: "online", label: "Pay Online" },
-                    { id: "wallet", label: "Wallet" },
                   ].map(opt => (
                     <button
                       key={opt.id}

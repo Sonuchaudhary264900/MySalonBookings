@@ -575,8 +575,6 @@ export default function BookingScreen({ route, navigation }) {
             <View style={styles.paymentRow}>
               {[
                 { id: 'cash', label: 'Pay at Salon' },
-                { id: 'online', label: 'Pay Online' },
-                { id: 'wallet', label: 'Wallet' },
               ].map(opt => {
                 const active = paymentMethod === opt.id;
                 return (

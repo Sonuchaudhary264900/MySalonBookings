@@ -305,7 +305,8 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
     { to: "/map",            label: "Map",             Icon: MapPin,      auth: false },
     { to: "/dashboard",      label: "Bookings",        Icon: CalendarDays,auth: true  },
     { to: "/favorites",      label: "Saved",           Icon: Heart,       auth: true  },
-    { to: "/wallet",         label: "Wallet",          Icon: Wallet,      auth: true  },
+    // { to: "/wallet",         label: "Wallet",          Icon: Wallet,      auth: true  }, // hidden for cash-only launch
+
     { to: "/my-subscription",label: "My Subscription", Icon: Crown,       auth: true  },
     { to: "/feedback",       label: "Help & Feedback", Icon: LifeBuoy,    auth: true  },
     { to: "/profile",        label: "Settings",        Icon: Settings,    auth: true  },
@@ -447,7 +448,8 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
                   {[
                     { to: "/profile",          Icon: User,        label: "My Profile"       },
                     { to: "/dashboard",        Icon: CalendarDays, label: "My Bookings"     },
-                    { to: "/wallet",           Icon: Wallet,       label: "Wallet"          },
+                    // { to: "/wallet",           Icon: Wallet,       label: "Wallet"          }, // hidden for cash-only launch
+
                     { to: "/favorites",        Icon: Bookmark,     label: "Saved Salons"    },
                     { to: "/my-subscription",  Icon: Crown,        label: "My Subscription" },
                     { to: "/feedback",         Icon: LifeBuoy,     label: "Help & Feedback" },
@@ -794,7 +796,8 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
                 {[
                   { to:"/profile",         Icon:User,        label:"My Profile"       },
                   { to:"/dashboard",       Icon:CalendarDays,label:"My Bookings"      },
-                  { to:"/wallet",          Icon:Wallet,      label:"Wallet"           },
+                  // { to:"/wallet",          Icon:Wallet,      label:"Wallet"           }, // hidden for cash-only launch
+
                   { to:"/favorites",       Icon:Bookmark,    label:"Saved Salons"     },
                   { to:"/my-subscription", Icon:Crown,       label:"My Subscription"  },
                   { to:"/feedback",        Icon:LifeBuoy,    label:"Help & Feedback"  },
