@@ -856,11 +856,9 @@ function QuickBookSheet({ salon, selectedServiceCat, preSelectedServices = [], o
               {slot && (
                 <>
                   <p style={{ fontSize:11, fontWeight:700, color:"var(--t-text-3)", margin:"16px 0 8px", textTransform:"uppercase", letterSpacing:"0.1em" }}>Payment Method</p>
-                  <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8 }}>
+                  <div style={{ display:"grid", gridTemplateColumns:"repeat(1,1fr)", gap:8 }}>
                     {[
                       { id: "cash",   label: "Pay at Salon" },
-                      { id: "online", label: "Pay Online" },
-                      { id: "wallet", label: "Wallet" },
                     ].map(opt => {
                       const active = payMethod === opt.id;
                       return (

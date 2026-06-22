@@ -1699,8 +1699,6 @@ export default function SalonDetailsScreen({ route, navigation }) {
                     <View style={{ flexDirection: 'row', gap: 8 }}>
                       {[
                         { id: 'cash', label: 'Pay at Salon' },
-                        { id: 'online', label: 'Pay Online' },
-                        { id: 'wallet', label: 'Wallet' },
                       ].map(opt => {
                         const active = payMethod === opt.id;
                         return (

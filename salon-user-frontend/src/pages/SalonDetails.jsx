@@ -1949,10 +1949,9 @@ function SalonDetails({ salonId: propId, onClose }) {
                       <label className="flex items-center gap-2 text-sm font-bold mb-3" style={{ color: dm.fg }}>
                         <CreditCard className="w-4 h-4" style={{ color: theme.p }} /> Payment Method
                       </label>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 gap-2">
                         {[
                           { id: "cash",   label: "Pay at Salon" },
-                          { id: "online", label: "Pay Online" },
                         ].map(opt => (
                           <button key={opt.id} type="button" onClick={() => setPayMethod(opt.id)}
                             className="px-2 py-2.5 rounded-xl text-xs font-semibold text-center transition"
