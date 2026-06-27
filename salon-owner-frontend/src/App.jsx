@@ -31,43 +31,67 @@ import api from './services/api';
 // ── Eagerly loaded (critical path — shown immediately) ─────────
 import Login from './pages/auth/Login';
 
+// ── Chunk-load resilience ──────────────────────────────────────
+// After a new deploy, hashed chunk filenames change. A browser holding an old
+// index bundle will 404 on the old chunk names. Detect that failed dynamic
+// import and force a one-time full reload to fetch the fresh build.
+const lazyRetry = (factory) =>
+  lazy(() =>
+    factory().catch((err) => {
+      const alreadyReloaded = sessionStorage.getItem('chunk-reloaded');
+      if (!alreadyReloaded) {
+        sessionStorage.setItem('chunk-reloaded', '1');
+        window.location.reload();
+        // Return a never-resolving promise so React doesn't render the error
+        // before the reload kicks in.
+        return new Promise(() => {});
+      }
+      throw err;
+    })
+  );
+
+// Clear the reload guard once a navigation succeeds (next tick after load).
+if (typeof window !== 'undefined') {
+  window.addEventListener('load', () => sessionStorage.removeItem('chunk-reloaded'));
+}
+
 // ── Lazily loaded (split into separate chunks) ─────────────────
-const Onboarding       = lazy(() => import('./pages/onboarding/OnboardingPage'));
-const Register         = lazy(() => import('./pages/auth/Register'));
-const ApprovalWaiting  = lazy(() => import('./pages/auth/ApprovalWaiting'));
-const SalonRegistration = lazy(() => import('./pages/salon/SalonRegistration'));
-const SalonSetup        = lazy(() => import('./pages/salon/SalonSetup'));
-const Dashboard        = lazy(() => import('./pages/dashboard/Dashboard'));
-const Services         = lazy(() => import('./pages/dashboard/Services'));
-const Bookings         = lazy(() => import('./pages/dashboard/Bookings'));
-const Reports          = lazy(() => import('./pages/dashboard/Reports'));
-const Reviews          = lazy(() => import('./pages/dashboard/Reviews'));
-const Profile          = lazy(() => import('./pages/dashboard/Profile'));
-const Settings         = lazy(() => import('./pages/dashboard/Settings'));
-const Notifications    = lazy(() => import('./pages/dashboard/Notifications'));
-const Gallery          = lazy(() => import('./pages/dashboard/Gallery'));
-const CalendarPage     = lazy(() => import('./pages/dashboard/CalendarPage'));
-const Customers        = lazy(() => import('./pages/dashboard/Customers'));
-const Coupons          = lazy(() => import('./pages/dashboard/Coupons'));
-const Packages         = lazy(() => import('./pages/dashboard/Packages'));
-const Billing          = lazy(() => import('./pages/dashboard/Billing'));
-const Promotions       = lazy(() => import('./pages/dashboard/Promotions'));
-const Messages         = lazy(() => import('./pages/dashboard/Messages'));
-const GlowLooxProfile  = lazy(() => import('./pages/dashboard/GlowLooxProfile'));
-const Team             = lazy(() => import('./pages/dashboard/Team'));
-const PrivacyPolicy        = lazy(() => import('./pages/PrivacyPolicy'));
-const TermsAndConditions   = lazy(() => import('./pages/TermsAndConditions'));
-const LegalIndex           = lazy(() => import('./pages/legal/LegalIndex'));
-const CustomerPrivacyPolicy = lazy(() => import('./pages/legal/CustomerPrivacyPolicy'));
-const OwnerPrivacyPolicy   = lazy(() => import('./pages/legal/OwnerPrivacyPolicy'));
-const CustomerTerms        = lazy(() => import('./pages/legal/CustomerTerms'));
-const CustomerRefundPolicy = lazy(() => import('./pages/legal/CustomerRefundPolicy'));
-const OwnerTerms           = lazy(() => import('./pages/legal/OwnerTerms'));
-const AuditLog             = lazy(() => import('./pages/dashboard/AuditLog'));
-const Developer            = lazy(() => import('./pages/dashboard/Developer'));
-const QueuePage            = lazy(() => import('./pages/dashboard/QueuePage'));
-const Feedback             = lazy(() => import('./pages/dashboard/Feedback'));
-const Wallet               = lazy(() => import('./pages/dashboard/Wallet'));
+const Onboarding       = lazyRetry(() => import('./pages/onboarding/OnboardingPage'));
+const Register         = lazyRetry(() => import('./pages/auth/Register'));
+const ApprovalWaiting  = lazyRetry(() => import('./pages/auth/ApprovalWaiting'));
+const SalonRegistration = lazyRetry(() => import('./pages/salon/SalonRegistration'));
+const SalonSetup        = lazyRetry(() => import('./pages/salon/SalonSetup'));
+const Dashboard        = lazyRetry(() => import('./pages/dashboard/Dashboard'));
+const Services         = lazyRetry(() => import('./pages/dashboard/Services'));
+const Bookings         = lazyRetry(() => import('./pages/dashboard/Bookings'));
+const Reports          = lazyRetry(() => import('./pages/dashboard/Reports'));
+const Reviews          = lazyRetry(() => import('./pages/dashboard/Reviews'));
+const Profile          = lazyRetry(() => import('./pages/dashboard/Profile'));
+const Settings         = lazyRetry(() => import('./pages/dashboard/Settings'));
+const Notifications    = lazyRetry(() => import('./pages/dashboard/Notifications'));
+const Gallery          = lazyRetry(() => import('./pages/dashboard/Gallery'));
+const CalendarPage     = lazyRetry(() => import('./pages/dashboard/CalendarPage'));
+const Customers        = lazyRetry(() => import('./pages/dashboard/Customers'));
+const Coupons          = lazyRetry(() => import('./pages/dashboard/Coupons'));
+const Packages         = lazyRetry(() => import('./pages/dashboard/Packages'));
+const Billing          = lazyRetry(() => import('./pages/dashboard/Billing'));
+const Promotions       = lazyRetry(() => import('./pages/dashboard/Promotions'));
+const Messages         = lazyRetry(() => import('./pages/dashboard/Messages'));
+const GlowLooxProfile  = lazyRetry(() => import('./pages/dashboard/GlowLooxProfile'));
+const Team             = lazyRetry(() => import('./pages/dashboard/Team'));
+const PrivacyPolicy        = lazyRetry(() => import('./pages/PrivacyPolicy'));
+const TermsAndConditions   = lazyRetry(() => import('./pages/TermsAndConditions'));
+const LegalIndex           = lazyRetry(() => import('./pages/legal/LegalIndex'));
+const CustomerPrivacyPolicy = lazyRetry(() => import('./pages/legal/CustomerPrivacyPolicy'));
+const OwnerPrivacyPolicy   = lazyRetry(() => import('./pages/legal/OwnerPrivacyPolicy'));
+const CustomerTerms        = lazyRetry(() => import('./pages/legal/CustomerTerms'));
+const CustomerRefundPolicy = lazyRetry(() => import('./pages/legal/CustomerRefundPolicy'));
+const OwnerTerms           = lazyRetry(() => import('./pages/legal/OwnerTerms'));
+const AuditLog             = lazyRetry(() => import('./pages/dashboard/AuditLog'));
+const Developer            = lazyRetry(() => import('./pages/dashboard/Developer'));
+const QueuePage            = lazyRetry(() => import('./pages/dashboard/QueuePage'));
+const Feedback             = lazyRetry(() => import('./pages/dashboard/Feedback'));
+const Wallet               = lazyRetry(() => import('./pages/dashboard/Wallet'));
 
 // ── Page loading fallback ──────────────────────────────────────
 function PageLoader() {
