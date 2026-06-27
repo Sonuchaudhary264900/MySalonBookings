@@ -141,6 +141,75 @@ function CouponModal({ visible, coupon, onClose, onSaved, theme }) {
   );
 }
 
+function AnalyticsModal({ visible, coupon, onClose, theme }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!visible || !coupon?._id) return;
+    setLoading(true);
+    api.get(`/owner/coupons/${coupon._id}/analytics`)
+      .then(r => setData(r.data?.data || null))
+      .catch(() => setData(null))
+      .finally(() => setLoading(false));
+  }, [visible, coupon?._id]);
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <View style={[styles.modalBox, { backgroundColor: theme.bg }]}>
+          <View style={styles.modalHeader}>
+            <View>
+              <Text style={[styles.modalTitle, { color: theme.text, letterSpacing: 2 }]}>{coupon?.code}</Text>
+              <Text style={{ fontSize: 11, color: theme.subText }}>Usage Analytics</Text>
+            </View>
+            <TouchableOpacity onPress={onClose}><Ionicons name="close" size={22} color={theme.text} /></TouchableOpacity>
+          </View>
+          {loading ? (
+            <ActivityIndicator color="#6366f1" style={{ paddingVertical: 40 }} />
+          ) : !data ? (
+            <Text style={{ textAlign: 'center', color: theme.subText, paddingVertical: 40 }}>Failed to load analytics</Text>
+          ) : (
+            <ScrollView>
+              <View style={styles.statsRow}>
+                <View style={[styles.statBox, { backgroundColor: '#eef2ff' }]}>
+                  <Text style={[styles.statVal, { color: '#6366f1' }]}>{data.usageCount}</Text>
+                  <Text style={styles.statLbl}>Times Used</Text>
+                </View>
+                <View style={[styles.statBox, { backgroundColor: '#ecfdf5' }]}>
+                  <Text style={[styles.statVal, { color: '#059669' }]}>₹{data.totalDiscount}</Text>
+                  <Text style={styles.statLbl}>Total Discount</Text>
+                </View>
+                <View style={[styles.statBox, { backgroundColor: '#f5f3ff' }]}>
+                  <Text style={[styles.statVal, { color: '#7c3aed' }]}>{data.remaining !== null && data.remaining !== undefined ? data.remaining : '∞'}</Text>
+                  <Text style={styles.statLbl}>Remaining</Text>
+                </View>
+              </View>
+              <Text style={[styles.fieldLabel, { color: theme.subText, marginTop: 16 }]}>USAGE HISTORY</Text>
+              {(!data.history || data.history.length === 0) ? (
+                <Text style={{ textAlign: 'center', color: theme.subText, paddingVertical: 20 }}>No usage history yet</Text>
+              ) : data.history.map((h, i) => (
+                <View key={i} style={[styles.histRow, { backgroundColor: theme.card }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: theme.text }} numberOfLines={1}>{h.customer}</Text>
+                    {h.phone ? <Text style={{ fontSize: 11, color: theme.subText, marginTop: 2 }}>{h.phone}</Text> : null}
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#059669' }}>-₹{h.discountApplied}</Text>
+                    <Text style={{ fontSize: 10, color: theme.subText, marginTop: 2 }}>
+                      {new Date(h.usedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 export default function CouponsScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
@@ -150,6 +219,8 @@ export default function CouponsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState(null);
+  const [analyticsCoupon, setAnalyticsCoupon] = useState(null);
+  const [broadcasting, setBroadcasting] = useState(null);
 
   const fetchCoupons = useCallback(async () => {
     try {
@@ -192,6 +263,20 @@ export default function CouponsScreen() {
     ]);
   };
 
+  const handleBroadcast = async (coupon) => {
+    setBroadcasting(coupon._id);
+    try {
+      const res = await api.post('/owner/coupons/broadcast', { couponId: coupon._id });
+      const { sent, total } = res.data?.data || {};
+      if (sent > 0) showSuccess('Sent', `Sent to ${sent} of ${total} customers!`);
+      else showSuccess('Broadcast', 'No customers with push notifications enabled yet.');
+    } catch {
+      showError('Error', 'Failed to send notification');
+    } finally {
+      setBroadcasting(null);
+    }
+  };
+
   const renderItem = ({ item }) => {
     const expired = item.expiryDate && new Date(item.expiryDate) < new Date();
     return (
@@ -224,10 +309,20 @@ export default function CouponsScreen() {
             thumbColor={item.isActive && !expired ? '#6366f1' : '#9ca3af'}
           />
         </View>
-        <View style={{ flexDirection: 'row', gap: 16 }}>
+        <View style={{ flexDirection: 'row', gap: 16, flexWrap: 'wrap' }}>
           <TouchableOpacity style={styles.editBtn} onPress={() => { setEditingCoupon(item); setShowModal(true); }}>
             <Ionicons name="create-outline" size={14} color="#6366f1" />
             <Text style={styles.editBtnText}>Edit</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.editBtn} onPress={() => setAnalyticsCoupon(item)}>
+            <Ionicons name="bar-chart-outline" size={14} color="#7c3aed" />
+            <Text style={[styles.editBtnText, { color: '#7c3aed' }]}>Stats</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.editBtn} onPress={() => handleBroadcast(item)} disabled={broadcasting === item._id}>
+            {broadcasting === item._id
+              ? <ActivityIndicator size="small" color="#0891b2" />
+              : <Ionicons name="megaphone-outline" size={14} color="#0891b2" />}
+            <Text style={[styles.editBtnText, { color: '#0891b2' }]}>Notify</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.deleteBtn} onPress={() => deleteCoupon(item)}>
             <Ionicons name="trash-outline" size={14} color="#ef4444" />
@@ -291,6 +386,13 @@ export default function CouponsScreen() {
         onSaved={fetchCoupons}
         theme={theme}
       />
+
+      <AnalyticsModal
+        visible={!!analyticsCoupon}
+        coupon={analyticsCoupon}
+        onClose={() => setAnalyticsCoupon(null)}
+        theme={theme}
+      />
     </View>
   );
 }
@@ -324,4 +426,10 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 11, fontSize: 14, marginBottom: 10 },
   saveBtn: { backgroundColor: '#6366f1', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 4 },
   saveBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  // Analytics
+  statsRow: { flexDirection: 'row', gap: 10 },
+  statBox: { flex: 1, borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
+  statVal: { fontSize: 18, fontWeight: '800' },
+  statLbl: { fontSize: 10, color: '#6b7280', marginTop: 2 },
+  histRow: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 10, marginBottom: 8 },
 });

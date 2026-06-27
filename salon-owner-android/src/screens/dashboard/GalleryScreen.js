@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
+  View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput,
   ActivityIndicator, RefreshControl, Alert, Image, Dimensions,
   Modal, ScrollView, StatusBar, TouchableWithoutFeedback,
 } from 'react-native';
@@ -148,6 +148,124 @@ function Lightbox({ media, initialIndex, coverId, onClose, onDeleted, onCoverSet
   );
 }
 
+/* ── Reels Insights (analytics + comment replies) ── */
+function ReelsInsightsModal({ visible, onClose, theme }) {
+  const [analytics, setAnalytics] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [replyText, setReplyText] = useState('');
+  const [posting, setPosting] = useState(false);
+
+  useEffect(() => {
+    if (!visible) return;
+    setLoading(true);
+    api.get('/owner/reels/analytics')
+      .then(r => setAnalytics(r.data?.data || []))
+      .catch(() => setAnalytics([]))
+      .finally(() => setLoading(false));
+  }, [visible]);
+
+  const fmt = (n) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n ?? 0}`);
+  const totals = analytics.reduce((a, r) => ({
+    likes: a.likes + (r.likeCount || 0),
+    comments: a.comments + (r.commentCount || 0),
+    views: a.views + (r.viewCount || 0),
+  }), { likes: 0, comments: 0, views: 0 });
+
+  const submitReply = async (reelIdx, commentId) => {
+    const text = replyText.trim();
+    if (!text) return;
+    setPosting(true);
+    try {
+      await api.post(`/owner/reels/comments/${commentId}/reply`, { text });
+      setAnalytics(prev => prev.map((r, i) => i !== reelIdx ? r : {
+        ...r,
+        recentComments: (r.recentComments || []).map(c =>
+          String(c._id) === String(commentId) ? { ...c, ownerReply: { text } } : c),
+      }));
+      setReplyText('');
+      setReplyingTo(null);
+      showSuccess('Posted', 'Reply posted');
+    } catch { showError('Error', 'Failed to post reply'); }
+    finally { setPosting(false); }
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <View style={[styles.reelsBox, { backgroundColor: theme.bg }]}>
+          <View style={styles.modalHeader}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Reels Performance</Text>
+            <TouchableOpacity onPress={onClose}><Ionicons name="close" size={22} color={theme.text} /></TouchableOpacity>
+          </View>
+          {loading ? (
+            <ActivityIndicator color="#6366f1" style={{ paddingVertical: 40 }} />
+          ) : analytics.length === 0 ? (
+            <Text style={{ textAlign: 'center', color: theme.subText, paddingVertical: 40 }}>No reels yet</Text>
+          ) : (
+            <ScrollView>
+              <View style={styles.statsRow}>
+                <View style={[styles.statBox, { backgroundColor: '#fef2f2' }]}>
+                  <Text style={[styles.statVal, { color: '#e11d48' }]}>{fmt(totals.likes)}</Text>
+                  <Text style={styles.statLbl}>Likes</Text>
+                </View>
+                <View style={[styles.statBox, { backgroundColor: '#eef2ff' }]}>
+                  <Text style={[styles.statVal, { color: '#6366f1' }]}>{fmt(totals.comments)}</Text>
+                  <Text style={styles.statLbl}>Comments</Text>
+                </View>
+                <View style={[styles.statBox, { backgroundColor: '#ecfeff' }]}>
+                  <Text style={[styles.statVal, { color: '#0891b2' }]}>{fmt(totals.views)}</Text>
+                  <Text style={styles.statLbl}>Views</Text>
+                </View>
+              </View>
+
+              {analytics.map((reel, ri) => (
+                <View key={ri} style={[styles.reelCard, { backgroundColor: theme.card }]}>
+                  <View style={{ flexDirection: 'row', gap: 14, marginBottom: 8 }}>
+                    <Text style={{ fontSize: 12, color: '#e11d48' }}>♥ {fmt(reel.likeCount)}</Text>
+                    <Text style={{ fontSize: 12, color: '#6366f1' }}>💬 {fmt(reel.commentCount)}</Text>
+                    <Text style={{ fontSize: 12, color: '#0891b2' }}>▶ {fmt(reel.viewCount || 0)}</Text>
+                  </View>
+                  {(reel.recentComments || []).map(c => (
+                    <View key={c._id} style={{ marginTop: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border || '#e5e7eb', paddingTop: 8 }}>
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: theme.text }}>{c.user?.name || c.userName || 'Customer'}</Text>
+                      <Text style={{ fontSize: 12, color: theme.subText, marginTop: 1 }}>{c.text}</Text>
+                      {c.ownerReply?.text ? (
+                        <Text style={{ fontSize: 11, color: '#6366f1', marginTop: 4 }}>↳ You: {c.ownerReply.text}</Text>
+                      ) : replyingTo === c._id ? (
+                        <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
+                          <TextInput
+                            style={[styles.input, { flex: 1, marginBottom: 0, borderColor: theme.border || '#e5e7eb', color: theme.text, backgroundColor: theme.bg }]}
+                            placeholder="Write a reply…"
+                            placeholderTextColor={theme.subText}
+                            value={replyText}
+                            onChangeText={setReplyText}
+                            autoFocus
+                          />
+                          <TouchableOpacity style={[styles.saveBtn, { paddingHorizontal: 16, paddingVertical: 10, marginTop: 0 }]} onPress={() => submitReply(ri, c._id)} disabled={posting}>
+                            {posting ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveBtnText}>Send</Text>}
+                          </TouchableOpacity>
+                        </View>
+                      ) : (
+                        <TouchableOpacity onPress={() => { setReplyingTo(c._id); setReplyText(''); }}>
+                          <Text style={{ fontSize: 11, color: '#6366f1', marginTop: 4, fontWeight: '600' }}>Reply</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  ))}
+                  {(!reel.recentComments || reel.recentComments.length === 0) && (
+                    <Text style={{ fontSize: 11, color: theme.subText }}>No comments yet</Text>
+                  )}
+                </View>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 export default function GalleryScreen() {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
@@ -159,6 +277,7 @@ export default function GalleryScreen() {
   const [coverId, setCoverId] = useState(null);
   const [activeTag, setActiveTag] = useState(null);
   const [lightbox, setLightbox] = useState(null);
+  const [showReels, setShowReels] = useState(false);
 
   const fetchMedia = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -417,6 +536,9 @@ export default function GalleryScreen() {
             <Text style={styles.headerTitle}>Gallery</Text>
             <Text style={styles.headerSub}>Photos & Videos · Long-press to delete</Text>
           </View>
+          <TouchableOpacity style={styles.reelsBtn} onPress={() => setShowReels(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="stats-chart" size={18} color="#fff" />
+          </TouchableOpacity>
           <TouchableOpacity style={styles.uploadBtn} onPress={pickAndUpload} disabled={uploading}>
             {uploading
               ? <ActivityIndicator color="#fff" size="small" />
@@ -425,6 +547,8 @@ export default function GalleryScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      <ReelsInsightsModal visible={showReels} onClose={() => setShowReels(false)} theme={theme} />
 
       {loading ? (
         <ActivityIndicator size="large" color="#6366f1" style={{ marginTop: 60 }} />
@@ -522,4 +646,18 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 16, fontWeight: '700', marginBottom: 6 },
   emptySub: { fontSize: 13, textAlign: 'center', maxWidth: 260, marginBottom: 20 },
   uploadBtnLarge: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#6366f1', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 12 },
+  reelsBtn: { width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
+  // Reels insights modal
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  reelsBox: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '88%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  modalTitle: { fontSize: 17, fontWeight: '700' },
+  statsRow: { flexDirection: 'row', gap: 10 },
+  statBox: { flex: 1, borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
+  statVal: { fontSize: 18, fontWeight: '800' },
+  statLbl: { fontSize: 10, color: '#6b7280', marginTop: 2 },
+  reelCard: { borderRadius: 12, padding: 12, marginTop: 12 },
+  input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, marginBottom: 10 },
+  saveBtn: { backgroundColor: '#6366f1', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 4 },
+  saveBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 });
