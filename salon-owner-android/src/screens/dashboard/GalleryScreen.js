@@ -177,11 +177,14 @@ function ReelsInsightsModal({ visible, onClose, theme }) {
     if (!text) return;
     setPosting(true);
     try {
-      await api.post(`/owner/reels/comments/${commentId}/reply`, { text });
+      const resp = await api.post(`/owner/reels/comments/${commentId}/reply`, { text });
+      const newReply = resp.data?.data || { text, ownerName: 'You' };
       setAnalytics(prev => prev.map((r, i) => i !== reelIdx ? r : {
         ...r,
         recentComments: (r.recentComments || []).map(c =>
-          String(c._id) === String(commentId) ? { ...c, ownerReply: { text } } : c),
+          String(c._id) === String(commentId)
+            ? { ...c, replies: [...(c.replies || []), newReply] }
+            : c),
       }));
       setReplyText('');
       setReplyingTo(null);
@@ -228,11 +231,12 @@ function ReelsInsightsModal({ visible, onClose, theme }) {
                   </View>
                   {(reel.recentComments || []).map(c => (
                     <View key={c._id} style={{ marginTop: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border || '#e5e7eb', paddingTop: 8 }}>
-                      <Text style={{ fontSize: 12, fontWeight: '600', color: theme.text }}>{c.user?.name || c.userName || 'Customer'}</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: theme.text }}>{c.name || 'Customer'}</Text>
                       <Text style={{ fontSize: 12, color: theme.subText, marginTop: 1 }}>{c.text}</Text>
-                      {c.ownerReply?.text ? (
-                        <Text style={{ fontSize: 11, color: '#6366f1', marginTop: 4 }}>↳ You: {c.ownerReply.text}</Text>
-                      ) : replyingTo === c._id ? (
+                      {(c.replies || []).map((r, rIdx) => (
+                        <Text key={rIdx} style={{ fontSize: 11, color: '#6366f1', marginTop: 4, marginLeft: 12 }}>↳ {r.ownerName || 'You'}: {r.text}</Text>
+                      ))}
+                      {replyingTo === c._id ? (
                         <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
                           <TextInput
                             style={[styles.input, { flex: 1, marginBottom: 0, borderColor: theme.border || '#e5e7eb', color: theme.text, backgroundColor: theme.bg }]}
