@@ -548,8 +548,8 @@ function HolidaysSection() {
     if (newDate < localDate(0)) { showError('Error', 'Holiday date must be today or in the future'); return; }
     setSaving(true);
     try {
-      const res = await api.post('/owner/holidays', { date: newDate, reason: newReason.trim() || undefined });
-      setHolidays((prev) => [...prev, res.data.data]);
+      const res = await api.post('/owner/salon/holidays', { date: newDate, reason: newReason.trim() || undefined });
+      setHolidays(res.data?.data?.holidays || []);
       setNewDate(''); setNewReason(''); setAdding(false);
       showSuccess('Added', 'Closed date added!');
     } catch (err) {
@@ -563,7 +563,7 @@ function HolidaysSection() {
       {
         text: 'Remove', style: 'destructive', onPress: async () => {
           try {
-            await api.delete(`/owner/holidays/${holiday._id}`);
+            await api.delete(`/owner/salon/holidays/${holiday._id}`);
             setHolidays((prev) => prev.filter((h) => h._id !== holiday._id));
             showSuccess('Removed', 'Closed date removed');
           } catch (err) {
