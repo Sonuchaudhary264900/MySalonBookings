@@ -513,6 +513,99 @@ function NotifyModal({ pkg, visible, onClose, theme, isDark, user }) {
   );
 }
 
+function NotifSettingsModal({ visible, onClose, theme }) {
+  const [settings, setSettings] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ broadcastEnabled: true, radius5km: 19, radius10km: 39, radius25km: 79 });
+
+  useEffect(() => {
+    if (!visible) return;
+    setSettings(null);
+    api.get('/owner/notification-settings').then(r => {
+      const d = r.data?.data || {};
+      setSettings(d);
+      setForm({
+        broadcastEnabled: d.broadcastEnabled ?? true,
+        radius5km:  String(d.pricing?.radius5km  ?? 19),
+        radius10km: String(d.pricing?.radius10km ?? 39),
+        radius25km: String(d.pricing?.radius25km ?? 79),
+      });
+    }).catch(() => setSettings({}));
+  }, [visible]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await api.put('/owner/notification-settings', {
+        broadcastEnabled: form.broadcastEnabled,
+        pricing: {
+          radius5km:  Number(form.radius5km)  || 0,
+          radius10km: Number(form.radius10km) || 0,
+          radius25km: Number(form.radius25km) || 0,
+        },
+      });
+      showSuccess('Saved', 'Notification settings saved');
+      onClose();
+    } catch {
+      showError('Error', 'Failed to save settings');
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={s.modalOverlay}>
+        <View style={[s.modalBox, { backgroundColor: theme.bg }]}>
+          <View style={s.modalHeaderRow}>
+            <Text style={[s.modalTitle, { color: theme.text }]}>Notification Settings</Text>
+            <TouchableOpacity onPress={onClose}><Ionicons name="close" size={22} color={theme.text} /></TouchableOpacity>
+          </View>
+          {!settings ? (
+            <ActivityIndicator color="#6366f1" style={{ paddingVertical: 40 }} />
+          ) : (
+            <ScrollView>
+              <View style={[s.notifRow, { backgroundColor: theme.card }]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>Broadcast Notifications</Text>
+                  <Text style={{ fontSize: 11, color: theme.subText, marginTop: 2 }}>Allow sending notifications to customers</Text>
+                </View>
+                <Switch
+                  value={form.broadcastEnabled}
+                  onValueChange={v => setForm(f => ({ ...f, broadcastEnabled: v }))}
+                  trackColor={{ false: '#d1d5db', true: '#fcd34d' }}
+                  thumbColor={form.broadcastEnabled ? '#f59e0b' : '#9ca3af'}
+                />
+              </View>
+              <Text style={{ fontSize: 11, color: '#059669', marginVertical: 12 }}>
+                1 free radius campaign per month — "My Customers" is always free.
+                {settings.freeRadiusRemaining > 0 ? ` ${settings.freeRadiusRemaining} free left this month.` : ' Free quota used this month.'}
+              </Text>
+              <Text style={[s.notifLabel, { color: theme.subText }]}>SET CAMPAIGN PRICE (₹ PER SEND)</Text>
+              {[
+                { key: 'radius5km',  label: '5 km Radius' },
+                { key: 'radius10km', label: '10 km Radius' },
+                { key: 'radius25km', label: '25 km Radius' },
+              ].map(({ key, label }) => (
+                <View key={key} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                  <Text style={{ flex: 1, fontSize: 13, color: theme.text }}>{label}</Text>
+                  <TextInput
+                    style={[s.priceInput, { borderColor: theme.border || '#e5e7eb', color: theme.text, backgroundColor: theme.card }]}
+                    value={String(form[key])}
+                    onChangeText={t => setForm(f => ({ ...f, [key]: t }))}
+                    keyboardType="numeric"
+                  />
+                </View>
+              ))}
+              <TouchableOpacity style={s.notifSaveBtn} onPress={handleSave} disabled={saving}>
+                {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.notifSaveBtnText}>Save Settings</Text>}
+              </TouchableOpacity>
+            </ScrollView>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 export default function PackagesScreen() {
   const navigation  = useNavigation();
   const { theme, isDark } = useTheme();
@@ -520,6 +613,7 @@ export default function PackagesScreen() {
   const insets      = useSafeAreaInsets();
 
   const [notifyTarget, setNotifyTarget] = useState(null);
+  const [showNotifSettings, setShowNotifSettings] = useState(false);
   const [activeTab, setActiveTab]   = useState('packages');  // 'packages' | 'memberships' | 'requests'
   const [items, setItems]           = useState([]);
   const [requests, setRequests]     = useState([]);
@@ -759,7 +853,9 @@ export default function PackagesScreen() {
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
           <Text style={s.headerTitle}>Packages & Plans</Text>
-          <View style={{ width: 24 }} />
+          <TouchableOpacity onPress={() => setShowNotifSettings(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="settings-outline" size={22} color="#fff" />
+          </TouchableOpacity>
         </View>
         <Text style={s.headerSub}>Create bundles and subscriptions</Text>
       </View>
@@ -841,11 +937,26 @@ export default function PackagesScreen() {
         isDark={isDark}
         user={user}
       />
+
+      <NotifSettingsModal
+        visible={showNotifSettings}
+        onClose={() => setShowNotifSettings(false)}
+        theme={theme}
+      />
     </View>
   );
 }
 
 const s = StyleSheet.create({
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalBox: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '88%' },
+  modalHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  modalTitle: { fontSize: 17, fontWeight: '700' },
+  notifRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 14, padding: 14 },
+  notifLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 10 },
+  priceInput: { width: 90, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9, fontSize: 14, textAlign: 'right' },
+  notifSaveBtn: { backgroundColor: '#f59e0b', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 8 },
+  notifSaveBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   notifyOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   notifySheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '90%' },
   notifyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },

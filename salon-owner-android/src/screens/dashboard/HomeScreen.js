@@ -137,6 +137,8 @@ export default function HomeScreen() {
   const [weeklyBookings,  setWeeklyBookings]  = useState([]);
   const [weeklyRevenue,   setWeeklyRevenue]   = useState([]);
   const [analyticsLoading,setAnalyticsLoading]= useState(false);
+  const [insights,        setInsights]        = useState(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
   const [showWelcome,      setShowWelcome]     = useState(false);
   const queueRef = useRef([]);
   queueRef.current = queue;
@@ -313,6 +315,16 @@ img.onload=function(){
     } finally { setAnalyticsLoading(false); }
   }, []);
 
+  /* ── Fetch smart insights (Intelligence strip) ── */
+  const fetchInsights = useCallback(async () => {
+    setInsightsLoading(true);
+    try {
+      const res = await api.get('/owner/analytics/insights');
+      setInsights(res.data?.data || null);
+    } catch { setInsights(null); }
+    finally { setInsightsLoading(false); }
+  }, []);
+
   /* ── Block / Status handlers ── */
   const handleToggleBlock = async (customerId, customerName, isBlocked) => {
     setActionSheet(null);
@@ -392,7 +404,7 @@ img.onload=function(){
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([fetchQueue(), fetchTodayBookings(), fetchWeeklyAnalytics()]);
+    await Promise.all([fetchQueue(), fetchTodayBookings(), fetchWeeklyAnalytics(), fetchInsights()]);
     setRefreshing(false);
   };
 
@@ -402,7 +414,7 @@ img.onload=function(){
     await Promise.all([fetchQueue(), fetchTodayBookings()]);
   };
 
-  useEffect(() => { fetchBlockedIds(); fetchServices(); fetchTodayBookings(); fetchWeeklyAnalytics(); }, []);
+  useEffect(() => { fetchBlockedIds(); fetchServices(); fetchTodayBookings(); fetchWeeklyAnalytics(); fetchInsights(); }, []);
   useFocusEffect(useCallback(() => { fetchQueue(); fetchTodayBookings(); }, []));
 
   // Show welcome banner once on first staff login
@@ -588,6 +600,50 @@ img.onload=function(){
           isDark={isDark} theme={theme}
         />
       </View>
+
+      {/* ══ INTELLIGENCE STRIP (smart insights) ═════════════════ */}
+      {insights && (
+        <View style={{ paddingHorizontal: 12, marginTop: 6 }}>
+          <View style={styles.intelRow}>
+            <View style={[styles.intelCard, { backgroundColor: isDark ? 'rgba(16,185,129,0.12)' : '#ecfdf5' }]}>
+              <Text style={styles.intelLbl}>Today's Revenue</Text>
+              <Text style={[styles.intelVal, { color: '#059669' }]}>₹{(insights.todayRevenue || 0).toLocaleString('en-IN')}</Text>
+              {insights.revDelta != null && (
+                <Text style={[styles.intelDelta, { color: insights.revDelta >= 0 ? '#059669' : '#ef4444' }]}>
+                  {insights.revDelta >= 0 ? '▲' : '▼'} {Math.abs(insights.revDelta)}% vs yesterday
+                </Text>
+              )}
+            </View>
+            <View style={[styles.intelCard, { backgroundColor: isDark ? 'rgba(99,102,241,0.12)' : '#eef2ff' }]}>
+              <Text style={styles.intelLbl}>Peak Hour</Text>
+              <Text style={[styles.intelVal, { color: '#6366f1' }]} numberOfLines={1}>{insights.peakHourLabel || '—'}</Text>
+              <Text style={styles.intelDelta}>Busiest time</Text>
+            </View>
+          </View>
+          <View style={styles.intelRow}>
+            <View style={[styles.intelCard, { backgroundColor: isDark ? 'rgba(239,68,68,0.10)' : '#fef2f2' }]}>
+              <Text style={styles.intelLbl}>Missed Revenue</Text>
+              <Text style={[styles.intelVal, { color: '#ef4444' }]}>₹{(insights.missedRevenue || 0).toLocaleString('en-IN')}</Text>
+              <Text style={styles.intelDelta}>{insights.noShowCount || 0} no-shows/cancels this week</Text>
+            </View>
+            <View style={[styles.intelCard, { backgroundColor: isDark ? 'rgba(245,158,11,0.12)' : '#fffbeb' }]}>
+              <Text style={styles.intelLbl}>Inactive Customers</Text>
+              <Text style={[styles.intelVal, { color: '#d97706' }]}>{insights.inactiveCustomers || 0}</Text>
+              <Text style={styles.intelDelta}>Haven't booked in 30+ days</Text>
+            </View>
+          </View>
+          {(insights.streak > 1 || insights.totalBookings > 0) && (
+            <View style={[styles.intelStreak, { backgroundColor: theme.card, borderColor: isDark ? '#1e293b' : '#f1f5f9' }]}>
+              {insights.streak > 1 && (
+                <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>🔥 {insights.streak}-day streak</Text>
+              )}
+              {insights.totalBookings > 0 && (
+                <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>🏆 {insights.totalBookings.toLocaleString('en-IN')} bookings</Text>
+              )}
+            </View>
+          )}
+        </View>
+      )}
 
       {/* ══ LIVE QUEUE CARD ═════════════════════════════════════ */}
       <View style={{ paddingHorizontal: 12, marginTop: 6, marginBottom: 10 }}>
@@ -980,6 +1036,14 @@ const qrStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   screen:       { flex: 1 },
   hiddenWebview:{ position: 'absolute', width: 1, height: 1, opacity: 0, top: -1000 },
+
+  // Intelligence strip
+  intelRow:   { flexDirection: 'row', gap: 8, marginBottom: 8 },
+  intelCard:  { flex: 1, borderRadius: 12, padding: 12 },
+  intelLbl:   { fontSize: 11, color: '#6b7280', fontWeight: '600' },
+  intelVal:   { fontSize: 18, fontWeight: '800', marginTop: 3 },
+  intelDelta: { fontSize: 10, color: '#9ca3af', marginTop: 3 },
+  intelStreak:{ flexDirection: 'row', gap: 16, justifyContent: 'center', alignItems: 'center', borderRadius: 12, borderWidth: 1, paddingVertical: 10, marginBottom: 4 },
 
   // Header
   header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1 },
