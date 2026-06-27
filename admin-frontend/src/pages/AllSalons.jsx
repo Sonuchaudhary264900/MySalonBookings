@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../api';
 import toast from 'react-hot-toast';
 import { Search, ToggleLeft, ToggleRight, MapPin, Star, ChevronDown, X, Play, FileText, Image, QrCode, Download, Copy, CheckCircle2 } from 'lucide-react';
@@ -275,9 +276,10 @@ function QRModal({ salon, onClose, isReady, onToggleReady }) {
 }
 
 export default function AllSalons() {
+  const [searchParams] = useSearchParams();
   const [salons, setSalons] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(() => searchParams.get('search') || '');
   const [status, setStatus] = useState('');
   const [state, setState] = useState('');
   const [city, setCity] = useState('');
@@ -321,6 +323,18 @@ export default function AllSalons() {
   }, []);
 
   useEffect(() => { load(page, search, status, state, city); }, [page]);
+
+  // React to global-search navigations (?search=) when already on this page.
+  // Skips the initial mount (handled above) to avoid a duplicate fetch.
+  const urlSearch = searchParams.get('search') || '';
+  const firstSearchRun = useRef(true);
+  useEffect(() => {
+    if (firstSearchRun.current) { firstSearchRun.current = false; return; }
+    setSearch(urlSearch);
+    setPage(1);
+    load(1, urlSearch, status, state, city);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlSearch]);
 
   const applyFilters = (overrides = {}) => {
     const s = overrides.search ?? search;

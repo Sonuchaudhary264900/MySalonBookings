@@ -141,22 +141,31 @@ export default function PendingSalons() {
   useEffect(() => { load(page); }, [page]);
 
   const approve = async (id) => {
+    const prev = salons;
+    setSalons(s => s.filter(x => x._id !== id)); // optimistic — feels instant
     try {
       await api.post(`/admin/salons/${id}/approve`);
       toast.success('Business approved!');
-      load(page);
-    } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
+    } catch (err) {
+      setSalons(prev); // rollback on failure
+      toast.error(err.response?.data?.message || 'Failed');
+    }
   };
 
   const reject = async () => {
     if (!reason.trim()) return toast.error('Reason required');
+    const id = rejectModal;
+    const prev = salons;
+    setSalons(s => s.filter(x => x._id !== id)); // optimistic
+    setRejectModal(null);
+    setReason('');
     try {
-      await api.post(`/admin/salons/${rejectModal}/reject`, { reason });
+      await api.post(`/admin/salons/${id}/reject`, { reason });
       toast.success('Business rejected');
-      setRejectModal(null);
-      setReason('');
-      load(page);
-    } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
+    } catch (err) {
+      setSalons(prev); // rollback
+      toast.error(err.response?.data?.message || 'Failed');
+    }
   };
 
   return (

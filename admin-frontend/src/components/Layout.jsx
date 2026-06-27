@@ -1,21 +1,23 @@
+import { useState, useEffect, useCallback } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Clock, Store, Users, LogOut, Scissors, BookOpen, TrendingUp, UserCheck, CreditCard, Megaphone, Moon, Sun, ImageIcon, Layers, MessageSquare, Landmark, Coins, Gift } from 'lucide-react';
+import { LayoutDashboard, Clock, Store, Users, LogOut, Scissors, BookOpen, TrendingUp, UserCheck, Moon, Sun, ImageIcon, Layers, MessageSquare, Coins, Gift, Search } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import api from '../api';
 
+// Payment-dependent pages (Subscriptions, Promotions, Withdrawals) are hidden for the
+// cash-only launch — online payments are disabled, so they'd show empty/misleading data.
+// Their routes still exist; restore here when Razorpay Route ships.
 const nav = [
   { to: '/dashboard',     icon: LayoutDashboard, label: 'Dashboard'        },
   { to: '/analytics',     icon: TrendingUp,      label: 'Analytics'        },
-  { to: '/pending',       icon: Clock,           label: 'Pending Approvals'},
+  { to: '/pending',       icon: Clock,           label: 'Pending Approvals', badge: 'pending' },
   { to: '/bookings',      icon: BookOpen,        label: 'Bookings'         },
   { to: '/salons',        icon: Store,           label: 'All Business'     },
   { to: '/owners',        icon: UserCheck,       label: 'Owners'           },
   { to: '/customers',     icon: Users,           label: 'Customers'        },
-  { to: '/subscriptions', icon: CreditCard,      label: 'Subscriptions'    },
-  { to: '/promotions',    icon: Megaphone,       label: 'Promotions'       },
   { to: '/catalog',       icon: Layers,          label: 'Service Catalog'  },
   { to: '/site-settings', icon: ImageIcon,       label: 'Hero Images'      },
   { to: '/feedback',      icon: MessageSquare,   label: 'Feedback'         },
-  { to: '/withdrawals',   icon: Landmark,        label: 'Withdrawals'      },
   { to: '/credits',       icon: Coins,           label: 'Booking Credits'  },
   { to: '/referrals',     icon: Gift,            label: 'Referrals'        },
 ];
@@ -24,6 +26,29 @@ export default function Layout() {
   const navigate = useNavigate();
   const { dark, toggle } = useTheme();
   const logout = () => { localStorage.removeItem('admin_token'); navigate('/login'); };
+
+  const [pendingCount, setPendingCount] = useState(0);
+  const [query, setQuery] = useState('');
+
+  const fetchPending = useCallback(async () => {
+    try {
+      const r = await api.get('/admin/salons/pending?page=1&limit=1');
+      setPendingCount(r.data?.data?.pagination?.total ?? 0);
+    } catch { /* silent — badge just stays at last value */ }
+  }, []);
+
+  useEffect(() => {
+    fetchPending();
+    const id = setInterval(fetchPending, 60000); // refresh every 60s
+    return () => clearInterval(id);
+  }, [fetchPending]);
+
+  const submitSearch = (e) => {
+    e.preventDefault();
+    const q = query.trim();
+    if (!q) return;
+    navigate(`/salons?search=${encodeURIComponent(q)}`);
+  };
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
@@ -57,9 +82,26 @@ export default function Layout() {
           </div>
         </div>
 
+        {/* Global search — jumps to All Business filtered by query (backend ?search=) */}
+        <form onSubmit={submitSearch} style={{ padding: '12px 14px 4px' }}>
+          <div style={{ position: 'relative' }}>
+            <Search size={14} color="#475569" style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)' }} />
+            <input
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search businesses…"
+              style={{
+                width: '100%', padding: '9px 11px 9px 32px', borderRadius: 10,
+                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+                color: '#e2e8f0', fontSize: 12.5, outline: 'none', fontFamily: 'inherit',
+              }}
+            />
+          </div>
+        </form>
+
         {/* Nav */}
-        <nav style={{ flex: 1, padding: '14px 10px', overflowY: 'auto' }}>
-          {nav.map(({ to, icon: Icon, label }) => (
+        <nav style={{ flex: 1, padding: '8px 10px 14px', overflowY: 'auto' }}>
+          {nav.map(({ to, icon: Icon, label, badge }) => (
             <NavLink
               key={to}
               to={to}
@@ -83,7 +125,14 @@ export default function Layout() {
               })}
             >
               <Icon size={16} />
-              {label}
+              <span style={{ flex: 1 }}>{label}</span>
+              {badge === 'pending' && pendingCount > 0 && (
+                <span style={{
+                  minWidth: 18, height: 18, padding: '0 5px', borderRadius: 9,
+                  background: 'linear-gradient(135deg, #f59e0b, #ef4444)', color: '#fff',
+                  fontSize: 10.5, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>{pendingCount > 99 ? '99+' : pendingCount}</span>
+              )}
             </NavLink>
           ))}
         </nav>
