@@ -109,6 +109,9 @@ export default function WalletScreen({ navigation }) {
   };
 
   const handleRecharge = async () => {
+    // Online payments temporarily disabled for launch (cash-only phase). Re-enable with Razorpay Route.
+    showError('Unavailable', 'Online wallet recharge is temporarily unavailable. Please try again later.');
+    return;
     const amt = Number(amount);
     if (!amt || amt <= 0) return;
 

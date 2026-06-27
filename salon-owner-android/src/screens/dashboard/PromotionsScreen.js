@@ -131,6 +131,9 @@ export default function PromotionsScreen() {
   const hasActive = !!activePromotion;
 
   const handlePromote = async () => {
+    // Online payments temporarily disabled for launch (cash-only phase). Re-enable with Razorpay Route.
+    showError('Online payments are temporarily unavailable. Please try again later.');
+    return;
     if (!selectedTier) { showError('Please select a radius first'); return; }
     setPaying(true);
     try {

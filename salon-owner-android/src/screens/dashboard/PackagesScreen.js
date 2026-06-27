@@ -386,9 +386,9 @@ function NotifyModal({ pkg, visible, onClose, theme, isDark, user }) {
     try {
       const res = await api.post(`/owner/packages/${pkg._id}/notify`, { title: title.trim(), message: message.trim(), targetType, targetGender });
       if (res.data.needsPayment) {
-        const { campaignId, orderId, amount, razorpayKeyId } = res.data.data;
-        pendingCampaign.current = campaignId;
-        setCheckoutOrder({ key: razorpayKeyId, amount: amount * 100, currency: 'INR', orderId });
+        // Online payments temporarily disabled for launch (cash-only phase). Re-enable with Razorpay Route.
+        showError('Unavailable', 'Paid broadcasts are temporarily unavailable. Free broadcasts still work.');
+        setSending(false);
         return;
       }
       finishCampaign(res.data.notifiedCount);

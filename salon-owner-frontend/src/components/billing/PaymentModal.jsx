@@ -39,6 +39,10 @@ const PaymentModal = ({ isOpen, onClose, planKey, onSuccess }) => {
   }, [isOpen]);
 
   const handlePay = async () => {
+    // Online payments temporarily disabled for launch (cash-only phase). Re-enable with Razorpay Route.
+    toast.error('Online payments are temporarily unavailable. Please try again later.');
+    return;
+
     setLoading(true);
     setStep('processing');
 

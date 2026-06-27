@@ -128,6 +128,10 @@ export default function Wallet() {
   };
 
   const handleRecharge = async () => {
+    // Online payments temporarily disabled for launch (cash-only phase). Re-enable with Razorpay Route.
+    toast.error('Online wallet recharge is temporarily unavailable. Please try again later.');
+    return;
+
     const amt = Number(amount);
     if (!amt || amt <= 0) {
       toast.error('Enter a valid amount');

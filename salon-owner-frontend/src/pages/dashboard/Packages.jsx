@@ -651,7 +651,11 @@ function NotifyModal({ pkg, onClose }) {
       });
 
       if (res.data.needsPayment) {
-        // Open Razorpay checkout
+        // Online payments temporarily disabled for launch (cash-only phase). Re-enable with Razorpay Route.
+        toast.error('Paid broadcasts are temporarily unavailable. Free broadcasts still work.');
+        setSending(false);
+        return;
+        // eslint-disable-next-line no-unreachable
         const ok = await loadRazorpay();
         if (!ok) { toast.error('Payment gateway failed to load'); setSending(false); return; }
         const { campaignId, orderId, amount, razorpayKeyId, ownerName, ownerEmail, ownerPhone } = res.data.data;
