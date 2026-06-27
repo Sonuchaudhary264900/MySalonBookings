@@ -505,7 +505,25 @@ process.on("uncaughtException", (err) => {
   logger.error("Uncaught exception — exiting", { error: err.message, stack: err.stack });
   process.exit(1);
 });
+// Redis/Upstash errors are non-fatal: the app runs in degraded mode (cache
+// disabled, single-node sockets) without it, so a quota/connection error must
+// never crash the process. Swallow those; exit only on genuinely fatal rejections.
+const isNonFatalRejection = (err) => {
+  const msg = (err?.message || '').toLowerCase();
+  return (
+    err?.name === 'ReplyError' ||
+    msg.includes('max requests limit exceeded') ||
+    msg.includes('upstash') ||
+    msg.includes('econnreset') ||
+    msg.includes('etimedout') ||
+    msg.includes('redis')
+  );
+};
 process.on("unhandledRejection", (err) => {
+  if (isNonFatalRejection(err)) {
+    logger.warn("Non-fatal unhandled rejection (ignored — degraded mode)", { error: err?.message });
+    return;
+  }
   logger.error("Unhandled rejection — exiting", { error: err?.message, stack: err?.stack });
   process.exit(1);
 });
