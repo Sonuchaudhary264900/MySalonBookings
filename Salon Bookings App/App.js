@@ -173,7 +173,8 @@ function MainTabs() {
       }}
     >
       <Tab.Screen name="HomeTab"      component={HomeStackNav} />
-      <Tab.Screen name="StyleAITab"   component={StyleAIStackNav} />
+      {/* StyleAI tab hidden for MVP — stack still available via Home if needed */}
+      {/* <Tab.Screen name="StyleAITab"   component={StyleAIStackNav} /> */}
       <Tab.Screen name="BookingsTab"  component={BookingsStackNav} />
       <Tab.Screen name="FavoritesTab" component={FavoritesStackNav} />
       <Tab.Screen name="SettingsTab"  component={SettingsStackNav} />

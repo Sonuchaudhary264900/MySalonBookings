@@ -90,21 +90,22 @@ const NAV_SECTIONS = [
     label: 'Content',
     items: [
       { name: 'Gallery',   label: 'Gallery',         icon: 'images-outline',   iconFocused: 'images'   },
+      { name: 'Reviews',   label: 'Reviews',          icon: 'star-outline',     iconFocused: 'star'     },
       { name: 'Coupons',   label: 'Coupons',         icon: 'pricetag-outline', iconFocused: 'pricetag' },
       { name: 'Packages',  label: 'Packages & Plans', icon: 'gift-outline',     iconFocused: 'gift'     },
-      { name: 'Reviews',   label: 'Reviews',          icon: 'star-outline',     iconFocused: 'star'     },
     ],
   },
   {
     label: 'Account',
     items: [
-      { name: 'Wallet',     label: 'Wallet',          icon: 'wallet-outline',   iconFocused: 'wallet' },
-      { name: 'Promotions', label: 'Promote Salon',   icon: 'megaphone-outline', iconFocused: 'megaphone' },
-      { name: 'Billing',    label: 'Billing & Plan', icon: 'card-outline',     iconFocused: 'card' },
-      { name: 'Audit',      label: 'Audit Log',       icon: 'shield-outline',   iconFocused: 'shield' },
-      { name: 'Developer',  label: 'Developer',       icon: 'code-slash-outline', iconFocused: 'code-slash' },
       { name: 'Settings',   label: 'Settings',        icon: 'settings-outline', iconFocused: 'settings' },
       { name: 'Feedback',   label: 'Help & Feedback', icon: 'help-buoy-outline', iconFocused: 'help-buoy' },
+      // ── Hidden for MVP (cash-only / advanced tooling) — screens still registered ──
+      // { name: 'Wallet',     label: 'Wallet',          icon: 'wallet-outline',   iconFocused: 'wallet' },
+      // { name: 'Promotions', label: 'Promote Salon',   icon: 'megaphone-outline', iconFocused: 'megaphone' },
+      // { name: 'Billing',    label: 'Billing & Plan', icon: 'card-outline',     iconFocused: 'card' },
+      // { name: 'Audit',      label: 'Audit Log',       icon: 'shield-outline',   iconFocused: 'shield' },
+      // { name: 'Developer',  label: 'Developer',       icon: 'code-slash-outline', iconFocused: 'code-slash' },
     ],
   },
 ];
