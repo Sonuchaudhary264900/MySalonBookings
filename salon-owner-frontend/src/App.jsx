@@ -93,13 +93,19 @@ const QueuePage            = lazyRetry(() => import('./pages/dashboard/QueuePage
 const Feedback             = lazyRetry(() => import('./pages/dashboard/Feedback'));
 const Wallet               = lazyRetry(() => import('./pages/dashboard/Wallet'));
 
-// ── Page loading fallback ──────────────────────────────────────
+// ── Page loading fallback (shimmer skeleton) ───────────────────
 function PageLoader() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-        <p className="text-sm text-slate-400">Loading…</p>
+    <div className="min-h-screen bg-slate-50 p-6">
+      <div className="animate-pulse max-w-5xl mx-auto space-y-5">
+        <div className="h-7 w-1/3 rounded-lg bg-slate-200" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="h-24 rounded-2xl bg-slate-200" />
+          <div className="h-24 rounded-2xl bg-slate-200" />
+          <div className="h-24 rounded-2xl bg-slate-200" />
+          <div className="h-24 rounded-2xl bg-slate-200" />
+        </div>
+        <div className="h-64 w-full rounded-2xl bg-slate-200" />
       </div>
     </div>
   );
@@ -117,7 +123,7 @@ class ErrorBoundary extends React.Component {
       return (
         <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
           <div className="bg-white rounded-2xl border border-slate-100 p-8 max-w-sm w-full text-center shadow-sm">
-            <div className="text-5xl mb-4">⚠️</div>
+            <div className="flex justify-center mb-4"><AlertTriangle size={44} className="text-amber-500" /></div>
             <h2 className="text-lg font-bold text-slate-900 mb-2">Something went wrong</h2>
             <p className="text-sm text-slate-500 mb-5">An unexpected error occurred.</p>
             <button
