@@ -7,23 +7,40 @@ import ErrorBoundary from './components/ErrorBoundary';
 import Login from './pages/Login';
 import Layout from './components/Layout';
 
+// After a deploy, hashed chunk filenames change; a stale tab 404s on the old
+// names. lazyRetry forces a one-time reload to fetch the fresh build.
+const lazyRetry = (factory) =>
+  lazy(() =>
+    factory().catch((err) => {
+      if (!sessionStorage.getItem('chunk-reloaded')) {
+        sessionStorage.setItem('chunk-reloaded', '1');
+        window.location.reload();
+        return new Promise(() => {});
+      }
+      throw err;
+    })
+  );
+if (typeof window !== 'undefined') {
+  window.addEventListener('load', () => sessionStorage.removeItem('chunk-reloaded'));
+}
+
 // Route pages are code-split so the admin panel ships a small initial bundle
 // and loads each section on demand.
-const Dashboard       = lazy(() => import('./pages/Dashboard'));
-const Analytics       = lazy(() => import('./pages/Analytics'));
-const PendingSalons   = lazy(() => import('./pages/PendingSalons'));
-const Bookings        = lazy(() => import('./pages/Bookings'));
-const AllSalons       = lazy(() => import('./pages/AllSalons'));
-const Owners          = lazy(() => import('./pages/Owners'));
-const Customers       = lazy(() => import('./pages/Customers'));
-const Subscriptions   = lazy(() => import('./pages/Subscriptions'));
-const Promotions      = lazy(() => import('./pages/Promotions'));
-const SiteSettings    = lazy(() => import('./pages/SiteSettings'));
-const ServiceCatalog  = lazy(() => import('./pages/ServiceCatalog'));
-const Feedback        = lazy(() => import('./pages/Feedback'));
-const Withdrawals     = lazy(() => import('./pages/Withdrawals'));
-const Credits         = lazy(() => import('./pages/Credits'));
-const Referrals       = lazy(() => import('./pages/Referrals'));
+const Dashboard       = lazyRetry(() => import('./pages/Dashboard'));
+const Analytics       = lazyRetry(() => import('./pages/Analytics'));
+const PendingSalons   = lazyRetry(() => import('./pages/PendingSalons'));
+const Bookings        = lazyRetry(() => import('./pages/Bookings'));
+const AllSalons       = lazyRetry(() => import('./pages/AllSalons'));
+const Owners          = lazyRetry(() => import('./pages/Owners'));
+const Customers       = lazyRetry(() => import('./pages/Customers'));
+const Subscriptions   = lazyRetry(() => import('./pages/Subscriptions'));
+const Promotions      = lazyRetry(() => import('./pages/Promotions'));
+const SiteSettings    = lazyRetry(() => import('./pages/SiteSettings'));
+const ServiceCatalog  = lazyRetry(() => import('./pages/ServiceCatalog'));
+const Feedback        = lazyRetry(() => import('./pages/Feedback'));
+const Withdrawals     = lazyRetry(() => import('./pages/Withdrawals'));
+const Credits         = lazyRetry(() => import('./pages/Credits'));
+const Referrals       = lazyRetry(() => import('./pages/Referrals'));
 
 const isAuth = () => !!localStorage.getItem('admin_token');
 
