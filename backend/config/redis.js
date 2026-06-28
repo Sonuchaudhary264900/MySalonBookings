@@ -14,10 +14,14 @@ const Redis = require('ioredis');
 let redisClient = null;
 let isRedisConnected = false;
 
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+// In production, only connect if a real REDIS_URL is provided. Falling back to
+// localhost on a host with no Redis just spams connection errors — better to run
+// cleanly in no-cache degraded mode. Locally we still default to localhost.
+const REDIS_URL = process.env.REDIS_URL || (process.env.NODE_ENV === 'production' ? '' : 'redis://localhost:6379');
+const REDIS_ENABLED = !!REDIS_URL;
 
 // Upstash (and any rediss:// URL) requires TLS
-const isTLS = REDIS_URL.startsWith('rediss://');
+const isTLS = REDIS_ENABLED && REDIS_URL.startsWith('rediss://');
 
 let _quotaHit = false;
 
@@ -43,6 +47,10 @@ const redisOptions = {
 };
 
 try {
+  if (!REDIS_ENABLED) {
+    console.warn('⚠️  No REDIS_URL set — running without cache (degraded mode)');
+    throw new Error('redis-disabled'); // skip to catch, leaves redisClient null
+  }
   redisClient = new Redis(REDIS_URL, redisOptions);
 
   redisClient.on('connect', () => {
