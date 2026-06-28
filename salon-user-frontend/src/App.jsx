@@ -1,6 +1,7 @@
 import React, { lazy, Suspense, useState, useEffect } from "react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
+import { AlertTriangle } from "lucide-react";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import BottomNav from "./components/BottomNav";
@@ -22,41 +23,75 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import GenderHome from "./pages/GenderHome";
 
-// ── Lazily loaded (split into separate chunks) ─────────────────
-const Register     = lazy(() => import("./pages/Register"));
-const SalonDetails = lazy(() => import("./pages/SalonDetails"));
-const Booking      = lazy(() => import("./pages/Booking"));
-const Dashboard    = lazy(() => import("./pages/Dashboard"));
-const Favorites    = lazy(() => import("./pages/Favorites"));
-const Profile             = lazy(() => import("./pages/Profile"));
-const Feedback            = lazy(() => import("./pages/Feedback"));
-const Wallet              = lazy(() => import("./pages/Wallet"));
-const PrivacyPolicy           = lazy(() => import("./pages/PrivacyPolicy"));
-const TermsAndConditions      = lazy(() => import("./pages/TermsAndConditions"));
-const CustomerPrivacyPolicy   = lazy(() => import("./pages/legal/CustomerPrivacyPolicy"));
-const CustomerTerms           = lazy(() => import("./pages/legal/CustomerTerms"));
-const CustomerRefundPolicy    = lazy(() => import("./pages/legal/CustomerRefundPolicy"));
-const OwnerPrivacyPolicy      = lazy(() => import("./pages/legal/OwnerPrivacyPolicy"));
-const OwnerTerms              = lazy(() => import("./pages/legal/OwnerTerms"));
-const Reels                   = lazy(() => import("./pages/Reels"));
-const SalonReviews            = lazy(() => import("./pages/SalonReviews"));
-const MySubscription          = lazy(() => import("./pages/MySubscription"));
-const MapView                 = lazy(() => import("./pages/MapView"));
-const Notifications           = lazy(() => import("./pages/Notifications"));
-const Chat                    = lazy(() => import("./pages/Chat"));
-const HairstylePage           = lazy(() => import("./pages/HairstylePage"));
-const ExplorePage             = lazy(() => import("./pages/ExplorePage"));
+// ── Chunk-load resilience ──────────────────────────────────────
+// After a deploy, hashed chunk filenames change. A browser holding an old index
+// bundle 404s on the old chunk names. Detect the failed dynamic import and force
+// a one-time full reload to fetch the fresh build (prevents white-screen).
+const lazyRetry = (factory) =>
+  lazy(() =>
+    factory().catch((err) => {
+      if (!sessionStorage.getItem("chunk-reloaded")) {
+        sessionStorage.setItem("chunk-reloaded", "1");
+        window.location.reload();
+        return new Promise(() => {}); // hold render until reload fires
+      }
+      throw err;
+    })
+  );
+if (typeof window !== "undefined") {
+  window.addEventListener("load", () => sessionStorage.removeItem("chunk-reloaded"));
+}
 
-// ── Page loading fallback ──────────────────────────────────────
+// ── Lazily loaded (split into separate chunks) ─────────────────
+const Register     = lazyRetry(() => import("./pages/Register"));
+const SalonDetails = lazyRetry(() => import("./pages/SalonDetails"));
+const Booking      = lazyRetry(() => import("./pages/Booking"));
+const Dashboard    = lazyRetry(() => import("./pages/Dashboard"));
+const Favorites    = lazyRetry(() => import("./pages/Favorites"));
+const Profile             = lazyRetry(() => import("./pages/Profile"));
+const Feedback            = lazyRetry(() => import("./pages/Feedback"));
+const Wallet              = lazyRetry(() => import("./pages/Wallet"));
+const PrivacyPolicy           = lazyRetry(() => import("./pages/PrivacyPolicy"));
+const TermsAndConditions      = lazyRetry(() => import("./pages/TermsAndConditions"));
+const CustomerPrivacyPolicy   = lazyRetry(() => import("./pages/legal/CustomerPrivacyPolicy"));
+const CustomerTerms           = lazyRetry(() => import("./pages/legal/CustomerTerms"));
+const CustomerRefundPolicy    = lazyRetry(() => import("./pages/legal/CustomerRefundPolicy"));
+const OwnerPrivacyPolicy      = lazyRetry(() => import("./pages/legal/OwnerPrivacyPolicy"));
+const OwnerTerms              = lazyRetry(() => import("./pages/legal/OwnerTerms"));
+const Reels                   = lazyRetry(() => import("./pages/Reels"));
+const SalonReviews            = lazyRetry(() => import("./pages/SalonReviews"));
+const MySubscription          = lazyRetry(() => import("./pages/MySubscription"));
+const MapView                 = lazyRetry(() => import("./pages/MapView"));
+const Notifications           = lazyRetry(() => import("./pages/Notifications"));
+const Chat                    = lazyRetry(() => import("./pages/Chat"));
+const HairstylePage           = lazyRetry(() => import("./pages/HairstylePage"));
+const ExplorePage             = lazyRetry(() => import("./pages/ExplorePage"));
+
+// ── Page loading fallback (shimmer skeleton) ───────────────────
 function PageLoader() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-        <p className="text-sm text-slate-400">Loading…</p>
+    <div className="min-h-screen bg-slate-50 px-4 pt-6 max-w-3xl mx-auto w-full">
+      <div className="animate-pulse space-y-4">
+        <div className="h-7 w-2/5 rounded-lg bg-slate-200" />
+        <div className="h-40 w-full rounded-2xl bg-slate-200" />
+        <div className="grid grid-cols-2 gap-3">
+          <div className="h-28 rounded-2xl bg-slate-200" />
+          <div className="h-28 rounded-2xl bg-slate-200" />
+        </div>
+        <div className="h-4 w-3/4 rounded bg-slate-200" />
+        <div className="h-4 w-1/2 rounded bg-slate-200" />
       </div>
     </div>
   );
+}
+
+// ── Auth guard — bounce logged-out users to login ──────────────
+function RequireAuth({ children }) {
+  const { pathname } = useLocation();
+  if (!localStorage.getItem("customerToken")) {
+    return <Navigate to="/login" replace state={{ from: pathname }} />;
+  }
+  return children;
 }
 
 // ── Error Boundary ─────────────────────────────────────────────
@@ -71,7 +106,7 @@ class ErrorBoundary extends React.Component {
       return (
         <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
           <div className="bg-white rounded-2xl border border-slate-100 p-8 max-w-sm w-full text-center shadow-sm">
-            <div className="text-5xl mb-4">⚠️</div>
+            <div className="flex justify-center mb-4"><AlertTriangle size={44} className="text-amber-500" /></div>
             <h2 className="text-lg font-bold text-slate-900 mb-2">Something went wrong</h2>
             <p className="text-sm text-slate-500 mb-5">An unexpected error occurred on this page.</p>
             <button
@@ -126,11 +161,11 @@ function AppLayout({ notifOpen, setNotifOpen }) {
             <Route path="/skin-derma/:id/reviews"      element={<SalonReviews />} />
             <Route path="/booking/:salonId/:serviceId" element={<Booking />} />
             <Route path="/booking/:salonId"            element={<Booking />} />
-            <Route path="/dashboard"                   element={<Dashboard />} />
-            <Route path="/favorites"                   element={<Favorites />} />
-            <Route path="/profile"                     element={<Profile />} />
-            <Route path="/feedback"                    element={<Feedback />} />
-            <Route path="/wallet"                      element={<Wallet />} />
+            <Route path="/dashboard"                   element={<RequireAuth><Dashboard /></RequireAuth>} />
+            <Route path="/favorites"                   element={<RequireAuth><Favorites /></RequireAuth>} />
+            <Route path="/profile"                     element={<RequireAuth><Profile /></RequireAuth>} />
+            <Route path="/feedback"                    element={<RequireAuth><Feedback /></RequireAuth>} />
+            <Route path="/wallet"                      element={<RequireAuth><Wallet /></RequireAuth>} />
             <Route path="/privacy-policy"              element={<PrivacyPolicy />} />
             <Route path="/terms"                       element={<TermsAndConditions />} />
             <Route path="/legal/customer-privacy"      element={<CustomerPrivacyPolicy />} />
@@ -140,9 +175,9 @@ function AppLayout({ notifOpen, setNotifOpen }) {
             <Route path="/legal/owner-terms"           element={<OwnerTerms />} />
             <Route path="/reels"                       element={<Reels />} />
             <Route path="/map"                         element={<MapView />} />
-            <Route path="/my-subscription"             element={<MySubscription />} />
-            <Route path="/notifications"               element={<Notifications />} />
-            <Route path="/chat/:bookingId"             element={<Chat />} />
+            <Route path="/my-subscription"             element={<RequireAuth><MySubscription /></RequireAuth>} />
+            <Route path="/notifications"               element={<RequireAuth><Notifications /></RequireAuth>} />
+            <Route path="/chat/:bookingId"             element={<RequireAuth><Chat /></RequireAuth>} />
             <Route path="/style-ai"                    element={<HairstylePage />} />
             <Route path="/explore"                     element={<ExplorePage />} />
 
