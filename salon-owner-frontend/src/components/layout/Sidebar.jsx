@@ -21,6 +21,8 @@ const BIZ_NAME_MAP = {
 };
 
 /* ─── Nav structure ────────────────────────────────────────────────────── */
+/* MVP launch: bloat items hidden from nav (code/routes kept). Re-enable by
+   uncommenting when online payments + advanced tooling go live. */
 const NAV_SECTIONS = [
   {
     label: 'Main',
@@ -31,8 +33,8 @@ const NAV_SECTIONS = [
       { id: 'services',  label: 'Services',  path: ROUTES.SERVICES,  icon: Scissors        },
       { id: 'customers', label: 'Customers', path: ROUTES.CUSTOMERS, icon: Users           },
       { id: 'team',      label: 'Team',      path: ROUTES.TEAM,      icon: Users           },
-      { id: 'messages',  label: 'Messages',  path: ROUTES.MESSAGES,  icon: MessageSquare, badge: 'chat' },
       { id: 'analytics', label: 'Analytics', path: ROUTES.ANALYTICS, icon: BarChart2       },
+      { id: 'messages',  label: 'Messages',  path: ROUTES.MESSAGES,  icon: MessageSquare, badge: 'chat' },
     ],
   },
   {
@@ -40,21 +42,22 @@ const NAV_SECTIONS = [
     items: [
       { id: 'glowloox',  label: 'GlowLoox Profile',  path: ROUTES.GLOWLOOX,  icon: Eye        },
       { id: 'gallery',   label: 'Gallery',            path: ROUTES.GALLERY,   icon: Images     },
+      { id: 'reviews',   label: 'Reviews',            path: ROUTES.REVIEWS,   icon: Star       },
       { id: 'coupons',   label: 'Coupons',            path: ROUTES.COUPONS,   icon: Tag        },
       { id: 'packages',  label: 'Packages & Plans',   path: ROUTES.PACKAGES,  icon: Gift       },
-      { id: 'reviews',   label: 'Reviews',            path: ROUTES.REVIEWS,   icon: Star       },
     ],
   },
   {
     label: 'Account',
     items: [
-      { id: 'wallet',       label: 'Wallet',          path: ROUTES.WALLET,     icon: Wallet     },
-      { id: 'promotions',   label: 'Promote Salon',   path: ROUTES.PROMOTIONS, icon: Megaphone },
-      { id: 'subscription', label: 'My Subscription', path: ROUTES.BILLING,    icon: Crown      },
-      { id: 'audit',        label: 'Audit Log',        path: ROUTES.AUDIT,      icon: Shield     },
-      { id: 'developer',    label: 'Developer',        path: ROUTES.DEVELOPER,  icon: Code2      },
       { id: 'settings',     label: 'Settings',         path: ROUTES.SETTINGS,   icon: Settings   },
       { id: 'feedback',     label: 'Help & Feedback',  path: ROUTES.FEEDBACK,   icon: MessageCircle },
+      // ── Hidden for MVP (cash-only / advanced tooling) — routes still work ──
+      // { id: 'wallet',       label: 'Wallet',          path: ROUTES.WALLET,     icon: Wallet     },
+      // { id: 'promotions',   label: 'Promote Salon',   path: ROUTES.PROMOTIONS, icon: Megaphone },
+      // { id: 'subscription', label: 'My Subscription', path: ROUTES.BILLING,    icon: Crown      },
+      // { id: 'audit',        label: 'Audit Log',        path: ROUTES.AUDIT,      icon: Shield     },
+      // { id: 'developer',    label: 'Developer',        path: ROUTES.DEVELOPER,  icon: Code2      },
     ],
   },
 ];
@@ -222,7 +225,8 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
           })}
         </nav>
 
-        {/* ── My Subscription ── */}
+        {/* ── My Subscription ── (hidden for MVP cash-only launch) */}
+        {false && (
         <div className="shrink-0 px-2 pb-2 border-t border-gray-100 dark:border-gray-800/60 pt-2">
           <button
             onClick={() => handleNavigation(ROUTES.BILLING)}
@@ -246,6 +250,7 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
             </div>
           </button>
         </div>
+        )}
 
         {/* ── Collapse toggle (desktop only) ── */}
         <div className="hidden md:flex shrink-0 p-3 border-t border-gray-100 dark:border-gray-800/60 justify-end">

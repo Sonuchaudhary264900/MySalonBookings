@@ -301,15 +301,15 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
   const NAV_LINKS = [
     { to: "/",               label: "Home",            Icon: Home,        auth: false },
     { to: "/explore",        label: "Explore",         Icon: Compass,     auth: false },
-    { to: "/reels",          label: "Reels",           Icon: Play,        auth: false },
     { to: "/map",            label: "Map",             Icon: MapPin,      auth: false },
     { to: "/dashboard",      label: "Bookings",        Icon: CalendarDays,auth: true  },
     { to: "/favorites",      label: "Saved",           Icon: Heart,       auth: true  },
-    // { to: "/wallet",         label: "Wallet",          Icon: Wallet,      auth: true  }, // hidden for cash-only launch
-
-    { to: "/my-subscription",label: "My Subscription", Icon: Crown,       auth: true  },
     { to: "/feedback",       label: "Help & Feedback", Icon: LifeBuoy,    auth: true  },
     { to: "/profile",        label: "Settings",        Icon: Settings,    auth: true  },
+    // ── Hidden for MVP (route still works) ──
+    // { to: "/reels",          label: "Reels",           Icon: Play,        auth: false },
+    // { to: "/wallet",         label: "Wallet",          Icon: Wallet,      auth: true  }, // cash-only
+    // { to: "/my-subscription",label: "My Subscription", Icon: Crown,       auth: true  },
   ];
   // Desktop center nav: only show auth items if logged in
   const DESKTOP_NAV = token ? NAV_LINKS : NAV_LINKS.filter(l => !l.auth);
@@ -451,7 +451,7 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
                     // { to: "/wallet",           Icon: Wallet,       label: "Wallet"          }, // hidden for cash-only launch
 
                     { to: "/favorites",        Icon: Bookmark,     label: "Saved Salons"    },
-                    { to: "/my-subscription",  Icon: Crown,        label: "My Subscription" },
+                    // { to: "/my-subscription",  Icon: Crown,        label: "My Subscription" }, // hidden for MVP
                     { to: "/feedback",         Icon: LifeBuoy,     label: "Help & Feedback" },
                   ].map(({ to, Icon, label }) => (
                     <Link key={to} to={to}
@@ -799,7 +799,7 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
                   // { to:"/wallet",          Icon:Wallet,      label:"Wallet"           }, // hidden for cash-only launch
 
                   { to:"/favorites",       Icon:Bookmark,    label:"Saved Salons"     },
-                  { to:"/my-subscription", Icon:Crown,       label:"My Subscription"  },
+                  // { to:"/my-subscription", Icon:Crown,       label:"My Subscription"  }, // hidden for MVP
                   { to:"/feedback",        Icon:LifeBuoy,    label:"Help & Feedback"  },
                 ].map(({ to, Icon, label }) => (
                   <Link key={to} to={to} onClick={() => setProfileOpen(false)}

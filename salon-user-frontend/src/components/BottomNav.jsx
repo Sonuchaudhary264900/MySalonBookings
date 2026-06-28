@@ -121,18 +121,19 @@ const MapIcon = ({ active }) => (
   </svg>
 );
 /* ── Tab definitions ── */
+// MVP: Reels demoted from primary nav (route still works at /reels).
 const AUTH_TABS = [
   { label: "Home",     path: "/",          Icon: HomeIcon      },
-  { label: "Reels",    path: "/reels",     Icon: ReelsIcon     },
   { label: "Bookings", path: "/dashboard", Icon: BookingsIcon  },
   { label: "Saved",    path: "/favorites", Icon: FavoritesIcon },
   { label: "Profile",  path: "/profile",   Icon: ProfileIcon   },
+  // { label: "Reels", path: "/reels", Icon: ReelsIcon }, // hidden for MVP
 ];
 
 const GUEST_TABS = [
   { label: "Home",    path: "/",      Icon: HomeIcon    },
-  { label: "Reels",   path: "/reels", Icon: ReelsIcon   },
   { label: "Sign In", path: "/login", Icon: ProfileIcon },
+  // { label: "Reels", path: "/reels", Icon: ReelsIcon }, // hidden for MVP
 ];
 
 /* ── Smart active detection ──
