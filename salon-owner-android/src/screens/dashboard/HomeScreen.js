@@ -510,8 +510,8 @@ img.onload=function(){
         </View>
       </View>
 
-      {/* Trial / Billing bar */}
-      <TrialBanner />
+      {/* Trial / Billing bar — hidden for MVP cash-only launch */}
+      {/* <TrialBanner /> */}
 
       {/* ══ HERO BANNER ═════════════════════════════════════════ */}
       <View style={styles.heroBanner}>

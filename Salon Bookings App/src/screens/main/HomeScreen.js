@@ -721,14 +721,14 @@ export default function HomeScreen({ navigation }) {
           >
             <Ionicons name="compass-outline" size={22} color={theme.subText} />
           </TouchableOpacity>
-          {/* Reels */}
+          {/* Reels — hidden for MVP (route still works)
           <TouchableOpacity
             style={styles.menuBtn}
             onPress={() => navigation.navigate('Reels')}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons name="play-circle-outline" size={22} color={theme.subText} />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           {/* Theme toggle */}
           <TouchableOpacity
             style={styles.menuBtn}

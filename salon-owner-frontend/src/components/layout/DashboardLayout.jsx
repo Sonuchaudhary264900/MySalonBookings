@@ -75,9 +75,9 @@ const DashboardLayout = ({ children }) => {
         {/* Navbar — fixed, always visible */}
         <Navbar onMenuToggle={() => setSidebarOpen(v => !v)} />
 
-        {/* Trial / payment status banner — offset below fixed navbar */}
+        {/* Trial / payment status banner — hidden for MVP cash-only launch */}
         <div className="pt-16">
-          <TrialBanner />
+          {/* <TrialBanner /> */}
         </div>
 
         {/* Page content */}
