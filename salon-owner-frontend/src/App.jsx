@@ -302,34 +302,27 @@ const FEATURES_DATA = [
 const PRICING_PLANS = [
   {
     name: 'Free', price: '₹0', period: '/forever',
-    desc: 'Get started free. No credit card needed.',
-    highlight: false,
-    features: ['Full platform access','Unlimited bookings','Live dashboard','Customer management','Push notifications','Cancel anytime'],
-    cta: 'Register Now',
-    badge: null,
-  },
-  {
-    name: 'Starter', price: '₹150', period: '/month',
-    desc: 'Fixed monthly cost — great for growing businesses.',
+    desc: 'Everything you need to run your business — completely free. No credit card, no hidden charges. Customers pay at your salon.',
     highlight: true,
-    features: ['Unlimited bookings','Live dashboard & analytics','Customer management','Service & gallery management','Push notifications','Priority support'],
-    cta: 'Choose Starter',
-    badge: '✦ MOST POPULAR',
-  },
-  {
-    name: 'Per Booking', price: '₹1', period: '/booking',
-    desc: 'Pay only for what you use — billed monthly.',
-    highlight: false,
-    features: ['Pay per confirmed booking','Full platform access','Live dashboard & analytics','Customer management','Push notifications','No monthly commitment'],
-    cta: 'Choose Per Booking',
+    features: [
+      'Full platform access',
+      'Unlimited bookings',
+      'Live dashboard & analytics',
+      'Customer management',
+      'Service & gallery management',
+      'Staff & live queue management',
+      'Push notifications',
+      'No commission, no hidden fees',
+    ],
+    cta: 'Register Now — It’s Free',
     badge: null,
   },
 ];
 
 const REVIEWS = [
   { name:'Rakesh Sharma', salon:'Sharma Cuts, Pune', rating:5, text:'My bookings doubled in the first month. The dashboard is incredibly easy to use — I manage everything from my phone.' },
-  { name:'Priya Nair', salon:'Glam Studio, Kochi', rating:5, text:'No more missed appointments. Clients love booking online and I get instant notifications. Best ₹150 I spend every month.' },
-  { name:'Mohammed Farhan', salon:'Style Hub, Hyderabad', rating:5, text:'The analytics show me which services earn the most. I switched to the starter plan and never looked back.' },
+  { name:'Priya Nair', salon:'Glam Studio, Kochi', rating:5, text:'No more missed appointments. Clients love booking online and I get instant notifications. And it’s completely free.' },
+  { name:'Mohammed Farhan', salon:'Style Hub, Hyderabad', rating:5, text:'The analytics show me which services earn the most. Everything I need to run my salon, in one free dashboard.' },
 ];
 
 /* Dashboard preview mock */
@@ -860,10 +853,10 @@ const LandingPage = () => {
         <div className="max-w-5xl mx-auto">
           <div style={{ textAlign:'center', marginBottom:60 }}>
             <div style={{ display:'inline-block', background:'rgba(124,58,237,0.1)', border:'1px solid rgba(124,58,237,0.25)', borderRadius:99, padding:'4px 16px', fontSize:11, color:'#a78bfa', fontWeight:700, letterSpacing:1.5, marginBottom:18 }}>PRICING</div>
-            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:c.heading, letterSpacing:'-1px', marginBottom:12 }}>Simple, honest pricing</h2>
-            <p style={{ color:c.subtle, fontSize:15 }}>Start free. No credit card. Switch plans anytime.</p>
+            <h2 style={{ fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, color:c.heading, letterSpacing:'-1px', marginBottom:12 }}>Free for every business</h2>
+            <p style={{ color:c.subtle, fontSize:15 }}>No subscription. No commission. No credit card. Customers simply pay at your salon.</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+          <div className="grid grid-cols-1 gap-6 items-start max-w-md mx-auto">
             {PRICING_PLANS.map(({ name, price, period, desc, highlight, features, cta, badge }) => (
               <div key={name} className="msb-price" style={{
                 background: highlight ? 'linear-gradient(155deg,rgba(124,58,237,0.16),rgba(37,99,235,0.1))' : c.card,
@@ -964,7 +957,7 @@ const LandingPage = () => {
           </div>
           <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
             {[
-              { q:'Is GlowLoox free to use?', a:'Yes. GlowLoox is free to start — no credit card required. You get full platform access from day one. For growing businesses, the Starter Plan is ₹150/month or choose the Per Booking Plan at just ₹1 per confirmed booking.' },
+              { q:'Is GlowLoox free to use?', a:'Yes — GlowLoox is completely free for business owners. No subscription, no commission, no credit card. You get full dashboard access from day one to manage bookings, services, staff, customers and your walk-in queue. Customers simply pay at your salon.' },
               { q:'What types of businesses can use GlowLoox?', a:'GlowLoox works for all beauty and wellness businesses — hair salons, beauty parlours, spas, grooming studios, nail salons, makeup studios, tattoo parlours, and any service-based business that takes appointments.' },
               { q:'How do clients book appointments?', a:'Clients discover your business on the GlowLoox app, select a service, and pick an available time slot. You get an instant push notification and can accept or decline from the app or dashboard.' },
               { q:'Does GlowLoox have a mobile app?', a:'Yes. The GlowLoox Partner app for business owners is available on Android. Manage bookings, track revenue, and receive notifications — all from your phone.' },
