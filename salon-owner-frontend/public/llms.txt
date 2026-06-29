@@ -1,0 +1,30 @@
+# GlowLoox Partner
+
+> GlowLoox Partner is the free business dashboard for salon, barbershop, spa, makeup and skin-clinic owners in India. Owners manage bookings, services, prices, staff, customers, reviews and their live walk-in queue — from the web and an Android app. Free to use.
+
+## What GlowLoox Partner does
+- Accept and manage appointment bookings in real time
+- List services with custom prices and durations
+- Manage a live walk-in queue
+- Add staff and assign bookings to team members
+- Track customers, visit history and reviews
+- See daily, weekly and monthly business analytics
+- Showcase work with a photo & video gallery
+- Run coupons and offers
+
+## Key facts
+- Name: GlowLoox Partner (part of GlowLoox)
+- Who it's for: salon, barbershop, spa & wellness, makeup & bridal, and skin & derma business owners
+- Country served: India
+- Pricing: Free to use
+- Owner dashboard: https://owner.glowloox.com
+- Android app: GlowLoox Partner (Google Play)
+- Customer side: https://glowloox.com
+- Contact: glowloox@gmail.com
+
+## Links
+- Owner dashboard: https://owner.glowloox.com
+- Sign in: https://owner.glowloox.com/login
+- Register your business: https://owner.glowloox.com/register
+- Owner Privacy Policy: https://owner.glowloox.com/legal/owner-privacy
+- Owner Terms: https://owner.glowloox.com/legal/owner-terms

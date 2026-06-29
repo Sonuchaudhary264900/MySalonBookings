@@ -1,3 +1,4 @@
+# GlowLoox Partner — robots.txt
 User-agent: *
 Allow: /
 Disallow: /dashboard
@@ -6,8 +7,27 @@ Disallow: /salon/register
 Disallow: /approval-waiting
 Disallow: /onboarding
 
-# Sitemaps
-Sitemap: https://mysalonbookings.com/sitemap.xml
+# Explicitly welcome AI / generative-search crawlers (GEO)
+# so GlowLoox Partner is discoverable and citable by AI assistants (Gemini, ChatGPT, etc.)
+User-agent: Google-Extended
+Allow: /
 
-# Crawl-delay hint (optional, ignored by Google)
-Crawl-delay: 10
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+Sitemap: https://owner.glowloox.com/sitemap.xml
