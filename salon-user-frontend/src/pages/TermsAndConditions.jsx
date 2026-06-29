@@ -5,7 +5,7 @@ const SECTIONS = [
   {
     title: '1. Acceptance of Terms',
     body: [
-      'By accessing or using MySalonBookings (the "Platform"), you agree to be bound by these Terms & Conditions and our Privacy Policy.',
+      'By accessing or using GlowLoox (the "Platform"), you agree to be bound by these Terms & Conditions and our Privacy Policy.',
       'If you do not agree with any part of these terms, you must not use our services.',
       'We reserve the right to update these terms at any time. Continued use of the Platform after changes are published constitutes your acceptance.',
     ],
@@ -16,16 +16,16 @@ const SECTIONS = [
       'You must be at least 13 years old to create an account.',
       'You are responsible for maintaining the confidentiality of your login credentials and all activity under your account.',
       'You must provide accurate and complete information during registration. Providing false information may result in account suspension.',
-      'You must notify us immediately at support@mysalonbookings.com if you suspect unauthorised access to your account.',
+      'You must notify us immediately at glowloox@gmail.com if you suspect unauthorised access to your account.',
     ],
   },
   {
     title: '3. Booking Policy',
     body: [
-      'When you book an appointment, you are entering into a direct agreement with the salon. MySalonBookings acts as an intermediary platform only.',
+      'When you book an appointment, you are entering into a direct agreement with the salon. GlowLoox acts as an intermediary platform only.',
       'Bookings are subject to salon availability and confirmation by the salon owner.',
       'You must arrive on time for your appointment. Late arrivals may result in shortened service or cancellation at the salon\'s discretion.',
-      'MySalonBookings does not guarantee the quality of services provided by salons listed on the platform.',
+      'GlowLoox does not guarantee the quality of services provided by salons listed on the platform.',
     ],
   },
   {
@@ -33,7 +33,7 @@ const SECTIONS = [
     body: [
       'You may cancel a booking from your "My Bookings" page. Cancellation policies vary by salon.',
       'Refunds, if applicable, are processed at the salon\'s discretion and may take 5–7 business days to reflect in your account.',
-      'MySalonBookings is not liable for refunds on services rendered or no-show bookings.',
+      'GlowLoox is not liable for refunds on services rendered or no-show bookings.',
       'Repeated no-shows may result in restrictions on your ability to book appointments.',
     ],
   },
@@ -41,7 +41,7 @@ const SECTIONS = [
     title: '5. Payments',
     body: [
       'Payment terms are determined by individual salons. Some salons require advance payment; others collect payment on arrival.',
-      'MySalonBookings does not store your payment card information. All payments are processed through secure third-party gateways.',
+      'GlowLoox does not store your payment card information. All payments are processed through secure third-party gateways.',
       'Prices displayed are set by salon owners and may change without notice. Always confirm the final price with the salon.',
     ],
   },
@@ -50,14 +50,14 @@ const SECTIONS = [
     body: [
       'You may submit reviews and ratings for salons you have visited. Reviews must be honest, accurate, and based on personal experience.',
       'You must not post content that is offensive, defamatory, misleading, or violates the rights of others.',
-      'MySalonBookings reserves the right to remove any content that violates these guidelines without notice.',
-      'By submitting content, you grant MySalonBookings a non-exclusive, royalty-free licence to use, display, and distribute it on the platform.',
+      'GlowLoox reserves the right to remove any content that violates these guidelines without notice.',
+      'By submitting content, you grant GlowLoox a non-exclusive, royalty-free licence to use, display, and distribute it on the platform.',
     ],
   },
   {
     title: '7. Referral Programme',
     body: [
-      'The MySalonBookings referral programme allows users to share referral codes with salon owners.',
+      'The GlowLoox referral programme allows users to share referral codes with salon owners.',
       'Rewards are granted only when the referred salon owner uses the platform continuously for the required period as specified in the programme terms.',
       'Referral rewards are non-transferable and have no cash value unless explicitly stated.',
       'We reserve the right to modify or discontinue the referral programme at any time.',
@@ -75,8 +75,8 @@ const SECTIONS = [
   {
     title: '9. Limitation of Liability',
     body: [
-      'MySalonBookings is a booking platform and is not responsible for the quality, safety, or legality of services provided by salons.',
-      'To the maximum extent permitted by law, MySalonBookings shall not be liable for any indirect, incidental, or consequential damages arising from your use of the Platform.',
+      'GlowLoox is a booking platform and is not responsible for the quality, safety, or legality of services provided by salons.',
+      'To the maximum extent permitted by law, GlowLoox shall not be liable for any indirect, incidental, or consequential damages arising from your use of the Platform.',
       'Our total liability to you for any claim shall not exceed the amount you paid for the specific booking giving rise to the claim.',
     ],
   },
@@ -91,9 +91,9 @@ const SECTIONS = [
     title: '11. Contact Us',
     body: [
       'For any questions regarding these Terms & Conditions, please contact us:',
-      'Email: support@mysalonbookings.com',
+      'Email: glowloox@gmail.com',
       'Phone: +91 87264 90024',
-      'Address: MySalonBookings, India',
+      'Address: GlowLoox, India',
     ],
   },
 ];
@@ -117,9 +117,9 @@ export default function TermsAndConditions() {
       <div className="max-w-3xl mx-auto px-4 py-12 space-y-8">
         <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
           <p className="text-slate-600 text-sm leading-relaxed">
-            Welcome to MySalonBookings. These Terms &amp; Conditions govern your use of our platform, including our website and
+            Welcome to GlowLoox. These Terms &amp; Conditions govern your use of our platform, including our website and
             mobile application. Please read them carefully before using our services. These terms create a legally binding agreement
-            between you and MySalonBookings.
+            between you and GlowLoox.
           </p>
         </div>
 

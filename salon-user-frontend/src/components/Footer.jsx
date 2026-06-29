@@ -114,7 +114,7 @@ export default function Footer() {
             <h4 className="text-sm font-bold uppercase tracking-wider mb-5" style={{ color: "var(--t-text)" }}>For Salon Owners</h4>
             <ul className="space-y-3">
               {[
-                { href: "https://owner.mysalonbookings.com", label: "Owner Dashboard" },
+                { href: "https://owner.glowloox.com", label: "Owner Dashboard" },
                 { href: "https://play.google.com/store/apps/details?id=com.mysalonbookings.owner", label: "Owner App" },
               ].map(({ href, label }) => (
                 <li key={label}>

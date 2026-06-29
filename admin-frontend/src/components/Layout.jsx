@@ -76,7 +76,7 @@ export default function Layout() {
               <Scissors size={19} color="#fff" />
             </div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: '#f1f5f9', letterSpacing: '-0.2px' }}>MySalonBookings</div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: '#f1f5f9', letterSpacing: '-0.2px' }}>GlowLoox</div>
               <div style={{ fontSize: 10, color: '#6366f1', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 1 }}>Admin Console</div>
             </div>
           </div>

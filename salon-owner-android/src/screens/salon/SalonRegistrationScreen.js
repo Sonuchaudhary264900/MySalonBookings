@@ -346,7 +346,7 @@ export default function SalonRegistrationScreen() {
           <View style={s.logoCircle}>
             <RNImage source={require('../../../assets/Icon-1024.png')} style={s.logoImg} resizeMode="contain" />
           </View>
-          <Text style={s.appName}>My Salon Bookings</Text>
+          <Text style={s.appName}>GlowLoox</Text>
           <View style={s.pillBadge}>
             <View style={s.pillDot} />
             <Text style={s.pillText}>Salon Registration</Text>

@@ -126,9 +126,9 @@ export default function Step3_Profile() {
 
         <Text style={s.termsNote}>
           By continuing you agree to our{' '}
-          <Text style={s.termsLink} onPress={() => Linking.openURL('https://owner.mysalonbookings.com/legal/owner-terms')}>Terms of Service</Text>
+          <Text style={s.termsLink} onPress={() => Linking.openURL('https://owner.glowloox.com/legal/owner-terms')}>Terms of Service</Text>
           {' '}and{' '}
-          <Text style={s.termsLink} onPress={() => Linking.openURL('https://owner.mysalonbookings.com/legal/owner-privacy')}>Privacy Policy</Text>
+          <Text style={s.termsLink} onPress={() => Linking.openURL('https://owner.glowloox.com/legal/owner-privacy')}>Privacy Policy</Text>
         </Text>
       </ScrollView>
     </KeyboardAvoidingView>

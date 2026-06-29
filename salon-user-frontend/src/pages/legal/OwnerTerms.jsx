@@ -30,28 +30,28 @@ export default function OwnerTerms() {
       <div style={S.wrap}>
         <span style={S.badge}>Legal Document — Salon Owners</span>
         <h1 style={S.h1}>Terms & Conditions for Salon Owners</h1>
-        <p style={S.meta}>MySalonBookings &nbsp;·&nbsp; Effective Date: March 26, 2025 &nbsp;·&nbsp; Last Updated: March 26, 2025</p>
+        <p style={S.meta}>GlowLoox &nbsp;·&nbsp; Effective Date: March 26, 2025 &nbsp;·&nbsp; Last Updated: March 26, 2025</p>
 
         <div style={S.highlight}>
           <p style={{ ...S.p, margin: 0, color: 'rgba(255,255,255,0.8)' }}>
-            These Terms and Conditions ("Terms") govern your use of the MySalonBookings platform as a <strong style={{ color: '#fff' }}>salon owner or business operator</strong>. By registering as an owner, completing the onboarding process, or using the platform, you agree to be bound by these Terms. Please read them carefully before proceeding.
+            These Terms and Conditions ("Terms") govern your use of the GlowLoox platform as a <strong style={{ color: '#fff' }}>salon owner or business operator</strong>. By registering as an owner, completing the onboarding process, or using the platform, you agree to be bound by these Terms. Please read them carefully before proceeding.
           </p>
         </div>
 
         <Section title="1. Platform Overview">
-          <p style={S.p}>MySalonBookings ("we", "us", "the Platform") provides a SaaS (Software as a Service) platform that enables salon owners to:</p>
+          <p style={S.p}>GlowLoox ("we", "us", "the Platform") provides a SaaS (Software as a Service) platform that enables salon owners to:</p>
           <ul style={S.ul}>
-            <li style={S.li}>List their salon and services on the MySalonBookings marketplace</li>
+            <li style={S.li}>List their salon and services on the GlowLoox marketplace</li>
             <li style={S.li}>Receive and manage customer bookings in real-time</li>
             <li style={S.li}>Access a dashboard for business analytics and booking management</li>
             <li style={S.li}>Communicate with customers regarding their appointments</li>
           </ul>
-          <p style={S.p}>We provide the technology platform. You provide the salon services. The business relationship with your customers is yours — MySalonBookings facilitates, not controls, that relationship.</p>
+          <p style={S.p}>We provide the technology platform. You provide the salon services. The business relationship with your customers is yours — GlowLoox facilitates, not controls, that relationship.</p>
         </Section>
 
         <Section title="2. Account Registration & Approval">
           <h3 style={S.h3}>2.1 Registration Requirements</h3>
-          <p style={S.p}>To register as a salon owner on MySalonBookings, you must:</p>
+          <p style={S.p}>To register as a salon owner on GlowLoox, you must:</p>
           <ul style={S.ul}>
             <li style={S.li}>Provide accurate and truthful information about yourself and your salon</li>
             <li style={S.li}>Be the legal owner, authorized operator, or designated manager of the salon</li>
@@ -60,14 +60,14 @@ export default function OwnerTerms() {
           </ul>
 
           <h3 style={S.h3}>2.2 Approval Process</h3>
-          <p style={S.p}>All new owner accounts are subject to review and approval by the MySalonBookings team. We reserve the right to approve or reject any application at our discretion. Reasons for rejection may include incomplete information, suspected fraud, or violation of our guidelines. You will be notified of the approval status.</p>
+          <p style={S.p}>All new owner accounts are subject to review and approval by the GlowLoox team. We reserve the right to approve or reject any application at our discretion. Reasons for rejection may include incomplete information, suspected fraud, or violation of our guidelines. You will be notified of the approval status.</p>
 
           <h3 style={S.h3}>2.3 Account Security</h3>
-          <p style={S.p}>You are solely responsible for maintaining the confidentiality of your account credentials and all activity that occurs under your account. Immediately notify us at support@mysalonbookings.com if you suspect unauthorized access.</p>
+          <p style={S.p}>You are solely responsible for maintaining the confidentiality of your account credentials and all activity that occurs under your account. Immediately notify us at glowloox@gmail.com if you suspect unauthorized access.</p>
         </Section>
 
         <Section title="3. Free Trial">
-          <p style={S.p}>MySalonBookings offers a <strong style={{ color: '#fff' }}>30-day free trial</strong> to all new salon owner accounts. During the trial period:</p>
+          <p style={S.p}>GlowLoox offers a <strong style={{ color: '#fff' }}>30-day free trial</strong> to all new salon owner accounts. During the trial period:</p>
           <ul style={S.ul}>
             <li style={S.li}>You have full access to all platform features at no cost</li>
             <li style={S.li}>No payment or credit card is required to start the trial</li>
@@ -79,7 +79,7 @@ export default function OwnerTerms() {
 
         <Section title="4. Subscription Plans & Pricing">
           <h3 style={S.h3}>4.1 Available Plans</h3>
-          <p style={S.p}>After your free trial, you must subscribe to one of the following paid plans to continue using MySalonBookings:</p>
+          <p style={S.p}>After your free trial, you must subscribe to one of the following paid plans to continue using GlowLoox:</p>
 
           <div style={{ background: 'rgba(124,58,237,0.08)', borderRadius: 12, padding: '16px 20px', marginBottom: 14, border: '1px solid rgba(124,58,237,0.2)' }}>
             <p style={{ ...S.p, margin: 0 }}>
@@ -128,7 +128,7 @@ export default function OwnerTerms() {
           </ul>
 
           <h3 style={S.h3}>5.3 Failed Payments</h3>
-          <p style={S.p}>If a payment fails (insufficient funds, expired card, etc.), you will be notified and given a grace period to update your payment method and complete the payment. MySalonBookings is not responsible for payment failures caused by Razorpay, your bank, or internet connectivity issues.</p>
+          <p style={S.p}>If a payment fails (insufficient funds, expired card, etc.), you will be notified and given a grace period to update your payment method and complete the payment. GlowLoox is not responsible for payment failures caused by Razorpay, your bank, or internet connectivity issues.</p>
 
           <h3 style={S.h3}>5.4 Refund Policy</h3>
           <div style={S.danger}>
@@ -136,7 +136,7 @@ export default function OwnerTerms() {
               <strong style={{ color: '#f87171' }}>No Refunds Policy:</strong> All subscription payments are <strong style={{ color: '#fff' }}>non-refundable</strong> once the billing cycle has been activated and payment has been processed. This applies to both the Starter and Per Booking plans. Partial refunds for unused portions of a billing cycle are not provided.
             </p>
           </div>
-          <p style={S.p}>Exceptions may be considered on a case-by-case basis for technical failures or billing errors caused by MySalonBookings. Contact support@mysalonbookings.com within 7 days of the disputed charge.</p>
+          <p style={S.p}>Exceptions may be considered on a case-by-case basis for technical failures or billing errors caused by GlowLoox. Contact glowloox@gmail.com within 7 days of the disputed charge.</p>
 
           <h3 style={S.h3}>5.5 Taxes</h3>
           <p style={S.p}>Subscription fees are exclusive of applicable taxes. Where required by Indian law (e.g., GST), applicable taxes will be added to your invoice. You are responsible for any local taxes applicable to your business.</p>
@@ -162,11 +162,11 @@ export default function OwnerTerms() {
           <h3 style={S.h3}>6.3 Customer Data Handling</h3>
           <p style={S.p}>You will have access to customer names and phone numbers for booking fulfillment purposes. You must:</p>
           <ul style={S.ul}>
-            <li style={S.li}>Use customer data <strong style={{ color: '#fff' }}>only</strong> to manage bookings made through MySalonBookings</li>
+            <li style={S.li}>Use customer data <strong style={{ color: '#fff' }}>only</strong> to manage bookings made through GlowLoox</li>
             <li style={S.li}>Not contact customers for unsolicited marketing without their explicit consent</li>
             <li style={S.li}>Not sell, share, or transfer customer data to any third party</li>
             <li style={S.li}>Comply with applicable Indian data protection laws when handling customer information</li>
-            <li style={S.li}>Delete customer data upon account closure or upon request from MySalonBookings</li>
+            <li style={S.li}>Delete customer data upon account closure or upon request from GlowLoox</li>
           </ul>
 
           <h3 style={S.h3}>6.4 Legal Compliance</h3>
@@ -181,24 +181,24 @@ export default function OwnerTerms() {
         </Section>
 
         <Section title="7. Prohibited Conduct">
-          <p style={S.p}>As a salon owner on MySalonBookings, you must not:</p>
+          <p style={S.p}>As a salon owner on GlowLoox, you must not:</p>
           <ul style={S.ul}>
             <li style={S.li}>Create multiple accounts to abuse the free trial system</li>
             <li style={S.li}>List a salon or services that do not genuinely exist or that you do not operate</li>
             <li style={S.li}>Manipulate reviews or ratings (fake reviews, incentivized ratings)</li>
             <li style={S.li}>Use the platform to collect customer data for purposes outside of booking fulfillment</li>
             <li style={S.li}>Engage in misleading, deceptive, or fraudulent practices toward customers</li>
-            <li style={S.li}>Attempt to circumvent our platform by directing customers to book outside MySalonBookings after initial discovery</li>
+            <li style={S.li}>Attempt to circumvent our platform by directing customers to book outside GlowLoox after initial discovery</li>
             <li style={S.li}>Reverse-engineer, scrape, or copy any part of our platform or codebase</li>
             <li style={S.li}>Upload malicious content, spam, or inappropriate images to the platform</li>
-            <li style={S.li}>Harass or threaten MySalonBookings staff or other platform users</li>
+            <li style={S.li}>Harass or threaten GlowLoox staff or other platform users</li>
           </ul>
         </Section>
 
         <Section title="8. Platform Dependency Disclaimer">
           <div style={S.warning}>
             <p style={{ ...S.p, margin: 0, color: 'rgba(255,255,255,0.8)' }}>
-              <strong style={{ color: '#fde68a' }}>Important Notice:</strong> MySalonBookings is a third-party platform. We cannot guarantee uninterrupted service availability. You acknowledge that your business operations should not be <em>exclusively</em> dependent on this platform.
+              <strong style={{ color: '#fde68a' }}>Important Notice:</strong> GlowLoox is a third-party platform. We cannot guarantee uninterrupted service availability. You acknowledge that your business operations should not be <em>exclusively</em> dependent on this platform.
             </p>
           </div>
           <ul style={S.ul}>
@@ -210,12 +210,12 @@ export default function OwnerTerms() {
         </Section>
 
         <Section title="9. Intellectual Property">
-          <p style={S.p}>All MySalonBookings platform content, features, branding, and code are the intellectual property of MySalonBookings. By listing on our platform, you grant MySalonBookings a non-exclusive, royalty-free license to display your salon name, logo, photos, service descriptions, and other content on the platform for promotional purposes.</p>
+          <p style={S.p}>All GlowLoox platform content, features, branding, and code are the intellectual property of GlowLoox. By listing on our platform, you grant GlowLoox a non-exclusive, royalty-free license to display your salon name, logo, photos, service descriptions, and other content on the platform for promotional purposes.</p>
           <p style={S.p}>You retain ownership of all content you upload. You represent that you have the right to use and publish any content you submit (photos, business information, etc.).</p>
         </Section>
 
         <Section title="10. Account Suspension & Termination">
-          <h3 style={S.h3}>10.1 Termination by MySalonBookings</h3>
+          <h3 style={S.h3}>10.1 Termination by GlowLoox</h3>
           <p style={S.p}>We reserve the right to suspend or permanently terminate your account with or without notice if:</p>
           <ul style={S.ul}>
             <li style={S.li}>You violate these Terms or our Privacy Policy</li>
@@ -226,7 +226,7 @@ export default function OwnerTerms() {
           </ul>
 
           <h3 style={S.h3}>10.2 Termination by You</h3>
-          <p style={S.p}>You may cancel your account at any time by contacting support@mysalonbookings.com. Upon cancellation:</p>
+          <p style={S.p}>You may cancel your account at any time by contacting glowloox@gmail.com. Upon cancellation:</p>
           <ul style={S.ul}>
             <li style={S.li}>Your account access will remain active until the end of the current billing cycle (no partial refunds for unused days)</li>
             <li style={S.li}>Your salon listing will be removed from customer-facing pages within 24–48 hours of confirmed cancellation</li>
@@ -235,11 +235,11 @@ export default function OwnerTerms() {
           </ul>
 
           <h3 style={S.h3}>10.3 Effect of Termination</h3>
-          <p style={S.p}>Upon termination, your right to use the platform immediately ends. You must cease using all MySalonBookings tools, APIs, and data. We will process any pending customer bookings that were confirmed prior to termination in good faith.</p>
+          <p style={S.p}>Upon termination, your right to use the platform immediately ends. You must cease using all GlowLoox tools, APIs, and data. We will process any pending customer bookings that were confirmed prior to termination in good faith.</p>
         </Section>
 
         <Section title="11. Limitation of Liability">
-          <p style={S.p}>To the fullest extent permitted by Indian law, MySalonBookings shall not be liable for:</p>
+          <p style={S.p}>To the fullest extent permitted by Indian law, GlowLoox shall not be liable for:</p>
           <ul style={S.ul}>
             <li style={S.li}>Loss of business, revenue, or profits due to platform unavailability or technical issues</li>
             <li style={S.li}>Damages arising from customer disputes or chargebacks</li>
@@ -247,23 +247,23 @@ export default function OwnerTerms() {
             <li style={S.li}>Actions of customers using our platform</li>
             <li style={S.li}>Third-party service failures (Razorpay downtime, Firebase notification delays, etc.)</li>
           </ul>
-          <p style={S.p}>Our maximum aggregate liability to you for any claim shall not exceed the total subscription fees paid by you to MySalonBookings in the 3 months preceding the claim.</p>
+          <p style={S.p}>Our maximum aggregate liability to you for any claim shall not exceed the total subscription fees paid by you to GlowLoox in the 3 months preceding the claim.</p>
         </Section>
 
         <Section title="12. Indemnification">
-          <p style={S.p}>You agree to indemnify, defend, and hold harmless MySalonBookings, its founders, employees, and agents from any claims, losses, damages, liabilities, and expenses (including legal fees) arising from:</p>
+          <p style={S.p}>You agree to indemnify, defend, and hold harmless GlowLoox, its founders, employees, and agents from any claims, losses, damages, liabilities, and expenses (including legal fees) arising from:</p>
           <ul style={S.ul}>
             <li style={S.li}>Your violation of these Terms</li>
             <li style={S.li}>Your salon services causing harm, injury, or dissatisfaction to customers</li>
             <li style={S.li}>Your mishandling of customer personal data</li>
             <li style={S.li}>Your violation of applicable laws or regulations</li>
-            <li style={S.li}>Any third-party claims arising from your use of the MySalonBookings platform</li>
+            <li style={S.li}>Any third-party claims arising from your use of the GlowLoox platform</li>
           </ul>
         </Section>
 
         <Section title="13. Dispute Resolution">
           <h3 style={S.h3}>13.1 Internal Resolution</h3>
-          <p style={S.p}>In case of any dispute, please contact us at support@mysalonbookings.com. We will attempt to resolve all disputes within 15 business days through good-faith negotiation.</p>
+          <p style={S.p}>In case of any dispute, please contact us at glowloox@gmail.com. We will attempt to resolve all disputes within 15 business days through good-faith negotiation.</p>
 
           <h3 style={S.h3}>13.2 Governing Law</h3>
           <p style={S.p}>These Terms shall be governed by and construed in accordance with the laws of <strong style={{ color: '#fff' }}>India</strong>. Any disputes not resolved through mutual agreement shall be submitted to the exclusive jurisdiction of the competent courts in India.</p>
@@ -276,7 +276,7 @@ export default function OwnerTerms() {
           <p style={S.p}>We may update these Terms to reflect changes in our services, pricing, or legal requirements. Material changes will be communicated via:</p>
           <ul style={S.ul}>
             <li style={S.li}>Email notification to your registered email address</li>
-            <li style={S.li}>In-app notification on the MySalonBookings dashboard</li>
+            <li style={S.li}>In-app notification on the GlowLoox dashboard</li>
           </ul>
           <p style={S.p}>Changes will take effect at least <strong style={{ color: '#fff' }}>14 days</strong> after notification. Continued use of the platform after the effective date constitutes your acceptance of the revised Terms. If you do not agree to the changes, you must close your account before the effective date.</p>
         </Section>
@@ -284,13 +284,13 @@ export default function OwnerTerms() {
         <Section title="15. Contact & Support">
           <p style={S.p}>For any questions, billing issues, account support, or legal inquiries:</p>
           <p style={S.p}>
-            <strong style={{ color: '#fff' }}>MySalonBookings Business Support</strong><br />
-            Email: <strong style={{ color: '#a78bfa' }}>support@mysalonbookings.com</strong><br />
-            Platform: mysalonbookings.com/dashboard<br />
-            Android App: My Salon Bookings (com.mysalonbookings.owner)<br />
+            <strong style={{ color: '#fff' }}>GlowLoox Business Support</strong><br />
+            Email: <strong style={{ color: '#a78bfa' }}>glowloox@gmail.com</strong><br />
+            Platform: owner.glowloox.com<br />
+            Android App: GlowLoox (com.mysalonbookings.owner)<br />
             Response Time: Within 2 business days
           </p>
-          <p style={S.p}>By registering as a salon owner on MySalonBookings, you confirm that you have read, understood, and agreed to these Terms and Conditions in their entirety.</p>
+          <p style={S.p}>By registering as a salon owner on GlowLoox, you confirm that you have read, understood, and agreed to these Terms and Conditions in their entirety.</p>
         </Section>
       </div>
     </div>

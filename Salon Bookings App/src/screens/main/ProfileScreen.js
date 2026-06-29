@@ -220,7 +220,7 @@ export default function ProfileScreen({ navigation }) {
               <View style={styles.accordionBody}>
                 {[
                   { icon: 'code-slash-outline',  label: 'App Version', value: 'v1.0.0' },
-                  { icon: 'globe-outline',        label: 'Website',     value: 'mysalonbookings.com' },
+                  { icon: 'globe-outline',        label: 'Website',     value: 'glowloox.com' },
                 ].map((item, i, arr) => (
                   <View key={item.label} style={[styles.secRow, i === arr.length - 1 && { borderBottomWidth: 0 }]}>
                     <Ionicons name={item.icon} size={16} color={theme.subText} />

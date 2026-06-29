@@ -14,7 +14,7 @@ export default function IntroScreen({ navigation }) {
         resizeMode="contain"
       />
       <View style={styles.bottom}>
-        <AppText style={styles.title}>My Salon Bookings</AppText>
+        <AppText style={styles.title}>GlowLoox</AppText>
         <AppText style={styles.subtitle}>Discover salons, book appointments{'\n'}and manage your beauty routine</AppText>
         <TouchableOpacity style={styles.btnPrimary} onPress={() => navigation.navigate('Register')}>
           <AppText style={styles.btnPrimaryText}>Get Started</AppText>

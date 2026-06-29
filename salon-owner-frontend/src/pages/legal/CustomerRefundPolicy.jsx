@@ -76,7 +76,7 @@ export default function CustomerRefundPolicy() {
           <p style={S.p}>Approved refunds are initiated within <strong style={{ color: '#fff' }}>2 business days</strong> of approval and are credited back to your original payment method by Razorpay within <strong style={{ color: '#fff' }}>5–7 business days</strong>, depending on your bank.</p>
 
           <h3 style={S.h3}>3.4 How to Request a Refund</h3>
-          <p style={S.p}>If you believe you are owed a refund that hasn't been processed automatically, contact us at <strong style={{ color: '#60a5fa' }}>support@mysalonbookings.com</strong> with your booking ID. We will review and respond within 2 business days.</p>
+          <p style={S.p}>If you believe you are owed a refund that hasn't been processed automatically, contact us at <strong style={{ color: '#60a5fa' }}>glowloox@gmail.com</strong> with your booking ID. We will review and respond within 2 business days.</p>
         </Section>
 
         <Section title="4. Service Quality Issues">
@@ -104,8 +104,8 @@ export default function CustomerRefundPolicy() {
         <Section title="7. Contact Us">
           <p style={S.p}>
             <strong style={{ color: '#fff' }}>GlowLoox Support</strong><br />
-            Email: <strong style={{ color: '#60a5fa' }}>support@mysalonbookings.com</strong><br />
-            Platform: mysalonbookings.com<br />
+            Email: <strong style={{ color: '#60a5fa' }}>glowloox@gmail.com</strong><br />
+            Platform: glowloox.com<br />
             Response Time: Within 2 business days
           </p>
         </Section>

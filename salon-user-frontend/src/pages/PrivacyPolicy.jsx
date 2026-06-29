@@ -91,7 +91,7 @@ const SECTIONS = [
   {
     title: '9. Children\'s Privacy',
     body: [
-      'MySalonBookings is intended for users aged 13 and above. We do not knowingly collect personal information from children under 13.',
+      'GlowLoox is intended for users aged 13 and above. We do not knowingly collect personal information from children under 13.',
       'If you are a parent or guardian and believe your child has provided us with personal information, please contact us immediately at sonuchaudhary264900@gmail.com and we will delete it promptly.',
     ],
   },
@@ -118,7 +118,7 @@ const SECTIONS = [
       'For any privacy-related questions, data requests, or complaints, please contact us:',
       'Email: sonuchaudhary264900@gmail.com',
       'Phone: +91 87264 90024',
-      'Address: MySalonBookings, India',
+      'Address: GlowLoox, India',
       'We will respond to all privacy-related requests within 30 days.',
     ],
   },
@@ -143,8 +143,8 @@ export default function PrivacyPolicy() {
       <div className="max-w-3xl mx-auto px-4 py-12 space-y-8">
         <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
           <p className="text-slate-600 text-sm leading-relaxed">
-            MySalonBookings ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how
-            we collect, use, share, and protect your personal information when you use our platform — including the MySalonBookings
+            GlowLoox ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how
+            we collect, use, share, and protect your personal information when you use our platform — including the GlowLoox
             website and mobile application. By using our services, you agree to the practices described in this policy.
           </p>
         </div>

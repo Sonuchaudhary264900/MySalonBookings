@@ -28,9 +28,9 @@ const BUSINESS_TYPE_SLUG = {
 };
 
 export const salonBookingUrl = (salon) => {
-  if (!salon?._id) return 'https://mysalonbookings.com';
+  if (!salon?._id) return 'https://glowloox.com';
   const slug = BUSINESS_TYPE_SLUG[salon.businessType] || 'salon';
-  return `https://mysalonbookings.com/${slug}/${salon._id}`;
+  return `https://glowloox.com/${slug}/${salon._id}`;
 };
 
 export const STATUS_COLORS = {

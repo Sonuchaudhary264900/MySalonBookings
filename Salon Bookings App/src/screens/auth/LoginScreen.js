@@ -75,7 +75,7 @@ export default function LoginScreen({ navigation }) {
         {/* Header */}
         <View style={styles.header}>
           <Image source={require('../../../assets/Icon-1024.png')} style={styles.logoImg} resizeMode="contain" />
-          <AppText style={styles.appName}>My Salon Bookings</AppText>
+          <AppText style={styles.appName}>GlowLoox</AppText>
           <AppText style={styles.subtitle}>Book your perfect look</AppText>
         </View>
 

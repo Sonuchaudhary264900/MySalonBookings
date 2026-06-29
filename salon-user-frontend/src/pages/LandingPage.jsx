@@ -189,7 +189,7 @@ export default function LandingPage({
                 <Scissors size={14} /> Customer Home
               </Link>
               <a
-                href="https://owner.mysalonbookings.com"
+                href="https://owner.glowloox.com"
                 className="lp-btn-s"
                 style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "11px 22px", borderRadius: 999, background: "var(--t-card)", border: "1px solid var(--t-border)", color: "var(--t-text-2)", fontSize: 14, fontWeight: 700, textDecoration: "none", minHeight: 44 }}
               >

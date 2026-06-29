@@ -144,7 +144,7 @@ function ReelItem({ item, isVisible, isMuted, onToggleMute, onOpenComment, onOpe
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `Check out ${salon.name} on My Salon Bookings!\nhttps://mysalonbookings.com/salon/${salon._id}`,
+        message: `Check out ${salon.name} on GlowLoox!\nhttps://glowloox.com/salon/${salon._id}`,
         title: salon.name
       });
     } catch { /* silent */ }

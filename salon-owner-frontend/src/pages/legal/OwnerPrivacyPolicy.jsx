@@ -38,7 +38,7 @@ export default function OwnerPrivacyPolicy() {
 
         <Section title="1. Who We Are">
           <p style={S.p}>GlowLoox is a B2B SaaS platform that provides salon owners with tools to manage bookings, customers, and their business operations. As a salon owner, you are a business user of our platform and this policy governs our relationship with you.</p>
-          <p style={S.p}><strong style={{ color: '#fff' }}>Platform Name:</strong> GlowLoox (Owner App: "My Salon Bookings")<br />
+          <p style={S.p}><strong style={{ color: '#fff' }}>Platform Name:</strong> GlowLoox (Owner App: "GlowLoox")<br />
           <strong style={{ color: '#fff' }}>Android Package:</strong> com.mysalonbookings.owner<br />
           <strong style={{ color: '#fff' }}>Web Dashboard:</strong> glowloox.com/dashboard<br />
           <strong style={{ color: '#fff' }}>Contact Email:</strong> glowloox@gmail.com</p>

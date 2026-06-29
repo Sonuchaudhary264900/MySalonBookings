@@ -15,7 +15,7 @@ export const LANGUAGE_OPTIONS = [
 
 const translations = {
   en: {
-    appName: 'My Salon Bookings',
+    appName: 'GlowLoox',
     customerApp: 'Customer App',
     // Bottom tabs
     tabHome: 'Home',
@@ -31,7 +31,7 @@ const translations = {
     navSettings: 'Settings',
     logout: 'Logout',
     // HomeScreen
-    homeTitle: 'My Salon Bookings',
+    homeTitle: 'GlowLoox',
     homeSubNearby: 'Find salons near you',
     homeSubLocDenied: 'Enable location for nearby salons',
     searchPlaceholder: 'Search salons, services...',
@@ -77,7 +77,7 @@ const translations = {
     signOut: 'Sign Out',
   },
   hi: {
-    appName: 'My Salon Bookings',
+    appName: 'GlowLoox',
     customerApp: 'ग्राहक ऐप',
     tabHome: 'होम',
     tabStyleAI: 'StyleAI',
@@ -90,7 +90,7 @@ const translations = {
     navNotifications: 'सूचनाएं',
     navSettings: 'सेटिंग्स',
     logout: 'लॉगआउट',
-    homeTitle: 'My Salon Bookings',
+    homeTitle: 'GlowLoox',
     homeSubNearby: 'पास के सैलून खोजें',
     homeSubLocDenied: 'नजदीकी सैलून के लिए स्थान सक्षम करें',
     searchPlaceholder: 'सैलून, सेवाएं खोजें...',

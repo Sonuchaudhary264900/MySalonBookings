@@ -80,7 +80,7 @@ export default function RazorpayCheckout({ visible, order, prefill, description,
         <View style={{ width: 38 }} />
       </View>
       <WebView
-        source={{ html, baseUrl: 'https://mysalonbookings.com' }}
+        source={{ html, baseUrl: 'https://glowloox.com' }}
         originWhitelist={['*']}
         onMessage={handleMessage}
         onShouldStartLoadWithRequest={handleShouldStartLoad}

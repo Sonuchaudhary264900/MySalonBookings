@@ -42,9 +42,9 @@ export default function CustomerPrivacyPolicy() {
         <Section title="1. Who We Are">
           <p style={S.p}>GlowLoox is a SaaS (Software as a Service) platform that connects customers with salons and beauty service providers across India. We provide a digital marketplace where you can discover salons, book appointments, and manage your beauty service needs.</p>
           <p style={S.p}><strong style={{ color: '#fff' }}>Platform Name:</strong> GlowLoox<br />
-          <strong style={{ color: '#fff' }}>Website:</strong> mysalonbookings.com<br />
+          <strong style={{ color: '#fff' }}>Website:</strong> glowloox.com<br />
           <strong style={{ color: '#fff' }}>Android App Package:</strong> com.mysalonbookings.user<br />
-          <strong style={{ color: '#fff' }}>Contact Email:</strong> support@mysalonbookings.com</p>
+          <strong style={{ color: '#fff' }}>Contact Email:</strong> glowloox@gmail.com</p>
         </Section>
 
         <Section title="2. Information We Collect">
@@ -160,7 +160,7 @@ export default function CustomerPrivacyPolicy() {
             <li style={S.li}><strong>Withdrawal of Consent</strong> – withdraw consent for optional data processing (e.g., location, notifications) at any time</li>
             <li style={S.li}><strong>Portability</strong> – request your booking history in a readable format</li>
           </ul>
-          <p style={S.p}>To exercise any of these rights, contact us at <strong style={{ color: '#a78bfa' }}>support@mysalonbookings.com</strong>. We will respond within 30 days.</p>
+          <p style={S.p}>To exercise any of these rights, contact us at <strong style={{ color: '#a78bfa' }}>glowloox@gmail.com</strong>. We will respond within 30 days.</p>
         </Section>
 
         <Section title="11. Children's Privacy">
@@ -175,8 +175,8 @@ export default function CustomerPrivacyPolicy() {
           <p style={S.p}>If you have any questions, concerns, or requests regarding this Privacy Policy or our data practices, please contact us:</p>
           <p style={S.p}>
             <strong style={{ color: '#fff' }}>GlowLoox Support Team</strong><br />
-            Email: <strong style={{ color: '#a78bfa' }}>support@mysalonbookings.com</strong><br />
-            Platform: mysalonbookings.com<br />
+            Email: <strong style={{ color: '#a78bfa' }}>glowloox@gmail.com</strong><br />
+            Platform: glowloox.com<br />
             Response Time: Within 2 business days
           </p>
         </Section>

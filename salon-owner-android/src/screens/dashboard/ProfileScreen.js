@@ -446,8 +446,8 @@ img.src=${qrApiUrl};
             { icon: 'code-slash-outline',  color: '#6b7280', label: 'Version',     value: 'v1.0.0' },
             { icon: 'build-outline',       color: '#6b7280', label: 'Platform',    value: 'Android' },
             { icon: 'person-circle-outline', color: '#6b7280', label: 'Role',      value: 'Salon Owner' },
-            { icon: 'globe-outline',       color: '#3b82f6', label: 'Website',     value: 'owner.mysalonbookings.com' },
-            { icon: 'mail-outline',        color: '#10b981', label: 'Support',     value: 'support@mysalonbookings.com' },
+            { icon: 'globe-outline',       color: '#3b82f6', label: 'Website',     value: 'owner.glowloox.com' },
+            { icon: 'mail-outline',        color: '#10b981', label: 'Support',     value: 'glowloox@gmail.com' },
           ].map(({ icon, color, label, value }) => (
             <View key={label} style={[styles.infoCard, { backgroundColor: theme.bg }]}>
               <Ionicons name={icon} size={16} color={color} />

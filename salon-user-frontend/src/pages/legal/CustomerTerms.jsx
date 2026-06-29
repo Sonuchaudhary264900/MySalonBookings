@@ -58,7 +58,7 @@ export default function CustomerTerms() {
             <li style={S.li}>You agree to provide truthful, accurate, and current information</li>
             <li style={S.li}>You are responsible for maintaining the confidentiality of your account credentials</li>
             <li style={S.li}>You are responsible for all activity that occurs under your account</li>
-            <li style={S.li}>You must notify us immediately at support@mysalonbookings.com if you suspect unauthorized access to your account</li>
+            <li style={S.li}>You must notify us immediately at glowloox@gmail.com if you suspect unauthorized access to your account</li>
             <li style={S.li}>We reserve the right to suspend accounts that provide false information</li>
           </ul>
         </Section>
@@ -87,7 +87,7 @@ export default function CustomerTerms() {
 
         <Section title="5. Data Sharing with Salons">
           <p style={S.p}>When you book a salon service, your <strong style={{ color: '#fff' }}>name, phone number, and booking details</strong> are shared with the salon owner to enable service delivery. By booking, you explicitly consent to this data sharing.</p>
-          <p style={S.p}>Salon owners are contractually required to use your information only for fulfilling your booking and not for unsolicited contact or marketing. If you experience data misuse by a salon, please report it to support@mysalonbookings.com.</p>
+          <p style={S.p}>Salon owners are contractually required to use your information only for fulfilling your booking and not for unsolicited contact or marketing. If you experience data misuse by a salon, please report it to glowloox@gmail.com.</p>
         </Section>
 
         <Section title="6. Payments">
@@ -98,7 +98,7 @@ export default function CustomerTerms() {
           <p style={S.p}>GlowLoox never stores your payment card details, UPI ID, or bank account information. All sensitive payment data is handled exclusively by Razorpay's PCI-DSS compliant systems.</p>
 
           <h3 style={S.h3}>6.3 Payment Disputes</h3>
-          <p style={S.p}>For any payment-related issues (failed payments, unauthorized charges), contact us at support@mysalonbookings.com. We will investigate and coordinate with Razorpay on your behalf. For disputes regarding service quality, please contact the salon directly first.</p>
+          <p style={S.p}>For any payment-related issues (failed payments, unauthorized charges), contact us at glowloox@gmail.com. We will investigate and coordinate with Razorpay on your behalf. For disputes regarding service quality, please contact the salon directly first.</p>
         </Section>
 
         <Section title="7. Service Limitations & Platform Role">
@@ -151,7 +151,7 @@ export default function CustomerTerms() {
             <li style={S.li}>You provide false information during registration</li>
             <li style={S.li}>You repeatedly fail to show up for confirmed bookings</li>
           </ul>
-          <p style={S.p}>You may also close your account at any time by contacting support@mysalonbookings.com.</p>
+          <p style={S.p}>You may also close your account at any time by contacting glowloox@gmail.com.</p>
         </Section>
 
         <Section title="12. Limitation of Liability">
@@ -170,7 +170,7 @@ export default function CustomerTerms() {
           <p style={S.p}>If you have a dispute with a salon (e.g., service quality, overcharging), please first contact the salon directly. If unresolved, you may escalate to GlowLoox support and we will mediate where possible.</p>
 
           <h3 style={S.h3}>13.2 With GlowLoox</h3>
-          <p style={S.p}>For disputes with GlowLoox, please contact support@mysalonbookings.com. We will attempt to resolve the matter within 15 business days. If unresolved, disputes shall be subject to the jurisdiction of courts in India, governed by Indian law.</p>
+          <p style={S.p}>For disputes with GlowLoox, please contact glowloox@gmail.com. We will attempt to resolve the matter within 15 business days. If unresolved, disputes shall be subject to the jurisdiction of courts in India, governed by Indian law.</p>
         </Section>
 
         <Section title="14. Changes to These Terms">
@@ -180,8 +180,8 @@ export default function CustomerTerms() {
         <Section title="15. Contact Us">
           <p style={S.p}>
             <strong style={{ color: '#fff' }}>GlowLoox Support</strong><br />
-            Email: <strong style={{ color: '#60a5fa' }}>support@mysalonbookings.com</strong><br />
-            Platform: mysalonbookings.com<br />
+            Email: <strong style={{ color: '#60a5fa' }}>glowloox@gmail.com</strong><br />
+            Platform: glowloox.com<br />
             Response Time: Within 2 business days
           </p>
         </Section>

@@ -21,7 +21,7 @@ function generateCode(user) {
 
 const HOW_IT_WORKS = [
   { icon: 'share-social-outline', color: '#2563eb', title: 'Share your code',       desc: 'Send your referral code to a salon owner via WhatsApp, SMS, or any app.' },
-  { icon: 'storefront-outline',   color: '#7c3aed', title: 'Salon owner signs up',  desc: 'The salon owner registers on the MySalonBookings owner app using your code.' },
+  { icon: 'storefront-outline',   color: '#7c3aed', title: 'Salon owner signs up',  desc: 'The salon owner registers on the GlowLoox owner app using your code.' },
   { icon: 'cash-outline',         color: '#d97706', title: 'You earn ₹50',          desc: 'Once the salon owner qualifies, ₹50 is credited to your account!' },
 ];
 
@@ -36,11 +36,11 @@ export default function ReferAndEarnScreen({ navigation }) {
   const shareMessage =
     `Salon owners 👇\n\n` +
     `Don't miss this 🚀\n` +
-    `Join MySalonBookings and start getting customers online instantly! 💼\n\n` +
+    `Join GlowLoox and start getting customers online instantly! 💼\n\n` +
     `Grow your salon, manage bookings easily, and go digital today.\n\n` +
     `❤️ Use my referral code and support me too\n\n` +
     `💸 Referral Code: ${referralCode}\n` +
-    `🔗 https://owner.mysalonbookings.com`;
+    `🔗 https://owner.glowloox.com`;
 
   const handleCopy = () => {
     Clipboard.setString(referralCode);
@@ -51,7 +51,7 @@ export default function ReferAndEarnScreen({ navigation }) {
 
   const handleShare = async () => {
     try {
-      await Share.share({ message: shareMessage, title: 'Refer & Earn — My Salon Bookings' });
+      await Share.share({ message: shareMessage, title: 'Refer & Earn — GlowLoox' });
     } catch {}
   };
 
@@ -78,7 +78,7 @@ export default function ReferAndEarnScreen({ navigation }) {
           </View>
           <AppText style={styles.heroTitle}>Refer a salon, earn ₹50!</AppText>
           <AppText style={styles.heroSub}>
-            Invite salon owners to join MySalonBookings. When they qualify, you earn ₹50!
+            Invite salon owners to join GlowLoox. When they qualify, you earn ₹50!
           </AppText>
         </View>
 

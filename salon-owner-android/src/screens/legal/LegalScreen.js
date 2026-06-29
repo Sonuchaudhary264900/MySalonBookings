@@ -6,14 +6,14 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 
-const PRIVACY_URL = 'https://owner.mysalonbookings.com/legal/owner-privacy';
-const TERMS_URL   = 'https://owner.mysalonbookings.com/legal/owner-terms';
+const PRIVACY_URL = 'https://owner.glowloox.com/legal/owner-privacy';
+const TERMS_URL   = 'https://owner.glowloox.com/legal/owner-terms';
 
 const SECTIONS = {
   privacy: [
     {
       title: '1. Information We Collect',
-      body: `We collect the following information when you use MySalonBookings as a salon owner:\n\n• Full Name, Phone Number & Email – for account creation and communication\n• Password – stored encrypted (never in plain text)\n• Salon Name, Address & Location – to display your salon to customers\n• Services & Pricing – services you list on the platform\n• Salon Photos – images you upload (stored on Cloudinary)\n• Subscription & Billing Data – plan type, payment history, invoice records\n• Booking Records – all bookings made at your salon\n• Device & App Data – device type, OS version, usage patterns\n• Push Notification Tokens – to send you new booking alerts`,
+      body: `We collect the following information when you use GlowLoox as a salon owner:\n\n• Full Name, Phone Number & Email – for account creation and communication\n• Password – stored encrypted (never in plain text)\n• Salon Name, Address & Location – to display your salon to customers\n• Services & Pricing – services you list on the platform\n• Salon Photos – images you upload (stored on Cloudinary)\n• Subscription & Billing Data – plan type, payment history, invoice records\n• Booking Records – all bookings made at your salon\n• Device & App Data – device type, OS version, usage patterns\n• Push Notification Tokens – to send you new booking alerts`,
     },
     {
       title: '2. How We Use Your Information',
@@ -41,17 +41,17 @@ const SECTIONS = {
     },
     {
       title: '8. Your Rights',
-      body: `You have the right to:\n• Access – request a copy of your data\n• Correction – update your information via dashboard\n• Account Deletion – request deletion (subject to billing retention)\n• Data Export – request booking history and invoices\n\nContact: support@mysalonbookings.com`,
+      body: `You have the right to:\n• Access – request a copy of your data\n• Correction – update your information via dashboard\n• Account Deletion – request deletion (subject to billing retention)\n• Data Export – request booking history and invoices\n\nContact: glowloox@gmail.com`,
     },
     {
       title: '9. Contact Us',
-      body: `MySalonBookings Support\nEmail: support@mysalonbookings.com\nWebsite: mysalonbookings.com\nResponse Time: Within 2 business days`,
+      body: `GlowLoox Support\nEmail: glowloox@gmail.com\nWebsite: glowloox.com\nResponse Time: Within 2 business days`,
     },
   ],
   terms: [
     {
       title: '1. Platform Overview',
-      body: `MySalonBookings is a SaaS platform providing salon owners tools to manage bookings, customers, and business operations. We provide the technology — you provide the salon services.`,
+      body: `GlowLoox is a SaaS platform providing salon owners tools to manage bookings, customers, and business operations. We provide the technology — you provide the salon services.`,
     },
     {
       title: '2. Free Trial',
@@ -75,11 +75,11 @@ const SECTIONS = {
     },
     {
       title: '7. Account Suspension & Termination',
-      body: `We may suspend or terminate your account without notice for:\n• Violation of these Terms\n• Non-payment after reasonable notice\n• Fraudulent or illegal activity\n• Providing false information\n\nYou may cancel by contacting support@mysalonbookings.com. No refund for unused days.`,
+      body: `We may suspend or terminate your account without notice for:\n• Violation of these Terms\n• Non-payment after reasonable notice\n• Fraudulent or illegal activity\n• Providing false information\n\nYou may cancel by contacting glowloox@gmail.com. No refund for unused days.`,
     },
     {
       title: '8. Limitation of Liability',
-      body: `MySalonBookings is not liable for:\n• Business losses from platform downtime\n• Customer disputes or chargebacks\n• Third-party service failures (Razorpay, Firebase, etc.)\n\nOur maximum liability shall not exceed your subscription fees paid in the 3 months preceding the claim.`,
+      body: `GlowLoox is not liable for:\n• Business losses from platform downtime\n• Customer disputes or chargebacks\n• Third-party service failures (Razorpay, Firebase, etc.)\n\nOur maximum liability shall not exceed your subscription fees paid in the 3 months preceding the claim.`,
     },
     {
       title: '9. Governing Law',
@@ -87,7 +87,7 @@ const SECTIONS = {
     },
     {
       title: '10. Contact Us',
-      body: `MySalonBookings Business Support\nEmail: support@mysalonbookings.com\nWebsite: mysalonbookings.com/dashboard\nResponse Time: Within 2 business days`,
+      body: `GlowLoox Business Support\nEmail: glowloox@gmail.com\nWebsite: owner.glowloox.com\nResponse Time: Within 2 business days`,
     },
   ],
 };
@@ -144,7 +144,7 @@ export default function LegalScreen({ navigation }) {
         <View style={[styles.metaBox, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <Ionicons name="information-circle-outline" size={16} color="#7c3aed" style={{ marginRight: 8 }} />
           <Text style={[styles.metaText, { color: theme.subText }]}>
-            {activeTab === 'privacy' ? 'Privacy Policy' : 'Terms & Conditions'} · MySalonBookings · Effective: March 26, 2025
+            {activeTab === 'privacy' ? 'Privacy Policy' : 'Terms & Conditions'} · GlowLoox · Effective: March 26, 2025
           </Text>
         </View>
 
@@ -181,7 +181,7 @@ export default function LegalScreen({ navigation }) {
         </TouchableOpacity>
 
         <Text style={[styles.footer, { color: theme.subText }]}>
-          Questions? Email support@mysalonbookings.com
+          Questions? Email glowloox@gmail.com
         </Text>
       </ScrollView>
     </SafeAreaView>

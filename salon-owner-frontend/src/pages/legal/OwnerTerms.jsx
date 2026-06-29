@@ -287,7 +287,7 @@ export default function OwnerTerms() {
             <strong style={{ color: '#fff' }}>GlowLoox Business Support</strong><br />
             Email: <strong style={{ color: '#a78bfa' }}>glowloox@gmail.com</strong><br />
             Platform: glowloox.com/dashboard<br />
-            Android App: My Salon Bookings (com.mysalonbookings.owner)<br />
+            Android App: GlowLoox (com.mysalonbookings.owner)<br />
             Response Time: Within 2 business days
           </p>
           <p style={S.p}>By registering as a salon owner on GlowLoox, you confirm that you have read, understood, and agreed to these Terms and Conditions in their entirety.</p>

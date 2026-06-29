@@ -7,14 +7,14 @@ import AppText from '../../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 
-const PRIVACY_URL = 'https://mysalonbookings.com/legal/customer-privacy';
-const TERMS_URL   = 'https://mysalonbookings.com/legal/customer-terms';
+const PRIVACY_URL = 'https://glowloox.com/legal/customer-privacy';
+const TERMS_URL   = 'https://glowloox.com/legal/customer-terms';
 
 const SECTIONS = {
   privacy: [
     {
       title: '1. Information We Collect',
-      body: `We collect the following information when you use MySalonBookings:\n\n• Full Name – to identify you and for booking records\n• Phone Number – for account creation, OTP verification, and booking confirmations\n• Email Address – for account management and notifications\n• Booking Details – service type, preferred date/time, and any requests\n• Device Information – device type, OS version, and app version\n• Location Data – approximate location (with your permission) to show nearby salons\n• Usage Data – features used, booking frequency, and session duration\n• Push Notification Tokens – to send you booking confirmations and reminders`
+      body: `We collect the following information when you use GlowLoox:\n\n• Full Name – to identify you and for booking records\n• Phone Number – for account creation, OTP verification, and booking confirmations\n• Email Address – for account management and notifications\n• Booking Details – service type, preferred date/time, and any requests\n• Device Information – device type, OS version, and app version\n• Location Data – approximate location (with your permission) to show nearby salons\n• Usage Data – features used, booking frequency, and session duration\n• Push Notification Tokens – to send you booking confirmations and reminders`
     },
     {
       title: '2. How We Use Your Information',
@@ -42,17 +42,17 @@ const SECTIONS = {
     },
     {
       title: '8. Your Rights',
-      body: `• Access – request a copy of your personal data\n• Correction – request correction of inaccurate data\n• Deletion – request deletion of your account and data\n• Withdrawal of Consent – revoke location or notification permissions\n\nContact: support@mysalonbookings.com\nResponse time: Within 30 days`
+      body: `• Access – request a copy of your personal data\n• Correction – request correction of inaccurate data\n• Deletion – request deletion of your account and data\n• Withdrawal of Consent – revoke location or notification permissions\n\nContact: glowloox@gmail.com\nResponse time: Within 30 days`
     },
     {
       title: '9. Contact Us',
-      body: `MySalonBookings Support\nEmail: support@mysalonbookings.com\nWebsite: mysalonbookings.com\nResponse Time: Within 2 business days`
+      body: `GlowLoox Support\nEmail: glowloox@gmail.com\nWebsite: glowloox.com\nResponse Time: Within 2 business days`
     },
   ],
   terms: [
     {
-      title: '1. About MySalonBookings',
-      body: `MySalonBookings is an online marketplace connecting customers with salon service providers across India. We provide the technology platform — we do not directly provide salon services. The actual service is the responsibility of the individual salon.`
+      title: '1. About GlowLoox',
+      body: `GlowLoox is an online marketplace connecting customers with salon service providers across India. We provide the technology platform — we do not directly provide salon services. The actual service is the responsibility of the individual salon.`
     },
     {
       title: '2. Eligibility',
@@ -64,15 +64,15 @@ const SECTIONS = {
     },
     {
       title: '4. Data Sharing with Salons',
-      body: `By booking, you consent to sharing your name, phone number, and booking details with the salon owner. Salon owners are contractually required to use your information only for fulfilling your booking. Report misuse to support@mysalonbookings.com.`
+      body: `By booking, you consent to sharing your name, phone number, and booking details with the salon owner. Salon owners are contractually required to use your information only for fulfilling your booking. Report misuse to glowloox@gmail.com.`
     },
     {
       title: '5. Payments',
-      body: `Payments are processed by Razorpay (RBI-licensed). MySalonBookings never stores your card details or banking credentials. For payment disputes, contact support@mysalonbookings.com.`
+      body: `Payments are processed by Razorpay (RBI-licensed). GlowLoox never stores your card details or banking credentials. For payment disputes, contact glowloox@gmail.com.`
     },
     {
       title: '6. Service Limitations',
-      body: `MySalonBookings is a technology marketplace — we connect customers with salons but do not control salon staff or service quality. We are not liable for service outcomes, injury, or dissatisfaction. Salon information may occasionally be inaccurate — verify directly with the salon.`
+      body: `GlowLoox is a technology marketplace — we connect customers with salons but do not control salon staff or service quality. We are not liable for service outcomes, injury, or dissatisfaction. Salon information may occasionally be inaccurate — verify directly with the salon.`
     },
     {
       title: '7. Prohibited Conduct',
@@ -80,11 +80,11 @@ const SECTIONS = {
     },
     {
       title: '8. Account Suspension',
-      body: `We may suspend or terminate your account if you:\n• Violate these Terms\n• Engage in fraudulent or abusive activity\n• Repeatedly fail to show up for confirmed bookings\n\nYou may close your account by contacting support@mysalonbookings.com.`
+      body: `We may suspend or terminate your account if you:\n• Violate these Terms\n• Engage in fraudulent or abusive activity\n• Repeatedly fail to show up for confirmed bookings\n\nYou may close your account by contacting glowloox@gmail.com.`
     },
     {
       title: '9. Limitation of Liability',
-      body: `MySalonBookings is not liable for damages from salon services, platform downtime, or unauthorized account access. Our maximum liability shall not exceed amounts paid to us in the 3 months preceding any claim.`
+      body: `GlowLoox is not liable for damages from salon services, platform downtime, or unauthorized account access. Our maximum liability shall not exceed amounts paid to us in the 3 months preceding any claim.`
     },
     {
       title: '10. Governing Law',
@@ -92,7 +92,7 @@ const SECTIONS = {
     },
     {
       title: '11. Contact Us',
-      body: `MySalonBookings Support\nEmail: support@mysalonbookings.com\nWebsite: mysalonbookings.com\nResponse Time: Within 2 business days`
+      body: `GlowLoox Support\nEmail: glowloox@gmail.com\nWebsite: glowloox.com\nResponse Time: Within 2 business days`
     },
   ]
 };
@@ -147,7 +147,7 @@ export default function LegalScreen({ navigation }) {
         <View style={[styles.metaBox, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <Ionicons name="information-circle-outline" size={16} color="#7c3aed" style={{ marginRight: 8 }} />
           <AppText style={[styles.metaText, { color: theme.subText }]}>
-            {activeTab === 'privacy' ? 'Privacy Policy' : 'Terms & Conditions'} · MySalonBookings · Effective: March 26, 2025
+            {activeTab === 'privacy' ? 'Privacy Policy' : 'Terms & Conditions'} · GlowLoox · Effective: March 26, 2025
           </AppText>
         </View>
 
@@ -178,7 +178,7 @@ export default function LegalScreen({ navigation }) {
         </TouchableOpacity>
 
         <AppText style={[styles.footer, { color: theme.subText }]}>
-          Questions? Email support@mysalonbookings.com
+          Questions? Email glowloox@gmail.com
         </AppText>
       </ScrollView>
     </SafeAreaView>

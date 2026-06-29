@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { Search, ToggleLeft, ToggleRight, MapPin, Star, ChevronDown, X, Play, FileText, Image, QrCode, Download, Copy, CheckCircle2 } from 'lucide-react';
 import QRCode from 'react-qr-code';
 
-const CUSTOMER_URL = (import.meta.env.VITE_CUSTOMER_APP_URL || 'https://mysalonbookings.com').replace(/\/$/, '');
+const CUSTOMER_URL = (import.meta.env.VITE_CUSTOMER_APP_URL || 'https://glowloox.com').replace(/\/$/, '');
 
 const STATUS_COLORS = {
   approved: { color: '#10b981' },

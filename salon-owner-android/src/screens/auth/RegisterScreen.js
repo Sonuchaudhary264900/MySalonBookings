@@ -397,11 +397,11 @@ export default function RegisterScreen({ navigation, route }) {
                   </View>
                   <Text style={styles.termsText}>
                     I agree to the{' '}
-                    <Text style={styles.termsLink} onPress={() => Linking.openURL('https://owner.mysalonbookings.com/legal/owner-terms')}>
+                    <Text style={styles.termsLink} onPress={() => Linking.openURL('https://owner.glowloox.com/legal/owner-terms')}>
                       Terms & Conditions
                     </Text>
                     {' '}and{' '}
-                    <Text style={styles.termsLink} onPress={() => Linking.openURL('https://owner.mysalonbookings.com/legal/owner-privacy')}>
+                    <Text style={styles.termsLink} onPress={() => Linking.openURL('https://owner.glowloox.com/legal/owner-privacy')}>
                       Privacy Policy
                     </Text>
                   </Text>

@@ -94,7 +94,7 @@ export default function RegisterScreen({ navigation, route }) {
         {/* Header */}
         <View style={styles.header}>
           <Image source={require('../../../assets/Icon-1024.png')} style={styles.logoImg} resizeMode="contain" />
-          <AppText style={styles.appName}>My Salon Bookings</AppText>
+          <AppText style={styles.appName}>GlowLoox</AppText>
           <AppText style={styles.subtitle}>Create your account in seconds</AppText>
         </View>
 
@@ -137,9 +137,9 @@ export default function RegisterScreen({ navigation, route }) {
 
               <AppText style={styles.termsText}>
                 By continuing, you agree to our{' '}
-                <AppText style={styles.termsLink} onPress={() => Linking.openURL('https://mysalonbookings.com/legal/customer-terms')}>Terms</AppText>
+                <AppText style={styles.termsLink} onPress={() => Linking.openURL('https://glowloox.com/legal/customer-terms')}>Terms</AppText>
                 {' '}&amp;{' '}
-                <AppText style={styles.termsLink} onPress={() => Linking.openURL('https://mysalonbookings.com/legal/customer-privacy')}>Privacy Policy</AppText>
+                <AppText style={styles.termsLink} onPress={() => Linking.openURL('https://glowloox.com/legal/customer-privacy')}>Privacy Policy</AppText>
               </AppText>
 
               <AppText style={styles.trustSignal}>Takes less than 10 seconds · No password required</AppText>

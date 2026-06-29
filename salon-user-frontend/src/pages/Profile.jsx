@@ -277,8 +277,8 @@ export default function Profile() {
     navigator.clipboard.writeText(referralCode).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
   };
   const handleShare = () => {
-    const text = `Salon owners 👇\n\nDon't miss this 🚀\nJoin MySalonBookings and start getting customers online instantly! 💼\n\nGrow your salon, manage bookings easily, and go digital today.\n\n❤️ Use my referral code and support me too\n\n💸 Referral Code: ${referralCode}\n🔗 https://owner.mysalonbookings.com`;
-    if (navigator.share) navigator.share({ title: 'Join MySalonBookings', text });
+    const text = `Salon owners 👇\n\nDon't miss this 🚀\nJoin GlowLoox and start getting customers online instantly! 💼\n\nGrow your salon, manage bookings easily, and go digital today.\n\n❤️ Use my referral code and support me too\n\n💸 Referral Code: ${referralCode}\n🔗 https://owner.glowloox.com`;
+    if (navigator.share) navigator.share({ title: 'Join GlowLoox', text });
     else navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
   };
 
@@ -572,7 +572,7 @@ export default function Profile() {
                 }}>
                   <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--t-text)' }}>Earn ₹50 for every salon you refer</p>
                   <p style={{ fontSize: 12, marginTop: 4, color: 'var(--t-text-3)', lineHeight: 1.6 }}>
-                    Invite salon owners to join MySalonBookings and earn rewards when they get started.
+                    Invite salon owners to join GlowLoox and earn rewards when they get started.
                   </p>
                 </div>
                 {/* How it works */}
@@ -580,7 +580,7 @@ export default function Profile() {
                   <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--t-text-3)' }}>How it works</p>
                   {[
                     { icon: I.share, step: '1', text: 'Share your referral code with a salon owner' },
-                    { icon: I.store, step: '2', text: 'They sign up on the MySalonBookings owner app' },
+                    { icon: I.store, step: '2', text: 'They sign up on the GlowLoox owner app' },
                     { icon: I.cash,  step: '3', text: 'You earn ₹50 once they qualify' },
                   ].map(item => (
                     <div key={item.step} className="flex items-center gap-3">
@@ -597,7 +597,7 @@ export default function Profile() {
                 </div>
                 {/* Terms */}
                 <button
-                  onClick={() => alert('Terms & Conditions\n\n• The referred salon owner must register using your referral code.\n\n• The salon owner must actively use the MySalonBookings owner app for a minimum of 30 consecutive days.\n\n• ₹50 will be credited to your account once the 30-day qualifying period is complete.\n\n• Each referral code can be used once per salon.\n\n• MySalonBookings reserves the right to modify or cancel the referral program at any time.')}
+                  onClick={() => alert('Terms & Conditions\n\n• The referred salon owner must register using your referral code.\n\n• The salon owner must actively use the GlowLoox owner app for a minimum of 30 consecutive days.\n\n• ₹50 will be credited to your account once the 30-day qualifying period is complete.\n\n• Each referral code can be used once per salon.\n\n• GlowLoox reserves the right to modify or cancel the referral program at any time.')}
                   style={{ width: '100%', textAlign: 'center', fontSize: 12, color: 'var(--t-text-3)', background: 'none', border: 'none', cursor: 'pointer' }}
                 >
                   View Terms & Conditions
@@ -651,10 +651,10 @@ export default function Profile() {
             <div style={sectionCard}>
               <SettingRow icon={I.code}  label="App Version" rightEl={<span style={{ fontSize: 13, color: 'var(--t-text-2)', fontWeight: 500 }}>v1.0.0</span>} />
               <Divider />
-              <SettingRow icon={I.globe} label="Website" rightEl={<span style={{ fontSize: 12, color: 'var(--t-text-2)' }}>mysalonbookings.com</span>} />
+              <SettingRow icon={I.globe} label="Website" rightEl={<span style={{ fontSize: 12, color: 'var(--t-text-2)' }}>glowloox.com</span>} />
               <Divider />
               <SettingRow icon={I.document} label="Terms & Conditions" chevron
-                onClick={() => alert('Terms & Conditions\n\nBy using MySalonBookings, you agree to our terms of service. Please visit mysalonbookings.com for full details.')} />
+                onClick={() => alert('Terms & Conditions\n\nBy using GlowLoox, you agree to our terms of service. Please visit glowloox.com for full details.')} />
             </div>
 
             {/* ── SIGN OUT ──────────────────────────────────────── */}
@@ -676,7 +676,7 @@ export default function Profile() {
 
             {/* ── FOOTER ────────────────────────────────────────── */}
             <div className="mt-8 flex flex-col items-center gap-1">
-              <p style={{ fontSize: 11, color: 'var(--t-text-3)', fontWeight: 500 }}>MySalonBookings</p>
+              <p style={{ fontSize: 11, color: 'var(--t-text-3)', fontWeight: 500 }}>GlowLoox</p>
               <p style={{ fontSize: 10, color: 'var(--t-text-3)' }}>v1.0.0 · Built with care</p>
             </div>
 

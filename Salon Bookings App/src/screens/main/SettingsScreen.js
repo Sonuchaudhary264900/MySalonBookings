@@ -154,12 +154,12 @@ export default function SettingsScreen({ navigation }) {
         message:
           `Salon owners 👇\n\n` +
           `Don't miss this 🚀\n` +
-          `Join MySalonBookings and start getting customers online instantly! 💼\n\n` +
+          `Join GlowLoox and start getting customers online instantly! 💼\n\n` +
           `Grow your salon, manage bookings easily, and go digital today.\n\n` +
           `❤️ Use my referral code and support me too\n\n` +
           `💸 Referral Code: ${referralCode}\n` +
-          `🔗 https://owner.mysalonbookings.com`,
-        title: 'Join MySalonBookings'
+          `🔗 https://owner.glowloox.com`,
+        title: 'Join GlowLoox'
       });
     } catch {}
   };
@@ -397,14 +397,14 @@ export default function SettingsScreen({ navigation }) {
                 <AppText style={styles.referBannerEmoji}>🎁</AppText>
                 <View style={{ flex: 1 }}>
                   <AppText style={styles.referBannerTitle}>Earn ₹50 for every salon you refer!</AppText>
-                  <AppText style={styles.referBannerSub}>Invite salon owners to join MySalonBookings and earn rewards when they get started.</AppText>
+                  <AppText style={styles.referBannerSub}>Invite salon owners to join GlowLoox and earn rewards when they get started.</AppText>
                 </View>
               </View>
               <View style={{ gap: 8 }}>
                 <AppText style={[styles.rowLabel, { fontSize: 13 }]}>How it works</AppText>
                 {[
                   { icon: 'share-social-outline', color: '#2563eb', step: '1', text: 'Share your referral code with a salon owner' },
-                  { icon: 'storefront-outline',   color: '#10b981', step: '2', text: 'They sign up on the MySalonBookings owner app' },
+                  { icon: 'storefront-outline',   color: '#10b981', step: '2', text: 'They sign up on the GlowLoox owner app' },
                   { icon: 'cash-outline',         color: '#8b5cf6', step: '3', text: 'You earn ₹50 once they qualify!' },
                 ].map(item => (
                   <View key={item.step} style={styles.referStep}>
@@ -416,7 +416,7 @@ export default function SettingsScreen({ navigation }) {
                   </View>
                 ))}
               </View>
-              <TouchableOpacity onPress={() => Alert.alert('Terms & Conditions', '• The referred salon owner must register using your referral code.\n\n• The salon owner must actively use the MySalonBookings owner app for a minimum of 30 consecutive days.\n\n• ₹50 will be credited to your account once the 30-day qualifying period is complete.\n\n• Each referral code can be used once per salon.\n\n• MySalonBookings reserves the right to modify or cancel the referral program at any time.')}>
+              <TouchableOpacity onPress={() => Alert.alert('Terms & Conditions', '• The referred salon owner must register using your referral code.\n\n• The salon owner must actively use the GlowLoox owner app for a minimum of 30 consecutive days.\n\n• ₹50 will be credited to your account once the 30-day qualifying period is complete.\n\n• Each referral code can be used once per salon.\n\n• GlowLoox reserves the right to modify or cancel the referral program at any time.')}>
                 <AppText style={styles.referTermsLink}>View Terms & Conditions</AppText>
               </TouchableOpacity>
               <View style={styles.referCodeBox}>
@@ -443,7 +443,7 @@ export default function SettingsScreen({ navigation }) {
         <Card>
           <SettingRow icon="code-slash-outline" iconColor="#2563eb" label="App Version" rightEl={<AppText style={styles.valueText}>v1.0.0</AppText>} />
           <Divider />
-          <SettingRow icon="globe-outline" iconColor="#059669" label="Website" rightEl={<AppText style={styles.valueText}>mysalonbookings.com</AppText>} onPress={() => Linking.openURL('https://mysalonbookings.com')} chevron />
+          <SettingRow icon="globe-outline" iconColor="#059669" label="Website" rightEl={<AppText style={styles.valueText}>glowloox.com</AppText>} onPress={() => Linking.openURL('https://glowloox.com')} chevron />
           <Divider />
           <SettingRow icon="shield-checkmark-outline" iconColor="#7c3aed" label="Legal & Privacy" sublabel="Privacy Policy · Terms & Conditions" onPress={() => navigation.navigate('Legal')} chevron />
           <Divider />
