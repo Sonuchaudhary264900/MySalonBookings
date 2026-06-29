@@ -993,17 +993,33 @@ export default function Home() {
 
   useEffect(() => {
     let ignore = false;
-    if (!navigator.geolocation) { setLocDenied(true); setLoading(false); return; }
-    navigator.geolocation.getCurrentPosition(
+
+    // Show top-rated businesses immediately, WITHOUT forcing a location prompt.
+    // Crawlers + first-time visitors see content instantly; users opt into
+    // precise nearby results via the "Use my location" button (handleLocation).
+    const showTopRated = () => { if (!ignore) { setLocDenied(true); setSort("rated"); fetchBySort("rated", null); } };
+
+    const useNearby = () => navigator.geolocation.getCurrentPosition(
       pos => {
         if (ignore) return;
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setUserCoords(coords);
+        setUserCoords(coords); setLocDenied(false); setSort("nearby");
         fetchBySort("nearby", coords);
       },
-      () => { if (!ignore) { setLocDenied(true); setLoading(false); } },
+      () => showTopRated(),
       { enableHighAccuracy: false, maximumAge: 120000, timeout: 12000 }
     );
+
+    if (!navigator.geolocation) { showTopRated(); return () => { ignore = true; }; }
+
+    // Only auto-use location if the user already granted it before — never pop the dialog on load.
+    if (navigator.permissions?.query) {
+      navigator.permissions.query({ name: "geolocation" })
+        .then(status => { if (!ignore) { status.state === "granted" ? useNearby() : showTopRated(); } })
+        .catch(() => showTopRated());
+    } else {
+      showTopRated();
+    }
     return () => { ignore = true; };
   }, []);
 
@@ -1025,11 +1041,19 @@ export default function Home() {
   };
 
   const fetchBySort = async (sortKey, coords, cats, gender) => {
-    if (!coords) return;
     setLoading(true); setSearchText(""); setServiceMatchLabel("");
     try {
-      const res = await API.get(`/public/salons/nearby?latitude=${coords.lat}&longitude=${coords.lng}&sort=${sortKey}`);
-      const data = res.data.data?.salons || res.data.data || [];
+      let data;
+      if (coords) {
+        // Precise: location enabled → nearby results
+        const res = await API.get(`/public/salons/nearby?latitude=${coords.lat}&longitude=${coords.lng}&sort=${sortKey}`);
+        data = res.data.data?.salons || res.data.data || [];
+      } else {
+        // No location → show top-rated (or trending) businesses, no permission prompt needed
+        const noGeoSort = sortKey === "booked" ? "booked" : "rated";
+        const res = await API.get(`/public/salons?sort=${noGeoSort}&limit=40`);
+        data = res.data.data?.salons || res.data.data || [];
+      }
       setAllSalons(data);
       setSalons(applyFilters(data, cats ?? selectedCats, openNow));
     } catch { setAllSalons([]); setSalons([]); }
