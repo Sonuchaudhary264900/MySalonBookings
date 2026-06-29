@@ -15,7 +15,7 @@ import RazorpayCheckout from '../../components/RazorpayCheckout';
 
 const BIZ_NAME_MAP = {
   barbershop:    'Barbershop',
-  salon:         'Salon',
+  salon:         'Business',
   spa_wellness:  'Spa',
   makeup_bridal: 'Studio',
   skin_derma:    'Clinic',
@@ -101,7 +101,7 @@ export default function PromotionsScreen() {
   const [pendingPromotionId, setPendingPromotionId] = useState(null);
   const [paying, setPaying] = useState(false);
 
-  const bizName = BIZ_NAME_MAP[salon?.businessType] || 'Salon';
+  const bizName = BIZ_NAME_MAP[salon?.businessType] || 'Business';
 
   const fetchAll = useCallback(async () => {
     try {
@@ -332,7 +332,7 @@ export default function PromotionsScreen() {
         visible={!!checkoutOrder}
         order={checkoutOrder}
         prefill={{ name: user?.name || '', contact: user?.phone || '', email: user?.email || '' }}
-        description={selectedTier ? `Salon Promotion – ${selectedTier.radiusKm} km for 1 Week` : 'Salon Promotion'}
+        description={selectedTier ? `Business Promotion – ${selectedTier.radiusKm} km for 1 Week` : 'Business Promotion'}
         onSuccess={handlePaymentSuccess}
         onDismiss={() => { setCheckoutOrder(null); setPendingPromotionId(null); }}
         onFailure={() => { setCheckoutOrder(null); setPendingPromotionId(null); showError('Payment failed'); }}

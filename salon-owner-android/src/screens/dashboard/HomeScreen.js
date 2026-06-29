@@ -161,7 +161,7 @@ var d=${safeData},salonName=d.salonName,bookingUrl=d.bookingUrl;
 var c=document.getElementById('c'),ctx=c.getContext('2d'),W=400,H=560,S=3;ctx.scale(S,S);
 ctx.fillStyle='#f3f4f6';ctx.fillRect(0,0,W,H);ctx.fillStyle='#ffffff';ctx.fillRect(20,20,360,520);
 ctx.fillStyle='#4f46e5';ctx.fillRect(20,20,360,74);ctx.fillStyle='#ffffff';ctx.font='bold 17px Arial';ctx.textAlign='center';
-ctx.fillText('\u2702  Salon Booking',200,64);
+ctx.fillText('\u2702  Business Booking',200,64);
 var img=new Image();img.crossOrigin='anonymous';
 img.onload=function(){
   ctx.drawImage(img,110,110,180,180);ctx.fillStyle='#111827';ctx.font='bold 20px Arial';ctx.fillText(salonName,200,322);
@@ -198,7 +198,7 @@ img.onload=function(){
 var d=${safeData},salonName=d.salonName,bookingUrl=d.bookingUrl;
 var c=document.getElementById('c'),ctx=c.getContext('2d'),W=400,H=566,S=3;ctx.scale(S,S);
 ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);ctx.fillStyle='#4f46e5';ctx.fillRect(0,0,W,110);
-ctx.fillStyle='#ffffff';ctx.font='bold 28px Arial';ctx.textAlign='center';ctx.fillText('\u2702  Salon Booking',W/2,52);
+ctx.fillStyle='#ffffff';ctx.font='bold 28px Arial';ctx.textAlign='center';ctx.fillText('\u2702  Business Booking',W/2,52);
 ctx.fillStyle='rgba(255,255,255,0.8)';ctx.font='13px Arial';ctx.fillText('Scan the QR code to book your appointment',W/2,76);
 ctx.fillStyle='rgba(255,255,255,0.55)';ctx.font='11px Arial';ctx.fillText(salonName,W/2,96);
 var img=new Image();img.crossOrigin='anonymous';
@@ -988,7 +988,7 @@ img.onload=function(){
       <Pressable style={qrStyles.overlay} onPress={() => setShowQR(false)}>
         <Pressable style={qrStyles.sheet} onPress={e => e.stopPropagation()}>
           <View style={qrStyles.header}>
-            <Text style={qrStyles.title}>Salon Booking QR</Text>
+            <Text style={qrStyles.title}>Business Booking QR</Text>
             <TouchableOpacity onPress={() => setShowQR(false)}>
               <Ionicons name="close" size={22} color="#6b7280" />
             </TouchableOpacity>
@@ -1259,7 +1259,7 @@ function WalkInModal({ visible, onClose, salonId, services, onSuccess }) {
               {slotsLoading ? (
                 <ActivityIndicator size="small" color="#6366f1" style={{ marginVertical: 8 }} />
               ) : closedDay ? (
-                <Text style={{ color:'#d97706', fontSize:13 }}>Salon is closed on this day.</Text>
+                <Text style={{ color:'#d97706', fontSize:13 }}>Business is closed on this day.</Text>
               ) : slots.length === 0 ? (
                 <Text style={{ color:'#9ca3af', fontSize:13 }}>No slots available for this date.</Text>
               ) : (

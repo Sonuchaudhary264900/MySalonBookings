@@ -93,7 +93,7 @@ function SalonInfoSection({ salon, onSaved }) {
   }, [salon]);
 
   const handleSave = async () => {
-    if (!name.trim()) { showError('Error', 'Salon name is required'); return; }
+    if (!name.trim()) { showError('Error', 'Business name is required'); return; }
     setLoading(true);
     try {
       await api.put('/owner/salon', {
@@ -103,9 +103,9 @@ function SalonInfoSection({ salon, onSaved }) {
         state: stateName.trim() || undefined, pincode: pincode.trim() || undefined,
       });
       onSaved();
-      showSuccess('Saved', 'Salon info updated!');
+      showSuccess('Saved', 'Business info updated!');
     } catch (err) {
-      showError('Error', err.message || 'Failed to update salon info');
+      showError('Error', err.message || 'Failed to update business info');
     } finally { setLoading(false); }
   };
 
@@ -124,7 +124,7 @@ function SalonInfoSection({ salon, onSaved }) {
         </View>
       </View>
       <Field label="Phone *" value={phone} setter={setPhone} placeholder="+91 9876543210" keyboard="phone-pad" />
-      <Field label="Email" value={email} setter={setEmail} placeholder="salon@example.com" keyboard="email-address" />
+      <Field label="Email" value={email} setter={setEmail} placeholder="business@example.com" keyboard="email-address" />
       <Field label="Address" value={address} setter={setAddress} placeholder="Street address" />
       <Field label="City" value={city} setter={setCity} placeholder="Mumbai" />
       <Field label="State" value={stateName} setter={setStateName} placeholder="Maharashtra" />
@@ -668,7 +668,7 @@ function PrivacySection() {
         <View style={styles.deleteBox}>
           <Text style={styles.deleteWarningTitle}>⚠️ This action cannot be undone</Text>
           <Text style={styles.deleteWarningText}>Deleting your account will permanently remove:</Text>
-          {['Owner account and profile', 'Salon listing and services', 'Customer reviews', 'Booking history'].map((item) => (
+          {['Owner account and profile', 'Business listing and services', 'Customer reviews', 'Booking history'].map((item) => (
             <Text key={item} style={styles.deleteWarningItem}>• {item}</Text>
           ))}
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>

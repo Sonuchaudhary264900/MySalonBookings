@@ -341,7 +341,7 @@ function WalkInModal({ visible, onClose, salonId, services, onSuccess }) {
               {slotsLoading ? (
                 <ActivityIndicator size="small" color="#6366f1" style={{ marginVertical: 8 }} />
               ) : closedDay ? (
-                <Text style={{ color: '#d97706', fontSize: 13 }}>Salon is closed on this day.</Text>
+                <Text style={{ color: '#d97706', fontSize: 13 }}>Business is closed on this day.</Text>
               ) : slots.length === 0 ? (
                 <Text style={{ color: '#9ca3af', fontSize: 13 }}>No slots available for this date.</Text>
               ) : (
@@ -1236,7 +1236,7 @@ export default function BookingsScreen() {
             {rsSlotsLoading ? (
               <ActivityIndicator size="small" color="#7c3aed" style={{ marginBottom: 16 }} />
             ) : rsClosedDay ? (
-              <Text style={{ color: '#f59e0b', fontSize: 13, marginBottom: 16 }}>Salon is closed on this day.</Text>
+              <Text style={{ color: '#f59e0b', fontSize: 13, marginBottom: 16 }}>Business is closed on this day.</Text>
             ) : rsSlots.length === 0 ? (
               <Text style={{ color: theme.subText, fontSize: 13, marginBottom: 16 }}>No slots available for this date.</Text>
             ) : (

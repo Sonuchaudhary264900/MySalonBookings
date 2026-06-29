@@ -44,7 +44,7 @@ const getOpensAt = (wh) => {
 
 const BIZ_THEME = {
   barbershop:    { p: '#6366f1', acc: '#818cf8', label: 'Barbershop' },
-  salon:         { p: '#818cf8', acc: '#a5b4fc', label: 'Salon' },
+  salon:         { p: '#818cf8', acc: '#a5b4fc', label: 'Business' },
   spa_wellness:  { p: '#8b5cf6', acc: '#a78bfa', label: 'Spa & Wellness' },
   makeup_bridal: { p: '#a78bfa', acc: '#c4b5fd', label: 'Makeup & Bridal' },
   skin_derma:    { p: '#6366f1', acc: '#818cf8', label: 'Skin & Derma' },

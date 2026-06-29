@@ -157,7 +157,7 @@ ctx.fillStyle='#f3f4f6';ctx.fillRect(0,0,W,H);
 ctx.fillStyle='#ffffff';ctx.fillRect(20,20,360,520);
 ctx.fillStyle='#4f46e5';ctx.fillRect(20,20,360,74);
 ctx.fillStyle='#ffffff';ctx.font='bold 17px Arial';ctx.textAlign='center';
-ctx.fillText('\u2702  Salon Booking',200,64);
+ctx.fillText('\u2702  Business Booking',200,64);
 var img=new Image();img.crossOrigin='anonymous';
 img.onload=function(){
   ctx.drawImage(img,110,110,180,180);
@@ -205,7 +205,7 @@ ctx.scale(S,S);
 ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
 ctx.fillStyle='#4f46e5';ctx.fillRect(0,0,W,110);
 ctx.fillStyle='#ffffff';ctx.font='bold 28px Arial';ctx.textAlign='center';
-ctx.fillText('\u2702  Salon Booking',W/2,52);
+ctx.fillText('\u2702  Business Booking',W/2,52);
 ctx.fillStyle='rgba(255,255,255,0.8)';ctx.font='13px Arial';
 ctx.fillText('Scan the QR code to book your appointment',W/2,76);
 ctx.fillStyle='rgba(255,255,255,0.55)';ctx.font='11px Arial';
@@ -311,7 +311,7 @@ img.src=${qrApiUrl};
                 { icon: 'mail-outline', color: '#3b82f6', label: 'Email', value: user?.email },
                 { icon: 'call-outline', color: '#10b981', label: 'Phone', value: user?.phone },
                 { icon: 'person-outline', color: '#f59e0b', label: 'Gender', value: user?.gender ? user.gender.charAt(0).toUpperCase() + user.gender.slice(1) : null },
-                salon && { icon: 'business-outline', color: '#8b5cf6', label: 'Salon', value: salon.name },
+                salon && { icon: 'business-outline', color: '#8b5cf6', label: 'Business', value: salon.name },
                 salon && { icon: 'location-outline', color: '#ef4444', label: 'Address', value: salon.address },
               ].filter(Boolean).map(({ icon, color, label, value }) => (
                 <View key={label} style={[styles.infoCard, { backgroundColor: theme.bg }]}>
@@ -467,7 +467,7 @@ img.src=${qrApiUrl};
         <View style={styles.qrOverlay}>
           <View style={styles.qrBox}>
             <View style={styles.qrHeader}>
-              <Text style={styles.qrTitle}>Salon QR Code</Text>
+              <Text style={styles.qrTitle}>Business QR Code</Text>
               <TouchableOpacity onPress={() => setShowQR(false)}>
                 <Ionicons name="close" size={22} color="#6b7280" />
               </TouchableOpacity>
