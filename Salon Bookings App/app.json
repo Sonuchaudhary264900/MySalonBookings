@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Salon Bookings",
+    "name": "GlowLoox",
     "slug": "salon-user-android",
     "scheme": "glowloox-user",
     "version": "1.0.0",
@@ -33,7 +33,7 @@
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/original-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#4C1D95"
       }
     },
     "web": {
@@ -53,7 +53,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow My Salon Bookings to use your location to find nearby salons."
+          "locationWhenInUsePermission": "Allow GlowLoox to use your location to find nearby salons, spas & barbershops."
         }
       ],
       [
