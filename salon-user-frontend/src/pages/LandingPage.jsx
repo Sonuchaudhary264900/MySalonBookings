@@ -79,7 +79,7 @@ const CSS = `
    Static data (Lucide icons — no emojis)
 ───────────────────────────────────────────── */
 const FEATURES = [
-  { Icon: MapPin,     color: "#6366f1", title: "Salons Near You",       desc: "Instantly see 500+ verified salons within 5 km. Browse ratings, services, and prices — no sign-up needed." },
+  { Icon: MapPin,     color: "#6366f1", title: "Salons Near You",       desc: "Instantly see verified salons within 5 km. Browse ratings, services, and prices — no sign-up needed." },
   { Icon: Zap,        color: "#8b5cf6", title: "Book in 30 Seconds",    desc: "Pick a service, choose your slot, confirm instantly. No phone calls, no back-and-forth, no waiting." },
   { Icon: Bell,       color: "#6366f1", title: "Smart Reminders",       desc: "Automatic reminders before your appointment so you never forget. Get notified about new offers too." },
   { Icon: Star,       color: "#8b5cf6", title: "Verified Reviews",      desc: "Genuine ratings from real customers. Always choose the best salon with full confidence." },
@@ -112,9 +112,9 @@ const REVIEWS = [
 ];
 
 const STATS = [
-  { value: "500+", label: "Verified Salons",  color: "#6366f1" },
-  { value: "50K+", label: "Bookings Made",     color: "#8b5cf6" },
-  { value: "4.9",  label: "Average Rating",    color: "#6366f1" },
+  { value: "5", label: "Business Types",  color: "#6366f1" },
+  { value: "Free", label: "To Use",        color: "#8b5cf6" },
+  { value: "₹0",  label: "Booking Fees",   color: "#6366f1" },
   { value: "30s",  label: "Avg Booking Time",  color: "#8b5cf6" },
 ];
 
@@ -200,7 +200,7 @@ export default function LandingPage({
             {/* Live badge */}
             <div className="lp-u1" style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 24, background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.22)", borderRadius: 99, padding: "5px 16px", fontSize: 12, color: "var(--t-accent)", fontWeight: 600 }}>
               <span className="lp-dot" style={{ width: 7, height: 7, borderRadius: "50%", background: "#6366f1", display: "inline-block" }} />
-              500+ verified salons across India
+              Verified salons & barbershops across India
             </div>
 
             {/* Headline */}
@@ -493,7 +493,7 @@ export default function LandingPage({
                 <div style={{ display: "flex", gap: 2 }}>
                   {[1,2,3,4,5].map(i => <Star key={i} size={14} color="#f59e0b" fill="#f59e0b" />)}
                 </div>
-                <span style={{ color: "var(--t-text-2)", fontSize: 14, fontWeight: 600 }}>4.9 / 5 · 1,000+ reviews</span>
+                <span style={{ color: "var(--t-text-2)", fontSize: 14, fontWeight: 600 }}>Verified reviews from real customers</span>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -541,7 +541,7 @@ export default function LandingPage({
               Avoid Long Queue.<br />Save time.<br /><span className="lp-shimmer">Look amazing.</span>
             </h2>
             <p style={{ color: "var(--t-text-2)", fontSize: 15.5, lineHeight: 1.75, maxWidth: 440, margin: "0 auto 36px" }}>
-              Join 50,000+ customers who stopped calling salons and started booking smarter — instantly, for free.
+              Stop calling salons — discover, compare and book the best ones near you instantly, for free.
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center" }}>
               <Link

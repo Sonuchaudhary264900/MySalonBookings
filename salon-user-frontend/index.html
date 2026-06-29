@@ -106,6 +106,39 @@
   </head>
   <body>
     <div id="root"></div>
+
+    <!-- Crawlable content fallback for search engines & AI crawlers that don't
+         execute JavaScript (e.g. Gemini, GPTBot, PerplexityBot). The React app
+         replaces #root on load; this gives non-JS crawlers real text to index. -->
+    <noscript>
+      <main>
+        <h1>GlowLoox — Book Salons, Barbershops &amp; Spas Near You in India</h1>
+        <p>
+          GlowLoox is a free salon and beauty appointment booking platform in India.
+          Discover and book verified salons, barbershops, spas, makeup artists and
+          skin &amp; derma clinics near you. Booking is free with no hidden charges —
+          you simply pay at the salon.
+        </p>
+        <h2>What you can do on GlowLoox</h2>
+        <ul>
+          <li>Find nearby salons, barbershops, spas, makeup artists and skin clinics across India</li>
+          <li>See real service menus with transparent upfront prices</li>
+          <li>Book an appointment slot or join a live walk-in queue</li>
+          <li>Read and leave verified reviews from real customers</li>
+          <li>Free to use — no booking fees, no hidden charges, pay at the salon</li>
+        </ul>
+        <h2>Business types on GlowLoox</h2>
+        <p>Salon, Barbershop, Spa &amp; Wellness, Makeup &amp; Bridal, and Skin &amp; Derma clinics.</p>
+        <h2>For salon owners</h2>
+        <p>
+          GlowLoox Partner lets salon and barbershop owners manage bookings, services,
+          staff, customers and reviews from a free dashboard — available on the web at
+          <a href="https://owner.glowloox.com">owner.glowloox.com</a> and as an Android app.
+        </p>
+        <p>Contact: <a href="mailto:glowloox@gmail.com">glowloox@gmail.com</a></p>
+      </main>
+    </noscript>
+
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
