@@ -1,4 +1,4 @@
-import { Mail, Phone, MessageCircle, Instagram, Facebook, Youtube, Linkedin } from 'lucide-react';
+import { Mail, Phone, MessageCircle, Instagram, Facebook, Youtube } from 'lucide-react';
 
 const Footer = () => (
   <footer className="bg-white dark:bg-gray-950 border-t border-gray-100 dark:border-gray-800/60 py-4 px-6 transition-colors duration-300">
@@ -37,10 +37,7 @@ const Footer = () => (
           className="flex items-center gap-1.5 text-gray-400 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 transition-colors">
           <Youtube size={13} /> YouTube
         </a>
-        <a href="https://linkedin.com/company/glowloox" target="_blank" rel="noopener noreferrer"
-          className="flex items-center gap-1.5 text-gray-400 dark:text-gray-600 hover:text-blue-600 dark:hover:text-blue-500 transition-colors">
-          <Linkedin size={13} /> LinkedIn
-        </a>
+        {/* LinkedIn removed for launch — no active account */}
       </div>
 
       {/* Legal links */}
