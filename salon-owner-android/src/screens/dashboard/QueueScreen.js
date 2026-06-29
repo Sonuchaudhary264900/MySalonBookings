@@ -13,7 +13,7 @@ import { useSalon } from '../../context/SalonContext';
 import { localDate } from '../../utils/helpers';
 import { showSuccess, showError } from '../../utils/toast';
 
-const SOCKET_URL = 'https://mysalonbookings.onrender.com';
+const SOCKET_URL = 'https://api.glowloox.com';
 const QUEUE_STATUSES = ['pending', 'confirmed', 'in_progress'];
 
 const STATUS_CONFIG = {

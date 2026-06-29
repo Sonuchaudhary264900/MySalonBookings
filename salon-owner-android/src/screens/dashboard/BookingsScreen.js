@@ -42,7 +42,7 @@ const PaymentBadgeRN = ({ booking }) => {
     </View>
   );
 };
-const SOCKET_URL_RN = 'https://mysalonbookings.onrender.com';
+const SOCKET_URL_RN = 'https://api.glowloox.com';
 const CHAT_OPEN_STATUSES = ['pending', 'confirmed', 'in_progress'];
 const UPCOMING_STATUSES = ['pending', 'confirmed', 'in_progress'];
 const UPCOMING_FILTERS  = ['all', 'pending', 'confirmed', 'in_progress'];

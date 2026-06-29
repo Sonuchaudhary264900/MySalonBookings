@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../services/api';
 import { useAuth } from './AuthContext';
 
-const SOCKET_URL = 'https://mysalonbookings.onrender.com';
+const SOCKET_URL = 'https://api.glowloox.com';
 
 export const SalonContext = createContext();
 

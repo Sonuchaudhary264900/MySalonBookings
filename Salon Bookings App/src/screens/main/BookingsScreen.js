@@ -16,7 +16,7 @@ import { useNotifications } from '../../context/NotificationContext';
 import { showSuccess, showError } from '../../utils/toast';
 import { useTheme } from '../../context/ThemeContext';
 
-const SOCKET_URL_RN  = 'https://mysalonbookings.onrender.com';
+const SOCKET_URL_RN  = 'https://api.glowloox.com';
 const CHAT_OPEN_LIST = ['pending', 'confirmed', 'in_progress'];
 
 const FILTERS = ['Upcoming', 'Completed', 'Cancelled', 'All'];

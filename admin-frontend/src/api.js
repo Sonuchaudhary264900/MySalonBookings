@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL
-    || (import.meta.env.DEV ? 'http://localhost:5000/api/v1' : 'https://mysalonbookings.onrender.com/api/v1'),
+    || (import.meta.env.DEV ? 'http://localhost:5000/api/v1' : 'https://api.glowloox.com/api/v1'),
 });
 
 api.interceptors.request.use(config => {
