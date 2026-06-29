@@ -154,7 +154,7 @@ export default function HomeScreen() {
 
   /* ── QR card HTML generators ── */
   const getCardHtml = () => {
-    const safeData = JSON.stringify({ salonName: salon?.name || 'My Salon', bookingUrl: qrValue });
+    const safeData = JSON.stringify({ salonName: salon?.name || 'My Business', bookingUrl: qrValue });
     const qrApiUrl = JSON.stringify(`https://api.qrserver.com/v1/create-qr-code/?size=900x900&data=${encodeURIComponent(qrValue)}`);
     return `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:0"><canvas id="c" width="1200" height="1680"></canvas><script>(function(){
 var d=${safeData},salonName=d.salonName,bookingUrl=d.bookingUrl;
@@ -192,7 +192,7 @@ img.onload=function(){
   }, [salon]);
 
   const getA4Html = () => {
-    const safeData = JSON.stringify({ salonName: salon?.name || 'My Salon', bookingUrl: qrValue });
+    const safeData = JSON.stringify({ salonName: salon?.name || 'My Business', bookingUrl: qrValue });
     const qrApiUrl = JSON.stringify(`https://api.qrserver.com/v1/create-qr-code/?size=900x900&data=${encodeURIComponent(qrValue)}`);
     return `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:0"><canvas id="c" width="1200" height="1698"></canvas><script>(function(){
 var d=${safeData},salonName=d.salonName,bookingUrl=d.bookingUrl;
@@ -332,7 +332,7 @@ img.onload=function(){
       title:        isBlocked ? `Unblock ${customerName}?` : `Block ${customerName}?`,
       message:      isBlocked
         ? `${customerName} will be able to book appointments again.`
-        : `${customerName} will no longer be able to book appointments at your salon.`,
+        : `${customerName} will no longer be able to book appointments at your business.`,
       danger:       !isBlocked,
       confirmLabel: isBlocked ? 'Yes, Unblock' : 'Yes, Block',
       onConfirm: async () => {
@@ -996,7 +996,7 @@ img.onload=function(){
           <View style={qrStyles.qrBox}>
             <Image source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrValue)}` }} style={{ width: 180, height: 180 }} />
           </View>
-          <Text style={qrStyles.salonName}>{salon?.name || 'My Salon'}</Text>
+          <Text style={qrStyles.salonName}>{salon?.name || 'My Business'}</Text>
           <Text style={qrStyles.hint}>Share this QR so customers can book directly</Text>
           <View style={{ flexDirection: 'row', gap: 8, width: '100%' }}>
             <TouchableOpacity style={[qrStyles.actionBtn, { backgroundColor: '#6366f1', flex: 1 }]} onPress={() => { setShowQR(false); setCapturing(true); }}>
@@ -1005,7 +1005,7 @@ img.onload=function(){
             <TouchableOpacity style={[qrStyles.actionBtn, { backgroundColor: '#4f46e5', flex: 1 }]} onPress={() => { setShowQR(false); setCapturingA4(true); }}>
               <Ionicons name="document-outline" size={15} color="#fff" /><Text style={qrStyles.actionBtnSm}>Save A4</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[qrStyles.actionBtn, { backgroundColor: '#059669', flex: 1 }]} onPress={() => Share.share({ message: `Book at ${salon?.name || 'My Salon'}: ${qrValue}` })}>
+            <TouchableOpacity style={[qrStyles.actionBtn, { backgroundColor: '#059669', flex: 1 }]} onPress={() => Share.share({ message: `Book at ${salon?.name || 'My Business'}: ${qrValue}` })}>
               <Ionicons name="share-outline" size={15} color="#fff" /><Text style={qrStyles.actionBtnSm}>Share</Text>
             </TouchableOpacity>
           </View>

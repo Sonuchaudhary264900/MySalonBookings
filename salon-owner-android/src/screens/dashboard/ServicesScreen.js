@@ -364,7 +364,7 @@ function EmptyState({ onAdd, theme }) {
       </View>
       <Text style={[styles.emptyTitle, { color: theme.text }]}>No services added yet</Text>
       <Text style={[styles.emptyDesc, { color: theme.subText }]}>
-        Start by adding the services your salon offers to attract customers and enable bookings.
+        Start by adding the services your business offers to attract customers and enable bookings.
       </Text>
       <TouchableOpacity style={styles.emptyBtn} onPress={onAdd} activeOpacity={0.85}>
         <Ionicons name="add" size={16} color="#fff" />
@@ -1102,7 +1102,7 @@ export default function ServicesScreen() {
                   </View>
                   <Text style={[styles.headerTitle, { color: theme.text }]}>Services</Text>
                 </View>
-                <Text style={[styles.headerSub, { color: theme.subText, marginTop: 1, marginLeft: 36 }]}>Manage your salon services and pricing</Text>
+                <Text style={[styles.headerSub, { color: theme.subText, marginTop: 1, marginLeft: 36 }]}>Manage your business services and pricing</Text>
               </View>
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <TouchableOpacity

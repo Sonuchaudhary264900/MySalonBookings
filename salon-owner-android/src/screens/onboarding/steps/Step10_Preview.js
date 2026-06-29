@@ -171,7 +171,7 @@ export default function Step10_Preview() {
   return (
     <ScrollView contentContainerStyle={s.scroll}>
       <Text style={s.title}>Preview & Submit</Text>
-      <Text style={s.sub}>Review your salon before going live</Text>
+      <Text style={s.sub}>Review your business before going live</Text>
 
       {/* Mini salon card preview */}
       <View style={s.previewCard}>
@@ -179,7 +179,7 @@ export default function Step10_Preview() {
           <Image source={{ uri: photos[0].uri || photos[0].url }} style={s.previewImg} />
         )}
         <View style={s.previewBody}>
-          <Text style={s.previewName}>{salonName || 'Your Salon Name'}</Text>
+          <Text style={s.previewName}>{salonName || 'Your Business Name'}</Text>
           {servedGender && (
             <View style={s.genderBadge}>
               <Text style={s.genderText}>{servedGender === 'male' ? '👨 Men' : servedGender === 'female' ? '👩 Women' : '💁 Unisex'}</Text>

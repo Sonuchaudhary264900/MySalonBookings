@@ -617,7 +617,7 @@ export default function BookingsScreen() {
       title: isBlocked ? `Unblock ${customerName}?` : `Block ${customerName}?`,
       message: isBlocked
         ? `${customerName} will be able to book appointments again.`
-        : `${customerName} will no longer be able to book appointments at your salon.`,
+        : `${customerName} will no longer be able to book appointments at your business.`,
       danger: !isBlocked,
       confirmLabel: isBlocked ? 'Yes, Unblock' : 'Yes, Block',
       onConfirm: () => { setConfirm(null); doToggleBlock(customerId, isBlocked); },

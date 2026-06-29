@@ -147,7 +147,7 @@ export default function ProfileScreen() {
   const qrValue = salon?._id ? salonBookingUrl(salon) : `mysalonbookings:owner:${user?._id}`;
 
   const getCardHtml = () => {
-    const safeData = JSON.stringify({ salonName: salon?.name || 'My Salon', bookingUrl: qrValue });
+    const safeData = JSON.stringify({ salonName: salon?.name || 'My Business', bookingUrl: qrValue });
     const qrApiUrl = JSON.stringify(`https://api.qrserver.com/v1/create-qr-code/?size=900x900&data=${encodeURIComponent(qrValue)}`);
     return `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:0"><canvas id="c" width="1200" height="1680"></canvas><script>(function(){
 var d=${safeData},salonName=d.salonName,bookingUrl=d.bookingUrl;
@@ -196,7 +196,7 @@ img.src=${qrApiUrl};
   }, [salon]);
 
   const getA4Html = () => {
-    const safeData = JSON.stringify({ salonName: salon?.name || 'My Salon', bookingUrl: qrValue });
+    const safeData = JSON.stringify({ salonName: salon?.name || 'My Business', bookingUrl: qrValue });
     const qrApiUrl = JSON.stringify(`https://api.qrserver.com/v1/create-qr-code/?size=900x900&data=${encodeURIComponent(qrValue)}`);
     return `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:0"><canvas id="c" width="1200" height="1698"></canvas><script>(function(){
 var d=${safeData},salonName=d.salonName,bookingUrl=d.bookingUrl;
@@ -419,7 +419,7 @@ img.src=${qrApiUrl};
         >
           {[
             { label: 'User ID', value: user?._id ? `${String(user._id).substring(0, 16)}…` : '—' },
-            { label: 'Account Type', value: 'Salon Owner' },
+            { label: 'Account Type', value: 'Business Owner' },
             { label: 'Member Since', value: memberSince },
           ].map(({ label, value }) => (
             <View key={label} style={[styles.accountRow, { borderTopColor: theme.border }]}>
@@ -445,7 +445,7 @@ img.src=${qrApiUrl};
             { icon: 'apps-outline',        color: '#6b7280', label: 'App Name',    value: 'GlowLoox' },
             { icon: 'code-slash-outline',  color: '#6b7280', label: 'Version',     value: 'v1.0.0' },
             { icon: 'build-outline',       color: '#6b7280', label: 'Platform',    value: 'Android' },
-            { icon: 'person-circle-outline', color: '#6b7280', label: 'Role',      value: 'Salon Owner' },
+            { icon: 'person-circle-outline', color: '#6b7280', label: 'Role',      value: 'Business Owner' },
             { icon: 'globe-outline',       color: '#3b82f6', label: 'Website',     value: 'owner.glowloox.com' },
             { icon: 'mail-outline',        color: '#10b981', label: 'Support',     value: 'glowloox@gmail.com' },
           ].map(({ icon, color, label, value }) => (
@@ -472,7 +472,7 @@ img.src=${qrApiUrl};
                 <Ionicons name="close" size={22} color="#6b7280" />
               </TouchableOpacity>
             </View>
-            <Text style={styles.qrSub}>Customers scan this to book your salon</Text>
+            <Text style={styles.qrSub}>Customers scan this to book your business</Text>
 
             <View style={styles.qrCodeWrap}>
               <Image
@@ -485,7 +485,7 @@ img.src=${qrApiUrl};
               <Ionicons name="business-outline" size={14} color="#6366f1" />
               <Text style={styles.qrSalonName}>{salon?.name}</Text>
             </View>
-            <Text style={styles.qrHint}>Print or display this QR code at your salon</Text>
+            <Text style={styles.qrHint}>Print or display this QR code at your business</Text>
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 14, width: '100%' }}>
               <TouchableOpacity
                 style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 11, backgroundColor: '#6366f1', borderRadius: 12 }}
@@ -503,7 +503,7 @@ img.src=${qrApiUrl};
               </TouchableOpacity>
               <TouchableOpacity
                 style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 11, backgroundColor: '#059669', borderRadius: 12 }}
-                onPress={() => Share.share({ message: `Book at ${salon?.name || 'My Salon'}: ${qrValue}` })}
+                onPress={() => Share.share({ message: `Book at ${salon?.name || 'My Business'}: ${qrValue}` })}
               >
                 <Ionicons name="share-outline" size={15} color="#fff" />
                 <Text style={{ color: '#fff', fontWeight: '700', fontSize: 11 }}>Share Link</Text>

@@ -120,7 +120,7 @@ export default function LoginScreen({ navigation }) {
           if (isBlocked) {
             Alert.alert(
               'Account Deactivated',
-              'Your account has been deactivated. Please contact your salon owner.',
+              'Your account has been deactivated. Please contact your business owner.',
               [{ text: 'OK' }]
             );
           } else if (staffNotFound) {

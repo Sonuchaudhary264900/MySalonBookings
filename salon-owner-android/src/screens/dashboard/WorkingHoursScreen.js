@@ -119,7 +119,7 @@ export default function WorkingHoursScreen() {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Working Hours</Text>
         </View>
-        <Text style={styles.headerSub}>Set your salon's open and close times</Text>
+        <Text style={styles.headerSub}>Set your business's open and close times</Text>
       </View>
 
       {loading ? (

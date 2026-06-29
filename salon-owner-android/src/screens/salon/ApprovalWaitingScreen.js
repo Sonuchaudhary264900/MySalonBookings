@@ -49,7 +49,7 @@ export default function ApprovalWaitingScreen() {
         </Text>
         <Text style={styles.subtitle}>
           {isRejected
-            ? 'Unfortunately your salon registration was not approved. Please contact support for more information.'
+            ? 'Unfortunately your business registration was not approved. Please contact support for more information.'
             : 'Your salon registration has been submitted and is currently under review by our team.'}
         </Text>
 

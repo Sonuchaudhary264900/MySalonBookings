@@ -33,7 +33,7 @@ function buildMapHtml(lat, lng) {
 var map=L.map('map',{zoomControl:true}).setView([${lat},${lng}],17);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM',maxZoom:19}).addTo(map);
 var mk=L.marker([${lat},${lng}],{draggable:true}).addTo(map);
-mk.bindPopup('<b>Your Salon</b><br>Drag to adjust').openPopup();
+mk.bindPopup('<b>Your Business</b><br>Drag to adjust').openPopup();
 mk.on('dragend',function(){var p=mk.getLatLng();window.ReactNativeWebView.postMessage(JSON.stringify({lat:p.lat,lng:p.lng}));});
 </script></body></html>`;
 }

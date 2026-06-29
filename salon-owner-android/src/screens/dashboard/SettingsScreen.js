@@ -69,7 +69,7 @@ function SaveButton({ onPress, loading, label = 'Save Changes' }) {
   );
 }
 
-// ── 1. Salon Information ──────────────────────────────────────────
+// ── 1. Business Information ──────────────────────────────────────────
 function SalonInfoSection({ salon, onSaved }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -111,8 +111,8 @@ function SalonInfoSection({ salon, onSaved }) {
 
   return (
     <>
-      <Field label="Salon Name *" value={name} setter={setName} placeholder="Royal Salon" />
-      <Field label="Description" value={description} setter={setDescription} placeholder="About your salon…" multiline />
+      <Field label="Business Name *" value={name} setter={setName} placeholder="Royal Salon" />
+      <Field label="Description" value={description} setter={setDescription} placeholder="About your business…" multiline />
       <View style={styles.field}>
         <Text style={styles.label}>Category</Text>
         <View style={styles.chipsRow}>
@@ -474,7 +474,7 @@ function SalonPhotosSection({ salon, onSaved }) {
   };
 
   const handleDelete = (url) => {
-    Alert.alert('Remove Photo', 'Remove this photo from your salon?', [
+    Alert.alert('Remove Photo', 'Remove this photo from your business?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Remove', style: 'destructive', onPress: async () => {
@@ -508,7 +508,7 @@ function SalonPhotosSection({ salon, onSaved }) {
         </View>
       )}
       {photos.length === 0 && (
-        <Text style={styles.emptyText}>No photos yet. Add photos to showcase your salon.</Text>
+        <Text style={styles.emptyText}>No photos yet. Add photos to showcase your business.</Text>
       )}
       <TouchableOpacity
         style={[styles.uploadBtn, (uploading || photos.length >= 10) && { opacity: 0.6 }]}

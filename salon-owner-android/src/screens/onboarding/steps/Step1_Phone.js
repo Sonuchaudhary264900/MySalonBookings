@@ -69,7 +69,7 @@ export default function Step1_Phone({ confirmationRef }) {
 
         <View style={s.socialProof}>
           <Ionicons name="shield-checkmark-outline" size={14} color="#22c55e" />
-          <Text style={s.socialText}>12,000+ salon owners trust us</Text>
+          <Text style={s.socialText}>12,000+ business owners trust us</Text>
         </View>
 
         <TouchableOpacity

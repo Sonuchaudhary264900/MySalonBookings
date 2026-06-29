@@ -131,7 +131,7 @@ export default function Step7_Media() {
   return (
     <ScrollView contentContainerStyle={s.scroll}>
       <Text style={s.title}>Salon Media</Text>
-      <Text style={s.sub}>Show customers what your salon looks like</Text>
+      <Text style={s.sub}>Show customers what your business looks like</Text>
 
       {/* Photos */}
       <View style={s.section}>

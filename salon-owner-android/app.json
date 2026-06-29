@@ -28,7 +28,7 @@
       "permissions": [],
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon-foreground.png",
-        "backgroundColor": "#07071a"
+        "backgroundColor": "#4C1D95"
       }
     },
     "web": {

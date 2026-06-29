@@ -65,7 +65,7 @@ const BillingScreen = ({ navigation }) => {
           <Text style={styles.freeBannerTitle}>GlowLoox is free for all partners</Text>
           <Text style={styles.freeBannerText}>
             No subscription, no monthly fees — manage bookings, staff and your storefront at no cost.
-            The only paid feature is optional Promotions, which help boost your salon's visibility to nearby customers.
+            The only paid feature is optional Promotions, which help boost your business's visibility to nearby customers.
           </Text>
         </View>
 

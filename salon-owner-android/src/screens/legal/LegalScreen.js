@@ -13,11 +13,11 @@ const SECTIONS = {
   privacy: [
     {
       title: '1. Information We Collect',
-      body: `We collect the following information when you use GlowLoox as a salon owner:\n\n• Full Name, Phone Number & Email – for account creation and communication\n• Password – stored encrypted (never in plain text)\n• Salon Name, Address & Location – to display your salon to customers\n• Services & Pricing – services you list on the platform\n• Salon Photos – images you upload (stored on Cloudinary)\n• Subscription & Billing Data – plan type, payment history, invoice records\n• Booking Records – all bookings made at your salon\n• Device & App Data – device type, OS version, usage patterns\n• Push Notification Tokens – to send you new booking alerts`,
+      body: `We collect the following information when you use GlowLoox as a business owner:\n\n• Full Name, Phone Number & Email – for account creation and communication\n• Password – stored encrypted (never in plain text)\n• Business Name, Address & Location – to display your business to customers\n• Services & Pricing – services you list on the platform\n• Salon Photos – images you upload (stored on Cloudinary)\n• Subscription & Billing Data – plan type, payment history, invoice records\n• Booking Records – all bookings made at your business\n• Device & App Data – device type, OS version, usage patterns\n• Push Notification Tokens – to send you new booking alerts`,
     },
     {
       title: '2. How We Use Your Information',
-      body: `• Account Management – creating and maintaining your owner account\n• Salon Discovery – listing your salon to nearby customers\n• Booking Management – processing incoming bookings in real-time\n• Billing & Subscription – managing your plan and generating invoices\n• Platform Communication – billing alerts and important updates\n• Analytics – booking statistics within your dashboard\n• Support – resolving issues and answering queries\n• Security – detecting fraud and preventing abuse`,
+      body: `• Account Management – creating and maintaining your owner account\n• Salon Discovery – listing your business to nearby customers\n• Booking Management – processing incoming bookings in real-time\n• Billing & Subscription – managing your plan and generating invoices\n• Platform Communication – billing alerts and important updates\n• Analytics – booking statistics within your dashboard\n• Support – resolving issues and answering queries\n• Security – detecting fraud and preventing abuse`,
     },
     {
       title: '3. Subscription & Billing Data',
@@ -25,7 +25,7 @@ const SECTIONS = {
     },
     {
       title: '4. Customer Data You Access',
-      body: `As a salon owner, you access customer names and phone numbers for booking fulfillment. You must:\n\n• Use customer data only to manage bookings\n• Not share or sell customer data to third parties\n• Not send unsolicited marketing messages\n• Delete customer data upon account closure\n\nViolation may result in immediate account suspension.`,
+      body: `As a business owner, you access customer names and phone numbers for booking fulfillment. You must:\n\n• Use customer data only to manage bookings\n• Not share or sell customer data to third parties\n• Not send unsolicited marketing messages\n• Delete customer data upon account closure\n\nViolation may result in immediate account suspension.`,
     },
     {
       title: '5. Third-Party Services',
@@ -51,7 +51,7 @@ const SECTIONS = {
   terms: [
     {
       title: '1. Platform Overview',
-      body: `GlowLoox is a SaaS platform providing salon owners tools to manage bookings, customers, and business operations. We provide the technology — you provide the salon services.`,
+      body: `GlowLoox is a SaaS platform providing business owners tools to manage bookings, customers, and business operations. We provide the technology — you provide the business services.`,
     },
     {
       title: '2. Free Trial',
@@ -67,7 +67,7 @@ const SECTIONS = {
     },
     {
       title: '5. Owner Responsibilities',
-      body: `• Maintain accurate salon information, services, and pricing\n• Respond to bookings in a timely manner\n• Honor confirmed bookings (repeated cancellations may lead to suspension)\n• Handle customer data responsibly per applicable Indian laws\n• Operate your salon in compliance with all local laws and regulations`,
+      body: `• Maintain accurate salon information, services, and pricing\n• Respond to bookings in a timely manner\n• Honor confirmed bookings (repeated cancellations may lead to suspension)\n• Handle customer data responsibly per applicable Indian laws\n• Operate your business in compliance with all local laws and regulations`,
     },
     {
       title: '6. Prohibited Conduct',

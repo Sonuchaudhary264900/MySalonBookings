@@ -719,7 +719,7 @@ export default function ReportsScreen() {
             <Text style={{ fontSize: 17, fontWeight: '800', color: theme.text }}>Analytics</Text>
           </View>
           <Text style={{ fontSize: 11, color: theme.subText, marginTop: 1, marginLeft: 36 }}>
-            Real-time insights of your salon performance
+            Real-time insights of your business performance
           </Text>
         </View>
         <View style={{ flexDirection: 'row', gap: 5, alignItems: 'center' }}>

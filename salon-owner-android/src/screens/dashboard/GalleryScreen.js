@@ -616,7 +616,7 @@ export default function GalleryScreen() {
                 {activeTag ? `No ${activeTag} photos` : 'No media uploaded yet'}
               </Text>
               <Text style={[styles.emptySub, { color: theme.subText }]}>
-                {activeTag ? 'Try a different tag filter' : 'Upload photos and videos to showcase your salon'}
+                {activeTag ? 'Try a different tag filter' : 'Upload photos and videos to showcase your business'}
               </Text>
               {!activeTag && (
                 <TouchableOpacity style={styles.uploadBtnLarge} onPress={pickAndUpload}>

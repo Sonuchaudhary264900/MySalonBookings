@@ -82,7 +82,7 @@ export default function IntroScreen({ navigation }) {
       <View style={[styles.topSection, { paddingTop: insets.top + 28 }]}>
         <View style={styles.pillBadge}>
           <View style={styles.pillDot} />
-          <Text style={styles.pillText}>For Salon Owners</Text>
+          <Text style={styles.pillText}>For Business Owners</Text>
         </View>
 
         <Animated.View
@@ -125,7 +125,7 @@ export default function IntroScreen({ navigation }) {
         <View style={styles.divider} />
 
         <Text style={styles.headline}>
-          Run Your Salon Online. Get More Customers.{'\n'}
+          Run Your Business Online. Get More Customers.{'\n'}
           <Text style={styles.headlineAccent}>Earn More Money.</Text>
         </Text>
 

@@ -512,7 +512,7 @@ export default function ServiceMenuScreen() {
             <View style={st.genderModalHeader}>
               <View>
                 <Text style={[st.genderModalTitle, { color: theme.text }]}>Who do you serve?</Text>
-                <Text style={[st.genderModalSub, { color: theme.subText }]}>Select the type of clients your salon caters to</Text>
+                <Text style={[st.genderModalSub, { color: theme.subText }]}>Select the type of clients your business caters to</Text>
               </View>
               <TouchableOpacity onPress={() => setGenderModalVisible(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <Ionicons name="close" size={22} color={theme.subText} />

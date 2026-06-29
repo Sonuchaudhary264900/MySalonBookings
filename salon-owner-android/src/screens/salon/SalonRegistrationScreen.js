@@ -49,7 +49,7 @@ function buildMapHtml(lat, lng) {
     var map = L.map('map',{zoomControl:true}).setView([${lat},${lng}],17);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(map);
     var marker = L.marker([${lat},${lng}],{draggable:true}).addTo(map);
-    marker.bindPopup('<b>Your Salon</b><br>Drag to adjust').openPopup();
+    marker.bindPopup('<b>Your Business</b><br>Drag to adjust').openPopup();
     marker.on('dragend',function(){
       var p=marker.getLatLng();
       window.ReactNativeWebView.postMessage(JSON.stringify({lat:p.lat,lng:p.lng}));
@@ -277,8 +277,8 @@ export default function SalonRegistrationScreen() {
   };
 
   const validateStep1 = () => {
-    if (!name.trim() || name.trim().length < 3) { Alert.alert('Error', 'Salon name must be at least 3 characters'); return false; }
-    if (!servedGender) { Alert.alert('Error', 'Please select who your salon serves'); return false; }
+    if (!name.trim() || name.trim().length < 3) { Alert.alert('Error', 'Business name must be at least 3 characters'); return false; }
+    if (!servedGender) { Alert.alert('Error', 'Please select who your business serves'); return false; }
     if (!phone.trim()) { Alert.alert('Error', 'Phone number is required'); return false; }
     if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) { Alert.alert('Error', 'Valid email is required'); return false; }
     return true;
@@ -302,7 +302,7 @@ export default function SalonRegistrationScreen() {
   };
 
   const handleSubmit = async () => {
-    if (photos.length === 0) { Alert.alert('Error', 'Please add at least one salon photo'); return; }
+    if (photos.length === 0) { Alert.alert('Error', 'Please add at least one business photo'); return; }
     setLoading(true);
     try {
       setUploadingPhotos(true);
@@ -327,7 +327,7 @@ export default function SalonRegistrationScreen() {
       await createSalon(payload);
     } catch (err) {
       setUploadingPhotos(false);
-      Alert.alert('Error', err.message || 'Failed to register salon');
+      Alert.alert('Error', err.message || 'Failed to register business');
     } finally { setLoading(false); }
   };
 
@@ -349,7 +349,7 @@ export default function SalonRegistrationScreen() {
           <Text style={s.appName}>GlowLoox</Text>
           <View style={s.pillBadge}>
             <View style={s.pillDot} />
-            <Text style={s.pillText}>Salon Registration</Text>
+            <Text style={s.pillText}>Business Registration</Text>
           </View>
           <TouchableOpacity
             style={s.logoutBtn}
@@ -403,12 +403,12 @@ export default function SalonRegistrationScreen() {
                 </View>
                 <View>
                   <Text style={s.cardTitle}>Basic Information</Text>
-                  <Text style={s.cardSub}>Tell us about your salon</Text>
+                  <Text style={s.cardSub}>Tell us about your business</Text>
                 </View>
               </View>
 
-              <DarkField label="Salon Name *" value={name} setter={setName} placeholder="e.g. Royal Salon" icon="storefront-outline" />
-              <DarkField label="Description (optional)" value={description} setter={setDescription} placeholder="Brief description of your salon" multiline icon="document-text-outline" />
+              <DarkField label="Business Name *" value={name} setter={setName} placeholder="e.g. Royal Salon" icon="storefront-outline" />
+              <DarkField label="Description (optional)" value={description} setter={setDescription} placeholder="Brief description of your business" multiline icon="document-text-outline" />
 
               <View style={s.field}>
                 <Text style={s.label}>Category</Text>
@@ -435,7 +435,7 @@ export default function SalonRegistrationScreen() {
                   </View>
                   <View>
                     <Text style={s.serveTitle}>Who Do You Serve? *</Text>
-                    <Text style={s.serveSub}>Select the clients your salon caters to</Text>
+                    <Text style={s.serveSub}>Select the clients your business caters to</Text>
                   </View>
                 </View>
                 <View style={s.serveGrid}>
@@ -475,7 +475,7 @@ export default function SalonRegistrationScreen() {
               </View>
 
               <DarkField label="Phone Number *" value={phone} setter={setPhone} placeholder="+91 9876543210" keyboard="phone-pad" icon="call-outline" editable={!user?.phone} />
-              <DarkField label="Email Address *" value={email} setter={setEmail} placeholder="salon@example.com" keyboard="email-address" icon="mail-outline" editable={!user?.email} />
+              <DarkField label="Email Address *" value={email} setter={setEmail} placeholder="business@example.com" keyboard="email-address" icon="mail-outline" editable={!user?.email} />
             </View>
           )}
 
@@ -488,7 +488,7 @@ export default function SalonRegistrationScreen() {
                 </View>
                 <View>
                   <Text style={s.cardTitle}>Location</Text>
-                  <Text style={s.cardSub}>Pin your salon on the map</Text>
+                  <Text style={s.cardSub}>Pin your business on the map</Text>
                 </View>
               </View>
 
@@ -525,13 +525,13 @@ export default function SalonRegistrationScreen() {
                   />
                   <View style={s.mapHint}>
                     <Ionicons name="move-outline" size={12} color="#818cf8" />
-                    <Text style={s.mapHintText}>Drag the pin to fine-tune your salon's exact location</Text>
+                    <Text style={s.mapHintText}>Drag the pin to fine-tune your business's exact location</Text>
                   </View>
                 </View>
               ) : (
                 <View style={s.mapPlaceholder}>
                   <Ionicons name="map-outline" size={36} color="#4b5563" />
-                  <Text style={s.mapPlaceholderText}>Tap "Use My Current Location" to pin your salon on the map</Text>
+                  <Text style={s.mapPlaceholderText}>Tap "Use My Current Location" to pin your business on the map</Text>
                 </View>
               )}
 
@@ -561,7 +561,7 @@ export default function SalonRegistrationScreen() {
                 </View>
                 <View>
                   <Text style={s.cardTitle}>Working Hours</Text>
-                  <Text style={s.cardSub}>Set your salon's schedule</Text>
+                  <Text style={s.cardSub}>Set your business's schedule</Text>
                 </View>
               </View>
 
@@ -608,7 +608,7 @@ export default function SalonRegistrationScreen() {
                   <Ionicons name="camera-outline" size={18} color="#818cf8" />
                 </View>
                 <View>
-                  <Text style={s.cardTitle}>Salon Photos</Text>
+                  <Text style={s.cardTitle}>Business Photos</Text>
                   <Text style={s.cardSub}>At least 1 photo · max 6</Text>
                 </View>
               </View>
@@ -636,13 +636,13 @@ export default function SalonRegistrationScreen() {
               {photos.length === 0 && (
                 <View style={s.photoEmptyHint}>
                   <Ionicons name="images-outline" size={40} color="#374151" />
-                  <Text style={s.photoEmptyText}>Tap "Add Photos" to upload salon pictures</Text>
+                  <Text style={s.photoEmptyText}>Tap "Add Photos" to upload business pictures</Text>
                 </View>
               )}
 
               <View style={s.summaryBox}>
                 <Text style={s.summaryTitle}>Registration Summary</Text>
-                <SummaryRow label="Salon" value={name} />
+                <SummaryRow label="Business" value={name} />
                 <SummaryRow label="Category" value={category.replace('_', ' ')} />
                 <SummaryRow label="Address" value={[address, city].filter(Boolean).join(', ')} />
                 <SummaryRow label="Hours" value={`${openTime} – ${closeTime}`} />

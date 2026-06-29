@@ -39,7 +39,7 @@ export default function Step4_SalonIdentity() {
   const [error, setError] = useState('');
 
   const handleNext = () => {
-    if (!salonName.trim()) { setError('Please enter your salon name'); return; }
+    if (!salonName.trim()) { setError('Please enter your business name'); return; }
     if (!servedGender) { setError('Please select who you serve'); return; }
     setError('');
     nextStep();
@@ -56,9 +56,9 @@ export default function Step4_SalonIdentity() {
         <Text style={s.title}>Salon Identity</Text>
         <Text style={s.sub}>Tell us about your business</Text>
 
-        {/* Salon Name */}
+        {/* Business Name */}
         <View style={s.field}>
-          <Text style={s.label}>Salon Name <Text style={s.req}>*</Text></Text>
+          <Text style={s.label}>Business Name <Text style={s.req}>*</Text></Text>
           <View style={[s.row, error && !salonName.trim() && s.rowErr]}>
             <Ionicons name="storefront-outline" size={18} color="#818cf8" style={s.ic} />
             <TextInput
@@ -124,7 +124,7 @@ export default function Step4_SalonIdentity() {
           </View>
           <TextInput
             style={s.textarea}
-            placeholder="Tell customers what makes your salon special..."
+            placeholder="Tell customers what makes your business special..."
             placeholderTextColor="#4b5563"
             value={description}
             onChangeText={setDescription}
