@@ -19,10 +19,11 @@ const TILE_SIZE = (SCREEN_W - 32 - (NUM_COLS - 1) * 4) / NUM_COLS;
 const ALL_TAGS = ['Haircut', 'Beard', 'Facial', 'Spa', 'Nails', 'Makeup'];
 
 /* ── Lightbox ── */
-function Lightbox({ media, initialIndex, coverId, onClose, onDeleted, onCoverSet }) {
+function Lightbox({ media, initialIndex, coverId, onClose, onDeleted, onCoverSet, onReelToggled }) {
   const [idx, setIdx] = useState(initialIndex);
   const [deleting, setDeleting] = useState(false);
   const [settingCover, setSettingCover] = useState(false);
+  const [togglingReel, setTogglingReel] = useState(false);
   const videoRef = useRef(null);
   const item = media[idx];
   if (!item) return null;
@@ -30,6 +31,22 @@ function Lightbox({ media, initialIndex, coverId, onClose, onDeleted, onCoverSet
   const mediaUrl = item.url || item.imageUrl || item.image;
   const isCover = item._id === coverId;
   const isVideo = item.type === 'video';
+  const inReels = !!item.inReels;
+
+  // Toggle this video in/out of the customer Reels feed.
+  // Sending only { videoUrl } is a clean toggle: adds if absent, removes if present.
+  const handleReelToggle = async () => {
+    setTogglingReel(true);
+    try {
+      const res = await api.put('/owner/gallery/reel-toggle', { videoUrl: mediaUrl });
+      onReelToggled?.(item._id, res.data.inReels);
+      showSuccess(
+        res.data.inReels ? 'Added to Reels' : 'Removed from Reels',
+        res.data.inReels ? 'This video now shows in the customer Reels feed' : 'Video removed from Reels'
+      );
+    } catch { showError('Error', 'Failed to update Reels'); }
+    finally { setTogglingReel(false); }
+  };
 
   const handleDelete = () => {
     Alert.alert('Delete Media', `Remove this ${isVideo ? 'video' : 'photo'}?`, [
@@ -139,6 +156,21 @@ function Lightbox({ media, initialIndex, coverId, onClose, onDeleted, onCoverSet
               }
               <Text style={[lbStyles.coverBtnText, isCover && { color: '#f59e0b' }]}>
                 {isCover ? 'Cover Photo' : 'Set as Cover'}
+              </Text>
+            </TouchableOpacity>
+          )}
+          {isVideo && (
+            <TouchableOpacity
+              style={[lbStyles.coverBtn, inReels && lbStyles.reelBtnActive]}
+              onPress={handleReelToggle}
+              disabled={togglingReel}
+            >
+              {togglingReel
+                ? <ActivityIndicator color={inReels ? '#a78bfa' : '#fff'} size="small" />
+                : <Ionicons name={inReels ? 'film' : 'film-outline'} size={16} color={inReels ? '#a78bfa' : '#fff'} />
+              }
+              <Text style={[lbStyles.coverBtnText, inReels && { color: '#a78bfa' }]}>
+                {inReels ? 'In Reels ✓' : 'Add to Reels'}
               </Text>
             </TouchableOpacity>
           )}
@@ -384,6 +416,10 @@ export default function GalleryScreen() {
     setMedia(prev => prev.map(p => ({ ...p, isCover: p._id === id })));
   };
 
+  const handleReelToggled = (id, inReels) => {
+    setMedia(prev => prev.map(p => p._id === id ? { ...p, inReels } : p));
+  };
+
   const imageMedia = useMemo(() => media.filter(m => m.type !== 'video'), [media]);
   const videoMedia = useMemo(() => media.filter(m => m.type === 'video'), [media]);
 
@@ -447,6 +483,11 @@ export default function GalleryScreen() {
         {isVideo && (
           <View style={styles.videoBadge}>
             <Ionicons name="videocam" size={9} color="#a78bfa" />
+          </View>
+        )}
+        {isVideo && item.inReels && (
+          <View style={styles.reelBadge}>
+            <Ionicons name="film" size={9} color="#fff" />
           </View>
         )}
       </TouchableOpacity>
@@ -596,6 +637,7 @@ export default function GalleryScreen() {
           onClose={() => setLightbox(null)}
           onDeleted={handleLightboxDelete}
           onCoverSet={handleCoverSet}
+          onReelToggled={handleReelToggled}
         />
       )}
     </View>
@@ -619,6 +661,7 @@ const lbStyles = StyleSheet.create({
   tagText: { color: '#fff', fontSize: 11, fontWeight: '600' },
   coverBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'center', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)', backgroundColor: 'rgba(255,255,255,0.1)' },
   coverBtnActive: { borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.15)' },
+  reelBtnActive: { borderColor: '#a78bfa', backgroundColor: 'rgba(167,139,250,0.18)' },
   coverBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 });
 
@@ -646,6 +689,7 @@ const styles = StyleSheet.create({
   coverBadge: { position: 'absolute', top: 4, left: 4, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 8, padding: 3 },
   tagBadge: { position: 'absolute', bottom: 4, right: 4, backgroundColor: 'rgba(99,102,241,0.85)', borderRadius: 8, padding: 3 },
   videoBadge: { position: 'absolute', top: 4, right: 4, backgroundColor: 'rgba(139,92,246,0.85)', borderRadius: 8, padding: 3 },
+  reelBadge: { position: 'absolute', bottom: 4, left: 4, backgroundColor: 'rgba(167,139,250,0.95)', borderRadius: 8, padding: 3 },
   emptyIcon: { width: 80, height: 80, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
   emptyTitle: { fontSize: 16, fontWeight: '700', marginBottom: 6 },
   emptySub: { fontSize: 13, textAlign: 'center', maxWidth: 260, marginBottom: 20 },
