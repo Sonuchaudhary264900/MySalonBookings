@@ -1,4 +1,29 @@
+# GlowLoox — robots.txt
+# Allow all standard search engines
 User-agent: *
 Allow: /
 
-Sitemap: https://mysalonbookings.com/sitemap.xml
+# Explicitly welcome AI / generative-search crawlers (GEO)
+# so GlowLoox can be discovered and cited by AI assistants (Gemini, ChatGPT, etc.)
+User-agent: Google-Extended
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+Sitemap: https://glowloox.com/sitemap.xml

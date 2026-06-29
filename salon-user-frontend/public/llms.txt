@@ -1,0 +1,29 @@
+# GlowLoox
+
+> GlowLoox is a free salon, spa and beauty appointment booking platform in India. Customers discover and book verified salons, barbershops, spas, makeup artists and skin & derma clinics near them. Booking is free with no hidden charges — pay at the salon.
+
+## What GlowLoox does
+- Find nearby salons, barbershops, spas, makeup artists and skin clinics across India
+- See real service menus with transparent upfront prices
+- Book an appointment slot or join a live walk-in queue
+- Read and leave verified reviews
+- Free to use for customers — no booking fees, no hidden charges, pay at the salon
+
+## For business owners
+- GlowLoox Partner lets salon and barbershop owners manage bookings, services, staff, customers and reviews from a free dashboard (web + Android app)
+- Owners list their services and prices, accept bookings, and manage their walk-in queue
+
+## Key facts
+- Name: GlowLoox
+- Category: Beauty & wellness appointment booking (Lifestyle)
+- Country served: India
+- Pricing: Free for customers; pay at salon
+- Website: https://glowloox.com
+- Contact: glowloox@gmail.com
+- Business types covered: Salon, Barbershop, Spa & Wellness, Makeup & Bridal, Skin & Derma
+
+## Links
+- Home: https://glowloox.com
+- Explore salons: https://glowloox.com/explore
+- Privacy Policy: https://glowloox.com/legal/customer-privacy
+- Terms: https://glowloox.com/legal/customer-terms

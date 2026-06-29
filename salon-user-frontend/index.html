@@ -36,21 +36,56 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "GlowLoox",
-      "url": "https://glowloox.com",
-      "description": "Book beauty & wellness appointments online from anywhere in India — salons, spas, nails, makeup and more. Find top-rated professionals near you instantly.",
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": "https://glowloox.com/?search={search_term_string}",
-        "query-input": "required name=search_term_string"
-      },
-      "contactPoint": {
-        "@type": "ContactPoint",
-        "telephone": "+91-7973270642",
-        "email": "support@glowloox.com",
-        "contactType": "customer support"
-      }
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://glowloox.com/#organization",
+          "name": "GlowLoox",
+          "alternateName": "GlowLoox Beauty & Wellness Booking",
+          "url": "https://glowloox.com",
+          "logo": "https://glowloox.com/icon.png",
+          "description": "GlowLoox is a free salon, spa and beauty appointment booking platform in India. Customers discover and book verified salons, barbershops, spas, makeup artists and skin clinics near them — at no cost. Booking is free with pay-at-salon convenience.",
+          "email": "glowloox@gmail.com",
+          "foundingDate": "2026",
+          "areaServed": { "@type": "Country", "name": "India" },
+          "sameAs": [
+            "https://instagram.com/glowloox",
+            "https://facebook.com/glowloox",
+            "https://youtube.com/@glowloox"
+          ],
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "telephone": "+91-7973270642",
+            "email": "glowloox@gmail.com",
+            "contactType": "customer support",
+            "areaServed": "IN",
+            "availableLanguage": ["English", "Hindi"]
+          }
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://glowloox.com/#website",
+          "name": "GlowLoox",
+          "url": "https://glowloox.com",
+          "publisher": { "@id": "https://glowloox.com/#organization" },
+          "description": "Book beauty & wellness appointments online from anywhere in India — salons, spas, nails, makeup and more. Find top-rated professionals near you instantly. Free to use, no hidden charges.",
+          "inLanguage": "en-IN",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://glowloox.com/?search={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@type": "SoftwareApplication",
+          "name": "GlowLoox",
+          "operatingSystem": "Android, Web",
+          "applicationCategory": "LifestyleApplication",
+          "description": "GlowLoox lets you find and book salons, barbershops, spas, makeup artists and skin clinics near you across India. Free to use with transparent upfront pricing and pay-at-salon booking.",
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "INR" },
+          "publisher": { "@id": "https://glowloox.com/#organization" }
+        }
+      ]
     }
     </script>
 
