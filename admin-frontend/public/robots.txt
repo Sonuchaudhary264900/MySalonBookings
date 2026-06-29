@@ -1,0 +1,3 @@
+# GlowLoox Admin — internal panel, do not index
+User-agent: *
+Disallow: /
