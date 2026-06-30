@@ -37,9 +37,11 @@ export default function Footer() {
             <div className="flex items-center gap-2.5 mb-4">
               <div
                 className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg"
-                style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)", boxShadow: "0 0 16px rgba(99,102,241,0.4)" }}
+                style={{ background: "linear-gradient(135deg,#4C1D95,#A78BFA)", boxShadow: "0 0 16px rgba(124,58,237,0.4)" }}
               >
-                <span className="text-sm font-extrabold" style={{ color: "var(--t-text)" }}>✂</span>
+                <svg viewBox="0 0 512 512" width="19" height="19" fill="none">
+                  <path d="M256,150 C270,210 310,240 370,256 C310,272 270,300 256,360 C242,300 202,272 142,256 C202,240 242,210 256,150 Z" fill="white"/>
+                </svg>
               </div>
               <span className="font-extrabold tracking-tight text-lg" style={{ color: "var(--t-text)" }}>GlowLoox</span>
             </div>

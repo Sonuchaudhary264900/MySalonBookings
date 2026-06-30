@@ -103,7 +103,7 @@ const Login = () => {
         {/* Left hero panel */}
         <div className="hidden lg:flex" style={{ width:'46%', flexDirection:'column', justifyContent:'center', padding:'60px 56px', position:'relative', zIndex:1, background: c ? 'transparent' : 'linear-gradient(160deg,#1e1b4b 0%,#2d1f6e 100%)' }}>
           <div className="lgn-fu1" style={{ display:'flex', alignItems:'center', gap:12, marginBottom:56 }}>
-            <div style={{ width:44, height:44, borderRadius:13, background:'linear-gradient(135deg,#7c3aed,#3b82f6)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, boxShadow:'0 0 22px rgba(124,58,237,0.5)' }}>✂</div>
+            <div style={{ width:44, height:44, borderRadius:13, background:'linear-gradient(135deg,#7c3aed,#3b82f6)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, boxShadow:'0 0 22px rgba(124,58,237,0.5)' }}><svg viewBox="0 0 512 512" width="58%" height="58%" fill="none"><path d="M256,150 C270,210 310,240 370,256 C310,272 270,300 256,360 C242,300 202,272 142,256 C202,240 242,210 256,150 Z" fill="white"/></svg></div>
             <div>
               <div style={{ fontSize:17, fontWeight:700, color:'#f1f5f9', letterSpacing:'-0.3px' }}>GlowLoox</div>
               <div style={{ fontSize:11, color:'#475569', fontWeight:500 }}>GlowLoox Partner</div>
@@ -138,7 +138,7 @@ const Login = () => {
 
             {/* Mobile logo */}
             <div className="flex lg:hidden lgn-fu1 items-center gap-3 justify-center mb-8">
-              <div style={{ width:40, height:40, borderRadius:12, background:'linear-gradient(135deg,#7c3aed,#3b82f6)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, boxShadow:'0 0 18px rgba(124,58,237,0.5)' }}>✂</div>
+              <div style={{ width:40, height:40, borderRadius:12, background:'linear-gradient(135deg,#7c3aed,#3b82f6)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, boxShadow:'0 0 18px rgba(124,58,237,0.5)' }}><svg viewBox="0 0 512 512" width="58%" height="58%" fill="none"><path d="M256,150 C270,210 310,240 370,256 C310,272 270,300 256,360 C242,300 202,272 142,256 C202,240 242,210 256,150 Z" fill="white"/></svg></div>
               <div>
                 <div style={{ fontSize:16, fontWeight:700, color: c ? '#f1f5f9' : '#0f172a' }}>GlowLoox</div>
                 <div style={{ fontSize:11, color:'#64748b' }}>GlowLoox Partner</div>

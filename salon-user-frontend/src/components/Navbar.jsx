@@ -541,18 +541,20 @@ function Navbar({ notifOpen: externalNotifOpen, setNotifOpen: setExternalNotifOp
         <Link to="/" onClick={() => setDrawerOpen(false)} style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{
             width: 32, height: 32, borderRadius: 9,
-            background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
+            background: "linear-gradient(135deg,#4C1D95,#A78BFA)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: "0 0 14px rgba(99,102,241,0.35)",
+            boxShadow: "0 0 14px rgba(124,58,237,0.35)",
           }}>
-            <Scissors size={14} color="#fff" strokeWidth={2.2} />
+            <svg viewBox="0 0 512 512" width="17" height="17" fill="none">
+              <path d="M256,150 C270,210 310,240 370,256 C310,272 270,300 256,360 C242,300 202,272 142,256 C202,240 242,210 256,150 Z" fill="white"/>
+            </svg>
           </div>
           <span style={{
             fontSize: 14, fontWeight: 800,
-            background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
+            background: "linear-gradient(135deg,#4C1D95,#A78BFA)",
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
             backgroundClip: "text",
-          }}>Salon Bookings</span>
+          }}>GlowLoox</span>
         </Link>
         <button
           onClick={() => setDrawerOpen(false)}

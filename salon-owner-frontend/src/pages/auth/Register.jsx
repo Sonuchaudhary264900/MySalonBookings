@@ -116,7 +116,7 @@ const Register = () => {
         }}>
           {/* Brand mark */}
           <div className="rg-a1" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 52 }}>
-            <div className="rg-float" style={{ width: 46, height: 46, borderRadius: 14, background: 'linear-gradient(135deg,#7c3aed,#ec4899)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, boxShadow: '0 0 28px rgba(124,58,237,0.55)' }}>✂</div>
+            <div className="rg-float" style={{ width: 46, height: 46, borderRadius: 14, background: 'linear-gradient(135deg,#7c3aed,#ec4899)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, boxShadow: '0 0 28px rgba(124,58,237,0.55)' }}><svg viewBox="0 0 512 512" width="58%" height="58%" fill="none"><path d="M256,150 C270,210 310,240 370,256 C310,272 270,300 256,360 C242,300 202,272 142,256 C202,240 242,210 256,150 Z" fill="white"/></svg></div>
             <div>
               <div style={{ fontSize: 18, fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.5px' }}>GlowLoox</div>
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>Partner Platform</div>
@@ -169,7 +169,7 @@ const Register = () => {
             {/* Mobile brand */}
             <div className="rg-hero" style={{ display: 'none' }} />
             <div className="rg-a1" style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center', marginBottom: 32 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 11, background: 'linear-gradient(135deg,#7c3aed,#ec4899)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, boxShadow: '0 0 18px rgba(124,58,237,0.45)' }}>✂</div>
+              <div style={{ width: 36, height: 36, borderRadius: 11, background: 'linear-gradient(135deg,#7c3aed,#ec4899)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, boxShadow: '0 0 18px rgba(124,58,237,0.45)' }}><svg viewBox="0 0 512 512" width="58%" height="58%" fill="none"><path d="M256,150 C270,210 310,240 370,256 C310,272 270,300 256,360 C242,300 202,272 142,256 C202,240 242,210 256,150 Z" fill="white"/></svg></div>
               <span style={{ fontSize: 16, fontWeight: 800, color: d ? '#f1f5f9' : '#0f172a', letterSpacing: '-0.5px' }}>GlowLoox</span>
             </div>
 
