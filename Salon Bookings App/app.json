@@ -76,6 +76,16 @@
         {
           "cameraPermission": "GlowLoox needs camera access to scan UPI QR codes for withdrawals."
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0"
+          }
+        }
       ]
     ],
     "newArchEnabled": false,
