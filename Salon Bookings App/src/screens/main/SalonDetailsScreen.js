@@ -14,7 +14,19 @@ import { useAuth } from '../../context/AuthContext';
 import { showError, showInfo } from '../../utils/toast';
 import { useTheme } from '../../context/ThemeContext';
 
-const BASE_TABS = ['Services', 'Reels', 'Photos', 'Packages', 'Reviews', 'Info'];
+const BASE_TABS = ['Gallery', 'Services', 'Packages', 'Reviews', 'Info'];
+
+const CAT_ICON_MAP = {
+  'Hair Services': 'cut-outline', 'Hair Services (Men)': 'cut-outline', 'Hair Services (Women)': 'cut-outline',
+  'Beard & Grooming': 'man-outline',
+  'Nail Services': 'color-palette-outline',
+  'Skin & Face / Beauty': 'leaf-outline', 'Skin & Face (Men Grooming)': 'leaf-outline', 'Skin & Beauty': 'leaf-outline',
+  'Spa & Massage': 'water-outline', 'Spa & Relaxation': 'water-outline',
+  'Body Grooming': 'body-outline',
+  'Bridal & Events': 'sparkles-outline',
+  'Kids Services': 'happy-outline',
+  'At-Home Services': 'home-outline',
+};
 const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
 // ── Working hours helpers ─────────────────────────────────────────────────────
@@ -455,7 +467,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
     ...salonVideos.map(url => ({ url, type: 'video' })),
   ];
   const TABS = BASE_TABS;
-  const activeTab = TABS.includes(tab) ? tab : 'Services';
+  const activeTab = TABS.includes(tab) ? tab : 'Gallery';
   const styles = getStyles(theme);
 
   const openStatus  = isOpenNow(salon?.workingHours);
@@ -581,7 +593,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 11, borderRadius: 14, backgroundColor: '#7C3AED', shadowColor: '#7C3AED', shadowOpacity: 0.55, shadowRadius: 14, elevation: 8 }}
               >
                 <Ionicons name="flash-outline" size={16} color="#fff" />
-                <AppText style={{ fontSize: 14, fontWeight: '700', color: '#fff' }}>Book Your Look ✨</AppText>
+                <AppText style={{ fontSize: 14, fontWeight: '700', color: '#fff' }}>Book Now</AppText>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setFollowed(f => !f)}
@@ -620,8 +632,13 @@ export default function SalonDetailsScreen({ route, navigation }) {
               borderWidth: 1,
               borderColor: salon.servedGender === 'male' ? 'rgba(59,130,246,0.22)' : salon.servedGender === 'female' ? 'rgba(236,72,153,0.22)' : 'rgba(139,92,246,0.22)'
             }}>
+              <Ionicons
+                name={salon.servedGender === 'male' ? 'man-outline' : salon.servedGender === 'female' ? 'woman-outline' : 'people-outline'}
+                size={12}
+                color={salon.servedGender === 'male' ? '#60a5fa' : salon.servedGender === 'female' ? '#f472b6' : '#c4b5fd'}
+              />
               <AppText style={{ fontSize: 12, fontWeight: '600', color: salon.servedGender === 'male' ? '#60a5fa' : salon.servedGender === 'female' ? '#f472b6' : '#c4b5fd' }}>
-                {salon.servedGender === 'male' ? '👨 Men' : salon.servedGender === 'female' ? '👩 Women' : '👥 Unisex'}
+                {salon.servedGender === 'male' ? 'Men' : salon.servedGender === 'female' ? 'Women' : 'Unisex'}
               </AppText>
             </View>
           )}
@@ -631,8 +648,13 @@ export default function SalonDetailsScreen({ route, navigation }) {
               borderWidth: 1,
               borderColor: salon.ownerGender === 'male' ? 'rgba(59,130,246,0.22)' : salon.ownerGender === 'female' ? 'rgba(236,72,153,0.22)' : 'rgba(148,163,184,0.2)'
             }}>
+              <Ionicons
+                name={salon.ownerGender === 'male' ? 'man-outline' : salon.ownerGender === 'female' ? 'woman-outline' : 'person-outline'}
+                size={12}
+                color={salon.ownerGender === 'male' ? '#60a5fa' : salon.ownerGender === 'female' ? '#f472b6' : theme.subText}
+              />
               <AppText style={{ fontSize: 12, fontWeight: '600', color: salon.ownerGender === 'male' ? '#60a5fa' : salon.ownerGender === 'female' ? '#f472b6' : theme.subText }}>
-                {salon.ownerGender === 'male' ? '👨 Owner: Male' : salon.ownerGender === 'female' ? '👩 Owner: Female' : '🧑 Owner: Other'}
+                {salon.ownerGender === 'male' ? 'Owner: Male' : salon.ownerGender === 'female' ? 'Owner: Female' : 'Owner: Other'}
               </AppText>
             </View>
           )}
@@ -697,9 +719,12 @@ export default function SalonDetailsScreen({ route, navigation }) {
               </View>
             )}
             {totalBookings >= 10 && (
-              <AppText style={{ fontSize: 11, fontWeight: '600', color: '#f87171' }}>
-                🔥 {totalBookings >= 1000 ? `${(totalBookings/1000).toFixed(1)}k` : `${totalBookings}+`} booked
-              </AppText>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Ionicons name="flame-outline" size={13} color="#f87171" />
+                <AppText style={{ fontSize: 11, fontWeight: '600', color: '#f87171' }}>
+                  {totalBookings >= 1000 ? `${(totalBookings/1000).toFixed(1)}k` : `${totalBookings}+`} booked
+                </AppText>
+              </View>
             )}
           </ScrollView>
         </View>
@@ -709,7 +734,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
           {[
             { val: totalBookings >= 1000 ? `${(totalBookings/1000).toFixed(1)}k` : totalBookings > 0 ? `${totalBookings}+` : '—', label: 'CUSTOMERS' },
             { val: services.length > 0 ? String(services.length) : '—', label: 'SERVICES' },
-            { val: rating > 0 ? `${rating.toFixed(1)}★` : '—', label: 'RATING' },
+            { val: rating > 0 ? rating.toFixed(1) : '—', label: 'RATING', icon: 'star' },
           ].map(({ val, label }, i) => (
             <View key={label} style={{ flex: 1, paddingVertical: 14, alignItems: 'center', borderLeftWidth: i > 0 ? 1 : 0, borderLeftColor: 'rgba(167,139,250,0.15)' }}>
               <AppText style={{ fontSize: 18, fontWeight: '900', color: '#FFFFFF', lineHeight: 22, marginBottom: 3 }}>{val}</AppText>
@@ -724,22 +749,26 @@ export default function SalonDetailsScreen({ route, navigation }) {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 8 }}>
               {nextSlot && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, backgroundColor: 'rgba(99,102,241,0.1)', borderWidth: 1, borderColor: 'rgba(99,102,241,0.2)' }}>
-                  <AppText style={{ fontSize: 11, fontWeight: '700', color: theme.accent }}>⏱ Next slot: {nextSlot}</AppText>
+                  <Ionicons name="time-outline" size={12} color={theme.accent} />
+                  <AppText style={{ fontSize: 11, fontWeight: '700', color: theme.accent }}>Next slot: {nextSlot}</AppText>
                 </View>
               )}
               {salon.minPrice && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, backgroundColor: 'rgba(99,102,241,0.08)', borderWidth: 1, borderColor: 'rgba(99,102,241,0.15)' }}>
-                  <AppText style={{ fontSize: 11, fontWeight: '700', color: theme.accent }}>💰 From ₹{salon.minPrice}</AppText>
+                  <Ionicons name="pricetag-outline" size={12} color={theme.accent} />
+                  <AppText style={{ fontSize: 11, fontWeight: '700', color: theme.accent }}>From ₹{salon.minPrice}</AppText>
                 </View>
               )}
               {salon.kidsHaircut && (
-                <View style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, backgroundColor: 'rgba(234,179,8,0.12)', borderWidth: 1, borderColor: 'rgba(234,179,8,0.2)' }}>
-                  <AppText style={{ fontSize: 11, fontWeight: '700', color: '#f59e0b' }}>👶 Kids Haircut</AppText>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, backgroundColor: 'rgba(234,179,8,0.12)', borderWidth: 1, borderColor: 'rgba(234,179,8,0.2)' }}>
+                  <Ionicons name="happy-outline" size={12} color="#f59e0b" />
+                  <AppText style={{ fontSize: 11, fontWeight: '700', color: '#f59e0b' }}>Kids Haircut</AppText>
                 </View>
               )}
               {salon.atHomeServices && (
-                <View style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, backgroundColor: 'rgba(16,185,129,0.12)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.2)' }}>
-                  <AppText style={{ fontSize: 11, fontWeight: '700', color: '#10b981' }}>🏠 At-Home Service</AppText>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, backgroundColor: 'rgba(16,185,129,0.12)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.2)' }}>
+                  <Ionicons name="home-outline" size={12} color="#10b981" />
+                  <AppText style={{ fontSize: 11, fontWeight: '700', color: '#10b981' }}>At-Home Service</AppText>
                 </View>
               )}
             </ScrollView>
@@ -754,7 +783,8 @@ export default function SalonDetailsScreen({ route, navigation }) {
           <View style={{ marginHorizontal: 16, marginBottom: 14 }}>
             {/* Section header */}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <AppText style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>🏷️ Offers & Coupons</AppText>
+              <Ionicons name="pricetag-outline" size={15} color={theme.text} />
+              <AppText style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>Offers & Coupons</AppText>
               <View style={{ backgroundColor: 'rgba(16,185,129,0.15)', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 }}>
                 <AppText style={{ fontSize: 10, fontWeight: '700', color: '#059669' }}>{allOffers.length}</AppText>
               </View>
@@ -766,23 +796,23 @@ export default function SalonDetailsScreen({ route, navigation }) {
               const textClr    = offer.isExpiringSoon ? '#d97706' : offer.isLimited ? '#dc2626' : '#059669';
               const borderClr  = offer.isExpiringSoon ? 'rgba(245,158,11,0.35)' : offer.isLimited ? 'rgba(239,68,68,0.28)' : 'rgba(16,185,129,0.25)';
               const bgClr      = offer.isExpiringSoon ? 'rgba(245,158,11,0.08)' : offer.isLimited ? 'rgba(239,68,68,0.07)' : 'rgba(16,185,129,0.08)';
-              const icon       = offer.isExpiringSoon ? '⏰' : offer.isLimited ? '🔥' : '🏷️';
+              const icon       = offer.isExpiringSoon ? 'alarm-outline' : offer.isLimited ? 'flame-outline' : 'pricetag-outline';
               return (
                 <View key={offer.code} style={{ backgroundColor: bgClr, borderWidth: 1, borderColor: borderClr, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 8 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <AppText style={{ fontSize: 18 }}>{icon}</AppText>
+                    <Ionicons name={icon} size={18} color={textClr} />
                     <View style={{ flex: 1 }}>
                       {/* Discount label + badges */}
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                         <AppText style={{ fontSize: 13, fontWeight: '700', color: textClr }}>{offerLabel}</AppText>
                         {offer.isExpiringSoon && (
                           <View style={{ backgroundColor: 'rgba(245,158,11,0.15)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.3)', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 }}>
-                            <AppText style={{ fontSize: 9, fontWeight: '700', color: '#d97706' }}>⏰ EXPIRING SOON</AppText>
+                            <AppText style={{ fontSize: 9, fontWeight: '700', color: '#d97706' }}>EXPIRING SOON</AppText>
                           </View>
                         )}
                         {offer.isLimited && !offer.isExpiringSoon && (
                           <View style={{ backgroundColor: 'rgba(239,68,68,0.12)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 }}>
-                            <AppText style={{ fontSize: 9, fontWeight: '700', color: '#dc2626' }}>⚡ LIMITED</AppText>
+                            <AppText style={{ fontSize: 9, fontWeight: '700', color: '#dc2626' }}>LIMITED</AppText>
                           </View>
                         )}
                       </View>
@@ -790,12 +820,12 @@ export default function SalonDetailsScreen({ route, navigation }) {
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 3, flexWrap: 'wrap' }}>
                         {offer.expiresLabel && (
                           <AppText style={{ fontSize: 10, color: offer.isExpiringSoon ? '#d97706' : theme.subText }}>
-                            {offer.daysLeft === 0 ? '🔴' : offer.daysLeft === 1 ? '🟡' : '🟢'} {offer.expiresLabel}
+                            {offer.expiresLabel}
                           </AppText>
                         )}
                         {offer.remaining !== null && (
                           <AppText style={{ fontSize: 10, fontWeight: '600', color: offer.isLimited ? '#dc2626' : theme.subText }}>
-                            {offer.remaining <= 5 ? `🔴 Only ${offer.remaining} left!` : offer.remaining <= 10 ? `🟡 Only ${offer.remaining} left` : `${offer.remaining} uses left`}
+                            {offer.remaining <= 5 ? `Only ${offer.remaining} left!` : offer.remaining <= 10 ? `Only ${offer.remaining} left` : `${offer.remaining} uses left`}
                           </AppText>
                         )}
                       </View>
@@ -879,14 +909,6 @@ export default function SalonDetailsScreen({ route, navigation }) {
                   return gender === serviceGenderFilter;
                 });
 
-            const categoryIconMap = {
-              'Hair Services': '✂️', 'Hair Services (Men)': '✂️', 'Hair Services (Women)': '✂️',
-              'Beard & Grooming': '🧔', 'Nail Services': '💅',
-              'Skin & Face / Beauty': '🧖', 'Skin & Face (Men Grooming)': '🧴', 'Skin & Beauty': '🧖',
-              'Spa & Massage': '💆', 'Spa & Relaxation': '💆',
-              'Body Grooming': '🧴', 'Bridal & Events': '👰',
-              'Kids Services': '👶', 'At-Home Services': '🏠'
-            };
 
             const CATEGORY_ORDER = [
               'Hair Services', 'Hair Services (Men)', 'Hair Services (Women)',
@@ -912,32 +934,34 @@ export default function SalonDetailsScreen({ route, navigation }) {
               return ai - bi;
             });
 
+            const sortedCats = sortedGroupEntries.map(([cat]) => cat);
+
             return (
               <View style={{ gap: 16 }}>
-                {/* Gender filter — only for unisex salons */}
-                {isUnisex && services.length > 0 && (
-                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
-                    {[
-                      { key: 'all',    label: 'All',   emoji: '👥' },
-                      { key: 'male',   label: 'Men',   emoji: '👨' },
-                      { key: 'female', label: 'Women', emoji: '👩' },
-                    ].map(({ key, label, emoji }) => (
-                      <TouchableOpacity
-                        key={key}
-                        onPress={() => setServiceGenderFilter(key)}
-                        style={{
-                          flexDirection: 'row', alignItems: 'center', gap: 4,
-                          paddingHorizontal: 12, paddingVertical: 7,
-                          borderRadius: 20, borderWidth: 1.5,
-                          backgroundColor: serviceGenderFilter === key ? '#4f46e5' : '#fff',
-                          borderColor: serviceGenderFilter === key ? '#4f46e5' : '#d1d5db'
-                        }}
-                      >
-                        <AppText style={{ fontSize: 13 }}>{emoji}</AppText>
-                        <AppText style={{ fontSize: 12, fontWeight: '600', color: serviceGenderFilter === key ? '#fff' : '#6b7280' }}>{label}</AppText>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+                {/* Category circle nav */}
+                {sortedCats.length > 1 && (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ gap: 0, paddingBottom: 4 }}>
+                    {sortedCats.map(cat => {
+                      const iconName = CAT_ICON_MAP[cat] || 'cut-outline';
+                      const active = expandedCat === cat;
+                      return (
+                        <TouchableOpacity key={cat} onPress={() => setExpandedCat(active ? null : cat)}
+                          style={{ alignItems: 'center', paddingHorizontal: 10 }} activeOpacity={0.8}>
+                          <View style={{
+                            width: 54, height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center', marginBottom: 5,
+                            backgroundColor: active ? '#6366f1' : theme.card,
+                            borderWidth: 1.5, borderColor: active ? '#6366f1' : theme.border,
+                            shadowColor: active ? '#6366f1' : 'transparent', shadowOpacity: 0.5, shadowRadius: 8, elevation: active ? 4 : 0,
+                          }}>
+                            <Ionicons name={iconName} size={20} color={active ? '#fff' : theme.subText} />
+                          </View>
+                          <AppText style={{ fontSize: 10, textAlign: 'center', color: active ? theme.text : theme.subText, fontWeight: active ? '700' : '500', maxWidth: 60 }} numberOfLines={2}>{cat.split(' / ')[0]}</AppText>
+                          {active && <View style={{ width: 14, height: 3, borderRadius: 999, backgroundColor: '#6366f1', marginTop: 3 }} />}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
                 )}
 
                 {visibleServices.length === 0 ? (
@@ -988,7 +1012,7 @@ export default function SalonDetailsScreen({ route, navigation }) {
                         style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 15, backgroundColor: theme.card }}
                         activeOpacity={0.7}
                       >
-                        <AppText style={{ fontSize: 18 }}>{categoryIconMap[cat] || '✨'}</AppText>
+                        <Ionicons name={CAT_ICON_MAP[cat] || 'cut-outline'} size={18} color={isOpen ? theme.accent : theme.subText} />
                         <AppText style={{ fontSize: 15, fontWeight: '700', color: theme.text, flex: 1 }}>{cat}</AppText>
                         <AppText style={{ fontSize: 12, color: theme.subText, marginRight: 6 }}>{catServices.length}</AppText>
                         <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={16} color={theme.subText} />
@@ -1000,13 +1024,19 @@ export default function SalonDetailsScreen({ route, navigation }) {
                             <View style={{ gap: 12 }}>
                               {maleOnly.length > 0 && (
                                 <View>
-                                  <AppText style={{ fontSize: 12, fontWeight: '700', color: '#7C3AED', marginBottom: 6 }}>👨 Men</AppText>
+                                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 6 }}>
+                                    <Ionicons name="man-outline" size={13} color="#7C3AED" />
+                                    <AppText style={{ fontSize: 12, fontWeight: '700', color: '#7C3AED' }}>Men</AppText>
+                                  </View>
                                   <View style={{ gap: 8 }}>{maleOnly.map(renderServiceCard)}</View>
                                 </View>
                               )}
                               {femaleOnly.length > 0 && (
                                 <View>
-                                  <AppText style={{ fontSize: 12, fontWeight: '700', color: '#ec4899', marginBottom: 6 }}>👩 Women</AppText>
+                                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 6 }}>
+                                    <Ionicons name="woman-outline" size={13} color="#ec4899" />
+                                    <AppText style={{ fontSize: 12, fontWeight: '700', color: '#ec4899' }}>Women</AppText>
+                                  </View>
                                   <View style={{ gap: 8 }}>{femaleOnly.map(renderServiceCard)}</View>
                                 </View>
                               )}
@@ -1026,55 +1056,61 @@ export default function SalonDetailsScreen({ route, navigation }) {
             );
           })()}
 
-          {/* Reels Tab */}
-          {activeTab === 'Reels' && (() => {
-            const videos = (salon?.videos || []).map(v => typeof v === 'string' ? v : v?.url).filter(Boolean);
-            if (videos.length === 0) return (
-              <View style={styles.emptyTab}>
-                <AppText style={{ fontSize: 36, marginBottom: 8 }}>🎬</AppText>
-                <AppText style={styles.emptyTabText}>No reels yet</AppText>
-              </View>
-            );
-            return (
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 3 }}>
-                {videos.map((url, i) => {
-                  const thumb = url.replace('/upload/', '/upload/so_0,f_jpg,q_60,w_400/').replace(/\.(mp4|mov|webm)$/, '.jpg');
-                  return (
-                    <TouchableOpacity key={url} onPress={() => setGalleryLightbox((salon?.photos || []).length + i)}
-                      style={{ width: '49%', aspectRatio: 9/16, borderRadius: 12, overflow: 'hidden', backgroundColor: 'rgba(124,58,237,0.1)', position: 'relative', marginBottom: 3 }}>
-                      <Image source={{ uri: thumb }} style={{ width: '100%', height: '100%' }} resizeMode="cover" onError={() => {}} />
-                      <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.25)', alignItems: 'center', justifyContent: 'center' }}>
-                        <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' }}>
-                          <Ionicons name="play" size={20} color="#fff" />
-                        </View>
-                      </View>
-                      <View style={{ position: 'absolute', bottom: 8, left: 8 }}>
-                        <AppText style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', fontWeight: '600' }}>{i+1}/{videos.length}</AppText>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            );
-          })()}
-
-          {/* Photos Tab */}
-          {activeTab === 'Photos' && (() => {
+          {/* Gallery Tab (photos + videos merged) */}
+          {activeTab === 'Gallery' && (() => {
             const photos = (salon?.photos || []).map(p => typeof p === 'string' ? p : p?.url).filter(Boolean);
-            if (photos.length === 0) return (
+            const videos = (salon?.videos || []).map(v => typeof v === 'string' ? v : v?.url).filter(Boolean);
+            if (photos.length === 0 && videos.length === 0) return (
               <View style={styles.emptyTab}>
-                <AppText style={{ fontSize: 36, marginBottom: 8 }}>📷</AppText>
-                <AppText style={styles.emptyTabText}>No photos yet</AppText>
+                <Ionicons name="images-outline" size={36} color="#d1d5db" />
+                <AppText style={styles.emptyTabText}>No photos or videos yet</AppText>
               </View>
             );
             return (
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 3 }}>
-                {photos.map((url, i) => (
-                  <TouchableOpacity key={url} onPress={() => setGalleryLightbox(i)}
-                    style={{ width: '49%', aspectRatio: 1, overflow: 'hidden', marginBottom: 3 }}>
-                    <Image source={{ uri: url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-                  </TouchableOpacity>
-                ))}
+              <View>
+                {photos.length > 0 && (
+                  <View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                      <Ionicons name="image-outline" size={14} color={theme.subText} />
+                      <AppText style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>Photos ({photos.length})</AppText>
+                    </View>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 3, marginBottom: 16 }}>
+                      {photos.map((url, i) => (
+                        <TouchableOpacity key={url} onPress={() => setGalleryLightbox(i)}
+                          style={{ width: '49%', aspectRatio: 1, overflow: 'hidden', borderRadius: 10, marginBottom: 3 }}>
+                          <Image source={{ uri: url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                )}
+                {videos.length > 0 && (
+                  <View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                      <Ionicons name="videocam-outline" size={14} color={theme.subText} />
+                      <AppText style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>Videos ({videos.length})</AppText>
+                    </View>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 3 }}>
+                      {videos.map((url, i) => {
+                        const thumb = url.replace('/upload/', '/upload/so_0,f_jpg,q_60,w_400/').replace(/\.(mp4|mov|webm)$/, '.jpg');
+                        return (
+                          <TouchableOpacity key={url} onPress={() => setGalleryLightbox(photos.length + i)}
+                            style={{ width: '49%', aspectRatio: 9/16, borderRadius: 12, overflow: 'hidden', backgroundColor: 'rgba(99,102,241,0.08)', position: 'relative', marginBottom: 3 }}>
+                            <Image source={{ uri: thumb }} style={{ width: '100%', height: '100%' }} resizeMode="cover" onError={() => {}} />
+                            <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.25)', alignItems: 'center', justifyContent: 'center' }}>
+                              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' }}>
+                                <Ionicons name="play" size={20} color="#fff" />
+                              </View>
+                            </View>
+                            <View style={{ position: 'absolute', bottom: 8, left: 8 }}>
+                              <AppText style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', fontWeight: '600' }}>{i+1}/{videos.length}</AppText>
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
               </View>
             );
           })()}
@@ -1099,7 +1135,9 @@ export default function SalonDetailsScreen({ route, navigation }) {
                       {packages.filter(p => p.type === 'package').map(pkg => (
                         <View key={pkg._id} style={[styles.pkgCard, { borderColor: '#c7d2fe' }]}>
                           <View style={{ flexDirection: 'row', gap: 10, marginBottom: 8 }}>
-                            <AppText style={{ fontSize: 24 }}>{pkg.icon || '🎁'}</AppText>
+                            <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: 'rgba(99,102,241,0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                              <Ionicons name="gift-outline" size={20} color="#6366f1" />
+                            </View>
                             <View style={{ flex: 1 }}>
                               <AppText style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>{pkg.name}</AppText>
                               {pkg.description ? <AppText style={{ fontSize: 12, color: theme.subText }} numberOfLines={2}>{pkg.description}</AppText> : null}
@@ -1146,21 +1184,32 @@ export default function SalonDetailsScreen({ route, navigation }) {
                       {packages.filter(p => p.type === 'membership').map(pkg => (
                         <View key={pkg._id} style={[styles.pkgCard, { borderColor: '#ddd6fe' }]}>
                           <View style={{ flexDirection: 'row', gap: 10, marginBottom: 8 }}>
-                            <AppText style={{ fontSize: 24 }}>{pkg.icon || '💳'}</AppText>
+                            <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: 'rgba(124,58,237,0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                              <Ionicons name="card-outline" size={20} color="#7c3aed" />
+                            </View>
                             <View style={{ flex: 1 }}>
                               <AppText style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>{pkg.name}</AppText>
                               {pkg.description ? <AppText style={{ fontSize: 12, color: theme.subText }} numberOfLines={2}>{pkg.description}</AppText> : null}
                             </View>
                           </View>
-                          <View style={{ gap: 4, marginBottom: 8 }}>
+                          <View style={{ gap: 6, marginBottom: 8 }}>
                             {pkg.benefits?.discountPercent > 0 && (
-                              <AppText style={{ fontSize: 12, color: theme.subText }}>🏷 {pkg.benefits.discountPercent}% off all services</AppText>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <Ionicons name="pricetag-outline" size={12} color={theme.subText} />
+                                <AppText style={{ fontSize: 12, color: theme.subText }}>{pkg.benefits.discountPercent}% off all services</AppText>
+                              </View>
                             )}
                             {pkg.benefits?.priorityBooking && (
-                              <AppText style={{ fontSize: 12, color: theme.subText }}>⚡ Priority booking</AppText>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <Ionicons name="flash-outline" size={12} color={theme.subText} />
+                                <AppText style={{ fontSize: 12, color: theme.subText }}>Priority booking</AppText>
+                              </View>
                             )}
                             {(pkg.benefits?.freeServices || []).map((fs, i) => (
-                              <AppText key={i} style={{ fontSize: 12, color: theme.subText }}>✓ {fs.serviceName} × {fs.usageLimit}</AppText>
+                              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <Ionicons name="checkmark-circle-outline" size={12} color="#10b981" />
+                                <AppText style={{ fontSize: 12, color: theme.subText }}>{fs.serviceName} × {fs.usageLimit}</AppText>
+                              </View>
                             ))}
                           </View>
                           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
