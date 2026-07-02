@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator, Image, Linking } from 'react-native';
 import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import AppText from '../../components/AppText';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import api from '../../services/api';
 
 const INDIA_CENTER = { lat: 20.5937, lng: 78.9629 };
@@ -14,15 +14,77 @@ const INDIA_CENTER = { lat: 20.5937, lng: 78.9629 };
 const salonLat = (s) => s.location?.coordinates?.[1];
 const salonLng = (s) => s.location?.coordinates?.[0];
 
+function fmtDist(m) { return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`; }
+function fmtDur(sec) {
+  const min = Math.round(sec / 60);
+  if (min < 60) return `${min} min`;
+  return `${Math.floor(min / 60)} hr ${min % 60} min`;
+}
+
+function bizDist(s, userLat, userLng) {
+  if (typeof s.distance === 'number') return s.distance;
+  if (!userLat || !salonLat(s)) return null;
+  const R = 6371000;
+  const dLat = (salonLat(s) - userLat) * Math.PI / 180;
+  const dLng = (salonLng(s) - userLng) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(userLat * Math.PI / 180) * Math.cos(salonLat(s) * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function getOpenStatus(salon) {
+  const wh = salon.workingHours;
+  if (!wh) return null;
+  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const today = days[new Date().getDay()];
+  const h = wh[today];
+  if (!h || h.closed || h.isClosed) return { open: false, label: 'Closed today' };
+  const toMin = (t) => { const [hh, mm] = (t || '00:00').split(':').map(Number); return hh * 60 + mm; };
+  const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+  const openMin = toMin(h.open || h.openTime);
+  const closeMin = toMin(h.close || h.closeTime || h.end);
+  if (nowMin >= openMin && nowMin < closeMin) {
+    const ch = Math.floor(closeMin / 60); const cm = closeMin % 60;
+    const ampm = ch >= 12 ? 'PM' : 'AM';
+    return { open: true, label: `Open · closes ${ch % 12 || 12}:${String(cm).padStart(2, '0')} ${ampm}` };
+  }
+  return { open: false, label: 'Closed now' };
+}
+
+function StarRow({ rating }) {
+  const stars = Math.round(rating || 0);
+  return (
+    <View style={{ flexDirection: 'row', gap: 1 }}>
+      {[1, 2, 3, 4, 5].map(i => (
+        <Ionicons key={i} name={i <= stars ? 'star' : 'star-outline'} size={12} color="#fbbf24" />
+      ))}
+    </View>
+  );
+}
+
 export default function MapScreen() {
   const { theme, isDark } = useTheme();
   const { isAuthenticated } = useAuth();
   const navigation = useNavigation();
+  const route = useRoute();
   const webRef = useRef(null);
+  const coordsRef = useRef(null);
+  const headingSubRef = useRef(null);
+  const posSubRef = useRef(null);
+  const autoRoutedRef = useRef(false);
 
   const [coords, setCoords] = useState(null);
   const [salons, setSalons] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [mapReady, setMapReady] = useState(false);
+  const [followMode, setFollowMode] = useState(false);
+  const [compassActive, setCompassActive] = useState(false);
+  const [selected, setSelected] = useState(null);
+  const [routeData, setRouteData] = useState(null);
+  const [routeLoading, setRouteLoading] = useState(false);
+
+  const inject = useCallback((js) => {
+    webRef.current?.injectJavaScript(js + '; true;');
+  }, []);
 
   const fetchSalons = useCallback(async (lat, lng) => {
     try {
@@ -35,7 +97,9 @@ export default function MapScreen() {
     }
   }, []);
 
+  // Initial location + live GPS watch
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       let c = INDIA_CENTER;
       try {
@@ -43,21 +107,111 @@ export default function MapScreen() {
         if (status === 'granted') {
           const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
           c = { lat: loc.coords.latitude, lng: loc.coords.longitude };
+          // Live position updates → feed the map
+          posSubRef.current = await Location.watchPositionAsync(
+            { accuracy: Location.Accuracy.High, timeInterval: 1500, distanceInterval: 3 },
+            (p) => {
+              if (cancelled) return;
+              const nc = { lat: p.coords.latitude, lng: p.coords.longitude };
+              coordsRef.current = nc;
+              setCoords(nc);
+              webRef.current?.injectJavaScript(
+                `window.updateUser && updateUser(${nc.lat},${nc.lng},${p.coords.accuracy || 0}); true;`
+              );
+            }
+          );
         }
       } catch { /* fallback */ }
+      if (cancelled) return;
+      coordsRef.current = c;
       setCoords(c);
       fetchSalons(c.lat, c.lng);
     })();
+    return () => {
+      cancelled = true;
+      posSubRef.current?.remove();
+      headingSubRef.current?.remove();
+    };
   }, [fetchSalons]);
+
+  // Compass toggle → live heading cone
+  const toggleCompass = useCallback(async () => {
+    if (compassActive) {
+      headingSubRef.current?.remove();
+      headingSubRef.current = null;
+      setCompassActive(false);
+      inject('window.setHeading && setHeading(null)');
+      return;
+    }
+    try {
+      headingSubRef.current = await Location.watchHeadingAsync((h) => {
+        const deg = h.trueHeading >= 0 ? h.trueHeading : h.magHeading;
+        webRef.current?.injectJavaScript(`window.setHeading && setHeading(${deg}); true;`);
+      });
+      setCompassActive(true);
+    } catch { /* no sensor */ }
+  }, [compassActive, inject]);
+
+  // Follow mode: center on user, keep centered on updates
+  const handleLocate = useCallback(() => {
+    const c = coordsRef.current;
+    if (!c) return;
+    setFollowMode(true);
+    inject(`window.setFollow && setFollow(true); map.setView([${c.lat},${c.lng}], 16, {animate:true})`);
+  }, [inject]);
 
   const openSalon = (id) => {
     navigation.navigate(isAuthenticated ? 'SalonDetails' : 'GuestSalonDetails', { salonId: id });
   };
 
+  // OSRM in-map routing (same as web, Google Maps fallback)
+  const fetchRoute = useCallback(async (salon) => {
+    const from = coordsRef.current;
+    const toLat = salonLat(salon); const toLng = salonLng(salon);
+    if (!from || toLat == null) return;
+    setRouteLoading(true);
+    setRouteData(null);
+    setSelected(null);
+    try {
+      const url = `https://router.project-osrm.org/route/v1/driving/${from.lng},${from.lat};${toLng},${toLat}?overview=full&geometries=geojson`;
+      const res = await fetch(url);
+      const json = await res.json();
+      const r = json.routes?.[0];
+      if (!r) throw new Error('no route');
+      const polyline = r.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+      setRouteData({ distance: r.distance, duration: r.duration, salonName: salon.name, destLat: toLat, destLng: toLng });
+      inject(`window.drawRoute && drawRoute(${JSON.stringify(polyline)}, ${toLat}, ${toLng})`);
+    } catch {
+      Linking.openURL(`https://www.google.com/maps/dir/?api=1&origin=${from.lat},${from.lng}&destination=${toLat},${toLng}&travelmode=driving`);
+    } finally {
+      setRouteLoading(false);
+    }
+  }, [inject]);
+
+  const clearRoute = useCallback(() => {
+    setRouteData(null);
+    inject('window.clearRoute && clearRoute()');
+  }, [inject]);
+
+  // Auto-route when opened with a destination (e.g. from SalonDetails directions)
+  useEffect(() => {
+    const { destLat, destLng, salonName } = route.params || {};
+    if (autoRoutedRef.current || !mapReady || !coords || destLat == null) return;
+    autoRoutedRef.current = true;
+    fetchRoute({ name: salonName || 'Destination', location: { coordinates: [destLng, destLat] } });
+  }, [mapReady, coords, route.params, fetchRoute]);
+
   const onMessage = (e) => {
     try {
       const data = JSON.parse(e.nativeEvent.data);
-      if (data.type === 'salon' && data.id) openSalon(data.id);
+      if (data.type === 'salon' && data.id) {
+        const s = salons.find(x => x._id === data.id);
+        if (s) setSelected(s);
+      } else if (data.type === 'dragged') {
+        setFollowMode(false);
+      } else if (data.type === 'ready') {
+        setMapReady(true);
+      }
     } catch { /* ignore */ }
   };
 
@@ -68,9 +222,8 @@ export default function MapScreen() {
       id: s._id,
       lat: salonLat(s),
       lng: salonLng(s),
-      name: (s.name || 'Salon').replace(/'/g, "\\'"),
-      rating: s.averageRating ? Number(s.averageRating).toFixed(1) : '',
-      locality: (s.locality || s.city || '').replace(/'/g, "\\'"),
+      name: s.name || 'Salon',
+      photo: s.coverPhoto || s.photos?.[0] || s.logo || s.profilePhoto || '',
     }));
 
   const tile = isDark
@@ -81,24 +234,108 @@ export default function MapScreen() {
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<style>html,body,#map{height:100%;margin:0;padding:0;background:${isDark ? '#0f172a' : '#f9fafb'}}
-.uloc{width:16px;height:16px;border-radius:50%;background:#3b82f6;border:3px solid #fff;box-shadow:0 0 0 4px rgba(59,130,246,0.3)}
-.spin{position:absolute;top:50%;left:50%}</style>
+<style>
+html,body,#map{height:100%;margin:0;padding:0;background:${isDark ? '#0f172a' : '#f9fafb'}}
+@keyframes gpsRing{0%{transform:scale(0.8);opacity:0.6}100%{transform:scale(3.2);opacity:0}}
+@keyframes mvPulse{0%{transform:scale(0.85);opacity:0.8}70%{transform:scale(1.35);opacity:0}100%{transform:scale(1.35);opacity:0}}
+.uwrap{position:relative;width:64px;height:64px;pointer-events:none}
+.uring{position:absolute;top:50%;left:50%;margin:-9px 0 0 -9px;width:18px;height:18px;border-radius:50%;background:rgba(66,133,244,0.22);animation:gpsRing 2.6s ease-out infinite}
+.udot{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#4285f4,#1a73e8);border:3.5px solid #fff;box-shadow:0 3px 14px rgba(66,133,244,0.7);z-index:2}
+.ucone{position:absolute;top:0;left:0;overflow:visible;display:none}
+.spin{width:34px;height:34px;border-radius:50%;overflow:hidden;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(99,102,241,0.35),0 1px 3px rgba(0,0,0,0.2);background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:13px}
+.spin img{width:100%;height:100%;object-fit:cover;display:block}
+.spin-active{width:46px;height:46px;border:3px solid #6366f1;box-shadow:0 4px 16px rgba(99,102,241,0.7),0 1px 4px rgba(0,0,0,0.2);font-size:17px}
+.pulse1{position:absolute;inset:-7px;border-radius:50%;border:2.5px solid rgba(99,102,241,0.5);animation:mvPulse 1.6s ease-out infinite;pointer-events:none}
+.pulse2{position:absolute;inset:-14px;border-radius:50%;border:2px solid rgba(99,102,241,0.22);animation:mvPulse 1.6s ease-out 0.5s infinite;pointer-events:none}
+.slabel{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,0.25);white-space:nowrap;margin-bottom:4px;max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:center}
+.destpin{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#ea4335,#c0392b);border:3px solid #fff;box-shadow:0 4px 14px rgba(234,67,53,0.55);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px}
+</style>
 </head><body><div id="map"></div><script>
 var map = L.map('map',{zoomControl:false,attributionControl:false}).setView([${center.lat},${center.lng}], 13);
 L.tileLayer('${tile}',{maxZoom:19,subdomains:'abcd'}).addTo(map);
-var uIcon = L.divIcon({className:'',html:'<div class="uloc"></div>',iconSize:[16,16],iconAnchor:[8,8]});
-L.marker([${center.lat},${center.lng}],{icon:uIcon}).addTo(map);
+var RN = window.ReactNativeWebView;
+var follow = false;
+window.setFollow = function(v){ follow = v; };
+map.on('dragstart', function(){ follow = false; RN.postMessage(JSON.stringify({type:'dragged'})); });
+
+/* User marker: dot + accuracy ring + pulsing GPS ring + heading cone */
+var coneSvg = '<svg class="ucone" id="ucone" width="64" height="64"><defs><radialGradient id="cg" cx="50%" cy="100%" r="110%"><stop offset="0%" stop-color="rgba(66,133,244,0.6)"/><stop offset="100%" stop-color="rgba(66,133,244,0.02)"/></radialGradient></defs><g id="conegroup" transform="rotate(0,32,32)"><path d="M32,32 L20,7 Q32,0 44,7 Z" fill="url(#cg)"/></g></svg>';
+var uIcon = L.divIcon({className:'',html:'<div class="uwrap"><div class="uring"></div>'+coneSvg+'<div class="udot"></div></div>',iconSize:[64,64],iconAnchor:[32,32]});
+var userMarker = L.marker([${center.lat},${center.lng}],{icon:uIcon,zIndexOffset:1000}).addTo(map);
+var accCircle = L.circle([${center.lat},${center.lng}],{radius:0,color:'#4285f4',weight:1,opacity:0.35,fillColor:'#4285f4',fillOpacity:0.08}).addTo(map);
+
+window.updateUser = function(lat,lng,acc){
+  userMarker.setLatLng([lat,lng]);
+  accCircle.setLatLng([lat,lng]);
+  if(acc) accCircle.setRadius(acc);
+  if(follow) map.panTo([lat,lng],{animate:true});
+};
+window.setHeading = function(deg){
+  var el = document.getElementById('ucone');
+  var g  = document.getElementById('conegroup');
+  if(!el || !g) return;
+  if(deg === null){ el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  g.setAttribute('transform','rotate('+deg+',32,32)');
+};
+
+/* Salon photo pins */
 var pins = ${JSON.stringify(pins)};
-var bounds = [[${center.lat},${center.lng}]];
+var markers = {};
+var activeId = null;
+function pinHtml(p, active){
+  var inner = p.photo ? '<img src="'+p.photo+'"/>' : p.name.charAt(0).toUpperCase();
+  var label = active ? '<div class="slabel">'+(p.name.length>14?p.name.slice(0,13)+'…':p.name)+'</div>' : '';
+  var pulses = active ? '<div class="pulse1"></div><div class="pulse2"></div>' : '';
+  return '<div style="display:flex;flex-direction:column;align-items:center">'+label+
+    '<div style="position:relative">'+pulses+'<div class="spin'+(active?' spin-active':'')+'">'+inner+'</div></div></div>';
+}
+function makeIcon(p, active){
+  var s = active ? 46 : 34;
+  return L.divIcon({className:'',html:pinHtml(p,active),iconSize:[s,s+(active?22:0)],iconAnchor:[s/2,s]});
+}
 pins.forEach(function(p){
-  var icon = L.divIcon({className:'',html:'<div style="background:#6366f1;color:#fff;border:2px solid #fff;border-radius:14px 14px 14px 2px;padding:4px 8px;font-size:11px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,0.3);white-space:nowrap">'+(p.rating?('★ '+p.rating):'✂')+'</div>',iconSize:[null,null],iconAnchor:[12,24]});
-  var m = L.marker([p.lat,p.lng],{icon:icon}).addTo(map);
-  m.bindPopup('<b>'+p.name+'</b>'+(p.locality?('<br/><span style=\\'color:#888\\'>'+p.locality+'</span>'):'')+'<br/><a href="#" onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type:\\'salon\\',id:\\''+p.id+'\\'}));return false;" style="color:#6366f1;font-weight:700">View salon →</a>');
-  bounds.push([p.lat,p.lng]);
+  var m = L.marker([p.lat,p.lng],{icon:makeIcon(p,false)}).addTo(map);
+  m.on('click', function(){
+    if(activeId && markers[activeId]) markers[activeId].m.setIcon(makeIcon(markers[activeId].p,false));
+    activeId = p.id;
+    m.setIcon(makeIcon(p,true));
+    RN.postMessage(JSON.stringify({type:'salon',id:p.id}));
+  });
+  markers[p.id] = {m:m,p:p};
 });
+window.deselect = function(){
+  if(activeId && markers[activeId]) markers[activeId].m.setIcon(makeIcon(markers[activeId].p,false));
+  activeId = null;
+};
+var bounds = [[${center.lat},${center.lng}]];
+pins.forEach(function(p){ bounds.push([p.lat,p.lng]); });
 if(pins.length>0){ try{ map.fitBounds(bounds,{padding:[50,50],maxZoom:14}); }catch(e){} }
+
+/* Route drawing */
+var routeLine = null, routeCasing = null, destMarker = null;
+window.drawRoute = function(poly, dlat, dlng){
+  clearRoute();
+  routeCasing = L.polyline(poly,{color:'#1a56c4',weight:9,opacity:0.9}).addTo(map);
+  routeLine   = L.polyline(poly,{color:'#4285f4',weight:5,opacity:1}).addTo(map);
+  destMarker  = L.marker([dlat,dlng],{icon:L.divIcon({className:'',html:'<div class="destpin">⌂</div>',iconSize:[36,36],iconAnchor:[18,36]})}).addTo(map);
+  follow = false;
+  try{ map.fitBounds(routeLine.getBounds(),{padding:[60,60]}); }catch(e){}
+};
+window.clearRoute = function(){
+  if(routeLine){ map.removeLayer(routeLine); routeLine=null; }
+  if(routeCasing){ map.removeLayer(routeCasing); routeCasing=null; }
+  if(destMarker){ map.removeLayer(destMarker); destMarker=null; }
+};
+RN.postMessage(JSON.stringify({type:'ready'}));
 </script></body></html>`;
+
+  const dist = selected ? bizDist(selected, coords?.lat, coords?.lng) : null;
+  const openStatus = selected ? getOpenStatus(selected) : null;
+  const selPhoto = selected ? (selected.coverPhoto || selected.photos?.[0] || selected.logo) : null;
+  const selAddress = selected
+    ? [selected.locality, selected.address, selected.city].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(', ')
+    : '';
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }}>
@@ -129,6 +366,105 @@ if(pins.length>0){ try{ map.fitBounds(bounds,{padding:[50,50],maxZoom:14}); }cat
             style={{ flex: 1, backgroundColor: theme.bg }}
           />
         )}
+
+        {/* Map controls: compass + locate/follow */}
+        {!loading && (
+          <View style={styles.controls} pointerEvents="box-none">
+            <TouchableOpacity
+              onPress={toggleCompass}
+              style={[styles.ctrlBtn, compassActive && styles.ctrlBtnCompassOn]}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="compass" size={22} color={compassActive ? '#ea4335' : '#94a3b8'} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleLocate}
+              style={[styles.ctrlBtn, followMode && styles.ctrlBtnFollowOn]}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="locate" size={20} color={followMode ? '#fff' : '#4285f4'} />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Route banner */}
+        {routeData && (
+          <View style={[styles.routeBanner, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <View style={styles.routeIconWrap}>
+              <Ionicons name="navigate" size={18} color="#fff" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <AppText style={[styles.routeTitle, { color: theme.text }]} numberOfLines={1}>
+                {routeData.salonName}
+              </AppText>
+              <AppText style={[styles.routeSub, { color: theme.subText }]}>
+                {fmtDist(routeData.distance)} · {fmtDur(routeData.duration)}
+              </AppText>
+            </View>
+            <TouchableOpacity onPress={clearRoute} style={styles.routeClose}>
+              <Ionicons name="close" size={20} color={theme.subText} />
+            </TouchableOpacity>
+          </View>
+        )}
+        {routeLoading && (
+          <View style={[styles.routeBanner, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <ActivityIndicator color="#4285f4" />
+            <AppText style={[styles.routeSub, { color: theme.subText, marginLeft: 10 }]}>Finding route…</AppText>
+          </View>
+        )}
+
+        {/* Salon card */}
+        {selected && !routeData && !routeLoading && (
+          <View style={[styles.salonCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              {selPhoto ? (
+                <Image source={{ uri: selPhoto }} style={styles.cardImg} />
+              ) : (
+                <View style={[styles.cardImg, { backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' }]}>
+                  <Ionicons name="storefront-outline" size={26} color="#fff" />
+                </View>
+              )}
+              <View style={{ flex: 1 }}>
+                <AppText style={[styles.cardName, { color: theme.text }]} numberOfLines={1}>{selected.name}</AppText>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 }}>
+                  <StarRow rating={selected.averageRating} />
+                  {selected.averageRating > 0 && (
+                    <AppText style={{ color: theme.subText, fontSize: 12, fontWeight: '700' }}>
+                      {Number(selected.averageRating).toFixed(1)}
+                    </AppText>
+                  )}
+                  {dist != null && (
+                    <AppText style={{ color: theme.subText, fontSize: 12 }}>· {fmtDist(dist)}</AppText>
+                  )}
+                </View>
+                {openStatus && (
+                  <AppText style={{ color: openStatus.open ? '#10b981' : '#ef4444', fontSize: 12, fontWeight: '700', marginTop: 3 }}>
+                    {openStatus.label}
+                  </AppText>
+                )}
+                {selAddress ? (
+                  <AppText style={{ color: theme.subText, fontSize: 11, marginTop: 2 }} numberOfLines={1}>{selAddress}</AppText>
+                ) : null}
+              </View>
+              <TouchableOpacity onPress={() => { setSelected(null); inject('window.deselect && deselect()'); }} style={{ padding: 2 }}>
+                <Ionicons name="close" size={20} color={theme.subText} />
+              </TouchableOpacity>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+              <TouchableOpacity style={styles.dirBtn} onPress={() => fetchRoute(selected)} activeOpacity={0.85}>
+                <Ionicons name="navigate" size={15} color="#fff" />
+                <AppText style={styles.dirBtnText}>Directions</AppText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.viewBtn, { borderColor: theme.border }]}
+                onPress={() => openSalon(selected._id)}
+                activeOpacity={0.85}
+              >
+                <AppText style={[styles.viewBtnText, { color: theme.text }]}>View Salon</AppText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -139,4 +475,45 @@ const styles = StyleSheet.create({
   backBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: 17, fontWeight: '800' },
   headerSub: { fontSize: 12, marginTop: 1 },
+
+  controls: { position: 'absolute', top: 16, right: 12, gap: 10 },
+  ctrlBtn: {
+    width: 42, height: 42, borderRadius: 12, backgroundColor: '#fff',
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 6, elevation: 4,
+  },
+  ctrlBtnCompassOn: { shadowColor: '#ea4335', shadowOpacity: 0.35 },
+  ctrlBtnFollowOn: { backgroundColor: '#1a73e8', shadowColor: '#4285f4', shadowOpacity: 0.5 },
+
+  routeBanner: {
+    position: 'absolute', left: 12, right: 12, bottom: 16,
+    flexDirection: 'row', alignItems: 'center',
+    borderRadius: 16, borderWidth: 1, padding: 14,
+    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 10, elevation: 6,
+  },
+  routeIconWrap: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: '#4285f4',
+    alignItems: 'center', justifyContent: 'center', marginRight: 12,
+  },
+  routeTitle: { fontSize: 14, fontWeight: '800' },
+  routeSub: { fontSize: 12, marginTop: 1, fontWeight: '600' },
+  routeClose: { padding: 4 },
+
+  salonCard: {
+    position: 'absolute', left: 12, right: 12, bottom: 16,
+    borderRadius: 18, borderWidth: 1, padding: 14,
+    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 10, elevation: 6,
+  },
+  cardImg: { width: 64, height: 64, borderRadius: 12 },
+  cardName: { fontSize: 15, fontWeight: '800' },
+  dirBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    backgroundColor: '#4285f4', borderRadius: 12, paddingVertical: 11,
+  },
+  dirBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  viewBtn: {
+    flex: 1, alignItems: 'center', justifyContent: 'center',
+    borderRadius: 12, borderWidth: 1.5, paddingVertical: 11,
+  },
+  viewBtnText: { fontSize: 13, fontWeight: '700' },
 });

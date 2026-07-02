@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, FlatList, StyleSheet, Dimensions, TouchableOpacity,
   ActivityIndicator, TextInput, KeyboardAvoidingView, Platform,
-  Modal, Pressable, Share, Image, StatusBar, ScrollView
+  Modal, Pressable, Share, Image, StatusBar, ScrollView, PanResponder, Animated
 } from 'react-native';
 import AppText from '../../components/AppText';
 import { Video, ResizeMode } from 'expo-av';
@@ -62,11 +62,20 @@ function ReelItem({ item, isVisible, isMuted, onToggleMute, onOpenComment, onOpe
   const videoRef    = useRef(null);
   const viewTimerRef = useRef(null);
   const viewedRef    = useRef(false);
+  const posRef       = useRef(0);
+  const durRef       = useRef(0);
+  const lastTapRef   = useRef(0);
+  const seekingRef   = useRef(false);
 
   const [liked,      setLiked]      = useState(item.liked || false);
   const [likeCount,  setLikeCount]  = useState(item.likeCount || 0);
   const [viewCount,  setViewCount]  = useState(item.viewCount || 0);
   const [progress,   setProgress]   = useState(0);
+  const [seekFeedback,   setSeekFeedback]   = useState(null); // { dir: 'rewind'|'forward', ts }
+  const [showHeart,      setShowHeart]      = useState(false);
+  const [muteToast,      setMuteToast]      = useState(null); // true = muted, false = sound on
+  const muteToastTimer   = useRef(null);
+  const seekFlashTimer   = useRef(null);
 
   const salon    = item.salon || {};
   const salonLogo = salon.logo || null;
@@ -96,7 +105,9 @@ function ReelItem({ item, isVisible, isMuted, onToggleMute, onOpenComment, onOpe
   // Playback status — progress bar + 3s view counting
   const handlePlaybackStatus = useCallback((status) => {
     if (!status.isLoaded) return;
-    if (status.durationMillis > 0) {
+    posRef.current = status.positionMillis || 0;
+    durRef.current = status.durationMillis || 0;
+    if (status.durationMillis > 0 && !seekingRef.current) {
       setProgress((status.positionMillis / status.durationMillis) * 100);
     }
     if (status.isPlaying && isVisible && !viewedRef.current) {
@@ -155,14 +166,71 @@ function ReelItem({ item, isVisible, isMuted, onToggleMute, onOpenComment, onOpe
     onOpenComment(item);
   };
 
+  const flashSeek = (dir) => {
+    clearTimeout(seekFlashTimer.current);
+    setSeekFeedback({ dir, ts: Date.now() });
+    seekFlashTimer.current = setTimeout(() => setSeekFeedback(null), 600);
+  };
+
+  // Zone-based tap: LEFT=rewind 10s, CENTER=mute, RIGHT=forward 10s; double-tap=like
+  const handleTap = (e) => {
+    const now = Date.now();
+    const isDouble = now - lastTapRef.current < 320;
+    lastTapRef.current = now;
+
+    if (isDouble) {
+      if (!liked) handleLike();
+      setShowHeart(true);
+      setTimeout(() => setShowHeart(false), 420);
+      return;
+    }
+
+    const zone = (e.nativeEvent.locationX || SCREEN_W / 2) / SCREEN_W;
+    const v = videoRef.current;
+
+    if (zone < 0.33) {
+      if (v) v.setPositionAsync(Math.max(0, posRef.current - 10000)).catch(() => {});
+      flashSeek('rewind');
+    } else if (zone > 0.67) {
+      if (v && durRef.current) v.setPositionAsync(Math.min(durRef.current, posRef.current + 10000)).catch(() => {});
+      flashSeek('forward');
+    } else {
+      const next = !isMuted;
+      onToggleMute();
+      clearTimeout(muteToastTimer.current);
+      setMuteToast(next);
+      muteToastTimer.current = setTimeout(() => setMuteToast(null), 900);
+    }
+  };
+
+  // Draggable progress bar seek
+  const seekToX = (x) => {
+    const v = videoRef.current;
+    if (!v || !durRef.current) return;
+    const pct = Math.max(0, Math.min(1, x / SCREEN_W));
+    v.setPositionAsync(pct * durRef.current).catch(() => {});
+    setProgress(pct * 100);
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (e) => { seekingRef.current = true; seekToX(e.nativeEvent.pageX); },
+      onPanResponderMove: (e) => seekToX(e.nativeEvent.pageX),
+      onPanResponderRelease: () => { seekingRef.current = false; },
+      onPanResponderTerminate: () => { seekingRef.current = false; },
+    })
+  ).current;
+
+  useEffect(() => () => {
+    clearTimeout(muteToastTimer.current);
+    clearTimeout(seekFlashTimer.current);
+  }, []);
+
   return (
     <View style={styles.reel}>
       <StatusBar hidden />
-
-      {/* Progress bar */}
-      <View style={styles.progressWrap} pointerEvents="none">
-        <View style={[styles.progressBar, { width: `${progress}%` }]} />
-      </View>
 
       {/* Video */}
       <Video
@@ -177,9 +245,42 @@ function ReelItem({ item, isVisible, isMuted, onToggleMute, onOpenComment, onOpe
         onPlaybackStatusUpdate={handlePlaybackStatus}
       />
 
+      {/* Tap zones: left rewind / center mute / right forward; double-tap like */}
+      <Pressable style={StyleSheet.absoluteFill} onPress={handleTap} />
+
       {/* Cinematic gradient overlays (top fade + bottom fade) */}
       <View style={styles.gradientTop} pointerEvents="none" />
       <View style={styles.gradientBottom} pointerEvents="none" />
+
+      {/* Progress bar — draggable */}
+      <View style={styles.progressTouch} {...panResponder.panHandlers}>
+        <View style={styles.progressWrap}>
+          <View style={[styles.progressBar, { width: `${progress}%` }]} />
+        </View>
+      </View>
+
+      {/* Seek feedback flash */}
+      {seekFeedback && (
+        <View style={[styles.seekFlash, seekFeedback.dir === 'rewind' ? { left: '12%' } : { right: '12%' }]} pointerEvents="none">
+          <Ionicons name={seekFeedback.dir === 'rewind' ? 'play-back' : 'play-forward'} size={30} color="#fff" />
+          <AppText style={styles.seekFlashText}>10s</AppText>
+        </View>
+      )}
+
+      {/* Double-tap heart burst */}
+      {showHeart && (
+        <View style={styles.heartBurst} pointerEvents="none">
+          <Ionicons name="heart" size={72} color="#ef4444" />
+        </View>
+      )}
+
+      {/* Mute toast */}
+      {muteToast !== null && (
+        <View style={styles.muteToast} pointerEvents="none">
+          <Ionicons name={muteToast ? 'volume-mute' : 'volume-high'} size={18} color="#fff" />
+          <AppText style={styles.muteToastText}>{muteToast ? 'Muted' : 'Sound On'}</AppText>
+        </View>
+      )}
 
       {/* Right sidebar: Like, Comment, Share, Avatar */}
       <View style={styles.sidebar}>
@@ -373,6 +474,47 @@ function CommentSheet({ visible, reel, onClose, token }) {
   );
 }
 
+// ── Reel skeleton loader ───────────────────────────────────────────
+function ReelSkeleton() {
+  const pulse = useRef(new Animated.Value(0.35)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 0.75, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.35, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulse]);
+
+  const block = (style) => (
+    <Animated.View style={[{ backgroundColor: '#1f2937', opacity: pulse }, style]} />
+  );
+
+  return (
+    <View style={{ flex: 1, backgroundColor: '#000' }}>
+      {/* Right rail circles */}
+      <View style={{ position: 'absolute', right: 12, bottom: 120, gap: 20, alignItems: 'center' }}>
+        {block({ width: 44, height: 44, borderRadius: 22 })}
+        {block({ width: 44, height: 44, borderRadius: 22 })}
+        {block({ width: 44, height: 44, borderRadius: 22 })}
+        {block({ width: 44, height: 44, borderRadius: 22 })}
+      </View>
+      {/* Bottom-left info lines */}
+      <View style={{ position: 'absolute', bottom: 110, left: 14, gap: 10 }}>
+        {block({ width: 170, height: 18, borderRadius: 6 })}
+        {block({ width: 110, height: 12, borderRadius: 6 })}
+        <View style={{ flexDirection: 'row', gap: 6 }}>
+          {block({ width: 58, height: 20, borderRadius: 10 })}
+          {block({ width: 58, height: 20, borderRadius: 10 })}
+        </View>
+        {block({ width: 180, height: 42, borderRadius: 14 })}
+      </View>
+    </View>
+  );
+}
+
 // ── Auth gate modal ────────────────────────────────────────────────
 function AuthModal({ visible, onClose, onLogin, onRegister }) {
   return (
@@ -514,12 +656,7 @@ export default function ReelsScreen() {
   };
 
   if (loading) {
-    return (
-      <View style={[styles.center, { backgroundColor: '#000' }]}>
-        <ActivityIndicator size="large" color="#6366f1" />
-        <AppText style={{ color: '#9ca3af', marginTop: 12 }}>Loading reels…</AppText>
-      </View>
-    );
+    return <ReelSkeleton />;
   }
 
   if (!reels.length) {
@@ -610,11 +747,32 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   reel:   { width: SCREEN_W, height: SCREEN_H, backgroundColor: '#000' },
 
+  progressTouch: {
+    position: 'absolute', top: 0, left: 0, right: 0, height: 24,
+    justifyContent: 'flex-start', zIndex: 25
+  },
   progressWrap: {
-    position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-    backgroundColor: 'rgba(255,255,255,0.10)', zIndex: 25
+    height: 3, backgroundColor: 'rgba(255,255,255,0.10)'
   },
   progressBar: { height: 3, backgroundColor: '#8b5cf6' },
+
+  seekFlash: {
+    position: 'absolute', top: '46%', zIndex: 30,
+    alignItems: 'center', gap: 2
+  },
+  seekFlashText: { color: '#fff', fontSize: 13, fontWeight: '800' },
+  heartBurst: {
+    position: 'absolute', top: '44%', left: 0, right: 0,
+    alignItems: 'center', zIndex: 30
+  },
+  muteToast: {
+    position: 'absolute', top: '48%', alignSelf: 'center', zIndex: 15,
+    flexDirection: 'row', alignItems: 'center', gap: 9,
+    backgroundColor: 'rgba(0,0,0,0.72)', borderRadius: 44,
+    paddingHorizontal: 24, paddingVertical: 11,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)'
+  },
+  muteToastText: { color: '#fff', fontSize: 13, fontWeight: '700', letterSpacing: 0.2 },
 
   gradientTop: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 140,
