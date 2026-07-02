@@ -14,8 +14,8 @@ const LIGHT = {
   input: '#ffffff',
   inputBorder: '#d1d5db',
   placeholder: '#9ca3af',
-  accent: '#2563eb',
-  header: '#2563eb',
+  accent: '#6366f1',
+  header: '#6366f1',
 };
 
 const DARK = {
@@ -29,8 +29,8 @@ const DARK = {
   input: '#1e293b',
   inputBorder: '#475569',
   placeholder: '#64748b',
-  accent: '#3b82f6',
-  header: '#1e3a8a',
+  accent: '#818cf8',
+  header: '#1e1b4b',
 };
 
 const ThemeContext = createContext(null);
