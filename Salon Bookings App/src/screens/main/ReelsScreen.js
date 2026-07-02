@@ -225,9 +225,17 @@ function ReelItem({ item, isVisible, isMuted, onToggleMute, onOpenComment, onOpe
         <TouchableOpacity onPress={() => onOpenSalon(salon._id)} activeOpacity={0.8}>
           <AppText style={styles.salonName} numberOfLines={1}>{salon.name || 'Salon'}</AppText>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 }}>
-            {city ? <AppText style={styles.salonCity}>📍 {city}</AppText> : null}
+            {city ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                <Ionicons name="location-outline" size={11} color="rgba(255,255,255,0.7)" />
+                <AppText style={styles.salonCity}>{city}</AppText>
+              </View>
+            ) : null}
             {salon.averageRating > 0 && (
-              <AppText style={styles.salonRating}>★ {salon.averageRating.toFixed(1)}</AppText>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                <Ionicons name="star" size={11} color="#f59e0b" />
+                <AppText style={styles.salonRating}>{salon.averageRating.toFixed(1)}</AppText>
+              </View>
             )}
           </View>
         </TouchableOpacity>
@@ -371,7 +379,7 @@ function AuthModal({ visible, onClose, onLogin, onRegister }) {
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.authBackdrop} onPress={onClose}>
         <Pressable style={styles.authCard} onPress={() => {}}>
-          <AppText style={{ fontSize: 36, textAlign: 'center', marginBottom: 10 }}>🔐</AppText>
+          <Ionicons name="lock-closed-outline" size={36} color="#818cf8" style={{ textAlign: 'center', marginBottom: 10 }} />
           <AppText style={styles.authTitle}>Login Required</AppText>
           <AppText style={styles.authSub}>You need to be logged in to like or comment on reels.</AppText>
           <TouchableOpacity style={styles.authPrimaryBtn} onPress={onLogin} activeOpacity={0.85}>
@@ -534,7 +542,7 @@ export default function ReelsScreen() {
       {/* Compact top filter row */}
       <View style={styles.topOverlay} pointerEvents="box-none">
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 6 }} pointerEvents="box-none">
-          {[['nearest', '📍 Nearby'], ['all', '🌐 All']].map(([m, label]) => (
+          {[['nearest', 'Nearby'], ['all', 'All']].map(([m, label]) => (
             <TouchableOpacity key={m} onPress={() => setMode(m)} style={[styles.filterChip, mode === m && styles.filterChipActive]} activeOpacity={0.8}>
               <AppText style={[styles.filterChipText, mode === m && styles.filterChipTextActive]}>{label}</AppText>
             </TouchableOpacity>

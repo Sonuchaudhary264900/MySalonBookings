@@ -394,7 +394,7 @@ export default function SettingsScreen({ navigation }) {
           {expandedSection === 'refer' && (
             <View style={[styles.accordionBody, { padding: 16, gap: 14 }]}>
               <View style={styles.referBanner}>
-                <AppText style={styles.referBannerEmoji}>🎁</AppText>
+                <Ionicons name="gift-outline" size={28} color="#92400e" />
                 <View style={{ flex: 1 }}>
                   <AppText style={styles.referBannerTitle}>Earn ₹50 for every salon you refer!</AppText>
                   <AppText style={styles.referBannerSub}>Invite salon owners to join GlowLoox and earn rewards when they get started.</AppText>

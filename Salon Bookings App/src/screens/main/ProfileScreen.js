@@ -160,11 +160,12 @@ export default function ProfileScreen({ navigation }) {
                       <Ionicons name="person-circle-outline" size={16} color={theme.subText} style={{ width: 22 }} />
                       <AppText style={styles.infoLabel}>Gender</AppText>
                       <View style={{ flexDirection: 'row', gap: 8, marginLeft: 'auto' }}>
-                        {[{ key: 'male', label: '👨 Male' }, { key: 'female', label: '👩 Female' }].map(({ key, label }) => {
+                        {[{ key: 'male', label: 'Male', icon: 'man-outline' }, { key: 'female', label: 'Female', icon: 'woman-outline' }].map(({ key, label, icon }) => {
                           const active = user?.gender === key;
                           return (
                             <TouchableOpacity key={key} onPress={() => handleGenderChange(key)} disabled={genderSaving}
-                              style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 8, borderWidth: 1.5, borderColor: active ? '#ec4899' : (theme.border || '#e5e7eb'), backgroundColor: active ? '#ec4899' : 'transparent' }}>
+                              style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 8, borderWidth: 1.5, borderColor: active ? '#6366f1' : (theme.border || '#e5e7eb'), backgroundColor: active ? '#6366f1' : 'transparent' }}>
+                              <Ionicons name={icon} size={13} color={active ? '#fff' : theme.subText} />
                               <AppText style={{ fontSize: 12, fontWeight: '700', color: active ? '#fff' : theme.subText }}>{label}</AppText>
                             </TouchableOpacity>
                           );

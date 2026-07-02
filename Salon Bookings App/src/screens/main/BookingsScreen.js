@@ -109,7 +109,7 @@ function ReviewPrompt({ bookingId, onReviewed, theme }) {
 
   if (done) return (
     <View style={{ marginTop: 10, padding: 10, backgroundColor: 'rgba(52,211,153,0.12)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(52,211,153,0.3)' }}>
-      <AppText style={{ fontSize: 12, color: '#34d399' }}>Thank you for your review! ✨</AppText>
+      <AppText style={{ fontSize: 12, color: '#34d399' }}>Thank you for your review!</AppText>
     </View>
   );
 
@@ -119,7 +119,7 @@ function ReviewPrompt({ bookingId, onReviewed, theme }) {
       onPress={() => setOpen(true)}
       activeOpacity={0.8}
     >
-      <AppText style={{ fontSize: 12, color: '#818cf8' }}>⭐ How was your experience?</AppText>
+      <AppText style={{ fontSize: 12, color: '#818cf8' }}>How was your experience?</AppText>
       <AppText style={{ fontSize: 12, color: '#818cf8', fontWeight: '700' }}>Leave a Review →</AppText>
     </TouchableOpacity>
   );
@@ -144,7 +144,7 @@ function ReviewPrompt({ bookingId, onReviewed, theme }) {
       <View style={{ flexDirection: 'row', gap: 6 }}>
         {[1, 2, 3, 4, 5].map(n => (
           <TouchableOpacity key={n} onPress={() => setRating(n)}>
-            <AppText style={{ fontSize: 26, color: n <= rating ? '#f59e0b' : theme?.border || '#334155' }}>★</AppText>
+            <Ionicons name={n <= rating ? 'star' : 'star-outline'} size={26} color={n <= rating ? '#f59e0b' : theme?.border || '#334155'} />
           </TouchableOpacity>
         ))}
       </View>
@@ -574,7 +574,7 @@ function BookingCard({ booking: initialBooking, userCoords, onCancelled, theme, 
       {isNext && (
         <View style={{ backgroundColor: '#4f46e5', paddingHorizontal: 14, paddingVertical: 7, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <AppText style={{ fontSize: 11, fontWeight: '700', color: '#fff', letterSpacing: 0.6, textTransform: 'uppercase' }}>
-            ⚡ Next Appointment
+            Next Appointment
           </AppText>
           {countdown && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -711,7 +711,7 @@ function BookingCard({ booking: initialBooking, userCoords, onCancelled, theme, 
         {canReview && <ReviewPrompt bookingId={booking._id} onReviewed={() => setReviewed(true)} theme={theme} />}
         {reviewed && (
           <View style={{ padding: 10, backgroundColor: 'rgba(52,211,153,0.1)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(52,211,153,0.3)' }}>
-            <AppText style={{ fontSize: 12, color: '#34d399' }}>Thank you for your review! ✨</AppText>
+            <AppText style={{ fontSize: 12, color: '#34d399' }}>Thank you for your review!</AppText>
           </View>
         )}
 
@@ -930,7 +930,7 @@ export default function BookingsScreen({ navigation }) {
             My Bookings
           </AppText>
           <AppText style={{ fontSize: 24, fontWeight: '900', color: '#fff', letterSpacing: -0.5, marginBottom: 3 }}>
-            Welcome back, {firstName} 👋
+            Welcome back, {firstName}
           </AppText>
           <AppText style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>Ready for your next look?</AppText>
         </View>
@@ -951,13 +951,13 @@ export default function BookingsScreen({ navigation }) {
       {/* 4 Stat cards */}
       <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
         {[
-          { label: 'Upcoming',  value: loading ? '—' : stats.upcoming,  icon: '📅', accent: false },
-          { label: 'Completed', value: loading ? '—' : stats.completed, icon: '✅', accent: false },
-          { label: 'Total',     value: loading ? '—' : stats.total,     icon: '📋', accent: false },
-          { label: 'Spent',     value: loading ? '—' : `₹${stats.totalSpent}`, icon: '💰', accent: true },
+          { label: 'Upcoming',  value: loading ? '—' : stats.upcoming,  icon: 'calendar-outline',   accent: false },
+          { label: 'Completed', value: loading ? '—' : stats.completed, icon: 'checkmark-circle-outline', accent: false },
+          { label: 'Total',     value: loading ? '—' : stats.total,     icon: 'list-outline',       accent: false },
+          { label: 'Spent',     value: loading ? '—' : `₹${stats.totalSpent}`, icon: 'wallet-outline', accent: true },
         ].map(({ label, value, icon, accent }) => (
           <View key={label} style={{ flex: 1, backgroundColor: accent ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.09)', borderRadius: 14, paddingVertical: 11, paddingHorizontal: 6, alignItems: 'center', borderWidth: 1, borderColor: accent ? 'rgba(251,191,36,0.3)' : 'rgba(255,255,255,0.14)' }}>
-            <AppText style={{ fontSize: 16, marginBottom: 3 }}>{icon}</AppText>
+            <Ionicons name={icon} size={16} color={accent ? '#fde68a' : 'rgba(255,255,255,0.8)'} style={{ marginBottom: 3 }} />
             <AppText style={{ fontSize: label === 'Spent' ? 12 : 18, fontWeight: '900', color: accent ? '#fde68a' : '#fff', marginBottom: 2 }} numberOfLines={1}>{value}</AppText>
             <AppText style={{ fontSize: 10, color: accent ? 'rgba(253,230,138,0.7)' : 'rgba(255,255,255,0.55)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 }}>{label}</AppText>
           </View>
@@ -1025,7 +1025,7 @@ export default function BookingsScreen({ navigation }) {
           return (
             <View key={id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, backgroundColor: 'rgba(52,211,153,0.1)', borderWidth: 1, borderColor: 'rgba(52,211,153,0.3)', borderRadius: 12, gap: 8, marginBottom: 2 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-                <AppText style={{ fontSize: 18 }}>✅</AppText>
+                <Ionicons name="checkmark-circle" size={22} color="#34d399" />
                 <View style={{ flex: 1 }}>
                   <AppText style={{ fontSize: 13, fontWeight: '700', color: '#34d399' }}>Booking Confirmed!</AppText>
                   <AppText style={{ fontSize: 11, color: 'rgba(52,211,153,0.8)', marginTop: 1 }} numberOfLines={1}>
@@ -1177,7 +1177,7 @@ export default function BookingsScreen({ navigation }) {
           ) : (
             <View style={{ alignItems: 'center', padding: 48, gap: 14 }}>
               <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(99,102,241,0.08)', borderWidth: 1, borderColor: 'rgba(99,102,241,0.15)', alignItems: 'center', justifyContent: 'center' }}>
-                <AppText style={{ fontSize: 36 }}>{filter === 'Completed' ? '✅' : filter === 'Cancelled' ? '🚫' : '📅'}</AppText>
+                <Ionicons name={filter === 'Completed' ? 'checkmark-circle-outline' : filter === 'Cancelled' ? 'close-circle-outline' : 'calendar-outline'} size={40} color="#818cf8" />
               </View>
               <AppText style={{ fontSize: 20, fontWeight: '900', color: theme.text, letterSpacing: -0.3, textAlign: 'center' }}>
                 {filter === 'All' ? 'No bookings yet' : `No ${filter.toLowerCase()} bookings`}
