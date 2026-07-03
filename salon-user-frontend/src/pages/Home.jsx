@@ -1430,7 +1430,7 @@ export default function Home() {
               <div style={{ width:60,height:60,borderRadius:"50%",background:"rgba(99,102,241,0.08)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 18px" }}>
                 <SearchX style={{ width:26,height:26,color:"var(--t-text-3)" }} />
               </div>
-              <h3 style={{ fontSize:18,fontWeight:700,color:"var(--t-text)",marginBottom:7,letterSpacing:"-0.02em" }}>No salons found</h3>
+              <h3 style={{ fontSize:18,fontWeight:700,color:"var(--t-text)",marginBottom:7,letterSpacing:"-0.02em" }}>No GlowSpots found</h3>
               <p style={{ fontSize:13,color:"var(--t-text-2)" }}>Try adjusting your filters or search.</p>
             </div>
           )}

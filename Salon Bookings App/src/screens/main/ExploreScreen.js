@@ -218,7 +218,7 @@ export default function ExploreScreen() {
         ) : salons.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="search-outline" size={44} color={theme.border} />
-            <AppText style={[styles.emptyTitle, { color: theme.text }]}>No salons found</AppText>
+            <AppText style={[styles.emptyTitle, { color: theme.text }]}>No GlowSpots found</AppText>
             <AppText style={[styles.emptySub, { color: theme.subText }]}>No salons currently offer "{selSub}".</AppText>
             <TouchableOpacity style={styles.tryBtn} onPress={goBack}>
               <AppText style={styles.tryBtnText}>Try another service</AppText>

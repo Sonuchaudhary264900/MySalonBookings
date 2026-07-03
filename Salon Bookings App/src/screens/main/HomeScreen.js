@@ -790,7 +790,10 @@ export default function HomeScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { theme, isDark, toggleTheme } = useTheme();
   const { unreadCount } = useNotifications();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const chipScrollRef = useRef(null);
+  const SCREEN_W = Dimensions.get('window').width;
 
   const [salons, setSalons]               = useState([]);
   const [allSalons, setAllSalons]         = useState([]);
@@ -1058,8 +1061,11 @@ export default function HomeScreen({ navigation }) {
 
       {/* Hero header (web parity: navbar row + greeting overline + pill search) */}
       <View style={{ backgroundColor: heroBg, paddingTop: insets.top + 10, paddingBottom: 0, overflow: 'hidden' }}>
-        {/* Top bar: wordmark + bell + theme */}
+        {/* Top bar: hamburger + wordmark + bell + theme (web navbar parity) */}
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 18, gap: 8 }}>
+          <TouchableOpacity onPress={() => setMenuOpen(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ marginRight: 6 }}>
+            <Ionicons name="menu-outline" size={26} color={heroText} />
+          </TouchableOpacity>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, flex: 1 }}>
             <Image source={require('../../../assets/Icon-1024.png')} style={{ width: 34, height: 34, borderRadius: 9 }} />
             <AppText style={{ fontSize: 19, fontWeight: '800', color: '#a78bfa', letterSpacing: -0.3 }}>GlowLoox</AppText>
@@ -1128,11 +1134,19 @@ export default function HomeScreen({ navigation }) {
             {/* Hero circular chips — on hero background with accent line (web parity) */}
             <View style={{ backgroundColor: heroBg, marginBottom: 12 }}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                ref={chipScrollRef}
                 contentContainerStyle={{ paddingHorizontal: 8, paddingTop: 18, paddingBottom: 10 }}>
-                {HERO_CHIPS.map(chip => {
+                {HERO_CHIPS.map((chip, chipIdx) => {
                   const active = chip.cat === null ? selectedCats.length === 0 : selectedCats.includes(chip.cat);
                   return (
-                    <TouchableOpacity key={chip.label} onPress={() => handleCategory(chip.cat)}
+                    <TouchableOpacity key={chip.label}
+                      onPress={() => {
+                        handleCategory(chip.cat);
+                        // Auto-center the tapped circle (web parity)
+                        const ITEM_W = 90;
+                        const x = Math.max(0, 8 + chipIdx * ITEM_W - (SCREEN_W / 2 - ITEM_W / 2));
+                        chipScrollRef.current?.scrollTo({ x, animated: true });
+                      }}
                       style={{ alignItems: 'center', paddingHorizontal: 14, transform: [{ translateY: active ? -6 : 0 }] }} activeOpacity={0.8}>
                       {/* Glow ring on active */}
                       <View style={active ? { borderRadius: 33, padding: 4, backgroundColor: 'rgba(99,102,241,0.18)' } : { padding: 4 }}>
@@ -1251,7 +1265,7 @@ export default function HomeScreen({ navigation }) {
         ListEmptyComponent={!loading ? (
           <View style={{ alignItems: 'center', justifyContent: 'center', padding: 40, gap: 8 }}>
             <Ionicons name="search-outline" size={48} color="#d1d5db" />
-            <AppText style={{ fontSize: 18, fontWeight: '700', color: theme.text }}>No salons found</AppText>
+            <AppText style={{ fontSize: 18, fontWeight: '700', color: theme.text }}>No GlowSpots found</AppText>
             <AppText style={{ fontSize: 14, color: theme.subText, textAlign: 'center', lineHeight: 20 }}>
               {searchText ? 'Try a different search term' : 'No salons available yet'}
             </AppText>
@@ -1294,6 +1308,65 @@ export default function HomeScreen({ navigation }) {
           navigation={navigation}
         />
       )}
+
+      {/* Drawer menu (web parity) */}
+      <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
+        <View style={{ flex: 1, flexDirection: 'row' }}>
+          <View style={{ width: '78%', maxWidth: 340, backgroundColor: isDark ? '#131a30' : '#ffffff', paddingTop: insets.top + 14 }}>
+            {/* Drawer header */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, marginBottom: 24 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Image source={require('../../../assets/Icon-1024.png')} style={{ width: 38, height: 38, borderRadius: 11 }} />
+                <AppText style={{ fontSize: 19, fontWeight: '800', color: '#a78bfa', letterSpacing: -0.3 }}>GlowLoox</AppText>
+              </View>
+              <TouchableOpacity onPress={() => setMenuOpen(false)}
+                style={{ width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.14)' : 'rgba(30,27,75,0.14)', alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="close" size={18} color={isDark ? 'rgba(255,255,255,0.6)' : 'rgba(30,27,75,0.6)'} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Menu items (web order) */}
+            <View style={{ paddingHorizontal: 10, gap: 2, flex: 1 }}>
+              {[
+                { icon: 'home-outline',      label: 'Home',            go: () => {} },
+                { icon: 'compass-outline',   label: 'Explore',         go: () => navigation.navigate('Explore') },
+                { icon: 'location-outline',  label: 'Map',             go: () => navigation.navigate('Map') },
+                { icon: 'calendar-outline',  label: 'Bookings',        go: () => navigation.getParent()?.navigate('BookingsTab') },
+                { icon: 'heart-outline',     label: 'Saved',           go: () => navigation.getParent()?.navigate('FavoritesTab') },
+                { icon: 'help-buoy-outline', label: 'Help & Feedback', go: () => navigation.getParent()?.navigate('SettingsTab', { screen: 'Feedback' }) },
+                { icon: 'settings-outline',  label: 'Settings',        go: () => navigation.getParent()?.navigate('SettingsTab') },
+              ].map(({ icon, label, go }) => (
+                <TouchableOpacity key={label}
+                  onPress={() => { setMenuOpen(false); go(); }}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 14, paddingVertical: 14, borderRadius: 12 }}
+                  activeOpacity={0.7}>
+                  <Ionicons name={icon} size={21} color={isDark ? 'rgba(255,255,255,0.72)' : 'rgba(30,27,75,0.72)'} />
+                  <AppText style={{ fontSize: 16, fontWeight: '500', color: isDark ? 'rgba(255,255,255,0.85)' : '#1e1b4b' }}>{label}</AppText>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Drawer footer: theme toggle + sign out */}
+            <View style={{ borderTopWidth: 1, borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(30,27,75,0.08)', paddingHorizontal: 10, paddingVertical: 10, paddingBottom: insets.bottom + 14, gap: 2 }}>
+              <TouchableOpacity onPress={toggleTheme}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 14, paddingVertical: 13 }} activeOpacity={0.7}>
+                <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={20} color={isDark ? 'rgba(255,255,255,0.72)' : 'rgba(30,27,75,0.72)'} />
+                <AppText style={{ fontSize: 15, fontWeight: '500', color: isDark ? 'rgba(255,255,255,0.85)' : '#1e1b4b' }}>
+                  {isDark ? 'Light Mode' : 'Dark Mode'}
+                </AppText>
+              </TouchableOpacity>
+              {isAuthenticated && (
+                <TouchableOpacity onPress={() => { setMenuOpen(false); logout(); }}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 14, paddingVertical: 13 }} activeOpacity={0.7}>
+                  <Ionicons name="log-out-outline" size={20} color="#f87171" />
+                  <AppText style={{ fontSize: 15, fontWeight: '600', color: '#f87171' }}>Sign Out</AppText>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+          <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }} onPress={() => setMenuOpen(false)} />
+        </View>
+      </Modal>
     </View>
   );
 }

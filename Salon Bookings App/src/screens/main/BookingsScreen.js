@@ -892,21 +892,19 @@ export default function BookingsScreen({ navigation }) {
         ready for your{'\n'}next look?
       </AppText>
 
-      {/* Minimal inline stats */}
+      {/* Minimal inline stats — "0 UPCOMING · 0 COMPLETED · ₹0 SPENT" */}
       {!loading && (
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 28 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginTop: 28 }}>
           {[
-            { value: String(stats.upcoming),  label: 'upcoming' },
-            { value: String(stats.completed), label: 'completed' },
-            { value: stats.totalSpent > 0 ? `₹${stats.totalSpent}` : '₹0', label: 'spent' },
+            { value: String(stats.upcoming),  label: 'UPCOMING' },
+            { value: String(stats.completed), label: 'COMPLETED' },
+            { value: stats.totalSpent > 0 ? `₹${stats.totalSpent}` : '₹0', label: 'SPENT' },
           ].map(({ value, label }, i, arr) => (
             <View key={label} style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <View>
-                <AppText style={{ fontSize: 20, fontWeight: '900', color: heroText }}>{value}</AppText>
-                <AppText style={{ fontSize: 11, fontWeight: '600', color: heroMuted }}>{label}</AppText>
-              </View>
+              <AppText style={{ fontSize: 22, fontWeight: '900', color: heroText, letterSpacing: -0.5 }}>{value}</AppText>
+              <AppText style={{ fontSize: 11, fontWeight: '700', color: heroMuted, letterSpacing: 1.4, marginLeft: 7 }}>{label}</AppText>
               {i < arr.length - 1 && (
-                <View style={{ width: 1, height: 26, backgroundColor: heroBorder, marginHorizontal: 18 }} />
+                <AppText style={{ color: heroMuted, marginHorizontal: 13, fontSize: 13 }}>·</AppText>
               )}
             </View>
           ))}
@@ -1116,15 +1114,13 @@ export default function BookingsScreen({ navigation }) {
               ))}
             </View>
           ) : (
-            <View style={{ alignItems: 'center', padding: 48, gap: 14 }}>
-              <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(99,102,241,0.08)', borderWidth: 1, borderColor: 'rgba(99,102,241,0.15)', alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name={filter === 'Completed' ? 'checkmark-circle-outline' : filter === 'Cancelled' ? 'close-circle-outline' : 'calendar-outline'} size={40} color="#818cf8" />
-              </View>
-              <AppText style={{ fontSize: 20, fontWeight: '900', color: theme.text, letterSpacing: -0.3, textAlign: 'center' }}>
+            <View style={{ alignItems: 'center', paddingVertical: 72, paddingHorizontal: 20, gap: 10 }}>
+              <Ionicons name="cut-outline" size={48} color={theme.text} style={{ opacity: 0.4, marginBottom: 6 }} />
+              <AppText style={{ fontSize: 24, fontWeight: '900', color: theme.text, letterSpacing: -0.5, textAlign: 'center' }}>
                 {filter === 'All' ? 'No bookings yet' : `No ${filter.toLowerCase()} bookings`}
               </AppText>
-              <AppText style={{ fontSize: 14, color: theme.subText, textAlign: 'center', lineHeight: 22, maxWidth: 260 }}>
-                {filter === 'All' ? 'Find top-rated salons near you and book your first appointment!' : 'Nothing here right now — check another tab.'}
+              <AppText style={{ fontSize: 14, color: theme.subText, textAlign: 'center', lineHeight: 22, maxWidth: 280 }}>
+                {filter === 'All' || filter === 'Upcoming' ? 'Find top-rated salons near you and book your first appointment.' : 'Nothing here right now — check another tab.'}
               </AppText>
               {(filter === 'All' || filter === 'Upcoming') && (
                 <TouchableOpacity style={{ marginTop: 4, backgroundColor: '#4f46e5', borderRadius: 14, paddingHorizontal: 28, paddingVertical: 13 }} onPress={() => navigation.navigate('HomeTab')} activeOpacity={0.85}>

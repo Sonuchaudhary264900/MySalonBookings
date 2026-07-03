@@ -115,18 +115,18 @@ const TAB_ICONS = {
   StyleAITab:   ['sparkles',     'sparkles-outline'],
   BookingsTab:  ['calendar',     'calendar-outline'],
   FavoritesTab: ['heart',        'heart-outline'],
-  SettingsTab:  ['settings',     'settings-outline'],
+  SettingsTab:  ['person',       'person-outline'],
 };
 
 function CustomTabBar({ state, navigation }) {
   const { theme } = useTheme();
-  const { t }     = useLanguage();
+  // Web BottomNav parity: Home · Bookings · Saved · Profile
   const labels    = {
-    HomeTab:      t('tabHome'),
-    StyleAITab:   t('tabStyleAI'),
-    BookingsTab:  t('tabBookings'),
-    FavoritesTab: t('tabFavorites'),
-    SettingsTab:  t('tabSettings'),
+    HomeTab:      'Home',
+    StyleAITab:   'StyleAI',
+    BookingsTab:  'Bookings',
+    FavoritesTab: 'Saved',
+    SettingsTab:  'Profile',
   };
   return (
     <View style={{
@@ -168,7 +168,8 @@ function MainTabs() {
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        swipeEnabled: true,
+        // Disabled: swiping conflicts with horizontal scrollers (category circles, chips)
+        swipeEnabled: false,
         tabBarIndicatorStyle: { height: 0 },
       }}
     >

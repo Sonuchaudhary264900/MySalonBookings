@@ -24,9 +24,24 @@ export default function useSwipeNav() {
   }, [location.pathname]);
 
   useEffect(() => {
+    // Swipes that start inside a horizontally-scrollable element (category
+    // circles, chip rows, carousels) must scroll that element, not change tabs.
+    const insideHorizontalScroller = (target) => {
+      let el = target instanceof Element ? target : null;
+      while (el && el !== document.body) {
+        if (el.scrollWidth > el.clientWidth + 5) {
+          const { overflowX } = getComputedStyle(el);
+          if (overflowX === 'auto' || overflowX === 'scroll') return true;
+        }
+        el = el.parentElement;
+      }
+      return false;
+    };
+
     const onTouchStart = (e) => {
       // Ignore multi-touch
       if (e.touches.length > 1) return;
+      if (insideHorizontalScroller(e.target)) { startX.current = null; return; }
       startX.current   = e.touches[0].clientX;
       startY.current   = e.touches[0].clientY;
       lockAxis.current = null;
