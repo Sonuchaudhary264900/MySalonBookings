@@ -1,48 +1,56 @@
 import React, { useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Animated,
-  SafeAreaView, Dimensions, Image, StatusBar,
+  Dimensions, Image, StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { OnboardingProvider, useOnboarding, TOTAL_STEPS, STEP_LABELS } from '../../context/OnboardingContext';
 import { useAuth } from '../../context/AuthContext';
 
-import Step1_Phone        from './steps/Step1_Phone';
-import Step2_Otp          from './steps/Step2_Otp';
-import Step3_Profile      from './steps/Step3_Profile';
-import Step4_SalonIdentity from './steps/Step4_SalonIdentity';
-import Step5_Location     from './steps/Step5_Location';
-import Step6_WorkingHours from './steps/Step6_WorkingHours';
-import Step7_Media        from './steps/Step7_Media';
-import Step8_Services     from './steps/Step8_Services';
-import Step9_Pricing      from './steps/Step9_Pricing';
-import Step10_Preview     from './steps/Step10_Preview';
+import Step_Profile      from './steps/Step3_Profile';
+import Step_BusinessType from './steps/Step4_BusinessType';
+import Step_Identity     from './steps/Step4_SalonIdentity';
+import Step_Location     from './steps/Step5_Location';
+import Step_Hours        from './steps/Step6_WorkingHours';
+import Step_Media        from './steps/Step7_Media';
+import Step_Preview      from './steps/Step10_Preview';
 
 const { width: W } = Dimensions.get('window');
 
-// Progress percentage per step
-const STEP_PROGRESS = { 1:10, 2:20, 3:30, 4:42, 5:54, 6:64, 7:74, 8:83, 9:92, 10:98 };
+// Progress percentage per step — same curve as the website (7 steps)
+const STEP_PROGRESS = { 1:14, 2:28, 3:43, 4:57, 5:71, 6:86, 7:100 };
 
-// Speed message per step
-const SPEED_MSG = {
-  1:'⚡ Takes under 2 min',
-  2:'⚡ Takes under 2 min',
-  3:'⚡ Takes under 2 min',
-  4:'🔥 Setting up salon...',
-  5:'📍 Almost halfway!',
-  6:'🗓️ Just a few more steps',
-  7:'📸 Looking great!',
-  8:'💼 Choose your services',
-  9:'💰 Almost there!',
-  10:'🚀 Final stretch!',
-};
+function DraftSkeleton() {
+  const pulse = useRef(new Animated.Value(0.4)).current;
+  useEffect(() => {
+    Animated.loop(Animated.sequence([
+      Animated.timing(pulse, { toValue: 1, duration: 600, useNativeDriver: true }),
+      Animated.timing(pulse, { toValue: 0.4, duration: 600, useNativeDriver: true }),
+    ])).start();
+  }, []);
+  const bar = (w, h, r = 10) => (
+    <Animated.View style={{ width: w, height: h, borderRadius: r, backgroundColor: 'rgba(255,255,255,0.07)', opacity: pulse }} />
+  );
+  return (
+    <View style={{ paddingTop: 24, gap: 18 }}>
+      {bar('60%', 36, 12)}
+      {bar('85%', 16, 8)}
+      <View style={{ height: 12 }} />
+      {bar('100%', 120, 20)}
+      <View style={{ height: 8 }} />
+      {bar('100%', 60, 14)}
+      {bar('100%', 60, 14)}
+      <View style={{ height: 8 }} />
+      {bar('55%', 48, 14)}
+    </View>
+  );
+}
 
 function OnboardingContent() {
-  const { step, prevStep, minStep } = useOnboarding();
-  const { user, logout } = useAuth();
+  const { step, prevStep, minStep, draftLoaded } = useOnboarding();
+  const { logout } = useAuth();
   const insets = useSafeAreaInsets();
-  const confirmationRef = useRef(null);
 
   // Slide animation
   const slideAnim  = useRef(new Animated.Value(0)).current;
@@ -69,21 +77,17 @@ function OnboardingContent() {
     Animated.timing(progressAnim, { toValue: progress, duration: 400, useNativeDriver: false }).start();
   }, [progress]);
 
-  const canGoBack = step > minStep && !(step === 4 && user?.salonId);
+  const canGoBack = step > minStep;
 
   const renderStep = () => {
-    const props = { confirmationRef };
     switch (step) {
-      case 1:  return <Step1_Phone {...props} />;
-      case 2:  return <Step2_Otp  {...props} />;
-      case 3:  return <Step3_Profile />;
-      case 4:  return <Step4_SalonIdentity />;
-      case 5:  return <Step5_Location />;
-      case 6:  return <Step6_WorkingHours />;
-      case 7:  return <Step7_Media />;
-      case 8:  return <Step8_Services />;
-      case 9:  return <Step9_Pricing />;
-      case 10: return <Step10_Preview />;
+      case 1: return <Step_Profile />;
+      case 2: return <Step_BusinessType />;
+      case 3: return <Step_Identity />;
+      case 4: return <Step_Location />;
+      case 5: return <Step_Hours />;
+      case 6: return <Step_Media />;
+      case 7: return <Step_Preview />;
       default: return null;
     }
   };
@@ -145,20 +149,18 @@ function OnboardingContent() {
         ))}
       </View>
 
-      {/* Step content */}
+      {/* Step content — skeleton while restoring saved draft */}
       <Animated.View style={[s.stepWrap, { transform: [{ translateX: slideAnim }] }]}>
-        {renderStep()}
+        {draftLoaded ? renderStep() : <DraftSkeleton />}
       </Animated.View>
     </View>
   );
 }
 
 export default function OnboardingScreen({ route }) {
-  const initialStep   = route?.params?.initialStep  || 1;
-  const prefillPhone  = route?.params?.prefillPhone || '';
-  const prefillToken  = route?.params?.prefillToken || '';
+  const initialStep = route?.params?.initialStep || 1;
   return (
-    <OnboardingProvider initialStep={initialStep} prefillPhone={prefillPhone} prefillToken={prefillToken}>
+    <OnboardingProvider initialStep={initialStep}>
       <OnboardingContent />
     </OnboardingProvider>
   );
@@ -180,8 +182,6 @@ const s = StyleSheet.create({
   logo:          { width: 32, height: 32 },
   stepCounter:   { fontSize: 11, color: '#475569', fontWeight: '600', letterSpacing: 0.5 },
   stepName:      { fontSize: 14, fontWeight: '800', color: '#c4b5fd', marginTop: 1 },
-  speedBadge:    { backgroundColor: 'rgba(99,102,241,0.15)', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 3, borderWidth: 1, borderColor: 'rgba(99,102,241,0.25)' },
-  speedText:     { fontSize: 9, color: '#818cf8', fontWeight: '700' },
 
   // Progress
   progressTrack: { height: 4, backgroundColor: 'rgba(255,255,255,0.06)', marginHorizontal: 0, overflow: 'hidden' },

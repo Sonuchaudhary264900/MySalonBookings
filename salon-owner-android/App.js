@@ -30,8 +30,8 @@ import { showSuccess, showError } from './src/utils/toast';
 
 import IntroScreen             from './src/screens/auth/IntroScreen';
 import LoginScreen             from './src/screens/auth/LoginScreen';
+import RegisterScreen          from './src/screens/auth/RegisterScreen';
 import OnboardingScreen        from './src/screens/onboarding/OnboardingScreen';
-import SalonRegistrationScreen from './src/screens/salon/SalonRegistrationScreen';
 import ApprovalWaitingScreen   from './src/screens/salon/ApprovalWaitingScreen';
 import HomeScreen              from './src/screens/dashboard/HomeScreen';
 import BookingsScreen          from './src/screens/dashboard/BookingsScreen';
@@ -385,7 +385,7 @@ function AuthNavigator() {
     <AuthStack.Navigator screenOptions={{ headerShown: false }}>
       <AuthStack.Screen name="Intro"      component={IntroScreen} />
       <AuthStack.Screen name="Login"      component={LoginScreen} />
-      <AuthStack.Screen name="Onboarding" component={OnboardingScreen} />
+      <AuthStack.Screen name="Register"   component={RegisterScreen} />
     </AuthStack.Navigator>
   );
 }
@@ -418,7 +418,7 @@ function RootNavigator() {
           // Staff skip onboarding and approval — go straight to dashboard
           <RootStack.Screen name="Main" component={MainDrawer} />
         ) : !salon ? (
-          <RootStack.Screen name="Onboarding" component={OnboardingScreen} initialParams={{ initialStep: 4 }} />
+          <RootStack.Screen name="Onboarding" component={OnboardingScreen} />
         ) : !isApproved ? (
           <RootStack.Screen name="ApprovalWaiting" component={ApprovalWaitingScreen} />
         ) : (

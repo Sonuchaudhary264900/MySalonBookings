@@ -57,18 +57,13 @@ API.interceptors.response.use(
       if (!onAuthPage) window.location.href = "/login";
     }
 
-    // Normalise error shape so callers get a predictable object
-    const msg =
-      error.response?.data?.message ||
-      (error.code === "ECONNABORTED" ? "Request timed out. Check your connection." :
-       !error.response              ? "Network error. Check your internet connection." :
-       error.message                || "Something went wrong.");
+    if (!error.response) {
+      error.message = error.code === "ECONNABORTED"
+        ? "Request timed out. Check your connection."
+        : "Network error. Check your internet connection.";
+    }
 
-    return Promise.reject({
-      status:  status ?? 0,
-      message: msg,
-      data:    error.response?.data,
-    });
+    return Promise.reject(error);
   }
 );
 

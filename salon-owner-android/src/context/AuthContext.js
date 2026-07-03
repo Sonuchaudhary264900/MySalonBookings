@@ -44,6 +44,34 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
+  // Register with Firebase phone token — mirrors website AuthContext.register:
+  // 409 (already exists) falls back to firebase-login with the same token.
+  const firebaseRegister = useCallback(async (firebaseToken) => {
+    setError(null);
+    const persist = async (data) => {
+      const { token, refreshToken, owner: userData } = data;
+      await AsyncStorage.setItem('token', token);
+      if (refreshToken) await AsyncStorage.setItem('refreshToken', refreshToken);
+      await AsyncStorage.setItem('ownerUser', JSON.stringify(userData));
+      await AsyncStorage.setItem('userRole', 'owner');
+      setUser(userData);
+    };
+    try {
+      const response = await api.post('/owner/auth/firebase-register', { firebaseToken });
+      if (!response.data.success) throw new Error(response.data.message || 'Registration failed');
+      await persist(response.data.data);
+      return response.data;
+    } catch (err) {
+      if (err.response?.status === 409) {
+        const loginRes = await api.post('/owner/auth/firebase-login', { firebaseToken });
+        if (!loginRes.data.success) throw new Error(loginRes.data.message || 'Login failed');
+        await persist(loginRes.data.data);
+        return loginRes.data;
+      }
+      throw err;
+    }
+  }, []);
+
   const firebaseLogin = useCallback(async (firebaseToken, phone) => {
     setError(null);
     const response = await api.post('/owner/auth/firebase-login', { firebaseToken, phone });
@@ -99,7 +127,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, isAuthenticated: !!user, firebaseLogin, staffFirebaseLogin, updateProfile, refreshUser, logout }}>
+    <AuthContext.Provider value={{ user, loading, error, isAuthenticated: !!user, firebaseLogin, firebaseRegister, staffFirebaseLogin, updateProfile, refreshUser, logout }}>
       {children}
     </AuthContext.Provider>
   );

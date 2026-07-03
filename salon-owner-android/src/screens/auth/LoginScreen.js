@@ -12,7 +12,7 @@ import { useAuth } from '../../context/AuthContext';
 const { width: W, height: H } = Dimensions.get('window');
 
 export default function LoginScreen({ navigation }) {
-  const { firebaseLogin, staffFirebaseLogin } = useAuth();
+  const { firebaseLogin, staffFirebaseLogin, firebaseRegister } = useAuth();
   const insets = useSafeAreaInsets();
 
   const [step, setStep] = useState(1);
@@ -124,13 +124,26 @@ export default function LoginScreen({ navigation }) {
               [{ text: 'OK' }]
             );
           } else if (staffNotFound) {
-            // Neither owner nor staff — ask before sending to registration
+            // Neither owner nor staff — matches website "Number not registered" modal
             Alert.alert(
-              'No account found',
-              "We couldn't find a GlowLoox Partner account with this number. Would you like to register a new account?",
+              'Number not registered',
+              'No GlowLoox Partner account found for this number.\n\nSalon owner? Register to create your account.\nStaff member? Ask your owner to add you in the Team section of their dashboard.',
               [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Register', onPress: () => navigation.navigate('Onboarding', { initialStep: 3, prefillPhone: formatPhone(phone), prefillToken: firebaseToken }) },
+                { text: 'Close', style: 'cancel' },
+                {
+                  text: 'Register',
+                  onPress: async () => {
+                    // Phone is already OTP-verified — register directly with the same token
+                    setLoading(true);
+                    try {
+                      await firebaseRegister(firebaseToken);
+                      // Auth state flips — RootNavigator takes the user into onboarding
+                    } catch (regErr) {
+                      // Token likely expired — send them through the Register screen
+                      navigation.navigate('Register');
+                    } finally { setLoading(false); }
+                  },
+                },
               ]
             );
           } else {
@@ -189,8 +202,8 @@ export default function LoginScreen({ navigation }) {
             {/* Step 1: Phone */}
             {step === 1 && (
               <>
-                <Text style={styles.cardTitle}>Get Started</Text>
-                <Text style={styles.cardSubtitle}>Enter your phone number to sign in or register</Text>
+                <Text style={styles.cardTitle}>Sign in</Text>
+                <Text style={styles.cardSubtitle}>Sign in to your GlowLoox Partner dashboard</Text>
 
                 <View style={styles.field}>
                   <Text style={styles.label}>Phone Number</Text>
@@ -229,7 +242,12 @@ export default function LoginScreen({ navigation }) {
                   )}
                 </TouchableOpacity>
 
-
+                <View style={styles.footerRow}>
+                  <Text style={styles.footerHint}>New here? </Text>
+                  <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+                    <Text style={styles.footerLink}>Create an account</Text>
+                  </TouchableOpacity>
+                </View>
               </>
             )}
 
@@ -368,4 +386,7 @@ const styles = StyleSheet.create({
   backLink: { color: '#818cf8', fontSize: 13, fontWeight: '600' },
 
   footerText: { textAlign: 'center', color: '#334155', fontSize: 12, marginTop: 24 },
+  footerRow:  { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 18 },
+  footerHint: { color: '#64748b', fontSize: 13 },
+  footerLink: { color: '#a78bfa', fontSize: 13, fontWeight: '700' },
 });

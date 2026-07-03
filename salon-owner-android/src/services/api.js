@@ -44,15 +44,13 @@ api.interceptors.response.use(
       }
     }
 
-    const message =
-      error.response?.data?.message ||
-      (error.code === 'ECONNABORTED'
+    if (!error.response) {
+      error.message = error.code === 'ECONNABORTED'
         ? 'Request timeout. Check your connection.'
-        : !error.response
-        ? 'Network error. Check your internet connection.'
-        : error.message || 'Something went wrong.');
+        : 'Network error. Check your internet connection.';
+    }
 
-    return Promise.reject({ status: error.response?.status ?? 0, message, data: error.response?.data });
+    return Promise.reject(error);
   }
 );
 
