@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, StyleSheet, ScrollView, TouchableOpacity,
-  SafeAreaView, StatusBar, ActivityIndicator, RefreshControl,
+  StatusBar, ActivityIndicator, RefreshControl,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AppText from '../../components/AppText';
 import { useTheme } from '../../context/ThemeContext';
@@ -100,6 +101,7 @@ export default function MySubscriptionScreen() {
   const { theme, isDark } = useTheme();
   const { isAuthenticated } = useAuth();
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
 
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -131,9 +133,9 @@ export default function MySubscriptionScreen() {
   const filtered = filter === 'all' ? purchases : purchases.filter(p => p.status === filter);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1, backgroundColor: theme.bg }}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.bg} />
-      <View style={[styles.header, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
+      <View style={[styles.header, { backgroundColor: theme.card, borderBottomColor: theme.border, paddingTop: insets.top + 12 }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={theme.text} />
         </TouchableOpacity>
@@ -198,7 +200,7 @@ export default function MySubscriptionScreen() {
           )}
         </ScrollView>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 

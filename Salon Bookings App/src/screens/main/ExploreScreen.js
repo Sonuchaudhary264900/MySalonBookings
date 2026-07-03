@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, StyleSheet, ScrollView, TouchableOpacity, TextInput,
-  SafeAreaView, StatusBar, ActivityIndicator, Image, FlatList,
+  StatusBar, ActivityIndicator, Image, FlatList,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AppText from '../../components/AppText';
 import { useTheme } from '../../context/ThemeContext';
@@ -53,6 +54,7 @@ export default function ExploreScreen() {
   const { theme, isDark } = useTheme();
   const { isAuthenticated } = useAuth();
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
 
   const [step, setStep]       = useState('biz');   // biz | cats | subs | salons
   const [selBiz, setSelBiz]   = useState(null);
@@ -113,9 +115,9 @@ export default function ExploreScreen() {
   const subtitle = step === 'biz' ? 'Choose a business type' : step === 'cats' ? 'Select a category' : step === 'subs' ? 'Choose a service' : `${salons.length} salon${salons.length !== 1 ? 's' : ''} found`;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1, backgroundColor: theme.bg }}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.bg} />
-      <View style={[styles.header, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
+      <View style={[styles.header, { backgroundColor: theme.card, borderBottomColor: theme.border, paddingTop: insets.top + 12 }]}>
         <TouchableOpacity onPress={goBack} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={theme.text} />
         </TouchableOpacity>
@@ -239,7 +241,7 @@ export default function ExploreScreen() {
           />
         )
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, StyleSheet, ScrollView, TouchableOpacity, TextInput,
-  Image, SafeAreaView, StatusBar, ActivityIndicator,
+  Image, StatusBar, ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Device from 'expo-device';
@@ -40,6 +41,7 @@ const TYPE_ICON = {
 
 export default function FeedbackScreen({ navigation }) {
   const { theme, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
 
   const [type, setType] = useState('feedback');
   const [severity, setSeverity] = useState('low');
@@ -133,11 +135,11 @@ export default function FeedbackScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg }]}>
+    <View style={[styles.safe, { backgroundColor: theme.bg }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.bg} />
 
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
+      <View style={[styles.header, { backgroundColor: theme.card, borderBottomColor: theme.border, paddingTop: insets.top + 12 }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={theme.text} />
         </TouchableOpacity>
@@ -318,7 +320,7 @@ export default function FeedbackScreen({ navigation }) {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import {
   View, StyleSheet, ScrollView, TouchableOpacity,
-  Linking, SafeAreaView, StatusBar
+  Linking, StatusBar
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppText from '../../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -99,6 +100,7 @@ const SECTIONS = {
 
 export default function LegalScreen({ navigation }) {
   const { theme, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState('privacy');
   const [expanded, setExpanded]   = useState(null);
 
@@ -106,11 +108,11 @@ export default function LegalScreen({ navigation }) {
   const toggle = (i) => setExpanded(prev => prev === i ? null : i);
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg }]}>
+    <View style={[styles.safe, { backgroundColor: theme.bg }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.bg} />
 
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
+      <View style={[styles.header, { backgroundColor: theme.card, borderBottomColor: theme.border, paddingTop: insets.top + 12 }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={theme.text} />
         </TouchableOpacity>
@@ -181,7 +183,7 @@ export default function LegalScreen({ navigation }) {
           Questions? Email glowloox@gmail.com
         </AppText>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

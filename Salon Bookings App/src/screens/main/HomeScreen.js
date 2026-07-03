@@ -791,9 +791,28 @@ export default function HomeScreen({ navigation }) {
   const { theme, isDark, toggleTheme } = useTheme();
   const { unreadCount } = useNotifications();
   const { user, isAuthenticated, logout } = useAuth();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [drawerVisible, setDrawerVisible] = useState(false);
   const chipScrollRef = useRef(null);
   const SCREEN_W = Dimensions.get('window').width;
+  const DRAWER_W = Math.min(SCREEN_W * 0.78, 340);
+  const drawerAnim = useRef(new Animated.Value(0)).current;
+
+  const openDrawer = useCallback(() => {
+    setDrawerVisible(true);
+  }, []);
+  const closeDrawer = useCallback(() => {
+    Animated.timing(drawerAnim, {
+      toValue: 0, duration: 220, useNativeDriver: true,
+    }).start(() => setDrawerVisible(false));
+  }, [drawerAnim]);
+
+  useEffect(() => {
+    if (!drawerVisible) return;
+    drawerAnim.setValue(0);
+    Animated.spring(drawerAnim, {
+      toValue: 1, useNativeDriver: true, speed: 18, bounciness: 4,
+    }).start();
+  }, [drawerVisible, drawerAnim]);
 
   const [salons, setSalons]               = useState([]);
   const [allSalons, setAllSalons]         = useState([]);
@@ -1063,7 +1082,7 @@ export default function HomeScreen({ navigation }) {
       <View style={{ backgroundColor: heroBg, paddingTop: insets.top + 10, paddingBottom: 0, overflow: 'hidden' }}>
         {/* Top bar: hamburger + wordmark + bell + theme (web navbar parity) */}
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 18, gap: 8 }}>
-          <TouchableOpacity onPress={() => setMenuOpen(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ marginRight: 6 }}>
+          <TouchableOpacity onPress={openDrawer} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ marginRight: 6 }}>
             <Ionicons name="menu-outline" size={26} color={heroText} />
           </TouchableOpacity>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, flex: 1 }}>
@@ -1316,17 +1335,27 @@ export default function HomeScreen({ navigation }) {
         />
       )}
 
-      {/* Drawer menu (web parity) */}
-      <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
+      {/* Drawer menu — real slide-in from the left, backdrop fades in together */}
+      <Modal visible={drawerVisible} transparent animationType="none" onRequestClose={closeDrawer}>
         <View style={{ flex: 1, flexDirection: 'row' }}>
-          <View style={{ width: '78%', maxWidth: 340, backgroundColor: isDark ? '#131a30' : '#ffffff', paddingTop: insets.top + 14 }}>
+          <Animated.View
+            style={{
+              width: DRAWER_W,
+              backgroundColor: isDark ? '#131a30' : '#ffffff',
+              paddingTop: insets.top + 14,
+              transform: [{
+                translateX: drawerAnim.interpolate({ inputRange: [0, 1], outputRange: [-DRAWER_W, 0] }),
+              }],
+              shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 20, shadowOffset: { width: 8, height: 0 }, elevation: 16,
+            }}
+          >
             {/* Drawer header */}
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, marginBottom: 24 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 <Image source={require('../../../assets/Icon-1024.png')} style={{ width: 38, height: 38, borderRadius: 11 }} />
                 <AppText style={{ fontSize: 19, fontWeight: '800', color: '#a78bfa', letterSpacing: -0.3 }}>GlowLoox</AppText>
               </View>
-              <TouchableOpacity onPress={() => setMenuOpen(false)}
+              <TouchableOpacity onPress={closeDrawer}
                 style={{ width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.14)' : 'rgba(30,27,75,0.14)', alignItems: 'center', justifyContent: 'center' }}>
                 <Ionicons name="close" size={18} color={isDark ? 'rgba(255,255,255,0.6)' : 'rgba(30,27,75,0.6)'} />
               </TouchableOpacity>
@@ -1344,7 +1373,7 @@ export default function HomeScreen({ navigation }) {
                 { icon: 'settings-outline',  label: 'Settings',        go: () => navigation.getParent()?.navigate('SettingsTab') },
               ].map(({ icon, label, go }) => (
                 <TouchableOpacity key={label}
-                  onPress={() => { setMenuOpen(false); go(); }}
+                  onPress={() => { closeDrawer(); go(); }}
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 14, paddingVertical: 14, borderRadius: 12 }}
                   activeOpacity={0.7}>
                   <Ionicons name={icon} size={21} color={isDark ? 'rgba(255,255,255,0.72)' : 'rgba(30,27,75,0.72)'} />
@@ -1363,15 +1392,22 @@ export default function HomeScreen({ navigation }) {
                 </AppText>
               </TouchableOpacity>
               {isAuthenticated && (
-                <TouchableOpacity onPress={() => { setMenuOpen(false); logout(); }}
+                <TouchableOpacity onPress={() => { closeDrawer(); logout(); }}
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 14, paddingVertical: 13 }} activeOpacity={0.7}>
                   <Ionicons name="log-out-outline" size={20} color="#f87171" />
                   <AppText style={{ fontSize: 15, fontWeight: '600', color: '#f87171' }}>Sign Out</AppText>
                 </TouchableOpacity>
               )}
             </View>
-          </View>
-          <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }} onPress={() => setMenuOpen(false)} />
+          </Animated.View>
+          <Animated.View
+            style={{
+              flex: 1, backgroundColor: '#000',
+              opacity: drawerAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.5] }),
+            }}
+          >
+            <Pressable style={{ flex: 1 }} onPress={closeDrawer} />
+          </Animated.View>
         </View>
       </Modal>
     </View>

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, StyleSheet, ScrollView, TouchableOpacity, TextInput,
-  SafeAreaView, StatusBar, ActivityIndicator,
+  StatusBar, ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AppText from '../../components/AppText';
 import RazorpayCheckout from '../../components/RazorpayCheckout';
@@ -35,6 +36,7 @@ const UPI_REGEX = /^[\w.\-]{2,256}@[a-zA-Z]{2,64}$/;
 export default function WalletScreen({ navigation }) {
   const { theme, isDark } = useTheme();
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const [balance, setBalance] = useState(null);
   const [transactions, setTransactions] = useState([]);
@@ -164,11 +166,11 @@ export default function WalletScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg }]}>
+    <View style={[styles.safe, { backgroundColor: theme.bg }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.bg} />
 
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
+      <View style={[styles.header, { backgroundColor: theme.card, borderBottomColor: theme.border, paddingTop: insets.top + 12 }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={theme.text} />
         </TouchableOpacity>
@@ -365,7 +367,7 @@ export default function WalletScreen({ navigation }) {
         onFailure={handlePaymentFailure}
         onDismiss={handlePaymentDismiss}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
