@@ -23,7 +23,7 @@
     },
     "android": {
       "package": "com.mysalonbookings.user",
-      "versionCode": 5,
+      "versionCode": 6,
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.ACCESS_FINE_LOCATION",
