@@ -14,15 +14,18 @@ const verifyToken = (token) => {
   }
 };
 
-// Reads cookie first (web), then Authorization header (mobile / public API)
+// Reads Authorization header first (explicit client intent — mobile / API),
+// then falls back to the cookie (web). Header must win: React Native's
+// native cookie jar keeps our httpOnly cookies even after app-side logout,
+// so a stale cookie must never override a fresh Bearer token.
 const extractToken = (req) => {
-  if (req.cookies?.token) return req.cookies.token;
-
   const authHeader = req.headers.authorization;
-  if (!authHeader) return null;
-  const parts = authHeader.split(' ');
-  if (parts.length !== 2 || parts[0] !== 'Bearer') return null;
-  return parts[1];
+  if (authHeader) {
+    const parts = authHeader.split(' ');
+    if (parts.length === 2 && parts[0] === 'Bearer') return parts[1];
+  }
+
+  return req.cookies?.token || null;
 };
 
 const authenticate = (expectedRole) => (req, res, next) => {

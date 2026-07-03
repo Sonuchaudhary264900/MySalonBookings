@@ -28,6 +28,12 @@ const csrf = (req, res, next) => {
   // Exempt patterns
   if (EXEMPT_PATTERNS.some((p) => p.test(req.originalUrl))) return next();
 
+  // Bearer-authenticated requests are CSRF-safe: a cross-site attacker cannot
+  // set custom headers. Mobile apps always send Bearer, but React Native's
+  // native cookie jar also stores our httpOnly cookies — so the old
+  // "no cookie → mobile" check wrongly flagged mobile requests as browsers.
+  if (req.headers.authorization?.startsWith('Bearer ')) return next();
+
   // If no auth cookie present → likely a mobile/API client (Bearer token) → skip CSRF
   if (!req.cookies?.token && !req.cookies?.refreshToken) return next();
 

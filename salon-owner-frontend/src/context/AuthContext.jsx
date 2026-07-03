@@ -160,7 +160,11 @@ export const AuthProvider = ({ children }) => {
 
   // ========== LOGOUT ==========
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    // Server logout clears the httpOnly auth cookies (unreachable from JS)
+    // and revokes the refresh token — without it the cookie session survives
+    // and the "logged out" user is silently still authenticated.
+    try { await API.post('/owner/auth/logout', {}); } catch { /* best-effort */ }
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('userRole');

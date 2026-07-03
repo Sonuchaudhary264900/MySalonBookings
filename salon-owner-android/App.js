@@ -400,9 +400,14 @@ function RootNavigator() {
   if (isLoading) {
     return (
       <View style={rootStyles.splash}>
+        <View style={rootStyles.splashOrb1} />
+        <View style={rootStyles.splashOrb2} />
         <View style={rootStyles.splashLogoCircle}>
           <Image source={require('./assets/Icon-1024.png')} style={rootStyles.splashLogoImg} resizeMode="contain" />
         </View>
+        <Text style={rootStyles.splashBrand}>GlowLoox Partner</Text>
+        <ActivityIndicator color="#818cf8" style={{ marginTop: 24 }} />
+        <Text style={rootStyles.splashHint}>Setting things up…</Text>
       </View>
     );
   }
@@ -591,9 +596,13 @@ const alertStyles = StyleSheet.create({
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const rootStyles = StyleSheet.create({
-  splash:           { flex: 1, backgroundColor: '#ffffff', justifyContent: 'center', alignItems: 'center' },
-  splashLogoCircle: { width: SCREEN_W * 0.55, height: SCREEN_W * 0.55, borderRadius: SCREEN_W * 0.275, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 16, elevation: 8 },
-  splashLogoImg:    { width: SCREEN_W * 0.48, height: SCREEN_W * 0.48 },
+  splash:           { flex: 1, backgroundColor: '#07071a', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  splashOrb1:       { position: 'absolute', width: SCREEN_W * 0.85, height: SCREEN_W * 0.85, borderRadius: SCREEN_W * 0.425, backgroundColor: '#4f46e5', top: -SCREEN_W * 0.25, left: -SCREEN_W * 0.2, opacity: 0.35 },
+  splashOrb2:       { position: 'absolute', width: SCREEN_W * 0.6, height: SCREEN_W * 0.6, borderRadius: SCREEN_W * 0.3, backgroundColor: '#7c3aed', bottom: -SCREEN_W * 0.15, right: -SCREEN_W * 0.2, opacity: 0.25 },
+  splashLogoCircle: { width: SCREEN_W * 0.34, height: SCREEN_W * 0.34, borderRadius: SCREEN_W * 0.17, backgroundColor: '#0d0d2b', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: 2.5, borderColor: 'rgba(56,189,248,0.5)', shadowColor: '#38bdf8', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.6, shadowRadius: 16, elevation: 10 },
+  splashLogoImg:    { width: SCREEN_W * 0.72, height: SCREEN_W * 0.72 },
+  splashBrand:      { marginTop: 18, fontSize: 17, fontWeight: '800', color: '#f1f5f9', letterSpacing: 0.3 },
+  splashHint:       { marginTop: 10, fontSize: 12, color: '#475569' },
 });
 
 const getDStyles = (theme, isDark) => StyleSheet.create({

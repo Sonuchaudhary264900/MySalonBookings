@@ -120,6 +120,18 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const logout = useCallback(async () => {
+    // Tell the server first: revokes the refresh token AND sends Set-Cookie
+    // clears so React Native's native cookie jar drops the httpOnly session
+    // cookies — otherwise a stale cookie can survive into the next login.
+    try {
+      const [role, refreshToken] = await Promise.all([
+        AsyncStorage.getItem('userRole'),
+        AsyncStorage.getItem('refreshToken'),
+      ]);
+      if (role !== 'staff') {
+        await api.post('/owner/auth/logout', { refreshToken });
+      }
+    } catch { /* best-effort — never block logout */ }
     await AsyncStorage.multiRemove(['token', 'refreshToken', 'ownerUser', 'userRole']);
     try { await auth().signOut(); } catch {}
     setUser(null);
