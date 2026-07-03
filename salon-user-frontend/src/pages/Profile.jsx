@@ -206,7 +206,10 @@ export default function Profile() {
   const [language, setLanguage]       = useState('English');
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [genderSaving, setGenderSaving]       = useState(false);
-
+  const [editingProfile, setEditingProfile]   = useState(false);
+  const [editName, setEditName]               = useState('');
+  const [editEmail, setEditEmail]             = useState('');
+  const [profileSaving, setProfileSaving]     = useState(false);
 
   useEffect(() => {
     if (!getCustomerToken()) { navigate("/login"); return; }
@@ -266,6 +269,27 @@ export default function Profile() {
       localStorage.setItem('customerGender', g);
     } catch { /* silent */ }
     finally { setGenderSaving(false); }
+  };
+
+  const startEditProfile = () => {
+    setEditName(user?.name || '');
+    setEditEmail(user?.email || '');
+    setEditingProfile(true);
+  };
+
+  const handleSaveProfile = async () => {
+    const trimmed = editName.trim();
+    if (trimmed.length < 2) { alert('Name must be at least 2 characters'); return; }
+    setProfileSaving(true);
+    try {
+      const res = await API.put('/customer/auth/me', { name: trimmed, email: editEmail.trim() || undefined, gender: user?.gender });
+      setUser(res.data?.data || { ...user, name: trimmed, email: editEmail.trim() });
+      setEditingProfile(false);
+    } catch (err) {
+      alert(err?.response?.data?.message || err?.message || 'Could not save changes. Try again.');
+    } finally {
+      setProfileSaving(false);
+    }
   };
 
   const referralCode = user?.phone
@@ -374,19 +398,96 @@ export default function Profile() {
                 >
                   {initials}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p style={{ fontSize: 18, fontWeight: 700, color: isDark ? 'rgba(255,255,255,0.95)' : '#1e1b4b', lineHeight: 1.2 }}>
-                    {user?.name || 'Guest User'}
-                  </p>
-                  <p style={{ fontSize: 13, marginTop: 3, color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(30,27,75,0.6)' }}>
-                    {user?.phone || ''}
-                  </p>
-                  {user?.email && (
-                    <p style={{ fontSize: 12, marginTop: 1, color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(30,27,75,0.45)' }} className="truncate">
-                      {user.email}
-                    </p>
-                  )}
-                </div>
+
+                {!editingProfile ? (
+                  <>
+                    <div className="flex-1 min-w-0">
+                      <p style={{ fontSize: 18, fontWeight: 700, color: isDark ? 'rgba(255,255,255,0.95)' : '#1e1b4b', lineHeight: 1.2 }}>
+                        {user?.name || 'Guest User'}
+                      </p>
+                      <p style={{ fontSize: 13, marginTop: 3, color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(30,27,75,0.6)' }}>
+                        {user?.phone || ''}
+                      </p>
+                      {user?.email && (
+                        <p style={{ fontSize: 12, marginTop: 1, color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(30,27,75,0.45)' }} className="truncate">
+                          {user.email}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={startEditProfile}
+                      title="Edit name & email"
+                      style={{
+                        flexShrink: 0, width: 34, height: 34, borderRadius: '50%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(30,27,75,0.06)',
+                        border: `1px solid ${isDark ? 'rgba(255,255,255,0.14)' : 'rgba(30,27,75,0.12)'}`,
+                        color: isDark ? 'rgba(255,255,255,0.75)' : '#4f46e5', cursor: 'pointer',
+                      }}
+                    >
+                      <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                  </>
+                ) : (
+                  <div className="flex-1 min-w-0" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <input
+                      value={editName}
+                      onChange={e => setEditName(e.target.value)}
+                      placeholder="Your full name"
+                      maxLength={60}
+                      autoFocus
+                      style={{
+                        fontSize: 15, fontWeight: 600, padding: '9px 12px', borderRadius: 10,
+                        border: `1.5px solid ${isDark ? 'rgba(255,255,255,0.16)' : 'rgba(30,27,75,0.18)'}`,
+                        background: isDark ? 'rgba(255,255,255,0.06)' : '#fff',
+                        color: isDark ? '#fff' : '#1e1b4b', outline: 'none',
+                      }}
+                    />
+                    <input
+                      value={editEmail}
+                      onChange={e => setEditEmail(e.target.value)}
+                      placeholder="your@email.com"
+                      type="email"
+                      style={{
+                        fontSize: 13, padding: '8px 12px', borderRadius: 10,
+                        border: `1.5px solid ${isDark ? 'rgba(255,255,255,0.16)' : 'rgba(30,27,75,0.18)'}`,
+                        background: isDark ? 'rgba(255,255,255,0.06)' : '#fff',
+                        color: isDark ? '#fff' : '#1e1b4b', outline: 'none',
+                      }}
+                    />
+                    <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
+                      <button
+                        type="button"
+                        onClick={handleSaveProfile}
+                        disabled={profileSaving}
+                        style={{
+                          flex: 1, padding: '9px 0', borderRadius: 10, border: 'none',
+                          background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff',
+                          fontSize: 13, fontWeight: 700, cursor: profileSaving ? 'not-allowed' : 'pointer',
+                          opacity: profileSaving ? 0.6 : 1,
+                        }}
+                      >
+                        {profileSaving ? 'Saving…' : 'Save'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingProfile(false)}
+                        disabled={profileSaving}
+                        style={{
+                          padding: '9px 16px', borderRadius: 10,
+                          border: `1.5px solid ${isDark ? 'rgba(255,255,255,0.16)' : 'rgba(30,27,75,0.18)'}`,
+                          background: 'transparent', color: isDark ? 'rgba(255,255,255,0.7)' : '#1e1b4b',
+                          fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
               {/* Member badge */}
               <div className="flex items-center gap-2 mt-4" style={{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(30,27,75,0.1)'}`, paddingTop: 12 }}>

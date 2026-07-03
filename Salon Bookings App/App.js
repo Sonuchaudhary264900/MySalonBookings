@@ -263,10 +263,17 @@ function RootNavigator() {
 }
 
 function ThemedApp() {
-  const { isDark } = useTheme();
+  const { isDark, theme } = useTheme();
   return (
     <>
-      <StatusBar style={isDark ? 'light' : 'dark'} />
+      {/* Icons + the notch's background fill both follow the user's saved theme.
+          (MapScreen overrides this locally with a translucent bar for its
+          edge-to-edge layout — that's intentional, not a bug.) */}
+      <StatusBar
+        style={isDark ? 'light' : 'dark'}
+        backgroundColor={theme.bg}
+        translucent={false}
+      />
       <RootNavigator />
       <Toast />
     </>
