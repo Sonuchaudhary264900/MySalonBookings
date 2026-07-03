@@ -46,7 +46,7 @@ api.interceptors.response.use(
   async (error) => {
     const original = error.config;
 
-    const isAuthEndpoint = original.url?.includes('/auth/login') || original.url?.includes('/auth/refresh-token');
+    const isAuthEndpoint = /\/auth\/(firebase-)?(login|register)|\/auth\/refresh-token/.test(original.url || '');
     if (error.response?.status === 401 && !original._retry && !isAuthEndpoint) {
       original._retry = true;
       try {
@@ -71,13 +71,28 @@ api.interceptors.response.use(
     }
 
     if (!error.response) {
+      // No response usually means the Render backend is cold-starting and the
+      // gateway error page lacks CORS headers — retry a couple of times before
+      // surfacing "network error" to the user.
+      original._netRetries = (original._netRetries || 0) + 1;
+      if (original._netRetries <= 2) {
+        await new Promise(r => setTimeout(r, original._netRetries * 2000));
+        return api(original);
+      }
       error.message = error.code === 'ECONNABORTED'
         ? 'Request timeout. Check your connection.'
-        : 'Network error. Check your internet connection.';
+        : 'Server is waking up — please try again in a few seconds.';
     }
 
     return Promise.reject(error);
   }
 );
+
+// Warm up the backend as soon as the app loads so cold starts finish
+// before the user submits anything (fire-and-forget).
+try {
+  const root = BASE_URL.replace(/\/api\/v1\/?$/, '');
+  fetch(`${root}/health`).catch(() => {});
+} catch { /* no-op */ }
 
 export default api;

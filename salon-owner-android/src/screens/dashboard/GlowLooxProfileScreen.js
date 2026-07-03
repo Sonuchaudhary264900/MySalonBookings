@@ -110,9 +110,7 @@ export default function GlowLooxProfileScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('services'); // web default tab
   const [lightboxIdx, setLightboxIdx] = useState(null);
-  const [bannerIdx, setBannerIdx] = useState(0);
   const [expandedCat, setExpandedCat] = useState(null);
-  const bannerTimer = useRef(null);
 
   const photoUrls = galleryItems.filter(i => i.type === 'image').map(i => urlOf(i.url) || urlOf(i)).filter(Boolean);
   const bannerSlides = galleryItems.map(i => ({ ...i, url: urlOf(i.url) || urlOf(i) })).filter(i => i.url);
@@ -163,12 +161,6 @@ export default function GlowLooxProfileScreen() {
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const onRefresh = () => { setRefreshing(true); load(); };
-
-  useEffect(() => {
-    if (bannerSlides.length <= 1) return;
-    bannerTimer.current = setInterval(() => setBannerIdx(i => (i + 1) % bannerSlides.length), 3500);
-    return () => clearInterval(bannerTimer.current);
-  }, [bannerSlides.length]);
 
   const handleShare = async () => {
     try {
@@ -536,36 +528,29 @@ export default function GlowLooxProfileScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={DM.p} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── A. BANNER ── */}
-        <View style={{ height: BANNER_H, backgroundColor: DM.card2, overflow: 'hidden', position: 'relative' }}>
-          {bannerSlides.length > 0 ? (
-            <Image source={{ uri: bannerSlides[bannerIdx % bannerSlides.length]?.url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+        {/* ── A. BANNER — static cover like the website (no auto-scroll) ── */}
+        <View style={{ height: BANNER_H, marginTop: insets.top, backgroundColor: DM.card2, overflow: 'hidden', position: 'relative' }}>
+          {photoUrls.length > 0 ? (
+            <Image source={{ uri: photoUrls[0] }} style={StyleSheet.absoluteFill} resizeMode="cover" />
           ) : (
             <View style={[StyleSheet.absoluteFill, { backgroundColor: DM.p + '30', alignItems: 'center', justifyContent: 'center' }]}>
               <Ionicons name="storefront" size={64} color={DM.acc} style={{ opacity: 0.3 }} />
             </View>
           )}
-          {/* Bottom fade into page bg — same as web gradient */}
-          <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: BANNER_H * 0.55, backgroundColor: 'transparent' }}>
-            <View style={{ flex: 1, backgroundColor: 'rgba(13,5,32,0.35)' }} />
-            <View style={{ height: 34, backgroundColor: 'rgba(13,5,32,0.75)' }} />
-            <View style={{ height: 14, backgroundColor: DM.bg }} />
+          {/* Bottom fade into page bg — 14 thin slices approximate the web's CSS gradient */}
+          <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: BANNER_H * 0.6 }}>
+            {Array.from({ length: 14 }).map((_, i) => (
+              <View key={i} style={{ flex: 1, backgroundColor: `rgba(13,5,32,${(0.9 * (i + 1) / 14).toFixed(3)})` }} />
+            ))}
+            <View style={{ height: 10, backgroundColor: DM.bg }} />
           </View>
 
-          {bannerSlides.length > 1 && (
-            <View style={{ position: 'absolute', bottom: 10, alignSelf: 'center', flexDirection: 'row', gap: 4 }}>
-              {bannerSlides.map((_, i) => (
-                <View key={i} style={{ width: i === bannerIdx ? 16 : 5, height: 5, borderRadius: 99, backgroundColor: i === bannerIdx ? '#fff' : 'rgba(255,255,255,0.4)' }} />
-              ))}
-            </View>
-          )}
-
-          <View style={[s.previewBadge, { top: (insets.top || 12) + 8 }]}>
+          <View style={[s.previewBadge, { top: 12 }]}>
             <Ionicons name="eye-outline" size={12} color="#fff" />
             <Text style={s.previewTxt}>Customer View</Text>
           </View>
 
-          <TouchableOpacity onPress={handleShare} style={[s.shareTopBtn, { top: (insets.top || 12) + 8 }]}>
+          <TouchableOpacity onPress={handleShare} style={[s.shareTopBtn, { top: 12 }]}>
             <Ionicons name="share-social-outline" size={17} color="#fff" />
           </TouchableOpacity>
         </View>
