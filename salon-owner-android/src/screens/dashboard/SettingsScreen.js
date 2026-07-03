@@ -434,11 +434,16 @@ function AutoConfirmSection({ salon, onSaved }) {
 }
 
 // ── 8. Salon Photos ───────────────────────────────────────────────
+// salon.photos entries can be strings or {url, publicId, isCover} objects —
+// normalize to URL strings; passing an object as an <Image> uri crashes Fabric.
+const photoUrlsOf = (list) =>
+  (Array.isArray(list) ? list : []).map(p => (typeof p === 'string' ? p : p?.url)).filter(Boolean);
+
 function SalonPhotosSection({ salon, onSaved }) {
-  const [photos, setPhotos] = useState(salon?.photos || []);
+  const [photos, setPhotos] = useState(photoUrlsOf(salon?.photos));
   const [uploading, setUploading] = useState(false);
 
-  useEffect(() => { if (salon?.photos) setPhotos(salon.photos); }, [salon]);
+  useEffect(() => { if (salon?.photos) setPhotos(photoUrlsOf(salon.photos)); }, [salon]);
 
   const handlePickImages = async () => {
     if (photos.length >= 10) { showError('Limit reached', 'Maximum 10 photos allowed'); return; }

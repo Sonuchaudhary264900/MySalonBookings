@@ -3,10 +3,12 @@ import {
   View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSalon } from '../../context/SalonContext';
 import { useAuth } from '../../context/AuthContext';
 
 export default function ApprovalWaitingScreen() {
+  const insets = useSafeAreaInsets();
   const { salon, fetchSalon, loading } = useSalon();
   const { logout } = useAuth();
   const [checking, setChecking] = useState(false);
@@ -27,7 +29,7 @@ export default function ApprovalWaitingScreen() {
   const isRejected = status === 'rejected';
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 20 }]}>
       <View style={styles.card}>
         {/* Brand logo */}
         <View style={styles.brandLogoBox}>

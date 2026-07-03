@@ -300,6 +300,7 @@ const TAB_LABELS = {
 // ── 5-tab swipeable navigator ──────────────────────────────────────
 function MainTabs() {
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
   return (
     <Tab.Navigator
       tabBarPosition="bottom"
@@ -310,12 +311,14 @@ function MainTabs() {
           backgroundColor: theme.card,
           borderTopWidth: 1,
           borderTopColor: theme.border,
-          height: 62,
+          height: 62 + insets.bottom,
+          paddingBottom: insets.bottom,
           elevation: 8,
           shadowColor: '#000',
           shadowOpacity: 0.3,
           shadowRadius: 8,
         },
+        tabBarItemStyle: { paddingHorizontal: 0 },
         tabBarActiveTintColor: theme.accent,
         tabBarInactiveTintColor: theme.subText,
         tabBarIndicatorStyle: {
@@ -326,7 +329,7 @@ function MainTabs() {
           borderRadius: 2,
         },
         tabBarIndicatorContainerStyle: { top: 0 },
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '700', marginBottom: 4, textTransform: 'none' },
+        tabBarLabelStyle: { fontSize: 9.5, fontWeight: '700', marginBottom: 4, marginHorizontal: 0, textTransform: 'none', width: '100%', textAlign: 'center' },
         tabBarIconStyle: { marginTop: 6 },
         tabBarShowIcon: true,
         tabBarIcon: ({ color, focused }) => {

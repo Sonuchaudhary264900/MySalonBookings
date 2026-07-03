@@ -1,20 +1,38 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Image, Dimensions, Share, RefreshControl, FlatList,
+  Image, Dimensions, Share, RefreshControl,
   Animated, Modal, StatusBar, Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSalon } from '../../context/SalonContext';
-import { useTheme } from '../../context/ThemeContext';
-import { showSuccess, showError } from '../../utils/toast';
+import { showSuccess, showError, showInfo } from '../../utils/toast';
 import api from '../../services/api';
 
 const { width: SW, height: SH } = Dimensions.get('window');
-const BANNER_H = Math.round(SW * 0.52);
-const AVATAR_SIZE = 82;
+const BANNER_H = Math.min(Math.round(SW * 0.52), 220);
+const AVATAR_SIZE = 72;
+
+// This screen previews the salon exactly as customers see it on
+// glowloox.com/salon/:id — always dark, same layout, same copy.
+const DM = {
+  bg:    '#0D0520',
+  card:  'rgba(255,255,255,0.04)',
+  card2: '#1A0F2E',
+  border:'rgba(255,255,255,0.08)',
+  fg:    '#F9FAFB',
+  fg60:  'rgba(255,255,255,0.60)',
+  fg45:  'rgba(255,255,255,0.45)',
+  fg38:  'rgba(255,255,255,0.38)',
+  p:     '#7C3AED',
+  acc:   '#A78BFA',
+};
+
+// Photos can be plain URL strings or {url, publicId, isCover} objects —
+// never hand an object to <Image>, it hard-crashes Fabric.
+const urlOf = (x) => (typeof x === 'string' ? x : x?.url || x?.secure_url || null);
 
 const WH_DAYS = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
 
@@ -42,14 +60,10 @@ const getOpensAt = (wh) => {
   return h.open;
 };
 
-const BIZ_THEME = {
-  barbershop:    { p: '#6366f1', acc: '#818cf8', label: 'Barbershop' },
-  salon:         { p: '#818cf8', acc: '#a5b4fc', label: 'Business' },
-  spa_wellness:  { p: '#8b5cf6', acc: '#a78bfa', label: 'Spa & Wellness' },
-  makeup_bridal: { p: '#a78bfa', acc: '#c4b5fd', label: 'Makeup & Bridal' },
-  skin_derma:    { p: '#6366f1', acc: '#818cf8', label: 'Skin & Derma' },
+const fmt12 = (t) => {
+  const [h, m] = t.split(':').map(Number);
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
 };
-const DEFAULT_BIZ = { p: '#6366f1', acc: '#818cf8', label: 'Business' };
 
 const DAY_ORDER = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
 const DAY_LABEL = { monday:'Mon', tuesday:'Tue', wednesday:'Wed', thursday:'Thu', friday:'Fri', saturday:'Sat', sunday:'Sun' };
@@ -86,27 +100,24 @@ function SkeletonBox({ w, h, r = 6, style }) {
 export default function GlowLooxProfileScreen() {
   const insets = useSafeAreaInsets();
   const { salon } = useSalon();
-  const { theme, isDark } = useTheme();
 
   const [services, setServices] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [galleryItems, setGalleryItems] = useState([]);
-  const [catalogImgMap, setCatalogImgMap] = useState({}); // cat -> { svcName -> defaultImage }
+  const [catalogImgMap, setCatalogImgMap] = useState({});
+  const [todaySlots, setTodaySlots] = useState(null); // {slots, blockedSlots, closedDay}
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState('gallery');
+  const [activeTab, setActiveTab] = useState('services'); // web default tab
   const [lightboxIdx, setLightboxIdx] = useState(null);
   const [bannerIdx, setBannerIdx] = useState(0);
   const [expandedCat, setExpandedCat] = useState(null);
   const bannerTimer = useRef(null);
 
-  const bizTheme = BIZ_THEME[salon?.businessType] || DEFAULT_BIZ;
+  const photoUrls = galleryItems.filter(i => i.type === 'image').map(i => urlOf(i.url) || urlOf(i)).filter(Boolean);
+  const bannerSlides = galleryItems.map(i => ({ ...i, url: urlOf(i.url) || urlOf(i) })).filter(i => i.url);
 
-  const photoUrls = galleryItems.filter(i => i.type === 'image').map(i => i.url).filter(Boolean);
-  const videoUrls = galleryItems.filter(i => i.type === 'video').map(i => i.url).filter(Boolean);
-  const bannerSlides = galleryItems.filter(i => i.url);
-
-  const coverPhoto = salon?.profilePhoto || salon?.coverPhoto || photoUrls[0] || null;
+  const avatarPhoto = urlOf(salon?.profilePhoto) || urlOf(salon?.logo) || urlOf(salon?.coverPhoto) || photoUrls[0] || null;
 
   const avgRating = salon?.averageRating || salon?.rating
     ? parseFloat(salon.averageRating || salon.rating)
@@ -118,24 +129,26 @@ export default function GlowLooxProfileScreen() {
   const load = useCallback(async () => {
     if (!salon?._id) return;
     try {
-      const [svcRes, revRes, galRes, catRes] = await Promise.all([
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const [svcRes, revRes, galRes, catRes, slotRes] = await Promise.all([
         api.get(`/public/salons/${salon._id}/services`).catch(() => ({ data: { data: [] } })),
         api.get(`/public/salons/${salon._id}/reviews`).catch(() => ({ data: { data: [] } })),
         api.get('/owner/gallery').catch(() => ({ data: { data: [] } })),
         api.get('/owner/catalog').catch(() => ({ data: { data: [] } })),
+        api.get(`/public/salons/${salon._id}/booked-slots?date=${todayStr}&duration=30`).catch(() => ({ data: { data: { slots: [], blockedSlots: [], closedDay: true } } })),
       ]);
       setServices(svcRes.data.data?.services || svcRes.data.data || []);
       setReviews(revRes.data.data?.reviews || revRes.data.data || []);
       const rawGallery = galRes.data.data || [];
-      setGalleryItems(rawGallery.filter(i => i.url));
-      // Build catalog default-image map: category -> { serviceName -> defaultImage }
+      setGalleryItems(rawGallery.filter(i => urlOf(i.url) || urlOf(i)));
+      setTodaySlots(slotRes.data.data || null);
       const cats = catRes.data.data?.categories || catRes.data.data || [];
       const map = {};
       (Array.isArray(cats) ? cats : []).forEach(c => {
         const details = c.serviceDetails || {};
         const inner = {};
         Object.keys(details).forEach(name => {
-          const img = details[name]?.defaultImage || details[name]?.image;
+          const img = urlOf(details[name]?.defaultImage) || urlOf(details[name]?.image);
           if (img) inner[name] = img;
         });
         if (Object.keys(inner).length) map[c.label || c.name] = inner;
@@ -151,7 +164,6 @@ export default function GlowLooxProfileScreen() {
 
   const onRefresh = () => { setRefreshing(true); load(); };
 
-  // Auto-advance banner
   useEffect(() => {
     if (bannerSlides.length <= 1) return;
     bannerTimer.current = setInterval(() => setBannerIdx(i => (i + 1) % bannerSlides.length), 3500);
@@ -160,11 +172,10 @@ export default function GlowLooxProfileScreen() {
 
   const handleShare = async () => {
     try {
-      await Share.share({ message: `Check out ${salon?.name} on GlowLoox!` });
+      await Share.share({ message: `Check out ${salon?.name} on GlowLoox! https://glowloox.com/salon/${salon?._id}` });
     } catch {}
   };
 
-  // Delete a gallery item
   const handleDeleteGallery = (item) => {
     if (!item?._id) return;
     Alert.alert('Delete this item?', 'It will be removed from your gallery.', [
@@ -184,37 +195,33 @@ export default function GlowLooxProfileScreen() {
     ]);
   };
 
-  // ── Tab: Gallery ──────────────────────────────────────────────────
-  const renderGallery = () => {
-    if (!photoUrls.length && !videoUrls.length) {
+  // ── Tab: Photos (gallery) ─────────────────────────────────────────
+  const renderPhotos = () => {
+    if (!bannerSlides.length) {
       return (
         <View style={s.emptyBox}>
-          <Ionicons name="images-outline" size={40} color={bizTheme.acc} style={{ opacity: 0.4 }} />
-          <Text style={[s.emptyTxt, { color: theme.subText }]}>No photos or videos yet</Text>
-          <Text style={[s.emptyHint, { color: theme.subText }]}>Add photos from Gallery in the menu</Text>
+          <Ionicons name="images-outline" size={40} color={DM.acc} style={{ opacity: 0.4 }} />
+          <Text style={s.emptyTxt}>No photos or videos yet</Text>
+          <Text style={s.emptyHint}>Add photos from Gallery in the menu</Text>
         </View>
       );
     }
-    const items = galleryItems.filter(i => i.url);
     return (
       <View>
-        <Text style={[s.galleryHint, { color: theme.subText }]}>Long-press a photo to delete it</Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 2, padding: 2 }}>
-          {items.map((item, i) => (
+        <Text style={s.galleryHint}>Long-press a photo to delete it</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 3, padding: 3 }}>
+          {bannerSlides.map((item, i) => (
             <TouchableOpacity key={item._id || i}
               onPress={() => setLightboxIdx(i)}
               onLongPress={() => handleDeleteGallery(item)}
               delayLongPress={300}
-              style={{ width: (SW - 8) / 3, height: (SW - 8) / 3, overflow: 'hidden', position: 'relative' }}>
+              style={{ width: (SW - 9) / 2, height: (SW - 9) / 2, overflow: 'hidden', position: 'relative' }}>
               <Image source={{ uri: item.url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
               {item.type === 'video' && (
-                <View style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
-                  <Ionicons name="play-circle" size={28} color="#fff" />
+                <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }]}>
+                  <Ionicons name="play-circle" size={30} color="#fff" />
                 </View>
               )}
-              <View style={s.galleryDelBadge}>
-                <Ionicons name="trash" size={11} color="#fff" />
-              </View>
             </TouchableOpacity>
           ))}
         </View>
@@ -250,9 +257,11 @@ export default function GlowLooxProfileScreen() {
       </View>
     );
     if (!services.length) return (
-      <View style={s.emptyBox}>
-        <Ionicons name="cut-outline" size={40} color={bizTheme.acc} style={{ opacity: 0.4 }} />
-        <Text style={[s.emptyTxt, { color: theme.subText }]}>No services added yet</Text>
+      // Same empty state customers see on the website
+      <View style={s.svcEmptyBox}>
+        <Ionicons name="cut-outline" size={40} color={DM.acc} />
+        <Text style={s.svcEmptyTitle}>Services coming soon</Text>
+        <Text style={s.svcEmptyHint}>This salon is setting up their menu. Check back shortly or contact them directly.</Text>
       </View>
     );
 
@@ -275,49 +284,46 @@ export default function GlowLooxProfileScreen() {
         {sortedEntries.map(([cat, catServices]) => {
           const icon = CAT_ICON_MAP[cat] || 'storefront-outline';
           const isOpen = expandedCat === cat;
-          const minPrice = Math.min(...catServices.map(s => s.basePrice || s.price || 0));
+          const minPrice = Math.min(...catServices.map(x => x.basePrice || x.price || 0));
 
           return (
-            <View key={cat} style={[s.catBlock, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#f8f9fb', borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb' }]}>
-              {/* Category header */}
+            <View key={cat} style={s.catBlock}>
               <TouchableOpacity onPress={() => setExpandedCat(isOpen ? null : cat)} activeOpacity={0.7}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 14 }}>
-                <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: bizTheme.p + '22', alignItems: 'center', justifyContent: 'center' }}>
-                  <Ionicons name={icon} size={19} color={bizTheme.acc} />
+                <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: DM.p + '22', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name={icon} size={19} color={DM.acc} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>{cat}</Text>
-                  <Text style={{ fontSize: 11, color: theme.subText, marginTop: 1 }}>{catServices.length} service{catServices.length !== 1 ? 's' : ''}</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: DM.fg }}>{cat}</Text>
+                  <Text style={{ fontSize: 11, color: DM.fg45, marginTop: 1 }}>{catServices.length} service{catServices.length !== 1 ? 's' : ''}</Text>
                 </View>
-                <Text style={{ fontSize: 13, fontWeight: '700', color: bizTheme.acc, marginRight: 6 }}>from ₹{minPrice}+</Text>
-                <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={16} color={theme.subText} />
+                <Text style={{ fontSize: 13, fontWeight: '700', color: DM.acc, marginRight: 6 }}>from ₹{minPrice}+</Text>
+                <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={16} color={DM.fg45} />
               </TouchableOpacity>
 
-              {/* Service rows */}
               {isOpen && (
-                <View style={{ borderTopWidth: 1, borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb' }}>
+                <View style={{ borderTopWidth: 1, borderTopColor: DM.border }}>
                   {catServices.map((svc, i) => {
-                    const thumb = svc.image || catalogImgMap[cat]?.[svc.name];
+                    const thumb = urlOf(svc.image) || urlOf(svc.photos?.[0]) || catalogImgMap[cat]?.[svc.name];
                     return (
                     <View key={svc._id || i}
-                      style={[s.svcRow, i < catServices.length - 1 && { borderBottomWidth: 1, borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : '#f0f0f0' }]}>
+                      style={[s.svcRow, i < catServices.length - 1 && { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' }]}>
                       {thumb ? (
                         <Image source={{ uri: thumb }} style={s.svcThumb} resizeMode="cover" />
                       ) : null}
                       <View style={{ flex: 1 }}>
-                        <Text style={[s.svcName, { color: theme.text }]}>{svc.name}</Text>
+                        <Text style={s.svcName}>{svc.name}</Text>
                         {svc.duration > 0 && (
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 }}>
-                            <Ionicons name="time-outline" size={10} color={theme.subText} />
-                            <Text style={[s.svcDur, { color: theme.subText }]}>{svc.duration} min</Text>
+                            <Ionicons name="time-outline" size={10} color={DM.fg45} />
+                            <Text style={s.svcDur}>{svc.duration} min</Text>
                           </View>
                         )}
                       </View>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <Text style={[s.svcPrice, { color: bizTheme.acc }]}>₹{svc.basePrice || svc.price || 0}</Text>
-                        {/* "+ ADD" visual (customer sees this) */}
-                        <View style={{ borderWidth: 1.5, borderColor: bizTheme.p, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
-                          <Text style={{ fontSize: 11, fontWeight: '800', color: bizTheme.acc }}>+ ADD</Text>
+                        <Text style={s.svcPrice}>₹{svc.basePrice || svc.price || 0}</Text>
+                        <View style={{ borderWidth: 1.5, borderColor: DM.p, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
+                          <Text style={{ fontSize: 11, fontWeight: '800', color: DM.acc }}>+ ADD</Text>
                         </View>
                       </View>
                     </View>
@@ -341,67 +347,63 @@ export default function GlowLooxProfileScreen() {
     );
     if (!reviews.length) return (
       <View style={s.emptyBox}>
-        <Ionicons name="star-outline" size={40} color={bizTheme.acc} style={{ opacity: 0.4 }} />
-        <Text style={[s.emptyTxt, { color: theme.subText }]}>No reviews yet</Text>
-        <Text style={[s.emptyHint, { color: theme.subText }]}>Reviews from customers will appear here</Text>
+        <Ionicons name="star-outline" size={40} color={DM.acc} style={{ opacity: 0.4 }} />
+        <Text style={s.emptyTxt}>No reviews yet</Text>
+        <Text style={s.emptyHint}>Reviews from customers will appear here</Text>
       </View>
     );
 
-    const totalRating = reviews.reduce((s, r) => s + (r.rating || 0), 0);
+    const totalRating = reviews.reduce((sum, r) => sum + (r.rating || 0), 0);
     const avgRev = reviews.length ? (totalRating / reviews.length).toFixed(1) : null;
     const dist = [5,4,3,2,1].map(n => ({ n, count: reviews.filter(r => Math.round(r.rating) === n).length }));
 
     return (
       <View style={{ padding: 12 }}>
-        {/* Rating summary */}
-        <View style={[s.revSummary, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#f8f9fb', borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb' }]}>
+        <View style={s.revSummary}>
           <View style={{ alignItems: 'center', marginRight: 20 }}>
-            <Text style={[s.bigRating, { color: theme.text }]}>{avgRev || '—'}</Text>
+            <Text style={s.bigRating}>{avgRev || '—'}</Text>
             {avgRev && <StarRow rating={parseFloat(avgRev)} />}
-            <Text style={[s.revCount, { color: theme.subText }]}>{reviews.length} reviews</Text>
+            <Text style={s.revCount}>{reviews.length} reviews</Text>
           </View>
           <View style={{ flex: 1, gap: 5 }}>
             {dist.map(({ n, count }) => {
               const pct = reviews.length ? count / reviews.length : 0;
               return (
                 <View key={n} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text style={[s.starNum, { color: theme.subText }]}>{n}</Text>
+                  <Text style={s.starNum}>{n}</Text>
                   <Ionicons name="star" size={10} color="#FDE68A" />
-                  <View style={{ flex: 1, height: 5, borderRadius: 99, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb', overflow: 'hidden' }}>
-                    <View style={{ width: `${Math.round(pct * 100)}%`, height: '100%', borderRadius: 99, backgroundColor: bizTheme.p }} />
+                  <View style={{ flex: 1, height: 5, borderRadius: 99, backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
+                    <View style={{ width: `${Math.round(pct * 100)}%`, height: '100%', borderRadius: 99, backgroundColor: DM.p }} />
                   </View>
-                  <Text style={[s.starNum, { color: theme.subText, width: 22 }]}>{count}</Text>
+                  <Text style={[s.starNum, { width: 22 }]}>{count}</Text>
                 </View>
               );
             })}
           </View>
         </View>
-        {/* Review cards */}
         <View style={{ gap: 10, marginTop: 10 }}>
           {reviews.map((rev, i) => (
-            <View key={rev._id || i} style={[s.revCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#fff', borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#f0f0f0' }]}>
+            <View key={rev._id || i} style={s.revCard}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                <View style={[s.revAvatar, { backgroundColor: bizTheme.p + '33' }]}>
-                  <Text style={[s.revAvatarTxt, { color: bizTheme.acc }]}>
+                <View style={s.revAvatar}>
+                  <Text style={s.revAvatarTxt}>
                     {(rev.customerName || 'C').charAt(0).toUpperCase()}
                   </Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[s.revName, { color: theme.text }]}>{rev.customerName || 'Customer'}</Text>
+                  <Text style={s.revName}>{rev.customerName || 'Customer'}</Text>
                   <StarRow rating={rev.rating || 0} size={11} />
                 </View>
-                <Text style={[s.revDate, { color: theme.subText }]}>
+                <Text style={s.revDate}>
                   {rev.createdAt ? new Date(rev.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : ''}
                 </Text>
               </View>
               {rev.comment ? (
-                <Text style={[s.revComment, { color: isDark ? 'rgba(255,255,255,0.7)' : '#374151' }]} numberOfLines={4}>
-                  {rev.comment}
-                </Text>
+                <Text style={s.revComment} numberOfLines={4}>{rev.comment}</Text>
               ) : null}
               {rev.serviceName ? (
-                <View style={[s.revServiceTag, { backgroundColor: bizTheme.p + '18', borderColor: bizTheme.p + '33' }]}>
-                  <Text style={[s.revServiceTxt, { color: bizTheme.acc }]}>{rev.serviceName}</Text>
+                <View style={s.revServiceTag}>
+                  <Text style={s.revServiceTxt}>{rev.serviceName}</Text>
                 </View>
               ) : null}
             </View>
@@ -416,50 +418,47 @@ export default function GlowLooxProfileScreen() {
     const wh = salon?.workingHours;
     return (
       <View style={{ padding: 12, gap: 10 }}>
-        {/* Contact */}
         {(salon?.phone || salon?.email) && (
-          <View style={[s.infoCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#f8f9fb', borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb' }]}>
-            <Text style={[s.infoCardTitle, { color: bizTheme.p }]}>Contact</Text>
+          <View style={s.infoCard}>
+            <Text style={s.infoCardTitle}>Contact</Text>
             {salon?.phone && (
               <View style={s.infoRow}>
-                <Ionicons name="call-outline" size={15} color={bizTheme.acc} />
-                <Text style={[s.infoTxt, { color: theme.text }]}>{salon.phone}</Text>
+                <Ionicons name="call-outline" size={15} color={DM.acc} />
+                <Text style={s.infoTxt}>{salon.phone}</Text>
               </View>
             )}
             {salon?.email && (
               <View style={s.infoRow}>
-                <Ionicons name="mail-outline" size={15} color={bizTheme.acc} />
-                <Text style={[s.infoTxt, { color: theme.text }]}>{salon.email}</Text>
+                <Ionicons name="mail-outline" size={15} color={DM.acc} />
+                <Text style={s.infoTxt}>{salon.email}</Text>
               </View>
             )}
           </View>
         )}
 
-        {/* Location */}
         {(salon?.address || salon?.city) && (
-          <View style={[s.infoCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#f8f9fb', borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb' }]}>
-            <Text style={[s.infoCardTitle, { color: bizTheme.p }]}>Location</Text>
+          <View style={s.infoCard}>
+            <Text style={s.infoCardTitle}>Location</Text>
             <View style={s.infoRow}>
-              <Ionicons name="location-outline" size={15} color={bizTheme.acc} />
-              <Text style={[s.infoTxt, { color: theme.text }]}>
+              <Ionicons name="location-outline" size={15} color={DM.acc} />
+              <Text style={s.infoTxt}>
                 {[salon?.address, salon?.locality, salon?.city, salon?.state, salon?.pincode].filter(Boolean).join(', ')}
               </Text>
             </View>
           </View>
         )}
 
-        {/* Working Hours */}
         {wh && (
-          <View style={[s.infoCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#f8f9fb', borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb' }]}>
-            <Text style={[s.infoCardTitle, { color: bizTheme.p }]}>Working Hours</Text>
+          <View style={s.infoCard}>
+            <Text style={s.infoCardTitle}>Working Hours</Text>
             {DAY_ORDER.map(day => {
               const h = wh[day];
               if (!h) return null;
               const isToday = WH_DAYS[new Date().getDay()] === day;
               return (
-                <View key={day} style={[s.whRow, isToday && { backgroundColor: bizTheme.p + '18', borderRadius: 8, paddingHorizontal: 8, marginHorizontal: -8 }]}>
-                  <Text style={[s.whDay, { color: isToday ? bizTheme.acc : theme.text, fontWeight: isToday ? '700' : '400' }]}>{DAY_LABEL[day]}</Text>
-                  <Text style={[s.whTime, { color: h.isClosed ? '#ef4444' : (isToday ? bizTheme.acc : theme.subText) }]}>
+                <View key={day} style={[s.whRow, isToday && { backgroundColor: DM.p + '18', borderRadius: 8, paddingHorizontal: 8, marginHorizontal: -8 }]}>
+                  <Text style={[s.whDay, { color: isToday ? DM.acc : DM.fg, fontWeight: isToday ? '700' : '400' }]}>{DAY_LABEL[day]}</Text>
+                  <Text style={[s.whTime, { color: h.isClosed ? '#ef4444' : (isToday ? DM.acc : DM.fg45) }]}>
                     {h.isClosed ? 'Closed' : `${h.open} – ${h.close}`}
                   </Text>
                 </View>
@@ -467,57 +466,92 @@ export default function GlowLooxProfileScreen() {
             })}
           </View>
         )}
+      </View>
+    );
+  };
 
-        {/* Business type */}
-        <View style={[s.infoCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#f8f9fb', borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb' }]}>
-          <Text style={[s.infoCardTitle, { color: bizTheme.p }]}>Business Type</Text>
-          <View style={s.infoRow}>
-            <Ionicons name="storefront-outline" size={15} color={bizTheme.acc} />
-            <Text style={[s.infoTxt, { color: theme.text }]}>{bizTheme.label}</Text>
-          </View>
+  // ── Availability strip (same as web) ──────────────────────────────
+  const renderAvailabilityStrip = () => {
+    if (!todaySlots) return null;
+    if (todaySlots.closedDay) return (
+      <View style={s.availStrip}>
+        <Ionicons name="time-outline" size={13} color={DM.fg38} />
+        <Text style={s.availMuted}>Closed today</Text>
+      </View>
+    );
+    const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+    const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+    const avail = (todaySlots.slots || []).filter(t =>
+      !(todaySlots.blockedSlots || []).includes(t) && toMin(t) > nowMin
+    ).slice(0, 8);
+    if (avail.length === 0) return (
+      <View style={s.availStrip}>
+        <Ionicons name="calendar-outline" size={13} color={DM.fg38} />
+        <Text style={s.availMuted}>Fully booked today — check back tomorrow</Text>
+      </View>
+    );
+    return (
+      <View style={{ paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: DM.p + '12' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+          <Ionicons name="flash-outline" size={12} color="#10b981" />
+          <Text style={{ fontSize: 11, fontWeight: '700', color: '#10b981' }}>Next available: Today {fmt12(avail[0])}</Text>
         </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+          {avail.map(t => (
+            <View key={t} style={s.slotChip}>
+              <Text style={s.slotChipTxt}>{fmt12(t)}</Text>
+            </View>
+          ))}
+        </ScrollView>
       </View>
     );
   };
 
   const TABS = [
-    { key: 'gallery',  label: 'Gallery',  icon: 'images-outline' },
-    { key: 'services', label: 'Services', icon: 'cut-outline' },
-    { key: 'reviews',  label: 'Reviews',  icon: 'star-outline' },
-    { key: 'info',     label: 'Info',     icon: 'information-circle-outline' },
+    { key: 'services', label: 'SERVICES' },
+    { key: 'photos',   label: 'PHOTOS' },
+    { key: 'reviews',  label: 'REVIEWS' },
+    { key: 'info',     label: 'INFO' },
   ];
 
   if (!salon) {
     return (
-      <View style={[s.center, { backgroundColor: theme.background }]}>
-        <Ionicons name="storefront-outline" size={48} color={theme.subText} style={{ opacity: 0.3 }} />
-        <Text style={{ color: theme.subText, marginTop: 12, fontSize: 14 }}>No business profile yet</Text>
+      <View style={[s.center, { backgroundColor: DM.bg }]}>
+        <Ionicons name="storefront-outline" size={48} color={DM.fg45} style={{ opacity: 0.3 }} />
+        <Text style={{ color: DM.fg45, marginTop: 12, fontSize: 14 }}>No business profile yet</Text>
       </View>
     );
   }
 
-  return (
-    <View style={[s.root, { backgroundColor: theme.background }]}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+  const locality = salon.locality || '';
 
+  return (
+    <View style={[s.root, { backgroundColor: DM.bg }]}>
+      <StatusBar barStyle="light-content" />
+
+      {/* NOTE: no stickyHeaderIndices — on Fabric (new arch) the sticky wrapper
+          drops the child's flexDirection and the tab bar renders vertically */}
       <ScrollView
         style={{ flex: 1 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={bizTheme.p} />}
-        stickyHeaderIndices={[3]}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={DM.p} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── BANNER ── */}
-        <View style={{ height: BANNER_H, backgroundColor: isDark ? '#1a0a2e' : '#f3f4f6', overflow: 'hidden', position: 'relative' }}>
+        {/* ── A. BANNER ── */}
+        <View style={{ height: BANNER_H, backgroundColor: DM.card2, overflow: 'hidden', position: 'relative' }}>
           {bannerSlides.length > 0 ? (
             <Image source={{ uri: bannerSlides[bannerIdx % bannerSlides.length]?.url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
           ) : (
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: bizTheme.p + '33', alignItems: 'center', justifyContent: 'center' }]}>
-              <Ionicons name="storefront" size={64} color={bizTheme.acc} style={{ opacity: 0.3 }} />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: DM.p + '30', alignItems: 'center', justifyContent: 'center' }]}>
+              <Ionicons name="storefront" size={64} color={DM.acc} style={{ opacity: 0.3 }} />
             </View>
           )}
-          <View style={[StyleSheet.absoluteFill, { background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.7) 100%)' }]} />
+          {/* Bottom fade into page bg — same as web gradient */}
+          <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: BANNER_H * 0.55, backgroundColor: 'transparent' }}>
+            <View style={{ flex: 1, backgroundColor: 'rgba(13,5,32,0.35)' }} />
+            <View style={{ height: 34, backgroundColor: 'rgba(13,5,32,0.75)' }} />
+            <View style={{ height: 14, backgroundColor: DM.bg }} />
+          </View>
 
-          {/* Slide dots */}
           {bannerSlides.length > 1 && (
             <View style={{ position: 'absolute', bottom: 10, alignSelf: 'center', flexDirection: 'row', gap: 4 }}>
               {bannerSlides.map((_, i) => (
@@ -526,111 +560,113 @@ export default function GlowLooxProfileScreen() {
             </View>
           )}
 
-          {/* Preview badge */}
           <View style={[s.previewBadge, { top: (insets.top || 12) + 8 }]}>
             <Ionicons name="eye-outline" size={12} color="#fff" />
             <Text style={s.previewTxt}>Customer View</Text>
           </View>
 
-          {/* Share */}
-          <TouchableOpacity onPress={handleShare} style={[s.shareBtn, { top: (insets.top || 12) + 8 }]}>
-            <Ionicons name="share-social-outline" size={18} color="#fff" />
+          <TouchableOpacity onPress={handleShare} style={[s.shareTopBtn, { top: (insets.top || 12) + 8 }]}>
+            <Ionicons name="share-social-outline" size={17} color="#fff" />
           </TouchableOpacity>
         </View>
 
-        {/* ── AVATAR + STATS ROW ── */}
-        <View style={{ paddingHorizontal: 16, marginTop: -AVATAR_SIZE / 2, zIndex: 10 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 12 }}>
-            {/* Avatar */}
-            <View style={[s.avatar, { borderColor: bizTheme.p, shadowColor: bizTheme.p, backgroundColor: isDark ? '#1a0a2e' : '#fff' }]}>
-              {coverPhoto
-                ? <Image source={{ uri: coverPhoto }} style={{ width: '100%', height: '100%', borderRadius: 999 }} resizeMode="cover" />
-                : <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: bizTheme.p + '22' }}>
-                    <Text style={{ fontSize: 32, fontWeight: '900', color: bizTheme.acc }}>{(salon.name || 'B').charAt(0)}</Text>
+        {/* ── B. PROFILE INFO (matches web mobile layout) ── */}
+        <View style={{ paddingHorizontal: 16, marginTop: -28, zIndex: 10 }}>
+          {/* Avatar left + Book button right */}
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 10 }}>
+            <View style={s.avatar}>
+              {avatarPhoto
+                ? <Image source={{ uri: avatarPhoto }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                : <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(124,58,237,0.2)' }}>
+                    <Text style={{ fontSize: 28, fontWeight: '900', color: DM.acc }}>{(salon.name || 'S').charAt(0)}</Text>
                   </View>
               }
             </View>
-            {/* Stats */}
-            <View style={{ flexDirection: 'row', gap: 20, paddingBottom: 4 }}>
-              {[
-                { val: services.length || 0, label: 'Services' },
-                { val: salon.totalBookings >= 1000 ? `${(salon.totalBookings / 1000).toFixed(1)}k` : (salon.totalBookings || 0), label: 'Customers' },
-                { val: salon.followersCount || 0, label: 'Followers' },
-              ].map(({ val, label }) => (
-                <View key={label} style={{ alignItems: 'center' }}>
-                  <Text style={[s.statVal, { color: theme.text }]}>{val}</Text>
-                  <Text style={[s.statLabel, { color: theme.subText }]}>{label}</Text>
-                </View>
-              ))}
-            </View>
+            <TouchableOpacity
+              style={s.bookBtn}
+              activeOpacity={0.85}
+              onPress={() => showInfo('Customer preview', 'This is the button customers tap to book you')}
+            >
+              <Ionicons name="flash" size={14} color="#fff" />
+              <Text style={s.bookBtnTxt}>Book Your Look</Text>
+              <Ionicons name="sparkles" size={13} color="#fff" />
+            </TouchableOpacity>
           </View>
 
-          {/* Name + badge */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-            <Text style={[s.salonName, { color: theme.text }]}>{salon.name}</Text>
-            {avgRating >= 4.5 && <Ionicons name="checkmark-circle" size={17} color={bizTheme.p} />}
+          {/* Name + badge + rating */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' }}>
+            <Text style={s.salonName}>{salon.name}</Text>
+            {avgRating >= 4.5 && <Ionicons name="checkmark-circle" size={17} color={DM.p} />}
+            {avgRating ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginLeft: 4 }}>
+                <Ionicons name="star" size={12} color="#FDE68A" />
+                <Text style={{ fontWeight: '700', fontSize: 12, color: '#FDE68A' }}>{avgRating.toFixed(1)}</Text>
+                <Text style={{ fontSize: 10, color: 'rgba(253,230,138,0.5)' }}>({reviews.length})</Text>
+              </View>
+            ) : null}
           </View>
 
-          {/* Business type chip */}
-          <View style={[s.bizChip, { backgroundColor: bizTheme.p + '22', borderColor: bizTheme.p + '44' }]}>
-            <Ionicons name="storefront-outline" size={11} color={bizTheme.acc} />
-            <Text style={[s.bizChipTxt, { color: bizTheme.acc }]}>{bizTheme.label}</Text>
-          </View>
+          {salon.tagline ? <Text style={s.tagline}>{salon.tagline}</Text> : null}
 
-          {/* Tagline */}
-          {salon.tagline ? <Text style={[s.tagline, { color: isDark ? 'rgba(255,255,255,0.6)' : '#6b7280' }]}>{salon.tagline}</Text> : null}
-
-          {/* Location + Open status */}
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6, marginBottom: 10 }}>
-            {(salon.locality || salon.city) && (
+          {/* Location + Open chip */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+            {(locality || salon.city) ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                <Ionicons name="location-outline" size={12} color={theme.subText} />
-                <Text style={[s.metaTxt, { color: theme.subText }]}>
-                  {salon.locality && salon.city ? `${salon.locality}, ${salon.city}` : salon.locality || salon.city}
+                <Ionicons name="location-outline" size={11} color={DM.fg45} />
+                <Text style={{ fontSize: 11, color: DM.fg45 }}>
+                  {locality && salon.city ? `${locality}, ${salon.city}` : locality || salon.city}
                 </Text>
               </View>
-            )}
+            ) : null}
             {salon?.workingHours && (
               <View style={[s.openBadge, {
-                backgroundColor: openStatus ? 'rgba(74,222,128,0.12)' : 'rgba(248,113,113,0.12)',
-                borderColor: openStatus ? 'rgba(74,222,128,0.3)' : 'rgba(248,113,113,0.3)',
+                backgroundColor: openStatus ? 'rgba(74,222,128,0.1)' : 'rgba(248,113,113,0.1)',
               }]}>
                 <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: openStatus ? '#4ADE80' : '#F87171' }} />
                 <Text style={[s.openTxt, { color: openStatus ? '#4ADE80' : '#F87171' }]}>
-                  {openStatus ? `Open · ${todayHours || ''}` : opensAt ? `Opens ${opensAt}` : 'Closed today'}
+                  {openStatus ? `Open · ${todayHours || ''}` : opensAt ? `Opens ${opensAt}` : 'Closed'}
                 </Text>
               </View>
             )}
           </View>
 
-          {/* Rating row */}
-          {avgRating && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 14 }}>
-              <StarRow rating={avgRating} />
-              <Text style={[s.ratingNum, { color: '#FDE68A' }]}>{avgRating.toFixed(1)}</Text>
-              <Text style={[s.ratingCount, { color: theme.subText }]}>({reviews.length})</Text>
-            </View>
-          )}
+          {/* Follow + Share ghost buttons — same as web */}
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 14, marginBottom: 16 }}>
+            <TouchableOpacity
+              style={s.ghostBtn}
+              activeOpacity={0.8}
+              onPress={() => showInfo('Customer preview', 'Customers tap this to follow your salon')}
+            >
+              <Ionicons name="heart-outline" size={14} color={DM.acc} />
+              <Text style={s.ghostBtnTxt}>Follow</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={s.ghostBtn} activeOpacity={0.8} onPress={handleShare}>
+              <Ionicons name="share-social-outline" size={14} color={DM.acc} />
+              <Text style={s.ghostBtnTxt}>Share</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* ── DIVIDER ── */}
-        <View style={{ height: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb', marginHorizontal: 0 }} />
+        {/* ── C. TODAY'S AVAILABILITY STRIP ── */}
+        <View>{renderAvailabilityStrip()}</View>
 
-        {/* ── STICKY TAB BAR ── */}
-        <View style={[s.tabBar, { backgroundColor: isDark ? 'rgba(13,5,32,0.96)' : 'rgba(255,255,255,0.97)', borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb' }]}>
+        {/* ── spacer keeps sticky index stable ── */}
+        <View style={{ height: 0 }} />
+
+        {/* ── D. STICKY TAB BAR (uppercase text tabs like web) ── */}
+        <View style={s.tabBar}>
           {TABS.map(tab => (
             <TouchableOpacity key={tab.key} onPress={() => setActiveTab(tab.key)} style={s.tabBtn} activeOpacity={0.7}>
-              <Ionicons name={activeTab === tab.key ? tab.icon.replace('-outline', '') : tab.icon} size={20} color={activeTab === tab.key ? bizTheme.p : theme.subText} />
-              <Text style={[s.tabLabel, { color: activeTab === tab.key ? bizTheme.p : theme.subText, fontWeight: activeTab === tab.key ? '700' : '400' }]}>{tab.label}</Text>
-              {activeTab === tab.key && <View style={[s.tabIndicator, { backgroundColor: bizTheme.p }]} />}
+              <Text style={[s.tabLabel, { color: activeTab === tab.key ? DM.acc : DM.fg38 }]}>{tab.label}</Text>
+              {activeTab === tab.key && <View style={s.tabIndicator} />}
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* ── TAB CONTENT ── */}
+        {/* ── E. TAB CONTENT ── */}
         <View style={{ minHeight: 300, paddingBottom: 32 }}>
-          {activeTab === 'gallery'  && renderGallery()}
           {activeTab === 'services' && renderServices()}
+          {activeTab === 'photos'   && renderPhotos()}
           {activeTab === 'reviews'  && renderReviews()}
           {activeTab === 'info'     && renderInfo()}
         </View>
@@ -639,8 +675,7 @@ export default function GlowLooxProfileScreen() {
       {/* ── LIGHTBOX ── */}
       <Modal visible={lightboxIdx !== null} transparent animationType="fade" statusBarTranslucent>
         {(() => {
-          const lbItems = galleryItems.filter(i => i.url);
-          const cur = lightboxIdx !== null ? lbItems[lightboxIdx] : null;
+          const cur = lightboxIdx !== null ? bannerSlides[lightboxIdx] : null;
           return (
             <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', alignItems: 'center', justifyContent: 'center' }}>
               {cur && (
@@ -654,13 +689,13 @@ export default function GlowLooxProfileScreen() {
                   <Ionicons name="trash-outline" size={20} color="#fff" />
                 </TouchableOpacity>
               )}
-              {lbItems.length > 1 && lightboxIdx !== null && (
+              {bannerSlides.length > 1 && lightboxIdx !== null && (
                 <View style={{ flexDirection: 'row', gap: 16, marginTop: 20 }}>
-                  <TouchableOpacity onPress={() => setLightboxIdx(i => (i - 1 + lbItems.length) % lbItems.length)} style={s.lightboxNav}>
+                  <TouchableOpacity onPress={() => setLightboxIdx(i => (i - 1 + bannerSlides.length) % bannerSlides.length)} style={s.lightboxNav}>
                     <Ionicons name="chevron-back" size={22} color="#fff" />
                   </TouchableOpacity>
-                  <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, alignSelf: 'center' }}>{lightboxIdx + 1} / {lbItems.length}</Text>
-                  <TouchableOpacity onPress={() => setLightboxIdx(i => (i + 1) % lbItems.length)} style={s.lightboxNav}>
+                  <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, alignSelf: 'center' }}>{lightboxIdx + 1} / {bannerSlides.length}</Text>
+                  <TouchableOpacity onPress={() => setLightboxIdx(i => (i + 1) % bannerSlides.length)} style={s.lightboxNav}>
                     <Ionicons name="chevron-forward" size={22} color="#fff" />
                   </TouchableOpacity>
                 </View>
@@ -676,86 +711,99 @@ export default function GlowLooxProfileScreen() {
 const s = StyleSheet.create({
   root: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  galleryHint: { fontSize: 11, textAlign: 'center', paddingVertical: 8 },
-  galleryDelBadge: { position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(239,68,68,0.85)', alignItems: 'center', justifyContent: 'center' },
+  galleryHint: { fontSize: 11, textAlign: 'center', paddingVertical: 8, color: 'rgba(255,255,255,0.38)' },
   lightboxDelete: { position: 'absolute', top: 50, left: 20, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(239,68,68,0.7)', alignItems: 'center', justifyContent: 'center' },
 
   previewBadge: {
     position: 'absolute', left: 12, flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(12px)',
+    backgroundColor: 'rgba(0,0,0,0.55)',
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
   },
   previewTxt: { color: '#fff', fontSize: 11, fontWeight: '600' },
-  shareBtn: {
+  shareTopBtn: {
     position: 'absolute', right: 12,
-    width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
   },
 
   avatar: {
     width: AVATAR_SIZE, height: AVATAR_SIZE, borderRadius: AVATAR_SIZE / 2,
-    borderWidth: 3, overflow: 'hidden',
-    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 8,
+    borderWidth: 3, borderColor: '#7C3AED', overflow: 'hidden', backgroundColor: '#1A0F2E',
+    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 8,
   },
-
-  statVal:   { fontSize: 17, fontWeight: '900', textAlign: 'center' },
-  statLabel: { fontSize: 11, textAlign: 'center', marginTop: 2 },
-
-  salonName: { fontSize: 20, fontWeight: '900', letterSpacing: -0.5 },
-  bizChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start',
-    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, borderWidth: 1, marginTop: 5,
+  bookBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#7C3AED', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 11,
+    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.45, shadowRadius: 14, elevation: 8,
   },
-  bizChipTxt: { fontSize: 11, fontWeight: '600' },
-  tagline:   { fontSize: 12, marginTop: 6, lineHeight: 18 },
-  metaTxt:   { fontSize: 12 },
+  bookBtnTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
+
+  salonName: { fontSize: 20, fontWeight: '900', letterSpacing: -0.4, color: '#F9FAFB', lineHeight: 24 },
+  tagline:   { fontSize: 12, marginTop: 4, lineHeight: 17, color: '#A78BFA' },
   openBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, borderWidth: 1,
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
   },
   openTxt:   { fontSize: 11, fontWeight: '600' },
-  ratingNum: { fontSize: 14, fontWeight: '800' },
-  ratingCount: { fontSize: 11 },
+
+  ghostBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    borderWidth: 1.5, borderColor: 'rgba(124,58,237,0.4)', borderRadius: 12, paddingVertical: 11,
+  },
+  ghostBtnTxt: { color: '#A78BFA', fontSize: 13, fontWeight: '700' },
+
+  availStrip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(124,58,237,0.07)' },
+  availMuted: { fontSize: 12, color: 'rgba(255,255,255,0.38)' },
+  slotChip:   { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, borderWidth: 1.5, borderColor: 'rgba(124,58,237,0.33)', backgroundColor: 'rgba(124,58,237,0.07)' },
+  slotChipTxt:{ fontSize: 11, fontWeight: '700', color: '#A78BFA' },
 
   tabBar: {
-    flexDirection: 'row', borderBottomWidth: 1,
+    flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: 'rgba(124,58,237,0.1)',
+    backgroundColor: 'rgba(13,5,32,0.97)',
   },
   tabBtn: {
-    flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 10, gap: 2, position: 'relative',
+    flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, position: 'relative',
   },
-  tabLabel: { fontSize: 10, letterSpacing: 0.3 },
-  tabIndicator: { position: 'absolute', bottom: 0, left: '10%', right: '10%', height: 2, borderRadius: 1 },
+  tabLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1.2 },
+  tabIndicator: { position: 'absolute', bottom: 0, left: '15%', right: '15%', height: 2, borderRadius: 1, backgroundColor: '#7C3AED' },
 
   emptyBox: { alignItems: 'center', justifyContent: 'center', padding: 48, gap: 8 },
-  emptyTxt: { fontSize: 15, fontWeight: '600' },
-  emptyHint: { fontSize: 12, opacity: 0.6, textAlign: 'center' },
+  emptyTxt: { fontSize: 15, fontWeight: '600', color: 'rgba(255,255,255,0.6)' },
+  emptyHint: { fontSize: 12, opacity: 0.6, textAlign: 'center', color: 'rgba(255,255,255,0.45)' },
 
-  catBlock:  { borderRadius: 12, borderWidth: 1, overflow: 'hidden', marginBottom: 4 },
-  catLabel:  { fontSize: 11, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase', padding: 10, paddingBottom: 6 },
+  // Web-matching "Services coming soon" dashed box
+  svcEmptyBox: {
+    margin: 20, paddingVertical: 44, paddingHorizontal: 24, alignItems: 'center', gap: 10,
+    borderWidth: 1.5, borderColor: 'rgba(124,58,237,0.3)', borderStyle: 'dashed', borderRadius: 18,
+  },
+  svcEmptyTitle: { fontSize: 16, fontWeight: '800', color: '#F9FAFB' },
+  svcEmptyHint:  { fontSize: 13, color: 'rgba(255,255,255,0.45)', textAlign: 'center', lineHeight: 19 },
+
+  catBlock:  { borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.04)', overflow: 'hidden', marginBottom: 4 },
   svcRow:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 11, gap: 10 },
   svcThumb:  { width: 44, height: 44, borderRadius: 10, flexShrink: 0 },
-  svcName:   { fontSize: 14, fontWeight: '500' },
-  svcDur:    { fontSize: 11, marginTop: 2 },
-  svcPrice:  { fontSize: 15, fontWeight: '800' },
+  svcName:   { fontSize: 14, fontWeight: '500', color: '#F9FAFB' },
+  svcDur:    { fontSize: 11, marginTop: 2, color: 'rgba(255,255,255,0.45)' },
+  svcPrice:  { fontSize: 15, fontWeight: '800', color: '#A78BFA' },
 
-  revSummary: { flexDirection: 'row', borderRadius: 12, borderWidth: 1, padding: 14, marginBottom: 4 },
-  bigRating: { fontSize: 40, fontWeight: '900', lineHeight: 46 },
-  revCount:  { fontSize: 11, marginTop: 4 },
-  starNum:   { fontSize: 11, width: 10, textAlign: 'right' },
-  revCard:   { borderRadius: 12, borderWidth: 1, padding: 12 },
-  revAvatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  revAvatarTxt: { fontSize: 16, fontWeight: '900' },
-  revName:   { fontSize: 13, fontWeight: '700' },
-  revDate:   { fontSize: 11 },
-  revComment: { fontSize: 13, lineHeight: 19 },
-  revServiceTag: { alignSelf: 'flex-start', marginTop: 8, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, borderWidth: 1 },
-  revServiceTxt: { fontSize: 11, fontWeight: '600' },
+  revSummary: { flexDirection: 'row', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.04)', padding: 14, marginBottom: 4 },
+  bigRating: { fontSize: 40, fontWeight: '900', lineHeight: 46, color: '#F9FAFB' },
+  revCount:  { fontSize: 11, marginTop: 4, color: 'rgba(255,255,255,0.45)' },
+  starNum:   { fontSize: 11, width: 10, textAlign: 'right', color: 'rgba(255,255,255,0.45)' },
+  revCard:   { borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.04)', padding: 12 },
+  revAvatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(124,58,237,0.25)' },
+  revAvatarTxt: { fontSize: 16, fontWeight: '900', color: '#A78BFA' },
+  revName:   { fontSize: 13, fontWeight: '700', color: '#F9FAFB' },
+  revDate:   { fontSize: 11, color: 'rgba(255,255,255,0.45)' },
+  revComment: { fontSize: 13, lineHeight: 19, color: 'rgba(255,255,255,0.7)' },
+  revServiceTag: { alignSelf: 'flex-start', marginTop: 8, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(124,58,237,0.33)', backgroundColor: 'rgba(124,58,237,0.15)' },
+  revServiceTxt: { fontSize: 11, fontWeight: '600', color: '#A78BFA' },
 
-  infoCard:      { borderRadius: 12, borderWidth: 1, padding: 12, gap: 8 },
-  infoCardTitle: { fontSize: 11, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase' },
+  infoCard:      { borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.04)', padding: 12, gap: 8 },
+  infoCardTitle: { fontSize: 11, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase', color: '#7C3AED' },
   infoRow:       { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  infoTxt:       { fontSize: 13, flex: 1, lineHeight: 18 },
+  infoTxt:       { fontSize: 13, flex: 1, lineHeight: 18, color: '#F9FAFB' },
   whRow:         { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5 },
   whDay:         { fontSize: 13, width: 36 },
   whTime:        { fontSize: 13 },
