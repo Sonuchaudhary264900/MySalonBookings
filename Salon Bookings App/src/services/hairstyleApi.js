@@ -7,7 +7,7 @@ export const analyzePhoto = (imageUri, gender, lat, lng) => {
   if (lat)    fd.append('lat', String(lat));
   if (lng)    fd.append('lng', String(lng));
   return api.post('/customer/hairstyle/recommend', fd, {
-    headers: { 'Content-Type': 'multipart/form-data', 'X-Platform': 'mobile' },
+    headers: { 'X-Platform': 'mobile' },
     timeout: 30_000,
   });
 };

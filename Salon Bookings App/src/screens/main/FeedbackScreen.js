@@ -107,8 +107,11 @@ export default function FeedbackScreen({ navigation }) {
         fd.append('screenshot', { uri: screenshot, name: 'screenshot.jpg', type: 'image/jpeg' });
       }
 
+      // Do NOT set Content-Type manually — axios auto-detects FormData and
+      // lets React Native's networking layer generate the multipart boundary.
+      // Forcing 'multipart/form-data' without a boundary breaks multer's parser.
       await api.post('/customer/feedback', fd, {
-        headers: { 'Content-Type': 'multipart/form-data', 'X-Platform': 'mobile' },
+        headers: { 'X-Platform': 'mobile' },
       });
 
       setSuccess('Thanks! Your submission has been received.');
