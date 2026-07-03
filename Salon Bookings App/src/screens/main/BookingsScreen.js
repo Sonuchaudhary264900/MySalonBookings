@@ -862,7 +862,6 @@ export default function BookingsScreen({ navigation }) {
       return da - db;
     })[0] || null;
 
-  const lastCompleted = bookings.find(b => b.status === 'completed');
 
   // Insights
   const salonFreq = bookings.reduce((acc, b) => {
@@ -916,69 +915,79 @@ export default function BookingsScreen({ navigation }) {
     );
   }
 
-  // ── HERO ────────────────────────────────────────────────────
+  // ── HERO (web Dashboard parity) ─────────────────────────────
+  const heroBg     = isDark ? '#141a2e' : '#ddd6fe';
+  const heroText   = isDark ? '#ffffff' : '#1e1b4b';
+  const heroMuted  = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(30,27,75,0.5)';
+  const heroCard   = isDark ? 'rgba(31,41,55,0.6)' : 'rgba(255,255,255,0.95)';
+  const heroBorder = isDark ? '#374151' : 'rgba(99,102,241,0.22)';
   const HeroSection = (
-    <View style={{ backgroundColor: '#1e1b4b', paddingTop: insets.top + 20, paddingHorizontal: 16, paddingBottom: 24, overflow: 'hidden' }}>
-      {/* Decorative circles */}
-      <View style={{ position: 'absolute', top: -80, right: -40, width: 260, height: 260, borderRadius: 130, backgroundColor: 'rgba(139,92,246,0.18)' }} />
-      <View style={{ position: 'absolute', bottom: -50, left: -30, width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(99,102,241,0.14)' }} />
+    <View style={{ backgroundColor: heroBg, paddingTop: insets.top + 44, paddingHorizontal: 20, paddingBottom: 26, overflow: 'hidden' }}>
+      {/* Decorative orbs */}
+      <View style={{ position: 'absolute', top: -80, right: -80, width: 300, height: 300, borderRadius: 150, backgroundColor: isDark ? 'rgba(139,92,246,0.14)' : 'rgba(99,102,241,0.10)' }} />
+      <View style={{ position: 'absolute', bottom: -60, left: -40, width: 220, height: 220, borderRadius: 110, backgroundColor: isDark ? 'rgba(99,102,241,0.12)' : 'rgba(139,92,246,0.08)' }} />
 
-      {/* Top row */}
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
-        <View>
-          <AppText style={{ fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.5)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: 1 }}>
-            My Bookings
-          </AppText>
-          <AppText style={{ fontSize: 24, fontWeight: '900', color: '#fff', letterSpacing: -0.5, marginBottom: 3 }}>
-            Welcome back, {firstName}
-          </AppText>
-          <AppText style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>Ready for your next look?</AppText>
-        </View>
+      {/* Top row: eyebrow + bell */}
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <AppText style={{ fontSize: 11, fontWeight: '700', color: heroMuted, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1.6 }}>
+          My Bookings
+        </AppText>
         <TouchableOpacity
-          style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' }}
+          style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: heroCard, borderWidth: 1, borderColor: heroBorder, alignItems: 'center', justifyContent: 'center' }}
           onPress={() => navigation.getParent()?.navigate('HomeTab', { screen: 'Notifications' })}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="notifications-outline" size={20} color="#fff" />
+          <Ionicons name="notifications-outline" size={20} color={heroText} />
           {unreadCount > 0 && (
-            <View style={{ position: 'absolute', top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: '#1e1b4b' }}>
+            <View style={{ position: 'absolute', top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: heroBg }}>
               <AppText style={{ color: '#fff', fontSize: 9, fontWeight: '700' }}>{unreadCount > 9 ? '9+' : unreadCount}</AppText>
             </View>
           )}
         </TouchableOpacity>
       </View>
 
-      {/* 4 Stat cards */}
-      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
-        {[
-          { label: 'Upcoming',  value: loading ? '—' : stats.upcoming,  icon: 'calendar-outline',   accent: false },
-          { label: 'Completed', value: loading ? '—' : stats.completed, icon: 'checkmark-circle-outline', accent: false },
-          { label: 'Total',     value: loading ? '—' : stats.total,     icon: 'list-outline',       accent: false },
-          { label: 'Spent',     value: loading ? '—' : `₹${stats.totalSpent}`, icon: 'wallet-outline', accent: true },
-        ].map(({ label, value, icon, accent }) => (
-          <View key={label} style={{ flex: 1, backgroundColor: accent ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.09)', borderRadius: 14, paddingVertical: 11, paddingHorizontal: 6, alignItems: 'center', borderWidth: 1, borderColor: accent ? 'rgba(251,191,36,0.3)' : 'rgba(255,255,255,0.14)' }}>
-            <Ionicons name={icon} size={16} color={accent ? '#fde68a' : 'rgba(255,255,255,0.8)'} style={{ marginBottom: 3 }} />
-            <AppText style={{ fontSize: label === 'Spent' ? 12 : 18, fontWeight: '900', color: accent ? '#fde68a' : '#fff', marginBottom: 2 }} numberOfLines={1}>{value}</AppText>
-            <AppText style={{ fontSize: 10, color: accent ? 'rgba(253,230,138,0.7)' : 'rgba(255,255,255,0.55)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 }}>{label}</AppText>
-          </View>
-        ))}
-      </View>
+      {/* Greeting — "Hey {name}, ready for your next look?" */}
+      <AppText style={{ fontSize: 32, fontWeight: '900', color: heroText, letterSpacing: -1, lineHeight: 37 }}>
+        Hey {firstName},
+      </AppText>
+      <AppText style={{ fontSize: 32, fontWeight: '800', color: heroText, opacity: 0.55, letterSpacing: -1, lineHeight: 37 }}>
+        ready for your{'\n'}next look?
+      </AppText>
 
-      {/* Next upcoming banner */}
+      {/* Minimal inline stats */}
+      {!loading && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 28 }}>
+          {[
+            { value: String(stats.upcoming),  label: 'upcoming' },
+            { value: String(stats.completed), label: 'completed' },
+            { value: stats.totalSpent > 0 ? `₹${stats.totalSpent}` : '₹0', label: 'spent' },
+          ].map(({ value, label }, i, arr) => (
+            <View key={label} style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View>
+                <AppText style={{ fontSize: 20, fontWeight: '900', color: heroText }}>{value}</AppText>
+                <AppText style={{ fontSize: 11, fontWeight: '600', color: heroMuted }}>{label}</AppText>
+              </View>
+              {i < arr.length - 1 && (
+                <View style={{ width: 1, height: 26, backgroundColor: heroBorder, marginHorizontal: 18 }} />
+              )}
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Next upcoming pill */}
       {!loading && nextUpcoming && (
-        <View style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 14, padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-            <View style={{ width: 36, height: 36, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Ionicons name="cut-outline" size={18} color="#fff" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <AppText style={{ fontSize: 12, fontWeight: '700', color: '#fff' }} numberOfLines={1}>
-                {nextUpcoming.serviceName || (Array.isArray(nextUpcoming.serviceIds) ? nextUpcoming.serviceIds.map(s => s?.name || s).filter(Boolean).join(' + ') : '') || 'Service'}
-              </AppText>
-              <AppText style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 1 }} numberOfLines={1}>
-                {nextUpcoming.salonName || nextUpcoming.salonId?.name} · {formatDateLabel(nextUpcoming.appointmentDate)}{nextUpcoming.appointmentTime ? ` · ${formatTimeLabel(nextUpcoming.appointmentTime)}` : ''}
-              </AppText>
-            </View>
+        <View style={{ marginTop: 24, alignSelf: 'flex-start', maxWidth: '100%', backgroundColor: heroCard, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: heroBorder }}>
+          <View style={{ width: 34, height: 34, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(99,102,241,0.10)', borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Ionicons name="cut-outline" size={17} color={heroText} />
+          </View>
+          <View style={{ flexShrink: 1 }}>
+            <AppText style={{ fontSize: 12, fontWeight: '700', color: heroText }} numberOfLines={1}>
+              {nextUpcoming.serviceName || (Array.isArray(nextUpcoming.serviceIds) ? nextUpcoming.serviceIds.map(s => s?.name || s).filter(Boolean).join(' + ') : '') || 'Service'}
+            </AppText>
+            <AppText style={{ fontSize: 11, color: heroMuted, marginTop: 1 }} numberOfLines={1}>
+              {nextUpcoming.salonName || nextUpcoming.salonId?.name} · {formatDateLabel(nextUpcoming.appointmentDate)}{nextUpcoming.appointmentTime ? ` · ${formatTimeLabel(nextUpcoming.appointmentTime)}` : ''}
+            </AppText>
           </View>
           <StatusBadge status={nextUpcoming.status} />
         </View>
@@ -986,36 +995,10 @@ export default function BookingsScreen({ navigation }) {
     </View>
   );
 
-  // ── QUICK ACTIONS ────────────────────────────────────────────
-  const QuickActions = (
-    <View style={{ backgroundColor: theme.card, borderBottomWidth: 1, borderBottomColor: theme.border, paddingVertical: 12 }}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}>
-        <TouchableOpacity onPress={() => navigation.navigate('HomeTab')} activeOpacity={0.8}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#4f46e5', borderRadius: 12 }}>
-          <Ionicons name="add" size={16} color="#fff" />
-          <AppText style={{ fontSize: 13, fontWeight: '700', color: '#fff' }}>Book New</AppText>
-        </TouchableOpacity>
-        {lastCompleted && (
-          <TouchableOpacity activeOpacity={0.8}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: theme.cardAlt, borderRadius: 12, borderWidth: 1, borderColor: theme.border }}>
-            <Ionicons name="repeat-outline" size={14} color={theme.subText} />
-            <AppText style={{ fontSize: 13, fontWeight: '600', color: theme.subText }}>Rebook Last</AppText>
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity onPress={() => navigation.navigate('HomeTab')} activeOpacity={0.8}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: theme.cardAlt, borderRadius: 12, borderWidth: 1, borderColor: theme.border }}>
-          <Ionicons name="location-outline" size={14} color={theme.subText} />
-          <AppText style={{ fontSize: 13, fontWeight: '600', color: theme.subText }}>Explore Salons</AppText>
-        </TouchableOpacity>
-      </ScrollView>
-    </View>
-  );
-
   // ── LIST HEADER ──────────────────────────────────────────────
   const ListHeader = (
     <View style={{ gap: 0 }}>
       {HeroSection}
-      {QuickActions}
       <View style={{ padding: 16, gap: 10 }}>
 
         {/* Confirmed toasts */}
@@ -1040,25 +1023,31 @@ export default function BookingsScreen({ navigation }) {
           );
         })}
 
-        {/* Filter tabs with count badges */}
-        <View style={{ flexDirection: 'row', backgroundColor: theme.card, borderRadius: 13, padding: 4, borderWidth: 1, borderColor: theme.border, gap: 3 }}>
-          {FILTERS.map(f => {
-            const count = filterCounts[f] || 0;
-            const active = filter === f;
-            return (
-              <TouchableOpacity key={f}
-                style={{ flex: 1, paddingVertical: 9, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: active ? '#4f46e5' : 'transparent', flexDirection: 'row', gap: 3 }}
-                onPress={() => { setFilter(f); setVisibleCount(PAGE_SIZE); }}
-              >
-                <AppText style={{ fontSize: 12, fontWeight: '700', color: active ? '#fff' : theme.subText }}>{f}</AppText>
-                {count > 0 && (
-                  <View style={{ paddingHorizontal: 5, paddingVertical: 1, borderRadius: 99, backgroundColor: active ? 'rgba(255,255,255,0.25)' : 'rgba(99,102,241,0.12)' }}>
-                    <AppText style={{ fontSize: 9, fontWeight: '800', color: active ? '#fff' : '#818cf8' }}>{count}</AppText>
-                  </View>
-                )}
-              </TouchableOpacity>
-            );
-          })}
+        {/* Filter tabs — underline style (web parity) + refresh */}
+        <View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 14 }}>
+            <View style={{ flexDirection: 'row' }}>
+              {FILTERS.map(f => {
+                const count = filterCounts[f] || 0;
+                const active = filter === f;
+                return (
+                  <TouchableOpacity key={f}
+                    style={{ paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 2, borderBottomColor: active ? '#6366f1' : 'transparent', flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                    onPress={() => { setFilter(f); setVisibleCount(PAGE_SIZE); }}
+                  >
+                    <AppText style={{ fontSize: 13, fontWeight: active ? '700' : '500', color: active ? theme.text : theme.subText }}>{f}</AppText>
+                    {count > 0 && (
+                      <AppText style={{ fontSize: 10, fontWeight: '700', color: active ? '#6366f1' : theme.subText, opacity: active ? 1 : 0.6 }}>{count}</AppText>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <TouchableOpacity onPress={onRefresh} disabled={refreshing} style={{ padding: 8, opacity: refreshing ? 0.4 : 0.7 }}>
+              <Ionicons name="refresh" size={15} color={theme.subText} />
+            </TouchableOpacity>
+          </View>
+          <View style={{ height: 1, backgroundColor: theme.border }} />
         </View>
       </View>
     </View>

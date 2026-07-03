@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: 20 },
   header: { alignItems: 'center', marginBottom: 20 },
-  logoImg: { width: '100%', height: SCREEN_H * 0.40 },
+  logoImg: { width: 120, height: 120, borderRadius: 28, marginBottom: 12 },
   appName: { fontSize: 22, fontWeight: '800', color: '#111827', marginBottom: 4, letterSpacing: 0.3 },
   subtitle: { fontSize: 14, color: '#6b7280' },
   card: { backgroundColor: '#fff', borderRadius: 20, padding: 24, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 12, elevation: 8 },
