@@ -6,7 +6,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
+import { Video, ResizeMode } from 'expo-av';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSalon } from '../../context/SalonContext';
 import { showSuccess, showError, showInfo } from '../../utils/toast';
 import api from '../../services/api';
@@ -99,6 +100,7 @@ function SkeletonBox({ w, h, r = 6, style }) {
 
 export default function GlowLooxProfileScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
   const { salon } = useSalon();
 
   const [services, setServices] = useState([]);
@@ -109,11 +111,13 @@ export default function GlowLooxProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('services'); // web default tab
-  const [lightboxIdx, setLightboxIdx] = useState(null);
+  const [lightbox, setLightbox] = useState(null); // { items, idx } | null
   const [expandedCat, setExpandedCat] = useState(null);
 
-  const photoUrls = galleryItems.filter(i => i.type === 'image').map(i => urlOf(i.url) || urlOf(i)).filter(Boolean);
-  const bannerSlides = galleryItems.map(i => ({ ...i, url: urlOf(i.url) || urlOf(i) })).filter(i => i.url);
+  const allMedia   = galleryItems.map(i => ({ ...i, url: urlOf(i.url) || urlOf(i) })).filter(i => i.url);
+  const photoItems = allMedia.filter(i => i.type !== 'video');
+  const videoItems = allMedia.filter(i => i.type === 'video');
+  const photoUrls  = photoItems.map(i => i.url);
 
   const avatarPhoto = urlOf(salon?.profilePhoto) || urlOf(salon?.logo) || urlOf(salon?.coverPhoto) || photoUrls[0] || null;
 
@@ -177,7 +181,7 @@ export default function GlowLooxProfileScreen() {
           try {
             await api.delete(`/owner/gallery/${item._id}`);
             setGalleryItems(prev => prev.filter(g => g._id !== item._id));
-            setLightboxIdx(null);
+            setLightbox(null);
             showSuccess('Deleted', 'Removed from gallery');
           } catch (err) {
             showError('Failed', err.response?.data?.message || 'Could not delete');
@@ -187,13 +191,13 @@ export default function GlowLooxProfileScreen() {
     ]);
   };
 
-  // ── Tab: Photos (gallery) ─────────────────────────────────────────
+  // ── Tab: Photos (images only, like web) ───────────────────────────
   const renderPhotos = () => {
-    if (!bannerSlides.length) {
+    if (!photoItems.length) {
       return (
         <View style={s.emptyBox}>
           <Ionicons name="images-outline" size={40} color={DM.acc} style={{ opacity: 0.4 }} />
-          <Text style={s.emptyTxt}>No photos or videos yet</Text>
+          <Text style={s.emptyTxt}>No photos yet</Text>
           <Text style={s.emptyHint}>Add photos from Gallery in the menu</Text>
         </View>
       );
@@ -202,18 +206,51 @@ export default function GlowLooxProfileScreen() {
       <View>
         <Text style={s.galleryHint}>Long-press a photo to delete it</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 3, padding: 3 }}>
-          {bannerSlides.map((item, i) => (
+          {photoItems.map((item, i) => (
             <TouchableOpacity key={item._id || i}
-              onPress={() => setLightboxIdx(i)}
+              onPress={() => setLightbox({ items: photoItems, idx: i })}
               onLongPress={() => handleDeleteGallery(item)}
               delayLongPress={300}
-              style={{ width: (SW - 9) / 2, height: (SW - 9) / 2, overflow: 'hidden', position: 'relative' }}>
+              style={{ width: (SW - 9) / 2, height: (SW - 9) / 2, overflow: 'hidden' }}>
               <Image source={{ uri: item.url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-              {item.type === 'video' && (
-                <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }]}>
-                  <Ionicons name="play-circle" size={30} color="#fff" />
-                </View>
-              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
+  // ── Tab: Reels (videos, 9:16 grid like web) ───────────────────────
+  const renderReels = () => {
+    if (!videoItems.length) {
+      return (
+        <View style={s.emptyBox}>
+          <Ionicons name="videocam-outline" size={40} color={DM.acc} style={{ opacity: 0.4 }} />
+          <Text style={s.emptyTxt}>No reels yet</Text>
+          <Text style={s.emptyHint}>Upload videos from Gallery to show your work here</Text>
+        </View>
+      );
+    }
+    return (
+      <View>
+        <Text style={s.galleryHint}>Tap to play · long-press to delete</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 3, padding: 3 }}>
+          {videoItems.map((item, i) => (
+            <TouchableOpacity key={item._id || i}
+              onPress={() => setLightbox({ items: videoItems, idx: i })}
+              onLongPress={() => handleDeleteGallery(item)}
+              delayLongPress={300}
+              style={{ width: (SW - 9) / 2, height: ((SW - 9) / 2) * (16 / 9), borderRadius: 12, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.04)' }}>
+              <Video
+                source={{ uri: item.url }}
+                style={{ width: '100%', height: '100%' }}
+                resizeMode={ResizeMode.COVER}
+                shouldPlay={false}
+                isMuted
+              />
+              <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.25)' }]}>
+                <Ionicons name="play-circle" size={38} color="#fff" />
+              </View>
             </TouchableOpacity>
           ))}
         </View>
@@ -501,6 +538,7 @@ export default function GlowLooxProfileScreen() {
 
   const TABS = [
     { key: 'services', label: 'SERVICES' },
+    { key: 'reels',    label: 'REELS' },
     { key: 'photos',   label: 'PHOTOS' },
     { key: 'reviews',  label: 'REVIEWS' },
     { key: 'info',     label: 'INFO' },
@@ -537,15 +575,12 @@ export default function GlowLooxProfileScreen() {
               <Ionicons name="storefront" size={64} color={DM.acc} style={{ opacity: 0.3 }} />
             </View>
           )}
-          {/* Bottom fade into page bg — 14 thin slices approximate the web's CSS gradient */}
-          <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: BANNER_H * 0.6 }}>
-            {Array.from({ length: 14 }).map((_, i) => (
-              <View key={i} style={{ flex: 1, backgroundColor: `rgba(13,5,32,${(0.9 * (i + 1) / 14).toFixed(3)})` }} />
-            ))}
-            <View style={{ height: 10, backgroundColor: DM.bg }} />
-          </View>
+          {/* Back (stack screen) + Customer View badge + share */}
+          <TouchableOpacity onPress={() => navigation.goBack()} style={[s.backTopBtn, { top: 12 }]}>
+            <Ionicons name="arrow-back" size={17} color="#fff" />
+          </TouchableOpacity>
 
-          <View style={[s.previewBadge, { top: 12 }]}>
+          <View style={[s.previewBadge, { top: 12, left: 56 }]}>
             <Ionicons name="eye-outline" size={12} color="#fff" />
             <Text style={s.previewTxt}>Customer View</Text>
           </View>
@@ -649,38 +684,48 @@ export default function GlowLooxProfileScreen() {
         </View>
 
         {/* ── E. TAB CONTENT ── */}
-        <View style={{ minHeight: 300, paddingBottom: 32 }}>
+        <View style={{ minHeight: 300, paddingBottom: insets.bottom + 32 }}>
           {activeTab === 'services' && renderServices()}
+          {activeTab === 'reels'    && renderReels()}
           {activeTab === 'photos'   && renderPhotos()}
           {activeTab === 'reviews'  && renderReviews()}
           {activeTab === 'info'     && renderInfo()}
         </View>
       </ScrollView>
 
-      {/* ── LIGHTBOX ── */}
-      <Modal visible={lightboxIdx !== null} transparent animationType="fade" statusBarTranslucent>
+      {/* ── LIGHTBOX — plays videos with native controls ── */}
+      <Modal visible={lightbox !== null} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setLightbox(null)}>
         {(() => {
-          const cur = lightboxIdx !== null ? bannerSlides[lightboxIdx] : null;
+          if (!lightbox) return null;
+          const { items, idx } = lightbox;
+          const cur = items[idx];
+          if (!cur) return null;
           return (
-            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', alignItems: 'center', justifyContent: 'center' }}>
-              {cur && (
+            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.97)', alignItems: 'center', justifyContent: 'center' }}>
+              {cur.type === 'video' ? (
+                <Video
+                  source={{ uri: cur.url }}
+                  style={{ width: SW, height: SH * 0.75 }}
+                  resizeMode={ResizeMode.CONTAIN}
+                  shouldPlay
+                  useNativeControls
+                />
+              ) : (
                 <Image source={{ uri: cur.url }} style={{ width: SW, height: SH * 0.75 }} resizeMode="contain" />
               )}
-              <TouchableOpacity onPress={() => setLightboxIdx(null)} style={s.lightboxClose}>
+              <TouchableOpacity onPress={() => setLightbox(null)} style={s.lightboxClose}>
                 <Ionicons name="close" size={24} color="#fff" />
               </TouchableOpacity>
-              {cur && (
-                <TouchableOpacity onPress={() => handleDeleteGallery(cur)} style={s.lightboxDelete}>
-                  <Ionicons name="trash-outline" size={20} color="#fff" />
-                </TouchableOpacity>
-              )}
-              {bannerSlides.length > 1 && lightboxIdx !== null && (
+              <TouchableOpacity onPress={() => handleDeleteGallery(cur)} style={s.lightboxDelete}>
+                <Ionicons name="trash-outline" size={20} color="#fff" />
+              </TouchableOpacity>
+              {items.length > 1 && (
                 <View style={{ flexDirection: 'row', gap: 16, marginTop: 20 }}>
-                  <TouchableOpacity onPress={() => setLightboxIdx(i => (i - 1 + bannerSlides.length) % bannerSlides.length)} style={s.lightboxNav}>
+                  <TouchableOpacity onPress={() => setLightbox(lb => ({ ...lb, idx: (lb.idx - 1 + items.length) % items.length }))} style={s.lightboxNav}>
                     <Ionicons name="chevron-back" size={22} color="#fff" />
                   </TouchableOpacity>
-                  <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, alignSelf: 'center' }}>{lightboxIdx + 1} / {bannerSlides.length}</Text>
-                  <TouchableOpacity onPress={() => setLightboxIdx(i => (i + 1) % bannerSlides.length)} style={s.lightboxNav}>
+                  <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, alignSelf: 'center' }}>{idx + 1} / {items.length}</Text>
+                  <TouchableOpacity onPress={() => setLightbox(lb => ({ ...lb, idx: (lb.idx + 1) % items.length }))} style={s.lightboxNav}>
                     <Ionicons name="chevron-forward" size={22} color="#fff" />
                   </TouchableOpacity>
                 </View>
@@ -708,6 +753,11 @@ const s = StyleSheet.create({
   previewTxt: { color: '#fff', fontSize: 11, fontWeight: '600' },
   shareTopBtn: {
     position: 'absolute', right: 12,
+    width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+  },
+  backTopBtn: {
+    position: 'absolute', left: 12,
     width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
   },

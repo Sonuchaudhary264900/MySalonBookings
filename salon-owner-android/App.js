@@ -89,6 +89,7 @@ const NAV_SECTIONS = [
   {
     label: 'Content',
     items: [
+      { name: 'GlowLoox',  label: 'GlowLoox Profile', icon: 'storefront-outline', iconFocused: 'storefront' },
       { name: 'Gallery',   label: 'Gallery',         icon: 'images-outline',   iconFocused: 'images'   },
       { name: 'Reviews',   label: 'Reviews',          icon: 'star-outline',     iconFocused: 'star'     },
       { name: 'Coupons',   label: 'Coupons',         icon: 'pricetag-outline', iconFocused: 'pricetag' },
@@ -110,7 +111,7 @@ const NAV_SECTIONS = [
   },
 ];
 
-const TAB_SCREENS = ['Home', 'Reports', 'Services', 'Messages', 'GlowLoox', 'Settings'];
+const TAB_SCREENS = ['Home', 'Reports', 'Services', 'Messages', 'Settings'];
 
 // ── Custom animated drawer layout (no react-native-reanimated) ────
 function CustomDrawerLayout({ children, drawerContent }) {
@@ -289,12 +290,11 @@ const TAB_ICONS = {
   Reports:   { off: 'bar-chart-outline',     on: 'bar-chart' },
   Services:  { off: 'cut-outline',           on: 'cut' },
   Messages:  { off: 'chatbubbles-outline',   on: 'chatbubbles' },
-  GlowLoox:  { off: 'storefront-outline',    on: 'storefront' },
   Settings:  { off: 'settings-outline',      on: 'settings' },
 };
 
 const TAB_LABELS = {
-  Home: 'Home', Reports: 'Analytics', Services: 'Services', Messages: 'Messages', GlowLoox: 'GlowLoox', Settings: 'Settings',
+  Home: 'Home', Reports: 'Analytics', Services: 'Services', Messages: 'Messages', Settings: 'Settings',
 };
 
 // ── 5-tab swipeable navigator ──────────────────────────────────────
@@ -342,7 +342,6 @@ function MainTabs() {
       <Tab.Screen name="Reports"   component={ReportsScreen}         options={{ tabBarLabel: TAB_LABELS.Reports }} />
       <Tab.Screen name="Services"  component={ServicesScreen}        options={{ tabBarLabel: TAB_LABELS.Services }} />
       <Tab.Screen name="Messages"  component={MessagesScreen}        options={{ tabBarLabel: TAB_LABELS.Messages }} />
-      <Tab.Screen name="GlowLoox"  component={GlowLooxProfileScreen} options={{ tabBarLabel: TAB_LABELS.GlowLoox }} />
       <Tab.Screen name="Settings"  component={SettingsScreen}        options={{ tabBarLabel: TAB_LABELS.Settings }} />
     </Tab.Navigator>
   );
@@ -350,12 +349,17 @@ function MainTabs() {
 
 // ── Main navigator: stack + custom animated drawer overlay ─────────
 function MainDrawer({ navigation }) {
+  const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
   return (
     <CustomDrawerLayout
       drawerContent={<CustomDrawer navigation={navigation} />}
     >
-      <MainStack.Navigator screenOptions={{ headerShown: false }}>
-        <MainStack.Screen name="MainTabs"      component={MainTabs} />
+      {/* Uniform bottom safe area for every stack screen; MainTabs' tab bar
+          and the full-bleed GlowLoox screen handle their own insets */}
+      <MainStack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background, paddingBottom: insets.bottom } }}>
+        <MainStack.Screen name="MainTabs"      component={MainTabs}              options={{ contentStyle: { paddingBottom: 0 } }} />
+        <MainStack.Screen name="GlowLoox"      component={GlowLooxProfileScreen} options={{ contentStyle: { backgroundColor: '#0D0520', paddingBottom: 0 } }} />
         <MainStack.Screen name="Bookings"      component={BookingsScreen} />
         <MainStack.Screen name="Reviews"       component={ReviewsScreen} />
         <MainStack.Screen name="Notifications" component={NotificationsScreen} />
