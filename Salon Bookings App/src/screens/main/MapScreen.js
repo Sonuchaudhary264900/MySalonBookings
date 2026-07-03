@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator, Image, Linking } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, StatusBar, ActivityIndicator, Image, Linking, Animated } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
@@ -66,6 +67,7 @@ export default function MapScreen() {
   const { isAuthenticated } = useAuth();
   const navigation = useNavigation();
   const route = useRoute();
+  const insets = useSafeAreaInsets();
   const webRef = useRef(null);
   const coordsRef = useRef(null);
   const headingSubRef = useRef(null);
@@ -85,6 +87,7 @@ export default function MapScreen() {
   const [routeData, setRouteData] = useState(null);
   const [routeLoading, setRouteLoading] = useState(false);
   const readyTimerRef = useRef(null);
+  const sheetAnim = useRef(new Animated.Value(0)).current;
 
   const inject = useCallback((js) => {
     webRef.current?.injectJavaScript(js + '; true;');
@@ -245,6 +248,17 @@ export default function MapScreen() {
     return () => clearTimeout(readyTimerRef.current);
   }, [loading, reloadKey]);
 
+  // Smooth spring entrance for the bottom sheet (salon card / route banner)
+  const sheetVisible = !!((selected && !routeData && !routeLoading) || routeData || routeLoading);
+  useEffect(() => {
+    Animated.spring(sheetAnim, {
+      toValue: sheetVisible ? 1 : 0,
+      useNativeDriver: true,
+      speed: 16,
+      bounciness: 6,
+    }).start();
+  }, [sheetVisible, sheetAnim]);
+
   const center = coords || INDIA_CENTER;
   const pins = salons
     .filter(s => salonLat(s) != null && salonLng(s) != null)
@@ -348,7 +362,7 @@ window.deselect = function(){
 };
 var bounds = [[${center.lat},${center.lng}]];
 pins.forEach(function(p){ bounds.push([p.lat,p.lng]); });
-if(pins.length>0){ try{ map.fitBounds(bounds,{padding:[50,50],maxZoom:14}); }catch(e){} }
+if(pins.length>0){ try{ map.fitBounds(bounds,{paddingTopLeft:[30,140],paddingBottomRight:[30,60],maxZoom:14}); }catch(e){} }
 
 /* Route drawing */
 var routeLine = null, routeCasing = null, destMarker = null;
@@ -358,7 +372,7 @@ window.drawRoute = function(poly, dlat, dlng){
   routeLine   = L.polyline(poly,{color:'#4285f4',weight:5,opacity:1}).addTo(map);
   destMarker  = L.marker([dlat,dlng],{icon:L.divIcon({className:'',html:'<div class="destpin">⌂</div>',iconSize:[36,36],iconAnchor:[18,36]})}).addTo(map);
   follow = false;
-  try{ map.fitBounds(routeLine.getBounds(),{padding:[60,60]}); }catch(e){}
+  try{ map.fitBounds(routeLine.getBounds(),{paddingTopLeft:[40,140],paddingBottomRight:[40,220]}); }catch(e){}
 };
 window.clearRoute = function(){
   if(routeLine){ map.removeLayer(routeLine); routeLine=null; }
@@ -375,24 +389,18 @@ RN.postMessage(JSON.stringify({type:'ready'}));
     ? [selected.locality, selected.address, selected.city].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(', ')
     : '';
 
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-      <View style={[styles.header, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={22} color={theme.text} />
-        </TouchableOpacity>
-        <View style={{ flex: 1, marginLeft: 4 }}>
-          <AppText style={[styles.headerTitle, { color: theme.text }]}>Salons Near You</AppText>
-          <AppText style={[styles.headerSub, { color: theme.subText }]}>
-            {loading ? 'Locating…' : `${pins.length} salon${pins.length !== 1 ? 's' : ''} on map`}
-          </AppText>
-        </View>
-      </View>
+  const sheetTranslate = sheetAnim.interpolate({ inputRange: [0, 1], outputRange: [40, 0] });
 
-      <View style={{ flex: 1 }}>
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} translucent backgroundColor="transparent" />
+
+      {/* Edge-to-edge map fills the whole screen */}
+      <View style={StyleSheet.absoluteFill}>
         {loading ? (
-          <ActivityIndicator size="large" color="#6366f1" style={{ marginTop: 60 }} />
+          <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center', backgroundColor: theme.bg }]}>
+            <ActivityIndicator size="large" color="#6366f1" />
+          </View>
         ) : (
           <WebView
             key={reloadKey}
@@ -413,14 +421,17 @@ RN.postMessage(JSON.stringify({type:'ready'}));
         {/* Load failure — CDN/tile network blocked, WebView crashed, etc. */}
         {!loading && !mapReady && mapError && (
           <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 14 }]}>
-            <Ionicons name="cloud-offline-outline" size={44} color={theme.subText} />
-            <AppText style={{ fontSize: 16, fontWeight: '800', color: theme.text, textAlign: 'center' }}>
+            <View style={{ width: 76, height: 76, borderRadius: 38, backgroundColor: isDark ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.08)', alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="cloud-offline-outline" size={36} color="#ef4444" />
+            </View>
+            <AppText style={{ fontSize: 17, fontWeight: '800', color: theme.text, textAlign: 'center' }}>
               Map couldn't load
             </AppText>
-            <AppText style={{ fontSize: 13, color: theme.subText, textAlign: 'center', maxWidth: 260 }}>
+            <AppText style={{ fontSize: 13, color: theme.subText, textAlign: 'center', maxWidth: 260, lineHeight: 19 }}>
               Check your internet connection and try again.
             </AppText>
-            <TouchableOpacity onPress={retryMap} style={{ marginTop: 4, backgroundColor: '#6366f1', borderRadius: 12, paddingHorizontal: 22, paddingVertical: 11 }} activeOpacity={0.85}>
+            <TouchableOpacity onPress={retryMap} style={styles.retryBtn} activeOpacity={0.85}>
+              <Ionicons name="refresh" size={15} color="#fff" />
               <AppText style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Retry</AppText>
             </TouchableOpacity>
           </View>
@@ -432,154 +443,212 @@ RN.postMessage(JSON.stringify({type:'ready'}));
             <ActivityIndicator size="large" color="#6366f1" />
           </View>
         )}
+      </View>
 
-        {/* Map controls: compass + locate/follow */}
-        {!loading && mapReady && (
-          <View style={styles.controls} pointerEvents="box-none">
-            <TouchableOpacity
-              onPress={toggleCompass}
-              style={[styles.ctrlBtn, compassActive && styles.ctrlBtnCompassOn]}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="compass" size={22} color={compassActive ? '#ea4335' : '#94a3b8'} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handleLocate}
-              style={[styles.ctrlBtn, followMode && styles.ctrlBtnFollowOn]}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="locate" size={20} color={followMode ? '#fff' : '#4285f4'} />
-            </TouchableOpacity>
+      {/* ── Floating header: circular back button + glass title pill ── */}
+      <View style={[styles.floatHeader, { top: insets.top + 10 }]} pointerEvents="box-none">
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={[styles.circleBtn, { backgroundColor: theme.card, shadowColor: isDark ? '#000' : '#1e1b4b' }]}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="arrow-back" size={20} color={theme.text} />
+        </TouchableOpacity>
+        <View style={[styles.titlePill, { backgroundColor: theme.card, shadowColor: isDark ? '#000' : '#1e1b4b' }]}>
+          <AppText style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>Salons Near You</AppText>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+            {!loading && mapReady && (
+              <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#10b981' }} />
+            )}
+            <AppText style={[styles.headerSub, { color: theme.subText }]} numberOfLines={1}>
+              {loading ? 'Locating…' : `${pins.length} salon${pins.length !== 1 ? 's' : ''} nearby`}
+            </AppText>
           </View>
-        )}
+        </View>
+      </View>
 
-        {/* Route banner */}
-        {routeData && (
-          <View style={[styles.routeBanner, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <View style={styles.routeIconWrap}>
-              <Ionicons name="navigate" size={18} color="#fff" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <AppText style={[styles.routeTitle, { color: theme.text }]} numberOfLines={1}>
-                {routeData.salonName}
-              </AppText>
-              <AppText style={[styles.routeSub, { color: theme.subText }]}>
-                {fmtDist(routeData.distance)} · {fmtDur(routeData.duration)}
-              </AppText>
-            </View>
-            <TouchableOpacity onPress={clearRoute} style={styles.routeClose}>
-              <Ionicons name="close" size={20} color={theme.subText} />
-            </TouchableOpacity>
-          </View>
-        )}
-        {routeLoading && (
-          <View style={[styles.routeBanner, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <ActivityIndicator color="#4285f4" />
-            <AppText style={[styles.routeSub, { color: theme.subText, marginLeft: 10 }]}>Finding route…</AppText>
-          </View>
-        )}
+      {/* ── Floating control group: compass + locate, grouped like Google Maps ── */}
+      {!loading && mapReady && (
+        <View style={[styles.controlGroup, { top: insets.top + 74, backgroundColor: theme.card, shadowColor: isDark ? '#000' : '#1e1b4b' }]}>
+          <TouchableOpacity onPress={toggleCompass} style={styles.controlGroupBtn} activeOpacity={0.7}>
+            <Ionicons name="compass" size={21} color={compassActive ? '#ea4335' : theme.subText} />
+          </TouchableOpacity>
+          <View style={[styles.controlDivider, { backgroundColor: theme.border }]} />
+          <TouchableOpacity
+            onPress={handleLocate}
+            style={[styles.controlGroupBtn, followMode && { backgroundColor: '#4285f4' }]}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="locate" size={19} color={followMode ? '#fff' : '#4285f4'} />
+          </TouchableOpacity>
+        </View>
+      )}
 
-        {/* Salon card */}
-        {selected && !routeData && !routeLoading && (
-          <View style={[styles.salonCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <View style={{ flexDirection: 'row', gap: 12 }}>
-              {selPhoto ? (
-                <Image source={{ uri: selPhoto }} style={styles.cardImg} />
+      {/* ── Bottom sheet: route banner OR salon card, animated entrance ── */}
+      {sheetVisible && (
+        <Animated.View
+          style={[
+            styles.sheetWrap,
+            { bottom: insets.bottom + 14, opacity: sheetAnim, transform: [{ translateY: sheetTranslate }] },
+          ]}
+          pointerEvents="box-none"
+        >
+          {(routeData || routeLoading) ? (
+            <View style={[styles.sheetCard, { backgroundColor: theme.card, shadowColor: isDark ? '#000' : '#1e1b4b' }]}>
+              <View style={styles.sheetHandle} />
+              {routeLoading ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 4 }}>
+                  <ActivityIndicator color="#4285f4" />
+                  <AppText style={{ fontSize: 13, color: theme.subText, marginLeft: 12, fontWeight: '600' }}>Finding the best route…</AppText>
+                </View>
               ) : (
-                <View style={[styles.cardImg, { backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' }]}>
-                  <Ionicons name="storefront-outline" size={26} color="#fff" />
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View style={styles.routeIconWrap}>
+                    <Ionicons name="navigate" size={18} color="#fff" />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <AppText style={[styles.routeTitle, { color: theme.text }]} numberOfLines={1}>
+                      {routeData.salonName}
+                    </AppText>
+                    <AppText style={[styles.routeSub, { color: theme.subText }]}>
+                      {fmtDist(routeData.distance)} · {fmtDur(routeData.duration)} away
+                    </AppText>
+                  </View>
+                  <TouchableOpacity onPress={clearRoute} style={styles.sheetCloseBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Ionicons name="close" size={18} color={theme.subText} />
+                  </TouchableOpacity>
                 </View>
               )}
-              <View style={{ flex: 1 }}>
-                <AppText style={[styles.cardName, { color: theme.text }]} numberOfLines={1}>{selected.name}</AppText>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 }}>
-                  <StarRow rating={selected.averageRating} />
-                  {selected.averageRating > 0 && (
-                    <AppText style={{ color: theme.subText, fontSize: 12, fontWeight: '700' }}>
-                      {Number(selected.averageRating).toFixed(1)}
-                    </AppText>
-                  )}
-                  {dist != null && (
-                    <AppText style={{ color: theme.subText, fontSize: 12 }}>· {fmtDist(dist)}</AppText>
-                  )}
-                </View>
-                {openStatus && (
-                  <AppText style={{ color: openStatus.open ? '#10b981' : '#ef4444', fontSize: 12, fontWeight: '700', marginTop: 3 }}>
-                    {openStatus.label}
-                  </AppText>
+            </View>
+          ) : (
+            <View style={[styles.sheetCard, { backgroundColor: theme.card, shadowColor: isDark ? '#000' : '#1e1b4b' }]}>
+              <View style={styles.sheetHandle} />
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                {selPhoto ? (
+                  <Image source={{ uri: selPhoto }} style={styles.cardImg} />
+                ) : (
+                  <View style={[styles.cardImg, styles.cardImgFallback]}>
+                    <Ionicons name="storefront-outline" size={26} color="#fff" />
+                  </View>
                 )}
-                {selAddress ? (
-                  <AppText style={{ color: theme.subText, fontSize: 11, marginTop: 2 }} numberOfLines={1}>{selAddress}</AppText>
-                ) : null}
+                <View style={{ flex: 1 }}>
+                  <AppText style={[styles.cardName, { color: theme.text }]} numberOfLines={1}>{selected?.name}</AppText>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 }}>
+                    <StarRow rating={selected?.averageRating} />
+                    {selected?.averageRating > 0 && (
+                      <AppText style={{ color: theme.subText, fontSize: 12, fontWeight: '700' }}>
+                        {Number(selected.averageRating).toFixed(1)}
+                      </AppText>
+                    )}
+                    {dist != null && (
+                      <AppText style={{ color: theme.subText, fontSize: 12 }}>· {fmtDist(dist)}</AppText>
+                    )}
+                  </View>
+                  {openStatus && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 }}>
+                      <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: openStatus.open ? '#10b981' : '#ef4444' }} />
+                      <AppText style={{ color: openStatus.open ? '#10b981' : '#ef4444', fontSize: 12, fontWeight: '700' }}>
+                        {openStatus.label}
+                      </AppText>
+                    </View>
+                  )}
+                  {selAddress ? (
+                    <AppText style={{ color: theme.subText, fontSize: 11, marginTop: 3 }} numberOfLines={1}>{selAddress}</AppText>
+                  ) : null}
+                </View>
+                <TouchableOpacity
+                  onPress={() => { setSelected(null); inject('window.deselect && deselect()'); }}
+                  style={styles.sheetCloseBtn}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="close" size={18} color={theme.subText} />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity onPress={() => { setSelected(null); inject('window.deselect && deselect()'); }} style={{ padding: 2 }}>
-                <Ionicons name="close" size={20} color={theme.subText} />
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
+                <TouchableOpacity style={styles.dirBtn} onPress={() => fetchRoute(selected)} activeOpacity={0.85}>
+                  <Ionicons name="navigate" size={15} color="#fff" />
+                  <AppText style={styles.dirBtnText}>Directions</AppText>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.viewBtn, { borderColor: theme.border }]}
+                  onPress={() => openSalon(selected._id)}
+                  activeOpacity={0.85}
+                >
+                  <AppText style={[styles.viewBtnText, { color: theme.text }]}>View Salon</AppText>
+                </TouchableOpacity>
+              </View>
             </View>
-            <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-              <TouchableOpacity style={styles.dirBtn} onPress={() => fetchRoute(selected)} activeOpacity={0.85}>
-                <Ionicons name="navigate" size={15} color="#fff" />
-                <AppText style={styles.dirBtnText}>Directions</AppText>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.viewBtn, { borderColor: theme.border }]}
-                onPress={() => openSalon(selected._id)}
-                activeOpacity={0.85}
-              >
-                <AppText style={[styles.viewBtnText, { color: theme.text }]}>View Salon</AppText>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-      </View>
-    </SafeAreaView>
+          )}
+        </Animated.View>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 12, borderBottomWidth: 1 },
-  backBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontSize: 17, fontWeight: '800' },
-  headerSub: { fontSize: 12, marginTop: 1 },
-
-  controls: { position: 'absolute', top: 16, right: 12, gap: 10 },
-  ctrlBtn: {
-    width: 42, height: 42, borderRadius: 12, backgroundColor: '#fff',
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 6, elevation: 4,
+  // Floating header: circular back button + glass title pill, both shadowed
+  floatHeader: {
+    position: 'absolute', left: 12, right: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 10, zIndex: 20,
   },
-  ctrlBtnCompassOn: { shadowColor: '#ea4335', shadowOpacity: 0.35 },
-  ctrlBtnFollowOn: { backgroundColor: '#1a73e8', shadowColor: '#4285f4', shadowOpacity: 0.5 },
-
-  routeBanner: {
-    position: 'absolute', left: 12, right: 12, bottom: 16,
-    flexDirection: 'row', alignItems: 'center',
-    borderRadius: 16, borderWidth: 1, padding: 14,
-    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 10, elevation: 6,
+  circleBtn: {
+    width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center',
+    shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 5,
   },
+  titlePill: {
+    flex: 1, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 9,
+    shadowOpacity: 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 5,
+  },
+  headerTitle: { fontSize: 15, fontWeight: '800', letterSpacing: -0.2 },
+  headerSub: { fontSize: 11.5, marginTop: 1, fontWeight: '600' },
+
+  // Grouped control pill (compass + locate) like Google Maps
+  controlGroup: {
+    position: 'absolute', right: 12, borderRadius: 16, overflow: 'hidden',
+    shadowOpacity: 0.16, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 5,
+    zIndex: 20,
+  },
+  controlGroupBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  controlDivider: { height: 1, marginHorizontal: 8 },
+
+  // Bottom sheet shared wrapper
+  sheetWrap: { position: 'absolute', left: 12, right: 12, zIndex: 20 },
+  sheetCard: {
+    borderRadius: 22, padding: 16,
+    shadowOpacity: 0.2, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 10,
+  },
+  sheetHandle: {
+    width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(148,163,184,0.4)',
+    alignSelf: 'center', marginBottom: 12,
+  },
+  sheetCloseBtn: { padding: 4, marginLeft: 4 },
+
   routeIconWrap: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: '#4285f4',
-    alignItems: 'center', justifyContent: 'center', marginRight: 12,
+    width: 38, height: 38, borderRadius: 19, backgroundColor: '#4285f4',
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#4285f4', shadowOpacity: 0.4, shadowRadius: 8, elevation: 3,
   },
-  routeTitle: { fontSize: 14, fontWeight: '800' },
-  routeSub: { fontSize: 12, marginTop: 1, fontWeight: '600' },
-  routeClose: { padding: 4 },
+  routeTitle: { fontSize: 14.5, fontWeight: '800' },
+  routeSub: { fontSize: 12, marginTop: 2, fontWeight: '600' },
 
-  salonCard: {
-    position: 'absolute', left: 12, right: 12, bottom: 16,
-    borderRadius: 18, borderWidth: 1, padding: 14,
-    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 10, elevation: 6,
-  },
-  cardImg: { width: 64, height: 64, borderRadius: 12 },
-  cardName: { fontSize: 15, fontWeight: '800' },
+  cardImg: { width: 66, height: 66, borderRadius: 14 },
+  cardImgFallback: { backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' },
+  cardName: { fontSize: 16, fontWeight: '800', letterSpacing: -0.2 },
   dirBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    backgroundColor: '#4285f4', borderRadius: 12, paddingVertical: 11,
+    backgroundColor: '#4285f4', borderRadius: 13, paddingVertical: 12,
+    shadowColor: '#4285f4', shadowOpacity: 0.35, shadowRadius: 8, elevation: 3,
   },
-  dirBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  dirBtnText: { color: '#fff', fontSize: 13.5, fontWeight: '700' },
   viewBtn: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
-    borderRadius: 12, borderWidth: 1.5, paddingVertical: 11,
+    borderRadius: 13, borderWidth: 1.5, paddingVertical: 12,
   },
-  viewBtnText: { fontSize: 13, fontWeight: '700' },
+  viewBtnText: { fontSize: 13.5, fontWeight: '700' },
+
+  retryBtn: {
+    marginTop: 6, flexDirection: 'row', alignItems: 'center', gap: 7,
+    backgroundColor: '#6366f1', borderRadius: 13, paddingHorizontal: 24, paddingVertical: 12,
+    shadowColor: '#6366f1', shadowOpacity: 0.35, shadowRadius: 10, elevation: 4,
+  },
 });
