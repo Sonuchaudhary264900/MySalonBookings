@@ -71,16 +71,20 @@ export default function MapScreen() {
   const headingSubRef = useRef(null);
   const posSubRef = useRef(null);
   const autoRoutedRef = useRef(false);
+  const mapReadyFlag = useRef(false);
 
   const [coords, setCoords] = useState(null);
   const [salons, setSalons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mapReady, setMapReady] = useState(false);
+  const [mapError, setMapError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [followMode, setFollowMode] = useState(false);
   const [compassActive, setCompassActive] = useState(false);
   const [selected, setSelected] = useState(null);
   const [routeData, setRouteData] = useState(null);
   const [routeLoading, setRouteLoading] = useState(false);
+  const readyTimerRef = useRef(null);
 
   const inject = useCallback((js) => {
     webRef.current?.injectJavaScript(js + '; true;');
@@ -210,10 +214,36 @@ export default function MapScreen() {
       } else if (data.type === 'dragged') {
         setFollowMode(false);
       } else if (data.type === 'ready') {
+        clearTimeout(readyTimerRef.current);
+        mapReadyFlag.current = true;
         setMapReady(true);
+        setMapError(false);
+      } else if (data.type === 'error') {
+        clearTimeout(readyTimerRef.current);
+        setMapError(true);
       }
     } catch { /* ignore */ }
   };
+
+  const retryMap = useCallback(() => {
+    setMapError(false);
+    setMapReady(false);
+    mapReadyFlag.current = false;
+    autoRoutedRef.current = false;
+    setReloadKey(k => k + 1);
+  }, []);
+
+  // If the map hasn't signalled "ready" within 9s (CDN/tile failure, blocked network), show retry
+  useEffect(() => {
+    if (loading) return;
+    mapReadyFlag.current = false;
+    setMapReady(false);
+    clearTimeout(readyTimerRef.current);
+    readyTimerRef.current = setTimeout(() => {
+      if (!mapReadyFlag.current) setMapError(true);
+    }, 9000);
+    return () => clearTimeout(readyTimerRef.current);
+  }, [loading, reloadKey]);
 
   const center = coords || INDIA_CENTER;
   const pins = salons
@@ -226,16 +256,22 @@ export default function MapScreen() {
       photo: s.coverPhoto || s.photos?.[0] || s.logo || s.profilePhoto || '',
     }));
 
-  const tile = isDark
-    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+  // Single well-known OSM tile source (no dependence on CartoDB); dark mode is
+  // achieved with a CSS filter so we never rely on a second, less-reliable host.
+  const tile = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+  // JSON.stringify does not escape "</script>", which (if present in a
+  // salon name) would truncate the inline <script> tag and leave a blank
+  // page with no error. Escape defensively before inlining.
+  const safeJson = (v) => JSON.stringify(v).replace(/</g, '\u003c');
 
   const html = `<!DOCTYPE html><html><head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" onerror="window.ReactNativeWebView.postMessage(JSON.stringify({type:'error'}))"></script>
 <style>
 html,body,#map{height:100%;margin:0;padding:0;background:${isDark ? '#0f172a' : '#f9fafb'}}
+${isDark ? '.leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.92) saturate(0.85);}' : ''}
 @keyframes gpsRing{0%{transform:scale(0.8);opacity:0.6}100%{transform:scale(3.2);opacity:0}}
 @keyframes mvPulse{0%{transform:scale(0.85);opacity:0.8}70%{transform:scale(1.35);opacity:0}100%{transform:scale(1.35);opacity:0}}
 .uwrap{position:relative;width:64px;height:64px;pointer-events:none}
@@ -251,8 +287,10 @@ html,body,#map{height:100%;margin:0;padding:0;background:${isDark ? '#0f172a' : 
 .destpin{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#ea4335,#c0392b);border:3px solid #fff;box-shadow:0 4px 14px rgba(234,67,53,0.55);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px}
 </style>
 </head><body><div id="map"></div><script>
+window.onerror = function(){ try{ window.ReactNativeWebView.postMessage(JSON.stringify({type:'error'})); }catch(e){} return true; };
+if (typeof L === 'undefined') { window.onerror(); throw new Error('leaflet failed to load'); }
 var map = L.map('map',{zoomControl:false,attributionControl:false}).setView([${center.lat},${center.lng}], 13);
-L.tileLayer('${tile}',{maxZoom:19,subdomains:'abcd'}).addTo(map);
+L.tileLayer('${tile}',{maxZoom:19,subdomains:'abc'}).addTo(map);
 var RN = window.ReactNativeWebView;
 var follow = false;
 window.setFollow = function(v){ follow = v; };
@@ -280,7 +318,7 @@ window.setHeading = function(deg){
 };
 
 /* Salon photo pins */
-var pins = ${JSON.stringify(pins)};
+var pins = ${safeJson(pins)};
 var markers = {};
 var activeId = null;
 function pinHtml(p, active){
@@ -357,18 +395,46 @@ RN.postMessage(JSON.stringify({type:'ready'}));
           <ActivityIndicator size="large" color="#6366f1" style={{ marginTop: 60 }} />
         ) : (
           <WebView
+            key={reloadKey}
             ref={webRef}
             source={{ html }}
             originWhitelist={['*']}
             onMessage={onMessage}
+            onError={() => setMapError(true)}
+            onHttpError={() => setMapError(true)}
+            onRenderProcessGone={() => setMapError(true)}
             javaScriptEnabled
             domStorageEnabled
+            androidLayerType="hardware"
             style={{ flex: 1, backgroundColor: theme.bg }}
           />
         )}
 
+        {/* Load failure — CDN/tile network blocked, WebView crashed, etc. */}
+        {!loading && !mapReady && mapError && (
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 14 }]}>
+            <Ionicons name="cloud-offline-outline" size={44} color={theme.subText} />
+            <AppText style={{ fontSize: 16, fontWeight: '800', color: theme.text, textAlign: 'center' }}>
+              Map couldn't load
+            </AppText>
+            <AppText style={{ fontSize: 13, color: theme.subText, textAlign: 'center', maxWidth: 260 }}>
+              Check your internet connection and try again.
+            </AppText>
+            <TouchableOpacity onPress={retryMap} style={{ marginTop: 4, backgroundColor: '#6366f1', borderRadius: 12, paddingHorizontal: 22, paddingVertical: 11 }} activeOpacity={0.85}>
+              <AppText style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Retry</AppText>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Still connecting */}
+        {!loading && !mapReady && !mapError && (
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center' }]} pointerEvents="none">
+            <ActivityIndicator size="large" color="#6366f1" />
+          </View>
+        )}
+
         {/* Map controls: compass + locate/follow */}
-        {!loading && (
+        {!loading && mapReady && (
           <View style={styles.controls} pointerEvents="box-none">
             <TouchableOpacity
               onPress={toggleCompass}
